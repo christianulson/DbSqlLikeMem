@@ -1,2 +1,2 @@
 # DbSqlLikeMem
-InMemory C# Database for Unit Test (Mysql, SqlServer, Oracle, Postgree) 
+InMemory C# Database for Unit Test (Mysql, SqlServer, Oracle, Postgre) 
