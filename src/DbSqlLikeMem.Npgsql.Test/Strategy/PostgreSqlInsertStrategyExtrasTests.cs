@@ -74,6 +74,10 @@ public sealed class PostgreSqlInsertStrategyExtrasTests(
     }
 }
 
+/// <summary>
+/// EN: Tests delete strategy behavior with foreign keys.
+/// PT: Testes do comportamento da estratégia de delete com chaves estrangeiras.
+/// </summary>
 public class PostgreSqlDeleteStrategyForeignKeyTests
 {
     [Fact]
@@ -105,6 +109,10 @@ public class PostgreSqlDeleteStrategyForeignKeyTests
     }
 }
 
+/// <summary>
+/// EN: Extra tests for update strategy behavior.
+/// PT: Testes extras do comportamento da estratégia de update.
+/// </summary>
 public class PostgreSqlUpdateStrategyExtrasTests
 {
     [Fact]

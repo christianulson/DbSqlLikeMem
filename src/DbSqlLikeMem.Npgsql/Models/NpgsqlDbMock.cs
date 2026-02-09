@@ -1,5 +1,9 @@
 namespace DbSqlLikeMem.Npgsql;
 
+/// <summary>
+/// EN: In-memory database mock configured for Npgsql.
+/// PT: Mock de banco em memória configurado para Npgsql.
+/// </summary>
 public class NpgsqlDbMock : DbMock
 {
     internal override SqlDialectBase Dialect { get; set; }

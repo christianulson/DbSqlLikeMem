@@ -92,6 +92,10 @@ SELECT * FROM t ORDER BY iddesc ASC LIMIT 2 OFFSET 1;";
     }
 }
 
+/// <summary>
+/// EN: Extra tests for SQL translation behavior.
+/// PT: Testes extras para o comportamento de tradução SQL.
+/// </summary>
 public class SqlTranslatorTests
 {
     [Fact]

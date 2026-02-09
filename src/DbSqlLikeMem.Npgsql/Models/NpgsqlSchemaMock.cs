@@ -1,5 +1,9 @@
 namespace DbSqlLikeMem.Npgsql;
 
+/// <summary>
+/// EN: Schema mock for Npgsql databases.
+/// PT: Mock de esquema para bancos Npgsql.
+/// </summary>
 public class NpgsqlSchemaMock(
     string schemaName,
     NpgsqlDbMock db,

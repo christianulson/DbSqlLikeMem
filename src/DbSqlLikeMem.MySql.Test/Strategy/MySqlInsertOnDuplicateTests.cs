@@ -1,5 +1,9 @@
 namespace DbSqlLikeMem.MySql.Test.Strategy;
 
+/// <summary>
+/// EN: Tests for INSERT ... ON DUPLICATE behavior.
+/// PT: Testes para comportamento de INSERT ... ON DUPLICATE.
+/// </summary>
 public class MySqlInsertOnDuplicateTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)

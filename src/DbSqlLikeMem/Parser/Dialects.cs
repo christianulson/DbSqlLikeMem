@@ -1,10 +1,22 @@
 namespace DbSqlLikeMem;
 
+/// <summary>
+/// EN: String escaping styles supported by the parser.
+/// PT: Estilos de escape de string suportados pelo parser.
+/// </summary>
 internal enum SqlStringEscapeStyle { backslash, doubled_quote }
+/// <summary>
+/// EN: Identifier escaping styles supported by the parser.
+/// PT: Estilos de escape de identificador suportados pelo parser.
+/// </summary>
 internal enum SqlIdentifierEscapeStyle { double_quote, backtick, bracket }
 
 internal readonly record struct SqlQuotePair(char Begin, char End);
 
+/// <summary>
+/// EN: Defines escape rules and behavior for a SQL dialect.
+/// PT: Define regras de escape e comportamento de um dialeto SQL.
+/// </summary>
 internal interface ISqlDialect
 {
     public int Version { get; }

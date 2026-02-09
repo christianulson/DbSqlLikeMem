@@ -1,5 +1,9 @@
 namespace DbSqlLikeMem.Oracle;
 
+/// <summary>
+/// EN: Schema mock for Oracle databases.
+/// PT: Mock de esquema para bancos Oracle.
+/// </summary>
 public class OracleSchemaMock(
     string schemaName,
     OracleDbMock db,

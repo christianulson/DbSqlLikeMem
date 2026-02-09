@@ -2,6 +2,10 @@ using System.Collections;
 using System.Linq.Expressions;
 
 namespace DbSqlLikeMem.Oracle;
+/// <summary>
+/// EN: IQueryable wrapper for Oracle LINQ translation.
+/// PT: Wrapper IQueryable para tradução LINQ do Oracle.
+/// </summary>
 public class OracleQueryable<T> : IOrderedQueryable<T>
 {
     public string TableName { get; }

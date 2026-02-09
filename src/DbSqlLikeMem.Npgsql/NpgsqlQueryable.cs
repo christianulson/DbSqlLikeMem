@@ -2,6 +2,10 @@ using System.Collections;
 using System.Linq.Expressions;
 
 namespace DbSqlLikeMem.Npgsql;
+/// <summary>
+/// EN: IQueryable wrapper for Npgsql LINQ translation.
+/// PT: Wrapper IQueryable para tradução LINQ do Npgsql.
+/// </summary>
 public class NpgsqlQueryable<T> : IOrderedQueryable<T>
 {
     public string TableName { get; }

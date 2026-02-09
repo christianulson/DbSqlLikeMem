@@ -4,6 +4,10 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DbSqlLikeMem.MySql;
 
+/// <summary>
+/// EN: Mock command for MySQL connections.
+/// PT: Comando mock para conexões MySQL.
+/// </summary>
 public class MySqlCommandMock(
     MySqlConnectionMock? connection = null,
     MySqlTransactionMock? transaction = null

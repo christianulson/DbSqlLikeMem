@@ -2,6 +2,10 @@ using System.Collections;
 using System.Linq.Expressions;
 
 namespace DbSqlLikeMem.SqlServer;
+/// <summary>
+/// EN: IQueryable wrapper for SQL Server LINQ translation.
+/// PT: Wrapper IQueryable para tradução LINQ do SQL Server.
+/// </summary>
 public class SqlServerQueryable<T> : IOrderedQueryable<T>
 {
     public string TableName { get; }

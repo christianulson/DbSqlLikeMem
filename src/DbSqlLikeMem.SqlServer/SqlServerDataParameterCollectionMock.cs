@@ -3,6 +3,10 @@ using System.Data.Common;
 using Microsoft.Data.SqlClient;
 
 namespace DbSqlLikeMem.SqlServer;
+/// <summary>
+/// EN: Mock parameter collection for SQL Server commands.
+/// PT: Coleção de parâmetros mock para comandos SQL Server.
+/// </summary>
 public class SqlServerDataParameterCollectionMock
     : DbParameterCollection, IList<SqlParameter>
 {

@@ -1,4 +1,8 @@
 namespace DbSqlLikeMem;
+/// <summary>
+/// EN: Token kinds produced by the SQL tokenizer.
+/// PT: Tipos de tokens produzidos pelo tokenizador SQL.
+/// </summary>
 internal enum SqlTokenKind
 {
     Identifier,

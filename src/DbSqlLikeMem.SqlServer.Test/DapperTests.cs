@@ -221,6 +221,10 @@ UPDATE users
     }
 }
 
+/// <summary>
+/// EN: Test DTO used by Dapper scenarios.
+/// PT: DTO de teste usado nos cenários do Dapper.
+/// </summary>
 public class UserObjectTest
 {
     public int Id { get; set; }

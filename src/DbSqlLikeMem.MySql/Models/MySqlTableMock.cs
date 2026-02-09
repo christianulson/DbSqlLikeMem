@@ -1,5 +1,9 @@
 namespace DbSqlLikeMem.MySql;
 
+/// <summary>
+/// EN: Table mock specialized for MySQL schema operations.
+/// PT: Mock de tabela especializado para operações de esquema MySQL.
+/// </summary>
 internal class MySqlTableMock(
         string tableName,
         MySqlSchemaMock schema,

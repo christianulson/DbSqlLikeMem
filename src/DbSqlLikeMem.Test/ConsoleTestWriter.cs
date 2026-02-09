@@ -3,6 +3,10 @@ using Xunit.Abstractions;
 
 namespace DbSqlLikeMem.Test;
 
+/// <summary>
+/// EN: Redirects Console output to xUnit test output.
+/// PT: Redireciona a saída do Console para o output do xUnit.
+/// </summary>
 public class ConsoleTestWriter(
     ITestOutputHelper helper
     ) : StringWriter
