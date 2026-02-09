@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<ItemGroup>
+		<PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.26.100" />
+		<PackageReference Include="xunit" Version="2.9.3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem\DbSqlLikeMem.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.Oracle.Test" />
+	</ItemGroup>
+	<ItemGroup>
+		<Using Include="System.Data" />
+		<Using Include="System.Globalization" />
+		<Using Include="System.Text.RegularExpressions" />
+	</ItemGroup>
+</Project>

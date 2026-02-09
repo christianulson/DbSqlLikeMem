@@ -1,0 +1,70 @@
+using System.Data.Common;
+using System.Diagnostics;
+
+namespace DbSqlLikeMem.MySql;
+public class MySqlTransactionMock(
+        MySqlConnectionMock cnn,
+        IsolationLevel? isolationLevel = null
+    ) : DbTransaction
+{
+    private bool disposedValue;
+
+    protected override DbConnection? DbConnection => cnn;
+
+    public override IsolationLevel IsolationLevel
+        => isolationLevel ?? IsolationLevel.Unspecified;
+
+    public override void Commit()
+    {
+        lock (cnn.Db.SyncRoot)
+        {
+            Debug.WriteLine("Transaction Committed");
+            cnn.CommitTransaction();
+        }
+    }
+
+    public override void Rollback()
+    {
+        lock (cnn.Db.SyncRoot)
+        {
+            Debug.WriteLine("Transaction Rolled Back");
+            cnn.RollbackTransaction();
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (!disposedValue)
+        {
+            if (disposing)
+#pragma warning disable S1135 // Track uses of "TODO" tags
+            {
+                // TODO: dispose managed state (managed objects)
+            }
+#pragma warning restore S1135 // Track uses of "TODO" tags
+
+
+#pragma warning disable S1135 // Track uses of "TODO" tags
+            // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+
+#pragma warning disable S1135 // Track uses of "TODO" tags
+            // TODO: set large fields to null
+            disposedValue = true;
+#pragma warning restore S1135 // Track uses of "TODO" tags
+#pragma warning restore S1135 // Track uses of "TODO" tags
+        }
+        base.Dispose(disposing);
+    }
+
+
+#pragma warning disable S1135 // Track uses of "TODO" tags
+    // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+    // ~MySqlTransactionMock()
+
+#pragma warning disable S125 // Sections of code should not be commented out
+    // {
+    //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+    //     Dispose(disposing: false);
+    // }
+
+}

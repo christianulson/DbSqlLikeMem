@@ -1,0 +1,113 @@
+namespace DbSqlLikeMem.Npgsql.Test;
+
+/// <summary>
+/// These are TDD "gap" tests for MySQL features that are NOT implemented yet in the in-memory mock.
+/// They are intentionally skipped so they don't break your build until you decide to implement them.
+/// When you implement a feature, remove the Skip and make it green.
+/// </summary>
+public sealed class PostgreSqlAdvancedSqlGapTests : XUnitTestBase
+{
+    private readonly NpgsqlConnectionMock _cnn;
+
+    public PostgreSqlAdvancedSqlGapTests(ITestOutputHelper helper) : base(helper)
+    {
+        var db = new NpgsqlDbMock();
+        var users = db.AddTable("users");
+        users.Columns["id"] = new(0, DbType.Int32, false);
+        users.Columns["name"] = new(1, DbType.String, false);
+        users.Columns["tenantid"] = new(2, DbType.Int32, false);
+        users.Columns["created"] = new(3, DbType.DateTime, false);
+
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = 10, [3] = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Local) });
+        users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob", [2] = 10, [3] = new DateTime(2020, 1, 2, 0, 0, 0, DateTimeKind.Local) });
+        users.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Jane", [2] = 20, [3] = new DateTime(2020, 1, 3, 0, 0, 0, DateTimeKind.Local) });
+
+        var orders = db.AddTable("orders");
+        orders.Columns["id"] = new(0, DbType.Int32, false);
+        orders.Columns["userid"] = new(1, DbType.Int32, false);
+        orders.Columns["amount"] = new(2, DbType.Decimal, false);
+
+        orders.Add(new Dictionary<int, object?> { [0] = 10, [1] = 1, [2] = 10m });
+        orders.Add(new Dictionary<int, object?> { [0] = 11, [1] = 1, [2] = 5m });
+        orders.Add(new Dictionary<int, object?> { [0] = 12, [1] = 2, [2] = 7m });
+
+        _cnn = new NpgsqlConnectionMock(db);
+        _cnn.Open();
+    }
+
+    [Fact]
+    public void Window_RowNumber_PartitionBy_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id, tenantid,
+       ROW_NUMBER() OVER (PARTITION BY tenantid ORDER BY id) AS rn
+FROM users
+ORDER BY tenantid, id").ToList();
+
+        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.rn)]);
+    }
+
+    [Fact]
+    public void CorrelatedSubquery_InSelectList_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT u.id,
+       (SELECT SUM(o.amount) FROM orders o WHERE o.userid = u.id) AS total
+FROM users u
+ORDER BY u.id").ToList();
+
+        Assert.Equal([15m, 7m, 0m], [.. rows.Select(r => (decimal)(r.total ?? 0m))]);
+    }
+
+    [Fact]
+    public void DateAdd_IntervalDay_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id, (created + INTERVAL \'1 day\') AS d
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([
+            new DateTime(2020, 1, 2, 0, 0, 0, DateTimeKind.Local),
+            new DateTime(2020, 1, 3, 0, 0, 0, DateTimeKind.Local),
+            new DateTime(2020, 1, 4, 0, 0, 0, DateTimeKind.Local)],
+            [.. rows.Select(r => (DateTime)r.d)]);
+    }
+
+    [Fact]
+    public void Cast_StringToInt_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT CAST('42' AS INT) AS v").ToList();
+        Assert.Single(rows);
+        Assert.Equal(42, (int)rows[0].v);
+    }
+
+    [Fact]
+    public void Regexp_Operator_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name REGEXP '^J' ORDER BY id").ToList();
+        Assert.Equal([1, 3], [.. rows.Select(r => (int)r.id)]);
+    }
+
+    [Fact]
+    public void OrderBy_Field_Function_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users ORDER BY CASE id WHEN 3 THEN 1 WHEN 1 THEN 2 WHEN 2 THEN 3 ELSE 4 END").ToList();
+        Assert.Equal([3, 1, 2], [.. rows.Select(r => (int)r.id)]);
+    }
+
+    [Fact]
+    public void Collation_CaseSensitivity_ShouldFollowColumnCollation()
+    {
+        // Example expectation in MySQL: behavior depends on column collation.
+        // This is intentionally a gap test — decide the mock rule, then implement it consistently.
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name = 'john' ORDER BY id").ToList();
+        Assert.Equal([1], [.. rows.Select(r => (int)r.id)]);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        _cnn?.Dispose();
+        base.Dispose(disposing);
+    }
+}

@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<ItemGroup>
+		<PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.1" />
+		<PackageReference Include="CsvHelper" Version="33.1.0" />
+		<PackageReference Include="Dapper" Version="2.1.66" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.MySql" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Npgsql" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Npgsql.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Oracle" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Oracle.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer.Test" />
+	</ItemGroup>
+	<ItemGroup>
+		<Using Include="System.Data" />
+		<Using Include="System.Data.Common" />
+		<Using Include="System.Globalization" />
+		<Using Include="System.Text.RegularExpressions" />
+	</ItemGroup>
+</Project>

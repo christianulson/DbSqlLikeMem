@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Project Path="DbSqlLikeMem.MySql.Test/DbSqlLikeMem.MySql.Test.csproj" />
+  <Project Path="DbSqlLikeMem.MySql/DbSqlLikeMem.MySql.csproj" />
+  <Project Path="DbSqlLikeMem.Npgsql.Test/DbSqlLikeMem.Npgsql.Test.csproj" />
+  <Project Path="DbSqlLikeMem.Npgsql/DbSqlLikeMem.Npgsql.csproj" />
+  <Project Path="DbSqlLikeMem.Oracle.Test/DbSqlLikeMem.Oracle.Test.csproj" />
+  <Project Path="DbSqlLikeMem.Oracle/DbSqlLikeMem.Oracle.csproj" />
+  <Project Path="DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj" />
+  <Project Path="DbSqlLikeMem.SqlServer/DbSqlLikeMem.SqlServer.csproj" />
+  <Project Path="DbSqlLikeMem.Test/DbSqlLikeMem.Test.csproj" />
+  <Project Path="DbSqlLikeMem/DbSqlLikeMem.csproj" />
+</Solution>

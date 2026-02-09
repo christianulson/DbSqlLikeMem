@@ -1,0 +1,189 @@
+namespace DbSqlLikeMem;
+
+public static class DbSeedExtensions
+{
+    public static DbConnectionMockBase Define(
+        this DbConnectionMockBase cnn,
+        string tableName,
+        IColumnDictionary? columns = null,
+        IEnumerable<Dictionary<int, object?>>? rows = null,
+        string? schemaName = null)
+    {
+        ArgumentNullException.ThrowIfNull(cnn);
+        if (!cnn.Db.ContainsTable(tableName, schemaName))
+            cnn.Db.AddTable(tableName, columns, rows);
+
+        return cnn;
+    }
+
+    public static ITableMock DefineTable(
+        this DbConnectionMockBase cnn,
+        string tableName,
+        IColumnDictionary? columns = null,
+        IEnumerable<Dictionary<int, object?>>? rows = null,
+        string? schemaName = null)
+    {
+        ArgumentNullException.ThrowIfNull(cnn);
+        if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName))
+            tb = cnn.Db.AddTable(tableName, columns, rows);
+        ArgumentNullException.ThrowIfNull(tb);
+        return tb;
+    }
+
+    public static DbConnectionMockBase Column<T>(
+        this DbConnectionMockBase cnn,
+        string tableName,
+        string column,
+        bool pk = false,
+        bool identity = false,
+        bool nullable = false,
+        object? defaultValue = null,
+        string? references = null,
+        string? schemaName = null)
+    {
+        ArgumentNullException.ThrowIfNull(cnn);
+
+        if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName))
+            throw new InvalidOperationException($"Tabela '{tableName}' ainda não definida.");
+        ArgumentNullException.ThrowIfNull(tb);
+        ArgumentNullException.ThrowIfNull(column);
+
+        if (tb.Columns.ContainsKey(column))
+            throw new InvalidOperationException($"Coluna '{column}' já existe em '{tableName}'.");
+
+        var idx = tb.Columns.Count;
+        var dbType = MapTypeToDbType(typeof(T));
+
+        tb.Columns[column] = new ColumnDef
+        {
+            Index = idx,
+            DbType = dbType,
+            Nullable = nullable,
+            Identity = identity,
+            DefaultValue = defaultValue
+        };
+
+        // opcional: armazenar PK info, se precisar depois
+        if (pk) tb.PrimaryKeyIndexes.Add(idx);
+
+        if (references is not null)
+        {
+            var parts = references.Split('.');
+            tb.CreateForeignKey(column, parts[0], parts[1]);
+        }
+        return cnn;
+    }
+
+    public static ITableMock Column<T>(
+        this ITableMock tb,
+        string column,
+        bool pk = false,
+        bool identity = false,
+        bool nullable = false,
+        object? defaultValue = null,
+        string? references = null,
+        params string[] enumOrSetValues)
+    {
+        ArgumentNullException.ThrowIfNull(tb);
+        ArgumentNullException.ThrowIfNull(column);
+
+        if (tb.Columns.ContainsKey(column))
+            throw new InvalidOperationException($"Coluna '{column}' já existe em '{tb}'.");
+
+        var idx = tb.Columns.Count;
+        var dbType = MapTypeToDbType(typeof(T));
+
+        tb.Columns[column] = new ColumnDef
+        {
+            Index = idx,
+            DbType = dbType,
+            Nullable = nullable,
+            Identity = identity,
+            DefaultValue = defaultValue,
+            EnumValues = enumOrSetValues?.Length > 0
+                ? new HashSet<string>(
+                    enumOrSetValues.Select(v => v.ToLower(CultureInfo.CurrentCulture)),
+                    StringComparer.OrdinalIgnoreCase)
+                : []
+        };
+
+        // opcional: armazenar PK info, se precisar depois
+        if (pk) tb.PrimaryKeyIndexes.Add(idx);
+
+        if (references is not null)
+        {
+            var parts = references.Split('.');
+            tb.CreateForeignKey(column, parts[0], parts[1]);
+        }
+        return tb;
+    }
+
+    public static DbConnectionMockBase Seed<T>(
+        this DbConnectionMockBase cnn,
+        string tableName,
+        string? schemaName = null,
+        params T[] rows)
+        where T : struct
+    {
+        ArgumentNullException.ThrowIfNull(cnn);
+        ArgumentNullException.ThrowIfNull(rows);
+        if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName) || tb == null)
+            throw new InvalidOperationException($"Tabela '{tableName}' ainda não definida.");
+        var props = typeof(T).GetFields();
+        foreach (var r in rows)
+        {
+            var dic = new Dictionary<int, object?>();
+            foreach (var p in props)
+            {
+                var idx = tb.GetColumn(p.Name).Index;
+                dic[idx] = p.GetValue(r);
+            }
+            tb.Add(dic);
+        }
+        return cnn;
+    }
+
+    public static DbConnectionMockBase Seed(
+        this DbConnectionMockBase cnn,
+        string tableName,
+        string? schemaName = null,
+        params object?[][] rows)
+    {
+        ArgumentNullException.ThrowIfNull(cnn);
+        ArgumentNullException.ThrowIfNull(rows);
+        if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName) || tb == null)
+            throw new InvalidOperationException($"Tabela '{tableName}' ainda não definida.");
+        foreach (var arr in rows)
+        {
+            var dic = new Dictionary<int, object?>();
+            for (int i = 0; i < arr.Length; i++)
+                dic[i] = arr[i];
+            tb.Add(dic);
+        }
+        return cnn;
+    }
+
+    private static DbType MapTypeToDbType(Type t) => t switch
+    {
+        var _ when t == typeof(int) => DbType.Int32,
+        var _ when t == typeof(long) => DbType.Int64,
+        var _ when t == typeof(string) => DbType.String,
+        var _ when t == typeof(bool) => DbType.Boolean,
+        var _ when t == typeof(Guid) => DbType.Guid,
+        var _ when t == typeof(DateTime) => DbType.DateTime,
+        var _ when t == typeof(decimal) => DbType.Decimal,
+        var _ when t == typeof(double) => DbType.Double,
+        _ => DbType.Object
+    };
+
+    // --------------------------- ÍNDICE -------------------------------
+    public static ITableMock Index(this ITableMock tb,
+        string name,
+        string[] keyCols,
+        string[]? include = null)
+    {
+        ArgumentNullException.ThrowIfNull(tb);
+        tb.CreateIndex(new IndexDef(name, keyCols, include ?? []));
+        return tb;
+    }
+}

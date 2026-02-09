@@ -1,0 +1,466 @@
+namespace DbSqlLikeMem;
+
+internal static class DbInsertStrategy
+{
+    public static int ExecuteInsert(
+        this DbConnectionMockBase connection,
+        SqlInsertQuery query,
+        DbParameterCollection pars,
+        ISqlDialect dialect)
+    {
+        if (!connection.Db.ThreadSafe)
+            return Execute(connection, query, pars, dialect);
+        lock (connection.Db.SyncRoot)
+            return Execute(connection, query, pars, dialect);
+    }
+
+    private static int Execute(
+        DbConnectionMockBase connection,
+        SqlInsertQuery query,
+        DbParameterCollection? pars,
+        ISqlDialect dialect)
+    {
+        ArgumentNullException.ThrowIfNull(query.Table);
+        ArgumentException.ThrowIfNullOrWhiteSpace(query.Table.Name);
+
+        var tableName = query.Table.Name; // Nome vindo do Parser
+        if (!connection.TryGetTable(tableName, out var table, query.Table.DbName) || table == null)
+            throw new InvalidOperationException($"Table {tableName} does not exist.");
+
+        // Identifica linhas a inserir (seja via VALUES ou SELECT)
+        List<Dictionary<int, object?>> newRows;
+
+        if (query.InsertSelect != null)
+        {
+            // Caso: INSERT INTO ... SELECT ...
+            newRows = CreateRowsFromSelect(query, table, connection, pars, dialect);
+        }
+        else
+        {
+            // Caso: INSERT INTO ... VALUES ...
+            newRows = CreateRowsFromValues(query, table, pars);
+        }
+
+        int insertedCount = 0;
+        int updatedCount = 0;
+
+        foreach (var newRow in newRows)
+        {
+            if (!query.HasOnDuplicateKeyUpdate)
+            {
+                // Inserção normal
+                ValidateUnique(tableName, table, newRow);
+                table.Add(newRow);
+                table.UpdateIndexesWithRow(table.Count - 1);
+                insertedCount++;
+                continue;
+            }
+
+            // Lógica ON DUPLICATE KEY UPDATE
+            var conflictIdx = FindConflictingRowIndex(table, newRow, out _, out _);
+            if (conflictIdx is null)
+            {
+                // Sem conflito -> Insere
+                ValidateUnique(tableName, table, newRow);
+                table.Add(newRow);
+                table.UpdateIndexesWithRow(table.Count - 1);
+                insertedCount++;
+            }
+            else
+            {
+                // Conflito -> Update
+                var existingRow = table[conflictIdx.Value];
+                ApplyOnDuplicateUpdateAst(table, existingRow, newRow, query.OnDupAssigns, pars, dialect);
+
+                // Rebuild índices afetados (simplificado: rebuild all)
+                table.RebuildAllIndexes();
+                updatedCount++;
+            }
+        }
+
+        connection.Metrics.Inserts += insertedCount;
+        connection.Metrics.Updates += updatedCount;
+
+        // MySQL retorna: 1 para insert, 2 para update em conflito
+        return insertedCount + (updatedCount * 2);
+    }
+
+    // --- Helpers de Criação de Linhas ---
+
+    private static List<Dictionary<int, object?>> CreateRowsFromValues(
+        SqlInsertQuery query,
+        ITableMock table,
+        DbParameterCollection? pars)
+    {
+        var rows = new List<Dictionary<int, object?>>();
+        var colNames = query.Columns; // Lista de colunas do Insert
+
+        foreach (var valueBlock in query.ValuesRaw) // List<string> (tokens raw)
+        {
+            // Validação de count
+            if (colNames.Count > 0 && colNames.Count != valueBlock.Count)
+                throw new InvalidOperationException($"Column count ({colNames.Count}) does not match value count ({valueBlock.Count}).");
+
+            var newRow = new Dictionary<int, object?>();
+
+            // Se colNames estiver vazio, assume ordem das colunas da tabela? 
+            // O Mock original assumia que se não tem colunas, tem que bater com tudo ou ser default.
+            // Aqui vamos assumir que o Parser preencheu corretamente ou usamos lógica posicional se Columns vazio.
+
+            if (colNames.Count == 0 && valueBlock.Count > 0)
+            {
+                // Insert implicito: INSERT INTO t VALUES (1, 2)
+                // Mapeia por index da tabela
+                var tableCols = table.Columns.Values.OrderBy(c => c.Index).ToList();
+                for (int i = 0; i < valueBlock.Count; i++)
+                {
+                    if (i >= tableCols.Count) break;
+                    SetColValue(table, pars, tableCols[i].Index, valueBlock[i], newRow);
+                }
+            }
+            else if (colNames.Count > 0)
+            {
+                // Insert explícito: INSERT INTO t (a,b) VALUES (1, 2)
+                for (int i = 0; i < colNames.Count; i++)
+                {
+                    var colInfo = table.GetColumn(colNames[i]);
+                    SetColValue(table, pars, colInfo.Index, valueBlock[i], newRow);
+                }
+            }
+
+            SetRowDefaultValues(table, newRow);
+            rows.Add(newRow);
+        }
+        return rows;
+    }
+
+    private static List<Dictionary<int, object?>> CreateRowsFromSelect(
+        SqlInsertQuery query,
+        ITableMock targetTable,
+        DbConnectionMockBase connection,
+        DbParameterCollection? pars,
+        ISqlDialect dialect)
+    {
+        // Executa o SELECT interno
+        var executor = AstQueryExecutorFactory.Create(dialect, connection, pars ?? connection.CreateCommand().Parameters);
+        var res = executor.ExecuteSelect(query.InsertSelect!);
+
+        var rows = new List<Dictionary<int, object?>>();
+        var colNames = query.Columns;
+
+        if (colNames.Count > 0 && colNames.Count != res.Columns.Count)
+            throw new InvalidOperationException("Column count does not match SELECT list.");
+
+        foreach (var srcRow in res)
+        {
+            var newRow = new Dictionary<int, object?>();
+
+            if (colNames.Count > 0)
+            {
+                // Mapeamento por nome explícito
+                for (int i = 0; i < colNames.Count; i++)
+                {
+                    var colInfo = targetTable.GetColumn(colNames[i]);
+                    var val = srcRow.TryGetValue(i, out var v) ? v : null;
+                    newRow[colInfo.Index] = (val is DBNull) ? null : val;
+                }
+            }
+            else
+            {
+                // Mapeamento posicional implícito
+                var tableCols = targetTable.Columns.Values.OrderBy(c => c.Index).ToList();
+                for (int i = 0; i < res.Columns.Count; i++)
+                {
+                    if (i >= tableCols.Count) break;
+                    var val = srcRow.TryGetValue(i, out var v) ? v : null;
+                    newRow[tableCols[i].Index] = (val is DBNull) ? null : val;
+                }
+            }
+
+            SetRowDefaultValues(targetTable, newRow);
+            rows.Add(newRow);
+        }
+        return rows;
+    }
+
+    private static void SetColValue(
+        ITableMock table,
+        DbParameterCollection? pars,
+        int colIndex,
+        string rawValue,
+        Dictionary<int, object?> row)
+    {
+        // Encontra definição da coluna para saber tipo
+        var colDef = table.Columns.Values.First(c => c.Index == colIndex);
+
+        // Resolve valor
+        table.CurrentColumn = table.Columns.First(c => c.Value.Index == colIndex).Key;
+        var resolved = table.Resolve(rawValue, colDef.DbType, colDef.Nullable, pars, table.Columns);
+        table.CurrentColumn = null;
+
+        var val = (resolved is DBNull) ? null : resolved;
+        if (val == null && !colDef.Nullable)
+            throw table.ColumnCannotBeNull("Idx:" + colIndex);
+
+        row[colIndex] = val;
+    }
+
+    // --- Helpers de ON DUPLICATE ---
+
+    private static void ApplyOnDuplicateUpdateAst(
+        ITableMock table,
+        Dictionary<int, object?> existingRow,
+        Dictionary<int, object?> insertedRow,
+        IReadOnlyList<(string Col, string ExprRaw)> assigns,
+        DbParameterCollection? pars,
+        ISqlDialect dialect)
+    {
+        object? GetParamValue(string rawName)
+        {
+            if (pars is null) return null;
+            var n = rawName.Trim();
+            // remove common prefixes
+            if (n.Length > 0 && (n[0] == '@' || n[0] == ':' || n[0] == '?')) n = n[1..];
+
+            foreach (DbParameter p in pars)
+            {
+                var pn = p.ParameterName?.TrimStart('@', ':', '?') ?? "";
+                if (string.Equals(pn, n, StringComparison.OrdinalIgnoreCase))
+                    return p.Value is DBNull ? null : p.Value;
+            }
+            return null;
+        }
+
+        object? GetInsertedColumnValue(string col)
+        {
+            var info = table.GetColumn(col);
+            return insertedRow.TryGetValue(info.Index, out var v) ? v : null;
+        }
+
+        object? GetExistingColumnValue(string col)
+        {
+            var info = table.GetColumn(col);
+            return existingRow.TryGetValue(info.Index, out var v) ? v : null;
+        }
+
+        static object? Coerce(DbType dbType, object? value)
+        {
+            if (value is null || value is DBNull) return null;
+
+            try
+            {
+                return dbType switch
+                {
+                    DbType.String => value.ToString(),
+                    DbType.Int16 => Convert.ToInt16(value),
+                    DbType.Int32 => Convert.ToInt32(value),
+                    DbType.Int64 => Convert.ToInt64(value),
+                    DbType.Byte => Convert.ToByte(value),
+                    DbType.Boolean => value is bool b ? b : Convert.ToInt32(value) != 0,
+                    DbType.Decimal => Convert.ToDecimal(value),
+                    DbType.Double => Convert.ToDouble(value),
+                    DbType.Single => Convert.ToSingle(value),
+                    DbType.DateTime => value is DateTime dt ? dt : Convert.ToDateTime(value),
+                    _ => value
+                };
+            }
+            catch
+            {
+                // Fallback: se for string e o convert falhou, devolve string (vai falhar mais tarde se realmente precisar)
+                return value;
+            }
+        }
+
+        object? Eval(SqlExpr expr)
+        {
+            return expr switch
+            {
+                LiteralExpr lit => lit.Value,
+                ParameterExpr p => GetParamValue(p.Name),
+                IdentifierExpr id => GetExistingColumnValue(id.Name.Contains('.') ? id.Name.Split('.').Last() : id.Name),
+                ColumnExpr c => GetExistingColumnValue(c.Name),
+                UnaryExpr u when u.Op == SqlUnaryOp.Not => !(Convert.ToBoolean(Eval(u.Expr) ?? false)),
+                IsNullExpr n => (Eval(n.Expr) is null) ^ n.Negated,
+                BinaryExpr b => b.Op switch
+                {
+                    SqlBinaryOp.Add => (Convert.ToDecimal(Eval(b.Left) ?? 0m) + Convert.ToDecimal(Eval(b.Right) ?? 0m)),
+                    SqlBinaryOp.Subtract => (Convert.ToDecimal(Eval(b.Left) ?? 0m) - Convert.ToDecimal(Eval(b.Right) ?? 0m)),
+                    SqlBinaryOp.Multiply => (Convert.ToDecimal(Eval(b.Left) ?? 0m) * Convert.ToDecimal(Eval(b.Right) ?? 0m)),
+                    SqlBinaryOp.Divide => (Convert.ToDecimal(Eval(b.Left) ?? 0m) / Convert.ToDecimal(Eval(b.Right) ?? 0m)),
+                    SqlBinaryOp.Eq => Equals(Eval(b.Left), Eval(b.Right)),
+                    SqlBinaryOp.Neq => !Equals(Eval(b.Left), Eval(b.Right)),
+                    SqlBinaryOp.And => Convert.ToBoolean(Eval(b.Left) ?? false) && Convert.ToBoolean(Eval(b.Right) ?? false),
+                    SqlBinaryOp.Or => Convert.ToBoolean(Eval(b.Left) ?? false) || Convert.ToBoolean(Eval(b.Right) ?? false),
+                    _ => throw new InvalidOperationException($"Operador não suportado no ON DUPLICATE: {b.Op}")
+                },
+                CallExpr call => EvalCall(call),
+                FunctionCallExpr fn => EvalFunction(fn),
+                RawSqlExpr raw => throw new InvalidOperationException($"Expressão não suportada no ON DUPLICATE: {raw.Sql}"),
+                _ => throw new InvalidOperationException($"Expressão não suportada no ON DUPLICATE: {expr.GetType().Name}")
+            };
+        }
+
+        object? EvalFunction(FunctionCallExpr fn)
+        {
+            // compat: alguns parsers usam FunctionCallExpr
+            var name = fn.Name;
+            if (name.Equals("NOW", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("CURRENT_TIMESTAMP", StringComparison.OrdinalIgnoreCase))
+                return DateTime.UtcNow;
+
+            // se vier algo simples tipo VALUES(...) cair aqui por engano, tenta tratar:
+            if (name.Equals("VALUES", StringComparison.OrdinalIgnoreCase) && fn.Args.Count == 1)
+            {
+                var col = fn.Args[0] switch
+                {
+                    IdentifierExpr id => id.Name,
+                    ColumnExpr c => c.Name,
+                    _ => null
+                };
+                if (!string.IsNullOrWhiteSpace(col))
+                    return GetInsertedColumnValue(col!);
+            }
+
+            throw new InvalidOperationException($"Função não suportada no ON DUPLICATE: {fn.Name}()");
+        }
+
+        object? EvalCall(CallExpr call)
+        {
+            var name = call.Name;
+
+            // MySQL: VALUES(col)
+            if (name.Equals("VALUES", StringComparison.OrdinalIgnoreCase) && call.Args.Count == 1)
+            {
+                var col = call.Args[0] switch
+                {
+                    IdentifierExpr id => id.Name,
+                    ColumnExpr c => c.Name,
+                    _ => null
+                };
+                if (string.IsNullOrWhiteSpace(col))
+                    throw new InvalidOperationException("VALUES() espera 1 coluna");
+
+                return GetInsertedColumnValue(col!);
+            }
+
+            // NOW()
+            if ((name.Equals("NOW", StringComparison.OrdinalIgnoreCase) ||
+                 name.Equals("CURRENT_TIMESTAMP", StringComparison.OrdinalIgnoreCase)) && call.Args.Count == 0)
+                return DateTime.UtcNow;
+
+            throw new InvalidOperationException($"CALL não suportado no ON DUPLICATE: {call.Name}");
+        }
+
+        foreach (var (colName, exprRaw) in assigns)
+        {
+            var colInfo = table.GetColumn(colName);
+
+            // Parseia e avalia a expressão (suporta VALUES(col), users.col, col, aritmética)
+            var ast = SqlExpressionParser.ParseScalar(exprRaw, dialect);
+            var value = Eval(ast);
+
+            existingRow[colInfo.Index] = Coerce(colInfo.DbType, value);
+        }
+    }
+
+    // --- Helpers Genéricos (Mantidos ou Levemente Adaptados) ---
+
+    private static void ValidateUnique(
+        string tableName,
+        ITableMock table,
+        Dictionary<int, object?> newRow)
+    {
+        // PK (PRIMARY)
+        // Some tests set PrimaryKeyIndexes without registering an explicit unique index.
+
+        if (table.PrimaryKeyIndexes.Count > 0)
+        {
+            for (int i = 0; i < table.Count; i++)
+            {
+                var pks = new List<string>();
+                foreach (var pkIdx in table.PrimaryKeyIndexes)
+                {
+                    if (newRow.TryGetValue(pkIdx, out var pkVal)
+                        && table[i].TryGetValue(pkIdx, out var cur)
+                        && Equals(cur, pkVal))
+                    {
+                        pks.Add($"{table.Columns.First(_=>_.Value.Index == pkIdx).Key}: {pkVal}");
+                    }
+                }
+                if (table.PrimaryKeyIndexes.Count == pks.Count)
+                    throw table.DuplicateKey(tableName, "PRIMARY", string.Join(",", pks));
+            }
+        }
+
+        foreach (var idx in table.Indexes.GetUnique())
+        {
+            var key = DbUpdateStrategy.BuildIndexKey(table, idx, newRow);
+            var hits = table.Lookup(idx, key);
+            if (hits?.Any() == true)
+                throw table.DuplicateKey(tableName, idx.Name, key);
+        }
+    }
+
+    private static int? FindConflictingRowIndex(
+        ITableMock table,
+        Dictionary<int, object?> newRow,
+        out string? conflictIndexName,
+        out object? conflictKey)
+    {
+        conflictIndexName = null;
+        conflictKey = null;
+
+        // PK
+        if (table.PrimaryKeyIndexes.Count > 0)
+        {
+            for (int i = 0; i < table.Count; i++)
+            {
+                var pks = new List<string>();
+                foreach (var pkIdx in table.PrimaryKeyIndexes)
+                {
+                    if (newRow.TryGetValue(pkIdx, out var pkVal)
+                        && table[i].TryGetValue(pkIdx, out var cur)
+                        && Equals(cur, pkVal))
+                    {
+                        pks.Add($"{table.Columns.First(_ => _.Value.Index == pkIdx).Key}: {pkVal}");
+                    }
+                }
+                if (table.PrimaryKeyIndexes.Count == pks.Count)
+                {
+                    conflictIndexName = "PRIMARY";
+                    conflictKey = string.Join(",", pks);
+                    return i;
+                }
+            }
+        }
+
+        // Unique
+        foreach (var idx in table.Indexes.GetUnique())
+        {
+            var key = DbUpdateStrategy.BuildIndexKey(table, idx, newRow);
+            var hits = table.Lookup(idx, key);
+            if (hits != null)
+            {
+                var hitsList = hits.ToList(); // Converte para lista para poder usar indexador
+                if (hitsList.Count > 0)
+                {
+                    conflictIndexName = idx.Name;
+                    conflictKey = key;
+                    return hitsList[0]; // Agora o indexador [0] funciona
+                }
+            }
+        }
+        return null;
+    }
+
+    private static void SetRowDefaultValues(ITableMock table, Dictionary<int, object?> newRow)
+    {
+        foreach (var (key, col) in table.Columns)
+        {
+            if (newRow.ContainsKey(col.Index)) continue;
+            if (col.Identity) newRow[col.Index] = table.NextIdentity++;
+            else if (col.DefaultValue != null) newRow[col.Index] = col.DefaultValue;
+            else if (!col.Nullable) throw table.ColumnCannotBeNull(key);
+        }
+    }
+}
