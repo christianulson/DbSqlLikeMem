@@ -77,8 +77,6 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         return 0;
     }
 
-
-
     public static int ExecuteCreateTemporaryTableAsSelect(
         this DbConnectionMockBase connection,
         SqlCreateTemporaryTableQuery query,
