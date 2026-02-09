@@ -72,6 +72,11 @@ public sealed class OracleAggregationTests : XUnitTestBase
         Assert.Equal(2, (int)rows[0].userId);
     }
 
+    /// <summary>
+    /// EN: Disposes test resources.
+    /// PT: Descarta os recursos do teste.
+    /// </summary>
+    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _cnn?.Dispose();

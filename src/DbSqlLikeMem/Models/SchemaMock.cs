@@ -76,6 +76,14 @@ public abstract class SchemaMock
     internal IDictionary<string, SqlSelectQuery> Views { get; } =
         new Dictionary<string, SqlSelectQuery>(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// EN: Creates a new table instance for this schema.
+    /// PT: Cria uma nova instância de tabela para este schema.
+    /// </summary>
+    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
+    /// <param name="columns">EN: Table columns. PT: Colunas da tabela.</param>
+    /// <param name="rows">EN: Initial rows. PT: Linhas iniciais.</param>
+    /// <returns>EN: New table instance. PT: Nova instância de tabela.</returns>
     protected abstract TableMock NewTable(
         string tableName,
         IColumnDictionary columns,
