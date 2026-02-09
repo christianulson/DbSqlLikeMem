@@ -37,11 +37,11 @@ public abstract class DbConnectionMockBase(
     /// </summary>
     public double DropProbability { get; set; }
 
-    [AllowNull]
     /// <summary>
     /// EN: Simulated connection string.
     /// PT: String de conexão simulada.
     /// </summary>
+    [AllowNull]
     public override string ConnectionString { get; set; } = "";
 
     /// <summary>
