@@ -73,9 +73,9 @@ internal static class DbUpdateStrategy
         IReadOnlyDictionary<int, object?> row,
         List<string> changedCols)
     {
-        // Simula linha nova
+        // Simula linha nova sem mutar a tabela
         var simulated = new Dictionary<int, object?>(row);
-        UpdateRowValues(table, pars, setPairs, rowIdx, simulated); // aplica na simulação
+        UpdateRowValuesInMemory(table, pars, setPairs, simulated); // aplica na simulação
 
         table.EnsureUniqueBeforeUpdate(tableName, row, simulated, rowIdx, changedCols);
     }
@@ -92,24 +92,49 @@ internal static class DbUpdateStrategy
             var info = table.GetColumn(Col);
             if (info.GetGenValue != null) continue; // Coluna gerada não se update
 
-            table.CurrentColumn = Col;
-
-            object? raw;
-            if (TryEvalArithmeticSetValue(Val, table, row, pars, info.DbType, info.Nullable, out var arith))
-            {
-                raw = arith;
-            }
-            else
-            {
-                raw = table.Resolve(Val, info.DbType, info.Nullable, pars, table.Columns);
-                raw = (raw is DBNull) ? null : raw;
-            }
-
-            table.CurrentColumn = null;
+            var raw = ResolveSetValue(table, pars, row, info, Col, Val);
             table.UpdateRowColumn(rowIdx, info.Index, raw);
         }
     }
 
+    private static void UpdateRowValuesInMemory(
+        ITableMock table,
+        DbParameterCollection? pars,
+        (string Col, string Val)[] setPairs,
+        IDictionary<int, object?> row)
+    {
+        foreach (var (Col, Val) in setPairs)
+        {
+            var info = table.GetColumn(Col);
+            if (info.GetGenValue != null) continue; // Coluna gerada não se update
+
+            var raw = ResolveSetValue(table, pars, row, info, Col, Val);
+            row[info.Index] = raw;
+        }
+    }
+
+    private static object? ResolveSetValue(
+        ITableMock table,
+        DbParameterCollection? pars,
+        IReadOnlyDictionary<int, object?> row,
+        ColumnDef info,
+        string colName,
+        string exprRaw)
+    {
+        table.CurrentColumn = colName;
+        try
+        {
+            if (TryEvalArithmeticSetValue(exprRaw, table, row, pars, info.DbType, info.Nullable, out var arith))
+                return arith;
+
+            var raw = table.Resolve(exprRaw, info.DbType, info.Nullable, pars, table.Columns);
+            return raw is DBNull ? null : raw;
+        }
+        finally
+        {
+            table.CurrentColumn = null;
+        }
+    }
 
     private static bool TryEvalArithmeticSetValue(
         string exprRaw,
