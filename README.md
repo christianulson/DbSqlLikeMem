@@ -163,6 +163,29 @@ var postgres = new NpgsqlConnectionMock(new NpgsqlDbMock());
 dotnet test src/DbSqlLikeMem.slnx
 ```
 
+## Publicando no NuGet (nuget.org)
+
+### Publicação via GitHub Actions (recomendado)
+
+1. Crie uma API key em https://www.nuget.org/ (Account settings → API Keys).
+2. No repositório do GitHub, adicione o segredo `NUGET_API_KEY` com essa chave.
+3. Atualize a versão em `src/Directory.Build.props` (propriedade `Version`).
+4. Crie e envie uma tag de release, por exemplo:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+O workflow `.github/workflows/nuget-publish.yml` empacota e publica todos os projetos do solution no nuget.org. 
+
+### Publicação manual (local)
+
+```bash
+dotnet pack src/DbSqlLikeMem.slnx -c Release -o ./artifacts
+dotnet nuget push "./artifacts/*.nupkg" --api-key "<SUA_API_KEY>" --source "https://api.nuget.org/v3/index.json"
+```
+
 ## Contributing
 
 Contributions are welcome! If you want to help improve DbSqlLikeMem, please open an issue to discuss your idea or submit a pull request. Areas where help is especially valuable:
