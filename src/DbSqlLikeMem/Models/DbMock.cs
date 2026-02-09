@@ -2,12 +2,21 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DbSqlLikeMem;
 
+/// <summary>
+/// Base de um banco em memória com schemas, tabelas e procedimentos.
+/// </summary>
 public abstract class DbMock
     : Dictionary<string, SchemaMock>
     , ISchemaDictionary
 {
+    /// <summary>
+    /// Versão do banco simulada.
+    /// </summary>
     public int Version { get; }
 
+    /// <summary>
+    /// Indica se operações devem aplicar bloqueio para segurança de threads.
+    /// </summary>
     public bool ThreadSafe { get; set; }
 
     internal object SyncRoot { get; } = new();
@@ -20,6 +29,10 @@ public abstract class DbMock
 
     ISchemaMock IReadOnlyDictionary<string, ISchemaMock>.this[string key] => throw new NotImplementedException();
 
+    /// <summary>
+    /// Inicializa o banco com a versão informada e um schema padrão.
+    /// </summary>
+    /// <param name="version">Versão simulada do banco.</param>
     protected DbMock(
         int version)
         : base(StringComparer.OrdinalIgnoreCase)
@@ -43,6 +56,12 @@ public abstract class DbMock
         string schemaName,
         IDictionary<string, (IColumnDictionary columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null);
 
+    /// <summary>
+    /// Cria um schema e o registra no banco.
+    /// </summary>
+    /// <param name="schemaName">Nome do schema.</param>
+    /// <param name="tables">Tabelas iniciais do schema.</param>
+    /// <returns>Schema criado.</returns>
     public ISchemaMock CreateSchema(
         string schemaName,
         IDictionary<string, (IColumnDictionary columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null)
@@ -65,6 +84,12 @@ public abstract class DbMock
         return schemaName.NormalizeName();
     }
 
+    /// <summary>
+    /// Tenta obter um schema pelo nome.
+    /// </summary>
+    /// <param name="key">Nome do schema.</param>
+    /// <param name="value">Schema encontrado, se houver.</param>
+    /// <returns>True se o schema existir.</returns>
     public bool TryGetValue(
         string key,
         [MaybeNullWhen(false)] out ISchemaMock value
@@ -83,6 +108,14 @@ public abstract class DbMock
 
     #region Table
 
+    /// <summary>
+    /// Cria e adiciona uma tabela ao schema indicado.
+    /// </summary>
+    /// <param name="tableName">Nome da tabela.</param>
+    /// <param name="columns">Definição das colunas.</param>
+    /// <param name="rows">Linhas iniciais.</param>
+    /// <param name="schemaName">Schema alvo.</param>
+    /// <returns>Tabela criada.</returns>
     public ITableMock AddTable(
         string tableName,
         IColumnDictionary? columns = null,
@@ -95,6 +128,12 @@ public abstract class DbMock
         return s.CreateTable(tableName, columns ?? new ColumnDictionary(), rows);
     }
 
+    /// <summary>
+    /// Obtém uma tabela pelo nome, lançando erro se não existir.
+    /// </summary>
+    /// <param name="tableName">Nome da tabela.</param>
+    /// <param name="schemaName">Schema alvo.</param>
+    /// <returns>Tabela encontrada.</returns>
     public ITableMock GetTable(
         string tableName,
         string? schemaName = null)
@@ -107,6 +146,13 @@ public abstract class DbMock
         return tb;
     }
 
+    /// <summary>
+    /// Tenta obter uma tabela pelo nome.
+    /// </summary>
+    /// <param name="tableName">Nome da tabela.</param>
+    /// <param name="tb">Tabela encontrada, se houver.</param>
+    /// <param name="schemaName">Schema alvo.</param>
+    /// <returns>True se a tabela existir.</returns>
     public bool TryGetTable(
         string tableName,
         out ITableMock? tb,
@@ -118,6 +164,12 @@ public abstract class DbMock
             && tb != null;
     }
 
+    /// <summary>
+    /// Verifica se uma tabela existe no schema informado.
+    /// </summary>
+    /// <param name="tableName">Nome da tabela.</param>
+    /// <param name="schemaName">Schema alvo.</param>
+    /// <returns>True se existir.</returns>
     public bool ContainsTable(
         string tableName,
         string? schemaName = null)
@@ -196,6 +248,12 @@ public abstract class DbMock
 
     #region Procedures
 
+    /// <summary>
+    /// Registra um procedimento armazenado no schema informado.
+    /// </summary>
+    /// <param name="procName">Nome do procedimento.</param>
+    /// <param name="pr">Definição do procedimento.</param>
+    /// <param name="schemaName">Schema alvo.</param>
     public void AddProdecure(
         string procName,
         ProcedureDef pr,
@@ -208,6 +266,13 @@ public abstract class DbMock
         this[sc].Procedures[procName] = pr;
     }
 
+    /// <summary>
+    /// Tenta obter um procedimento armazenado pelo nome.
+    /// </summary>
+    /// <param name="procName">Nome do procedimento.</param>
+    /// <param name="pr">Procedimento encontrado, se houver.</param>
+    /// <param name="schemaName">Schema alvo.</param>
+    /// <returns>True se existir.</returns>
     public bool TryGetProcedure(
         string procName,
         out ProcedureDef? pr,
