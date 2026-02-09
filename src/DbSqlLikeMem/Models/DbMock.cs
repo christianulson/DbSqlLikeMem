@@ -56,6 +56,13 @@ public abstract class DbMock
 
     #region Schema
 
+    /// <summary>
+    /// EN: Creates a new schema instance for the database.
+    /// PT: Cria uma nova instância de schema para o banco.
+    /// </summary>
+    /// <param name="schemaName">EN: Schema name. PT: Nome do schema.</param>
+    /// <param name="tables">EN: Initial tables. PT: Tabelas iniciais.</param>
+    /// <returns>EN: New schema instance. PT: Nova instância de schema.</returns>
     protected abstract SchemaMock NewSchema(
         string schemaName,
         IDictionary<string, (IColumnDictionary columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null);

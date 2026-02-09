@@ -18,9 +18,20 @@ public class OracleConnectionMock
         _serverVersion = $"Oracle {Db.Version}";
     }
 
+    /// <summary>
+    /// EN: Creates an Oracle transaction mock.
+    /// PT: Cria um mock de transação Oracle.
+    /// </summary>
+    /// <returns>EN: Transaction instance. PT: Instância da transação.</returns>
     protected override DbTransaction CreateTransaction()
         => new OracleTransactionMock(this);
 
+    /// <summary>
+    /// EN: Creates an Oracle command mock for the transaction.
+    /// PT: Cria um mock de comando Oracle para a transação.
+    /// </summary>
+    /// <param name="transaction">EN: Current transaction. PT: Transação atual.</param>
+    /// <returns>EN: Command instance. PT: Instância do comando.</returns>
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new OracleCommandMock(this, transaction as OracleTransactionMock);
 

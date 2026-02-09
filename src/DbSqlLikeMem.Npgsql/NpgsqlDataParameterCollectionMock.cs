@@ -45,8 +45,20 @@ public class NpgsqlDataParameterCollectionMock
         { } other => other,
     };
 
+    /// <summary>
+    /// EN: Gets a parameter by index.
+    /// PT: Obtém um parâmetro pelo índice.
+    /// </summary>
+    /// <param name="index">EN: Parameter index. PT: Índice do parâmetro.</param>
+    /// <returns>EN: Parameter instance. PT: Instância do parâmetro.</returns>
     protected override DbParameter GetParameter(int index) => Items[index];
 
+    /// <summary>
+    /// EN: Gets a parameter by name.
+    /// PT: Obtém um parâmetro pelo nome.
+    /// </summary>
+    /// <param name="parameterName">EN: Parameter name. PT: Nome do parâmetro.</param>
+    /// <returns>EN: Parameter instance. PT: Instância do parâmetro.</returns>
     protected override DbParameter GetParameter(string parameterName)
     {
         var index = IndexOf(parameterName);
@@ -55,6 +67,12 @@ public class NpgsqlDataParameterCollectionMock
         return Items[index];
     }
 
+    /// <summary>
+    /// EN: Sets a parameter by index.
+    /// PT: Define um parâmetro pelo índice.
+    /// </summary>
+    /// <param name="index">EN: Parameter index. PT: Índice do parâmetro.</param>
+    /// <param name="value">EN: Parameter value. PT: Valor do parâmetro.</param>
     protected override void SetParameter(int index, DbParameter value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -71,6 +89,12 @@ public class NpgsqlDataParameterCollectionMock
         //newParameter.ParameterCollection = this;
     }
 
+    /// <summary>
+    /// EN: Sets a parameter by name.
+    /// PT: Define um parâmetro pelo nome.
+    /// </summary>
+    /// <param name="parameterName">EN: Parameter name. PT: Nome do parâmetro.</param>
+    /// <param name="value">EN: Parameter value. PT: Valor do parâmetro.</param>
     protected override void SetParameter(string parameterName, DbParameter value)
         => SetParameter(IndexOf(parameterName), value);
 

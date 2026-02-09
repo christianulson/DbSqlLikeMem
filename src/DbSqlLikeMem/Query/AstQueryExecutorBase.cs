@@ -1198,9 +1198,12 @@ internal abstract class AstQueryExecutorBase(
     // ---------------- DIALECT HOOKS ----------------
 
     /// <summary>
-    /// Dialect mapping for JSON access operators (-> / ->> etc).
+    /// EN: Dialect mapping for JSON access operators (-> / ->> etc).
     /// Default implementation matches current MySQL best-effort behavior.
     /// SqlServer/Postgre/Oracle should override.
+    /// PT: Mapeamento de dialeto para operadores de acesso JSON (-> / ->> etc).
+    /// A implementação padrão segue o comportamento best-effort do MySQL.
+    /// SqlServer/Postgre/Oracle devem sobrescrever.
     /// </summary>
     protected virtual SqlExpr MapJsonAccess(JsonAccessExpr ja)
     {
@@ -1214,8 +1217,10 @@ internal abstract class AstQueryExecutorBase(
     }
 
     /// <summary>
-    /// Dialect mapping for scalar subquery evaluation.
+    /// EN: Dialect mapping for scalar subquery evaluation.
     /// Default is MySQL-like: first cell of first row.
+    /// PT: Mapeamento de dialeto para avaliação de subconsulta escalar.
+    /// O padrão é semelhante ao MySQL: primeira célula da primeira linha.
     /// </summary>
     protected virtual object? EvalScalarSubquery(
         SubqueryExpr sq,
@@ -2481,4 +2486,3 @@ internal abstract class AstQueryExecutorBase(
         }
     }
 }
-

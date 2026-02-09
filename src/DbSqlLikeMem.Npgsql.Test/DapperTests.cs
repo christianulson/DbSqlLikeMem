@@ -207,6 +207,11 @@ UPDATE users
         Assert.Equal(dt2, emails[1].CreatedDate);
     }
 
+    /// <summary>
+    /// EN: Disposes test resources.
+    /// PT: Descarta os recursos do teste.
+    /// </summary>
+    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         if (disposing)

@@ -5,9 +5,18 @@ namespace DbSqlLikeMem.Test;
 
 public abstract class XUnitTestBase : IDisposable
 {
+    /// <summary>
+    /// EN: Test output writer used to redirect console output.
+    /// PT: Escritor de saída de teste usado para redirecionar a saída do console.
+    /// </summary>
     protected ConsoleTestWriter ConsoleWriter { get; }
     private bool disposedValue;
 
+    /// <summary>
+    /// EN: Initializes the base test with the output helper.
+    /// PT: Inicializa o teste base com o helper de saída.
+    /// </summary>
+    /// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
     protected XUnitTestBase(
         ITestOutputHelper helper)
     {
@@ -15,6 +24,13 @@ public abstract class XUnitTestBase : IDisposable
         Console.SetOut(ConsoleWriter);
     }
 
+    /// <summary>
+    /// EN: Copies writable public instance properties from one object to another.
+    /// PT: Copia propriedades públicas graváveis de instância de um objeto para outro.
+    /// </summary>
+    /// <param name="src">EN: Source instance. PT: Instância de origem.</param>
+    /// <param name="dst">EN: Destination instance. PT: Instância de destino.</param>
+    /// <typeparam name="T">EN: Instance type. PT: Tipo da instância.</typeparam>
     protected static void CopyWritableProps<T>(
         T src,
         T dst)
@@ -30,6 +46,11 @@ public abstract class XUnitTestBase : IDisposable
             p.SetValue(dst, p.GetValue(src));
     }
 
+    /// <summary>
+    /// EN: Resolves the current test method name.
+    /// PT: Resolve o nome do método de teste atual.
+    /// </summary>
+    /// <returns>EN: Test name. PT: Nome do teste.</returns>
     protected static string GetTestName()
     {
         var stack = new StackTrace();
@@ -39,6 +60,11 @@ public abstract class XUnitTestBase : IDisposable
         return testMethod?.Name ?? "UnknownTest";
     }
 
+    /// <summary>
+    /// EN: Disposes managed resources when requested.
+    /// PT: Descarta recursos gerenciados quando solicitado.
+    /// </summary>
+    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
     protected virtual void Dispose(bool disposing)
     {
         ConsoleWriter?.Flush();

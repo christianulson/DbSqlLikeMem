@@ -19,9 +19,20 @@ public sealed class SqlServerConnectionMock
         _serverVersion = $"SQL Server {Db.Version}";
     }
 
+    /// <summary>
+    /// EN: Creates a SQL Server transaction mock.
+    /// PT: Cria um mock de transação SQL Server.
+    /// </summary>
+    /// <returns>EN: Transaction instance. PT: Instância da transação.</returns>
     protected override DbTransaction CreateTransaction()
         => new SqlServerTransactionMock(this);
 
+    /// <summary>
+    /// EN: Creates a SQL Server command mock for the transaction.
+    /// PT: Cria um mock de comando SQL Server para a transação.
+    /// </summary>
+    /// <param name="transaction">EN: Current transaction. PT: Transação atual.</param>
+    /// <returns>EN: Command instance. PT: Instância do comando.</returns>
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new SqlServerCommandMock(this, transaction as SqlServerTransactionMock);
 

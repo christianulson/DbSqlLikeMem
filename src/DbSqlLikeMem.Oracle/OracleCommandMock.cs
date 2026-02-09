@@ -20,6 +20,10 @@ public class OracleCommandMock(
     public override int CommandTimeout { get; set; }
     public override CommandType CommandType { get; set; } = CommandType.Text;
 
+    /// <summary>
+    /// EN: Gets or sets the associated connection.
+    /// PT: Obtém ou define a conexão associada.
+    /// </summary>
     protected override DbConnection? DbConnection
     {
         get => connection;
@@ -27,8 +31,16 @@ public class OracleCommandMock(
     }
 
     private readonly OracleDataParameterCollectionMock collectionMock = [];
+    /// <summary>
+    /// EN: Gets the parameter collection for the command.
+    /// PT: Obtém a coleção de parâmetros do comando.
+    /// </summary>
     protected override DbParameterCollection DbParameterCollection => collectionMock;
 
+    /// <summary>
+    /// EN: Gets or sets the current transaction.
+    /// PT: Obtém ou define a transação atual.
+    /// </summary>
     protected override DbTransaction? DbTransaction
     {
         get => transaction!;
@@ -40,6 +52,11 @@ public class OracleCommandMock(
 
     public override void Cancel() => DbTransaction?.Rollback();
 
+    /// <summary>
+    /// EN: Creates a new Oracle parameter.
+    /// PT: Cria um novo parâmetro Oracle.
+    /// </summary>
+    /// <returns>EN: Parameter instance. PT: Instância do parâmetro.</returns>
     protected override DbParameter CreateDbParameter()
         // Por enquanto reusa OracleParameter (OracleConnector) para não puxar pacote de SqlClient.
         => new OracleParameter();
@@ -73,6 +90,12 @@ public class OracleCommandMock(
         };
     }
 
+    /// <summary>
+    /// EN: Executes the command and returns a data reader.
+    /// PT: Executa o comando e retorna um data reader.
+    /// </summary>
+    /// <param name="behavior">EN: Command behavior. PT: Comportamento do comando.</param>
+    /// <returns>EN: Data reader. PT: Data reader.</returns>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
         ArgumentNullException.ThrowIfNull(connection);
@@ -124,6 +147,11 @@ public class OracleCommandMock(
 
     public override void Prepare() { }
 
+    /// <summary>
+    /// EN: Disposes the command and resources.
+    /// PT: Descarta o comando e os recursos.
+    /// </summary>
+    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         if (!disposedValue)
