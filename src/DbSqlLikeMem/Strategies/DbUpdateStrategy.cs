@@ -31,28 +31,24 @@ internal static class DbUpdateStrategy
         // 1. Parse do WHERE (raw string do AST)
         // Em alguns cenários (ex: camadas que reescrevem SQL/parametrização), o parser pode
         // acabar não preenchendo WhereRaw. Como fallback, extraímos do RawSql.
-        var whereRaw = query.WhereRaw;
-        if (string.IsNullOrWhiteSpace(whereRaw) && !string.IsNullOrWhiteSpace(query.RawSql))
-        {
-            whereRaw = TryExtractWhereRaw(query.RawSql);
-        }
-
-        var conditions = ParseWhereSimple(whereRaw);
+        var whereRaw = TableMock.ResolveWhereRaw(query.WhereRaw, query.RawSql);
+        var conditions = TableMock.ParseWhereSimple(whereRaw);
 
         // 2. Prepara os SET pairs do AST
         var setPairs = query.Set.Select(s => (s.Col, Val: s.ExprRaw)).ToArray();
 
         int updated = 0;
+        var tableMock = (TableMock)table;
         for (int rowIdx = 0; rowIdx < table.Count; rowIdx++)
         {
             var row = table[rowIdx];
 
             // Match Where
-            if (!IsMatch(table, pars, conditions, row)) continue;
+            if (!TableMock.IsMatchSimple(table, pars, conditions, row)) continue;
 
             // Valida Unique Constraints antes de aplicar
             var changedCols = setPairs.Select(sp => sp.Col).ToList();
-            ValidateUniqueBeforeUpdate(tableName, table, pars, setPairs, rowIdx, row, changedCols);
+            ValidateUniqueBeforeUpdate(tableName, tableMock, pars, setPairs, rowIdx, row, changedCols);
 
             // Aplica Update
             UpdateRowValues(table, pars, setPairs, rowIdx, row);
@@ -68,48 +64,20 @@ internal static class DbUpdateStrategy
 
     // --- Helpers de Lógica ---
 
-    internal static string BuildIndexKey(
-        ITableMock table,
-        IndexDef idx,
-        IReadOnlyDictionary<int, object?> row)
-    {
-        return string.Join("|", idx.KeyCols.Select(colName =>
-        {
-            var ci = table.Columns[colName];
-            if (ci.GetGenValue != null)
-                return ci.GetGenValue(row, table)?.ToString() ?? "<null>";
-            return row.TryGetValue(ci.Index, out var v) ? (v?.ToString() ?? "<null>") : "<null>";
-        }));
-    }
-
     private static void ValidateUniqueBeforeUpdate(
         string tableName,
-        ITableMock table,
+        TableMock table,
         DbParameterCollection? pars,
         (string Col, string Val)[] setPairs,
         int rowIdx,
         IReadOnlyDictionary<int, object?> row,
         List<string> changedCols)
     {
-        foreach (var ix in table.Indexes.GetUnique())
-        {
-            // Se o update não toca nas colunas desse índice, ignora
-            if (!ix.KeyCols.Intersect(changedCols, StringComparer.OrdinalIgnoreCase).Any()) continue;
+        // Simula linha nova
+        var simulated = new Dictionary<int, object?>(row);
+        UpdateRowValues(table, pars, setPairs, rowIdx, simulated); // aplica na simulação
 
-            string oldKey = BuildIndexKey(table, ix, row);
-
-            // Simula linha nova
-            var simulated = new Dictionary<int, object?>(row);
-            UpdateRowValues(table, pars, setPairs, rowIdx, simulated); // aplica na simulação
-
-            string newKey = BuildIndexKey(table, ix, simulated);
-
-            if (!oldKey.Equals(newKey, StringComparison.Ordinal) &&
-                table.Lookup(ix, newKey)?.Any(i => i != rowIdx) == true)
-            {
-                throw table.DuplicateKey(tableName, ix.Name, newKey);
-            }
-        }
+        table.EnsureUniqueBeforeUpdate(tableName, row, simulated, rowIdx, changedCols);
     }
 
     private static void UpdateRowValues(
@@ -286,149 +254,4 @@ internal static class DbUpdateStrategy
         return raw is DBNull ? null : raw;
     }
 
-
-    private static bool IsMatch(
-        ITableMock table,
-        DbParameterCollection? pars,
-        List<(string C, string Op, string V)> conditions,
-        IReadOnlyDictionary<int, object?> row)
-    => conditions.All(cond =>
-        {
-            var info = table.GetColumn(cond.C);
-            var actual = info.GetGenValue != null ? info.GetGenValue(row, table) : row[info.Index];
-
-            if (cond.Op.Equals("=", StringComparison.OrdinalIgnoreCase))
-            {
-                table.CurrentColumn = cond.C;
-                var exp = table.Resolve(cond.V, info.DbType, info.Nullable, pars, table.Columns);
-                table.CurrentColumn = null;
-                return Equals(actual, exp is DBNull ? null : exp);
-            }
-
-            if (cond.Op.Equals("IN", StringComparison.OrdinalIgnoreCase))
-            {
-                var rhs = cond.V.Trim();
-
-                IEnumerable<object?> candidates;
-
-                if (rhs.StartsWith("(", StringComparison.Ordinal) && rhs.EndsWith(")", StringComparison.Ordinal))
-                {
-                    var inner = rhs[1..^1];
-                    var parts = inner.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-                    var tmp = new List<object?>();
-                    foreach (var part in parts)
-                    {
-                        table.CurrentColumn = cond.C;
-                        var val = table.Resolve(part, info.DbType, info.Nullable, pars, table.Columns);
-                        table.CurrentColumn = null;
-                        val = val is DBNull ? null : val;
-
-                        // Dapper-style: IN (@ids) onde @ids é IEnumerable.
-                        // Mesmo estando dentro de parênteses, queremos expandir a lista.
-                        if (val is System.Collections.IEnumerable ie && val is not string)
-                        {
-                            foreach (var v in ie) tmp.Add(v);
-                        }
-                        else
-                        {
-                            tmp.Add(val);
-                        }
-                    }
-                    candidates = tmp;
-                }
-                else
-                {
-                    table.CurrentColumn = cond.C;
-                    var resolved = table.Resolve(rhs, info.DbType, info.Nullable, pars, table.Columns);
-                    table.CurrentColumn = null;
-
-                    resolved = resolved is DBNull ? null : resolved;
-
-                    if (resolved is System.Collections.IEnumerable ie && resolved is not string)
-                    {
-                        var tmp = new List<object?>();
-                        foreach (var v in ie) tmp.Add(v);
-                        candidates = tmp;
-                    }
-                    else
-                    {
-                        candidates = [resolved];
-                    }
-                }
-
-                foreach (var cand in candidates)
-                {
-                    if (Equals(actual, cand))
-                        return true;
-                }
-
-                return false;
-            }
-
-            return false;
-        });
-
-    private static List<(string C, string Op, string V)> ParseWhereSimple(string? w)
-    {
-        var list = new List<(string C, string Op, string V)>();
-        if (string.IsNullOrWhiteSpace(w)) return list;
-
-        // Defensive: some call sites may include the keyword.
-        w = w.Trim();
-        if (w.StartsWith("WHERE ", StringComparison.OrdinalIgnoreCase))
-            w = w[6..].Trim();
-
-        // Split por AND (case-insensitive) - evita bugs do tipo "aNd".
-        // (Sem parênteses) - suficiente para os testes atuais.
-        var parts = Regex.Split(w, @"\s+AND\s+", RegexOptions.IgnoreCase)
-            .Where(p => !string.IsNullOrWhiteSpace(p));
-
-        foreach (var p in parts)
-        {
-            var s = p.Trim();
-
-            // IN
-            // NOTE: o SqlQueryParser reconstrói tokens sem espaço antes de '(' (ex: "IN(@ids)").
-            // Então o matcher precisa aceitar tanto "IN (@ids)" quanto "IN(@ids)".
-            var min = Regex.Match(s, @"^(?<c>[\w`\.]+)\s+IN\s*(?<v>.+)$", RegexOptions.IgnoreCase);
-            if (min.Success)
-            {
-                list.Add((min.Groups["c"].Value.Trim(), "IN", min.Groups["v"].Value.Trim()));
-                continue;
-            }
-
-            // =
-            var kv = s.Split('=', 2);
-            if (kv.Length == 2)
-            {
-                list.Add((kv[0].Trim(), "=", kv[1].Trim()));
-            }
-        }
-
-        return list;
-    }
-
-    private static string? TryExtractWhereRaw(string sql)
-    {
-        // Very small fallback extractor: take everything after WHERE, stop at ORDER/LIMIT/OFFSET/FETCH/;.
-        var norm = sql.NormalizeString();
-        var whereIdx = norm.IndexOf(" WHERE ", StringComparison.OrdinalIgnoreCase);
-        if (whereIdx < 0)
-        {
-            // handle "...WHERE" without leading space
-            whereIdx = norm.IndexOf("WHERE ", StringComparison.OrdinalIgnoreCase);
-            if (whereIdx < 0) return null;
-        }
-
-        var w = norm[(whereIdx + (norm[whereIdx] == ' ' ? 7 : 6))..];
-        var stops = new[] { " ORDER ", " LIMIT ", " OFFSET ", " FETCH ", ";" };
-        var cut = w.Length;
-        foreach (var stop in stops)
-        {
-            var idx = w.IndexOf(stop, StringComparison.OrdinalIgnoreCase);
-            if (idx >= 0) cut = Math.Min(cut, idx);
-        }
-        return w[..cut].Trim();
-    }
 }

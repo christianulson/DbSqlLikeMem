@@ -44,26 +44,24 @@ internal static class DbInsertStrategy
         int insertedCount = 0;
         int updatedCount = 0;
 
+        var tableMock = (TableMock)table;
+
         foreach (var newRow in newRows)
         {
             if (!query.HasOnDuplicateKeyUpdate)
             {
                 // Inserção normal
-                ValidateUnique(tableName, table, newRow);
                 table.Add(newRow);
-                table.UpdateIndexesWithRow(table.Count - 1);
                 insertedCount++;
                 continue;
             }
 
             // Lógica ON DUPLICATE KEY UPDATE
-            var conflictIdx = FindConflictingRowIndex(table, newRow, out _, out _);
+            var conflictIdx = tableMock.FindConflictingRowIndex(newRow, out _, out _);
             if (conflictIdx is null)
             {
                 // Sem conflito -> Insere
-                ValidateUnique(tableName, table, newRow);
                 table.Add(newRow);
-                table.UpdateIndexesWithRow(table.Count - 1);
                 insertedCount++;
             }
             else
@@ -133,7 +131,6 @@ internal static class DbInsertStrategy
                 }
             }
 
-            SetRowDefaultValues(table, newRow);
             rows.Add(newRow);
         }
         return rows;
@@ -182,7 +179,6 @@ internal static class DbInsertStrategy
                 }
             }
 
-            SetRowDefaultValues(targetTable, newRow);
             rows.Add(newRow);
         }
         return rows;
@@ -373,102 +369,5 @@ internal static class DbInsertStrategy
 
     // --- Helpers Genéricos (Mantidos ou Levemente Adaptados) ---
 
-    private static void ValidateUnique(
-        string tableName,
-        ITableMock table,
-        Dictionary<int, object?> newRow)
-    {
-        // PK (PRIMARY)
-        // Some tests set PrimaryKeyIndexes without registering an explicit unique index.
-
-        if (table.PrimaryKeyIndexes.Count > 0)
-        {
-            for (int i = 0; i < table.Count; i++)
-            {
-                var pks = new List<string>();
-                foreach (var pkIdx in table.PrimaryKeyIndexes)
-                {
-                    if (newRow.TryGetValue(pkIdx, out var pkVal)
-                        && table[i].TryGetValue(pkIdx, out var cur)
-                        && Equals(cur, pkVal))
-                    {
-                        pks.Add($"{table.Columns.First(_=>_.Value.Index == pkIdx).Key}: {pkVal}");
-                    }
-                }
-                if (table.PrimaryKeyIndexes.Count == pks.Count)
-                    throw table.DuplicateKey(tableName, "PRIMARY", string.Join(",", pks));
-            }
-        }
-
-        foreach (var idx in table.Indexes.GetUnique())
-        {
-            var key = DbUpdateStrategy.BuildIndexKey(table, idx, newRow);
-            var hits = table.Lookup(idx, key);
-            if (hits?.Any() == true)
-                throw table.DuplicateKey(tableName, idx.Name, key);
-        }
-    }
-
-    private static int? FindConflictingRowIndex(
-        ITableMock table,
-        Dictionary<int, object?> newRow,
-        out string? conflictIndexName,
-        out object? conflictKey)
-    {
-        conflictIndexName = null;
-        conflictKey = null;
-
-        // PK
-        if (table.PrimaryKeyIndexes.Count > 0)
-        {
-            for (int i = 0; i < table.Count; i++)
-            {
-                var pks = new List<string>();
-                foreach (var pkIdx in table.PrimaryKeyIndexes)
-                {
-                    if (newRow.TryGetValue(pkIdx, out var pkVal)
-                        && table[i].TryGetValue(pkIdx, out var cur)
-                        && Equals(cur, pkVal))
-                    {
-                        pks.Add($"{table.Columns.First(_ => _.Value.Index == pkIdx).Key}: {pkVal}");
-                    }
-                }
-                if (table.PrimaryKeyIndexes.Count == pks.Count)
-                {
-                    conflictIndexName = "PRIMARY";
-                    conflictKey = string.Join(",", pks);
-                    return i;
-                }
-            }
-        }
-
-        // Unique
-        foreach (var idx in table.Indexes.GetUnique())
-        {
-            var key = DbUpdateStrategy.BuildIndexKey(table, idx, newRow);
-            var hits = table.Lookup(idx, key);
-            if (hits != null)
-            {
-                var hitsList = hits.ToList(); // Converte para lista para poder usar indexador
-                if (hitsList.Count > 0)
-                {
-                    conflictIndexName = idx.Name;
-                    conflictKey = key;
-                    return hitsList[0]; // Agora o indexador [0] funciona
-                }
-            }
-        }
-        return null;
-    }
-
-    private static void SetRowDefaultValues(ITableMock table, Dictionary<int, object?> newRow)
-    {
-        foreach (var (key, col) in table.Columns)
-        {
-            if (!newRow.ContainsKey(col.Index)) continue;
-            if (col.Identity) newRow[col.Index] = table.NextIdentity++;
-            else if (col.DefaultValue != null && newRow[col.Index] == null) newRow[col.Index] = col.DefaultValue;
-            if (!col.Nullable && newRow[col.Index] == null) throw table.ColumnCannotBeNull(key);
-        }
-    }
+    // Defaults and uniqueness are handled by TableMock.
 }

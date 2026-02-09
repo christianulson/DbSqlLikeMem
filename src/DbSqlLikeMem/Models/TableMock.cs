@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 
 namespace DbSqlLikeMem;
 
@@ -120,7 +121,7 @@ public abstract class TableMock
         var map = new ConcurrentDictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < Count; i++)
         {
-            var key = BuildKey(Items[i], def.KeyCols.Select(c => Columns[c].Index));
+            var key = BuildIndexKey(def, Items[i]);
             map.AddOrUpdate(key, [i], (_, list) => { list.Add(i); return list; });
         }
         _ix[name] = map;
@@ -151,7 +152,7 @@ public abstract class TableMock
     {
         foreach (var (name, def) in Indexes)
         {
-            var key = BuildKey(Items[rowIdx], def.KeyCols.Select(c => Columns[c].Index));
+            var key = BuildIndexKey(def, Items[rowIdx]);
             _ix[name].AddOrUpdate(key, [rowIdx], (_, list) => { list.Add(rowIdx); return list; });
         }
     }
@@ -166,9 +167,20 @@ public abstract class TableMock
             RebuildIndex(ix.Value);
     }
 
-    private static string BuildKey(
-        Dictionary<int, object?> row, IEnumerable<int> ords) =>
-        string.Join('|', ords.Select(o => row.TryGetValue(o, out var it) ? it?.ToString() ?? "<null>" : "<null>"));
+    internal string BuildIndexKey(
+        IndexDef idx,
+        IReadOnlyDictionary<int, object?> row)
+    {
+        ArgumentNullException.ThrowIfNull(idx);
+        ArgumentNullException.ThrowIfNull(row);
+        return string.Join('|', idx.KeyCols.Select(colName =>
+        {
+            var ci = Columns[colName];
+            if (ci.GetGenValue != null)
+                return ci.GetGenValue(row, this)?.ToString() ?? "<null>";
+            return row.TryGetValue(ci.Index, out var v) ? (v?.ToString() ?? "<null>") : "<null>";
+        }));
+    }
 
     public void CreateForeignKey(
         string col,
@@ -253,22 +265,11 @@ public abstract class TableMock
     public void Add(Dictionary<int, object?> value)
     {
         ApplyDefaultValues(value);
-        // Before adding, enforce unique indexes
-        foreach (var idx in Indexes.GetUnique())
-        {
-            var key = BuildKey(value, idx.KeyCols.Select(c => Columns[c].Index));
-            if (_ix.TryGetValue(idx.Name, out var map)
-                && map.TryGetValue(key, out var existing)
-                && existing.Count != 0)
-            {
-                throw DuplicateKey(TableName, idx.Name, key);
-            }
-        }
+        EnsureUniqueOnInsert(value);
         Items.Add(value);
         // Update indexes with the new row
         int newIdx = Count - 1;
-        foreach (var idx in Indexes)
-            UpdateIndexesWithRow(newIdx);
+        UpdateIndexesWithRow(newIdx);
     }
 
     private void ApplyDefaultValues(Dictionary<int, object?> value)
@@ -280,6 +281,254 @@ public abstract class TableMock
             else if (col.DefaultValue != null && value[col.Index] == null) value[col.Index] = col.DefaultValue;
             if (!col.Nullable && value[col.Index] == null) throw ColumnCannotBeNull(key);
         }
+    }
+
+    internal void EnsureUniqueOnInsert(Dictionary<int, object?> newRow)
+    {
+        if (PrimaryKeyIndexes.Count > 0)
+        {
+            for (int i = 0; i < Count; i++)
+            {
+                var pks = new List<string>();
+                foreach (var pkIdx in PrimaryKeyIndexes)
+                {
+                    if (newRow.TryGetValue(pkIdx, out var pkVal)
+                        && this[i].TryGetValue(pkIdx, out var cur)
+                        && Equals(cur, pkVal))
+                    {
+                        pks.Add($"{Columns.First(_ => _.Value.Index == pkIdx).Key}: {pkVal}");
+                    }
+                }
+                if (PrimaryKeyIndexes.Count == pks.Count)
+                    throw DuplicateKey(TableName, "PRIMARY", string.Join(",", pks));
+            }
+        }
+
+        foreach (var idx in Indexes.GetUnique())
+        {
+            var key = BuildIndexKey(idx, newRow);
+            var hits = Lookup(idx, key);
+            if (hits?.Any() == true)
+                throw DuplicateKey(TableName, idx.Name, key);
+        }
+    }
+
+    internal int? FindConflictingRowIndex(
+        IReadOnlyDictionary<int, object?> newRow,
+        out string? conflictIndexName,
+        out object? conflictKey)
+    {
+        conflictIndexName = null;
+        conflictKey = null;
+
+        if (PrimaryKeyIndexes.Count > 0)
+        {
+            for (int i = 0; i < Count; i++)
+            {
+                var pks = new List<string>();
+                foreach (var pkIdx in PrimaryKeyIndexes)
+                {
+                    if (newRow.TryGetValue(pkIdx, out var pkVal)
+                        && this[i].TryGetValue(pkIdx, out var cur)
+                        && Equals(cur, pkVal))
+                    {
+                        pks.Add($"{Columns.First(_ => _.Value.Index == pkIdx).Key}: {pkVal}");
+                    }
+                }
+                if (PrimaryKeyIndexes.Count == pks.Count)
+                {
+                    conflictIndexName = "PRIMARY";
+                    conflictKey = string.Join(",", pks);
+                    return i;
+                }
+            }
+        }
+
+        foreach (var idx in Indexes.GetUnique())
+        {
+            var key = BuildIndexKey(idx, newRow);
+            var hits = Lookup(idx, key);
+            if (hits != null)
+            {
+                var hitsList = hits.ToList();
+                if (hitsList.Count > 0)
+                {
+                    conflictIndexName = idx.Name;
+                    conflictKey = key;
+                    return hitsList[0];
+                }
+            }
+        }
+        return null;
+    }
+
+    internal void EnsureUniqueBeforeUpdate(
+        string tableName,
+        IReadOnlyDictionary<int, object?> existingRow,
+        IReadOnlyDictionary<int, object?> simulatedRow,
+        int rowIdx,
+        IReadOnlyCollection<string> changedCols)
+    {
+        foreach (var ix in Indexes.GetUnique())
+        {
+            if (!ix.KeyCols.Intersect(changedCols, StringComparer.OrdinalIgnoreCase).Any()) continue;
+
+            var oldKey = BuildIndexKey(ix, existingRow);
+            var newKey = BuildIndexKey(ix, simulatedRow);
+
+            if (!oldKey.Equals(newKey, StringComparison.Ordinal) &&
+                Lookup(ix, newKey)?.Any(i => i != rowIdx) == true)
+            {
+                throw DuplicateKey(tableName, ix.Name, newKey);
+            }
+        }
+    }
+
+    internal static string? ResolveWhereRaw(
+        string? whereRaw,
+        string? rawSql)
+    {
+        var w = whereRaw;
+        if (string.IsNullOrWhiteSpace(w) && !string.IsNullOrWhiteSpace(rawSql))
+        {
+            w = TryExtractWhereRaw(rawSql);
+        }
+
+        return w;
+    }
+
+    internal static List<(string C, string Op, string V)> ParseWhereSimple(string? w)
+    {
+        var list = new List<(string C, string Op, string V)>();
+        if (string.IsNullOrWhiteSpace(w)) return list;
+
+        w = w.Trim();
+        if (w.StartsWith("WHERE ", StringComparison.OrdinalIgnoreCase))
+            w = w[6..].Trim();
+
+        var parts = Regex.Split(w, @"\s+AND\s+", RegexOptions.IgnoreCase)
+            .Where(p => !string.IsNullOrWhiteSpace(p));
+
+        foreach (var p in parts)
+        {
+            var s = p.Trim();
+
+            var min = Regex.Match(s, @"^(?<c>[\w`\.]+)\s+IN\s*(?<v>.+)$", RegexOptions.IgnoreCase);
+            if (min.Success)
+            {
+                list.Add((min.Groups["c"].Value.Trim(), "IN", min.Groups["v"].Value.Trim()));
+                continue;
+            }
+
+            var kv = s.Split('=', 2);
+            if (kv.Length == 2)
+            {
+                list.Add((kv[0].Trim(), "=", kv[1].Trim()));
+            }
+        }
+
+        return list;
+    }
+
+    internal static bool IsMatchSimple(
+        ITableMock table,
+        DbParameterCollection? pars,
+        List<(string C, string Op, string V)> conditions,
+        IReadOnlyDictionary<int, object?> row)
+    => conditions.All(cond =>
+        {
+            var info = table.GetColumn(cond.C);
+            var actual = info.GetGenValue != null ? info.GetGenValue(row, table) : row[info.Index];
+
+            if (cond.Op.Equals("=", StringComparison.OrdinalIgnoreCase))
+            {
+                table.CurrentColumn = cond.C;
+                var exp = table.Resolve(cond.V, info.DbType, info.Nullable, pars, table.Columns);
+                table.CurrentColumn = null;
+                return Equals(actual, exp is DBNull ? null : exp);
+            }
+
+            if (cond.Op.Equals("IN", StringComparison.OrdinalIgnoreCase))
+            {
+                var rhs = cond.V.Trim();
+
+                IEnumerable<object?> candidates;
+
+                if (rhs.StartsWith("(", StringComparison.Ordinal) && rhs.EndsWith(")", StringComparison.Ordinal))
+                {
+                    var inner = rhs[1..^1];
+                    var parts = inner.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+                    var tmp = new List<object?>();
+                    foreach (var part in parts)
+                    {
+                        table.CurrentColumn = cond.C;
+                        var val = table.Resolve(part, info.DbType, info.Nullable, pars, table.Columns);
+                        table.CurrentColumn = null;
+                        val = val is DBNull ? null : val;
+
+                        if (val is System.Collections.IEnumerable ie && val is not string)
+                        {
+                            foreach (var v in ie) tmp.Add(v);
+                        }
+                        else
+                        {
+                            tmp.Add(val);
+                        }
+                    }
+                    candidates = tmp;
+                }
+                else
+                {
+                    table.CurrentColumn = cond.C;
+                    var resolved = table.Resolve(rhs, info.DbType, info.Nullable, pars, table.Columns);
+                    table.CurrentColumn = null;
+
+                    resolved = resolved is DBNull ? null : resolved;
+
+                    if (resolved is System.Collections.IEnumerable ie && resolved is not string)
+                    {
+                        var tmp = new List<object?>();
+                        foreach (var v in ie) tmp.Add(v);
+                        candidates = tmp;
+                    }
+                    else
+                    {
+                        candidates = [resolved];
+                    }
+                }
+
+                foreach (var cand in candidates)
+                {
+                    if (Equals(actual, cand))
+                        return true;
+                }
+
+                return false;
+            }
+
+            return false;
+        });
+
+    private static string? TryExtractWhereRaw(string sql)
+    {
+        var norm = sql.NormalizeString();
+        var whereIdx = norm.IndexOf(" WHERE ", StringComparison.OrdinalIgnoreCase);
+        if (whereIdx < 0)
+        {
+            whereIdx = norm.IndexOf("WHERE ", StringComparison.OrdinalIgnoreCase);
+            if (whereIdx < 0) return null;
+        }
+
+        var w = norm[(whereIdx + (norm[whereIdx] == ' ' ? 7 : 6))..];
+        var stops = new[] { " ORDER ", " LIMIT ", " OFFSET ", " FETCH ", ";" };
+        var cut = w.Length;
+        foreach (var stop in stops)
+        {
+            var idx = w.IndexOf(stop, StringComparison.OrdinalIgnoreCase);
+            if (idx >= 0) cut = Math.Min(cut, idx);
+        }
+        return w[..cut].Trim();
     }
 
     public Dictionary<int, object?> RemoveAt(int idx)

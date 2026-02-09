@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 
 namespace DbSqlLikeMem;
 
@@ -220,4 +221,30 @@ public abstract class SchemaMock
     #endregion
 
     #endregion
+
+    internal void ValidateForeignKeysOnDelete(
+        string tableName,
+        ITableMock table,
+        IEnumerable<IReadOnlyDictionary<int, object?>> rowsToDelete)
+    {
+        foreach (var parentRow in rowsToDelete)
+        {
+            foreach (var childTable in tables.Values)
+            {
+                foreach (var (Col, _, RefCol) in childTable.ForeignKeys.Where(f =>
+                    f.RefTable.Equals(tableName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    var parentInfo = table.GetColumn(RefCol);
+                    var childInfo = childTable.GetColumn(Col);
+
+                    var keyVal = parentRow[parentInfo.Index];
+
+                    if (childTable.Any(childRow => Equals(childRow[childInfo.Index], keyVal)))
+                    {
+                        throw table.ReferencedRow(tableName);
+                    }
+                }
+            }
+        }
+    }
 }
