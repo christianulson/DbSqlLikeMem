@@ -166,6 +166,7 @@ public abstract class TableMock
 
     public new void Add(Dictionary<int, object?> value)
     {
+        ApplyDefaultValues(value);
         // Before adding, enforce unique indexes
         foreach (var idx in Indexes.GetUnique())
         {
@@ -182,6 +183,17 @@ public abstract class TableMock
         int newIdx = Count - 1;
         foreach (var idx in Indexes)
             UpdateIndexesWithRow(newIdx);
+    }
+
+    private void ApplyDefaultValues(Dictionary<int, object?> value)
+    {
+        foreach (var (key, col) in Columns)
+        {
+            if (value.ContainsKey(col.Index)) continue;
+            if (col.Identity) value[col.Index] = NextIdentity++;
+            else if (col.DefaultValue != null) value[col.Index] = col.DefaultValue;
+            else if (!col.Nullable) throw ColumnCannotBeNull(key);
+        }
     }
 
     private List<Dictionary<int, object?>>? _backup;
