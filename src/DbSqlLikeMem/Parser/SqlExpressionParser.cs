@@ -168,6 +168,9 @@ internal sealed class SqlExpressionParser(
         Consume(); // NOT
         Consume(); // IN
 
+        if (left is RowExpr && !IsSymbol(Peek(), "("))
+            throw Error("Row value IN requires parentheses", notTok);
+
         // NOT IN ( ... )  ou NOT IN ( (SELECT ...) )
         var payload = ParseInPayload(notTok, "NOT IN"); // retorna lista de SqlExpr ou SubqueryExpr embrulhado
         left = new UnaryExpr(SqlUnaryOp.Not, new InExpr(left, payload));
@@ -294,6 +297,9 @@ internal sealed class SqlExpressionParser(
 
         var inTok = t;
         Consume(); // IN
+
+        if (left is RowExpr && !IsSymbol(Peek(), "("))
+            throw Error("Row value IN requires parentheses", inTok);
 
         var payload = ParseInPayload(inTok, "IN");
 
