@@ -189,10 +189,10 @@ public abstract class TableMock
     {
         foreach (var (key, col) in Columns)
         {
-            if (value.ContainsKey(col.Index)) continue;
+            if (!value.ContainsKey(col.Index)) continue;
             if (col.Identity) value[col.Index] = NextIdentity++;
-            else if (col.DefaultValue != null) value[col.Index] = col.DefaultValue;
-            else if (!col.Nullable) throw ColumnCannotBeNull(key);
+            else if (col.DefaultValue != null && value[col.Index] == null) value[col.Index] = col.DefaultValue;
+            if (!col.Nullable && value[col.Index] == null) throw ColumnCannotBeNull(key);
         }
     }
 
