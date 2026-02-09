@@ -2,6 +2,10 @@ using System.Collections;
 using System.Linq.Expressions;
 
 namespace DbSqlLikeMem.MySql;
+/// <summary>
+/// EN: IQueryable wrapper for MySQL LINQ translation.
+/// PT: Wrapper IQueryable para tradução LINQ do MySQL.
+/// </summary>
 public class MySqlQueryable<T> : IOrderedQueryable<T>
 {
     public string TableName { get; }

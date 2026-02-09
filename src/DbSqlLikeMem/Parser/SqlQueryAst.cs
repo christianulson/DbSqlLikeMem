@@ -79,6 +79,10 @@ internal sealed record SqlTableSource(
     string? DerivedSql
 );
 
+/// <summary>
+/// EN: Join types represented in the SQL AST.
+/// PT: Tipos de join representados na AST SQL.
+/// </summary>
 internal enum SqlJoinType
 {
     Inner,

@@ -36,7 +36,15 @@ internal sealed record CaseExpr(
 internal sealed record CaseWhenThen(SqlExpr When, SqlExpr Then);
 
 internal sealed record StarExpr() : SqlExpr;
+/// <summary>
+/// EN: Unary operators represented in the SQL AST.
+/// PT: Operadores unários representados na AST SQL.
+/// </summary>
 internal enum SqlUnaryOp { Not }
+/// <summary>
+/// EN: Binary operators represented in the SQL AST.
+/// PT: Operadores binários representados na AST SQL.
+/// </summary>
 internal enum SqlBinaryOp
 {
     And, Or,

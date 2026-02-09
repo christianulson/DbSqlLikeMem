@@ -3,6 +3,10 @@ using System.Data.Common;
 using Oracle.ManagedDataAccess.Client;
 
 namespace DbSqlLikeMem.Oracle;
+/// <summary>
+/// EN: Mock parameter collection for Oracle commands.
+/// PT: Coleção de parâmetros mock para comandos Oracle.
+/// </summary>
 public class OracleDataParameterCollectionMock
     : DbParameterCollection, IList<OracleParameter>
 {

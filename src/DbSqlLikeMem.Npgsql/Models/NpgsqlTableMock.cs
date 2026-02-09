@@ -1,5 +1,9 @@
 namespace DbSqlLikeMem.Npgsql;
 
+/// <summary>
+/// EN: Table mock specialized for Npgsql schema operations.
+/// PT: Mock de tabela especializado para operações de esquema Npgsql.
+/// </summary>
 internal class NpgsqlTableMock(
         string tableName,
         SchemaMock schema,

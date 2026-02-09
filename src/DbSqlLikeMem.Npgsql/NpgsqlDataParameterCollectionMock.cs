@@ -4,6 +4,10 @@ using Npgsql;
 using NpgsqlTypes;
 
 namespace DbSqlLikeMem.Npgsql;
+/// <summary>
+/// EN: Mock parameter collection for Npgsql commands.
+/// PT: Coleção de parâmetros mock para comandos Npgsql.
+/// </summary>
 public class NpgsqlDataParameterCollectionMock
     : DbParameterCollection, IList<NpgsqlParameter>
 {

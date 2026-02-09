@@ -1,5 +1,9 @@
 namespace DbSqlLikeMem.Oracle;
 
+/// <summary>
+/// EN: In-memory database mock configured for Oracle.
+/// PT: Mock de banco em memória configurado para Oracle.
+/// </summary>
 public class OracleDbMock : DbMock
 {
     internal override SqlDialectBase Dialect { get; set; }

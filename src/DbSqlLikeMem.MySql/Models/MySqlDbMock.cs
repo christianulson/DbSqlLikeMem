@@ -1,5 +1,9 @@
 namespace DbSqlLikeMem.MySql;
 
+/// <summary>
+/// EN: In-memory database mock configured for MySQL.
+/// PT: Mock de banco em memória configurado para MySQL.
+/// </summary>
 public class MySqlDbMock
     : DbMock
 {

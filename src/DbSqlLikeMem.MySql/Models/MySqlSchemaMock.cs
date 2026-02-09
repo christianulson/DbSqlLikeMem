@@ -1,5 +1,9 @@
 namespace DbSqlLikeMem.MySql;
 
+/// <summary>
+/// EN: Schema mock for MySQL databases.
+/// PT: Mock de esquema para bancos MySQL.
+/// </summary>
 public class MySqlSchemaMock(
     string schemaName,
     MySqlDbMock db,

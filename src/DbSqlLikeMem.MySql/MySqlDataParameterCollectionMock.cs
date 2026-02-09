@@ -3,6 +3,10 @@ using System.Collections;
 using System.Data.Common;
 
 namespace DbSqlLikeMem.MySql;
+/// <summary>
+/// EN: Mock parameter collection for MySQL commands.
+/// PT: Coleção de parâmetros mock para comandos MySQL.
+/// </summary>
 public class MySqlDataParameterCollectionMock
     : DbParameterCollection, IList<MySqlParameter>
 {

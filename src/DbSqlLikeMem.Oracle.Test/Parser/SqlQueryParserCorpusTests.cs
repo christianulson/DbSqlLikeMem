@@ -1,6 +1,10 @@
 namespace DbSqlLikeMem.Oracle.Test.Parser;
 
 
+/// <summary>
+/// EN: Expected casing results for SQL parser corpus tests.
+/// PT: Resultados esperados de capitalização nos testes de corpus do parser SQL.
+/// </summary>
 public enum SqlCaseExpectation
 {
     ParseOk,
