@@ -7,6 +7,7 @@ internal sealed class SqlQueryParser
     private readonly IReadOnlyList<SqlToken> _toks;
     private readonly ISqlDialect _dialect;
     private int _i;
+    // INSERT ... SELECT pode ter um sufixo de UPSERT após o SELECT (MySQL ON DUPLICATE..., Postgres ON CONFLICT ...)
     private bool _allowOnDuplicateBoundary;
 
     public SqlQueryParser(string sql, ISqlDialect dialect)
@@ -145,7 +146,8 @@ internal sealed class SqlQueryParser
         }
         else if (IsWord(Peek(), "SELECT") || IsWord(Peek(), "WITH"))
         {
-            _allowOnDuplicateBoundary = _dialect.SupportsOnDuplicateKeyUpdate;
+            _allowOnDuplicateBoundary = _dialect.SupportsOnDuplicateKeyUpdate
+                                       || string.Equals(_dialect.Name, "postgresql", StringComparison.OrdinalIgnoreCase);
             insertSelect = ParseSelectQuery();
             _allowOnDuplicateBoundary = false;
         }
@@ -193,17 +195,60 @@ internal sealed class SqlQueryParser
         if (!IsWord(Peek(), "ON"))
             return null;
 
+        var next = Peek(1);
 
-        if (!_dialect.SupportsOnDuplicateKeyUpdate)
-            throw new InvalidOperationException($"Dialeto '{_dialect.Name}' não suporta ON DUPLICATE KEY UPDATE.");
+        // MySQL: ON DUPLICATE KEY UPDATE
+        if (IsWord(next, "DUPLICATE"))
+        {
+            if (!_dialect.SupportsOnDuplicateKeyUpdate)
+                throw new InvalidOperationException($"Dialeto '{_dialect.Name}' não suporta ON DUPLICATE KEY UPDATE.");
 
-        Consume(); // ON
-        ExpectWord("DUPLICATE");
-        ExpectWord("KEY");
-        ExpectWord("UPDATE");
+            Consume(); // ON
+            ExpectWord("DUPLICATE");
+            ExpectWord("KEY");
+            ExpectWord("UPDATE");
 
-        var assigns = ParseAssignmentsList();
-        return new SqlOnDuplicateKeyUpdate(assigns);
+            var assigns = ParseAssignmentsList();
+            return new SqlOnDuplicateKeyUpdate(assigns);
+        }
+
+        // PostgreSQL: ON CONFLICT (...) DO UPDATE SET ...  |  ON CONFLICT DO NOTHING
+        if (IsWord(next, "CONFLICT"))
+        {
+            if (!string.Equals(_dialect.Name, "postgresql", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException($"Dialeto '{_dialect.Name}' não suporta ON CONFLICT.");
+
+            Consume(); // ON
+            ExpectWord("CONFLICT");
+
+            // Target opcional: (col1, col2, ...)
+            if (IsSymbol(Peek(), "("))
+            {
+                Consume(); // (
+                while (!IsSymbol(Peek(), ")"))
+                {
+                    _ = ExpectIdentifier();
+                    if (IsSymbol(Peek(), ",")) Consume();
+                    else break;
+                }
+                ExpectSymbol(")");
+            }
+
+            ExpectWord("DO");
+
+            if (IsWord(Peek(), "NOTHING"))
+            {
+                Consume();
+                return new SqlOnDuplicateKeyUpdate([]);
+            }
+
+            ExpectWord("UPDATE");
+            ExpectWord("SET");
+            var assigns = ParseAssignmentsList();
+            return new SqlOnDuplicateKeyUpdate(assigns);
+        }
+
+        return null;
     }
 
     private SqlUpdateQuery ParseUpdate()

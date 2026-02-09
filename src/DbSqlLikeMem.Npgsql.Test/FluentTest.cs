@@ -77,9 +77,10 @@ public sealed class FluentTest(
             [null, "Alice", DateTime.UtcNow],
             [null, "Bob", DateTime.UtcNow]);
 
-        var count = cnn.GetTable("user").Count;   // 2 linhas
+        Assert.Equal(2, cnn.GetTable("user").Count);   // 2 linhas
 
-        var idIdx = cnn.GetTable("user").Columns["id"].Index;     // 0
-        var firstId = cnn.GetTable("user")[0][idIdx];             // 1 (auto-increment)
+        var idIdx = cnn.GetTable("user").Columns["id"].Index;
+        Assert.Equal(0, idIdx);     // 0
+        Assert.Equal(1, cnn.GetTable("user")[0][idIdx]);             // 1 (auto-increment)
     }
 }

@@ -200,9 +200,7 @@ internal static class DbDeleteStrategy
             var s = p.Trim();
 
             // IN
-            // NOTE: o SqlQueryParser reconstrói tokens sem espaço antes de '(' (ex: "IN(@ids)").
-            // Então o matcher precisa aceitar tanto "IN (@ids)" quanto "IN(@ids)".
-            var min = Regex.Match(s, @"^(?<c>[\w`\.]+)\s+IN\s*(?<v>.+)$", RegexOptions.IgnoreCase);
+            var min = Regex.Match(s, @"^(?<c>[\w`\.]+)\s+IN\s+(?<v>.+)$", RegexOptions.IgnoreCase);
             if (min.Success)
             {
                 list.Add((min.Groups["c"].Value.Trim('`', ' '), "IN", min.Groups["v"].Value.Trim()));
