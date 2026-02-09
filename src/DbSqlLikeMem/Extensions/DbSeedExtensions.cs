@@ -156,8 +156,11 @@ public static class DbSeedExtensions
         foreach (var arr in rows)
         {
             var dic = new Dictionary<int, object?>();
+            var orderedCols = tb.Columns.Values.OrderBy(c => c.Index).ToList();
+            if (arr.Length > orderedCols.Count)
+                throw new InvalidOperationException($"Seed row has {arr.Length} values, but table '{tableName}' has only {orderedCols.Count} columns.");
             for (int i = 0; i < arr.Length; i++)
-                dic[i] = arr[i];
+                dic[orderedCols[i].Index] = arr[i];
             tb.Add(dic);
         }
         return cnn;

@@ -1,4 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>In-memory SQL-like database engine for unit tests.</Description>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.1" />
 		<PackageReference Include="CsvHelper" Version="33.1.0" />

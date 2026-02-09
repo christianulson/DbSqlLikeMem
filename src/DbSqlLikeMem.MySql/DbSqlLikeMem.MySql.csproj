@@ -1,4 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>MySQL provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<PackageReference Include="MySql.Data" Version="9.6.0" />
 		<PackageReference Include="xunit" Version="2.9.3" />
