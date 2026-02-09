@@ -13,9 +13,20 @@ public sealed class MySqlConnectionMock
         _serverVersion = $"MySQL {Db.Version}";
     }
 
+    /// <summary>
+    /// EN: Creates a MySQL transaction mock.
+    /// PT: Cria um mock de transação MySQL.
+    /// </summary>
+    /// <returns>EN: Transaction instance. PT: Instância da transação.</returns>
     protected override DbTransaction CreateTransaction()
         => new MySqlTransactionMock(this);
 
+    /// <summary>
+    /// EN: Creates a MySQL command mock for the transaction.
+    /// PT: Cria um mock de comando MySQL para a transação.
+    /// </summary>
+    /// <param name="transaction">EN: Current transaction. PT: Transação atual.</param>
+    /// <returns>EN: Command instance. PT: Instância do comando.</returns>
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new MySqlCommandMock(this, transaction as MySqlTransactionMock);
 

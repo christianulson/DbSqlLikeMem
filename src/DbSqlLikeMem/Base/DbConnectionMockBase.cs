@@ -71,6 +71,10 @@ public abstract class DbConnectionMockBase(
     /// </summary>
     public override string DataSource => _dataSource;
 
+    /// <summary>
+    /// EN: Backing field for the simulated server version.
+    /// PT: Campo de suporte para a versão simulada do servidor.
+    /// </summary>
     protected string _serverVersion = "";
     /// <summary>
     /// EN: Simulated server version.
@@ -78,6 +82,10 @@ public abstract class DbConnectionMockBase(
     /// </summary>
     public override string ServerVersion => _serverVersion;
 
+    /// <summary>
+    /// EN: Current active transaction, if any.
+    /// PT: Transação ativa atual, se houver.
+    /// </summary>
     protected DbTransaction? CurrentTransaction { get; private set; }
 
     #region Table
@@ -208,6 +216,12 @@ public abstract class DbConnectionMockBase(
 
     #endregion
 
+    /// <summary>
+    /// EN: Begins a database transaction with the specified isolation level.
+    /// PT: Inicia uma transação com o nível de isolamento especificado.
+    /// </summary>
+    /// <param name="isolationLevel">EN: Isolation level. PT: Nível de isolamento.</param>
+    /// <returns>EN: Created transaction. PT: Transação criada.</returns>
     protected override DbTransaction BeginDbTransaction(
         IsolationLevel isolationLevel)
     {
@@ -225,6 +239,11 @@ public abstract class DbConnectionMockBase(
         return CurrentTransaction;
     }
 
+    /// <summary>
+    /// EN: Creates a provider-specific transaction instance.
+    /// PT: Cria uma instância de transação específica do provedor.
+    /// </summary>
+    /// <returns>EN: Transaction instance. PT: Instância da transação.</returns>
     protected abstract DbTransaction CreateTransaction();
 
     /// <summary>
@@ -242,9 +261,20 @@ public abstract class DbConnectionMockBase(
     public override void Close()
         => _state = ConnectionState.Closed;
 
+    /// <summary>
+    /// EN: Creates a command associated with the current transaction.
+    /// PT: Cria um comando associado à transação atual.
+    /// </summary>
+    /// <returns>EN: Command instance. PT: Instância do comando.</returns>
     protected override DbCommand CreateDbCommand()
         => CreateDbCommandCore(CurrentTransaction);
 
+    /// <summary>
+    /// EN: Creates a provider-specific command tied to a transaction.
+    /// PT: Cria um comando específico do provedor atrelado a uma transação.
+    /// </summary>
+    /// <param name="transaction">EN: Current transaction. PT: Transação atual.</param>
+    /// <returns>EN: Command instance. PT: Instância do comando.</returns>
     protected abstract DbCommand CreateDbCommandCore(
         DbTransaction? transaction);
 
@@ -317,6 +347,11 @@ public abstract class DbConnectionMockBase(
 
     internal abstract Exception NewException(string message, int code);
 
+    /// <summary>
+    /// EN: Disposes the connection and associated resources.
+    /// PT: Descarta a conexão e os recursos associados.
+    /// </summary>
+    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         if (_disposed)

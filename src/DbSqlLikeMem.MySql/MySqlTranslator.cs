@@ -58,6 +58,12 @@ public class MySqlTranslator : ExpressionVisitor
     }
 
 #pragma warning disable CS8605 // Unboxing a possibly null value.
+    /// <summary>
+    /// EN: Translates method calls into MySQL expressions.
+    /// PT: Traduz chamadas de método em expressões MySQL.
+    /// </summary>
+    /// <param name="node">EN: Method call expression. PT: Expressão de chamada de método.</param>
+    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitMethodCall(MethodCallExpression node)
     {
         ArgumentNullException.ThrowIfNull(node);
@@ -124,6 +130,12 @@ public class MySqlTranslator : ExpressionVisitor
     }
 #pragma warning restore CS8605 // Unboxing a possibly null value.
 
+    /// <summary>
+    /// EN: Translates constants into MySQL literals.
+    /// PT: Traduz constantes em literais MySQL.
+    /// </summary>
+    /// <param name="node">EN: Constant expression. PT: Expressão constante.</param>
+    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitConstant(ConstantExpression node)
     {
         ArgumentNullException.ThrowIfNull(node);
@@ -161,6 +173,12 @@ public class MySqlTranslator : ExpressionVisitor
         return node;
     }
 
+    /// <summary>
+    /// EN: Translates binary expressions into MySQL syntax.
+    /// PT: Traduz expressões binárias para a sintaxe MySQL.
+    /// </summary>
+    /// <param name="node">EN: Binary expression. PT: Expressão binária.</param>
+    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitBinary(BinaryExpression node)
     {
         ArgumentNullException.ThrowIfNull(node);
@@ -180,6 +198,12 @@ public class MySqlTranslator : ExpressionVisitor
         return node;
     }
 
+    /// <summary>
+    /// EN: Translates member access into MySQL expressions.
+    /// PT: Traduz acesso a membros em expressões MySQL.
+    /// </summary>
+    /// <param name="node">EN: Member expression. PT: Expressão de membro.</param>
+    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitMember(MemberExpression node)
     {
         ArgumentNullException.ThrowIfNull(node);

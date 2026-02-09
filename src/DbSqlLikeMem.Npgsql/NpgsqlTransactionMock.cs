@@ -10,6 +10,10 @@ public sealed class NpgsqlTransactionMock(
 {
     private bool disposedValue;
 
+    /// <summary>
+    /// EN: Gets the connection associated with this transaction.
+    /// PT: Obtém a conexão associada a esta transação.
+    /// </summary>
     protected override DbConnection? DbConnection => cnn;
 
     public override IsolationLevel IsolationLevel
@@ -33,6 +37,11 @@ public sealed class NpgsqlTransactionMock(
         }
     }
 
+    /// <summary>
+    /// EN: Disposes the transaction resources.
+    /// PT: Descarta os recursos da transação.
+    /// </summary>
+    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         if (!disposedValue)

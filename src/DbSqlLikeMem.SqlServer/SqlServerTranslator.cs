@@ -58,6 +58,12 @@ public class SqlServerTranslator : ExpressionVisitor
     }
 
 #pragma warning disable CS8605 // Unboxing a possibly null value.
+    /// <summary>
+    /// EN: Translates method calls into SQL Server expressions.
+    /// PT: Traduz chamadas de método em expressões do SQL Server.
+    /// </summary>
+    /// <param name="node">EN: Method call expression. PT: Expressão de chamada de método.</param>
+    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitMethodCall(MethodCallExpression node)
     {
         ArgumentNullException.ThrowIfNull(node);
@@ -124,6 +130,12 @@ public class SqlServerTranslator : ExpressionVisitor
     }
 #pragma warning restore CS8605 // Unboxing a possibly null value.
 
+    /// <summary>
+    /// EN: Translates constants into SQL Server literals.
+    /// PT: Traduz constantes em literais do SQL Server.
+    /// </summary>
+    /// <param name="node">EN: Constant expression. PT: Expressão constante.</param>
+    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitConstant(ConstantExpression node)
     {
         ArgumentNullException.ThrowIfNull(node);
@@ -161,6 +173,12 @@ public class SqlServerTranslator : ExpressionVisitor
         return node;
     }
 
+    /// <summary>
+    /// EN: Translates binary expressions into SQL Server syntax.
+    /// PT: Traduz expressões binárias para a sintaxe do SQL Server.
+    /// </summary>
+    /// <param name="node">EN: Binary expression. PT: Expressão binária.</param>
+    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitBinary(BinaryExpression node)
     {
         ArgumentNullException.ThrowIfNull(node);
@@ -180,6 +198,12 @@ public class SqlServerTranslator : ExpressionVisitor
         return node;
     }
 
+    /// <summary>
+    /// EN: Translates member access into SQL Server expressions.
+    /// PT: Traduz acesso a membros em expressões do SQL Server.
+    /// </summary>
+    /// <param name="node">EN: Member expression. PT: Expressão de membro.</param>
+    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitMember(MemberExpression node)
     {
         ArgumentNullException.ThrowIfNull(node);

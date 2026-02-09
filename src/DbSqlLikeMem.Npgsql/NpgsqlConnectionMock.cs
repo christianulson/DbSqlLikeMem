@@ -18,9 +18,20 @@ public sealed class NpgsqlConnectionMock
         _serverVersion = $"PostgreSQL {Db.Version}";
     }
 
+    /// <summary>
+    /// EN: Creates a PostgreSQL transaction mock.
+    /// PT: Cria um mock de transação PostgreSQL.
+    /// </summary>
+    /// <returns>EN: Transaction instance. PT: Instância da transação.</returns>
     protected override DbTransaction CreateTransaction()
         => new NpgsqlTransactionMock(this);
 
+    /// <summary>
+    /// EN: Creates a PostgreSQL command mock for the transaction.
+    /// PT: Cria um mock de comando PostgreSQL para a transação.
+    /// </summary>
+    /// <param name="transaction">EN: Current transaction. PT: Transação atual.</param>
+    /// <returns>EN: Command instance. PT: Instância do comando.</returns>
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new NpgsqlCommandMock(this, transaction as NpgsqlTransactionMock);
 

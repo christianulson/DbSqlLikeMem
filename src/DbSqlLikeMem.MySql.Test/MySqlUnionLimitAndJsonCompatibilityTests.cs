@@ -67,6 +67,11 @@ SELECT id FROM t WHERE id = 1
         Assert.Equal([123m, 456m, null], [.. rows.Select(r => (object?)r.v)]);
     }
 
+    /// <summary>
+    /// EN: Disposes test resources.
+    /// PT: Descarta os recursos do teste.
+    /// </summary>
+    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _cnn?.Dispose();
