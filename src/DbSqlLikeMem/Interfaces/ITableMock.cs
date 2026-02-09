@@ -1,22 +1,26 @@
 namespace DbSqlLikeMem;
 /// <summary>
-/// Define o contrato de uma tabela em memória, com dados, metadados e utilidades de índice.
+/// EN: Defines the contract of an in-memory table with data, metadata, and index utilities.
+/// PT: Define o contrato de uma tabela em memória, com dados, metadados e utilidades de índice.
 /// </summary>
 public interface ITableMock
     : IList<Dictionary<int, object?>>
 {
     /// <summary>
-    /// Obtém ou define o próximo valor de identidade para colunas auto incrementais.
+    /// EN: Gets or sets the next identity value for auto-increment columns.
+    /// PT: Obtém ou define o próximo valor de identidade para colunas auto incrementais.
     /// </summary>
     int NextIdentity { get; set; }
 
     /// <summary>
-    /// Mantém os índices das colunas que compõem a chave primária.
+    /// EN: Holds the column indexes that compose the primary key.
+    /// PT: Mantém os índices das colunas que compõem a chave primária.
     /// </summary>
     HashSet<int> PrimaryKeyIndexes { get; }
 
     /// <summary>
-    /// Expõe as chaves estrangeiras configuradas na tabela.
+    /// EN: Exposes foreign keys configured on the table.
+    /// PT: Expõe as chaves estrangeiras configuradas na tabela.
     /// </summary>
     IReadOnlyList<(
         string Col, 
@@ -25,112 +29,129 @@ public interface ITableMock
         )> ForeignKeys { get; }
 
     /// <summary>
-    /// Cria uma chave estrangeira ligando uma coluna local a uma coluna de outra tabela.
+    /// EN: Creates a foreign key linking a local column to a column in another table.
+    /// PT: Cria uma chave estrangeira ligando uma coluna local a uma coluna de outra tabela.
     /// </summary>
-    /// <param name="col">Nome da coluna local.</param>
-    /// <param name="refTable">Tabela referenciada.</param>
-    /// <param name="refCol">Coluna referenciada.</param>
+    /// <param name="col">EN: Local column name. PT: Nome da coluna local.</param>
+    /// <param name="refTable">EN: Referenced table. PT: Tabela referenciada.</param>
+    /// <param name="refCol">EN: Referenced column. PT: Coluna referenciada.</param>
     void CreateForeignKey(
         string col,
         string refTable,
         string refCol);
 
     /// <summary>
-    /// Obtém o dicionário de colunas da tabela.
+    /// EN: Gets the table column dictionary.
+    /// PT: Obtém o dicionário de colunas da tabela.
     /// </summary>
     IColumnDictionary Columns{ get; }
 
     /// <summary>
-    /// Localiza uma coluna pelo nome ou lança erro se não existir.
+    /// EN: Finds a column by name or throws if it does not exist.
+    /// PT: Localiza uma coluna pelo nome ou lança erro se não existir.
     /// </summary>
-    /// <param name="columnName">Nome da coluna.</param>
-    /// <returns>Definição da coluna encontrada.</returns>
+    /// <param name="columnName">EN: Column name. PT: Nome da coluna.</param>
+    /// <returns>EN: Found column definition. PT: Definição da coluna encontrada.</returns>
     ColumnDef GetColumn(string columnName);
 
     /// <summary>
-    /// Obtém os índices declarados para a tabela.
+    /// EN: Gets the indexes declared for the table.
+    /// PT: Obtém os índices declarados para a tabela.
     /// </summary>
     IndexDictionary Indexes { get; }
 
     /// <summary>
-    /// Cria um índice com a definição informada.
+    /// EN: Creates an index using the provided definition.
+    /// PT: Cria um índice com a definição informada.
     /// </summary>
-    /// <param name="def">Definição do índice.</param>
+    /// <param name="def">EN: Index definition. PT: Definição do índice.</param>
     void CreateIndex(IndexDef def);
 
     /// <summary>
-    /// Atualiza estruturas de índice usando a linha indicada.
+    /// EN: Updates index structures using the specified row.
+    /// PT: Atualiza estruturas de índice usando a linha indicada.
     /// </summary>
-    /// <param name="rowIdx">Índice da linha atualizada.</param>
+    /// <param name="rowIdx">EN: Updated row index. PT: Índice da linha atualizada.</param>
     void UpdateIndexesWithRow(int rowIdx);
 
     /// <summary>
-    /// Reconstrói todos os índices da tabela.
+    /// EN: Rebuilds all table indexes.
+    /// PT: Reconstrói todos os índices da tabela.
     /// </summary>
     void RebuildAllIndexes();
     /// <summary>
-    /// Executa uma busca em um índice com a chave informada.
+    /// EN: Performs a lookup in an index using the given key.
+    /// PT: Executa uma busca em um índice com a chave informada.
     /// </summary>
-    /// <param name="def">Definição do índice.</param>
-    /// <param name="key">Chave a buscar.</param>
-    /// <returns>Lista de posições ou null se não houver.</returns>
+    /// <param name="def">EN: Index definition. PT: Definição do índice.</param>
+    /// <param name="key">EN: Key to search. PT: Chave a buscar.</param>
+    /// <returns>EN: List of positions or null if none. PT: Lista de posições ou null se não houver.</returns>
     IEnumerable<int>? Lookup(IndexDef def, string key);
 
     /// <summary>
-    /// Adiciona múltiplos itens convertendo-os em linhas.
+    /// EN: Adds multiple items by converting them into rows.
+    /// PT: Adiciona múltiplos itens convertendo-os em linhas.
     /// </summary>
-    /// <typeparam name="T">Tipo dos itens.</typeparam>
-    /// <param name="items">Itens a inserir.</param>
+    /// <typeparam name="T">EN: Item type. PT: Tipo dos itens.</typeparam>
+    /// <param name="items">EN: Items to insert. PT: Itens a inserir.</param>
     void AddRangeItems<T>(IEnumerable<T> items);
 
     /// <summary>
-    /// Adiciona um item convertendo-o em linha da tabela.
+    /// EN: Adds a single item by converting it into a table row.
+    /// PT: Adiciona um item convertendo-o em linha da tabela.
     /// </summary>
-    /// <typeparam name="T">Tipo do item.</typeparam>
-    /// <param name="item">Item a inserir.</param>
+    /// <typeparam name="T">EN: Item type. PT: Tipo do item.</typeparam>
+    /// <param name="item">EN: Item to insert. PT: Item a inserir.</param>
     void AddItem<T>(T item);
 
     /// <summary>
-    /// Adiciona um conjunto de linhas já materializadas.
+    /// EN: Adds a set of already materialized rows.
+    /// PT: Adiciona um conjunto de linhas já materializadas.
     /// </summary>
-    /// <param name="items">Linhas a inserir.</param>
+    /// <param name="items">EN: Rows to insert. PT: Linhas a inserir.</param>
     void AddRange(IEnumerable<Dictionary<int, object?>> items);
 
     /// <summary>
-    /// Adiciona uma linha específica à tabela.
+    /// EN: Adds a specific row to the table.
+    /// PT: Adiciona uma linha específica à tabela.
     /// </summary>
-    /// <param name="value">Linha a inserir.</param>
+    /// <param name="value">EN: Row to insert. PT: Linha a inserir.</param>
     new void Add(Dictionary<int, object?> value);
 
     /// <summary>
-    /// Realiza backup das linhas atuais para possível restauração.
+    /// EN: Backs up current rows for possible restoration.
+    /// PT: Realiza backup das linhas atuais para possível restauração.
     /// </summary>
     void Backup();
 
     /// <summary>
-    /// Restaura o último backup realizado.
+    /// EN: Restores the last backup performed.
+    /// PT: Restaura o último backup realizado.
     /// </summary>
     void Restore();
 
     /// <summary>
-    /// Limpa o backup armazenado.
+    /// EN: Clears the stored backup.
+    /// PT: Limpa o backup armazenado.
     /// </summary>
     void ClearBackup();
 
     /// <summary>
-    /// Obtém ou define a coluna atualmente em avaliação durante parsing/execução.
+    /// EN: Gets or sets the column currently being evaluated during parsing/execution.
+    /// PT: Obtém ou define a coluna atualmente em avaliação durante parsing/execução.
     /// </summary>
     string? CurrentColumn { get; set; }
 
     /// <summary>
-    /// Resolve um token SQL para o valor correspondente no contexto da tabela.
+    /// EN: Resolves an SQL token to its value in the table context.
+    /// PT: Resolve um token SQL para o valor correspondente no contexto da tabela.
     /// </summary>
-    /// <param name="token">Token a resolver.</param>
-    /// <param name="dbType">Tipo esperado do token.</param>
-    /// <param name="isNullable">Indica se o valor pode ser nulo.</param>
-    /// <param name="pars">Parâmetros de consulta, quando aplicável.</param>
-    /// <param name="colDict">Dicionário de colunas opcional.</param>
-    /// <returns>Valor resolvido ou null.</returns>
+    /// <param name="token">EN: Token to resolve. PT: Token a resolver.</param>
+    /// <param name="dbType">EN: Expected token type. PT: Tipo esperado do token.</param>
+    /// <param name="isNullable">EN: Whether the value can be null. PT: Indica se o valor pode ser nulo.</param>
+    /// <param name="pars">EN: Query parameters, if any. PT: Parâmetros de consulta, quando aplicável.</param>
+    /// <param name="colDict">EN: Optional column dictionary. PT: Dicionário de colunas opcional.</param>
+    /// <returns>EN: Resolved value or null. PT: Valor resolvido ou null.</returns>
     object? Resolve(
         string token,
         DbType dbType,
@@ -139,31 +160,36 @@ public interface ITableMock
         IColumnDictionary? colDict = null);
 
     /// <summary>
-    /// Cria a exceção apropriada para coluna inexistente.
+    /// EN: Creates the exception for an unknown column.
+    /// PT: Cria a exceção apropriada para coluna inexistente.
     /// </summary>
-    /// <param name="columnName">Nome da coluna inválida.</param>
+    /// <param name="columnName">EN: Invalid column name. PT: Nome da coluna inválida.</param>
     Exception UnknownColumn(string columnName);
     /// <summary>
-    /// Cria a exceção apropriada para chave duplicada.
+    /// EN: Creates the exception for a duplicate key.
+    /// PT: Cria a exceção apropriada para chave duplicada.
     /// </summary>
-    /// <param name="tbl">Tabela afetada.</param>
-    /// <param name="key">Nome da chave.</param>
-    /// <param name="val">Valor duplicado.</param>
+    /// <param name="tbl">EN: Affected table. PT: Tabela afetada.</param>
+    /// <param name="key">EN: Key name. PT: Nome da chave.</param>
+    /// <param name="val">EN: Duplicate value. PT: Valor duplicado.</param>
     Exception DuplicateKey(string tbl, string key, object? val);
     /// <summary>
-    /// Cria a exceção apropriada para coluna que não aceita nulos.
+    /// EN: Creates the exception for a non-nullable column.
+    /// PT: Cria a exceção apropriada para coluna que não aceita nulos.
     /// </summary>
-    /// <param name="col">Nome da coluna.</param>
+    /// <param name="col">EN: Column name. PT: Nome da coluna.</param>
     Exception ColumnCannotBeNull(string col);
     /// <summary>
-    /// Cria a exceção apropriada para violação de chave estrangeira.
+    /// EN: Creates the exception for a foreign key violation.
+    /// PT: Cria a exceção apropriada para violação de chave estrangeira.
     /// </summary>
-    /// <param name="col">Coluna que referencia.</param>
-    /// <param name="refTbl">Tabela referenciada.</param>
+    /// <param name="col">EN: Referencing column. PT: Coluna que referencia.</param>
+    /// <param name="refTbl">EN: Referenced table. PT: Tabela referenciada.</param>
     Exception ForeignKeyFails(string col, string refTbl);
     /// <summary>
-    /// Cria a exceção apropriada para linha referenciada por outra tabela.
+    /// EN: Creates the exception for a row referenced by another table.
+    /// PT: Cria a exceção apropriada para linha referenciada por outra tabela.
     /// </summary>
-    /// <param name="tbl">Tabela referenciada.</param>
+    /// <param name="tbl">EN: Referenced table. PT: Tabela referenciada.</param>
     Exception ReferencedRow(string tbl);
 }

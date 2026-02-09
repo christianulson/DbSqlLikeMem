@@ -3,19 +3,22 @@ using System.Diagnostics.CodeAnalysis;
 namespace DbSqlLikeMem;
 
 /// <summary>
-/// Base de um banco em memória com schemas, tabelas e procedimentos.
+/// EN: Base of an in-memory database with schemas, tables, and procedures.
+/// PT: Base de um banco em memória com schemas, tabelas e procedimentos.
 /// </summary>
 public abstract class DbMock
     : Dictionary<string, SchemaMock>
     , ISchemaDictionary
 {
     /// <summary>
-    /// Versão do banco simulada.
+    /// EN: Simulated database version.
+    /// PT: Versão do banco simulada.
     /// </summary>
     public int Version { get; }
 
     /// <summary>
-    /// Indica se operações devem aplicar bloqueio para segurança de threads.
+    /// EN: Indicates whether operations should lock for thread safety.
+    /// PT: Indica se operações devem aplicar bloqueio para segurança de threads.
     /// </summary>
     public bool ThreadSafe { get; set; }
 
@@ -30,9 +33,10 @@ public abstract class DbMock
     ISchemaMock IReadOnlyDictionary<string, ISchemaMock>.this[string key] => throw new NotImplementedException();
 
     /// <summary>
-    /// Inicializa o banco com a versão informada e um schema padrão.
+    /// EN: Initializes the database with the given version and a default schema.
+    /// PT: Inicializa o banco com a versão informada e um schema padrão.
     /// </summary>
-    /// <param name="version">Versão simulada do banco.</param>
+    /// <param name="version">EN: Simulated database version. PT: Versão simulada do banco.</param>
     protected DbMock(
         int version)
         : base(StringComparer.OrdinalIgnoreCase)
@@ -57,11 +61,12 @@ public abstract class DbMock
         IDictionary<string, (IColumnDictionary columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null);
 
     /// <summary>
-    /// Cria um schema e o registra no banco.
+    /// EN: Creates a schema and registers it in the database.
+    /// PT: Cria um schema e o registra no banco.
     /// </summary>
-    /// <param name="schemaName">Nome do schema.</param>
-    /// <param name="tables">Tabelas iniciais do schema.</param>
-    /// <returns>Schema criado.</returns>
+    /// <param name="schemaName">EN: Schema name. PT: Nome do schema.</param>
+    /// <param name="tables">EN: Initial schema tables. PT: Tabelas iniciais do schema.</param>
+    /// <returns>EN: Created schema. PT: Schema criado.</returns>
     public ISchemaMock CreateSchema(
         string schemaName,
         IDictionary<string, (IColumnDictionary columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null)
@@ -85,11 +90,12 @@ public abstract class DbMock
     }
 
     /// <summary>
-    /// Tenta obter um schema pelo nome.
+    /// EN: Tries to get a schema by name.
+    /// PT: Tenta obter um schema pelo nome.
     /// </summary>
-    /// <param name="key">Nome do schema.</param>
-    /// <param name="value">Schema encontrado, se houver.</param>
-    /// <returns>True se o schema existir.</returns>
+    /// <param name="key">EN: Schema name. PT: Nome do schema.</param>
+    /// <param name="value">EN: Found schema, if any. PT: Schema encontrado, se houver.</param>
+    /// <returns>EN: True if the schema exists. PT: True se o schema existir.</returns>
     public bool TryGetValue(
         string key,
         [MaybeNullWhen(false)] out ISchemaMock value
@@ -109,13 +115,14 @@ public abstract class DbMock
     #region Table
 
     /// <summary>
-    /// Cria e adiciona uma tabela ao schema indicado.
+    /// EN: Creates and adds a table to the specified schema.
+    /// PT: Cria e adiciona uma tabela ao schema indicado.
     /// </summary>
-    /// <param name="tableName">Nome da tabela.</param>
-    /// <param name="columns">Definição das colunas.</param>
-    /// <param name="rows">Linhas iniciais.</param>
-    /// <param name="schemaName">Schema alvo.</param>
-    /// <returns>Tabela criada.</returns>
+    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
+    /// <param name="columns">EN: Column definitions. PT: Definição das colunas.</param>
+    /// <param name="rows">EN: Initial rows. PT: Linhas iniciais.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: Created table. PT: Tabela criada.</returns>
     public ITableMock AddTable(
         string tableName,
         IColumnDictionary? columns = null,
@@ -129,11 +136,12 @@ public abstract class DbMock
     }
 
     /// <summary>
-    /// Obtém uma tabela pelo nome, lançando erro se não existir.
+    /// EN: Gets a table by name, throwing if it does not exist.
+    /// PT: Obtém uma tabela pelo nome, lançando erro se não existir.
     /// </summary>
-    /// <param name="tableName">Nome da tabela.</param>
-    /// <param name="schemaName">Schema alvo.</param>
-    /// <returns>Tabela encontrada.</returns>
+    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: Found table. PT: Tabela encontrada.</returns>
     public ITableMock GetTable(
         string tableName,
         string? schemaName = null)
@@ -147,12 +155,13 @@ public abstract class DbMock
     }
 
     /// <summary>
-    /// Tenta obter uma tabela pelo nome.
+    /// EN: Tries to get a table by name.
+    /// PT: Tenta obter uma tabela pelo nome.
     /// </summary>
-    /// <param name="tableName">Nome da tabela.</param>
-    /// <param name="tb">Tabela encontrada, se houver.</param>
-    /// <param name="schemaName">Schema alvo.</param>
-    /// <returns>True se a tabela existir.</returns>
+    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
+    /// <param name="tb">EN: Found table, if any. PT: Tabela encontrada, se houver.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: True if the table exists. PT: True se a tabela existir.</returns>
     public bool TryGetTable(
         string tableName,
         out ITableMock? tb,
@@ -165,11 +174,12 @@ public abstract class DbMock
     }
 
     /// <summary>
-    /// Verifica se uma tabela existe no schema informado.
+    /// EN: Checks whether a table exists in the specified schema.
+    /// PT: Verifica se uma tabela existe no schema informado.
     /// </summary>
-    /// <param name="tableName">Nome da tabela.</param>
-    /// <param name="schemaName">Schema alvo.</param>
-    /// <returns>True se existir.</returns>
+    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: True if it exists. PT: True se existir.</returns>
     public bool ContainsTable(
         string tableName,
         string? schemaName = null)
@@ -249,11 +259,12 @@ public abstract class DbMock
     #region Procedures
 
     /// <summary>
-    /// Registra um procedimento armazenado no schema informado.
+    /// EN: Registers a stored procedure in the specified schema.
+    /// PT: Registra um procedimento armazenado no schema informado.
     /// </summary>
-    /// <param name="procName">Nome do procedimento.</param>
-    /// <param name="pr">Definição do procedimento.</param>
-    /// <param name="schemaName">Schema alvo.</param>
+    /// <param name="procName">EN: Procedure name. PT: Nome do procedimento.</param>
+    /// <param name="pr">EN: Procedure definition. PT: Definição do procedimento.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
     public void AddProdecure(
         string procName,
         ProcedureDef pr,
@@ -267,12 +278,13 @@ public abstract class DbMock
     }
 
     /// <summary>
-    /// Tenta obter um procedimento armazenado pelo nome.
+    /// EN: Tries to get a stored procedure by name.
+    /// PT: Tenta obter um procedimento armazenado pelo nome.
     /// </summary>
-    /// <param name="procName">Nome do procedimento.</param>
-    /// <param name="pr">Procedimento encontrado, se houver.</param>
-    /// <param name="schemaName">Schema alvo.</param>
-    /// <returns>True se existir.</returns>
+    /// <param name="procName">EN: Procedure name. PT: Nome do procedimento.</param>
+    /// <param name="pr">EN: Found procedure, if any. PT: Procedimento encontrado, se houver.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: True if it exists. PT: True se existir.</returns>
     public bool TryGetProcedure(
         string procName,
         out ProcedureDef? pr,

@@ -3,28 +3,34 @@ using System.Diagnostics;
 namespace DbSqlLikeMem;
 
 /// <summary>
-/// Acumula métricas de uso e tempo para operações no banco em memória.
+/// EN: Accumulates usage and timing metrics for in-memory DB operations.
+/// PT: Acumula métricas de uso e tempo para operações no banco em memória.
 /// </summary>
 public sealed class DbMetrics
 {
     /// <summary>
-    /// Quantidade de consultas SELECT executadas.
+    /// EN: Number of SELECT queries executed.
+    /// PT: Quantidade de consultas SELECT executadas.
     /// </summary>
     public int Selects { get; internal set; }
     /// <summary>
-    /// Quantidade de operações INSERT executadas.
+    /// EN: Number of INSERT operations executed.
+    /// PT: Quantidade de operações INSERT executadas.
     /// </summary>
     public int Inserts { get; internal set; }
     /// <summary>
-    /// Quantidade de operações UPDATE executadas.
+    /// EN: Number of UPDATE operations executed.
+    /// PT: Quantidade de operações UPDATE executadas.
     /// </summary>
     public int Updates { get; internal set; }
     /// <summary>
-    /// Quantidade de operações DELETE executadas.
+    /// EN: Number of DELETE operations executed.
+    /// PT: Quantidade de operações DELETE executadas.
     /// </summary>
     public int Deletes { get; internal set; }
     /// <summary>
-    /// Tempo total decorrido desde o início da coleta.
+    /// EN: Total elapsed time since metrics started.
+    /// PT: Tempo total decorrido desde o início da coleta.
     /// </summary>
     public TimeSpan Elapsed => _sw.Elapsed;
 

@@ -1,24 +1,27 @@
 namespace DbSqlLikeMem;
 
 /// <summary>
-/// Define os metadados de uma coluna, incluindo tipo, nulabilidade e identidade.
+/// EN: Defines column metadata including type, nullability, and identity.
+/// PT: Define os metadados de uma coluna, incluindo tipo, nulabilidade e identidade.
 /// </summary>
 public sealed class ColumnDef
 {
     /// <summary>
-    /// Inicializa uma definição de coluna vazia.
+    /// EN: Initializes an empty column definition.
+    /// PT: Inicializa uma definição de coluna vazia.
     /// </summary>
     public ColumnDef()
     { }
 
     /// <summary>
-    /// Inicializa uma coluna com valores completos, incluindo padrão.
+    /// EN: Initializes a column with full values, including default.
+    /// PT: Inicializa uma coluna com valores completos, incluindo padrão.
     /// </summary>
-    /// <param name="index">Posição da coluna.</param>
-    /// <param name="dbType">Tipo de dados.</param>
-    /// <param name="nullable">Indica se aceita nulos.</param>
-    /// <param name="identity">Indica se é identidade.</param>
-    /// <param name="defaultValue">Valor padrão.</param>
+    /// <param name="index">EN: Column position. PT: Posição da coluna.</param>
+    /// <param name="dbType">EN: Data type. PT: Tipo de dados.</param>
+    /// <param name="nullable">EN: Whether it accepts nulls. PT: Indica se aceita nulos.</param>
+    /// <param name="identity">EN: Whether it is an identity column. PT: Indica se é identidade.</param>
+    /// <param name="defaultValue">EN: Default value. PT: Valor padrão.</param>
     public ColumnDef(
         int index,
         DbType dbType,
@@ -31,12 +34,13 @@ public sealed class ColumnDef
     }
 
     /// <summary>
-    /// Inicializa uma coluna com identidade e configuração de nulabilidade.
+    /// EN: Initializes a column with identity and nullability.
+    /// PT: Inicializa uma coluna com identidade e configuração de nulabilidade.
     /// </summary>
-    /// <param name="index">Posição da coluna.</param>
-    /// <param name="dbType">Tipo de dados.</param>
-    /// <param name="nullable">Indica se aceita nulos.</param>
-    /// <param name="identity">Indica se é identidade.</param>
+    /// <param name="index">EN: Column position. PT: Posição da coluna.</param>
+    /// <param name="dbType">EN: Data type. PT: Tipo de dados.</param>
+    /// <param name="nullable">EN: Whether it accepts nulls. PT: Indica se aceita nulos.</param>
+    /// <param name="identity">EN: Whether it is an identity column. PT: Indica se é identidade.</param>
     public ColumnDef(
         int index,
         DbType dbType,
@@ -48,10 +52,11 @@ public sealed class ColumnDef
     }
 
     /// <summary>
-    /// Inicializa uma coluna não nula com índice e tipo.
+    /// EN: Initializes a non-null column with index and type.
+    /// PT: Inicializa uma coluna não nula com índice e tipo.
     /// </summary>
-    /// <param name="index">Posição da coluna.</param>
-    /// <param name="dbType">Tipo de dados.</param>
+    /// <param name="index">EN: Column position. PT: Posição da coluna.</param>
+    /// <param name="dbType">EN: Data type. PT: Tipo de dados.</param>
     public ColumnDef(
         int index,
         DbType dbType
@@ -59,11 +64,12 @@ public sealed class ColumnDef
     { }
 
     /// <summary>
-    /// Inicializa uma coluna com índice, tipo e nulabilidade.
+    /// EN: Initializes a column with index, type, and nullability.
+    /// PT: Inicializa uma coluna com índice, tipo e nulabilidade.
     /// </summary>
-    /// <param name="index">Posição da coluna.</param>
-    /// <param name="dbType">Tipo de dados.</param>
-    /// <param name="nullable">Indica se aceita nulos.</param>
+    /// <param name="index">EN: Column position. PT: Posição da coluna.</param>
+    /// <param name="dbType">EN: Data type. PT: Tipo de dados.</param>
+    /// <param name="nullable">EN: Whether it accepts nulls. PT: Indica se aceita nulos.</param>
     public ColumnDef(
         int index,
         DbType dbType,
@@ -75,38 +81,46 @@ public sealed class ColumnDef
     }
 
     /// <summary>
-    /// Obtém a posição da coluna na tabela.
+    /// EN: Gets the column position within the table.
+    /// PT: Obtém a posição da coluna na tabela.
     /// </summary>
     public int Index { get; init; }
     /// <summary>
-    /// Obtém o tipo de dados da coluna.
+    /// EN: Gets the column data type.
+    /// PT: Obtém o tipo de dados da coluna.
     /// </summary>
     public DbType DbType { get; init; }
     /// <summary>
-    /// Indica se a coluna aceita valores nulos.
+    /// EN: Indicates whether the column accepts null values.
+    /// PT: Indica se a coluna aceita valores nulos.
     /// </summary>
     public bool Nullable { get; init; }
     /// <summary>
-    /// Indica se a coluna é auto incrementável.
+    /// EN: Indicates whether the column is auto-increment.
+    /// PT: Indica se a coluna é auto incrementável.
     /// </summary>
     public bool Identity { get; set; }
     /// <summary>
-    /// Obtém ou define o valor padrão da coluna.
+    /// EN: Gets or sets the column default value.
+    /// PT: Obtém ou define o valor padrão da coluna.
     /// </summary>
     public object? DefaultValue { get; set; }
 
     /// <summary>
-    /// Lista de valores permitidos quando a coluna é um enum.
+    /// EN: Allowed values when the column is an enum.
+    /// PT: Lista de valores permitidos quando a coluna é um enum.
     /// </summary>
     public HashSet<string> EnumValues { get; internal set; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     /// <summary>
-    /// Define os valores permitidos para a coluna enum.
+    /// EN: Sets the allowed values for the enum column.
+    /// PT: Define os valores permitidos para a coluna enum.
     /// </summary>
-    /// <param name="values">Valores permitidos.</param>
+    /// <param name="values">EN: Allowed values. PT: Valores permitidos.</param>
     public void SetEnumValues(params string[] values) => EnumValues = new(values, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Função geradora de valor calculado para colunas derivadas.
+    /// EN: Value generator for computed/derived columns.
+    /// PT: Função geradora de valor calculado para colunas derivadas.
     /// </summary>
     public Func<Dictionary<int, object?>, ITableMock, object?>? GetGenValue { get; set; }
 }
