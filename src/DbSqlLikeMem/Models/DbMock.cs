@@ -8,7 +8,7 @@ public abstract class DbMock
 {
     public int Version { get; }
 
-    public bool ThreadSafe { get; internal set; }
+    public bool ThreadSafe { get; set; }
 
     internal object SyncRoot { get; } = new();
 

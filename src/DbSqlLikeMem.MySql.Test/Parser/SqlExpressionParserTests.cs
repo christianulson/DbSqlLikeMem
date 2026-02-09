@@ -46,7 +46,7 @@ public sealed class SqlExpressionParserTests(
         yield return new object[] { "a = @p2 and b = @p" };
         yield return new object[] { "a = @p2 and b IS NULL" };
         yield return new object[] { "a in (@ids)" };
-        // yield return new object[] { @"a in ((@ids_0,@ids_1,@ids_2))" };
+        yield return new object[] { @"a in (@ids_0,@ids_1,@ids_2)" };
         yield return new object[] { "g in (@gids)" };
         yield return new object[] { "s in (@ss)" };
         yield return new object[] { "(a) in (@rows)" };
