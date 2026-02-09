@@ -1,4 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>PostgreSQL (Npgsql) provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
+	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Npgsql" Version="10.0.1" />
