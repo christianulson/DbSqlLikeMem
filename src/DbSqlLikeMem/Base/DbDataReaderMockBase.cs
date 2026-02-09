@@ -2,6 +2,9 @@ using System.Collections;
 
 namespace DbSqlLikeMem;
 
+/// <summary>
+/// Implementa um leitor de dados em memória para resultados de consulta.
+/// </summary>
 public abstract class DbDataReaderMockBase(
     IList<TableResultMock> tables
     ) : DbDataReader
@@ -18,7 +21,13 @@ public abstract class DbDataReaderMockBase(
     private int _currentIndex = -1;
     private bool disposedValue;
 
+    /// <summary>
+    /// Obtém o valor da coluna pelo índice ordinal.
+    /// </summary>
     public override object this[int i] => _resultSets[_currentResultSetIndex][_currentIndex][i] ?? DBNull.Value;
+    /// <summary>
+    /// Obtém o valor da coluna pelo nome.
+    /// </summary>
     public override object this[string name]
     {
         get
@@ -28,40 +37,105 @@ public abstract class DbDataReaderMockBase(
         }
     }
 
+    /// <summary>
+    /// Profundidade do leitor (não utilizada).
+    /// </summary>
     public override int Depth { get; }
     private bool _isClosed;
+    /// <summary>
+    /// Indica se o leitor está fechado.
+    /// </summary>
     public override bool IsClosed => _isClosed;
+    /// <summary>
+    /// Número de registros afetados no conjunto atual.
+    /// </summary>
     public override int RecordsAffected => _resultSets[_currentResultSetIndex].Count;
+    /// <summary>
+    /// Quantidade de colunas do conjunto atual.
+    /// </summary>
     public override int FieldCount => _columnsDic[_currentResultSetIndex].Count;
 
+    /// <summary>
+    /// Indica se o conjunto atual possui linhas.
+    /// </summary>
     public override bool HasRows => _resultSets.Count > 0 && _resultSets[_currentResultSetIndex].Count > 0;
 
+    /// <summary>
+    /// Fecha o leitor.
+    /// </summary>
     public override void Close()
         => _isClosed = true;
 
+    /// <summary>
+    /// Obtém valor booleano da coluna indicada.
+    /// </summary>
     public override bool GetBoolean(int ordinal) => (bool)this[ordinal];
+    /// <summary>
+    /// Obtém valor byte da coluna indicada.
+    /// </summary>
     public override byte GetByte(int ordinal) => (byte)this[ordinal];
     public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length) => throw new NotImplementedException();
+    /// <summary>
+    /// Obtém valor char da coluna indicada.
+    /// </summary>
     public override char GetChar(int ordinal) => (char)this[ordinal];
     public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) => throw new NotImplementedException();
     protected override DbDataReader GetDbDataReader(int ordinal) => throw new NotImplementedException();
+    /// <summary>
+    /// Obtém o nome do tipo de dados da coluna.
+    /// </summary>
     public override string GetDataTypeName(int ordinal) => _columnsDic[_currentResultSetIndex][ordinal].DbType.ToString();
+    /// <summary>
+    /// Obtém valor DateTime da coluna indicada.
+    /// </summary>
     public override DateTime GetDateTime(int ordinal) => (DateTime)this[ordinal];
+    /// <summary>
+    /// Obtém valor decimal da coluna indicada.
+    /// </summary>
     public override decimal GetDecimal(int ordinal) => (decimal)this[ordinal];
+    /// <summary>
+    /// Obtém valor double da coluna indicada.
+    /// </summary>
     public override double GetDouble(int ordinal) => (double)this[ordinal];
+    /// <summary>
+    /// Obtém o tipo .NET da coluna indicada.
+    /// </summary>
     public override Type GetFieldType(int ordinal)
         => _columnsDic[_currentResultSetIndex][ordinal].DbType.ConvertDbTypeToType();
+    /// <summary>
+    /// Obtém valor float da coluna indicada.
+    /// </summary>
     public override float GetFloat(int ordinal) => (float)this[ordinal];
+    /// <summary>
+    /// Obtém valor Guid da coluna indicada.
+    /// </summary>
     public override Guid GetGuid(int ordinal) => (Guid)this[ordinal];
+    /// <summary>
+    /// Obtém valor Int16 da coluna indicada.
+    /// </summary>
     public override short GetInt16(int ordinal) => (short)this[ordinal];
+    /// <summary>
+    /// Obtém valor Int32 da coluna indicada.
+    /// </summary>
     public override int GetInt32(int ordinal) => (int)this[ordinal];
+    /// <summary>
+    /// Obtém valor Int64 da coluna indicada.
+    /// </summary>
     public override long GetInt64(int ordinal) => (long)this[ordinal];
+    /// <summary>
+    /// Obtém o nome da coluna pelo ordinal.
+    /// </summary>
     public override string GetName(int ordinal)
     {
         var n = _columnsDic[_currentResultSetIndex][ordinal].ColumName ?? string.Empty;
         return NormalizeColumnName(n);
     }
 
+    /// <summary>
+    /// Obtém o ordinal de uma coluna pelo nome.
+    /// </summary>
+    /// <param name="name">Nome da coluna.</param>
+    /// <returns>Índice da coluna.</returns>
     public override int GetOrdinal(string name)
     {
         name = NormalizeColumnName(name);
@@ -105,6 +179,9 @@ public abstract class DbDataReaderMockBase(
 
         return name;
     }
+    /// <summary>
+    /// Retorna uma DataTable com metadados das colunas.
+    /// </summary>
     public override DataTable GetSchemaTable()
     {
         var dt = new DataTable();
@@ -118,12 +195,23 @@ public abstract class DbDataReaderMockBase(
         return dt;
     }
 
+    /// <summary>
+    /// Obtém valor string da coluna indicada.
+    /// </summary>
     public override string GetString(int ordinal) => (string)this[ordinal];
+    /// <summary>
+    /// Obtém o valor da coluna indicada.
+    /// </summary>
     public override object GetValue(int ordinal)
     {
         var v = this[ordinal];
         return v is HashSet<string> hs ? string.Join(',', hs) : v;
     }
+    /// <summary>
+    /// Copia os valores da linha atual para o array fornecido.
+    /// </summary>
+    /// <param name="values">Array de destino.</param>
+    /// <returns>Número de colunas copiadas.</returns>
     public override int GetValues(object[] values)
     {
         ArgumentNullException.ThrowIfNull(values);
@@ -133,7 +221,13 @@ public abstract class DbDataReaderMockBase(
         }
         return FieldCount;
     }
+    /// <summary>
+    /// Indica se o valor da coluna é DBNull.
+    /// </summary>
     public override bool IsDBNull(int ordinal) => this[ordinal] == null || this[ordinal] == DBNull.Value;
+    /// <summary>
+    /// Avança para o próximo conjunto de resultados.
+    /// </summary>
     public override bool NextResult()
     {
         if (_currentResultSetIndex + 1 >= _resultSets.Count) return false;
@@ -142,6 +236,9 @@ public abstract class DbDataReaderMockBase(
         return true;
     }
 
+    /// <summary>
+    /// Avança para a próxima linha do conjunto atual.
+    /// </summary>
     public override bool Read()
     {
         if (_currentIndex + 1 >= _resultSets[_currentResultSetIndex].Count) return false;
@@ -149,6 +246,9 @@ public abstract class DbDataReaderMockBase(
         return true;
     }
 
+    /// <summary>
+    /// Retorna um enumerador dos conjuntos de resultados.
+    /// </summary>
     public override IEnumerator GetEnumerator() => _resultSets.GetEnumerator();
     protected override void Dispose(bool disposing)
     {

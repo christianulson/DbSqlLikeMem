@@ -1,8 +1,7 @@
 namespace DbSqlLikeMem;
 
 /// <summary>
-/// Signature-only stored procedure contract used by <see cref="MySqlConnectionMock"/>.
-/// No execution body is modeled yet; only parameter validation and OUT defaults.
+/// Representa um parâmetro de procedimento armazenado, com tipo e valor padrão.
 /// </summary>
 public sealed record ProcParam(
     string Name,
@@ -10,12 +9,20 @@ public sealed record ProcParam(
     bool Required = true,
     object? Value = null);
 
+/// <summary>
+/// Define a assinatura de um procedimento armazenado em memória.
+/// </summary>
 public sealed record ProcedureDef(
     IReadOnlyList<ProcParam> RequiredIn,
     IReadOnlyList<ProcParam> OptionalIn,
     IReadOnlyList<ProcParam> OutParams,
     ProcParam? ReturnParam = null)
 {
+    /// <summary>
+    /// Normaliza o nome do parâmetro removendo prefixos e espaços.
+    /// </summary>
+    /// <param name="name">Nome a normalizar.</param>
+    /// <returns>Nome normalizado.</returns>
     public static string NormalizeParamName(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) return string.Empty;
