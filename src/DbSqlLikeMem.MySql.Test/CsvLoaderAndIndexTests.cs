@@ -67,7 +67,7 @@ public sealed class CsvLoaderAndIndexTests(
         tb.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John" });
 
         tb.Backup();
-        tb[0][1] = "Hacked";
+        tb.UpdateRowColumn(0,1, "Hacked");
         tb.Restore();
 
         Assert.Equal("John", tb[0][1]);

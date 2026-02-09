@@ -147,7 +147,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
             if (setInfo.GetGenValue is null)
             {
-                row[setInfo.Index] = newVal;
+                target.UpdateRowColumn(i, setInfo.Index, newVal);
                 target.UpdateIndexesWithRow(i);
                 updated++;
             }
@@ -184,7 +184,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
     private static bool MatchWhereEquals(
         ITableMock table,
-        Dictionary<int, object?> row,
+        IReadOnlyDictionary<int, object?> row,
         List<(string Col, string Val)> conds,
         DbParameterCollection? pars)
     {

@@ -122,5 +122,5 @@ public sealed class ColumnDef
     /// EN: Value generator for computed/derived columns.
     /// PT: Função geradora de valor calculado para colunas derivadas.
     /// </summary>
-    public Func<Dictionary<int, object?>, ITableMock, object?>? GetGenValue { get; set; }
+    public Func<IReadOnlyDictionary<int, object?>, ITableMock, object?>? GetGenValue { get; set; }
 }

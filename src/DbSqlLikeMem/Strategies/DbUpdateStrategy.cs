@@ -55,7 +55,7 @@ internal static class DbUpdateStrategy
             ValidateUniqueBeforeUpdate(tableName, table, pars, setPairs, rowIdx, row, changedCols);
 
             // Aplica Update
-            UpdateRowValues(table, pars, setPairs, row);
+            UpdateRowValues(table, pars, setPairs, rowIdx, row);
 
             // Atualiza índices
             table.UpdateIndexesWithRow(rowIdx);
@@ -71,7 +71,7 @@ internal static class DbUpdateStrategy
     internal static string BuildIndexKey(
         ITableMock table,
         IndexDef idx,
-        Dictionary<int, object?> row)
+        IReadOnlyDictionary<int, object?> row)
     {
         return string.Join("|", idx.KeyCols.Select(colName =>
         {
@@ -88,7 +88,7 @@ internal static class DbUpdateStrategy
         DbParameterCollection? pars,
         (string Col, string Val)[] setPairs,
         int rowIdx,
-        Dictionary<int, object?> row,
+        IReadOnlyDictionary<int, object?> row,
         List<string> changedCols)
     {
         foreach (var ix in table.Indexes.GetUnique())
@@ -100,7 +100,7 @@ internal static class DbUpdateStrategy
 
             // Simula linha nova
             var simulated = new Dictionary<int, object?>(row);
-            UpdateRowValues(table, pars, setPairs, simulated); // aplica na simulação
+            UpdateRowValues(table, pars, setPairs, rowIdx, simulated); // aplica na simulação
 
             string newKey = BuildIndexKey(table, ix, simulated);
 
@@ -116,7 +116,8 @@ internal static class DbUpdateStrategy
         ITableMock table,
         DbParameterCollection? pars,
         (string Col, string Val)[] setPairs,
-        Dictionary<int, object?> row)
+        int rowIdx,
+        IReadOnlyDictionary<int, object?> row)
     {
         foreach (var (Col, Val) in setPairs)
         {
@@ -137,7 +138,7 @@ internal static class DbUpdateStrategy
             }
 
             table.CurrentColumn = null;
-            row[info.Index] = raw;
+            table.UpdateRowColumn(rowIdx, info.Index, raw);
         }
     }
 
@@ -145,7 +146,7 @@ internal static class DbUpdateStrategy
     private static bool TryEvalArithmeticSetValue(
         string exprRaw,
         ITableMock table,
-        Dictionary<int, object?> row,
+        IReadOnlyDictionary<int, object?> row,
         DbParameterCollection? pars,
         DbType dbType,
         bool isNullable,
@@ -259,7 +260,7 @@ internal static class DbUpdateStrategy
     private static object? ResolveOperand(
         string token,
         ITableMock table,
-        Dictionary<int, object?> row,
+        IReadOnlyDictionary<int, object?> row,
         DbParameterCollection? pars,
         DbType dbType,
         bool isNullable)
@@ -290,7 +291,7 @@ internal static class DbUpdateStrategy
         ITableMock table,
         DbParameterCollection? pars,
         List<(string C, string Op, string V)> conditions,
-        Dictionary<int, object?> row)
+        IReadOnlyDictionary<int, object?> row)
     => conditions.All(cond =>
         {
             var info = table.GetColumn(cond.C);
@@ -352,7 +353,7 @@ internal static class DbUpdateStrategy
                     }
                     else
                     {
-                        candidates = new object?[] { resolved };
+                        candidates = [resolved];
                     }
                 }
 

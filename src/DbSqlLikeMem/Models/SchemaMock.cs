@@ -55,7 +55,8 @@ public abstract class SchemaMock
     /// EN: Internal table map with normalized names on access.
     /// PT: Mapa interno de tabelas, com nomes normalizados no acesso.
     /// </summary>
-    public TableDictionary tables = new TableDictionary();
+    private readonly TableDictionary tables = [];
+
     /// <summary>
     /// EN: Exposes schema tables.
     /// PT: Exposição das tabelas do schema.

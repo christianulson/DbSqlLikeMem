@@ -36,7 +36,7 @@ internal static class DbDeleteStrategy
 
         var conditions = ParseWhereSimple(whereRaw);
 
-        var rowsToDelete = new List<Dictionary<int, object?>>();
+        var rowsToDelete = new List<IReadOnlyDictionary<int, object?>>();
         var indexesToDelete = new List<int>();
 
         for (int i = 0; i < table.Count; i++)
@@ -69,7 +69,7 @@ internal static class DbDeleteStrategy
         this DbConnectionMockBase connection,
         string tableName,
         ITableMock table,
-        List<Dictionary<int, object?>> rowsToDelete,
+        List<IReadOnlyDictionary<int, object?>> rowsToDelete,
         string? dbName)
     {
         // Verifica se alguma tabela filha referencia as linhas deletadas
@@ -99,7 +99,7 @@ internal static class DbDeleteStrategy
         ITableMock table,
         DbParameterCollection? p,
         List<(string C, string Op, string V)> c,
-        Dictionary<int, object?> r)
+        IReadOnlyDictionary<int, object?> r)
     => c.All(cond =>
     // WHERE simples com suporte a "=" e "IN" (inclusive IN @ids com lista/array)
         {

@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Concurrent;
 
 namespace DbSqlLikeMem;
@@ -7,8 +8,7 @@ namespace DbSqlLikeMem;
 /// PT: Base de uma tabela em memória com dados, colunas e índices.
 /// </summary>
 public abstract class TableMock
-    : List<Dictionary<int, object?>>,
-    ITableMock
+    : ITableMock
 {
 
     /// <summary>
@@ -52,6 +52,8 @@ public abstract class TableMock
     /// PT: Dicionário de colunas da tabela.
     /// </summary>
     public IColumnDictionary Columns { get; }
+
+    private List<Dictionary<int, object?>> Items { get; } = [];
 
     // ---------- Wave D : índices ---------------------------------
     /// <summary>
@@ -118,7 +120,7 @@ public abstract class TableMock
         var map = new ConcurrentDictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < Count; i++)
         {
-            var key = BuildKey(this[i], def.KeyCols.Select(c => Columns[c].Index));
+            var key = BuildKey(Items[i], def.KeyCols.Select(c => Columns[c].Index));
             map.AddOrUpdate(key, [i], (_, list) => { list.Add(i); return list; });
         }
         _ix[name] = map;
@@ -149,7 +151,7 @@ public abstract class TableMock
     {
         foreach (var (name, def) in Indexes)
         {
-            var key = BuildKey(this[rowIdx], def.KeyCols.Select(c => Columns[c].Index));
+            var key = BuildKey(Items[rowIdx], def.KeyCols.Select(c => Columns[c].Index));
             _ix[name].AddOrUpdate(key, [rowIdx], (_, list) => { list.Add(rowIdx); return list; });
         }
     }
@@ -248,7 +250,7 @@ public abstract class TableMock
     /// PT: Adiciona uma linha garantindo valores padrão e unicidade.
     /// </summary>
     /// <param name="value">EN: Row to insert. PT: Linha a inserir.</param>
-    public new void Add(Dictionary<int, object?> value)
+    public void Add(Dictionary<int, object?> value)
     {
         ApplyDefaultValues(value);
         // Before adding, enforce unique indexes
@@ -262,7 +264,7 @@ public abstract class TableMock
                 throw DuplicateKey(TableName, idx.Name, key);
             }
         }
-        base.Add(value);
+        Items.Add(value);
         // Update indexes with the new row
         int newIdx = Count - 1;
         foreach (var idx in Indexes)
@@ -279,6 +281,19 @@ public abstract class TableMock
             if (!col.Nullable && value[col.Index] == null) throw ColumnCannotBeNull(key);
         }
     }
+
+    public Dictionary<int, object?> RemoveAt(int idx)
+    {
+        var it = Items[idx];
+        Items.RemoveAt(idx);
+        return it;
+    }
+
+    public void UpdateRowColumn(
+        int rowIdx,
+        int colIdx,
+        object? value)
+        => Items[rowIdx][colIdx] = value;
 
     private List<Dictionary<int, object?>>? _backup;
 
@@ -297,7 +312,7 @@ public abstract class TableMock
         if (_backup == null)
             return;
 
-        Clear();
+        Items.Clear();
         foreach (var row in _backup) Add(row);
 
         foreach (var ix in Indexes)
@@ -315,6 +330,11 @@ public abstract class TableMock
     /// PT: Obtém ou define a coluna atualmente em avaliação.
     /// </summary>
     public abstract string? CurrentColumn { get; set; }
+
+    public int Count => Items.Count;
+
+    public IReadOnlyDictionary<int, object?> this[int index] => Items[index];
+
     /// <summary>
     /// EN: Resolves a token to a value in the table context.
     /// PT: Resolve um token para um valor no contexto da tabela.
@@ -365,4 +385,10 @@ public abstract class TableMock
     /// </summary>
     /// <param name="tbl">EN: Referenced table. PT: Tabela referenciada.</param>
     public abstract Exception ReferencedRow(string tbl);
+
+    public IEnumerator<IReadOnlyDictionary<int, object?>> GetEnumerator()
+        => Items.Select(_=> _.AsReadOnly()).ToList().AsReadOnly().GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator()
+        => GetEnumerator();
 }

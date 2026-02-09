@@ -1,10 +1,11 @@
 namespace DbSqlLikeMem;
+
 /// <summary>
 /// EN: Defines the contract of an in-memory table with data, metadata, and index utilities.
 /// PT: Define o contrato de uma tabela em memória, com dados, metadados e utilidades de índice.
 /// </summary>
 public interface ITableMock
-    : IList<Dictionary<int, object?>>
+    : IReadOnlyList<IReadOnlyDictionary<int, object?>>
 {
     /// <summary>
     /// EN: Gets or sets the next identity value for auto-increment columns.
@@ -116,7 +117,15 @@ public interface ITableMock
     /// PT: Adiciona uma linha específica à tabela.
     /// </summary>
     /// <param name="value">EN: Row to insert. PT: Linha a inserir.</param>
-    new void Add(Dictionary<int, object?> value);
+    void Add(Dictionary<int, object?> value);
+
+
+    Dictionary<int, object?> RemoveAt(int idx);
+
+    void UpdateRowColumn(
+        int rowIdx,
+        int colIdx,
+        object? value);
 
     /// <summary>
     /// EN: Backs up current rows for possible restoration.

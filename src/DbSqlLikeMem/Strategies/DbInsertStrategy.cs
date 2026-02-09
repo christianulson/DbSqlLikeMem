@@ -69,8 +69,13 @@ internal static class DbInsertStrategy
             else
             {
                 // Conflito -> Update
-                var existingRow = table[conflictIdx.Value];
-                ApplyOnDuplicateUpdateAst(table, existingRow, newRow, query.OnDupAssigns, pars, dialect);
+                ApplyOnDuplicateUpdateAst(
+                    table,
+                    conflictIdx.Value,
+                    newRow,
+                    query.OnDupAssigns,
+                    pars,
+                    dialect);
 
                 // Rebuild índices afetados (simplificado: rebuild all)
                 table.RebuildAllIndexes();
@@ -209,8 +214,8 @@ internal static class DbInsertStrategy
 
     private static void ApplyOnDuplicateUpdateAst(
         ITableMock table,
-        Dictionary<int, object?> existingRow,
-        Dictionary<int, object?> insertedRow,
+        int existinIndex,
+        IReadOnlyDictionary<int, object?> insertedRow,
         IReadOnlyList<(string Col, string ExprRaw)> assigns,
         DbParameterCollection? pars,
         ISqlDialect dialect)
@@ -240,7 +245,7 @@ internal static class DbInsertStrategy
         object? GetExistingColumnValue(string col)
         {
             var info = table.GetColumn(col);
-            return existingRow.TryGetValue(info.Index, out var v) ? v : null;
+            return table[existinIndex].TryGetValue(info.Index, out var v) ? v : null;
         }
 
         static object? Coerce(DbType dbType, object? value)
@@ -359,7 +364,10 @@ internal static class DbInsertStrategy
             var ast = SqlExpressionParser.ParseScalar(exprRaw, dialect);
             var value = Eval(ast);
 
-            existingRow[colInfo.Index] = Coerce(colInfo.DbType, value);
+            table.UpdateRowColumn(
+                existinIndex, 
+                colInfo.Index, 
+                Coerce(colInfo.DbType, value));
         }
     }
 
@@ -457,10 +465,10 @@ internal static class DbInsertStrategy
     {
         foreach (var (key, col) in table.Columns)
         {
-            if (newRow.ContainsKey(col.Index)) continue;
+            if (!newRow.ContainsKey(col.Index)) continue;
             if (col.Identity) newRow[col.Index] = table.NextIdentity++;
-            else if (col.DefaultValue != null) newRow[col.Index] = col.DefaultValue;
-            else if (!col.Nullable) throw table.ColumnCannotBeNull(key);
+            else if (col.DefaultValue != null && newRow[col.Index] == null) newRow[col.Index] = col.DefaultValue;
+            if (!col.Nullable && newRow[col.Index] == null) throw table.ColumnCannotBeNull(key);
         }
     }
 }
