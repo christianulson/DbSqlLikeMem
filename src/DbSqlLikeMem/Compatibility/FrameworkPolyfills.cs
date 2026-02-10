@@ -2,6 +2,9 @@
 
 namespace System.Runtime.CompilerServices
 {
+    /// <summary>
+    /// IsExternalInit - Compatibility
+    /// </summary>
     internal static class IsExternalInit
     {
     }
@@ -13,7 +16,7 @@ namespace System.Runtime.CompilerServices
 namespace System.Runtime.CompilerServices
 {
     /// <summary>
-    /// 
+    /// RequiredMemberAttribute - Compatibility
     /// </summary>
     [AttributeUsage(AttributeTargets.All, Inherited = false)]
     public sealed class RequiredMemberAttribute : Attribute
@@ -21,13 +24,13 @@ namespace System.Runtime.CompilerServices
     }
 
     /// <summary>
-    /// 
+    /// CompilerFeatureRequiredAttribute - Compatibility
     /// </summary>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Constructor | AttributeTargets.Method, Inherited = false)]
     public sealed class CompilerFeatureRequiredAttribute : Attribute
     {
         /// <summary>
-        /// 
+        /// CompilerFeatureRequiredAttribute - Compatibility
         /// </summary>
         public CompilerFeatureRequiredAttribute(string featureName)
         {
@@ -35,22 +38,22 @@ namespace System.Runtime.CompilerServices
         }
 
         /// <summary>
-        /// 
+        /// FeatureName - Compatibility
         /// </summary>
         public string FeatureName { get; }
 
         /// <summary>
-        /// 
+        /// IsOptional - Compatibility
         /// </summary>
         public bool IsOptional { get; init; }
 
         /// <summary>
-        /// 
+        /// RefStructs - Compatibility
         /// </summary>
         public const string RefStructs = nameof(RefStructs);
 
         /// <summary>
-        /// 
+        /// RequiredMembers - Compatibility
         /// </summary>
         public const string RequiredMembers = nameof(RequiredMembers);
     }
@@ -59,7 +62,7 @@ namespace System.Runtime.CompilerServices
 namespace System.Diagnostics.CodeAnalysis
 {
     /// <summary>
-    /// 
+    /// SetsRequiredMembersAttribute - Compatibility
     /// </summary>
     [AttributeUsage(AttributeTargets.Constructor, Inherited = false)]
     public sealed class SetsRequiredMembersAttribute : Attribute
@@ -73,7 +76,7 @@ namespace System.Diagnostics.CodeAnalysis
 namespace System.Diagnostics.CodeAnalysis
 {
     /// <summary>
-    /// 
+    /// AllowNullAttribute - Compatibility
     /// </summary>
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Property, Inherited = false)]
     public sealed class AllowNullAttribute : Attribute
@@ -87,13 +90,13 @@ namespace System.Diagnostics.CodeAnalysis
 namespace System.Diagnostics.CodeAnalysis
 {
     /// <summary>
-    /// 
+    /// MaybeNullWhenAttribute - Compatibility
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter, Inherited = false)]
     public sealed class MaybeNullWhenAttribute : Attribute
     {
         /// <summary>
-        /// 
+        /// MaybeNullWhenAttribute - Compatibility
         /// </summary>
         /// <param name="returnValue"></param>
         public MaybeNullWhenAttribute(bool returnValue)
@@ -102,7 +105,7 @@ namespace System.Diagnostics.CodeAnalysis
         }
 
         /// <summary>
-        /// 
+        /// ReturnValue - Compatibility
         /// </summary>
         public bool ReturnValue { get; }
     }
