@@ -102,7 +102,7 @@ public sealed class SqlServerCommandDeleteTests(
         table.Add(RowUsers(1, "John"));
 
         using var conn = NewConn(threadSafe: false, db);
-        using var cmd = new SqlServerCommandMock(conn) { CommandText = "DELETE FROM users WHERE id = 1" };
+        using var cmd = new SqlServerCommandMock(conn) { CommandText = "DELETE users WHERE id = 1" };
 
         // Pode ser InvalidOperationException ou outra, depende do seu pipeline.
         var ex = Assert.ThrowsAny<Exception>(() => cmd.ExecuteNonQuery());
