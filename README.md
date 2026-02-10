@@ -51,6 +51,10 @@ Then add references to:
 - `DbSqlLikeMem.dll`
 - One provider DLL (e.g., `DbSqlLikeMem.SqlServer.dll`)
 
+### NuGet packages and dependencies
+
+Each provider ships as its own NuGet package (e.g., `DbSqlLikeMem.MySql`, `DbSqlLikeMem.Npgsql`, etc.). The provider projects reference the core project (`DbSqlLikeMem`) via `ProjectReference`, so when you run `dotnet pack` the resulting provider `.nupkg` includes a dependency on the core package. When you install a provider package from nuget.org, NuGet will automatically install `DbSqlLikeMem` as a dependency.
+
 ## Registering the provider DLL (choosing a database at runtime)
 
 When the database is chosen by the user at runtime, load the corresponding provider assembly and create its connection mock. A simple factory approach looks like this:
