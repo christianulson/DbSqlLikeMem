@@ -7,23 +7,24 @@ namespace DbSqlLikeMem.SqlServer;
 
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
 public sealed class MemberDataBySqlServerVersionAttribute(
-    string dataMemberName,
-    int[]? specificVersions = null,
-    int? versionGraterOrEqual = null,
-    int? versionLessOrEqual = null
+    string dataMemberName
  ) : DataAttribute
 {
+
+    public int[]? SpecificVersions { get; set; }
+    public int? VersionGraterOrEqual { get; set; }
+    public int? VersionLessOrEqual { get; set; }
     public override IEnumerable<object[]> GetData(MethodInfo testMethod)
     {
         var declaringType = testMethod.DeclaringType
             ?? throw new XunitException("DeclaringType do método de teste é null.");
 
-        var versions = specificVersions ?? SqlServerDbVersions.Versions();
+        var versions = SpecificVersions ?? SqlServerDbVersions.Versions();
 
-        if (versionGraterOrEqual != null)
-            versions = versions.Where(_ => _ >= versionGraterOrEqual);
-        if (versionLessOrEqual != null)
-            versions = versions.Where(_ => _ <= versionLessOrEqual);
+        if (VersionGraterOrEqual != null)
+            versions = versions.Where(_ => _ >= VersionGraterOrEqual);
+        if (VersionLessOrEqual != null)
+            versions = versions.Where(_ => _ <= VersionLessOrEqual);
 
         versions = [.. versions];
 
