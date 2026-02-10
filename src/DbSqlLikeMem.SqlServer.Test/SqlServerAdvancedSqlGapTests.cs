@@ -35,6 +35,10 @@ public sealed class SqlServerAdvancedSqlGapTests : XUnitTestBase
         _cnn.Open();
     }
 
+    /// <summary>
+    /// EN: Tests Window_RowNumber_PartitionBy_ShouldWork behavior.
+    /// PT: Testa o comportamento de Window_RowNumber_PartitionBy_ShouldWork.
+    /// </summary>
     [Fact]
     public void Window_RowNumber_PartitionBy_ShouldWork()
     {
@@ -47,6 +51,10 @@ ORDER BY tenantid, id").ToList();
         Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.rn)]);
     }
 
+    /// <summary>
+    /// EN: Tests CorrelatedSubquery_InSelectList_ShouldWork behavior.
+    /// PT: Testa o comportamento de CorrelatedSubquery_InSelectList_ShouldWork.
+    /// </summary>
     [Fact]
     public void CorrelatedSubquery_InSelectList_ShouldWork()
     {
@@ -59,6 +67,10 @@ ORDER BY u.id").ToList();
         Assert.Equal([15m, 7m, 0m], [.. rows.Select(r => (decimal)(r.total ?? 0m))]);
     }
 
+    /// <summary>
+    /// EN: Tests DateAdd_IntervalDay_ShouldWork behavior.
+    /// PT: Testa o comportamento de DateAdd_IntervalDay_ShouldWork.
+    /// </summary>
     [Fact]
     public void DateAdd_IntervalDay_ShouldWork()
     {
@@ -74,6 +86,10 @@ ORDER BY id").ToList();
             [.. rows.Select(r => (DateTime)r.d)]);
     }
 
+    /// <summary>
+    /// EN: Tests Cast_StringToInt_ShouldWork behavior.
+    /// PT: Testa o comportamento de Cast_StringToInt_ShouldWork.
+    /// </summary>
     [Fact]
     public void Cast_StringToInt_ShouldWork()
     {
@@ -82,6 +98,10 @@ ORDER BY id").ToList();
         Assert.Equal(42, (int)rows[0].v);
     }
 
+    /// <summary>
+    /// EN: Tests Regexp_Operator_ShouldWork behavior.
+    /// PT: Testa o comportamento de Regexp_Operator_ShouldWork.
+    /// </summary>
     [Fact]
     public void Regexp_Operator_ShouldWork()
     {
@@ -89,6 +109,10 @@ ORDER BY id").ToList();
         Assert.Equal([1, 3], [.. rows.Select(r => (int)r.id)]);
     }
 
+    /// <summary>
+    /// EN: Tests OrderBy_Field_Function_ShouldWork behavior.
+    /// PT: Testa o comportamento de OrderBy_Field_Function_ShouldWork.
+    /// </summary>
     [Fact]
     public void OrderBy_Field_Function_ShouldWork()
     {
@@ -96,6 +120,10 @@ ORDER BY id").ToList();
         Assert.Equal([3, 1, 2], [.. rows.Select(r => (int)r.id)]);
     }
 
+    /// <summary>
+    /// EN: Tests Collation_CaseSensitivity_ShouldFollowColumnCollation behavior.
+    /// PT: Testa o comportamento de Collation_CaseSensitivity_ShouldFollowColumnCollation.
+    /// </summary>
     [Fact]
     public void Collation_CaseSensitivity_ShouldFollowColumnCollation()
     {

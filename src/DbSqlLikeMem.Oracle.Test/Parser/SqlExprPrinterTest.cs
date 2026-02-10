@@ -3,6 +3,10 @@ public sealed class SqlExprPrinterTest(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests ExprPrinter_ShouldAllow_Roundtrip_Parse_Print_Parse behavior.
+    /// PT: Testa o comportamento de ExprPrinter_ShouldAllow_Roundtrip_Parse_Print_Parse.
+    /// </summary>
     [Theory]
     [MemberDataByOracleVersion(nameof(Expressions))]
     public void ExprPrinter_ShouldAllow_Roundtrip_Parse_Print_Parse(string expr, int version)

@@ -4,6 +4,10 @@ public sealed class ExtendedMySqlMockTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests InsertAutoIncrementShouldAssignIdentityWhenNotSpecified behavior.
+    /// PT: Testa o comportamento de InsertAutoIncrementShouldAssignIdentityWhenNotSpecified.
+    /// </summary>
     [Fact]
     public void InsertAutoIncrementShouldAssignIdentityWhenNotSpecified()
     {
@@ -26,6 +30,10 @@ public sealed class ExtendedMySqlMockTests(
         Assert.Equal("Bob", table[1][1]);
     }
 
+    /// <summary>
+    /// EN: Tests InsertNullIntoNullableColumnShouldSucceed behavior.
+    /// PT: Testa o comportamento de InsertNullIntoNullableColumnShouldSucceed.
+    /// </summary>
     [Fact]
     public void InsertNullIntoNullableColumnShouldSucceed()
     {
@@ -41,6 +49,10 @@ public sealed class ExtendedMySqlMockTests(
         Assert.Null(table[0][1]);
     }
 
+    /// <summary>
+    /// EN: Tests InsertNullIntoNonNullableColumnShouldThrow behavior.
+    /// PT: Testa o comportamento de InsertNullIntoNonNullableColumnShouldThrow.
+    /// </summary>
     [Fact]
     public void InsertNullIntoNonNullableColumnShouldThrow()
     {
@@ -57,6 +69,10 @@ public sealed class ExtendedMySqlMockTests(
 
     private static readonly string[] item = ["first", "second"];
 
+    /// <summary>
+    /// EN: Tests CompositeIndexFilterShouldReturnCorrectRows behavior.
+    /// PT: Testa o comportamento de CompositeIndexFilterShouldReturnCorrectRows.
+    /// </summary>
     [Fact]
     public void CompositeIndexFilterShouldReturnCorrectRows()
     {
@@ -78,6 +94,10 @@ public sealed class ExtendedMySqlMockTests(
         Assert.Equal(1, (int)result[0].value);
     }
 
+    /// <summary>
+    /// EN: Tests LikeFilterShouldReturnMatchingRows behavior.
+    /// PT: Testa o comportamento de LikeFilterShouldReturnMatchingRows.
+    /// </summary>
     [Fact]
     public void LikeFilterShouldReturnMatchingRows()
     {
@@ -94,6 +114,10 @@ public sealed class ExtendedMySqlMockTests(
         Assert.Equal("alice", res[0].name);
     }
 
+    /// <summary>
+    /// EN: Tests InFilterShouldReturnMatchingRows behavior.
+    /// PT: Testa o comportamento de InFilterShouldReturnMatchingRows.
+    /// </summary>
     [Fact]
     public void InFilterShouldReturnMatchingRows()
     {
@@ -111,6 +135,10 @@ public sealed class ExtendedMySqlMockTests(
         Assert.Equal([1, 3], ids);
     }
 
+    /// <summary>
+    /// EN: Tests OrderByLimitOffsetDistinctShouldReturnExpectedRows behavior.
+    /// PT: Testa o comportamento de OrderByLimitOffsetDistinctShouldReturnExpectedRows.
+    /// </summary>
     [Fact]
     public void OrderByLimitOffsetDistinctShouldReturnExpectedRows()
     {
@@ -128,6 +156,10 @@ public sealed class ExtendedMySqlMockTests(
         Assert.Equal(1, (int)res[0].id);
     }
 
+    /// <summary>
+    /// EN: Tests HavingFilterShouldApplyAfterAggregation behavior.
+    /// PT: Testa o comportamento de HavingFilterShouldApplyAfterAggregation.
+    /// </summary>
     [Fact]
     public void HavingFilterShouldApplyAfterAggregation()
     {
@@ -148,6 +180,10 @@ public sealed class ExtendedMySqlMockTests(
         Assert.Equal(2L, result[0].C);
     }
 
+    /// <summary>
+    /// EN: Tests ForeignKeyDeleteShouldThrowOnReferencedParentDeletion behavior.
+    /// PT: Testa o comportamento de ForeignKeyDeleteShouldThrowOnReferencedParentDeletion.
+    /// </summary>
     [Fact]
     public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletion()
     {
@@ -171,6 +207,10 @@ public sealed class ExtendedMySqlMockTests(
             cnn.Execute("DELETE FROM parent WHERE id = 1"));
     }
 
+    /// <summary>
+    /// EN: Tests ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK behavior.
+    /// PT: Testa o comportamento de ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK.
+    /// </summary>
     [Fact]
     public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK()
     {
@@ -193,6 +233,10 @@ public sealed class ExtendedMySqlMockTests(
             cnn.Execute("DELETE FROM parent WHERE id = 1"));
     }
 
+    /// <summary>
+    /// EN: Tests MultipleParameterSetsInsertShouldInsertAllRows behavior.
+    /// PT: Testa o comportamento de MultipleParameterSetsInsertShouldInsertAllRows.
+    /// </summary>
     [Fact]
     public void MultipleParameterSetsInsertShouldInsertAllRows()
     {

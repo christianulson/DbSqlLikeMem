@@ -3,6 +3,10 @@ public sealed class MySqlInsertStrategyExtrasTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests MultiRowInsertShouldAddAllRows behavior.
+    /// PT: Testa o comportamento de MultiRowInsertShouldAddAllRows.
+    /// </summary>
     [Fact]
     public void MultiRowInsertShouldAddAllRows()
     {
@@ -26,6 +30,10 @@ public sealed class MySqlInsertStrategyExtrasTests(
         Assert.Equal("B", table[1][1]);
     }
 
+    /// <summary>
+    /// EN: Tests InsertWithDefaultValueAndIdentityShouldApplyDefaults behavior.
+    /// PT: Testa o comportamento de InsertWithDefaultValueAndIdentityShouldApplyDefaults.
+    /// </summary>
     [Fact]
     public void InsertWithDefaultValueAndIdentityShouldApplyDefaults()
     {
@@ -53,6 +61,10 @@ public sealed class MySqlInsertStrategyExtrasTests(
         Assert.Equal(2, table[1][0]);
     }
 
+    /// <summary>
+    /// EN: Tests InsertDuplicatePrimaryKeyShouldThrow behavior.
+    /// PT: Testa o comportamento de InsertDuplicatePrimaryKeyShouldThrow.
+    /// </summary>
     [Fact]
     public void InsertDuplicatePrimaryKeyShouldThrow()
     {
@@ -74,12 +86,16 @@ public sealed class MySqlInsertStrategyExtrasTests(
     }
 }
 
-/// <summary>
-/// EN: Tests delete strategy behavior with foreign keys.
-/// PT: Testes do comportamento da estratégia de delete com chaves estrangeiras.
-/// </summary>
+    /// <summary>
+    /// EN: Tests delete strategy behavior with foreign keys.
+    /// PT: Testes do comportamento da estratégia de delete com chaves estrangeiras.
+    /// </summary>
 public class MySqlDeleteStrategyForeignKeyTests
 {
+    /// <summary>
+    /// EN: Tests DeleteReferencedRowShouldThrow behavior.
+    /// PT: Testa o comportamento de DeleteReferencedRowShouldThrow.
+    /// </summary>
     [Fact]
     public void DeleteReferencedRowShouldThrow()
     {
@@ -109,12 +125,16 @@ public class MySqlDeleteStrategyForeignKeyTests
     }
 }
 
-/// <summary>
-/// EN: Extra tests for update strategy behavior.
-/// PT: Testes extras do comportamento da estratégia de update.
-/// </summary>
+    /// <summary>
+    /// EN: Extra tests for update strategy behavior.
+    /// PT: Testes extras do comportamento da estratégia de update.
+    /// </summary>
 public class MySqlUpdateStrategyExtrasTests
 {
+    /// <summary>
+    /// EN: Tests UpdateMultipleConditionsShouldOnlyAffectMatchingRows behavior.
+    /// PT: Testa o comportamento de UpdateMultipleConditionsShouldOnlyAffectMatchingRows.
+    /// </summary>
     [Fact]
     public void UpdateMultipleConditionsShouldOnlyAffectMatchingRows()
     {

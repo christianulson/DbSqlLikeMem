@@ -9,6 +9,10 @@ public sealed class MySqlLinqProviderTest
     }
 #pragma warning restore CA1812
 
+    /// <summary>
+    /// EN: Tests LinqProvider_ShouldQueryWhereAndReturnRows behavior.
+    /// PT: Testa o comportamento de LinqProvider_ShouldQueryWhereAndReturnRows.
+    /// </summary>
     [Fact]
     public void LinqProvider_ShouldQueryWhereAndReturnRows()
     {

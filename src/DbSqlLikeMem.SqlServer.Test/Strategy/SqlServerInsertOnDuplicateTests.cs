@@ -2,6 +2,10 @@ namespace DbSqlLikeMem.SqlServer.Test.Strategy;
 
 public sealed class SqlServerMergeUpsertTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests Merge_ShouldInsert_WhenNotMatched behavior.
+    /// PT: Testa o comportamento de Merge_ShouldInsert_WhenNotMatched.
+    /// </summary>
     [Fact]
     public void Merge_ShouldInsert_WhenNotMatched()
     {
@@ -29,6 +33,10 @@ WHEN NOT MATCHED THEN
         Assert.Equal("A", (string)t[0][1]!);
     }
 
+    /// <summary>
+    /// EN: Tests Merge_ShouldUpdate_WhenMatched behavior.
+    /// PT: Testa o comportamento de Merge_ShouldUpdate_WhenMatched.
+    /// </summary>
     [Fact]
     public void Merge_ShouldUpdate_WhenMatched()
     {

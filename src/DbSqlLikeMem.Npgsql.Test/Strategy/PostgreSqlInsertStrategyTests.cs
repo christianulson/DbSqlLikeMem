@@ -3,6 +3,10 @@ public sealed class PostgreSqlInsertStrategyTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests InsertIntoTableShouldAddNewRow behavior.
+    /// PT: Testa o comportamento de InsertIntoTableShouldAddNewRow.
+    /// </summary>
     [Fact]
     public void InsertIntoTableShouldAddNewRow()
     {

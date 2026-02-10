@@ -8,6 +8,10 @@ public class MySqlInsertOnDuplicateTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests Insert_OnDuplicate_ShouldInsertWhenNoConflict behavior.
+    /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldInsertWhenNoConflict.
+    /// </summary>
     [Theory]
     [MemberDataMySqlVersion]
     public void Insert_OnDuplicate_ShouldInsertWhenNoConflict(int version)
@@ -29,6 +33,10 @@ public class MySqlInsertOnDuplicateTests(
         Assert.Equal("A", t[0][1]);
     }
 
+    /// <summary>
+    /// EN: Tests Insert_OnDuplicate_ShouldUpdateExistingRow_ByPrimaryKey_UsingValues behavior.
+    /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateExistingRow_ByPrimaryKey_UsingValues.
+    /// </summary>
     [Theory]
     [MemberDataMySqlVersion]
     public void Insert_OnDuplicate_ShouldUpdateExistingRow_ByPrimaryKey_UsingValues(int version)
@@ -52,6 +60,10 @@ public class MySqlInsertOnDuplicateTests(
         Assert.Single(t);
     }
 
+    /// <summary>
+    /// EN: Tests Insert_OnDuplicate_ShouldUpdateExistingRow_ByUniqueIndex behavior.
+    /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateExistingRow_ByUniqueIndex.
+    /// </summary>
     [Theory]
     [MemberDataMySqlVersion]
     public void Insert_OnDuplicate_ShouldUpdateExistingRow_ByUniqueIndex(int version)
@@ -78,6 +90,10 @@ public class MySqlInsertOnDuplicateTests(
         Assert.Equal("B", t[0][2]);        // atualizado
     }
 
+    /// <summary>
+    /// EN: Tests Insert_OnDuplicate_ShouldUpdateUsingLiteralAndParam behavior.
+    /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateUsingLiteralAndParam.
+    /// </summary>
     [Theory]
     [MemberDataMySqlVersion]
     public void Insert_OnDuplicate_ShouldUpdateUsingLiteralAndParam(int version)
@@ -106,6 +122,10 @@ public class MySqlInsertOnDuplicateTests(
         Assert.Equal("FORCED", t[0][1]);
     }
 
+    /// <summary>
+    /// EN: Tests Insert_OnDuplicate_ShouldUpdateAggragating behavior.
+    /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateAggragating.
+    /// </summary>
     [Theory]
     [MemberDataMySqlVersion]
     public void Insert_OnDuplicate_ShouldUpdateAggragating(int version)

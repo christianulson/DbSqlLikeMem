@@ -14,6 +14,10 @@ public sealed class DapperUserTests(
         public Guid? TestGuidNull { get; set; }
     }
 
+    /// <summary>
+    /// EN: Tests InsertUserShouldAddUserToTable behavior.
+    /// PT: Testa o comportamento de InsertUserShouldAddUserToTable.
+    /// </summary>
     [Fact]
     public void InsertUserShouldAddUserToTable()
     {
@@ -58,6 +62,10 @@ public sealed class DapperUserTests(
         Assert.Equal(user.TestGuidNull, insertedRow[6]);
     }
 
+    /// <summary>
+    /// EN: Tests QueryUserShouldReturnCorrectData behavior.
+    /// PT: Testa o comportamento de QueryUserShouldReturnCorrectData.
+    /// </summary>
     [Fact]
     public void QueryUserShouldReturnCorrectData()
     {
@@ -110,6 +118,10 @@ public sealed class DapperUserTests(
         Assert.Equal(user.TestGuidNull, result.TestGuidNull);
     }
 
+    /// <summary>
+    /// EN: Tests UpdateUserShouldModifyUserInTable behavior.
+    /// PT: Testa o comportamento de UpdateUserShouldModifyUserInTable.
+    /// </summary>
     [Fact]
     public void UpdateUserShouldModifyUserInTable()
     {
@@ -176,6 +188,10 @@ public sealed class DapperUserTests(
         Assert.Equal(updatedUser.TestGuidNull, updatedRow[6]);
     }
 
+    /// <summary>
+    /// EN: Tests DeleteUserShouldRemoveUserFromTable behavior.
+    /// PT: Testa o comportamento de DeleteUserShouldRemoveUserFromTable.
+    /// </summary>
     [Fact]
     public void DeleteUserShouldRemoveUserFromTable()
     {
@@ -223,6 +239,10 @@ public sealed class DapperUserTests(
         Assert.Empty(table);
     }
 
+    /// <summary>
+    /// EN: Tests QueryMultipleShouldReturnMultipleUserResultSets behavior.
+    /// PT: Testa o comportamento de QueryMultipleShouldReturnMultipleUserResultSets.
+    /// </summary>
     [Fact]
     public void QueryMultipleShouldReturnMultipleUserResultSets()
     {

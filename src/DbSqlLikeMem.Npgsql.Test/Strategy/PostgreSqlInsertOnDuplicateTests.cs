@@ -2,6 +2,10 @@ namespace DbSqlLikeMem.Npgsql.Test.Strategy;
 
 public sealed class PostgreSqlOnConflictUpsertTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests Insert_OnConflict_ShouldInsert_WhenNoConflict behavior.
+    /// PT: Testa o comportamento de Insert_OnConflict_ShouldInsert_WhenNoConflict.
+    /// </summary>
     [Fact]
     public void Insert_OnConflict_ShouldInsert_WhenNoConflict()
     {
@@ -22,6 +26,10 @@ public sealed class PostgreSqlOnConflictUpsertTests(ITestOutputHelper helper) : 
         Assert.Equal("A", (string)t[0][1]!);
     }
 
+    /// <summary>
+    /// EN: Tests Insert_OnConflict_ShouldUpdate_WhenConflict behavior.
+    /// PT: Testa o comportamento de Insert_OnConflict_ShouldUpdate_WhenConflict.
+    /// </summary>
     [Fact]
     public void Insert_OnConflict_ShouldUpdate_WhenConflict()
     {

@@ -4,6 +4,10 @@ public sealed class OracleUpdateStrategyTests(
     ITestOutputHelper helper
 ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests UpdateTableShouldModifyExistingRow behavior.
+    /// PT: Testa o comportamento de UpdateTableShouldModifyExistingRow.
+    /// </summary>
     [Fact]
     public void UpdateTableShouldModifyExistingRow()
     {
@@ -28,6 +32,10 @@ public sealed class OracleUpdateStrategyTests(
         Assert.Equal(1, connection.Metrics.Updates);
     }
 
+    /// <summary>
+    /// EN: Tests Update_ShouldReturnZero_WhenNoRowsMatchWhere behavior.
+    /// PT: Testa o comportamento de Update_ShouldReturnZero_WhenNoRowsMatchWhere.
+    /// </summary>
     [Fact]
     public void Update_ShouldReturnZero_WhenNoRowsMatchWhere()
     {
@@ -49,6 +57,10 @@ public sealed class OracleUpdateStrategyTests(
         Assert.Equal(0, connection.Metrics.Updates);
     }
 
+    /// <summary>
+    /// EN: Tests Update_ShouldUpdateMultipleRows_WhenWhereMatchesMultiple behavior.
+    /// PT: Testa o comportamento de Update_ShouldUpdateMultipleRows_WhenWhereMatchesMultiple.
+    /// </summary>
     [Fact]
     public void Update_ShouldUpdateMultipleRows_WhenWhereMatchesMultiple()
     {
@@ -73,6 +85,10 @@ public sealed class OracleUpdateStrategyTests(
         Assert.Equal(2, connection.Metrics.Updates);
     }
 
+    /// <summary>
+    /// EN: Tests Update_ShouldHandleWhereWithAnd_CaseInsensitive behavior.
+    /// PT: Testa o comportamento de Update_ShouldHandleWhereWithAnd_CaseInsensitive.
+    /// </summary>
     [Fact]
     public void Update_ShouldHandleWhereWithAnd_CaseInsensitive()
     {
@@ -97,6 +113,10 @@ public sealed class OracleUpdateStrategyTests(
         Assert.Equal(1, connection.Metrics.Updates);
     }
 
+    /// <summary>
+    /// EN: Tests Update_ShouldUpdateMultipleSetPairs behavior.
+    /// PT: Testa o comportamento de Update_ShouldUpdateMultipleSetPairs.
+    /// </summary>
     [Fact]
     public void Update_ShouldUpdateMultipleSetPairs()
     {
@@ -118,6 +138,10 @@ public sealed class OracleUpdateStrategyTests(
         Assert.Equal(1, connection.Metrics.Updates);
     }
 
+    /// <summary>
+    /// EN: Tests Update_ShouldBeCaseInsensitive_ForUpdateSetWhereKeywords behavior.
+    /// PT: Testa o comportamento de Update_ShouldBeCaseInsensitive_ForUpdateSetWhereKeywords.
+    /// </summary>
     [Fact]
     public void Update_ShouldBeCaseInsensitive_ForUpdateSetWhereKeywords()
     {
@@ -138,6 +162,10 @@ public sealed class OracleUpdateStrategyTests(
         Assert.Equal(1, connection.Metrics.Updates);
     }
 
+    /// <summary>
+    /// EN: Tests Update_ShouldWork_WithThreadSafeTrueOrFalse behavior.
+    /// PT: Testa o comportamento de Update_ShouldWork_WithThreadSafeTrueOrFalse.
+    /// </summary>
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -160,6 +188,10 @@ public sealed class OracleUpdateStrategyTests(
         Assert.Equal(1, connection.Metrics.Updates);
     }
 
+    /// <summary>
+    /// EN: Tests Update_ShouldThrow_WhenTableDoesNotExist behavior.
+    /// PT: Testa o comportamento de Update_ShouldThrow_WhenTableDoesNotExist.
+    /// </summary>
     [Fact]
     public void Update_ShouldThrow_WhenTableDoesNotExist()
     {
@@ -174,6 +206,10 @@ public sealed class OracleUpdateStrategyTests(
         Assert.Contains("does not exist", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Tests Update_ShouldThrow_WhenSqlIsInvalid_NoUpdateToken behavior.
+    /// PT: Testa o comportamento de Update_ShouldThrow_WhenSqlIsInvalid_NoUpdateToken.
+    /// </summary>
     [Fact]
     public void Update_ShouldThrow_WhenSqlIsInvalid_NoUpdateToken()
     {
@@ -191,6 +227,10 @@ public sealed class OracleUpdateStrategyTests(
         Assert.Contains("upd", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Tests Update_ShouldNotChangeGeneratedColumn_WhenGetGenValueIsNotNull behavior.
+    /// PT: Testa o comportamento de Update_ShouldNotChangeGeneratedColumn_WhenGetGenValueIsNotNull.
+    /// </summary>
     [Fact]
     public void Update_ShouldNotChangeGeneratedColumn_WhenGetGenValueIsNotNull()
     {
@@ -212,6 +252,10 @@ public sealed class OracleUpdateStrategyTests(
         Assert.Equal(1, connection.Metrics.Updates);
     }
 
+    /// <summary>
+    /// EN: Tests Update_ShouldSupportParameter_IfSqlValueHelperSupports behavior.
+    /// PT: Testa o comportamento de Update_ShouldSupportParameter_IfSqlValueHelperSupports.
+    /// </summary>
     [Fact]
     public void Update_ShouldSupportParameter_IfSqlValueHelperSupports()
     {
@@ -242,6 +286,10 @@ public sealed class OracleUpdateStrategyTests(
     // Opcional: testar ValidateUnique (preciso do IndexDef real)
     // ============================================================
     //
+    /// <summary>
+    /// EN: Tests Update_ShouldThrowDuplicateKey_WhenUniqueIndexCollides behavior.
+    /// PT: Testa o comportamento de Update_ShouldThrowDuplicateKey_WhenUniqueIndexCollides.
+    /// </summary>
     [Fact]
     public void Update_ShouldThrowDuplicateKey_WhenUniqueIndexCollides()
     {

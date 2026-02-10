@@ -4,6 +4,10 @@ public sealed class ExistsTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests Exists_ShouldFilterUsersWithOrders behavior.
+    /// PT: Testa o comportamento de Exists_ShouldFilterUsersWithOrders.
+    /// </summary>
     [Fact]
     public void Exists_ShouldFilterUsersWithOrders()
     {
@@ -43,6 +47,10 @@ ORDER BY u.Id";
         ids.Should().Equal(1, 3);
     }
 
+    /// <summary>
+    /// EN: Tests NotExists_ShouldFilterUsersWithoutOrders behavior.
+    /// PT: Testa o comportamento de NotExists_ShouldFilterUsersWithoutOrders.
+    /// </summary>
     [Fact]
     public void NotExists_ShouldFilterUsersWithoutOrders()
     {
@@ -81,6 +89,10 @@ ORDER BY u.Id";
         ids.Should().Equal(2);
     }
 
+    /// <summary>
+    /// EN: Tests Exists_WithExtraPredicate_ShouldWork behavior.
+    /// PT: Testa o comportamento de Exists_WithExtraPredicate_ShouldWork.
+    /// </summary>
     [Fact]
     public void Exists_WithExtraPredicate_ShouldWork()
     {

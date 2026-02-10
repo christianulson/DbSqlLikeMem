@@ -7,6 +7,10 @@ public sealed class SqlExpressionParserTests(
 
     // ----------- Smoke tests: todas as expressões reais encontradas no zip (suportadas) -----------
 
+    /// <summary>
+    /// EN: Tests ParseWhere_ShouldNotThrow_ForSupportedRealWorldExpressions behavior.
+    /// PT: Testa o comportamento de ParseWhere_ShouldNotThrow_ForSupportedRealWorldExpressions.
+    /// </summary>
     [Theory]
     [MemberDataByMySqlVersion(nameof(WhereExpressions_Supported))]
     public void ParseWhere_ShouldNotThrow_ForSupportedRealWorldExpressions(string whereExpr, int version)
@@ -75,6 +79,10 @@ public sealed class SqlExpressionParserTests(
 
     // ----------- Negative tests: coisas que aparecem nos testes atuais mas NÃO fazem parte do subset -----------
 
+    /// <summary>
+    /// EN: Tests ParseWhere_ShouldThrow_ForUnsupportedExpressions behavior.
+    /// PT: Testa o comportamento de ParseWhere_ShouldThrow_ForUnsupportedExpressions.
+    /// </summary>
     [Theory]
     [MemberDataByMySqlVersion(nameof(WhereExpressions_Unsupported))]
     public void ParseWhere_ShouldThrow_ForUnsupportedExpressions(string whereExpr, int version)
@@ -101,6 +109,10 @@ public sealed class SqlExpressionParserTests(
 
     // ----------- Regras (cenários extra) -----------
 
+    /// <summary>
+    /// EN: Tests Precedence_OR_ShouldBindLooserThan_AND behavior.
+    /// PT: Testa o comportamento de Precedence_OR_ShouldBindLooserThan_AND.
+    /// </summary>
     [Theory]
     [MemberDataMySqlVersion]
     public void Precedence_OR_ShouldBindLooserThan_AND(int version)
@@ -125,6 +137,10 @@ public sealed class SqlExpressionParserTests(
         Assert.Equal(SqlBinaryOp.Eq, andRight.Op);
     }
 
+    /// <summary>
+    /// EN: Tests Parentheses_ShouldOverridePrecedence behavior.
+    /// PT: Testa o comportamento de Parentheses_ShouldOverridePrecedence.
+    /// </summary>
     [Theory]
     [MemberDataMySqlVersion]
     public void Parentheses_ShouldOverridePrecedence(int version)
@@ -142,6 +158,10 @@ public sealed class SqlExpressionParserTests(
         Assert.False(isNull.Negated);
     }
 
+    /// <summary>
+    /// EN: Tests Not_ShouldWork behavior.
+    /// PT: Testa o comportamento de Not_ShouldWork.
+    /// </summary>
     [Theory]
     [MemberDataMySqlVersion]
     public void Not_ShouldWork(int version)
@@ -155,6 +175,10 @@ public sealed class SqlExpressionParserTests(
         Assert.Equal(SqlBinaryOp.Or, or.Op);
     }
 
+    /// <summary>
+    /// EN: Tests IsNotNull_ShouldProduce_IsNullExpr_Negated behavior.
+    /// PT: Testa o comportamento de IsNotNull_ShouldProduce_IsNullExpr_Negated.
+    /// </summary>
     [Theory]
     [MemberDataMySqlVersion]
     public void IsNotNull_ShouldProduce_IsNullExpr_Negated(int version)
@@ -164,6 +188,10 @@ public sealed class SqlExpressionParserTests(
         Assert.True(n.Negated);
     }
 
+    /// <summary>
+    /// EN: Tests In_ShouldParse_List behavior.
+    /// PT: Testa o comportamento de In_ShouldParse_List.
+    /// </summary>
     [Theory]
     [MemberDataMySqlVersion]
     public void In_ShouldParse_List(int version)
@@ -173,6 +201,10 @@ public sealed class SqlExpressionParserTests(
         Assert.Equal(3, ins.Items.Count);
     }
 
+    /// <summary>
+    /// EN: Tests Like_ShouldParse behavior.
+    /// PT: Testa o comportamento de Like_ShouldParse.
+    /// </summary>
     [Theory]
     [MemberDataMySqlVersion]
     public void Like_ShouldParse(int version)
@@ -182,6 +214,10 @@ public sealed class SqlExpressionParserTests(
         Assert.NotNull(like.Pattern);
     }
 
+    /// <summary>
+    /// EN: Tests Identifier_WithAliasDotColumn_ShouldParse behavior.
+    /// PT: Testa o comportamento de Identifier_WithAliasDotColumn_ShouldParse.
+    /// </summary>
     [Theory]
     [MemberDataMySqlVersion]
     public void Identifier_WithAliasDotColumn_ShouldParse(int version)
@@ -200,6 +236,10 @@ public sealed class SqlExpressionParserTests(
         Assert.Equal("userId", r.Name);
     }
 
+    /// <summary>
+    /// EN: Tests Parameter_Tokens_ShouldParse behavior.
+    /// PT: Testa o comportamento de Parameter_Tokens_ShouldParse.
+    /// </summary>
     [Theory]
     [MemberDataMySqlVersion]
     public void Parameter_Tokens_ShouldParse(int version)
@@ -210,6 +250,10 @@ public sealed class SqlExpressionParserTests(
         Assert.NotNull(SqlExpressionParser.ParseWhere("a = ?", d));
     }
 
+    /// <summary>
+    /// EN: Tests Backtick_Identifier_ShouldParse behavior.
+    /// PT: Testa o comportamento de Backtick_Identifier_ShouldParse.
+    /// </summary>
     [Theory]
     [MemberDataMySqlVersion]
     public void Backtick_Identifier_ShouldParse(int version)
@@ -220,6 +264,10 @@ public sealed class SqlExpressionParserTests(
         Assert.Equal("DeletedDtt", id.Name);
     }
 
+    /// <summary>
+    /// EN: Tests DoubleQuoted_String_ShouldParse behavior.
+    /// PT: Testa o comportamento de DoubleQuoted_String_ShouldParse.
+    /// </summary>
     [Theory]
     [MemberDataMySqlVersion]
     public void DoubleQuoted_String_ShouldParse(int version)
@@ -230,6 +278,10 @@ public sealed class SqlExpressionParserTests(
         Assert.Equal("John", lit.Value);
     }
 
+    /// <summary>
+    /// EN: Tests Printer_ShouldBeStable_ForSimpleExpression behavior.
+    /// PT: Testa o comportamento de Printer_ShouldBeStable_ForSimpleExpression.
+    /// </summary>
     [Theory]
     [MemberDataMySqlVersion]
     public void Printer_ShouldBeStable_ForSimpleExpression(int version)

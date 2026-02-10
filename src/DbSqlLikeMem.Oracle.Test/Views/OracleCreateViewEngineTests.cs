@@ -28,6 +28,10 @@ public sealed class OracleCreateViewEngineTests : XUnitTestBase
         _cnn.Open();
     }
 
+    /// <summary>
+    /// EN: Tests CreateView_ThenSelectFromView_ShouldReturnExpectedRows behavior.
+    /// PT: Testa o comportamento de CreateView_ThenSelectFromView_ShouldReturnExpectedRows.
+    /// </summary>
     [Fact]
     public void CreateView_ThenSelectFromView_ShouldReturnExpectedRows()
     {
@@ -41,6 +45,10 @@ SELECT id, name FROM users WHERE tenantid = 10;
         Assert.Equal(["John", "Bob" ], rows.Select(r => (string)r["name"]!).ToArray());
     }
 
+    /// <summary>
+    /// EN: Tests View_IsNotMaterialized_ShouldReflectBaseTableChanges behavior.
+    /// PT: Testa o comportamento de View_IsNotMaterialized_ShouldReflectBaseTableChanges.
+    /// </summary>
     [Fact]
     public void View_IsNotMaterialized_ShouldReflectBaseTableChanges()
     {
@@ -53,6 +61,10 @@ SELECT id, name FROM users WHERE tenantid = 10;
         Assert.Equal([1, 2, 3, 4], rows.Select(r => (int)r["id"]!).ToArray());
     }
 
+    /// <summary>
+    /// EN: Tests CreateOrReplaceView_ShouldChangeDefinition behavior.
+    /// PT: Testa o comportamento de CreateOrReplaceView_ShouldChangeDefinition.
+    /// </summary>
     [Fact]
     public void CreateOrReplaceView_ShouldChangeDefinition()
     {
@@ -65,6 +77,10 @@ SELECT id, name FROM users WHERE tenantid = 10;
         Assert.Equal([3], r2.Select(x => (int)x["id"]!).ToArray());
     }
 
+    /// <summary>
+    /// EN: Tests View_NameShouldShadowTable_WhenSameName behavior.
+    /// PT: Testa o comportamento de View_NameShouldShadowTable_WhenSameName.
+    /// </summary>
     [Fact]
     public void View_NameShouldShadowTable_WhenSameName()
     {
@@ -81,6 +97,10 @@ SELECT id, name FROM users WHERE tenantid = 10;
         Assert.Equal(1, (int)rows[0]["id"]!);
     }
 
+    /// <summary>
+    /// EN: Tests View_CanReferenceAnotherView behavior.
+    /// PT: Testa o comportamento de View_CanReferenceAnotherView.
+    /// </summary>
     [Fact]
     public void View_CanReferenceAnotherView()
     {
@@ -91,6 +111,10 @@ SELECT id, name FROM users WHERE tenantid = 10;
         Assert.Equal([2], rows.Select(r => (int)r["id"]!).ToArray());
     }
 
+    /// <summary>
+    /// EN: Tests View_WithJoinAndAggregation_ShouldWork behavior.
+    /// PT: Testa o comportamento de View_WithJoinAndAggregation_ShouldWork.
+    /// </summary>
     [Fact]
     public void View_WithJoinAndAggregation_ShouldWork()
     {
@@ -111,6 +135,10 @@ GROUP BY u.id;
         Assert.True(rows[2]["total"] is null);
     }
 
+    /// <summary>
+    /// EN: Tests CreateView_ExistingNameWithoutOrReplace_ShouldThrow behavior.
+    /// PT: Testa o comportamento de CreateView_ExistingNameWithoutOrReplace_ShouldThrow.
+    /// </summary>
     [Fact]
     public void CreateView_ExistingNameWithoutOrReplace_ShouldThrow()
     {
@@ -118,6 +146,10 @@ GROUP BY u.id;
         Assert.ThrowsAny<Exception>(() => _cnn.ExecNonQuery("CREATE VIEW vdup AS SELECT 2 AS x FROM DUAL;"));
     }
 
+    /// <summary>
+    /// EN: Tests DropView_ShouldRemoveDefinition behavior.
+    /// PT: Testa o comportamento de DropView_ShouldRemoveDefinition.
+    /// </summary>
     [Fact(Skip = "MySQL: DROP VIEW faz parte do ciclo de vida. Implementar depois.")]
     public void DropView_ShouldRemoveDefinition()
     {

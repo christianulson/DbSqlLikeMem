@@ -4,6 +4,10 @@ public sealed class PostgreSqlCreateViewParserTests(
     ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests ParseMulti_CreateView_ThenSelect_ShouldReturnTwoStatements behavior.
+    /// PT: Testa o comportamento de ParseMulti_CreateView_ThenSelect_ShouldReturnTwoStatements.
+    /// </summary>
     [Theory]
     [MemberDataNpgsqlVersion]
     public void ParseMulti_CreateView_ThenSelect_ShouldReturnTwoStatements(int version)
@@ -27,6 +31,10 @@ SELECT * FROM v_users;
         Assert.Contains("users", cv.Select.Table?.Name, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Tests Parse_CreateOrReplaceView_ShouldSetFlag behavior.
+    /// PT: Testa o comportamento de Parse_CreateOrReplaceView_ShouldSetFlag.
+    /// </summary>
     [Theory]
     [MemberDataNpgsqlVersion]
     public void Parse_CreateOrReplaceView_ShouldSetFlag(int version)
@@ -38,6 +46,10 @@ SELECT * FROM v_users;
         Assert.Equal("v", cv.Table?.Name);
     }
 
+    /// <summary>
+    /// EN: Tests Parse_CreateView_WithExplicitColumnList_ShouldCaptureNames behavior.
+    /// PT: Testa o comportamento de Parse_CreateView_WithExplicitColumnList_ShouldCaptureNames.
+    /// </summary>
     [Theory]
     [MemberDataNpgsqlVersion]
     public void Parse_CreateView_WithExplicitColumnList_ShouldCaptureNames(int version)
@@ -48,6 +60,10 @@ SELECT * FROM v_users;
         Assert.Equal(["a", "b"], cv.ColumnNames);
     }
 
+    /// <summary>
+    /// EN: Tests Parse_CreateView_WithBackticks_ShouldWork behavior.
+    /// PT: Testa o comportamento de Parse_CreateView_WithBackticks_ShouldWork.
+    /// </summary>
     [Theory]
     [MemberDataNpgsqlVersion]
     public void Parse_CreateView_WithBackticks_ShouldWork(int version)
@@ -58,6 +74,10 @@ SELECT * FROM v_users;
         Assert.Equal("v", cv.Table?.Name);
     }
 
+    /// <summary>
+    /// EN: Tests Parse_CreateView_IfNotExists_ShouldBeRejected_ByMySqlSpec behavior.
+    /// PT: Testa o comportamento de Parse_CreateView_IfNotExists_ShouldBeRejected_ByMySqlSpec.
+    /// </summary>
     [Theory(Skip = "MySQL não suporta IF NOT EXISTS em CREATE VIEW. O mock aceita por conveniência; habilite se quiser comportamento estrito.")]
     [MemberDataNpgsqlVersion]
     public void Parse_CreateView_IfNotExists_ShouldBeRejected_ByMySqlSpec(int version)
