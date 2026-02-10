@@ -592,6 +592,10 @@ select id
 
 
 
+    /// <summary>
+    /// EN: Tests Parse_ShouldHandle_MultiStatementStrings_BySplitting behavior.
+    /// PT: Testa o comportamento de Parse_ShouldHandle_MultiStatementStrings_BySplitting.
+    /// </summary>
     [Theory]
     [MemberDataOracleVersion]
     public void Parse_ShouldHandle_MultiStatementStrings_BySplitting(int version)
@@ -611,6 +615,10 @@ select id
         Assert.True(q3 is SqlInsertQuery);
     }
 
+    /// <summary>
+    /// EN: Tests Parse_Corpus behavior.
+    /// PT: Testa o comportamento de Parse_Corpus.
+    /// </summary>
     [Theory]
     [MemberDataByOracleVersion(nameof(Statements))]
     public void Parse_Corpus(string sql, string why, SqlCaseExpectation expectation, int minVersion, int version)

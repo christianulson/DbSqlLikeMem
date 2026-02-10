@@ -4,6 +4,10 @@ public sealed class PostgreSqlTemporaryTableEngineTests
 {
     private static readonly int[] expected = [1, 2];
 
+    /// <summary>
+    /// EN: Tests CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows behavior.
+    /// PT: Testa o comportamento de CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows.
+    /// </summary>
     [Fact]
     public void CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows()
     {

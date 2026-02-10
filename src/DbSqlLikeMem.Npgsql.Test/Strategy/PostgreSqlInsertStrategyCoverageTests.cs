@@ -4,6 +4,10 @@ public sealed class PostgreSqlInsertStrategyCoverageTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests Insert_MultiRowValues_ShouldInsertAllRows behavior.
+    /// PT: Testa o comportamento de Insert_MultiRowValues_ShouldInsertAllRows.
+    /// </summary>
     [Fact]
     public void Insert_MultiRowValues_ShouldInsertAllRows()
     {
@@ -28,6 +32,10 @@ public sealed class PostgreSqlInsertStrategyCoverageTests(
         Assert.Equal("B", (string)t[1][1]!);
     }
 
+    /// <summary>
+    /// EN: Tests Insert_WithIdentityColumnOmitted_ShouldAutoIncrement behavior.
+    /// PT: Testa o comportamento de Insert_WithIdentityColumnOmitted_ShouldAutoIncrement.
+    /// </summary>
     [Fact]
     public void Insert_WithIdentityColumnOmitted_ShouldAutoIncrement()
     {
@@ -54,6 +62,10 @@ public sealed class PostgreSqlInsertStrategyCoverageTests(
         Assert.Equal("B", (string)t[1][1]!);
     }
 
+    /// <summary>
+    /// EN: Tests InsertSelect_ShouldInsertRowsFromSelect behavior.
+    /// PT: Testa o comportamento de InsertSelect_ShouldInsertRowsFromSelect.
+    /// </summary>
     [Fact]
     public void InsertSelect_ShouldInsertRowsFromSelect()
     {

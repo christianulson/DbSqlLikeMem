@@ -22,6 +22,10 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests : XUnitTestBas
         _cnn.Open();
     }
 
+    /// <summary>
+    /// EN: Tests UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates behavior.
+    /// PT: Testa o comportamento de UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates.
+    /// </summary>
     [Fact]
     public void UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates()
     {
@@ -42,6 +46,10 @@ SELECT id FROM t WHERE id = 1
         Assert.Equal([1], [.. distinct.Select(r => (int)r.id)]);
     }
 
+    /// <summary>
+    /// EN: Tests LimitOffset_ShouldWork behavior.
+    /// PT: Testa o comportamento de LimitOffset_ShouldWork.
+    /// </summary>
     [Fact]
     public void LimitOffset_ShouldWork()
     {
@@ -50,6 +58,10 @@ SELECT id FROM t WHERE id = 1
         Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id)]);
     }
 
+    /// <summary>
+    /// EN: Tests JsonPathExtract_ShouldWork behavior.
+    /// PT: Testa o comportamento de JsonPathExtract_ShouldWork.
+    /// </summary>
     [Fact]
     public void JsonPathExtract_ShouldWork()
     {

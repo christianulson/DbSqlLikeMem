@@ -3,6 +3,10 @@ public sealed class MySqlTransactionTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests TransactionShouldCommit behavior.
+    /// PT: Testa o comportamento de TransactionShouldCommit.
+    /// </summary>
     [Fact]
     public void TransactionShouldCommit()
     {
@@ -33,6 +37,10 @@ public sealed class MySqlTransactionTests(
         Assert.Equal("John Doe", table[0][1]);
     }
 
+    /// <summary>
+    /// EN: Tests TransactionShouldRollback behavior.
+    /// PT: Testa o comportamento de TransactionShouldRollback.
+    /// </summary>
     [Fact]
     public void TransactionShouldRollback()
     {

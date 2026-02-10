@@ -16,6 +16,10 @@ public sealed class StoredProcedureExecutionTests(
             Direction = dir
         };
 
+    /// <summary>
+    /// EN: Tests ExecuteNonQuery_StoredProcedure_ShouldValidateRequiredInputs behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery_StoredProcedure_ShouldValidateRequiredInputs.
+    /// </summary>
     [Fact]
     public void ExecuteNonQuery_StoredProcedure_ShouldValidateRequiredInputs()
     {
@@ -52,6 +56,10 @@ public sealed class StoredProcedureExecutionTests(
         Assert.Equal(0, affected);
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenMissingRequiredInput behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenMissingRequiredInput.
+    /// </summary>
     [Fact]
     public void ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenMissingRequiredInput()
     {
@@ -86,6 +94,10 @@ public sealed class StoredProcedureExecutionTests(
         Assert.Equal(1318, ex.ErrorCode);
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenRequiredInputIsNull behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenRequiredInputIsNull.
+    /// </summary>
     [Fact]
     public void ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenRequiredInputIsNull()
     {
@@ -120,6 +132,10 @@ public sealed class StoredProcedureExecutionTests(
         Assert.Equal(1048, ex.ErrorCode);
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteNonQuery_StoredProcedure_ShouldPopulateOutParameters_DefaultValue behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery_StoredProcedure_ShouldPopulateOutParameters_DefaultValue.
+    /// </summary>
     [Fact]
     public void ExecuteNonQuery_StoredProcedure_ShouldPopulateOutParameters_DefaultValue()
     {
@@ -163,6 +179,10 @@ public sealed class StoredProcedureExecutionTests(
         Assert.Equal(0, ((MySqlParameter)cmd.Parameters["@o_status"]).Value);
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_CallSyntax_ShouldValidateAndReturnEmptyResultset behavior.
+    /// PT: Testa o comportamento de ExecuteReader_CallSyntax_ShouldValidateAndReturnEmptyResultset.
+    /// </summary>
     [Fact]
     public void ExecuteReader_CallSyntax_ShouldValidateAndReturnEmptyResultset()
     {
@@ -192,6 +212,10 @@ public sealed class StoredProcedureExecutionTests(
         Assert.False(r.Read());
     }
 
+    /// <summary>
+    /// EN: Tests DapperExecute_CommandTypeStoredProcedure_ShouldWork behavior.
+    /// PT: Testa o comportamento de DapperExecute_CommandTypeStoredProcedure_ShouldWork.
+    /// </summary>
     [Fact]
     public void DapperExecute_CommandTypeStoredProcedure_ShouldWork()
     {
@@ -221,6 +245,10 @@ public sealed class StoredProcedureExecutionTests(
         Assert.Equal(0, affected);
     }
 
+    /// <summary>
+    /// EN: Tests DapperExecute_CommandTypeStoredProcedure_ShouldThrow_OnMissingParam behavior.
+    /// PT: Testa o comportamento de DapperExecute_CommandTypeStoredProcedure_ShouldThrow_OnMissingParam.
+    /// </summary>
     [Fact]
     public void DapperExecute_CommandTypeStoredProcedure_ShouldThrow_OnMissingParam()
     {

@@ -20,6 +20,10 @@ public sealed class OracleAggregationTests : XUnitTestBase
         _cnn.Open();
     }
 
+    /// <summary>
+    /// EN: Tests GroupBy_WithCountAndSum_ShouldWork behavior.
+    /// PT: Testa o comportamento de GroupBy_WithCountAndSum_ShouldWork.
+    /// </summary>
     [Fact]
     public void GroupBy_WithCountAndSum_ShouldWork()
     {
@@ -42,6 +46,10 @@ public sealed class OracleAggregationTests : XUnitTestBase
         Assert.Equal(5m, (decimal)rows[1].sumAmount);
     }
 
+    /// <summary>
+    /// EN: Tests Having_ShouldFilterAggregates behavior.
+    /// PT: Testa o comportamento de Having_ShouldFilterAggregates.
+    /// </summary>
     [Fact]
     public void Having_ShouldFilterAggregates()
     {
@@ -57,6 +65,10 @@ public sealed class OracleAggregationTests : XUnitTestBase
         Assert.Equal(1, (int)rows[0].userId);
     }
 
+    /// <summary>
+    /// EN: Tests Distinct_Order_Limit_Offset_ShouldWork behavior.
+    /// PT: Testa o comportamento de Distinct_Order_Limit_Offset_ShouldWork.
+    /// </summary>
     [Fact]
     public void Distinct_Order_Limit_Offset_ShouldWork()
     {

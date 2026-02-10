@@ -16,6 +16,10 @@ public sealed class DapperUserTests2(
         public List<int> Tenants { get; set; } = [];
     }
 
+    /// <summary>
+    /// EN: Tests QueryUserShouldReturnCorrectData behavior.
+    /// PT: Testa o comportamento de QueryUserShouldReturnCorrectData.
+    /// </summary>
     [Fact]
     public void QueryUserShouldReturnCorrectData()
     {
@@ -68,6 +72,10 @@ public sealed class DapperUserTests2(
         Assert.Equal(user.TestGuidNull, result.TestGuidNull);
     }
 
+    /// <summary>
+    /// EN: Tests QueryMultipleShouldReturnMultipleUserResultSets behavior.
+    /// PT: Testa o comportamento de QueryMultipleShouldReturnMultipleUserResultSets.
+    /// </summary>
     [Fact]
     public void QueryMultipleShouldReturnMultipleUserResultSets()
     {
@@ -127,6 +135,10 @@ public sealed class DapperUserTests2(
         Assert.Equal("jane.doe@example.com", users2[0].Email);
     }
 
+    /// <summary>
+    /// EN: Tests QueryWithJoinShouldReturnJoinedData behavior.
+    /// PT: Testa o comportamento de QueryWithJoinShouldReturnJoinedData.
+    /// </summary>
     [Fact]
     public void QueryWithJoinShouldReturnJoinedData()
     {

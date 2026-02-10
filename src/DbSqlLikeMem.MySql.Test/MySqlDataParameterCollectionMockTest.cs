@@ -3,6 +3,10 @@ public sealed class MySqlDataParameterCollectionMockTest(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests ParameterCollection_Normalize_ShouldWork_ForAtQuestionAndQuotedNames behavior.
+    /// PT: Testa o comportamento de ParameterCollection_Normalize_ShouldWork_ForAtQuestionAndQuotedNames.
+    /// </summary>
     [Fact]
     public void ParameterCollection_Normalize_ShouldWork_ForAtQuestionAndQuotedNames()
     {
@@ -13,6 +17,10 @@ public sealed class MySqlDataParameterCollectionMockTest(
         Assert.Equal("id", MySqlDataParameterCollectionMock.NormalizeParameterName("@'id'"));
     }
 
+    /// <summary>
+    /// EN: Tests ParameterCollection_Add_DuplicateName_ShouldThrow behavior.
+    /// PT: Testa o comportamento de ParameterCollection_Add_DuplicateName_ShouldThrow.
+    /// </summary>
     [Fact]
     public void ParameterCollection_Add_DuplicateName_ShouldThrow()
     {
@@ -22,6 +30,10 @@ public sealed class MySqlDataParameterCollectionMockTest(
         Assert.Throws<ArgumentException>(() => pars.AddWithValue("@id", 2)); // case-insensitive
     }
 
+    /// <summary>
+    /// EN: Tests ParameterCollection_RemoveAt_ShouldReindexDictionary behavior.
+    /// PT: Testa o comportamento de ParameterCollection_RemoveAt_ShouldReindexDictionary.
+    /// </summary>
     [Fact]
     public void ParameterCollection_RemoveAt_ShouldReindexDictionary()
     {

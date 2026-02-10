@@ -22,6 +22,10 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests : XUnitTestBase
         _cnn.Open();
     }
 
+    /// <summary>
+    /// EN: Tests UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates behavior.
+    /// PT: Testa o comportamento de UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates.
+    /// </summary>
     [Fact]
     public void UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates()
     {
@@ -42,6 +46,10 @@ SELECT id FROM t WHERE id = 1
         Assert.Equal([1], [.. distinct.Select(r => (int)r.id)]);
     }
 
+    /// <summary>
+    /// EN: Tests Limit_OffsetCommaSyntax_ShouldWork behavior.
+    /// PT: Testa o comportamento de Limit_OffsetCommaSyntax_ShouldWork.
+    /// </summary>
     [Fact]
     public void Limit_OffsetCommaSyntax_ShouldWork()
     {
@@ -50,6 +58,10 @@ SELECT id FROM t WHERE id = 1
         Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id)]);
     }
 
+    /// <summary>
+    /// EN: Tests Limit_OffsetKeywordSyntax_ShouldWork behavior.
+    /// PT: Testa o comportamento de Limit_OffsetKeywordSyntax_ShouldWork.
+    /// </summary>
     [Fact]
     public void Limit_OffsetKeywordSyntax_ShouldWork()
     {
@@ -58,6 +70,10 @@ SELECT id FROM t WHERE id = 1
         Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id)]);
     }
 
+    /// <summary>
+    /// EN: Tests JsonExtract_SimpleObjectPath_ShouldWork behavior.
+    /// PT: Testa o comportamento de JsonExtract_SimpleObjectPath_ShouldWork.
+    /// </summary>
     [Fact]
     public void JsonExtract_SimpleObjectPath_ShouldWork()
     {

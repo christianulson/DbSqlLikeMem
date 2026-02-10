@@ -21,6 +21,10 @@ public sealed class DapperTests : XUnitTestBase
         _connection.Open();
     }
 
+    /// <summary>
+    /// EN: Tests TestSelectQuery behavior.
+    /// PT: Testa o comportamento de TestSelectQuery.
+    /// </summary>
     [Fact]
     public void TestSelectQuery()
     {
@@ -28,6 +32,10 @@ public sealed class DapperTests : XUnitTestBase
         Assert.NotNull(users);
     }
 
+    /// <summary>
+    /// EN: Tests QueryShouldReturnCorrectData behavior.
+    /// PT: Testa o comportamento de QueryShouldReturnCorrectData.
+    /// </summary>
     [Fact]
     public void QueryShouldReturnCorrectData()
     {
@@ -61,6 +69,10 @@ public sealed class DapperTests : XUnitTestBase
         Assert.Equal(dt, result.First().CreatedDate);
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteShouldInsertData behavior.
+    /// PT: Testa o comportamento de ExecuteShouldInsertData.
+    /// </summary>
     [Fact]
     public void ExecuteShouldInsertData()
     {
@@ -87,6 +99,10 @@ public sealed class DapperTests : XUnitTestBase
         Assert.Equal(dt, table[0][2]);
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteShouldUpdateData behavior.
+    /// PT: Testa o comportamento de ExecuteShouldUpdateData.
+    /// </summary>
     [Fact]
     public void ExecuteShouldUpdateData()
     {
@@ -126,6 +142,10 @@ UPDATE users
         Assert.Equal(dtUpdate, table[0][3]);
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteShouldDeleteData behavior.
+    /// PT: Testa o comportamento de ExecuteShouldDeleteData.
+    /// </summary>
     [Fact]
     public void ExecuteShouldDeleteData()
     {
@@ -148,6 +168,10 @@ UPDATE users
         Assert.Empty(table);
     }
 
+    /// <summary>
+    /// EN: Tests QueryMultipleShouldReturnMultipleResultSets behavior.
+    /// PT: Testa o comportamento de QueryMultipleShouldReturnMultipleResultSets.
+    /// </summary>
     [Fact]
     public void QueryMultipleShouldReturnMultipleResultSets()
     {

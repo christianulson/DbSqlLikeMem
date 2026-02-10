@@ -30,6 +30,10 @@ public sealed class MySqlSelectAndWhereMoreCoverageTests : XUnitTestBase
         _cnn.Open();
     }
 
+    /// <summary>
+    /// EN: Tests Where_Between_ShouldWork behavior.
+    /// PT: Testa o comportamento de Where_Between_ShouldWork.
+    /// </summary>
     [Fact]
     public void Where_Between_ShouldWork()
     {
@@ -37,6 +41,10 @@ public sealed class MySqlSelectAndWhereMoreCoverageTests : XUnitTestBase
         Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id)]);
     }
 
+    /// <summary>
+    /// EN: Tests Where_NotIn_ShouldWork behavior.
+    /// PT: Testa o comportamento de Where_NotIn_ShouldWork.
+    /// </summary>
     [Fact]
     public void Where_NotIn_ShouldWork()
     {
@@ -45,6 +53,10 @@ public sealed class MySqlSelectAndWhereMoreCoverageTests : XUnitTestBase
         Assert.Equal(2, (int)rows[0].id);
     }
 
+    /// <summary>
+    /// EN: Tests Where_ExistsSubquery_ShouldWork behavior.
+    /// PT: Testa o comportamento de Where_ExistsSubquery_ShouldWork.
+    /// </summary>
     [Fact]
     public void Where_ExistsSubquery_ShouldWork()
     {
@@ -62,6 +74,10 @@ ORDER BY u.id").ToList();
         Assert.Equal([2], [.. rows.Select(r => (int)r.id)]);
     }
 
+    /// <summary>
+    /// EN: Tests Select_CaseWhen_ShouldWork behavior.
+    /// PT: Testa o comportamento de Select_CaseWhen_ShouldWork.
+    /// </summary>
     [Fact]
     public void Select_CaseWhen_ShouldWork()
     {
@@ -77,6 +93,10 @@ ORDER BY id").ToList();
         Assert.Equal("Y", (string)rows[2].hasEmail);
     }
 
+    /// <summary>
+    /// EN: Tests Select_IfNull_ShouldWork behavior.
+    /// PT: Testa o comportamento de Select_IfNull_ShouldWork.
+    /// </summary>
     [Fact]
     public void Select_IfNull_ShouldWork()
     {

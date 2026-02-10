@@ -25,6 +25,10 @@ public sealed class OracleMockTests
         _connection.Open();
     }
 
+    /// <summary>
+    /// EN: Tests TestInsert behavior.
+    /// PT: Testa o comportamento de TestInsert.
+    /// </summary>
     [Fact]
     public void TestInsert()
     {
@@ -37,6 +41,10 @@ public sealed class OracleMockTests
         Assert.Equal("John Doe",_connection.GetTable("user")[0][1]);
     }
 
+    /// <summary>
+    /// EN: Tests TestUpdate behavior.
+    /// PT: Testa o comportamento de TestUpdate.
+    /// </summary>
     [Fact]
     public void TestUpdate()
     {
@@ -52,6 +60,10 @@ public sealed class OracleMockTests
         Assert.Equal("Jane Doe",_connection.GetTable("user")[0][1]);
     }
 
+    /// <summary>
+    /// EN: Tests TestDelete behavior.
+    /// PT: Testa o comportamento de TestDelete.
+    /// </summary>
     [Fact]
     public void TestDelete()
     {
@@ -67,6 +79,10 @@ public sealed class OracleMockTests
         Assert.Empty(_connection.GetTable("user"));
     }
 
+    /// <summary>
+    /// EN: Tests TestTransactionCommit behavior.
+    /// PT: Testa o comportamento de TestTransactionCommit.
+    /// </summary>
     [Fact]
     public void TestTransactionCommit()
     {
@@ -98,6 +114,10 @@ public sealed class OracleMockTests
         Assert.Single(users);
     }
 
+    /// <summary>
+    /// EN: Tests TestTransactionCommitInsertUpdate behavior.
+    /// PT: Testa o comportamento de TestTransactionCommitInsertUpdate.
+    /// </summary>
     [Fact]
     public void TestTransactionCommitInsertUpdate()
     {
@@ -116,6 +136,10 @@ public sealed class OracleMockTests
         Assert.Equal("Bob", name);
     }
 
+    /// <summary>
+    /// EN: Tests TestTransactionRollback behavior.
+    /// PT: Testa o comportamento de TestTransactionRollback.
+    /// </summary>
     [Fact]
     public void TestTransactionRollback()
     {

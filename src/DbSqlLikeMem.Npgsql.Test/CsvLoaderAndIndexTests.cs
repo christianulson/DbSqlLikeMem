@@ -4,6 +4,10 @@ public sealed class CsvLoaderAndIndexTests(
     ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests CsvLoader_ShouldLoadRows_ByColumnName behavior.
+    /// PT: Testa o comportamento de CsvLoader_ShouldLoadRows_ByColumnName.
+    /// </summary>
     [Fact]
     public void CsvLoader_ShouldLoadRows_ByColumnName()
     {
@@ -26,6 +30,10 @@ public sealed class CsvLoaderAndIndexTests(
         Assert.Equal("John", cnn.GetTable("users")[0][1]);
     }
 
+    /// <summary>
+    /// EN: Tests GetColumn_ShouldThrow_UnknownColumn behavior.
+    /// PT: Testa o comportamento de GetColumn_ShouldThrow_UnknownColumn.
+    /// </summary>
     [Fact]
     public void GetColumn_ShouldThrow_UnknownColumn()
     {
@@ -37,6 +45,10 @@ public sealed class CsvLoaderAndIndexTests(
         Assert.Equal(1054, ex.ErrorCode);
     }
 
+    /// <summary>
+    /// EN: Tests Index_Lookup_ShouldReturnRowPositions behavior.
+    /// PT: Testa o comportamento de Index_Lookup_ShouldReturnRowPositions.
+    /// </summary>
     [Fact]
     public void Index_Lookup_ShouldReturnRowPositions()
     {
@@ -56,6 +68,10 @@ public sealed class CsvLoaderAndIndexTests(
         Assert.Equal([0, 1], [.. ix!.Order()]);
     }
 
+    /// <summary>
+    /// EN: Tests BackupRestore_ShouldRollbackData behavior.
+    /// PT: Testa o comportamento de BackupRestore_ShouldRollbackData.
+    /// </summary>
     [Fact]
     public void BackupRestore_ShouldRollbackData()
     {
