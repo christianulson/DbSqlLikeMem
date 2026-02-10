@@ -22,8 +22,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\DbSqlLikeMem.Oracle\DbSqlLikeMem.Oracle.csproj" />
-		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.net80.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.Oracle\DbSqlLikeMem.Oracle.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.net80.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 
 	<ItemGroup>

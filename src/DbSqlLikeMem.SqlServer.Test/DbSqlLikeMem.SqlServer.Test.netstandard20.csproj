@@ -16,8 +16,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\DbSqlLikeMem.SqlServer\DbSqlLikeMem.SqlServer.csproj" />
-		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.netstandard20.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.SqlServer\DbSqlLikeMem.SqlServer.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.netstandard20.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 
 	<ItemGroup>
