@@ -130,9 +130,6 @@ public class Db2CommandMock(
             return ExecuteDropView(sqlRaw);
         }
 
-        if (IsDeleteMissingFrom(sqlRaw))
-            throw new InvalidOperationException("Invalid DELETE statement: expected FROM keyword.");
-
         // 3. Parse via AST para comandos DML (Insert, Update, Delete)
         var query = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect);
 
@@ -146,20 +143,6 @@ public class Db2CommandMock(
             SqlSelectQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT."),
             _ => throw new NotSupportedException($"Tipo de query não suportado em ExecuteNonQuery: {query.GetType().Name}")
         };
-    }
-
-    private static bool IsDeleteMissingFrom(string sqlRaw)
-    {
-        if (!sqlRaw.StartsWith("delete ", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        if (sqlRaw.StartsWith("delete from ", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        return !System.Text.RegularExpressions.Regex.IsMatch(
-            sqlRaw,
-            @"^\s*delete\s+[^\s]+\s+from\s+",
-            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
     }
 
     private int ExecuteDropView(string sqlRaw)
