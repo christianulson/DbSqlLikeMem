@@ -82,11 +82,12 @@ SELECT * FROM v_users;
     /// EN: Tests Parse_CreateView_IfNotExists_ShouldBeRejected_ByMySqlSpec behavior.
     /// PT: Testa o comportamento de Parse_CreateView_IfNotExists_ShouldBeRejected_ByMySqlSpec.
     /// </summary>
-    [Theory]
-    [MemberDataOracleVersion]
-    public void Parse_CreateView_IfNotExists_ShouldBeRejected_ByMySqlSpec(int version)
+    [Fact]
+    public void Parse_CreateView_IfNotExists_ShouldBeRejected_ByMySqlSpec()
     {
         const string sql = "CREATE VIEW IF NOT EXISTS v AS SELECT 1;";
-        Assert.ThrowsAny<Exception>(() => SqlQueryParser.ParseMulti(sql, new OracleDialect(version)).ToList());
+
+        foreach (var version in OracleDbVersions.Versions())
+            Assert.ThrowsAny<Exception>(() => SqlQueryParser.ParseMulti(sql, new OracleDialect(version)).ToList());
     }
 }
