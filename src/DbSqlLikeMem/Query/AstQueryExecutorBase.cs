@@ -1675,7 +1675,7 @@ internal abstract class AstQueryExecutorBase(
             if (v is decimal or double or float)
                 return Convert.ToDecimal(v, CultureInfo.InvariantCulture);
 
-            var text = v.ToString();
+            var text = v?.ToString();
             if (string.IsNullOrWhiteSpace(text))
                 return null;
 

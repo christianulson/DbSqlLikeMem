@@ -78,7 +78,7 @@ public class Db2CommandMock(
     /// </summary>
     /// <returns>EN: Parameter instance. PT: Instância do parâmetro.</returns>
     protected override DbParameter CreateDbParameter()
-        => new Db2Parameter();
+        => new DB2Parameter();
 
     /// <summary>
     /// Auto-generated summary.

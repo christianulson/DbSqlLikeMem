@@ -7,8 +7,19 @@
 /// </summary>
 public enum SqlCaseExpectation
 {
+    /// <summary>
+    /// Gets or sets a value indicating whether the parsing operation completed successfully.
+    /// </summary>
     ParseOk,
+
+    /// <summary>
+    /// Represents an exception that is thrown when an invalid operation occurs.
+    /// </summary>
     ThrowInvalid,
+
+    /// <summary>
+    /// Throws a NotSupportedException to indicate that the requested operation is not supported.
+    /// </summary>
     ThrowNotSupported
 }
 

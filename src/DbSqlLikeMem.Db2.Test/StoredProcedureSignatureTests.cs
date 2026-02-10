@@ -28,8 +28,8 @@ public sealed class StoredProcedureSignatureTests(
             CommandType = CommandType.StoredProcedure,
             CommandText = "sp_demo"
         };
-        cmd.Parameters.Add(new Db2Parameter { ParameterName = "tenantId", DbType = DbType.Int32, Value = 10 });
-        cmd.Parameters.Add(new Db2Parameter { ParameterName = "resultCode", DbType = DbType.Int32, Direction = ParameterDirection.Output, Value = DBNull.Value });
+        cmd.Parameters.Add(new DB2Parameter { ParameterName = "tenantId", DbType = DbType.Int32, Value = 10 });
+        cmd.Parameters.Add(new DB2Parameter { ParameterName = "resultCode", DbType = DbType.Int32, Direction = ParameterDirection.Output, Value = DBNull.Value });
 
         var n = cmd.ExecuteNonQuery();
         Assert.Equal(0, n);
@@ -78,7 +78,7 @@ public sealed class StoredProcedureSignatureTests(
         {
             CommandText = "CALL sp_demo(@tenantId)"
         };
-        cmd.Parameters.Add(new Db2Parameter { ParameterName = "tenantId", DbType = DbType.Int32, Value = 10 });
+        cmd.Parameters.Add(new DB2Parameter { ParameterName = "tenantId", DbType = DbType.Int32, Value = 10 });
 
         var n = cmd.ExecuteNonQuery();
         Assert.Equal(0, n);

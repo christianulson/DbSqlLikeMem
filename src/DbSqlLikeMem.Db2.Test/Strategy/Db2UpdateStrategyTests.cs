@@ -275,7 +275,7 @@ public sealed class Db2UpdateStrategyTests(
 
         // depende de como seu Db2CommandMock implementa Parameters.
         // Se Parameters for IDataParameterCollection, isso deve funcionar:
-        command.Parameters.Add(new Db2Parameter("@id", 2));
+        command.Parameters.Add(new DB2Parameter("@id", 2));
 
         var rowsAffected = command.ExecuteNonQuery();
 

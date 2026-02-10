@@ -39,7 +39,7 @@ internal static class Db2ValueHelper
                 .Replace(";", string.Empty, StringComparison.Ordinal);
             if (pars == null || !pars.Contains(name))
                 throw new Db2MockException($"Parâmetro {name} não encontrado.");
-            return ((Db2Parameter)pars[name]).Value;
+            return ((DB2Parameter)pars[name]).Value;
         }
 
         // ---------- literal NULL --------------------------------------

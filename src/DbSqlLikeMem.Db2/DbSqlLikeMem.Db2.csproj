@@ -4,7 +4,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="IBM.Data.Db2.Core" Version="9.6.0" />
+		<PackageReference Include="Net.IBM.Data.Db2" Version="8.0.0.500" />
 		<PackageReference Include="xunit" Version="2.9.3" />
 	</ItemGroup>
 

@@ -114,8 +114,8 @@ public class Db2InsertOnDuplicateTests(
             CommandText = "INSERT INTO users (Id, Name) VALUES (@p0, @p1) " +
                           "ON DUPLICATE KEY UPDATE Name = 'FORCED'"
         };
-        cmd.Parameters.Add(new Db2Parameter("p0", 1));
-        cmd.Parameters.Add(new Db2Parameter("p1", "NEW"));
+        cmd.Parameters.Add(new DB2Parameter("p0", 1));
+        cmd.Parameters.Add(new DB2Parameter("p1", "NEW"));
 
         var rows = cmd.ExecuteNonQuery(); // tem que chamar ExecuteInsert internamente
 
@@ -147,8 +147,8 @@ public class Db2InsertOnDuplicateTests(
 INSERT INTO users (Id, Qtd) VALUES (@p0, @p1)
  ON DUPLICATE KEY UPDATE Qtd = users.Qtd + VALUES(Qtd)"
         };
-        cmd.Parameters.Add(new Db2Parameter("p0", 1));
-        cmd.Parameters.Add(new Db2Parameter("p1", 1));
+        cmd.Parameters.Add(new DB2Parameter("p0", 1));
+        cmd.Parameters.Add(new DB2Parameter("p1", 1));
 
         var rows = cmd.ExecuteNonQuery(); // tem que chamar ExecuteInsert internamente
 

@@ -8,7 +8,7 @@ public sealed class StoredProcedureExecutionTests(
     ) : XUnitTestBase(helper)
 {
     // helper: cria parâmetro DB2 do seu mock (ajuste o tipo se necessário)
-    private static Db2Parameter P(string name, object? value, DbType dbType, ParameterDirection dir = ParameterDirection.Input)
+    private static DB2Parameter P(string name, object? value, DbType dbType, ParameterDirection dir = ParameterDirection.Input)
         => new()
         {
             ParameterName = name.StartsWith('@')
@@ -178,8 +178,8 @@ public sealed class StoredProcedureExecutionTests(
         // - string: "" (ou null)
         // - int: 0
         // Eu recomendo setar defaults “tipo-safe”.
-        Assert.Equal(string.Empty, ((Db2Parameter)cmd.Parameters["@o_token"]).Value);
-        Assert.Equal(0, ((Db2Parameter)cmd.Parameters["@o_status"]).Value);
+        Assert.Equal(string.Empty, ((DB2Parameter)cmd.Parameters["@o_token"]).Value);
+        Assert.Equal(0, ((DB2Parameter)cmd.Parameters["@o_status"]).Value);
     }
 
     /// <summary>

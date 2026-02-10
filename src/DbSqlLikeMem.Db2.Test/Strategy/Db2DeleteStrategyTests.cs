@@ -195,7 +195,7 @@ public sealed class Db2CommandDeleteTests(
             CommandText = "DELETE FROM users WHERE id = @id"
         };
 
-        cmd.Parameters.Add(new Db2Parameter("@id", 2));
+        cmd.Parameters.Add(new DB2Parameter("@id", 2));
 
         var affected = cmd.ExecuteNonQuery();
 

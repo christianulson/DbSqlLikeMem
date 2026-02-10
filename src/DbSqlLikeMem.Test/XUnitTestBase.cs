@@ -94,6 +94,12 @@ public abstract class XUnitTestBase : IDisposable
 
 #pragma warning disable S1135 // Track uses of "TODO" tags
     // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+    /// <summary>
+    /// Finalizes the instance and releases unmanaged resources before the object is reclaimed by garbage collection.
+    /// </summary>
+    /// <remarks>This destructor is called automatically when the object is no longer referenced. Cleanup
+    /// logic for unmanaged resources should be placed in the Dispose method with disposing set to false. Do not
+    /// override the finalizer unless unmanaged resources need to be released.</remarks>
     ~XUnitTestBase()
 #pragma warning restore S1135 // Track uses of "TODO" tags
     {

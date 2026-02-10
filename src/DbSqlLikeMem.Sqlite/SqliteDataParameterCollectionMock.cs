@@ -163,11 +163,11 @@ public class SqliteDataParameterCollectionMock
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public SqliteParameter Add(string parameterName, SqliteDbType mySqlDbType) => Add(new(parameterName, mySqlDbType));
+    public SqliteParameter Add(string parameterName, SqliteType mySqlDbType) => Add(new(parameterName, mySqlDbType));
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public SqliteParameter Add(string parameterName, SqliteDbType mySqlDbType, int size) => Add(new(parameterName, mySqlDbType, size));
+    public SqliteParameter Add(string parameterName, SqliteType mySqlDbType, int size) => Add(new(parameterName, mySqlDbType, size));
 
     /// <summary>
     /// Auto-generated summary.

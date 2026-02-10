@@ -8,9 +8,9 @@ namespace DbSqlLikeMem.Db2;
 /// PT: Coleção de parâmetros mock para comandos DB2.
 /// </summary>
 public class Db2DataParameterCollectionMock
-    : DbParameterCollection, IList<Db2Parameter>
+    : DbParameterCollection, IList<DB2Parameter>
 {
-    internal readonly List<Db2Parameter> Items = [];
+    internal readonly List<DB2Parameter> Items = [];
     internal readonly Dictionary<string, int> DicItems = new(StringComparer.OrdinalIgnoreCase);
 
     internal int NormalizedIndexOf(string? parameterName) =>
@@ -19,7 +19,7 @@ public class Db2DataParameterCollectionMock
     internal int UnsafeIndexOf(string? normalizedParameterName) =>
         DicItems.TryGetValue(normalizedParameterName ?? "", out var index) ? index : -1;
 
-    private void AddParameter(Db2Parameter parameter, int index)
+    private void AddParameter(DB2Parameter parameter, int index)
     {
         var normalizedParameterName = NormalizeParameterName(parameter.ParameterName);
         if (!string.IsNullOrEmpty(normalizedParameterName) && NormalizedIndexOf(normalizedParameterName) != -1)
@@ -78,7 +78,7 @@ public class Db2DataParameterCollectionMock
     protected override void SetParameter(int index, DbParameter value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        var newParameter = (Db2Parameter)value;
+        var newParameter = (DB2Parameter)value;
         var oldParameter = Items[index];
         var oldNormalizedParameterName = NormalizeParameterName(oldParameter.ParameterName);
         if (oldNormalizedParameterName is not null)
@@ -101,7 +101,7 @@ public class Db2DataParameterCollectionMock
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public new Db2Parameter this[int index]
+    public new DB2Parameter this[int index]
     {
         get => Items[index];
         set => SetParameter(index, value);
@@ -110,9 +110,9 @@ public class Db2DataParameterCollectionMock
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public new Db2Parameter this[string name]
+    public new DB2Parameter this[string name]
     {
-        get => (Db2Parameter)GetParameter(name);
+        get => (DB2Parameter)GetParameter(name);
         set => SetParameter(name, value);
     }
 
@@ -129,9 +129,9 @@ public class Db2DataParameterCollectionMock
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public Db2Parameter Add(string parameterName, DbType dbType)
+    public DB2Parameter Add(string parameterName, DbType dbType)
     {
-        var parameter = new Db2Parameter
+        var parameter = new DB2Parameter
         {
             ParameterName = parameterName,
             DbType = dbType,
@@ -146,14 +146,14 @@ public class Db2DataParameterCollectionMock
     public override int Add(object value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        AddParameter((Db2Parameter)value, Items.Count);
+        AddParameter((DB2Parameter)value, Items.Count);
         return Items.Count - 1;
     }
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public Db2Parameter Add(Db2Parameter parameter)
+    public DB2Parameter Add(DB2Parameter parameter)
     {
         ArgumentNullException.ThrowIfNull(parameter);
         AddParameter(parameter, Items.Count);
@@ -163,11 +163,11 @@ public class Db2DataParameterCollectionMock
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public Db2Parameter Add(string parameterName, Db2DbType mySqlDbType) => Add(new(parameterName, mySqlDbType));
+    public DB2Parameter Add(string parameterName, DB2Type mySqlDbType) => Add(new(parameterName, mySqlDbType));
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public Db2Parameter Add(string parameterName, Db2DbType mySqlDbType, int size) => Add(new(parameterName, mySqlDbType, size));
+    public DB2Parameter Add(string parameterName, DB2Type mySqlDbType, int size) => Add(new(parameterName, mySqlDbType, size));
 
     /// <summary>
     /// Auto-generated summary.
@@ -182,9 +182,9 @@ public class Db2DataParameterCollectionMock
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public Db2Parameter AddWithValue(string parameterName, object? value)
+    public DB2Parameter AddWithValue(string parameterName, object? value)
     {
-        var parameter = new Db2Parameter
+        var parameter = new DB2Parameter
         {
             ParameterName = parameterName,
             Value = value,
@@ -197,7 +197,7 @@ public class Db2DataParameterCollectionMock
     /// Auto-generated summary.
     /// </summary>
     public override bool Contains(object value)
-        => value is Db2Parameter parameter && Items.Contains(parameter);
+        => value is DB2Parameter parameter && Items.Contains(parameter);
 
     /// <summary>
     /// Auto-generated summary.
@@ -225,14 +225,14 @@ public class Db2DataParameterCollectionMock
     /// </summary>
     public override IEnumerator GetEnumerator()
         => Items.GetEnumerator();
-    IEnumerator<Db2Parameter> IEnumerable<Db2Parameter>.GetEnumerator()
+    IEnumerator<DB2Parameter> IEnumerable<DB2Parameter>.GetEnumerator()
         => Items.GetEnumerator();
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public override int IndexOf(object value)
-        => value is Db2Parameter parameter ? Items.IndexOf(parameter) : -1;
+        => value is DB2Parameter parameter ? Items.IndexOf(parameter) : -1;
 
     /// <summary>
     /// Auto-generated summary.
@@ -243,12 +243,12 @@ public class Db2DataParameterCollectionMock
     /// Auto-generated summary.
     /// </summary>
     public override void Insert(int index, object? value)
-        => AddParameter((Db2Parameter)(value ?? throw new ArgumentNullException(nameof(value))), index);
+        => AddParameter((DB2Parameter)(value ?? throw new ArgumentNullException(nameof(value))), index);
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public void Insert(int index, Db2Parameter item)
+    public void Insert(int index, DB2Parameter item)
         => Items[index] = item;
 
     /// <summary>
@@ -284,24 +284,24 @@ public class Db2DataParameterCollectionMock
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public int IndexOf(Db2Parameter item)
+    public int IndexOf(DB2Parameter item)
         => Items.IndexOf(item);
-    void ICollection<Db2Parameter>.Add(Db2Parameter item)
+    void ICollection<DB2Parameter>.Add(DB2Parameter item)
         => AddParameter(item, Items.Count);
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public bool Contains(Db2Parameter item)
+    public bool Contains(DB2Parameter item)
         => Items.Contains(item);
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public void CopyTo(Db2Parameter[] array, int arrayIndex)
+    public void CopyTo(DB2Parameter[] array, int arrayIndex)
         => Items.CopyTo(array, arrayIndex);
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public bool Remove(Db2Parameter item)
+    public bool Remove(DB2Parameter item)
     {
         var i = IndexOf(item ?? throw new ArgumentNullException(nameof(item)));
         if (i == -1)
