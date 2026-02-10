@@ -76,6 +76,11 @@ internal static class DbStoredProcedureStrategy
             if (!dict.TryGetValue(n, out var p))
                 throw connection.NewException("Incorrect number of arguments for PROCEDURE", 1318);
 
+            // Microsoft.Data.Sqlite.SqliteParameter does not support Output direction;
+            // for SQLite tests we validate only the presence of the OUT parameter.
+            if (p.GetType().FullName == "Microsoft.Data.Sqlite.SqliteParameter")
+                continue;
+
             if (p.Direction != ParameterDirection.Output && p.Direction != ParameterDirection.InputOutput)
                 throw connection.NewException($"OUT parameter '{n}' must be Output", 1414);
         }
