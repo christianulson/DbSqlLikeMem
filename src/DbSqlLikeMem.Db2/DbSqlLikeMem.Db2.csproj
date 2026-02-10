@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>DB2 provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="IBM.Data.Db2.Core" Version="9.6.0" />
+		<PackageReference Include="xunit" Version="2.9.3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem\DbSqlLikeMem.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.Db2.Test" />
+	</ItemGroup>
+	<ItemGroup>
+		<Using Include="System.Data" />
+		<Using Include="System.Globalization" />
+		<Using Include="System.Text.RegularExpressions" />
+	</ItemGroup>
+</Project>
