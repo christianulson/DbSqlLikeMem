@@ -3,8 +3,19 @@
 		<Description>SQL Server provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
 	</PropertyGroup>
 
-	<ItemGroup>
+	<ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+		<PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+		<PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' != 'net48' and '$(TargetFramework)' != 'net6.0'">
 		<PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.4" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="xunit" Version="2.9.3" />
 	</ItemGroup>
 
