@@ -79,7 +79,6 @@ public class OracleCommandMock(
     /// </summary>
     /// <returns>EN: Parameter instance. PT: Instância do parâmetro.</returns>
     protected override DbParameter CreateDbParameter()
-        // Por enquanto reusa OracleParameter (OracleConnector) para não puxar pacote de SqlClient.
         => new OracleParameter();
 
     /// <summary>
