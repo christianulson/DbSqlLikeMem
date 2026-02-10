@@ -278,6 +278,15 @@ public abstract class DbConnectionMockBase(
             out vw,
             schemaName ?? Database);
 
+    internal bool DropView(
+        string viewName,
+        bool ifExists,
+        string? schemaName = null)
+        => Db.DropView(
+            viewName,
+            ifExists,
+            schemaName ?? Database);
+
     #endregion
 
     #region Procedures
