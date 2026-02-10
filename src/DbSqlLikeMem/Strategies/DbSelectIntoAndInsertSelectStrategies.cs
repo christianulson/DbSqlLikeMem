@@ -100,7 +100,17 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         var tableName = query.Table?.Name?.NormalizeName();
         ArgumentException.ThrowIfNullOrWhiteSpace(tableName);
 
-        if (connection.Db.ContainsTable(tableName, query.Table?.DbName))
+        var schemaName = query.Table?.DbName;
+        var tempScope = query.Scope;
+        if (tempScope == TemporaryTableScope.Global)
+        {
+            if (connection.TryGetGlobalTemporaryTable(tableName, out _, schemaName))
+            {
+                if (query.IfNotExists) return 0;
+                throw new InvalidOperationException($"Table '{tableName}' already exists.");
+            }
+        }
+        else if (connection.TryGetTemporaryTable(tableName, out _, schemaName))
         {
             if (query.IfNotExists) return 0;
             throw new InvalidOperationException($"Table '{tableName}' already exists.");
@@ -109,7 +119,9 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
         var res = executor.ExecuteSelect(query.AsSelect);
 
-        var newTable = connection.AddTable(tableName);
+        var newTable = tempScope == TemporaryTableScope.Global
+            ? connection.Db.AddGlobalTemporaryTable(tableName, schemaName: schemaName)
+            : connection.AddTemporaryTable(tableName, schemaName: schemaName);
 
         // column names: prefer explicit list if provided; else use select result columns
         var names = (query.ColumnNames is { Count: > 0 })

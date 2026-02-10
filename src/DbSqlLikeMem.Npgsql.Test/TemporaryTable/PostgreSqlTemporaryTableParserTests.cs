@@ -67,4 +67,15 @@ WHERE tenantid = 10",
         Assert.Contains("CREATE", q.RawSql, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("TEMPORARY", q.RawSql, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Theory]
+    [MemberDataNpgsqlVersion]
+    public void Parse_ShouldTreat_PgTempSchema_AsTemporary(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+        var q = Assert.IsType<SqlCreateTemporaryTableQuery>(
+            SqlQueryParser.Parse("CREATE TABLE pg_temp.tmp_users AS SELECT id FROM users", dialect));
+
+        Assert.Equal(TemporaryTableScope.Connection, q.Scope);
+    }
 }

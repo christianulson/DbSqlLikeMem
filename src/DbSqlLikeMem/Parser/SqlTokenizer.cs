@@ -256,8 +256,11 @@ internal sealed class SqlTokenizer
             _pos++;
     }
 
-    private static bool IsIdentStart(char c) => char.IsLetter(c) || c == '_';
-    private static bool IsIdentChar(char c) => char.IsLetterOrDigit(c) || c == '_' || c == '$';
+    private bool IsIdentStart(char c)
+        => char.IsLetter(c) || c == '_' || (_dialect.AllowsHashIdentifiers && c == '#');
+
+    private bool IsIdentChar(char c)
+        => char.IsLetterOrDigit(c) || c == '_' || c == '$' || (_dialect.AllowsHashIdentifiers && c == '#');
 
     private bool TrySkipComment()
     {

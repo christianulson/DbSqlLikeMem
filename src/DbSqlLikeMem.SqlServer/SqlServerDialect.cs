@@ -50,4 +50,17 @@ internal sealed class SqlServerDialect : SqlDialectBase
     public override bool SupportsDeleteTargetAlias => true; // DELETE alias FROM t alias JOIN ...
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
     public override bool SupportsMerge => Version >= MergeMinVersion;
+
+    public override bool AllowsHashIdentifiers => true;
+
+    public override TemporaryTableScope GetTemporaryTableScope(string tableName, string? schemaName)
+    {
+        _ = schemaName;
+        if (string.IsNullOrWhiteSpace(tableName)) return TemporaryTableScope.None;
+        if (tableName.StartsWith("##", StringComparison.Ordinal))
+            return TemporaryTableScope.Global;
+        if (tableName.StartsWith("#", StringComparison.Ordinal))
+            return TemporaryTableScope.Connection;
+        return TemporaryTableScope.None;
+    }
 }

@@ -40,4 +40,34 @@ SELECT id FROM tmp_users ORDER BY id;";
 
         Assert.Equal(expected, ids);
     }
+
+    [Fact]
+    public void CreateTemporaryTable_InPgTempSchema_ShouldReturnProjectedRows()
+    {
+        var db = new NpgsqlDbMock();
+        var users = db.AddTable("users");
+        users.Columns["id"] = new(0, DbType.Int32, false);
+        users.Columns["name"] = new(1, DbType.String, false);
+        users.Columns["tenantid"] = new(2, DbType.Int32, false);
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = 10 });
+        users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob", [2] = 10 });
+        users.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Jane", [2] = 20 });
+
+        using var cnn = new NpgsqlConnectionMock(db);
+        cnn.Open();
+
+        const string sql = @"
+CREATE TABLE pg_temp.tmp_users AS
+SELECT id, name FROM users WHERE tenantid = 10;
+
+SELECT id FROM pg_temp.tmp_users ORDER BY id;";
+
+        using var cmd = new NpgsqlCommandMock(cnn) { CommandText = sql };
+        using var r = cmd.ExecuteReader();
+
+        var ids = new List<int>();
+        while (r.Read()) ids.Add(r.GetInt32(0));
+
+        Assert.Equal(expected, ids);
+    }
 }

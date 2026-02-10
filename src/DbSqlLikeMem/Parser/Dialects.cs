@@ -73,6 +73,10 @@ internal interface ISqlDialect
     bool SupportsNullSafeEq { get; }
     bool SupportsJsonArrowOperators { get; }
 
+    // Temporary table naming
+    bool AllowsHashIdentifiers { get; }
+    TemporaryTableScope GetTemporaryTableScope(string tableName, string? schemaName);
+
     // Operator mapping
     bool TryMapBinaryOperator(string token, out SqlBinaryOp op);
 }
@@ -181,6 +185,15 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual bool SupportsWithCte => false;
     public virtual bool SupportsNullSafeEq => false;
     public virtual bool SupportsJsonArrowOperators => false;
+
+    public virtual bool AllowsHashIdentifiers => false;
+
+    public virtual TemporaryTableScope GetTemporaryTableScope(string tableName, string? schemaName)
+    {
+        _ = schemaName;
+        _ = tableName;
+        return TemporaryTableScope.None;
+    }
 
     public bool TryMapBinaryOperator(string token, out SqlBinaryOp op)
         => _binOps.TryGetValue(token, out op);
