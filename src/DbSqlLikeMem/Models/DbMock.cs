@@ -97,7 +97,7 @@ public abstract class DbMock
     /// <returns>EN: True if the schema exists. PT: True se o schema existir.</returns>
     public bool TryGetValue(
         string key,
-        out ISchemaMock? value
+        out ISchemaMock value
     )
     {
         if (base.TryGetValue(key, out var v) && v != null)
@@ -105,7 +105,7 @@ public abstract class DbMock
             value = (ISchemaMock)v;
             return true;
         }
-        value = null;
+        value = null!;
         return false;
     }
 
