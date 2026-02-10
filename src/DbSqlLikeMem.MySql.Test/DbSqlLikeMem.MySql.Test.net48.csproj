@@ -4,6 +4,7 @@
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
 		<TargetFramework>net48</TargetFramework>
+		<TargetFrameworks></TargetFrameworks>
 	</PropertyGroup>
 
 	<ItemGroup>

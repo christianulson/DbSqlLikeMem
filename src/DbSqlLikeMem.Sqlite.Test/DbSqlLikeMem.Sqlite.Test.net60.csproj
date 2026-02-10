@@ -4,6 +4,7 @@
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
 		<TargetFramework>net6.0</TargetFramework>
+		<TargetFrameworks></TargetFrameworks>
 	</PropertyGroup>
 
 	<ItemGroup>
