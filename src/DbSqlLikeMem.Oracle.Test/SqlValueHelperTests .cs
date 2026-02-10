@@ -82,6 +82,10 @@ public sealed class SqlValueHelperTests(
     /// EN: Describes the behavior validated by Like_ShouldMatch_MySqlStyle.
     /// PT: Descreve o comportamento validado por Like_ShouldMatch_MySqlStyle.
     /// </summary>
+    /// <summary>
+    /// EN: Describes the behavior validated by Like_ShouldMatch_MySqlStyle.
+    /// PT: Descreve o comportamento validado por Like_ShouldMatch_MySqlStyle.
+    /// </summary>
     [Theory]
     [InlineData("John", "%oh%", true)]
     [InlineData("John", "J_hn", true)]

@@ -12,9 +12,6 @@ public sealed class SqlServerCommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_remove_1_linha.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ExecuteNonQuery_DELETE_remove_1_linha()
     {
         var db = new SqlServerDbMock();
@@ -38,9 +35,6 @@ public sealed class SqlServerCommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_remove_varias_linhas.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ExecuteNonQuery_DELETE_remove_varias_linhas()
     {
         var db = new SqlServerDbMock();
@@ -65,9 +59,6 @@ public sealed class SqlServerCommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_quando_nao_acha_retorna_0.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ExecuteNonQuery_DELETE_quando_nao_acha_retorna_0()
     {
         var db = new SqlServerDbMock();
@@ -89,9 +80,6 @@ public sealed class SqlServerCommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_tabela_inexistente_dispara.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ExecuteNonQuery_DELETE_tabela_inexistente_dispara()
     {
         var db = new SqlServerDbMock();
@@ -107,9 +95,6 @@ public sealed class SqlServerCommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_sql_invalido_sem_FROM_dispara.
     /// </summary>
     [Fact(Skip = "Isso é valido no SqlServer")]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ExecuteNonQuery_DELETE_sql_invalido_sem_FROM_dispara()
     {
         var db = new SqlServerDbMock();
@@ -129,9 +114,6 @@ public sealed class SqlServerCommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_bloqueia_quando_fk_referencia.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ExecuteNonQuery_DELETE_bloqueia_quando_fk_referencia()
     {
         var db = new SqlServerDbMock();
@@ -158,17 +140,8 @@ public sealed class SqlServerCommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_funciona_com_ThreadSafe_true_ou_false.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [InlineData(false)]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [InlineData(true)]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ExecuteNonQuery_DELETE_funciona_com_ThreadSafe_true_ou_false(bool threadSafe)
     {
         var db = new SqlServerDbMock();
@@ -189,9 +162,6 @@ public sealed class SqlServerCommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_case_insensitive.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ExecuteNonQuery_DELETE_case_insensitive()
     {
         var db = new SqlServerDbMock();
@@ -212,9 +182,6 @@ public sealed class SqlServerCommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_com_parametro_se_suportado.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ExecuteNonQuery_DELETE_com_parametro_se_suportado()
     {
         var db = new SqlServerDbMock();

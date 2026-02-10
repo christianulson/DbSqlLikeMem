@@ -12,9 +12,6 @@ public sealed class SqlServerTemporaryTableEngineTests
     /// PT: Testa o comportamento de CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows()
     {
         var db = new SqlServerDbMock();
@@ -51,9 +48,6 @@ SELECT id FROM tmp_users ORDER BY id;";
     /// Auto-generated summary.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void CreateGlobalTemporaryTable_AsSelect_ShouldBeVisibleAcrossConnections()
     {
         var db = new SqlServerDbMock();

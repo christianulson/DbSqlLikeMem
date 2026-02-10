@@ -35,9 +35,6 @@ public sealed class PostgreSqlMockTests
     /// PT: Testa o comportamento de TestInsert.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void TestInsert()
     {
         using var command = new NpgsqlCommandMock(_connection)
@@ -54,9 +51,6 @@ public sealed class PostgreSqlMockTests
     /// PT: Testa o comportamento de TestUpdate.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void TestUpdate()
     {
         using var command = new NpgsqlCommandMock(_connection)
@@ -76,9 +70,6 @@ public sealed class PostgreSqlMockTests
     /// PT: Testa o comportamento de TestDelete.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void TestDelete()
     {
         using var command = new NpgsqlCommandMock(_connection)
@@ -98,9 +89,6 @@ public sealed class PostgreSqlMockTests
     /// PT: Testa o comportamento de TestTransactionCommit.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void TestTransactionCommit()
     {
         using (var transaction = _connection.BeginTransaction())
@@ -136,9 +124,6 @@ public sealed class PostgreSqlMockTests
     /// PT: Testa o comportamento de TestTransactionCommitInsertUpdate.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void TestTransactionCommitInsertUpdate()
     {
         using var cmd = _connection.CreateCommand();
@@ -161,9 +146,6 @@ public sealed class PostgreSqlMockTests
     /// PT: Testa o comportamento de TestTransactionRollback.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void TestTransactionRollback()
     {
         using (var transaction = _connection.BeginTransaction())

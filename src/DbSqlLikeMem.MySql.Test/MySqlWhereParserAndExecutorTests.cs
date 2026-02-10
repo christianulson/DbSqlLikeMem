@@ -32,9 +32,6 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_IN_ShouldFilter.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Where_IN_ShouldFilter()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id IN (1,3)").ToList();
@@ -48,9 +45,6 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_IsNotNull_ShouldFilter.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Where_IsNotNull_ShouldFilter()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE email IS NOT NULL").ToList();
@@ -62,9 +56,6 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_Operators_ShouldWork.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Where_Operators_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id >= 2 AND id <= 3").ToList();
@@ -79,9 +70,6 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_Like_ShouldWork.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Where_Like_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name LIKE '%oh%'").ToList();
@@ -94,9 +82,6 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_FindInSet_ShouldWork.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Where_FindInSet_ShouldWork()
     {
         // FIND_IN_SET('b', tags) -> John(a,b) e Jane(b,c)
@@ -109,9 +94,6 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_AND_ShouldBeCaseInsensitive_InRealLife.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Where_AND_ShouldBeCaseInsensitive_InRealLife()
     {
         // esse teste é pra pegar o bug clássico: split só em " AND " / " and "

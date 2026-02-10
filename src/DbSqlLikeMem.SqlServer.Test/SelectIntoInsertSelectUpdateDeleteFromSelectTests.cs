@@ -12,9 +12,6 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     /// PT: Testa o comportamento de CreateTableAsSelect_ShouldCreateNewTableWithRows.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void CreateTableAsSelect_ShouldCreateNewTableWithRows()
     {
         var db = new SqlServerDbMock();
@@ -47,9 +44,6 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     /// PT: Testa o comportamento de InsertIntoSelect_ShouldInsertRowsFromQuery.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void InsertIntoSelect_ShouldInsertRowsFromQuery()
     {
         var db = new SqlServerDbMock();
@@ -81,9 +75,6 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     /// PT: Testa o comportamento de UpdateJoinDerivedSelect_ShouldUpdateRows.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void UpdateJoinDerivedSelect_ShouldUpdateRows()
     {
         var db = new SqlServerDbMock();
@@ -123,9 +114,6 @@ WHERE u.tenantid = 10";
     /// PT: Testa o comportamento de DeleteJoinDerivedSelect_ShouldDeleteRows.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void DeleteJoinDerivedSelect_ShouldDeleteRows()
     {
         var db = new SqlServerDbMock();

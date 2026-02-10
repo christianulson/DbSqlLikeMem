@@ -946,6 +946,40 @@ internal sealed class SqlExpressionParser(
 
                 Consume();
             }
+
+            // Oracle: JSON_VALUE(json_doc, path RETURNING NUMBER)
+            // Keep RETURNING payload as a raw extra argument so evaluator can ignore/use it.
+            if (name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
+                && IsKeywordOrIdentifierWord(Peek(), "RETURNING"))
+            {
+                Consume(); // RETURNING
+
+                var typeToks = new List<SqlToken>();
+                int depth = 0;
+
+                while (true)
+                {
+                    var t = Peek();
+
+                    if (t.Kind == SqlTokenKind.EndOfFile)
+                        throw Error("JSON_VALUE RETURNING type not closed", t);
+
+                    if (t.Kind == SqlTokenKind.Symbol && t.Text == "(")
+                        depth++;
+
+                    if (t.Kind == SqlTokenKind.Symbol && t.Text == ")")
+                    {
+                        if (depth == 0)
+                            break;
+                        depth--;
+                    }
+
+                    typeToks.Add(Consume());
+                }
+
+                var typeSql = string.Join(" ", typeToks.Select(TokenToSql)).Trim();
+                args.Add(new RawSqlExpr($"RETURNING {typeSql}"));
+            }
         }
 
         ExpectSymbol(")");
