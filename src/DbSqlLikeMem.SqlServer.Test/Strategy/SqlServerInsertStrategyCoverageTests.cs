@@ -1,5 +1,8 @@
 namespace DbSqlLikeMem.SqlServer.Test.Strategy;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class SqlServerInsertStrategyCoverageTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
@@ -9,6 +12,9 @@ public sealed class SqlServerInsertStrategyCoverageTests(
     /// PT: Testa o comportamento de Insert_MultiRowValues_ShouldInsertAllRows.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Insert_MultiRowValues_ShouldInsertAllRows()
     {
         var db = new SqlServerDbMock();
@@ -37,6 +43,9 @@ public sealed class SqlServerInsertStrategyCoverageTests(
     /// PT: Testa o comportamento de Insert_WithIdentityColumnOmitted_ShouldAutoIncrement.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Insert_WithIdentityColumnOmitted_ShouldAutoIncrement()
     {
         var db = new SqlServerDbMock();
@@ -67,6 +76,9 @@ public sealed class SqlServerInsertStrategyCoverageTests(
     /// PT: Testa o comportamento de InsertSelect_ShouldInsertRowsFromSelect.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void InsertSelect_ShouldInsertRowsFromSelect()
     {
         var db = new SqlServerDbMock();

@@ -15,10 +15,22 @@ public class SqlServerCommandMock(
 {
     private bool disposedValue;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [AllowNull]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override string CommandText { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override int CommandTimeout { get; set; }
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override CommandType CommandType { get; set; } = CommandType.Text;
 
     /// <summary>
@@ -48,9 +60,18 @@ public class SqlServerCommandMock(
         set => transaction = value as SqlServerTransactionMock;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override UpdateRowSource UpdatedRowSource { get; set; }
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool DesignTimeVisible { get; set; }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void Cancel() => DbTransaction?.Rollback();
 
     /// <summary>
@@ -61,6 +82,9 @@ public class SqlServerCommandMock(
     protected override DbParameter CreateDbParameter()
         => new SqlParameter();
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override int ExecuteNonQuery()
     {
         ArgumentNullException.ThrowIfNull(connection);
@@ -168,6 +192,9 @@ public class SqlServerCommandMock(
         return new SqlServerDataReaderMock(tables);
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override object ExecuteScalar()
     {
         using var reader = ExecuteReader();
@@ -176,6 +203,9 @@ public class SqlServerCommandMock(
         return DBNull.Value;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void Prepare() { }
 
     /// <summary>

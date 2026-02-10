@@ -3,6 +3,9 @@ using System.Diagnostics;
 
 namespace DbSqlLikeMem.SqlServer;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class SqlServerTransactionMock(
     SqlServerConnectionMock cnn,
     IsolationLevel? isolationLevel = null
@@ -16,9 +19,15 @@ public sealed class SqlServerTransactionMock(
     /// </summary>
     protected override DbConnection? DbConnection => cnn;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override IsolationLevel IsolationLevel
         => isolationLevel ?? IsolationLevel.Unspecified;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void Commit()
     {
         lock (cnn.Db.SyncRoot)
@@ -28,6 +37,9 @@ public sealed class SqlServerTransactionMock(
         }
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void Rollback()
     {
         lock (cnn.Db.SyncRoot)

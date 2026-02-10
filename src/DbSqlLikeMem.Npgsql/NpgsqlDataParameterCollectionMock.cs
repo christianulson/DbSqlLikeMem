@@ -102,22 +102,37 @@ public class NpgsqlDataParameterCollectionMock
     protected override void SetParameter(string parameterName, DbParameter value)
         => SetParameter(IndexOf(parameterName), value);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public new NpgsqlParameter this[int index]
     {
         get => Items[index];
         set => SetParameter(index, value);
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public new NpgsqlParameter this[string name]
     {
         get => (NpgsqlParameter)GetParameter(name);
         set => SetParameter(name, value);
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override int Count => Items.Count;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override object SyncRoot => true;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public NpgsqlParameter Add(string parameterName, DbType dbType)
     {
         var parameter = new NpgsqlParameter
@@ -129,6 +144,9 @@ public class NpgsqlDataParameterCollectionMock
         return parameter;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override int Add(object value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -136,6 +154,9 @@ public class NpgsqlDataParameterCollectionMock
         return Items.Count - 1;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public NpgsqlParameter Add(NpgsqlParameter parameter)
     {
         ArgumentNullException.ThrowIfNull(parameter);
@@ -143,9 +164,18 @@ public class NpgsqlDataParameterCollectionMock
         return parameter;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public NpgsqlParameter Add(string parameterName, NpgsqlDbType NpgsqlDbType) => Add(new(parameterName, NpgsqlDbType));
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public NpgsqlParameter Add(string parameterName, NpgsqlDbType NpgsqlDbType, int size) => Add(new(parameterName, NpgsqlDbType, size));
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void AddRange(Array values)
     {
         ArgumentNullException.ThrowIfNull(values);
@@ -153,6 +183,9 @@ public class NpgsqlDataParameterCollectionMock
             Add(obj!);
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public NpgsqlParameter AddWithValue(string parameterName, object? value)
     {
         var parameter = new NpgsqlParameter
@@ -164,15 +197,27 @@ public class NpgsqlDataParameterCollectionMock
         return parameter;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool Contains(object value)
         => value is NpgsqlParameter parameter && Items.Contains(parameter);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool Contains(string value)
         => IndexOf(value) != -1;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void CopyTo(Array array, int index)
         => ((ICollection)Items).CopyTo(array, index);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void Clear()
     {
         //foreach (var parameter in Items)
@@ -181,28 +226,52 @@ public class NpgsqlDataParameterCollectionMock
         DicItems.Clear();
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override IEnumerator GetEnumerator()
         => Items.GetEnumerator();
     IEnumerator<NpgsqlParameter> IEnumerable<NpgsqlParameter>.GetEnumerator()
         => Items.GetEnumerator();
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override int IndexOf(object value)
         => value is NpgsqlParameter parameter ? Items.IndexOf(parameter) : -1;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override int IndexOf(string parameterName) => NormalizedIndexOf(parameterName);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void Insert(int index, object? value)
         => AddParameter((NpgsqlParameter)(value ?? throw new ArgumentNullException(nameof(value))), index);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Insert(int index, NpgsqlParameter item)
         => Items[index] = item;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void Remove(object? value)
         => RemoveAt(IndexOf(value ?? throw new ArgumentNullException(nameof(value))));
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void RemoveAt(string parameterName)
     => RemoveAt(IndexOf(parameterName));
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void RemoveAt(int index)
     {
         var oldParameter = Items[index];
@@ -219,14 +288,26 @@ public class NpgsqlDataParameterCollectionMock
         }
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public int IndexOf(NpgsqlParameter item)
         => Items.IndexOf(item);
     void ICollection<NpgsqlParameter>.Add(NpgsqlParameter item)
         => AddParameter(item, Items.Count);
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public bool Contains(NpgsqlParameter item)
         => Items.Contains(item);
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void CopyTo(NpgsqlParameter[] array, int arrayIndex)
         => Items.CopyTo(array, arrayIndex);
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public bool Remove(NpgsqlParameter item)
     {
         var i = IndexOf(item ?? throw new ArgumentNullException(nameof(item)));

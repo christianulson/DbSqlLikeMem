@@ -11,6 +11,9 @@ public sealed class SqlServerConnectionMock
     : DbConnectionMockBase
 {
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public SqlServerConnectionMock(
        SqlServerDbMock? db = null,
        string? defaultDatabase = null

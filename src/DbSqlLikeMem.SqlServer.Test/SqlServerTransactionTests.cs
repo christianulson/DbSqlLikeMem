@@ -1,12 +1,24 @@
 namespace DbSqlLikeMem.SqlServer.Test;
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class SqlServerTransactionTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     private sealed class User
     {
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public int Id { get; set; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public required string Name { get; set; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public string? Email { get; set; }
     }
 
@@ -15,6 +27,9 @@ public sealed class SqlServerTransactionTests(
     /// PT: Testa o comportamento de TransactionCommitShouldPersistData.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void TransactionCommitShouldPersistData()
     {
         // Arrange
@@ -47,6 +62,9 @@ public sealed class SqlServerTransactionTests(
     /// PT: Testa o comportamento de TransactionRollbackShouldNotPersistData.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void TransactionRollbackShouldNotPersistData()
     {
         // Arrange

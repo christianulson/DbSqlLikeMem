@@ -2,6 +2,9 @@ namespace DbSqlLikeMem;
 
 internal static class DbDeleteStrategy
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static int ExecuteDelete(
         this DbConnectionMockBase connection,
         SqlDeleteQuery query,

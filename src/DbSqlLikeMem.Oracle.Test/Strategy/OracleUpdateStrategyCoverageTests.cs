@@ -1,5 +1,8 @@
 namespace DbSqlLikeMem.Oracle.Test.Strategy;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class OracleUpdateStrategyCoverageTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
@@ -9,6 +12,9 @@ public sealed class OracleUpdateStrategyCoverageTests(
     /// PT: Testa o comportamento de Update_SetNullableColumnToNull_ShouldWork.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Update_SetNullableColumnToNull_ShouldWork()
     {
         var db = new OracleDbMock();
@@ -34,6 +40,9 @@ public sealed class OracleUpdateStrategyCoverageTests(
     /// PT: Testa o comportamento de Update_SetNotNullableColumnToNull_ShouldThrow.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Update_SetNotNullableColumnToNull_ShouldThrow()
     {
         var db = new OracleDbMock();

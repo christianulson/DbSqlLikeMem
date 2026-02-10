@@ -2,6 +2,9 @@ namespace DbSqlLikeMem.Npgsql;
 
 internal static class NpgsqlDbVersions
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static IEnumerable<int> Versions()
     {
         yield return 6;

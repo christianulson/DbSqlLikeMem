@@ -8,6 +8,9 @@ public class SqlServerDbMock : DbMock
 {
     internal override SqlDialectBase Dialect { get; set; }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public SqlServerDbMock(
         int? version = null
         ) : base(version ?? 2022)

@@ -7,6 +7,9 @@ internal static class DbUpdateDeleteFromSelectStrategies
         RegexOptions.IgnoreCase | RegexOptions.Singleline);
     private static readonly Regex _regexOnSql = new Regex(@"^(?<l>[A-Za-z0-9_]+)\.(?<lc>[A-Za-z0-9_`]+)\s*=\s*(?<r>[A-Za-z0-9_]+)\.(?<rc>[A-Za-z0-9_`]+)$", RegexOptions.IgnoreCase);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static int ExecuteUpdateSmart(
         this DbConnectionMockBase connection,
         SqlUpdateQuery query,
@@ -19,6 +22,9 @@ internal static class DbUpdateDeleteFromSelectStrategies
         return connection.ExecuteUpdate(query, pars);
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static int ExecuteDeleteSmart(
         this DbConnectionMockBase connection,
         SqlDeleteQuery query,
@@ -31,6 +37,9 @@ internal static class DbUpdateDeleteFromSelectStrategies
         return connection.ExecuteDelete(query, pars);
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static int ExecuteUpdateFromSelect(
         this DbConnectionMockBase connection,
         SqlUpdateQuery query,
@@ -201,6 +210,9 @@ internal static class DbUpdateDeleteFromSelectStrategies
         return true;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static int ExecuteDeleteFromSelect(
         this DbConnectionMockBase connection,
         SqlDeleteQuery query,
@@ -292,7 +304,13 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
     private sealed class ObjectEqualityComparer : IEqualityComparer<object>
     {
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public new bool Equals(object? x, object? y) => object.Equals(x, y);
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public int GetHashCode(object obj) => obj?.GetHashCode() ?? 0;
     }
 }

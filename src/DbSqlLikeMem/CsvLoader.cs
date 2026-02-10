@@ -3,8 +3,14 @@ using CsvHelper.Configuration;
 
 namespace DbSqlLikeMem;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public static class CsvLoader
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static void LoadCsv(
         this DbMock db,
         string path,

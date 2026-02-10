@@ -1,7 +1,13 @@
 namespace DbSqlLikeMem.SqlServer;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public static class SqlServerAstQueryExecutorRegister
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static void Register()
     {
         if (!AstQueryExecutorFactory.Executors.ContainsKey(SqlServerDialect.DialectName))

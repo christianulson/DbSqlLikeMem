@@ -8,6 +8,9 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests : XUnitTestBase
 {
     private readonly MySqlConnectionMock _cnn;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public MySqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper)
     {
         var db = new MySqlDbMock();
@@ -27,6 +30,9 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests : XUnitTestBase
     /// PT: Testa o comportamento de UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates()
     {
         // UNION ALL keeps duplicates
@@ -51,6 +57,9 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de Limit_OffsetCommaSyntax_ShouldWork.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Limit_OffsetCommaSyntax_ShouldWork()
     {
         // MySQL supports: LIMIT offset, count
@@ -63,6 +72,9 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de Limit_OffsetKeywordSyntax_ShouldWork.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Limit_OffsetKeywordSyntax_ShouldWork()
     {
         // MySQL supports: LIMIT count OFFSET offset
@@ -75,6 +87,9 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de JsonExtract_SimpleObjectPath_ShouldWork.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void JsonExtract_SimpleObjectPath_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id, JSON_EXTRACT(payload, '$.a.b') AS v FROM t ORDER BY id").ToList();

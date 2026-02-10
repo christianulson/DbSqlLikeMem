@@ -21,6 +21,9 @@ internal static class MySqlValueHelper
         set => _currentColumn.Value = value;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static object? Resolve(
         string token,
         DbType dbType,
@@ -160,6 +163,9 @@ internal static class MySqlValueHelper
     }
 
     // LIKE simples %xxx% → usa Contains
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static bool Like(string value, string pattern)
     {
         pattern = Regex.Escape(pattern)

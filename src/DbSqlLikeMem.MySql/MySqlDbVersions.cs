@@ -2,6 +2,9 @@ namespace DbSqlLikeMem.MySql;
 
 internal static class MySqlDbVersions
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static IEnumerable<int> Versions()
     {
         yield return 3;

@@ -1,16 +1,40 @@
 namespace DbSqlLikeMem.SqlServer.Test;
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class DapperUserTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     private sealed class User
     {
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public int Id { get; set; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public required string Name { get; set; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public string? Email { get; set; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public DateTime CreatedDate { get; set; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public DateTime? UpdatedData { get; set; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public Guid TestGuid { get; set; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public Guid? TestGuidNull { get; set; }
     }
 
@@ -19,6 +43,9 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de InsertUserShouldAddUserToTable.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void InsertUserShouldAddUserToTable()
     {
         // Arrange
@@ -67,6 +94,9 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de QueryUserShouldReturnCorrectData.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void QueryUserShouldReturnCorrectData()
     {
         // Arrange
@@ -123,6 +153,9 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de UpdateUserShouldModifyUserInTable.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void UpdateUserShouldModifyUserInTable()
     {
         // Arrange
@@ -193,6 +226,9 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de DeleteUserShouldRemoveUserFromTable.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void DeleteUserShouldRemoveUserFromTable()
     {
         // Arrange
@@ -244,6 +280,9 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de QueryMultipleShouldReturnMultipleUserResultSets.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void QueryMultipleShouldReturnMultipleUserResultSets()
     {
         // Arrange

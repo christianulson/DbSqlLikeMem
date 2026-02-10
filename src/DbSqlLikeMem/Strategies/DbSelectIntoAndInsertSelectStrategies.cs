@@ -2,6 +2,9 @@ namespace DbSqlLikeMem;
 
 internal static class DbSelectIntoAndInsertSelectStrategies
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static int ExecuteCreateView(
         this DbConnectionMockBase connection,
         SqlCreateViewQuery query,
@@ -24,6 +27,9 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         return 0;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static int ExecuteCreateTableAsSelect(
         this DbConnectionMockBase connection,
         string sql,
@@ -77,6 +83,9 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         return 0;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static int ExecuteCreateTemporaryTableAsSelect(
         this DbConnectionMockBase connection,
         SqlCreateTemporaryTableQuery query,
@@ -146,6 +155,9 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         return 0;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static int ExecuteInsertSmart(
             this DbConnectionMockBase connection,
             SqlInsertQuery query,
@@ -161,6 +173,9 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         return connection.ExecuteInsert(query, pars, dialect);
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static int ExecuteInsertSelect(
         this DbConnectionMockBase connection,
         SqlInsertQuery query,

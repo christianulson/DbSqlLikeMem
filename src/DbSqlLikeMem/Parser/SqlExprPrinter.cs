@@ -3,6 +3,9 @@ using System.Text;
 namespace DbSqlLikeMem;
 internal static class SqlExprPrinter
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static string Print(SqlExpr e)
     {
         var sb = new StringBuilder();

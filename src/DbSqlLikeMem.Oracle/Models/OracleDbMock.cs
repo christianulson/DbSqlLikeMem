@@ -8,6 +8,9 @@ public class OracleDbMock : DbMock
 {
     internal override SqlDialectBase Dialect { get; set; }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public OracleDbMock(
         int? version = null
         ) : base(version ?? 23)

@@ -1,9 +1,15 @@
 namespace DbSqlLikeMem.Oracle.Test;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class OracleJoinTests : XUnitTestBase
 {
     private readonly OracleConnectionMock _cnn;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public OracleJoinTests(ITestOutputHelper helper) : base(helper)
     {
         var db = new OracleDbMock();
@@ -33,6 +39,9 @@ public sealed class OracleJoinTests : XUnitTestBase
     /// PT: Testa o comportamento de LeftJoin_ShouldKeepAllLeftRows.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void LeftJoin_ShouldKeepAllLeftRows()
     {
         const string sql = """
@@ -53,6 +62,9 @@ public sealed class OracleJoinTests : XUnitTestBase
     /// PT: Testa o comportamento de RightJoin_ShouldKeepAllRightRows.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void RightJoin_ShouldKeepAllRightRows()
     {
         const string sql = """
@@ -87,6 +99,9 @@ public sealed class OracleJoinTests : XUnitTestBase
     /// PT: Testa o comportamento de Join_ON_WithMultipleConditions_AND_ShouldWork.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Join_ON_WithMultipleConditions_AND_ShouldWork()
     {
         const string sql = """

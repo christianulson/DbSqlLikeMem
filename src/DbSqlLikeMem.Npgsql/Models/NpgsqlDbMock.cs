@@ -8,6 +8,9 @@ public class NpgsqlDbMock : DbMock
 {
     internal override SqlDialectBase Dialect { get; set; }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public NpgsqlDbMock(
     int? version = null
     ) : base(version ?? 17)

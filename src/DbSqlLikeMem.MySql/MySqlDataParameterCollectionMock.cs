@@ -98,22 +98,37 @@ public class MySqlDataParameterCollectionMock
     protected override void SetParameter(string parameterName, DbParameter value)
         => SetParameter(IndexOf(parameterName), value);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public new MySqlParameter this[int index]
     {
         get => Items[index];
         set => SetParameter(index, value);
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public new MySqlParameter this[string name]
     {
         get => (MySqlParameter)GetParameter(name);
         set => SetParameter(name, value);
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override int Count => Items.Count;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override object SyncRoot => true;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public MySqlParameter Add(string parameterName, DbType dbType)
     {
         var parameter = new MySqlParameter
@@ -125,6 +140,9 @@ public class MySqlDataParameterCollectionMock
         return parameter;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override int Add(object value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -132,6 +150,9 @@ public class MySqlDataParameterCollectionMock
         return Items.Count - 1;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public MySqlParameter Add(MySqlParameter parameter)
     {
         ArgumentNullException.ThrowIfNull(parameter);
@@ -139,9 +160,18 @@ public class MySqlDataParameterCollectionMock
         return parameter;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public MySqlParameter Add(string parameterName, MySqlDbType mySqlDbType) => Add(new(parameterName, mySqlDbType));
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public MySqlParameter Add(string parameterName, MySqlDbType mySqlDbType, int size) => Add(new(parameterName, mySqlDbType, size));
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void AddRange(Array values)
     {
         ArgumentNullException.ThrowIfNull(values);
@@ -149,6 +179,9 @@ public class MySqlDataParameterCollectionMock
             Add(obj!);
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public MySqlParameter AddWithValue(string parameterName, object? value)
     {
         var parameter = new MySqlParameter
@@ -160,43 +193,79 @@ public class MySqlDataParameterCollectionMock
         return parameter;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool Contains(object value)
         => value is MySqlParameter parameter && Items.Contains(parameter);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool Contains(string value)
         => IndexOf(value) != -1;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void CopyTo(Array array, int index)
         => ((ICollection)Items).CopyTo(array, index);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void Clear()
     {
         Items.Clear();
         DicItems.Clear();
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override IEnumerator GetEnumerator()
         => Items.GetEnumerator();
     IEnumerator<MySqlParameter> IEnumerable<MySqlParameter>.GetEnumerator()
         => Items.GetEnumerator();
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override int IndexOf(object value)
         => value is MySqlParameter parameter ? Items.IndexOf(parameter) : -1;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override int IndexOf(string parameterName) => NormalizedIndexOf(parameterName);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void Insert(int index, object? value)
         => AddParameter((MySqlParameter)(value ?? throw new ArgumentNullException(nameof(value))), index);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Insert(int index, MySqlParameter item)
         => Items[index] = item;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void Remove(object? value)
         => RemoveAt(IndexOf(value ?? throw new ArgumentNullException(nameof(value))));
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void RemoveAt(string parameterName)
     => RemoveAt(IndexOf(parameterName));
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void RemoveAt(int index)
     {
         var oldParameter = Items[index];
@@ -212,14 +281,26 @@ public class MySqlDataParameterCollectionMock
         }
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public int IndexOf(MySqlParameter item)
         => Items.IndexOf(item);
     void ICollection<MySqlParameter>.Add(MySqlParameter item)
         => AddParameter(item, Items.Count);
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public bool Contains(MySqlParameter item)
         => Items.Contains(item);
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void CopyTo(MySqlParameter[] array, int arrayIndex)
         => Items.CopyTo(array, arrayIndex);
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public bool Remove(MySqlParameter item)
     {
         var i = IndexOf(item ?? throw new ArgumentNullException(nameof(item)));

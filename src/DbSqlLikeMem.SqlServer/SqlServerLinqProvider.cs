@@ -4,6 +4,9 @@ using System.Reflection;
 
 namespace DbSqlLikeMem.SqlServer;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class SqlServerQueryProvider(
     SqlServerConnectionMock cnn
     ) : IQueryProvider
@@ -11,6 +14,9 @@ public sealed class SqlServerQueryProvider(
     private readonly SqlServerConnectionMock _cnn = cnn ?? throw new ArgumentNullException(nameof(cnn));
     private readonly SqlServerTranslator _translator = new();
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public IQueryable CreateQuery(Expression expression)
     {
         ArgumentNullException.ThrowIfNull(expression);
@@ -26,6 +32,9 @@ public sealed class SqlServerQueryProvider(
         )!;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
     {
         ArgumentNullException.ThrowIfNull(expression);
@@ -71,6 +80,9 @@ public sealed class SqlServerQueryProvider(
         );
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public TResult Execute<TResult>(Expression expression)
     {
         ArgumentNullException.ThrowIfNull(expression);

@@ -13,5 +13,8 @@ internal static class SqlKeywords
             "CASE","WHEN","THEN","ELSE","END"
         };
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static bool IsKeyword(string text) => _keywords.Contains(text);
 }

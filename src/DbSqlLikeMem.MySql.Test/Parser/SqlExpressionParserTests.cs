@@ -1,5 +1,8 @@
 namespace DbSqlLikeMem.MySql.Test.Parser;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class SqlExpressionParserTests(
     ITestOutputHelper helper
     ) : XUnitTestBase(helper)
@@ -12,7 +15,13 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de ParseWhere_ShouldNotThrow_ForSupportedRealWorldExpressions.
     /// </summary>
     [Theory]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [MemberDataByMySqlVersion(nameof(WhereExpressions_Supported))]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void ParseWhere_ShouldNotThrow_ForSupportedRealWorldExpressions(string whereExpr, int version)
     {
         Console.WriteLine("Where: @\"" + whereExpr + "\"");
@@ -22,6 +31,9 @@ public sealed class SqlExpressionParserTests(
     }
 
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static IEnumerable<object[]> WhereExpressions_Supported()
     {
         yield return new object[] { "Id = 1" };
@@ -84,7 +96,13 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de ParseWhere_ShouldThrow_ForUnsupportedExpressions.
     /// </summary>
     [Theory]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [MemberDataByMySqlVersion(nameof(WhereExpressions_Unsupported))]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void ParseWhere_ShouldThrow_ForUnsupportedExpressions(string whereExpr, int version)
     {
         Console.WriteLine("Where: @\"" + whereExpr + "\"");
@@ -92,6 +110,9 @@ public sealed class SqlExpressionParserTests(
         Assert.ThrowsAny<InvalidOperationException>(() => SqlExpressionParser.ParseWhere(whereExpr, new MySqlDialect(version)));
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static IEnumerable<object[]> WhereExpressions_Unsupported()
     {
         yield return new object[] { "(a,b) in @rows" };
@@ -114,7 +135,13 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Precedence_OR_ShouldBindLooserThan_AND.
     /// </summary>
     [Theory]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [MemberDataMySqlVersion]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Precedence_OR_ShouldBindLooserThan_AND(int version)
     {
         // id = 1 OR id = 2 AND name = 'Bob'
@@ -142,7 +169,13 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Parentheses_ShouldOverridePrecedence.
     /// </summary>
     [Theory]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [MemberDataMySqlVersion]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Parentheses_ShouldOverridePrecedence(int version)
     {
         // (id = 1 OR id = 2) AND email IS NULL
@@ -163,7 +196,13 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Not_ShouldWork.
     /// </summary>
     [Theory]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [MemberDataMySqlVersion]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Not_ShouldWork(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("NOT (id = 1 OR id = 2)", new MySqlDialect(version));
@@ -180,7 +219,13 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de IsNotNull_ShouldProduce_IsNullExpr_Negated.
     /// </summary>
     [Theory]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [MemberDataMySqlVersion]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void IsNotNull_ShouldProduce_IsNullExpr_Negated(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("email IS NOT NULL", new MySqlDialect(version));
@@ -193,7 +238,13 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de In_ShouldParse_List.
     /// </summary>
     [Theory]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [MemberDataMySqlVersion]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void In_ShouldParse_List(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("u.id IN (1,2,3)", new MySqlDialect(version));
@@ -206,7 +257,13 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Like_ShouldParse.
     /// </summary>
     [Theory]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [MemberDataMySqlVersion]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Like_ShouldParse(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("name LIKE '%oh%'", new MySqlDialect(version));
@@ -219,7 +276,13 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Identifier_WithAliasDotColumn_ShouldParse.
     /// </summary>
     [Theory]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [MemberDataMySqlVersion]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Identifier_WithAliasDotColumn_ShouldParse(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("u.id = o.userId", new MySqlDialect(version));
@@ -241,7 +304,13 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Parameter_Tokens_ShouldParse.
     /// </summary>
     [Theory]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [MemberDataMySqlVersion]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Parameter_Tokens_ShouldParse(int version)
     {
         var d = new MySqlDialect(version);
@@ -255,7 +324,13 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Backtick_Identifier_ShouldParse.
     /// </summary>
     [Theory]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [MemberDataMySqlVersion]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Backtick_Identifier_ShouldParse(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("`DeletedDtt` IS NULL", new MySqlDialect(version));
@@ -269,7 +344,13 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de DoubleQuoted_String_ShouldParse.
     /// </summary>
     [Theory]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [MemberDataMySqlVersion]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void DoubleQuoted_String_ShouldParse(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("name = \"John\"", new MySqlDialect(version));
@@ -283,7 +364,13 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Printer_ShouldBeStable_ForSimpleExpression.
     /// </summary>
     [Theory]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [MemberDataMySqlVersion]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Printer_ShouldBeStable_ForSimpleExpression(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("a = 1 AND b = 2", new MySqlDialect(version));

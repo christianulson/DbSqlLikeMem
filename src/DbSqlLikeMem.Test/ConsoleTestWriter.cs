@@ -11,6 +11,9 @@ public class ConsoleTestWriter(
     ITestOutputHelper helper
     ) : StringWriter
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void WriteLine(string? value)
     {
         try

@@ -3,6 +3,9 @@ using Xunit.Abstractions;
 
 namespace DbSqlLikeMem.Test;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public abstract class XUnitTestBase : IDisposable
 {
     /// <summary>
@@ -98,6 +101,9 @@ public abstract class XUnitTestBase : IDisposable
         Dispose(disposing: false);
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Dispose()
     {
         // Não altere este código. Coloque o código de limpeza no método 'Dispose(bool disposing)'

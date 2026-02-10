@@ -1,8 +1,14 @@
 namespace DbSqlLikeMem.MySql;
 
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public static class MySqlAstQueryExecutorRegister
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static void Register()
     {
         if (!AstQueryExecutorFactory.Executors.ContainsKey(MySqlDialect.DialectName))

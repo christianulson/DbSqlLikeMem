@@ -6,12 +6,18 @@ internal sealed class SqlTokenizer
     private readonly ISqlDialect _dialect;
     private int _pos;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public SqlTokenizer(string sql, ISqlDialect dialect)
     {
         _sql = sql ?? throw new ArgumentNullException(nameof(sql));
         _dialect = dialect;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public IReadOnlyList<SqlToken> Tokenize()
     {
         var tokens = new List<SqlToken>();

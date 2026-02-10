@@ -1,8 +1,14 @@
 
 namespace DbSqlLikeMem;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public static class DbTestHelpers
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static List<Dictionary<string, object?>> QueryRows<T>(
         this T cnn,
         string sql)
@@ -24,6 +30,9 @@ public static class DbTestHelpers
         return rows;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static void ExecNonQuery<T>(
         this T cnn,
         string sql)

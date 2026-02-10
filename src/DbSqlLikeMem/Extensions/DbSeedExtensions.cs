@@ -1,7 +1,13 @@
 namespace DbSqlLikeMem;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public static class DbSeedExtensions
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static DbConnectionMockBase Define(
         this DbConnectionMockBase cnn,
         string tableName,
@@ -16,6 +22,9 @@ public static class DbSeedExtensions
         return cnn;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static ITableMock DefineTable(
         this DbConnectionMockBase cnn,
         string tableName,
@@ -30,6 +39,9 @@ public static class DbSeedExtensions
         return tb;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static DbConnectionMockBase Column<T>(
         this DbConnectionMockBase cnn,
         string tableName,
@@ -78,6 +90,9 @@ public static class DbSeedExtensions
         return cnn;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static ITableMock Column<T>(
         this ITableMock tb,
         string column,
@@ -126,6 +141,9 @@ public static class DbSeedExtensions
         return tb;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static DbConnectionMockBase Seed<T>(
         this DbConnectionMockBase cnn,
         string tableName,
@@ -151,6 +169,9 @@ public static class DbSeedExtensions
         return cnn;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static DbConnectionMockBase Seed(
         this DbConnectionMockBase cnn,
         string tableName,
@@ -188,6 +209,9 @@ public static class DbSeedExtensions
     };
 
     // --------------------------- ÍNDICE -------------------------------
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static ITableMock Index(this ITableMock tb,
         string name,
         string[] keyCols,

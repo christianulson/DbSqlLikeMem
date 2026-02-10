@@ -2,6 +2,9 @@ namespace DbSqlLikeMem.SqlServer;
 
 internal static class SqlServerDbVersions
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static IEnumerable<int> Versions()
     {
         yield return 7;

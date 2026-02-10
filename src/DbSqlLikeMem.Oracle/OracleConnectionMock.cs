@@ -10,6 +10,9 @@ namespace DbSqlLikeMem.Oracle;
 public class OracleConnectionMock
     : DbConnectionMockBase
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public OracleConnectionMock(
        OracleDbMock? db = null,
        string? defaultDatabase = null

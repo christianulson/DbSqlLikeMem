@@ -1,7 +1,13 @@
 namespace DbSqlLikeMem;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public static class DbTypeParser
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static object? Parse(this DbType dbType, string? value)
     {
         // 1️⃣ null, vazio ou "null" textual => null

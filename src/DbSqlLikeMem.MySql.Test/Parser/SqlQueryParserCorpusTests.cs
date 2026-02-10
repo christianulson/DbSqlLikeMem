@@ -12,6 +12,9 @@ public enum SqlCaseExpectation
     ThrowNotSupported
 }
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class SqlQueryParserCorpusTests(
     ITestOutputHelper helper
 ) : XUnitTestBase(helper)
@@ -20,6 +23,9 @@ public sealed class SqlQueryParserCorpusTests(
     private static object[] Case(string sql, string why, SqlCaseExpectation expectation, int minVersion = 0)
         => [sql, why, expectation, minVersion];
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static IEnumerable<object[]> Statements()
     {
         // Válidas (ParseOk)
@@ -71,6 +77,9 @@ public sealed class SqlQueryParserCorpusTests(
     // ✅ QUERIES VÁLIDAS (devem parsear)
     // Cada item: (sql, o que está validando)
     // -----------------------------------------------------------------
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static IEnumerable<object[]> SelectStatements()
     {
         // Básico / case-insensitive
@@ -500,6 +509,9 @@ WHERE dt.total >= 10;
     // ❌ QUERIES INVÁLIDAS (parecem SELECT/WITH mas devem falhar)
     // Cada item: (sql, motivo)
     // -----------------------------------------------------------------
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static IEnumerable<object[]> InvalidSelectStatements()
     {
         yield return new object[] { "SELECT EXISTS", "invalid: EXISTS requires subquery, e.g. EXISTS(SELECT 1)" };
@@ -571,6 +583,9 @@ select id
     // -----------------------------------------------------------------
     // ❌ NÃO-SELECT (continua como você já tinha)
     // -----------------------------------------------------------------
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static IEnumerable<object[]> NonSelectStatements()
     {
         yield return new object[] { "INSERT INTO `User`" };
@@ -609,7 +624,13 @@ select id
     /// PT: Testa o comportamento de Parse_ShouldHandle_MultiStatementStrings_BySplitting.
     /// </summary>
     [Theory]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [MemberDataMySqlVersion]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Parse_ShouldHandle_MultiStatementStrings_BySplitting(int version)
     {
         var d = new MySqlDialect(version);
@@ -632,7 +653,13 @@ select id
     /// PT: Testa o comportamento de Parse_Corpus.
     /// </summary>
     [Theory]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [MemberDataByMySqlVersion(nameof(Statements))]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Parse_Corpus(string sql, string why, SqlCaseExpectation expectation, int minVersion, int version)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sql);

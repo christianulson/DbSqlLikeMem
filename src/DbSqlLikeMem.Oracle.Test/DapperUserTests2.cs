@@ -1,18 +1,45 @@
 namespace DbSqlLikeMem.Oracle.Test;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class DapperUserTests2(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     private sealed class User
     {
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public int Id { get; set; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public required string Name { get; set; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public string? Email { get; set; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public DateTime CreatedDate { get; set; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public DateTime? UpdatedData { get; set; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public Guid TestGuid { get; set; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public Guid? TestGuidNull { get; set; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public List<int> Tenants { get; set; } = [];
     }
 
@@ -21,6 +48,9 @@ public sealed class DapperUserTests2(
     /// PT: Testa o comportamento de QueryUserShouldReturnCorrectData.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void QueryUserShouldReturnCorrectData()
     {
         // Arrange
@@ -77,6 +107,9 @@ public sealed class DapperUserTests2(
     /// PT: Testa o comportamento de QueryMultipleShouldReturnMultipleUserResultSets.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void QueryMultipleShouldReturnMultipleUserResultSets()
     {
         // Arrange
@@ -140,6 +173,9 @@ public sealed class DapperUserTests2(
     /// PT: Testa o comportamento de QueryWithJoinShouldReturnJoinedData.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void QueryWithJoinShouldReturnJoinedData()
     {
         // Arrange

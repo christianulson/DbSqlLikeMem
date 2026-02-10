@@ -19,6 +19,9 @@ internal readonly record struct SqlQuotePair(char Begin, char End);
 /// </summary>
 internal interface ISqlDialect
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public int Version { get; }
     string Name { get; }
 
@@ -86,6 +89,9 @@ internal abstract class SqlDialectBase : ISqlDialect
     private readonly HashSet<string> _keywords;
     private readonly Dictionary<string, SqlBinaryOp> _binOps;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     protected SqlDialectBase(
         string name,
         int version,
@@ -108,14 +114,35 @@ internal abstract class SqlDialectBase : ISqlDialect
             .ThenBy(s => s, StringComparer.Ordinal)];
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public string Name { get; }
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public int Version { get; }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool AllowsBacktickIdentifiers => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool AllowsDoubleQuoteIdentifiers => true;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool AllowsBracketIdentifiers => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.double_quote;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual IReadOnlyList<SqlQuotePair> IdentifierQuotes
     {
         get
@@ -130,6 +157,9 @@ internal abstract class SqlDialectBase : ISqlDialect
         }
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual IReadOnlyList<SqlQuotePair> StringQuotes
     {
         get
@@ -141,6 +171,9 @@ internal abstract class SqlDialectBase : ISqlDialect
         }
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool TryGetIdentifierQuote(char begin, out SqlQuotePair pair)
     {
         foreach (var p in IdentifierQuotes)
@@ -151,6 +184,9 @@ internal abstract class SqlDialectBase : ISqlDialect
         return false;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool TryGetStringQuote(char begin, out SqlQuotePair pair)
     {
         foreach (var p in StringQuotes)
@@ -161,33 +197,96 @@ internal abstract class SqlDialectBase : ISqlDialect
         return false;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool IsStringQuote(char ch) => ch == '\'';
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.doubled_quote;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool SupportsDollarQuotedStrings => false;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool IsParameterPrefix(char ch) => ch is '@' or ':' or '?';
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool IsKeyword(string text)
         => SqlKeywords.IsKeyword(text) || _keywords.Contains(text);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public IReadOnlyList<string> Operators { get; }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool SupportsHashLineComment => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool SupportsLimitOffset => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool SupportsFetchFirst => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool SupportsTop => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool SupportsOnDuplicateKeyUpdate => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool SupportsReturning => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool SupportsMerge => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool SupportsOffsetFetch => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool SupportsDeleteWithoutFrom => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool SupportsDeleteTargetAlias => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool SupportsWithCte => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool SupportsNullSafeEq => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool SupportsJsonArrowOperators => false;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool AllowsHashIdentifiers => false;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual TemporaryTableScope GetTemporaryTableScope(string tableName, string? schemaName)
     {
         _ = schemaName;
@@ -195,6 +294,9 @@ internal abstract class SqlDialectBase : ISqlDialect
         return TemporaryTableScope.None;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public bool TryMapBinaryOperator(string token, out SqlBinaryOp op)
         => _binOps.TryGetValue(token, out op);
 }

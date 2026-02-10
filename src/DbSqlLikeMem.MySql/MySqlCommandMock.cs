@@ -15,10 +15,22 @@ public class MySqlCommandMock(
 {
     private bool disposedValue;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [AllowNull]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override string CommandText { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override int CommandTimeout { get; set; }
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override CommandType CommandType { get; set; } = CommandType.Text;
     /// <summary>
     /// EN: Gets or sets the associated connection.
@@ -47,9 +59,18 @@ public class MySqlCommandMock(
         set => transaction = value as MySqlTransactionMock;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override UpdateRowSource UpdatedRowSource { get; set; }
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool DesignTimeVisible { get; set; }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void Cancel() => DbTransaction?.Rollback();
 
     /// <summary>
@@ -60,6 +81,9 @@ public class MySqlCommandMock(
     protected override DbParameter CreateDbParameter()
         => new MySqlParameter();
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override int ExecuteNonQuery()
     {
         ArgumentNullException.ThrowIfNull(connection);
@@ -201,6 +225,9 @@ public class MySqlCommandMock(
         return new MySqlDataReaderMock(tables);
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override object ExecuteScalar()
     {
         using var reader = ExecuteReader();
@@ -211,6 +238,9 @@ public class MySqlCommandMock(
         return DBNull.Value;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void Prepare() { }
 
     /// <summary>

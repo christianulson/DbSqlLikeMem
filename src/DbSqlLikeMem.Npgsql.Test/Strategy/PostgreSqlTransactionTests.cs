@@ -1,4 +1,7 @@
 namespace DbSqlLikeMem.Npgsql.Test.Strategy;
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class PostgreSqlTransactionTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
@@ -8,6 +11,9 @@ public sealed class PostgreSqlTransactionTests(
     /// PT: Testa o comportamento de TransactionShouldCommit.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void TransactionShouldCommit()
     {
         // Arrange
@@ -42,6 +48,9 @@ public sealed class PostgreSqlTransactionTests(
     /// PT: Testa o comportamento de TransactionShouldRollback.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void TransactionShouldRollback()
     {
         // Arrange

@@ -2,6 +2,9 @@ namespace DbSqlLikeMem;
 
 internal static class SqlStringExtencions
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static string NormalizeString(this string str)
     {
         var s = str.Replace("\n", " ", StringComparison.Ordinal)
@@ -12,6 +15,9 @@ internal static class SqlStringExtencions
         return s.Trim();
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static string NormalizeName(this string name)
     {
         name = name.Trim();
