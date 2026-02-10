@@ -10,6 +10,9 @@ internal sealed class SqlExpressionParser(
     private readonly ISqlDialect _dialect = dialect ?? throw new ArgumentNullException(nameof(dialect));
     private int _i;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static SqlExpr ParseWhere(
         string whereSql,
         ISqlDialect dialect)
@@ -22,6 +25,9 @@ internal sealed class SqlExpressionParser(
         return expr;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static SqlExpr ParseScalar(string sql, ISqlDialect dialect)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sql);
@@ -35,6 +41,9 @@ internal sealed class SqlExpressionParser(
     }
 
     // Pratt: parse com binding power
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public SqlExpr ParseExpression(int minBp)
     {
         var left = ParsePrefix();

@@ -12,12 +12,18 @@ internal class MySqlTableMock(
         ) : TableMock(tableName, schema, columns, rows)
 {
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override string? CurrentColumn
     {
         get { return MySqlValueHelper.CurrentColumn; }
         set { MySqlValueHelper.CurrentColumn = value; }
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override object? Resolve(
         string token,
         DbType dbType,
@@ -29,18 +35,33 @@ internal class MySqlTableMock(
         return exp;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override Exception UnknownColumn(string columnName)
         => MySqlExceptionFactory.UnknownColumn(columnName);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override Exception DuplicateKey(string tbl, string key, object? val)
         => MySqlExceptionFactory.DuplicateKey(tbl, key, val);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override Exception ColumnCannotBeNull(string col)
         => MySqlExceptionFactory.ColumnCannotBeNull(col);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override Exception ForeignKeyFails(string col, string refTbl)
         => MySqlExceptionFactory.ForeignKeyFails(col, refTbl);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override Exception ReferencedRow(string tbl)
         => MySqlExceptionFactory.ReferencedRow(tbl);
 }

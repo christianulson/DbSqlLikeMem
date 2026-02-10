@@ -1,5 +1,8 @@
 namespace DbSqlLikeMem.Npgsql.Test.TemporaryTable;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class PostgreSqlTemporaryTableParserTests
 {
     /// <summary>
@@ -7,7 +10,13 @@ public sealed class PostgreSqlTemporaryTableParserTests
     /// PT: Testa o comportamento de ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect.
     /// </summary>
     [Theory]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [MemberDataNpgsqlVersion]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect(int version)
     {
         const string sql = @"
@@ -29,6 +38,9 @@ SELECT * FROM tmp_users;
         Assert.Equal("tmp_users", select2.Table!.Name, ignoreCase: true);
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static IEnumerable<object[]> CreateTempTableStatements()
     {
         yield return new object[]
@@ -58,7 +70,13 @@ WHERE tenantid = 10",
     /// PT: Testa o comportamento de Parse_ShouldAccept_CreateTemporaryTable_Variants.
     /// </summary>
     [Theory]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [MemberDataByNpgsqlVersion(nameof(CreateTempTableStatements))]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Parse_ShouldAccept_CreateTemporaryTable_Variants(string sql, int version)
     {
         // TDD contract: these statements must parse without throwing.
@@ -68,8 +86,17 @@ WHERE tenantid = 10",
         Assert.Contains("TEMPORARY", q.RawSql, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [Theory]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [MemberDataNpgsqlVersion]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Parse_ShouldTreat_PgTempSchema_AsTemporary(int version)
     {
         var dialect = new NpgsqlDialect(version);

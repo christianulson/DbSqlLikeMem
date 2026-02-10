@@ -4,6 +4,9 @@ using System.Reflection;
 
 namespace DbSqlLikeMem.MySql;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class MySqlQueryProvider(
     MySqlConnectionMock cnn
     ) : IQueryProvider
@@ -11,6 +14,9 @@ public sealed class MySqlQueryProvider(
     private readonly MySqlConnectionMock _cnn = cnn ?? throw new ArgumentNullException(nameof(cnn));
     private readonly MySqlTranslator _translator = new();
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public IQueryable CreateQuery(Expression expression)
     {
         ArgumentNullException.ThrowIfNull(expression);
@@ -26,6 +32,9 @@ public sealed class MySqlQueryProvider(
         )!;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
     {
         ArgumentNullException.ThrowIfNull(expression);
@@ -71,6 +80,9 @@ public sealed class MySqlQueryProvider(
         );
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public TResult Execute<TResult>(Expression expression)
     {
         ArgumentNullException.ThrowIfNull(expression);

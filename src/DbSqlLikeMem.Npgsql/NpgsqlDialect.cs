@@ -35,25 +35,70 @@ internal sealed class NpgsqlDialect : SqlDialectBase
 
     internal const int WithCteMinVersion = 8;
     internal const int MergeMinVersion = 15;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool AllowsDoubleQuoteIdentifiers => true;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.double_quote;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool IsStringQuote(char ch) => ch == '\'';
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.doubled_quote;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsDollarQuotedStrings => true;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsLimitOffset => true;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsFetchFirst => true;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsOffsetFetch => true;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsReturning => true;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsDeleteWithoutFrom => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsDeleteTargetAlias => true;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsJsonArrowOperators => true;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override TemporaryTableScope GetTemporaryTableScope(string tableName, string? schemaName)
     {
         _ = tableName;

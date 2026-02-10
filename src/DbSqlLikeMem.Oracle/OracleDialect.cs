@@ -33,21 +33,57 @@ internal sealed class OracleDialect : SqlDialectBase
     internal const int MergeMinVersion = 9;
     internal const int OffsetFetchMinVersion = 12;
     internal const int FetchFirstMinVersion = 12;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool AllowsBracketIdentifiers => true;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool AllowsDoubleQuoteIdentifiers => true;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.bracket;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool IsStringQuote(char ch) => ch == '\'';
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.doubled_quote;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsTop => true;
 
     // OFFSET ... FETCH / FETCH FIRST entrou no Oracle 12c.
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsOffsetFetch => Version >= OffsetFetchMinVersion;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsFetchFirst => Version >= FetchFirstMinVersion;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsDeleteWithoutFrom => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsDeleteTargetAlias => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
 }

@@ -19,9 +19,15 @@ public class MySqlTransactionMock(
     /// </summary>
     protected override DbConnection? DbConnection => cnn;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override IsolationLevel IsolationLevel
         => isolationLevel ?? IsolationLevel.Unspecified;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void Commit()
     {
         lock (cnn.Db.SyncRoot)
@@ -31,6 +37,9 @@ public class MySqlTransactionMock(
         }
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void Rollback()
     {
         lock (cnn.Db.SyncRoot)

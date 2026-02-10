@@ -1,8 +1,14 @@
 namespace DbSqlLikeMem;
 internal abstract record SqlQueryBase
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public string RawSql { get; init; } = "";
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public SqlTableSource? Table { get; init; }
 }
 
@@ -24,7 +30,13 @@ internal sealed record SqlInsertQuery : SqlQueryBase
     internal IReadOnlyList<List<string>> ValuesRaw { get; init; } = [];      // tokens raw por valor (ou expressão raw)
     internal IReadOnlyList<List<SqlExpr?>> ValuesExpr { get; init; } = [];   // best-effort parsed values (aligned with ValuesRaw)
     internal bool HasOnDuplicateKeyUpdate { get; init; }
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public IReadOnlyList<(string Col, string ExprRaw)> OnDupAssigns { get; init; } = [];
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public IReadOnlyList<SqlAssignment> OnDupAssignsParsed { get; init; } = [];
     internal SqlSelectQuery? InsertSelect { get; init; }               // INSERT INTO t (...) SELECT ...
 }

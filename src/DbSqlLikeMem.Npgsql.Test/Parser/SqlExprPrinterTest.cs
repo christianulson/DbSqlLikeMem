@@ -1,4 +1,7 @@
 namespace DbSqlLikeMem.Npgsql.Test.Parser;
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class SqlExprPrinterTest(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
@@ -8,7 +11,13 @@ public sealed class SqlExprPrinterTest(
     /// PT: Testa o comportamento de ExprPrinter_ShouldAllow_Roundtrip_Parse_Print_Parse.
     /// </summary>
     [Theory]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [MemberDataByNpgsqlVersion(nameof(Expressions))]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void ExprPrinter_ShouldAllow_Roundtrip_Parse_Print_Parse(string expr, int version)
     {
         var d = new NpgsqlDialect(version);
@@ -21,6 +30,9 @@ public sealed class SqlExprPrinterTest(
         Assert.Equal(SqlExprPrinter.Print(ast1), SqlExprPrinter.Print(ast2));
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static IEnumerable<object[]> Expressions()
     {
         yield return new object[] { "a = 1 AND b = 2 OR c = 3" };

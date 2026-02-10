@@ -10,12 +10,18 @@ namespace DbSqlLikeMem;
 /// </summary>
 internal static class AstQueryExecutorFactory
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static Dictionary<string, Func<
         DbConnectionMockBase,
         IDataParameterCollection,
         IAstQueryExecutor>> Executors { get; set; } = new Dictionary<string, Func<DbConnectionMockBase, IDataParameterCollection, IAstQueryExecutor>>(StringComparer.OrdinalIgnoreCase);
 
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static IAstQueryExecutor Create(
         ISqlDialect dialect,
         DbConnectionMockBase connection,
@@ -37,11 +43,17 @@ internal static class AstQueryExecutorFactory
     {
         private readonly string _dialectName = dialectName;
 
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public TableResultMock ExecuteSelect(SqlSelectQuery q)
             => throw new NotSupportedException(
                 $"AST executor não implementado para dialeto '{_dialectName}'. " +
                 "Implemente um executor e registre no AstQueryExecutorFactory.");
 
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public TableResultMock ExecuteUnion(
             IReadOnlyList<SqlSelectQuery> parts,
             IReadOnlyList<bool> allFlags,

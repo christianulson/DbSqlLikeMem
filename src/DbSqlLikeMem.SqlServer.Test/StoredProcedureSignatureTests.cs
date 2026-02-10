@@ -1,5 +1,8 @@
 namespace DbSqlLikeMem.SqlServer.Test;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class StoredProcedureSignatureTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
@@ -9,6 +12,9 @@ public sealed class StoredProcedureSignatureTests(
     /// PT: Testa o comportamento de StoredProcedure_ShouldValidateRequiredInAndOutParams.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void StoredProcedure_ShouldValidateRequiredInAndOutParams()
     {
         using var c = new SqlServerConnectionMock();
@@ -40,6 +46,9 @@ public sealed class StoredProcedureSignatureTests(
     /// PT: Testa o comportamento de StoredProcedure_ShouldThrowWhenMissingRequiredParam.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void StoredProcedure_ShouldThrowWhenMissingRequiredParam()
     {
         using var c = new SqlServerConnectionMock();
@@ -63,6 +72,9 @@ public sealed class StoredProcedureSignatureTests(
     /// PT: Testa o comportamento de CallStatement_ShouldValidateAgainstRegisteredProcedure.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void CallStatement_ShouldValidateAgainstRegisteredProcedure()
     {
         using var c = new SqlServerConnectionMock();

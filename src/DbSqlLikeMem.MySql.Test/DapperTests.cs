@@ -1,8 +1,14 @@
 namespace DbSqlLikeMem.MySql.Test;
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class DapperTests : XUnitTestBase
 {
     private readonly MySqlConnectionMock _connection;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public DapperTests(
         ITestOutputHelper helper
     ) : base(helper)
@@ -26,6 +32,9 @@ public sealed class DapperTests : XUnitTestBase
     /// PT: Testa o comportamento de TestSelectQuery.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void TestSelectQuery()
     {
         var users = _connection.Query<UserObjectTest>("SELECT * FROM Users").ToList();
@@ -37,6 +46,9 @@ public sealed class DapperTests : XUnitTestBase
     /// PT: Testa o comportamento de QueryShouldReturnCorrectData.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void QueryShouldReturnCorrectData()
     {
         // Arrange
@@ -74,6 +86,9 @@ public sealed class DapperTests : XUnitTestBase
     /// PT: Testa o comportamento de ExecuteShouldInsertData.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void ExecuteShouldInsertData()
     {
         // Arrange
@@ -104,6 +119,9 @@ public sealed class DapperTests : XUnitTestBase
     /// PT: Testa o comportamento de ExecuteShouldUpdateData.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void ExecuteShouldUpdateData()
     {
         // Arrange
@@ -147,6 +165,9 @@ UPDATE users
     /// PT: Testa o comportamento de ExecuteShouldDeleteData.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void ExecuteShouldDeleteData()
     {
         // Arrange
@@ -173,6 +194,9 @@ UPDATE users
     /// PT: Testa o comportamento de QueryMultipleShouldReturnMultipleResultSets.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void QueryMultipleShouldReturnMultipleResultSets()
     {
         var dt = DateTime.UtcNow;
@@ -251,11 +275,32 @@ UPDATE users
 /// </summary>
 public class UserObjectTest
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public int Id { get; set; }
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public string Name { get; set; } = default!;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public string Email { get; set; } = default!;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public DateTime CreatedDate { get; set; }
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public DateTime? UpdatedData { get; set; }
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public Guid TestGuid { get; set; }
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public Guid? TestGuidNull { get; set; }
 }

@@ -1,4 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test.Strategy;
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class OracleInsertStrategyTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
@@ -8,6 +11,9 @@ public sealed class OracleInsertStrategyTests(
     /// PT: Testa o comportamento de InsertIntoTableShouldAddNewRow.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void InsertIntoTableShouldAddNewRow()
     {
         // Arrange

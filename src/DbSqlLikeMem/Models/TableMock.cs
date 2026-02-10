@@ -185,6 +185,9 @@ public abstract class TableMock
         }));
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void CreateForeignKey(
         string col,
         string refTable,
@@ -541,6 +544,9 @@ public abstract class TableMock
         return w[..cut].Trim();
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public Dictionary<int, object?> RemoveAt(int idx)
     {
         var it = Items[idx];
@@ -548,6 +554,9 @@ public abstract class TableMock
         return it;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void UpdateRowColumn(
         int rowIdx,
         int colIdx,
@@ -590,8 +599,14 @@ public abstract class TableMock
     /// </summary>
     public abstract string? CurrentColumn { get; set; }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public int Count => Items.Count;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public IReadOnlyDictionary<int, object?> this[int index] => Items[index];
 
     /// <summary>
@@ -645,6 +660,9 @@ public abstract class TableMock
     /// <param name="tbl">EN: Referenced table. PT: Tabela referenciada.</param>
     public abstract Exception ReferencedRow(string tbl);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public IEnumerator<IReadOnlyDictionary<int, object?>> GetEnumerator()
         => Items.Select(_=> _.AsReadOnly()).ToList().AsReadOnly().GetEnumerator();
 

@@ -1,5 +1,8 @@
 namespace DbSqlLikeMem.MySql.Test;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class ExtendedMySqlMockTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
@@ -9,6 +12,9 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de InsertAutoIncrementShouldAssignIdentityWhenNotSpecified.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void InsertAutoIncrementShouldAssignIdentityWhenNotSpecified()
     {
         var db = new MySqlDbMock();
@@ -35,6 +41,9 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de InsertNullIntoNullableColumnShouldSucceed.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void InsertNullIntoNullableColumnShouldSucceed()
     {
         var db = new MySqlDbMock();
@@ -54,6 +63,9 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de InsertNullIntoNonNullableColumnShouldThrow.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void InsertNullIntoNonNullableColumnShouldThrow()
     {
         var db = new MySqlDbMock();
@@ -74,6 +86,9 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de CompositeIndexFilterShouldReturnCorrectRows.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void CompositeIndexFilterShouldReturnCorrectRows()
     {
         var db = new MySqlDbMock();
@@ -99,6 +114,9 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de LikeFilterShouldReturnMatchingRows.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void LikeFilterShouldReturnMatchingRows()
     {
         var db = new MySqlDbMock();
@@ -119,6 +137,9 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de InFilterShouldReturnMatchingRows.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void InFilterShouldReturnMatchingRows()
     {
         var db = new MySqlDbMock();
@@ -140,6 +161,9 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de OrderByLimitOffsetDistinctShouldReturnExpectedRows.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void OrderByLimitOffsetDistinctShouldReturnExpectedRows()
     {
         var db = new MySqlDbMock();
@@ -161,6 +185,9 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de HavingFilterShouldApplyAfterAggregation.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void HavingFilterShouldApplyAfterAggregation()
     {
         var db = new MySqlDbMock();
@@ -185,6 +212,9 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de ForeignKeyDeleteShouldThrowOnReferencedParentDeletion.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletion()
     {
         // Parent
@@ -212,6 +242,9 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK()
     {
         // Parent
@@ -238,6 +271,9 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de MultipleParameterSetsInsertShouldInsertAllRows.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void MultipleParameterSetsInsertShouldInsertAllRows()
     {
         var db = new MySqlDbMock();

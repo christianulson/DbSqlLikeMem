@@ -1,4 +1,7 @@
 namespace DbSqlLikeMem.Npgsql.Test.Strategy;
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class PostgreSqlInsertStrategyTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
@@ -8,6 +11,9 @@ public sealed class PostgreSqlInsertStrategyTests(
     /// PT: Testa o comportamento de InsertIntoTableShouldAddNewRow.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void InsertIntoTableShouldAddNewRow()
     {
         // Arrange

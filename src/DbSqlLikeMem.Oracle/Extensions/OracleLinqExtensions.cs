@@ -1,9 +1,18 @@
 namespace DbSqlLikeMem.Oracle;
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public static class OracleLinqExtensions
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static IQueryable<T> AsQueryable<T>(this OracleConnectionMock cnn)
         => cnn.AsQueryable<T>(typeof(T).Name);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static IQueryable<T> AsQueryable<T>(
         this OracleConnectionMock cnn,
         string tableName)

@@ -2,9 +2,15 @@ using System.Data.Common;
 
 namespace DbSqlLikeMem.MySql;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class MySqlConnectionMock
     : DbConnectionMockBase
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public MySqlConnectionMock(
        MySqlDbMock? db = null,
        string? defaultDatabase = null

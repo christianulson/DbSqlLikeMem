@@ -2,6 +2,9 @@ namespace DbSqlLikeMem;
 
 internal static class DbUpdateStrategy
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static int ExecuteUpdate(
         this DbConnectionMockBase connection,
         SqlUpdateQuery query,

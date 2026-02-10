@@ -16,6 +16,9 @@ internal class OracleTableMock(
         set { OracleValueHelper.CurrentColumn = value; }
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override object? Resolve(
         string token,
         DbType dbType,
@@ -27,18 +30,33 @@ internal class OracleTableMock(
         return exp;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override Exception UnknownColumn(string columnName)
         => OracleExceptionFactory.UnknownColumn(columnName);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override Exception DuplicateKey(string tbl, string key, object? val)
         => OracleExceptionFactory.DuplicateKey(tbl, key, val);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override Exception ColumnCannotBeNull(string col)
         => OracleExceptionFactory.ColumnCannotBeNull(col);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override Exception ForeignKeyFails(string col, string refTbl)
         => OracleExceptionFactory.ForeignKeyFails(col, refTbl);
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override Exception ReferencedRow(string tbl)
         => OracleExceptionFactory.ReferencedRow(tbl);
 }

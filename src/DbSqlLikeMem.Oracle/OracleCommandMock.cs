@@ -14,10 +14,22 @@ public class OracleCommandMock(
 {
     private bool disposedValue;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     [AllowNull]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override string CommandText { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override int CommandTimeout { get; set; }
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override CommandType CommandType { get; set; } = CommandType.Text;
 
     /// <summary>
@@ -47,9 +59,18 @@ public class OracleCommandMock(
         set => transaction = value as OracleTransactionMock;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override UpdateRowSource UpdatedRowSource { get; set; }
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool DesignTimeVisible { get; set; }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void Cancel() => DbTransaction?.Rollback();
 
     /// <summary>
@@ -61,6 +82,9 @@ public class OracleCommandMock(
         // Por enquanto reusa OracleParameter (OracleConnector) para não puxar pacote de SqlClient.
         => new OracleParameter();
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override int ExecuteNonQuery()
     {
         ArgumentNullException.ThrowIfNull(connection);
@@ -137,6 +161,9 @@ public class OracleCommandMock(
         return new OracleDataReaderMock(tables);
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override object ExecuteScalar()
     {
         using var reader = ExecuteReader();
@@ -145,6 +172,9 @@ public class OracleCommandMock(
         return DBNull.Value;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void Prepare() { }
 
     /// <summary>

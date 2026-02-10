@@ -9,6 +9,9 @@ namespace DbSqlLikeMem.MySql;
 /// Suporta .Where, .Select (projeção simples), .OrderBy/.ThenBy, .Skip, .Take e .Count.
 /// </summary>
 #pragma warning disable CA1305 // Specify IFormatProvider
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public class MySqlTranslator : ExpressionVisitor
 {
     private StringBuilder _sb = new();
@@ -20,6 +23,9 @@ public class MySqlTranslator : ExpressionVisitor
     private int? _offset;
     private int? _limit;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public TranslationResult Translate(Expression expression)
     {
         _sb.Clear();

@@ -2,6 +2,9 @@ using System.Reflection;
 
 namespace DbSqlLikeMem.Oracle.Test.Query;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class QueryExecutorExtrasTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
@@ -25,6 +28,9 @@ public sealed class QueryExecutorExtrasTests(
     /// PT: Testa o comportamento de GroupByAndAggregationsShouldComputeCorrectly.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void GroupByAndAggregationsShouldComputeCorrectly()
     {
         // Arrange
@@ -62,6 +68,9 @@ GROUP BY grp";
     /// PT: Testa o comportamento de OrderByLimitOffsetShouldPageCorrectly.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void OrderByLimitOffsetShouldPageCorrectly()
     {
         // Arrange
@@ -111,6 +120,9 @@ public class SqlTranslatorTests
     /// PT: Testa o comportamento de TranslateBasicWhereAndOrderBySqlCorrect.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void TranslateBasicWhereAndOrderBySqlCorrect()
     {
         // Arrange
@@ -136,7 +148,13 @@ public class SqlTranslatorTests
 #pragma warning disable CA1812
     private sealed class Foo
     {
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public int X { get; set; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public string Y { get; set; } = string.Empty;
     }
 #pragma warning restore CA1812
