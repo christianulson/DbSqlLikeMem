@@ -1,7 +1,6 @@
 ﻿<Project>
 
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.0;net48;net6.0;net8.0;net10.0</TargetFrameworks>
 		<LangVersion>latest</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
@@ -14,6 +13,10 @@
 		<Version>0.1.0</Version>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 	</PropertyGroup>
+	<PropertyGroup Condition="!$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('.Test'))">
+		<TargetFrameworks>netstandard2.0;net48;net6.0;net8.0;net10.0</TargetFrameworks>
+	</PropertyGroup>
+
 
 
 	<ItemGroup>
