@@ -3,7 +3,8 @@ using System.Reflection;
 namespace DbSqlLikeMem.Oracle.Test.Query;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class QueryExecutorExtrasTests.
+/// PT: Define o(a) class QueryExecutorExtrasTests.
 /// </summary>
 public sealed class QueryExecutorExtrasTests(
         ITestOutputHelper helper
@@ -28,9 +29,6 @@ public sealed class QueryExecutorExtrasTests(
     /// PT: Testa o comportamento de GroupByAndAggregationsShouldComputeCorrectly.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void GroupByAndAggregationsShouldComputeCorrectly()
     {
         // Arrange
@@ -68,9 +66,6 @@ GROUP BY grp";
     /// PT: Testa o comportamento de OrderByLimitOffsetShouldPageCorrectly.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void OrderByLimitOffsetShouldPageCorrectly()
     {
         // Arrange
@@ -120,9 +115,6 @@ public class SqlTranslatorTests
     /// PT: Testa o comportamento de TranslateBasicWhereAndOrderBySqlCorrect.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void TranslateBasicWhereAndOrderBySqlCorrect()
     {
         // Arrange
@@ -149,11 +141,13 @@ public class SqlTranslatorTests
     private sealed class Foo
     {
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Provides details for X.
+        /// PT: Fornece detalhes de X.
         /// </summary>
         public int X { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Provides details for Y.
+        /// PT: Fornece detalhes de Y.
         /// </summary>
         public string Y { get; set; } = string.Empty;
     }

@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class OracleTransactionTests.
+/// PT: Define o(a) class OracleTransactionTests.
 /// </summary>
 public sealed class OracleTransactionTests(
         ITestOutputHelper helper
@@ -9,15 +10,18 @@ public sealed class OracleTransactionTests(
     private sealed class User
     {
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Provides details for Id.
+        /// PT: Fornece detalhes de Id.
         /// </summary>
         public int Id { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Provides details for Name.
+        /// PT: Fornece detalhes de Name.
         /// </summary>
         public required string Name { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Provides details for Email.
+        /// PT: Fornece detalhes de Email.
         /// </summary>
         public string? Email { get; set; }
     }
@@ -27,9 +31,6 @@ public sealed class OracleTransactionTests(
     /// PT: Testa o comportamento de TransactionCommitShouldPersistData.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void TransactionCommitShouldPersistData()
     {
         // Arrange
@@ -62,9 +63,6 @@ public sealed class OracleTransactionTests(
     /// PT: Testa o comportamento de TransactionRollbackShouldNotPersistData.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void TransactionRollbackShouldNotPersistData()
     {
         // Arrange

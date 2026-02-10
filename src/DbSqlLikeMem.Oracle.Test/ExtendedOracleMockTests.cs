@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class ExtendedMySqlMockTests.
+/// PT: Define o(a) class ExtendedMySqlMockTests.
 /// </summary>
 public sealed class ExtendedMySqlMockTests(
         ITestOutputHelper helper
@@ -12,9 +13,6 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de InsertAutoIncrementShouldAssignIdentityWhenNotSpecified.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void InsertAutoIncrementShouldAssignIdentityWhenNotSpecified()
     {
         var db = new OracleDbMock();
@@ -41,9 +39,6 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de InsertNullIntoNullableColumnShouldSucceed.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void InsertNullIntoNullableColumnShouldSucceed()
     {
         var db = new OracleDbMock();
@@ -63,9 +58,6 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de InsertNullIntoNonNullableColumnShouldThrow.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void InsertNullIntoNonNullableColumnShouldThrow()
     {
         var db = new OracleDbMock();
@@ -86,9 +78,6 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de CompositeIndexFilterShouldReturnCorrectRows.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void CompositeIndexFilterShouldReturnCorrectRows()
     {
         var db = new OracleDbMock();
@@ -114,9 +103,6 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de LikeFilterShouldReturnMatchingRows.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void LikeFilterShouldReturnMatchingRows()
     {
         var db = new OracleDbMock();
@@ -137,9 +123,6 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de InFilterShouldReturnMatchingRows.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void InFilterShouldReturnMatchingRows()
     {
         var db = new OracleDbMock();
@@ -161,9 +144,6 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de OrderByLimitOffsetDistinctShouldReturnExpectedRows.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void OrderByLimitOffsetDistinctShouldReturnExpectedRows()
     {
         var db = new OracleDbMock();
@@ -185,9 +165,6 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de HavingFilterShouldApplyAfterAggregation.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void HavingFilterShouldApplyAfterAggregation()
     {
         var db = new OracleDbMock();
@@ -212,9 +189,6 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de ForeignKeyDeleteShouldThrowOnReferencedParentDeletion.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletion()
     {
         // Parent
@@ -242,9 +216,6 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK()
     {
         // Parent
@@ -271,9 +242,6 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de MultipleParameterSetsInsertShouldInsertAllRows.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void MultipleParameterSetsInsertShouldInsertAllRows()
     {
         var db = new OracleDbMock();

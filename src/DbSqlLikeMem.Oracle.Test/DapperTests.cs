@@ -1,13 +1,15 @@
 namespace DbSqlLikeMem.Oracle.Test;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class DapperTests.
+/// PT: Define o(a) class DapperTests.
 /// </summary>
 public sealed class DapperTests : XUnitTestBase
 {
     private readonly OracleConnectionMock _connection;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Initializes a new instance of DapperTests.
+    /// PT: Inicializa uma nova instância de DapperTests.
     /// </summary>
     public DapperTests(
         ITestOutputHelper helper
@@ -32,9 +34,6 @@ public sealed class DapperTests : XUnitTestBase
     /// PT: Testa o comportamento de TestSelectQuery.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void TestSelectQuery()
     {
         var users = _connection.Query<UserObjectTest>("SELECT * FROM Users").ToList();
@@ -46,9 +45,6 @@ public sealed class DapperTests : XUnitTestBase
     /// PT: Testa o comportamento de QueryShouldReturnCorrectData.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void QueryShouldReturnCorrectData()
     {
         // Arrange
@@ -86,9 +82,6 @@ public sealed class DapperTests : XUnitTestBase
     /// PT: Testa o comportamento de ExecuteShouldInsertData.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ExecuteShouldInsertData()
     {
         // Arrange
@@ -119,9 +112,6 @@ public sealed class DapperTests : XUnitTestBase
     /// PT: Testa o comportamento de ExecuteShouldUpdateData.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ExecuteShouldUpdateData()
     {
         // Arrange
@@ -165,9 +155,6 @@ UPDATE users
     /// PT: Testa o comportamento de ExecuteShouldDeleteData.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ExecuteShouldDeleteData()
     {
         // Arrange
@@ -194,9 +181,6 @@ UPDATE users
     /// PT: Testa o comportamento de QueryMultipleShouldReturnMultipleResultSets.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void QueryMultipleShouldReturnMultipleResultSets()
     {
         var dt = DateTime.UtcNow;
@@ -276,31 +260,38 @@ UPDATE users
 public class UserObjectTest
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides details for Id.
+    /// PT: Fornece detalhes de Id.
     /// </summary>
     public int Id { get; set; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides details for Name.
+    /// PT: Fornece detalhes de Name.
     /// </summary>
     public string Name { get; set; } = default!;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides details for Email.
+    /// PT: Fornece detalhes de Email.
     /// </summary>
     public string Email { get; set; } = default!;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides details for CreatedDate.
+    /// PT: Fornece detalhes de CreatedDate.
     /// </summary>
     public DateTime CreatedDate { get; set; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides details for UpdatedData.
+    /// PT: Fornece detalhes de UpdatedData.
     /// </summary>
     public DateTime? UpdatedData { get; set; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides details for TestGuid.
+    /// PT: Fornece detalhes de TestGuid.
     /// </summary>
     public Guid TestGuid { get; set; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides details for TestGuidNull.
+    /// PT: Fornece detalhes de TestGuidNull.
     /// </summary>
     public Guid? TestGuidNull { get; set; }
 }

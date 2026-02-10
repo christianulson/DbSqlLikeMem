@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Oracle.Test.Strategy;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class OracleInsertStrategyCoverageTests.
+/// PT: Define o(a) class OracleInsertStrategyCoverageTests.
 /// </summary>
 public sealed class OracleInsertStrategyCoverageTests(
         ITestOutputHelper helper
@@ -12,9 +13,6 @@ public sealed class OracleInsertStrategyCoverageTests(
     /// PT: Testa o comportamento de Insert_MultiRowValues_ShouldInsertAllRows.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Insert_MultiRowValues_ShouldInsertAllRows()
     {
         var db = new OracleDbMock();
@@ -43,9 +41,6 @@ public sealed class OracleInsertStrategyCoverageTests(
     /// PT: Testa o comportamento de Insert_WithIdentityColumnOmitted_ShouldAutoIncrement.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Insert_WithIdentityColumnOmitted_ShouldAutoIncrement()
     {
         var db = new OracleDbMock();
@@ -76,9 +71,6 @@ public sealed class OracleInsertStrategyCoverageTests(
     /// PT: Testa o comportamento de InsertSelect_ShouldInsertRowsFromSelect.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void InsertSelect_ShouldInsertRowsFromSelect()
     {
         var db = new OracleDbMock();

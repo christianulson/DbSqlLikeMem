@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class DapperUserTests.
+/// PT: Define o(a) class DapperUserTests.
 /// </summary>
 public sealed class DapperUserTests(
         ITestOutputHelper helper
@@ -9,31 +10,38 @@ public sealed class DapperUserTests(
     private sealed class User
     {
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Provides details for Id.
+        /// PT: Fornece detalhes de Id.
         /// </summary>
         public int Id { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Provides details for Name.
+        /// PT: Fornece detalhes de Name.
         /// </summary>
         public required string Name { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Provides details for Email.
+        /// PT: Fornece detalhes de Email.
         /// </summary>
         public string? Email { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Provides details for CreatedDate.
+        /// PT: Fornece detalhes de CreatedDate.
         /// </summary>
         public DateTime CreatedDate { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Provides details for UpdatedData.
+        /// PT: Fornece detalhes de UpdatedData.
         /// </summary>
         public DateTime? UpdatedData { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Provides details for TestGuid.
+        /// PT: Fornece detalhes de TestGuid.
         /// </summary>
         public Guid TestGuid { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Provides details for TestGuidNull.
+        /// PT: Fornece detalhes de TestGuidNull.
         /// </summary>
         public Guid? TestGuidNull { get; set; }
     }
@@ -43,9 +51,6 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de InsertUserShouldAddUserToTable.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void InsertUserShouldAddUserToTable()
     {
         // Arrange
@@ -94,9 +99,6 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de QueryUserShouldReturnCorrectData.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void QueryUserShouldReturnCorrectData()
     {
         // Arrange
@@ -153,9 +155,6 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de UpdateUserShouldModifyUserInTable.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void UpdateUserShouldModifyUserInTable()
     {
         // Arrange
@@ -226,9 +225,6 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de DeleteUserShouldRemoveUserFromTable.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void DeleteUserShouldRemoveUserFromTable()
     {
         // Arrange
@@ -280,9 +276,6 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de QueryMultipleShouldReturnMultipleUserResultSets.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void QueryMultipleShouldReturnMultipleUserResultSets()
     {
         // Arrange

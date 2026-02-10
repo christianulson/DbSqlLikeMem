@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Oracle.Test.Strategy;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class OracleMergeUpsertTests.
+/// PT: Define o(a) class OracleMergeUpsertTests.
 /// </summary>
 public sealed class OracleMergeUpsertTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
@@ -10,9 +11,6 @@ public sealed class OracleMergeUpsertTests(ITestOutputHelper helper) : XUnitTest
     /// PT: Testa o comportamento de Merge_ShouldInsert_WhenNotMatched.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Merge_ShouldInsert_WhenNotMatched()
     {
         var db = new OracleDbMock();
@@ -43,9 +41,6 @@ WHEN NOT MATCHED THEN
     /// PT: Testa o comportamento de Merge_ShouldUpdate_WhenMatched.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Merge_ShouldUpdate_WhenMatched()
     {
         var db = new OracleDbMock();

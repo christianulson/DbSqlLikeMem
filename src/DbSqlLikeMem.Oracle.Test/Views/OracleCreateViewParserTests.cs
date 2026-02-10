@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Oracle.Test.Views;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class OracleCreateViewParserTests.
+/// PT: Define o(a) class OracleCreateViewParserTests.
 /// </summary>
 public sealed class OracleCreateViewParserTests(
     ITestOutputHelper helper
@@ -12,13 +13,7 @@ public sealed class OracleCreateViewParserTests(
     /// PT: Testa o comportamento de ParseMulti_CreateView_ThenSelect_ShouldReturnTwoStatements.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ParseMulti_CreateView_ThenSelect_ShouldReturnTwoStatements(int version)
     {
         const string sql = @"
@@ -45,13 +40,7 @@ SELECT * FROM v_users;
     /// PT: Testa o comportamento de Parse_CreateOrReplaceView_ShouldSetFlag.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Parse_CreateOrReplaceView_ShouldSetFlag(int version)
     {
         const string sql = "CREATE OR REPLACE VIEW v AS SELECT id FROM users;";
@@ -66,13 +55,7 @@ SELECT * FROM v_users;
     /// PT: Testa o comportamento de Parse_CreateView_WithExplicitColumnList_ShouldCaptureNames.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Parse_CreateView_WithExplicitColumnList_ShouldCaptureNames(int version)
     {
         const string sql = "CREATE VIEW v (a,b) AS SELECT id, name FROM users;";
@@ -86,13 +69,7 @@ SELECT * FROM v_users;
     /// PT: Testa o comportamento de Parse_CreateView_WithBackticks_ShouldWork.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Parse_CreateView_WithBackticks_ShouldWork(int version)
     {
         const string sql = "CREATE VIEW v AS SELECT id FROM users;";
@@ -106,13 +83,7 @@ SELECT * FROM v_users;
     /// PT: Testa o comportamento de Parse_CreateView_IfNotExists_ShouldBeRejected_ByMySqlSpec.
     /// </summary>
     [Theory(Skip = "MySQL não suporta IF NOT EXISTS em CREATE VIEW. O mock aceita por conveniência; habilite se quiser comportamento estrito.")]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Parse_CreateView_IfNotExists_ShouldBeRejected_ByMySqlSpec(int version)
     {
         const string sql = "CREATE VIEW IF NOT EXISTS v AS SELECT 1;";

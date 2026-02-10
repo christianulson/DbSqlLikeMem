@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class CsvLoaderAndIndexTests.
+/// PT: Define o(a) class CsvLoaderAndIndexTests.
 /// </summary>
 public sealed class CsvLoaderAndIndexTests(
     ITestOutputHelper helper

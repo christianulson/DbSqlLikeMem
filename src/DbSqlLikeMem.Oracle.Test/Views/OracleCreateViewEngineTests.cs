@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Oracle.Test.Views;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class OracleCreateViewEngineTests.
+/// PT: Define o(a) class OracleCreateViewEngineTests.
 /// </summary>
 public sealed class OracleCreateViewEngineTests : XUnitTestBase
 {
@@ -10,7 +11,8 @@ public sealed class OracleCreateViewEngineTests : XUnitTestBase
     private readonly ITableMock _orders;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Initializes a new instance of OracleCreateViewEngineTests.
+    /// PT: Inicializa uma nova instância de OracleCreateViewEngineTests.
     /// </summary>
     public OracleCreateViewEngineTests(ITestOutputHelper helper): base(helper)
     {
@@ -39,9 +41,6 @@ public sealed class OracleCreateViewEngineTests : XUnitTestBase
     /// PT: Testa o comportamento de CreateView_ThenSelectFromView_ShouldReturnExpectedRows.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void CreateView_ThenSelectFromView_ShouldReturnExpectedRows()
     {
         _cnn.ExecNonQuery(@"
@@ -59,9 +58,6 @@ SELECT id, name FROM users WHERE tenantid = 10;
     /// PT: Testa o comportamento de View_IsNotMaterialized_ShouldReflectBaseTableChanges.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void View_IsNotMaterialized_ShouldReflectBaseTableChanges()
     {
         _cnn.ExecNonQuery("CREATE VIEW v_all AS SELECT id FROM users ORDER BY id;");
@@ -78,9 +74,6 @@ SELECT id, name FROM users WHERE tenantid = 10;
     /// PT: Testa o comportamento de CreateOrReplaceView_ShouldChangeDefinition.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void CreateOrReplaceView_ShouldChangeDefinition()
     {
         _cnn.ExecNonQuery("CREATE VIEW v AS SELECT id FROM users WHERE tenantid = 10;");
@@ -97,9 +90,6 @@ SELECT id, name FROM users WHERE tenantid = 10;
     /// PT: Testa o comportamento de View_NameShouldShadowTable_WhenSameName.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void View_NameShouldShadowTable_WhenSameName()
     {
         // cria uma tabela física chamada vshadow, com dados diferentes
@@ -120,9 +110,6 @@ SELECT id, name FROM users WHERE tenantid = 10;
     /// PT: Testa o comportamento de View_CanReferenceAnotherView.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void View_CanReferenceAnotherView()
     {
         _cnn.ExecNonQuery("CREATE VIEW v1 AS SELECT id FROM users WHERE tenantid = 10;");
@@ -137,9 +124,6 @@ SELECT id, name FROM users WHERE tenantid = 10;
     /// PT: Testa o comportamento de View_WithJoinAndAggregation_ShouldWork.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void View_WithJoinAndAggregation_ShouldWork()
     {
         _cnn.ExecNonQuery(@"
@@ -164,9 +148,6 @@ GROUP BY u.id;
     /// PT: Testa o comportamento de CreateView_ExistingNameWithoutOrReplace_ShouldThrow.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void CreateView_ExistingNameWithoutOrReplace_ShouldThrow()
     {
         _cnn.ExecNonQuery("CREATE VIEW vdup AS SELECT 1 AS x FROM DUAL;");
@@ -178,9 +159,6 @@ GROUP BY u.id;
     /// PT: Testa o comportamento de DropView_ShouldRemoveDefinition.
     /// </summary>
     [Fact(Skip = "MySQL: DROP VIEW faz parte do ciclo de vida. Implementar depois.")]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void DropView_ShouldRemoveDefinition()
     {
         _cnn.ExecNonQuery("CREATE VIEW vdrop AS SELECT id FROM users;");

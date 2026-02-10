@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class OracleLinqProviderTest.
+/// PT: Define o(a) class OracleLinqProviderTest.
 /// </summary>
 public sealed class OracleLinqProviderTest
 {
@@ -8,11 +9,13 @@ public sealed class OracleLinqProviderTest
     private sealed class User
     {
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Provides details for Id.
+        /// PT: Fornece detalhes de Id.
         /// </summary>
         public int Id { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Provides details for Name.
+        /// PT: Fornece detalhes de Name.
         /// </summary>
         public string Name { get; set; } = "";
     }
@@ -23,9 +26,6 @@ public sealed class OracleLinqProviderTest
     /// PT: Testa o comportamento de LinqProvider_ShouldQueryWhereAndReturnRows.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void LinqProvider_ShouldQueryWhereAndReturnRows()
     {
         var db = new OracleDbMock();

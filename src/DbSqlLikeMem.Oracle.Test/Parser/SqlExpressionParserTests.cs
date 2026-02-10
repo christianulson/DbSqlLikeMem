@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Oracle.Test.Parser;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlExpressionParserTests.
+/// PT: Define o(a) class SqlExpressionParserTests.
 /// </summary>
 public sealed class SqlExpressionParserTests(
     ITestOutputHelper helper
@@ -15,13 +16,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de ParseWhere_ShouldNotThrow_ForSupportedRealWorldExpressions.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataByOracleVersion(nameof(WhereExpressions_Supported))]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ParseWhere_ShouldNotThrow_ForSupportedRealWorldExpressions(string whereExpr, int version)
     {
         Console.WriteLine("Where: @\"" + whereExpr + "\"");
@@ -31,7 +26,8 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Describes the behavior validated by WhereExpressions_Supported.
+    /// PT: Descreve o comportamento validado por WhereExpressions_Supported.
     /// </summary>
     public static IEnumerable<object[]> WhereExpressions_Supported()
     {
@@ -95,13 +91,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de ParseWhere_ShouldThrow_ForUnsupportedExpressions.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataByOracleVersion(nameof(WhereExpressions_Unsupported))]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ParseWhere_ShouldThrow_ForUnsupportedExpressions(string whereExpr, int version)
     {
         Console.WriteLine("Where: @\"" + whereExpr + "\"");
@@ -110,7 +100,8 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Describes the behavior validated by WhereExpressions_Unsupported.
+    /// PT: Descreve o comportamento validado por WhereExpressions_Unsupported.
     /// </summary>
     public static IEnumerable<object[]> WhereExpressions_Unsupported()
     {
@@ -134,13 +125,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Precedence_OR_ShouldBindLooserThan_AND.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Precedence_OR_ShouldBindLooserThan_AND(int version)
     {
         // id = 1 OR id = 2 AND name = 'Bob'
@@ -168,13 +153,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Parentheses_ShouldOverridePrecedence.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Parentheses_ShouldOverridePrecedence(int version)
     {
         // (id = 1 OR id = 2) AND email IS NULL
@@ -195,13 +174,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Not_ShouldWork.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Not_ShouldWork(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("NOT (id = 1 OR id = 2)", new OracleDialect(version));
@@ -218,13 +191,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de IsNotNull_ShouldProduce_IsNullExpr_Negated.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void IsNotNull_ShouldProduce_IsNullExpr_Negated(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("email IS NOT NULL", new OracleDialect(version));
@@ -237,13 +204,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de In_ShouldParse_List.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void In_ShouldParse_List(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("u.id IN (1,2,3)", new OracleDialect(version));
@@ -256,13 +217,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Like_ShouldParse.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Like_ShouldParse(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("name LIKE '%oh%'", new OracleDialect(version));
@@ -275,13 +230,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Identifier_WithAliasDotColumn_ShouldParse.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Identifier_WithAliasDotColumn_ShouldParse(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("u.id = o.userId", new OracleDialect(version));
@@ -303,13 +252,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Parameter_Tokens_ShouldParse.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Parameter_Tokens_ShouldParse(int version)
     {
         var d = new OracleDialect(version);
@@ -323,13 +266,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de DoubleQuoted_Identifier_ShouldParse.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void DoubleQuoted_Identifier_ShouldParse(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("\"DeletedDtt\" IS NULL", new OracleDialect(version));
@@ -343,13 +280,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de SingleQuoted_String_ShouldParse.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void SingleQuoted_String_ShouldParse(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("name = 'John'", new OracleDialect(version));
@@ -363,13 +294,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de DoubleQuoted_Token_IsIdentifier_NotString.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void DoubleQuoted_Token_IsIdentifier_NotString(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("name = \"John\"", new OracleDialect(version));
@@ -382,13 +307,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Printer_ShouldBeStable_ForSimpleExpression.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Printer_ShouldBeStable_ForSimpleExpression(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("a = 1 AND b = 2", new OracleDialect(version));

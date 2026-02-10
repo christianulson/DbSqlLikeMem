@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class FluentTest.
+/// PT: Define o(a) class FluentTest.
 /// </summary>
 public sealed class FluentTest(
         ITestOutputHelper helper
@@ -30,9 +31,6 @@ public sealed class FluentTest(
     /// PT: Testa o comportamento de InsertUpdateDeleteFluentScenario.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void InsertUpdateDeleteFluentScenario()
     {
         using var cnn = BuildConnection();
@@ -76,9 +74,6 @@ public sealed class FluentTest(
     /// PT: Testa o comportamento de TestFluent.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void TestFluent()
     {
         using var cnn = new OracleConnectionMock();

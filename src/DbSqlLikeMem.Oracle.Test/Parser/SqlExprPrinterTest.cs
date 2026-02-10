@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test.Parser;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlExprPrinterTest.
+/// PT: Define o(a) class SqlExprPrinterTest.
 /// </summary>
 public sealed class SqlExprPrinterTest(
         ITestOutputHelper helper
@@ -11,13 +12,7 @@ public sealed class SqlExprPrinterTest(
     /// PT: Testa o comportamento de ExprPrinter_ShouldAllow_Roundtrip_Parse_Print_Parse.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataByOracleVersion(nameof(Expressions))]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ExprPrinter_ShouldAllow_Roundtrip_Parse_Print_Parse(string expr, int version)
     {
         var d = new OracleDialect(version);
@@ -31,7 +26,8 @@ public sealed class SqlExprPrinterTest(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Describes the behavior validated by Expressions.
+    /// PT: Descreve o comportamento validado por Expressions.
     /// </summary>
     public static IEnumerable<object[]> Expressions()
     {

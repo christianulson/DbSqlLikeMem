@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Oracle.Test.TemporaryTable;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class OracleTemporaryTableParserTests.
+/// PT: Define o(a) class OracleTemporaryTableParserTests.
 /// </summary>
 public sealed class OracleTemporaryTableParserTests
 {
@@ -10,13 +11,7 @@ public sealed class OracleTemporaryTableParserTests
     /// PT: Testa o comportamento de ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect(int version)
     {
         const string sql = @"
@@ -39,7 +34,8 @@ SELECT * FROM tmp_users;
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Describes the behavior validated by CreateTempTableStatements.
+    /// PT: Descreve o comportamento validado por CreateTempTableStatements.
     /// </summary>
     public static IEnumerable<object[]> CreateTempTableStatements()
     {
@@ -70,13 +66,7 @@ WHERE tenantid = 10",
     /// PT: Testa o comportamento de Parse_ShouldAccept_CreateTemporaryTable_Variants.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataByOracleVersion(nameof(CreateTempTableStatements))]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Parse_ShouldAccept_CreateTemporaryTable_Variants(string sql, int version)
     {
         // TDD contract: these statements must parse without throwing.
@@ -87,16 +77,11 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Describes the behavior validated by Parse_ShouldAccept_GlobalTemporaryTable.
+    /// PT: Descreve o comportamento validado por Parse_ShouldAccept_GlobalTemporaryTable.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Parse_ShouldAccept_GlobalTemporaryTable(int version)
     {
         var dialect = new OracleDialect(version);
