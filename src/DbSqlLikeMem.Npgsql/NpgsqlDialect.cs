@@ -48,7 +48,7 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     public override bool SupportsReturning => true;
 
     public override bool SupportsDeleteWithoutFrom => false;
-    public override bool SupportsDeleteTargetAlias => false;
+    public override bool SupportsDeleteTargetAlias => true;
 
     public override bool SupportsJsonArrowOperators => true;
     public override bool SupportsWithCte => Version >= WithCteMinVersion;

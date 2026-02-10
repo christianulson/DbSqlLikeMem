@@ -85,6 +85,9 @@ public class SqlServerCommandMock(
             SqlInsertQuery insertQ => connection.ExecuteInsert(insertQ, Parameters, connection.Db.Dialect),
             SqlUpdateQuery updateQ => connection.ExecuteUpdateSmart(updateQ, Parameters, connection.Db.Dialect),
             SqlDeleteQuery deleteQ => connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect),
+            SqlCreateTemporaryTableQuery tempQ => connection.ExecuteCreateTemporaryTableAsSelect(tempQ, Parameters, connection.Db.Dialect),
+            SqlCreateViewQuery viewQ => connection.ExecuteCreateView(viewQ, Parameters, connection.Db.Dialect),
+            SqlMergeQuery mergeQ => connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect),
             SqlSelectQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT."),
             _ => throw new NotSupportedException($"Tipo de query não suportado em ExecuteNonQuery: {query.GetType().Name}")
         };
@@ -126,12 +129,40 @@ public class SqlServerCommandMock(
         }
 
         var queries = SqlQueryParser.ParseMulti(sql, connection.Db.Dialect).ToList();
-        var selectQueries = queries.OfType<SqlSelectQuery>().ToList();
+        var tables = new List<TableResultMock>();
 
-        if (selectQueries.Count == 0 && queries.Count > 0)
+        foreach (var query in queries)
+        {
+            switch (query)
+            {
+                case SqlSelectQuery selectQ:
+                    tables.Add(executor.ExecuteSelect(selectQ));
+                    break;
+                case SqlInsertQuery insertQ:
+                    connection.ExecuteInsert(insertQ, Parameters, connection.Db.Dialect);
+                    break;
+                case SqlUpdateQuery updateQ:
+                    connection.ExecuteUpdateSmart(updateQ, Parameters, connection.Db.Dialect);
+                    break;
+                case SqlDeleteQuery deleteQ:
+                    connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect);
+                    break;
+                case SqlCreateTemporaryTableQuery tempQ:
+                    connection.ExecuteCreateTemporaryTableAsSelect(tempQ, Parameters, connection.Db.Dialect);
+                    break;
+                case SqlCreateViewQuery viewQ:
+                    connection.ExecuteCreateView(viewQ, Parameters, connection.Db.Dialect);
+                    break;
+                case SqlMergeQuery mergeQ:
+                    connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect);
+                    break;
+                default:
+                    throw new NotSupportedException($"Tipo de query não suportado em ExecuteReader: {query.GetType().Name}");
+            }
+        }
+
+        if (tables.Count == 0 && queries.Count > 0)
             throw new InvalidOperationException("ExecuteReader foi chamado, mas nenhuma query SELECT foi encontrada.");
-
-        var tables = selectQueries.ConvertAll(executor.ExecuteSelect);
         connection.Metrics.Selects += tables.Sum(t => t.Count);
 
         return new SqlServerDataReaderMock(tables);
