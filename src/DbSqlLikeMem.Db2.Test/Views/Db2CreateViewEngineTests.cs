@@ -157,7 +157,7 @@ GROUP BY u.id;
     /// EN: Tests DropView_ShouldRemoveDefinition behavior.
     /// PT: Testa o comportamento de DropView_ShouldRemoveDefinition.
     /// </summary>
-    [Fact(Skip = "DB2: DROP VIEW faz parte do ciclo de vida. Implementar depois.")]
+    [Fact]
     public void DropView_ShouldRemoveDefinition()
     {
         _cnn.ExecNonQuery("CREATE VIEW vdrop AS SELECT id FROM users;");

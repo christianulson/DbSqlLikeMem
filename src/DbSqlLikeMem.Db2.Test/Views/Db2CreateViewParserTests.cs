@@ -81,7 +81,7 @@ SELECT * FROM v_users;
     /// EN: Tests Parse_CreateView_IfNotExists_ShouldBeRejected_ByDb2Spec behavior.
     /// PT: Testa o comportamento de Parse_CreateView_IfNotExists_ShouldBeRejected_ByDb2Spec.
     /// </summary>
-    [Theory(Skip = "DB2 não suporta IF NOT EXISTS em CREATE VIEW. O mock aceita por conveniência; habilite se quiser comportamento estrito.")]
+    [Theory]
     [MemberDataDb2Version]
     public void Parse_CreateView_IfNotExists_ShouldBeRejected_ByDb2Spec(int version)
     {

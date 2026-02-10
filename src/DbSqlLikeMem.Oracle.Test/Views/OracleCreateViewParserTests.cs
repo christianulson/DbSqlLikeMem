@@ -82,7 +82,7 @@ SELECT * FROM v_users;
     /// EN: Tests Parse_CreateView_IfNotExists_ShouldBeRejected_ByMySqlSpec behavior.
     /// PT: Testa o comportamento de Parse_CreateView_IfNotExists_ShouldBeRejected_ByMySqlSpec.
     /// </summary>
-    [Theory(Skip = "MySQL não suporta IF NOT EXISTS em CREATE VIEW. O mock aceita por conveniência; habilite se quiser comportamento estrito.")]
+    [Theory]
     [MemberDataOracleVersion]
     public void Parse_CreateView_IfNotExists_ShouldBeRejected_ByMySqlSpec(int version)
     {

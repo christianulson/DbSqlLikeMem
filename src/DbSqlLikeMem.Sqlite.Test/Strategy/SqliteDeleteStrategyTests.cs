@@ -94,7 +94,7 @@ public sealed class SqliteCommandDeleteTests(
     /// EN: Tests ExecuteNonQuery_DELETE_sql_invalido_sem_FROM_dispara behavior.
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_sql_invalido_sem_FROM_dispara.
     /// </summary>
-    [Fact(Skip = "Isso é valido no Sqlite")]
+    [Fact]
     public void ExecuteNonQuery_DELETE_sql_invalido_sem_FROM_dispara()
     {
         var db = new SqliteDbMock();
