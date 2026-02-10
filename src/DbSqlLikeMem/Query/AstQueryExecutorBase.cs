@@ -960,7 +960,7 @@ internal abstract class AstQueryExecutorBase(
         if (before.Length == 0) return false;
 
         // Evita pegar alias em "t2." (ex: "t2.*" já falha pelo regex acima)
-        if (before.EndsWith('.')) return false;
+        if (before.EndsWith(".")) return false;
 
         expr = before;
         alias = a;
