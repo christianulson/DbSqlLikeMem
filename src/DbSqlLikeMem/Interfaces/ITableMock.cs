@@ -120,8 +120,20 @@ public interface ITableMock
     void Add(Dictionary<int, object?> value);
 
 
+    /// <summary>
+    /// Removes the element at the specified index and returns a dictionary containing the removed item.
+    /// </summary>
+    /// <param name="idx">The zero-based index of the element to remove. Must be within the valid range of the collection.</param>
+    /// <returns>A dictionary containing the removed element, where the key is the index and the value is the element. If the
+    /// index is invalid, the dictionary will be empty.</returns>
     Dictionary<int, object?> RemoveAt(int idx);
 
+    /// <summary>
+    /// Updates the value of a specific cell in the table at the given row and column indices.
+    /// </summary>
+    /// <param name="rowIdx">The zero-based index of the row containing the cell to update. Must be within the valid range of rows.</param>
+    /// <param name="colIdx">The zero-based index of the column containing the cell to update. Must be within the valid range of columns.</param>
+    /// <param name="value">The new value to assign to the specified cell. Can be null to clear the cell's contents.</param>
     void UpdateRowColumn(
         int rowIdx,
         int colIdx,

@@ -1,9 +1,26 @@
+using System.Diagnostics;
+
 namespace DbSqlLikeMem.Npgsql.Test.Performance;
 
+/// <summary>
+/// Provides performance tests for PostgreSQL CRUD operations using mock database components. Designed to measure and
+/// report baseline metrics for insert, read, update, and delete operations within a controlled test environment.
+/// </summary>
+/// <remarks>This class is intended for use with xUnit test frameworks and leverages mock implementations of
+/// Npgsql database objects to simulate PostgreSQL interactions. The tests focus on evaluating operation throughput and
+/// latency, and are categorized under performance testing. Results are output to the test log for analysis. Thread
+/// safety and parallel execution are not guaranteed; each test instance manages its own mock connection.</remarks>
 public sealed class PostgreSqlPerformanceTests : XUnitTestBase
 {
     private readonly NpgsqlConnectionMock _connection;
 
+    /// <summary>
+    /// Initializes a new instance of the PostgreSqlPerformanceTests class using the specified test output helper.
+    /// </summary>
+    /// <remarks>This constructor sets up an in-memory mock PostgreSQL database with a 'Users' table and opens
+    /// a mock connection for use in performance tests. The database schema is predefined to facilitate consistent test
+    /// scenarios.</remarks>
+    /// <param name="helper">The test output helper used to capture and display test output during execution. Cannot be null.</param>
     public PostgreSqlPerformanceTests(ITestOutputHelper helper) : base(helper)
     {
         var db = new NpgsqlDbMock();
@@ -18,6 +35,13 @@ public sealed class PostgreSqlPerformanceTests : XUnitTestBase
         _connection.Open();
     }
 
+    /// <summary>
+    /// Verifies that baseline performance metrics for CRUD operations on the Users table are reported correctly.
+    /// </summary>
+    /// <remarks>This test measures the execution time and throughput of insert, read, update, and delete
+    /// operations using a mock PostgreSQL command. The results are output to the console for each operation. The test
+    /// ensures that all inserted rows are deleted at the end, confirming data integrity. This method is categorized as
+    /// a performance test and is intended to provide a reference for CRUD operation benchmarks.</remarks>
     [Fact]
     [Trait("Category", "Performance")]
     public void Should_report_crud_baseline_metrics()
@@ -89,6 +113,12 @@ public sealed class PostgreSqlPerformanceTests : XUnitTestBase
         return operationCount / (elapsedMs / 1000d);
     }
 
+    /// <summary>
+    /// Releases the unmanaged resources used by the object and optionally releases the managed resources.
+    /// </summary>
+    /// <remarks>This method should be called when the object is no longer needed to ensure that all resources
+    /// are properly released. Overrides Dispose to release additional resources held by the derived class.</remarks>
+    /// <param name="disposing">true to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
     protected override void Dispose(bool disposing)
     {
         _connection.Dispose();

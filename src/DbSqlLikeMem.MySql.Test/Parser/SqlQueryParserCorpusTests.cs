@@ -7,8 +7,19 @@ namespace DbSqlLikeMem.MySql.Test.Parser;
 /// </summary>
 public enum SqlCaseExpectation
 {
+    /// <summary>
+    /// Gets a value indicating whether the parsing operation completed successfully.
+    /// </summary>
     ParseOk,
+
+    /// <summary>
+    /// Provides helper methods for throwing exceptions in response to invalid conditions.
+    /// </summary>
     ThrowInvalid,
+
+    /// <summary>
+    /// Indicates whether an exception should be thrown when an unsupported operation is attempted.
+    /// </summary>
     ThrowNotSupported
 }
 

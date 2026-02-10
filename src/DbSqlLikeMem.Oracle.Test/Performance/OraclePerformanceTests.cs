@@ -1,9 +1,26 @@
+using System.Diagnostics;
+
 namespace DbSqlLikeMem.Oracle.Test.Performance;
 
+/// <summary>
+/// Provides performance tests for Oracle database CRUD operations using mock implementations. This class measures and
+/// reports baseline metrics for insert, read, update, and delete operations within a controlled test environment.
+/// </summary>
+/// <remarks>Use this class to evaluate the relative performance of Oracle database operations in unit tests. The
+/// tests are executed against mock database and connection objects, allowing for repeatable and isolated performance
+/// measurements without requiring a live Oracle instance. Results are output to the test log for analysis. This class
+/// is intended for internal testing scenarios and is not thread-safe.</remarks>
 public sealed class OraclePerformanceTests : XUnitTestBase
 {
     private readonly OracleConnectionMock _connection;
 
+    /// <summary>
+    /// Initializes a new instance of the OraclePerformanceTests class using the specified test output helper.
+    /// </summary>
+    /// <remarks>This constructor sets up a mock Oracle database and opens a connection for use in performance
+    /// testing scenarios. The database schema includes a 'Users' table with sample columns, allowing tests to interact
+    /// with a realistic mock environment.</remarks>
+    /// <param name="helper">The test output helper used to capture and display test output during execution.</param>
     public OraclePerformanceTests(ITestOutputHelper helper) : base(helper)
     {
         var db = new OracleDbMock();
@@ -18,6 +35,14 @@ public sealed class OraclePerformanceTests : XUnitTestBase
         _connection.Open();
     }
 
+    /// <summary>
+    /// Verifies that baseline performance metrics for CRUD operations on the Users table are reported and meet expected
+    /// criteria using an Oracle database mock.
+    /// </summary>
+    /// <remarks>This test measures the execution time for insert, read, update, and delete operations on a
+    /// sample dataset, outputting performance statistics to the console. It asserts that all operations complete
+    /// successfully and that the Users table is empty after deletions. Use this test to monitor and validate the
+    /// performance characteristics of basic database operations in the Oracle mock environment.</remarks>
     [Fact]
     [Trait("Category", "Performance")]
     public void Should_report_crud_baseline_metrics()
@@ -89,6 +114,13 @@ public sealed class OraclePerformanceTests : XUnitTestBase
         return operationCount / (elapsedMs / 1000d);
     }
 
+    /// <summary>
+    /// Releases the unmanaged resources used by the object and optionally releases the managed resources.
+    /// </summary>
+    /// <remarks>This method is called by both the public Dispose() method and the finalizer. When disposing
+    /// is true, managed resources such as connections are released. Override this method to release additional
+    /// resources as needed.</remarks>
+    /// <param name="disposing">true to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
     protected override void Dispose(bool disposing)
     {
         _connection.Dispose();

@@ -7,8 +7,22 @@ namespace DbSqlLikeMem.SqlServer.Test.Parser;
 /// </summary>
 public enum SqlCaseExpectation
 {
+    /// <summary>
+    /// Gets a value indicating whether the parsing operation completed successfully.
+    /// </summary>
     ParseOk,
+
+    /// <summary>
+    /// Represents an exception that is thrown when an invalid operation is detected.
+    /// </summary>
     ThrowInvalid,
+
+    /// <summary>
+    /// Throws a NotSupportedException to indicate that the requested operation is not supported.
+    /// </summary>
+    /// <remarks>Use this method to signal that a particular operation is not implemented or is intentionally
+    /// unsupported. This is typically used in method overrides or interface implementations where certain functionality
+    /// is not applicable.</remarks>
     ThrowNotSupported
 }
 
