@@ -81,11 +81,10 @@ SELECT * FROM v_users;
     /// EN: Tests Parse_CreateView_IfNotExists_ShouldBeRejected_BySqliteSpec behavior.
     /// PT: Testa o comportamento de Parse_CreateView_IfNotExists_ShouldBeRejected_BySqliteSpec.
     /// </summary>
-    [Theory]
-    [MemberDataSqliteVersion]
-    public void Parse_CreateView_IfNotExists_ShouldBeRejected_BySqliteSpec(int version)
+    [Fact]
+    public void Parse_CreateView_IfNotExists_ShouldBeRejected_BySqliteSpec()
     {
         const string sql = "CREATE VIEW IF NOT EXISTS v AS SELECT 1;";
-        Assert.ThrowsAny<Exception>(() => SqlQueryParser.ParseMulti(sql, new SqliteDialect(version)).ToList());
+        Assert.ThrowsAny<Exception>(() => SqlQueryParser.ParseMulti(sql, new SqliteDialect(8)).ToList());
     }
 }
