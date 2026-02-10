@@ -27,7 +27,7 @@ public class TableDictionary
     : base(StringComparer.OrdinalIgnoreCase)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(tables, nameof(tables));
-        foreach (var it in tables)
+        foreach (var it in tables!)
             Add(it.Key, it.Value);
     }
 }

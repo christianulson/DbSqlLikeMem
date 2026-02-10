@@ -1,6 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-
-namespace DbSqlLikeMem;
+﻿namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Base of an in-memory database with schemas, tables, and procedures.
@@ -99,7 +97,7 @@ public abstract class DbMock
     /// <returns>EN: True if the schema exists. PT: True se o schema existir.</returns>
     public bool TryGetValue(
         string key,
-        out ISchemaMock value
+        out ISchemaMock? value
     )
     {
         if (base.TryGetValue(key, out var v) && v != null)
@@ -178,7 +176,7 @@ public abstract class DbMock
         var sc = GetSchemaName(schemaName);
         if (!this.TryGetValue(sc, out var s))
             s = CreateSchema(sc);
-        return s.CreateTable(tableName, columns ?? new ColumnDictionary(), rows);
+        return s!.CreateTable(tableName, columns ?? new ColumnDictionary(), rows);
     }
 
     /// <summary>
@@ -257,11 +255,11 @@ public abstract class DbMock
         var sc = GetSchemaName(schemaName);
         var schema = (SchemaMock)this[sc];
 
-        if (schema.Views.ContainsKey(name))
+        if (schema.Views.ContainsKey(name!))
         {
             if (query.OrReplace)
             {
-                schema.Views[name] = query.Select;
+                schema.Views[name!] = query.Select;
                 return;
             }
 
@@ -273,7 +271,7 @@ public abstract class DbMock
             throw new InvalidOperationException($"View '{name}' already exists.");
         }
 
-        schema.Views[name] = query.Select;
+        schema.Views[name!] = query.Select;
     }
 
 

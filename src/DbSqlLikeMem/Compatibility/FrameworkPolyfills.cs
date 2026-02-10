@@ -12,30 +12,55 @@ namespace System.Runtime.CompilerServices
 
 namespace System.Runtime.CompilerServices
 {
+    /// <summary>
+    /// 
+    /// </summary>
     [AttributeUsage(AttributeTargets.All, Inherited = false)]
     public sealed class RequiredMemberAttribute : Attribute
     {
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Constructor | AttributeTargets.Method, Inherited = false)]
     public sealed class CompilerFeatureRequiredAttribute : Attribute
     {
+        /// <summary>
+        /// 
+        /// </summary>
         public CompilerFeatureRequiredAttribute(string featureName)
         {
             FeatureName = featureName;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         public string FeatureName { get; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         public bool IsOptional { get; init; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         public const string RefStructs = nameof(RefStructs);
+
+        /// <summary>
+        /// 
+        /// </summary>
         public const string RequiredMembers = nameof(RequiredMembers);
     }
 }
 
 namespace System.Diagnostics.CodeAnalysis
 {
+    /// <summary>
+    /// 
+    /// </summary>
     [AttributeUsage(AttributeTargets.Constructor, Inherited = false)]
     public sealed class SetsRequiredMembersAttribute : Attribute
     {
@@ -47,7 +72,9 @@ namespace System.Diagnostics.CodeAnalysis
 
 namespace System.Diagnostics.CodeAnalysis
 {
-
+    /// <summary>
+    /// 
+    /// </summary>
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Property, Inherited = false)]
     public sealed class AllowNullAttribute : Attribute
     {
@@ -59,14 +86,24 @@ namespace System.Diagnostics.CodeAnalysis
 
 namespace System.Diagnostics.CodeAnalysis
 {
+    /// <summary>
+    /// 
+    /// </summary>
     [AttributeUsage(AttributeTargets.Parameter, Inherited = false)]
     public sealed class MaybeNullWhenAttribute : Attribute
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="returnValue"></param>
         public MaybeNullWhenAttribute(bool returnValue)
         {
             ReturnValue = returnValue;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         public bool ReturnValue { get; }
     }
 }

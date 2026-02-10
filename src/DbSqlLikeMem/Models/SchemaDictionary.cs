@@ -26,7 +26,7 @@ public class SchemaDictionary
     : base(StringComparer.OrdinalIgnoreCase)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(schemas, nameof(schemas));
-        foreach (var it in schemas)
+        foreach (var it in schemas!)
             Add(it.Key, it.Value);
     }
 }

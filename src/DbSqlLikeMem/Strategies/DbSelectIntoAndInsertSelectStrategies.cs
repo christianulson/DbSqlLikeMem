@@ -51,7 +51,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         var viewName = query.Table?.Name;
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(viewName, nameof(viewName));
-        connection.DropView(viewName, query.IfExists, query.Table?.DbName);
+        connection.DropView(viewName!, query.IfExists, query.Table?.DbName);
         return 0;
     }
 
@@ -141,13 +141,13 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         var tempScope = query.Scope;
         if (tempScope == TemporaryTableScope.Global)
         {
-            if (connection.TryGetGlobalTemporaryTable(tableName, out _, schemaName))
+            if (connection.TryGetGlobalTemporaryTable(tableName!, out _, schemaName))
             {
                 if (query.IfNotExists) return 0;
                 throw new InvalidOperationException($"Table '{tableName}' already exists.");
             }
         }
-        else if (connection.TryGetTemporaryTable(tableName, out _, schemaName))
+        else if (connection.TryGetTemporaryTable(tableName!, out _, schemaName))
         {
             if (query.IfNotExists) return 0;
             throw new InvalidOperationException($"Table '{tableName}' already exists.");
@@ -157,8 +157,8 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         var res = executor.ExecuteSelect(query.AsSelect);
 
         var newTable = tempScope == TemporaryTableScope.Global
-            ? connection.Db.AddGlobalTemporaryTable(tableName, schemaName: schemaName)
-            : connection.AddTemporaryTable(tableName, schemaName: schemaName);
+            ? connection.Db.AddGlobalTemporaryTable(tableName!, schemaName: schemaName)
+            : connection.AddTemporaryTable(tableName!, schemaName: schemaName);
 
         // column names: prefer explicit list if provided; else use select result columns
         var names = (query.ColumnNames is { Count: > 0 })

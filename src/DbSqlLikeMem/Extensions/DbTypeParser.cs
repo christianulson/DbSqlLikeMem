@@ -12,7 +12,7 @@ public static class DbTypeParser
     {
         // 1️⃣ null, vazio ou "null" textual => null
         if (string.IsNullOrWhiteSpace(value) ||
-            value.Equals("null", StringComparison.OrdinalIgnoreCase))
+            value!.Equals("null", StringComparison.OrdinalIgnoreCase))
             return null;
 
         // remove aspas simples comuns em SQL literals

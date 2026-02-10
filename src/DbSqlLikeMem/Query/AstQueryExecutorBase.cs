@@ -1639,7 +1639,7 @@ internal abstract class AstQueryExecutorBase(
 
             try
             {
-                return TryReadJsonPathValue(json!, path);
+                return TryReadJsonPathValue(json!, path!);
             }
 #pragma warning disable CA1031
             catch (Exception e)
@@ -2033,7 +2033,7 @@ internal abstract class AstQueryExecutorBase(
             unit = eval?.ToString() ?? string.Empty;
         }
 
-        return unit.Trim().ToUpperInvariant();
+        return unit!.Trim().ToUpperInvariant();
     }
 
     private object? EvalCall(
@@ -2072,7 +2072,7 @@ internal abstract class AstQueryExecutorBase(
         if (string.IsNullOrWhiteSpace(raw))
             return null;
 
-        raw = raw.Trim();
+        raw = raw!.Trim();
         if (raw.Contains('\\'))
             raw = raw.Replace("\\", string.Empty);
 
@@ -2353,7 +2353,7 @@ internal abstract class AstQueryExecutorBase(
         Source? src = null;
 
         if (!string.IsNullOrWhiteSpace(qualifier))
-            return ResolveQualifiedColumn(qualifier, col, row, out src);
+            return ResolveQualifiedColumn(qualifier!, col, row, out src);
 
         // sem qualifier: tenta unqualified (você já expõe no AddFields)
         if (row.Fields.TryGetValue(col, out var v2))

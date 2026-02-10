@@ -405,7 +405,7 @@ public abstract class TableMock
         var w = whereRaw;
         if (string.IsNullOrWhiteSpace(w) && !string.IsNullOrWhiteSpace(rawSql))
         {
-            w = TryExtractWhereRaw(rawSql);
+            w = TryExtractWhereRaw(rawSql!);
         }
 
         return w;
@@ -416,7 +416,7 @@ public abstract class TableMock
         var list = new List<(string C, string Op, string V)>();
         if (string.IsNullOrWhiteSpace(w)) return list;
 
-        w = w.Trim();
+        w = w!.Trim();
         if (w.StartsWith("WHERE ", StringComparison.OrdinalIgnoreCase))
             w = w[6..].Trim();
 
@@ -472,7 +472,7 @@ public abstract class TableMock
                 && rhs.EndsWith(")"))
                 {
                     var inner = rhs[1..^1];
-                    var parts = inner.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    var parts = inner.Split(',')
                         .Select(_=>_.Trim())
                         .ToArray();
 
