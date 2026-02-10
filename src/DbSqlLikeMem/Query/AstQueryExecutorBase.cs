@@ -1664,6 +1664,30 @@ internal abstract class AstQueryExecutorBase(
             return s;
         }
 
+        if (fn.Name.Equals("TO_NUMBER", StringComparison.OrdinalIgnoreCase))
+        {
+            var v = EvalArg(0);
+            if (IsNullish(v)) return null;
+
+            if (v is byte or sbyte or short or ushort or int or uint or long or ulong)
+                return Convert.ToInt64(v, CultureInfo.InvariantCulture);
+
+            if (v is decimal or double or float)
+                return Convert.ToDecimal(v, CultureInfo.InvariantCulture);
+
+            var text = v.ToString();
+            if (string.IsNullOrWhiteSpace(text))
+                return null;
+
+            if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var li))
+                return li;
+
+            if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var dec))
+                return dec;
+
+            return null;
+        }
+
         // TRY_CAST(x AS TYPE) - similar ao CAST, mas retorna null em falha
         if (fn.Name.Equals("TRY_CAST", StringComparison.OrdinalIgnoreCase))
         {
