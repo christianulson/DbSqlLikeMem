@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<IsPackable>false</IsPackable>
 		<IsTestProject>false</IsTestProject>
-		<TargetFramework>netstandard2.0</TargetFramework>
+		<TargetFramework>netstandard2.1</TargetFramework>
 		<TargetFrameworks></TargetFrameworks>
 	</PropertyGroup>
 
@@ -17,21 +17,20 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\DbSqlLikeMem.Sqlite\DbSqlLikeMem.Sqlite.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Oracle\DbSqlLikeMem.Oracle.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.netstandard20.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<Using Include="Dapper" />
 		<Using Include="DbSqlLikeMem" />
-		<Using Include="DbSqlLikeMem.Sqlite" />
+		<Using Include="DbSqlLikeMem.Oracle" />
 		<Using Include="DbSqlLikeMem.Test" />
 		<Using Include="FluentAssertions" />
-		<Using Include="Microsoft.Data.Sqlite" />
+		<Using Include="Oracle.ManagedDataAccess.Client" />
 		<Using Include="System.Data" />
 		<Using Include="System.Globalization" />
 		<Using Include="Xunit.Abstractions" />
 		<Using Include="Xunit" />
 	</ItemGroup>
-
 </Project>

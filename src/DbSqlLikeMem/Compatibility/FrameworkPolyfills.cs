@@ -1,5 +1,4 @@
-﻿#if NET48 || NETSTANDARD2_0
-using System;
+﻿#if NET48 || NETSTANDARD2_1
 
 namespace System.Runtime.CompilerServices
 {
@@ -9,8 +8,7 @@ namespace System.Runtime.CompilerServices
 }
 #endif
 
-#if NET48 || NETSTANDARD2_0 || NET6_0
-using System;
+#if NET48 || NETSTANDARD2_1 || NET6_0
 
 namespace System.Runtime.CompilerServices
 {
@@ -45,8 +43,7 @@ namespace System.Diagnostics.CodeAnalysis
 }
 #endif
 
-#if NET48 || NETSTANDARD2_0
-using System;
+#if NET48 || NETSTANDARD2_1
 
 namespace System.Diagnostics.CodeAnalysis
 {

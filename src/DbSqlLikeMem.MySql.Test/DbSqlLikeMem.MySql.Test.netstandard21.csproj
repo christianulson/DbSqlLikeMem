@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<IsPackable>false</IsPackable>
 		<IsTestProject>false</IsTestProject>
-		<TargetFramework>netstandard2.0</TargetFramework>
+		<TargetFramework>netstandard2.1</TargetFramework>
 		<TargetFrameworks></TargetFrameworks>
 	</PropertyGroup>
 
@@ -17,17 +17,17 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\DbSqlLikeMem.SqlServer\DbSqlLikeMem.SqlServer.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.MySql\DbSqlLikeMem.MySql.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.netstandard20.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<Using Include="Dapper" />
 		<Using Include="DbSqlLikeMem" />
-		<Using Include="DbSqlLikeMem.SqlServer" />
+		<Using Include="DbSqlLikeMem.MySql" />
 		<Using Include="DbSqlLikeMem.Test" />
 		<Using Include="FluentAssertions" />
-		<Using Include="Microsoft.Data.SqlClient" />
+		<Using Include="MySql.Data.MySqlClient" />
 		<Using Include="System.Data" />
 		<Using Include="System.Globalization" />
 		<Using Include="Xunit.Abstractions" />

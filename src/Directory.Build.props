@@ -14,11 +14,11 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(IsTestProject)' != 'true' And '$(TargetFramework)' == '' And '$(TargetFrameworks)' == ''">
-		<TargetFrameworks>netstandard2.0;net48;net6.0;net8.0;net10.0</TargetFrameworks>
+	<PropertyGroup Condition="'$(IsTestProject)' != 'true'">
+		<TargetFrameworks>netstandard2.1;net48;net6.0;net8.0;net10.0</TargetFrameworks>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="$([System.String]::Copy('$(MSBuildProjectName)').Contains('.Test'))">
+	<PropertyGroup Condition="'$(IsTestProject)' == 'true'">
 		<BaseIntermediateOutputPath>obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
 		<MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)</MSBuildProjectExtensionsPath>
 		<BaseOutputPath>bin\$(MSBuildProjectName)\</BaseOutputPath>

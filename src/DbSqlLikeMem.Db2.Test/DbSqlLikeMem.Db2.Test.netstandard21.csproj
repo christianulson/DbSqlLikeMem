@@ -3,8 +3,9 @@
 	<PropertyGroup>
 		<IsPackable>false</IsPackable>
 		<IsTestProject>false</IsTestProject>
-		<TargetFramework>netstandard2.0</TargetFramework>
+		<TargetFramework>netstandard2.1</TargetFramework>
 		<TargetFrameworks></TargetFrameworks>
+		<PlatformTarget>x64</PlatformTarget>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -17,20 +18,21 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\DbSqlLikeMem.Oracle\DbSqlLikeMem.Oracle.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
-		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.netstandard20.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Db2\DbSqlLikeMem.Db2.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.netstandard21.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<Using Include="Dapper" />
 		<Using Include="DbSqlLikeMem" />
-		<Using Include="DbSqlLikeMem.Oracle" />
+		<Using Include="DbSqlLikeMem.Db2" />
 		<Using Include="DbSqlLikeMem.Test" />
 		<Using Include="FluentAssertions" />
-		<Using Include="Oracle.ManagedDataAccess.Client" />
+		<Using Include="IBM.Data.Db2" />
 		<Using Include="System.Data" />
 		<Using Include="System.Globalization" />
 		<Using Include="Xunit.Abstractions" />
 		<Using Include="Xunit" />
 	</ItemGroup>
+
 </Project>
