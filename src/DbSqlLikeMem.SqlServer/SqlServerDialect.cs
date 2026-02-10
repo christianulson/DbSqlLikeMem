@@ -23,8 +23,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
         ],
         operators:
         [
-            ">=", "<=", "<>", "!=", "==",
-            "&&", "||"
+            ">=", "<=", "<>", "!="
         ])
     { }
 

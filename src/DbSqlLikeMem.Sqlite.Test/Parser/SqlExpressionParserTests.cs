@@ -287,6 +287,14 @@ public sealed class SqlExpressionParserTests(
         Assert.Equal("John", lit.Value);
     }
 
+    [Theory]
+    [MemberDataSqliteVersion]
+    public void NullSafe_Operator_ShouldThrow(int version)
+    {
+        Assert.ThrowsAny<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseWhere("a <=> b", new SqliteDialect(version)));
+    }
+
     /// <summary>
     /// EN: Tests Printer_ShouldBeStable_ForSimpleExpression behavior.
     /// PT: Testa o comportamento de Printer_ShouldBeStable_ForSimpleExpression.

@@ -9,7 +9,7 @@ internal sealed class Db2Dialect : SqlDialectBase
         ) : base(
         name: DialectName,
         version: version,
-        keywords: ["REGEXP"],
+        keywords: [],
         binOps:
         [
             new KeyValuePair<string, SqlBinaryOp>("AND", SqlBinaryOp.And),
@@ -21,59 +21,57 @@ internal sealed class Db2Dialect : SqlDialectBase
             new KeyValuePair<string, SqlBinaryOp>(">=", SqlBinaryOp.GreaterOrEqual),
             new KeyValuePair<string, SqlBinaryOp>("<", SqlBinaryOp.Less),
             new KeyValuePair<string, SqlBinaryOp>("<=", SqlBinaryOp.LessOrEqual),
-            new KeyValuePair<string, SqlBinaryOp>("<=>", SqlBinaryOp.NullSafeEq),
         ],
         operators:
         [
-            "<=>", "->>", "->",
-            ">=", "<=", "<>", "!=", "==",
-            "&&", "||"
+            ">=", "<=", "<>", "!="
         ])
     { }
 
  
     internal const int WithCteMinVersion = 8;
-    internal const int MergeMinVersion = int.MaxValue;
+    internal const int MergeMinVersion = 9;
     
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool AllowsBacktickIdentifiers => true;
+    public override bool AllowsBacktickIdentifiers => false;
     
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool AllowsDoubleQuoteIdentifiers => false; // keep tokenizer behavior: " as string
+    public override bool AllowsDoubleQuoteIdentifiers => true;
     
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.backtick;
+    public override SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.double_quote;
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool IsStringQuote(char ch) => ch is '\'' or '"';
+    public override bool IsStringQuote(char ch) => ch == '\'';
     
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.backslash;
+    public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.doubled_quote;
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsHashLineComment => true;
+    public override bool SupportsHashLineComment => false;
 
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsLimitOffset => true;
+    public override bool SupportsLimitOffset => false;
+    public override bool SupportsFetchFirst => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsOnDuplicateKeyUpdate => true;
+    public override bool SupportsOnDuplicateKeyUpdate => false;
 
     /// <summary>
     /// Auto-generated summary.
@@ -83,20 +81,21 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsDeleteTargetAlias => true;
+    public override bool SupportsDeleteTargetAlias => false;
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
+    public override bool SupportsMerge => Version >= MergeMinVersion;
     
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsNullSafeEq => true;
+    public override bool SupportsNullSafeEq => false;
     
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsJsonArrowOperators => true;
+    public override bool SupportsJsonArrowOperators => false;
 }

@@ -265,12 +265,10 @@ public sealed class SqlExpressionParserTests(
     /// </summary>
     [Theory]
     [MemberDataDb2Version]
-    public void Backtick_Identifier_ShouldParse(int version)
+    public void Backtick_Identifier_ShouldThrow(int version)
     {
-        var ast = SqlExpressionParser.ParseWhere("`DeletedDtt` IS NULL", new Db2Dialect(version));
-        var n = Assert.IsType<IsNullExpr>(ast);
-        var id = Assert.IsType<IdentifierExpr>(n.Expr);
-        Assert.Equal("DeletedDtt", id.Name);
+        Assert.ThrowsAny<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseWhere("`DeletedDtt` IS NULL", new Db2Dialect(version)));
     }
 
     /// <summary>
@@ -279,12 +277,20 @@ public sealed class SqlExpressionParserTests(
     /// </summary>
     [Theory]
     [MemberDataDb2Version]
-    public void DoubleQuoted_String_ShouldParse(int version)
+    public void DoubleQuoted_Identifier_ShouldParse(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("name = \"John\"", new Db2Dialect(version));
         var eq = Assert.IsType<BinaryExpr>(ast);
-        var lit = Assert.IsType<LiteralExpr>(eq.Right);
-        Assert.Equal("John", lit.Value);
+        var id = Assert.IsType<IdentifierExpr>(eq.Right);
+        Assert.Equal("John", id.Name);
+    }
+
+    [Theory]
+    [MemberDataDb2Version]
+    public void NullSafe_Operator_ShouldThrow(int version)
+    {
+        Assert.ThrowsAny<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseWhere("a <=> b", new Db2Dialect(version)));
     }
 
     /// <summary>

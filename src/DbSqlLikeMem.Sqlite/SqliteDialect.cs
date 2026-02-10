@@ -21,18 +21,17 @@ internal sealed class SqliteDialect : SqlDialectBase
             new KeyValuePair<string, SqlBinaryOp>(">=", SqlBinaryOp.GreaterOrEqual),
             new KeyValuePair<string, SqlBinaryOp>("<", SqlBinaryOp.Less),
             new KeyValuePair<string, SqlBinaryOp>("<=", SqlBinaryOp.LessOrEqual),
-            new KeyValuePair<string, SqlBinaryOp>("<=>", SqlBinaryOp.NullSafeEq),
         ],
         operators:
         [
-            "<=>", "->>", "->",
+            "->>", "->",
             ">=", "<=", "<>", "!=", "==",
             "&&", "||"
         ])
     { }
 
  
-    internal const int WithCteMinVersion = 8;
+    internal const int WithCteMinVersion = 3;
     internal const int MergeMinVersion = int.MaxValue;
     /// <summary>
     /// Auto-generated summary.
@@ -41,11 +40,11 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool AllowsDoubleQuoteIdentifiers => false; // keep tokenizer behavior: " as string
+    public override bool AllowsDoubleQuoteIdentifiers => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.backtick;
+    public override SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.double_quote;
 
     /// <summary>
     /// Auto-generated summary.
@@ -54,7 +53,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.backslash;
+    public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.doubled_quote;
 
     /// <summary>
     /// Auto-generated summary.
@@ -69,7 +68,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsOnDuplicateKeyUpdate => true;
+    public override bool SupportsOnDuplicateKeyUpdate => false;
 
     /// <summary>
     /// Auto-generated summary.
@@ -78,7 +77,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsDeleteTargetAlias => true;
+    public override bool SupportsDeleteTargetAlias => false;
 
     /// <summary>
     /// Auto-generated summary.
@@ -87,7 +86,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsNullSafeEq => true;
+    public override bool SupportsNullSafeEq => false;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
