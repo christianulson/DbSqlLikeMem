@@ -42,9 +42,6 @@ public abstract class DbConnectionMockBase(
     /// PT: String de conexão simulada.
     /// </summary>
     [AllowNull]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public override string ConnectionString { get; set; } = "";
 
     /// <summary>

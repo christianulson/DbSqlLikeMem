@@ -8,9 +8,6 @@ namespace DbSqlLikeMem.Npgsql;
 /// Auto-generated summary.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-/// <summary>
-/// Auto-generated summary.
-/// </summary>
 public sealed class MemberDataNpgsqlVersionAttribute
     : DataAttribute
 {
@@ -19,14 +16,17 @@ public sealed class MemberDataNpgsqlVersionAttribute
     /// Auto-generated summary.
     /// </summary>
     public int[]? SpecificVersions { get; set; }
+
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public int? VersionGraterOrEqual { get; set; }
+
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public int? VersionLessOrEqual { get; set; }
+
     /// <summary>
     /// Auto-generated summary.
     /// </summary>

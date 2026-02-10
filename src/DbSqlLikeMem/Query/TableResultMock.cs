@@ -56,9 +56,6 @@ public class TableResultColMock
     /// <param name="dbType">EN: Data type in the result. PT: Tipo do dado no resultado.</param>
     /// <param name="isNullable">EN: Whether the column accepts nulls. PT: Indica se a coluna aceita valores nulos.</param>
     [SetsRequiredMembers]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public TableResultColMock(
         string tableAlias,
         string columnAlias,

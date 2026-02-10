@@ -9,9 +9,6 @@ namespace DbSqlLikeMem.Npgsql;
 /// Auto-generated summary.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-/// <summary>
-/// Auto-generated summary.
-/// </summary>
 public sealed class MemberDataByNpgsqlVersionAttribute(
     string dataMemberName
  ) : DataAttribute
