@@ -1967,7 +1967,11 @@ internal abstract class AstQueryExecutorBase(
         if (string.IsNullOrWhiteSpace(raw))
             return null;
 
-        var match = Regex.Match(raw.Trim(), @"^(?<num>-?\d+(?:\.\d+)?)\s*(?<unit>[a-zA-Z]+)$");
+        raw = raw.Trim();
+        if (raw.Contains('\\', StringComparison.Ordinal))
+            raw = raw.Replace("\\", string.Empty, StringComparison.Ordinal);
+
+        var match = Regex.Match(raw, @"^(?<num>-?\d+(?:\.\d+)?)\s*(?<unit>[a-zA-Z]+)$");
         if (!match.Success)
             return null;
 

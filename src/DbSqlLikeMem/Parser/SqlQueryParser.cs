@@ -333,8 +333,10 @@ internal sealed class SqlQueryParser
             // a) DELETE t WHERE ...
             // b) DELETE a FROM t a JOIN (...) s ON ...
             // Para (b) precisamos guardar a tabela real (t), não o alias (a).
-
-            if (!_dialect.SupportsDeleteWithoutFrom)
+            var allowsTargetAlias = _dialect.SupportsDeleteTargetAlias
+                && Peek().Kind == SqlTokenKind.Identifier
+                && IsWord(Peek(1), "FROM");
+            if (!_dialect.SupportsDeleteWithoutFrom && !allowsTargetAlias)
                 throw new InvalidOperationException($"DELETE sem FROM não suportado no dialeto '{_dialect.Name}'.");
 
             var first = ParseTableSource(); // pode ser tabela ou alvo

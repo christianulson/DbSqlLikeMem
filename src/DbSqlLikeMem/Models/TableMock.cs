@@ -92,7 +92,14 @@ public abstract class TableMock
     public ColumnDef GetColumn(string columnName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(columnName);
-        if (!Columns.TryGetValue(columnName.NormalizeName(), out var info))
+        var normalized = columnName.NormalizeName();
+        if (!Columns.TryGetValue(normalized, out var info))
+        {
+            var dotIndex = normalized.LastIndexOf('.', StringComparison.Ordinal);
+            if (dotIndex >= 0 && dotIndex + 1 < normalized.Length)
+                normalized = normalized[(dotIndex + 1)..];
+        }
+        if (!Columns.TryGetValue(normalized, out info))
             throw UnknownColumn(columnName);
         return info;
     }
