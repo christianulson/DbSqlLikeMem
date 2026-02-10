@@ -46,9 +46,14 @@ public class OracleTranslator : ExpressionVisitor
         if (!string.IsNullOrWhiteSpace(_orderByClause))
             _sb.Append(" ORDER BY ").Append(_orderByClause);
         if (_offset.HasValue)
-            _sb.Append(" OFFSET ").Append(_offset.Value);
+            _sb.Append(" OFFSET ").Append(_offset.Value).Append(" ROWS");
         if (_limit.HasValue)
-            _sb.Append(" LIMIT ").Append(_limit.Value);
+        {
+            if (_offset.HasValue)
+                _sb.Append(" FETCH NEXT ").Append(_limit.Value).Append(" ROWS ONLY");
+            else
+                _sb.Append(" FETCH FIRST ").Append(_limit.Value).Append(" ROWS ONLY");
+        }
 
         return new TranslationResult(_sb.ToString(), BuildParameters(_values));
     }
