@@ -639,7 +639,22 @@ internal sealed class SqlExpressionParser(
             throw Error("INTERVAL requires a string literal", next);
 
         Consume();
-        expr = new CallExpr("INTERVAL", [new LiteralExpr(next.Text)]);
+
+        // PostgreSQL style: INTERVAL '1 day'
+        // Oracle style:     INTERVAL '1' DAY
+        var raw = next.Text;
+        var unitTok = Peek();
+        if (unitTok.Kind is SqlTokenKind.Keyword or SqlTokenKind.Identifier)
+        {
+            var unit = unitTok.Text.Trim();
+            if (!string.IsNullOrEmpty(unit))
+            {
+                Consume();
+                raw = $"{raw} {unit}";
+            }
+        }
+
+        expr = new CallExpr("INTERVAL", [new LiteralExpr(raw)]);
         return true;
     }
 
