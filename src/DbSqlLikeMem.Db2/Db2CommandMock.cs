@@ -134,6 +134,7 @@ public class Db2CommandMock(
             SqlUpdateQuery updateQ => connection.ExecuteUpdateSmart(updateQ, Parameters, connection.Db.Dialect),
             SqlDeleteQuery deleteQ => connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect),
             SqlCreateViewQuery cv => connection.ExecuteCreateView(cv, Parameters, connection.Db.Dialect),
+            SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect),
             SqlSelectQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT."),
             _ => throw new NotSupportedException($"Tipo de query não suportado em ExecuteNonQuery: {query.GetType().Name}")
         };
@@ -193,6 +194,9 @@ public class Db2CommandMock(
 
                 case SqlCreateViewQuery cv:
                     connection.ExecuteCreateView(cv, Parameters, connection.Db.Dialect);
+                    break;
+                case SqlDropViewQuery dropViewQ:
+                    connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect);
                     break;
 
                 case SqlInsertQuery insertQ:
