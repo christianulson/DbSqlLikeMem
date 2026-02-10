@@ -3,8 +3,15 @@
 		<Description>Oracle provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
 	</PropertyGroup>
 
-	<ItemGroup>
+	<ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+		<PackageReference Include="Oracle.ManagedDataAccess" Version="23.5.1" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' != 'net48'">
 		<PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.26.100" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="xunit" Version="2.9.3" />
 	</ItemGroup>
 
