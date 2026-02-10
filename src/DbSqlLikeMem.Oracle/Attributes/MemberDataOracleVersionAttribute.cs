@@ -8,9 +8,6 @@ namespace DbSqlLikeMem.Oracle;
 /// Auto-generated summary.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-/// <summary>
-/// Auto-generated summary.
-/// </summary>
 public sealed class MemberDataOracleVersionAttribute
     : DataAttribute
 {

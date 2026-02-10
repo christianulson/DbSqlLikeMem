@@ -7,8 +7,19 @@ namespace DbSqlLikeMem.Npgsql.Test.Parser;
 /// </summary>
 public enum SqlCaseExpectation
 {
+    /// <summary>
+    /// Test should parse successfully without exceptions.
+    /// </summary>
     ParseOk,
+
+    /// <summary>
+    /// Represents an exception that is thrown when an invalid operation occurs.
+    /// </summary>
     ThrowInvalid,
+
+    /// <summary>
+    /// Throws a NotSupportedException to indicate that the requested operation is not supported.
+    /// </summary>
     ThrowNotSupported
 }
 

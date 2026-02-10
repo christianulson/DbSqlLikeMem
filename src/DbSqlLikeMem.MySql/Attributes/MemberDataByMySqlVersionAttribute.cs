@@ -9,9 +9,6 @@ namespace DbSqlLikeMem.MySql;
 /// Auto-generated summary.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-/// <summary>
-/// Auto-generated summary.
-/// </summary>
 public sealed class MemberDataByMySqlVersionAttribute(
     string dataMemberName
 ) : DataAttribute

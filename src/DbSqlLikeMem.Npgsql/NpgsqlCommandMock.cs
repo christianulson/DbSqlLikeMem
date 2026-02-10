@@ -18,15 +18,13 @@ public class NpgsqlCommandMock(
     /// Auto-generated summary.
     /// </summary>
     [AllowNull]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public override string CommandText { get; set; } = string.Empty;
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public override int CommandTimeout { get; set; }
+
     /// <summary>
     /// Auto-generated summary.
     /// </summary>

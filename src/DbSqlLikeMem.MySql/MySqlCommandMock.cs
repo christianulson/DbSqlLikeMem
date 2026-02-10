@@ -19,9 +19,6 @@ public class MySqlCommandMock(
     /// Auto-generated summary.
     /// </summary>
     [AllowNull]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public override string CommandText { get; set; } = string.Empty;
 
     /// <summary>
@@ -32,6 +29,7 @@ public class MySqlCommandMock(
     /// Auto-generated summary.
     /// </summary>
     public override CommandType CommandType { get; set; } = CommandType.Text;
+
     /// <summary>
     /// EN: Gets or sets the associated connection.
     /// PT: Obtém ou define a conexão associada.
@@ -43,6 +41,7 @@ public class MySqlCommandMock(
     }
 
     private readonly MySqlDataParameterCollectionMock collectionMock = [];
+
     /// <summary>
     /// EN: Gets the parameter collection for the command.
     /// PT: Obtém a coleção de parâmetros do comando.
