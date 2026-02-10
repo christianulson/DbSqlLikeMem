@@ -2691,8 +2691,6 @@ internal abstract class AstQueryExecutorBase(
 
     private sealed class ArrayObjectComparer : IComparer<object?>
     {
-        //public static readonly ArrayObjectComparer Instance = new();
-
         /// <summary>
         /// Auto-generated summary.
         /// </summary>
