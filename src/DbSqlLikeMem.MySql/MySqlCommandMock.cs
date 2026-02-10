@@ -179,12 +179,13 @@ public class MySqlCommandMock(
 
 
         // Parse Multiplo (ex: "SELECT 1; SELECT 2;" ou "CREATE TEMPORARY TABLE ...; SELECT ...")
-        var queries = SqlQueryParser.ParseMulti(sql, connection.Db.Dialect).ToList();
-
         var tables = new List<TableResultMock>();
+        var hasAnyQuery = false;
 
-        foreach (var q in queries)
+        foreach (var q in SqlQueryParser.ParseMulti(sql, connection.Db.Dialect))
         {
+            hasAnyQuery = true;
+
             switch (q)
             {
                 case SqlCreateTemporaryTableQuery ct:
@@ -216,7 +217,7 @@ public class MySqlCommandMock(
             }
         }
 
-        if (tables.Count == 0 && queries.Count > 0)
+        if (tables.Count == 0 && hasAnyQuery)
             throw new InvalidOperationException("ExecuteReader foi chamado, mas nenhuma query SELECT foi encontrada.");
 
         connection.Metrics.Selects += tables.Sum(t => t.Count);
