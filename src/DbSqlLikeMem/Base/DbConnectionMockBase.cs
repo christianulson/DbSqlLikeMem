@@ -278,6 +278,15 @@ public abstract class DbConnectionMockBase(
             out vw,
             schemaName ?? Database);
 
+    internal bool RemoveView(
+        string viewName,
+        bool ifExists = false,
+        string? schemaName = null)
+        => Db.RemoveView(
+            viewName,
+            ifExists,
+            schemaName ?? Database);
+
     #endregion
 
     #region Procedures
