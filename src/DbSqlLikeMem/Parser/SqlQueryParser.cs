@@ -565,10 +565,27 @@ internal sealed class SqlQueryParser
             return ParseCreateView(orReplace);
 
         var isTemporary = false;
-        if (IsWord(Peek(), "TEMPORARY") || IsWord(Peek(), "TEMP"))
+        var tempScope = TemporaryTableScope.None;
+        if (IsWord(Peek(), "GLOBAL"))
+        {
+            Consume();
+            if (IsWord(Peek(), "TEMPORARY") || IsWord(Peek(), "TEMP"))
+            {
+                Consume();
+                isTemporary = true;
+                tempScope = TemporaryTableScope.Global;
+            }
+            else
+            {
+                throw new InvalidOperationException("GLOBAL deve ser seguido de TEMPORARY/TEMP para tabelas temporárias.");
+            }
+        }
+
+        if (!isTemporary && (IsWord(Peek(), "TEMPORARY") || IsWord(Peek(), "TEMP")))
         {
             Consume();
             isTemporary = true;
+            tempScope = TemporaryTableScope.Connection;
         }
 
         ExpectWord("TABLE");
@@ -640,12 +657,28 @@ internal sealed class SqlQueryParser
         if (inner is not SqlSelectQuery sel)
             throw new InvalidOperationException("CREATE ... AS deve conter SELECT/WITH.");
 
+        if (isTemporary && tempScope == TemporaryTableScope.Connection)
+        {
+            var namedScope = _dialect.GetTemporaryTableScope(table.Name ?? string.Empty, table.DbName);
+            if (namedScope != TemporaryTableScope.None)
+                tempScope = namedScope;
+        }
+
+        if (!isTemporary)
+        {
+            tempScope = _dialect.GetTemporaryTableScope(table.Name ?? string.Empty, table.DbName);
+            isTemporary = tempScope != TemporaryTableScope.None;
+        }
+
         if (!isTemporary)
             throw new NotSupportedException("Apenas CREATE TEMPORARY TABLE é suportado no mock no momento.");
 
         return new SqlCreateTemporaryTableQuery
         {
             Temporary = true,
+            Scope = tempScope == TemporaryTableScope.None
+                ? TemporaryTableScope.Connection
+                : tempScope,
             IfNotExists = ifNotExists,
             Table = table,
             ColumnNames = colNames,

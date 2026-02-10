@@ -53,4 +53,13 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     public override bool SupportsJsonArrowOperators => true;
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
     public override bool SupportsMerge => Version >= MergeMinVersion;
+
+    public override TemporaryTableScope GetTemporaryTableScope(string tableName, string? schemaName)
+    {
+        _ = tableName;
+        if (string.IsNullOrWhiteSpace(schemaName)) return TemporaryTableScope.None;
+        return schemaName.StartsWith("pg_temp", StringComparison.OrdinalIgnoreCase)
+            ? TemporaryTableScope.Connection
+            : TemporaryTableScope.None;
+    }
 }

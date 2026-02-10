@@ -36,4 +36,42 @@ SELECT id FROM tmp_users ORDER BY id;";
 
         Assert.Equal(expected, ids);
     }
+
+    [Fact]
+    public void CreateGlobalTemporaryTable_AsSelect_ShouldBeVisibleAcrossConnections()
+    {
+        var db = new SqlServerDbMock();
+        var users = db.AddTable("users");
+        users.Columns["id"] = new(0, DbType.Int32, false);
+        users.Columns["name"] = new(1, DbType.String, false);
+        users.Columns["tenantid"] = new(2, DbType.Int32, false);
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = 10 });
+        users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob", [2] = 10 });
+
+        using (var creator = new SqlServerConnectionMock(db))
+        {
+            creator.Open();
+            const string createSql = @"
+CREATE TABLE ##tmp_users AS
+SELECT id, name FROM users WHERE tenantid = 10;
+
+SELECT id FROM ##tmp_users ORDER BY id;";
+            using var createCmd = new SqlServerCommandMock(creator) { CommandText = createSql };
+            using var reader = createCmd.ExecuteReader();
+            while (reader.Read()) { }
+        }
+
+        using var consumer = new SqlServerConnectionMock(db);
+        consumer.Open();
+        using var selectCmd = new SqlServerCommandMock(consumer)
+        {
+            CommandText = "SELECT id FROM ##tmp_users ORDER BY id;"
+        };
+
+        using var r = selectCmd.ExecuteReader();
+        var ids = new List<int>();
+        while (r.Read()) ids.Add(r.GetInt32(0));
+
+        Assert.Equal(expected, ids);
+    }
 }

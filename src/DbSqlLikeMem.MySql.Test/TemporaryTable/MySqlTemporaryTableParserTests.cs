@@ -59,4 +59,15 @@ WHERE `tenantid` = 10",
         Assert.Contains("CREATE", q.RawSql, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("TEMPORARY", q.RawSql, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Theory]
+    [MemberDataMySqlVersion]
+    public void Parse_ShouldAccept_GlobalTemporaryTable(int version)
+    {
+        var dialect = new MySqlDialect(version);
+        var q = Assert.IsType<SqlCreateTemporaryTableQuery>(
+            SqlQueryParser.Parse("CREATE GLOBAL TEMPORARY TABLE tmp_users AS SELECT id FROM users", dialect));
+
+        Assert.Equal(TemporaryTableScope.Global, q.Scope);
+    }
 }

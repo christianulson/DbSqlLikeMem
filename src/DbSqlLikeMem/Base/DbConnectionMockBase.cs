@@ -88,7 +88,75 @@ public abstract class DbConnectionMockBase(
     /// </summary>
     protected DbTransaction? CurrentTransaction { get; private set; }
 
+    private readonly Dictionary<string, ITableMock> _temporaryTables =
+        new(StringComparer.OrdinalIgnoreCase);
+
     #region Table
+
+    private string BuildTemporaryTableKey(
+        string tableName,
+        string? schemaName)
+    {
+        var schema = Db.GetSchemaName(schemaName ?? Database);
+        return $"{schema}:{tableName.NormalizeName()}";
+    }
+
+    private IEnumerable<ITableMock> ListTemporaryTables(
+        string? schemaName = null)
+    {
+        var schema = Db.GetSchemaName(schemaName ?? Database);
+        var prefix = $"{schema}:";
+        return _temporaryTables
+            .Where(entry => entry.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            .Select(entry => entry.Value);
+    }
+
+    /// <summary>
+    /// EN: Creates and adds a temporary table to the connection scope.
+    /// PT: Cria e adiciona uma tabela temporária no escopo da conexão.
+    /// </summary>
+    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
+    /// <param name="columns">EN: Table columns. PT: Colunas da tabela.</param>
+    /// <param name="rows">EN: Initial rows. PT: Linhas iniciais.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: Created table. PT: Tabela criada.</returns>
+    public ITableMock AddTemporaryTable(
+        string tableName,
+        IColumnDictionary? columns = null,
+        IEnumerable<Dictionary<int, object?>>? rows = null,
+        string? schemaName = null)
+    {
+        var schemaKey = Db.GetSchemaName(schemaName ?? Database);
+        var key = BuildTemporaryTableKey(tableName, schemaKey);
+        if (!Db.TryGetValue(schemaKey, out var schemaMock) || schemaMock == null)
+            schemaMock = Db.CreateSchema(schemaKey);
+        var schema = (SchemaMock)schemaMock;
+        var table = schema.CreateTableInstance(tableName, columns ?? new ColumnDictionary(), rows);
+        _temporaryTables.Add(key, table);
+        return table;
+    }
+
+    /// <summary>
+    /// EN: Tries to get a temporary table by name.
+    /// PT: Tenta obter uma tabela temporária pelo nome.
+    /// </summary>
+    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
+    /// <param name="tb">EN: Found table, if any. PT: Tabela encontrada, se houver.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: True if it exists. PT: True se existir.</returns>
+    public bool TryGetTemporaryTable(
+        string tableName,
+        out ITableMock? tb,
+        string? schemaName = null)
+        => _temporaryTables.TryGetValue(
+            BuildTemporaryTableKey(tableName, schemaName),
+            out tb);
+
+    internal bool TryGetGlobalTemporaryTable(
+        string tableName,
+        out ITableMock? tb,
+        string? schemaName = null)
+        => Db.TryGetGlobalTemporaryTable(tableName, out tb, schemaName);
     
     /// <summary>
     /// EN: Creates and adds a table to the database.
@@ -120,9 +188,23 @@ public abstract class DbConnectionMockBase(
     public ITableMock GetTable(
         string tableName,
         string? schemaName = null)
-    => Db.GetTable(
-        tableName,
-        schemaName ?? Database);
+    {
+        if (TryGetTemporaryTable(tableName, out var tb, schemaName)
+            && tb != null)
+        {
+            return tb;
+        }
+
+        if (TryGetGlobalTemporaryTable(tableName, out tb, schemaName)
+            && tb != null)
+        {
+            return tb;
+        }
+
+        return Db.GetTable(
+            tableName,
+            schemaName ?? Database);
+    }
 
     /// <summary>
     /// EN: Tries to get a table by name.
@@ -136,10 +218,24 @@ public abstract class DbConnectionMockBase(
         string tableName,
         out ITableMock? tb,
         string? schemaName = null)
-    => Db.TryGetTable(
-        tableName,
-        out tb,
-        schemaName ?? Database);
+    {
+        if (TryGetTemporaryTable(tableName, out tb, schemaName)
+            && tb != null)
+        {
+            return true;
+        }
+
+        if (TryGetGlobalTemporaryTable(tableName, out tb, schemaName)
+            && tb != null)
+        {
+            return true;
+        }
+
+        return Db.TryGetTable(
+            tableName,
+            out tb,
+            schemaName ?? Database);
+    }
 
     /// <summary>
     /// EN: Lists the tables in the current schema.
@@ -149,7 +245,12 @@ public abstract class DbConnectionMockBase(
     /// <returns>EN: Table list. PT: Lista de tabelas.</returns>
     public IReadOnlyList<ITableMock> ListTables(
         string? schemaName = null)
-        => Db.ListTables(schemaName ?? Database);
+    {
+        var tables = Db.ListTables(schemaName ?? Database).ToList();
+        tables.AddRange(Db.ListGlobalTemporaryTables(schemaName ?? Database));
+        tables.AddRange(ListTemporaryTables(schemaName));
+        return tables.AsReadOnly();
+    }
 
     #endregion
 
@@ -363,6 +464,7 @@ public abstract class DbConnectionMockBase(
         if (disposing)
         {
             CurrentTransaction?.Dispose();
+            _temporaryTables.Clear();
         }
 
         _disposed = true;

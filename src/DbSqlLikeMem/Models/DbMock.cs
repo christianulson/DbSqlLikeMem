@@ -26,6 +26,9 @@ public abstract class DbMock
 
     internal abstract SqlDialectBase Dialect { get; set; }
 
+    private readonly Dictionary<string, ITableMock> _globalTemporaryTables =
+        new(StringComparer.OrdinalIgnoreCase);
+
     IEnumerable<string> IReadOnlyDictionary<string, ISchemaMock>.Keys => Keys;
 
     IEnumerable<ISchemaMock> IReadOnlyDictionary<string, ISchemaMock>.Values => Values;
@@ -120,6 +123,51 @@ public abstract class DbMock
     #endregion
 
     #region Table
+
+    private string BuildTemporaryTableKey(
+        string tableName,
+        string? schemaName)
+    {
+        var sc = GetSchemaName(schemaName);
+        return $"{sc}:{tableName.NormalizeName()}";
+    }
+
+    internal ITableMock AddGlobalTemporaryTable(
+        string tableName,
+        IColumnDictionary? columns = null,
+        IEnumerable<Dictionary<int, object?>>? rows = null,
+        string? schemaName = null)
+    {
+        var schemaKey = GetSchemaName(schemaName);
+        var key = BuildTemporaryTableKey(tableName, schemaKey);
+        if (!TryGetValue(schemaKey, out var schemaMock) || schemaMock == null)
+            schemaMock = CreateSchema(schemaKey);
+        var schema = (SchemaMock)schemaMock;
+        var table = schema.CreateTableInstance(tableName, columns ?? new ColumnDictionary(), rows);
+        _globalTemporaryTables.Add(key, table);
+        return table;
+    }
+
+    internal bool TryGetGlobalTemporaryTable(
+        string tableName,
+        out ITableMock? tb,
+        string? schemaName = null)
+        => _globalTemporaryTables.TryGetValue(BuildTemporaryTableKey(tableName, schemaName), out tb);
+
+    internal IReadOnlyList<ITableMock> ListGlobalTemporaryTables(
+        string? schemaName = null)
+    {
+        var schema = GetSchemaName(schemaName);
+        var prefix = $"{schema}:";
+        return _globalTemporaryTables
+            .Where(entry => entry.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            .Select(entry => entry.Value)
+            .ToList()
+            .AsReadOnly();
+    }
+
+    internal void ClearGlobalTemporaryTables()
+        => _globalTemporaryTables.Clear();
 
     /// <summary>
     /// EN: Creates and adds a table to the specified schema.

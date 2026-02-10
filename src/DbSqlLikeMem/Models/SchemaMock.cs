@@ -109,6 +109,20 @@ public abstract class SchemaMock
         return t;
     }
 
+    /// <summary>
+    /// EN: Creates a table instance without registering it in the schema.
+    /// PT: Cria uma instância de tabela sem registrar no schema.
+    /// </summary>
+    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
+    /// <param name="columns">EN: Table columns. PT: Colunas da tabela.</param>
+    /// <param name="rows">EN: Initial rows. PT: Linhas iniciais.</param>
+    /// <returns>EN: New table instance. PT: Nova instância de tabela.</returns>
+    internal TableMock CreateTableInstance(
+        string tableName,
+        IColumnDictionary columns,
+        IEnumerable<Dictionary<int, object?>>? rows = null)
+        => NewTable(tableName, columns, rows);
+
     #region Tables
 
     /// <summary>

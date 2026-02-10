@@ -59,4 +59,19 @@ WHERE tenantid = 10",
         Assert.Contains("CREATE", q.RawSql, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("TEMPORARY", q.RawSql, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Theory]
+    [MemberDataSqlServerVersion]
+    public void Parse_ShouldRecognize_HashTempTableScopes(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        var localTemp = Assert.IsType<SqlCreateTemporaryTableQuery>(
+            SqlQueryParser.Parse("CREATE TABLE #tmp_users AS SELECT id FROM users", dialect));
+        Assert.Equal(TemporaryTableScope.Connection, localTemp.Scope);
+
+        var globalTemp = Assert.IsType<SqlCreateTemporaryTableQuery>(
+            SqlQueryParser.Parse("CREATE TABLE ##tmp_users AS SELECT id FROM users", dialect));
+        Assert.Equal(TemporaryTableScope.Global, globalTemp.Scope);
+    }
 }

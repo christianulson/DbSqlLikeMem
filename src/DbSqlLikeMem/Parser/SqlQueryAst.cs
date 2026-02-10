@@ -49,9 +49,17 @@ internal sealed record SqlDeleteQuery : SqlQueryBase
 internal sealed record SqlCreateTemporaryTableQuery : SqlQueryBase
 {
     internal bool Temporary { get; init; } = true;
+    internal TemporaryTableScope Scope { get; init; } = TemporaryTableScope.Connection;
     internal bool IfNotExists { get; init; }
     internal IReadOnlyList<string> ColumnNames { get; init; } = [];
     internal SqlSelectQuery AsSelect { get; init; } = null!;
+}
+
+internal enum TemporaryTableScope
+{
+    None,
+    Connection,
+    Global
 }
 
 internal sealed record SqlCreateViewQuery : SqlQueryBase
