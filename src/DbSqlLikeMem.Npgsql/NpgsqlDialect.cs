@@ -25,6 +25,8 @@ internal sealed class NpgsqlDialect : SqlDialectBase
         operators:
         [
             "->>", "->",
+            "#>>", "#>",
+            "::",
             ">=", "<=", "<>", "!=", "==",
             "&&", "||"
         ])
