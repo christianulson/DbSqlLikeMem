@@ -10,6 +10,9 @@ namespace DbSqlLikeMem.Npgsql;
 public sealed class NpgsqlConnectionMock
     : DbConnectionMockBase
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public NpgsqlConnectionMock(
        NpgsqlDbMock? db = null,
        string? defaultDatabase = null

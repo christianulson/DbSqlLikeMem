@@ -9,6 +9,9 @@ public sealed class MySqlAdvancedSqlGapTests : XUnitTestBase
 {
     private readonly MySqlConnectionMock _cnn;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public MySqlAdvancedSqlGapTests(ITestOutputHelper helper) : base(helper)
     {
         var db = new MySqlDbMock();
@@ -40,6 +43,9 @@ public sealed class MySqlAdvancedSqlGapTests : XUnitTestBase
     /// PT: Testa o comportamento de Window_RowNumber_PartitionBy_ShouldWork.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Window_RowNumber_PartitionBy_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -56,6 +62,9 @@ ORDER BY tenantid, id").ToList();
     /// PT: Testa o comportamento de CorrelatedSubquery_InSelectList_ShouldWork.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void CorrelatedSubquery_InSelectList_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -72,6 +81,9 @@ ORDER BY u.id").ToList();
     /// PT: Testa o comportamento de DateAdd_IntervalDay_ShouldWork.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void DateAdd_IntervalDay_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -91,6 +103,9 @@ ORDER BY id").ToList();
     /// PT: Testa o comportamento de Cast_StringToInt_ShouldWork.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Cast_StringToInt_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT CAST('42' AS SIGNED) AS v").ToList();
@@ -103,6 +118,9 @@ ORDER BY id").ToList();
     /// PT: Testa o comportamento de Regexp_Operator_ShouldWork.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Regexp_Operator_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name REGEXP '^J' ORDER BY id").ToList();
@@ -114,6 +132,9 @@ ORDER BY id").ToList();
     /// PT: Testa o comportamento de OrderBy_Field_Function_ShouldWork.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void OrderBy_Field_Function_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users ORDER BY FIELD(id, 3, 1, 2)").ToList();
@@ -125,6 +146,9 @@ ORDER BY id").ToList();
     /// PT: Testa o comportamento de Collation_CaseSensitivity_ShouldFollowColumnCollation.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Collation_CaseSensitivity_ShouldFollowColumnCollation()
     {
         // Example expectation in MySQL: behavior depends on column collation.

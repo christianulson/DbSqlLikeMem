@@ -1,9 +1,15 @@
 namespace DbSqlLikeMem.Oracle.Test;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class OracleAggregationTests : XUnitTestBase
 {
     private readonly OracleConnectionMock _cnn;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public OracleAggregationTests(ITestOutputHelper helper) : base(helper)
     {
         var db = new OracleDbMock();
@@ -25,6 +31,9 @@ public sealed class OracleAggregationTests : XUnitTestBase
     /// PT: Testa o comportamento de GroupBy_WithCountAndSum_ShouldWork.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void GroupBy_WithCountAndSum_ShouldWork()
     {
         const string sql = """
@@ -51,6 +60,9 @@ public sealed class OracleAggregationTests : XUnitTestBase
     /// PT: Testa o comportamento de Having_ShouldFilterAggregates.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Having_ShouldFilterAggregates()
     {
         const string sql = """
@@ -70,6 +82,9 @@ public sealed class OracleAggregationTests : XUnitTestBase
     /// PT: Testa o comportamento de Distinct_Order_Limit_Offset_ShouldWork.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Distinct_Order_Limit_Offset_ShouldWork()
     {
         const string sql = """

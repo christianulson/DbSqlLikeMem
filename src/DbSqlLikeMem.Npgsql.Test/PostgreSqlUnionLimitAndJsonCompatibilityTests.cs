@@ -8,6 +8,9 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests : XUnitTestBas
 {
     private readonly NpgsqlConnectionMock _cnn;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public PostgreSqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper)
     {
         var db = new NpgsqlDbMock();
@@ -27,6 +30,9 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests : XUnitTestBas
     /// PT: Testa o comportamento de UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates()
     {
         // UNION ALL keeps duplicates
@@ -51,6 +57,9 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de LimitOffset_ShouldWork.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void LimitOffset_ShouldWork()
     {
         // MySQL supports: LIMIT offset, count
@@ -63,6 +72,9 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de JsonPathExtract_ShouldWork.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void JsonPathExtract_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id, (payload::jsonb #>> '{a,b}')::numeric AS v FROM t ORDER BY id").ToList();

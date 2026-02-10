@@ -1,9 +1,15 @@
 namespace DbSqlLikeMem.MySql.Test;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class MySqlAggregationTests : XUnitTestBase
 {
     private readonly MySqlConnectionMock _cnn;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public MySqlAggregationTests(ITestOutputHelper helper) : base(helper)
     {
         var db = new MySqlDbMock();
@@ -25,6 +31,9 @@ public sealed class MySqlAggregationTests : XUnitTestBase
     /// PT: Testa o comportamento de GroupBy_WithCountAndSum_ShouldWork.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void GroupBy_WithCountAndSum_ShouldWork()
     {
         const string sql = """
@@ -51,6 +60,9 @@ public sealed class MySqlAggregationTests : XUnitTestBase
     /// PT: Testa o comportamento de Having_ShouldFilterAggregates.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Having_ShouldFilterAggregates()
     {
         const string sql = """
@@ -70,6 +82,9 @@ public sealed class MySqlAggregationTests : XUnitTestBase
     /// PT: Testa o comportamento de Distinct_Order_Limit_Offset_ShouldWork.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Distinct_Order_Limit_Offset_ShouldWork()
     {
         const string sql = """

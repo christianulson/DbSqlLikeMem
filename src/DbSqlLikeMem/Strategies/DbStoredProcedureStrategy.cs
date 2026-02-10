@@ -2,6 +2,9 @@ namespace DbSqlLikeMem;
 
 internal static class DbStoredProcedureStrategy
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static int ExecuteStoredProcedure(
         this DbConnectionMockBase connection,
         string procedureName,
@@ -20,6 +23,9 @@ internal static class DbStoredProcedureStrategy
         return 0; // signature-only
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static int ExecuteCall(
         this DbConnectionMockBase connection,
         string callSql,

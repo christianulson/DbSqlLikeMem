@@ -13,6 +13,9 @@ public class ConsoleTestWriter(
 {
     private readonly ITestOutputHelper? _helper = helper;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override void WriteLine(string? value)
     {
         try

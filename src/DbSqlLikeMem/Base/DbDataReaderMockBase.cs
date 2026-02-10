@@ -85,12 +85,18 @@ public abstract class DbDataReaderMockBase(
     /// PT: Obtém valor byte da coluna indicada.
     /// </summary>
     public override byte GetByte(int ordinal) => (byte)this[ordinal];
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length) => throw new NotImplementedException();
     /// <summary>
     /// EN: Gets a char value from the specified column.
     /// PT: Obtém valor char da coluna indicada.
     /// </summary>
     public override char GetChar(int ordinal) => (char)this[ordinal];
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) => throw new NotImplementedException();
     /// <summary>
     /// EN: Gets a nested data reader for the specified ordinal.

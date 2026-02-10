@@ -9,6 +9,9 @@ public class MySqlDbMock
 {
     internal override SqlDialectBase Dialect { get; set; }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public MySqlDbMock(
         int? version = null
         ): base(version ?? 8)

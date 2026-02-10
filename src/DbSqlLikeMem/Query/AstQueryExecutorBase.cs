@@ -56,6 +56,9 @@ internal abstract class AstQueryExecutorBase(
         }
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public TableResultMock ExecuteUnion(
         IReadOnlyList<SqlSelectQuery> parts,
         IReadOnlyList<bool> allFlags,
@@ -156,6 +159,9 @@ internal abstract class AstQueryExecutorBase(
         return false;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public TableResultMock ExecuteSelect(SqlSelectQuery q)
         => ExecuteSelect(q, null, null);
 
@@ -543,24 +549,48 @@ internal abstract class AstQueryExecutorBase(
 
     private sealed class SelectPlan
     {
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public required List<TableResultColMock> Columns { get; init; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public required List<Func<EvalRow, EvalGroup?, object?>> Evaluators { get; init; }
 
         // Window functions computed over the current rowset (e.g. ROW_NUMBER() OVER (...))
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public required List<WindowSlot> WindowSlots { get; init; }
     }
 
     private sealed class WindowSlot
     {
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public required WindowFunctionExpr Expr { get; init; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public required Dictionary<EvalRow, object?> Map { get; init; }
     }
 
     private sealed class ReferenceEqualityComparer<T> : IEqualityComparer<T>
         where T : class
     {
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public static readonly ReferenceEqualityComparer<T> Instance = new();
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public bool Equals(T? x, T? y) => ReferenceEquals(x, y);
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public int GetHashCode(T obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
     }
 
@@ -2401,8 +2431,17 @@ internal abstract class AstQueryExecutorBase(
     {
         private readonly ITableMock? _physical;
         private readonly TableResultMock? _result;
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public string Alias { get; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public string Name { get; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public IReadOnlyList<string> ColumnNames { get; }
         private Source(string name, string alias, ITableMock physical)
         {
@@ -2420,6 +2459,9 @@ internal abstract class AstQueryExecutorBase(
             _physical = null;
             ColumnNames = [.. result.Columns.OrderBy(c => c.ColumIndex).Select(c => c.ColumnAlias)];
         }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public Source WithAlias(string alias)
         {
             if (_physical is not null)
@@ -2427,6 +2469,9 @@ internal abstract class AstQueryExecutorBase(
             return FromResult(Name, alias, _result!);
         }
 
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public IEnumerable<Dictionary<string, object?>> Rows()
         {
             if (_physical is not null)
@@ -2462,10 +2507,19 @@ internal abstract class AstQueryExecutorBase(
             }
         }
 
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public static Source FromPhysical(string tableName, string alias, ITableMock physical)
             => new(tableName, alias, physical);
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public static Source FromResult(string tableName, string alias, TableResultMock result)
             => new(tableName, alias, result);
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public static Source FromResult(string tableName, TableResultMock result)
             => new(tableName, tableName, result);
     }
@@ -2474,6 +2528,9 @@ internal abstract class AstQueryExecutorBase(
         Dictionary<string, object?> Fields,
         Dictionary<string, Source> Sources)
     {
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public static EvalRow FromProjected(
             TableResultMock res,
             Dictionary<int, object?> row,
@@ -2487,12 +2544,21 @@ internal abstract class AstQueryExecutorBase(
             return new EvalRow(fields, new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase));
         }
 
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public EvalRow CloneRow()
             => new(new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase),
                    new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase));
 
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public void AddSource(Source src) => Sources[src.Alias] = src;
 
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public void AddFields(Dictionary<string, object?> fields)
         {
             foreach (var (k, v) in fields)
@@ -2550,16 +2616,28 @@ internal abstract class AstQueryExecutorBase(
 
     private sealed class EvalGroup
     {
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public List<EvalRow> Rows { get; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public EvalGroup(List<EvalRow> rows) => Rows = rows;
     }
 
     private readonly record struct GroupKey(object?[] Values)
     {
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public static readonly IEqualityComparer<GroupKey> Comparer = new GroupKeyComparer();
 
         private sealed class GroupKeyComparer : IEqualityComparer<GroupKey>
         {
+            /// <summary>
+            /// Auto-generated summary.
+            /// </summary>
             public bool Equals(GroupKey x, GroupKey y)
             {
                 if (x.Values.Length != y.Values.Length) return false;
@@ -2568,6 +2646,9 @@ internal abstract class AstQueryExecutorBase(
                 return true;
             }
 
+            /// <summary>
+            /// Auto-generated summary.
+            /// </summary>
             public int GetHashCode(GroupKey obj)
             {
                 var h = 17;
@@ -2582,6 +2663,9 @@ internal abstract class AstQueryExecutorBase(
     {
         //public static readonly ArrayObjectComparer Instance = new();
 
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public int Compare(object? x, object? y)
         {
             if (ReferenceEquals(x, y)) return 0;
@@ -2630,8 +2714,14 @@ internal abstract class AstQueryExecutorBase(
 
     private sealed class ArrayObjectEqualityComparer : IEqualityComparer<object?[]>
     {
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public static readonly ArrayObjectEqualityComparer Instance = new();
 
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public bool Equals(object?[]? x, object?[]? y)
         {
             if (ReferenceEquals(x, y)) return true;
@@ -2645,6 +2735,9 @@ internal abstract class AstQueryExecutorBase(
             return true;
         }
 
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public int GetHashCode(object?[] obj)
         {
             unchecked

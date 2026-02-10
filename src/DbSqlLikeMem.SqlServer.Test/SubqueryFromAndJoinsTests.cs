@@ -1,5 +1,8 @@
 namespace DbSqlLikeMem.SqlServer.Test;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class SubqueryFromAndJoinsTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
@@ -9,6 +12,9 @@ public sealed class SubqueryFromAndJoinsTests(
     /// PT: Testa o comportamento de FromSubquery_ShouldReturnFilteredRows.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void FromSubquery_ShouldReturnFilteredRows()
     {
         using var cnn = new SqlServerConnectionMock();
@@ -41,6 +47,9 @@ public sealed class SubqueryFromAndJoinsTests(
     /// PT: Testa o comportamento de JoinSubquery_ShouldJoinCorrectly.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void JoinSubquery_ShouldJoinCorrectly()
     {
         using var cnn = new SqlServerConnectionMock();
@@ -85,6 +94,9 @@ ORDER BY u.Id, o.Amount";
     /// PT: Testa o comportamento de NestedSubquery_ShouldWork.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void NestedSubquery_ShouldWork()
     {
         using var cnn = new SqlServerConnectionMock();

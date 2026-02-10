@@ -8,8 +8,17 @@ namespace DbSqlLikeMem.SqlServer;
 /// </summary>
 public class SqlServerQueryable<T> : IOrderedQueryable<T>
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public string TableName { get; }
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public Expression Expression { get; }
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public IQueryProvider Provider { get; }
 
     // Construtor para a raiz da consulta
@@ -34,9 +43,15 @@ public class SqlServerQueryable<T> : IOrderedQueryable<T>
         TableName = tableName ?? throw new ArgumentNullException(nameof(tableName));
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public Type ElementType => typeof(T);
     IEnumerator IEnumerable.GetEnumerator()
         => Provider.Execute<IEnumerable<T>>(Expression).GetEnumerator();
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public IEnumerator<T> GetEnumerator()
         => Provider.Execute<IEnumerable<T>>(Expression).GetEnumerator();
 }

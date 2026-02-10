@@ -33,26 +33,68 @@ internal sealed class SqlServerDialect : SqlDialectBase
     internal const int MergeMinVersion = 2008;
     internal const int OffsetFetchMinVersion = 2012;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool AllowsBracketIdentifiers => true;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool AllowsDoubleQuoteIdentifiers => true;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.bracket;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool IsStringQuote(char ch) => ch == '\'';
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.doubled_quote;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsTop => true;
 
     // OFFSET ... FETCH entrou no SQL Server 2012.
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsOffsetFetch => Version >= OffsetFetchMinVersion;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsFetchFirst => false;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsDeleteWithoutFrom => true; // DELETE [FROM] t
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsDeleteTargetAlias => true; // DELETE alias FROM t alias JOIN ...
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool AllowsHashIdentifiers => true;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override TemporaryTableScope GetTemporaryTableScope(string tableName, string? schemaName)
     {
         _ = schemaName;

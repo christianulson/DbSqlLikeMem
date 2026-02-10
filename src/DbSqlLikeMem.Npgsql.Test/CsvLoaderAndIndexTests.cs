@@ -1,5 +1,8 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class CsvLoaderAndIndexTests(
     ITestOutputHelper helper
     ) : XUnitTestBase(helper)
@@ -9,6 +12,9 @@ public sealed class CsvLoaderAndIndexTests(
     /// PT: Testa o comportamento de CsvLoader_ShouldLoadRows_ByColumnName.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void CsvLoader_ShouldLoadRows_ByColumnName()
     {
         var db = new NpgsqlDbMock();
@@ -35,6 +41,9 @@ public sealed class CsvLoaderAndIndexTests(
     /// PT: Testa o comportamento de GetColumn_ShouldThrow_UnknownColumn.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void GetColumn_ShouldThrow_UnknownColumn()
     {
         var db = new NpgsqlDbMock();
@@ -50,6 +59,9 @@ public sealed class CsvLoaderAndIndexTests(
     /// PT: Testa o comportamento de Index_Lookup_ShouldReturnRowPositions.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Index_Lookup_ShouldReturnRowPositions()
     {
         var db = new NpgsqlDbMock();
@@ -73,6 +85,9 @@ public sealed class CsvLoaderAndIndexTests(
     /// PT: Testa o comportamento de BackupRestore_ShouldRollbackData.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void BackupRestore_ShouldRollbackData()
     {
         var db = new NpgsqlDbMock();

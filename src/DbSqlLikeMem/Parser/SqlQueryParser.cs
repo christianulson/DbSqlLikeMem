@@ -10,6 +10,9 @@ internal sealed class SqlQueryParser
     // INSERT ... SELECT pode ter um sufixo de UPSERT após o SELECT (MySQL ON DUPLICATE..., Postgres ON CONFLICT ...)
     private bool _allowOnDuplicateBoundary;
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public SqlQueryParser(string sql, ISqlDialect dialect)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sql);
@@ -20,6 +23,9 @@ internal sealed class SqlQueryParser
         _i = 0;
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static SqlQueryBase Parse(string sql, ISqlDialect dialect)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sql);
@@ -54,6 +60,9 @@ internal sealed class SqlQueryParser
         return result with { RawSql = sql };
     }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static IEnumerable<SqlQueryBase> ParseMulti(
         string sql,
         ISqlDialect dialect)
@@ -67,11 +76,17 @@ internal sealed class SqlQueryParser
     }
 
     // Mantido para compatibilidade com lógica de Union
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public sealed record UnionChain(
         IReadOnlyList<SqlQueryBase> Parts,
         IReadOnlyList<bool> AllFlags
     );
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static UnionChain ParseUnionChain(string sql, ISqlDialect dialect)
     {
         var p = new SqlQueryParser(sql, dialect);
@@ -428,6 +443,9 @@ internal sealed class SqlQueryParser
     // SELECT (Lógica já existente, mantida e integrada)
     // ------------------------------------------------------------
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public SqlSelectQuery ParseSelectQuery()
     {
         var ctes = TryParseCtes();
@@ -1792,6 +1810,9 @@ internal sealed class SqlQueryParser
 #pragma warning restore CA1031 // Do not catch general exception types
     }
     // Stub para método que verifica subquery escalar (removido para brevidade, adicione se precisar da validação estrita)
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static SubqueryExpr ParseSubqueryExprOrThrow(
         string sql,
         SqlToken t,

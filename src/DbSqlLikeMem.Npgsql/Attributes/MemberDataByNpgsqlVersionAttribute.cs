@@ -5,16 +5,34 @@ using Xunit.Sdk;
 
 namespace DbSqlLikeMem.Npgsql;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class MemberDataByNpgsqlVersionAttribute(
     string dataMemberName
  ) : DataAttribute
 {
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public int[]? SpecificVersions { get; set; }
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public int? VersionGraterOrEqual { get; set; }
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public int? VersionLessOrEqual { get; set; }
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override IEnumerable<object[]> GetData(MethodInfo testMethod)
     {
         var declaringType = testMethod.DeclaringType

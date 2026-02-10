@@ -1,7 +1,13 @@
 namespace DbSqlLikeMem.Oracle;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public static class OracleAstQueryExecutorRegister
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static void Register()
     {
         if (!AstQueryExecutorFactory.Executors.ContainsKey(OracleDialect.DialectName))

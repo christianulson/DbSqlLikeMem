@@ -1,5 +1,8 @@
 namespace DbSqlLikeMem.SqlServer.Test.Strategy;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class SqlServerMergeUpsertTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
     /// <summary>
@@ -7,6 +10,9 @@ public sealed class SqlServerMergeUpsertTests(ITestOutputHelper helper) : XUnitT
     /// PT: Testa o comportamento de Merge_ShouldInsert_WhenNotMatched.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Merge_ShouldInsert_WhenNotMatched()
     {
         var db = new SqlServerDbMock();
@@ -38,6 +44,9 @@ WHEN NOT MATCHED THEN
     /// PT: Testa o comportamento de Merge_ShouldUpdate_WhenMatched.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void Merge_ShouldUpdate_WhenMatched()
     {
         var db = new SqlServerDbMock();

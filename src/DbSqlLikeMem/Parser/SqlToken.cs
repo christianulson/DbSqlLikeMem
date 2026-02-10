@@ -17,6 +17,12 @@ internal enum SqlTokenKind
 
 internal readonly record struct SqlToken(SqlTokenKind Kind, string Text, int Position)
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static readonly SqlToken EOF = new(SqlTokenKind.EndOfFile, "<EOF>", -1);
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override string ToString() => $"{Kind}: {Text} @{Position}";
 }

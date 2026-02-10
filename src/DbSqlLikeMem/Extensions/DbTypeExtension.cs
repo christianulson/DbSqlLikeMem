@@ -1,6 +1,12 @@
 namespace DbSqlLikeMem;
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public static class DbTypeExtension
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static Type ConvertDbTypeToType(
         this DbType dbType)
         => dbType switch
@@ -27,6 +33,9 @@ public static class DbTypeExtension
             _ => throw new ArgumentException("Unsupported DbType", nameof(dbType)),
         };
 
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static DbType ConvertTypeToDbType(
         this Type type)
         => type switch

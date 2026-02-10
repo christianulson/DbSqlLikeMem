@@ -1,4 +1,7 @@
 namespace DbSqlLikeMem.SqlServer.Test.Strategy;
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class SqlServerInsertStrategyExtrasTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
@@ -8,6 +11,9 @@ public sealed class SqlServerInsertStrategyExtrasTests(
     /// PT: Testa o comportamento de MultiRowInsertShouldAddAllRows.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void MultiRowInsertShouldAddAllRows()
     {
         // Arrange
@@ -35,6 +41,9 @@ public sealed class SqlServerInsertStrategyExtrasTests(
     /// PT: Testa o comportamento de InsertWithDefaultValueAndIdentityShouldApplyDefaults.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void InsertWithDefaultValueAndIdentityShouldApplyDefaults()
     {
         // Arrange
@@ -66,6 +75,9 @@ public sealed class SqlServerInsertStrategyExtrasTests(
     /// PT: Testa o comportamento de InsertDuplicatePrimaryKeyShouldThrow.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void InsertDuplicatePrimaryKeyShouldThrow()
     {
         // Arrange
@@ -97,6 +109,9 @@ public class SqlServerDeleteStrategyForeignKeyTests
     /// PT: Testa o comportamento de DeleteReferencedRowShouldThrow.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void DeleteReferencedRowShouldThrow()
     {
         // Arrange parent
@@ -136,6 +151,9 @@ public class SqlServerUpdateStrategyExtrasTests
     /// PT: Testa o comportamento de UpdateMultipleConditionsShouldOnlyAffectMatchingRows.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void UpdateMultipleConditionsShouldOnlyAffectMatchingRows()
     {
         // Arrange

@@ -1,4 +1,7 @@
 namespace DbSqlLikeMem.SqlServer.Test.Strategy;
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class SqlServerInsertStrategyTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
@@ -8,6 +11,9 @@ public sealed class SqlServerInsertStrategyTests(
     /// PT: Testa o comportamento de InsertIntoTableShouldAddNewRow.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void InsertIntoTableShouldAddNewRow()
     {
         // Arrange

@@ -1,5 +1,8 @@
 namespace DbSqlLikeMem.Oracle.Test.TemporaryTable;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class OracleTemporaryTableEngineTests
 {
     private static readonly int[] expected = [1, 2];
@@ -9,6 +12,9 @@ public sealed class OracleTemporaryTableEngineTests
     /// PT: Testa o comportamento de CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows()
     {
         var db = new OracleDbMock();

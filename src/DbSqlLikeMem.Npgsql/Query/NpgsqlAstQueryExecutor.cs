@@ -1,7 +1,13 @@
 namespace DbSqlLikeMem.Npgsql;
 
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public static class NpgsqlAstQueryExecutorRegister
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static void Register()
     {
         if (!AstQueryExecutorFactory.Executors.ContainsKey(NpgsqlDialect.DialectName))
@@ -22,6 +28,9 @@ internal sealed class NpgsqlAstQueryExecutor(
     IDataParameterCollection pars
     ) : AstQueryExecutorBase(cnn, pars, cnn.Db.Dialect)
 {
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     protected override SqlExpr MapJsonAccess(JsonAccessExpr ja)
     {
         var pathExpr = ja.Path;

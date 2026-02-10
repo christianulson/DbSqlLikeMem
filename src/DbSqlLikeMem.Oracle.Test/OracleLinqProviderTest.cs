@@ -1,10 +1,19 @@
 namespace DbSqlLikeMem.Oracle.Test;
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
 public sealed class OracleLinqProviderTest
 {
 #pragma warning disable CA1812
     private sealed class User
     {
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public int Id { get; set; }
+        /// <summary>
+        /// Auto-generated summary.
+        /// </summary>
         public string Name { get; set; } = "";
     }
 #pragma warning restore CA1812
@@ -14,6 +23,9 @@ public sealed class OracleLinqProviderTest
     /// PT: Testa o comportamento de LinqProvider_ShouldQueryWhereAndReturnRows.
     /// </summary>
     [Fact]
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public void LinqProvider_ShouldQueryWhereAndReturnRows()
     {
         var db = new OracleDbMock();
