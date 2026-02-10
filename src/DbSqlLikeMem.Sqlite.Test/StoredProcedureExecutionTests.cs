@@ -9,15 +9,23 @@ public sealed class StoredProcedureExecutionTests(
 {
     // helper: cria parâmetro SQLite do seu mock (ajuste o tipo se necessário)
     private static SqliteParameter P(string name, object? value, DbType dbType, ParameterDirection dir = ParameterDirection.Input)
-        => new()
+    {
+        var parameter = new SqliteParameter
         {
             ParameterName = name.StartsWith('@')
                 ? name
                 : "@" + name,
             Value = value ?? DBNull.Value,
             DbType = dbType,
-            Direction = dir
         };
+
+        // Microsoft.Data.Sqlite does not support Output/InputOutput directions.
+        // For SQLite mock tests, OUT validation is done by parameter presence.
+        if (dir == ParameterDirection.Input)
+            parameter.Direction = dir;
+
+        return parameter;
+    }
 
     /// <summary>
     /// EN: Tests ExecuteNonQuery_StoredProcedure_ShouldValidateRequiredInputs behavior.
