@@ -1,0 +1,37 @@
+﻿namespace DbSqlLikeMem.Db2.Test.Strategy;
+/// <summary>
+/// Auto-generated summary.
+/// </summary>
+public sealed class Db2InsertStrategyTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
+{
+    /// <summary>
+    /// EN: Tests InsertIntoTableShouldAddNewRow behavior.
+    /// PT: Testa o comportamento de InsertIntoTableShouldAddNewRow.
+    /// </summary>
+    [Fact]
+    public void InsertIntoTableShouldAddNewRow()
+    {
+        // Arrange
+        var db = new Db2DbMock();
+        var table = db.AddTable("users");
+        table.Columns["id"] = new(0, DbType.Int32, false);
+        table.Columns["name"] = new(1, DbType.String, false);
+
+        using var connection = new Db2ConnectionMock(db);
+        using var command = new Db2CommandMock(connection)
+        {
+            CommandText = "INSERT INTO users (id, name) VALUES (1, 'John Doe')"
+        };
+
+        // Act
+        var rowsAffected = command.ExecuteNonQuery();
+
+        // Assert
+        Assert.Equal(1, rowsAffected);
+        Assert.Single(table);
+        Assert.Equal(1, table[0][0]);
+        Assert.Equal("John Doe", table[0][1]);
+    }
+}
