@@ -130,7 +130,7 @@ public class MySqlCommandMock(
             return ExecuteDropView(sqlRaw);
         }
 
-        if (IsDeleteMissingFrom(sqlRaw))
+        if (!connection.Db.Dialect.SupportsDeleteWithoutFrom && IsDeleteMissingFrom(sqlRaw))
             throw new InvalidOperationException("Invalid DELETE statement: expected FROM keyword.");
 
         // 3. Parse via AST para comandos DML (Insert, Update, Delete)
