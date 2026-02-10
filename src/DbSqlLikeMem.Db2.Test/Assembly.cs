@@ -1,4 +1,6 @@
-﻿using System.Runtime.CompilerServices;
+﻿using Dapper;
+using System.Data;
+using System.Runtime.CompilerServices;
 
 internal static class TestBootstrap
 {
@@ -6,5 +8,6 @@ internal static class TestBootstrap
     internal static void Init()
     {
         Db2AstQueryExecutorRegister.Register();
+        SqlMapper.AddTypeMap(typeof(Guid), DbType.String);
     }
 }
