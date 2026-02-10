@@ -3,7 +3,8 @@
 	<PropertyGroup>
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
-		<TargetFramework>net10.0</TargetFramework>
+		<TargetFramework>net8.0</TargetFramework>
+		<PlatformTarget>x64</PlatformTarget>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -22,17 +23,17 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\DbSqlLikeMem.SqlServer\DbSqlLikeMem.SqlServer.csproj" />
-		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.Db2\DbSqlLikeMem.Db2.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.net80.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<Using Include="Dapper" />
 		<Using Include="DbSqlLikeMem" />
-		<Using Include="DbSqlLikeMem.SqlServer" />
+		<Using Include="DbSqlLikeMem.Db2" />
 		<Using Include="DbSqlLikeMem.Test" />
 		<Using Include="FluentAssertions" />
-		<Using Include="Microsoft.Data.SqlClient" />
+		<Using Include="IBM.Data.Db2" />
 		<Using Include="System.Data" />
 		<Using Include="System.Globalization" />
 		<Using Include="Xunit.Abstractions" />
