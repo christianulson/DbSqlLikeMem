@@ -77,7 +77,7 @@ internal sealed class OracleDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsDeleteTargetAlias => false;
+    public override bool SupportsDeleteTargetAlias => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
