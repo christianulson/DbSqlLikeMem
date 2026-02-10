@@ -74,11 +74,11 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsDeleteWithoutFrom => true;
+    public override bool SupportsDeleteWithoutFrom => false;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsDeleteTargetAlias => true;
+    public override bool SupportsDeleteTargetAlias => false;
 
     /// <summary>
     /// Auto-generated summary.
