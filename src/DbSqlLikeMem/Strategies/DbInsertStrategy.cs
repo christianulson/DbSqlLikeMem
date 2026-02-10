@@ -281,8 +281,12 @@ internal static class DbInsertStrategy
             {
                 LiteralExpr lit => lit.Value,
                 ParameterExpr p => GetParamValue(p.Name),
-                IdentifierExpr id => GetExistingColumnValue(id.Name.Contains('.') ? id.Name.Split('.').Last() : id.Name),
-                ColumnExpr c => GetExistingColumnValue(c.Name),
+                IdentifierExpr id => TryGetExcludedValueFromName(id.Name, out var excluded)
+                    ? excluded
+                    : GetExistingColumnValue(id.Name.Contains('.') ? id.Name.Split('.').Last() : id.Name),
+                ColumnExpr c => string.Equals(c.Qualifier, "excluded", StringComparison.OrdinalIgnoreCase)
+                    ? GetInsertedColumnValue(c.Name)
+                    : GetExistingColumnValue(c.Name),
                 UnaryExpr u when u.Op == SqlUnaryOp.Not => !(Convert.ToBoolean(Eval(u.Expr) ?? false)),
                 IsNullExpr n => (Eval(n.Expr) is null) ^ n.Negated,
                 BinaryExpr b => b.Op switch
@@ -302,6 +306,22 @@ internal static class DbInsertStrategy
                 RawSqlExpr raw => throw new InvalidOperationException($"Expressão não suportada no ON DUPLICATE: {raw.Sql}"),
                 _ => throw new InvalidOperationException($"Expressão não suportada no ON DUPLICATE: {expr.GetType().Name}")
             };
+        }
+
+        bool TryGetExcludedValueFromName(string rawName, out object? value)
+        {
+            value = null;
+            if (string.IsNullOrWhiteSpace(rawName))
+                return false;
+
+            var parts = rawName.Split('.', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (parts.Length == 2 && string.Equals(parts[0], "excluded", StringComparison.OrdinalIgnoreCase))
+            {
+                value = GetInsertedColumnValue(parts[1]);
+                return true;
+            }
+
+            return false;
         }
 
         object? EvalFunction(FunctionCallExpr fn)

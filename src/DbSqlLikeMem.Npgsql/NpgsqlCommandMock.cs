@@ -83,8 +83,8 @@ public class NpgsqlCommandMock(
         return query switch
         {
             SqlInsertQuery insertQ => connection.ExecuteInsert(insertQ, Parameters, connection.Db.Dialect),
-            SqlUpdateQuery updateQ => connection.ExecuteUpdate(updateQ, Parameters),
-            SqlDeleteQuery deleteQ => connection.ExecuteDelete(deleteQ, Parameters),
+            SqlUpdateQuery updateQ => connection.ExecuteUpdateSmart(updateQ, Parameters, connection.Db.Dialect),
+            SqlDeleteQuery deleteQ => connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect),
             SqlCreateTemporaryTableQuery tempQ => connection.ExecuteCreateTemporaryTableAsSelect(tempQ, Parameters, connection.Db.Dialect),
             SqlCreateViewQuery viewQ => connection.ExecuteCreateView(viewQ, Parameters, connection.Db.Dialect),
             SqlSelectQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT."),
@@ -141,10 +141,10 @@ public class NpgsqlCommandMock(
                     connection.ExecuteInsert(insertQ, Parameters, connection.Db.Dialect);
                     break;
                 case SqlUpdateQuery updateQ:
-                    connection.ExecuteUpdate(updateQ, Parameters);
+                    connection.ExecuteUpdateSmart(updateQ, Parameters, connection.Db.Dialect);
                     break;
                 case SqlDeleteQuery deleteQ:
-                    connection.ExecuteDelete(deleteQ, Parameters);
+                    connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect);
                     break;
                 case SqlCreateTemporaryTableQuery tempQ:
                     connection.ExecuteCreateTemporaryTableAsSelect(tempQ, Parameters, connection.Db.Dialect);
