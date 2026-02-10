@@ -278,11 +278,11 @@ public abstract class DbConnectionMockBase(
             out vw,
             schemaName ?? Database);
 
-    internal bool RemoveView(
+    internal void DropView(
         string viewName,
-        bool ifExists = false,
+        bool ifExists,
         string? schemaName = null)
-        => Db.RemoveView(
+        => Db.DropView(
             viewName,
             ifExists,
             schemaName ?? Database);

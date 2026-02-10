@@ -44,6 +44,8 @@ internal sealed class SqlQueryParser
             result = q.ParseDelete();
         else if (IsWord(first, "CREATE"))
             result = q.ParseCreate();
+        else if (IsWord(first, "DROP"))
+            result = q.ParseDrop();
         else if (IsWord(first, "MERGE"))
         {
             // Para MySQL, MERGE simplesmente não existe (é sintaxe inválida para o dialeto).
@@ -779,6 +781,32 @@ internal sealed class SqlQueryParser
             Table = viewName,
             ColumnNames = colNames,
             Select = sel
+        };
+    }
+
+    private SqlQueryBase ParseDrop()
+    {
+        ExpectWord("DROP");
+
+        if (!IsWord(Peek(), "VIEW"))
+            throw new InvalidOperationException("Apenas DROP VIEW é suportado no mock no momento.");
+
+        Consume(); // VIEW
+
+        var ifExists = false;
+        if (IsWord(Peek(), "IF"))
+        {
+            Consume(); // IF
+            ExpectWord("EXISTS");
+            ifExists = true;
+        }
+
+        var viewName = ParseTableSource();
+
+        return new SqlDropViewQuery
+        {
+            IfExists = ifExists,
+            Table = viewName
         };
     }
 

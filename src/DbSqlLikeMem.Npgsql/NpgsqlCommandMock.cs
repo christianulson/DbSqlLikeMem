@@ -109,6 +109,7 @@ public class NpgsqlCommandMock(
             SqlDeleteQuery deleteQ => connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect),
             SqlCreateTemporaryTableQuery tempQ => connection.ExecuteCreateTemporaryTableAsSelect(tempQ, Parameters, connection.Db.Dialect),
             SqlCreateViewQuery viewQ => connection.ExecuteCreateView(viewQ, Parameters, connection.Db.Dialect),
+            SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect),
             SqlSelectQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT."),
             _ => throw new NotSupportedException($"Tipo de query não suportado em ExecuteNonQuery: {query.GetType().Name}")
         };
@@ -173,6 +174,9 @@ public class NpgsqlCommandMock(
                     break;
                 case SqlCreateViewQuery viewQ:
                     connection.ExecuteCreateView(viewQ, Parameters, connection.Db.Dialect);
+                    break;
+                case SqlDropViewQuery dropViewQ:
+                    connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect);
                     break;
                 default:
                     throw new NotSupportedException($"Tipo de query não suportado em ExecuteReader: {query.GetType().Name}");
