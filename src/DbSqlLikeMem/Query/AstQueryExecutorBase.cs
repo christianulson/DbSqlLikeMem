@@ -1627,8 +1627,9 @@ internal abstract class AstQueryExecutorBase(
         }
 
 
-        // JSON_EXTRACT(json, '$.path')  (best-effort)
-        if (fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase))
+        // JSON_EXTRACT(json, '$.path') / JSON_VALUE(json, '$.path') (best-effort)
+        if (fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase))
         {
             object? json = EvalArg(0);
             var path = EvalArg(1)?.ToString();
@@ -1638,35 +1639,7 @@ internal abstract class AstQueryExecutorBase(
 
             try
             {
-                var jsonStr = json!.ToString() ?? "";
-                using var doc = System.Text.Json.JsonDocument.Parse(jsonStr);
-
-                // suporta só "$.a.b" e "$.a" (suficiente pro corpus)
-                if (!path.StartsWith("$.", StringComparison.Ordinal))
-                    return null;
-
-                var cur = doc.RootElement;
-                var segs = path[2..].Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                foreach (var s in segs)
-                {
-                    if (cur.ValueKind != System.Text.Json.JsonValueKind.Object)
-                        return null;
-
-                    if (!cur.TryGetProperty(s.Trim('"'), out var next))
-                        return null;
-
-                    cur = next;
-                }
-
-                return cur.ValueKind switch
-                {
-                    System.Text.Json.JsonValueKind.String => cur.GetString(),
-                    System.Text.Json.JsonValueKind.Number => cur.TryGetInt64(out var li) ? li : cur.GetDecimal(),
-                    System.Text.Json.JsonValueKind.True => true,
-                    System.Text.Json.JsonValueKind.False => false,
-                    System.Text.Json.JsonValueKind.Null => null,
-                    _ => cur.ToString()
-                };
+                return TryReadJsonPathValue(json!, path);
             }
 #pragma warning disable CA1031
             catch (Exception e)
@@ -1980,6 +1953,39 @@ internal abstract class AstQueryExecutorBase(
         return null;
 
         object? EvalArg(int i) => i < fn.Args.Count ? Eval(fn.Args[i], row, group, ctes) : null;
+    }
+
+    private static object? TryReadJsonPathValue(object json, string path)
+    {
+        var jsonStr = json.ToString() ?? "";
+        using var doc = System.Text.Json.JsonDocument.Parse(jsonStr);
+
+        // suporta só "$.a.b" e "$.a" (suficiente pro corpus)
+        if (!path.StartsWith("$.", StringComparison.Ordinal))
+            return null;
+
+        var cur = doc.RootElement;
+        var segs = path[2..].Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (var s in segs)
+        {
+            if (cur.ValueKind != System.Text.Json.JsonValueKind.Object)
+                return null;
+
+            if (!cur.TryGetProperty(s.Trim('"'), out var next))
+                return null;
+
+            cur = next;
+        }
+
+        return cur.ValueKind switch
+        {
+            System.Text.Json.JsonValueKind.String => cur.GetString(),
+            System.Text.Json.JsonValueKind.Number => cur.TryGetInt64(out var li) ? li : cur.GetDecimal(),
+            System.Text.Json.JsonValueKind.True => true,
+            System.Text.Json.JsonValueKind.False => false,
+            System.Text.Json.JsonValueKind.Null => null,
+            _ => cur.ToString()
+        };
     }
 
     private string GetDateAddUnit(
