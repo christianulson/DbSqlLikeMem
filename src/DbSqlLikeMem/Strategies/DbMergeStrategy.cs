@@ -1,7 +1,3 @@
-using System.Globalization;
-using System.Text.RegularExpressions;
-using System.Linq;
-
 namespace DbSqlLikeMem;
 
 internal static class DbMergeStrategy

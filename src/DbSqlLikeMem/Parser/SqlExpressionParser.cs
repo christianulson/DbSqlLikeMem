@@ -370,7 +370,6 @@ internal sealed class SqlExpressionParser(
             return false;
 
         const int lbp = 130;
-        const int rbp = 131;
         if (lbp < minBp) return false;
 
         Consume(); // ::

@@ -123,7 +123,7 @@ public class SqlServerCommandMock(
         if (sql.Contains("UNION", StringComparison.OrdinalIgnoreCase) && !sql.Contains(';', StringComparison.Ordinal))
         {
             var chain = SqlQueryParser.ParseUnionChain(sql, connection.Db.Dialect);
-            var unionTable = executor.ExecuteUnion(chain.Parts.Cast<SqlSelectQuery>().ToList(), chain.AllFlags, sql);
+            var unionTable = executor.ExecuteUnion([.. chain.Parts.Cast<SqlSelectQuery>()], chain.AllFlags, sql);
             connection.Metrics.Selects += unionTable.Count;
             return new SqlServerDataReaderMock([unionTable]);
         }

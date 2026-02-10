@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Concurrent;
-using System.Text.RegularExpressions;
 
 namespace DbSqlLikeMem;
 
@@ -63,22 +62,19 @@ public abstract class TableMock
     /// </summary>
     public HashSet<int> PrimaryKeyIndexes { get; } = [];
 
-#pragma warning disable CA1002 // Do not expose generic lists
+
     private readonly List<(string Col, string RefTable, string RefCol)> _foreignKeys = [];
     /// <summary>
     /// EN: List of foreign keys defined in the table.
     /// PT: Lista de chaves estrangeiras definidas na tabela.
     /// </summary>
     public IReadOnlyList<(string Col, string RefTable, string RefCol)> ForeignKeys => _foreignKeys;
-#pragma warning restore CA1002 // Do not expose generic lists
 
-#pragma warning disable CA1002 // Do not expose generic lists
     /// <summary>
     /// EN: Indexes declared on the table.
     /// PT: Índices declarados na tabela.
     /// </summary>
     public IndexDictionary Indexes { get; } = [];
-#pragma warning restore CA1002 // Do not expose generic lists
 
     // nome-do-índice → chave-derivada(string) → posições (List<int>)
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, List<int>>> _ix
@@ -95,7 +91,7 @@ public abstract class TableMock
         var normalized = columnName.NormalizeName();
         if (!Columns.TryGetValue(normalized, out var info))
         {
-            var dotIndex = normalized.LastIndexOf('.', StringComparison.Ordinal);
+            var dotIndex = normalized.LastIndexOf('.');
             if (dotIndex >= 0 && dotIndex + 1 < normalized.Length)
                 normalized = normalized[(dotIndex + 1)..];
         }
@@ -215,7 +211,7 @@ public abstract class TableMock
     /// PT: Adiciona linhas já materializadas.
     /// </summary>
     /// <param name="items">EN: Rows to insert. PT: Linhas a inserir.</param>
-    public new void AddRange(IEnumerable<Dictionary<int, object?>> items)
+    public void AddRange(IEnumerable<Dictionary<int, object?>> items)
     {
         ArgumentNullException.ThrowIfNull(items);
         foreach (var item in items)
@@ -467,7 +463,8 @@ public abstract class TableMock
 
                 IEnumerable<object?> candidates;
 
-                if (rhs.StartsWith("(", StringComparison.Ordinal) && rhs.EndsWith(")", StringComparison.Ordinal))
+                if (rhs.StartsWith('(')
+                && rhs.EndsWith(')'))
                 {
                     var inner = rhs[1..^1];
                     var parts = inner.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
