@@ -38,7 +38,7 @@ public sealed class OracleMockTests
         };
         var rowsAffected = command.ExecuteNonQuery();
         Assert.Equal(1, rowsAffected);
-        Assert.Equal("John Doe",_connection.GetTable("user")[0][1]);
+        Assert.Equal("John Doe",_connection.GetTable("Users")[0][1]);
     }
 
     /// <summary>
@@ -57,7 +57,7 @@ public sealed class OracleMockTests
         command.CommandText = "UPDATE Users SET Name = 'Jane Doe' WHERE Id = 1";
         var rowsAffected = command.ExecuteNonQuery();
         Assert.Equal(1, rowsAffected);
-        Assert.Equal("Jane Doe",_connection.GetTable("user")[0][1]);
+        Assert.Equal("Jane Doe",_connection.GetTable("Users")[0][1]);
     }
 
     /// <summary>
@@ -76,7 +76,7 @@ public sealed class OracleMockTests
         command.CommandText = "DELETE FROM Users WHERE Id = 1";
         var rowsAffected = command.ExecuteNonQuery();
         Assert.Equal(1, rowsAffected);
-        Assert.Empty(_connection.GetTable("user"));
+        Assert.Empty(_connection.GetTable("Users"));
     }
 
     /// <summary>
