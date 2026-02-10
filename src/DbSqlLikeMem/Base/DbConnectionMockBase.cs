@@ -41,9 +41,7 @@ public abstract class DbConnectionMockBase(
     /// EN: Simulated connection string.
     /// PT: String de conexão simulada.
     /// </summary>
-    #if !NET48
     [AllowNull]
-#endif
     public override string ConnectionString { get; set; } = "";
 
     /// <summary>
@@ -449,7 +447,7 @@ public abstract class DbConnectionMockBase(
     internal void MaybeDelayOrDrop()
     {
 #pragma warning disable CA5394 // Do not use insecure randomness
-        if (DropProbability > 0 && Random.Shared.NextDouble() < DropProbability)
+        if (DropProbability > 0 && new Random().NextDouble() < DropProbability)
             throw new IOException("Simulated network drop");
 #pragma warning restore CA5394 // Do not use insecure randomness
 

@@ -3,7 +3,7 @@
 		<Description>In-memory SQL-like database engine for unit tests.</Description>
 	</PropertyGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net48' Or '$(TargetFramework)' == 'net6.0'">
+	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1' Or '$(TargetFramework)' == 'net48' Or '$(TargetFramework)' == 'net6.0'">
 		<PackageReference Include="Dapper" Version="2.1.35" />
 	</ItemGroup>
 

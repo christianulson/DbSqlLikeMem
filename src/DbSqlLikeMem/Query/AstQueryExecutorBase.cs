@@ -166,28 +166,28 @@ internal abstract class AstQueryExecutorBase(
         => ExecuteSelect(q, null, null);
 
     private TableResultMock ExecuteSelect(
-        SqlSelectQuery q,
+        SqlSelectQuery selectQuery,
         IDictionary<string, Source>? inheritedCtes,
         EvalRow? outerRow)
     {
-        ArgumentNullException.ThrowIfNull(q);
+        ArgumentNullExceptionCompatible.ThrowIfNull(selectQuery, nameof(selectQuery));
 
         // 0) Build CTE materializations (simple: materialize each CTE into a temp source)
         var ctes = inheritedCtes is null
             ? new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase)
             : new Dictionary<string, Source>(inheritedCtes, StringComparer.OrdinalIgnoreCase);
 
-        foreach (var cte in q.Ctes)
+        foreach (var cte in selectQuery.Ctes)
         {
             var res = ExecuteSelect(cte.Query, ctes, outerRow);
             ctes[cte.Name] = Source.FromResult(cte.Name, res);
         }
 
         // 1) FROM
-        var rows = BuildFrom(q.Table, ctes);
+        var rows = BuildFrom(selectQuery.Table, ctes);
 
         // 2) JOINS
-        foreach (var j in q.Joins)
+        foreach (var j in selectQuery.Joins)
             rows = ApplyJoin(rows, j, ctes);
 
         // 2.5) Correlated subquery: expose outer row fields/sources to subquery evaluation (EXISTS, IN subselect, etc.)
@@ -195,24 +195,24 @@ internal abstract class AstQueryExecutorBase(
             rows = rows.Select(r => AttachOuterRow(r, outerRow));
 
         // 3) WHERE
-        if (q.Where is not null)
-            rows = rows.Where(r => Eval(q.Where, r, group: null, ctes).ToBool());
+        if (selectQuery.Where is not null)
+            rows = rows.Where(r => Eval(selectQuery.Where, r, group: null, ctes).ToBool());
 
         // 4) GROUP BY / HAVING / SELECT projection
-        bool needsGrouping = q.GroupBy.Count > 0 || ContainsAggregate(q);
+        bool needsGrouping = selectQuery.GroupBy.Count > 0 || ContainsAggregate(selectQuery);
 
         if (needsGrouping)
-            return ExecuteGroup(q, ctes, rows);
+            return ExecuteGroup(selectQuery, ctes, rows);
 
         // 5) Project non-grouped
-        var projected = ProjectRows(q, [.. rows], ctes);
+        var projected = ProjectRows(selectQuery, [.. rows], ctes);
 
         // 6) DISTINCT
-        if (q.Distinct)
+        if (selectQuery.Distinct)
             projected = ApplyDistinct(projected);
 
         // 7) ORDER BY / LIMIT
-        projected = ApplyOrderAndLimit(projected, q, ctes);
+        projected = ApplyOrderAndLimit(projected, selectQuery, ctes);
         return projected;
     }
 
@@ -301,8 +301,8 @@ internal abstract class AstQueryExecutorBase(
         foreach (var r in src.Rows())
         {
             var fields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-            foreach (var (k, v) in r)
-                fields[k] = v;
+            foreach (var it in r)
+                fields[it.Key] = it.Value;
 
             var sources = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase)
             {
@@ -1592,7 +1592,7 @@ internal abstract class AstQueryExecutorBase(
         {
             var needle = EvalArg(0)?.ToString() ?? "";
             var hay = EvalArg(1)?.ToString() ?? "";
-            var parts = hay.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var parts = hay.Split(',').Select(_=>_.Trim()).ToArray();
             var idx = Array.FindIndex(parts, p => string.Equals(p, needle, StringComparison.OrdinalIgnoreCase));
             return idx >= 0 ? idx + 1 : 0;
         }
@@ -1989,7 +1989,7 @@ internal abstract class AstQueryExecutorBase(
             return null;
 
         var cur = doc.RootElement;
-        var segs = path[2..].Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var segs = path[2..].Split('.').Select(_=>_.Trim()).ToArray();
         foreach (var s in segs)
         {
             if (cur.ValueKind != System.Text.Json.JsonValueKind.Object)
@@ -2073,8 +2073,8 @@ internal abstract class AstQueryExecutorBase(
             return null;
 
         raw = raw.Trim();
-        if (raw.Contains('\\', StringComparison.Ordinal))
-            raw = raw.Replace("\\", string.Empty, StringComparison.Ordinal);
+        if (raw.Contains('\\'))
+            raw = raw.Replace("\\", string.Empty);
 
         var match = Regex.Match(raw, @"^(?<num>-?\d+(?:\.\d+)?)\s*(?<unit>[a-zA-Z]+)$");
         if (!match.Success)
@@ -2324,7 +2324,7 @@ internal abstract class AstQueryExecutorBase(
         EvalRow row)
     {
         // "a.b"
-        var dot = name.IndexOf('.', StringComparison.OrdinalIgnoreCase);
+        var dot = name.IndexOf('.');
         if (dot >= 0)
             return ResolveColumn(name[..dot], name[(dot + 1)..], row);
 
@@ -2384,7 +2384,7 @@ internal abstract class AstQueryExecutorBase(
         qualifier = qualifier.NormalizeName();
 
         // se vier db.table, pega o "table"
-        var lastQual = qualifier.Contains('.', StringComparison.OrdinalIgnoreCase)
+        var lastQual = qualifier.Contains('.')
             ? qualifier.Split('.').Last()
             : qualifier;
 
@@ -2591,18 +2591,18 @@ internal abstract class AstQueryExecutorBase(
         /// </summary>
         public void AddFields(Dictionary<string, object?> fields)
         {
-            foreach (var (k, v) in fields)
-                Fields[k] = v;
+            foreach (var it in fields)
+                Fields[it.Key] = it.Value;
 
             // also expose unqualified columns (first wins) for convenience
-            foreach (var (k, v) in fields)
+            foreach (var it in fields)
             {
-                var dot = k.IndexOf('.', StringComparison.OrdinalIgnoreCase);
+                var dot = it.Key.IndexOf('.');
                 if (dot > 0)
                 {
-                    var col = k[(dot + 1)..];
+                    var col = it.Key[(dot + 1)..];
                     if (!Fields.ContainsKey(col))
-                        Fields[col] = v;
+                        Fields[col] = it.Value;
                 }
             }
         }
@@ -2616,29 +2616,29 @@ internal abstract class AstQueryExecutorBase(
         var merged = inner.CloneRow();
 
         // 1) Fields do outer entram só se não existirem no inner
-        foreach (var (k, v) in outer.Fields)
+        foreach (var it in outer.Fields)
         {
-            if (!merged.Fields.ContainsKey(k))
-                merged.Fields[k] = v;
+            if (!merged.Fields.ContainsKey(it.Key))
+                merged.Fields[it.Key] = it.Value;
         }
 
         // 2) Também expõe colunas não qualificadas do outer (sem sobrescrever)
-        foreach (var (k, v) in outer.Fields)
+        foreach (var it in outer.Fields)
         {
-            var dot = k.IndexOf('.', StringComparison.OrdinalIgnoreCase);
+            var dot = it.Key.IndexOf('.');
             if (dot > 0)
             {
-                var col = k[(dot + 1)..];
+                var col = it.Key[(dot + 1)..];
                 if (!merged.Fields.ContainsKey(col))
-                    merged.Fields[col] = v;
+                    merged.Fields[col] = it.Value;
             }
         }
 
         // 3) Sources: não sobrescreve alias do inner
-        foreach (var (alias, src) in outer.Sources)
+        foreach (var it in outer.Sources)
         {
-            if (!merged.Sources.ContainsKey(alias))
-                merged.Sources[alias] = src;
+            if (!merged.Sources.ContainsKey(it.Key))
+                merged.Sources[it.Key] = it.Value;
         }
 
         return merged;

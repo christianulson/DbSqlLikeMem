@@ -65,8 +65,8 @@ public static class DbTypeParser
     private static string Unquote(string value)
     {
         if (value.Length >= 2 &&
-            ((value.StartsWith('\'') && value.EndsWith('\'')) ||
-             (value.StartsWith('"') && value.EndsWith('"'))))
+            ((value.StartsWith("'") && value.EndsWith("'")) ||
+             (value.StartsWith("\"") && value.EndsWith("\""))))
         {
             return value[1..^1];
         }

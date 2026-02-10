@@ -15,7 +15,7 @@ public static class DbSeedExtensions
         IEnumerable<Dictionary<int, object?>>? rows = null,
         string? schemaName = null)
     {
-        ArgumentNullException.ThrowIfNull(cnn);
+        ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
         if (!cnn.Db.ContainsTable(tableName, schemaName))
             cnn.Db.AddTable(tableName, columns, rows);
 
@@ -32,11 +32,11 @@ public static class DbSeedExtensions
         IEnumerable<Dictionary<int, object?>>? rows = null,
         string? schemaName = null)
     {
-        ArgumentNullException.ThrowIfNull(cnn);
+        ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
         if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName))
             tb = cnn.Db.AddTable(tableName, columns, rows);
-        ArgumentNullException.ThrowIfNull(tb);
-        return tb;
+        ArgumentNullExceptionCompatible.ThrowIfNull(tb, nameof(tb));
+        return tb!;
     }
 
     /// <summary>
@@ -55,14 +55,14 @@ public static class DbSeedExtensions
         int? decimalPlaces = null,
         string? schemaName = null)
     {
-        ArgumentNullException.ThrowIfNull(cnn);
+        ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
 
         if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName))
             throw new InvalidOperationException($"Tabela '{tableName}' ainda não definida.");
-        ArgumentNullException.ThrowIfNull(tb);
-        ArgumentNullException.ThrowIfNull(column);
+        ArgumentNullExceptionCompatible.ThrowIfNull(tb, nameof(tb));
+        ArgumentNullExceptionCompatible.ThrowIfNull(column, nameof(column));
 
-        if (tb.Columns.ContainsKey(column))
+        if (tb!.Columns.ContainsKey(column))
             throw new InvalidOperationException($"Coluna '{column}' já existe em '{tableName}'.");
 
         var idx = tb.Columns.Count;
@@ -105,8 +105,8 @@ public static class DbSeedExtensions
         int? decimalPlaces = null,
         params string[] enumOrSetValues)
     {
-        ArgumentNullException.ThrowIfNull(tb);
-        ArgumentNullException.ThrowIfNull(column);
+        ArgumentNullExceptionCompatible.ThrowIfNull(tb, nameof(tb));
+        ArgumentNullExceptionCompatible.ThrowIfNull(column, nameof(column));
 
         if (tb.Columns.ContainsKey(column))
             throw new InvalidOperationException($"Coluna '{column}' já existe em '{tb}'.");
@@ -151,8 +151,8 @@ public static class DbSeedExtensions
         params T[] rows)
         where T : struct
     {
-        ArgumentNullException.ThrowIfNull(cnn);
-        ArgumentNullException.ThrowIfNull(rows);
+        ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
+        ArgumentNullExceptionCompatible.ThrowIfNull(rows, nameof(rows));
         if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName) || tb == null)
             throw new InvalidOperationException($"Tabela '{tableName}' ainda não definida.");
         var props = typeof(T).GetFields();
@@ -178,8 +178,8 @@ public static class DbSeedExtensions
         string? schemaName = null,
         params object?[][] rows)
     {
-        ArgumentNullException.ThrowIfNull(cnn);
-        ArgumentNullException.ThrowIfNull(rows);
+        ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
+        ArgumentNullExceptionCompatible.ThrowIfNull(rows, nameof(rows));
         if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName) || tb == null)
             throw new InvalidOperationException($"Tabela '{tableName}' ainda não definida.");
         foreach (var arr in rows)
@@ -217,7 +217,7 @@ public static class DbSeedExtensions
         string[] keyCols,
         string[]? include = null)
     {
-        ArgumentNullException.ThrowIfNull(tb);
+        ArgumentNullExceptionCompatible.ThrowIfNull(tb, nameof(tb));
         tb.CreateIndex(new IndexDef(name, keyCols, include ?? []));
         return tb;
     }

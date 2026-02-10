@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 
 namespace DbSqlLikeMem;
 
@@ -87,7 +88,7 @@ public abstract class TableMock
     /// </summary>
     public ColumnDef GetColumn(string columnName)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(columnName);
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(columnName, nameof(columnName));
         var normalized = columnName.NormalizeName();
         if (!Columns.TryGetValue(normalized, out var info))
         {
@@ -107,8 +108,8 @@ public abstract class TableMock
     /// <param name="def">EN: Index definition. PT: Definição do índice.</param>
     public void CreateIndex(IndexDef def)
     {
-        ArgumentNullException.ThrowIfNull(def);
-        ArgumentException.ThrowIfNullOrWhiteSpace(def.Name);
+        ArgumentNullExceptionCompatible.ThrowIfNull(def, nameof(def));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(def.Name, nameof(def.Name));
         var name = def.Name.NormalizeName();
         if (Indexes.ContainsKey(name))
             throw new InvalidOperationException($"Índice '{name}' já existe.");
@@ -118,8 +119,8 @@ public abstract class TableMock
 
     internal void RebuildIndex(IndexDef def)
     {
-        ArgumentNullException.ThrowIfNull(def);
-        ArgumentException.ThrowIfNullOrWhiteSpace(def.Name);
+        ArgumentNullExceptionCompatible.ThrowIfNull(def, nameof(def));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(def.Name, nameof(def.Name));
         var name = def.Name.NormalizeName();
         var map = new ConcurrentDictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < Count; i++)
@@ -139,7 +140,7 @@ public abstract class TableMock
     /// <returns>EN: List of positions or null. PT: Lista de posições ou null.</returns>
     public IEnumerable<int>? Lookup(IndexDef def, string key)
     {
-        ArgumentNullException.ThrowIfNull(def);
+        ArgumentNullExceptionCompatible.ThrowIfNull(def, nameof(def));
         return _ix.TryGetValue(def.Name.NormalizeName(), out var map)
             && map.TryGetValue(key.NormalizeName(), out var list)
             ? list
@@ -153,10 +154,10 @@ public abstract class TableMock
     /// <param name="rowIdx">EN: Changed row index. PT: Índice da linha alterada.</param>
     public void UpdateIndexesWithRow(int rowIdx)
     {
-        foreach (var (name, def) in Indexes)
+        foreach (var it in Indexes)
         {
-            var key = BuildIndexKey(def, Items[rowIdx]);
-            _ix[name].AddOrUpdate(key, [rowIdx], (_, list) => { list.Add(rowIdx); return list; });
+            var key = BuildIndexKey(it.Value, Items[rowIdx]);
+            _ix[it.Key].AddOrUpdate(key, [rowIdx], (_, list) => { list.Add(rowIdx); return list; });
         }
     }
 
@@ -174,9 +175,9 @@ public abstract class TableMock
         IndexDef idx,
         IReadOnlyDictionary<int, object?> row)
     {
-        ArgumentNullException.ThrowIfNull(idx);
-        ArgumentNullException.ThrowIfNull(row);
-        return string.Join('|', idx.KeyCols.Select(colName =>
+        ArgumentNullExceptionCompatible.ThrowIfNull(idx, nameof(idx));
+        ArgumentNullExceptionCompatible.ThrowIfNull(row, nameof(row));
+        return string.Join("|", idx.KeyCols.Select(colName =>
         {
             var ci = Columns[colName];
             if (ci.GetGenValue != null)
@@ -204,7 +205,7 @@ public abstract class TableMock
     /// <param name="items">EN: Items to insert. PT: Itens a inserir.</param>
     public void AddRangeItems<T>(IEnumerable<T> items)
     {
-        ArgumentNullException.ThrowIfNull(items);
+        ArgumentNullExceptionCompatible.ThrowIfNull(items, nameof(items));
         foreach (var item in items)
             AddItem(item);
     }
@@ -216,7 +217,7 @@ public abstract class TableMock
     /// <param name="items">EN: Rows to insert. PT: Linhas a inserir.</param>
     public void AddRange(IEnumerable<Dictionary<int, object?>> items)
     {
-        ArgumentNullException.ThrowIfNull(items);
+        ArgumentNullExceptionCompatible.ThrowIfNull(items, nameof(items));
         foreach (var item in items)
             Add(item);
     }
@@ -229,7 +230,7 @@ public abstract class TableMock
     /// <param name="item">EN: Item to insert. PT: Item a inserir.</param>
     public void AddItem<T>(T item)
     {
-        ArgumentNullException.ThrowIfNull(item);
+        ArgumentNullExceptionCompatible.ThrowIfNull(item, nameof(item));
 
         var row = new Dictionary<int, object?>();
 
@@ -280,8 +281,9 @@ public abstract class TableMock
 
     private void ApplyDefaultValues(Dictionary<int, object?> value)
     {
-        foreach (var (key, col) in Columns)
+        foreach (var it in Columns)
         {
+            var col = it.Value;
             if (!value.ContainsKey(col.Index))
                 value[col.Index] = null;
 
@@ -291,7 +293,7 @@ public abstract class TableMock
                 value[col.Index] = col.DefaultValue;
 
             if (!col.Nullable && value[col.Index] == null)
-                throw ColumnCannotBeNull(key);
+                throw ColumnCannotBeNull(it.Key);
         }
     }
 
@@ -432,7 +434,7 @@ public abstract class TableMock
                 continue;
             }
 
-            var kv = s.Split('=', 2);
+            var kv = s.Split('=').Take(2).ToArray();
             if (kv.Length == 2)
             {
                 list.Add((kv[0].Trim(), "=", kv[1].Trim()));
@@ -466,11 +468,13 @@ public abstract class TableMock
 
                 IEnumerable<object?> candidates;
 
-                if (rhs.StartsWith('(')
-                && rhs.EndsWith(')'))
+                if (rhs.StartsWith("(")
+                && rhs.EndsWith(")"))
                 {
                     var inner = rhs[1..^1];
-                    var parts = inner.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    var parts = inner.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(_=>_.Trim())
+                        .ToArray();
 
                     var tmp = new List<object?>();
                     foreach (var part in parts)
@@ -569,7 +573,7 @@ public abstract class TableMock
     /// EN: Backs up current rows.
     /// PT: Faz backup das linhas atuais.
     /// </summary>
-    public void Backup() => _backup = [.. this.Select(row => new Dictionary<int, object?>(row))];
+    public void Backup() => _backup = [.. this.Select(row => row.ToDictionary(_=>_.Key, _=>_.Value))];
 
     /// <summary>
     /// EN: Restores the previous backup, if any.
@@ -664,7 +668,7 @@ public abstract class TableMock
     /// Auto-generated summary.
     /// </summary>
     public IEnumerator<IReadOnlyDictionary<int, object?>> GetEnumerator()
-        => Items.Select(_=> _.AsReadOnly()).ToList().AsReadOnly().GetEnumerator();
+        => Items.Select(_=> new ReadOnlyDictionary<int, object?>(_)).ToList().AsReadOnly().GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator()
         => GetEnumerator();

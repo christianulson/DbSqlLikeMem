@@ -48,15 +48,6 @@ public abstract class DbMock
         CreateSchema("DefaultSchema");
     }
 
-    //protected DbMock(
-    //    IDictionary<string, ISchemaMock>? schemas
-    //    ) : base(StringComparer.OrdinalIgnoreCase)
-    //{
-    //    ArgumentNullException.ThrowIfNull(schemas);
-    //    foreach (var (k, v) in schemas)
-    //        AddTable(k, v);
-    //}
-
     #region Schema
 
     /// <summary>
@@ -91,7 +82,7 @@ public abstract class DbMock
         if (schemaName == null)
         {
             if (Count > 1)
-                throw new Exception($"Existe mais de um Schema ({string.Join(',', this.Keys)}), escolha um e passe como parâmetro");
+                throw new Exception($"Existe mais de um Schema ({string.Join(",", this.Keys)}), escolha um e passe como parâmetro");
             if (Count == 0)
                 throw new Exception("Schema não existe cadastrado");
             schemaName = this.Keys.First();
@@ -201,7 +192,7 @@ public abstract class DbMock
         string tableName,
         string? schemaName = null)
     {
-        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullExceptionCompatible.ThrowIfNull(tableName, nameof(tableName));
         var sc = GetSchemaName(schemaName);
         if (!this[sc].TryGetTable(tableName, out var tb)
             || tb == null)
@@ -222,7 +213,7 @@ public abstract class DbMock
         out ITableMock? tb,
         string? schemaName = null)
     {
-        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullExceptionCompatible.ThrowIfNull(tableName, nameof(tableName));
         var sc = GetSchemaName(schemaName);
         return this[sc].TryGetTable(tableName, out tb)
             && tb != null;
@@ -239,7 +230,7 @@ public abstract class DbMock
         string tableName,
         string? schemaName = null)
     {
-        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullExceptionCompatible.ThrowIfNull(tableName, nameof(tableName));
         var sc = GetSchemaName(schemaName);
         return this[sc].TryGetTable(tableName, out var tb)
             && tb != null;
@@ -261,7 +252,7 @@ public abstract class DbMock
         string? schemaName = null)
     {
         var name = query.Table?.Name?.NormalizeName();
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(name, nameof(name));
 
         var sc = GetSchemaName(schemaName);
         var schema = (SchemaMock)this[sc];
@@ -290,7 +281,7 @@ public abstract class DbMock
         string viewName,
         string? schemaName = null)
     {
-        ArgumentNullException.ThrowIfNull(viewName);
+        ArgumentNullExceptionCompatible.ThrowIfNull(viewName, nameof(viewName));
         var sc = GetSchemaName(schemaName);
         if (!((SchemaMock)this[sc]).Views.TryGetValue(viewName, out var vw)
             || vw == null)
@@ -303,7 +294,7 @@ public abstract class DbMock
         out SqlSelectQuery? vw,
         string? schemaName = null)
     {
-        ArgumentNullException.ThrowIfNull(viewName);
+        ArgumentNullExceptionCompatible.ThrowIfNull(viewName, nameof(viewName));
         var sc = GetSchemaName(schemaName);
         return ((SchemaMock)this[sc]).Views.TryGetValue(viewName, out vw)
             && vw != null;
@@ -314,7 +305,7 @@ public abstract class DbMock
         bool ifExists,
         string? schemaName = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(viewName);
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(viewName, nameof(viewName));
 
         var sc = GetSchemaName(schemaName);
         var schema = (SchemaMock)this[sc];
@@ -345,7 +336,7 @@ public abstract class DbMock
         ProcedureDef pr,
         string? schemaName = null)
     {
-        ArgumentNullException.ThrowIfNull(procName);
+        ArgumentNullExceptionCompatible.ThrowIfNull(procName, nameof(procName));
         var sc = GetSchemaName(schemaName);
         if (!this.TryGetValue(sc, out var s))
             s = CreateSchema(sc);
@@ -365,7 +356,7 @@ public abstract class DbMock
         out ProcedureDef? pr,
         string? schemaName = null)
     {
-        ArgumentNullException.ThrowIfNull(procName);
+        ArgumentNullExceptionCompatible.ThrowIfNull(procName, nameof(procName));
         var sc = GetSchemaName(schemaName);
         return this[sc].Procedures.TryGetValue(procName, out pr)
             && pr != null;
@@ -397,7 +388,7 @@ public abstract class DbMock
 
     IEnumerator<KeyValuePair<string, ISchemaMock>> IEnumerable<KeyValuePair<string, ISchemaMock>>.GetEnumerator()
     {
-        foreach (var (key, value) in this)
-            yield return new KeyValuePair<string, ISchemaMock>(key, value);
+        foreach (var it in this)
+            yield return new KeyValuePair<string, ISchemaMock>(it.Key, it.Value);
     }
 }

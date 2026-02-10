@@ -179,7 +179,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
         foreach (var p in parts)
         {
-            var kv = p.Split('=', 2);
+            var kv = p.Split('=').Take(2).ToArray();
             if (kv.Length != 2) continue;
             var col = kv[0].Trim();
             // drop alias prefix if present

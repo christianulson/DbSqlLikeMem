@@ -23,10 +23,10 @@ internal static class DbInsertStrategy
         DbParameterCollection? pars,
         ISqlDialect dialect)
     {
-        ArgumentNullException.ThrowIfNull(query.Table);
-        ArgumentException.ThrowIfNullOrWhiteSpace(query.Table.Name);
+        ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(query.Table!.Name, nameof(query.Table.Name));
 
-        var tableName = query.Table.Name; // Nome vindo do Parser
+        var tableName = query.Table.Name!; // Nome vindo do Parser
         if (!connection.TryGetTable(tableName, out var table, query.Table.DbName) || table == null)
             throw new InvalidOperationException($"Table {tableName} does not exist.");
 
@@ -317,7 +317,7 @@ internal static class DbInsertStrategy
             if (string.IsNullOrWhiteSpace(rawName))
                 return false;
 
-            var parts = rawName.Split('.', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var parts = rawName.Split('.').Select(_=>_.Trim()).Take(2).ToArray();
             if (parts.Length == 2 && string.Equals(parts[0], "excluded", StringComparison.OrdinalIgnoreCase))
             {
                 value = GetInsertedColumnValue(parts[1]);

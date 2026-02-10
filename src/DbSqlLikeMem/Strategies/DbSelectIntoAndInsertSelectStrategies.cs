@@ -50,7 +50,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         SqlDropViewQuery query)
     {
         var viewName = query.Table?.Name;
-        ArgumentException.ThrowIfNullOrWhiteSpace(viewName);
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(viewName, nameof(viewName));
         connection.DropView(viewName, query.IfExists, query.Table?.DbName);
         return 0;
     }
@@ -135,7 +135,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         ISqlDialect dialect)
     {
         var tableName = query.Table?.Name?.NormalizeName();
-        ArgumentException.ThrowIfNullOrWhiteSpace(tableName);
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
 
         var schemaName = query.Table?.DbName;
         var tempScope = query.Scope;
@@ -236,8 +236,8 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             || target == null)
             throw new InvalidOperationException($"Table {tableName} does not exist.");
 
-        var cols = m.Groups["cols"].Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(c => c.Replace("`", string.Empty, StringComparison.Ordinal).Trim())
+        var cols = m.Groups["cols"].Value.Split(',')
+            .Select(c => c.Replace("`", string.Empty).Trim())
             .ToList();
 
         var selectSql = m.Groups["select"].Value;
@@ -267,15 +267,16 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             // defaults and identity handled like regular insert
             // reuse internal helper by calling VALUES insert strategy would require SQL building;
             // do minimal default fill here.
-            foreach (var (k, col) in target.Columns)
+            foreach (var it in target.Columns)
             {
+                var col = it.Value;
                 if (newRow.ContainsKey(col.Index)) continue;
                 if (col.Identity)
                     newRow[col.Index] = target.NextIdentity++;
                 else if (col.DefaultValue is not null)
                     newRow[col.Index] = col.DefaultValue;
                 else if (!col.Nullable)
-                    throw target.ColumnCannotBeNull(k);
+                    throw target.ColumnCannotBeNull(it.Key);
             }
 
             target.Add(newRow);

@@ -30,7 +30,7 @@ public sealed record ProcedureDef(
     {
         if (string.IsNullOrWhiteSpace(name)) return string.Empty;
         name = name.Trim();
-        if (name.StartsWith('@')) name = name[1..];
+        if (name.StartsWith("@")) name = name[1..];
         return name;
     }
 }

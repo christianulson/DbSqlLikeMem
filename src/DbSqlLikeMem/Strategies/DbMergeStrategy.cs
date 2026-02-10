@@ -109,7 +109,7 @@ internal static class DbMergeStrategy
                 {
                     foreach (var assignment in updates)
                 {
-                    var parts = assignment.Split('=', 2, StringSplitOptions.TrimEntries);
+                    var parts = assignment.Split('=').Select(_=>_.Trim()).Take(2).ToArray();
                     if (parts.Length != 2) continue;
                     var colName = parts[0];
                     var valueToken = parts[1];
@@ -207,7 +207,7 @@ internal static class DbMergeStrategy
     }
 
     private static List<string> SplitByComma(string raw)
-        => raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        => [.. raw.Split(',').Select(_=>_.Trim())];
 
     private static string ExtractParenthesized(string sql, int startIndex)
     {

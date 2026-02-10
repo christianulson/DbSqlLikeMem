@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+
 namespace DbSqlLikeMem;
 
 internal static class DbUpdateStrategy
@@ -21,9 +23,9 @@ internal static class DbUpdateStrategy
         SqlUpdateQuery query,
         DbParameterCollection? pars)
     {
-        ArgumentNullException.ThrowIfNull(query.Table);
-            ArgumentException.ThrowIfNullOrWhiteSpace(query.Table.Name);
-        var tableName = query.Table.Name;
+        ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
+            ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(query.Table!.Name, nameof(query.Table.Name));
+        var tableName = query.Table.Name!;
         if (!connection.TryGetTable(tableName, out var table, query.Table?.DbName) || table == null)
             throw new InvalidOperationException($"Table {tableName} does not exist.");
 
@@ -77,7 +79,7 @@ internal static class DbUpdateStrategy
         List<string> changedCols)
     {
         // Simula linha nova sem mutar a tabela
-        var simulated = new Dictionary<int, object?>(row);
+        var simulated = row.ToDictionary(_=>_.Key, _=>_.Value);
         UpdateRowValuesInMemory(table, pars, setPairs, simulated); // aplica na simulação
 
         table.EnsureUniqueBeforeUpdate(tableName, row, simulated, rowIdx, changedCols);
@@ -110,8 +112,7 @@ internal static class DbUpdateStrategy
         {
             var info = table.GetColumn(Col);
             if (info.GetGenValue != null) continue; // Coluna gerada não se update
-
-            var raw = ResolveSetValue(table, pars, row.AsReadOnly(), info, Col, Val);
+            var raw = ResolveSetValue(table, pars, new ReadOnlyDictionary<int, object?>(row), info, Col, Val);
             row[info.Index] = raw;
         }
     }
