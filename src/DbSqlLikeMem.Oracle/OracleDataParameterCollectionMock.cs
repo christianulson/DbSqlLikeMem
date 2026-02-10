@@ -19,6 +19,7 @@ public class OracleDataParameterCollectionMock
     internal int UnsafeIndexOf(string? normalizedParameterName) =>
         DicItems.TryGetValue(normalizedParameterName ?? "", out var index) ? index : -1;
 
+
     private void AddParameter(OracleParameter parameter, int index)
     {
         var normalizedParameterName = NormalizeParameterName(parameter.ParameterName);
