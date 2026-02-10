@@ -1,20 +1,28 @@
 using System.Reflection;
+using Xunit;
 using Xunit.Sdk;
 
 namespace DbSqlLikeMem.Oracle;
 
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-public sealed class MemberDataOracleVersionAttribute : DataAttribute
+public sealed class MemberDataOracleVersionAttribute(
+    int[]? specificVersions = null,
+    int? versionGraterOrEqual = null,
+    int? versionLessOrEqual = null
+) : DataAttribute
 {
-
-    public MemberDataOracleVersionAttribute()
-    {
-
-    }
-
     public override IEnumerable<object[]> GetData(MethodInfo testMethod)
     {
-        var versions = OracleDbVersions.Versions();
+        var versions = specificVersions ?? OracleDbVersions.Versions();
+
+        if (versionGraterOrEqual != null)
+            versions = versions.Where(_ => _ >= versionGraterOrEqual);
+        if (versionLessOrEqual != null)
+            versions = versions.Where(_ => _ <= versionLessOrEqual);
+
+        versions = [.. versions];
+
+        Assert.NotEmpty(versions);
 
         foreach (var ver in versions)
             yield return [ver];

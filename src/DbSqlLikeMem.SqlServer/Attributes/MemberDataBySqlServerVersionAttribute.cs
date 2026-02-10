@@ -1,26 +1,35 @@
 using System.Collections;
 using System.Reflection;
+using Xunit;
 using Xunit.Sdk;
 
 namespace DbSqlLikeMem.SqlServer;
 
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-public sealed class MemberDataBySqlServerVersionAttribute : DataAttribute
+public sealed class MemberDataBySqlServerVersionAttribute(
+    string dataMemberName,
+    int[]? specificVersions = null,
+    int? versionGraterOrEqual = null,
+    int? versionLessOrEqual = null
+ ) : DataAttribute
 {
-    private readonly string _dataMemberName;
-
-    public MemberDataBySqlServerVersionAttribute(string dataMemberName)
-    {
-        _dataMemberName = dataMemberName;
-    }
-
     public override IEnumerable<object[]> GetData(MethodInfo testMethod)
     {
         var declaringType = testMethod.DeclaringType
             ?? throw new XunitException("DeclaringType do método de teste é null.");
 
-        var data = GetMemberData(declaringType, _dataMemberName);
-        var versions = SqlServerDbVersions.Versions();
+        var versions = specificVersions ?? SqlServerDbVersions.Versions();
+
+        if (versionGraterOrEqual != null)
+            versions = versions.Where(_ => _ >= versionGraterOrEqual);
+        if (versionLessOrEqual != null)
+            versions = versions.Where(_ => _ <= versionLessOrEqual);
+
+        versions = [.. versions];
+
+        Assert.NotEmpty(versions);
+
+        var data = GetMemberData(declaringType, dataMemberName);
 
         foreach (var row in data)
             foreach (var ver in versions)

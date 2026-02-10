@@ -1,26 +1,36 @@
 using System.Collections;
 using System.Reflection;
+using Xunit;
 using Xunit.Sdk;
 
 namespace DbSqlLikeMem.Oracle;
 
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-public sealed class MemberDataByOracleVersionAttribute : DataAttribute
+public sealed class MemberDataByOracleVersionAttribute(
+    string dataMemberName,
+    int[]? specificVersions = null,
+    int? versionGraterOrEqual = null,
+    int? versionLessOrEqual = null
+ ) : DataAttribute
 {
-    private readonly string _dataMemberName;
-
-    public MemberDataByOracleVersionAttribute(string dataMemberName)
-    {
-        _dataMemberName = dataMemberName;
-    }
-
     public override IEnumerable<object[]> GetData(MethodInfo testMethod)
     {
         var declaringType = testMethod.DeclaringType
             ?? throw new XunitException("DeclaringType do método de teste é null.");
 
-        var data = GetMemberData(declaringType, _dataMemberName);
-        var versions = OracleDbVersions.Versions();
+        var versions = specificVersions ?? OracleDbVersions.Versions();
+
+        if (versionGraterOrEqual != null)
+            versions = versions.Where(_ => _ >= versionGraterOrEqual);
+        if (versionLessOrEqual != null)
+            versions = versions.Where(_ => _ <= versionLessOrEqual);
+
+        versions = [.. versions];
+
+        Assert.NotEmpty(versions);
+
+
+        var data = GetMemberData(declaringType, dataMemberName);
 
         foreach (var row in data)
             foreach (var ver in versions)
