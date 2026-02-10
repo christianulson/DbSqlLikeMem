@@ -27,6 +27,10 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         return 0;
     }
 
+
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public static int ExecuteDropView(
         this DbConnectionMockBase connection,
         SqlDropViewQuery query,
@@ -47,7 +51,6 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         var viewName = query.Table?.Name;
         ArgumentException.ThrowIfNullOrWhiteSpace(viewName);
-
         connection.DropView(viewName, query.IfExists, query.Table?.DbName);
         return 0;
     }

@@ -789,7 +789,7 @@ internal sealed class SqlQueryParser
         ExpectWord("DROP");
 
         if (!IsWord(Peek(), "VIEW"))
-            throw new NotSupportedException("Apenas DROP VIEW é suportado no mock no momento.");
+            throw new InvalidOperationException("Apenas DROP VIEW é suportado no mock no momento.");
 
         Consume(); // VIEW
 
