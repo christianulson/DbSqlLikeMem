@@ -1885,7 +1885,7 @@ internal abstract class AstQueryExecutorBase(
                 return null;
 
             return (s!.ToString() ?? "")
-                .Replace(from!.ToString() ?? "", to!.ToString() ?? "", StringComparison.OrdinalIgnoreCase);
+                .Replace(from!.ToString() ?? "", to!.ToString() ?? "");
         }
 
 
