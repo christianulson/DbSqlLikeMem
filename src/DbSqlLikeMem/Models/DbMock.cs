@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 
 namespace DbSqlLikeMem;
 
@@ -108,7 +108,7 @@ public abstract class DbMock
     /// <returns>EN: True if the schema exists. PT: True se o schema existir.</returns>
     public bool TryGetValue(
         string key,
-        [MaybeNullWhen(false)] out ISchemaMock value
+        out ISchemaMock value
     )
     {
         if (base.TryGetValue(key, out var v) && v != null)

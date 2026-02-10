@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace DbSqlLikeMem;
@@ -41,7 +41,9 @@ public abstract class DbConnectionMockBase(
     /// EN: Simulated connection string.
     /// PT: String de conexão simulada.
     /// </summary>
+    #if !NET48
     [AllowNull]
+#endif
     public override string ConnectionString { get; set; } = "";
 
     /// <summary>
