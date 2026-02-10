@@ -2,7 +2,7 @@
 
 internal sealed class SqliteDialect : SqlDialectBase
 {
-    internal const string DialectName = "mysql";
+    internal const string DialectName = "sqlite";
 
     internal SqliteDialect(
         int version
@@ -74,7 +74,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsDeleteWithoutFrom => false;
+    public override bool SupportsDeleteWithoutFrom => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
