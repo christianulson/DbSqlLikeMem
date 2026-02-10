@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace DbSqlLikeMem;
 
 internal static class DbMergeStrategy
@@ -97,9 +99,11 @@ internal static class DbMergeStrategy
             var targetCol = table.GetColumn(targetJoinColumn);
             var existingIndex = FindRowIndex(table, targetCol.Index, srcKey);
 
-            if (existingIndex >= 0 && updates.Count > 0)
+            if (existingIndex >= 0)
             {
-                foreach (var assignment in updates)
+                if (updates.Count > 0)
+                {
+                    foreach (var assignment in updates)
                 {
                     var parts = assignment.Split('=', 2, StringSplitOptions.TrimEntries);
                     if (parts.Length != 2) continue;
@@ -110,12 +114,14 @@ internal static class DbMergeStrategy
                     table.UpdateRowColumn(existingIndex, col.Index, value);
                 }
 
-                table.RebuildAllIndexes();
+                    table.RebuildAllIndexes();
+                }
+
                 affected++;
                 continue;
             }
 
-            if (existingIndex < 0 && insertCols.Count > 0)
+            if (insertCols.Count > 0)
             {
                 var newRow = new Dictionary<int, object?>();
                 for (int i = 0; i < insertCols.Count; i++)
@@ -157,7 +163,8 @@ internal static class DbMergeStrategy
         if (token.StartsWith(sourceAlias + ".", StringComparison.OrdinalIgnoreCase))
         {
             var key = token[(sourceAlias.Length + 1)..];
-            return sourceValues.TryGetValue(key, out var v) ? v : null;
+            sourceValues.TryGetValue(key, out var v);
+            return CoerceToColumnType(v, table.GetColumn(columnName).DbType);
         }
 
         if (token.Equals("NULL", StringComparison.OrdinalIgnoreCase))
@@ -167,7 +174,32 @@ internal static class DbMergeStrategy
         table.CurrentColumn = columnName;
         var resolved = table.Resolve(token, col.DbType, col.Nullable, pars, table.Columns);
         table.CurrentColumn = null;
-        return resolved is DBNull ? null : resolved;
+        return resolved is DBNull ? null : CoerceToColumnType(resolved, col.DbType);
+    }
+
+    private static object? CoerceToColumnType(object? value, DbType dbType)
+    {
+        if (value is null || value is DBNull)
+            return null;
+
+        try
+        {
+            return dbType switch
+            {
+                DbType.Int16 => Convert.ToInt16(value, CultureInfo.InvariantCulture),
+                DbType.Int32 => Convert.ToInt32(value, CultureInfo.InvariantCulture),
+                DbType.Int64 => Convert.ToInt64(value, CultureInfo.InvariantCulture),
+                DbType.Decimal => Convert.ToDecimal(value, CultureInfo.InvariantCulture),
+                DbType.Double => Convert.ToDouble(value, CultureInfo.InvariantCulture),
+                DbType.Single => Convert.ToSingle(value, CultureInfo.InvariantCulture),
+                DbType.String => value.ToString(),
+                _ => value
+            };
+        }
+        catch
+        {
+            return value;
+        }
     }
 
     private static List<string> SplitByComma(string raw)

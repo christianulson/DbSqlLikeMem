@@ -11,13 +11,21 @@ public class ConsoleTestWriter(
     ITestOutputHelper helper
     ) : StringWriter
 {
+    private readonly ITestOutputHelper? _helper = helper;
+
     public override void WriteLine(string? value)
     {
         try
         {
-            helper.WriteLine(value);
+            if (_helper is null)
+            {
+                Debug.WriteLine(value);
+                return;
+            }
+
+            _helper.WriteLine(value ?? string.Empty);
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex) when (ex is InvalidOperationException || ex is ObjectDisposedException)
         {
             Debug.WriteLine(ex.ToString());
             Debug.WriteLine(value);

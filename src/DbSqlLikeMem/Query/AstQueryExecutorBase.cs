@@ -1661,6 +1661,51 @@ internal abstract class AstQueryExecutorBase(
             return s;
         }
 
+        // TRY_CAST(x AS TYPE) - similar ao CAST, mas retorna null em falha
+        if (fn.Name.Equals("TRY_CAST", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count < 2) return null;
+
+            var v = EvalArg(0);
+            var type = fn.Args[1] is RawSqlExpr trx ? trx.Sql : (EvalArg(1)?.ToString() ?? "");
+            type = type.Trim();
+
+            if (IsNullish(v)) return null;
+
+            try
+            {
+                if (type.Equals("SIGNED", StringComparison.OrdinalIgnoreCase)
+                    || type.Equals("UNSIGNED", StringComparison.OrdinalIgnoreCase)
+                    || type.StartsWith("INT", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (v is long l) return (int)l;
+                    if (v is int i) return i;
+                    if (v is decimal d) return (int)d;
+                    if (int.TryParse(v!.ToString(), out var ix)) return ix;
+                    if (long.TryParse(v!.ToString(), out var lx)) return (int)lx;
+                    return null;
+                }
+
+                if (type.StartsWith("DECIMAL", StringComparison.OrdinalIgnoreCase)
+                    || type.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (v is decimal dd) return dd;
+                    if (decimal.TryParse(v!.ToString(), out var dx)) return dx;
+                    return null;
+                }
+
+                if (type.StartsWith("CHAR", StringComparison.OrdinalIgnoreCase)
+                    || type.StartsWith("VARCHAR", StringComparison.OrdinalIgnoreCase))
+                    return v!.ToString();
+
+                return v!.ToString();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         // CAST(x AS TYPE) - aqui chega como CallExpr("CAST", [expr, RawSqlExpr("SIGNED")]) via parser
         if (fn.Name.Equals("CAST", StringComparison.OrdinalIgnoreCase))
         {
