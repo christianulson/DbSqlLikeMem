@@ -10,6 +10,10 @@ public sealed class SqlServerTransactionTests(
         public string? Email { get; set; }
     }
 
+    /// <summary>
+    /// EN: Tests TransactionCommitShouldPersistData behavior.
+    /// PT: Testa o comportamento de TransactionCommitShouldPersistData.
+    /// </summary>
     [Fact]
     public void TransactionCommitShouldPersistData()
     {
@@ -38,6 +42,10 @@ public sealed class SqlServerTransactionTests(
         Assert.Equal(user.Email, insertedRow[2]);
     }
 
+    /// <summary>
+    /// EN: Tests TransactionRollbackShouldNotPersistData behavior.
+    /// PT: Testa o comportamento de TransactionRollbackShouldNotPersistData.
+    /// </summary>
     [Fact]
     public void TransactionRollbackShouldNotPersistData()
     {

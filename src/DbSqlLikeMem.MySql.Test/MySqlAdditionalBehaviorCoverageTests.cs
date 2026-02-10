@@ -36,6 +36,10 @@ public sealed class MySqlAdditionalBehaviorCoverageTests : XUnitTestBase
         _cnn.Open();
     }
 
+    /// <summary>
+    /// EN: Tests Where_IsNull_And_IsNotNull_ShouldWork behavior.
+    /// PT: Testa o comportamento de Where_IsNull_And_IsNotNull_ShouldWork.
+    /// </summary>
     [Fact]
     public void Where_IsNull_And_IsNotNull_ShouldWork()
     {
@@ -46,6 +50,10 @@ public sealed class MySqlAdditionalBehaviorCoverageTests : XUnitTestBase
         Assert.Equal([1, 3], notNullIds);
     }
 
+    /// <summary>
+    /// EN: Tests Where_EqualNull_ShouldReturnNoRows behavior.
+    /// PT: Testa o comportamento de Where_EqualNull_ShouldReturnNoRows.
+    /// </summary>
     [Fact]
     public void Where_EqualNull_ShouldReturnNoRows()
     {
@@ -57,6 +65,10 @@ public sealed class MySqlAdditionalBehaviorCoverageTests : XUnitTestBase
         Assert.Empty(ids);
     }
 
+    /// <summary>
+    /// EN: Tests LeftJoin_ShouldPreserveLeftRows_WhenNoMatch behavior.
+    /// PT: Testa o comportamento de LeftJoin_ShouldPreserveLeftRows_WhenNoMatch.
+    /// </summary>
     [Fact]
     public void LeftJoin_ShouldPreserveLeftRows_WhenNoMatch()
     {
@@ -79,6 +91,10 @@ ORDER BY u.id
         Assert.Null((object?)rows[2].amount);
     }
 
+    /// <summary>
+    /// EN: Tests OrderBy_Desc_ThenAsc_ShouldBeDeterministic behavior.
+    /// PT: Testa o comportamento de OrderBy_Desc_ThenAsc_ShouldBeDeterministic.
+    /// </summary>
     [Fact]
     public void OrderBy_Desc_ThenAsc_ShouldBeDeterministic()
     {
@@ -92,6 +108,10 @@ ORDER BY amount DESC, id ASC
         Assert.Equal([200m, 50m, 10m], [.. rows.Select(r => (decimal)r.amount)]);
     }
 
+    /// <summary>
+    /// EN: Tests Aggregation_CountStar_Vs_CountColumn_ShouldRespectNulls behavior.
+    /// PT: Testa o comportamento de Aggregation_CountStar_Vs_CountColumn_ShouldRespectNulls.
+    /// </summary>
     [Fact]
     public void Aggregation_CountStar_Vs_CountColumn_ShouldRespectNulls()
     {
@@ -101,6 +121,10 @@ ORDER BY amount DESC, id ASC
         Assert.Equal(2L, (long)r.c2);
     }
 
+    /// <summary>
+    /// EN: Tests Having_ShouldFilterGroups behavior.
+    /// PT: Testa o comportamento de Having_ShouldFilterGroups.
+    /// </summary>
     [Fact]
     public void Having_ShouldFilterGroups()
     {
@@ -115,6 +139,10 @@ ORDER BY userid
         Assert.Equal([2], userIds);
     }
 
+    /// <summary>
+    /// EN: Tests Where_In_WithParameterList_ShouldWork behavior.
+    /// PT: Testa o comportamento de Where_In_WithParameterList_ShouldWork.
+    /// </summary>
     [Fact]
     public void Where_In_WithParameterList_ShouldWork()
     {
@@ -122,6 +150,10 @@ ORDER BY userid
         Assert.Equal([1, 3], ids);
     }
 
+    /// <summary>
+    /// EN: Tests Insert_WithColumnsOutOfOrder_ShouldMapCorrectly behavior.
+    /// PT: Testa o comportamento de Insert_WithColumnsOutOfOrder_ShouldMapCorrectly.
+    /// </summary>
     [Fact]
     public void Insert_WithColumnsOutOfOrder_ShouldMapCorrectly()
     {
@@ -133,6 +165,10 @@ ORDER BY userid
         Assert.Equal("zed@x.com", (string)row.email);
     }
 
+    /// <summary>
+    /// EN: Tests Delete_WithInParameterList_ShouldDeleteMatchingRows behavior.
+    /// PT: Testa o comportamento de Delete_WithInParameterList_ShouldDeleteMatchingRows.
+    /// </summary>
     [Fact]
     public void Delete_WithInParameterList_ShouldDeleteMatchingRows()
     {
@@ -143,6 +179,10 @@ ORDER BY userid
         Assert.Equal([2], remaining);
     }
 
+    /// <summary>
+    /// EN: Tests Update_SetExpression_ShouldUpdateRows behavior.
+    /// PT: Testa o comportamento de Update_SetExpression_ShouldUpdateRows.
+    /// </summary>
     [Fact]
     public void Update_SetExpression_ShouldUpdateRows()
     {

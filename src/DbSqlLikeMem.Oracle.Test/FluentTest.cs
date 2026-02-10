@@ -22,6 +22,10 @@ public sealed class FluentTest(
         return cnn;
     }
 
+    /// <summary>
+    /// EN: Tests InsertUpdateDeleteFluentScenario behavior.
+    /// PT: Testa o comportamento de InsertUpdateDeleteFluentScenario.
+    /// </summary>
     [Fact]
     public void InsertUpdateDeleteFluentScenario()
     {
@@ -61,6 +65,10 @@ public sealed class FluentTest(
         Assert.True(cnn.Metrics.Elapsed > TimeSpan.Zero);
     }
 
+    /// <summary>
+    /// EN: Tests TestFluent behavior.
+    /// PT: Testa o comportamento de TestFluent.
+    /// </summary>
     [Fact]
     public void TestFluent()
     {

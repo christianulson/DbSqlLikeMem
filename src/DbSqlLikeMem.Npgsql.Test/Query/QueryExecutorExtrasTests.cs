@@ -20,6 +20,10 @@ public sealed class QueryExecutorExtrasTests(
         return db;
     }
 
+    /// <summary>
+    /// EN: Tests GroupByAndAggregationsShouldComputeCorrectly behavior.
+    /// PT: Testa o comportamento de GroupByAndAggregationsShouldComputeCorrectly.
+    /// </summary>
     [Fact]
     public void GroupByAndAggregationsShouldComputeCorrectly()
     {
@@ -53,6 +57,10 @@ GROUP BY grp";
 
     private static readonly int[] expected = [4, 3];
 
+    /// <summary>
+    /// EN: Tests OrderByLimitOffsetShouldPageCorrectly behavior.
+    /// PT: Testa o comportamento de OrderByLimitOffsetShouldPageCorrectly.
+    /// </summary>
     [Fact]
     public void OrderByLimitOffsetShouldPageCorrectly()
     {
@@ -98,6 +106,10 @@ SELECT * FROM t ORDER BY iddesc ASC OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY;";
 /// </summary>
 public class SqlTranslatorTests
 {
+    /// <summary>
+    /// EN: Tests TranslateBasicWhereAndOrderBySqlCorrect behavior.
+    /// PT: Testa o comportamento de TranslateBasicWhereAndOrderBySqlCorrect.
+    /// </summary>
     [Fact]
     public void TranslateBasicWhereAndOrderBySqlCorrect()
     {

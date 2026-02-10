@@ -4,6 +4,10 @@ public sealed class PostgreSqlUpdateStrategyCoverageTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests Update_SetNullableColumnToNull_ShouldWork behavior.
+    /// PT: Testa o comportamento de Update_SetNullableColumnToNull_ShouldWork.
+    /// </summary>
     [Fact]
     public void Update_SetNullableColumnToNull_ShouldWork()
     {
@@ -25,6 +29,10 @@ public sealed class PostgreSqlUpdateStrategyCoverageTests(
         Assert.Null(users[0][1]);
     }
 
+    /// <summary>
+    /// EN: Tests Update_SetNotNullableColumnToNull_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Update_SetNotNullableColumnToNull_ShouldThrow.
+    /// </summary>
     [Fact]
     public void Update_SetNotNullableColumnToNull_ShouldThrow()
     {

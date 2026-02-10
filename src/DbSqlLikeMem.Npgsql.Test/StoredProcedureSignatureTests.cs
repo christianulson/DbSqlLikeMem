@@ -4,6 +4,10 @@ public sealed class StoredProcedureSignatureTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests StoredProcedure_ShouldValidateRequiredInAndOutParams behavior.
+    /// PT: Testa o comportamento de StoredProcedure_ShouldValidateRequiredInAndOutParams.
+    /// </summary>
     [Fact]
     public void StoredProcedure_ShouldValidateRequiredInAndOutParams()
     {
@@ -31,6 +35,10 @@ public sealed class StoredProcedureSignatureTests(
             CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests StoredProcedure_ShouldThrowWhenMissingRequiredParam behavior.
+    /// PT: Testa o comportamento de StoredProcedure_ShouldThrowWhenMissingRequiredParam.
+    /// </summary>
     [Fact]
     public void StoredProcedure_ShouldThrowWhenMissingRequiredParam()
     {
@@ -50,6 +58,10 @@ public sealed class StoredProcedureSignatureTests(
         Assert.Equal(1318, ex.ErrorCode);
     }
 
+    /// <summary>
+    /// EN: Tests CallStatement_ShouldValidateAgainstRegisteredProcedure behavior.
+    /// PT: Testa o comportamento de CallStatement_ShouldValidateAgainstRegisteredProcedure.
+    /// </summary>
     [Fact]
     public void CallStatement_ShouldValidateAgainstRegisteredProcedure()
     {

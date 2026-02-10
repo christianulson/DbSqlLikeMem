@@ -6,6 +6,10 @@ public sealed class SqlValueHelperTests(
     ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests Resolve_ShouldReadDapperParameter_ByName behavior.
+    /// PT: Testa o comportamento de Resolve_ShouldReadDapperParameter_ByName.
+    /// </summary>
     [Fact]
     public void Resolve_ShouldReadDapperParameter_ByName()
     {
@@ -22,6 +26,10 @@ public sealed class SqlValueHelperTests(
         Assert.Equal(123, v);
     }
 
+    /// <summary>
+    /// EN: Tests Resolve_ShouldThrow_WhenParameterMissing behavior.
+    /// PT: Testa o comportamento de Resolve_ShouldThrow_WhenParameterMissing.
+    /// </summary>
     [Fact]
     public void Resolve_ShouldThrow_WhenParameterMissing()
     {
@@ -29,6 +37,10 @@ public sealed class SqlValueHelperTests(
             SqlServerValueHelper.Resolve("@p404", DbType.Int32, isNullable: false, pars: null, colDict: null));
     }
 
+    /// <summary>
+    /// EN: Tests Resolve_ShouldParseInList_ToListOfResolvedValues behavior.
+    /// PT: Testa o comportamento de Resolve_ShouldParseInList_ToListOfResolvedValues.
+    /// </summary>
     [Fact]
     public void Resolve_ShouldParseInList_ToListOfResolvedValues()
     {
@@ -38,6 +50,10 @@ public sealed class SqlValueHelperTests(
         Assert.Equal([1, 2, 3], [.. list.Cast<int>()]);
     }
 
+    /// <summary>
+    /// EN: Tests Resolve_NullOnNonNullable_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Resolve_NullOnNonNullable_ShouldThrow.
+    /// </summary>
     [Fact]
     public void Resolve_NullOnNonNullable_ShouldThrow()
     {
@@ -45,6 +61,10 @@ public sealed class SqlValueHelperTests(
             SqlServerValueHelper.Resolve("null", DbType.Int32, isNullable: false, pars: null, colDict: null));
     }
 
+    /// <summary>
+    /// EN: Tests Resolve_Json_ShouldReturnJsonDocument_WhenValid behavior.
+    /// PT: Testa o comportamento de Resolve_Json_ShouldReturnJsonDocument_WhenValid.
+    /// </summary>
     [Fact]
     public void Resolve_Json_ShouldReturnJsonDocument_WhenValid()
     {
@@ -54,6 +74,10 @@ public sealed class SqlValueHelperTests(
         Assert.Equal(1, doc.RootElement.GetProperty("a").GetInt32());
     }
 
+    /// <summary>
+    /// EN: Tests Like_ShouldMatch_MySqlStyle behavior.
+    /// PT: Testa o comportamento de Like_ShouldMatch_MySqlStyle.
+    /// </summary>
     [Theory]
     [InlineData("John", "%oh%", true)]
     [InlineData("John", "J_hn", true)]
@@ -65,6 +89,10 @@ public sealed class SqlValueHelperTests(
         Assert.Equal(expected, SqlServerValueHelper.Like(value, pattern));
     }
 
+    /// <summary>
+    /// EN: Tests Resolve_Enum_ShouldValidateAgainstColumnDef behavior.
+    /// PT: Testa o comportamento de Resolve_Enum_ShouldValidateAgainstColumnDef.
+    /// </summary>
     [Fact]
     public void Resolve_Enum_ShouldValidateAgainstColumnDef()
     {
@@ -84,6 +112,10 @@ public sealed class SqlValueHelperTests(
         Assert.Equal(1265, ex.ErrorCode);
     }
 
+    /// <summary>
+    /// EN: Tests Resolve_Set_ShouldReturnHashSet_AndValidate behavior.
+    /// PT: Testa o comportamento de Resolve_Set_ShouldReturnHashSet_AndValidate.
+    /// </summary>
     [Fact]
     public void Resolve_Set_ShouldReturnHashSet_AndValidate()
     {

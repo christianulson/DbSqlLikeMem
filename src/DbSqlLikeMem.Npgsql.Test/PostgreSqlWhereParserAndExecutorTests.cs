@@ -21,6 +21,10 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
         _cnn.Open();
     }
 
+    /// <summary>
+    /// EN: Tests Where_IN_ShouldFilter behavior.
+    /// PT: Testa o comportamento de Where_IN_ShouldFilter.
+    /// </summary>
     [Fact]
     public void Where_IN_ShouldFilter()
     {
@@ -30,6 +34,10 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
         Assert.Contains(rows, r => (int)r.id == 3);
     }
 
+    /// <summary>
+    /// EN: Tests Where_IsNotNull_ShouldFilter behavior.
+    /// PT: Testa o comportamento de Where_IsNotNull_ShouldFilter.
+    /// </summary>
     [Fact]
     public void Where_IsNotNull_ShouldFilter()
     {
@@ -37,6 +45,10 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
         Assert.Equal(2, rows.Count);
     }
 
+    /// <summary>
+    /// EN: Tests Where_Operators_ShouldWork behavior.
+    /// PT: Testa o comportamento de Where_Operators_ShouldWork.
+    /// </summary>
     [Fact]
     public void Where_Operators_ShouldWork()
     {
@@ -47,6 +59,10 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
         Assert.Equal([1, 3], [.. rows2.Select(r => (int)r.id).Order()]);
     }
 
+    /// <summary>
+    /// EN: Tests Where_Like_ShouldWork behavior.
+    /// PT: Testa o comportamento de Where_Like_ShouldWork.
+    /// </summary>
     [Fact]
     public void Where_Like_ShouldWork()
     {
@@ -55,6 +71,10 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
         Assert.Equal(1, (int)rows[0].id);
     }
 
+    /// <summary>
+    /// EN: Tests Where_FindInSet_ShouldWork behavior.
+    /// PT: Testa o comportamento de Where_FindInSet_ShouldWork.
+    /// </summary>
     [Fact]
     public void Where_FindInSet_ShouldWork()
     {
@@ -63,6 +83,10 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
         Assert.Equal([1, 2], [.. rows.Select(r => (int)r.id).Order()]);
     }
 
+    /// <summary>
+    /// EN: Tests Where_AND_ShouldBeCaseInsensitive_InRealLife behavior.
+    /// PT: Testa o comportamento de Where_AND_ShouldBeCaseInsensitive_InRealLife.
+    /// </summary>
     [Fact]
     public void Where_AND_ShouldBeCaseInsensitive_InRealLife()
     {

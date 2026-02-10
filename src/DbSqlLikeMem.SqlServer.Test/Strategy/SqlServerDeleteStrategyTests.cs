@@ -4,6 +4,10 @@ public sealed class SqlServerCommandDeleteTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests ExecuteNonQuery_DELETE_remove_1_linha behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_remove_1_linha.
+    /// </summary>
     [Fact]
     public void ExecuteNonQuery_DELETE_remove_1_linha()
     {
@@ -23,6 +27,10 @@ public sealed class SqlServerCommandDeleteTests(
         Assert.Equal(1, conn.Metrics.Deletes);
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteNonQuery_DELETE_remove_varias_linhas behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_remove_varias_linhas.
+    /// </summary>
     [Fact]
     public void ExecuteNonQuery_DELETE_remove_varias_linhas()
     {
@@ -43,6 +51,10 @@ public sealed class SqlServerCommandDeleteTests(
         Assert.Equal(2, conn.Metrics.Deletes);
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteNonQuery_DELETE_quando_nao_acha_retorna_0 behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_quando_nao_acha_retorna_0.
+    /// </summary>
     [Fact]
     public void ExecuteNonQuery_DELETE_quando_nao_acha_retorna_0()
     {
@@ -60,6 +72,10 @@ public sealed class SqlServerCommandDeleteTests(
         Assert.Equal(0, conn.Metrics.Deletes);
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteNonQuery_DELETE_tabela_inexistente_dispara behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_tabela_inexistente_dispara.
+    /// </summary>
     [Fact]
     public void ExecuteNonQuery_DELETE_tabela_inexistente_dispara()
     {
@@ -71,6 +87,10 @@ public sealed class SqlServerCommandDeleteTests(
         Assert.Contains("does not exist", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteNonQuery_DELETE_sql_invalido_sem_FROM_dispara behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_sql_invalido_sem_FROM_dispara.
+    /// </summary>
     [Fact(Skip = "Isso é valido no SqlServer")]
     public void ExecuteNonQuery_DELETE_sql_invalido_sem_FROM_dispara()
     {
@@ -86,6 +106,10 @@ public sealed class SqlServerCommandDeleteTests(
         Assert.Contains("delete", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteNonQuery_DELETE_bloqueia_quando_fk_referencia behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_bloqueia_quando_fk_referencia.
+    /// </summary>
     [Fact]
     public void ExecuteNonQuery_DELETE_bloqueia_quando_fk_referencia()
     {
@@ -108,6 +132,10 @@ public sealed class SqlServerCommandDeleteTests(
         Assert.Equal(0, conn.Metrics.Deletes);
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteNonQuery_DELETE_funciona_com_ThreadSafe_true_ou_false behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_funciona_com_ThreadSafe_true_ou_false.
+    /// </summary>
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -126,6 +154,10 @@ public sealed class SqlServerCommandDeleteTests(
         Assert.Empty(table);
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteNonQuery_DELETE_case_insensitive behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_case_insensitive.
+    /// </summary>
     [Fact]
     public void ExecuteNonQuery_DELETE_case_insensitive()
     {
@@ -142,6 +174,10 @@ public sealed class SqlServerCommandDeleteTests(
         Assert.Empty(table);
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteNonQuery_DELETE_com_parametro_se_suportado behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_com_parametro_se_suportado.
+    /// </summary>
     [Fact]
     public void ExecuteNonQuery_DELETE_com_parametro_se_suportado()
     {

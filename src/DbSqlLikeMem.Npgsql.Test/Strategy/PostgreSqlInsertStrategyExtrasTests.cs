@@ -3,6 +3,10 @@ public sealed class PostgreSqlInsertStrategyExtrasTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests MultiRowInsertShouldAddAllRows behavior.
+    /// PT: Testa o comportamento de MultiRowInsertShouldAddAllRows.
+    /// </summary>
     [Fact]
     public void MultiRowInsertShouldAddAllRows()
     {
@@ -26,6 +30,10 @@ public sealed class PostgreSqlInsertStrategyExtrasTests(
         Assert.Equal("B", table[1][1]);
     }
 
+    /// <summary>
+    /// EN: Tests InsertWithDefaultValueAndIdentityShouldApplyDefaults behavior.
+    /// PT: Testa o comportamento de InsertWithDefaultValueAndIdentityShouldApplyDefaults.
+    /// </summary>
     [Fact]
     public void InsertWithDefaultValueAndIdentityShouldApplyDefaults()
     {
@@ -53,6 +61,10 @@ public sealed class PostgreSqlInsertStrategyExtrasTests(
         Assert.Equal(2, table[1][0]);
     }
 
+    /// <summary>
+    /// EN: Tests InsertDuplicatePrimaryKeyShouldThrow behavior.
+    /// PT: Testa o comportamento de InsertDuplicatePrimaryKeyShouldThrow.
+    /// </summary>
     [Fact]
     public void InsertDuplicatePrimaryKeyShouldThrow()
     {
@@ -80,6 +92,10 @@ public sealed class PostgreSqlInsertStrategyExtrasTests(
 /// </summary>
 public class PostgreSqlDeleteStrategyForeignKeyTests
 {
+    /// <summary>
+    /// EN: Tests DeleteReferencedRowShouldThrow behavior.
+    /// PT: Testa o comportamento de DeleteReferencedRowShouldThrow.
+    /// </summary>
     [Fact]
     public void DeleteReferencedRowShouldThrow()
     {
@@ -115,6 +131,10 @@ public class PostgreSqlDeleteStrategyForeignKeyTests
 /// </summary>
 public class PostgreSqlUpdateStrategyExtrasTests
 {
+    /// <summary>
+    /// EN: Tests UpdateMultipleConditionsShouldOnlyAffectMatchingRows behavior.
+    /// PT: Testa o comportamento de UpdateMultipleConditionsShouldOnlyAffectMatchingRows.
+    /// </summary>
     [Fact]
     public void UpdateMultipleConditionsShouldOnlyAffectMatchingRows()
     {

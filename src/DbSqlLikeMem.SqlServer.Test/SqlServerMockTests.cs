@@ -24,6 +24,10 @@ public sealed class SqlServerMockTests
         _connection.Open();
     }
 
+    /// <summary>
+    /// EN: Tests TestInsert behavior.
+    /// PT: Testa o comportamento de TestInsert.
+    /// </summary>
     [Fact]
     public void TestInsert()
     {
@@ -36,6 +40,10 @@ public sealed class SqlServerMockTests
         Assert.Equal("John Doe",_connection.GetTable("Users")[0][1]);
     }
 
+    /// <summary>
+    /// EN: Tests TestUpdate behavior.
+    /// PT: Testa o comportamento de TestUpdate.
+    /// </summary>
     [Fact]
     public void TestUpdate()
     {
@@ -51,6 +59,10 @@ public sealed class SqlServerMockTests
         Assert.Equal("Jane Doe",_connection.GetTable("Users")[0][1]);
     }
 
+    /// <summary>
+    /// EN: Tests TestDelete behavior.
+    /// PT: Testa o comportamento de TestDelete.
+    /// </summary>
     [Fact]
     public void TestDelete()
     {
@@ -66,6 +78,10 @@ public sealed class SqlServerMockTests
         Assert.Empty(_connection.GetTable("Users"));
     }
 
+    /// <summary>
+    /// EN: Tests TestTransactionCommit behavior.
+    /// PT: Testa o comportamento de TestTransactionCommit.
+    /// </summary>
     [Fact]
     public void TestTransactionCommit()
     {
@@ -97,6 +113,10 @@ public sealed class SqlServerMockTests
         Assert.Single(users);
     }
 
+    /// <summary>
+    /// EN: Tests TestTransactionCommitInsertUpdate behavior.
+    /// PT: Testa o comportamento de TestTransactionCommitInsertUpdate.
+    /// </summary>
     [Fact]
     public void TestTransactionCommitInsertUpdate()
     {
@@ -115,6 +135,10 @@ public sealed class SqlServerMockTests
         Assert.Equal("Bob", name);
     }
 
+    /// <summary>
+    /// EN: Tests TestTransactionRollback behavior.
+    /// PT: Testa o comportamento de TestTransactionRollback.
+    /// </summary>
     [Fact]
     public void TestTransactionRollback()
     {

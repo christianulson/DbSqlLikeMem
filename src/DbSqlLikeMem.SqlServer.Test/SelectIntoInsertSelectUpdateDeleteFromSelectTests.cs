@@ -4,6 +4,10 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests CreateTableAsSelect_ShouldCreateNewTableWithRows behavior.
+    /// PT: Testa o comportamento de CreateTableAsSelect_ShouldCreateNewTableWithRows.
+    /// </summary>
     [Fact]
     public void CreateTableAsSelect_ShouldCreateNewTableWithRows()
     {
@@ -32,6 +36,10 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
         Assert.Equal("A", active[0][1]);
     }
 
+    /// <summary>
+    /// EN: Tests InsertIntoSelect_ShouldInsertRowsFromQuery behavior.
+    /// PT: Testa o comportamento de InsertIntoSelect_ShouldInsertRowsFromQuery.
+    /// </summary>
     [Fact]
     public void InsertIntoSelect_ShouldInsertRowsFromQuery()
     {
@@ -59,6 +67,10 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
         Assert.Equal("A", audit[0][1]);
     }
 
+    /// <summary>
+    /// EN: Tests UpdateJoinDerivedSelect_ShouldUpdateRows behavior.
+    /// PT: Testa o comportamento de UpdateJoinDerivedSelect_ShouldUpdateRows.
+    /// </summary>
     [Fact]
     public void UpdateJoinDerivedSelect_ShouldUpdateRows()
     {
@@ -94,6 +106,10 @@ WHERE u.tenantid = 10";
         Assert.Null(users[2][2]);
     }
 
+    /// <summary>
+    /// EN: Tests DeleteJoinDerivedSelect_ShouldDeleteRows behavior.
+    /// PT: Testa o comportamento de DeleteJoinDerivedSelect_ShouldDeleteRows.
+    /// </summary>
     [Fact]
     public void DeleteJoinDerivedSelect_ShouldDeleteRows()
     {

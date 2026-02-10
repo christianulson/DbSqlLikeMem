@@ -28,6 +28,10 @@ public sealed class MySqlJoinTests : XUnitTestBase
         _cnn.Open();
     }
 
+    /// <summary>
+    /// EN: Tests LeftJoin_ShouldKeepAllLeftRows behavior.
+    /// PT: Testa o comportamento de LeftJoin_ShouldKeepAllLeftRows.
+    /// </summary>
     [Fact]
     public void LeftJoin_ShouldKeepAllLeftRows()
     {
@@ -44,6 +48,10 @@ public sealed class MySqlJoinTests : XUnitTestBase
         Assert.Contains(rows, r => (int)r.id == 2);
     }
 
+    /// <summary>
+    /// EN: Tests RightJoin_ShouldKeepAllRightRows behavior.
+    /// PT: Testa o comportamento de RightJoin_ShouldKeepAllRightRows.
+    /// </summary>
     [Fact]
     public void RightJoin_ShouldKeepAllRightRows()
     {
@@ -74,6 +82,10 @@ public sealed class MySqlJoinTests : XUnitTestBase
     //    Assert.Contains(rows, r => r.id is null && (int)r.orderId == 12); // órfão
     //}
 
+    /// <summary>
+    /// EN: Tests Join_ON_WithMultipleConditions_AND_ShouldWork behavior.
+    /// PT: Testa o comportamento de Join_ON_WithMultipleConditions_AND_ShouldWork.
+    /// </summary>
     [Fact]
     public void Join_ON_WithMultipleConditions_AND_ShouldWork()
     {

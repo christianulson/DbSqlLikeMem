@@ -36,6 +36,10 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
         _cnn.Open();
     }
 
+    /// <summary>
+    /// EN: Tests Where_Precedence_AND_ShouldBindStrongerThan_OR behavior.
+    /// PT: Testa o comportamento de Where_Precedence_AND_ShouldBindStrongerThan_OR.
+    /// </summary>
     [Fact]
     public void Where_Precedence_AND_ShouldBindStrongerThan_OR()
     {
@@ -45,6 +49,10 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
         Assert.Equal([1, 2], [.. rows.Select(r => (int)r.id).Order()]);
     }
 
+    /// <summary>
+    /// EN: Tests Where_OR_ShouldWork behavior.
+    /// PT: Testa o comportamento de Where_OR_ShouldWork.
+    /// </summary>
     [Fact]
     public void Where_OR_ShouldWork()
     {
@@ -52,6 +60,10 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
         Assert.Equal([1, 3], [.. rows.Select(r => (int)r.id).Order()]);
     }
 
+    /// <summary>
+    /// EN: Tests Where_ParenthesesGrouping_ShouldWork behavior.
+    /// PT: Testa o comportamento de Where_ParenthesesGrouping_ShouldWork.
+    /// </summary>
     [Fact]
     public void Where_ParenthesesGrouping_ShouldWork()
     {
@@ -61,6 +73,10 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
         Assert.Equal(2, (int)rows[0].id);
     }
 
+    /// <summary>
+    /// EN: Tests Select_Expressions_Arithmetic_ShouldWork behavior.
+    /// PT: Testa o comportamento de Select_Expressions_Arithmetic_ShouldWork.
+    /// </summary>
     [Fact]
     public void Select_Expressions_Arithmetic_ShouldWork()
     {
@@ -68,6 +84,10 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
         Assert.Equal([2, 3, 4], [.. rows.Select(r => (int)r.nextId)]);
     }
 
+    /// <summary>
+    /// EN: Tests Select_Expressions_CASE_WHEN_ShouldWork behavior.
+    /// PT: Testa o comportamento de Select_Expressions_CASE_WHEN_ShouldWork.
+    /// </summary>
     [Fact]
     public void Select_Expressions_CASE_WHEN_ShouldWork()
     {
@@ -75,6 +95,10 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
         Assert.Equal([1, 0, 1], [.. rows.Select(r => (int)r.hasEmail)]);
     }
 
+    /// <summary>
+    /// EN: Tests Select_Expressions_IF_ShouldWork behavior.
+    /// PT: Testa o comportamento de Select_Expressions_IF_ShouldWork.
+    /// </summary>
     [Fact]
     public void Select_Expressions_IF_ShouldWork()
     {
@@ -83,6 +107,10 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
         Assert.Equal(["yes", "no", "yes"], [.. rows.Select(r => (string)r.flag)]);
     }
 
+    /// <summary>
+    /// EN: Tests Select_Expressions_IIF_ShouldWork_AsAliasForIF behavior.
+    /// PT: Testa o comportamento de Select_Expressions_IIF_ShouldWork_AsAliasForIF.
+    /// </summary>
     [Fact]
     public void Select_Expressions_IIF_ShouldWork_AsAliasForIF()
     {
@@ -91,6 +119,10 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
         Assert.Equal([1, 0, 1], [.. rows.Select(r => (int)r.hasEmail)]);
     }
 
+    /// <summary>
+    /// EN: Tests Functions_COALESCE_ShouldWork behavior.
+    /// PT: Testa o comportamento de Functions_COALESCE_ShouldWork.
+    /// </summary>
     [Fact]
     public void Functions_COALESCE_ShouldWork()
     {
@@ -98,6 +130,10 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
         Assert.Equal(["john@x.com", "none", "jane@x.com"], [.. rows.Select(r => (string)r.em)]);
     }
 
+    /// <summary>
+    /// EN: Tests Functions_IFNULL_ShouldWork behavior.
+    /// PT: Testa o comportamento de Functions_IFNULL_ShouldWork.
+    /// </summary>
     [Fact]
     public void Functions_IFNULL_ShouldWork()
     {
@@ -105,6 +141,10 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
         Assert.Equal(["john@x.com", "none", "jane@x.com"], [.. rows.Select(r => (string)r.em)]);
     }
 
+    /// <summary>
+    /// EN: Tests Functions_CONCAT_ShouldWork behavior.
+    /// PT: Testa o comportamento de Functions_CONCAT_ShouldWork.
+    /// </summary>
     [Fact]
     public void Functions_CONCAT_ShouldWork()
     {
@@ -112,6 +152,10 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
         Assert.Equal(["John#1", "Bob#2", "Jane#3"], [.. rows.Select(r => (string)r.tag)]);
     }
 
+    /// <summary>
+    /// EN: Tests Distinct_ShouldBeConsistent behavior.
+    /// PT: Testa o comportamento de Distinct_ShouldBeConsistent.
+    /// </summary>
     [Fact]
     public void Distinct_ShouldBeConsistent()
     {
@@ -121,6 +165,10 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
         Assert.Equal(["Bob", "Jane", "John"], [.. rows.Select(r => (string)r.name)]);
     }
 
+    /// <summary>
+    /// EN: Tests Join_ComplexOn_WithOr_ShouldWork behavior.
+    /// PT: Testa o comportamento de Join_ComplexOn_WithOr_ShouldWork.
+    /// </summary>
     [Fact]
     public void Join_ComplexOn_WithOr_ShouldWork()
     {
@@ -137,6 +185,10 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
             [.. rows.Select(r => ((int)r.uid,(int)r.oid))]);
     }
 
+    /// <summary>
+    /// EN: Tests GroupBy_Having_ShouldSupportAggregates behavior.
+    /// PT: Testa o comportamento de GroupBy_Having_ShouldSupportAggregates.
+    /// </summary>
     [Fact]
     public void GroupBy_Having_ShouldSupportAggregates()
     {
@@ -150,6 +202,10 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
         Assert.Equal(210m, (decimal)rows[0].total);
     }
 
+    /// <summary>
+    /// EN: Tests OrderBy_ShouldSupportAlias_And_Ordinal behavior.
+    /// PT: Testa o comportamento de OrderBy_ShouldSupportAlias_And_Ordinal.
+    /// </summary>
     [Fact]
     public void OrderBy_ShouldSupportAlias_And_Ordinal()
     {
@@ -161,6 +217,10 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
         Assert.Equal([(2,"Bob"),(3,"Jane"),(1,"John")], [.. rows2.Select(r => ((int)r.id,(string)r.name))]);
     }
 
+    /// <summary>
+    /// EN: Tests Union_ShouldWork behavior.
+    /// PT: Testa o comportamento de Union_ShouldWork.
+    /// </summary>
     [Fact]
     public void Union_ShouldWork()
     {
@@ -172,6 +232,10 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
         Assert.Equal([1,2], [.. rows.Select(r => (int)r.id)]);
     }
 
+    /// <summary>
+    /// EN: Tests Union_Inside_SubSelect_ShouldWork behavior.
+    /// PT: Testa o comportamento de Union_Inside_SubSelect_ShouldWork.
+    /// </summary>
     [Fact]
     public void Union_Inside_SubSelect_ShouldWork()
     {
@@ -186,6 +250,10 @@ ORDER BY id
         Assert.Equal([1, 2], [.. rows.Select(r => (int)r.id)]);
     }
 
+    /// <summary>
+    /// EN: Tests Cte_With_ShouldWork behavior.
+    /// PT: Testa o comportamento de Cte_With_ShouldWork.
+    /// </summary>
     [Fact]
     public void Cte_With_ShouldWork()
     {
@@ -195,6 +263,10 @@ ORDER BY id
         Assert.Equal([2,1], [.. rows.Select(r => (int)r.id)]);
     }
 
+    /// <summary>
+    /// EN: Tests Typing_ImplicitCasts_And_Collation_ShouldMatchMySqlDefault behavior.
+    /// PT: Testa o comportamento de Typing_ImplicitCasts_And_Collation_ShouldMatchMySqlDefault.
+    /// </summary>
     [Fact]
     public void Typing_ImplicitCasts_And_Collation_ShouldMatchMySqlDefault()
     {

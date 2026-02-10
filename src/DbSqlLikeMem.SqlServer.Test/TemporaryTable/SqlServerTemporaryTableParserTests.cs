@@ -2,6 +2,10 @@ namespace DbSqlLikeMem.SqlServer.Test.TemporaryTable;
 
 public sealed class SqlServerTemporaryTableParserTests
 {
+    /// <summary>
+    /// EN: Tests ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect behavior.
+    /// PT: Testa o comportamento de ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect.
+    /// </summary>
     [Theory]
     [MemberDataSqlServerVersion]
     public void ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect(int version)
@@ -49,6 +53,10 @@ WHERE tenantid = 10",
         };
     }
 
+    /// <summary>
+    /// EN: Tests Parse_ShouldAccept_CreateTemporaryTable_Variants behavior.
+    /// PT: Testa o comportamento de Parse_ShouldAccept_CreateTemporaryTable_Variants.
+    /// </summary>
     [Theory]
     [MemberDataBySqlServerVersion(nameof(CreateTempTableStatements))]
     public void Parse_ShouldAccept_CreateTemporaryTable_Variants(string sql, int version)

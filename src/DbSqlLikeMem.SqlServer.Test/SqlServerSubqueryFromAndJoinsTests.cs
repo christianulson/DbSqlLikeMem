@@ -4,6 +4,10 @@ public sealed class SqlServerSubqueryFromAndJoinsTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Tests FromSubquery_ShouldReturnFilteredRows behavior.
+    /// PT: Testa o comportamento de FromSubquery_ShouldReturnFilteredRows.
+    /// </summary>
     [Fact]
     public void FromSubquery_ShouldReturnFilteredRows()
     {
@@ -32,6 +36,10 @@ public sealed class SqlServerSubqueryFromAndJoinsTests(
         ids.Should().Equal(1, 3);
     }
 
+    /// <summary>
+    /// EN: Tests JoinSubquery_ShouldJoinCorrectly behavior.
+    /// PT: Testa o comportamento de JoinSubquery_ShouldJoinCorrectly.
+    /// </summary>
     [Fact]
     public void JoinSubquery_ShouldJoinCorrectly()
     {
@@ -72,6 +80,10 @@ ORDER BY u.Id, o.Amount";
         rows.Should().Equal([(1, 60m), (2, 80m)]);
     }
 
+    /// <summary>
+    /// EN: Tests NestedSubquery_ShouldWork behavior.
+    /// PT: Testa o comportamento de NestedSubquery_ShouldWork.
+    /// </summary>
     [Fact]
     public void NestedSubquery_ShouldWork()
     {
