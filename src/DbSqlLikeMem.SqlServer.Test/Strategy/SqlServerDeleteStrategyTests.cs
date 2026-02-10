@@ -91,22 +91,26 @@ public sealed class SqlServerCommandDeleteTests(
     }
 
     /// <summary>
-    /// EN: Tests ExecuteNonQuery_DELETE_sql_invalido_sem_FROM_dispara behavior.
-    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_sql_invalido_sem_FROM_dispara.
+    /// EN: Tests ExecuteNonQuery_DELETE_sem_FROM_remove_1_linha behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_sem_FROM_remove_1_linha.
     /// </summary>
     [Fact]
-    public void ExecuteNonQuery_DELETE_sql_invalido_sem_FROM_dispara()
+    public void ExecuteNonQuery_DELETE_sem_FROM_remove_1_linha()
     {
         var db = new SqlServerDbMock();
         var table = NewUsersTable(db);
         table.Add(RowUsers(1, "John"));
+        table.Add(RowUsers(2, "Mary"));
 
         using var conn = NewConn(threadSafe: false, db);
         using var cmd = new SqlServerCommandMock(conn) { CommandText = "DELETE users WHERE id = 1" };
 
-        // Pode ser InvalidOperationException ou outra, depende do seu pipeline.
-        var ex = Assert.ThrowsAny<Exception>(() => cmd.ExecuteNonQuery());
-        Assert.Contains("delete", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var affected = cmd.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Single(table);
+        Assert.Equal(2, table[0][0]);
+        Assert.Equal(1, conn.Metrics.Deletes);
     }
 
     /// <summary>
