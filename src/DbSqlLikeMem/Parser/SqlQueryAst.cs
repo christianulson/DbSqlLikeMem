@@ -83,6 +83,11 @@ internal sealed record SqlCreateViewQuery : SqlQueryBase
     internal SqlSelectQuery Select { get; init; } = null!;
 }
 
+internal sealed record SqlDropViewQuery : SqlQueryBase
+{
+    internal bool IfExists { get; init; }
+}
+
 internal sealed record SqlMergeQuery : SqlQueryBase
 {
     internal SqlTableSource? Source { get; init; } // opcional (pode deixar null por enquanto)

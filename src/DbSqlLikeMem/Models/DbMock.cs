@@ -309,6 +309,26 @@ public abstract class DbMock
             && vw != null;
     }
 
+    internal void DropView(
+        string viewName,
+        bool ifExists,
+        string? schemaName = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(viewName);
+
+        var sc = GetSchemaName(schemaName);
+        var schema = (SchemaMock)this[sc];
+        var normalized = viewName.NormalizeName();
+
+        if (schema.Views.Remove(normalized))
+            return;
+
+        if (ifExists)
+            return;
+
+        throw new InvalidOperationException($"View '{normalized}' does not exist.");
+    }
+
     #endregion
 
     #region Procedures

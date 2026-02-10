@@ -27,6 +27,31 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         return 0;
     }
 
+    public static int ExecuteDropView(
+        this DbConnectionMockBase connection,
+        SqlDropViewQuery query,
+        DbParameterCollection pars,
+        ISqlDialect dialect)
+    {
+        _ = pars;
+        _ = dialect;
+        if (!connection.Db.ThreadSafe)
+            return ExecuteDropViewImpl(connection, query);
+        lock (connection.Db.SyncRoot)
+            return ExecuteDropViewImpl(connection, query);
+    }
+
+    private static int ExecuteDropViewImpl(
+        DbConnectionMockBase connection,
+        SqlDropViewQuery query)
+    {
+        var viewName = query.Table?.Name;
+        ArgumentException.ThrowIfNullOrWhiteSpace(viewName);
+
+        connection.DropView(viewName, query.IfExists, query.Table?.DbName);
+        return 0;
+    }
+
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
