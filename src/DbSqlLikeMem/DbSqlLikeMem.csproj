@@ -16,6 +16,10 @@
 		<PackageReference Include="CsvHelper" Version="33.1.0" />
 	</ItemGroup>
 
+	<ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+		<PackageReference Include="System.Text.Json" Version="8.0.5" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<InternalsVisibleTo Include="DbSqlLikeMem.Db2" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Db2.Test" />
