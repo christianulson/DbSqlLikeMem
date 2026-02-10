@@ -187,7 +187,7 @@ public class Db2CommandMock(
             throw new InvalidOperationException("Invalid DROP VIEW statement.");
 
         var viewName = parts[i].Trim().Trim('`', '"').NormalizeName();
-        connection.RemoveView(viewName, ifExists);
+        connection.DropView(viewName, ifExists);
         return 0;
     }
 
