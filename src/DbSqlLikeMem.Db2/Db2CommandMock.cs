@@ -125,6 +125,14 @@ public class Db2CommandMock(
             return connection.ExecuteCreateTableAsSelect(sqlRaw, Parameters, connection.Db.Dialect);
         }
 
+        if (sqlRaw.StartsWith("drop view", StringComparison.OrdinalIgnoreCase))
+        {
+            return ExecuteDropView(sqlRaw);
+        }
+
+        if (IsDeleteMissingFrom(sqlRaw))
+            throw new InvalidOperationException("Invalid DELETE statement: expected FROM keyword.");
+
         // 3. Parse via AST para comandos DML (Insert, Update, Delete)
         var query = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect);
 
@@ -138,6 +146,49 @@ public class Db2CommandMock(
             SqlSelectQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT."),
             _ => throw new NotSupportedException($"Tipo de query não suportado em ExecuteNonQuery: {query.GetType().Name}")
         };
+    }
+
+    private static bool IsDeleteMissingFrom(string sqlRaw)
+    {
+        if (!sqlRaw.StartsWith("delete ", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (sqlRaw.StartsWith("delete from ", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return !System.Text.RegularExpressions.Regex.IsMatch(
+            sqlRaw,
+            @"^\s*delete\s+[^\s]+\s+from\s+",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    }
+
+    private int ExecuteDropView(string sqlRaw)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+
+        var parts = sqlRaw
+            .TrimEnd(';')
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (parts.Length < 3 || !parts[0].Equals("DROP", StringComparison.OrdinalIgnoreCase) || !parts[1].Equals("VIEW", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Invalid DROP VIEW statement.");
+
+        var i = 2;
+        var ifExists = false;
+        if (parts.Length > 4
+            && parts[i].Equals("IF", StringComparison.OrdinalIgnoreCase)
+            && parts[i + 1].Equals("EXISTS", StringComparison.OrdinalIgnoreCase))
+        {
+            ifExists = true;
+            i += 2;
+        }
+
+        if (i >= parts.Length)
+            throw new InvalidOperationException("Invalid DROP VIEW statement.");
+
+        var viewName = parts[i].Trim().Trim('`', '"').NormalizeName();
+        connection.RemoveView(viewName, ifExists);
+        return 0;
     }
 
     /// <summary>
