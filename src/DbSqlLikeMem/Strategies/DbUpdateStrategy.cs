@@ -108,7 +108,7 @@ internal static class DbUpdateStrategy
             var info = table.GetColumn(Col);
             if (info.GetGenValue != null) continue; // Coluna gerada não se update
 
-            var raw = ResolveSetValue(table, pars, row, info, Col, Val);
+            var raw = ResolveSetValue(table, pars, row.AsReadOnly(), info, Col, Val);
             row[info.Index] = raw;
         }
     }
