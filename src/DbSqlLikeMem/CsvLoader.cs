@@ -17,7 +17,7 @@ public static class CsvLoader
         string table,
         string? schemaName = null)
     {
-        ArgumentNullException.ThrowIfNull(db);
+        ArgumentNullExceptionCompatible.ThrowIfNull(db, nameof(db));
         using var reader = new StreamReader(path);
         using var csv = new CsvReader(
             reader,

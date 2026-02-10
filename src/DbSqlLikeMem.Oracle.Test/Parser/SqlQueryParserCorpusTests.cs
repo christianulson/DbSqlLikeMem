@@ -654,7 +654,7 @@ select id
     [MemberDataByOracleVersion(nameof(Statements))]
     public void Parse_Corpus(string sql, string why, SqlCaseExpectation expectation, int minVersion, int version)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(sql);
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
 
         Console.WriteLine($"Version: {version}, MinVersion: {minVersion}");
         Console.WriteLine($"Why: {why}");

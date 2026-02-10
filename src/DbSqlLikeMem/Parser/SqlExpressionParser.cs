@@ -30,8 +30,8 @@ internal sealed class SqlExpressionParser(
     /// </summary>
     public static SqlExpr ParseScalar(string sql, ISqlDialect dialect)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(sql);
-        ArgumentNullException.ThrowIfNull(dialect);
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
+        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
         var d = dialect;
         var toks = new SqlTokenizer(sql, d).Tokenize();
         var p = new SqlExpressionParser(toks, d);
@@ -1210,7 +1210,7 @@ internal sealed class SqlExpressionParser(
         // reconstrói SQL “ok” pra debug/parse posterior
         return t.Kind switch
         {
-            SqlTokenKind.String => $"'{t.Text.Replace("'", "\\'", StringComparison.OrdinalIgnoreCase)}'",
+            SqlTokenKind.String => $"'{t.Text.Replace("'", "\\'")}'",
             _ => t.Text
         };
     }

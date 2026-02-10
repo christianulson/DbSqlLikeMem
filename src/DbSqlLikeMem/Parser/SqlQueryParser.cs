@@ -15,8 +15,8 @@ internal sealed class SqlQueryParser
     /// </summary>
     public SqlQueryParser(string sql, ISqlDialect dialect)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(sql);
-        ArgumentNullException.ThrowIfNull(dialect);
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
+        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
         // Normaliza espaços básicos se necessário, mas o tokenizer cuida da maior parte
         _dialect = dialect;
         _toks = new SqlTokenizer(sql, _dialect).Tokenize();
@@ -28,7 +28,7 @@ internal sealed class SqlQueryParser
     /// </summary>
     public static SqlQueryBase Parse(string sql, ISqlDialect dialect)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(sql);
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
 
         var q = new SqlQueryParser(sql, dialect);
         var first = q.Peek();
@@ -1222,16 +1222,16 @@ internal sealed class SqlQueryParser
         return sb.ToString().Trim();
 
         bool NeedsIdentifierQuoting(string ident)
-            => ident.Contains(' ', StringComparison.Ordinal)
-               || ident.Contains('\t', StringComparison.Ordinal)
-               || ident.Contains('\n', StringComparison.Ordinal)
-               || ident.Contains('\r', StringComparison.Ordinal);
+            => ident.Contains(' ')
+               || ident.Contains('\t')
+               || ident.Contains('\n')
+               || ident.Contains('\r');
 
         string QuoteIdentifier(string ident) => _dialect.IdentifierEscapeStyle switch
         {
-            SqlIdentifierEscapeStyle.backtick => $"`{ident.Replace("`", "``", StringComparison.Ordinal)}`",
-            SqlIdentifierEscapeStyle.double_quote => $"\"{ident.Replace("\"", "\"\"", StringComparison.Ordinal)}\"",
-            SqlIdentifierEscapeStyle.bracket => $"[{ident.Replace("]", "]]", StringComparison.Ordinal)}]",
+            SqlIdentifierEscapeStyle.backtick => $"`{ident.Replace("`", "``")}`",
+            SqlIdentifierEscapeStyle.double_quote => $"\"{ident.Replace("\"", "\"\"")}\"",
+            SqlIdentifierEscapeStyle.bracket => $"[{ident.Replace("]", "]]")}]",
             _ => ident
         };
 
@@ -1485,16 +1485,9 @@ internal sealed class SqlQueryParser
 
                     // Avoid splitting if it looks like "expr op something"
                     // Here we keep the heuristic minimal: if left ends with one of these, it's not alias.
+                    HashSet<string> operatorChars = new HashSet<string> { "=", ">", "<", "!", "+", "-", "*", "/", "," };
                     var lastLeft = left.TrimEnd();
-                    if (lastLeft.EndsWith('=')
-                        || lastLeft.EndsWith('>')
-                        || lastLeft.EndsWith('<')
-                        || lastLeft.EndsWith('!')
-                        || lastLeft.EndsWith('+')
-                        || lastLeft.EndsWith('-')
-                        || lastLeft.EndsWith('*')
-                        || lastLeft.EndsWith('/')
-                        || lastLeft.EndsWith(','))
+                    if (operatorChars.Any(_=> lastLeft.EndsWith(_)))
                         continue;
 
                     // Alias must be a single identifier token (possibly quoted). Without this guard,
@@ -1529,13 +1522,13 @@ internal sealed class SqlQueryParser
         aliasRaw = aliasRaw.Trim();
 
         // If alias is quoted in a way the dialect doesn't allow, fail fast.
-        if (aliasRaw.StartsWith('`') && !allowBacktick)
+        if (aliasRaw.StartsWith("`") && !allowBacktick)
             throw new NotSupportedException($"Dialeto '{dialect.Name}' não permite alias/identificadores com '`'.");
 
-        if (aliasRaw.StartsWith('[') && !allowBracket)
+        if (aliasRaw.StartsWith("[") && !allowBracket)
             throw new NotSupportedException($"Dialeto '{dialect.Name}' não permite alias/identificadores com '['.");
 
-        if (aliasRaw.StartsWith('"') && !allowDqIdent && !dqIsString)
+        if (aliasRaw.StartsWith("\"") && !allowDqIdent && !dqIsString)
             throw new NotSupportedException($"Dialeto '{dialect.Name}' não permite alias/identificadores com '\"'.");
 
         // Strip outer identifier quotes (only those permitted for identifiers).

@@ -21,7 +21,7 @@ internal static class SqlExprPrinter
                 sb.Append(x.Name);
                 break;
             case ColumnExpr c:
-                sb.Append(CultureInfo.InvariantCulture, $"{c.Qualifier}.{c.Name}");
+                sb.Append($"{c.Qualifier}.{c.Name}");
                 break;
             case RawSqlExpr r:
                 sb.Append(r.Sql);
@@ -72,7 +72,7 @@ internal static class SqlExprPrinter
                 sb.Append(n.Negated ? " IS NOT NULL" : " IS NULL");
                 break;
             case ExistsExpr ee:
-                sb.Append(CultureInfo.InvariantCulture, $"EXISTS ({ee.Subquery.Sql})");
+                sb.Append($"EXISTS ({ee.Subquery.Sql})");
                 break;
             case JsonAccessExpr j:
                 Write(j.Target, sb);
@@ -80,7 +80,7 @@ internal static class SqlExprPrinter
                 Write(j.Path, sb);
                 break;
             case FunctionCallExpr f:
-                sb.Append(CultureInfo.InvariantCulture, $"{f.Name}({string.Join(", ", f.Args.Select(Print))})");
+                sb.Append($"{f.Name}({string.Join(", ", f.Args.Select(Print))})");
                 break;
             case CallExpr c:
                 sb.Append(c.Name);

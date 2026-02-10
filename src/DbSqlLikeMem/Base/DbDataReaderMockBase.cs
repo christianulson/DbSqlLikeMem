@@ -244,7 +244,7 @@ public abstract class DbDataReaderMockBase(
     public override object GetValue(int ordinal)
     {
         var v = this[ordinal];
-        return v is HashSet<string> hs ? string.Join(',', hs) : v;
+        return v is HashSet<string> hs ? string.Join(",", hs) : v;
     }
     /// <summary>
     /// EN: Copies the values of the current row into the provided array.
@@ -254,7 +254,7 @@ public abstract class DbDataReaderMockBase(
     /// <returns>EN: Number of copied columns. PT: Número de colunas copiadas.</returns>
     public override int GetValues(object[] values)
     {
-        ArgumentNullException.ThrowIfNull(values);
+        ArgumentNullExceptionCompatible.ThrowIfNull(values, nameof(values));
         for (int i = 0; i < FieldCount; i++)
         {
             values[i] = this[i] ?? DBNull.Value;

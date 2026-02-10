@@ -17,8 +17,8 @@ public static class MySqlLinqExtensions
         this MySqlConnectionMock cnn,
         string tableName)
     {
-        ArgumentNullException.ThrowIfNull(cnn);
-        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
 
         var provider = new MySqlQueryProvider(cnn);
         return new MySqlQueryable<T>(provider, tableName);

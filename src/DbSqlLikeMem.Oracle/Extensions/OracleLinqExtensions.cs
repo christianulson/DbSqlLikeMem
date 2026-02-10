@@ -17,8 +17,8 @@ public static class OracleLinqExtensions
         this OracleConnectionMock cnn,
         string tableName)
     {
-        ArgumentNullException.ThrowIfNull(cnn);
-        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
 
         var provider = new OracleQueryProvider(cnn);
         return new OracleQueryable<T>(provider, tableName);

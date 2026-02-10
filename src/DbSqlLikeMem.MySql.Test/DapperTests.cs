@@ -1,4 +1,5 @@
 namespace DbSqlLikeMem.MySql.Test;
+
 /// <summary>
 /// Auto-generated summary.
 /// </summary>

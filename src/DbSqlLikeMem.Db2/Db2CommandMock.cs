@@ -86,7 +86,7 @@ public class Db2CommandMock(
     public override int ExecuteNonQuery()
     {
         ArgumentNullException.ThrowIfNull(connection);
-        ArgumentException.ThrowIfNullOrWhiteSpace(CommandText);
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
         // 1. Stored Procedure (sem parse SQL)
         if (CommandType == CommandType.StoredProcedure)

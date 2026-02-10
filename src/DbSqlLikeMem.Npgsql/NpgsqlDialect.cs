@@ -103,7 +103,7 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     {
         _ = tableName;
         if (string.IsNullOrWhiteSpace(schemaName)) return TemporaryTableScope.None;
-        return schemaName.StartsWith("pg_temp", StringComparison.OrdinalIgnoreCase)
+        return schemaName!.StartsWith("pg_temp", StringComparison.OrdinalIgnoreCase)
             ? TemporaryTableScope.Connection
             : TemporaryTableScope.None;
     }

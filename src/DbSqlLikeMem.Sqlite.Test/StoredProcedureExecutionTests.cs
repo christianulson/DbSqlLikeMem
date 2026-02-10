@@ -12,7 +12,7 @@ public sealed class StoredProcedureExecutionTests(
     {
         var parameter = new SqliteParameter
         {
-            ParameterName = name.StartsWith('@')
+            ParameterName = name.StartsWith("@")
                 ? name
                 : "@" + name,
             Value = value ?? DBNull.Value,

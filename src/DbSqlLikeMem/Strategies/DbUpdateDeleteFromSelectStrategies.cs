@@ -171,7 +171,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         var list = new List<(string Col, string Val)>();
         if (string.IsNullOrWhiteSpace(whereSql)) return list;
 
-        whereSql = whereSql.Trim().TrimEnd(';');
+        whereSql = whereSql!.Trim().TrimEnd(';');
         // split by AND (case-insensitive)
         var parts = Regex.Split(whereSql, @"\s+AND\s+", RegexOptions.IgnoreCase)
             .Select(p => p.Trim())
@@ -179,11 +179,11 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
         foreach (var p in parts)
         {
-            var kv = p.Split('=', 2);
+            var kv = p.Split('=').Take(2).ToArray();
             if (kv.Length != 2) continue;
             var col = kv[0].Trim();
             // drop alias prefix if present
-            var dot = col.IndexOf('.', StringComparison.Ordinal);
+            var dot = col.IndexOf('.');
             if (dot >= 0) col = col[(dot + 1)..];
             col = col.Trim('`');
             list.Add((col, kv[1].Trim()));

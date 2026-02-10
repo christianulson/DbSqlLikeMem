@@ -134,7 +134,7 @@ public sealed class ExtendedMySqlMockTests(
         cnn.Open();
 
         var res = cnn.Query<dynamic>("SELECT * FROM t WHERE id IN (1,3)").ToList();
-        var ids = res.Select(r => (int)r.id).Order().ToArray();
+        var ids = res.Select(r => (int)r.id).OrderBy(_ => _).ToArray();
         Assert.Equal([1, 3], ids);
     }
 

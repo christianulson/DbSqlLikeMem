@@ -12,7 +12,7 @@ public static class DbTypeParser
     {
         // 1️⃣ null, vazio ou "null" textual => null
         if (string.IsNullOrWhiteSpace(value) ||
-            value.Equals("null", StringComparison.OrdinalIgnoreCase))
+            value!.Equals("null", StringComparison.OrdinalIgnoreCase))
             return null;
 
         // remove aspas simples comuns em SQL literals
@@ -65,8 +65,8 @@ public static class DbTypeParser
     private static string Unquote(string value)
     {
         if (value.Length >= 2 &&
-            ((value.StartsWith('\'') && value.EndsWith('\'')) ||
-             (value.StartsWith('"') && value.EndsWith('"'))))
+            ((value.StartsWith("'") && value.EndsWith("'")) ||
+             (value.StartsWith("\"") && value.EndsWith("\""))))
         {
             return value[1..^1];
         }

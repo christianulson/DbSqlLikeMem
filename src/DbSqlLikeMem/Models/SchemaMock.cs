@@ -29,11 +29,11 @@ public abstract class SchemaMock
         SchemaName = schemaName.NormalizeName();
         Db = db;
         if (tables != null)
-            foreach (var (tableName, config) in tables)
-                CreateTable(tableName, config.columns, config.rows);
+            foreach (var it in tables)
+                CreateTable(it.Key, it.Value.columns, it.Value.rows);
         if (procedures != null)
-            foreach (var (procedureName, config) in procedures)
-                Procedures.Add(procedureName, config);
+            foreach (var it in procedures)
+                Procedures.Add(it.Key, it.Value);
         //if (views != null)
         //    foreach (var (viewName, config) in views)
         //        Views.AddTable(viewName, config);
@@ -132,8 +132,8 @@ public abstract class SchemaMock
     /// <param name="table">EN: Table to add. PT: Tabela a adicionar.</param>
     public void Add(string key, ITableMock table)
     {
-        ArgumentNullException.ThrowIfNull(key);
-        ArgumentNullException.ThrowIfNull(table);
+        ArgumentNullExceptionCompatible.ThrowIfNull(key, nameof(key));
+        ArgumentNullExceptionCompatible.ThrowIfNull(table, nameof(table));
 
         key = key.NormalizeName();
 

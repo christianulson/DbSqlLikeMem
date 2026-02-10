@@ -21,9 +21,9 @@ internal static class DbDeleteStrategy
         SqlDeleteQuery query,
         DbParameterCollection? pars)
     {
-        ArgumentNullException.ThrowIfNull(query.Table);
-        ArgumentException.ThrowIfNullOrWhiteSpace(query.Table.Name);
-        var tableName = query.Table.Name;
+        ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(query!.Table!.Name, nameof(query.Table.Name));
+        var tableName = query.Table.Name!;
         if (!connection.TryGetTable(tableName, out var table, query.Table.DbName)
             || table == null)
             throw new InvalidOperationException($"Table {tableName} does not exist.");

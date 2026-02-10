@@ -70,7 +70,7 @@ internal static class SqlExtensions
             }
 
             // literal (escapa regex specials)
-            if ("\\.^$|?*+()[]{}".Contains(ch, StringComparison.OrdinalIgnoreCase))
+            if ("\\.^$|?*+()[]{}".Contains($"{ch}", StringComparison.OrdinalIgnoreCase))
                 sb.Append('\\');
 
             sb.Append(ch);

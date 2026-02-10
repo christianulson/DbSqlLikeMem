@@ -17,8 +17,8 @@ public static class SqliteLinqExtensions
         this SqliteConnectionMock cnn,
         string tableName)
     {
-        ArgumentNullException.ThrowIfNull(cnn);
-        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
+        ArgumentNullExceptionCompatible.ThrowIfNull(tableName, nameof(tableName));
 
         var provider = new SqliteQueryProvider(cnn);
         return new SqliteQueryable<T>(provider, tableName);

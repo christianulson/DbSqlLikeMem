@@ -7,7 +7,7 @@ internal static class SqlStringExtencions
     /// </summary>
     public static string NormalizeString(this string str)
     {
-        ArgumentNullException.ThrowIfNull(str);
+        ArgumentNullExceptionCompatible.ThrowIfNull(str, nameof(str));
 
         if (str.Length == 0)
             return string.Empty;

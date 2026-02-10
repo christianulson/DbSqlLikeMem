@@ -26,8 +26,8 @@ public class TableDictionary
         IDictionary<string, ITableMock>? tables)
     : base(StringComparer.OrdinalIgnoreCase)
     {
-        ArgumentNullException.ThrowIfNull(tables);
-        foreach (var (k, v) in tables)
-            Add(k, v);
+        ArgumentNullExceptionCompatible.ThrowIfNull(tables, nameof(tables));
+        foreach (var it in tables!)
+            Add(it.Key, it.Value);
     }
 }

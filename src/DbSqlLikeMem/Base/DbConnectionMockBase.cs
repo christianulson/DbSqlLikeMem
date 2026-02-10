@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace DbSqlLikeMem;
@@ -447,7 +447,7 @@ public abstract class DbConnectionMockBase(
     internal void MaybeDelayOrDrop()
     {
 #pragma warning disable CA5394 // Do not use insecure randomness
-        if (DropProbability > 0 && Random.Shared.NextDouble() < DropProbability)
+        if (DropProbability > 0 && new Random().NextDouble() < DropProbability)
             throw new IOException("Simulated network drop");
 #pragma warning restore CA5394 // Do not use insecure randomness
 

@@ -2,7 +2,7 @@
 
 internal sealed class Db2Dialect : SqlDialectBase
 {
-    internal const string DialectName = "mysql";
+    internal const string DialectName = "db2";
 
     internal Db2Dialect(
         int version
@@ -34,14 +34,17 @@ internal sealed class Db2Dialect : SqlDialectBase
  
     internal const int WithCteMinVersion = 8;
     internal const int MergeMinVersion = int.MaxValue;
+    
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public override bool AllowsBacktickIdentifiers => true;
+    
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public override bool AllowsDoubleQuoteIdentifiers => false; // keep tokenizer behavior: " as string
+    
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
@@ -51,6 +54,7 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool IsStringQuote(char ch) => ch is '\'' or '"';
+    
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
@@ -75,6 +79,7 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsDeleteWithoutFrom => false;
+    
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
@@ -84,10 +89,12 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
+    
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsNullSafeEq => true;
+    
     /// <summary>
     /// Auto-generated summary.
     /// </summary>

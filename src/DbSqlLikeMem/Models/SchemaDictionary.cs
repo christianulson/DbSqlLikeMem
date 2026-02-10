@@ -25,8 +25,8 @@ public class SchemaDictionary
         IDictionary<string, ISchemaMock>? schemas)
     : base(StringComparer.OrdinalIgnoreCase)
     {
-        ArgumentNullException.ThrowIfNull(schemas);
-        foreach (var (k, v) in schemas)
-            Add(k, v);
+        ArgumentNullExceptionCompatible.ThrowIfNull(schemas, nameof(schemas));
+        foreach (var it in schemas!)
+            Add(it.Key, it.Value);
     }
 }

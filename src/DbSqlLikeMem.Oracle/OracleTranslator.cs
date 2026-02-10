@@ -74,7 +74,7 @@ public class OracleTranslator : ExpressionVisitor
     /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitMethodCall(MethodCallExpression node)
     {
-        ArgumentNullException.ThrowIfNull(node);
+        ArgumentNullExceptionCompatible.ThrowIfNull(node, nameof(node));
         var method = node.Method.Name;
         if (method == "Where")
         {
@@ -146,7 +146,7 @@ public class OracleTranslator : ExpressionVisitor
     /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitConstant(ConstantExpression node)
     {
-        ArgumentNullException.ThrowIfNull(node);
+        ArgumentNullExceptionCompatible.ThrowIfNull(node, nameof(node));
 
         // 1) Prioridade: se for OracleQueryable<>, usa TableName (é o que você passou em AsQueryable<T>("users"))
         if (node.Value is not null)
@@ -189,7 +189,7 @@ public class OracleTranslator : ExpressionVisitor
     /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitBinary(BinaryExpression node)
     {
-        ArgumentNullException.ThrowIfNull(node);
+        ArgumentNullExceptionCompatible.ThrowIfNull(node, nameof(node));
         _sb.Append('(');
         Visit(node.Left);
         switch (node.NodeType)
@@ -214,7 +214,7 @@ public class OracleTranslator : ExpressionVisitor
     /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitMember(MemberExpression node)
     {
-        ArgumentNullException.ThrowIfNull(node);
+        ArgumentNullExceptionCompatible.ThrowIfNull(node, nameof(node));
         if (node.Expression != null
             && node.Expression.NodeType == ExpressionType.Parameter)
         {

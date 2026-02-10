@@ -7,6 +7,7 @@ namespace DbSqlLikeMem.MySql;
 public class MySqlDbMock
     : DbMock
 {
+    /// <inheritdoc/>
     internal override SqlDialectBase Dialect { get; set; }
 
     /// <summary>

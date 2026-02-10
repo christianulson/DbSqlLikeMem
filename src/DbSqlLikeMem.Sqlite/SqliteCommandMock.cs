@@ -85,13 +85,13 @@ public class SqliteCommandMock(
     /// </summary>
     public override int ExecuteNonQuery()
     {
-        ArgumentNullException.ThrowIfNull(connection);
-        ArgumentException.ThrowIfNullOrWhiteSpace(CommandText);
+        ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
         // 1. Stored Procedure (sem parse SQL)
         if (CommandType == CommandType.StoredProcedure)
         {
-            return connection.ExecuteStoredProcedure(CommandText, Parameters);
+            return connection!.ExecuteStoredProcedure(CommandText, Parameters);
         }
 
         var sqlRaw = CommandText.Trim();
@@ -99,13 +99,13 @@ public class SqliteCommandMock(
         // 2. Comandos especiais que talvez o Parser ainda não suporte nativamente (DDL, CALL)
         if (sqlRaw.StartsWith("call ", StringComparison.OrdinalIgnoreCase))
         {
-            return connection.ExecuteCall(sqlRaw, Parameters);
+            return connection!.ExecuteCall(sqlRaw, Parameters);
         }
 
         if (sqlRaw.StartsWith("create temporary table", StringComparison.OrdinalIgnoreCase) ||
             sqlRaw.StartsWith("create temp table", StringComparison.OrdinalIgnoreCase))
         {
-            var q = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect);
+            var q = SqlQueryParser.Parse(sqlRaw, connection!.Db.Dialect);
             if (q is not SqlCreateTemporaryTableQuery ct)
                 throw new InvalidOperationException("Invalid CREATE TEMPORARY TABLE statement.");
             return connection.ExecuteCreateTemporaryTableAsSelect(ct, Parameters, connection.Db.Dialect);
@@ -114,7 +114,7 @@ public class SqliteCommandMock(
         if (sqlRaw.StartsWith("create view", StringComparison.OrdinalIgnoreCase) ||
             sqlRaw.StartsWith("create or replace view", StringComparison.OrdinalIgnoreCase))
         {
-            var q = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect);
+            var q = SqlQueryParser.Parse(sqlRaw, connection!.Db.Dialect);
             if (q is not SqlCreateViewQuery cv)
                 throw new InvalidOperationException("Invalid CREATE VIEW statement.");
             return connection.ExecuteCreateView(cv, Parameters, connection.Db.Dialect);
@@ -122,11 +122,11 @@ public class SqliteCommandMock(
 
         if (sqlRaw.StartsWith("create table", StringComparison.OrdinalIgnoreCase))
         {
-            return connection.ExecuteCreateTableAsSelect(sqlRaw, Parameters, connection.Db.Dialect);
+            return connection!.ExecuteCreateTableAsSelect(sqlRaw, Parameters, connection!.Db.Dialect);
         }
 
         // 3. Parse via AST para comandos DML (Insert, Update, Delete)
-        var query = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect);
+        var query = SqlQueryParser.Parse(sqlRaw, connection!.Db.Dialect);
 
         return query switch
         {
@@ -148,12 +148,12 @@ public class SqliteCommandMock(
     /// <returns>EN: Data reader. PT: Data reader.</returns>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
-        ArgumentNullException.ThrowIfNull(connection);
-        ArgumentNullException.ThrowIfNull(CommandText);
+        ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
         if (CommandType == CommandType.StoredProcedure)
         {
-            connection.ExecuteStoredProcedure(CommandText, Parameters);
+            connection!.ExecuteStoredProcedure(CommandText, Parameters);
             return new SqliteDataReaderMock([[]]);
         }
 
@@ -162,14 +162,14 @@ public class SqliteCommandMock(
         // Erro CA1847 e CA1307: Substituído por Contains com char ou StringComparison
         if (sql.StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
         {
-            connection.ExecuteCall(sql, Parameters);
+            connection!.ExecuteCall(sql, Parameters);
             return new SqliteDataReaderMock([[]]);
         }
 
-        var executor = AstQueryExecutorFactory.Create(connection.Db.Dialect, connection, Parameters);
+        var executor = AstQueryExecutorFactory.Create(connection!.Db.Dialect, connection, Parameters);
 
         // Correção do erro de Contains e CA1847/CA1307
-        if (sql.Contains("UNION", StringComparison.OrdinalIgnoreCase) && !sql.Contains(';', StringComparison.Ordinal))
+        if (sql.Contains("UNION", StringComparison.OrdinalIgnoreCase) && !sql.Contains(';'))
         {
             var chain = SqlQueryParser.ParseUnionChain(sql, connection.Db.Dialect);
             // Garantindo o Cast correto para SqlSelectQuery

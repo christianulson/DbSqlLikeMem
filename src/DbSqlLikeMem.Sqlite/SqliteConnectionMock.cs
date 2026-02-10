@@ -8,6 +8,11 @@ namespace DbSqlLikeMem.Sqlite;
 public sealed class SqliteConnectionMock
     : DbConnectionMockBase
 {
+    static SqliteConnectionMock()
+    {
+        SqliteAstQueryExecutorRegister.Register();
+    }
+
     /// <summary>
     /// Auto-generated summary.
     /// </summary>

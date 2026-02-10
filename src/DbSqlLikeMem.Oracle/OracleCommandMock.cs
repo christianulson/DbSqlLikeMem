@@ -83,22 +83,22 @@ public class OracleCommandMock(
     /// </summary>
     public override int ExecuteNonQuery()
     {
-        ArgumentNullException.ThrowIfNull(connection);
-        ArgumentException.ThrowIfNullOrWhiteSpace(CommandText);
+        ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
         if (CommandType == CommandType.StoredProcedure)
-            return connection.ExecuteStoredProcedure(CommandText, Parameters);
+            return connection!.ExecuteStoredProcedure(CommandText, Parameters);
 
         var sqlRaw = CommandText.Trim();
 
         // Mantém atalhos existentes (CALL / CREATE TABLE AS SELECT) por compatibilidade do engine atual
         if (sqlRaw.StartsWith("call ", StringComparison.OrdinalIgnoreCase))
-            return connection.ExecuteCall(sqlRaw, Parameters);
+            return connection!.ExecuteCall(sqlRaw, Parameters);
 
         if (sqlRaw.StartsWith("create table", StringComparison.OrdinalIgnoreCase))
-            return connection.ExecuteCreateTableAsSelect(sqlRaw, Parameters, connection.Db.Dialect);
+            return connection!.ExecuteCreateTableAsSelect(sqlRaw, Parameters, connection!.Db.Dialect);
 
-        var query = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect);
+        var query = SqlQueryParser.Parse(sqlRaw, connection!.Db.Dialect);
 
         return query switch
         {
@@ -121,12 +121,12 @@ public class OracleCommandMock(
     /// <returns>EN: Data reader. PT: Data reader.</returns>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
-        ArgumentNullException.ThrowIfNull(connection);
-        ArgumentNullException.ThrowIfNull(CommandText);
+        ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
         if (CommandType == CommandType.StoredProcedure)
         {
-            connection.ExecuteStoredProcedure(CommandText, Parameters);
+            connection!.ExecuteStoredProcedure(CommandText, Parameters);
             return new OracleDataReaderMock([[]]);
         }
 
@@ -134,21 +134,21 @@ public class OracleCommandMock(
 
         if (sql.StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
         {
-            connection.ExecuteCall(sql, Parameters);
+            connection!.ExecuteCall(sql, Parameters);
             return new OracleDataReaderMock([[]]);
         }
 
-        var executor = new OracleAstQueryExecutor(connection, Parameters);
+        var executor = new OracleAstQueryExecutor(connection!, Parameters);
 
-        if (sql.Contains("UNION", StringComparison.OrdinalIgnoreCase) && !sql.Contains(';', StringComparison.Ordinal))
+        if (sql.Contains("UNION", StringComparison.OrdinalIgnoreCase) && !sql.Contains(';'))
         {
-            var chain = SqlQueryParser.ParseUnionChain(sql, connection.Db.Dialect);
+            var chain = SqlQueryParser.ParseUnionChain(sql, connection!.Db.Dialect);
             var unionTable = executor.ExecuteUnion(chain.Parts.Cast<SqlSelectQuery>().ToList(), chain.AllFlags, sql);
             connection.Metrics.Selects += unionTable.Count;
             return new OracleDataReaderMock([unionTable]);
         }
 
-        var queries = SqlQueryParser.ParseMulti(sql, connection.Db.Dialect).ToList();
+        var queries = SqlQueryParser.ParseMulti(sql, connection!.Db.Dialect).ToList();
         var tables = new List<TableResultMock>();
 
         foreach (var query in queries)

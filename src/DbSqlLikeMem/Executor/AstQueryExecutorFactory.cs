@@ -27,9 +27,9 @@ internal static class AstQueryExecutorFactory
         DbConnectionMockBase connection,
         IDataParameterCollection parameters)
     {
-        ArgumentNullException.ThrowIfNull(dialect);
-        ArgumentNullException.ThrowIfNull(connection);
-        ArgumentNullException.ThrowIfNull(parameters);
+        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
+        ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        ArgumentNullExceptionCompatible.ThrowIfNull(parameters, nameof(parameters));
 
         if(Executors.TryGetValue(dialect.Name, out var exc))
             return exc(connection, parameters);

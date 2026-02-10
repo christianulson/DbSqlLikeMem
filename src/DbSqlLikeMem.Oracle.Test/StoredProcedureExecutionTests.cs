@@ -12,7 +12,7 @@ public sealed class StoredProcedureExecutionTests(
     private static OracleParameter P(string name, object? value, DbType dbType, ParameterDirection dir = ParameterDirection.Input)
         => new()
         {
-            ParameterName = name.StartsWith('@')
+            ParameterName = name.StartsWith("@")
                 ? name
                 : "@" + name,
             Value = value ?? DBNull.Value,
