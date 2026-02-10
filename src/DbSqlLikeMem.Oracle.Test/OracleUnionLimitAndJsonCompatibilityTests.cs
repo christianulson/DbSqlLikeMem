@@ -9,7 +9,8 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests : XUnitTestBase
     private readonly OracleConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Initializes a new instance of OracleUnionLimitAndJsonCompatibilityTests.
+    /// PT: Inicializa uma nova instância de OracleUnionLimitAndJsonCompatibilityTests.
     /// </summary>
     public OracleUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper)
     {
@@ -30,9 +31,6 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests : XUnitTestBase
     /// PT: Testa o comportamento de UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates()
     {
         // UNION ALL keeps duplicates
@@ -57,9 +55,6 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de OffsetFetch_ShouldWork.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void OffsetFetch_ShouldWork()
     {
         // MySQL supports: LIMIT offset, count
@@ -72,9 +67,6 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de JsonValue_SimpleObjectPath_ShouldWork.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void JsonValue_SimpleObjectPath_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id, JSON_VALUE(payload, '$.a.b' RETURNING NUMBER) AS v FROM t ORDER BY id").ToList();

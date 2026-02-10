@@ -13,7 +13,8 @@ public enum SqlCaseExpectation
 }
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlQueryParserCorpusTests.
+/// PT: Define o(a) class SqlQueryParserCorpusTests.
 /// </summary>
 public sealed class SqlQueryParserCorpusTests(
     ITestOutputHelper helper
@@ -23,7 +24,8 @@ public sealed class SqlQueryParserCorpusTests(
         => [sql, why, expectation, minVersion];
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Describes the behavior validated by Statements.
+    /// PT: Descreve o comportamento validado por Statements.
     /// </summary>
     public static IEnumerable<object[]> Statements()
     {
@@ -81,7 +83,8 @@ public sealed class SqlQueryParserCorpusTests(
     // Cada item: (sql, o que está validando)
     // -----------------------------------------------------------------
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Describes the behavior validated by SelectStatements.
+    /// PT: Descreve o comportamento validado por SelectStatements.
     /// </summary>
     public static IEnumerable<object[]> SelectStatements()
     {
@@ -492,7 +495,8 @@ WHEN NOT MATCHED THEN INSERT (grp, total) VALUES (src.grp, src.total)",
     // Cada item: (sql, motivo)
     // -----------------------------------------------------------------
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Describes the behavior validated by InvalidSelectStatements.
+    /// PT: Descreve o comportamento validado por InvalidSelectStatements.
     /// </summary>
     public static IEnumerable<object[]> InvalidSelectStatements()
     {
@@ -570,7 +574,8 @@ select id
     // ❌ NÃO-SELECT (continua como você já tinha)
     // -----------------------------------------------------------------
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Describes the behavior validated by NonSelectStatements.
+    /// PT: Descreve o comportamento validado por NonSelectStatements.
     /// </summary>
     public static IEnumerable<object[]> NonSelectStatements()
     {
@@ -612,13 +617,7 @@ select id
     /// PT: Testa o comportamento de Parse_ShouldHandle_MultiStatementStrings_BySplitting.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataOracleVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Parse_ShouldHandle_MultiStatementStrings_BySplitting(int version)
     {
         var d = new OracleDialect(version);
@@ -641,13 +640,7 @@ select id
     /// PT: Testa o comportamento de Parse_Corpus.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataByOracleVersion(nameof(Statements))]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Parse_Corpus(string sql, string why, SqlCaseExpectation expectation, int minVersion, int version)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sql);

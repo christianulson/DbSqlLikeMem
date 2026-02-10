@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class StoredProcedureExecutionTests.
+/// PT: Define o(a) class StoredProcedureExecutionTests.
 /// </summary>
 public sealed class StoredProcedureExecutionTests(
         ITestOutputHelper helper
@@ -24,9 +25,6 @@ public sealed class StoredProcedureExecutionTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_StoredProcedure_ShouldValidateRequiredInputs.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ExecuteNonQuery_StoredProcedure_ShouldValidateRequiredInputs()
     {
         // Arrange
@@ -67,9 +65,6 @@ public sealed class StoredProcedureExecutionTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenMissingRequiredInput.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenMissingRequiredInput()
     {
         // Arrange
@@ -108,9 +103,6 @@ public sealed class StoredProcedureExecutionTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenRequiredInputIsNull.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenRequiredInputIsNull()
     {
         // Arrange
@@ -149,9 +141,6 @@ public sealed class StoredProcedureExecutionTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_StoredProcedure_ShouldPopulateOutParameters_DefaultValue.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ExecuteNonQuery_StoredProcedure_ShouldPopulateOutParameters_DefaultValue()
     {
         // Arrange
@@ -199,9 +188,6 @@ public sealed class StoredProcedureExecutionTests(
     /// PT: Testa o comportamento de ExecuteReader_CallSyntax_ShouldValidateAndReturnEmptyResultset.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ExecuteReader_CallSyntax_ShouldValidateAndReturnEmptyResultset()
     {
         // Arrange
@@ -235,9 +221,6 @@ public sealed class StoredProcedureExecutionTests(
     /// PT: Testa o comportamento de DapperExecute_CommandTypeStoredProcedure_ShouldWork.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void DapperExecute_CommandTypeStoredProcedure_ShouldWork()
     {
         // Arrange
@@ -271,9 +254,6 @@ public sealed class StoredProcedureExecutionTests(
     /// PT: Testa o comportamento de DapperExecute_CommandTypeStoredProcedure_ShouldThrow_OnMissingParam.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void DapperExecute_CommandTypeStoredProcedure_ShouldThrow_OnMissingParam()
     {
         // Arrange

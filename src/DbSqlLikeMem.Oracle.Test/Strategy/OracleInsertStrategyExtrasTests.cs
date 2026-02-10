@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test.Strategy;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class OracleInsertStrategyExtrasTests.
+/// PT: Define o(a) class OracleInsertStrategyExtrasTests.
 /// </summary>
 public sealed class OracleInsertStrategyExtrasTests(
         ITestOutputHelper helper
@@ -11,9 +12,6 @@ public sealed class OracleInsertStrategyExtrasTests(
     /// PT: Testa o comportamento de MultiRowInsertShouldAddAllRows.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void MultiRowInsertShouldAddAllRows()
     {
         // Arrange
@@ -41,9 +39,6 @@ public sealed class OracleInsertStrategyExtrasTests(
     /// PT: Testa o comportamento de InsertWithDefaultValueAndIdentityShouldApplyDefaults.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void InsertWithDefaultValueAndIdentityShouldApplyDefaults()
     {
         // Arrange
@@ -75,9 +70,6 @@ public sealed class OracleInsertStrategyExtrasTests(
     /// PT: Testa o comportamento de InsertDuplicatePrimaryKeyShouldThrow.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void InsertDuplicatePrimaryKeyShouldThrow()
     {
         // Arrange
@@ -109,9 +101,6 @@ public class OracleDeleteStrategyForeignKeyTests
     /// PT: Testa o comportamento de DeleteReferencedRowShouldThrow.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void DeleteReferencedRowShouldThrow()
     {
         // Arrange parent
@@ -151,9 +140,6 @@ public class OracleUpdateStrategyExtrasTests
     /// PT: Testa o comportamento de UpdateMultipleConditionsShouldOnlyAffectMatchingRows.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void UpdateMultipleConditionsShouldOnlyAffectMatchingRows()
     {
         // Arrange

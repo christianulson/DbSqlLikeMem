@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test.Strategy;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class OracleTransactionTests.
+/// PT: Define o(a) class OracleTransactionTests.
 /// </summary>
 public sealed class OracleTransactionTests(
         ITestOutputHelper helper
@@ -11,9 +12,6 @@ public sealed class OracleTransactionTests(
     /// PT: Testa o comportamento de TransactionShouldCommit.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void TransactionShouldCommit()
     {
         // Arrange
@@ -48,9 +46,6 @@ public sealed class OracleTransactionTests(
     /// PT: Testa o comportamento de TransactionShouldRollback.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void TransactionShouldRollback()
     {
         // Arrange

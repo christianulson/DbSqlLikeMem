@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class OracleDataParameterCollectionMockTest.
+/// PT: Define o(a) class OracleDataParameterCollectionMockTest.
 /// </summary>
 public sealed class OracleDataParameterCollectionMockTest(
         ITestOutputHelper helper
@@ -11,9 +12,6 @@ public sealed class OracleDataParameterCollectionMockTest(
     /// PT: Testa o comportamento de ParameterCollection_Normalize_ShouldWork_ForAtQuestionAndQuotedNames.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ParameterCollection_Normalize_ShouldWork_ForAtQuestionAndQuotedNames()
     {
         Assert.Equal("id", OracleDataParameterCollectionMock.NormalizeParameterName("@id"));
@@ -28,9 +26,6 @@ public sealed class OracleDataParameterCollectionMockTest(
     /// PT: Testa o comportamento de ParameterCollection_Add_DuplicateName_ShouldThrow.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ParameterCollection_Add_DuplicateName_ShouldThrow()
     {
         var pars = new OracleDataParameterCollectionMock();
@@ -44,9 +39,6 @@ public sealed class OracleDataParameterCollectionMockTest(
     /// PT: Testa o comportamento de ParameterCollection_RemoveAt_ShouldReindexDictionary.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ParameterCollection_RemoveAt_ShouldReindexDictionary()
     {
         var pars = new OracleDataParameterCollectionMock();
