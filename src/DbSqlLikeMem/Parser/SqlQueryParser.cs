@@ -712,14 +712,11 @@ internal sealed class SqlQueryParser
     {
         ExpectWord("VIEW");
 
-        // IF NOT EXISTS (not official MySQL syntax, but we accept for mocks)
+        // IF NOT EXISTS is not supported for CREATE VIEW in the mocked dialects.
         var ifNotExists = false;
         if (IsWord(Peek(), "IF"))
         {
-            Consume(); // IF
-            ExpectWord("NOT");
-            ExpectWord("EXISTS");
-            ifNotExists = true;
+            throw new InvalidOperationException("CREATE VIEW IF NOT EXISTS is not supported.");
         }
 
         // view name
