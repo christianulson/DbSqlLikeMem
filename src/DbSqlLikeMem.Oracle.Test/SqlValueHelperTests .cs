@@ -145,4 +145,56 @@ public sealed class SqlValueHelperTests(
             OracleValueHelper.CurrentColumn = prev;
         }
     }
+
+    /// <summary>
+    /// EN: Tests Resolve_ShouldValidateStringSize behavior.
+    /// PT: Testa o comportamento de Resolve_ShouldValidateStringSize.
+    /// </summary>
+    [Fact]
+    public void Resolve_ShouldValidateStringSize()
+    {
+        var cols = new ColumnDictionary
+        {
+            ["Name"] = new ColumnDef(0, DbType.String, false) { Size = 3 }
+        };
+
+        var prev = OracleValueHelper.CurrentColumn;
+        try
+        {
+            OracleValueHelper.CurrentColumn = "Name";
+            var ex = Assert.Throws<OracleMockException>(() =>
+                OracleValueHelper.Resolve("'abcd'", DbType.String, false, null, cols));
+            Assert.Equal(12899, ex.ErrorCode);
+        }
+        finally
+        {
+            OracleValueHelper.CurrentColumn = prev;
+        }
+    }
+
+    /// <summary>
+    /// EN: Tests Resolve_ShouldValidateDecimalPlaces behavior.
+    /// PT: Testa o comportamento de Resolve_ShouldValidateDecimalPlaces.
+    /// </summary>
+    [Fact]
+    public void Resolve_ShouldValidateDecimalPlaces()
+    {
+        var cols = new ColumnDictionary
+        {
+            ["Amount"] = new ColumnDef(0, DbType.Decimal, false) { DecimalPlaces = 2 }
+        };
+
+        var prev = OracleValueHelper.CurrentColumn;
+        try
+        {
+            OracleValueHelper.CurrentColumn = "Amount";
+            var ex = Assert.Throws<OracleMockException>(() =>
+                OracleValueHelper.Resolve("10.123", DbType.Decimal, false, null, cols));
+            Assert.Equal(1438, ex.ErrorCode);
+        }
+        finally
+        {
+            OracleValueHelper.CurrentColumn = prev;
+        }
+    }
 }

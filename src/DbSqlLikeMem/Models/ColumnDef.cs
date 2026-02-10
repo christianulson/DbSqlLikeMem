@@ -96,6 +96,16 @@ public sealed class ColumnDef
     /// </summary>
     public bool Nullable { get; init; }
     /// <summary>
+    /// EN: Maximum size/length for character/binary columns.
+    /// PT: Tamanho máximo para colunas de caracteres/binárias.
+    /// </summary>
+    public int? Size { get; init; }
+    /// <summary>
+    /// EN: Maximum number of decimal places for numeric columns.
+    /// PT: Quantidade máxima de casas decimais para colunas numéricas.
+    /// </summary>
+    public int? DecimalPlaces { get; init; }
+    /// <summary>
     /// EN: Indicates whether the column is auto-increment.
     /// PT: Indica se a coluna é auto incrementável.
     /// </summary>

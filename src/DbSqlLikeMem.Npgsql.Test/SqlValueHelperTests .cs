@@ -145,4 +145,56 @@ public sealed class SqlValueHelperTests(
             NpgsqlValueHelper.CurrentColumn = prev;
         }
     }
+
+    /// <summary>
+    /// EN: Tests Resolve_ShouldValidateStringSize behavior.
+    /// PT: Testa o comportamento de Resolve_ShouldValidateStringSize.
+    /// </summary>
+    [Fact]
+    public void Resolve_ShouldValidateStringSize()
+    {
+        var cols = new ColumnDictionary
+        {
+            ["Name"] = new ColumnDef(0, DbType.String, false) { Size = 3 }
+        };
+
+        var prev = NpgsqlValueHelper.CurrentColumn;
+        try
+        {
+            NpgsqlValueHelper.CurrentColumn = "Name";
+            var ex = Assert.Throws<NpgsqlMockException>(() =>
+                NpgsqlValueHelper.Resolve("'abcd'", DbType.String, false, null, cols));
+            Assert.Equal(22001, ex.ErrorCode);
+        }
+        finally
+        {
+            NpgsqlValueHelper.CurrentColumn = prev;
+        }
+    }
+
+    /// <summary>
+    /// EN: Tests Resolve_ShouldValidateDecimalPlaces behavior.
+    /// PT: Testa o comportamento de Resolve_ShouldValidateDecimalPlaces.
+    /// </summary>
+    [Fact]
+    public void Resolve_ShouldValidateDecimalPlaces()
+    {
+        var cols = new ColumnDictionary
+        {
+            ["Amount"] = new ColumnDef(0, DbType.Decimal, false) { DecimalPlaces = 2 }
+        };
+
+        var prev = NpgsqlValueHelper.CurrentColumn;
+        try
+        {
+            NpgsqlValueHelper.CurrentColumn = "Amount";
+            var ex = Assert.Throws<NpgsqlMockException>(() =>
+                NpgsqlValueHelper.Resolve("10.123", DbType.Decimal, false, null, cols));
+            Assert.Equal(22003, ex.ErrorCode);
+        }
+        finally
+        {
+            NpgsqlValueHelper.CurrentColumn = prev;
+        }
+    }
 }

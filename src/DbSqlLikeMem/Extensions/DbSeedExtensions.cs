@@ -39,6 +39,8 @@ public static class DbSeedExtensions
         bool nullable = false,
         object? defaultValue = null,
         string? references = null,
+        int? size = null,
+        int? decimalPlaces = null,
         string? schemaName = null)
     {
         ArgumentNullException.ThrowIfNull(cnn);
@@ -60,7 +62,9 @@ public static class DbSeedExtensions
             DbType = dbType,
             Nullable = nullable,
             Identity = identity,
-            DefaultValue = defaultValue
+            DefaultValue = defaultValue,
+            Size = size,
+            DecimalPlaces = decimalPlaces
         };
 
         // opcional: armazenar PK info, se precisar depois
@@ -82,6 +86,8 @@ public static class DbSeedExtensions
         bool nullable = false,
         object? defaultValue = null,
         string? references = null,
+        int? size = null,
+        int? decimalPlaces = null,
         params string[] enumOrSetValues)
     {
         ArgumentNullException.ThrowIfNull(tb);
@@ -100,6 +106,8 @@ public static class DbSeedExtensions
             Nullable = nullable,
             Identity = identity,
             DefaultValue = defaultValue,
+            Size = size,
+            DecimalPlaces = decimalPlaces,
             EnumValues = enumOrSetValues?.Length > 0
                 ? new HashSet<string>(
                     enumOrSetValues.Select(v => v.ToLower(CultureInfo.CurrentCulture)),

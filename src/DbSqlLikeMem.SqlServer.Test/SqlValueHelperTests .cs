@@ -145,4 +145,56 @@ public sealed class SqlValueHelperTests(
             SqlServerValueHelper.CurrentColumn = prev;
         }
     }
+
+    /// <summary>
+    /// EN: Tests Resolve_ShouldValidateStringSize behavior.
+    /// PT: Testa o comportamento de Resolve_ShouldValidateStringSize.
+    /// </summary>
+    [Fact]
+    public void Resolve_ShouldValidateStringSize()
+    {
+        var cols = new ColumnDictionary
+        {
+            ["Name"] = new ColumnDef(0, DbType.String, false) { Size = 3 }
+        };
+
+        var prev = SqlServerValueHelper.CurrentColumn;
+        try
+        {
+            SqlServerValueHelper.CurrentColumn = "Name";
+            var ex = Assert.Throws<SqlServerMockException>(() =>
+                SqlServerValueHelper.Resolve("'abcd'", DbType.String, false, null, cols));
+            Assert.Equal(8152, ex.ErrorCode);
+        }
+        finally
+        {
+            SqlServerValueHelper.CurrentColumn = prev;
+        }
+    }
+
+    /// <summary>
+    /// EN: Tests Resolve_ShouldValidateDecimalPlaces behavior.
+    /// PT: Testa o comportamento de Resolve_ShouldValidateDecimalPlaces.
+    /// </summary>
+    [Fact]
+    public void Resolve_ShouldValidateDecimalPlaces()
+    {
+        var cols = new ColumnDictionary
+        {
+            ["Amount"] = new ColumnDef(0, DbType.Decimal, false) { DecimalPlaces = 2 }
+        };
+
+        var prev = SqlServerValueHelper.CurrentColumn;
+        try
+        {
+            SqlServerValueHelper.CurrentColumn = "Amount";
+            var ex = Assert.Throws<SqlServerMockException>(() =>
+                SqlServerValueHelper.Resolve("10.123", DbType.Decimal, false, null, cols));
+            Assert.Equal(8115, ex.ErrorCode);
+        }
+        finally
+        {
+            SqlServerValueHelper.CurrentColumn = prev;
+        }
+    }
 }
