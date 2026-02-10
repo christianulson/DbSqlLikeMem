@@ -1559,6 +1559,12 @@ internal abstract class AstQueryExecutorBase(
             return IsNullish(v) ? EvalArg(1) : v;
         }
 
+        if (fn.Name.Equals("ISNULL", StringComparison.OrdinalIgnoreCase))
+        {
+            var v = EvalArg(0);
+            return IsNullish(v) ? EvalArg(1) : v;
+        }
+
         if (fn.Name.Equals("COALESCE", StringComparison.OrdinalIgnoreCase))
         {
             for (int i = 0; i < fn.Args.Count; i++)
