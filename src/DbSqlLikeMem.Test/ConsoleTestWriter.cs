@@ -28,7 +28,7 @@ public class ConsoleTestWriter(
 
             _helper.WriteLine(value ?? string.Empty);
         }
-        catch (Exception ex) when (ex is InvalidOperationException || ex is ObjectDisposedException)
+        catch (Exception ex) when (ex is InvalidOperationException || ex is ObjectDisposedException || ex is NullReferenceException)
         {
             Debug.WriteLine(ex.ToString());
             Debug.WriteLine(value);
