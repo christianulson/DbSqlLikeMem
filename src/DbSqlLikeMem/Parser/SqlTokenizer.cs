@@ -27,9 +27,24 @@ internal sealed class SqlTokenizer
             if (TrySkipComment())
                 continue;
 
+            if (ch == '\\' && _dialect.IsStringQuote(Peek(1)))
+            {
+                Read(); // skip escape char before string literal
+                continue;
+            }
+
             if (_dialect.IsStringQuote(ch))
             {
                 tokens.Add(ReadString());
+                continue;
+            }
+
+            if (ch == ':' && Peek(1) == ':' && _dialect.Operators.Contains("::"))
+            {
+                var start = _pos;
+                Read();
+                Read();
+                tokens.Add(new SqlToken(SqlTokenKind.Operator, "::", start));
                 continue;
             }
 
