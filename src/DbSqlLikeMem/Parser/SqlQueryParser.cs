@@ -796,7 +796,7 @@ internal sealed class SqlQueryParser
         var ifExists = false;
         if (IsWord(Peek(), "IF"))
         {
-            Consume();
+            Consume(); // IF
             ExpectWord("EXISTS");
             ifExists = true;
         }

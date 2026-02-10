@@ -278,7 +278,7 @@ public abstract class DbConnectionMockBase(
             out vw,
             schemaName ?? Database);
 
-    internal bool DropView(
+    internal void DropView(
         string viewName,
         bool ifExists,
         string? schemaName = null)
