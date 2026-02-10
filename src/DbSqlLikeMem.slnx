@@ -26,7 +26,6 @@
   <Project Path="DbSqlLikeMem.Oracle.Test/DbSqlLikeMem.Oracle.Test.net80.csproj" />
   <Project Path="DbSqlLikeMem.Oracle.Test/DbSqlLikeMem.Oracle.Test.net60.csproj" />
   <Project Path="DbSqlLikeMem.Oracle.Test/DbSqlLikeMem.Oracle.Test.net48.csproj" />
-  <Project Path="DbSqlLikeMem.Oracle.Test/DbSqlLikeMem.Oracle.Test.netstandard20.csproj" />
   <Project Path="DbSqlLikeMem.Oracle/DbSqlLikeMem.Oracle.csproj" />
   <Project Path="DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj" />
   <Project Path="DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.net80.csproj" />

@@ -1,4 +1,4 @@
-#if NET48 || NETSTANDARD2_0
+﻿#if NET48 || NETSTANDARD2_0
 using System;
 
 namespace System.Runtime.CompilerServices
@@ -6,14 +6,21 @@ namespace System.Runtime.CompilerServices
     internal static class IsExternalInit
     {
     }
+}
+#endif
 
+#if NET48 || NETSTANDARD2_0 || NET6_0
+using System;
+
+namespace System.Runtime.CompilerServices
+{
     [AttributeUsage(AttributeTargets.All, Inherited = false)]
-    internal sealed class RequiredMemberAttribute : Attribute
+    public sealed class RequiredMemberAttribute : Attribute
     {
     }
 
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Constructor | AttributeTargets.Method, Inherited = false)]
-    internal sealed class CompilerFeatureRequiredAttribute : Attribute
+    public sealed class CompilerFeatureRequiredAttribute : Attribute
     {
         public CompilerFeatureRequiredAttribute(string featureName)
         {
@@ -32,17 +39,24 @@ namespace System.Runtime.CompilerServices
 namespace System.Diagnostics.CodeAnalysis
 {
     [AttributeUsage(AttributeTargets.Constructor, Inherited = false)]
-    internal sealed class SetsRequiredMembersAttribute : Attribute
+    public sealed class SetsRequiredMembersAttribute : Attribute
     {
     }
+}
+#endif
 
+#if NET48 || NETSTANDARD2_0
+using System;
+
+namespace System.Diagnostics.CodeAnalysis
+{
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Property, Inherited = false)]
-    internal sealed class AllowNullAttribute : Attribute
+    public sealed class AllowNullAttribute : Attribute
     {
     }
 
     [AttributeUsage(AttributeTargets.Parameter, Inherited = false)]
-    internal sealed class MaybeNullWhenAttribute : Attribute
+    public sealed class MaybeNullWhenAttribute : Attribute
     {
         public MaybeNullWhenAttribute(bool returnValue)
         {
