@@ -1159,13 +1159,15 @@ internal sealed class SqlExpressionParser(
         // Dialect can define extra operators (ex: MySQL <=>).
         if (_dialect.TryMapBinaryOperator(op, out bop))
         {
+            if (bop == SqlBinaryOp.NullSafeEq)
+                return _dialect.SupportsNullSafeEq;
+
             return bop is SqlBinaryOp.Eq
                 or SqlBinaryOp.Neq
                 or SqlBinaryOp.Greater
                 or SqlBinaryOp.GreaterOrEqual
                 or SqlBinaryOp.Less
-                or SqlBinaryOp.LessOrEqual
-                or SqlBinaryOp.NullSafeEq;
+                or SqlBinaryOp.LessOrEqual;
         }
 
         bop = default;

@@ -23,8 +23,7 @@ internal sealed class OracleDialect : SqlDialectBase
         ],
         operators:
         [
-            ">=", "<=", "<>", "!=", "==",
-            "&&", "||"
+            ">=", "<=", "<>", "!=", "||"
         ])
     { }
 
@@ -36,7 +35,7 @@ internal sealed class OracleDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool AllowsBracketIdentifiers => true;
+    public override bool AllowsBracketIdentifiers => false;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
@@ -44,7 +43,7 @@ internal sealed class OracleDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.bracket;
+    public override SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.double_quote;
 
     /// <summary>
     /// Auto-generated summary.
@@ -58,7 +57,7 @@ internal sealed class OracleDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsTop => true;
+    public override bool SupportsTop => false;
 
     // OFFSET ... FETCH / FETCH FIRST entrou no Oracle 12c.
     /// <summary>
@@ -77,7 +76,7 @@ internal sealed class OracleDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsDeleteTargetAlias => true;
+    public override bool SupportsDeleteTargetAlias => false;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>

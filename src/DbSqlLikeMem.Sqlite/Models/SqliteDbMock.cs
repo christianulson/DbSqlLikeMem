@@ -14,7 +14,7 @@ public class SqliteDbMock
     /// </summary>
     public SqliteDbMock(
         int? version = null
-        ): base(version ?? 8)
+        ): base(version ?? 3)
     {
         Dialect = new SqliteDialect(Version);
     }

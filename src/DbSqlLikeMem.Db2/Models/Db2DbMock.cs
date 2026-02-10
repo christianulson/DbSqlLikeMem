@@ -14,7 +14,7 @@ public class Db2DbMock
     /// </summary>
     public Db2DbMock(
         int? version = null
-        ): base(version ?? 8)
+        ): base(version ?? 11)
     {
         Dialect = new Db2Dialect(Version);
     }

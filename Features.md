@@ -50,3 +50,23 @@
     - `CREATE TEMPORARY TABLE` (incluindo variantes com `AS SELECT`).
     - Definição de schema via API fluente.
     - Seed de dados e execução de consultas com mocks compatíveis com Dapper.
+
+
+- **SQLite**
+  - **Versões simuladas**: 3.
+  - **Funcionalidades por versão**
+    - `WITH`/CTE: disponível (>= 3).
+    - `ON DUPLICATE KEY UPDATE`: não suportado (SQLite usa `ON CONFLICT`).
+    - Operador null-safe `<=>`: não suportado.
+    - Operadores JSON `->` e `->>`: suportados pelo parser do dialeto.
+
+- **DB2**
+  - **Versões simuladas**: 8, 9, 10, 11.
+  - **Funcionalidades por versão**
+    - `WITH`/CTE: disponível (>= 8).
+    - `MERGE`: disponível (>= 9).
+    - `FETCH FIRST`: suportado.
+    - `LIMIT/OFFSET`: não suportado pelo dialeto DB2.
+    - `ON DUPLICATE KEY UPDATE`: não suportado.
+    - Operador null-safe `<=>`: não suportado.
+    - Operadores JSON `->` e `->>`: não suportados.
