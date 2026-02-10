@@ -11,9 +11,6 @@ public sealed class PostgreSqlInsertStrategyExtrasTests(
     /// PT: Testa o comportamento de MultiRowInsertShouldAddAllRows.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void MultiRowInsertShouldAddAllRows()
     {
         // Arrange
@@ -41,9 +38,6 @@ public sealed class PostgreSqlInsertStrategyExtrasTests(
     /// PT: Testa o comportamento de InsertWithDefaultValueAndIdentityShouldApplyDefaults.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void InsertWithDefaultValueAndIdentityShouldApplyDefaults()
     {
         // Arrange
@@ -75,9 +69,6 @@ public sealed class PostgreSqlInsertStrategyExtrasTests(
     /// PT: Testa o comportamento de InsertDuplicatePrimaryKeyShouldThrow.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void InsertDuplicatePrimaryKeyShouldThrow()
     {
         // Arrange
@@ -109,9 +100,6 @@ public class PostgreSqlDeleteStrategyForeignKeyTests
     /// PT: Testa o comportamento de DeleteReferencedRowShouldThrow.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void DeleteReferencedRowShouldThrow()
     {
         // Arrange parent
@@ -151,9 +139,6 @@ public class PostgreSqlUpdateStrategyExtrasTests
     /// PT: Testa o comportamento de UpdateMultipleConditionsShouldOnlyAffectMatchingRows.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void UpdateMultipleConditionsShouldOnlyAffectMatchingRows()
     {
         // Arrange

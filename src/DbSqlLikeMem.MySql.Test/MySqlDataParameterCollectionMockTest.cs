@@ -11,9 +11,6 @@ public sealed class MySqlDataParameterCollectionMockTest(
     /// PT: Testa o comportamento de ParameterCollection_Normalize_ShouldWork_ForAtQuestionAndQuotedNames.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ParameterCollection_Normalize_ShouldWork_ForAtQuestionAndQuotedNames()
     {
         Assert.Equal("id", MySqlDataParameterCollectionMock.NormalizeParameterName("@id"));
@@ -28,9 +25,6 @@ public sealed class MySqlDataParameterCollectionMockTest(
     /// PT: Testa o comportamento de ParameterCollection_Add_DuplicateName_ShouldThrow.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ParameterCollection_Add_DuplicateName_ShouldThrow()
     {
         var pars = new MySqlDataParameterCollectionMock();
@@ -44,9 +38,6 @@ public sealed class MySqlDataParameterCollectionMockTest(
     /// PT: Testa o comportamento de ParameterCollection_RemoveAt_ShouldReindexDictionary.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ParameterCollection_RemoveAt_ShouldReindexDictionary()
     {
         var pars = new MySqlDataParameterCollectionMock();

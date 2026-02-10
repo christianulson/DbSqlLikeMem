@@ -12,9 +12,6 @@ public sealed class ExistsTests(
     /// PT: Testa o comportamento de Exists_ShouldFilterUsersWithOrders.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Exists_ShouldFilterUsersWithOrders()
     {
         using var cnn = new NpgsqlConnectionMock();
@@ -58,9 +55,6 @@ ORDER BY u.Id";
     /// PT: Testa o comportamento de NotExists_ShouldFilterUsersWithoutOrders.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void NotExists_ShouldFilterUsersWithoutOrders()
     {
         using var cnn = new NpgsqlConnectionMock();
@@ -103,9 +97,6 @@ ORDER BY u.Id";
     /// PT: Testa o comportamento de Exists_WithExtraPredicate_ShouldWork.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Exists_WithExtraPredicate_ShouldWork()
     {
         using var cnn = new NpgsqlConnectionMock();

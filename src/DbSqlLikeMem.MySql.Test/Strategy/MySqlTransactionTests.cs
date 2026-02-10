@@ -11,9 +11,6 @@ public sealed class MySqlTransactionTests(
     /// PT: Testa o comportamento de TransactionShouldCommit.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void TransactionShouldCommit()
     {
         // Arrange
@@ -48,9 +45,6 @@ public sealed class MySqlTransactionTests(
     /// PT: Testa o comportamento de TransactionShouldRollback.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void TransactionShouldRollback()
     {
         // Arrange

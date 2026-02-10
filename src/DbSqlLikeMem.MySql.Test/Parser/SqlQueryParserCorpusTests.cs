@@ -624,13 +624,7 @@ select id
     /// PT: Testa o comportamento de Parse_ShouldHandle_MultiStatementStrings_BySplitting.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataMySqlVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Parse_ShouldHandle_MultiStatementStrings_BySplitting(int version)
     {
         var d = new MySqlDialect(version);
@@ -653,13 +647,7 @@ select id
     /// PT: Testa o comportamento de Parse_Corpus.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataByMySqlVersion(nameof(Statements))]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Parse_Corpus(string sql, string why, SqlCaseExpectation expectation, int minVersion, int version)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sql);

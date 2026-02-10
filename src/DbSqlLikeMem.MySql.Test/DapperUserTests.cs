@@ -43,9 +43,6 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de InsertUserShouldAddUserToTable.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void InsertUserShouldAddUserToTable()
     {
         // Arrange
@@ -94,9 +91,6 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de QueryUserShouldReturnCorrectData.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void QueryUserShouldReturnCorrectData()
     {
         // Arrange
@@ -153,9 +147,6 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de UpdateUserShouldModifyUserInTable.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void UpdateUserShouldModifyUserInTable()
     {
         // Arrange
@@ -226,9 +217,6 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de DeleteUserShouldRemoveUserFromTable.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void DeleteUserShouldRemoveUserFromTable()
     {
         // Arrange
@@ -280,9 +268,6 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de QueryMultipleShouldReturnMultipleUserResultSets.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void QueryMultipleShouldReturnMultipleUserResultSets()
     {
         // Arrange

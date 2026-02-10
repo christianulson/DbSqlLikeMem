@@ -30,9 +30,6 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests : XUnitTestBase
     /// PT: Testa o comportamento de UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates()
     {
         // UNION ALL keeps duplicates
@@ -57,9 +54,6 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de OffsetFetch_ShouldWork.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void OffsetFetch_ShouldWork()
     {
         // SQL Server: OFFSET/FETCH
@@ -72,9 +66,6 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de JsonValue_SimpleObjectPath_ShouldWork.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void JsonValue_SimpleObjectPath_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id, TRY_CAST(JSON_VALUE(payload, '$.a.b') AS DECIMAL(18,0)) AS v FROM t ORDER BY id").ToList();

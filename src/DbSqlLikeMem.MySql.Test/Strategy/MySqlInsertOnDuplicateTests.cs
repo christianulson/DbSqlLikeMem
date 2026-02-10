@@ -13,13 +13,7 @@ public class MySqlInsertOnDuplicateTests(
     /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldInsertWhenNoConflict.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataMySqlVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Insert_OnDuplicate_ShouldInsertWhenNoConflict(int version)
     {
         var db = new MySqlDbMock(version);
@@ -44,13 +38,7 @@ public class MySqlInsertOnDuplicateTests(
     /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateExistingRow_ByPrimaryKey_UsingValues.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataMySqlVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Insert_OnDuplicate_ShouldUpdateExistingRow_ByPrimaryKey_UsingValues(int version)
     {
         var db = new MySqlDbMock(version);
@@ -77,13 +65,7 @@ public class MySqlInsertOnDuplicateTests(
     /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateExistingRow_ByUniqueIndex.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataMySqlVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Insert_OnDuplicate_ShouldUpdateExistingRow_ByUniqueIndex(int version)
     {
         var db = new MySqlDbMock(version);
@@ -113,13 +95,7 @@ public class MySqlInsertOnDuplicateTests(
     /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateUsingLiteralAndParam.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataMySqlVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Insert_OnDuplicate_ShouldUpdateUsingLiteralAndParam(int version)
     {
         var db = new MySqlDbMock(version);
@@ -151,13 +127,7 @@ public class MySqlInsertOnDuplicateTests(
     /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateAggragating.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataMySqlVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Insert_OnDuplicate_ShouldUpdateAggragating(int version)
     {
         var db = new MySqlDbMock(version);

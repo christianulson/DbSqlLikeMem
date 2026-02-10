@@ -14,9 +14,6 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_ShouldReadDapperParameter_ByName.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Resolve_ShouldReadDapperParameter_ByName()
     {
         using var cnn = new MySqlConnectionMock();
@@ -37,9 +34,6 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_ShouldThrow_WhenParameterMissing.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Resolve_ShouldThrow_WhenParameterMissing()
     {
         Assert.Throws<MySqlMockException>(() =>
@@ -51,9 +45,6 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_ShouldParseInList_ToListOfResolvedValues.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Resolve_ShouldParseInList_ToListOfResolvedValues()
     {
         var v = MySqlValueHelper.Resolve("(1, 2, 3)", DbType.Int32, isNullable: false, pars: null, colDict: null);
@@ -67,9 +58,6 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_NullOnNonNullable_ShouldThrow.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Resolve_NullOnNonNullable_ShouldThrow()
     {
         Assert.Throws<MySqlMockException>(() =>
@@ -81,9 +69,6 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_Json_ShouldReturnJsonDocument_WhenValid.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Resolve_Json_ShouldReturnJsonDocument_WhenValid()
     {
         var v = MySqlValueHelper.Resolve("{\"a\":1}", DbType.Object, isNullable: false, pars: null, colDict: null);
@@ -97,29 +82,11 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Like_ShouldMatch_MySqlStyle.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [InlineData("John", "%oh%", true)]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [InlineData("John", "J_hn", true)]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [InlineData("John", "J__n", true)]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [InlineData("John", "J__x", false)]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [InlineData("John", "%OH%", true)] // ignore case
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Like_ShouldMatch_MySqlStyle(string value, string pattern, bool expected)
     {
         Assert.Equal(expected, MySqlValueHelper.Like(value, pattern));
@@ -130,9 +97,6 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_Enum_ShouldValidateAgainstColumnDef.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Resolve_Enum_ShouldValidateAgainstColumnDef()
     {
         var cols = new ColumnDictionary
@@ -156,9 +120,6 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_Set_ShouldReturnHashSet_AndValidate.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Resolve_Set_ShouldReturnHashSet_AndValidate()
     {
         var cols = new ColumnDictionary
@@ -193,9 +154,6 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_ShouldValidateStringSize.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Resolve_ShouldValidateStringSize()
     {
         var cols = new ColumnDictionary
@@ -222,9 +180,6 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_ShouldValidateDecimalPlaces.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Resolve_ShouldValidateDecimalPlaces()
     {
         var cols = new ColumnDictionary

@@ -19,9 +19,6 @@ public class SqlServerCommandMock(
     /// Auto-generated summary.
     /// </summary>
     [AllowNull]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public override string CommandText { get; set; } = string.Empty;
 
     /// <summary>

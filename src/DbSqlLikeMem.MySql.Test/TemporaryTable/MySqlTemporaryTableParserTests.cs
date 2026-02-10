@@ -10,13 +10,7 @@ public sealed class MySqlTemporaryTableParserTests
     /// PT: Testa o comportamento de ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataMySqlVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect(int version)
     {
         const string sql = @"
@@ -70,13 +64,7 @@ WHERE `tenantid` = 10",
     /// PT: Testa o comportamento de Parse_ShouldAccept_CreateTemporaryTable_Variants.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataByMySqlVersion(nameof(CreateTempTableStatements))]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Parse_ShouldAccept_CreateTemporaryTable_Variants(string sql, int version)
     {
         // TDD contract: these statements must parse without throwing.
@@ -90,13 +78,7 @@ WHERE `tenantid` = 10",
     /// Auto-generated summary.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [MemberDataMySqlVersion]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Parse_ShouldAccept_GlobalTemporaryTable(int version)
     {
         var dialect = new MySqlDialect(version);
