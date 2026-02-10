@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>false</IsTestProject>
+		<TargetFramework>netstandard2.0</TargetFramework>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="FluentAssertions" Version="8.8.0" />
+		<PackageReference Include="FluentAssertions.Analyzers" Version="0.34.1">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="xunit" Version="2.9.3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.Sqlite\DbSqlLikeMem.Sqlite.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.netstandard20.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="Dapper" />
+		<Using Include="DbSqlLikeMem" />
+		<Using Include="DbSqlLikeMem.Sqlite" />
+		<Using Include="DbSqlLikeMem.Test" />
+		<Using Include="FluentAssertions" />
+		<Using Include="Microsoft.Data.Sqlite" />
+		<Using Include="System.Data" />
+		<Using Include="System.Globalization" />
+		<Using Include="Xunit.Abstractions" />
+		<Using Include="Xunit" />
+	</ItemGroup>
+
+</Project>
