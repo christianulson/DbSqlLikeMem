@@ -12,9 +12,6 @@ public sealed class MySqlInsertStrategyCoverageTests(
     /// PT: Testa o comportamento de Insert_MultiRowValues_ShouldInsertAllRows.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Insert_MultiRowValues_ShouldInsertAllRows()
     {
         var db = new MySqlDbMock();
@@ -43,9 +40,6 @@ public sealed class MySqlInsertStrategyCoverageTests(
     /// PT: Testa o comportamento de Insert_WithIdentityColumnOmitted_ShouldAutoIncrement.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Insert_WithIdentityColumnOmitted_ShouldAutoIncrement()
     {
         var db = new MySqlDbMock();
@@ -76,9 +70,6 @@ public sealed class MySqlInsertStrategyCoverageTests(
     /// PT: Testa o comportamento de InsertSelect_ShouldInsertRowsFromSelect.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void InsertSelect_ShouldInsertRowsFromSelect()
     {
         var db = new MySqlDbMock();

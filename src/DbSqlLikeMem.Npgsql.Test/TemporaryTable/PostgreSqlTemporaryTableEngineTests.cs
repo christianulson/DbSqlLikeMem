@@ -12,9 +12,6 @@ public sealed class PostgreSqlTemporaryTableEngineTests
     /// PT: Testa o comportamento de CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows()
     {
         var db = new NpgsqlDbMock();
@@ -51,9 +48,6 @@ SELECT id FROM tmp_users ORDER BY id;";
     /// Auto-generated summary.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void CreateTemporaryTable_InPgTempSchema_ShouldReturnProjectedRows()
     {
         var db = new NpgsqlDbMock();

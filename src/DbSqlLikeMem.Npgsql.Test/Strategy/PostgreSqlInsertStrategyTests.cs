@@ -11,9 +11,6 @@ public sealed class PostgreSqlInsertStrategyTests(
     /// PT: Testa o comportamento de InsertIntoTableShouldAddNewRow.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void InsertIntoTableShouldAddNewRow()
     {
         // Arrange

@@ -12,9 +12,6 @@ public sealed class MySqlUpdateStrategyTests(
     /// PT: Testa o comportamento de UpdateTableShouldModifyExistingRow.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void UpdateTableShouldModifyExistingRow()
     {
         // Arrange
@@ -43,9 +40,6 @@ public sealed class MySqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldReturnZero_WhenNoRowsMatchWhere.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Update_ShouldReturnZero_WhenNoRowsMatchWhere()
     {
         var db = new MySqlDbMock();
@@ -71,9 +65,6 @@ public sealed class MySqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldUpdateMultipleRows_WhenWhereMatchesMultiple.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Update_ShouldUpdateMultipleRows_WhenWhereMatchesMultiple()
     {
         var db = new MySqlDbMock();
@@ -102,9 +93,6 @@ public sealed class MySqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldHandleWhereWithAnd_CaseInsensitive.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Update_ShouldHandleWhereWithAnd_CaseInsensitive()
     {
         var db = new MySqlDbMock();
@@ -133,9 +121,6 @@ public sealed class MySqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldUpdateMultipleSetPairs.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Update_ShouldUpdateMultipleSetPairs()
     {
         var db = new MySqlDbMock();
@@ -161,9 +146,6 @@ public sealed class MySqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldBeCaseInsensitive_ForUpdateSetWhereKeywords.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Update_ShouldBeCaseInsensitive_ForUpdateSetWhereKeywords()
     {
         var db = new MySqlDbMock();
@@ -188,17 +170,8 @@ public sealed class MySqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldWork_WithThreadSafeTrueOrFalse.
     /// </summary>
     [Theory]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [InlineData(false)]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [InlineData(true)]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Update_ShouldWork_WithThreadSafeTrueOrFalse(bool threadSafe)
     {
         var db = new MySqlDbMock();
@@ -223,9 +196,6 @@ public sealed class MySqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldThrow_WhenTableDoesNotExist.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Update_ShouldThrow_WhenTableDoesNotExist()
     {
         var db = new MySqlDbMock();
@@ -244,9 +214,6 @@ public sealed class MySqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldThrow_WhenSqlIsInvalid_NoUpdateToken.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Update_ShouldThrow_WhenSqlIsInvalid_NoUpdateToken()
     {
         var db = new MySqlDbMock();
@@ -268,9 +235,6 @@ public sealed class MySqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldNotChangeGeneratedColumn_WhenGetGenValueIsNotNull.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Update_ShouldNotChangeGeneratedColumn_WhenGetGenValueIsNotNull()
     {
         var db = new MySqlDbMock();
@@ -296,9 +260,6 @@ public sealed class MySqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldSupportParameter_IfSqlValueHelperSupports.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Update_ShouldSupportParameter_IfSqlValueHelperSupports()
     {
         var db = new MySqlDbMock();
@@ -333,9 +294,6 @@ public sealed class MySqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldThrowDuplicateKey_WhenUniqueIndexCollides.
     /// </summary>
     [Fact]
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public void Update_ShouldThrowDuplicateKey_WhenUniqueIndexCollides()
     {
         var db = new MySqlDbMock();

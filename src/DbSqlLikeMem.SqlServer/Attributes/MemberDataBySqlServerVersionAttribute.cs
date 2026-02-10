@@ -9,9 +9,6 @@ namespace DbSqlLikeMem.SqlServer;
 /// Auto-generated summary.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-/// <summary>
-/// Auto-generated summary.
-/// </summary>
 public sealed class MemberDataBySqlServerVersionAttribute(
     string dataMemberName
  ) : DataAttribute
