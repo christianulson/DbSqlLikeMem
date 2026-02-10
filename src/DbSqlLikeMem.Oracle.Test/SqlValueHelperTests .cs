@@ -79,8 +79,8 @@ public sealed class SqlValueHelperTests(
     }
 
     /// <summary>
-    /// EN: Tests Like_ShouldMatch_MySqlStyle behavior.
-    /// PT: Testa o comportamento de Like_ShouldMatch_MySqlStyle.
+    /// EN: Describes the behavior validated by Like_ShouldMatch_MySqlStyle.
+    /// PT: Descreve o comportamento validado por Like_ShouldMatch_MySqlStyle.
     /// </summary>
     [Theory]
     [InlineData("John", "%oh%", true)]
@@ -88,10 +88,6 @@ public sealed class SqlValueHelperTests(
     [InlineData("John", "J__n", true)]
     [InlineData("John", "J__x", false)]
     [InlineData("John", "%OH%", true)] // ignore case
-    /// <summary>
-    /// EN: Describes the behavior validated by Like_ShouldMatch_MySqlStyle.
-    /// PT: Descreve o comportamento validado por Like_ShouldMatch_MySqlStyle.
-    /// </summary>
     public void Like_ShouldMatch_MySqlStyle(string value, string pattern, bool expected)
     {
         Assert.Equal(expected, OracleValueHelper.Like(value, pattern));
