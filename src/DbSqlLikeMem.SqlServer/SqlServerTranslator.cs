@@ -48,7 +48,7 @@ public class SqlServerTranslator : ExpressionVisitor
         if (_offset.HasValue)
             _sb.Append(" OFFSET ").Append(_offset.Value);
         if (_limit.HasValue)
-            _sb.Append(" LIMIT ").Append(_limit.Value);
+            _sb.Append(" FETCH NEXT ").Append(_limit.Value).Append(" ROWS ONLY");
 
         return new TranslationResult(_sb.ToString(), BuildParameters(_values));
     }

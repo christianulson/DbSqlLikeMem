@@ -791,7 +791,6 @@ internal sealed class SqlExpressionParser(
 
     private CallExpr ParseCallAfterName(string name)
     {
-        Console.WriteLine($"[DEBUG] ParseCallAfterName: {name}");
         Consume(); // '('
 
         // ================================
@@ -844,6 +843,47 @@ internal sealed class SqlExpressionParser(
                 new RawSqlExpr(typeSql)
                 ]
             );
+        }
+
+        // ================================
+        // TRY_CAST(expr AS TYPE) — sintaxe especial
+        // ================================
+        if (name.Equals("TRY_CAST", StringComparison.OrdinalIgnoreCase))
+        {
+            var inner = ParseExpression(0);
+
+            if (!IsKeywordOrIdentifierWord(Peek(), "AS"))
+                throw Error("TRY_CAST requires AS", Peek());
+
+            Consume(); // AS
+
+            var typeToks = new List<SqlToken>();
+            int depth = 0;
+
+            while (true)
+            {
+                var t = Peek();
+
+                if (t.Kind == SqlTokenKind.EndOfFile)
+                    throw Error("TRY_CAST type not closed", t);
+
+                if (t.Kind == SqlTokenKind.Symbol && t.Text == "(")
+                    depth++;
+
+                if (t.Kind == SqlTokenKind.Symbol && t.Text == ")")
+                {
+                    if (depth == 0)
+                        break;
+                    depth--;
+                }
+
+                typeToks.Add(Consume());
+            }
+
+            ExpectSymbol(")");
+
+            var typeSql = string.Join(" ", typeToks.Select(TokenToSql)).Trim();
+            return new CallExpr("TRY_CAST", [inner, new RawSqlExpr(typeSql)]);
         }
 
         // ================================
