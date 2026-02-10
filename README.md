@@ -14,7 +14,8 @@ This project lets you test data access code without a real database by using pro
 
 ## Requirements
 
-- .NET 8.0 (see `Directory.Build.props`)
+- Bibliotecas de provider: .NET Framework 4.8, .NET 6.0 e .NET 8.0.
+- Núcleo `DbSqlLikeMem`: .NET Standard 2.0 + .NET Framework 4.8, .NET 6.0 e .NET 8.0.
 
 ## Supported Providers
 
