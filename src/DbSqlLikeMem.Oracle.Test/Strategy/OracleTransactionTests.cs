@@ -23,7 +23,7 @@ public sealed class OracleTransactionTests(
         using var connection = new OracleConnectionMock(db);
         connection.Open();
         var transaction = connection.BeginTransaction();
-        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullExceptionCompatible.ThrowIfNull(transaction, nameof(transaction));
         using var command = new OracleCommandMock(
             connection,
             (OracleTransactionMock)transaction)

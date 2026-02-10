@@ -10,6 +10,10 @@ namespace DbSqlLikeMem.SqlServer;
 public sealed class SqlServerConnectionMock
     : DbConnectionMockBase
 {
+    static SqlServerConnectionMock()
+    {
+        SqlServerAstQueryExecutorRegister.Register();
+    }
 
     /// <summary>
     /// Auto-generated summary.

@@ -32,11 +32,11 @@ internal static class OracleValueHelper
         IColumnDictionary? colDict = null)
     {
         // ---------- parâmetro Dapper @p -------------------------------
-        if (token.StartsWith('@'))
+        if (token.StartsWith("@"))
         {
             var name = token[1..]
-                .Replace("\r\n", string.Empty, StringComparison.Ordinal)
-                .Replace(";", string.Empty, StringComparison.Ordinal);
+                .Replace("\r\n", string.Empty)
+                .Replace(";", string.Empty);
             if (pars == null || !pars.Contains(name))
                 throw new OracleMockException($"Parâmetro {name} não encontrado.");
             return ((OracleParameter)pars[name]).Value;
@@ -64,7 +64,7 @@ internal static class OracleValueHelper
             return ValidateColumnValue(value, colDict);
 
         // ---------- JSON ----------------------------------------------
-        if (dbType == DbType.Object && (token.StartsWith('{') || token.StartsWith('[')))
+        if (dbType == DbType.Object && (token.StartsWith("{") || token.StartsWith("[")))
             return ParseJson(token);
 
         // ---------- tipos padrões -------------------------------------
@@ -81,7 +81,7 @@ internal static class OracleValueHelper
         if (colDict is null || string.IsNullOrWhiteSpace(CurrentColumn))
             return false;
 
-        if (!colDict.TryGetValue(CurrentColumn, out var cdef))
+        if (!colDict.TryGetValue(CurrentColumn!, out var cdef))
             return false;
 
         if (cdef.EnumValues is null || cdef.EnumValues.Count == 0)
@@ -90,9 +90,9 @@ internal static class OracleValueHelper
         var raw = token.Trim();
 
         // SET
-        if (raw.Contains(',', StringComparison.Ordinal))
+        if (raw.Contains(','))
         {
-            var parts = raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var parts = raw.Split(',').Select(_ => _.Trim()).Where(_ => !string.IsNullOrWhiteSpace(_)).ToArray(); 
             var hs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var p in parts)
@@ -135,7 +135,7 @@ internal static class OracleValueHelper
         if (colDict is null || string.IsNullOrWhiteSpace(CurrentColumn))
             return value;
 
-        if (!colDict.TryGetValue(CurrentColumn, out var cdef))
+        if (!colDict.TryGetValue(CurrentColumn!, out var cdef))
             return value;
 
         if (cdef.Size is int size && value is string s && s.Length > size)
@@ -173,8 +173,8 @@ internal static class OracleValueHelper
     public static bool Like(string value, string pattern)
     {
         pattern = Regex.Escape(pattern)
-            .Replace("%", ".*", StringComparison.Ordinal)
-            .Replace("_", ".", StringComparison.Ordinal);
+            .Replace("%", ".*")
+            .Replace("_", ".");
         return Regex.IsMatch(value, "^" + pattern + "$", RegexOptions.Singleline | RegexOptions.IgnoreCase);
     }
 }

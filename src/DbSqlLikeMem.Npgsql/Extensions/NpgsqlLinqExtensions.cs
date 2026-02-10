@@ -1,4 +1,5 @@
 namespace DbSqlLikeMem.Npgsql;
+
 /// <summary>
 /// Auto-generated summary.
 /// </summary>
@@ -17,8 +18,8 @@ public static class NpgsqlLinqExtensions
         this NpgsqlConnectionMock cnn,
         string tableName)
     {
-        ArgumentNullException.ThrowIfNull(cnn);
-        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
+        ArgumentNullExceptionCompatible.ThrowIfNull(tableName,nameof(tableName));
 
         var provider = new NpgsqlQueryProvider(cnn);
         return new NpgsqlQueryable<T>(provider, tableName);

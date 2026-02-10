@@ -22,7 +22,7 @@ public sealed class PostgreSqlTransactionTests(
         using var connection = new NpgsqlConnectionMock(db);
         connection.Open();
         var transaction = connection.BeginTransaction();
-        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullExceptionCompatible.ThrowIfNull(transaction, nameof(transaction));
         using var command = new NpgsqlCommandMock(
             connection,
             (NpgsqlTransactionMock)transaction)

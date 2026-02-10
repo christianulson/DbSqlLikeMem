@@ -10,6 +10,11 @@ namespace DbSqlLikeMem.Npgsql;
 public sealed class NpgsqlConnectionMock
     : DbConnectionMockBase
 {
+    static NpgsqlConnectionMock()
+    {
+        NpgsqlAstQueryExecutorRegister.Register();
+    }
+
     /// <summary>
     /// Auto-generated summary.
     /// </summary>

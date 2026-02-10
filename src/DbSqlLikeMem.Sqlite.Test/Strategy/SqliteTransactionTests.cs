@@ -1,4 +1,5 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Test.Strategy;
+
 /// <summary>
 /// Auto-generated summary.
 /// </summary>
@@ -22,7 +23,7 @@ public sealed class SqliteTransactionTests(
         using var connection = new SqliteConnectionMock(db);
         connection.Open();
         var transaction = connection.BeginTransaction();
-        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullExceptionCompatible.ThrowIfNull(transaction, nameof(transaction));
         using var command = new SqliteCommandMock(
             connection,
             (SqliteTransactionMock)transaction)

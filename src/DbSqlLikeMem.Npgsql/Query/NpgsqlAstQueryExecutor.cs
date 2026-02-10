@@ -56,11 +56,11 @@ internal sealed class NpgsqlAstQueryExecutor(
             return null;
 
         var parts = inner
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Split(',').Select(_ => _.Trim()).Where(_ => !string.IsNullOrWhiteSpace(_))
             .Select(p => p.Trim('"'))
             .Where(p => p.Length > 0)
             .ToArray();
 
-        return parts.Length == 0 ? null : "$." + string.Join('.', parts);
+        return parts.Length == 0 ? null : "$." + string.Join(".", parts);
     }
 }

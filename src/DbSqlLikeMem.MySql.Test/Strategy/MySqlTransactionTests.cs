@@ -22,7 +22,7 @@ public sealed class MySqlTransactionTests(
         using var connection = new MySqlConnectionMock(db);
         connection.Open();
         var transaction = connection.BeginTransaction();
-        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullExceptionCompatible.ThrowIfNull(transaction, nameof(transaction));
         using var command = new MySqlCommandMock(
             connection,
             (MySqlTransactionMock)transaction)

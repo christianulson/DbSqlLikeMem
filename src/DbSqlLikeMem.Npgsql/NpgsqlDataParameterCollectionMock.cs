@@ -4,6 +4,7 @@ using Npgsql;
 using NpgsqlTypes;
 
 namespace DbSqlLikeMem.Npgsql;
+
 /// <summary>
 /// EN: Mock parameter collection for Npgsql commands.
 /// PT: Coleção de parâmetros mock para comandos Npgsql.
@@ -36,15 +37,14 @@ public class NpgsqlDataParameterCollectionMock
         Items.Insert(index, parameter);
         if (!string.IsNullOrEmpty(normalizedParameterName))
             DicItems[normalizedParameterName] = index;
-        //parameter.ParameterCollection = this;
     }
 
     internal static string NormalizeParameterName(string name) =>
     name.Trim() switch
     {
-        ['@' or '?', '`', .. var middle, '`'] => middle.Replace("``", "`", StringComparison.Ordinal),
-        ['@' or '?', '\'', .. var middle, '\''] => middle.Replace("''", "'", StringComparison.Ordinal),
-        ['@' or '?', '"', .. var middle, '"'] => middle.Replace("\"\"", "\"", StringComparison.Ordinal),
+        ['@' or '?', '`', .. var middle, '`'] => middle.Replace("``", "`"),
+        ['@' or '?', '\'', .. var middle, '\''] => middle.Replace("''", "'"),
+        ['@' or '?', '"', .. var middle, '"'] => middle.Replace("\"\"", "\""),
         ['@' or '?', .. var rest] => rest,
         { } other => other,
     };
@@ -79,18 +79,18 @@ public class NpgsqlDataParameterCollectionMock
     /// <param name="value">EN: Parameter value. PT: Valor do parâmetro.</param>
     protected override void SetParameter(int index, DbParameter value)
     {
-        ArgumentNullException.ThrowIfNull(value);
+        ArgumentNullExceptionCompatible.ThrowIfNull(value, nameof(value));
         var newParameter = (NpgsqlParameter)value;
         var oldParameter = Items[index];
         var oldNormalizedParameterName = NormalizeParameterName(oldParameter.ParameterName);
         if (oldNormalizedParameterName is not null)
             DicItems.Remove(oldNormalizedParameterName);
-        //oldParameter.ParameterCollection = null;
+
         Items[index] = newParameter;
         var newNormalizedParameterName = NormalizeParameterName(newParameter.ParameterName);
         if (newNormalizedParameterName is not null)
             DicItems.Add(newNormalizedParameterName, index);
-        //newParameter.ParameterCollection = this;
+
     }
 
     /// <summary>
@@ -149,7 +149,7 @@ public class NpgsqlDataParameterCollectionMock
     /// </summary>
     public override int Add(object value)
     {
-        ArgumentNullException.ThrowIfNull(value);
+        ArgumentNullExceptionCompatible.ThrowIfNull(value,nameof(value));
         AddParameter((NpgsqlParameter)value, Items.Count);
         return Items.Count - 1;
     }
@@ -159,7 +159,7 @@ public class NpgsqlDataParameterCollectionMock
     /// </summary>
     public NpgsqlParameter Add(NpgsqlParameter parameter)
     {
-        ArgumentNullException.ThrowIfNull(parameter);
+        ArgumentNullExceptionCompatible.ThrowIfNull(parameter, nameof(parameter));
         AddParameter(parameter, Items.Count);
         return parameter;
     }
@@ -178,7 +178,7 @@ public class NpgsqlDataParameterCollectionMock
     /// </summary>
     public override void AddRange(Array values)
     {
-        ArgumentNullException.ThrowIfNull(values);
+        ArgumentNullExceptionCompatible.ThrowIfNull(values, nameof(values));
         foreach (var obj in values)
             Add(obj!);
     }
@@ -220,8 +220,6 @@ public class NpgsqlDataParameterCollectionMock
     /// </summary>
     public override void Clear()
     {
-        //foreach (var parameter in Items)
-        //    parameter.ParameterCollection = null;
         Items.Clear();
         DicItems.Clear();
     }
@@ -278,7 +276,7 @@ public class NpgsqlDataParameterCollectionMock
         var normalizedParameterName = NormalizeParameterName(oldParameter.ParameterName);
         if (normalizedParameterName is not null)
             DicItems.Remove(normalizedParameterName);
-        //oldParameter.ParameterCollection = null;
+
         Items.RemoveAt(index);
 
         foreach (var pair in DicItems.ToList())

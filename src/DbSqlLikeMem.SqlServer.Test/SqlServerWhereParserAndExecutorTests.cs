@@ -59,10 +59,10 @@ public sealed class SqlServerWhereParserAndExecutorTests : XUnitTestBase
     public void Where_Operators_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id >= 2 AND id <= 3").ToList();
-        Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id).Order()]);
+        Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id).OrderBy(_=>_)]);
 
         var rows2 = _cnn.Query<dynamic>("SELECT id FROM users WHERE id != 2").ToList();
-        Assert.Equal([1, 3], [.. rows2.Select(r => (int)r.id).Order()]);
+        Assert.Equal([1, 3], [.. rows2.Select(r => (int)r.id).OrderBy(_=>_)]);
     }
 
     /// <summary>
@@ -86,7 +86,7 @@ public sealed class SqlServerWhereParserAndExecutorTests : XUnitTestBase
     {
         // FIND_IN_SET('b', tags) -> John(a,b) e Jane(b,c)
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE FIND_IN_SET('b', tags)").ToList();
-        Assert.Equal([1, 2], [.. rows.Select(r => (int)r.id).Order()]);
+        Assert.Equal([1, 2], [.. rows.Select(r => (int)r.id).OrderBy(_=>_)]);
     }
 
     /// <summary>

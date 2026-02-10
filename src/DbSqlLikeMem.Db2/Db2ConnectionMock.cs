@@ -1,4 +1,5 @@
-﻿using System.Data.Common;
+﻿using Dapper;
+using System.Data.Common;
 
 namespace DbSqlLikeMem.Db2;
 
@@ -8,6 +9,14 @@ namespace DbSqlLikeMem.Db2;
 public sealed class Db2ConnectionMock
     : DbConnectionMockBase
 {
+    static Db2ConnectionMock()
+    {
+        // O ODP.NET rejeita DbType.Guid, então mapeamos Guid para Object no fluxo Dapper.
+        SqlMapper.AddTypeMap(typeof(Guid), DbType.Object);
+        SqlMapper.AddTypeMap(typeof(Guid?), DbType.Object);
+        Db2AstQueryExecutorRegister.Register();
+    }
+
     /// <summary>
     /// Auto-generated summary.
     /// </summary>

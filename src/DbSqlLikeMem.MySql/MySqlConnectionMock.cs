@@ -8,6 +8,11 @@ namespace DbSqlLikeMem.MySql;
 public sealed class MySqlConnectionMock
     : DbConnectionMockBase
 {
+    static MySqlConnectionMock()
+    {
+        MySqlAstQueryExecutorRegister.Register();
+    }
+
     /// <summary>
     /// Auto-generated summary.
     /// </summary>

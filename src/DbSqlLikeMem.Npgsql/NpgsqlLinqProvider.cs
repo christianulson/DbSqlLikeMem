@@ -19,7 +19,7 @@ public sealed class NpgsqlQueryProvider(
     /// </summary>
     public IQueryable CreateQuery(Expression expression)
     {
-        ArgumentNullException.ThrowIfNull(expression);
+        ArgumentNullExceptionCompatible.ThrowIfNull(expression, nameof(expression));
         var elementType = expression.Type.GetGenericArguments()[0];
         var tableName = ExtractTableName(expression);
         var queryType = typeof(NpgsqlQueryable<>).MakeGenericType(elementType);
@@ -37,7 +37,7 @@ public sealed class NpgsqlQueryProvider(
     /// </summary>
     public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
     {
-        ArgumentNullException.ThrowIfNull(expression);
+        ArgumentNullExceptionCompatible.ThrowIfNull(expression, nameof(expression));
         var tableName = ExtractTableName(expression);
         return new NpgsqlQueryable<TElement>(this, expression, tableName);
     }
@@ -85,7 +85,7 @@ public sealed class NpgsqlQueryProvider(
     /// </summary>
     public TResult Execute<TResult>(Expression expression)
     {
-        ArgumentNullException.ThrowIfNull(expression);
+        ArgumentNullExceptionCompatible.ThrowIfNull(expression, nameof(expression));
 
         // Traduz a árvore de expressão em SQL + parâmetros
         var translation = _translator.Translate(expression);

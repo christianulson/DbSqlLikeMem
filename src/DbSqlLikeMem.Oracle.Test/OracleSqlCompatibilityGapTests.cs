@@ -50,7 +50,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
         // MySQL precedence: AND binds stronger than OR.
         // Equivalent to: id = 1 OR (id = 2 AND name = 'Bob')
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id = 1 OR id = 2 AND name = 'Bob'").ToList();
-        Assert.Equal([1, 2], [.. rows.Select(r => (int)r.id).Order()]);
+        Assert.Equal([1, 2], [.. rows.Select(r => (int)r.id).OrderBy(_=>_)]);
     }
 
     /// <summary>
@@ -61,7 +61,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
     public void Where_OR_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id = 1 OR id = 3").ToList();
-        Assert.Equal([1, 3], [.. rows.Select(r => (int)r.id).Order()]);
+        Assert.Equal([1, 3], [.. rows.Select(r => (int)r.id).OrderBy(_=>_)]);
     }
 
     /// <summary>
@@ -141,7 +141,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
     [Fact]
     public void Functions_IFNULL_ShouldWork()
     {
-        var rows = _cnn.Query<dynamic>("SELECT id, COALESCE(email, 'none') AS em FROM users ORDER BY id").ToList();
+        var rows = _cnn.Query<dynamic>("SELECT id, NVL(email, 'none') AS em FROM users ORDER BY id").ToList();
         Assert.Equal(["john@x.com", "none", "jane@x.com"], [.. rows.Select(r => (string)r.em)]);
     }
 

@@ -17,8 +17,8 @@ public static class SqlServerLinqExtensions
         this SqlServerConnectionMock cnn,
         string tableName)
     {
-        ArgumentNullException.ThrowIfNull(cnn);
-        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
 
         var provider = new SqlServerQueryProvider(cnn);
         return new SqlServerQueryable<T>(provider, tableName);

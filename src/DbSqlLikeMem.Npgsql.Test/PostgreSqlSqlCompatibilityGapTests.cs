@@ -49,7 +49,7 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
         // MySQL precedence: AND binds stronger than OR.
         // Equivalent to: id = 1 OR (id = 2 AND name = 'Bob')
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id = 1 OR id = 2 AND name = 'Bob'").ToList();
-        Assert.Equal([1, 2], [.. rows.Select(r => (int)r.id).Order()]);
+        Assert.Equal([1, 2], [.. rows.Select(r => (int)r.id).OrderBy(_ => _)]);
     }
 
     /// <summary>
@@ -60,7 +60,7 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     public void Where_OR_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id = 1 OR id = 3").ToList();
-        Assert.Equal([1, 3], [.. rows.Select(r => (int)r.id).Order()]);
+        Assert.Equal([1, 3], [.. rows.Select(r => (int)r.id).OrderBy(_ => _)]);
     }
 
     /// <summary>

@@ -22,7 +22,7 @@ public sealed class SqlServerTransactionTests(
         using var connection = new SqlServerConnectionMock(db);
         connection.Open();
         var transaction = connection.BeginTransaction();
-        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullExceptionCompatible.ThrowIfNull(transaction, nameof(transaction));
         using var command = new SqlServerCommandMock(
             connection,
             (SqlServerTransactionMock)transaction)

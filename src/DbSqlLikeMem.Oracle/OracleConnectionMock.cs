@@ -1,4 +1,3 @@
-using System.Data;
 using System.Data.Common;
 using Dapper;
 
@@ -17,6 +16,7 @@ public class OracleConnectionMock
         // O ODP.NET rejeita DbType.Guid, então mapeamos Guid para Object no fluxo Dapper.
         SqlMapper.AddTypeMap(typeof(Guid), DbType.Object);
         SqlMapper.AddTypeMap(typeof(Guid?), DbType.Object);
+        OracleAstQueryExecutorRegister.Register();
     }
 
     /// <summary>

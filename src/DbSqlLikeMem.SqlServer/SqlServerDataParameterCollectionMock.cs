@@ -40,9 +40,9 @@ public class SqlServerDataParameterCollectionMock
     internal static string NormalizeParameterName(string name) =>
     name.Trim() switch
     {
-        ['@' or '?', '`', .. var middle, '`'] => middle.Replace("``", "`", StringComparison.Ordinal),
-        ['@' or '?', '\'', .. var middle, '\''] => middle.Replace("''", "'", StringComparison.Ordinal),
-        ['@' or '?', '"', .. var middle, '"'] => middle.Replace("\"\"", "\"", StringComparison.Ordinal),
+        ['@' or '?', '`', .. var middle, '`'] => middle.Replace("``", "`"),
+        ['@' or '?', '\'', .. var middle, '\''] => middle.Replace("''", "'"),
+        ['@' or '?', '"', .. var middle, '"'] => middle.Replace("\"\"", "\""),
         ['@' or '?', .. var rest] => rest,
         { } other => other,
     };
@@ -77,7 +77,7 @@ public class SqlServerDataParameterCollectionMock
     /// <param name="value">EN: Parameter value. PT: Valor do parâmetro.</param>
     protected override void SetParameter(int index, DbParameter value)
     {
-        ArgumentNullException.ThrowIfNull(value);
+        ArgumentNullExceptionCompatible.ThrowIfNull(value, nameof(value));
         var newParameter = (SqlParameter)value;
         var oldParameter = Items[index];
         var oldNormalizedParameterName = NormalizeParameterName(oldParameter.ParameterName);
@@ -145,7 +145,7 @@ public class SqlServerDataParameterCollectionMock
     /// </summary>
     public override int Add(object value)
     {
-        ArgumentNullException.ThrowIfNull(value);
+        ArgumentNullExceptionCompatible.ThrowIfNull(value, nameof(value));
         AddParameter((SqlParameter)value, Items.Count);
         return Items.Count - 1;
     }
@@ -155,7 +155,7 @@ public class SqlServerDataParameterCollectionMock
     /// </summary>
     public SqlParameter Add(SqlParameter parameter)
     {
-        ArgumentNullException.ThrowIfNull(parameter);
+        ArgumentNullExceptionCompatible.ThrowIfNull(parameter, nameof(parameter));
         AddParameter(parameter, Items.Count);
         return parameter;
     }
@@ -174,7 +174,7 @@ public class SqlServerDataParameterCollectionMock
     /// </summary>
     public override void AddRange(Array values)
     {
-        ArgumentNullException.ThrowIfNull(values);
+        ArgumentNullExceptionCompatible.ThrowIfNull(values, nameof(values));
         foreach (var obj in values)
             Add(obj!);
     }
