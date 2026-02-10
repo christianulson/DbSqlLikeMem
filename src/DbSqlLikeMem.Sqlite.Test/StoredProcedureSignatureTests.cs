@@ -29,7 +29,7 @@ public sealed class StoredProcedureSignatureTests(
             CommandText = "sp_demo"
         };
         cmd.Parameters.Add(new SqliteParameter { ParameterName = "tenantId", DbType = DbType.Int32, Value = 10 });
-        cmd.Parameters.Add(new SqliteParameter { ParameterName = "resultCode", DbType = DbType.Int32, Direction = ParameterDirection.Output, Value = DBNull.Value });
+        cmd.Parameters.Add(new SqliteParameter { ParameterName = "resultCode", DbType = DbType.Int32, Value = DBNull.Value });
 
         var n = cmd.ExecuteNonQuery();
         Assert.Equal(0, n);
