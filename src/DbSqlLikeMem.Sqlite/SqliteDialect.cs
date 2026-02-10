@@ -2,7 +2,7 @@
 
 internal sealed class SqliteDialect : SqlDialectBase
 {
-    internal const string DialectName = "mysql";
+    internal const string DialectName = "sqlite";
 
     internal SqliteDialect(
         int version
