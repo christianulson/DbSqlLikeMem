@@ -58,14 +58,14 @@ internal static class NpgsqlValueHelper
         // ---------- remove aspas externas -----------------------------
         token = token.Trim('"', '\'');
         if (TryParseEnumOrSet(token, colDict, out var value))
-            return value;
+            return ValidateColumnValue(value, colDict);
 
         // ---------- JSON ----------------------------------------------
         if (dbType == DbType.Object && (token.StartsWith('{') || token.StartsWith('[')))
             return ParseJson(token);
 
         // ---------- tipos padrões -------------------------------------
-        return dbType.Parse(token);
+        return ValidateColumnValue(dbType.Parse(token), colDict);
     }
 
     private static bool TryParseEnumOrSet(
@@ -122,6 +122,36 @@ internal static class NpgsqlValueHelper
             value = match;
             return true;
         }
+    }
+
+    private static object? ValidateColumnValue(object? value, IColumnDictionary? colDict)
+    {
+        if (value is null || value is DBNull)
+            return value;
+
+        if (colDict is null || string.IsNullOrWhiteSpace(CurrentColumn))
+            return value;
+
+        if (!colDict.TryGetValue(CurrentColumn, out var cdef))
+            return value;
+
+        if (cdef.Size is int size && value is string s && s.Length > size)
+            throw new NpgsqlMockException(
+                $"Value too long for column '{CurrentColumn}'",
+                22001);
+
+        if (cdef.DecimalPlaces is int scale && value is decimal d && GetDecimalScale(d) > scale)
+            throw new NpgsqlMockException(
+                $"Numeric value out of range for column '{CurrentColumn}'",
+                22003);
+
+        return value;
+    }
+
+    private static int GetDecimalScale(decimal value)
+    {
+        var bits = decimal.GetBits(value);
+        return (bits[3] >> 16) & 0x7F;
     }
 
 
