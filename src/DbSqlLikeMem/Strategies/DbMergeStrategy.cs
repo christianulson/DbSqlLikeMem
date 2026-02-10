@@ -98,8 +98,9 @@ internal static class DbMergeStrategy
                 srcValues[colName] = srcRow.TryGetValue(i, out var v) ? v : null;
             }
 
-            srcValues.TryGetValue(sourceJoinColumn, out var srcKey);
+            srcValues.TryGetValue(sourceJoinColumn, out var srcKeyRaw);
             var targetCol = table.GetColumn(targetJoinColumn);
+            var srcKey = CoerceToColumnType(srcKeyRaw, targetCol.DbType);
             var existingIndex = FindRowIndex(table, targetCol.Index, srcKey);
 
             if (existingIndex >= 0)
