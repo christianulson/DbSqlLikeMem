@@ -1824,6 +1824,39 @@ internal abstract class AstQueryExecutorBase(
             return dt;
         }
 
+        if (fn.Name.Equals("DATEADD", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count < 3)
+                return null;
+
+            var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
+            var amountObj = EvalArg(1);
+            var baseVal = EvalArg(2);
+            if (IsNullish(baseVal)) return null;
+
+            var dt = baseVal switch
+            {
+                DateTime d => d,
+                DateTimeOffset dto => dto.DateTime,
+                _ => DateTime.Parse(
+                    baseVal!.ToString() ?? string.Empty,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.AssumeLocal)
+            };
+
+            var n = Convert.ToInt32((amountObj ?? 0m).ToDec());
+            return unit switch
+            {
+                "YEAR" or "YY" or "YYYY" => dt.AddYears(n),
+                "MONTH" or "MM" => dt.AddMonths(n),
+                "DAY" or "DD" or "D" => dt.AddDays(n),
+                "HOUR" or "HH" => dt.AddHours(n),
+                "MINUTE" or "MI" or "N" => dt.AddMinutes(n),
+                "SECOND" or "SS" or "S" => dt.AddSeconds(n),
+                _ => dt
+            };
+        }
+
         
         if (fn.Name.Equals("FIELD", StringComparison.OrdinalIgnoreCase))
         {
@@ -1845,6 +1878,30 @@ internal abstract class AstQueryExecutorBase(
         return null;
 
         object? EvalArg(int i) => i < fn.Args.Count ? Eval(fn.Args[i], row, group, ctes) : null;
+    }
+
+    private string GetDateAddUnit(
+        SqlExpr expr,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+    {
+        var unit = expr switch
+        {
+            RawSqlExpr raw => raw.Sql,
+            IdentifierExpr id => id.Name,
+            ColumnExpr col => col.Name,
+            LiteralExpr lit => lit.Value?.ToString() ?? string.Empty,
+            _ => null
+        };
+
+        if (string.IsNullOrWhiteSpace(unit))
+        {
+            var eval = Eval(expr, row, group, ctes);
+            unit = eval?.ToString() ?? string.Empty;
+        }
+
+        return unit.Trim().ToUpperInvariant();
     }
 
     private object? EvalCall(
