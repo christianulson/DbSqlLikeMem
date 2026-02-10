@@ -1183,13 +1183,24 @@ internal abstract class AstQueryExecutorBase(
         TableResultMock res,
         SqlSelectQuery q)
     {
-        if (q.RowLimit is not SqlLimitOffset l)
-            return;
+        int? offset = null;
+        int take;
+        switch (q.RowLimit)
+        {
+            case SqlLimitOffset l:
+                offset = l.Offset;
+                take = l.Count;
+                break;
+            case SqlFetch f:
+                offset = f.Offset;
+                take = f.Count;
+                break;
+            default:
+                return;
+        }
 
-        var offset = l.Offset ?? 0;
-        var take = l.Count;
-
-        var sliced = res.Skip(offset).Take(take).ToList();
+        var skip = offset ?? 0;
+        var sliced = res.Skip(skip).Take(take).ToList();
         res.Clear();
         foreach (var r in sliced) res.Add(r);
     }
@@ -1349,6 +1360,16 @@ internal abstract class AstQueryExecutorBase(
         if (b.Op is SqlBinaryOp.Add or SqlBinaryOp.Subtract or SqlBinaryOp.Multiply or SqlBinaryOp.Divide)
         {
             if (l is null || r is null) return null;
+
+            if (l is DateTime dt && r is IntervalValue interval)
+            {
+                return b.Op switch
+                {
+                    SqlBinaryOp.Add => dt.Add(interval.Span),
+                    SqlBinaryOp.Subtract => dt.Subtract(interval.Span),
+                    _ => throw new InvalidOperationException("op aritmético inválido")
+                };
+            }
 
             decimal ToDec(object v)
             {
@@ -1554,6 +1575,12 @@ internal abstract class AstQueryExecutorBase(
         }
 
         if (fn.Name.Equals("IFNULL", StringComparison.OrdinalIgnoreCase))
+        {
+            var v = EvalArg(0);
+            return IsNullish(v) ? EvalArg(1) : v;
+        }
+
+        if (fn.Name.Equals("ISNULL", StringComparison.OrdinalIgnoreCase))
         {
             var v = EvalArg(0);
             return IsNullish(v) ? EvalArg(1) : v;
@@ -1824,6 +1851,39 @@ internal abstract class AstQueryExecutorBase(
             return dt;
         }
 
+        if (fn.Name.Equals("DATEADD", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count < 3)
+                return null;
+
+            var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
+            var amountObj = EvalArg(1);
+            var baseVal = EvalArg(2);
+            if (IsNullish(baseVal)) return null;
+
+            var dt = baseVal switch
+            {
+                DateTime d => d,
+                DateTimeOffset dto => dto.DateTime,
+                _ => DateTime.Parse(
+                    baseVal!.ToString() ?? string.Empty,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.AssumeLocal)
+            };
+
+            var n = Convert.ToInt32((amountObj ?? 0m).ToDec());
+            return unit switch
+            {
+                "YEAR" or "YY" or "YYYY" => dt.AddYears(n),
+                "MONTH" or "MM" => dt.AddMonths(n),
+                "DAY" or "DD" or "D" => dt.AddDays(n),
+                "HOUR" or "HH" => dt.AddHours(n),
+                "MINUTE" or "MI" or "N" => dt.AddMinutes(n),
+                "SECOND" or "SS" or "S" => dt.AddSeconds(n),
+                _ => dt
+            };
+        }
+
         
         if (fn.Name.Equals("FIELD", StringComparison.OrdinalIgnoreCase))
         {
@@ -1847,6 +1907,30 @@ internal abstract class AstQueryExecutorBase(
         object? EvalArg(int i) => i < fn.Args.Count ? Eval(fn.Args[i], row, group, ctes) : null;
     }
 
+    private string GetDateAddUnit(
+        SqlExpr expr,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+    {
+        var unit = expr switch
+        {
+            RawSqlExpr raw => raw.Sql,
+            IdentifierExpr id => id.Name,
+            ColumnExpr col => col.Name,
+            LiteralExpr lit => lit.Value?.ToString() ?? string.Empty,
+            _ => null
+        };
+
+        if (string.IsNullOrWhiteSpace(unit))
+        {
+            var eval = Eval(expr, row, group, ctes);
+            unit = eval?.ToString() ?? string.Empty;
+        }
+
+        return unit.Trim().ToUpperInvariant();
+    }
+
     private object? EvalCall(
         CallExpr fn,
         EvalRow row,
@@ -1857,6 +1941,9 @@ internal abstract class AstQueryExecutorBase(
         if (group is not null && _aggFns.Contains(fn.Name))
             return EvalAggregate(fn, group, ctes);
 
+        if (fn.Name.Equals("INTERVAL", StringComparison.OrdinalIgnoreCase))
+            return ParseIntervalValue(fn, row, group, ctes);
+
         // se não for agregado, trata como função "normal" reaproveitando EvalFunction
         // (Distinct em função escalar não faz sentido aqui, então ignoramos)
         var shim = new FunctionCallExpr(fn.Name, fn.Args);
@@ -1864,6 +1951,41 @@ internal abstract class AstQueryExecutorBase(
     }
 
     private static bool IsNullish(object? v) => v is null || v is DBNull;
+
+    private sealed record IntervalValue(TimeSpan Span);
+
+    private IntervalValue? ParseIntervalValue(
+        CallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+    {
+        if (fn.Args.Count == 0)
+            return null;
+
+        var raw = Eval(fn.Args[0], row, group, ctes)?.ToString();
+        if (string.IsNullOrWhiteSpace(raw))
+            return null;
+
+        var match = Regex.Match(raw.Trim(), @"^(?<num>-?\d+(?:\.\d+)?)\s*(?<unit>[a-zA-Z]+)$");
+        if (!match.Success)
+            return null;
+
+        if (!decimal.TryParse(match.Groups["num"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var value))
+            return null;
+
+        var unit = match.Groups["unit"].Value.ToUpperInvariant();
+        var span = unit switch
+        {
+            "DAY" or "DAYS" => TimeSpan.FromDays((double)value),
+            "HOUR" or "HOURS" => TimeSpan.FromHours((double)value),
+            "MINUTE" or "MINUTES" => TimeSpan.FromMinutes((double)value),
+            "SECOND" or "SECONDS" => TimeSpan.FromSeconds((double)value),
+            _ => (TimeSpan?)null
+        };
+
+        return span is null ? null : new IntervalValue(span.Value);
+    }
 
     private object? EvalAggregate(
         FunctionCallExpr fn,

@@ -53,12 +53,15 @@ internal sealed class SqlExpressionParser(
             // LIKE
             if (TryParseLikeInfix(ref left, minBp)) continue;
 
-            // REGEXP
-            if (TryParseRegexpInfix(ref left, minBp)) continue;
+        // REGEXP
+        if (TryParseRegexpInfix(ref left, minBp)) continue;
 
-            // JSON -> / ->>
-            if (_dialect.SupportsJsonArrowOperators
-                && TryParseJsonArrowInfix(ref left, minBp)) continue;
+            // PostgreSQL-style type cast: expr::type
+            if (TryParseTypeCastInfix(ref left, minBp)) continue;
+
+        // JSON -> / ->>
+        if (_dialect.SupportsJsonArrowOperators
+            && TryParseJsonArrowInfix(ref left, minBp)) continue;
 
             // * /
             if (TryParseMulDivInfix(ref left, minBp)) continue;
@@ -341,7 +344,7 @@ internal sealed class SqlExpressionParser(
     private bool TryParseJsonArrowInfix(ref SqlExpr left, int minBp)
     {
         var t = Peek();
-        if (t.Kind != SqlTokenKind.Operator || (t.Text != "->" && t.Text != "->>"))
+        if (t.Kind != SqlTokenKind.Operator || (t.Text != "->" && t.Text != "->>" && t.Text != "#>" && t.Text != "#>>"))
             return false;
 
         // MySQL: JSON extract operators bind tightly (treat like high precedence binary)
@@ -355,8 +358,58 @@ internal sealed class SqlExpressionParser(
         var right = ParseExpression(rbp);
 
         // Modela como nó neutro: o dialeto/executor decide como avaliar/imprimir.
-        left = new JsonAccessExpr(left, right, Unquote: op == "->>");
+        left = new JsonAccessExpr(left, right, Unquote: op == "->>" || op == "#>>");
 
+        return true;
+    }
+
+    private bool TryParseTypeCastInfix(ref SqlExpr left, int minBp)
+    {
+        var t = Peek();
+        if (t.Kind != SqlTokenKind.Operator || t.Text != "::")
+            return false;
+
+        const int lbp = 130;
+        const int rbp = 131;
+        if (lbp < minBp) return false;
+
+        Consume(); // ::
+
+        var typeToks = new List<SqlToken>();
+        var first = Peek();
+        if (first.Kind != SqlTokenKind.Identifier && first.Kind != SqlTokenKind.Keyword)
+            throw Error("Type name expected after '::'", first);
+
+        typeToks.Add(Consume());
+
+        if (IsSymbol(Peek(), "("))
+        {
+            var depth = 0;
+            while (true)
+            {
+                var tok = Peek();
+                if (tok.Kind == SqlTokenKind.EndOfFile)
+                    throw Error("Type cast not closed", tok);
+
+                if (tok.Kind == SqlTokenKind.Symbol && tok.Text == "(")
+                    depth++;
+
+                if (tok.Kind == SqlTokenKind.Symbol && tok.Text == ")")
+                {
+                    if (depth == 0)
+                        break;
+                    depth--;
+                }
+
+                typeToks.Add(Consume());
+            }
+        }
+
+        var typeSql = string.Join(" ",
+            typeToks.Select(TokenToSql)
+        ).Trim();
+
+        left = new CallExpr("CAST", [left, new RawSqlExpr(typeSql)]);
         return true;
     }
 
@@ -464,6 +517,7 @@ internal sealed class SqlExpressionParser(
         if (TryParseUnaryPlusMinus(t, out var upm)) return upm;
         if (TryParseNumber(t, out var l3)) return l3;
         if (TryParseParameter(t, out var p)) return p;
+        if (TryParseIntervalLiteral(t, out var interval)) return interval;
         if (TryParseIdentifierOrCall(t, out var id)) return id;
 
         throw Error($"Token inesperado no prefix: {t.Kind} '{t.Text}'", t);
@@ -561,6 +615,23 @@ internal sealed class SqlExpressionParser(
 
         // unary minus: 0 - rhs (keeps AST simple)
         expr = new BinaryExpr(SqlBinaryOp.Subtract, new LiteralExpr(0m), rhs);
+        return true;
+    }
+
+    private bool TryParseIntervalLiteral(SqlToken t, out SqlExpr expr)
+    {
+        expr = default!;
+
+        if (!IsKeywordOrIdentifierWord(t, "INTERVAL"))
+            return false;
+
+        Consume(); // INTERVAL
+        var next = Peek();
+        if (next.Kind != SqlTokenKind.String)
+            throw Error("INTERVAL requires a string literal", next);
+
+        Consume();
+        expr = new CallExpr("INTERVAL", [new LiteralExpr(next.Text)]);
         return true;
     }
 
