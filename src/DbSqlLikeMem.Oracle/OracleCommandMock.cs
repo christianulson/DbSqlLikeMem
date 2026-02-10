@@ -109,6 +109,7 @@ public class OracleCommandMock(
             SqlInsertQuery insertQ => connection.ExecuteInsert(insertQ, Parameters, connection.Db.Dialect),
             SqlUpdateQuery updateQ => connection.ExecuteUpdate(updateQ, Parameters),
             SqlDeleteQuery deleteQ => connection.ExecuteDelete(deleteQ, Parameters),
+            SqlCreateViewQuery viewQ => connection.ExecuteCreateView(viewQ, Parameters, connection.Db.Dialect),
             SqlSelectQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT."),
             _ => throw new NotSupportedException($"Tipo de query não suportado em ExecuteNonQuery: {query.GetType().Name}")
         };
