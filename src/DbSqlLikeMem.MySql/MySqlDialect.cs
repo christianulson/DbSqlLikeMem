@@ -74,7 +74,7 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsDeleteWithoutFrom => false;
+    public override bool SupportsDeleteWithoutFrom => true; // MySQL accepts DELETE [FROM] tbl
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
