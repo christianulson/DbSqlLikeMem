@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Collections.Concurrent;
 
 namespace DbSqlLikeMem;
 
@@ -29,10 +30,33 @@ public sealed class DbMetrics
     /// </summary>
     public int Deletes { get; internal set; }
     /// <summary>
+    /// EN: Number of index lookups used to pre-filter rows during SELECT.
+    /// PT: Quantidade de consultas em índice usadas para pré-filtrar linhas em SELECT.
+    /// </summary>
+    public int IndexLookups { get; internal set; }
+    /// <summary>
+    /// EN: Number of calls per index name during index lookup flow.
+    /// PT: Quantidade de chamadas por nome de índice durante o fluxo de lookup.
+    /// </summary>
+    public ConcurrentDictionary<string, int> IndexHints { get; } =
+        new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>
+    /// EN: Number of accesses per table name during query source resolution.
+    /// PT: Quantidade de acessos por nome de tabela durante resolução de origem da consulta.
+    /// </summary>
+    public ConcurrentDictionary<string, int> TableHints { get; } =
+        new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>
     /// EN: Total elapsed time since metrics started.
     /// PT: Tempo total decorrido desde o início da coleta.
     /// </summary>
     public TimeSpan Elapsed => _sw.Elapsed;
+
+    internal void IncrementIndexHint(string indexName)
+        => IndexHints.AddOrUpdate(indexName, 1, (_, current) => current + 1);
+
+    internal void IncrementTableHint(string tableName)
+        => TableHints.AddOrUpdate(tableName, 1, (_, current) => current + 1);
 
     private readonly Stopwatch _sw = Stopwatch.StartNew();
 }

@@ -184,7 +184,7 @@ internal abstract class AstQueryExecutorBase(
         }
 
         // 1) FROM
-        var rows = BuildFrom(selectQuery.Table, ctes);
+        var rows = BuildFrom(selectQuery.Table, ctes, selectQuery.Where);
 
         // 2) JOINS
         foreach (var j in selectQuery.Joins)
@@ -286,7 +286,8 @@ internal abstract class AstQueryExecutorBase(
 
     private IEnumerable<EvalRow> BuildFrom(
         SqlTableSource? from,
-        IDictionary<string, Source> ctes)
+        IDictionary<string, Source> ctes,
+        SqlExpr? where)
     {
         if (from is null)
         {
@@ -298,7 +299,8 @@ internal abstract class AstQueryExecutorBase(
         }
 
         var src = ResolveSource(from, ctes);
-        foreach (var r in src.Rows())
+        var sourceRows = TryRowsFromIndex(src, where) ?? src.Rows();
+        foreach (var r in sourceRows)
         {
             var fields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
             foreach (var it in r)
@@ -310,6 +312,174 @@ internal abstract class AstQueryExecutorBase(
             };
 
             yield return new EvalRow(fields, sources);
+        }
+    }
+
+    private IEnumerable<Dictionary<string, object?>>? TryRowsFromIndex(
+        Source src,
+        SqlExpr? where)
+    {
+        if (where is null || src._physical is null || src._physical.Indexes.Count == 0)
+            return null;
+
+        if (!TryCollectColumnEqualities(where, src, out var equalsByColumn)
+            || equalsByColumn.Count == 0)
+            return null;
+
+        IndexDef? best = null;
+        foreach (var ix in src._physical.Indexes.Values)
+        {
+            if (ix.KeyCols.Count == 0)
+                continue;
+
+            var coversAll = ix.KeyCols.All(col => equalsByColumn.ContainsKey(col.NormalizeName()));
+            if (!coversAll)
+                continue;
+
+            if (best is null || ix.KeyCols.Count > best.KeyCols.Count)
+                best = ix;
+        }
+
+        if (best is null)
+            return null;
+
+        var key = string.Join("|", best.KeyCols.Select(col =>
+        {
+            var norm = col.NormalizeName();
+            var value = equalsByColumn[norm];
+            return value?.ToString() ?? "<null>";
+        }));
+
+        var positions = LookupIndexWithMetrics(src._physical, best, key);
+        if (positions is null)
+            return [];
+
+        return src.RowsByIndexes(positions);
+    }
+
+
+    private IEnumerable<int>? LookupIndexWithMetrics(
+        ITableMock table,
+        IndexDef indexDef,
+        string key)
+    {
+        _cnn.Metrics.IndexLookups++;
+        _cnn.Metrics.IncrementIndexHint(indexDef.Name.NormalizeName());
+        return table.Lookup(indexDef, key);
+    }
+
+    private bool TryCollectColumnEqualities(
+        SqlExpr where,
+        Source src,
+        out Dictionary<string, object?> equalsByColumn)
+    {
+        equalsByColumn = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        return Walk(where);
+
+        bool Walk(SqlExpr expr)
+        {
+            if (expr is BinaryExpr andExpr && andExpr.Op == SqlBinaryOp.And)
+                return Walk(andExpr.Left) && Walk(andExpr.Right);
+
+            if (expr is not BinaryExpr eq || eq.Op != SqlBinaryOp.Eq)
+                return false;
+
+            if (TryGetColumnAndValue(eq.Left, eq.Right, src, out var column, out var value)
+                || TryGetColumnAndValue(eq.Right, eq.Left, src, out column, out value))
+            {
+                equalsByColumn[column] = value;
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+    private bool TryGetColumnAndValue(
+        SqlExpr maybeColumn,
+        SqlExpr maybeValue,
+        Source src,
+        out string column,
+        out object? value)
+    {
+        column = "";
+        value = null;
+
+        if (!TryResolveColumnName(maybeColumn, src, out var resolvedColumn))
+            return false;
+
+        if (!TryResolveConstantValue(maybeValue, out value))
+            return false;
+
+        column = resolvedColumn;
+        return true;
+    }
+
+    private static bool TryResolveColumnName(
+        SqlExpr expr,
+        Source src,
+        out string column)
+    {
+        column = "";
+
+        switch (expr)
+        {
+            case IdentifierExpr id:
+                {
+                    var dot = id.Name.IndexOf('.');
+                    if (dot < 0)
+                    {
+                        column = id.Name.NormalizeName();
+                        return true;
+                    }
+
+                    var qualifier = id.Name[..dot].NormalizeName();
+                    var sourceAlias = src.Alias.NormalizeName();
+                    var sourceName = src.Name.NormalizeName();
+                    if (!qualifier.Equals(sourceAlias, StringComparison.OrdinalIgnoreCase)
+                        && !qualifier.Equals(sourceName, StringComparison.OrdinalIgnoreCase))
+                        return false;
+
+                    column = id.Name[(dot + 1)..].NormalizeName();
+                    return true;
+                }
+
+            case ColumnExpr col:
+                {
+                    if (!string.IsNullOrWhiteSpace(col.Qualifier))
+                    {
+                        var qualifier = col.Qualifier.NormalizeName();
+                        var sourceAlias = src.Alias.NormalizeName();
+                        var sourceName = src.Name.NormalizeName();
+                        if (!qualifier.Equals(sourceAlias, StringComparison.OrdinalIgnoreCase)
+                            && !qualifier.Equals(sourceName, StringComparison.OrdinalIgnoreCase))
+                            return false;
+                    }
+
+                    column = col.Name.NormalizeName();
+                    return true;
+                }
+
+            default:
+                return false;
+        }
+    }
+
+    private bool TryResolveConstantValue(
+        SqlExpr expr,
+        out object? value)
+    {
+        switch (expr)
+        {
+            case LiteralExpr l:
+                value = l.Value;
+                return true;
+            case ParameterExpr p:
+                value = ResolveParam(p.Name);
+                return true;
+            default:
+                value = null;
+                return false;
         }
     }
 
@@ -480,6 +650,7 @@ internal abstract class AstQueryExecutorBase(
             return Source.FromResult("DUAL", alias, one);
         }
 
+        _cnn.Metrics.IncrementTableHint(tableName);
         var tb = _cnn.GetTable(tableName, ts.DbName);
         return Source.FromPhysical(tableName, alias, tb);
     }
@@ -2534,6 +2705,41 @@ internal abstract class AstQueryExecutorBase(
                     }
                     yield return dict;
                 }
+            }
+        }
+
+        public IEnumerable<Dictionary<string, object?>> RowsByIndexes(
+            IEnumerable<int> indexes)
+        {
+            if (_physical is null)
+                return Rows();
+
+            return EnumerateRowsByIndexes(indexes);
+        }
+
+        private IEnumerable<Dictionary<string, object?>> EnumerateRowsByIndexes(
+            IEnumerable<int> indexes)
+        {
+            var emitted = new HashSet<int>();
+            foreach (var raw in indexes)
+            {
+                if (raw < 0 || raw >= _physical!.Count)
+                    continue;
+
+                if (!emitted.Add(raw))
+                    continue;
+
+                var row = _physical[raw];
+                var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                foreach (var col in ColumnNames)
+                {
+                    var idx = _physical.Columns[col].Index;
+                    dict[$"{Alias}.{col}"] = row.TryGetValue(idx, out var v)
+                        ? v
+                        : null;
+                }
+
+                yield return dict;
             }
         }
 
