@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vsmarketplace/master/schemas/vsix-publish-manifest-schema.json",
+  "categories": [
+    "coding"
+  ],
+  "identity": {
+    "internalName": "DbSqlLikeMem"
+  },
+  "overview": "README.md",
+  "priceCategory": "free",
+  "publisher": "SEU_PUBLISHER",
+  "qna": true,
+  "repo": "https://github.com/SEU_ORG/DbSqlLikeMem",
+  "releaseNotes": "Release notes",
+  "tags": [
+    "database",
+    "sql",
+    "testing",
+    "visual studio"
+  ]
+}

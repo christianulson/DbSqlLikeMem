@@ -191,6 +191,30 @@ dotnet pack src/DbSqlLikeMem.slnx -c Release -o ./artifacts
 dotnet nuget push "./artifacts/*.nupkg" --api-key "<SUA_API_KEY>" --source "https://api.nuget.org/v3/index.json"
 ```
 
+
+## Publicando a extensão do Visual Studio (VSIX)
+
+Quando o projeto VSIX estiver maduro, o repositório já fica preparado para publicar no Marketplace do Visual Studio com o workflow:
+
+- `.github/workflows/vsix-publish.yml`
+
+### Pré-requisitos
+
+1. Criar um Personal Access Token para publicação no Marketplace do Visual Studio.
+2. Salvar o token no GitHub como secret `VS_MARKETPLACE_TOKEN`.
+3. Ajustar os placeholders em `eng/visualstudio/PublishManifest.json` (`publisher`, `repo`, `identity.internalName`, etc.).
+4. Garantir que exista um projeto VSIX (por padrão o workflow usa `src/DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj`).
+
+### Como publicar
+
+- **Manual (recomendado para validação):**
+  - Execute o workflow **Publish Visual Studio Extension (VSIX)** via `workflow_dispatch`.
+  - Defina `publish = true` para realmente publicar.
+- **Automático por tag:**
+  - Crie uma tag no formato `vsix-v*` (ex.: `vsix-v1.0.0`).
+
+O pipeline compila o projeto VSIX, gera artifact com o `.vsix` e, quando habilitado, executa o `VsixPublisher.exe` para publicação.
+
 ## Contributing
 
 Contributions are welcome! If you want to help improve DbSqlLikeMem, please open an issue to discuss your idea or submit a pull request. Areas where help is especially valuable:
