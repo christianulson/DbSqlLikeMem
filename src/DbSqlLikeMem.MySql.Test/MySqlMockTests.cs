@@ -178,6 +178,10 @@ public sealed class MySqlMockTests
     }
 
 
+    /// <summary>
+    /// EN: Ensures SELECT with MySQL index hints executes correctly.
+    /// PT: Garante que SELECT com hints de índice do MySQL execute corretamente.
+    /// </summary>
     [Fact]
     public void TestSelect_WithMySqlIndexHint_ShouldExecute()
     {
