@@ -1,7 +1,4 @@
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
-using System.Globalization;
-using System.Text;
-
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 public sealed class ClassGenerator
@@ -41,7 +38,7 @@ public sealed class ClassGenerator
             ? "{NamePascal}{Type}Factory.cs"
             : fileNamePattern;
 
-        var namePascal = ToPascalCase(dbObject.Name);
+        var namePascal = GenerationRuleSet.ToPascalCase(dbObject.Name);
         var typeName = dbObject.Type.ToString();
 
         return safePattern
@@ -53,57 +50,4 @@ public sealed class ClassGenerator
             .Replace("{DatabaseName}", connection.DatabaseName, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string ToPascalCase(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return "Object";
-        }
-
-        var parts = value
-            .Split(['_', '-', '.', ' '], StringSplitOptions.RemoveEmptyEntries)
-            .Select(Capitalize)
-            .Where(static part => !string.IsNullOrWhiteSpace(part));
-
-        var joined = string.Concat(parts);
-        if (!string.IsNullOrWhiteSpace(joined))
-        {
-            return joined;
-        }
-
-        var filtered = new string(value.Where(char.IsLetterOrDigit).ToArray());
-        return string.IsNullOrWhiteSpace(filtered) ? "Object" : Capitalize(filtered);
-    }
-
-    private static string Capitalize(string part)
-    {
-        if (string.IsNullOrWhiteSpace(part))
-        {
-            return string.Empty;
-        }
-
-        var normalized = new StringBuilder(part.Length);
-        foreach (var ch in part)
-        {
-            if (char.IsLetterOrDigit(ch))
-            {
-                normalized.Append(ch);
-            }
-        }
-
-        if (normalized.Length == 0)
-        {
-            return string.Empty;
-        }
-
-        var cleaned = normalized.ToString();
-        if (cleaned.Length == 1)
-        {
-            return cleaned.ToUpperInvariant();
-        }
-
-        return string.Concat(
-            char.ToUpper(cleaned[0], CultureInfo.InvariantCulture),
-            cleaned[1..]);
-    }
 }

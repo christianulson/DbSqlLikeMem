@@ -23,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DbSqlLikeMem.VisualStudioExtension.Core\DbSqlLikeMem.VisualStudioExtension.Core.csproj" />
     <ProjectReference Include="..\DbSqlLikeMem.MySql\DbSqlLikeMem.MySql.csproj" />
   </ItemGroup>
 
