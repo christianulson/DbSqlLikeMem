@@ -364,6 +364,7 @@ internal abstract class AstQueryExecutorBase(
         string key)
     {
         _cnn.Metrics.IndexLookups++;
+        _cnn.Metrics.IncrementIndexHint(indexDef.Name.NormalizeName());
         return table.Lookup(indexDef, key);
     }
 
@@ -649,6 +650,7 @@ internal abstract class AstQueryExecutorBase(
             return Source.FromResult("DUAL", alias, one);
         }
 
+        _cnn.Metrics.IncrementTableHint(tableName);
         var tb = _cnn.GetTable(tableName, ts.DbName);
         return Source.FromPhysical(tableName, alias, tb);
     }

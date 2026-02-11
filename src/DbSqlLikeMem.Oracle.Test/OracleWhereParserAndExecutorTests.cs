@@ -40,12 +40,16 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     public void Where_IndexedEquality_ShouldUseIndexLookupMetric()
     {
         var before = _cnn.Metrics.IndexLookups;
+        var beforeIndexHint = _cnn.Metrics.IndexHints.TryGetValue("ix_users_name", out var ih) ? ih : 0;
+        var beforeTableHint = _cnn.Metrics.TableHints.TryGetValue("users", out var th) ? th : 0;
 
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name = 'John'").ToList();
 
         Assert.Single(rows);
         Assert.Equal(1, (int)rows[0].id);
         Assert.Equal(before + 1, _cnn.Metrics.IndexLookups);
+        Assert.Equal(beforeIndexHint + 1, _cnn.Metrics.IndexHints["ix_users_name"]);
+        Assert.Equal(beforeTableHint + 1, _cnn.Metrics.TableHints["users"]);
     }
 
     /// <summary>
@@ -56,6 +60,8 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     public void Where_IndexedEqualityWithParameter_ShouldUseCompositeIndexLookupMetric()
     {
         var before = _cnn.Metrics.IndexLookups;
+        var beforeIndexHint = _cnn.Metrics.IndexHints.TryGetValue("ix_users_name_email", out var ih) ? ih : 0;
+        var beforeTableHint = _cnn.Metrics.TableHints.TryGetValue("users", out var th) ? th : 0;
 
         var rows = _cnn.Query<dynamic>(
             "SELECT id FROM users WHERE name = @name AND email = @email",
@@ -69,6 +75,8 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
         Assert.Single(rows);
         Assert.Equal(3, (int)rows[0].id);
         Assert.Equal(before + 1, _cnn.Metrics.IndexLookups);
+        Assert.Equal(beforeIndexHint + 1, _cnn.Metrics.IndexHints["ix_users_name_email"]);
+        Assert.Equal(beforeTableHint + 1, _cnn.Metrics.TableHints["users"]);
     }
 
     /// <summary>
@@ -79,12 +87,14 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     public void Where_NonIndexedPredicate_ShouldNotIncreaseIndexLookupMetric()
     {
         var before = _cnn.Metrics.IndexLookups;
+        var beforeTableHint = _cnn.Metrics.TableHints.TryGetValue("users", out var th) ? th : 0;
 
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id = 1").ToList();
 
         Assert.Single(rows);
         Assert.Equal(1, (int)rows[0].id);
         Assert.Equal(before, _cnn.Metrics.IndexLookups);
+        Assert.Equal(beforeTableHint + 1, _cnn.Metrics.TableHints["users"]);
     }
 
     /// <summary>
