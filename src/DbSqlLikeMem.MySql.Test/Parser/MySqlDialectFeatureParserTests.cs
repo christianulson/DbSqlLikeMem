@@ -36,4 +36,16 @@ public sealed class MySqlDialectFeatureParserTests
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
+
+    [Theory]
+    [MemberDataMySqlVersion]
+    public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("MERGE INTO users u USING users s ON u.id = s.id WHEN MATCHED THEN UPDATE SET name = 'x'", new MySqlDialect(version)));
+
+        Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("MySQL", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 }

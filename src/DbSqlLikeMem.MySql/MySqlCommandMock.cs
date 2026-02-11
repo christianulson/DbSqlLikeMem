@@ -142,7 +142,7 @@ public class MySqlCommandMock(
             SqlCreateViewQuery cv => connection.ExecuteCreateView(cv, Parameters, connection.Db.Dialect),
             SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect),
             SqlSelectQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT."),
-            _ => throw new NotSupportedException($"Tipo de query não suportado em ExecuteNonQuery: {query.GetType().Name}")
+            _ => throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteNonQuery", query.GetType())
         };
     }
 
@@ -268,7 +268,7 @@ public class MySqlCommandMock(
                     break;
 
                 default:
-                    throw new NotSupportedException($"Tipo de query não suportado em ExecuteReader: {q.GetType().Name}");
+                    throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteReader", q.GetType());
             }
         }
 

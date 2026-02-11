@@ -35,7 +35,7 @@ internal sealed class SqlQueryParser
 
         SqlQueryBase? result;
         if (IsWord(first, "SELECT") || IsWord(first, "WITH"))
-            result = q.ParseSelectQuery();
+            result = q.ParseSelectOrUnionQuery();
         else if (IsWord(first, "INSERT"))
             result = q.ParseInsert();
         else if (IsWord(first, "UPDATE"))
@@ -51,7 +51,7 @@ internal sealed class SqlQueryParser
             // Para MySQL, MERGE simplesmente não existe (é sintaxe inválida para o dialeto).
             // Os testes de corpus esperam ThrowInvalid aqui, não NotSupported.
             if (!dialect.SupportsMerge)
-                throw new NotSupportedException($"invalid: MERGE statement not supported for dialect {dialect.Name}");
+                throw SqlUnsupported.ForDialect(dialect, "MERGE statement");
 
             result = q.ParseMerge();
         }
@@ -82,7 +82,7 @@ internal sealed class SqlQueryParser
     /// Auto-generated summary.
     /// </summary>
     public sealed record UnionChain(
-        IReadOnlyList<SqlQueryBase> Parts,
+        IReadOnlyList<SqlSelectQuery> Parts,
         IReadOnlyList<bool> AllFlags
     );
 
@@ -91,25 +91,14 @@ internal sealed class SqlQueryParser
     /// </summary>
     public static UnionChain ParseUnionChain(string sql, ISqlDialect dialect)
     {
-        var p = new SqlQueryParser(sql, dialect);
-        var parts = new List<SqlQueryBase>();
-        var allFlags = new List<bool>();
+        var parsed = Parse(sql, dialect);
+        if (parsed is SqlUnionQuery uq)
+            return new UnionChain(uq.Parts, uq.AllFlags);
 
-        parts.Add(p.ParseSelectQuery());
+        if (parsed is SqlSelectQuery sq)
+            return new UnionChain([sq], []);
 
-        while (IsWord(p.Peek(), "UNION"))
-        {
-            p.Consume(); // UNION
-            var isAll = false;
-            if (IsWord(p.Peek(), "ALL"))
-            {
-                p.Consume();
-                isAll = true;
-            }
-            allFlags.Add(isAll);
-            parts.Add(p.ParseSelectQuery());
-        }
-        return new UnionChain(parts, allFlags);
+        throw new InvalidOperationException("UNION chain deve conter apenas SELECT.");
     }
 
     // ------------------------------------------------------------
@@ -497,6 +486,33 @@ internal sealed class SqlQueryParser
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
+    private SqlQueryBase ParseSelectOrUnionQuery()
+    {
+        var first = ParseSelectQuery();
+
+        if (!IsWord(Peek(), "UNION"))
+            return first;
+
+        var parts = new List<SqlSelectQuery> { first };
+        var allFlags = new List<bool>();
+
+        while (IsWord(Peek(), "UNION"))
+        {
+            Consume();
+            var isAll = false;
+            if (IsWord(Peek(), "ALL"))
+            {
+                Consume();
+                isAll = true;
+            }
+
+            allFlags.Add(isAll);
+            parts.Add(ParseSelectQuery());
+        }
+
+        return new SqlUnionQuery(parts, allFlags);
+    }
+
     public SqlSelectQuery ParseSelectQuery()
     {
         var ctes = TryParseCtes();
@@ -742,7 +758,7 @@ internal sealed class SqlQueryParser
         }
 
         if (!isTemporary)
-            throw new NotSupportedException("Apenas CREATE TEMPORARY TABLE é suportado no mock no momento.");
+            throw SqlUnsupported.ForParser("CREATE sem TEMPORARY TABLE");
 
         return new SqlCreateTemporaryTableQuery
         {
@@ -1007,7 +1023,7 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "LIMIT"))
         {
             if (!_dialect.SupportsLimitOffset)
-                throw new NotSupportedException($"LIMIT não suportado no dialeto '{_dialect.Name}'.");
+                throw SqlUnsupported.ForDialect(_dialect, "LIMIT");
 
             Consume();
             int a = ExpectNumberInt();
@@ -1028,7 +1044,7 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "OFFSET"))
         {
             if (!_dialect.SupportsOffsetFetch)
-                throw new NotSupportedException($"OFFSET/FETCH não suportado no dialeto '{_dialect.Name}'.");
+                throw SqlUnsupported.ForDialect(_dialect, "OFFSET/FETCH");
             if (_dialect.RequiresOrderByForOffsetFetch && !hasOrderBy)
                 throw new InvalidOperationException($"OFFSET/FETCH requer ORDER BY no dialeto '{_dialect.Name}'.");
 
@@ -1063,7 +1079,7 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "FETCH"))
         {
             if (!_dialect.SupportsFetchFirst)
-                throw new NotSupportedException($"FETCH FIRST/NEXT não suportado no dialeto '{_dialect.Name}'.");
+                throw SqlUnsupported.ForDialect(_dialect, "FETCH FIRST/NEXT");
 
             Consume();
             if (IsWord(Peek(), "NEXT") || IsWord(Peek(), "FIRST"))
@@ -1091,12 +1107,12 @@ internal sealed class SqlQueryParser
         if (!IsWord(Peek(), "WITH")) return list;
         Consume();
         if (!_dialect.SupportsWithCte)
-            throw new NotSupportedException($"WITH/CTE não suportado para {_dialect.Name} v{_dialect.Version}.");
+            throw SqlUnsupported.ForDialect(_dialect, "WITH/CTE");
 
         if (IsWord(Peek(), "RECURSIVE"))
         {
             if (!_dialect.SupportsWithRecursive)
-                throw new NotSupportedException($"WITH RECURSIVE não suportado para {_dialect.Name} v{_dialect.Version}.");
+                throw SqlUnsupported.ForDialect(_dialect, "WITH RECURSIVE");
             Consume();
         }
 
@@ -1114,14 +1130,14 @@ internal sealed class SqlQueryParser
             if (IsWord(Peek(), "NOT") && IsWord(Peek(1), "MATERIALIZED"))
             {
                 if (!_dialect.SupportsWithMaterializedHint)
-                    throw new NotSupportedException($"WITH ... AS NOT MATERIALIZED não suportado para {_dialect.Name} v{_dialect.Version}.");
+                    throw SqlUnsupported.ForDialect(_dialect, "WITH ... AS NOT MATERIALIZED");
                 Consume(); // NOT
                 Consume(); // MATERIALIZED
             }
             else if (IsWord(Peek(), "MATERIALIZED"))
             {
                 if (!_dialect.SupportsWithMaterializedHint)
-                    throw new NotSupportedException($"WITH ... AS MATERIALIZED não suportado para {_dialect.Name} v{_dialect.Version}.");
+                    throw SqlUnsupported.ForDialect(_dialect, "WITH ... AS MATERIALIZED");
                 Consume();
             }
             var innerSql = ReadBalancedParenRawTokens();
@@ -1144,16 +1160,19 @@ internal sealed class SqlQueryParser
             // Derived table pode ser um SELECT simples OU um UNION/UNION ALL.
             // O Parse() atual devolve apenas o primeiro SELECT quando existe UNION,
             // então aqui detectamos e parseamos a cadeia completa.
-            var union = ParseUnionChain(innerSql, _dialect);
-
-            if (union.Parts.Count > 1)
+            var parsed = Parse(innerSql, _dialect);
+            if (parsed is SqlUnionQuery union)
             {
-                // UNION dentro do derived
-                return new SqlTableSource(null, null, alias, Derived: null, DerivedUnion: union, DerivedSql: innerSql);
+                return new SqlTableSource(
+                    null,
+                    null,
+                    alias,
+                    Derived: null,
+                    DerivedUnion: new UnionChain(union.Parts, union.AllFlags),
+                    DerivedSql: innerSql);
             }
 
-            // Apenas 1 parte => SELECT normal
-            if (union.Parts[0] is SqlSelectQuery sq)
+            if (parsed is SqlSelectQuery sq)
                 return new SqlTableSource(null, null, alias, sq, null, innerSql);
 
             throw new InvalidOperationException("Derived table deve ser um SELECT");
@@ -1181,7 +1200,7 @@ internal sealed class SqlQueryParser
             if (IsWord(Peek(), "WITH") && IsSymbol(Peek(1), "("))
             {
                 if (!_dialect.SupportsSqlServerTableHints)
-                    throw new NotSupportedException($"WITH(table hints) não suportado no dialeto '{_dialect.Name}'.");
+                    throw SqlUnsupported.ForDialect(_dialect, "WITH(table hints)");
 
                 Consume(); // WITH
                 _ = ReadBalancedParenRawTokens();
@@ -1200,7 +1219,7 @@ internal sealed class SqlQueryParser
             if (IsWord(Peek(), "USE") || IsWord(Peek(), "IGNORE") || IsWord(Peek(), "FORCE"))
             {
                 if (!_dialect.SupportsMySqlIndexHints)
-                    throw new NotSupportedException($"INDEX hints não suportado no dialeto '{_dialect.Name}'.");
+                    throw SqlUnsupported.ForDialect(_dialect, "INDEX hints");
 
                 ConsumeMySqlIndexHint();
                 continue;
@@ -1629,7 +1648,7 @@ internal sealed class SqlQueryParser
                         (right[0] == '[' && !allowBracket) ||
                         (right[0] == '"' && !allowDqIdent && !dqIsString))
                     {
-                        throw new NotSupportedException($"Identificador/alias quoting não suportado no dialeto {dialect.Name}: '{right[0]}'.");
+                        throw SqlUnsupported.ForDialect(dialect, $"Identificador/alias quoting: '{right[0]}'");
                     }
 
                     // Avoid splitting if it looks like "expr op something"
@@ -1672,13 +1691,13 @@ internal sealed class SqlQueryParser
 
         // If alias is quoted in a way the dialect doesn't allow, fail fast.
         if (aliasRaw.StartsWith("`") && !allowBacktick)
-            throw new NotSupportedException($"Dialeto '{dialect.Name}' não permite alias/identificadores com '`'.");
+            throw SqlUnsupported.ForDialect(dialect, "alias/identificadores com '`'");
 
         if (aliasRaw.StartsWith("[") && !allowBracket)
-            throw new NotSupportedException($"Dialeto '{dialect.Name}' não permite alias/identificadores com '['.");
+            throw SqlUnsupported.ForDialect(dialect, "alias/identificadores com '['");
 
         if (aliasRaw.StartsWith("\"") && !allowDqIdent && !dqIsString)
-            throw new NotSupportedException($"Dialeto '{dialect.Name}' não permite alias/identificadores com '\"'.");
+            throw SqlUnsupported.ForDialect(dialect, "alias/identificadores com '\"'");
 
         // Strip outer identifier quotes (only those permitted for identifiers).
         if (allowBacktick && aliasRaw.Length >= 2 && aliasRaw[0] == '`' && aliasRaw[^1] == '`')

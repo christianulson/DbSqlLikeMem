@@ -34,4 +34,16 @@ public sealed class OracleDialectFeatureParserTests
         Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
     }
 
+
+    [Theory]
+    [MemberDataOracleVersion]
+    public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT id FROM users WITH (NOLOCK)", new OracleDialect(version)));
+
+        Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("oracle", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 }
