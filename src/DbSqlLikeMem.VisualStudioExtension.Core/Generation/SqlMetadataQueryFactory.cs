@@ -317,7 +317,7 @@ ORDER BY cid;
             => "-- sqlite indexes fetched through pragma index_list/index_info externally; return empty by default";
 
         public string BuildForeignKeysQuery()
-            => "SELECT "" AS ColumnName, "" AS RefTable, "" AS RefColumn WHERE 1=0;";
+            => "SELECT \"\" AS ColumnName, \"\" AS RefTable, \"\" AS RefColumn WHERE 1=0;";
     }
 
     private sealed class Db2MetadataQueryStrategy : ISqlMetadataQueryStrategy
