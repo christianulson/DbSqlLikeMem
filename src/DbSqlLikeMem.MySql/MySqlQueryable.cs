@@ -1,6 +1,3 @@
-using System.Collections;
-using System.Linq.Expressions;
-
 namespace DbSqlLikeMem.MySql;
 /// <summary>
 /// EN: IQueryable wrapper for MySQL LINQ translation.

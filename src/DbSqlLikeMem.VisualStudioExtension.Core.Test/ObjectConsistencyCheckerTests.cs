@@ -1,7 +1,3 @@
-using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
-using DbSqlLikeMem.VisualStudioExtension.Core.Models;
-using DbSqlLikeMem.VisualStudioExtension.Core.Validation;
-
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 public class ObjectConsistencyCheckerTests
