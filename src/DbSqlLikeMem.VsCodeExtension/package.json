@@ -32,11 +32,12 @@
     "Other"
   ],
   "activationEvents": [
-    "onView:dbSqlLikeMem.connections",
     "onCommand:dbSqlLikeMem.addConnection",
+    "onCommand:dbSqlLikeMem.checkConsistency",
     "onCommand:dbSqlLikeMem.configureMappings",
     "onCommand:dbSqlLikeMem.generateClasses",
-    "onCommand:dbSqlLikeMem.checkConsistency"
+    "onCommand:dbSqlLikeMem.openManager",
+    "onView:dbSqlLikeMem.connections"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -58,6 +59,10 @@
       ]
     },
     "commands": [
+      {
+        "command": "dbSqlLikeMem.openManager",
+        "title": "DbSqlLikeMem: Open Manager"
+      },
       {
         "command": "dbSqlLikeMem.addConnection",
         "title": "DbSqlLikeMem: Add Connection"
@@ -94,6 +99,11 @@
     "menus": {
       "view/title": [
         {
+          "command": "dbSqlLikeMem.openManager",
+          "when": "view == dbSqlLikeMem.connections",
+          "group": "navigation@0"
+        },
+        {
           "command": "dbSqlLikeMem.addConnection",
           "when": "view == dbSqlLikeMem.connections",
           "group": "navigation"
@@ -111,17 +121,25 @@
       ],
       "view/item/context": [
         {
+          "command": "dbSqlLikeMem.configureMappings",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-database",
+          "group": "inline@0"
+        },
+        {
           "command": "dbSqlLikeMem.generateClasses",
-          "when": "view == dbSqlLikeMem.connections",
-          "group": "inline"
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-database",
+          "group": "inline@1"
         },
         {
           "command": "dbSqlLikeMem.checkConsistency",
-          "when": "view == dbSqlLikeMem.connections",
-          "group": "inline"
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-database",
+          "group": "inline@2"
         }
       ],
       "commandPalette": [
+        {
+          "command": "dbSqlLikeMem.openManager"
+        },
         {
           "command": "dbSqlLikeMem.exportState"
         },

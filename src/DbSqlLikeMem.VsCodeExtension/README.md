@@ -12,7 +12,8 @@ Extensão equivalente ao fluxo desenhado para o Visual Studio Extension Core, ad
   - Tipo do objeto (`Table`, `View`, `Procedure`)
   - Objeto (`schema.nome`)
 - Filtro por modo `Like` e `Equals`.
-- Configuração simplificada de mapeamentos.
+- Interface gráfica (Manager) para cadastrar/remover conexões e configurar mapeamentos.
+- Configuração de mapeamentos também no menu de contexto do nó do database.
 - Geração de classes `.cs` no workspace.
 - Check de consistência (presença de classes locais esperadas).
 - Exportação/importação do estado em JSON.
@@ -21,8 +22,9 @@ Extensão equivalente ao fluxo desenhado para o Visual Studio Extension Core, ad
 
 ## Comandos
 
+- `DbSqlLikeMem: Open Manager` (UI gráfica de conexões + mapeamentos)
 - `DbSqlLikeMem: Add Connection`
-- `DbSqlLikeMem: Configure Mappings`
+- `DbSqlLikeMem: Configure Mappings` (também disponível no menu de contexto do database)
 - `DbSqlLikeMem: Generate Classes`
 - `DbSqlLikeMem: Check Consistency`
 - `DbSqlLikeMem: Set Filter`

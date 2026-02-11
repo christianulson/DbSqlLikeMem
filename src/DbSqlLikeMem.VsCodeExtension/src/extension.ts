@@ -64,7 +64,7 @@ class DbNodeItem extends vscode.TreeItem {
       this.contextValue = 'db-object';
       this.description = node.objectType;
     } else {
-      this.contextValue = 'db-group';
+      this.contextValue = `db-${node.kind}`;
     }
   }
 }
@@ -117,6 +117,97 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   vscode.window.registerTreeDataProvider('dbSqlLikeMem.connections', treeProvider);
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('dbSqlLikeMem.openManager', async () => {
+      const panel = vscode.window.createWebviewPanel(
+        'dbSqlLikeMem.manager',
+        'DbSqlLikeMem Manager',
+        vscode.ViewColumn.Active,
+        { enableScripts: true }
+      );
+
+      const render = (): void => {
+        panel.webview.html = getManagerHtml(state);
+      };
+
+      panel.webview.onDidReceiveMessage(async (message: unknown) => {
+        if (!message || typeof message !== 'object' || !("type" in message)) {
+          return;
+        }
+
+        const payload = message as Record<string, unknown>;
+
+        if (payload.type === 'saveConnection') {
+          const name = String(payload.name ?? '').trim();
+          const databaseType = String(payload.databaseType ?? '').trim();
+          const databaseName = String(payload.databaseName ?? '').trim();
+          const connectionString = String(payload.connectionString ?? '').trim();
+
+          if (!name || !databaseType || !databaseName || !connectionString) {
+            vscode.window.showWarningMessage('Preencha todos os campos da conexão.');
+            return;
+          }
+
+          state.connections.push({
+            id: `${databaseType}-${databaseName}-${Date.now()}`,
+            name,
+            databaseType,
+            databaseName,
+            connectionString
+          });
+
+          await saveState(context, state);
+          refreshTree();
+          render();
+          vscode.window.showInformationMessage(`Conexão ${name} salva.`);
+          return;
+        }
+
+        if (payload.type === 'removeConnection') {
+          const connectionId = String(payload.connectionId ?? '');
+          if (!connectionId) {
+            return;
+          }
+
+          state.connections = state.connections.filter((x) => x.id !== connectionId);
+          state.mappingConfigurations = state.mappingConfigurations.filter((x) => x.connectionId !== connectionId);
+          await saveState(context, state);
+          refreshTree();
+          render();
+          vscode.window.showInformationMessage('Conexão removida.');
+          return;
+        }
+
+        if (payload.type === 'saveMapping') {
+          const connectionId = String(payload.connectionId ?? '').trim();
+          const folder = String(payload.folder ?? '').trim();
+          const fileSuffix = String(payload.fileSuffix ?? '').trim();
+          const namespace = String(payload.namespace ?? '').trim();
+
+          if (!connectionId || !folder || !fileSuffix) {
+            vscode.window.showWarningMessage('Preencha conexão, pasta e sufixo do mapeamento.');
+            return;
+          }
+
+          const mapping: ConnectionMappingConfiguration = {
+            connectionId,
+            mappings: ['Table', 'View', 'Procedure'].map((objectType) => ({
+              objectType: objectType as DatabaseObjectType,
+              targetFolder: folder,
+              fileSuffix,
+              namespace: namespace || undefined
+            }))
+          };
+
+          state.mappingConfigurations = state.mappingConfigurations.filter((x) => x.connectionId !== connectionId);
+          state.mappingConfigurations.push(mapping);
+          await saveState(context, state);
+          render();
+          vscode.window.showInformationMessage('Mapeamentos salvos.');
+        }
+      });
+
+      render();
+    }),
     vscode.commands.registerCommand('dbSqlLikeMem.refresh', refreshTree),
     vscode.commands.registerCommand('dbSqlLikeMem.addConnection', async () => {
       const name = await vscode.window.showInputBox({ prompt: 'Nome da conexão' });
@@ -168,7 +259,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return;
       }
 
-      const mode = await vscode.window.showQuickPick<FilterMode>(['Like', 'Equals'], {
+      const mode = await vscode.window.showQuickPick(['Like', 'Equals'], {
         placeHolder: 'Modo de filtro'
       });
 
@@ -177,12 +268,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
 
       state.filterText = text;
-      state.filterMode = mode;
+      state.filterMode = mode as FilterMode;
       await saveState(context, state);
       refreshTree();
     }),
-    vscode.commands.registerCommand('dbSqlLikeMem.configureMappings', async () => {
-      const connection = await pickConnection(state.connections);
+    vscode.commands.registerCommand('dbSqlLikeMem.configureMappings', async (item?: DbNodeItem) => {
+      const connection = await resolveConnectionFromItem(state.connections, item) ?? await pickConnection(state.connections);
       if (!connection) {
         return;
       }
@@ -452,6 +543,127 @@ async function resolveConnectionFromItem(
   }
 
   return pickConnection(connections);
+}
+
+
+function getManagerHtml(state: ExtensionState): string {
+  const connectionOptions = state.connections
+    .map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)} (${escapeHtml(c.databaseType)} / ${escapeHtml(c.databaseName)})</option>`)
+    .join('');
+
+  const mappingByConnection = new Map(state.mappingConfigurations.map((m) => [m.connectionId, m]));
+  const connectionsTable = state.connections.length === 0
+    ? '<p><em>Nenhuma conexão configurada.</em></p>'
+    : `<table><thead><tr><th>Nome</th><th>Tipo</th><th>Database</th><th>Ações</th></tr></thead><tbody>${state.connections
+      .map((c) => `<tr><td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.databaseType)}</td><td>${escapeHtml(c.databaseName)}</td><td><button data-remove="${escapeHtml(c.id)}">Remover</button></td></tr>`)
+      .join('')}</tbody></table>`;
+
+  const mappingsTable = state.connections.length === 0
+    ? '<p><em>Adicione uma conexão para configurar mapeamentos.</em></p>'
+    : `<table><thead><tr><th>Conexão</th><th>Table</th><th>View</th><th>Procedure</th></tr></thead><tbody>${state.connections
+      .map((c) => {
+        const map = mappingByConnection.get(c.id);
+        const byType = (type: DatabaseObjectType): string => {
+          const m = map?.mappings.find((x) => x.objectType === type);
+          return m ? `${escapeHtml(m.targetFolder)} / ${escapeHtml(m.fileSuffix)}` : '-';
+        };
+        return `<tr><td>${escapeHtml(c.name)}</td><td>${byType('Table')}</td><td>${byType('View')}</td><td>${byType('Procedure')}</td></tr>`;
+      }).join('')}</tbody></table>`;
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DbSqlLikeMem Manager</title>
+  <style>
+    body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); padding: 16px; }
+    h2 { margin-top: 20px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .panel { border: 1px solid var(--vscode-panel-border); padding: 12px; border-radius: 6px; }
+    label { display: block; margin-top: 8px; font-size: 12px; opacity: 0.9; }
+    input, select { width: 100%; margin-top: 4px; padding: 6px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); }
+    button { margin-top: 10px; padding: 6px 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { border: 1px solid var(--vscode-panel-border); padding: 6px; text-align: left; }
+    .full { grid-column: 1 / -1; }
+  </style>
+</head>
+<body>
+  <h1>DbSqlLikeMem - Interface Gráfica</h1>
+  <div class="grid">
+    <section class="panel">
+      <h2>Adicionar Conexão</h2>
+      <label>Nome</label><input id="name" />
+      <label>Tipo do banco</label>
+      <select id="databaseType">
+        <option>SqlServer</option><option>PostgreSql</option><option>Oracle</option><option>MySql</option><option>Sqlite</option><option>Db2</option>
+      </select>
+      <label>Database / Schema principal</label><input id="databaseName" />
+      <label>Connection string</label><input id="connectionString" type="password" />
+      <button id="saveConnection">Salvar conexão</button>
+    </section>
+
+    <section class="panel">
+      <h2>Configurar Mapeamentos</h2>
+      <label>Conexão</label>
+      <select id="connectionId">${connectionOptions}</select>
+      <label>Pasta alvo</label><input id="folder" value="src/Models" />
+      <label>Sufixo de arquivo/classe</label><input id="fileSuffix" value="Entity" />
+      <label>Namespace (opcional)</label><input id="namespace" />
+      <button id="saveMapping">Salvar mapeamentos</button>
+    </section>
+
+    <section class="panel full">
+      <h2>Conexões cadastradas</h2>
+      ${connectionsTable}
+    </section>
+
+    <section class="panel full">
+      <h2>Resumo dos mapeamentos</h2>
+      ${mappingsTable}
+    </section>
+  </div>
+
+  <script>
+    const vscode = acquireVsCodeApi();
+    document.getElementById('saveConnection')?.addEventListener('click', () => {
+      vscode.postMessage({
+        type: 'saveConnection',
+        name: document.getElementById('name').value,
+        databaseType: document.getElementById('databaseType').value,
+        databaseName: document.getElementById('databaseName').value,
+        connectionString: document.getElementById('connectionString').value
+      });
+    });
+
+    document.getElementById('saveMapping')?.addEventListener('click', () => {
+      vscode.postMessage({
+        type: 'saveMapping',
+        connectionId: document.getElementById('connectionId').value,
+        folder: document.getElementById('folder').value,
+        fileSuffix: document.getElementById('fileSuffix').value,
+        namespace: document.getElementById('namespace').value
+      });
+    });
+
+    document.querySelectorAll('[data-remove]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        vscode.postMessage({ type: 'removeConnection', connectionId: btn.getAttribute('data-remove') });
+      });
+    });
+  </script>
+</body>
+</html>`;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 async function findFileCaseInsensitive(root: string, fileName: string): Promise<boolean> {
