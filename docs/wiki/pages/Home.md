@@ -1,18 +1,26 @@
 # DbSqlLikeMem Wiki
 
-Bem-vindo à wiki do **DbSqlLikeMem**.
+Welcome to the **DbSqlLikeMem** wiki.
 
-DbSqlLikeMem é um engine de banco em memória para testes unitários em C#, com foco em simular dialetos SQL e comportamento ADO.NET para múltiplos provedores.
+DbSqlLikeMem is an in-memory database engine for C# unit tests focused on simulating SQL dialects and ADO.NET behavior across multiple providers.
 
-## Navegação
+## Navigation
 
 - [Getting Started](Getting-Started)
 - [Providers and Compatibility](Providers-and-Compatibility)
 - [Publishing](Publishing)
 
-## Links úteis no repositório
+## Useful repository links
 
-- README principal
+- Main README
 - `docs/getting-started.md`
 - `docs/providers-and-features.md`
 - `docs/publishing.md`
+
+---
+
+## Português
+
+Bem-vindo à wiki do **DbSqlLikeMem**.
+
+DbSqlLikeMem é um engine de banco em memória para testes unitários em C#, com foco em simular dialetos SQL e comportamento ADO.NET para múltiplos provedores.
