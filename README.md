@@ -104,6 +104,31 @@ Inclui:
 - publicação de extensão VSIX (Visual Studio Marketplace)
 - publicação de extensão VS Code (Marketplace)
 
+
+## Documentation standard (English + Português)
+
+For open-source readability, public API documentation should be written in **two languages**:
+
+- English first (`<summary>` first sentence/paragraph in English)
+- Portuguese next (second sentence/paragraph in Portuguese)
+
+Recommended XML doc pattern:
+
+```csharp
+/// <summary>
+/// English description.
+/// Descrição em português.
+/// </summary>
+```
+
+When overriding or implementing members that already have documentation, prefer:
+
+```csharp
+/// <inheritdoc/>
+```
+
+This keeps compiler warnings visible (including `CS1591`) so missing documentation can be fixed instead of hidden.
+
 ## Contribuição
 
 Contributions are welcome! If you want to help improve DbSqlLikeMem, please open an issue to discuss your idea or submit a pull request.
