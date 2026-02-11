@@ -69,6 +69,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsOnDuplicateKeyUpdate => false;
+    public override bool SupportsOnConflictClause => true;
 
     /// <summary>
     /// Auto-generated summary.
@@ -83,6 +84,8 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
+    public override bool SupportsWithRecursive => Version >= WithCteMinVersion;
+    public override bool SupportsWithMaterializedHint => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>

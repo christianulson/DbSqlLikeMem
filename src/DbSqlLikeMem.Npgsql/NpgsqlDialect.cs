@@ -72,6 +72,10 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
+    public override bool SupportsOnConflictClause => true;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public override bool SupportsReturning => true;
 
     /// <summary>
@@ -91,6 +95,8 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
+    public override bool SupportsWithRecursive => Version >= WithCteMinVersion;
+    public override bool SupportsWithMaterializedHint => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>

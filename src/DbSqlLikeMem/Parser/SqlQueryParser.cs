@@ -163,8 +163,7 @@ internal sealed class SqlQueryParser
         }
         else if (IsWord(Peek(), "SELECT") || IsWord(Peek(), "WITH"))
         {
-            _allowOnDuplicateBoundary = _dialect.SupportsOnDuplicateKeyUpdate
-                                       || string.Equals(_dialect.Name, "postgresql", StringComparison.OrdinalIgnoreCase);
+            _allowOnDuplicateBoundary = _dialect.SupportsOnDuplicateKeyUpdate || _dialect.SupportsOnConflictClause;
             insertSelect = ParseSelectQuery();
             _allowOnDuplicateBoundary = false;
         }
@@ -232,7 +231,7 @@ internal sealed class SqlQueryParser
         // PostgreSQL: ON CONFLICT (...) DO UPDATE SET ...  |  ON CONFLICT DO NOTHING
         if (IsWord(next, "CONFLICT"))
         {
-            if (!string.Equals(_dialect.Name, "postgresql", StringComparison.OrdinalIgnoreCase))
+            if (!_dialect.SupportsOnConflictClause)
                 throw new InvalidOperationException($"Dialeto '{_dialect.Name}' não suporta ON CONFLICT.");
 
             Consume(); // ON
@@ -464,7 +463,7 @@ internal sealed class SqlQueryParser
         var groupBy = TryParseGroupBy();
         var having = TryParseHavingExpr();
         var orderBy = TryParseOrderBy();
-        var rowLimit = TryParseRowLimitTail();
+        var rowLimit = TryParseRowLimitTail(orderBy.Count > 0);
         if (top is not null)
         {
             // TOP é prefixo (SQL Server). Se também apareceu LIMIT/FETCH no fim, prioriza o fim.
@@ -952,7 +951,7 @@ internal sealed class SqlQueryParser
         return list;
     }
 
-    private SqlRowLimit? TryParseRowLimitTail()
+    private SqlRowLimit? TryParseRowLimitTail(bool hasOrderBy)
     {
         // MySQL/Postgres: LIMIT ...
         if (IsWord(Peek(), "LIMIT"))
@@ -980,6 +979,8 @@ internal sealed class SqlQueryParser
         {
             if (!_dialect.SupportsOffsetFetch)
                 throw new NotSupportedException($"OFFSET/FETCH não suportado no dialeto '{_dialect.Name}'.");
+            if (_dialect.RequiresOrderByForOffsetFetch && !hasOrderBy)
+                throw new InvalidOperationException($"OFFSET/FETCH requer ORDER BY no dialeto '{_dialect.Name}'.");
 
             Consume();
             var offset = ExpectNumberInt();
@@ -1042,7 +1043,12 @@ internal sealed class SqlQueryParser
         if (!_dialect.SupportsWithCte)
             throw new NotSupportedException($"WITH/CTE não suportado para {_dialect.Name} v{_dialect.Version}.");
 
-        if (IsWord(Peek(), "RECURSIVE")) Consume();
+        if (IsWord(Peek(), "RECURSIVE"))
+        {
+            if (!_dialect.SupportsWithRecursive)
+                throw new NotSupportedException($"WITH RECURSIVE não suportado para {_dialect.Name} v{_dialect.Version}.");
+            Consume();
+        }
 
         while (true)
         {
@@ -1055,6 +1061,19 @@ internal sealed class SqlQueryParser
                 Consume(); // )
             }
             ExpectWord("AS");
+            if (IsWord(Peek(), "NOT") && IsWord(Peek(1), "MATERIALIZED"))
+            {
+                if (!_dialect.SupportsWithMaterializedHint)
+                    throw new NotSupportedException($"WITH ... AS NOT MATERIALIZED não suportado para {_dialect.Name} v{_dialect.Version}.");
+                Consume(); // NOT
+                Consume(); // MATERIALIZED
+            }
+            else if (IsWord(Peek(), "MATERIALIZED"))
+            {
+                if (!_dialect.SupportsWithMaterializedHint)
+                    throw new NotSupportedException($"WITH ... AS MATERIALIZED não suportado para {_dialect.Name} v{_dialect.Version}.");
+                Consume();
+            }
             var innerSql = ReadBalancedParenRawTokens();
             var q = Parse(innerSql, _dialect);
             if (q is SqlSelectQuery sq) list.Add(new SqlCte(name, sq));
