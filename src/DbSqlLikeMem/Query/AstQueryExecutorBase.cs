@@ -319,7 +319,7 @@ internal abstract class AstQueryExecutorBase(
         Source src,
         SqlExpr? where)
     {
-        if (where is null || src._physical is null || src._physical.Indexes.Count == 0)
+        if (where is null || src.Physical is null || src.Physical.Indexes.Count == 0)
             return null;
 
         if (!TryCollectColumnEqualities(where, src, out var equalsByColumn)
@@ -327,7 +327,7 @@ internal abstract class AstQueryExecutorBase(
             return null;
 
         IndexDef? best = null;
-        foreach (var ix in src._physical.Indexes.Values)
+        foreach (var ix in src.Physical.Indexes.Values)
         {
             if (ix.KeyCols.Count == 0)
                 continue;
@@ -350,7 +350,7 @@ internal abstract class AstQueryExecutorBase(
             return value?.ToString() ?? "<null>";
         }));
 
-        var positions = LookupIndexWithMetrics(src._physical, best, key);
+        var positions = LookupIndexWithMetrics(src.Physical, best, key);
         if (positions is null)
             return [];
 
@@ -374,12 +374,12 @@ internal abstract class AstQueryExecutorBase(
         out Dictionary<string, object?> equalsByColumn)
     {
         equalsByColumn = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-        return Walk(where);
+        return Walk(where, ref equalsByColumn);
 
-        bool Walk(SqlExpr expr)
+        bool Walk(SqlExpr expr, ref Dictionary<string, object?> eqCol)
         {
             if (expr is BinaryExpr andExpr && andExpr.Op == SqlBinaryOp.And)
-                return Walk(andExpr.Left) && Walk(andExpr.Right);
+                return Walk(andExpr.Left, ref eqCol) && Walk(andExpr.Right, ref eqCol);
 
             if (expr is not BinaryExpr eq || eq.Op != SqlBinaryOp.Eq)
                 return false;
@@ -387,7 +387,7 @@ internal abstract class AstQueryExecutorBase(
             if (TryGetColumnAndValue(eq.Left, eq.Right, src, out var column, out var value)
                 || TryGetColumnAndValue(eq.Right, eq.Left, src, out column, out value))
             {
-                equalsByColumn[column] = value;
+                eqCol[column] = value;
                 return true;
             }
 
@@ -2630,7 +2630,7 @@ internal abstract class AstQueryExecutorBase(
 
     internal sealed class Source
     {
-        private readonly ITableMock? _physical;
+        internal ITableMock? Physical { get; }
         private readonly TableResultMock? _result;
         /// <summary>
         /// Auto-generated summary.
@@ -2648,7 +2648,7 @@ internal abstract class AstQueryExecutorBase(
         {
             Alias = alias;
             Name = name;
-            _physical = physical;
+            Physical = physical;
             _result = null;
             ColumnNames = [.. physical.Columns.OrderBy(kv => kv.Value.Index).Select(kv => kv.Key!)];
         }
@@ -2657,7 +2657,7 @@ internal abstract class AstQueryExecutorBase(
             Alias = alias;
             Name = name;
             _result = result;
-            _physical = null;
+            Physical = null;
             ColumnNames = [.. result.Columns.OrderBy(c => c.ColumIndex).Select(c => c.ColumnAlias)];
         }
         /// <summary>
@@ -2665,8 +2665,8 @@ internal abstract class AstQueryExecutorBase(
         /// </summary>
         public Source WithAlias(string alias)
         {
-            if (_physical is not null)
-                return FromPhysical(Name, alias, _physical);
+            if (Physical is not null)
+                return FromPhysical(Name, alias, Physical);
             return FromResult(Name, alias, _result!);
         }
 
@@ -2675,14 +2675,14 @@ internal abstract class AstQueryExecutorBase(
         /// </summary>
         public IEnumerable<Dictionary<string, object?>> Rows()
         {
-            if (_physical is not null)
+            if (Physical is not null)
             {
-                foreach (var row in _physical)
+                foreach (var row in Physical)
                 {
                     var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
                     foreach (var col in ColumnNames)
                     {
-                        var idx = _physical.Columns[col].Index;
+                        var idx = Physical.Columns[col].Index;
                         dict[$"{Alias}.{col}"] = row.TryGetValue(idx, out var v)
                             ? v
                             : null;
@@ -2711,7 +2711,7 @@ internal abstract class AstQueryExecutorBase(
         public IEnumerable<Dictionary<string, object?>> RowsByIndexes(
             IEnumerable<int> indexes)
         {
-            if (_physical is null)
+            if (Physical is null)
                 return Rows();
 
             return EnumerateRowsByIndexes(indexes);
@@ -2723,17 +2723,17 @@ internal abstract class AstQueryExecutorBase(
             var emitted = new HashSet<int>();
             foreach (var raw in indexes)
             {
-                if (raw < 0 || raw >= _physical!.Count)
+                if (raw < 0 || raw >= Physical!.Count)
                     continue;
 
                 if (!emitted.Add(raw))
                     continue;
 
-                var row = _physical[raw];
+                var row = Physical[raw];
                 var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
                 foreach (var col in ColumnNames)
                 {
-                    var idx = _physical.Columns[col].Index;
+                    var idx = Physical.Columns[col].Index;
                     dict[$"{Alias}.{col}"] = row.TryGetValue(idx, out var v)
                         ? v
                         : null;
