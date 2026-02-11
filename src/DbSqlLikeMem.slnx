@@ -29,5 +29,9 @@
     <Project Path="DbSqlLikeMem.SqlServer/DbSqlLikeMem.SqlServer.csproj" />
   </Folder>
   <Project Path="DbSqlLikeMem.Test/DbSqlLikeMem.Test.csproj" />
+  <Folder Name="/VisualStudioExtension/">
+    <Project Path="DbSqlLikeMem.VisualStudioExtension.Core.Test/DbSqlLikeMem.VisualStudioExtension.Core.Test.csproj" />
+    <Project Path="DbSqlLikeMem.VisualStudioExtension.Core/DbSqlLikeMem.VisualStudioExtension.Core.csproj" />
+  </Folder>
   <Project Path="DbSqlLikeMem/DbSqlLikeMem.csproj" />
 </Solution>
