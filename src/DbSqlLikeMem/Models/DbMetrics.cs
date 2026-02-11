@@ -29,6 +29,11 @@ public sealed class DbMetrics
     /// </summary>
     public int Deletes { get; internal set; }
     /// <summary>
+    /// EN: Number of index lookups used to pre-filter rows during SELECT.
+    /// PT: Quantidade de consultas em índice usadas para pré-filtrar linhas em SELECT.
+    /// </summary>
+    public int IndexLookups { get; internal set; }
+    /// <summary>
     /// EN: Total elapsed time since metrics started.
     /// PT: Tempo total decorrido desde o início da coleta.
     /// </summary>

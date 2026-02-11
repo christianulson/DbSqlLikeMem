@@ -19,12 +19,70 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
         users.Columns["email"] = new(2, DbType.String, true);
         users.Columns["tags"] = new(3, DbType.String, true); // CSV-like "a,b,c"
 
+        users.CreateIndex(new IndexDef("ix_users_name", ["name"]));
+        users.CreateIndex(new IndexDef("ix_users_name_email", ["name", "email"]));
+
         users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = "john@x.com", [3] = "a,b" });
         users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Jane", [2] = null, [3] = "b,c" });
         users.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Bob", [2] = "bob@x.com", [3] = null });
 
         _cnn = new SqliteConnectionMock(db);
         _cnn.Open();
+    }
+
+    /// <summary>
+    /// EN: Tests Where_IndexedEquality_ShouldUseIndexLookupMetric behavior.
+    /// PT: Testa o comportamento de Where_IndexedEquality_ShouldUseIndexLookupMetric.
+    /// </summary>
+    [Fact]
+    public void Where_IndexedEquality_ShouldUseIndexLookupMetric()
+    {
+        var before = _cnn.Metrics.IndexLookups;
+
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name = 'John'").ToList();
+
+        Assert.Single(rows);
+        Assert.Equal(1, (int)rows[0].id);
+        Assert.Equal(before + 1, _cnn.Metrics.IndexLookups);
+    }
+
+    /// <summary>
+    /// EN: Tests Where_IndexedEqualityWithParameter_ShouldUseCompositeIndexLookupMetric behavior.
+    /// PT: Testa o comportamento de Where_IndexedEqualityWithParameter_ShouldUseCompositeIndexLookupMetric.
+    /// </summary>
+    [Fact]
+    public void Where_IndexedEqualityWithParameter_ShouldUseCompositeIndexLookupMetric()
+    {
+        var before = _cnn.Metrics.IndexLookups;
+
+        var rows = _cnn.Query<dynamic>(
+            "SELECT id FROM users WHERE name = @name AND email = @email",
+            new
+            {
+                name = "Bob",
+                email = "bob@x.com"
+            })
+            .ToList();
+
+        Assert.Single(rows);
+        Assert.Equal(3, (int)rows[0].id);
+        Assert.Equal(before + 1, _cnn.Metrics.IndexLookups);
+    }
+
+    /// <summary>
+    /// EN: Tests Where_NonIndexedPredicate_ShouldNotIncreaseIndexLookupMetric behavior.
+    /// PT: Testa o comportamento de Where_NonIndexedPredicate_ShouldNotIncreaseIndexLookupMetric.
+    /// </summary>
+    [Fact]
+    public void Where_NonIndexedPredicate_ShouldNotIncreaseIndexLookupMetric()
+    {
+        var before = _cnn.Metrics.IndexLookups;
+
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id = 1").ToList();
+
+        Assert.Single(rows);
+        Assert.Equal(1, (int)rows[0].id);
+        Assert.Equal(before, _cnn.Metrics.IndexLookups);
     }
 
     /// <summary>
