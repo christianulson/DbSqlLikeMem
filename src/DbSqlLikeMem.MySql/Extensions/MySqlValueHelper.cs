@@ -1,4 +1,3 @@
-using MySql.Data.MySqlClient;
 using System.Text.Json;
 
 namespace DbSqlLikeMem.MySql;

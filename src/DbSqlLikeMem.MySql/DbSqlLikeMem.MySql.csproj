@@ -14,8 +14,14 @@
 		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.Test" />
 	</ItemGroup>
 	<ItemGroup>
+		<Using Include="MySql.Data.MySqlClient" />
+		<Using Include="System.Collections" />
 		<Using Include="System.Data" />
+		<Using Include="System.Data.Common" />
+		<Using Include="System.Diagnostics.CodeAnalysis" />
 		<Using Include="System.Globalization" />
+		<Using Include="System.Linq.Expressions" />
+		<Using Include="System.Reflection" />
 		<Using Include="System.Text.RegularExpressions" />
 	</ItemGroup>
 </Project>

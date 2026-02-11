@@ -1,7 +1,3 @@
-using MySql.Data.MySqlClient;
-using System.Data.Common;
-using System.Diagnostics.CodeAnalysis;
-
 namespace DbSqlLikeMem.MySql;
 
 /// <summary>
@@ -63,6 +59,7 @@ public class MySqlCommandMock(
     /// Auto-generated summary.
     /// </summary>
     public override UpdateRowSource UpdatedRowSource { get; set; }
+    
     /// <summary>
     /// Auto-generated summary.
     /// </summary>

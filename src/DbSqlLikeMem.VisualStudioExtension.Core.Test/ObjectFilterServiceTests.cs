@@ -1,6 +1,3 @@
-using DbSqlLikeMem.VisualStudioExtension.Core.Models;
-using DbSqlLikeMem.VisualStudioExtension.Core.Services;
-
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 public class ObjectFilterServiceTests

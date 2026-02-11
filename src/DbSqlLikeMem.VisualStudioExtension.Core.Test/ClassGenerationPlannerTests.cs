@@ -1,6 +1,3 @@
-using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
-using DbSqlLikeMem.VisualStudioExtension.Core.Models;
-
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 public class ClassGenerationPlannerTests
