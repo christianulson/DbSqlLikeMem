@@ -1,8 +1,16 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public sealed class SqlDatabaseMetadataProviderTests
 {
     [Fact]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public async Task GetObjectAsync_ReturnsCompleteStructureMetadata()
     {
         var executor = new FakeSqlQueryExecutor();
@@ -45,6 +53,10 @@ public sealed class SqlDatabaseMetadataProviderTests
     [InlineData("Oracle")]
     [InlineData("Sqlite")]
     [InlineData("Db2")]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void QueryFactory_SupportsConfiguredDatabases(string databaseType)
     {
         Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildListObjectsQuery(databaseType)));
@@ -61,9 +73,17 @@ public sealed class SqlDatabaseMetadataProviderTests
     {
         private readonly List<(string Contains, IReadOnlyCollection<IReadOnlyDictionary<string, object?>> Rows)> _responses = [];
 
+        /// <summary>
+        /// Executes this API operation.
+        /// Executa esta operação da API.
+        /// </summary>
         public void WhenContains(string containsSql, IReadOnlyCollection<IReadOnlyDictionary<string, object?>> rows)
             => _responses.Add((containsSql, rows));
 
+        /// <summary>
+        /// Executes this API operation.
+        /// Executa esta operação da API.
+        /// </summary>
         public Task<IReadOnlyCollection<IReadOnlyDictionary<string, object?>>> QueryAsync(
             ConnectionDefinition connection,
             string sql,

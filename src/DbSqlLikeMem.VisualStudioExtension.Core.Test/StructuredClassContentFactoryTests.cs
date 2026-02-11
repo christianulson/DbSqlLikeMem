@@ -1,8 +1,16 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public sealed class StructuredClassContentFactoryTests
 {
     [Fact]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void Build_GeneratesColumnsPkIndexesAndForeignKeysLikeConsole()
     {
         var dbObject = new DatabaseObjectReference(
@@ -26,6 +34,10 @@ public sealed class StructuredClassContentFactoryTests
     }
 
     [Fact]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void Build_WithCompositePrimaryKey_CreatesPrimaryIndexWithAllFields()
     {
         var dbObject = new DatabaseObjectReference(
@@ -49,6 +61,10 @@ public sealed class StructuredClassContentFactoryTests
 
 
     [Fact]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void Build_WithSqlServerStrategy_DoesNotTreatTinyIntAsBoolean()
     {
         var dbObject = new DatabaseObjectReference(
@@ -69,6 +85,10 @@ public sealed class StructuredClassContentFactoryTests
         Assert.Contains("table.Columns[\"BitMask\"] = new(1, DbType.Boolean, false);", content);
     }
     [Fact]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void Build_UsesSameTypeRulesAsConsoleGenerator_ForTinyIntAndBit()
     {
         var dbObject = new DatabaseObjectReference(

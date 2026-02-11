@@ -1,8 +1,16 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public class ObjectConsistencyCheckerTests
 {
     [Fact]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public async Task CheckAsync_WhenObjectMissing_ReturnsMissingStatus()
     {
         var checker = new ObjectConsistencyChecker();
@@ -18,6 +26,10 @@ public class ObjectConsistencyCheckerTests
     }
 
     [Fact]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public async Task CheckAsync_WhenPropertiesDifferent_ReturnsDifferentStatus()
     {
         var checker = new ObjectConsistencyChecker();
@@ -37,10 +49,18 @@ public class ObjectConsistencyCheckerTests
 
     private sealed class FakeMetadataProvider(DatabaseObjectReference? dbObject) : IDatabaseMetadataProvider
     {
+        /// <summary>
+        /// Executes this API operation.
+        /// Executa esta operação da API.
+        /// </summary>
         public Task<DatabaseObjectReference?> GetObjectAsync(ConnectionDefinition connection, DatabaseObjectReference reference,
             CancellationToken cancellationToken = default)
             => Task.FromResult(dbObject);
 
+        /// <summary>
+        /// Executes this API operation.
+        /// Executa esta operação da API.
+        /// </summary>
         public Task<IReadOnlyCollection<DatabaseObjectReference>> ListObjectsAsync(ConnectionDefinition connection,
             CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyCollection<DatabaseObjectReference>>(dbObject is null ? [] : [dbObject]);

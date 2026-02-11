@@ -4,8 +4,16 @@ using System.Text;
 
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public static class StructuredClassContentFactory
 {
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public static string Build(DatabaseObjectReference dbObject, string? @namespace = null, string? databaseType = null)
     {
         var className = $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}{dbObject.Type}Factory";

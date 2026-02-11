@@ -1,8 +1,16 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public class ClassGenerationPlannerTests
 {
     [Fact]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void BuildPlan_WithoutConfiguration_RequiresConfiguration()
     {
         var planner = new ClassGenerationPlanner();
@@ -18,6 +26,10 @@ public class ClassGenerationPlannerTests
     }
 
     [Fact]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void BuildPlan_WithPartialMappings_ReturnsMissingTypes()
     {
         var planner = new ClassGenerationPlanner();

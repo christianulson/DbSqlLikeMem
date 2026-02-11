@@ -2,6 +2,31 @@ using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Persistence;
 
-public sealed record ExtensionState(
-    IReadOnlyCollection<ConnectionDefinition> Connections,
-    IReadOnlyCollection<ConnectionMappingConfiguration> Mappings);
+/// <summary>
+/// Represents persisted extension state.
+/// Representa o estado persistido da extensão.
+/// </summary>
+public sealed record ExtensionState
+{
+    /// <summary>
+    /// Initializes a new extension state.
+    /// Inicializa um novo estado da extensão.
+    /// </summary>
+    public ExtensionState(IReadOnlyCollection<ConnectionDefinition> connections, IReadOnlyCollection<ConnectionMappingConfiguration> mappings)
+    {
+        Connections = connections;
+        Mappings = mappings;
+    }
+
+    /// <summary>
+    /// Gets stored connections.
+    /// Obtém as conexões armazenadas.
+    /// </summary>
+    public IReadOnlyCollection<ConnectionDefinition> Connections { get; }
+
+    /// <summary>
+    /// Gets stored mappings.
+    /// Obtém os mapeamentos armazenados.
+    /// </summary>
+    public IReadOnlyCollection<ConnectionMappingConfiguration> Mappings { get; }
+}

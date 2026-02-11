@@ -12,6 +12,10 @@ public sealed class Db2DialectFeatureParserTests
     /// </summary>
     [Theory]
     [MemberDataDb2Version]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void ParseSelect_WithRecursive_ShouldBeRejected(int version)
     {
         var sql = "WITH RECURSIVE cte(n) AS (SELECT 1 FROM SYSIBM.SYSDUMMY1) SELECT n FROM cte";
@@ -31,6 +35,10 @@ public sealed class Db2DialectFeatureParserTests
     /// </summary>
     [Theory]
     [MemberDataDb2Version]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void ParseInsert_OnConflict_ShouldBeRejected(int version)
     {
         var sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING";
@@ -44,6 +52,10 @@ public sealed class Db2DialectFeatureParserTests
     /// </summary>
     [Theory]
     [MemberDataDb2Version]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void ParseSelect_WithMySqlIndexHints_ShouldBeRejected(int version)
     {
         var sql = "SELECT id FROM users USE INDEX (idx_users_id)";
@@ -54,6 +66,10 @@ public sealed class Db2DialectFeatureParserTests
 
     [Theory]
     [MemberDataDb2Version]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
     {
         var ex = Assert.Throws<NotSupportedException>(() =>
@@ -65,6 +81,10 @@ public sealed class Db2DialectFeatureParserTests
 
     [Theory]
     [MemberDataDb2Version]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void ParseSelect_UnionOrderBy_ShouldParseAsUnion(int version)
     {
         var sql = "SELECT id FROM users WHERE id = 1 UNION SELECT id FROM users WHERE id = 2 ORDER BY id";
@@ -79,6 +99,10 @@ public sealed class Db2DialectFeatureParserTests
 
     [Theory]
     [MemberDataDb2Version]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void ParseSelect_WithCteSimple_ShouldParse(int version)
     {
         var sql = "WITH u AS (SELECT id FROM users) SELECT id FROM u";
