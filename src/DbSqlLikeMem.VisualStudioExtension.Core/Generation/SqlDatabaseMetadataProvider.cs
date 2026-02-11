@@ -70,6 +70,7 @@ public sealed class SqlDatabaseMetadataProvider(ISqlQueryExecutor queryExecutor)
                 IsIdentity = ReadBoolFlexible(r, "IsIdentity") || ReadString(r, "Extra").Contains("identity", StringComparison.OrdinalIgnoreCase) || ReadString(r, "Extra").Contains("auto_increment", StringComparison.OrdinalIgnoreCase),
                 DefaultValue = ReadString(r, "DefaultValue"),
                 CharMaxLen = ReadNullableLong(r, "CharMaxLen"),
+                NumPrecision = ReadNullableInt(r, "NumPrecision"),
                 NumScale = ReadNullableInt(r, "NumScale"),
                 ColumnType = ReadString(r, "ColumnType"),
                 Generated = ReadString(r, "Generated")
@@ -86,7 +87,8 @@ public sealed class SqlDatabaseMetadataProvider(ISqlQueryExecutor queryExecutor)
                 c.CharMaxLen?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
                 c.NumScale?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
                 Escape(c.ColumnType),
-                Escape(c.Generated)
+                Escape(c.Generated),
+                c.NumPrecision?.ToString(CultureInfo.InvariantCulture) ?? string.Empty
             ]));
 
         return string.Join(";", cols);

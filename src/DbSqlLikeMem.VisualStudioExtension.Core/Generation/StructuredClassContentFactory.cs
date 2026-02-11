@@ -1,16 +1,15 @@
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 using System.Globalization;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
-public static partial class StructuredClassContentFactory
+public static class StructuredClassContentFactory
 {
-    public static string Build(DatabaseObjectReference dbObject, string? @namespace = null)
+    public static string Build(DatabaseObjectReference dbObject, string? @namespace = null, string? databaseType = null)
     {
-        var className = $"{ToPascalCase(dbObject.Name)}{dbObject.Type}Factory";
-        var methodName = $"Create{dbObject.Type}{ToPascalCase(dbObject.Name)}";
+        var className = $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}{dbObject.Type}Factory";
+        var methodName = $"Create{dbObject.Type}{GenerationRuleSet.ToPascalCase(dbObject.Name)}";
 
         var columns = ParseColumns(Get(dbObject, "Columns"));
         var primaryKey = ParseCommaSeparated(Get(dbObject, "PrimaryKey"));
@@ -40,14 +39,15 @@ public static partial class StructuredClassContentFactory
 
         foreach (var c in columns.OrderBy(c => c.Ordinal))
         {
-            var ctor = $"new({c.Ordinal}, DbType.{MapDbType(c)}, {Bool(c.IsNullable)}";
+            var mappedDbType = GenerationRuleSet.MapDbType(c.DataType, c.CharMaxLen, c.NumPrecision, c.Name, databaseType);
+            var ctor = $"new({c.Ordinal}, DbType.{mappedDbType}, {Bool(c.IsNullable)}";
             if (c.IsIdentity) ctor += ", true";
             ctor += ")";
             sb.AppendLine($"        table.Columns[{Literal(c.Name)}] = {ctor};");
 
-            if (!string.IsNullOrWhiteSpace(c.DefaultValue) && IsSimpleLiteralDefault(c.DefaultValue))
+            if (!string.IsNullOrWhiteSpace(c.DefaultValue) && GenerationRuleSet.IsSimpleLiteralDefault(c.DefaultValue))
             {
-                sb.AppendLine($"        table.Columns[{Literal(c.Name)}].DefaultValue = {FormatDefaultLiteral(c.DefaultValue, MapDbType(c))};");
+                sb.AppendLine($"        table.Columns[{Literal(c.Name)}].DefaultValue = {GenerationRuleSet.FormatDefaultLiteral(c.DefaultValue, mappedDbType)};");
             }
 
             if (c.CharMaxLen is > 0 and <= int.MaxValue)
@@ -60,13 +60,13 @@ public static partial class StructuredClassContentFactory
                 sb.AppendLine($"        table.Columns[{Literal(c.Name)}].DecimalPlaces = {c.NumScale.Value};");
             }
 
-            var enums = TryParseEnumValues(c.ColumnType);
+            var enums = GenerationRuleSet.TryParseEnumValues(c.ColumnType);
             if (enums.Length > 0)
             {
                 sb.AppendLine($"        table.Columns[{Literal(c.Name)}].EnumValues = new[] {{ {string.Join(", ", enums.Select(Literal))} }};");
             }
 
-            if (!string.IsNullOrWhiteSpace(c.Generated) && TryConvertIfIsNull(c.Generated, out var genCode))
+            if (!string.IsNullOrWhiteSpace(c.Generated) && GenerationRuleSet.TryConvertIfIsNull(c.Generated, out var genCode))
             {
                 sb.AppendLine($"        table.Columns[{Literal(c.Name)}].GetGenValue = {genCode};");
             }
@@ -100,75 +100,6 @@ public static partial class StructuredClassContentFactory
     private static string Get(DatabaseObjectReference obj, string key)
         => obj.Properties?.TryGetValue(key, out var v) == true ? v : string.Empty;
 
-    private static string MapDbType(ColumnMeta c)
-    {
-        var t = c.DataType.ToLowerInvariant();
-        var looksGuid = (t is "binary" or "varbinary") && c.CharMaxLen == 16
-            || (t is "char" && c.CharMaxLen == 36 && (c.Name.EndsWith("guid", StringComparison.OrdinalIgnoreCase) || c.Name.EndsWith("uuid", StringComparison.OrdinalIgnoreCase)));
-        if (looksGuid) return "Guid";
-
-        return t switch
-        {
-            "tinyint" => "Byte",
-            "smallint" => "Int16",
-            "mediumint" => "Int32",
-            "int" or "integer" => "Int32",
-            "bigint" => "Int64",
-            "bit" => "Boolean",
-            "decimal" or "numeric" => "Decimal",
-            "double" => "Double",
-            "float" or "real" => "Single",
-            "date" => "Date",
-            "datetime" or "timestamp" => "DateTime",
-            "time" => "Time",
-            "char" or "nchar" or "varchar" or "nvarchar" or "text" or "tinytext" or "mediumtext" or "longtext" or "json" or "enum" or "set" => "String",
-            "binary" or "varbinary" or "blob" or "tinyblob" or "mediumblob" or "longblob" or "bytea" => "Binary",
-            "uniqueidentifier" or "uuid" => "Guid",
-            "bool" or "boolean" => "Boolean",
-            _ => "Object"
-        };
-    }
-
-    private static string FormatDefaultLiteral(string value, string dbType)
-    {
-        if (dbType == "Boolean")
-        {
-            var cleaned = value.Trim('(', ')', '\'', ' ');
-            return cleaned is "1" or "true" or "TRUE" ? "true" : "false";
-        }
-
-        if (dbType is "Byte" or "Int16" or "Int32" or "Int64" or "Decimal" or "Double" or "Single")
-        {
-            return value.Trim('(', ')', ' ');
-        }
-
-        return Literal(value.Trim('(', ')', '\''));
-    }
-
-    private static bool IsSimpleLiteralDefault(string value)
-    {
-        var v = value.Trim();
-        if (Regex.IsMatch(v, @"\(\s*\)$")) return false;
-        if (v.Equals("current_timestamp", StringComparison.OrdinalIgnoreCase)) return false;
-        if (v.Equals("null", StringComparison.OrdinalIgnoreCase)) return false;
-        return true;
-    }
-
-    private static bool TryConvertIfIsNull(string sqlExpr, out string code)
-    {
-        var m = GeneratedRegexPattern().Match(sqlExpr);
-        if (!m.Success)
-        {
-            code = string.Empty;
-            return false;
-        }
-
-        var col = m.Groups["col"].Value;
-        var val = m.Groups["val"].Value;
-        code = $"(row, tb) => !row.TryGetValue(tb.Columns[{Literal(col)}].Index, out var dtDel) || dtDel is null ? (byte?){val} : null";
-        return true;
-    }
-
     private static List<ColumnMeta> ParseColumns(string text)
     {
         var result = new List<ColumnMeta>();
@@ -186,7 +117,8 @@ public static partial class StructuredClassContentFactory
                 CharMaxLen: ParseNullableLong(parts[6]),
                 NumScale: ParseNullableInt(parts[7]),
                 ColumnType: Unescape(parts[8]),
-                Generated: Unescape(parts[9])));
+                Generated: Unescape(parts[9]),
+                NumPrecision: ParseNullableInt(parts.Count > 10 ? parts[10] : string.Empty)));
         }
         return result;
     }
@@ -218,25 +150,8 @@ public static partial class StructuredClassContentFactory
         return result;
     }
 
-    private static string ToPascalCase(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value)) return "Object";
-        var parts = value.Split(['_', '-', '.', ' '], StringSplitOptions.RemoveEmptyEntries)
-            .Select(Capitalize)
-            .Where(p => !string.IsNullOrWhiteSpace(p));
-        var joined = string.Concat(parts);
-        return string.IsNullOrWhiteSpace(joined) ? "Object" : joined;
-    }
-
-    private static string Capitalize(string value)
-    {
-        var cleaned = new string(value.Where(char.IsLetterOrDigit).ToArray());
-        if (string.IsNullOrWhiteSpace(cleaned)) return string.Empty;
-        return cleaned.Length == 1 ? cleaned.ToUpperInvariant() : string.Concat(char.ToUpper(cleaned[0], CultureInfo.InvariantCulture), cleaned[1..]);
-    }
-
     private static string Bool(bool value) => value ? "true" : "false";
-    private static string Literal(string value) => $"\"{value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
+    private static string Literal(string value) => GenerationRuleSet.Literal(value);
 
     private static string Unescape(string value)
     {
@@ -307,10 +222,8 @@ public static partial class StructuredClassContentFactory
     private static long? ParseNullableLong(string value)
         => long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : null;
 
-    private sealed record ColumnMeta(string Name, string DataType, int Ordinal, bool IsNullable, bool IsIdentity, string DefaultValue, long? CharMaxLen, int? NumScale, string ColumnType, string Generated);
+    private sealed record ColumnMeta(string Name, string DataType, int Ordinal, bool IsNullable, bool IsIdentity, string DefaultValue, long? CharMaxLen, int? NumScale, string ColumnType, string Generated, int? NumPrecision);
     private sealed record IndexMeta(string Name, bool Unique, List<string> Columns);
     private sealed record ForeignKeyMeta(string Column, string RefTable, string RefColumn);
 
-    [GeneratedRegex(@"if\s*\(\s*\(\s*`(?<col>\w+)`\s+is\s+null\s*\)\s*,\s*(?<val>[^,]+)\s*,\s*null\s*\)", RegexOptions.IgnoreCase)]
-    private static partial Regex GeneratedRegexPattern();
 }

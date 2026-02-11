@@ -132,7 +132,7 @@ public sealed class DapperUserTests2(
 
         using var command = new Db2CommandMock(connection)
         {
-            CommandText = "SELECT * FROM `Users1`; SELECT * FROM `Users2`;"
+            CommandText = "SELECT * FROM \"Users1\"; SELECT * FROM \"Users2\";"
         };
 
         // Act
@@ -190,8 +190,8 @@ public sealed class DapperUserTests2(
 
         const string sql = @"
                 SELECT U.*, UT.TenantId 
-                FROM `User` U
-                JOIN `UserTenant` UT ON U.Id = UT.UserId
+                FROM \"User\" U
+                JOIN \"UserTenant\" UT ON U.Id = UT.UserId
                 WHERE U.Id = @Id";
 
         using var command = new Db2CommandMock(connection)

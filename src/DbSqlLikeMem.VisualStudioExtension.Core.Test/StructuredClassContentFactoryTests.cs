@@ -46,4 +46,47 @@ public sealed class StructuredClassContentFactoryTests
         Assert.Contains("table.PrimaryKeyIndexes.Add(table.Columns[\"ItemId\"]?.Index);", content);
         Assert.Contains("table.CreateIndex(new IndexDef(\"PRIMARY\", [\"OrderId\", \"ItemId\"], unique: true));", content);
     }
+
+
+    [Fact]
+    public void Build_WithSqlServerStrategy_DoesNotTreatTinyIntAsBoolean()
+    {
+        var dbObject = new DatabaseObjectReference(
+            "dbo",
+            "feature_flags",
+            DatabaseObjectType.Table,
+            new Dictionary<string, string>
+            {
+                ["Columns"] = "IsEnabled|tinyint|0|0|0|1||0|tinyint(1)||1;BitMask|bit|1|0|0|0||0|bit(8)||8",
+                ["PrimaryKey"] = "",
+                ["Indexes"] = "",
+                ["ForeignKeys"] = ""
+            });
+
+        var content = StructuredClassContentFactory.Build(dbObject, databaseType: "SqlServer");
+
+        Assert.Contains("table.Columns[\"IsEnabled\"] = new(0, DbType.Byte, false);", content);
+        Assert.Contains("table.Columns[\"BitMask\"] = new(1, DbType.Boolean, false);", content);
+    }
+    [Fact]
+    public void Build_UsesSameTypeRulesAsConsoleGenerator_ForTinyIntAndBit()
+    {
+        var dbObject = new DatabaseObjectReference(
+            "dbo",
+            "feature_flags",
+            DatabaseObjectType.Table,
+            new Dictionary<string, string>
+            {
+                ["Columns"] = "IsEnabled|tinyint|0|0|0|1||0|tinyint(1)||1;BitMask|bit|1|0|0|0||0|bit(8)||8",
+                ["PrimaryKey"] = "",
+                ["Indexes"] = "",
+                ["ForeignKeys"] = ""
+            });
+
+        var content = StructuredClassContentFactory.Build(dbObject);
+
+        Assert.Contains("table.Columns[\"IsEnabled\"] = new(0, DbType.Boolean, false);", content);
+        Assert.Contains("table.Columns[\"BitMask\"] = new(1, DbType.UInt64, false);", content);
+        Assert.Contains("table.Columns[\"IsEnabled\"].DefaultValue = true;", content);
+    }
 }

@@ -1,7 +1,7 @@
 using System.Data;
 using System.Globalization;
 using System.Text;
-using System.Text.RegularExpressions;
+using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 using Dapper;
 using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
@@ -280,8 +280,8 @@ SELECT KCU.COLUMN_NAME
         List<(string Col, string RefTable, string RefCol)> foreignKeys,
         string outputPath)
     {
-        var className = $"{ToPascalCase(tableName)}TableFactory";
-        var methodName = $"CreateTable{ToPascalCase(tableName)}";
+        var className = $"{GenerationRuleSet.ToPascalCase(tableName)}TableFactory";
+        var methodName = $"CreateTable{GenerationRuleSet.ToPascalCase(tableName)}";
         var fileName = Path.Combine(outputPath, $"{className}.cs");
 
         using var w = new StreamWriter(fileName, false, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
@@ -298,7 +298,7 @@ SELECT KCU.COLUMN_NAME
         // map: nome → ordinal (de fato já vem na meta)
         foreach (var c in columns.OrderBy(c => c.Ordinal))
         {
-            var dbType = GetDbType(c);
+            var dbType = GenerationRuleSet.MapDbType(c.DataType, c.CharMaxLen, c.NumPrecision, c.ColumnName, "MySql");
             var nullable = c.IsNullable ? "true" : "false";
             var ctor = $"new({c.Ordinal}, DbType.{dbType}, {nullable}";
 
@@ -309,12 +309,9 @@ SELECT KCU.COLUMN_NAME
 
             // DefaultValue, se literal simples (evitar funções como CURRENT_TIMESTAMP)
             if (!string.IsNullOrEmpty(c.DefaultValue)
-                && IsSimpleLiteralDefault(c))
+                && GenerationRuleSet.IsSimpleLiteralDefault(c.DefaultValue!))
             {
-                var literal = CSharpLiteral(
-                    c.DefaultValue!,
-                    treatAsString: !IsNumericDbType(dbType),
-                    isBool: string.Equals(dbType, "Boolean", StringComparison.OrdinalIgnoreCase));
+                var literal = GenerationRuleSet.FormatDefaultLiteral(c.DefaultValue!, dbType);
                 w.WriteLine($"        table.Columns[\"{c.ColumnName}\"].DefaultValue = {literal};");
             }
 
@@ -325,15 +322,16 @@ SELECT KCU.COLUMN_NAME
                 w.WriteLine($"        table.Columns[\"{c.ColumnName}\"].DecimalPlaces = {c.NumScale.Value};");
 
             // EnumValues, se enum(...)
-            var enums = TryParseEnumValues(c.ColumnType);
-            if (enums is { Length: > 0 })
+            var enums = GenerationRuleSet.TryParseEnumValues(c.ColumnType);
+            if (enums.Length > 0)
             {
-                var arr = string.Join(", ", enums.Select(_ => CSharpLiteral(_)));
+                var arr = string.Join(", ", enums.Select(GenerationRuleSet.Literal));
                 w.WriteLine($"        table.Columns[\"{c.ColumnName}\"].EnumValues = new[] {{ {arr} }};");
             }
             if (!string.IsNullOrWhiteSpace(c.Generated))
             {
-                var genCode = ConvertIfIsNull(c.Generated);
+                if (!GenerationRuleSet.TryConvertIfIsNull(c.Generated, out var genCode))
+                    throw new NotSupportedException($"Expressão não suportada: {c.Generated}");
 
                 w.WriteLine(
                     $"        table.Columns[\"{c.ColumnName}\"].GetGenValue = {genCode};");
@@ -345,22 +343,22 @@ SELECT KCU.COLUMN_NAME
         {
             foreach (var pkCol in primaryKey)
                 w.WriteLine($"        table.PrimaryKeyIndexes.Add(table.Columns[\"{pkCol}\"]?.Index);");
-            var cols = string.Join(", ", primaryKey.Select(c => CSharpLiteral(c)));
+            var cols = string.Join(", ", primaryKey.Select(GenerationRuleSet.Literal));
             w.WriteLine($"        table.CreateIndex(new IndexDef(\"PRIMARY\", [{cols}], unique: true));");
         }
 
         // Índices (unique e não-unique)
         foreach (var (name, (Unique, Cols)) in indexes.OrderBy(p => p.Key))
         {
-            var cols = string.Join(", ", Cols.Select(c => CSharpLiteral(c)));
+            var cols = string.Join(", ", Cols.Select(GenerationRuleSet.Literal));
             var uniq = Unique ? "true" : "false";
-            w.WriteLine($"        table.CreateIndex(new IndexDef({CSharpLiteral(name)}, [{cols}], unique: {uniq}));");
+            w.WriteLine($"        table.CreateIndex(new IndexDef({GenerationRuleSet.Literal(name)}, [{cols}], unique: {uniq}));");
         }
 
         // FKs
         foreach (var (col, rtab, rcol) in foreignKeys)
         {
-            w.WriteLine($"        table.ForeignKeys.Add(({CSharpLiteral(col)}, {CSharpLiteral(rtab)}, {CSharpLiteral(rcol)}));");
+            w.WriteLine($"        table.ForeignKeys.Add(({GenerationRuleSet.Literal(col)}, {GenerationRuleSet.Literal(rtab)}, {GenerationRuleSet.Literal(rcol)}));");
         }
 
         w.WriteLine("        return table;");
@@ -370,118 +368,6 @@ SELECT KCU.COLUMN_NAME
         // pronto.
     }
 
-    private static string ConvertIfIsNull(string sqlExpr)
-    {
-        // exemplo esperado:
-        // if((`DeletedDtt` is null),1,NULL)
-
-        var match = MyRegex().Match(sqlExpr);
-
-        if (!match.Success)
-            throw new NotSupportedException($"Expressão não suportada: {sqlExpr}");
-
-        var col = match.Groups["col"].Value;
-        var val = match.Groups["val"].Value;
-
-        return
-            $"(row, tb) => !row.TryGetValue(tb.Columns[\"{col}\"].Index, out var dtDel) || dtDel is null ? (byte?){val} : null";
-    }
-
     // ---------- Helpers ----------
-    private static string ToPascalCase(string input)
-    {
-        if (string.IsNullOrEmpty(input)) return input;
-        var parts = input.Split(['_', '-'], StringSplitOptions.RemoveEmptyEntries);
-        return string.Concat(parts.Select(p => char.ToUpper(p[0], CultureInfo.InvariantCulture) + p[1..]));
-    }
-
-    private static string GetDbType(ColumnMeta c)
-    {
-#pragma warning disable CA1308 // Normalize strings to uppercase
-        var t = c.DataType.ToLowerInvariant();
-#pragma warning restore CA1308 // Normalize strings to uppercase
-
-        // heurística de GUID
-        bool looksGuid =
-            (t is "binary" or "varbinary") && c.CharMaxLen == 16 ||
-            (t is "char" && c.CharMaxLen == 36 &&
-             (c.ColumnName.EndsWith("guid", StringComparison.OrdinalIgnoreCase) ||
-              c.ColumnName.EndsWith("uuid", StringComparison.OrdinalIgnoreCase)));
-
-        if (looksGuid) return "Guid";
-
-        return t switch
-        {
-            "tinyint" => (c.NumPrecision == 1 || c.CharMaxLen == 1) ? "Boolean" : "Byte",
-            "smallint" => "Int16",
-            "mediumint" => "Int32",
-            "int" or "integer" => "Int32",
-            "bigint" => "Int64",
-
-            "bit" => (c.NumPrecision == 1) ? "Boolean" : "UInt64",
-
-            "decimal" or "numeric" => "Decimal",
-            "double" => "Double",
-            "float" => "Single",
-
-            "date" => "Date",
-            "datetime" or "timestamp" => "DateTime",
-            "time" => "Time",
-
-            "year" => "Int32",
-
-            "char" or "varchar" or "text" or "tinytext" or "mediumtext" or "longtext" or "json" or "enum" or "set"
-                => "String",
-
-            "binary" or "varbinary" or "blob" or "tinyblob" or "mediumblob" or "longblob"
-                => "Binary",
-
-            _ => "Object"
-        };
-    }
-
-    private static bool IsNumericDbType(string dbType)
-        => dbType is "Byte" or "Int16" or "Int32" or "Int64" or "Decimal" or "Double" or "Single" or "UInt64";
-
-    private static string CSharpLiteral(
-        string value,
-        bool treatAsString = true,
-        bool isBool = false)
-    {
-        if (isBool) return value.Contains("'0'", StringComparison.InvariantCultureIgnoreCase) ? "false" : "true";
-        if (!treatAsString) return value;
-#pragma warning disable CA1307 // Specify StringComparison for clarity
-        var esc = value.Replace("\\", "\\\\").Replace("\"", "\\\"");
-#pragma warning restore CA1307 // Specify StringComparison for clarity
-        return $"\"{esc}\"";
-    }
-
-    private static bool IsSimpleLiteralDefault(ColumnMeta c)
-    {
-        // Ignora funções e CURRENT_TIMESTAMP etc.
-        var v = c.DefaultValue!.Trim();
-        if (Regex.IsMatch(v, @"\(\s*\)$")) return false; // algo()
-        if (v.Equals("current_timestamp", StringComparison.OrdinalIgnoreCase)) return false;
-        if (v.Equals("null", StringComparison.OrdinalIgnoreCase)) return false;
-        return true;
-    }
-
-    private static string[]? TryParseEnumValues(string columnType)
-    {
-        // columnType: enum('A','B') ou set('X','Y')
-        var m = Regex.Match(columnType, @"^(enum|set)\((.*)\)$", RegexOptions.IgnoreCase);
-        if (!m.Success) return null;
-        var inner = m.Groups[2].Value;
-        // split por vírgula, respeitando aspas simples
-#pragma warning disable CA1307 // Specify StringComparison for clarity
-        var parts = Regex.Matches(inner, @"'((?:\\'|[^'])*)'")
-            .Select(mt => mt.Groups[1].Value.Replace("\\'", "'"))
-            .ToArray();
-#pragma warning restore CA1307 // Specify StringComparison for clarity
-        return parts;
-    }
-
-    [GeneratedRegex(@"if\s*\(\s*\(\s*`(?<col>\w+)`\s+is\s+null\s*\)\s*,\s*(?<val>[^,]+)\s*,\s*null\s*\)", RegexOptions.IgnoreCase, "pt-BR")]
-    private static partial Regex MyRegex();
 #pragma warning restore CA1303 // Do not pass literals as localized parameters
 }
