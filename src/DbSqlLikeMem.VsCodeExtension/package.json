@@ -1,0 +1,128 @@
+{
+  "name": "dbsqllikemem-vscode-extension",
+  "displayName": "DbSqlLikeMem Tools",
+  "description": "Extensão VS Code para navegar objetos de banco e gerar classes POCO para DbSqlLikeMem.",
+  "version": "0.1.0",
+  "publisher": "dbsqllikemem",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:dbSqlLikeMem.connections",
+    "onCommand:dbSqlLikeMem.addConnection",
+    "onCommand:dbSqlLikeMem.configureMappings",
+    "onCommand:dbSqlLikeMem.generateClasses",
+    "onCommand:dbSqlLikeMem.checkConsistency"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "dbSqlLikeMem",
+          "title": "DbSqlLikeMem",
+          "icon": "resources/database.svg"
+        }
+      ]
+    },
+    "views": {
+      "dbSqlLikeMem": [
+        {
+          "id": "dbSqlLikeMem.connections",
+          "name": "Connections"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "dbSqlLikeMem.addConnection",
+        "title": "DbSqlLikeMem: Add Connection"
+      },
+      {
+        "command": "dbSqlLikeMem.configureMappings",
+        "title": "DbSqlLikeMem: Configure Mappings"
+      },
+      {
+        "command": "dbSqlLikeMem.generateClasses",
+        "title": "DbSqlLikeMem: Generate Classes"
+      },
+      {
+        "command": "dbSqlLikeMem.checkConsistency",
+        "title": "DbSqlLikeMem: Check Consistency"
+      },
+      {
+        "command": "dbSqlLikeMem.refresh",
+        "title": "DbSqlLikeMem: Refresh"
+      },
+      {
+        "command": "dbSqlLikeMem.exportState",
+        "title": "DbSqlLikeMem: Export State"
+      },
+      {
+        "command": "dbSqlLikeMem.importState",
+        "title": "DbSqlLikeMem: Import State"
+      },
+      {
+        "command": "dbSqlLikeMem.setFilter",
+        "title": "DbSqlLikeMem: Set Filter"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "dbSqlLikeMem.addConnection",
+          "when": "view == dbSqlLikeMem.connections",
+          "group": "navigation"
+        },
+        {
+          "command": "dbSqlLikeMem.refresh",
+          "when": "view == dbSqlLikeMem.connections",
+          "group": "navigation"
+        },
+        {
+          "command": "dbSqlLikeMem.setFilter",
+          "when": "view == dbSqlLikeMem.connections",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "dbSqlLikeMem.generateClasses",
+          "when": "view == dbSqlLikeMem.connections",
+          "group": "inline"
+        },
+        {
+          "command": "dbSqlLikeMem.checkConsistency",
+          "when": "view == dbSqlLikeMem.connections",
+          "group": "inline"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "dbSqlLikeMem.exportState"
+        },
+        {
+          "command": "dbSqlLikeMem.importState"
+        },
+        {
+          "command": "dbSqlLikeMem.configureMappings"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.2",
+    "@types/vscode": "^1.90.0",
+    "eslint": "^9.4.0",
+    "typescript": "^5.4.5"
+  }
+}
