@@ -87,6 +87,9 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
+    public override bool SupportsWithRecursive => false;
+    public override bool SupportsWithMaterializedHint => false;
+    public override bool SupportsOnConflictClause => false;
     public override bool SupportsMerge => Version >= MergeMinVersion;
     
     /// <summary>

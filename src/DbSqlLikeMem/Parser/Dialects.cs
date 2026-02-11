@@ -59,11 +59,13 @@ internal interface ISqlDialect
     bool SupportsFetchFirst { get; }
     bool SupportsTop { get; }
     bool SupportsOnDuplicateKeyUpdate { get; }
+    bool SupportsOnConflictClause { get; }
     bool SupportsReturning { get; }
     bool SupportsMerge { get; }
 
     // Pagination
     bool SupportsOffsetFetch { get; }
+    bool RequiresOrderByForOffsetFetch { get; }
 
     // DML variations
     bool SupportsDeleteWithoutFrom { get; }
@@ -72,6 +74,8 @@ internal interface ISqlDialect
 
     // CTE (WITH ...)
     bool SupportsWithCte { get; }
+    bool SupportsWithRecursive { get; }
+    bool SupportsWithMaterializedHint { get; }
     // Features
     bool SupportsNullSafeEq { get; }
     bool SupportsJsonArrowOperators { get; }
@@ -249,6 +253,10 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
+    public virtual bool SupportsOnConflictClause => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool SupportsReturning => false;
     /// <summary>
     /// Auto-generated summary.
@@ -261,6 +269,10 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
+    public virtual bool RequiresOrderByForOffsetFetch => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
     public virtual bool SupportsDeleteWithoutFrom => false;
     /// <summary>
     /// Auto-generated summary.
@@ -270,6 +282,14 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// Auto-generated summary.
     /// </summary>
     public virtual bool SupportsWithCte => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public virtual bool SupportsWithRecursive => true;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public virtual bool SupportsWithMaterializedHint => false;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>

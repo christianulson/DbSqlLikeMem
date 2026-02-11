@@ -84,6 +84,9 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
+    public override bool SupportsWithRecursive => Version >= WithCteMinVersion;
+    public override bool SupportsWithMaterializedHint => false;
+    public override bool SupportsOnConflictClause => false;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
