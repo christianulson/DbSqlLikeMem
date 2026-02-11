@@ -73,7 +73,7 @@ ORDER BY SchemaName, ObjectType, ObjectName;
 SELECT COLUMN_NAME AS ColumnName, DATA_TYPE AS DataType, ORDINAL_POSITION AS Ordinal,
        IS_NULLABLE AS IsNullable, EXTRA AS Extra,
        COLUMN_DEFAULT AS DefaultValue, CHARACTER_MAXIMUM_LENGTH AS CharMaxLen,
-       NUMERIC_SCALE AS NumScale, COLUMN_TYPE AS ColumnType,
+       NUMERIC_PRECISION AS NumPrecision, NUMERIC_SCALE AS NumScale, COLUMN_TYPE AS ColumnType,
        GENERATION_EXPRESSION AS Generated
 FROM INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_SCHEMA = @schemaName AND TABLE_NAME = @objectName
@@ -83,7 +83,7 @@ ORDER BY ORDINAL_POSITION;
 SELECT c.name AS ColumnName, t.name AS DataType, c.column_id AS Ordinal,
        c.is_nullable AS IsNullable, c.is_identity AS IsIdentity,
        OBJECT_DEFINITION(c.default_object_id) AS DefaultValue,
-       c.max_length AS CharMaxLen, c.scale AS NumScale,
+       c.max_length AS CharMaxLen, c.precision AS NumPrecision, c.scale AS NumScale,
        '' AS ColumnType, '' AS Generated
 FROM sys.columns c
 JOIN sys.types t ON t.user_type_id = c.user_type_id
@@ -98,6 +98,7 @@ SELECT column_name AS ColumnName, data_type AS DataType, ordinal_position AS Ord
        CASE WHEN column_default LIKE 'nextval(%' THEN 'identity' ELSE '' END AS Extra,
        column_default AS DefaultValue,
        character_maximum_length AS CharMaxLen,
+       numeric_precision AS NumPrecision,
        numeric_scale AS NumScale,
        udt_name AS ColumnType,
        '' AS Generated
@@ -111,6 +112,7 @@ SELECT COLUMN_NAME AS ColumnName, DATA_TYPE AS DataType, COLUMN_ID AS Ordinal,
        '' AS Extra,
        DATA_DEFAULT AS DefaultValue,
        CHAR_LENGTH AS CharMaxLen,
+       DATA_PRECISION AS NumPrecision,
        DATA_SCALE AS NumScale,
        DATA_TYPE AS ColumnType,
        '' AS Generated
@@ -124,6 +126,7 @@ SELECT name AS ColumnName, type AS DataType, cid AS Ordinal,
        CASE WHEN pk = 1 THEN 'pk' ELSE '' END AS Extra,
        dflt_value AS DefaultValue,
        NULL AS CharMaxLen,
+       NULL AS NumPrecision,
        NULL AS NumScale,
        type AS ColumnType,
        '' AS Generated
@@ -136,6 +139,7 @@ SELECT RTRIM(COLNAME) AS ColumnName, RTRIM(TYPENAME) AS DataType, COLNO AS Ordin
        CASE IDENTITY WHEN 'Y' THEN 'identity' ELSE '' END AS Extra,
        DEFAULT AS DefaultValue,
        LENGTH AS CharMaxLen,
+       SCALE AS NumPrecision,
        SCALE AS NumScale,
        RTRIM(TYPENAME) AS ColumnType,
        '' AS Generated
