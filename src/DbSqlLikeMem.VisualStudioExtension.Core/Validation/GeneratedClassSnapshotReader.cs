@@ -1,0 +1,61 @@
+using DbSqlLikeMem.VisualStudioExtension.Core.Models;
+
+namespace DbSqlLikeMem.VisualStudioExtension.Core.Validation;
+
+public static class GeneratedClassSnapshotReader
+{
+    public static async Task<LocalObjectSnapshot> ReadAsync(
+        string filePath,
+        DatabaseObjectReference fallbackReference,
+        CancellationToken cancellationToken = default)
+    {
+        var lines = await File.ReadAllLinesAsync(filePath, cancellationToken);
+        var metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var line in lines)
+        {
+            const string prefix = "// DBSqlLikeMem:";
+            if (!line.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var kv = line[prefix.Length..].Split('=', 2, StringSplitOptions.TrimEntries);
+            if (kv.Length == 2)
+            {
+                metadata[kv[0]] = kv[1];
+            }
+        }
+
+        var reference = new DatabaseObjectReference(
+            metadata.TryGetValue("Schema", out var schema) ? schema : fallbackReference.Schema,
+            metadata.TryGetValue("Object", out var name) ? name : fallbackReference.Name,
+            metadata.TryGetValue("Type", out var typeRaw) && Enum.TryParse<DatabaseObjectType>(typeRaw, true, out var parsedType)
+                ? parsedType
+                : fallbackReference.Type,
+            BuildProperties(metadata, fallbackReference.Properties));
+
+        return new LocalObjectSnapshot(reference, filePath, reference.Properties);
+    }
+
+    private static IReadOnlyDictionary<string, string>? BuildProperties(
+        IReadOnlyDictionary<string, string> metadata,
+        IReadOnlyDictionary<string, string>? fallback)
+    {
+        var props = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var key in new[] { "Columns", "PrimaryKey", "Indexes", "ForeignKeys" })
+        {
+            if (metadata.TryGetValue(key, out var value))
+            {
+                props[key] = value;
+            }
+        }
+
+        if (props.Count > 0)
+        {
+            return props;
+        }
+
+        return fallback;
+    }
+}
