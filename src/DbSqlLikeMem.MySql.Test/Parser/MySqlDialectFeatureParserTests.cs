@@ -1,7 +1,16 @@
 namespace DbSqlLikeMem.MySql.Test.Parser;
 
+/// <summary>
+/// EN: Covers MySQL-specific parser feature behavior.
+/// PT: Cobre o comportamento de recursos de parser específicos do MySQL.
+/// </summary>
 public sealed class MySqlDialectFeatureParserTests
 {
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT syntax is rejected for MySQL.
+    /// PT: Garante que a sintaxe ON CONFLICT do PostgreSQL seja rejeitada no MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [MemberDataMySqlVersion]
     public void ParseInsert_OnConflict_ShouldRespectDialectRule(int version)
@@ -11,6 +20,11 @@ public sealed class MySqlDialectFeatureParserTests
         Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
     }
 
+    /// <summary>
+    /// EN: Ensures WITH RECURSIVE support follows the configured MySQL version.
+    /// PT: Garante que o suporte a WITH RECURSIVE siga a versão configurada do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [MemberDataMySqlVersion]
     public void ParseSelect_WithRecursive_ShouldRespectVersion(int version)
@@ -26,6 +40,12 @@ public sealed class MySqlDialectFeatureParserTests
         var parsed = SqlQueryParser.Parse(sql, new MySqlDialect(version));
         Assert.IsType<SqlSelectQuery>(parsed);
     }
+
+    /// <summary>
+    /// EN: Ensures MySQL index/keyword hints are parsed.
+    /// PT: Garante que hints de índice/palavras-chave do MySQL sejam interpretados.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [MemberDataMySqlVersion]
     public void ParseSelect_WithIndexHints_ShouldParse(int version)
@@ -37,6 +57,11 @@ public sealed class MySqlDialectFeatureParserTests
     }
 
 
+    /// <summary>
+    /// EN: Ensures unsupported SQL uses the standard not-supported message.
+    /// PT: Garante que SQL não suportado use a mensagem padrão de não suportado.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [MemberDataMySqlVersion]
     public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
