@@ -42,11 +42,11 @@ public sealed class Db2AdvancedSqlGapTests : XUnitTestBase
     /// EN: Tests Window_RowNumber_PartitionBy_ShouldWork behavior.
     /// PT: Testa o comportamento de Window_RowNumber_PartitionBy_ShouldWork.
     /// </summary>
-    [Fact]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Fact]
     public void Window_RowNumber_PartitionBy_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -62,11 +62,11 @@ ORDER BY tenantid, id").ToList();
     /// EN: Tests CorrelatedSubquery_InSelectList_ShouldWork behavior.
     /// PT: Testa o comportamento de CorrelatedSubquery_InSelectList_ShouldWork.
     /// </summary>
-    [Fact]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Fact]
     public void CorrelatedSubquery_InSelectList_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -82,11 +82,11 @@ ORDER BY u.id").ToList();
     /// EN: Tests DateAdd_IntervalDay_ShouldWork behavior.
     /// PT: Testa o comportamento de DateAdd_IntervalDay_ShouldWork.
     /// </summary>
-    [Fact]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Fact]
     public void DateAdd_IntervalDay_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -103,11 +103,11 @@ ORDER BY id").ToList();
 
 
 
-    [Fact]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Fact]
     public void TimestampAdd_Day_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -126,11 +126,11 @@ ORDER BY id").ToList();
     /// EN: Tests Cast_StringToInt_ShouldWork behavior.
     /// PT: Testa o comportamento de Cast_StringToInt_ShouldWork.
     /// </summary>
-    [Fact]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Fact]
     public void Cast_StringToInt_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT CAST('42' AS SIGNED) AS v").ToList();
@@ -142,11 +142,11 @@ ORDER BY id").ToList();
     /// EN: Tests Regexp_Operator_ShouldWork behavior.
     /// PT: Testa o comportamento de Regexp_Operator_ShouldWork.
     /// </summary>
-    [Fact]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Fact]
     public void Regexp_Operator_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name REGEXP '^J' ORDER BY id").ToList();
@@ -157,11 +157,11 @@ ORDER BY id").ToList();
     /// EN: Tests OrderBy_Field_Function_ShouldWork behavior.
     /// PT: Testa o comportamento de OrderBy_Field_Function_ShouldWork.
     /// </summary>
-    [Fact]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Fact]
     public void OrderBy_Field_Function_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users ORDER BY FIELD(id, 3, 1, 2)").ToList();
@@ -172,11 +172,11 @@ ORDER BY id").ToList();
     /// EN: Tests Collation_CaseSensitivity_ShouldFollowColumnCollation behavior.
     /// PT: Testa o comportamento de Collation_CaseSensitivity_ShouldFollowColumnCollation.
     /// </summary>
-    [Fact]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Fact]
     public void Collation_CaseSensitivity_ShouldFollowColumnCollation()
     {
         // Example expectation in DB2: behavior depends on column collation.

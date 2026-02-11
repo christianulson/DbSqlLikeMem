@@ -17,18 +17,43 @@ public static class SqlMetadataQueryFactory
             ["db2"] = new Db2MetadataQueryStrategy(),
         };
 
+    /// <summary>
+    /// Builds the metadata query that lists schema objects for the specified database type.
+    /// </summary>
+    /// <param name="databaseType">The target database type.</param>
+    /// <returns>The SQL query text.</returns>
     public static string BuildListObjectsQuery(string databaseType)
         => ResolveStrategy(databaseType).BuildListObjectsQuery();
 
+    /// <summary>
+    /// Builds the metadata query that lists columns for a specific object for the specified database type.
+    /// </summary>
+    /// <param name="databaseType">The target database type.</param>
+    /// <returns>The SQL query text.</returns>
     public static string BuildObjectColumnsQuery(string databaseType)
         => ResolveStrategy(databaseType).BuildObjectColumnsQuery();
 
+    /// <summary>
+    /// Builds the metadata query that returns primary-key columns for the specified database type.
+    /// </summary>
+    /// <param name="databaseType">The target database type.</param>
+    /// <returns>The SQL query text.</returns>
     public static string BuildPrimaryKeyQuery(string databaseType)
         => ResolveStrategy(databaseType).BuildPrimaryKeyQuery();
 
+    /// <summary>
+    /// Builds the metadata query that lists indexes for the specified database type.
+    /// </summary>
+    /// <param name="databaseType">The target database type.</param>
+    /// <returns>The SQL query text.</returns>
     public static string BuildIndexesQuery(string databaseType)
         => ResolveStrategy(databaseType).BuildIndexesQuery();
 
+    /// <summary>
+    /// Builds the metadata query that lists foreign keys for the specified database type.
+    /// </summary>
+    /// <param name="databaseType">The target database type.</param>
+    /// <returns>The SQL query text.</returns>
     public static string BuildForeignKeysQuery(string databaseType)
         => ResolveStrategy(databaseType).BuildForeignKeysQuery();
 

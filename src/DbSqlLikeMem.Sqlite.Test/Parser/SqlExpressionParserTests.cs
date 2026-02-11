@@ -14,12 +14,12 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests ParseWhere_ShouldNotThrow_ForSupportedRealWorldExpressions behavior.
     /// PT: Testa o comportamento de ParseWhere_ShouldNotThrow_ForSupportedRealWorldExpressions.
     /// </summary>
-    [Theory]
-    [MemberDataBySqliteVersion(nameof(WhereExpressions_Supported))]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Theory]
+    [MemberDataBySqliteVersion(nameof(WhereExpressions_Supported))]
     public void ParseWhere_ShouldNotThrow_ForSupportedRealWorldExpressions(string whereExpr, int version)
     {
         Console.WriteLine("Where: @\"" + whereExpr + "\"");
@@ -93,12 +93,12 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests ParseWhere_ShouldThrow_ForUnsupportedExpressions behavior.
     /// PT: Testa o comportamento de ParseWhere_ShouldThrow_ForUnsupportedExpressions.
     /// </summary>
-    [Theory]
-    [MemberDataBySqliteVersion(nameof(WhereExpressions_Unsupported))]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Theory]
+    [MemberDataBySqliteVersion(nameof(WhereExpressions_Unsupported))]
     public void ParseWhere_ShouldThrow_ForUnsupportedExpressions(string whereExpr, int version)
     {
         Console.WriteLine("Where: @\"" + whereExpr + "\"");
@@ -130,12 +130,12 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests Precedence_OR_ShouldBindLooserThan_AND behavior.
     /// PT: Testa o comportamento de Precedence_OR_ShouldBindLooserThan_AND.
     /// </summary>
-    [Theory]
-    [MemberDataSqliteVersion]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Theory]
+    [MemberDataSqliteVersion]
     public void Precedence_OR_ShouldBindLooserThan_AND(int version)
     {
         // id = 1 OR id = 2 AND name = 'Bob'
@@ -162,12 +162,12 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests Parentheses_ShouldOverridePrecedence behavior.
     /// PT: Testa o comportamento de Parentheses_ShouldOverridePrecedence.
     /// </summary>
-    [Theory]
-    [MemberDataSqliteVersion]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Theory]
+    [MemberDataSqliteVersion]
     public void Parentheses_ShouldOverridePrecedence(int version)
     {
         // (id = 1 OR id = 2) AND email IS NULL
@@ -187,12 +187,12 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests Not_ShouldWork behavior.
     /// PT: Testa o comportamento de Not_ShouldWork.
     /// </summary>
-    [Theory]
-    [MemberDataSqliteVersion]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Theory]
+    [MemberDataSqliteVersion]
     public void Not_ShouldWork(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("NOT (id = 1 OR id = 2)", new SqliteDialect(version));
@@ -208,12 +208,12 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests IsNotNull_ShouldProduce_IsNullExpr_Negated behavior.
     /// PT: Testa o comportamento de IsNotNull_ShouldProduce_IsNullExpr_Negated.
     /// </summary>
-    [Theory]
-    [MemberDataSqliteVersion]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Theory]
+    [MemberDataSqliteVersion]
     public void IsNotNull_ShouldProduce_IsNullExpr_Negated(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("email IS NOT NULL", new SqliteDialect(version));
@@ -225,12 +225,12 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests In_ShouldParse_List behavior.
     /// PT: Testa o comportamento de In_ShouldParse_List.
     /// </summary>
-    [Theory]
-    [MemberDataSqliteVersion]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Theory]
+    [MemberDataSqliteVersion]
     public void In_ShouldParse_List(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("u.id IN (1,2,3)", new SqliteDialect(version));
@@ -242,12 +242,12 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests Like_ShouldParse behavior.
     /// PT: Testa o comportamento de Like_ShouldParse.
     /// </summary>
-    [Theory]
-    [MemberDataSqliteVersion]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Theory]
+    [MemberDataSqliteVersion]
     public void Like_ShouldParse(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("name LIKE '%oh%'", new SqliteDialect(version));
@@ -259,12 +259,12 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests Identifier_WithAliasDotColumn_ShouldParse behavior.
     /// PT: Testa o comportamento de Identifier_WithAliasDotColumn_ShouldParse.
     /// </summary>
-    [Theory]
-    [MemberDataSqliteVersion]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Theory]
+    [MemberDataSqliteVersion]
     public void Identifier_WithAliasDotColumn_ShouldParse(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("u.id = o.userId", new SqliteDialect(version));
@@ -285,12 +285,12 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests Parameter_Tokens_ShouldParse behavior.
     /// PT: Testa o comportamento de Parameter_Tokens_ShouldParse.
     /// </summary>
-    [Theory]
-    [MemberDataSqliteVersion]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Theory]
+    [MemberDataSqliteVersion]
     public void Parameter_Tokens_ShouldParse(int version)
     {
         var d = new SqliteDialect(version);
@@ -303,12 +303,12 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests Backtick_Identifier_ShouldParse behavior.
     /// PT: Testa o comportamento de Backtick_Identifier_ShouldParse.
     /// </summary>
-    [Theory]
-    [MemberDataSqliteVersion]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Theory]
+    [MemberDataSqliteVersion]
     public void Backtick_Identifier_ShouldParse(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("`DeletedDtt` IS NULL", new SqliteDialect(version));
@@ -321,12 +321,12 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests DoubleQuoted_String_ShouldParse behavior.
     /// PT: Testa o comportamento de DoubleQuoted_String_ShouldParse.
     /// </summary>
-    [Theory]
-    [MemberDataSqliteVersion]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Theory]
+    [MemberDataSqliteVersion]
     public void DoubleQuoted_String_ShouldParse(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("name = \"John\"", new SqliteDialect(version));
@@ -335,12 +335,12 @@ public sealed class SqlExpressionParserTests(
         Assert.Equal("John", lit.Value);
     }
 
-    [Theory]
-    [MemberDataSqliteVersion]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Theory]
+    [MemberDataSqliteVersion]
     public void NullSafe_Operator_ShouldThrow(int version)
     {
         Assert.ThrowsAny<InvalidOperationException>(() =>
@@ -351,12 +351,12 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests Printer_ShouldBeStable_ForSimpleExpression behavior.
     /// PT: Testa o comportamento de Printer_ShouldBeStable_ForSimpleExpression.
     /// </summary>
-    [Theory]
-    [MemberDataSqliteVersion]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Theory]
+    [MemberDataSqliteVersion]
     public void Printer_ShouldBeStable_ForSimpleExpression(int version)
     {
         var ast = SqlExpressionParser.ParseWhere("a = 1 AND b = 2", new SqliteDialect(version));

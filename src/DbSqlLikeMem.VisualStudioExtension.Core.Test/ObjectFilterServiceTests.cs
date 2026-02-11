@@ -6,11 +6,11 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 /// </summary>
 public class ObjectFilterServiceTests
 {
-    [Fact]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Fact]
     public void Filter_Equals_ReturnsExactMatches()
     {
         var service = new ObjectFilterService();
@@ -26,11 +26,11 @@ public class ObjectFilterServiceTests
         Assert.Equal("User", result.Single().Name);
     }
 
-    [Fact]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Fact]
     public void Filter_Like_ReturnsContainsMatches()
     {
         var service = new ObjectFilterService();

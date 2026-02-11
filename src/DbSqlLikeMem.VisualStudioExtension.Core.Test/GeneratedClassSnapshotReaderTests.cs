@@ -6,11 +6,11 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 /// </summary>
 public sealed class GeneratedClassSnapshotReaderTests
 {
-    [Fact]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Fact]
     public async Task ReadAsync_ParsesMetadataAndCheckerDetectsDifference()
     {
         var file = Path.Combine(Path.GetTempPath(), $"dbsql-snapshot-{Guid.NewGuid():N}.cs");
