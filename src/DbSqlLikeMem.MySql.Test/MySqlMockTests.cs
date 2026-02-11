@@ -177,6 +177,22 @@ public sealed class MySqlMockTests
         Assert.Empty(users);
     }
 
+
+    [Fact]
+    public void TestSelect_WithMySqlIndexHint_ShouldExecute()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (10, 'Hint User', 'hint@example.com')"
+        };
+        command.ExecuteNonQuery();
+
+        command.CommandText = "SELECT Name FROM Users USE INDEX (idx_users_name) WHERE Id = 10";
+        var name = command.ExecuteScalar();
+
+        Assert.Equal("Hint User", name);
+    }
+
     /// <summary>
     /// EN: Disposes test resources.
     /// PT: Descarta os recursos do teste.

@@ -60,4 +60,13 @@ RETURNING id";
         Assert.True(ins.HasOnDuplicateKeyUpdate);
         Assert.Single(ins.OnDupAssigns);
     }
+    [Theory]
+    [MemberDataNpgsqlVersion]
+    public void ParseSelect_WithSqlServerTableHints_ShouldBeRejected(int version)
+    {
+        var sql = "SELECT id FROM users WITH (NOLOCK)";
+
+        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+    }
+
 }

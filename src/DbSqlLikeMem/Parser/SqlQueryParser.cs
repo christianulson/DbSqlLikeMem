@@ -1168,8 +1168,88 @@ internal sealed class SqlQueryParser
             db = table;
             table = ExpectIdentifier();
         }
+        ConsumeTableHintsIfPresent();
         var alias2 = ReadOptionalAlias();
+        ConsumeTableHintsIfPresent();
         return new SqlTableSource(db, table, alias2, null, null, null);
+    }
+
+    private void ConsumeTableHintsIfPresent()
+    {
+        while (true)
+        {
+            if (IsWord(Peek(), "WITH") && IsSymbol(Peek(1), "("))
+            {
+                if (!_dialect.SupportsSqlServerTableHints)
+                    throw new NotSupportedException($"WITH(table hints) não suportado no dialeto '{_dialect.Name}'.");
+
+                Consume(); // WITH
+                _ = ReadBalancedParenRawTokens();
+                continue;
+            }
+
+            if (IsSymbol(Peek(), "("))
+            {
+                if (!_dialect.SupportsSqlServerTableHints)
+                    break;
+
+                _ = ReadBalancedParenRawTokens();
+                continue;
+            }
+
+            if (IsWord(Peek(), "USE") || IsWord(Peek(), "IGNORE") || IsWord(Peek(), "FORCE"))
+            {
+                if (!_dialect.SupportsMySqlIndexHints)
+                    throw new NotSupportedException($"INDEX hints não suportado no dialeto '{_dialect.Name}'.");
+
+                ConsumeMySqlIndexHint();
+                continue;
+            }
+
+            break;
+        }
+    }
+
+    private void ConsumeMySqlIndexHint()
+    {
+        Consume(); // USE | IGNORE | FORCE
+
+        if (IsWord(Peek(), "INDEX") || IsWord(Peek(), "KEY"))
+        {
+            Consume();
+        }
+        else
+        {
+            throw new InvalidOperationException("MySQL index hint inválido: esperado INDEX/KEY.");
+        }
+
+        if (IsWord(Peek(), "FOR"))
+        {
+            Consume();
+            if (IsWord(Peek(), "JOIN"))
+            {
+                Consume();
+            }
+            else if (IsWord(Peek(), "ORDER"))
+            {
+                Consume();
+                ExpectWord("BY");
+            }
+            else if (IsWord(Peek(), "GROUP"))
+            {
+                Consume();
+                ExpectWord("BY");
+            }
+            else
+            {
+                throw new InvalidOperationException("MySQL index hint inválido: esperado JOIN, ORDER BY ou GROUP BY após FOR.");
+            }
+        }
+
+        if (!IsSymbol(Peek(), "("))
+            throw new InvalidOperationException("MySQL index hint inválido: esperado lista de índices entre parênteses.");
+
+        _ = ReadBalancedParenRawTokens();
     }
 
     private SqlJoin ParseJoin()
