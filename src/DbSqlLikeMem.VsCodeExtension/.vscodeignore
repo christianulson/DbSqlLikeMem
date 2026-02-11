@@ -4,3 +4,5 @@ src/**
 .gitignore
 tsconfig.json
 **/*.map
+resources/icon.png.base64
+scripts/**
