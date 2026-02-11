@@ -190,7 +190,7 @@ SELECT COLUMN_NAME
                     CharMaxLen: rd["CHARACTER_MAXIMUM_LENGTH"] is DBNull ? null : Convert.ToInt64(rd["CHARACTER_MAXIMUM_LENGTH"], CultureInfo.InvariantCulture),
                     NumPrecision: rd["NUMERIC_PRECISION"] is DBNull ? null : Convert.ToInt32(rd["NUMERIC_PRECISION"], CultureInfo.InvariantCulture),
                     NumScale: rd["NUMERIC_SCALE"] is DBNull ? null : Convert.ToInt32(rd["NUMERIC_SCALE"], CultureInfo.InvariantCulture),
-                    Generated: rd["GENERATION_EXPRESSION"] is DbString ? null : rd.GetString("GENERATION_EXPRESSION")
+                    Generated: rd["GENERATION_EXPRESSION"] is DBNull ? null : rd.GetString("GENERATION_EXPRESSION")
                 );
                 cols.Add(col);
             }
@@ -317,6 +317,12 @@ SELECT KCU.COLUMN_NAME
                     isBool: string.Equals(dbType, "Boolean", StringComparison.OrdinalIgnoreCase));
                 w.WriteLine($"        table.Columns[\"{c.ColumnName}\"].DefaultValue = {literal};");
             }
+
+            if (c.CharMaxLen is > 0 and <= int.MaxValue)
+                w.WriteLine($"        table.Columns[\"{c.ColumnName}\"].Size = {(int)c.CharMaxLen};");
+
+            if (c.NumScale is >= 0)
+                w.WriteLine($"        table.Columns[\"{c.ColumnName}\"].DecimalPlaces = {c.NumScale.Value};");
 
             // EnumValues, se enum(...)
             var enums = TryParseEnumValues(c.ColumnType);
