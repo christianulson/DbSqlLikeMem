@@ -31,6 +31,8 @@ Prioridade calculada por cobertura de providers + risco de regressão - esforço
 | P1 | OrderBy ShouldSupportAlias And Ordinal | DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite | M | Médio | Planejador de execução em memória |
 | P2 | Select Expressions Arithmetic | DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite | P | Baixo | Planejador de execução em memória |
 | P2 | Window RowNumber PartitionBy | DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite | G | Alto | Planejador de execução em memória; Engine de funções de janela |
+| P2 | Date Function WithModifier | SQLite | P | Baixo | Planejador de execução em memória |
+| P2 | TimestampAdd Day | DB2 | P | Baixo | Planejador de execução em memória |
 
 ## Épico: Funções SQL
 
@@ -74,6 +76,8 @@ Prioridade calculada por cobertura de providers + risco de regressão - esforço
 - [ ] **OrderBy ShouldSupportAlias And Ordinal**  `providers: DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite` · `esforço: M` · `risco: Médio`  Dependências: Planejador de execução em memória
 - [ ] **Select Expressions Arithmetic**  `providers: DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite` · `esforço: P` · `risco: Baixo`  Dependências: Planejador de execução em memória
 - [ ] **Window RowNumber PartitionBy**  `providers: DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite` · `esforço: G` · `risco: Alto`  Dependências: Planejador de execução em memória; Engine de funções de janela
+- [ ] **Date Function WithModifier**  `providers: SQLite` · `esforço: P` · `risco: Baixo`  Dependências: Planejador de execução em memória
+- [ ] **TimestampAdd Day**  `providers: DB2` · `esforço: P` · `risco: Baixo`  Dependências: Planejador de execução em memória
 
 ### Funções SQL
 - [ ] **DateAdd IntervalDay**  `providers: DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite` · `esforço: M` · `risco: Médio`  Dependências: Registro/catálogo de funções por provider
