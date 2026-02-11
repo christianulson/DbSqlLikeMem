@@ -6,11 +6,11 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 /// </summary>
 public sealed class SqlDatabaseMetadataProviderTests
 {
-    [Fact]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Fact]
     public async Task GetObjectAsync_ReturnsCompleteStructureMetadata()
     {
         var executor = new FakeSqlQueryExecutor();
@@ -46,6 +46,10 @@ public sealed class SqlDatabaseMetadataProviderTests
         Assert.Equal("CustomerId|Customers|Id", result.Properties["ForeignKeys"]);
     }
 
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Theory]
     [InlineData("MySql")]
     [InlineData("SqlServer")]
@@ -53,10 +57,6 @@ public sealed class SqlDatabaseMetadataProviderTests
     [InlineData("Oracle")]
     [InlineData("Sqlite")]
     [InlineData("Db2")]
-    /// <summary>
-    /// Executes this API operation.
-    /// Executa esta operação da API.
-    /// </summary>
     public void QueryFactory_SupportsConfiguredDatabases(string databaseType)
     {
         Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildListObjectsQuery(databaseType)));

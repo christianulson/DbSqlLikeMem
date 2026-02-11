@@ -6,11 +6,11 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 /// </summary>
 public class ObjectConsistencyCheckerTests
 {
-    [Fact]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Fact]
     public async Task CheckAsync_WhenObjectMissing_ReturnsMissingStatus()
     {
         var checker = new ObjectConsistencyChecker();
@@ -25,11 +25,11 @@ public class ObjectConsistencyCheckerTests
         Assert.Equal(ObjectHealthStatus.MissingInDatabase, result.Status);
     }
 
-    [Fact]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Fact]
     public async Task CheckAsync_WhenPropertiesDifferent_ReturnsDifferentStatus()
     {
         var checker = new ObjectConsistencyChecker();

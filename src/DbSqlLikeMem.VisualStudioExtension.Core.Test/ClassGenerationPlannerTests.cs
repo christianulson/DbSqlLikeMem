@@ -6,11 +6,11 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 /// </summary>
 public class ClassGenerationPlannerTests
 {
-    [Fact]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Fact]
     public void BuildPlan_WithoutConfiguration_RequiresConfiguration()
     {
         var planner = new ClassGenerationPlanner();
@@ -25,11 +25,11 @@ public class ClassGenerationPlannerTests
         Assert.Contains(DatabaseObjectType.Table, plan.MissingMappings);
     }
 
-    [Fact]
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
+    [Fact]
     public void BuildPlan_WithPartialMappings_ReturnsMissingTypes()
     {
         var planner = new ClassGenerationPlanner();
