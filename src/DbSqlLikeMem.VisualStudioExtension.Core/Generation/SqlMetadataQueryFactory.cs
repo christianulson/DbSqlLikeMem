@@ -1,5 +1,3 @@
-using DbSqlLikeMem.VisualStudioExtension.Core.Models;
-
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 public static class SqlMetadataQueryFactory
