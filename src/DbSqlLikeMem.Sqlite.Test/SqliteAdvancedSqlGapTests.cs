@@ -89,6 +89,23 @@ ORDER BY id").ToList();
             [.. rows.Select(r => (DateTime)r.d)]);
     }
 
+
+
+    [Fact]
+    public void Date_Function_WithModifier_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id, DATE(created, '+1 day') AS d
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([
+            new DateTime(2020, 1, 2, 0, 0, 0, DateTimeKind.Local),
+            new DateTime(2020, 1, 3, 0, 0, 0, DateTimeKind.Local),
+            new DateTime(2020, 1, 4, 0, 0, 0, DateTimeKind.Local)],
+            [.. rows.Select(r => (DateTime)r.d)]);
+    }
+
     /// <summary>
     /// EN: Tests Cast_StringToInt_ShouldWork behavior.
     /// PT: Testa o comportamento de Cast_StringToInt_ShouldWork.
