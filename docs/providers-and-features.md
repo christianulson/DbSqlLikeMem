@@ -77,4 +77,6 @@ Se a diferença altera **validade sintática** ou **interpretação semântica**
 
 - [Começando rápido](getting-started.md)
 - [Publicação](publishing.md)
+- [Matriz SQL (feature x dialeto)](sql-compatibility-matrix.md)
+- [Checklist de known gaps](known-gaps-checklist.md)
 - [Wiki do GitHub](wiki/README.md)

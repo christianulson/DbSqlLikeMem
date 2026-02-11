@@ -69,4 +69,16 @@ RETURNING id";
         Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
     }
 
+
+    [Theory]
+    [MemberDataNpgsqlVersion]
+    public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT id FROM users WITH (NOLOCK)", new NpgsqlDialect(version)));
+
+        Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("npgsql", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 }
