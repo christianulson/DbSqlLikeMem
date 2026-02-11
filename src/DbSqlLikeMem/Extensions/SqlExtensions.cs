@@ -38,10 +38,8 @@ internal static class SqlExtensions
         return !string.IsNullOrWhiteSpace(s);
     }
 
-    internal static bool Like(this string input, string pattern)
+    internal static bool Like(this string input, string pattern, ISqlDialect? dialect = null)
     {
-        // comportamento padrão esperado pelos seus testes: case-insensitive
-        // (MySQL geralmente depende de collation; aqui vamos pelo "bom senso" do mock)
         input ??= "";
         pattern ??= "";
 
@@ -79,21 +77,21 @@ internal static class SqlExtensions
 
         sb.Append('$');
 
-        return Regex.IsMatch(
-            input,
-            sb.ToString(),
-            RegexOptions.IgnoreCase
-            | RegexOptions.CultureInvariant
-        );
+        var options = RegexOptions.CultureInvariant;
+        if (dialect?.LikeIsCaseInsensitive ?? true)
+            options |= RegexOptions.IgnoreCase;
+
+        return Regex.IsMatch(input, sb.ToString(), options);
     }
 
-    internal static int Compare(this object a, object b)
+    internal static int Compare(this object a, object b, ISqlDialect? dialect = null)
     {
         // numeric compare if possible
-        if (TryDecimal(a, out var da) && TryDecimal(b, out var db))
+        if ((dialect?.SupportsImplicitNumericStringComparison ?? true)
+            && TryDecimal(a, out var da) && TryDecimal(b, out var db))
             return da.CompareTo(db);
 
-        return string.Compare(a.ToString(), b.ToString(), StringComparison.OrdinalIgnoreCase);
+        return string.Compare(a.ToString(), b.ToString(), dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
 
         static bool TryDecimal(object o, out decimal d)
         {
@@ -109,15 +107,16 @@ internal static class SqlExtensions
         }
     }
 
-    internal static bool EqualsSql(this object? a, object? b)
+    internal static bool EqualsSql(this object? a, object? b, ISqlDialect? dialect = null)
     {
         if (a is null || a is DBNull) return b is null || b is DBNull;
         if (b is null || b is DBNull) return false;
 
-        if (TryDecimal(a, out var da) && TryDecimal(b, out var db))
+        if ((dialect?.SupportsImplicitNumericStringComparison ?? true)
+            && TryDecimal(a, out var da) && TryDecimal(b, out var db))
             return da == db;
 
-        return string.Equals(a.ToString(), b.ToString(), StringComparison.OrdinalIgnoreCase);
+        return string.Equals(a.ToString(), b.ToString(), dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
 
         static bool TryDecimal(object o, out decimal d)
         {
