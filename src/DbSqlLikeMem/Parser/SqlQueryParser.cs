@@ -237,18 +237,11 @@ internal sealed class SqlQueryParser
             Consume(); // ON
             ExpectWord("CONFLICT");
 
-            // Target opcional: (col1, col2, ...)
-            if (IsSymbol(Peek(), "("))
-            {
-                Consume(); // (
-                while (!IsSymbol(Peek(), ")"))
-                {
-                    _ = ExpectIdentifier();
-                    if (IsSymbol(Peek(), ",")) Consume();
-                    else break;
-                }
-                ExpectSymbol(")");
-            }
+            // Target opcional (PostgreSQL):
+            // - (col1, col2, ...)
+            // - ON CONSTRAINT constraint_name
+            // - [target] WHERE predicate
+            ParsePostgreSqlOnConflictTarget();
 
             ExpectWord("DO");
 
@@ -261,10 +254,67 @@ internal sealed class SqlQueryParser
             ExpectWord("UPDATE");
             ExpectWord("SET");
             var assigns = ParseAssignmentsList();
+
+            // PostgreSQL permite: DO UPDATE SET ... WHERE <predicate>
+            // O mock atual não usa essa condição no AST, mas precisa aceitar o SQL.
+            if (IsWord(Peek(), "WHERE"))
+            {
+                Consume();
+                _ = ReadClauseTextUntilTopLevelStop("RETURNING");
+            }
+
+            // PostgreSQL permite RETURNING após INSERT ... ON CONFLICT ...
+            // Como o AST de INSERT ainda não materializa RETURNING, apenas consumimos.
+            if (IsWord(Peek(), "RETURNING"))
+            {
+                Consume();
+                _ = ReadClauseTextUntilTopLevelStop();
+            }
+
             return new SqlOnDuplicateKeyUpdate(assigns);
         }
 
         return null;
+    }
+
+    private void ParsePostgreSqlOnConflictTarget()
+    {
+        // ON CONFLICT ON CONSTRAINT constraint_name
+        if (IsWord(Peek(), "ON") && IsWord(Peek(1), "CONSTRAINT"))
+        {
+            Consume(); // ON
+            Consume(); // CONSTRAINT
+            _ = ExpectIdentifier();
+
+            if (IsWord(Peek(), "WHERE"))
+            {
+                Consume();
+                _ = ReadClauseTextUntilTopLevelStop("DO");
+            }
+            return;
+        }
+
+        // ON CONFLICT (index_expr [, ...]) [WHERE predicate]
+        if (IsSymbol(Peek(), "("))
+        {
+            Consume(); // (
+            var depth = 1;
+            while (!IsEnd(Peek()) && depth > 0)
+            {
+                var t = Consume();
+                if (IsSymbol(t, "(")) depth++;
+                else if (IsSymbol(t, ")")) depth--;
+            }
+
+            if (depth != 0)
+                throw new InvalidOperationException("ON CONFLICT target não foi fechado corretamente.");
+
+            if (IsWord(Peek(), "WHERE"))
+            {
+                Consume();
+                _ = ReadClauseTextUntilTopLevelStop("DO");
+            }
+        }
     }
 
     private SqlUpdateQuery ParseUpdate()
