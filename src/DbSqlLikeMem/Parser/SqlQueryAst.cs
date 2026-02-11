@@ -24,6 +24,11 @@ internal sealed record SqlSelectQuery(
     SqlExpr? Having
 ) : SqlQueryBase;
 
+internal sealed record SqlUnionQuery(
+    IReadOnlyList<SqlSelectQuery> Parts,
+    IReadOnlyList<bool> AllFlags
+) : SqlQueryBase;
+
 internal sealed record SqlInsertQuery : SqlQueryBase
 {
     internal IReadOnlyList<string> Columns { get; init; } = [];              // pode ser vazio (INSERT INTO t VALUES...)

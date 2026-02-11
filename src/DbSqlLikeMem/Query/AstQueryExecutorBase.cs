@@ -199,7 +199,7 @@ internal abstract class AstQueryExecutorBase(
             rows = rows.Where(r => Eval(selectQuery.Where, r, group: null, ctes).ToBool());
 
         // 4) GROUP BY / HAVING / SELECT projection
-        bool needsGrouping = selectQuery.GroupBy.Count > 0 || ContainsAggregate(selectQuery);
+        bool needsGrouping = selectQuery.GroupBy.Count > 0 || selectQuery.Having is not null || ContainsAggregate(selectQuery);
 
         if (needsGrouping)
             return ExecuteGroup(selectQuery, ctes, rows);
