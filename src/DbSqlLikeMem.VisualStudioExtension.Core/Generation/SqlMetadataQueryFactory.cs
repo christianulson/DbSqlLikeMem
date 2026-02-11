@@ -1,5 +1,3 @@
-using DbSqlLikeMem.VisualStudioExtension.Core.Models;
-
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 public static class SqlMetadataQueryFactory
@@ -276,7 +274,7 @@ JOIN ALL_CONS_COLUMNS rcc ON rcc.OWNER=rc.OWNER AND rcc.CONSTRAINT_NAME=rc.CONST
 WHERE c.CONSTRAINT_TYPE='R' AND c.OWNER=@schemaName AND c.TABLE_NAME=@objectName
 ORDER BY cc.POSITION;
 """,
-            "sqlite" => "SELECT "" AS ColumnName, "" AS RefTable, "" AS RefColumn WHERE 1=0;",
+            "sqlite" => """SELECT "" AS ColumnName, "" AS RefTable, "" AS RefColumn WHERE 1=0;""",
             "db2" => """
 SELECT RTRIM(k.COLNAME) AS ColumnName, RTRIM(r.REFTABNAME) AS RefTable, RTRIM(rk.COLNAME) AS RefColumn
 FROM SYSCAT.REFERENCES r

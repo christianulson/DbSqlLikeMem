@@ -1,6 +1,5 @@
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 using System.Globalization;
-using System.Text;
 
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 

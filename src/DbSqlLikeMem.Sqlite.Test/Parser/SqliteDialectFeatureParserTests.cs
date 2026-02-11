@@ -46,7 +46,6 @@ public sealed class SqliteDialectFeatureParserTests
         Assert.Contains("sqlite", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-}
     [Theory]
     [MemberDataSqliteVersion]
     public void ParseSelect_UnionOrderBy_ShouldParseAsUnion(int version)

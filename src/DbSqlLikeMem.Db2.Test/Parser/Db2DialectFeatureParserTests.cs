@@ -63,7 +63,6 @@ public sealed class Db2DialectFeatureParserTests
         Assert.Contains("db2", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-}
     [Theory]
     [MemberDataDb2Version]
     public void ParseSelect_UnionOrderBy_ShouldParseAsUnion(int version)
