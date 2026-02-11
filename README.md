@@ -20,6 +20,7 @@ Para facilitar manutenção e leitura, a documentação principal foi separada p
 
 ## Features (resumo)
 
+- Suporte a 6 provedores: MySQL, SQL Server, Oracle, PostgreSQL (Npgsql), SQLite e DB2
 - Mocks específicos por provedor (ADO.NET)
 - Parser + executor SQL para DDL/DML comum
 - API fluente para schema e seed de dados
@@ -34,7 +35,7 @@ Detalhes completos de compatibilidade:
 - Bibliotecas de provider: .NET Framework 4.8, .NET 6.0 e .NET 8.0.
 - Núcleo `DbSqlLikeMem`: .NET Standard 2.0 + .NET Framework 4.8, .NET 6.0 e .NET 8.0.
 
-## Provedores suportados
+## Supported Providers
 
 | Provider | Package/Project |
 | --- | --- |
@@ -44,6 +45,34 @@ Detalhes completos de compatibilidade:
 | PostgreSQL | `DbSqlLikeMem.Npgsql` |
 | SQLite | `DbSqlLikeMem.Sqlite` |
 | DB2 | `DbSqlLikeMem.Db2` |
+
+## Exemplo de factory de provider em runtime
+
+```csharp
+using DbSqlLikeMem.Db2;
+using DbSqlLikeMem.MySql;
+using DbSqlLikeMem.Npgsql;
+using DbSqlLikeMem.Oracle;
+using DbSqlLikeMem.Sqlite;
+using DbSqlLikeMem.SqlServer;
+
+public static class DbSqlLikeMemFactory
+{
+    public static DbConnection Create(string provider)
+    {
+        return provider.ToLowerInvariant() switch
+        {
+            "mysql" => new MySqlConnectionMock(new MySqlDbMock()),
+            "sqlserver" => new SqlServerConnectionMock(new SqlServerDbMock()),
+            "oracle" => new OracleConnectionMock(new OracleDbMock()),
+            "postgres" or "postgresql" or "npgsql" => new NpgsqlConnectionMock(new NpgsqlDbMock()),
+            "sqlite" => new SqliteConnectionMock(new SqliteDbMock()),
+            "db2" => new Db2ConnectionMock(new Db2DbMock()),
+            _ => throw new ArgumentException($"Unsupported provider: {provider}")
+        };
+    }
+}
+```
 
 ## Instalação e exemplos de uso
 

@@ -61,6 +61,22 @@ Para reduzir ambiguidades entre dialetos e manter testes determinísticos, o pro
 
 > Observação: bancos reais podem variar conforme collation configurada em coluna/base/instância. Quando o comportamento real não é 100% reproduzível no mock, esta regra fixa é a referência oficial para testes.
 
+## Fase 3 — recursos analíticos (SQLite/DB2)
+
+Decisões de compatibilidade implementadas para cobrir os cenários de relatório mais comuns:
+
+- `ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)`: habilitado no executor AST para todos os dialetos que passam por `AstQueryExecutorBase`, incluindo SQLite e DB2.
+- Subquery correlacionada em `SELECT` list: avaliada como subconsulta escalar com acesso ao `outer row` (primeira célula da primeira linha; `null` se vazio).
+- `CAST` string->número (casos básicos): suporte para `SIGNED`/`UNSIGNED`/`INT*` e `DECIMAL`/`NUMERIC` com parsing `InvariantCulture` e fallback previsível (`0`/`0m` em `CAST`, `null` em `TRY_CAST`).
+- Operações de data: comportamento unificado para `DATE_ADD`, `DATEADD` e `TIMESTAMPADD`; adicionalmente, `DATE(...)`/`DATETIME(...)` aceitam modificadores SQLite simples como `'+1 day'`.
+
+### Limitações conhecidas (próxima fase)
+
+- Window functions além de `ROW_NUMBER` (ex.: `RANK`, `DENSE_RANK`, `LAG`, frames `ROWS/RANGE`) ainda não foram implementadas.
+- `CAST` numérico ainda não cobre formatações locais complexas, notação científica avançada e tipos de alta precisão específicos por provedor.
+- Data/time cobre unidades comuns (`year/month/day/hour/minute/second`), mas não trata timezone explícito, calendário ISO avançado nem regras específicas de cada engine real.
+- Subquery escalar retorna sempre a primeira célula da primeira linha, sem erro para múltiplas linhas (comportamento simplificado de mock).
+
 ## Regras candidatas para extrair do parser para os Dialects
 
 Para deixar o parser mais fiel por banco/versão, estas regras costumam dar bom ganho quando saem de `if` no parser e passam a ser capacidade do dialeto:
