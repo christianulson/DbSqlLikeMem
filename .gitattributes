@@ -1,0 +1,5 @@
+# Treat image assets as binary to avoid text diff/parsing issues in PR tooling.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary

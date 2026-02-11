@@ -215,6 +215,28 @@ Quando o projeto VSIX estiver maduro, o repositório já fica preparado para pub
 
 O pipeline compila o projeto VSIX, gera artifact com o `.vsix` e, quando habilitado, executa o `VsixPublisher.exe` para publicação.
 
+
+## Publicando a extensão do VS Code (Marketplace)
+
+A extensão em `src/DbSqlLikeMem.VsCodeExtension` também está preparada para empacotamento/publicação no Marketplace do VS Code.
+
+- Workflow: `.github/workflows/vscode-extension-publish.yml`
+- Secret necessário: `VSCE_PAT`
+- Tag para publicação automática: `vscode-v*`
+
+Publicação manual local:
+
+```bash
+cd src/DbSqlLikeMem.VsCodeExtension
+npm install
+npm run compile
+npm run package
+# ou publicação direta
+npm run publish
+```
+
+> Antes de publicar, ajuste no `package.json` os placeholders de URL (`repository`, `bugs`, `homepage`) e confirme o `publisher` final.
+
 ## Contributing
 
 Contributions are welcome! If you want to help improve DbSqlLikeMem, please open an issue to discuss your idea or submit a pull request. Areas where help is especially valuable:

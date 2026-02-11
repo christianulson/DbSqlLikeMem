@@ -4,6 +4,27 @@
   "description": "Extensão VS Code para navegar objetos de banco e gerar classes POCO para DbSqlLikeMem.",
   "version": "0.1.0",
   "publisher": "dbsqllikemem",
+  "license": "SEE LICENSE IN ../../README.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SEU_USUARIO/DbSqlLikeMem.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SEU_USUARIO/DbSqlLikeMem/issues"
+  },
+  "homepage": "https://github.com/SEU_USUARIO/DbSqlLikeMem#readme",
+  "icon": "resources/icon.png",
+  "galleryBanner": {
+    "color": "#1f2937",
+    "theme": "dark"
+  },
+  "keywords": [
+    "dbsqllikemem",
+    "database",
+    "sql",
+    "poco",
+    "code-generation"
+  ],
   "engines": {
     "vscode": "^1.90.0"
   },
@@ -116,10 +137,14 @@
   "scripts": {
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "vscode:prepublish": "npm run compile",
-    "lint": "eslint src --ext ts"
+    "vscode:prepublish": "npm run generate:icon && npm run compile",
+    "lint": "eslint src --ext ts",
+    "package": "npm run generate:icon && npx @vscode/vsce package",
+    "publish": "npm run generate:icon && npx @vscode/vsce publish",
+    "generate:icon": "node ./scripts/generate-icon.js"
   },
   "devDependencies": {
+    "@vscode/vsce": "^3.2.1",
     "@types/node": "^20.14.2",
     "@types/vscode": "^1.90.0",
     "eslint": "^9.4.0",
