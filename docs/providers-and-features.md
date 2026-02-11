@@ -44,6 +44,22 @@
 - Operador null-safe `<=>`: não suportado.
 - Operadores JSON `->` e `->>`: não suportados.
 
+### Regras padronizadas de collation e coerção implícita (mock)
+
+Para reduzir ambiguidades entre dialetos e manter testes determinísticos, o projeto adota uma regra explícita para DB2 e SQLite no executor em memória:
+
+- Comparação textual (`=`, `<>`, `IN`, `CASE`, `ORDER BY` fallback textual):
+  - **DB2**: `StringComparison.OrdinalIgnoreCase`.
+  - **SQLite**: `StringComparison.OrdinalIgnoreCase`.
+- `LIKE`:
+  - **DB2**: case-insensitive por padrão no mock.
+  - **SQLite**: case-insensitive por padrão no mock.
+- Comparação número vs string:
+  - Coerção implícita só ocorre quando **ambos os lados** podem ser convertidos para número (`decimal` com cultura invariável).
+  - Exemplo suportado: `id = '2'`.
+  - Exemplo não convertido (cai para comparação textual): `id = '2x'`.
+
+> Observação: bancos reais podem variar conforme collation configurada em coluna/base/instância. Quando o comportamento real não é 100% reproduzível no mock, esta regra fixa é a referência oficial para testes.
 
 ## Fase 3 — recursos analíticos (SQLite/DB2)
 

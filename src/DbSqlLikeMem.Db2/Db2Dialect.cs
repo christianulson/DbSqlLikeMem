@@ -101,4 +101,22 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsJsonArrowOperators => false;
+
+    /// <summary>
+    /// EN: Mock rule: DB2 text comparisons are case-insensitive by default unless explicit collation is introduced.
+    /// PT: Regra do mock: comparações textuais DB2 são case-insensitive por padrão até existir collation explícita.
+    /// </summary>
+    public override StringComparison TextComparison => StringComparison.OrdinalIgnoreCase;
+
+    /// <summary>
+    /// EN: Mock rule: allow numeric-vs-numeric-string implicit comparisons (e.g. id = '2').
+    /// PT: Regra do mock: permite comparação implícita número-vs-string-numérica (ex.: id = '2').
+    /// </summary>
+    public override bool SupportsImplicitNumericStringComparison => true;
+
+    /// <summary>
+    /// EN: Mock LIKE behavior follows dialect default and is case-insensitive.
+    /// PT: Comportamento de LIKE no mock segue o padrão do dialeto e é case-insensitive.
+    /// </summary>
+    public override bool LikeIsCaseInsensitive => true;
 }

@@ -90,6 +90,11 @@ internal interface ISqlDialect
 
     // Operator mapping
     bool TryMapBinaryOperator(string token, out SqlBinaryOp op);
+
+    // Comparison semantics
+    StringComparison TextComparison { get; }
+    bool SupportsImplicitNumericStringComparison { get; }
+    bool LikeIsCaseInsensitive { get; }
 }
 
 internal abstract class SqlDialectBase : ISqlDialect
@@ -209,6 +214,24 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// Auto-generated summary.
     /// </summary>
     public virtual bool IsStringQuote(char ch) => ch == '\'';
+
+    /// <summary>
+    /// EN: String comparison mode used by textual operators (=, &lt;&gt;, ORDER BY fallback, etc.).
+    /// PT: Modo de comparação textual usado por operadores textuais (=, &lt;&gt;, ORDER BY fallback, etc.).
+    /// </summary>
+    public virtual StringComparison TextComparison => StringComparison.OrdinalIgnoreCase;
+
+    /// <summary>
+    /// EN: Enables controlled implicit cast between numeric and numeric-string values in comparisons.
+    /// PT: Habilita cast implícito controlado entre números e strings numéricas em comparações.
+    /// </summary>
+    public virtual bool SupportsImplicitNumericStringComparison => true;
+
+    /// <summary>
+    /// EN: Controls LIKE case sensitivity in the mock when no explicit collation is available.
+    /// PT: Controla sensibilidade de maiúsculas/minúsculas no LIKE do mock quando não há collation explícita.
+    /// </summary>
+    public virtual bool LikeIsCaseInsensitive => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>

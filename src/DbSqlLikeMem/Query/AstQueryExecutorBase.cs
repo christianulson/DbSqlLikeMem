@@ -15,6 +15,7 @@ internal abstract class AstQueryExecutorBase(
     private readonly DbConnectionMockBase _cnn = cnn ?? throw new ArgumentNullException(nameof(cnn));
     private readonly IDataParameterCollection _pars = pars ?? throw new ArgumentNullException(nameof(pars));
     private readonly object _dialect = dialect ?? throw new ArgumentNullException(nameof(dialect));
+    private ISqlDialect? Dialect => _dialect as ISqlDialect;
 
 
     private static readonly HashSet<string> _aggFns = new(StringComparer.OrdinalIgnoreCase)
@@ -862,7 +863,7 @@ internal abstract class AstQueryExecutorBase(
         }
     }
 
-    private static int CompareSql(object? a, object? b)
+    private int CompareSql(object? a, object? b)
     {
         if (IsNullish(a) && IsNullish(b)) return 0;
         if (IsNullish(a)) return -1;
@@ -886,7 +887,7 @@ internal abstract class AstQueryExecutorBase(
             }
         }
 
-        return string.Compare(a!.ToString(), b!.ToString(), StringComparison.OrdinalIgnoreCase);
+        return string.Compare(a!.ToString(), b!.ToString(), Dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
     }
 
     private SelectPlan BuildSelectPlan(
@@ -1345,7 +1346,7 @@ internal abstract class AstQueryExecutorBase(
             if (a is IComparable ca && a.GetType() == b.GetType())
                 return ca.CompareTo(b);
 
-            return StringComparer.OrdinalIgnoreCase.Compare(a.ToString(), b.ToString());
+            return string.Compare(a.ToString(), b.ToString(), Dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
         }
 
         int CompareRows(Dictionary<int, object?> ra, Dictionary<int, object?> rb)
@@ -1480,7 +1481,7 @@ internal abstract class AstQueryExecutorBase(
                 {
                     var left = Eval(like.Left, row, group, ctes)?.ToString() ?? "";
                     var pat = Eval(like.Pattern, row, group, ctes)?.ToString() ?? "";
-                    return left.Like(pat);
+                    return left.Like(pat, Dialect);
                 }
 
             case UnaryExpr u when u.Op == SqlUnaryOp.Not:
@@ -1602,7 +1603,7 @@ internal abstract class AstQueryExecutorBase(
         {
             if (l is null && r is null) return true;
             if (l is null || r is null) return false;
-            return l.Compare(r) == 0;
+            return l.Compare(r, Dialect) == 0;
         }
 
         if (l is null || l is DBNull || r is null || r is DBNull)
@@ -1611,7 +1612,7 @@ internal abstract class AstQueryExecutorBase(
             return false;
         }
 
-        var cmp = l.Compare(r);
+        var cmp = l.Compare(r, Dialect);
 
         return b.Op switch
         {
@@ -1647,7 +1648,7 @@ internal abstract class AstQueryExecutorBase(
             foreach (var sr in sub)
             {
                 var v = sr.TryGetValue(0, out var cell) ? cell : null;
-                if (leftVal.EqualsSql(v))
+                if (leftVal.EqualsSql(v, Dialect))
                     return true;
             }
 
@@ -1670,12 +1671,12 @@ internal abstract class AstQueryExecutorBase(
                     // Row IN Row (quando o parametro é lista de tuples/rows)
                     if (leftVal is object?[] la2 && cand is object?[] ra2)
                     {
-                        if (la2.Length == ra2.Length && !la2.Where((t, idx) => !t.EqualsSql(ra2[idx])).Any())
+                        if (la2.Length == ra2.Length && !la2.Where((t, idx) => !t.EqualsSql(ra2[idx], Dialect)).Any())
                             return true;
                         continue;
                     }
 
-                    if (leftVal.EqualsSql(cand))
+                    if (leftVal.EqualsSql(cand, Dialect))
                         return true;
                 }
 
@@ -1685,12 +1686,12 @@ internal abstract class AstQueryExecutorBase(
             // Row IN Row (normal)
             if (leftVal is object?[] la && v is object?[] ra)
             {
-                if (la.Length == ra.Length && !la.Where((t, idx) => !t.EqualsSql(ra[idx])).Any())
+                if (la.Length == ra.Length && !la.Where((t, idx) => !t.EqualsSql(ra[idx], Dialect)).Any())
                     return true;
                 continue;
             }
 
-            if (leftVal.EqualsSql(v))
+            if (leftVal.EqualsSql(v, Dialect))
                 return true;
         }
 
@@ -1739,7 +1740,7 @@ internal abstract class AstQueryExecutorBase(
             if (baseVal is null || baseVal is DBNull || whenVal is null || whenVal is DBNull)
                 continue;
 
-            if (baseVal.Compare(whenVal) == 0)
+            if (baseVal.Compare(whenVal, Dialect) == 0)
                 return Eval(wt.Then, row, group, ctes);
         }
 
@@ -2158,7 +2159,7 @@ internal abstract class AstQueryExecutorBase(
             {
                 var cand = EvalArg(ai);
                 if (IsNullish(cand)) continue;
-                if (target.EqualsSql(cand))
+                if (target.EqualsSql(cand, Dialect))
                     return ai; // 1-based
             }
             return 0;
