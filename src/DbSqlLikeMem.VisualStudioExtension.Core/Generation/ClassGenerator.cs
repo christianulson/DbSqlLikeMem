@@ -1,8 +1,16 @@
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public sealed class ClassGenerator
 {
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public async Task<IReadOnlyCollection<string>> GenerateAsync(
         GenerationRequest request,
         ConnectionMappingConfiguration configuration,

@@ -1,5 +1,9 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public class ClassGeneratorTests
 {
     [Theory]
@@ -9,6 +13,10 @@ public class ClassGeneratorTests
     [InlineData("Oracle")]
     [InlineData("Sqlite")]
     [InlineData("Db2")]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public async Task GenerateAsync_WithoutPattern_UsesConsoleLikeRule_ForAllDatabaseTypes(string databaseType)
     {
         var outputDir = Path.Combine(Path.GetTempPath(), $"dbsql-{Guid.NewGuid():N}");
@@ -43,6 +51,10 @@ public class ClassGeneratorTests
     }
 
     [Fact]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public async Task GenerateAsync_ReplacesPatternTokensIncludingDatabaseContext()
     {
         var outputDir = Path.Combine(Path.GetTempPath(), $"dbsql-{Guid.NewGuid():N}");

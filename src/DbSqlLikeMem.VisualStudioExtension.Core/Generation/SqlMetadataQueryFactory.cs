@@ -1,7 +1,15 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public static class SqlMetadataQueryFactory
 {
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public static string BuildListObjectsQuery(string databaseType)
         => Normalize(databaseType) switch
         {
@@ -64,6 +72,10 @@ ORDER BY SchemaName, ObjectType, ObjectName;
             _ => throw new NotSupportedException($"Database type not supported for metadata queries: {databaseType}")
         };
 
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public static string BuildObjectColumnsQuery(string databaseType)
         => Normalize(databaseType) switch
         {
@@ -148,6 +160,10 @@ ORDER BY COLNO;
             _ => throw new NotSupportedException($"Database type not supported for metadata queries: {databaseType}")
         };
 
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public static string BuildPrimaryKeyQuery(string databaseType)
         => Normalize(databaseType) switch
         {
@@ -190,6 +206,10 @@ ORDER BY c.COLSEQ;
             _ => throw new NotSupportedException($"Database type not supported for metadata queries: {databaseType}")
         };
 
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public static string BuildIndexesQuery(string databaseType)
         => Normalize(databaseType) switch
         {
@@ -233,6 +253,10 @@ ORDER BY i.INDNAME, c.COLSEQ;
             _ => throw new NotSupportedException($"Database type not supported for metadata queries: {databaseType}")
         };
 
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public static string BuildForeignKeysQuery(string databaseType)
         => Normalize(databaseType) switch
         {

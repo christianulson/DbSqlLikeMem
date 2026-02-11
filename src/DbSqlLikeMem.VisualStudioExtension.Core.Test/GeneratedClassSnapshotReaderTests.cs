@@ -1,8 +1,16 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public sealed class GeneratedClassSnapshotReaderTests
 {
     [Fact]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public async Task ReadAsync_ParsesMetadataAndCheckerDetectsDifference()
     {
         var file = Path.Combine(Path.GetTempPath(), $"dbsql-snapshot-{Guid.NewGuid():N}.cs");
@@ -14,6 +22,10 @@ public sealed class GeneratedClassSnapshotReaderTests
 // DBSqlLikeMem:PrimaryKey=Id
 // DBSqlLikeMem:Indexes=IX_Orders_Name|0|Name
 // DBSqlLikeMem:ForeignKeys=CustomerId|Customers|Id
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public static class OrdersTableFactory {}
 """);
 
@@ -52,10 +64,18 @@ public static class OrdersTableFactory {}
 
     private sealed class SnapshotProvider(DatabaseObjectReference dbObject) : IDatabaseMetadataProvider
     {
+        /// <summary>
+        /// Executes this API operation.
+        /// Executa esta operação da API.
+        /// </summary>
         public Task<IReadOnlyCollection<DatabaseObjectReference>> ListObjectsAsync(ConnectionDefinition connection,
             CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyCollection<DatabaseObjectReference>>([dbObject]);
 
+        /// <summary>
+        /// Executes this API operation.
+        /// Executa esta operação da API.
+        /// </summary>
         public Task<DatabaseObjectReference?> GetObjectAsync(ConnectionDefinition connection, DatabaseObjectReference reference,
             CancellationToken cancellationToken = default)
             => Task.FromResult<DatabaseObjectReference?>(dbObject);

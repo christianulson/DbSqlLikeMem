@@ -3,8 +3,23 @@ using System.Globalization;
 
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
-public sealed class SqlDatabaseMetadataProvider(ISqlQueryExecutor queryExecutor) : IDatabaseMetadataProvider
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
+public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
 {
+    private readonly ISqlQueryExecutor queryExecutor;
+
+    /// <summary>
+    /// Initializes a metadata provider backed by a SQL query executor.
+    /// Inicializa um provedor de metadados baseado em um executor de consultas SQL.
+    /// </summary>
+    public SqlDatabaseMetadataProvider(ISqlQueryExecutor queryExecutor)
+    {
+        this.queryExecutor = queryExecutor;
+    }
+    /// <inheritdoc/>
     public async Task<IReadOnlyCollection<DatabaseObjectReference>> ListObjectsAsync(
         ConnectionDefinition connection,
         CancellationToken cancellationToken = default)
@@ -19,6 +34,7 @@ public sealed class SqlDatabaseMetadataProvider(ISqlQueryExecutor queryExecutor)
         return rows.Select(MapObject).Where(x => x is not null).Cast<DatabaseObjectReference>().ToArray();
     }
 
+    /// <inheritdoc/>
     public async Task<DatabaseObjectReference?> GetObjectAsync(
         ConnectionDefinition connection,
         DatabaseObjectReference reference,

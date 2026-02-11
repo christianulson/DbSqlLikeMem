@@ -1,9 +1,17 @@
 namespace DbSqlLikeMem.Sqlite.Test.Parser;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public sealed class SqliteDialectFeatureParserTests
 {
     [Theory]
     [MemberDataSqliteVersion]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void ParseInsert_OnConflict_DoUpdate_ShouldParse(int version)
     {
         var sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = 'b'";
@@ -17,6 +25,10 @@ public sealed class SqliteDialectFeatureParserTests
 
     [Theory]
     [MemberDataSqliteVersion]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void ParseWithCte_AsNotMaterialized_ShouldParse(int version)
     {
         var sql = "WITH x AS NOT MATERIALIZED (SELECT 1 AS id) SELECT id FROM x";
@@ -27,6 +39,10 @@ public sealed class SqliteDialectFeatureParserTests
     }
     [Theory]
     [MemberDataSqliteVersion]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void ParseSelect_WithMySqlIndexHints_ShouldBeRejected(int version)
     {
         var sql = "SELECT id FROM users USE INDEX (idx_users_id)";
@@ -37,6 +53,10 @@ public sealed class SqliteDialectFeatureParserTests
 
     [Theory]
     [MemberDataSqliteVersion]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
     {
         var ex = Assert.Throws<NotSupportedException>(() =>
@@ -48,6 +68,10 @@ public sealed class SqliteDialectFeatureParserTests
 
     [Theory]
     [MemberDataSqliteVersion]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void ParseSelect_UnionOrderBy_ShouldParseAsUnion(int version)
     {
         var sql = "SELECT id FROM users WHERE id = 1 UNION SELECT id FROM users WHERE id = 2 ORDER BY id";

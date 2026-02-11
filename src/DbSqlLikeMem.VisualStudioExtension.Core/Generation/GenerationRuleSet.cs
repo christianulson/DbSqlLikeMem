@@ -4,8 +4,16 @@ using System.Text.RegularExpressions;
 
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public static partial class GenerationRuleSet
 {
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public static string ToPascalCase(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -28,6 +36,10 @@ public static partial class GenerationRuleSet
         return string.IsNullOrWhiteSpace(filtered) ? "Object" : Capitalize(filtered);
     }
 
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public static string MapDbType(
         string dataType,
         long? charMaxLen,
@@ -39,6 +51,10 @@ public static partial class GenerationRuleSet
         return strategy.MapDbType(new GenerationTypeContext(dataType, charMaxLen, numPrecision, columnName));
     }
 
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public static bool IsSimpleLiteralDefault(string value)
     {
         var normalized = value.Trim();
@@ -48,6 +64,10 @@ public static partial class GenerationRuleSet
         return true;
     }
 
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public static string FormatDefaultLiteral(string value, string dbType)
     {
         if (dbType == "Boolean")
@@ -63,6 +83,10 @@ public static partial class GenerationRuleSet
         return value.Trim('(', ')', ' ');
     }
 
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public static string[] TryParseEnumValues(string columnType)
     {
         var match = Regex.Match(columnType, @"^(enum|set)\((.*)\)$", RegexOptions.IgnoreCase);
@@ -76,6 +100,10 @@ public static partial class GenerationRuleSet
             .ToArray();
     }
 
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public static bool TryConvertIfIsNull(string sqlExpr, out string code)
     {
         var match = IsNullExpressionRegex().Match(sqlExpr);
@@ -91,6 +119,10 @@ public static partial class GenerationRuleSet
         return true;
     }
 
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public static string Literal(string value)
         => $"\"{value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
 
