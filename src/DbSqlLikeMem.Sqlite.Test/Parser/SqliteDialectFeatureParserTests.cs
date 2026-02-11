@@ -47,3 +47,18 @@ public sealed class SqliteDialectFeatureParserTests
     }
 
 }
+    [Theory]
+    [MemberDataSqliteVersion]
+    public void ParseSelect_UnionOrderBy_ShouldParseAsUnion(int version)
+    {
+        var sql = "SELECT id FROM users WHERE id = 1 UNION SELECT id FROM users WHERE id = 2 ORDER BY id";
+
+        var parsed = SqlQueryParser.Parse(sql, new SqliteDialect(version));
+
+        var union = Assert.IsType<SqlUnionQuery>(parsed);
+        Assert.Equal(2, union.Parts.Count);
+        Assert.Single(union.AllFlags);
+        Assert.False(union.AllFlags[0]);
+    }
+
+}

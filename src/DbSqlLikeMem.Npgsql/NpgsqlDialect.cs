@@ -33,7 +33,9 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     { }
 
 
-    internal const int WithCteMinVersion = 8;
+    // NOTE: in this project the Npgsql "version" axis starts at 6 and
+    // parser feature tests expect WITH/CTE support across all tested versions.
+    internal const int WithCteMinVersion = 6;
     internal const int MergeMinVersion = 15;
     /// <summary>
     /// Auto-generated summary.
