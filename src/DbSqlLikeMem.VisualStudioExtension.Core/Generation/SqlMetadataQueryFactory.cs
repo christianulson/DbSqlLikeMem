@@ -1,5 +1,9 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public static class SqlMetadataQueryFactory
 {
     private static readonly IReadOnlyDictionary<string, ISqlMetadataQueryStrategy> Strategies =

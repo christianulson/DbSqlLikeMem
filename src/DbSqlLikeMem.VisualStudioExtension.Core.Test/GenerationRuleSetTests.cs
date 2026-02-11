@@ -1,8 +1,16 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public sealed class GenerationRuleSetTests
 {
     [Fact]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void MapDbType_UsesMySqlStrategyWhenDatabaseTypeIsMySql()
     {
         var type = GenerationRuleSet.MapDbType("bit", null, 8, "Mask", "MySql");
@@ -10,6 +18,10 @@ public sealed class GenerationRuleSetTests
     }
 
     [Fact]
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public void MapDbType_UsesDefaultStrategyWhenDatabaseTypeIsSqlServer()
     {
         var type = GenerationRuleSet.MapDbType("tinyint", null, 1, "IsEnabled", "SqlServer");
