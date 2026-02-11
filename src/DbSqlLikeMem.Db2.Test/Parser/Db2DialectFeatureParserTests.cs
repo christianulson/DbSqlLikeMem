@@ -1,7 +1,15 @@
 namespace DbSqlLikeMem.Db2.Test.Parser;
 
+/// <summary>
+/// EN: Tests DB2 dialect parser behavior for unsupported SQL features.
+/// PT: Testa o comportamento do parser de dialeto DB2 para recursos SQL não suportados.
+/// </summary>
 public sealed class Db2DialectFeatureParserTests
 {
+    /// <summary>
+    /// EN: Tests ParseSelect_WithRecursive_ShouldBeRejected behavior.
+    /// PT: Testa o comportamento de ParseSelect_WithRecursive_ShouldBeRejected.
+    /// </summary>
     [Theory]
     [MemberDataDb2Version]
     public void ParseSelect_WithRecursive_ShouldBeRejected(int version)
@@ -17,6 +25,10 @@ public sealed class Db2DialectFeatureParserTests
         Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
     }
 
+    /// <summary>
+    /// EN: Tests ParseInsert_OnConflict_ShouldBeRejected behavior.
+    /// PT: Testa o comportamento de ParseInsert_OnConflict_ShouldBeRejected.
+    /// </summary>
     [Theory]
     [MemberDataDb2Version]
     public void ParseInsert_OnConflict_ShouldBeRejected(int version)
@@ -25,6 +37,11 @@ public sealed class Db2DialectFeatureParserTests
 
         Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
     }
+
+    /// <summary>
+    /// EN: Tests ParseSelect_WithMySqlIndexHints_ShouldBeRejected behavior.
+    /// PT: Testa o comportamento de ParseSelect_WithMySqlIndexHints_ShouldBeRejected.
+    /// </summary>
     [Theory]
     [MemberDataDb2Version]
     public void ParseSelect_WithMySqlIndexHints_ShouldBeRejected(int version)

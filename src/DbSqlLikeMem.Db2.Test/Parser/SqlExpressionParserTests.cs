@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Db2.Test.Parser;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Tests SQL expression parser behavior for DB2 dialect versions.
+/// PT: Testa o comportamento do parser de expressões SQL para versões do dialeto DB2.
 /// </summary>
 public sealed class SqlExpressionParserTests(
     ITestOutputHelper helper
@@ -26,7 +27,8 @@ public sealed class SqlExpressionParserTests(
 
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides supported WHERE expressions used in parser tests.
+    /// PT: Fornece expressões WHERE suportadas usadas nos testes do parser.
     /// </summary>
     public static IEnumerable<object[]> WhereExpressions_Supported()
     {
@@ -99,7 +101,8 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides unsupported WHERE expressions used in parser tests.
+    /// PT: Fornece expressões WHERE não suportadas usadas nos testes do parser.
     /// </summary>
     public static IEnumerable<object[]> WhereExpressions_Unsupported()
     {
@@ -285,6 +288,10 @@ public sealed class SqlExpressionParserTests(
         Assert.Equal("John", id.Name);
     }
 
+    /// <summary>
+    /// EN: Tests NullSafe_Operator_ShouldThrow behavior.
+    /// PT: Testa o comportamento de NullSafe_Operator_ShouldThrow.
+    /// </summary>
     [Theory]
     [MemberDataDb2Version]
     public void NullSafe_Operator_ShouldThrow(int version)
