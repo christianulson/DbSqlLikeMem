@@ -1,4 +1,5 @@
 <Solution>
+  <Folder Name="/ConsoleGenerator/" />
   <Folder Name="/Db2/">
     <Project Path="DbSqlLikeMem.Db2.Test/DbSqlLikeMem.Db2.Test.csproj" />
     <Project Path="DbSqlLikeMem.Db2/DbSqlLikeMem.Db2.csproj" />
@@ -6,6 +7,7 @@
   <Folder Name="/MySql/">
     <Project Path="DbSqlLikeMem.MySql.Test/DbSqlLikeMem.MySql.Test.csproj" />
     <Project Path="DbSqlLikeMem.MySql/DbSqlLikeMem.MySql.csproj" />
+    <Project Path="DbSqlLikeMem.MySqlConsoleGenerator/DbSqlLikeMem.MySqlConsoleGenerator.csproj" />
   </Folder>
   <Folder Name="/Npgsql/">
     <Project Path="DbSqlLikeMem.Npgsql.Test/DbSqlLikeMem.Npgsql.Test.csproj" />
@@ -28,10 +30,10 @@
     <Project Path="DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj" />
     <Project Path="DbSqlLikeMem.SqlServer/DbSqlLikeMem.SqlServer.csproj" />
   </Folder>
-  <Project Path="DbSqlLikeMem.Test/DbSqlLikeMem.Test.csproj" />
   <Folder Name="/VisualStudioExtension/">
     <Project Path="DbSqlLikeMem.VisualStudioExtension.Core.Test/DbSqlLikeMem.VisualStudioExtension.Core.Test.csproj" />
     <Project Path="DbSqlLikeMem.VisualStudioExtension.Core/DbSqlLikeMem.VisualStudioExtension.Core.csproj" />
   </Folder>
+  <Project Path="DbSqlLikeMem.Test/DbSqlLikeMem.Test.csproj" />
   <Project Path="DbSqlLikeMem/DbSqlLikeMem.csproj" />
 </Solution>
