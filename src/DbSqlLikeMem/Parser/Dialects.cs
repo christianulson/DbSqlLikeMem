@@ -80,6 +80,10 @@ internal interface ISqlDialect
     bool SupportsNullSafeEq { get; }
     bool SupportsJsonArrowOperators { get; }
 
+    // Table hints
+    bool SupportsSqlServerTableHints { get; }
+    bool SupportsMySqlIndexHints { get; }
+
     // Temporary table naming
     bool AllowsHashIdentifiers { get; }
     TemporaryTableScope GetTemporaryTableScope(string tableName, string? schemaName);
@@ -298,6 +302,14 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// Auto-generated summary.
     /// </summary>
     public virtual bool SupportsJsonArrowOperators => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public virtual bool SupportsSqlServerTableHints => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public virtual bool SupportsMySqlIndexHints => false;
 
     /// <summary>
     /// Auto-generated summary.

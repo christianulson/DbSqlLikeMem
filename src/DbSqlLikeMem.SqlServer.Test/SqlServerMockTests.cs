@@ -176,6 +176,22 @@ public sealed class SqlServerMockTests
         Assert.Empty(users);
     }
 
+
+    [Fact]
+    public void TestSelect_WithSqlServerTableHints_ShouldExecute()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (10, 'Hint User', 'hint@example.com')"
+        };
+        command.ExecuteNonQuery();
+
+        command.CommandText = "SELECT Name FROM Users WITH (NOLOCK, INDEX([IX_Users_Name])) WHERE Id = 10";
+        var name = command.ExecuteScalar();
+
+        Assert.Equal("Hint User", name);
+    }
+
     /// <summary>
     /// EN: Disposes test resources.
     /// PT: Descarta os recursos do teste.

@@ -26,4 +26,14 @@ public sealed class MySqlDialectFeatureParserTests
         var parsed = SqlQueryParser.Parse(sql, new MySqlDialect(version));
         Assert.IsType<SqlSelectQuery>(parsed);
     }
+    [Theory]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithIndexHints_ShouldParse(int version)
+    {
+        var sql = "SELECT u.id FROM users AS u USE INDEX (idx_users_id) IGNORE KEY FOR ORDER BY (idx_users_name)";
+
+        var parsed = SqlQueryParser.Parse(sql, new MySqlDialect(version));
+        Assert.IsType<SqlSelectQuery>(parsed);
+    }
+
 }

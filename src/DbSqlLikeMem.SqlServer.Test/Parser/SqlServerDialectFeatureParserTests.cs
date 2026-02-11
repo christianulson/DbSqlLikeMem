@@ -33,4 +33,24 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
     }
 
+    [Theory]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_WithSqlServerTableHints_ShouldParse(int version)
+    {
+        var sql = "SELECT u.id FROM users u WITH (NOLOCK, INDEX([IX_Users_Id]))";
+
+        var parsed = SqlQueryParser.Parse(sql, new SqlServerDialect(version));
+        Assert.IsType<SqlSelectQuery>(parsed);
+    }
+
+    [Theory]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_WithLegacySqlServerTableHint_ShouldParse(int version)
+    {
+        var sql = "SELECT u.id FROM users u (NOLOCK)";
+
+        var parsed = SqlQueryParser.Parse(sql, new SqlServerDialect(version));
+        Assert.IsType<SqlSelectQuery>(parsed);
+    }
+
 }

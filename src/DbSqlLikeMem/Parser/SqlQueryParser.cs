@@ -237,18 +237,11 @@ internal sealed class SqlQueryParser
             Consume(); // ON
             ExpectWord("CONFLICT");
 
-            // Target opcional: (col1, col2, ...)
-            if (IsSymbol(Peek(), "("))
-            {
-                Consume(); // (
-                while (!IsSymbol(Peek(), ")"))
-                {
-                    _ = ExpectIdentifier();
-                    if (IsSymbol(Peek(), ",")) Consume();
-                    else break;
-                }
-                ExpectSymbol(")");
-            }
+            // Target opcional (PostgreSQL):
+            // - (col1, col2, ...)
+            // - ON CONSTRAINT constraint_name
+            // - [target] WHERE predicate
+            ParsePostgreSqlOnConflictTarget();
 
             ExpectWord("DO");
 
@@ -261,10 +254,67 @@ internal sealed class SqlQueryParser
             ExpectWord("UPDATE");
             ExpectWord("SET");
             var assigns = ParseAssignmentsList();
+
+            // PostgreSQL permite: DO UPDATE SET ... WHERE <predicate>
+            // O mock atual não usa essa condição no AST, mas precisa aceitar o SQL.
+            if (IsWord(Peek(), "WHERE"))
+            {
+                Consume();
+                _ = ReadClauseTextUntilTopLevelStop("RETURNING");
+            }
+
+            // PostgreSQL permite RETURNING após INSERT ... ON CONFLICT ...
+            // Como o AST de INSERT ainda não materializa RETURNING, apenas consumimos.
+            if (IsWord(Peek(), "RETURNING"))
+            {
+                Consume();
+                _ = ReadClauseTextUntilTopLevelStop();
+            }
+
             return new SqlOnDuplicateKeyUpdate(assigns);
         }
 
         return null;
+    }
+
+    private void ParsePostgreSqlOnConflictTarget()
+    {
+        // ON CONFLICT ON CONSTRAINT constraint_name
+        if (IsWord(Peek(), "ON") && IsWord(Peek(1), "CONSTRAINT"))
+        {
+            Consume(); // ON
+            Consume(); // CONSTRAINT
+            _ = ExpectIdentifier();
+
+            if (IsWord(Peek(), "WHERE"))
+            {
+                Consume();
+                _ = ReadClauseTextUntilTopLevelStop("DO");
+            }
+            return;
+        }
+
+        // ON CONFLICT (index_expr [, ...]) [WHERE predicate]
+        if (IsSymbol(Peek(), "("))
+        {
+            Consume(); // (
+            var depth = 1;
+            while (!IsEnd(Peek()) && depth > 0)
+            {
+                var t = Consume();
+                if (IsSymbol(t, "(")) depth++;
+                else if (IsSymbol(t, ")")) depth--;
+            }
+
+            if (depth != 0)
+                throw new InvalidOperationException("ON CONFLICT target não foi fechado corretamente.");
+
+            if (IsWord(Peek(), "WHERE"))
+            {
+                Consume();
+                _ = ReadClauseTextUntilTopLevelStop("DO");
+            }
+        }
     }
 
     private SqlUpdateQuery ParseUpdate()
@@ -1118,8 +1168,88 @@ internal sealed class SqlQueryParser
             db = table;
             table = ExpectIdentifier();
         }
+        ConsumeTableHintsIfPresent();
         var alias2 = ReadOptionalAlias();
+        ConsumeTableHintsIfPresent();
         return new SqlTableSource(db, table, alias2, null, null, null);
+    }
+
+    private void ConsumeTableHintsIfPresent()
+    {
+        while (true)
+        {
+            if (IsWord(Peek(), "WITH") && IsSymbol(Peek(1), "("))
+            {
+                if (!_dialect.SupportsSqlServerTableHints)
+                    throw new NotSupportedException($"WITH(table hints) não suportado no dialeto '{_dialect.Name}'.");
+
+                Consume(); // WITH
+                _ = ReadBalancedParenRawTokens();
+                continue;
+            }
+
+            if (IsSymbol(Peek(), "("))
+            {
+                if (!_dialect.SupportsSqlServerTableHints)
+                    break;
+
+                _ = ReadBalancedParenRawTokens();
+                continue;
+            }
+
+            if (IsWord(Peek(), "USE") || IsWord(Peek(), "IGNORE") || IsWord(Peek(), "FORCE"))
+            {
+                if (!_dialect.SupportsMySqlIndexHints)
+                    throw new NotSupportedException($"INDEX hints não suportado no dialeto '{_dialect.Name}'.");
+
+                ConsumeMySqlIndexHint();
+                continue;
+            }
+
+            break;
+        }
+    }
+
+    private void ConsumeMySqlIndexHint()
+    {
+        Consume(); // USE | IGNORE | FORCE
+
+        if (IsWord(Peek(), "INDEX") || IsWord(Peek(), "KEY"))
+        {
+            Consume();
+        }
+        else
+        {
+            throw new InvalidOperationException("MySQL index hint inválido: esperado INDEX/KEY.");
+        }
+
+        if (IsWord(Peek(), "FOR"))
+        {
+            Consume();
+            if (IsWord(Peek(), "JOIN"))
+            {
+                Consume();
+            }
+            else if (IsWord(Peek(), "ORDER"))
+            {
+                Consume();
+                ExpectWord("BY");
+            }
+            else if (IsWord(Peek(), "GROUP"))
+            {
+                Consume();
+                ExpectWord("BY");
+            }
+            else
+            {
+                throw new InvalidOperationException("MySQL index hint inválido: esperado JOIN, ORDER BY ou GROUP BY após FOR.");
+            }
+        }
+
+        if (!IsSymbol(Peek(), "("))
+            throw new InvalidOperationException("MySQL index hint inválido: esperado lista de índices entre parênteses.");
+
+        _ = ReadBalancedParenRawTokens();
     }
 
     private SqlJoin ParseJoin()
