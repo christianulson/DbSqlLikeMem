@@ -25,4 +25,13 @@ public sealed class OracleDialectFeatureParserTests
 
         Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
     }
+    [Theory]
+    [MemberDataOracleVersion]
+    public void ParseSelect_WithSqlServerTableHints_ShouldBeRejected(int version)
+    {
+        var sql = "SELECT id FROM users WITH (NOLOCK)";
+
+        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+    }
+
 }

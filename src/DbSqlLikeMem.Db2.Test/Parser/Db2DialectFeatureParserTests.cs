@@ -25,4 +25,13 @@ public sealed class Db2DialectFeatureParserTests
 
         Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
     }
+    [Theory]
+    [MemberDataDb2Version]
+    public void ParseSelect_WithMySqlIndexHints_ShouldBeRejected(int version)
+    {
+        var sql = "SELECT id FROM users USE INDEX (idx_users_id)";
+
+        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
+    }
+
 }

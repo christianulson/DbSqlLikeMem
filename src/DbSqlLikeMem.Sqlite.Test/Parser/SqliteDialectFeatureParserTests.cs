@@ -25,4 +25,13 @@ public sealed class SqliteDialectFeatureParserTests
 
         Assert.IsType<SqlSelectQuery>(parsed);
     }
+    [Theory]
+    [MemberDataSqliteVersion]
+    public void ParseSelect_WithMySqlIndexHints_ShouldBeRejected(int version)
+    {
+        var sql = "SELECT id FROM users USE INDEX (idx_users_id)";
+
+        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+    }
+
 }
