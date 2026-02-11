@@ -1,0 +1,101 @@
+name: Publish Visual Studio Extension (VSIX)
+
+on:
+  workflow_dispatch:
+    inputs:
+      vsix_project:
+        description: Caminho para o projeto VSIX (.csproj/.vsixproj)
+        required: false
+        default: src/DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj
+      publish_manifest:
+        description: Caminho para o manifesto de publicação (PublishManifest.json)
+        required: false
+        default: eng/visualstudio/PublishManifest.json
+      publish:
+        description: Publicar no Marketplace
+        required: true
+        type: boolean
+        default: false
+  push:
+    tags:
+      - "vsix-v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-publish:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build VSIX
+        shell: pwsh
+        env:
+          VSIX_PROJECT: ${{ github.event.inputs.vsix_project || 'src/DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj' }}
+        run: |
+          if (-not (Test-Path $env:VSIX_PROJECT)) {
+            Write-Error "Projeto VSIX não encontrado: $env:VSIX_PROJECT"
+            Write-Host "Dica: ajuste o input 'vsix_project' no workflow_dispatch quando o projeto estiver pronto."
+            exit 1
+          }
+
+          msbuild $env:VSIX_PROJECT /restore /t:Build /p:Configuration=Release /p:DeployExtension=false
+
+      - name: Locate generated VSIX
+        id: locate_vsix
+        shell: pwsh
+        run: |
+          $vsix = Get-ChildItem -Path . -Recurse -Filter *.vsix |
+            Where-Object { $_.FullName -notmatch '\\bin\\.*\\TestResults\\|\\obj\\' } |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+
+          if (-not $vsix) {
+            Write-Error "Nenhum arquivo .vsix foi encontrado após o build."
+            exit 1
+          }
+
+          "path=$($vsix.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "VSIX localizado em: $($vsix.FullName)"
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-package
+          path: ${{ steps.locate_vsix.outputs.path }}
+
+      - name: Publish to Visual Studio Marketplace
+        if: ${{ github.event_name == 'push' || github.event.inputs.publish == 'true' }}
+        shell: pwsh
+        env:
+          VS_MARKETPLACE_TOKEN: ${{ secrets.VS_MARKETPLACE_TOKEN }}
+          PUBLISH_MANIFEST: ${{ github.event.inputs.publish_manifest || 'eng/visualstudio/PublishManifest.json' }}
+        run: |
+          if (-not $env:VS_MARKETPLACE_TOKEN) {
+            Write-Error "Secret VS_MARKETPLACE_TOKEN não configurado."
+            exit 1
+          }
+
+          if (-not (Test-Path $env:PUBLISH_MANIFEST)) {
+            Write-Error "Manifesto de publicação não encontrado: $env:PUBLISH_MANIFEST"
+            exit 1
+          }
+
+          $vsixPublisher = Get-ChildItem "C:\Program Files\Microsoft Visual Studio" -Recurse -Filter VsixPublisher.exe -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+
+          if (-not $vsixPublisher) {
+            Write-Error "VsixPublisher.exe não encontrado no runner."
+            exit 1
+          }
+
+          & $vsixPublisher.FullName publish `
+            -payload "${{ steps.locate_vsix.outputs.path }}" `
+            -publishManifest $env:PUBLISH_MANIFEST `
+            -personalAccessToken $env:VS_MARKETPLACE_TOKEN
