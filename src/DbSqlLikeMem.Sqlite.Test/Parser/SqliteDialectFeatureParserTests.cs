@@ -34,6 +34,19 @@ public sealed class SqliteDialectFeatureParserTests
         Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
     }
 
+
+    [Theory]
+    [MemberDataSqliteVersion]
+    public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT id FROM users USE INDEX (idx_users_id)", new SqliteDialect(version)));
+
+        Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("sqlite", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+}
     [Theory]
     [MemberDataSqliteVersion]
     public void ParseSelect_UnionOrderBy_ShouldParseAsUnion(int version)

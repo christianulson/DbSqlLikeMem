@@ -51,6 +51,19 @@ public sealed class Db2DialectFeatureParserTests
         Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
     }
 
+
+    [Theory]
+    [MemberDataDb2Version]
+    public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT id FROM users USE INDEX (idx_users_id)", new Db2Dialect(version)));
+
+        Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("db2", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+}
     [Theory]
     [MemberDataDb2Version]
     public void ParseSelect_UnionOrderBy_ShouldParseAsUnion(int version)

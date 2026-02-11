@@ -53,4 +53,16 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
+
+    [Theory]
+    [MemberDataSqlServerVersion]
+    public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("WITH RECURSIVE cte(n) AS (SELECT 1) SELECT n FROM cte", new SqlServerDialect(version)));
+
+        Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("sqlserver", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 }
