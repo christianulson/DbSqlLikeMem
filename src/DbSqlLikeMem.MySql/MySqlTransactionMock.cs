@@ -56,7 +56,7 @@ public class MySqlTransactionMock(
     #if NET6_0_OR_GREATER
     public override void Save(string savepointName)
 #else
-    public new void Save(string savepointName)
+    public void Save(string savepointName)
 #endif
     {
         lock (cnn.Db.SyncRoot)
@@ -71,7 +71,7 @@ public class MySqlTransactionMock(
     #if NET6_0_OR_GREATER
     public override void Rollback(string savepointName)
 #else
-    public new void Rollback(string savepointName)
+    public void Rollback(string savepointName)
 #endif
     {
         lock (cnn.Db.SyncRoot)
@@ -86,7 +86,7 @@ public class MySqlTransactionMock(
     #if NET6_0_OR_GREATER
     public override void Release(string savepointName)
 #else
-    public new void Release(string savepointName)
+    public void Release(string savepointName)
 #endif
     {
         lock (cnn.Db.SyncRoot)
