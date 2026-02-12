@@ -125,7 +125,7 @@ WHERE u.tenantid = 10";
         users.Add(new Dictionary<int, object?> { { 0, 3 }, { 1, 20 } });
 
         using var c = new NpgsqlConnectionMock(db);
-        const string sql = "DELETE u FROM users u JOIN (SELECT id FROM users WHERE tenantid = 10) s ON s.id = u.id";
+        const string sql = "DELETE FROM users WHERE id IN (SELECT id FROM users WHERE tenantid = 10)";
 
         using var cmd = new NpgsqlCommandMock(c) { CommandText = sql };
         var deleted = cmd.ExecuteNonQuery();

@@ -23,10 +23,11 @@ Projeto inicial para suportar uma extensão do Visual Studio focada em geração
 
 ## Próximos passos sugeridos
 
-1. Criar projeto VSIX + Tool Window (WPF) consumindo este Core.
-2. Implementar botão **Adicionar Conexão** e popup de configuração de conexão.
-3. Implementar botão de **Configurar Mapeamentos** ao lado de Adicionar Conexão.
-4. Implementar menus de contexto na treeview:
+> Status: os itens 1, 2 e 3 já possuem implementação funcional inicial em `../DbSqlLikeMem.VisualStudioExtension` (conexão, mapeamento, árvore, geração e checagem de consistência).
+
+1. Evoluir fluxo de conexão (teste de conexão, edição/remoção, segurança de credenciais).
+2. Evoluir fluxo de mapeamento por tipo de objeto e por conexão.
+3. Implementar menus de contexto na treeview:
    - Gerar classes
    - Checar consistência
-5. Integrar provedores reais de metadados para SQL Server, Oracle, PostgreSQL etc.
+4. Integrar provedores reais de metadados para SQL Server, Oracle, PostgreSQL etc.
