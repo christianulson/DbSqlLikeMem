@@ -68,17 +68,18 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsOnDuplicateKeyUpdate => false;
+    public override bool SupportsOnDuplicateKeyUpdate => true;
     public override bool SupportsOnConflictClause => true;
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsDeleteWithoutFrom => false;
+    public override bool SupportsDeleteWithoutFrom => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsDeleteTargetAlias => false;
+    public override bool AllowsParserDeleteWithoutFromCompatibility => true;
 
     /// <summary>
     /// Auto-generated summary.
