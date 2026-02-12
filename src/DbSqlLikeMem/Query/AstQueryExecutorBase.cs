@@ -914,25 +914,7 @@ internal abstract class AstQueryExecutorBase(
         if (IsNullish(a)) return -1;
         if (IsNullish(b)) return 1;
 
-        if (a is IComparable ac && b is not null)
-        {
-            try
-            {
-                // normalize some numeric differences
-                if (a is decimal da && b is int bi) return da.CompareTo((decimal)bi);
-                if (a is int ai && b is decimal bd) return ((decimal)ai).CompareTo(bd);
-                if (a is long al && b is int bi2) return al.CompareTo((long)bi2);
-                if (a is int ai2 && b is long bl2) return ((long)ai2).CompareTo(bl2);
-
-                return ac.CompareTo(b);
-            }
-            catch
-            {
-                // fallback to string
-            }
-        }
-
-        return string.Compare(a!.ToString(), b!.ToString(), Dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
+        return a!.Compare(b!, Dialect);
     }
 
     private SelectPlan BuildSelectPlan(
@@ -1399,25 +1381,7 @@ internal abstract class AstQueryExecutorBase(
             if (a is null) return -1;
             if (b is null) return 1;
 
-            // try numeric compare first
-            if (a is IConvertible && b is IConvertible)
-            {
-                // decimals keep precision
-                try
-                {
-                    var da = Convert.ToDecimal(a, CultureInfo.InvariantCulture);
-                    var db = Convert.ToDecimal(b, CultureInfo.InvariantCulture);
-                    return da.CompareTo(db);
-                }
-                catch (FormatException) { /* fallthrough */ }
-                catch (InvalidCastException) { /* fallthrough */ }
-                catch (OverflowException) { /* fallthrough */ }
-            }
-
-            if (a is IComparable ca && a.GetType() == b.GetType())
-                return ca.CompareTo(b);
-
-            return string.Compare(a.ToString(), b.ToString(), Dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
+            return a.Compare(b, Dialect);
         }
 
         int CompareRows(Dictionary<int, object?> ra, Dictionary<int, object?> rb)

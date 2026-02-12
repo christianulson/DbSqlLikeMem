@@ -55,6 +55,24 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.backslash;
+    /// <summary>
+    /// EN: Uses case-insensitive textual comparisons in the in-memory executor for deterministic tests.
+    /// PT: Usa comparações textuais case-insensitive no executor em memória para testes determinísticos.
+    /// </summary>
+    public override StringComparison TextComparison => StringComparison.OrdinalIgnoreCase;
+
+    /// <summary>
+    /// EN: Enables implicit numeric/string comparison only when both values are numeric-convertible.
+    /// PT: Habilita comparação implícita numérica/string apenas quando ambos os valores são conversíveis para número.
+    /// </summary>
+    public override bool SupportsImplicitNumericStringComparison => true;
+
+    /// <summary>
+    /// EN: Keeps LIKE case-insensitive by default in the mock provider.
+    /// PT: Mantém LIKE case-insensitive por padrão no provider mock.
+    /// </summary>
+    public override bool LikeIsCaseInsensitive => true;
+
 
     /// <summary>
     /// Auto-generated summary.
