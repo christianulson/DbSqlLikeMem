@@ -102,7 +102,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         }
     }
 
-    private void OnExplorerContextMenuOpening(object sender, System.ComponentModel.CancelEventArgs e)
+    private void OnExplorerContextMenuOpened(object sender, RoutedEventArgs e)
     {
         var isObjectTypeNodeSelected = ExplorerTree.SelectedItem is ExplorerNode selected && selected.Kind == ExplorerNodeKind.ObjectType;
 
