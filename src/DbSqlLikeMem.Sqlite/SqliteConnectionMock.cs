@@ -29,8 +29,8 @@ public sealed class SqliteConnectionMock
     /// PT: Cria um mock de transação SQLite.
     /// </summary>
     /// <returns>EN: Transaction instance. PT: Instância da transação.</returns>
-    protected override DbTransaction CreateTransaction()
-        => new SqliteTransactionMock(this);
+    protected override DbTransaction CreateTransaction(IsolationLevel isolationLevel)
+        => new SqliteTransactionMock(this, isolationLevel);
 
     /// <summary>
     /// EN: Creates a SQLite command mock for the transaction.

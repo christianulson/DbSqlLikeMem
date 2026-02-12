@@ -362,6 +362,16 @@ public abstract class DbMock
 
     #endregion
 
+
+    internal virtual IReadOnlyList<ITableMock> ListAllTablesBestEffort()
+    {
+        var allTables = new List<ITableMock>();
+        foreach (var schema in Values)
+            allTables.AddRange(schema.Tables.Values);
+        allTables.AddRange(_globalTemporaryTables.Values);
+        return allTables;
+    }
+
     #region Backup / Restore (best-effort)
 
     internal virtual void BackupAllTablesBestEffort()
