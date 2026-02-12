@@ -1,7 +1,16 @@
 namespace DbSqlLikeMem.SqlServer.Test.Parser;
 
+/// <summary>
+/// EN: Covers SQL Server-specific parser feature behavior.
+/// PT: Cobre o comportamento de recursos de parser específicos do SQL Server.
+/// </summary>
 public sealed class SqlServerDialectFeatureParserTests
 {
+    /// <summary>
+    /// EN: Validates OFFSET/FETCH without ORDER BY according to dialect version rules.
+    /// PT: Valida OFFSET/FETCH sem ORDER BY conforme as regras de versão do dialeto.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [MemberDataSqlServerVersion]
     public void ParseSelect_OffsetWithoutOrderBy_ShouldRespectDialectRule(int version)
@@ -17,7 +26,11 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
     }
 
-
+    /// <summary>
+    /// EN: Ensures WITH RECURSIVE syntax is rejected.
+    /// PT: Garante que a sintaxe WITH RECURSIVE seja rejeitada.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [MemberDataSqlServerVersion]
     public void ParseSelect_WithRecursive_ShouldBeRejected(int version)
@@ -33,6 +46,11 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
     }
 
+    /// <summary>
+    /// EN: Ensures SQL Server table hints in WITH (...) form are parsed.
+    /// PT: Garante que hints de tabela SQL Server na forma WITH (...) sejam interpretados.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [MemberDataSqlServerVersion]
     public void ParseSelect_WithSqlServerTableHints_ShouldParse(int version)
@@ -43,6 +61,11 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
+    /// <summary>
+    /// EN: Ensures legacy SQL Server table hint syntax is parsed.
+    /// PT: Garante que a sintaxe legada de hint de tabela do SQL Server seja interpretada.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [MemberDataSqlServerVersion]
     public void ParseSelect_WithLegacySqlServerTableHint_ShouldParse(int version)
@@ -53,7 +76,11 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
-
+    /// <summary>
+    /// EN: Ensures unsupported SQL uses the standard not-supported message.
+    /// PT: Garante que SQL não suportado use a mensagem padrão de não suportado.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [MemberDataSqlServerVersion]
     public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)

@@ -69,7 +69,7 @@ internal sealed class SqlExpressionParser(
             if (TryParseTypeCastInfix(ref left, minBp)) continue;
 
         // JSON -> / ->>
-        if (_dialect.SupportsJsonArrowOperators
+        if ((_dialect.SupportsJsonArrowOperators || _dialect.AllowsParserCrossDialectJsonOperators)
             && TryParseJsonArrowInfix(ref left, minBp)) continue;
 
             // * /

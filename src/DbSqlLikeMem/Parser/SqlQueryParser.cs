@@ -152,7 +152,9 @@ internal sealed class SqlQueryParser
         }
         else if (IsWord(Peek(), "SELECT") || IsWord(Peek(), "WITH"))
         {
-            _allowOnDuplicateBoundary = _dialect.SupportsOnDuplicateKeyUpdate || _dialect.SupportsOnConflictClause;
+            _allowOnDuplicateBoundary = _dialect.SupportsOnDuplicateKeyUpdate
+                || _dialect.SupportsOnConflictClause
+                || _dialect.AllowsParserInsertSelectUpsertSuffix;
             insertSelect = ParseSelectQuery();
             _allowOnDuplicateBoundary = false;
         }
@@ -205,7 +207,7 @@ internal sealed class SqlQueryParser
         // MySQL: ON DUPLICATE KEY UPDATE
         if (IsWord(next, "DUPLICATE"))
         {
-            if (!_dialect.SupportsOnDuplicateKeyUpdate)
+            if (!_dialect.SupportsOnDuplicateKeyUpdate && !_dialect.AllowsParserInsertSelectUpsertSuffix)
                 throw new InvalidOperationException($"Dialeto '{_dialect.Name}' não suporta ON DUPLICATE KEY UPDATE.");
 
             Consume(); // ON
@@ -220,7 +222,7 @@ internal sealed class SqlQueryParser
         // PostgreSQL: ON CONFLICT (...) DO UPDATE SET ...  |  ON CONFLICT DO NOTHING
         if (IsWord(next, "CONFLICT"))
         {
-            if (!_dialect.SupportsOnConflictClause)
+            if (!_dialect.SupportsOnConflictClause && !_dialect.AllowsParserInsertSelectUpsertSuffix)
                 throw new InvalidOperationException($"Dialeto '{_dialect.Name}' não suporta ON CONFLICT.");
 
             Consume(); // ON
@@ -388,17 +390,17 @@ internal sealed class SqlQueryParser
             // a) DELETE t WHERE ...
             // b) DELETE a FROM t a JOIN (...) s ON ...
             // Para (b) precisamos guardar a tabela real (t), não o alias (a).
-            var allowsTargetAlias = _dialect.SupportsDeleteTargetAlias
+            var allowsTargetAlias = (_dialect.SupportsDeleteTargetAlias || _dialect.AllowsParserDeleteWithoutFromCompatibility)
                 && Peek().Kind == SqlTokenKind.Identifier
                 && IsWord(Peek(1), "FROM");
-            if (!_dialect.SupportsDeleteWithoutFrom && !allowsTargetAlias)
+            if (!_dialect.SupportsDeleteWithoutFrom && !_dialect.AllowsParserDeleteWithoutFromCompatibility && !allowsTargetAlias)
                 throw new InvalidOperationException($"DELETE sem FROM não suportado no dialeto '{_dialect.Name}'.");
 
             var first = ParseTableSource(); // pode ser tabela ou alvo
 
             if (IsWord(Peek(), "FROM"))
             {
-                if (!_dialect.SupportsDeleteTargetAlias)
+                if (!_dialect.SupportsDeleteTargetAlias && !_dialect.AllowsParserDeleteWithoutFromCompatibility)
                     throw new InvalidOperationException($"DELETE <alvo> FROM ... não suportado no dialeto '{_dialect.Name}'.");
 
                 // DELETE <alias> FROM <table> <alias> JOIN ...
@@ -1022,7 +1024,7 @@ internal sealed class SqlQueryParser
         // MySQL/Postgres: LIMIT ...
         if (IsWord(Peek(), "LIMIT"))
         {
-            if (!_dialect.SupportsLimitOffset)
+            if (!_dialect.SupportsLimitOffset && !_dialect.AllowsParserLimitOffsetCompatibility)
                 throw SqlUnsupported.ForDialect(_dialect, "LIMIT");
 
             Consume();
