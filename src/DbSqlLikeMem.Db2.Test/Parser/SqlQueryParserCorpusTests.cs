@@ -221,7 +221,7 @@ ORDER BY u.Id, o.Amount", "JOIN with derived subquery + ORDER BY multiple keys" 
         yield return new object[] { "select json_extract(data, '$.name') from users", "JSON_EXTRACT function call" };
 
         // Regex / null-safe equality
-        yield return new object[] { "select * from users where a <=> b", "null-safe equality <=>" };
+        yield return new object[] { "select * from users where a <=> b", "invalid: null-safe equality <=>" };
         yield return new object[] { "select * from users where name regexp '^[A-Z]+'", "REGEXP operator" };
         yield return new object[] { "select * from users where name not regexp '[0-9]'", "NOT REGEXP operator" };
 

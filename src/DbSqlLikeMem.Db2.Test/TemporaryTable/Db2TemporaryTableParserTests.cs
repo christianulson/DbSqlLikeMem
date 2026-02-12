@@ -49,14 +49,6 @@ SELECT * FROM tmp_users;
             "CREATE TEMPORARY TABLE tmp_users (id INT, name VARCHAR(50)) AS SELECT id, name FROM users",
         };
 
-        yield return new object[]
-        {
-            // backticks + multiline select
-            @"CREATE TEMPORARY TABLE `tmp_users` AS
-SELECT `id`, `name`
-FROM `users`
-WHERE `tenantid` = 10",
-        };
     }
 
     /// <summary>
@@ -72,6 +64,23 @@ WHERE `tenantid` = 10",
         Assert.NotNull(q);
         Assert.Contains("CREATE", q.RawSql, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("TEMPORARY", q.RawSql, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Tests Parse_ShouldReject_Backticks_ByDb2Spec behavior.
+    /// PT: Testa o comportamento de Parse_ShouldReject_Backticks_ByDb2Spec.
+    /// </summary>
+    [Theory]
+    [MemberDataDb2Version]
+    public void Parse_ShouldReject_Backticks_ByDb2Spec(int version)
+    {
+        const string sql = @"CREATE TEMPORARY TABLE `tmp_users` AS
+SELECT `id`, `name`
+FROM `users`
+WHERE `tenantid` = 10";
+
+        Assert.ThrowsAny<Exception>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
     }
 
     /// <summary>
