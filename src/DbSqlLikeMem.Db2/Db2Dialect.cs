@@ -21,10 +21,11 @@ internal sealed class Db2Dialect : SqlDialectBase
             new KeyValuePair<string, SqlBinaryOp>(">=", SqlBinaryOp.GreaterOrEqual),
             new KeyValuePair<string, SqlBinaryOp>("<", SqlBinaryOp.Less),
             new KeyValuePair<string, SqlBinaryOp>("<=", SqlBinaryOp.LessOrEqual),
+            new KeyValuePair<string, SqlBinaryOp>("<=>", SqlBinaryOp.NullSafeEq),
         ],
         operators:
         [
-            ">=", "<=", "<>", "!="
+            "<=>", ">=", "<=", "<>", "!="
         ])
     { }
 
@@ -87,7 +88,7 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
-    public override bool SupportsWithRecursive => false;
+    public override bool SupportsWithRecursive => Version >= WithCteMinVersion;
     public override bool SupportsWithMaterializedHint => false;
     public override bool SupportsOnConflictClause => false;
     public override bool SupportsMerge => Version >= MergeMinVersion;
@@ -95,7 +96,7 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsNullSafeEq => false;
+    public override bool SupportsNullSafeEq => true;
     
     /// <summary>
     /// Auto-generated summary.
@@ -105,22 +106,22 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool AllowsParserCrossDialectQuotedIdentifiers => true;
+    public override bool AllowsParserCrossDialectQuotedIdentifiers => false;
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool AllowsParserCrossDialectJsonOperators => true;
+    public override bool AllowsParserCrossDialectJsonOperators => false;
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool AllowsParserInsertSelectUpsertSuffix => true;
+    public override bool AllowsParserInsertSelectUpsertSuffix => false;
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool AllowsParserDeleteWithoutFromCompatibility => true;
+    public override bool AllowsParserDeleteWithoutFromCompatibility => false;
 
     /// <summary>
     /// Auto-generated summary.
