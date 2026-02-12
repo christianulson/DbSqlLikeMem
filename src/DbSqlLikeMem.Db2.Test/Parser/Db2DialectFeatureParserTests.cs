@@ -16,7 +16,7 @@ public sealed class Db2DialectFeatureParserTests
     /// </summary>
     [Theory]
     [MemberDataDb2Version]
-    public void ParseSelect_WithRecursive_ShouldBeRejected(int version)
+    public void ParseSelect_WithRecursive_ShouldFollowDb2VersionSupport(int version)
     {
         var sql = "WITH RECURSIVE cte(n) AS (SELECT 1 FROM SYSIBM.SYSDUMMY1) SELECT n FROM cte";
 
@@ -26,7 +26,8 @@ public sealed class Db2DialectFeatureParserTests
             return;
         }
 
-        Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
+        var parsed = SqlQueryParser.Parse(sql, new Db2Dialect(version));
+        Assert.IsType<SqlSelectQuery>(parsed);
     }
 
     /// <summary>
