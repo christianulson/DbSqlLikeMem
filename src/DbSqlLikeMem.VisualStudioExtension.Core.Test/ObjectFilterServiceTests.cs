@@ -45,4 +45,24 @@ public class ObjectFilterServiceTests
 
         Assert.Equal(2, result.Count);
     }
+
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
+    [Fact]
+    public void Filter_EmptyValue_ReturnsAllObjects()
+    {
+        var service = new ObjectFilterService();
+        var source = new[]
+        {
+            new DatabaseObjectReference("dbo", "Order", DatabaseObjectType.Table),
+            new DatabaseObjectReference("dbo", "OrderItem", DatabaseObjectType.Table),
+            new DatabaseObjectReference("dbo", "User", DatabaseObjectType.Table)
+        };
+
+        var result = service.Filter(source, "   ", FilterMode.Like);
+
+        Assert.Equal(source.Length, result.Count);
+    }
 }
