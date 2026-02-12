@@ -50,6 +50,12 @@ interface TemplateSettings {
   repositoryTargetFolder: string;
 }
 
+
+interface GenerationPlan {
+  objectRef: DatabaseObjectReference;
+  targetFile: string;
+  content: string;
+}
 interface TreeNode {
   id: string;
   label: string;
@@ -74,6 +80,15 @@ const DEFAULT_STATE: ExtensionState = {
   filterText: '',
   filterMode: 'Like'
 };
+
+function createDefaultMappings(folder: string, fileSuffix: string, namespace?: string): ObjectTypeMapping[] {
+  return ['Table', 'View', 'Procedure'].map((objectType) => ({
+    objectType: objectType as DatabaseObjectType,
+    targetFolder: folder,
+    fileSuffix,
+    namespace: namespace || undefined
+  }));
+}
 
 class DbNodeItem extends vscode.TreeItem {
   constructor(public readonly node: TreeNode) {
@@ -165,6 +180,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         const payload = message as Record<string, unknown>;
 
         if (payload.type === 'saveConnection') {
+          const existingId = String(payload.connectionId ?? '').trim();
           const name = String(payload.name ?? '').trim();
           const databaseType = String(payload.databaseType ?? '').trim();
           const databaseName = String(payload.databaseName ?? '').trim();
@@ -175,18 +191,39 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             return;
           }
 
-          state.connections.push({
-            id: `${databaseType}-${databaseName}-${Date.now()}`,
-            name,
-            databaseType,
-            databaseName,
-            connectionString
-          });
+          if (existingId) {
+            const index = state.connections.findIndex((x) => x.id === existingId);
+            if (index >= 0) {
+              state.connections[index] = {
+                id: existingId,
+                name,
+                databaseType,
+                databaseName,
+                connectionString
+              };
+            }
+          } else {
+            const connectionId = `${databaseType}-${databaseName}-${Date.now()}`;
+            state.connections.push({
+              id: connectionId,
+              name,
+              databaseType,
+              databaseName,
+              connectionString
+            });
+
+            if (!state.mappingConfigurations.some((x) => x.connectionId === connectionId)) {
+              state.mappingConfigurations.push({
+                connectionId,
+                mappings: createDefaultMappings('src/Generated', 'Factory')
+              });
+            }
+          }
 
           await saveState(context, state);
           refreshTree();
           render();
-          vscode.window.showInformationMessage(`Conexão ${name} salva.`);
+          vscode.window.showInformationMessage(existingId ? `Conexão ${name} atualizada.` : `Conexão ${name} salva.`);
           return;
         }
 
@@ -207,23 +244,26 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
         if (payload.type === 'saveMapping') {
           const connectionId = String(payload.connectionId ?? '').trim();
-          const folder = String(payload.folder ?? '').trim();
-          const fileSuffix = String(payload.fileSuffix ?? '').trim();
+          const tableFolder = String(payload.tableFolder ?? '').trim();
+          const tableSuffix = String(payload.tableSuffix ?? '').trim();
+          const viewFolder = String(payload.viewFolder ?? '').trim();
+          const viewSuffix = String(payload.viewSuffix ?? '').trim();
+          const procedureFolder = String(payload.procedureFolder ?? '').trim();
+          const procedureSuffix = String(payload.procedureSuffix ?? '').trim();
           const namespace = String(payload.namespace ?? '').trim();
 
-          if (!connectionId || !folder || !fileSuffix) {
-            vscode.window.showWarningMessage('Preencha conexão, pasta e sufixo do mapeamento.');
+          if (!connectionId || !tableFolder || !tableSuffix || !viewFolder || !viewSuffix || !procedureFolder || !procedureSuffix) {
+            vscode.window.showWarningMessage('Preencha conexão, pastas e sufixos dos mapeamentos.');
             return;
           }
 
           const mapping: ConnectionMappingConfiguration = {
             connectionId,
-            mappings: ['Table', 'View', 'Procedure'].map((objectType) => ({
-              objectType: objectType as DatabaseObjectType,
-              targetFolder: folder,
-              fileSuffix,
-              namespace: namespace || undefined
-            }))
+            mappings: [
+              { objectType: 'Table', targetFolder: tableFolder, fileSuffix: tableSuffix, namespace: namespace || undefined },
+              { objectType: 'View', targetFolder: viewFolder, fileSuffix: viewSuffix, namespace: namespace || undefined },
+              { objectType: 'Procedure', targetFolder: procedureFolder, fileSuffix: procedureSuffix, namespace: namespace || undefined }
+            ]
           };
 
           state.mappingConfigurations = state.mappingConfigurations.filter((x) => x.connectionId !== connectionId);
@@ -266,13 +306,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return;
       }
 
+      const connectionId = `${databaseType}-${databaseName}-${Date.now()}`;
       state.connections.push({
-        id: `${databaseType}-${databaseName}-${Date.now()}`,
+        id: connectionId,
         name,
         databaseType,
         databaseName,
         connectionString
       });
+
+      if (!state.mappingConfigurations.some((x) => x.connectionId === connectionId)) {
+        state.mappingConfigurations.push({
+          connectionId,
+          mappings: createDefaultMappings('src/Generated', 'Factory')
+        });
+      }
 
       await saveState(context, state);
       refreshTree();
@@ -306,31 +354,64 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return;
       }
 
-      const folder = await vscode.window.showInputBox({
-        prompt: 'Pasta alvo para classes (relativa ao workspace, ex: src/Domain/Models)',
-        value: 'src/Models'
-      });
+      const current = state.mappingConfigurations.find((x) => x.connectionId === connection.id);
+      const currentByType = new Map((current?.mappings ?? []).map((x) => [x.objectType, x]));
 
-      if (!folder) {
+      const tableFolder = await vscode.window.showInputBox({
+        prompt: 'Pasta para Table',
+        value: currentByType.get('Table')?.targetFolder ?? 'src/Models/Tables'
+      });
+      if (!tableFolder) {
         return;
       }
 
-      const fileSuffix = await vscode.window.showInputBox({
-        prompt: 'Sufixo dos arquivos/classe de teste (ex: Tests)',
-        value: 'Tests'
+      const tableSuffix = await vscode.window.showInputBox({
+        prompt: 'Sufixo de classe para Table',
+        value: currentByType.get('Table')?.fileSuffix ?? 'TableTests'
       });
+      if (!tableSuffix) {
+        return;
+      }
 
-      if (!fileSuffix) {
+      const viewFolder = await vscode.window.showInputBox({
+        prompt: 'Pasta para View',
+        value: currentByType.get('View')?.targetFolder ?? 'src/Models/Views'
+      });
+      if (!viewFolder) {
+        return;
+      }
+
+      const viewSuffix = await vscode.window.showInputBox({
+        prompt: 'Sufixo de classe para View',
+        value: currentByType.get('View')?.fileSuffix ?? 'ViewTests'
+      });
+      if (!viewSuffix) {
+        return;
+      }
+
+      const procedureFolder = await vscode.window.showInputBox({
+        prompt: 'Pasta para Procedure',
+        value: currentByType.get('Procedure')?.targetFolder ?? 'src/Models/Procedures'
+      });
+      if (!procedureFolder) {
+        return;
+      }
+
+      const procedureSuffix = await vscode.window.showInputBox({
+        prompt: 'Sufixo de classe para Procedure',
+        value: currentByType.get('Procedure')?.fileSuffix ?? 'ProcedureTests'
+      });
+      if (!procedureSuffix) {
         return;
       }
 
       const mapping: ConnectionMappingConfiguration = {
         connectionId: connection.id,
-        mappings: ['Table', 'View', 'Procedure'].map((objectType) => ({
-          objectType: objectType as DatabaseObjectType,
-          targetFolder: folder,
-          fileSuffix
-        }))
+        mappings: [
+          { objectType: 'Table', targetFolder: tableFolder, fileSuffix: tableSuffix },
+          { objectType: 'View', targetFolder: viewFolder, fileSuffix: viewSuffix },
+          { objectType: 'Procedure', targetFolder: procedureFolder, fileSuffix: procedureSuffix }
+        ]
       };
 
       state.mappingConfigurations = state.mappingConfigurations.filter((x) => x.connectionId !== connection.id);
@@ -400,6 +481,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
       const objects = metadataProvider.getObjects(connection);
       const filtered = applyFilter(objects, state.filterText, state.filterMode);
+      const plans: GenerationPlan[] = [];
 
       for (const objectRef of filtered) {
         const objectMapping = mapping.mappings.find((x) => x.objectType === objectRef.objectType);
@@ -410,9 +492,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         const className = sanitizeClassName(objectRef.name + objectMapping.fileSuffix);
         const targetDir = path.join(workspaceFolder, objectMapping.targetFolder);
         const targetFile = path.join(targetDir, `${className}.cs`);
+        plans.push({ objectRef, targetFile, content: generateClassTemplate(className, objectRef) });
+      }
 
-        await fs.mkdir(targetDir, { recursive: true });
-        await fs.writeFile(targetFile, generateClassTemplate(className, objectRef), 'utf8');
+      if (!await confirmOverwrite(plans, 'classes de teste')) {
+        return;
+      }
+
+      for (const plan of plans) {
+        await fs.mkdir(path.dirname(plan.targetFile), { recursive: true });
+        await fs.writeFile(plan.targetFile, plan.content, 'utf8');
       }
 
       vscode.window.showInformationMessage(`Classes de teste geradas para ${connection.name}.`);
@@ -536,14 +625,18 @@ function buildTree(
         label: objectType,
         kind: 'objectType',
         objectType,
-        children: objectGroups[objectType].map((objectRef) => ({
-          id: `obj-${connection.id}-${objectType}-${objectRef.schema}.${objectRef.name}`,
-          label: `${objectRef.schema}.${objectRef.name}`,
-          kind: 'object',
-          objectType,
-          objectRef,
-          connectionId: connection.id
-        })),
+        children: objectGroups[objectType].map((objectRef) => {
+          const generationStatus = generationCheckByObjectKey[buildObjectKey(connection.id, objectRef)];
+          return {
+            id: `obj-${connection.id}-${objectType}-${objectRef.schema}.${objectRef.name}`,
+            label: `${objectRef.schema}.${objectRef.name}`,
+            kind: 'object',
+            objectType,
+            objectRef,
+            connectionId: connection.id,
+            generationStatus
+          };
+        }),
         connectionId: connection.id
       };
 
@@ -630,7 +723,7 @@ async function generateTemplateBasedFiles(
   const templateRelativePath = kind === 'model' ? state.templateSettings.modelTemplatePath : state.templateSettings.repositoryTemplatePath;
   const targetFolder = kind === 'model' ? state.templateSettings.modelTargetFolder : state.templateSettings.repositoryTargetFolder;
   const suffix = kind === 'model' ? 'Model' : 'Repository';
-  const objects = metadataProvider.getObjects(connection);
+  const objects = applyFilter(metadataProvider.getObjects(connection), state.filterText, state.filterMode);
 
   let templateText = kind === 'model'
     ? '// Model generated from {{Schema}}.{{ObjectName}}\npublic class {{ClassName}}\n{\n}\n'
@@ -645,6 +738,7 @@ async function generateTemplateBasedFiles(
     }
   }
 
+  const plans: GenerationPlan[] = [];
   for (const objectRef of objects) {
     const className = sanitizeClassName(`${objectRef.name}${suffix}`);
     const targetDir = path.join(workspaceFolder, targetFolder);
@@ -658,11 +752,57 @@ async function generateTemplateBasedFiles(
       .split('{{DatabaseType}}').join(connection.databaseType)
       .split('{{DatabaseName}}').join(connection.databaseName);
 
-    await fs.mkdir(targetDir, { recursive: true });
-    await fs.writeFile(targetFile, content, 'utf8');
+    plans.push({ objectRef, targetFile, content });
+  }
+
+  const label = kind === 'model' ? 'modelos' : 'repositórios';
+  if (!await confirmOverwrite(plans, label)) {
+    return;
+  }
+
+  for (const plan of plans) {
+    await fs.mkdir(path.dirname(plan.targetFile), { recursive: true });
+    await fs.writeFile(plan.targetFile, plan.content, 'utf8');
   }
 
   vscode.window.showInformationMessage(`${kind === 'model' ? 'Modelos' : 'Repositórios'} gerados para ${connection.name}.`);
+}
+
+
+async function confirmOverwrite(plans: GenerationPlan[], label: string): Promise<boolean> {
+  if (plans.length === 0) {
+    vscode.window.showWarningMessage(`Nenhum objeto elegível para gerar ${label}.`);
+    return false;
+  }
+
+  const existing: string[] = [];
+  for (const plan of plans) {
+    if (await fileExists(plan.targetFile)) {
+      existing.push(path.basename(plan.targetFile));
+    }
+  }
+
+  if (existing.length === 0) {
+    return true;
+  }
+
+  const preview = existing.slice(0, 5).join(', ');
+  const choice = await vscode.window.showWarningMessage(
+    `${existing.length} arquivo(s) serão sobrescritos (${preview}). Deseja continuar?`,
+    'Gerar e sobrescrever',
+    'Cancelar'
+  );
+
+  return choice === 'Gerar e sobrescrever';
+}
+
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function sanitizeClassName(value: string): string {
@@ -720,10 +860,16 @@ function getManagerHtml(state: ExtensionState): string {
     .join('');
 
   const mappingByConnection = new Map(state.mappingConfigurations.map((m) => [m.connectionId, m]));
+  const mappingFormData = JSON.stringify(Object.fromEntries(
+    state.mappingConfigurations.map((m) => [
+      m.connectionId,
+      Object.fromEntries(m.mappings.map((x) => [x.objectType, { targetFolder: x.targetFolder, fileSuffix: x.fileSuffix, namespace: x.namespace ?? '' }]))
+    ])
+  ));
   const connectionsTable = state.connections.length === 0
     ? '<p><em>Nenhuma conexão configurada.</em></p>'
     : `<table><thead><tr><th>Nome</th><th>Tipo</th><th>Database</th><th>Ações</th></tr></thead><tbody>${state.connections
-      .map((c) => `<tr><td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.databaseType)}</td><td>${escapeHtml(c.databaseName)}</td><td><button data-remove="${escapeHtml(c.id)}">Remover</button></td></tr>`)
+      .map((c) => `<tr><td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.databaseType)}</td><td>${escapeHtml(c.databaseName)}</td><td><button data-edit="${escapeHtml(c.id)}" data-name="${escapeHtml(c.name)}" data-type="${escapeHtml(c.databaseType)}" data-db="${escapeHtml(c.databaseName)}">Editar</button> <button data-remove="${escapeHtml(c.id)}">Remover</button></td></tr>`)
       .join('')}</tbody></table>`;
 
   const mappingsTable = state.connections.length === 0
@@ -761,7 +907,8 @@ function getManagerHtml(state: ExtensionState): string {
   <h1>DbSqlLikeMem - Interface Gráfica</h1>
   <div class="grid">
     <section class="panel">
-      <h2>Adicionar Conexão</h2>
+      <h2>Adicionar/Editar Conexão</h2>
+      <input id="connectionIdHidden" type="hidden" />
       <label>Nome</label><input id="name" />
       <label>Tipo do banco</label>
       <select id="databaseType">
@@ -776,8 +923,12 @@ function getManagerHtml(state: ExtensionState): string {
       <h2>Configurar Mapeamentos</h2>
       <label>Conexão</label>
       <select id="connectionId">${connectionOptions}</select>
-      <label>Pasta alvo</label><input id="folder" value="src/Models" />
-      <label>Sufixo de arquivo/classe</label><input id="fileSuffix" value="Entity" />
+      <label>Pasta Table</label><input id="tableFolder" value="src/Models/Tables" />
+      <label>Sufixo Table</label><input id="tableSuffix" value="TableTests" />
+      <label>Pasta View</label><input id="viewFolder" value="src/Models/Views" />
+      <label>Sufixo View</label><input id="viewSuffix" value="ViewTests" />
+      <label>Pasta Procedure</label><input id="procedureFolder" value="src/Models/Procedures" />
+      <label>Sufixo Procedure</label><input id="procedureSuffix" value="ProcedureTests" />
       <label>Namespace (opcional)</label><input id="namespace" />
       <button id="saveMapping">Salvar mapeamentos</button>
     </section>
@@ -795,9 +946,24 @@ function getManagerHtml(state: ExtensionState): string {
 
   <script>
     const vscode = acquireVsCodeApi();
+    const mappingFormData = ${mappingFormData};
+
+    function hydrateMappingForm() {
+      const connectionId = document.getElementById('connectionId').value;
+      const selected = mappingFormData[connectionId] || {};
+      document.getElementById('tableFolder').value = selected.Table?.targetFolder || 'src/Models/Tables';
+      document.getElementById('tableSuffix').value = selected.Table?.fileSuffix || 'TableTests';
+      document.getElementById('viewFolder').value = selected.View?.targetFolder || 'src/Models/Views';
+      document.getElementById('viewSuffix').value = selected.View?.fileSuffix || 'ViewTests';
+      document.getElementById('procedureFolder').value = selected.Procedure?.targetFolder || 'src/Models/Procedures';
+      document.getElementById('procedureSuffix').value = selected.Procedure?.fileSuffix || 'ProcedureTests';
+      document.getElementById('namespace').value = selected.Table?.namespace || selected.View?.namespace || selected.Procedure?.namespace || '';
+    }
+
     document.getElementById('saveConnection')?.addEventListener('click', () => {
       vscode.postMessage({
         type: 'saveConnection',
+        connectionId: document.getElementById('connectionIdHidden').value,
         name: document.getElementById('name').value,
         databaseType: document.getElementById('databaseType').value,
         databaseName: document.getElementById('databaseName').value,
@@ -805,13 +971,29 @@ function getManagerHtml(state: ExtensionState): string {
       });
     });
 
+    document.getElementById('connectionId')?.addEventListener('change', hydrateMappingForm);
+    hydrateMappingForm();
+
     document.getElementById('saveMapping')?.addEventListener('click', () => {
       vscode.postMessage({
         type: 'saveMapping',
         connectionId: document.getElementById('connectionId').value,
-        folder: document.getElementById('folder').value,
-        fileSuffix: document.getElementById('fileSuffix').value,
+        tableFolder: document.getElementById('tableFolder').value,
+        tableSuffix: document.getElementById('tableSuffix').value,
+        viewFolder: document.getElementById('viewFolder').value,
+        viewSuffix: document.getElementById('viewSuffix').value,
+        procedureFolder: document.getElementById('procedureFolder').value,
+        procedureSuffix: document.getElementById('procedureSuffix').value,
         namespace: document.getElementById('namespace').value
+      });
+    });
+
+    document.querySelectorAll('[data-edit]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.getElementById('connectionIdHidden').value = btn.getAttribute('data-edit') || '';
+        document.getElementById('name').value = btn.getAttribute('data-name') || '';
+        document.getElementById('databaseType').value = btn.getAttribute('data-type') || 'SqlServer';
+        document.getElementById('databaseName').value = btn.getAttribute('data-db') || '';
       });
     });
 

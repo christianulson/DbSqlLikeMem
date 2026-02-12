@@ -12,11 +12,11 @@ Extensão equivalente ao fluxo desenhado para o Visual Studio Extension Core, ad
   - Tipo do objeto (`Table`, `View`, `Procedure`)
   - Objeto (`schema.nome`)
 - Filtro por modo `Like` e `Equals`.
-- Interface gráfica (Manager) para cadastrar/remover conexões e configurar mapeamentos.
-- Configuração de mapeamentos também no menu de contexto do nó do database.
-- Geração de classes de **teste** `.cs` no workspace (ação principal).
-- Geração de classes de **modelo** a partir de template com tokens.
-- Geração de classes de **repositório** a partir de template com tokens.
+- Interface gráfica (Manager) para cadastrar/editar/remover conexões e configurar mapeamentos.
+- Configuração de mapeamentos por tipo de objeto (`Table`, `View`, `Procedure`) também no menu de contexto do nó do database.
+- Geração de classes de **teste** `.cs` no workspace (ação principal), com prévia de conflitos (sobrescrita).
+- Geração de classes de **modelo** a partir de template com tokens, com prévia de conflitos (sobrescrita).
+- Geração de classes de **repositório** a partir de template com tokens, com prévia de conflitos (sobrescrita).
 - Configuração de templates (botão no topo da view) para modelos e repositórios.
 - Check de consistência para artefatos gerados (teste/model/repositório), com status visual por objeto na árvore.
 - Exportação/importação do estado em JSON.
