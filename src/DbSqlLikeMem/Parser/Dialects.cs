@@ -102,6 +102,10 @@ internal interface ISqlDialect
     StringComparison TextComparison { get; }
     bool SupportsImplicitNumericStringComparison { get; }
     bool LikeIsCaseInsensitive { get; }
+    bool SupportsIfFunction { get; }
+    bool SupportsIifFunction { get; }
+    IReadOnlyCollection<string> NullSubstituteFunctionNames { get; }
+    bool ConcatReturnsNullOnNullInput { get; }
     // Dialect-specific runtime semantics
     bool RegexInvalidPatternEvaluatesToFalse { get; }
     bool AreUnionColumnTypesCompatible(DbType first, DbType second);
@@ -243,6 +247,11 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// PT: Controla sensibilidade de maiúsculas/minúsculas no LIKE do mock quando não há collation explícita.
     /// </summary>
     public virtual bool LikeIsCaseInsensitive => true;
+    public virtual bool SupportsIfFunction => true;
+    public virtual bool SupportsIifFunction => true;
+    public virtual IReadOnlyCollection<string> NullSubstituteFunctionNames
+        => ["IFNULL", "ISNULL", "NVL"];
+    public virtual bool ConcatReturnsNullOnNullInput => true;
     public virtual bool RegexInvalidPatternEvaluatesToFalse => false;
 
     public virtual bool AreUnionColumnTypesCompatible(DbType first, DbType second)

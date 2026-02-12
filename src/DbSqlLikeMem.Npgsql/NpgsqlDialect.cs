@@ -103,6 +103,8 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
+    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => [];
+    public override bool ConcatReturnsNullOnNullInput => false;
 
     /// <summary>
     /// Auto-generated summary.

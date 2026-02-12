@@ -96,6 +96,8 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsNullSafeEq => false;
+    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL"];
+    public override bool ConcatReturnsNullOnNullInput => true;
     
     /// <summary>
     /// Auto-generated summary.

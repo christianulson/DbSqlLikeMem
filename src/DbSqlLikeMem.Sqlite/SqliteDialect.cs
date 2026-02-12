@@ -93,6 +93,8 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsNullSafeEq => true;
+    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL"];
+    public override bool ConcatReturnsNullOnNullInput => false;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
