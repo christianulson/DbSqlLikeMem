@@ -102,10 +102,16 @@ internal interface ISqlDialect
     StringComparison TextComparison { get; }
     bool SupportsImplicitNumericStringComparison { get; }
     bool LikeIsCaseInsensitive { get; }
+    bool SupportsIfFunction { get; }
+    bool SupportsIifFunction { get; }
+    IReadOnlyCollection<string> NullSubstituteFunctionNames { get; }
+    bool ConcatReturnsNullOnNullInput { get; }
     // Dialect-specific runtime semantics
     bool RegexInvalidPatternEvaluatesToFalse { get; }
     bool AreUnionColumnTypesCompatible(DbType first, DbType second);
     bool IsIntegerCastTypeName(string typeName);
+    bool SupportsDateAddFunction(string functionName);
+    DbType InferWindowFunctionDbType(WindowFunctionExpr windowFunctionExpr, Func<SqlExpr, DbType> inferArgDbType);
 }
 
 internal abstract class SqlDialectBase : ISqlDialect
@@ -243,6 +249,11 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// PT: Controla sensibilidade de maiúsculas/minúsculas no LIKE do mock quando não há collation explícita.
     /// </summary>
     public virtual bool LikeIsCaseInsensitive => true;
+    public virtual bool SupportsIfFunction => true;
+    public virtual bool SupportsIifFunction => true;
+    public virtual IReadOnlyCollection<string> NullSubstituteFunctionNames
+        => ["IFNULL", "ISNULL", "NVL"];
+    public virtual bool ConcatReturnsNullOnNullInput => true;
     public virtual bool RegexInvalidPatternEvaluatesToFalse => false;
 
     public virtual bool AreUnionColumnTypesCompatible(DbType first, DbType second)
@@ -283,6 +294,46 @@ internal abstract class SqlDialectBase : ISqlDialect
             || typeName.StartsWith("BIGINT", StringComparison.OrdinalIgnoreCase)
             || typeName.StartsWith("SMALLINT", StringComparison.OrdinalIgnoreCase)
             || typeName.StartsWith("TINYINT", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public virtual bool SupportsDateAddFunction(string functionName)
+    {
+        if (string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        return functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("DATEADD", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public virtual DbType InferWindowFunctionDbType(
+        WindowFunctionExpr windowFunctionExpr,
+        Func<SqlExpr, DbType> inferArgDbType)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(windowFunctionExpr, nameof(windowFunctionExpr));
+        ArgumentNullExceptionCompatible.ThrowIfNull(inferArgDbType, nameof(inferArgDbType));
+
+        if (windowFunctionExpr.Name.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("RANK", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("DENSE_RANK", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("NTILE", StringComparison.OrdinalIgnoreCase))
+            return DbType.Int64;
+
+        if (windowFunctionExpr.Name.Equals("PERCENT_RANK", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("CUME_DIST", StringComparison.OrdinalIgnoreCase))
+            return DbType.Double;
+
+        if (windowFunctionExpr.Name.Equals("LAG", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("LEAD", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("FIRST_VALUE", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase))
+        {
+            if (windowFunctionExpr.Args.Count > 0)
+                return inferArgDbType(windowFunctionExpr.Args[0]);
+        }
+
+        return DbType.Object;
     }
     /// <summary>
     /// Auto-generated summary.

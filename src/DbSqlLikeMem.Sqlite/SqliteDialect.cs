@@ -93,6 +93,8 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsNullSafeEq => true;
+    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL"];
+    public override bool ConcatReturnsNullOnNullInput => false;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
@@ -115,4 +117,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// PT: Comportamento de LIKE no mock segue o padrão do dialeto e é case-insensitive.
     /// </summary>
     public override bool LikeIsCaseInsensitive => true;
+
+    public override bool SupportsDateAddFunction(string functionName)
+        => functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase);
 }

@@ -86,6 +86,12 @@ internal static class SqlExtensions
 
     internal static int Compare(this object a, object b, ISqlDialect? dialect = null)
     {
+        if (a is string sa && b is string sb)
+            return string.Compare(sa, sb, dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
+
+        if (a.GetType() == b.GetType() && a is IComparable comparable)
+            return comparable.CompareTo(b);
+
         // numeric compare if possible
         if ((dialect?.SupportsImplicitNumericStringComparison ?? true)
             && TryDecimal(a, out var da) && TryDecimal(b, out var db))
@@ -102,7 +108,7 @@ internal static class SqlExtensions
                 case long l: d = l; return true;
                 case double db: d = (decimal)db; return true;
                 default:
-                    return decimal.TryParse(o.ToString(), out d);
+                    return decimal.TryParse(o.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out d);
             }
         }
     }
@@ -111,6 +117,12 @@ internal static class SqlExtensions
     {
         if (a is null || a is DBNull) return b is null || b is DBNull;
         if (b is null || b is DBNull) return false;
+
+        if (a is string sa && b is string sb)
+            return string.Equals(sa, sb, dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
+
+        if (a.GetType() == b.GetType())
+            return a.Equals(b);
 
         if ((dialect?.SupportsImplicitNumericStringComparison ?? true)
             && TryDecimal(a, out var da) && TryDecimal(b, out var db))
@@ -127,7 +139,7 @@ internal static class SqlExtensions
                 case long l: d = l; return true;
                 case double db: d = (decimal)db; return true;
                 default:
-                    return decimal.TryParse(o.ToString(), out d);
+                    return decimal.TryParse(o.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out d);
             }
         }
     }

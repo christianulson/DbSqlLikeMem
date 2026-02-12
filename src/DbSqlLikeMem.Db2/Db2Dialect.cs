@@ -96,6 +96,8 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsNullSafeEq => false;
+    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL"];
+    public override bool ConcatReturnsNullOnNullInput => true;
     
     /// <summary>
     /// Auto-generated summary.
@@ -144,4 +146,8 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// PT: Comportamento de LIKE no mock segue o padrão do dialeto e é case-insensitive.
     /// </summary>
     public override bool LikeIsCaseInsensitive => true;
+
+    public override bool SupportsDateAddFunction(string functionName)
+        => functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)
+        || functionName.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase);
 }

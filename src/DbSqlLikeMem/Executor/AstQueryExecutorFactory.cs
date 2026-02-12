@@ -57,6 +57,8 @@ internal static class AstQueryExecutorFactory
         public TableResultMock ExecuteUnion(
             IReadOnlyList<SqlSelectQuery> parts,
             IReadOnlyList<bool> allFlags,
+            IReadOnlyList<SqlOrderByItem>? orderBy = null,
+            SqlRowLimit? rowLimit = null,
             string? sqlContextForErrors = null)
             => throw new NotSupportedException(
                 $"AST executor não implementado para dialeto '{_dialectName}'. " +

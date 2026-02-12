@@ -63,6 +63,8 @@ internal abstract class AstQueryExecutorBase(
     public TableResultMock ExecuteUnion(
         IReadOnlyList<SqlSelectQuery> parts,
         IReadOnlyList<bool> allFlags,
+        IReadOnlyList<SqlOrderByItem>? orderBy = null,
+        SqlRowLimit? rowLimit = null,
         string? sqlContextForErrors = null)
     {
         if (parts is null || parts.Count == 0)
@@ -133,11 +135,23 @@ internal abstract class AstQueryExecutorBase(
             }
         }
 
-        // ORDER BY / LIMIT devem aplicar no resultado final
-        // No seu parse atual, ORDER BY fica no último SELECT do UNION.
-        var finalQ = parts[^1];
-        var ctes = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase);
-        result = ApplyOrderAndLimit(result, finalQ, ctes);
+        // ORDER BY/LIMIT final do UNION segue a projeção final do resultado combinado.
+        if ((orderBy?.Count ?? 0) > 0 || rowLimit is not null)
+        {
+            var finalQ = new SqlSelectQuery(
+                Ctes: [],
+                Distinct: false,
+                SelectItems: [],
+                Joins: [],
+                Where: null,
+                OrderBy: orderBy ?? [],
+                RowLimit: rowLimit,
+                GroupBy: [],
+                Having: null);
+
+            var ctes = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase);
+            result = ApplyOrderAndLimit(result, finalQ, ctes);
+        }
 
         return result;
     }
@@ -640,6 +654,8 @@ internal abstract class AstQueryExecutorBase(
                     .Where(_=>_!= null)
                     .Select(_=>_!)],
                 ts.DerivedUnion.AllFlags,
+                ts.DerivedUnion.OrderBy,
+                ts.DerivedUnion.RowLimit,
                 ts.DerivedSql ?? "(derived)"
             );
             return Source.FromResult(alias, res);
@@ -898,25 +914,7 @@ internal abstract class AstQueryExecutorBase(
         if (IsNullish(a)) return -1;
         if (IsNullish(b)) return 1;
 
-        if (a is IComparable ac && b is not null)
-        {
-            try
-            {
-                // normalize some numeric differences
-                if (a is decimal da && b is int bi) return da.CompareTo((decimal)bi);
-                if (a is int ai && b is decimal bd) return ((decimal)ai).CompareTo(bd);
-                if (a is long al && b is int bi2) return al.CompareTo((long)bi2);
-                if (a is int ai2 && b is long bl2) return ((long)ai2).CompareTo(bl2);
-
-                return ac.CompareTo(b);
-            }
-            catch
-            {
-                // fallback to string
-            }
-        }
-
-        return string.Compare(a!.ToString(), b!.ToString(), Dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
+        return a!.Compare(b!, Dialect);
     }
 
     private SelectPlan BuildSelectPlan(
@@ -1010,6 +1008,10 @@ internal abstract class AstQueryExecutorBase(
         List<EvalRow> sampleRows,
         IDictionary<string, Source> ctes)
     {
+        if (exprAst is WindowFunctionExpr w)
+            return Dialect?.InferWindowFunctionDbType(w, arg => InferDbTypeFromExpression(arg, sampleRows, ctes))
+                ?? DbType.Object;
+
         foreach (var row in sampleRows)
         {
             var value = Eval(exprAst, row, group: null, ctes);
@@ -1383,25 +1385,7 @@ internal abstract class AstQueryExecutorBase(
             if (a is null) return -1;
             if (b is null) return 1;
 
-            // try numeric compare first
-            if (a is IConvertible && b is IConvertible)
-            {
-                // decimals keep precision
-                try
-                {
-                    var da = Convert.ToDecimal(a, CultureInfo.InvariantCulture);
-                    var db = Convert.ToDecimal(b, CultureInfo.InvariantCulture);
-                    return da.CompareTo(db);
-                }
-                catch (FormatException) { /* fallthrough */ }
-                catch (InvalidCastException) { /* fallthrough */ }
-                catch (OverflowException) { /* fallthrough */ }
-            }
-
-            if (a is IComparable ca && a.GetType() == b.GetType())
-                return ca.CompareTo(b);
-
-            return string.Compare(a.ToString(), b.ToString(), Dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
+            return a.Compare(b, Dialect);
         }
 
         int CompareRows(Dictionary<int, object?> ra, Dictionary<int, object?> rb)
@@ -1838,21 +1822,15 @@ internal abstract class AstQueryExecutorBase(
             return idx >= 0 ? idx + 1 : 0;
         }
 
-        if (fn.Name.Equals("IF", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("IIF", StringComparison.OrdinalIgnoreCase))
+        var isIf = fn.Name.Equals("IF", StringComparison.OrdinalIgnoreCase);
+        var isIif = fn.Name.Equals("IIF", StringComparison.OrdinalIgnoreCase);
+        if ((isIf && Dialect.SupportsIfFunction) || (isIif && Dialect.SupportsIifFunction))
         {
             var cond = EvalArg(0).ToBool();
             return cond ? EvalArg(1) : EvalArg(2);
         }
 
-        if (fn.Name.Equals("IFNULL", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("NVL", StringComparison.OrdinalIgnoreCase))
-        {
-            var v = EvalArg(0);
-            return IsNullish(v) ? EvalArg(1) : v;
-        }
-
-        if (fn.Name.Equals("ISNULL", StringComparison.OrdinalIgnoreCase))
+        if (Dialect.NullSubstituteFunctionNames.Any(n => n.Equals(fn.Name, StringComparison.OrdinalIgnoreCase)))
         {
             var v = EvalArg(0);
             return IsNullish(v) ? EvalArg(1) : v;
@@ -2027,12 +2005,19 @@ internal abstract class AstQueryExecutorBase(
 
         if (fn.Name.Equals("CONCAT", StringComparison.OrdinalIgnoreCase))
         {
-            // MySQL: CONCAT returns NULL if any argument is NULL
             var parts = new string[fn.Args.Count];
             for (int i = 0; i < fn.Args.Count; i++)
             {
                 var v = EvalArg(i);
-                if (IsNullish(v)) return null;
+                if (IsNullish(v))
+                {
+                    if (Dialect.ConcatReturnsNullOnNullInput)
+                        return null;
+
+                    parts[i] = string.Empty;
+                    continue;
+                }
+
 #pragma warning disable CA1508 // Avoid dead conditional code
                 parts[i] = v?.ToString() ?? "";
 #pragma warning restore CA1508 // Avoid dead conditional code
@@ -2131,6 +2116,8 @@ internal abstract class AstQueryExecutorBase(
 
         if (fn.Name.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase))
         {
+            if (!(Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para operações de data.")).SupportsDateAddFunction("DATE_ADD"))
+                return null;
             var baseVal = EvalArg(0);
             if (IsNullish(baseVal)) return null;
             if (!TryCoerceDateTime(baseVal, out var dt))
@@ -2155,6 +2142,8 @@ internal abstract class AstQueryExecutorBase(
 
         if (fn.Name.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase))
         {
+            if (!(Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para operações de data.")).SupportsDateAddFunction("TIMESTAMPADD"))
+                return null;
             if (fn.Args.Count < 3)
                 return null;
 
@@ -2171,6 +2160,8 @@ internal abstract class AstQueryExecutorBase(
 
         if (fn.Name.Equals("DATEADD", StringComparison.OrdinalIgnoreCase))
         {
+            if (!(Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para operações de data.")).SupportsDateAddFunction("DATEADD"))
+                return null;
             if (fn.Args.Count < 3)
                 return null;
 

@@ -9,6 +9,7 @@ using System.Threading;
 using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 using DbSqlLikeMem.VisualStudioExtension.Core.Persistence;
+using DbSqlLikeMem.VisualStudioExtension.Core.Services;
 using DbSqlLikeMem.VisualStudioExtension.Core.Validation;
 using DbSqlLikeMem.VisualStudioExtension.Services;
 
@@ -28,6 +29,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     private readonly Dictionary<string, IReadOnlyCollection<DatabaseObjectReference>> objectsByConnection = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, ObjectHealthResult> healthByObject = new(StringComparer.OrdinalIgnoreCase);
     private TemplateConfiguration templateConfiguration = TemplateConfiguration.Default;
+    private readonly ObjectFilterService objectFilterService = new();
+
+    private string objectFilterText = string.Empty;
+    private FilterMode objectFilterMode = FilterMode.Like;
 
     public DbSqlLikeMemToolWindowViewModel()
     {
@@ -41,6 +46,38 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     public string StatusMessage { get; private set; } = "Pronto.";
 
     public bool IsBusy { get; private set; }
+
+    public string ObjectFilterText
+    {
+        get => objectFilterText;
+        set
+        {
+            if (string.Equals(objectFilterText, value, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            objectFilterText = value;
+            OnPropertyChanged(nameof(ObjectFilterText));
+            RefreshTree();
+        }
+    }
+
+    public FilterMode ObjectFilterMode
+    {
+        get => objectFilterMode;
+        set
+        {
+            if (objectFilterMode == value)
+            {
+                return;
+            }
+
+            objectFilterMode = value;
+            OnPropertyChanged(nameof(ObjectFilterMode));
+            RefreshTree();
+        }
+    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -518,11 +555,13 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                     };
 
                     var typedObjects = objects
-                        .Where(o => o.Type == objectType)
+                        .Where(o => o.Type == objectType);
+
+                    var filteredObjects = objectFilterService.Filter(typedObjects, ObjectFilterText, ObjectFilterMode)
                         .OrderBy(o => o.Schema, StringComparer.OrdinalIgnoreCase)
                         .ThenBy(o => o.Name, StringComparer.OrdinalIgnoreCase);
 
-                    foreach (var dbObject in typedObjects)
+                    foreach (var dbObject in filteredObjects)
                     {
                         var key = BuildObjectKey(connection.Id, dbObject);
                         var status = healthByObject.TryGetValue(key, out var health) ? health.Status : null;

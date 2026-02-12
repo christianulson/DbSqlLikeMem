@@ -46,29 +46,52 @@
 
 ### Regras padronizadas de collation e coerção implícita (mock)
 
-Para reduzir ambiguidades entre dialetos e manter testes determinísticos, o projeto adota uma regra explícita para DB2 e SQLite no executor em memória:
+Para reduzir ambiguidades entre dialetos e manter testes determinísticos (`Typing_ImplicitCasts_And_Collation*` e `Collation_CaseSensitivity*`), o projeto adota regras explícitas no executor em memória.
 
-- Comparação textual (`=`, `<>`, `IN`, `CASE`, `ORDER BY` fallback textual):
-  - **DB2**: `StringComparison.OrdinalIgnoreCase`.
-  - **SQLite**: `StringComparison.OrdinalIgnoreCase`.
-- `LIKE`:
-  - **DB2**: case-insensitive por padrão no mock.
-  - **SQLite**: case-insensitive por padrão no mock.
-- Comparação número vs string:
-  - Coerção implícita só ocorre quando **ambos os lados** podem ser convertidos para número (`decimal` com cultura invariável).
-  - Exemplo suportado: `id = '2'`.
-  - Exemplo não convertido (cai para comparação textual): `id = '2x'`.
+#### 1) Comparação textual (`=`, `<>`, `IN`, `CASE`, fallback textual em `ORDER BY`)
 
-> Observação: bancos reais podem variar conforme collation configurada em coluna/base/instância. Quando o comportamento real não é 100% reproduzível no mock, esta regra fixa é a referência oficial para testes.
+| Provider | Regra no mock |
+| --- | --- |
+| MySQL | `StringComparison.OrdinalIgnoreCase` |
+| SQL Server | `StringComparison.OrdinalIgnoreCase` |
+| Oracle | `StringComparison.OrdinalIgnoreCase` |
+| PostgreSQL (Npgsql) | `StringComparison.OrdinalIgnoreCase` |
+| SQLite | `StringComparison.OrdinalIgnoreCase` |
+| DB2 | `StringComparison.OrdinalIgnoreCase` |
 
-## Fase 3 — recursos analíticos (SQLite/DB2)
+> Observação: em bancos reais, esse comportamento depende de collation da instância/database/coluna. No mock, a regra acima é fixa por provider para garantir previsibilidade de teste.
+
+#### 2) `LIKE`
+
+| Provider | Regra no mock |
+| --- | --- |
+| MySQL | case-insensitive por padrão |
+| SQL Server | case-insensitive por padrão |
+| Oracle | case-insensitive por padrão |
+| PostgreSQL (Npgsql) | case-insensitive por padrão |
+| SQLite | case-insensitive por padrão |
+| DB2 | case-insensitive por padrão |
+
+#### 3) Coerção implícita número vs string
+
+- A coerção implícita só ocorre quando **ambos os lados** podem ser convertidos para número (`decimal`) com `CultureInfo.InvariantCulture`.
+- Exemplo suportado: `id = '2'`.
+- Exemplo sem coerção numérica (cai para comparação textual): `id = '2x'`.
+- A regra vale para operadores de comparação (`=`, `<>`, `>`, `>=`, `<`, `<=`) e para os caminhos internos de ordenação/comparação usados pelo executor AST.
+
+## Fase 3 — recursos analíticos (todos os providers)
 
 Decisões de compatibilidade implementadas para cobrir os cenários de relatório mais comuns:
 
 - `ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)`: habilitado no executor AST para todos os dialetos que passam por `AstQueryExecutorBase`, incluindo SQLite e DB2.
 - Subquery correlacionada em `SELECT` list: avaliada como subconsulta escalar com acesso ao `outer row` (primeira célula da primeira linha; `null` se vazio).
 - `CAST` string->número (casos básicos): suporte para `SIGNED`/`UNSIGNED`/`INT*` e `DECIMAL`/`NUMERIC` com parsing `InvariantCulture` e fallback previsível (`0`/`0m` em `CAST`, `null` em `TRY_CAST`).
-- Operações de data: comportamento unificado para `DATE_ADD`, `DATEADD` e `TIMESTAMPADD`; adicionalmente, `DATE(...)`/`DATETIME(...)` aceitam modificadores SQLite simples como `'+1 day'`.
+- Operações de data com regra explícita por dialeto (`SupportsDateAddFunction`):
+  - **MySQL**: `DATE_ADD` e `TIMESTAMPADD`.
+  - **SQLite**: `DATE_ADD` (além de `DATE(...)`/`DATETIME(...)` com modificadores simples como `'+1 day'`).
+  - **SQL Server**: `DATEADD`.
+  - **DB2**: `DATE_ADD` e `TIMESTAMPADD`.
+  - **PostgreSQL / Oracle**: sem função `DATE_ADD/DATEADD/TIMESTAMPADD` no mock; o caminho suportado é aritmética com `INTERVAL` (ex.: `created + INTERVAL ...`).
 
 ### Limitações conhecidas (próxima fase)
 
