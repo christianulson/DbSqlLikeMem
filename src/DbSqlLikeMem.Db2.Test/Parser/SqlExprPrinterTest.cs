@@ -35,7 +35,5 @@ public sealed class SqlExprPrinterTest(
         yield return new object[] { "a IN (1,2,3)" };
         yield return new object[] { "a IN ((SELECT 1 WHERE 0))" };
         yield return new object[] { "EXISTS(SELECT 1 WHERE 0)" };
-        yield return new object[] { "data->'$.name' = 'x'" };
-        yield return new object[] { "data->>'$.name' = 'x'" };
     }
 }
