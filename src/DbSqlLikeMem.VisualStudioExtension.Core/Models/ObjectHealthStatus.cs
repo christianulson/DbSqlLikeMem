@@ -12,6 +12,11 @@ public enum ObjectHealthStatus
     /// </summary>
     MissingInDatabase,
     /// <summary>
+    /// The local generated artifacts were not found.
+    /// Os artefatos locais gerados não foram encontrados.
+    /// </summary>
+    MissingLocalArtifacts,
+    /// <summary>
     /// The object exists but differs from the database metadata.
     /// O objeto existe, mas difere dos metadados do banco.
     /// </summary>

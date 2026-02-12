@@ -4,9 +4,11 @@ namespace DbSqlLikeMem.VisualStudioExtension.UI;
 
 public partial class MappingDialog : Window
 {
-    public MappingDialog()
+    public MappingDialog(string fileNamePattern, string outputDirectory)
     {
         InitializeComponent();
+        FilePatternTextBox.Text = fileNamePattern;
+        OutputDirectoryTextBox.Text = outputDirectory;
     }
 
     public string FileNamePattern { get; private set; } = "{NamePascal}{Type}Factory.cs";

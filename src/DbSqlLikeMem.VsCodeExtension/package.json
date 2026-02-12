@@ -35,7 +35,10 @@
     "onCommand:dbSqlLikeMem.addConnection",
     "onCommand:dbSqlLikeMem.checkConsistency",
     "onCommand:dbSqlLikeMem.configureMappings",
+    "onCommand:dbSqlLikeMem.configureTemplates",
     "onCommand:dbSqlLikeMem.generateClasses",
+    "onCommand:dbSqlLikeMem.generateModelClasses",
+    "onCommand:dbSqlLikeMem.generateRepositoryClasses",
     "onCommand:dbSqlLikeMem.openManager",
     "onView:dbSqlLikeMem.connections"
   ],
@@ -73,7 +76,19 @@
       },
       {
         "command": "dbSqlLikeMem.generateClasses",
-        "title": "DbSqlLikeMem: Generate Classes"
+        "title": "DbSqlLikeMem: Generate Test Classes"
+      },
+      {
+        "command": "dbSqlLikeMem.generateModelClasses",
+        "title": "DbSqlLikeMem: Generate Model Classes"
+      },
+      {
+        "command": "dbSqlLikeMem.generateRepositoryClasses",
+        "title": "DbSqlLikeMem: Generate Repository Classes"
+      },
+      {
+        "command": "dbSqlLikeMem.configureTemplates",
+        "title": "DbSqlLikeMem: Configure Templates"
       },
       {
         "command": "dbSqlLikeMem.checkConsistency",
@@ -117,6 +132,11 @@
           "command": "dbSqlLikeMem.setFilter",
           "when": "view == dbSqlLikeMem.connections",
           "group": "navigation"
+        },
+        {
+          "command": "dbSqlLikeMem.configureTemplates",
+          "when": "view == dbSqlLikeMem.connections",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -131,9 +151,19 @@
           "group": "inline@1"
         },
         {
-          "command": "dbSqlLikeMem.checkConsistency",
+          "command": "dbSqlLikeMem.generateModelClasses",
           "when": "view == dbSqlLikeMem.connections && viewItem == db-database",
           "group": "inline@2"
+        },
+        {
+          "command": "dbSqlLikeMem.generateRepositoryClasses",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-database",
+          "group": "inline@3"
+        },
+        {
+          "command": "dbSqlLikeMem.checkConsistency",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-database",
+          "group": "inline@4"
         }
       ],
       "commandPalette": [

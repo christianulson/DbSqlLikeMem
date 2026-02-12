@@ -13,14 +13,14 @@
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="300" />
+            <ColumnDefinition Width="360" />
         </Grid.ColumnDefinitions>
 
         <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Padrão de arquivo:" />
-        <TextBox x:Name="FilePatternTextBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,8" Text="{NamePascal}{Type}Factory.cs" />
+        <TextBox x:Name="FilePatternTextBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,8" />
 
         <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Diretório de saída:" />
-        <TextBox x:Name="OutputDirectoryTextBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" Text="Generated" />
+        <TextBox x:Name="OutputDirectoryTextBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" />
 
         <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="Cancelar" Width="90" Margin="0,0,8,0" IsCancel="True" />

@@ -12,10 +12,11 @@ public sealed record ExtensionState
     /// Initializes a new extension state.
     /// Inicializa um novo estado da extensão.
     /// </summary>
-    public ExtensionState(IReadOnlyCollection<ConnectionDefinition> connections, IReadOnlyCollection<ConnectionMappingConfiguration> mappings)
+    public ExtensionState(IReadOnlyCollection<ConnectionDefinition> connections, IReadOnlyCollection<ConnectionMappingConfiguration> mappings, TemplateConfiguration? templateConfiguration = null)
     {
         Connections = connections;
         Mappings = mappings;
+        TemplateConfiguration = templateConfiguration ?? TemplateConfiguration.Default;
     }
 
     /// <summary>
@@ -29,4 +30,9 @@ public sealed record ExtensionState
     /// Obtém os mapeamentos armazenados.
     /// </summary>
     public IReadOnlyCollection<ConnectionMappingConfiguration> Mappings { get; }
+
+    /// <summary>
+    /// Gets template settings for model/repository generation.
+    /// </summary>
+    public TemplateConfiguration TemplateConfiguration { get; }
 }

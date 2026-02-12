@@ -29,7 +29,7 @@ public sealed class ExplorerNode
     {
         ObjectHealthStatus.Synchronized => "🟢",
         ObjectHealthStatus.DifferentFromDatabase => "🟡",
-        ObjectHealthStatus.MissingInDatabase => "🔴",
+        ObjectHealthStatus.MissingInDatabase or ObjectHealthStatus.MissingLocalArtifacts => "🔴",
         _ => string.Empty
     };
 

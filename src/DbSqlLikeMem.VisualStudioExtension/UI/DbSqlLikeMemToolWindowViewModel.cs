@@ -28,6 +28,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     private readonly ObservableCollection<ConnectionMappingConfiguration> mappings = new();
     private readonly Dictionary<string, IReadOnlyCollection<DatabaseObjectReference>> objectsByConnection = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, ObjectHealthResult> healthByObject = new(StringComparer.OrdinalIgnoreCase);
+    private TemplateConfiguration templateConfiguration = TemplateConfiguration.Default;
     private readonly ObjectFilterService objectFilterService = new();
 
     private string objectFilterText = string.Empty;
@@ -173,6 +174,26 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         SetStatusMessage("Mapeamentos atualizados.");
     }
 
+    public (string FileNamePattern, string OutputDirectory) GetMappingDefaults()
+    {
+        var firstMapping = mappings.FirstOrDefault()?.Mappings.Values.FirstOrDefault();
+        return (firstMapping?.FileNamePattern ?? "{NamePascal}{Type}Factory.cs", firstMapping?.OutputDirectory ?? "Generated");
+    }
+
+    public TemplateConfiguration GetTemplateConfiguration() => templateConfiguration;
+
+    public void ConfigureTemplates(string modelTemplatePath, string repositoryTemplatePath, string modelOutputDirectory, string repositoryOutputDirectory)
+    {
+        templateConfiguration = new TemplateConfiguration(
+            NormalizePathOrEmpty(modelTemplatePath),
+            NormalizePathOrEmpty(repositoryTemplatePath),
+            NormalizePath(modelOutputDirectory),
+            NormalizePath(repositoryOutputDirectory));
+        SaveState();
+        SetStatusMessage("Templates de model/repositório atualizados.");
+    }
+
+
     public void CancelCurrentOperation()
     {
         currentOperationCts?.Cancel();
@@ -251,11 +272,11 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         return FindExistingFiles(connection, mapping, selectedObjects).ToArray();
     }
 
-    public async Task GenerateForNodeAsync(ExplorerNode node)
+    public async Task<IReadOnlyCollection<string>> GenerateForNodeAsync(ExplorerNode node)
     {
-        if (!TryBeginOperation("Gerando classes..."))
+        if (!TryBeginOperation("Gerando classes de teste..."))
         {
-            return;
+            return Array.Empty<string>();
         }
 
         try
@@ -264,20 +285,20 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             var connection = ResolveConnection(node);
             if (connection is null)
             {
-                return;
+                return Array.Empty<string>();
             }
 
             if (!objectsByConnection.TryGetValue(connection.Id, out var objects))
             {
                 SetStatusMessage("Nenhum objeto carregado para gerar. Use Atualizar objetos primeiro.");
-                return;
+                return Array.Empty<string>();
             }
 
             var selectedObjects = ResolveSelectedObjects(node, objects).ToArray();
             if (selectedObjects.Length == 0)
             {
                 SetStatusMessage("Nenhum objeto selecionado para geração.");
-                return;
+                return Array.Empty<string>();
             }
 
             var mapping = mappings.FirstOrDefault(m => m.ConnectionId == connection.Id)
@@ -286,7 +307,80 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             var generator = new ClassGenerator();
             var request = new GenerationRequest(connection, selectedObjects);
             var generated = await generator.GenerateAsync(request, mapping, o => StructuredClassContentFactory.Build(o, "Generated", connection.DatabaseType), token);
-            SetStatusMessage($"Geração concluída. Arquivos gerados: {generated.Count}.");
+            SetStatusMessage($"Geração de classes de teste concluída. Arquivos gerados: {generated.Count}.");
+            return generated;
+        }
+        finally
+        {
+            EndOperation();
+        }
+    }
+
+
+    public Task<IReadOnlyCollection<string>> GenerateModelClassesForNodeAsync(ExplorerNode node)
+        => GenerateFromTemplateForNodeAsync(node, templateConfiguration.ModelTemplatePath, templateConfiguration.ModelOutputDirectory, "Model", "// Model for {{Schema}}.{{ObjectName}}\npublic class {{ClassName}}\n{\n}\n");
+
+    public Task<IReadOnlyCollection<string>> GenerateRepositoryClassesForNodeAsync(ExplorerNode node)
+        => GenerateFromTemplateForNodeAsync(node, templateConfiguration.RepositoryTemplatePath, templateConfiguration.RepositoryOutputDirectory, "Repository", "// Repository for {{Schema}}.{{ObjectName}}\npublic class {{ClassName}}\n{\n}\n");
+
+    private async Task<IReadOnlyCollection<string>> GenerateFromTemplateForNodeAsync(ExplorerNode node, string templatePath, string outputDirectory, string suffix, string fallbackTemplate)
+    {
+        if (!TryBeginOperation($"Gerando classes de {suffix.ToLowerInvariant()}..."))
+        {
+            return Array.Empty<string>();
+        }
+
+        try
+        {
+            var connection = ResolveConnection(node);
+            if (connection is null || !objectsByConnection.TryGetValue(connection.Id, out var objects))
+            {
+                SetStatusMessage("Nenhum objeto carregado para gerar.");
+                return Array.Empty<string>();
+            }
+
+            var selectedObjects = ResolveSelectedObjects(node, objects).ToArray();
+            if (selectedObjects.Length == 0)
+            {
+                SetStatusMessage("Nenhum objeto selecionado para geração.");
+                return Array.Empty<string>();
+            }
+
+            var template = fallbackTemplate;
+            if (!string.IsNullOrWhiteSpace(templatePath))
+            {
+                var normalizedTemplatePath = NormalizePath(templatePath);
+                if (!File.Exists(normalizedTemplatePath))
+                {
+                    SetStatusMessage($"Template não encontrado: {normalizedTemplatePath}");
+                    return Array.Empty<string>();
+                }
+
+                template = await File.ReadAllTextAsync(normalizedTemplatePath);
+            }
+
+            var normalizedOutputDirectory = NormalizePath(outputDirectory);
+            Directory.CreateDirectory(normalizedOutputDirectory);
+            var generatedFiles = new List<string>(selectedObjects.Length);
+
+            foreach (var dbObject in selectedObjects)
+            {
+                var className = $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}{suffix}";
+                var content = template
+                    .Replace("{{ClassName}}", className, StringComparison.OrdinalIgnoreCase)
+                    .Replace("{{ObjectName}}", dbObject.Name, StringComparison.OrdinalIgnoreCase)
+                    .Replace("{{Schema}}", dbObject.Schema, StringComparison.OrdinalIgnoreCase)
+                    .Replace("{{ObjectType}}", dbObject.Type.ToString(), StringComparison.OrdinalIgnoreCase)
+                    .Replace("{{DatabaseType}}", connection.DatabaseType, StringComparison.OrdinalIgnoreCase)
+                    .Replace("{{DatabaseName}}", connection.DatabaseName, StringComparison.OrdinalIgnoreCase);
+
+                var filePath = Path.Combine(normalizedOutputDirectory, $"{className}.cs");
+                await File.WriteAllTextAsync(filePath, content);
+                generatedFiles.Add(filePath);
+            }
+
+            SetStatusMessage($"Classes de {suffix.ToLowerInvariant()} geradas: {selectedObjects.Length}.");
+            return generatedFiles;
         }
         finally
         {
@@ -337,9 +431,17 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                 }
 
                 var filePath = Path.Combine(objectMapping.OutputDirectory, ResolveFileName(objectMapping.FileNamePattern, connection, dbObject));
-                if (!File.Exists(filePath))
+                var modelPath = Path.Combine(NormalizePath(templateConfiguration.ModelOutputDirectory), $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}Model.cs");
+                var repositoryPath = Path.Combine(NormalizePath(templateConfiguration.RepositoryOutputDirectory), $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}Repository.cs");
+
+                var hasModel = File.Exists(modelPath);
+                var hasRepository = File.Exists(repositoryPath);
+                if (!File.Exists(filePath) || !hasModel || !hasRepository)
                 {
-                    updates.Add((BuildObjectKey(connection.Id, dbObject), new ObjectHealthResult(dbObject, filePath, ObjectHealthStatus.MissingInDatabase, "Arquivo local não encontrado.")));
+                    var status = !hasModel && !hasRepository
+                        ? ObjectHealthStatus.MissingLocalArtifacts
+                        : ObjectHealthStatus.DifferentFromDatabase;
+                    updates.Add((BuildObjectKey(connection.Id, dbObject), new ObjectHealthResult(dbObject, filePath, status, "Arquivos gerados ausentes (classe/model/repositório).")));
                     return;
                 }
 
@@ -392,6 +494,8 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             {
                 mappings.Add(mapping);
             }
+
+            templateConfiguration = loaded.TemplateConfiguration ?? TemplateConfiguration.Default;
         }
         catch (Exception ex)
         {
@@ -406,7 +510,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             .Select(c => new ConnectionDefinition(c.Id, c.DatabaseType, c.DatabaseName, ConnectionStringProtector.Protect(c.ConnectionString), c.DisplayName))
             .ToArray();
 
-        var state = new ExtensionState(safeConnections, mappings.ToArray());
+        var state = new ExtensionState(safeConnections, mappings.ToArray(), templateConfiguration);
         statePersistenceService.SaveAsync(state, stateFilePath).GetAwaiter().GetResult();
     }
 
@@ -584,6 +688,20 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
     private static string BuildObjectKey(string connectionId, DatabaseObjectReference dbObject)
         => $"{connectionId}|{dbObject.Schema}|{dbObject.Name}|{dbObject.Type}";
+
+    private static string NormalizePath(string path)
+    {
+        if (Path.IsPathRooted(path))
+        {
+            return Path.GetFullPath(path);
+        }
+
+        var baseDirectory = Directory.GetCurrentDirectory();
+        return Path.GetFullPath(Path.Combine(baseDirectory, path));
+    }
+
+    private static string NormalizePathOrEmpty(string path)
+        => string.IsNullOrWhiteSpace(path) ? string.Empty : NormalizePath(path);
 
     private void SetStatusMessage(string message)
     {

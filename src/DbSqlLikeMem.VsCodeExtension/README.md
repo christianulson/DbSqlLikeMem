@@ -14,8 +14,11 @@ Extensão equivalente ao fluxo desenhado para o Visual Studio Extension Core, ad
 - Filtro por modo `Like` e `Equals`.
 - Interface gráfica (Manager) para cadastrar/remover conexões e configurar mapeamentos.
 - Configuração de mapeamentos também no menu de contexto do nó do database.
-- Geração de classes `.cs` no workspace.
-- Check de consistência (presença de classes locais esperadas).
+- Geração de classes de **teste** `.cs` no workspace (ação principal).
+- Geração de classes de **modelo** a partir de template com tokens.
+- Geração de classes de **repositório** a partir de template com tokens.
+- Configuração de templates (botão no topo da view) para modelos e repositórios.
+- Check de consistência para artefatos gerados (teste/model/repositório), com status visual por objeto na árvore.
 - Exportação/importação do estado em JSON.
 
 > Atualmente o provedor de metadata é **fake** (retorna objetos fixos) para validar UX e workflow. O próximo passo é substituir pelo provider real por banco.
@@ -25,7 +28,10 @@ Extensão equivalente ao fluxo desenhado para o Visual Studio Extension Core, ad
 - `DbSqlLikeMem: Open Manager` (UI gráfica de conexões + mapeamentos)
 - `DbSqlLikeMem: Add Connection`
 - `DbSqlLikeMem: Configure Mappings` (também disponível no menu de contexto do database)
-- `DbSqlLikeMem: Generate Classes`
+- `DbSqlLikeMem: Generate Test Classes`
+- `DbSqlLikeMem: Generate Model Classes`
+- `DbSqlLikeMem: Generate Repository Classes`
+- `DbSqlLikeMem: Configure Templates`
 - `DbSqlLikeMem: Check Consistency`
 - `DbSqlLikeMem: Set Filter`
 - `DbSqlLikeMem: Export State`
@@ -104,3 +110,35 @@ Assim você mantém ícone no VSIX sem incluir diff binário no PR.
 2. Persistir secret em `SecretStorage` em vez de `globalState`.
 3. Adicionar ícones por tipo de objeto e status de consistência.
 4. Oferecer Webview para editar mapeamentos de forma avançada.
+
+
+## Tokens suportados nos templates
+
+Os templates de Model e Repository aceitam os seguintes tokens para substituição durante a geração:
+
+- `{{ClassName}}`
+- `{{ObjectName}}`
+- `{{Schema}}`
+- `{{ObjectType}}`
+- `{{DatabaseType}}`
+- `{{DatabaseName}}`
+
+### Exemplo rápido de template
+
+```txt
+// Generated from {{DatabaseType}} / {{DatabaseName}}
+// Object: {{Schema}}.{{ObjectName}} ({{ObjectType}})
+public class {{ClassName}}
+{
+}
+```
+
+## Fluxo recomendado
+
+1. Configure conexões e mapeamentos.
+2. Use **Configure Templates** para informar os arquivos `.txt` e pastas de saída de Model/Repository.
+3. Use o menu de contexto do database para gerar:
+   - classes de teste (ação existente),
+   - classes de modelo,
+   - classes de repositório.
+4. Rode **Check Consistency** para validar presença dos artefatos e visualizar ícones de status na árvore.

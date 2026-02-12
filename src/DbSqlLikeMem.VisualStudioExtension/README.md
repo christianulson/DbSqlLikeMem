@@ -13,7 +13,9 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
    - Botão **Atualizar objetos** para listar metadados estruturais via `SqlDatabaseMetadataProvider`.
 
 3. **Menus de contexto na árvore**
-   - **Gerar classes**
+   - **Gerar classes de teste**
+   - **Gerar classes de modelos**
+   - **Gerar classes de repositório**
    - **Checar consistência**
 
 4. **Fluxo de geração com prévia de conflitos**
@@ -25,6 +27,13 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 6. **Hardening básico**
    - Mensagens de status operacionais na UI.
    - Log local em `%LocalAppData%/DbSqlLikeMem/visual-studio-extension.log`.
+
+7. **Templates configuráveis para modelos e repositórios**
+   - Botão no topo **Configurar templates** para informar arquivo de template e diretório de saída.
+   - Substituição de tokens no conteúdo durante a geração.
+
+8. **Checagem complementar de artefatos gerados**
+   - A consistência considera também a presença de arquivos de Model e Repository, além das classes já geradas pelo fluxo principal.
 
 ## Compatibilidade VSIX
 
@@ -38,3 +47,23 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 - Checagem de consistência com processamento paralelo e propagação de cancelamento.
 - Timeout de teste de conexão para evitar bloqueios longos na UI.
 - Tratamento centralizado de exceções em eventos da UI (resiliência + log).
+
+
+## Tokens de template (Model/Repository)
+
+- `{{ClassName}}`
+- `{{ObjectName}}`
+- `{{Schema}}`
+- `{{ObjectType}}`
+- `{{DatabaseType}}`
+- `{{DatabaseName}}`
+
+Exemplo:
+
+```txt
+// {{DatabaseType}} - {{DatabaseName}}
+// {{Schema}}.{{ObjectName}}
+public class {{ClassName}}
+{
+}
+```
