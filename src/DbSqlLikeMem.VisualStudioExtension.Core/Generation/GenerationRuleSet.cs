@@ -63,7 +63,7 @@ public static class GenerationRuleSet
     public static bool IsSimpleLiteralDefault(string value)
     {
         var normalized = value.Trim();
-        if (Regex.IsMatch(normalized, @"\(\s*\)$")) return false;
+        if (Regex.IsMatch(normalized, @"\b\w+\s*\([^)]*\)")) return false;
         if (normalized.Equals("current_timestamp", StringComparison.OrdinalIgnoreCase)) return false;
         if (normalized.Equals("null", StringComparison.OrdinalIgnoreCase)) return false;
         return true;
