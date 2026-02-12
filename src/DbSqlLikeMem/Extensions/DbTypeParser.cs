@@ -1,3 +1,7 @@
+using System;
+using System.Data;
+using System.Globalization;
+
 namespace DbSqlLikeMem;
 
 /// <summary>

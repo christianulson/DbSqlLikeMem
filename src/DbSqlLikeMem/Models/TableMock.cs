@@ -1,6 +1,12 @@
+using System;
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Data;
+using System.Data.Common;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace DbSqlLikeMem;
 
@@ -37,11 +43,13 @@ public abstract class TableMock
     /// PT: Nome normalizado da tabela.
     /// </summary>
     public string TableName { get; }
+
     /// <summary>
     /// EN: Schema to which the table belongs.
     /// PT: Schema ao qual a tabela pertence.
     /// </summary>
     public SchemaMock Schema { get; }
+    
     /// <summary>
     /// EN: Next identity value for auto-increment columns.
     /// PT: Próximo valor de identidade para colunas auto incrementais.
@@ -65,6 +73,7 @@ public abstract class TableMock
 
 
     private readonly List<(string Col, string RefTable, string RefCol)> _foreignKeys = [];
+    
     /// <summary>
     /// EN: List of foreign keys defined in the table.
     /// PT: Lista de chaves estrangeiras definidas na tabela.

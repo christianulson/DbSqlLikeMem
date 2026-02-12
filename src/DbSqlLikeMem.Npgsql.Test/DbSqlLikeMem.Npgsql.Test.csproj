@@ -4,6 +4,7 @@
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
 		<TargetFrameworks>net48;net6.0;net8.0;net10.0</TargetFrameworks>
+		<RunSettingsFilePath>C:\Projects\DbSqlLikeMem\src\DbSqlLikeMem.Npgsql.Test\bin\Debug\net48\fine-code-coverage\coverage-tool-output\DbSqlLikeMem.Npgsql.Test %28net48%29-fcc-mscodecoverage-generated.runsettings</RunSettingsFilePath>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">

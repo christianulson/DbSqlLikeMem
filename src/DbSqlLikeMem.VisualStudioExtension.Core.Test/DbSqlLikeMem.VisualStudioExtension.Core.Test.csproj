@@ -4,6 +4,7 @@
 		<IsTestProject>true</IsTestProject>
 		<TargetFramework>net8.0</TargetFramework>
 		<TargetFrameworks></TargetFrameworks>
+		<RunSettingsFilePath>C:\Projects\DbSqlLikeMem\src\DbSqlLikeMem.VisualStudioExtension.Core.Test\bin\Debug\net8.0\fine-code-coverage\coverage-tool-output\DbSqlLikeMem.VisualStudioExtension.Core.Test-fcc-mscodecoverage-generated.runsettings</RunSettingsFilePath>
 	</PropertyGroup>
 
 	<ItemGroup>
