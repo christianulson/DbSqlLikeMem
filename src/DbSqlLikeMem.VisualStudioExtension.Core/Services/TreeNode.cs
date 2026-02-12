@@ -8,11 +8,16 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Services;
 /// </summary>
 public sealed class TreeNode
 {
+    public TreeNode(string label)
+    {
+        Label = label;
+    }
+
     /// <summary>
     /// Gets this API value.
     /// Obtém este valor da API.
     /// </summary>
-    public required string Label { get; init; }
+    public string Label { get; }
 
     /// <summary>
     /// Gets this API value.

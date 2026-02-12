@@ -8,8 +8,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 /// Represents this public API type.
 /// Representa este tipo público da API.
 /// </summary>
-public static partial class GenerationRuleSet
+public static class GenerationRuleSet
 {
+    private static readonly Regex IsNullExpression = new(
+        @"if\s*\(\s*\(\s*`(?<col>\w+)`\s+is\s+null\s*\)\s*,\s*(?<val>[^,]+)\s*,\s*null\s*\)",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled,
+        TimeSpan.FromMilliseconds(500));
+
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
@@ -106,7 +111,7 @@ public static partial class GenerationRuleSet
     /// </summary>
     public static bool TryConvertIfIsNull(string sqlExpr, out string code)
     {
-        var match = IsNullExpressionRegex().Match(sqlExpr);
+        var match = IsNullExpression.Match(sqlExpr);
         if (!match.Success)
         {
             code = string.Empty;
@@ -158,7 +163,4 @@ public static partial class GenerationRuleSet
 
         return string.Concat(char.ToUpper(cleaned[0], CultureInfo.InvariantCulture), cleaned[1..]);
     }
-
-    [GeneratedRegex(@"if\s*\(\s*\(\s*`(?<col>\w+)`\s+is\s+null\s*\)\s*,\s*(?<val>[^,]+)\s*,\s*null\s*\)", RegexOptions.IgnoreCase)]
-    private static partial Regex IsNullExpressionRegex();
 }
