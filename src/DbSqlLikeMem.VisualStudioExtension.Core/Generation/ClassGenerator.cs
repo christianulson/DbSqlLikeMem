@@ -33,7 +33,9 @@ public sealed class ClassGenerator
             var fullPath = Path.Combine(mapping.OutputDirectory, fileName);
             var content = classContentFactory(dbObject);
 
-            await File.WriteAllTextAsync(fullPath, content, cancellationToken);
+#pragma warning disable AsyncFixer02 // Blocking call inside an async method
+            File.WriteAllText(fullPath, content);
+#pragma warning restore AsyncFixer02 // Blocking call inside an async method
             writtenFiles.Add(fullPath);
         }
 

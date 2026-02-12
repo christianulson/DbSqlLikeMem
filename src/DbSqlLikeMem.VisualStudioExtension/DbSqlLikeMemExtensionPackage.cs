@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DbSqlLikeMem.VisualStudioExtension.Commands;
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 using Task = System.Threading.Tasks.Task;
 
 namespace DbSqlLikeMem.VisualStudioExtension;
