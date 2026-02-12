@@ -51,7 +51,7 @@
                   Grid.Row="4"
                   ItemsSource="{Binding Nodes}">
             <TreeView.ContextMenu>
-                <ContextMenu Opening="OnExplorerContextMenuOpening">
+                <ContextMenu Opened="OnExplorerContextMenuOpened">
                     <MenuItem x:Name="ConfigureMappingsMenuItem" Header="Configurar mapeamentos" Click="OnConfigureMappingsClick" />
                     <MenuItem x:Name="ConfigureTemplatesMenuItem" Header="Configurar templates" Click="OnConfigureTemplatesClick" />
                     <Separator />
