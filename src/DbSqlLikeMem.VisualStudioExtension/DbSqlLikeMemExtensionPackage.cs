@@ -8,15 +8,15 @@ using Task = System.Threading.Tasks.Task;
 
 namespace DbSqlLikeMem.VisualStudioExtension;
 
+/// <summary>
+/// Initializes and registers the DbSqlLikeMem Visual Studio extension package.
+/// Inicializa e registra o pacote da extensão DbSqlLikeMem no Visual Studio.
+/// </summary>
 [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
 [InstalledProductRegistration("DbSqlLikeMem", "Explorer e geração de classes para objetos de banco", "0.1")]
 [ProvideMenuResource("Menus.ctmenu", 1)]
 [ProvideToolWindow(typeof(DbSqlLikeMemToolWindow))]
 [Guid(PackageGuidString)]
-/// <summary>
-/// Initializes and registers the DbSqlLikeMem Visual Studio extension package.
-/// Inicializa e registra o pacote da extensão DbSqlLikeMem no Visual Studio.
-/// </summary>
 public sealed class DbSqlLikeMemExtensionPackage : AsyncPackage
 {
     /// <summary>
