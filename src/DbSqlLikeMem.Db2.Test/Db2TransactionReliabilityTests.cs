@@ -64,13 +64,7 @@ public sealed class Db2TransactionReliabilityTests
         using var transaction = (Db2TransactionMock)connection.BeginTransaction();
         transaction.Save("sp_release");
 
-        if (true)
-        {
-            transaction.Release("sp_release");
-            return;
-        }
-
-        Assert.Throws<NotSupportedException>(() => transaction.Release("sp_release"));
+        transaction.Release("sp_release");
     }
 
     /// <summary>

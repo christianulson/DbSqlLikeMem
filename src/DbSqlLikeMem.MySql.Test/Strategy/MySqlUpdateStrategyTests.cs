@@ -316,6 +316,10 @@ public sealed class MySqlUpdateStrategyTests(
     }
 
 
+    /// <summary>
+    /// EN: Recomputes persisted generated columns during update and preserves unique index consistency.
+    /// PT: Recalcula colunas geradas persistidas durante update e preserva a consistência de índices únicos.
+    /// </summary>
     [Fact]
     public void Update_ShouldRecomputePersistedGeneratedColumn_AndAllowUniqueIndex()
     {
