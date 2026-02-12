@@ -28,7 +28,9 @@ internal sealed record SqlSelectQuery(
 
 internal sealed record SqlUnionQuery(
     IReadOnlyList<SqlSelectQuery> Parts,
-    IReadOnlyList<bool> AllFlags
+    IReadOnlyList<bool> AllFlags,
+    IReadOnlyList<SqlOrderByItem> OrderBy,
+    SqlRowLimit? RowLimit
 ) : SqlQueryBase;
 
 internal sealed record SqlInsertQuery : SqlQueryBase

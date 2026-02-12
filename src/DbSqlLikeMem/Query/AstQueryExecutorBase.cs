@@ -63,6 +63,8 @@ internal abstract class AstQueryExecutorBase(
     public TableResultMock ExecuteUnion(
         IReadOnlyList<SqlSelectQuery> parts,
         IReadOnlyList<bool> allFlags,
+        IReadOnlyList<SqlOrderByItem>? orderBy = null,
+        SqlRowLimit? rowLimit = null,
         string? sqlContextForErrors = null)
     {
         if (parts is null || parts.Count == 0)
@@ -133,11 +135,23 @@ internal abstract class AstQueryExecutorBase(
             }
         }
 
-        // ORDER BY / LIMIT devem aplicar no resultado final
-        // No seu parse atual, ORDER BY fica no último SELECT do UNION.
-        var finalQ = parts[^1];
-        var ctes = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase);
-        result = ApplyOrderAndLimit(result, finalQ, ctes);
+        // ORDER BY/LIMIT final do UNION segue a projeção final do resultado combinado.
+        if ((orderBy?.Count ?? 0) > 0 || rowLimit is not null)
+        {
+            var finalQ = new SqlSelectQuery(
+                Ctes: [],
+                Distinct: false,
+                SelectItems: [],
+                Joins: [],
+                Where: null,
+                OrderBy: orderBy ?? [],
+                RowLimit: rowLimit,
+                GroupBy: [],
+                Having: null);
+
+            var ctes = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase);
+            result = ApplyOrderAndLimit(result, finalQ, ctes);
+        }
 
         return result;
     }
@@ -640,6 +654,8 @@ internal abstract class AstQueryExecutorBase(
                     .Where(_=>_!= null)
                     .Select(_=>_!)],
                 ts.DerivedUnion.AllFlags,
+                ts.DerivedUnion.OrderBy,
+                ts.DerivedUnion.RowLimit,
                 ts.DerivedSql ?? "(derived)"
             );
             return Source.FromResult(alias, res);

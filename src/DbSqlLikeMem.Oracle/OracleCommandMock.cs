@@ -140,14 +140,6 @@ public class OracleCommandMock(
 
         var executor = new OracleAstQueryExecutor(connection!, Parameters);
 
-        if (sql.Contains("UNION", StringComparison.OrdinalIgnoreCase) && !sql.Contains(';'))
-        {
-            var chain = SqlQueryParser.ParseUnionChain(sql, connection!.Db.Dialect);
-            var unionTable = executor.ExecuteUnion(chain.Parts.Cast<SqlSelectQuery>().ToList(), chain.AllFlags, sql);
-            connection.Metrics.Selects += unionTable.Count;
-            return new OracleDataReaderMock([unionTable]);
-        }
-
         var queries = SqlQueryParser.ParseMulti(sql, connection!.Db.Dialect).ToList();
         var tables = new List<TableResultMock>();
 
@@ -157,6 +149,10 @@ public class OracleCommandMock(
             {
                 case SqlSelectQuery selectQ:
                     tables.Add(executor.ExecuteSelect(selectQ));
+                    break;
+
+                case SqlUnionQuery unionQ:
+                    tables.Add(executor.ExecuteUnion(unionQ.Parts, unionQ.AllFlags, unionQ.OrderBy, unionQ.RowLimit, unionQ.RawSql));
                     break;
                 case SqlInsertQuery insertQ:
                     connection.ExecuteInsert(insertQ, Parameters, connection.Db.Dialect);

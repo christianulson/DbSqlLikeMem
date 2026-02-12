@@ -206,7 +206,7 @@ public class SqliteCommandMock(
                     break;
 
                 case SqlUnionQuery unionQ:
-                    tables.Add(executor.ExecuteUnion(unionQ.Parts, unionQ.AllFlags, unionQ.RawSql));
+                    tables.Add(executor.ExecuteUnion(unionQ.Parts, unionQ.AllFlags, unionQ.OrderBy, unionQ.RowLimit, unionQ.RawSql));
                     break;
 
                 default:
