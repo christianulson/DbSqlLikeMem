@@ -21,9 +21,11 @@ internal sealed class SqliteDialect : SqlDialectBase
             new KeyValuePair<string, SqlBinaryOp>(">=", SqlBinaryOp.GreaterOrEqual),
             new KeyValuePair<string, SqlBinaryOp>("<", SqlBinaryOp.Less),
             new KeyValuePair<string, SqlBinaryOp>("<=", SqlBinaryOp.LessOrEqual),
+            new KeyValuePair<string, SqlBinaryOp>("<=>", SqlBinaryOp.NullSafeEq),
         ],
         operators:
         [
+            "<=>",
             "->>", "->",
             ">=", "<=", "<>", "!=", "==",
             "&&", "||"
@@ -68,7 +70,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsOnDuplicateKeyUpdate => false;
+    public override bool SupportsOnDuplicateKeyUpdate => true;
     public override bool SupportsOnConflictClause => true;
 
     /// <summary>
@@ -79,6 +81,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsDeleteTargetAlias => false;
+    public override bool AllowsParserDeleteWithoutFromCompatibility => false;
 
     /// <summary>
     /// Auto-generated summary.
@@ -89,9 +92,27 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsNullSafeEq => false;
+    public override bool SupportsNullSafeEq => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsJsonArrowOperators => true;
+
+    /// <summary>
+    /// EN: Mock rule: SQLite text comparisons are case-insensitive by default in this project.
+    /// PT: Regra do mock: comparações textuais de SQLite são case-insensitive por padrão neste projeto.
+    /// </summary>
+    public override StringComparison TextComparison => StringComparison.OrdinalIgnoreCase;
+
+    /// <summary>
+    /// EN: Mock rule: allow numeric-vs-numeric-string implicit comparisons (e.g. id = '2').
+    /// PT: Regra do mock: permite comparação implícita número-vs-string-numérica (ex.: id = '2').
+    /// </summary>
+    public override bool SupportsImplicitNumericStringComparison => true;
+
+    /// <summary>
+    /// EN: Mock LIKE behavior follows dialect default and is case-insensitive.
+    /// PT: Comportamento de LIKE no mock segue o padrão do dialeto e é case-insensitive.
+    /// </summary>
+    public override bool LikeIsCaseInsensitive => true;
 }

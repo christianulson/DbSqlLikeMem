@@ -10,10 +10,10 @@
 | SQL Server | `DbSqlLikeMem.SqlServer` | 7, 2000, 2005, 2008, 2012, 2014, 2016, 2017, 2019, 2022 |
 | Oracle | `DbSqlLikeMem.Oracle` | 7, 8, 9, 10, 11, 12, 18, 19, 21, 23 |
 | PostgreSQL (Npgsql) | `DbSqlLikeMem.Npgsql` | 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 |
-| SQLite | `DbSqlLikeMem.Sqlite` | 3 |
+| SQLite (Sqlite) | `DbSqlLikeMem.Sqlite` | 3 |
 | DB2 | `DbSqlLikeMem.Db2` | 8, 9, 10, 11 |
 
-## Capacidades comuns (MySQL / SQL Server / Oracle / PostgreSQL)
+## Capacidades comuns (todos os providers)
 
 - Mock de conexão/ADO.NET específico do provedor.
 - Parser e execução de SQL para DDL/DML comuns.
@@ -43,6 +43,39 @@
 - `ON DUPLICATE KEY UPDATE`: não suportado.
 - Operador null-safe `<=>`: não suportado.
 - Operadores JSON `->` e `->>`: não suportados.
+
+### Regras padronizadas de collation e coerção implícita (mock)
+
+Para reduzir ambiguidades entre dialetos e manter testes determinísticos, o projeto adota uma regra explícita para DB2 e SQLite no executor em memória:
+
+- Comparação textual (`=`, `<>`, `IN`, `CASE`, `ORDER BY` fallback textual):
+  - **DB2**: `StringComparison.OrdinalIgnoreCase`.
+  - **SQLite**: `StringComparison.OrdinalIgnoreCase`.
+- `LIKE`:
+  - **DB2**: case-insensitive por padrão no mock.
+  - **SQLite**: case-insensitive por padrão no mock.
+- Comparação número vs string:
+  - Coerção implícita só ocorre quando **ambos os lados** podem ser convertidos para número (`decimal` com cultura invariável).
+  - Exemplo suportado: `id = '2'`.
+  - Exemplo não convertido (cai para comparação textual): `id = '2x'`.
+
+> Observação: bancos reais podem variar conforme collation configurada em coluna/base/instância. Quando o comportamento real não é 100% reproduzível no mock, esta regra fixa é a referência oficial para testes.
+
+## Fase 3 — recursos analíticos (SQLite/DB2)
+
+Decisões de compatibilidade implementadas para cobrir os cenários de relatório mais comuns:
+
+- `ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)`: habilitado no executor AST para todos os dialetos que passam por `AstQueryExecutorBase`, incluindo SQLite e DB2.
+- Subquery correlacionada em `SELECT` list: avaliada como subconsulta escalar com acesso ao `outer row` (primeira célula da primeira linha; `null` se vazio).
+- `CAST` string->número (casos básicos): suporte para `SIGNED`/`UNSIGNED`/`INT*` e `DECIMAL`/`NUMERIC` com parsing `InvariantCulture` e fallback previsível (`0`/`0m` em `CAST`, `null` em `TRY_CAST`).
+- Operações de data: comportamento unificado para `DATE_ADD`, `DATEADD` e `TIMESTAMPADD`; adicionalmente, `DATE(...)`/`DATETIME(...)` aceitam modificadores SQLite simples como `'+1 day'`.
+
+### Limitações conhecidas (próxima fase)
+
+- Window functions além de `ROW_NUMBER` (ex.: `RANK`, `DENSE_RANK`, `LAG`, frames `ROWS/RANGE`) ainda não foram implementadas.
+- `CAST` numérico ainda não cobre formatações locais complexas, notação científica avançada e tipos de alta precisão específicos por provedor.
+- Data/time cobre unidades comuns (`year/month/day/hour/minute/second`), mas não trata timezone explícito, calendário ISO avançado nem regras específicas de cada engine real.
+- Subquery escalar retorna sempre a primeira célula da primeira linha, sem erro para múltiplas linhas (comportamento simplificado de mock).
 
 ## Regras candidatas para extrair do parser para os Dialects
 
@@ -77,4 +110,6 @@ Se a diferença altera **validade sintática** ou **interpretação semântica**
 
 - [Começando rápido](getting-started.md)
 - [Publicação](publishing.md)
+- [Matriz SQL (feature x dialeto)](sql-compatibility-matrix.md)
+- [Checklist de known gaps](known-gaps-checklist.md)
 - [Wiki do GitHub](wiki/README.md)

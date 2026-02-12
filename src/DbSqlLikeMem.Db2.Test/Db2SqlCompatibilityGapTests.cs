@@ -129,7 +129,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
     [Fact]
     public void Functions_COALESCE_ShouldWork()
     {
-        var rows = _cnn.Query<dynamic>("SELECT id, COALESCE(email, 'none') AS em FROM users ORDER BY id").ToList();
+        var rows = _cnn.Query<dynamic>("SELECT id, COALESCE(NULL, email, 'none') AS em FROM users ORDER BY id").ToList();
         Assert.Equal(["john@x.com", "none", "jane@x.com"], [.. rows.Select(r => (string)r.em)]);
     }
 
@@ -163,7 +163,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
     public void Distinct_ShouldBeConsistent()
     {
         // duplicate names
-        _cnn.Execute("INSERT INTO users (id,name,email) VALUES (4,'John','j2@x.com')");
+        _cnn.Execute("INSERT INTO users (id,name,email) VALUES (4,'john','j2@x.com')");
         var rows = _cnn.Query<dynamic>("SELECT DISTINCT name FROM users ORDER BY name").ToList();
         Assert.Equal(["Bob", "Jane", "John"], [.. rows.Select(r => (string)r.name)]);
     }

@@ -2,8 +2,16 @@ using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Validation;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public static class GeneratedClassSnapshotReader
 {
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public static async Task<LocalObjectSnapshot> ReadAsync(
         string filePath,
         DatabaseObjectReference fallbackReference,

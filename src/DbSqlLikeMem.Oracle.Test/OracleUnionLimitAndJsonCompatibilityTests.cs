@@ -75,6 +75,58 @@ SELECT id FROM t WHERE id = 1
         Assert.Equal([123m, 456m, null], [.. rows.Select(r => (object?)r.v)]);
     }
 
+
+
+    /// <summary>
+    /// EN: Ensures UNION normalizes equivalent numeric literals into a single row.
+    /// PT: Garante que o UNION normalize literais numéricos equivalentes em uma única linha.
+    /// </summary>
+    [Fact]
+    public void Union_ShouldNormalizeEquivalentNumericTypes()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT 1.0 AS v
+UNION
+SELECT 1 AS v
+").ToList();
+
+        Assert.Single(rows);
+    }
+
+    /// <summary>
+    /// EN: Ensures UNION rejects incompatible column types across SELECT parts.
+    /// PT: Garante que o UNION rejeite tipos de coluna incompatíveis entre partes do SELECT.
+    /// </summary>
+    [Fact]
+    public void Union_ShouldValidateIncompatibleColumnTypes()
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            _cnn.Query<dynamic>(@"
+SELECT 1 AS v
+UNION
+SELECT 'x' AS v
+").ToList());
+    }
+
+
+
+    /// <summary>
+    /// EN: Ensures UNION schema keeps aliases from the first SELECT projection.
+    /// PT: Garante que o schema do UNION mantenha os aliases da primeira projeção SELECT.
+    /// </summary>
+    [Fact]
+    public void Union_ShouldNormalizeSchemaToFirstSelectAlias()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id AS v FROM t WHERE id IN (1, 2)
+UNION ALL
+SELECT id AS x FROM t WHERE id = 3
+ORDER BY v
+").ToList();
+
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.v)]);
+    }
+
     /// <summary>
     /// EN: Disposes test resources.
     /// PT: Descarta os recursos do teste.

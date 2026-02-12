@@ -45,6 +45,9 @@ public sealed class SqlQueryParserCorpusTests(
             var sql = (string)row[0];
             var why = row.Length > 1 ? (string)row[1] : "valid statement";
             var minVersion = 0;
+            var expectation = why.StartsWith("invalid:", StringComparison.OrdinalIgnoreCase)
+                ? SqlCaseExpectation.ThrowInvalid
+                : SqlCaseExpectation.ParseOk;
 
             var trimmed = sql.TrimStart();
             if (trimmed.StartsWith("MERGE", StringComparison.OrdinalIgnoreCase))
@@ -52,7 +55,7 @@ public sealed class SqlQueryParserCorpusTests(
             else if (trimmed.Contains("WITH", StringComparison.OrdinalIgnoreCase))
                 minVersion = Db2Dialect.WithCteMinVersion;
 
-            yield return Case(sql, why, SqlCaseExpectation.ParseOk, minVersion);
+            yield return Case(sql, why, expectation, minVersion);
         }
 
         // Inválidas (ThrowInvalid)
@@ -105,8 +108,8 @@ public sealed class SqlQueryParserCorpusTests(
         // Identificadores / quoting
         yield return new object[] { "SELECT * FROM Users1", "identifier with digits" };
         yield return new object[] { "SELECT * FROM Users2", "identifier with digits" };
-        yield return new object[] { "SELECT * FROM `Users1`", "backtick quoted identifier" };
-        yield return new object[] { "SELECT * FROM `Users2`", "backtick quoted identifier" };
+        yield return new object[] { "SELECT * FROM \"Users1\"", "double-quoted identifier" };
+        yield return new object[] { "SELECT * FROM \"Users2\"", "double-quoted identifier" };
         yield return new object[] { "select u.id from db1.users u", "qualified name db.table + alias" };
         yield return new object[] { "select * from shcema1.users", "schema.table reference (typo ok for parser)" };
 
@@ -129,7 +132,7 @@ public sealed class SqlQueryParserCorpusTests(
         yield return new object[] { "SELECT id FROM users WHERE FIND_IN_SET('b', tags)", "function call in WHERE" };
 
         // SELECT list aliasing (including DB2 'name `alias`' style)
-        yield return new object[] { "SELECT name `User Name` FROM users", "alias without AS using backtick string" };
+        yield return new object[] { "SELECT name AS \"User Name\" FROM users", "alias with AS using double quotes" };
         yield return new object[] { "SELECT u.id AS uid, o.id AS oid FROM users u", "multiple select item aliases" };
         yield return new object[] { "SELECT id, id + 1 AS nextId FROM users ORDER BY id", "expr alias + ORDER BY column" };
 
@@ -155,8 +158,8 @@ public sealed class SqlQueryParserCorpusTests(
 
         // JOINs
         yield return new object[] { @"SELECT U.*, UT.TenantId 
-                FROM `User` U
-                JOIN `UserTenant` UT ON U.Id = UT.UserId
+                FROM ""User"" U
+                JOIN ""UserTenant"" UT ON U.Id = UT.UserId
                 WHERE U.Id = @Id", "INNER JOIN with ON + WHERE param + quoted table" };
         yield return new object[] { @"SELECT u.id, o.id AS orderId
                   FROM users u
@@ -219,11 +222,9 @@ ORDER BY u.Id, o.Amount", "JOIN with derived subquery + ORDER BY multiple keys" 
 
         // JSON operators (parser support)
         yield return new object[] { "select json_extract(data, '$.name') from users", "JSON_EXTRACT function call" };
-        yield return new object[] { "select data->'$.name' from users", "DB2 JSON -> operator" };
-        yield return new object[] { "select data->>'$.name' from users", "DB2 JSON ->> operator" };
 
         // Regex / null-safe equality
-        yield return new object[] { "select * from users where a <=> b", "null-safe equality <=>" };
+        yield return new object[] { "select * from users where a <=> b", "invalid: null-safe equality <=>" };
         yield return new object[] { "select * from users where name regexp '^[A-Z]+'", "REGEXP operator" };
         yield return new object[] { "select * from users where name not regexp '[0-9]'", "NOT REGEXP operator" };
 
@@ -389,42 +390,35 @@ WHERE dt.total >= 10;
 
         yield return new object[] {
             @"INSERT INTO users (id, name)
-              SELECT id, name FROM users_tmp
-              ON DUPLICATE KEY UPDATE name = VALUES(name)",
-            "INSERT INTO ... SELECT with ON DUPLICATE KEY UPDATE using VALUES"
+              SELECT id, name FROM users_tmp",
+            "INSERT INTO ... SELECT from users_tmp"
+        };
+
+        yield return new object[] {
+            @"INSERT INTO users (id, name)
+              SELECT id, name FROM users_tmp WHERE name = 'fixed'",
+            "INSERT INTO ... SELECT with literal filter"
+        };
+
+        yield return new object[] {
+            @"INSERT INTO users (id, name)
+              SELECT id, @name FROM users_tmp",
+            "INSERT INTO ... SELECT using parameter expression"
         };
 
         yield return new object[] {
             @"INSERT INTO users (id, name)
               SELECT id, name FROM users_tmp
-              ON DUPLICATE KEY UPDATE name = 'fixed'",
-            "INSERT INTO ... SELECT with ON DUPLICATE KEY UPDATE using literal"
-        };
-
-        yield return new object[] {
-            @"INSERT INTO users (id, name)
-              SELECT id, name FROM users_tmp
-              ON DUPLICATE KEY UPDATE name = @name",
-            "INSERT INTO ... SELECT with ON DUPLICATE KEY UPDATE using parameter"
-        };
-
-        yield return new object[] {
-            @"INSERT INTO users (id, name)
-              SELECT id, name FROM users_tmp
-              WHERE active = 1
-              ON DUPLICATE KEY UPDATE
-                  name = VALUES(name),
-                  updated_at = NOW()",
-            "INSERT INTO ... SELECT with WHERE and multi-column ON DUPLICATE"
+              WHERE active = 1",
+            "INSERT INTO ... SELECT with WHERE"
         };
 
         yield return new object[] {
             @"INSERT INTO stats (grp, total)
               SELECT grp, SUM(val)
               FROM t
-              GROUP BY grp
-              ON DUPLICATE KEY UPDATE total = VALUES(total)",
-            "INSERT INTO ... SELECT aggregate with ON DUPLICATE"
+              GROUP BY grp",
+            "INSERT INTO ... SELECT aggregate"
         };
 
         yield return new object[] {
@@ -445,7 +439,7 @@ WHERE dt.total >= 10;
         yield return new object[] { "DELETE FROM parent WHERE id = 1", "DELETE from parent table" };
         yield return new object[] { "DELETE FROM user WHERE id = @id", "DELETE from reserved-name table using parameter" };
         yield return new object[] { "DELETE FROM users WHERE id = @id", "DELETE from users using parameter" };
-        yield return new object[] { "DELETE users WHERE id = 1", "DELETE without FROM keyword (DB2 syntax)" };
+        yield return new object[] { "DELETE FROM users WHERE id = 1", "DELETE with FROM keyword (DB2 syntax)" };
 
         yield return new object[] { "INSERT INTO Users (Id, Name, Email) VALUES (1, 'John Doe', 'john@example.com')", "INSERT with literals" };
         yield return new object[] { "INSERT INTO Users (Id, Name, Email) VALUES (@Id, @Name, @Email)", "INSERT with parameters" };

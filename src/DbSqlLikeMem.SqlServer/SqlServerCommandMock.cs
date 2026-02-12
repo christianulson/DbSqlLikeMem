@@ -111,7 +111,7 @@ public class SqlServerCommandMock(
             SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect),
             SqlMergeQuery mergeQ => connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect),
             SqlSelectQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT."),
-            _ => throw new NotSupportedException($"Tipo de query não suportado em ExecuteNonQuery: {query.GetType().Name}")
+            _ => throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteNonQuery", query.GetType())
         };
     }
 
@@ -182,7 +182,7 @@ public class SqlServerCommandMock(
                     connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect);
                     break;
                 default:
-                    throw new NotSupportedException($"Tipo de query não suportado em ExecuteReader: {query.GetType().Name}");
+                    throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteReader", query.GetType());
             }
         }
 

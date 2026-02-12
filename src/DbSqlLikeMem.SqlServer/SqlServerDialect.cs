@@ -82,6 +82,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
+    // SQL Server supports CTE but not the "WITH RECURSIVE" keyword form.
     public override bool SupportsWithRecursive => false;
     public override bool SupportsWithMaterializedHint => false;
     public override bool SupportsOnConflictClause => false;

@@ -1,6 +1,12 @@
+using System;
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Data;
+using System.Data.Common;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace DbSqlLikeMem;
 
@@ -37,11 +43,13 @@ public abstract class TableMock
     /// PT: Nome normalizado da tabela.
     /// </summary>
     public string TableName { get; }
+
     /// <summary>
     /// EN: Schema to which the table belongs.
     /// PT: Schema ao qual a tabela pertence.
     /// </summary>
     public SchemaMock Schema { get; }
+    
     /// <summary>
     /// EN: Next identity value for auto-increment columns.
     /// PT: Próximo valor de identidade para colunas auto incrementais.
@@ -65,6 +73,7 @@ public abstract class TableMock
 
 
     private readonly List<(string Col, string RefTable, string RefCol)> _foreignKeys = [];
+    
     /// <summary>
     /// EN: List of foreign keys defined in the table.
     /// PT: Lista de chaves estrangeiras definidas na tabela.
@@ -141,8 +150,16 @@ public abstract class TableMock
     public IEnumerable<int>? Lookup(IndexDef def, string key)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(def, nameof(def));
-        return _ix.TryGetValue(def.Name.NormalizeName(), out var map)
-            && map.TryGetValue(key.NormalizeName(), out var list)
+        if (!_ix.TryGetValue(def.Name.NormalizeName(), out var map))
+            return null;
+
+        // Backward-compatible lookup: callers often pass raw values for single-column
+        // indexes (e.g. "John"). Internally keys are serialized, so try both formats.
+        if (map.TryGetValue(key.NormalizeName(), out var list))
+            return list;
+
+        var serializedKey = SerializeIndexKeyPart(key);
+        return map.TryGetValue(serializedKey, out list)
             ? list
             : null;
     }
@@ -177,13 +194,39 @@ public abstract class TableMock
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(idx, nameof(idx));
         ArgumentNullExceptionCompatible.ThrowIfNull(row, nameof(row));
-        return string.Join("|", idx.KeyCols.Select(colName =>
+        return string.Concat(idx.KeyCols.Select(colName =>
         {
             var ci = Columns[colName];
             if (ci.GetGenValue != null)
-                return ci.GetGenValue(row, this)?.ToString() ?? "<null>";
-            return row.TryGetValue(ci.Index, out var v) ? (v?.ToString() ?? "<null>") : "<null>";
+                return SerializeIndexKeyPart(ci.GetGenValue(row, this));
+
+            var value = row.TryGetValue(ci.Index, out var v) ? v : null;
+            return SerializeIndexKeyPart(value);
         }));
+    }
+
+    internal string BuildIndexKeyFromValues(
+        IndexDef idx,
+        IReadOnlyDictionary<string, object?> valuesByColumn)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(idx, nameof(idx));
+        ArgumentNullExceptionCompatible.ThrowIfNull(valuesByColumn, nameof(valuesByColumn));
+
+        return string.Concat(idx.KeyCols.Select(colName =>
+        {
+            var normalized = colName.NormalizeName();
+            valuesByColumn.TryGetValue(normalized, out var value);
+            return SerializeIndexKeyPart(value);
+        }));
+    }
+
+    private static string SerializeIndexKeyPart(object? value)
+    {
+        if (value is null || value is DBNull)
+            return "n;";
+
+        var text = value.ToString() ?? string.Empty;
+        return $"s{text.Length}:{text};";
     }
 
     /// <summary>
@@ -471,29 +514,37 @@ public abstract class TableMock
                 if (rhs.StartsWith("(")
                 && rhs.EndsWith(")"))
                 {
-                    var inner = rhs[1..^1];
-                    var parts = inner.Split(',')
-                        .Select(_=>_.Trim())
-                        .ToArray();
+                    var inner = rhs[1..^1].Trim();
 
-                    var tmp = new List<object?>();
-                    foreach (var part in parts)
+                    if (Regex.IsMatch(inner, @"^(SELECT|WITH)\b", RegexOptions.IgnoreCase))
                     {
-                        table.CurrentColumn = cond.C;
-                        var val = table.Resolve(part, info.DbType, info.Nullable, pars, table.Columns);
-                        table.CurrentColumn = null;
-                        val = val is DBNull ? null : val;
-
-                        if (val is System.Collections.IEnumerable ie && val is not string)
-                        {
-                            foreach (var v in ie) tmp.Add(v);
-                        }
-                        else
-                        {
-                            tmp.Add(val);
-                        }
+                        candidates = ResolveInSubqueryCandidates(table, info, inner, pars);
                     }
-                    candidates = tmp;
+                    else
+                    {
+                        var parts = inner.Split(',')
+                            .Select(_=>_.Trim())
+                            .ToArray();
+
+                        var tmp = new List<object?>();
+                        foreach (var part in parts)
+                        {
+                            table.CurrentColumn = cond.C;
+                            var val = table.Resolve(part, info.DbType, info.Nullable, pars, table.Columns);
+                            table.CurrentColumn = null;
+                            val = val is DBNull ? null : val;
+
+                            if (val is System.Collections.IEnumerable ie && val is not string)
+                            {
+                                foreach (var v in ie) tmp.Add(v);
+                            }
+                            else
+                            {
+                                tmp.Add(val);
+                            }
+                        }
+                        candidates = tmp;
+                    }
                 }
                 else
                 {
@@ -526,6 +577,62 @@ public abstract class TableMock
 
             return false;
         });
+
+
+    private static IEnumerable<object?> ResolveInSubqueryCandidates(
+        ITableMock table,
+        ColumnDef targetInfo,
+        string subquerySql,
+        DbParameterCollection? pars)
+    {
+        var m = Regex.Match(
+            subquerySql,
+            @"^SELECT\s+(?<col>[A-Za-z0-9_`\.]+)\s+FROM\s+`?(?<table>[A-Za-z0-9_]+)`?(?:\s+WHERE\s+(?<where>[\s\S]+))?$",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        if (!m.Success)
+            return [];
+
+        var sourceTableName = m.Groups["table"].Value.NormalizeName();
+        if (!table.Schema.TryGetTable(sourceTableName, out var sourceTableObj) || sourceTableObj == null)
+            return [];
+
+        var sourceTable = sourceTableObj;
+        var sourceColName = m.Groups["col"].Value.Trim().Trim('`');
+        var dot = sourceColName.LastIndexOf('.');
+        if (dot >= 0 && dot + 1 < sourceColName.Length)
+            sourceColName = sourceColName[(dot + 1)..];
+
+        var sourceCol = sourceTable.GetColumn(sourceColName);
+        var whereRaw = m.Groups["where"].Success ? m.Groups["where"].Value.Trim() : null;
+        var whereConds = ParseWhereSimple(whereRaw);
+
+        var tmp = new List<object?>();
+        foreach (var row in sourceTable)
+        {
+            if (whereConds.Count > 0 && !IsMatchSimple(sourceTable, pars, whereConds, row))
+                continue;
+
+            var v = sourceCol.GetGenValue != null ? sourceCol.GetGenValue(row, sourceTable) : row[sourceCol.Index];
+            if (v is DBNull) v = null;
+
+            if (v != null)
+            {
+                try
+                {
+                    v = DbTypeParser.Parse(targetInfo.DbType, v.ToString()!);
+                }
+                catch
+                {
+                    // best effort: keep original value when coercion is not possible
+                }
+            }
+
+            tmp.Add(v);
+        }
+
+        return tmp;
+    }
 
     private static string? TryExtractWhereRaw(string sql)
     {

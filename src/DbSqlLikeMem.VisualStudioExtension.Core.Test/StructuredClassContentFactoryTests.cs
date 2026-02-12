@@ -1,7 +1,15 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public sealed class StructuredClassContentFactoryTests
 {
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Fact]
     public void Build_GeneratesColumnsPkIndexesAndForeignKeysLikeConsole()
     {
@@ -25,6 +33,10 @@ public sealed class StructuredClassContentFactoryTests
         Assert.Contains("table.ForeignKeys.Add((\"CustomerId\", \"Customers\", \"Id\"));", content);
     }
 
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Fact]
     public void Build_WithCompositePrimaryKey_CreatesPrimaryIndexWithAllFields()
     {
@@ -48,6 +60,10 @@ public sealed class StructuredClassContentFactoryTests
     }
 
 
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Fact]
     public void Build_WithSqlServerStrategy_DoesNotTreatTinyIntAsBoolean()
     {
@@ -68,6 +84,10 @@ public sealed class StructuredClassContentFactoryTests
         Assert.Contains("table.Columns[\"IsEnabled\"] = new(0, DbType.Byte, false);", content);
         Assert.Contains("table.Columns[\"BitMask\"] = new(1, DbType.Boolean, false);", content);
     }
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Fact]
     public void Build_UsesSameTypeRulesAsConsoleGenerator_ForTinyIntAndBit()
     {

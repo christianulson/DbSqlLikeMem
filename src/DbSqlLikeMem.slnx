@@ -1,5 +1,4 @@
 <Solution>
-  <Folder Name="/ConsoleGenerator/" />
   <Folder Name="/Db2/">
     <Project Path="DbSqlLikeMem.Db2.Test/DbSqlLikeMem.Db2.Test.csproj" />
     <Project Path="DbSqlLikeMem.Db2/DbSqlLikeMem.Db2.csproj" />

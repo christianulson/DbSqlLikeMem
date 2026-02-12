@@ -15,6 +15,7 @@ internal abstract class AstQueryExecutorBase(
     private readonly DbConnectionMockBase _cnn = cnn ?? throw new ArgumentNullException(nameof(cnn));
     private readonly IDataParameterCollection _pars = pars ?? throw new ArgumentNullException(nameof(pars));
     private readonly object _dialect = dialect ?? throw new ArgumentNullException(nameof(dialect));
+    private ISqlDialect? Dialect => _dialect as ISqlDialect;
 
 
     private static readonly HashSet<string> _aggFns = new(StringComparer.OrdinalIgnoreCase)
@@ -85,6 +86,8 @@ internal abstract class AstQueryExecutorBase(
             JoinFields = tables[0].JoinFields
         };
 
+        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para UNION.");
+
         // valida colunas compatíveis
         for (int i = 0; i < tables.Count; i++)
         {
@@ -98,6 +101,8 @@ internal abstract class AstQueryExecutorBase(
 
                 throw new InvalidOperationException(msg);
             }
+
+            ValidateUnionColumnTypes(result.Columns, tables[i].Columns, i, sqlContextForErrors, dialect);
         }
 
         // merge
@@ -122,7 +127,7 @@ internal abstract class AstQueryExecutorBase(
                 // UNION => DISTINCT
                 foreach (var row in tables[i])
                 {
-                    if (!ContainsRow(result, row))
+                    if (!ContainsRow(result, row, dialect))
                         result.Add(row);
                 }
             }
@@ -139,7 +144,8 @@ internal abstract class AstQueryExecutorBase(
 
     private static bool ContainsRow(
         TableResultMock table,
-        Dictionary<int, object?> candidate)
+        Dictionary<int, object?> candidate,
+        ISqlDialect dialect)
     {
         // comparação simples: mesmas chaves + mesmos valores
         // (se precisar mais forte depois, você troca aqui)
@@ -151,12 +157,34 @@ internal abstract class AstQueryExecutorBase(
             foreach (var kv in candidate)
             {
                 if (!row.TryGetValue(kv.Key, out var v)) { ok = false; break; }
-                if (!Equals(v, kv.Value)) { ok = false; break; }
+                if (!v.EqualsSql(kv.Value, dialect)) { ok = false; break; }
             }
 
             if (ok) return true;
         }
         return false;
+    }
+
+    private static void ValidateUnionColumnTypes(
+        IList<TableResultColMock> expected,
+        IList<TableResultColMock> current,
+        int currentIndex,
+        string? sqlContextForErrors,
+        ISqlDialect dialect)
+    {
+        for (int i = 0; i < expected.Count; i++)
+        {
+            if (dialect.AreUnionColumnTypesCompatible(expected[i].DbType, current[i].DbType))
+                continue;
+
+            var msg =
+                "UNION: tipo de coluna incompatível. " +
+                $"Coluna[{i}] Primeiro={expected[i].DbType}, SELECT[{currentIndex}]={current[i].DbType}.";
+            if (!string.IsNullOrWhiteSpace(sqlContextForErrors))
+                msg += "\nSQL: " + sqlContextForErrors;
+
+            throw new InvalidOperationException(msg);
+        }
     }
 
     /// <summary>
@@ -199,7 +227,7 @@ internal abstract class AstQueryExecutorBase(
             rows = rows.Where(r => Eval(selectQuery.Where, r, group: null, ctes).ToBool());
 
         // 4) GROUP BY / HAVING / SELECT projection
-        bool needsGrouping = selectQuery.GroupBy.Count > 0 || ContainsAggregate(selectQuery);
+        bool needsGrouping = selectQuery.GroupBy.Count > 0 || selectQuery.Having is not null || ContainsAggregate(selectQuery);
 
         if (needsGrouping)
             return ExecuteGroup(selectQuery, ctes, rows);
@@ -209,7 +237,7 @@ internal abstract class AstQueryExecutorBase(
 
         // 6) DISTINCT
         if (selectQuery.Distinct)
-            projected = ApplyDistinct(projected);
+            projected = ApplyDistinct(projected, Dialect);
 
         // 7) ORDER BY / LIMIT
         projected = ApplyOrderAndLimit(projected, selectQuery, ctes);
@@ -343,12 +371,14 @@ internal abstract class AstQueryExecutorBase(
         if (best is null)
             return null;
 
-        var key = string.Join("|", best.KeyCols.Select(col =>
-        {
-            var norm = col.NormalizeName();
-            var value = equalsByColumn[norm];
-            return value?.ToString() ?? "<null>";
-        }));
+        var key = src.Physical is TableMock physicalTable
+            ? physicalTable.BuildIndexKeyFromValues(best, equalsByColumn)
+            : string.Join("|", best.KeyCols.Select(col =>
+            {
+                var norm = col.NormalizeName();
+                var value = equalsByColumn[norm];
+                return value?.ToString() ?? "<null>";
+            }));
 
         var positions = LookupIndexWithMetrics(src.Physical, best, key);
         if (positions is null)
@@ -711,7 +741,7 @@ internal abstract class AstQueryExecutorBase(
         }
 
         if (q.Distinct)
-            res = ApplyDistinct(res);
+            res = ApplyDistinct(res, Dialect);
 
         // ORDER / LIMIT
         res = ApplyOrderAndLimit(res, q, ctes);
@@ -862,7 +892,7 @@ internal abstract class AstQueryExecutorBase(
         }
     }
 
-    private static int CompareSql(object? a, object? b)
+    private int CompareSql(object? a, object? b)
     {
         if (IsNullish(a) && IsNullish(b)) return 0;
         if (IsNullish(a)) return -1;
@@ -886,7 +916,7 @@ internal abstract class AstQueryExecutorBase(
             }
         }
 
-        return string.Compare(a!.ToString(), b!.ToString(), StringComparison.OrdinalIgnoreCase);
+        return string.Compare(a!.ToString(), b!.ToString(), Dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
     }
 
     private SelectPlan BuildSelectPlan(
@@ -938,13 +968,14 @@ internal abstract class AstQueryExecutorBase(
             var preferred = si.Alias ?? asAlias ?? InferColumnAlias(raw);
             var tableAl = q.Table?.Alias ?? q.Table?.Name ?? "";
             var colAlias = MakeUniqueAlias(cols, preferred, tableAl);
+            var inferredDbType = InferDbTypeFromExpression(exprAst, sampleRows, ctes);
 
             cols.Add(new TableResultColMock(
                 tableAlias: q.Table?.Alias ?? q.Table?.Name ?? "",
                 columnAlias: colAlias,
                 columnName: colAlias,
                 columIndex: cols.Count,
-                dbType: DbType.Object,
+                dbType: inferredDbType,
                 isNullable: true));
 
             if (exprAst is WindowFunctionExpr w)
@@ -972,6 +1003,31 @@ internal abstract class AstQueryExecutorBase(
             Console.WriteLine($" - {c.ColumnAlias}");
 
         return new SelectPlan { Columns = cols, Evaluators = evals, WindowSlots = windowSlots };
+    }
+
+    private DbType InferDbTypeFromExpression(
+        SqlExpr exprAst,
+        List<EvalRow> sampleRows,
+        IDictionary<string, Source> ctes)
+    {
+        foreach (var row in sampleRows)
+        {
+            var value = Eval(exprAst, row, group: null, ctes);
+            if (value is null || value is DBNull)
+                continue;
+
+            var type = Nullable.GetUnderlyingType(value.GetType()) ?? value.GetType();
+            try
+            {
+                return type.ConvertTypeToDbType();
+            }
+            catch (ArgumentException)
+            {
+                return DbType.Object;
+            }
+        }
+
+        return DbType.Object;
     }
 
     private static bool IncludExtraColumns(
@@ -1345,7 +1401,7 @@ internal abstract class AstQueryExecutorBase(
             if (a is IComparable ca && a.GetType() == b.GetType())
                 return ca.CompareTo(b);
 
-            return StringComparer.OrdinalIgnoreCase.Compare(a.ToString(), b.ToString());
+            return string.Compare(a.ToString(), b.ToString(), Dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
         }
 
         int CompareRows(Dictionary<int, object?> ra, Dictionary<int, object?> rb)
@@ -1480,7 +1536,7 @@ internal abstract class AstQueryExecutorBase(
                 {
                     var left = Eval(like.Left, row, group, ctes)?.ToString() ?? "";
                     var pat = Eval(like.Pattern, row, group, ctes)?.ToString() ?? "";
-                    return left.Like(pat);
+                    return left.Like(pat, Dialect);
                 }
 
             case UnaryExpr u when u.Op == SqlUnaryOp.Not:
@@ -1602,7 +1658,7 @@ internal abstract class AstQueryExecutorBase(
         {
             if (l is null && r is null) return true;
             if (l is null || r is null) return false;
-            return l.Compare(r) == 0;
+            return l.Compare(r, Dialect) == 0;
         }
 
         if (l is null || l is DBNull || r is null || r is DBNull)
@@ -1611,7 +1667,7 @@ internal abstract class AstQueryExecutorBase(
             return false;
         }
 
-        var cmp = l.Compare(r);
+        var cmp = l.Compare(r, Dialect);
 
         return b.Op switch
         {
@@ -1621,9 +1677,23 @@ internal abstract class AstQueryExecutorBase(
             SqlBinaryOp.GreaterOrEqual => cmp >= 0,
             SqlBinaryOp.Less => cmp < 0,
             SqlBinaryOp.LessOrEqual => cmp <= 0,
-            SqlBinaryOp.Regexp => Regex.IsMatch(l.ToString() ?? "", r.ToString() ?? ""),
+            SqlBinaryOp.Regexp => EvalRegexp(l, r, Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para REGEXP.")),
             _ => throw new InvalidOperationException($"Binary op não suportado: {b.Op}")
         };
+    }
+
+    private static bool EvalRegexp(object l, object r, ISqlDialect dialect)
+    {
+        try
+        {
+            return Regex.IsMatch(l.ToString() ?? "", r.ToString() ?? "");
+        }
+        catch (ArgumentException)
+        {
+            if (dialect.RegexInvalidPatternEvaluatesToFalse)
+                return false;
+            throw;
+        }
     }
 
     private bool EvalIn(
@@ -1647,7 +1717,7 @@ internal abstract class AstQueryExecutorBase(
             foreach (var sr in sub)
             {
                 var v = sr.TryGetValue(0, out var cell) ? cell : null;
-                if (leftVal.EqualsSql(v))
+                if (leftVal.EqualsSql(v, Dialect))
                     return true;
             }
 
@@ -1670,12 +1740,12 @@ internal abstract class AstQueryExecutorBase(
                     // Row IN Row (quando o parametro é lista de tuples/rows)
                     if (leftVal is object?[] la2 && cand is object?[] ra2)
                     {
-                        if (la2.Length == ra2.Length && !la2.Where((t, idx) => !t.EqualsSql(ra2[idx])).Any())
+                        if (la2.Length == ra2.Length && !la2.Where((t, idx) => !t.EqualsSql(ra2[idx], Dialect)).Any())
                             return true;
                         continue;
                     }
 
-                    if (leftVal.EqualsSql(cand))
+                    if (leftVal.EqualsSql(cand, Dialect))
                         return true;
                 }
 
@@ -1685,12 +1755,12 @@ internal abstract class AstQueryExecutorBase(
             // Row IN Row (normal)
             if (leftVal is object?[] la && v is object?[] ra)
             {
-                if (la.Length == ra.Length && !la.Where((t, idx) => !t.EqualsSql(ra[idx])).Any())
+                if (la.Length == ra.Length && !la.Where((t, idx) => !t.EqualsSql(ra[idx], Dialect)).Any())
                     return true;
                 continue;
             }
 
-            if (leftVal.EqualsSql(v))
+            if (leftVal.EqualsSql(v, Dialect))
                 return true;
         }
 
@@ -1739,7 +1809,7 @@ internal abstract class AstQueryExecutorBase(
             if (baseVal is null || baseVal is DBNull || whenVal is null || whenVal is DBNull)
                 continue;
 
-            if (baseVal.Compare(whenVal) == 0)
+            if (baseVal.Compare(whenVal, Dialect) == 0)
                 return Eval(wt.Then, row, group, ctes);
         }
 
@@ -1775,7 +1845,8 @@ internal abstract class AstQueryExecutorBase(
             return cond ? EvalArg(1) : EvalArg(2);
         }
 
-        if (fn.Name.Equals("IFNULL", StringComparison.OrdinalIgnoreCase))
+        if (fn.Name.Equals("IFNULL", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("NVL", StringComparison.OrdinalIgnoreCase))
         {
             var v = EvalArg(0);
             return IsNullish(v) ? EvalArg(1) : v;
@@ -1872,9 +1943,7 @@ internal abstract class AstQueryExecutorBase(
 
             try
             {
-                if (type.Equals("SIGNED", StringComparison.OrdinalIgnoreCase)
-                    || type.Equals("UNSIGNED", StringComparison.OrdinalIgnoreCase)
-                    || type.StartsWith("INT", StringComparison.OrdinalIgnoreCase))
+                if ((Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para CAST.")).IsIntegerCastTypeName(type))
                 {
                     if (v is long l) return (int)l;
                     if (v is int i) return i;
@@ -1917,15 +1986,15 @@ internal abstract class AstQueryExecutorBase(
 
             try
             {
-                if (type.Equals("SIGNED", StringComparison.OrdinalIgnoreCase)
-                    || type.Equals("UNSIGNED", StringComparison.OrdinalIgnoreCase)
-                    || type.StartsWith("INT", StringComparison.OrdinalIgnoreCase))
+                if ((Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para CAST.")).IsIntegerCastTypeName(type))
                 {
                     if (v is long l) return (int)l;
                     if (v is int i) return i;
                     if (v is decimal d) return (int)d;
-                    if (int.TryParse(v!.ToString(), out var ix)) return ix;
-                    if (long.TryParse(v!.ToString(), out var lx)) return (int)lx;
+                    var text = v!.ToString()?.Trim() ?? string.Empty;
+                    if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ix)) return ix;
+                    if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var lx)) return (int)lx;
+                    if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return (int)dx;
                     return 0;
                 }
 
@@ -1933,7 +2002,7 @@ internal abstract class AstQueryExecutorBase(
                     || type.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase))
                 {
                     if (v is decimal dd) return dd;
-                    if (decimal.TryParse(v!.ToString(), out var dx)) return dx;
+                    if (decimal.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return dx;
                     return 0m;
                 }
 
@@ -2064,9 +2133,8 @@ internal abstract class AstQueryExecutorBase(
         {
             var baseVal = EvalArg(0);
             if (IsNullish(baseVal)) return null;
-
-            // Accept DateTime only for now (enough for tests)
-            var dt = (DateTime)baseVal!;
+            if (!TryCoerceDateTime(baseVal, out var dt))
+                return null;
 
             var itExpr = fn.Args.Count > 1 ? fn.Args[1] : null;
             if (itExpr is null) return dt;
@@ -2079,19 +2147,26 @@ internal abstract class AstQueryExecutorBase(
                 var unit = ce.Args[1] is RawSqlExpr rx ? rx.Sql : Eval(ce.Args[1], row, group, ctes)?.ToString() ?? "DAY";
 
                 var n = Convert.ToInt32((nObj ?? 0m).ToDec());
-                if (unit.Equals("DAY", StringComparison.OrdinalIgnoreCase))
-                    return dt.AddDays(n);
-                if (unit.Equals("HOUR", StringComparison.OrdinalIgnoreCase))
-                    return dt.AddHours(n);
-                if (unit.Equals("MINUTE", StringComparison.OrdinalIgnoreCase))
-                    return dt.AddMinutes(n);
-                if (unit.Equals("SECOND", StringComparison.OrdinalIgnoreCase))
-                    return dt.AddSeconds(n);
-
-                return dt;
+                return ApplyDateDelta(dt, unit, n);
             }
 
             return dt;
+        }
+
+        if (fn.Name.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count < 3)
+                return null;
+
+            var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
+            var amountObj = EvalArg(1);
+            var baseVal = EvalArg(2);
+            if (IsNullish(baseVal)) return null;
+            if (!TryCoerceDateTime(baseVal, out var dt))
+                return null;
+
+            var n = Convert.ToInt32((amountObj ?? 0m).ToDec());
+            return ApplyDateDelta(dt, unit, n);
         }
 
         if (fn.Name.Equals("DATEADD", StringComparison.OrdinalIgnoreCase))
@@ -2104,27 +2179,39 @@ internal abstract class AstQueryExecutorBase(
             var baseVal = EvalArg(2);
             if (IsNullish(baseVal)) return null;
 
-            var dt = baseVal switch
-            {
-                DateTime d => d,
-                DateTimeOffset dto => dto.DateTime,
-                _ => DateTime.Parse(
-                    baseVal!.ToString() ?? string.Empty,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    System.Globalization.DateTimeStyles.AssumeLocal)
-            };
+            if (!TryCoerceDateTime(baseVal, out var dt))
+                return null;
 
             var n = Convert.ToInt32((amountObj ?? 0m).ToDec());
-            return unit switch
+            return ApplyDateDelta(dt, unit, n);
+        }
+
+        if ((fn.Name.Equals("DATE", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("DATETIME", StringComparison.OrdinalIgnoreCase))
+            && fn.Args.Count >= 1)
+        {
+            var baseVal = EvalArg(0);
+            if (IsNullish(baseVal)) return null;
+            if (!TryCoerceDateTime(baseVal, out var dt))
+                return null;
+
+            // Minimal SQLite-like modifier support: '+N day|hour|minute|second|month|year'
+            for (int i = 1; i < fn.Args.Count; i++)
             {
-                "YEAR" or "YY" or "YYYY" => dt.AddYears(n),
-                "MONTH" or "MM" => dt.AddMonths(n),
-                "DAY" or "DD" or "D" => dt.AddDays(n),
-                "HOUR" or "HH" => dt.AddHours(n),
-                "MINUTE" or "MI" or "N" => dt.AddMinutes(n),
-                "SECOND" or "SS" or "S" => dt.AddSeconds(n),
-                _ => dt
-            };
+                var modifier = EvalArg(i)?.ToString();
+                if (string.IsNullOrWhiteSpace(modifier))
+                    continue;
+
+                if (!TryParseDateModifier(modifier!, out var unit, out var amount))
+                    continue;
+
+                dt = ApplyDateDelta(dt, unit, amount);
+            }
+
+            if (fn.Name.Equals("DATE", StringComparison.OrdinalIgnoreCase))
+                return dt.Date;
+
+            return dt;
         }
 
         
@@ -2138,7 +2225,7 @@ internal abstract class AstQueryExecutorBase(
             {
                 var cand = EvalArg(ai);
                 if (IsNullish(cand)) continue;
-                if (target.EqualsSql(cand))
+                if (target.EqualsSql(cand, Dialect))
                     return ai; // 1-based
             }
             return 0;
@@ -2205,6 +2292,65 @@ internal abstract class AstQueryExecutorBase(
         }
 
         return unit!.Trim().ToUpperInvariant();
+    }
+
+    private static bool TryCoerceDateTime(object? baseVal, out DateTime dt)
+    {
+        dt = default;
+
+        if (baseVal is null || baseVal is DBNull)
+            return false;
+
+        switch (baseVal)
+        {
+            case DateTime d:
+                dt = d;
+                return true;
+            case DateTimeOffset dto:
+                dt = dto.DateTime;
+                return true;
+        }
+
+        return DateTime.TryParse(
+            baseVal.ToString(),
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.AssumeLocal,
+            out dt);
+    }
+
+    private static DateTime ApplyDateDelta(DateTime dt, string unit, int amount)
+    {
+        var normalized = unit.Trim().ToUpperInvariant();
+        return normalized switch
+        {
+            "YEAR" or "YEARS" or "YY" or "YYYY" => dt.AddYears(amount),
+            "MONTH" or "MONTHS" or "MM" => dt.AddMonths(amount),
+            "DAY" or "DAYS" or "DD" or "D" => dt.AddDays(amount),
+            "HOUR" or "HOURS" or "HH" => dt.AddHours(amount),
+            "MINUTE" or "MINUTES" or "MI" or "N" => dt.AddMinutes(amount),
+            "SECOND" or "SECONDS" or "SS" or "S" => dt.AddSeconds(amount),
+            _ => dt
+        };
+    }
+
+    private static bool TryParseDateModifier(string modifier, out string unit, out int amount)
+    {
+        unit = string.Empty;
+        amount = 0;
+
+        var m = Regex.Match(
+            modifier.Trim(),
+            @"^(?<amount>[+-]?\d+)\s*(?<unit>\w+)s?$",
+            RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
+        if (!m.Success)
+            return false;
+
+        if (!int.TryParse(m.Groups["amount"].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out amount))
+            return false;
+
+        unit = m.Groups["unit"].Value;
+        return !string.IsNullOrWhiteSpace(unit);
     }
 
     private object? EvalCall(
@@ -2340,14 +2486,14 @@ internal abstract class AstQueryExecutorBase(
             if (vals.Any(IsNullish))
                 continue;
 
-            var key = string.Join("\u001F", vals.Select(NormalizeDistinctKey));
+            var key = string.Join("\u001F", vals.Select(v => NormalizeDistinctKey(v, Dialect)));
             set.Add(key);
         }
 
         return set.Count;
     }
 
-    private static string NormalizeDistinctKey(object? v)
+    private static string NormalizeDistinctKey(object? v, ISqlDialect? dialect = null)
     {
         // chave determinística; evita variações idiotas
         if (v is null) return "NULL";
@@ -2360,6 +2506,9 @@ internal abstract class AstQueryExecutorBase(
             float f => f.ToString("R", CultureInfo.InvariantCulture),
             DateTime dt => dt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
             bool b => b ? "1" : "0",
+            string s => (dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase) == StringComparison.Ordinal
+                ? s
+                : s.ToUpperInvariant(),
             _ => v.ToString() ?? ""
         };
     }
@@ -2596,18 +2745,19 @@ internal abstract class AstQueryExecutorBase(
     }
 
     private static TableResultMock ApplyDistinct(
-        TableResultMock res)
+        TableResultMock res,
+        ISqlDialect? dialect)
     {
-        var seen = new HashSet<object?[]>(ArrayObjectEqualityComparer.Instance);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
         var outRows = new List<Dictionary<int, object?>>();
 
         foreach (var row in res)
         {
-            var key = new object?[res.Columns.Count];
+            var key = new string[res.Columns.Count];
             for (int i = 0; i < res.Columns.Count; i++)
-                key[i] = row.TryGetValue(i, out var v) ? v : null;
+                key[i] = NormalizeDistinctKey(row.TryGetValue(i, out var v) ? v : null, dialect);
 
-            if (seen.Add(key))
+            if (seen.Add(string.Join("\u001F", key)))
                 outRows.Add(row);
         }
 

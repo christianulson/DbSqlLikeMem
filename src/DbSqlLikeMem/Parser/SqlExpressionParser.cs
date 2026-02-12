@@ -69,7 +69,7 @@ internal sealed class SqlExpressionParser(
             if (TryParseTypeCastInfix(ref left, minBp)) continue;
 
         // JSON -> / ->>
-        if (_dialect.SupportsJsonArrowOperators
+        if ((_dialect.SupportsJsonArrowOperators || _dialect.AllowsParserCrossDialectJsonOperators)
             && TryParseJsonArrowInfix(ref left, minBp)) continue;
 
             // * /
@@ -81,11 +81,14 @@ internal sealed class SqlExpressionParser(
             // BETWEEN / NOT BETWEEN (NOT BETWEEN é coberto no TryParseNotInfix)
             if (TryParseBetweenInfix(ref left, minBp)) continue;
 
-            // AND / OR
-            if (TryParseAndOrInfix(ref left, minBp)) continue;
-
             // comparações: = != <> >= <= > <
             if (TryParseComparisonInfix(ref left, minBp)) continue;
+
+            // AND / OR
+            // IMPORTANT: comparison operators must bind stronger than logical conjunction/disjunction.
+            // Keep this after comparison parsing to preserve SQL precedence like:
+            //   a = 1 OR b = 2 AND c = 3  => a = 1 OR (b = 2 AND c = 3)
+            if (TryParseAndOrInfix(ref left, minBp)) continue;
 
             break;
         }

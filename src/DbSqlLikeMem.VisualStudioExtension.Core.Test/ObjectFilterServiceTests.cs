@@ -1,7 +1,15 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public class ObjectFilterServiceTests
 {
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Fact]
     public void Filter_Equals_ReturnsExactMatches()
     {
@@ -18,6 +26,10 @@ public class ObjectFilterServiceTests
         Assert.Equal("User", result.Single().Name);
     }
 
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Fact]
     public void Filter_Like_ReturnsContainsMatches()
     {
