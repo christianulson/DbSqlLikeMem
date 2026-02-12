@@ -1,0 +1,36 @@
+<UserControl x:Class="DbSqlLikeMem.VisualStudioExtension.UI.DbSqlLikeMemToolWindowControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:core="clr-namespace:DbSqlLikeMem.VisualStudioExtension.Core.Services;assembly=DbSqlLikeMem.VisualStudioExtension.Core"
+             mc:Ignorable="d"
+             d:DesignHeight="450"
+             d:DesignWidth="350">
+    <UserControl.Resources>
+        <HierarchicalDataTemplate DataType="{x:Type core:TreeNode}" ItemsSource="{Binding Children}">
+            <TextBlock Text="{Binding Label}" />
+        </HierarchicalDataTemplate>
+    </UserControl.Resources>
+
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="8" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal">
+            <Button Content="Adicionar conexão"
+                    Padding="10,4"
+                    Margin="0,0,8,0"
+                    Click="OnAddConnectionClick" />
+            <Button Content="Configurar mapeamentos"
+                    Padding="10,4"
+                    Click="OnConfigureMappingsClick" />
+        </StackPanel>
+
+        <TreeView Grid.Row="2"
+                  ItemsSource="{Binding Nodes}" />
+    </Grid>
+</UserControl>
