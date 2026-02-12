@@ -234,7 +234,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             {
                 if (!string.IsNullOrWhiteSpace(result.error))
                 {
-                    failures.Add(result.error);
+                    failures.Add(result.error!);
                     continue;
                 }
 
@@ -332,6 +332,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
         try
         {
+            var token = currentOperationCts?.Token ?? CancellationToken.None;
             var connection = ResolveConnection(node);
             if (connection is null || !objectsByConnection.TryGetValue(connection.Id, out var objects))
             {
