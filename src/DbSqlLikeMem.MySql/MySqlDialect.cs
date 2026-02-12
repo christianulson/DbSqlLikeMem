@@ -115,6 +115,7 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsJsonArrowOperators => true;
+    public override bool SupportsJsonExtractFunction => true;
     public override bool SupportsMySqlIndexHints => true;
 
     public override bool SupportsDateAddFunction(string functionName)

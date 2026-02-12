@@ -20,6 +20,7 @@ internal static class DbStoredProcedureStrategy
 
         connection.ValidateProcedureParameters(def, parameters);
         PopulateOutDefaults(def, parameters);
+        PopulateStatusReturn(parameters);
         return 0; // signature-only
     }
 
@@ -64,6 +65,9 @@ internal static class DbStoredProcedureStrategy
             if (!dict.TryGetValue(n, out var p))
                 throw connection.NewException("Incorrect number of arguments for PROCEDURE", 1318);
 
+            if (p.Direction == ParameterDirection.Output || p.Direction == ParameterDirection.ReturnValue)
+                throw connection.NewException($"IN parameter '{n}' must be Input or InputOutput", 1414);
+
             var val = p.Value;
             if (val is null || val == DBNull.Value)
                 throw connection.NewException($"Parameter '{n}' cannot be null", 1048);
@@ -83,6 +87,20 @@ internal static class DbStoredProcedureStrategy
 
             if (p.Direction != ParameterDirection.Output && p.Direction != ParameterDirection.InputOutput)
                 throw connection.NewException($"OUT parameter '{n}' must be Output", 1414);
+        }
+    }
+
+
+    private static void PopulateStatusReturn(
+        DbParameterCollection parameters)
+    {
+        foreach (DbParameter p in parameters)
+        {
+            if (p.Direction != ParameterDirection.ReturnValue)
+                continue;
+
+            if (p.Value is null || p.Value == DBNull.Value)
+                p.Value = 0;
         }
     }
 

@@ -76,6 +76,30 @@ SELECT id FROM t WHERE id = 1
 
 
 
+
+    /// <summary>
+    /// EN: Tests OrderBy_NullsFirst_ShouldThrow_WhenDialectDoesNotSupportModifier behavior.
+    /// PT: Testa o comportamento de OrderBy_NullsFirst_ShouldThrow_WhenDialectDoesNotSupportModifier.
+    /// </summary>
+    [Fact]
+    public void OrderBy_NullsFirst_ShouldThrow_WhenDialectDoesNotSupportModifier()
+    {
+        Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>("SELECT id FROM t ORDER BY payload NULLS FIRST").ToList());
+    }
+
+
+    /// <summary>
+    /// EN: Tests JsonFunction_ShouldThrow_WhenNotSupportedByDialect behavior.
+    /// PT: Testa o comportamento de JsonFunction_ShouldThrow_WhenNotSupportedByDialect.
+    /// </summary>
+    [Fact]
+    public void JsonFunction_ShouldThrow_WhenNotSupportedByDialect()
+    {
+        Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>("SELECT JSON_EXTRACT(payload, '$.a.b') AS v FROM t").ToList());
+    }
+
     /// <summary>
     /// EN: Ensures UNION normalizes equivalent numeric literals into a single row.
     /// PT: Garante que o UNION normalize literais numéricos equivalentes em uma única linha.

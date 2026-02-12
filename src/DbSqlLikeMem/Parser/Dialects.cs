@@ -66,6 +66,7 @@ internal interface ISqlDialect
     // Pagination
     bool SupportsOffsetFetch { get; }
     bool RequiresOrderByForOffsetFetch { get; }
+    bool SupportsOrderByNullsModifier { get; }
 
     // DML variations
     bool SupportsDeleteWithoutFrom { get; }
@@ -79,6 +80,9 @@ internal interface ISqlDialect
     // Features
     bool SupportsNullSafeEq { get; }
     bool SupportsJsonArrowOperators { get; }
+    bool SupportsJsonExtractFunction { get; }
+    bool SupportsJsonValueFunction { get; }
+    bool SupportsOpenJsonFunction { get; }
 
     // Parser-only compatibility toggles (keep runtime rules separated)
     bool AllowsParserCrossDialectQuotedIdentifiers { get; }
@@ -400,6 +404,8 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// Auto-generated summary.
     /// </summary>
     public virtual bool RequiresOrderByForOffsetFetch => false;
+
+    public virtual bool SupportsOrderByNullsModifier => false;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
@@ -428,6 +434,9 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// Auto-generated summary.
     /// </summary>
     public virtual bool SupportsJsonArrowOperators => false;
+    public virtual bool SupportsJsonExtractFunction => false;
+    public virtual bool SupportsJsonValueFunction => false;
+    public virtual bool SupportsOpenJsonFunction => false;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>

@@ -89,6 +89,7 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsOffsetFetch => true;
+    public override bool SupportsOrderByNullsModifier => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
