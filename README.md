@@ -57,9 +57,20 @@
 | MySQL | `DbSqlLikeMem.MySql` |
 | SQL Server | `DbSqlLikeMem.SqlServer` |
 | Oracle | `DbSqlLikeMem.Oracle` |
-| PostgreSQL | `DbSqlLikeMem.Npgsql` |
-| SQLite | `DbSqlLikeMem.Sqlite` |
+| PostgreSQL (Npgsql) | `DbSqlLikeMem.Npgsql` |
+| SQLite (Sqlite) | `DbSqlLikeMem.Sqlite` |
 | DB2 | `DbSqlLikeMem.Db2` |
+
+## Simulated versions by provider | Versões simuladas por provedor
+
+| Provider / Provedor | Simulated versions / Versões simuladas |
+| --- | --- |
+| MySQL | 3, 4, 5, 8 |
+| SQL Server | 7, 2000, 2005, 2008, 2012, 2014, 2016, 2017, 2019, 2022 |
+| Oracle | 7, 8, 9, 10, 11, 12, 18, 19, 21, 23 |
+| PostgreSQL (Npgsql) | 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 |
+| SQLite (Sqlite) | 3 |
+| DB2 | 8, 9, 10, 11 |
 
 ## Runtime provider factory example | Exemplo de factory de provider em runtime
 
