@@ -1,18 +1,31 @@
 # DbSqlLikeMem.VisualStudioExtension
 
-Projeto VSIX inicial para hospedar a interface do DbSqlLikeMem no Visual Studio.
+Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 
-## O que está implementado
+## Evoluções implementadas
 
-- `AsyncPackage` com comando de menu em **View > DbSqlLikeMem Explorer**.
-- `ToolWindow` WPF com árvore baseada no `TreeViewBuilder` do Core.
-- Botão **Adicionar conexão** com popup para nome, tipo de banco e connection string.
-- Botão **Configurar mapeamentos** com popup para padrão de nome de arquivo e diretório de saída.
-- Persistência de conexões e mapeamentos usando `StatePersistenceService` do Core.
-- Compatibilidade de instalação configurada para Visual Studio **2019, 2022 e linha futura (incluindo 2026)** (`[16.0,19.0)`) nas edições Community/Professional/Enterprise.
+1. **Conexões reais + ciclo de vida**
+   - Teste de conexão ao adicionar/editar.
+   - Ações de editar e remover conexão.
+   - Persistência protegida da connection string (DPAPI por usuário).
 
-## Próximos incrementos recomendados
+2. **Carregamento real de objetos**
+   - Botão **Atualizar objetos** para listar metadados estruturais via `SqlDatabaseMetadataProvider`.
 
-- Menus de contexto da árvore (Gerar classes / Checar consistência).
-- Carregamento real dos objetos do banco via `SqlDatabaseMetadataProvider`.
-- Fluxo de configuração de mapeamento por tipo de objeto.
+3. **Menus de contexto na árvore**
+   - **Gerar classes**
+   - **Checar consistência**
+
+4. **Fluxo de geração com prévia de conflitos**
+   - Pré-visualização de arquivos já existentes (sobrescrita) antes de gerar.
+
+5. **Indicadores visuais de consistência**
+   - Nó de objeto com marcador de status: 🟢 sincronizado, 🟡 divergente, 🔴 ausente.
+
+6. **Hardening básico**
+   - Mensagens de status operacionais na UI.
+   - Log local em `%LocalAppData%/DbSqlLikeMem/visual-studio-extension.log`.
+
+## Compatibilidade VSIX
+
+- Compatível com Visual Studio **2019, 2022 e linha futura (incluindo 2026)** (`[16.0,19.0)`) nas edições Community/Professional/Enterprise.

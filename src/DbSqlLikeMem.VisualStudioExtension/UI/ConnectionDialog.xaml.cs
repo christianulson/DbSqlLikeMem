@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -8,13 +9,31 @@ public partial class ConnectionDialog : Window
     public ConnectionDialog()
     {
         InitializeComponent();
+        Loaded += OnLoaded;
     }
 
-    public string ConnectionName { get; private set; } = string.Empty;
+    public string ConnectionName { get; set; } = string.Empty;
 
-    public string DatabaseType { get; private set; } = "SqlServer";
+    public string DatabaseType { get; set; } = "SqlServer";
 
-    public string ConnectionString { get; private set; } = string.Empty;
+    public string ConnectionString { get; set; } = string.Empty;
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        NameTextBox.Text = ConnectionName;
+        ConnectionStringTextBox.Text = ConnectionString;
+
+        foreach (var item in DatabaseTypeCombo.Items)
+        {
+            if (item is ComboBoxItem comboItem && string.Equals(comboItem.Content?.ToString(), DatabaseType, StringComparison.OrdinalIgnoreCase))
+            {
+                DatabaseTypeCombo.SelectedItem = comboItem;
+                return;
+            }
+        }
+
+        DatabaseTypeCombo.SelectedIndex = 0;
+    }
 
     private void OnSaveClick(object sender, RoutedEventArgs e)
     {

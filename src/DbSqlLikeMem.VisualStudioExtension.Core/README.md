@@ -23,7 +23,7 @@ Projeto inicial para suportar uma extensão do Visual Studio focada em geração
 
 ## Próximos passos sugeridos
 
-> Status: os itens 1, 2 e 3 já possuem um esqueleto inicial em `../DbSqlLikeMem.VisualStudioExtension` (VSIX + Tool Window + popups).
+> Status: os itens 1, 2 e 3 já possuem implementação funcional inicial em `../DbSqlLikeMem.VisualStudioExtension` (conexão, mapeamento, árvore, geração e checagem de consistência).
 
 1. Evoluir fluxo de conexão (teste de conexão, edição/remoção, segurança de credenciais).
 2. Evoluir fluxo de mapeamento por tipo de objeto e por conexão.
