@@ -1399,13 +1399,28 @@ internal sealed class SqlQueryParser
                || ident.Contains('\n')
                || ident.Contains('\r');
 
-        string QuoteIdentifier(string ident) => _dialect.IdentifierEscapeStyle switch
+        string QuoteIdentifier(string ident)
         {
-            SqlIdentifierEscapeStyle.backtick => $"`{ident.Replace("`", "``")}`",
-            SqlIdentifierEscapeStyle.double_quote => $"\"{ident.Replace("\"", "\"\"")}\"",
-            SqlIdentifierEscapeStyle.bracket => $"[{ident.Replace("]", "]]")}]",
-            _ => ident
-        };
+            // Prefer a quote style that is valid for identifiers in this dialect and won't
+            // be interpreted as a string literal by the tokenizer.
+            var style = _dialect.IdentifierEscapeStyle;
+
+            if (style == SqlIdentifierEscapeStyle.double_quote && _dialect.IsStringQuote('"'))
+            {
+                if (_dialect.AllowsBacktickIdentifiers)
+                    style = SqlIdentifierEscapeStyle.backtick;
+                else if (_dialect.AllowsBracketIdentifiers)
+                    style = SqlIdentifierEscapeStyle.bracket;
+            }
+
+            return style switch
+            {
+                SqlIdentifierEscapeStyle.backtick => $"`{ident.Replace("`", "``")}`",
+                SqlIdentifierEscapeStyle.double_quote => $"\"{ident.Replace("\"", "\"\"")}\"",
+                SqlIdentifierEscapeStyle.bracket => $"[{ident.Replace("]", "]]")}]",
+                _ => ident
+            };
+        }
 
         static bool IsWordLike(SqlToken tok)
             => tok.Kind is SqlTokenKind.Identifier
