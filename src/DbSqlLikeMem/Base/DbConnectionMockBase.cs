@@ -198,7 +198,7 @@ public abstract class DbConnectionMockBase(
         out ITableMock? tb,
         string? schemaName = null)
         => Db.TryGetGlobalTemporaryTable(tableName, out tb, schemaName);
-    
+
     /// <summary>
     /// EN: Creates and adds a table to the database.
     /// PT: Cria e adiciona uma tabela ao banco.
@@ -345,7 +345,7 @@ public abstract class DbConnectionMockBase(
         string? schemaName = null)
         => Db.AddProdecure(
             procName,
-            pr, 
+            pr,
             schemaName ?? Database);
 
     /// <summary>
@@ -381,11 +381,6 @@ public abstract class DbConnectionMockBase(
 
         lock (Db.SyncRoot)
             return BeginTransactionCore(isolationLevel);
-    }
-
-    private DbTransaction BeginTransactionCore()
-    {
-        return BeginTransactionCore(IsolationLevel.Unspecified);
     }
 
     private DbTransaction BeginTransactionCore(IsolationLevel isolationLevel)
@@ -621,8 +616,10 @@ public abstract class DbConnectionMockBase(
 
     private static void RestoreSnapshot(Dictionary<ITableMock, TransactionTableSnapshot> snapshot)
     {
-        foreach (var (table, tableSnapshot) in snapshot)
+        foreach (var it in snapshot)
         {
+            var table = it.Key;
+            var tableSnapshot = it.Value;
             while (table.Count > 0)
                 table.RemoveAt(table.Count - 1);
 
@@ -642,11 +639,8 @@ public abstract class DbConnectionMockBase(
 
     internal void MaybeDelayOrDrop()
     {
-#pragma warning disable CA5394 // Do not use insecure randomness
         if (DropProbability > 0 && new Random().NextDouble() < DropProbability)
             throw new IOException("Simulated network drop");
-#pragma warning restore CA5394 // Do not use insecure randomness
-
         if (SimulatedLatencyMs > 0)
             Thread.Sleep(SimulatedLatencyMs);
     }
