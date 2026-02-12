@@ -1016,19 +1016,15 @@ internal abstract class AstQueryExecutorBase(
             if (value is null || value is DBNull)
                 continue;
 
-            var type = value.GetType();
-            if (type == typeof(string)) return DbType.String;
-            if (type == typeof(bool)) return DbType.Boolean;
-            if (type == typeof(decimal)) return DbType.Decimal;
-            if (type == typeof(double)) return DbType.Double;
-            if (type == typeof(float)) return DbType.Single;
-            if (type == typeof(byte)) return DbType.Byte;
-            if (type == typeof(short)) return DbType.Int16;
-            if (type == typeof(int)) return DbType.Int32;
-            if (type == typeof(long)) return DbType.Int64;
-            if (type == typeof(DateTime)) return DbType.DateTime;
-            if (type == typeof(Guid)) return DbType.Guid;
-            return DbType.Object;
+            var type = Nullable.GetUnderlyingType(value.GetType()) ?? value.GetType();
+            try
+            {
+                return type.ConvertTypeToDbType();
+            }
+            catch (ArgumentException)
+            {
+                return DbType.Object;
+            }
         }
 
         return DbType.Object;
