@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFrameworks>net8.0</TargetFrameworks>
+		<IsPackable>false</IsPackable>
 		<Description>Core domain and services for the DbSqlLikeMem Visual Studio extension prototype.</Description>
 	</PropertyGroup>
 
