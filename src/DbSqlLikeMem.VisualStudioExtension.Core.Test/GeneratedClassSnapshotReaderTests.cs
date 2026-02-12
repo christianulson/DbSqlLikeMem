@@ -27,12 +27,12 @@ public sealed class GeneratedClassSnapshotReaderTests
 /// Representa este tipo público da API.
 /// </summary>
 public static class OrdersTableFactory {}
-""");
+""", TestContext.Current.CancellationToken);
 
         try
         {
             var fallback = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table);
-            var snapshot = await GeneratedClassSnapshotReader.ReadAsync(file, fallback);
+            var snapshot = await GeneratedClassSnapshotReader.ReadAsync(file, fallback, TestContext.Current.CancellationToken);
 
             var dbObject = new DatabaseObjectReference(
                 "dbo",
@@ -46,10 +46,7 @@ public static class OrdersTableFactory {}
 
             var provider = new SnapshotProvider(dbObject);
             var checker = new ObjectConsistencyChecker();
-            var result = await checker.CheckAsync(
-                new ConnectionDefinition("1", "MySql", "ERP", "conn"),
-                snapshot,
-                provider);
+            var result = await checker.CheckAsync(new ConnectionDefinition("1", "MySql", "ERP", "conn"), snapshot, provider, TestContext.Current.CancellationToken);
 
             Assert.Equal(ObjectHealthStatus.DifferentFromDatabase, result.Status);
         }

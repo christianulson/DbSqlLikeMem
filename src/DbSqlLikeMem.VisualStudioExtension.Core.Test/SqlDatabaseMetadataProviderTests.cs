@@ -36,7 +36,7 @@ public sealed class SqlDatabaseMetadataProviderTests
         var conn = new ConnectionDefinition("1", "MySql", "ERP", "conn");
         var reference = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table);
 
-        var result = await provider.GetObjectAsync(conn, reference);
+        var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Contains("Id|int|1|0|1", result!.Properties!["Columns"]);

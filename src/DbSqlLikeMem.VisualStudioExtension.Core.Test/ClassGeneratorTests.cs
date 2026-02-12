@@ -35,7 +35,7 @@ public class ClassGeneratorTests
                     [DatabaseObjectType.Table] = new(DatabaseObjectType.Table, outputDir, string.Empty)
                 });
 
-            var files = await generator.GenerateAsync(request, config, _ => "// test");
+            var files = await generator.GenerateAsync(request, config, _ => "// test", TestContext.Current.CancellationToken);
 
             var file = Assert.Single(files);
             Assert.Equal(Path.Combine(outputDir, "SalesOrderTableFactory.cs"), file);
@@ -76,7 +76,7 @@ public class ClassGeneratorTests
                         "{DatabaseType}.{DatabaseName}.{Schema}.{NamePascal}.{Type}.cs")
                 });
 
-            var files = await generator.GenerateAsync(request, config, _ => "// test");
+            var files = await generator.GenerateAsync(request, config, _ => "// test", TestContext.Current.CancellationToken);
 
             var file = Assert.Single(files);
             Assert.Equal(

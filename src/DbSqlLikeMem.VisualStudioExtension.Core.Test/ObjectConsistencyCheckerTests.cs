@@ -20,7 +20,7 @@ public class ObjectConsistencyCheckerTests
             new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table),
             "c:/classes/Orders.cs");
 
-        var result = await checker.CheckAsync(connection, local, provider);
+        var result = await checker.CheckAsync(connection, local, provider, TestContext.Current.CancellationToken);
 
         Assert.Equal(ObjectHealthStatus.MissingInDatabase, result.Status);
     }
@@ -42,7 +42,7 @@ public class ObjectConsistencyCheckerTests
             "c:/classes/Orders.cs",
             new Dictionary<string, string> { ["Columns"] = "Id,Name,Status" });
 
-        var result = await checker.CheckAsync(connection, local, provider);
+        var result = await checker.CheckAsync(connection, local, provider, TestContext.Current.CancellationToken);
 
         Assert.Equal(ObjectHealthStatus.DifferentFromDatabase, result.Status);
     }
