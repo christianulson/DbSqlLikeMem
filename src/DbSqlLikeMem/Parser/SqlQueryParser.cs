@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Text;
 
 namespace DbSqlLikeMem;
@@ -175,7 +179,7 @@ internal sealed class SqlQueryParser
             InsertSelect = insertSelect,
             HasOnDuplicateKeyUpdate = (onDup != null),
             OnDupAssigns = onDup?.Assignments.Select(a => (a.Column, a.ValueRaw)).ToList() ?? [],
-            OnDupAssignsParsed = onDup?.Assignments.Select(a => new SqlAssignment(a.Column, a.ValueRaw, TryParseScalar(a.ValueRaw))).ToList() ?? new List<SqlAssignment>()
+            OnDupAssignsParsed = onDup?.Assignments.Select(a => new SqlAssignment(a.Column, a.ValueRaw, TryParseScalar(a.ValueRaw))).ToList() ?? []
         };
     }
 
@@ -215,7 +219,7 @@ internal sealed class SqlQueryParser
             ExpectWord("KEY");
             ExpectWord("UPDATE");
 
-            var assigns = ParseAssignmentsList();
+            var assigns = ParseAssignmentsList().AsReadOnly();
             return new SqlOnDuplicateKeyUpdate(assigns);
         }
 
@@ -314,14 +318,7 @@ internal sealed class SqlQueryParser
         var table = ParseTableSource();
 
         // MySQL: UPDATE <table> [alias] JOIN (...) ... SET ...
-        //string? alias = null;
         var hasJoin = false;
-
-        //// alias (ex: UPDATE users u JOIN ...)
-        //if (Peek().Kind == SqlTokenKind.Identifier && !IsWord(Peek(), "SET") && !IsJoinStart(Peek()))
-        //{
-        //    alias = Consume().Text;
-        //}
 
         // Se vier JOIN antes do SET, pulamos os tokens do JOIN aqui (as estratégias smart usam RawSql)
         if (IsJoinStart(Peek()))
@@ -333,7 +330,7 @@ internal sealed class SqlQueryParser
         ExpectWord("SET");
 
         var assignsList = ParseAssignmentsList();
-        var setList = assignsList.Select(a => (a.Column, a.ValueRaw)).ToList();
+        var setList = assignsList.ConvertAll(a => (a.Column, a.ValueRaw));
 
         string? whereRaw = null;
         if (IsWord(Peek(), "WHERE"))
@@ -342,7 +339,7 @@ internal sealed class SqlQueryParser
             whereRaw = ReadClauseTextUntilTopLevelStop();
         }
 
-        var setParsed = setList.Select(it => new SqlAssignment(it.Column, it.ValueRaw, TryParseScalar(it.ValueRaw))).ToList();
+        var setParsed = setList.ConvertAll(it => new SqlAssignment(it.Column, it.ValueRaw, TryParseScalar(it.ValueRaw)));
         SqlExpr? whereExpr = null;
         if (!string.IsNullOrWhiteSpace(whereRaw))
         {
@@ -775,7 +772,7 @@ internal sealed class SqlQueryParser
         };
     }
 
-    private SqlQueryBase ParseCreateView(bool orReplace)
+    private SqlCreateViewQuery ParseCreateView(bool orReplace)
     {
         ExpectWord("VIEW");
 
@@ -848,7 +845,7 @@ internal sealed class SqlQueryParser
         };
     }
 
-    private SqlQueryBase ParseDrop()
+    private SqlDropViewQuery ParseDrop()
     {
         ExpectWord("DROP");
 
@@ -1152,7 +1149,7 @@ internal sealed class SqlQueryParser
         return list;
     }
 
-    private SqlTableSource(bool consumeHints = true)
+    private SqlTableSource ParseTableSource(bool consumeHints = true)
     {
         if (IsSymbol(Peek(), "("))
         {
@@ -1558,7 +1555,7 @@ internal sealed class SqlQueryParser
                 {
                     if ((raw[i + 1] == 's' || raw[i + 1] == 'S') &&
                         char.IsWhiteSpace(raw[i + 2]) &&
-                        char.IsWhiteSpace(raw[i - 1 >= 0 ? i - 1 : 0]))
+                        char.IsWhiteSpace(raw[i >= 1 ? i - 1 : 0]))
                     {
                         // Too fragile; we instead do a proper word check below with boundaries
                     }
@@ -1657,7 +1654,7 @@ internal sealed class SqlQueryParser
 
                     // Avoid splitting if it looks like "expr op something"
                     // Here we keep the heuristic minimal: if left ends with one of these, it's not alias.
-                    HashSet<string> operatorChars = new HashSet<string> { "=", ">", "<", "!", "+", "-", "*", "/", "," };
+                    HashSet<string> operatorChars = ["=", ">", "<", "!", "+", "-", "*", "/", ","];
                     var lastLeft = left.TrimEnd();
                     if (operatorChars.Any(_=> lastLeft.EndsWith(_)))
                         continue;
@@ -2011,6 +2008,6 @@ internal sealed class SqlQueryParser
     {
         var q = Parse(sql, dialect);
         if (q is SqlSelectQuery sq) return new SubqueryExpr(sql, sq);
-        throw new InvalidOperationException("Subquery deve ser SELECT " + ctx);
+        throw new InvalidOperationException("Subquery deve ser SELECT " + ctx + " | " + t.Text);
     }
 }
