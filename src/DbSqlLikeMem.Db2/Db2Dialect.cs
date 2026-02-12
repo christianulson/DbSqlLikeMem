@@ -21,11 +21,10 @@ internal sealed class Db2Dialect : SqlDialectBase
             new KeyValuePair<string, SqlBinaryOp>(">=", SqlBinaryOp.GreaterOrEqual),
             new KeyValuePair<string, SqlBinaryOp>("<", SqlBinaryOp.Less),
             new KeyValuePair<string, SqlBinaryOp>("<=", SqlBinaryOp.LessOrEqual),
-            new KeyValuePair<string, SqlBinaryOp>("<=>", SqlBinaryOp.NullSafeEq),
         ],
         operators:
         [
-            "<=>", ">=", "<=", "<>", "!="
+            ">=", "<=", "<>", "!="
         ])
     { }
 
@@ -88,7 +87,7 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
-    public override bool SupportsWithRecursive => Version >= WithCteMinVersion;
+    public override bool SupportsWithRecursive => false;
     public override bool SupportsWithMaterializedHint => false;
     public override bool SupportsOnConflictClause => false;
     public override bool SupportsMerge => Version >= MergeMinVersion;
@@ -96,7 +95,7 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsNullSafeEq => true;
+    public override bool SupportsNullSafeEq => false;
     
     /// <summary>
     /// Auto-generated summary.

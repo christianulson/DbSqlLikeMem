@@ -76,12 +76,12 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsDeleteWithoutFrom => true;
+    public override bool SupportsDeleteWithoutFrom => false;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsDeleteTargetAlias => false;
-    public override bool AllowsParserDeleteWithoutFromCompatibility => true;
+    public override bool AllowsParserDeleteWithoutFromCompatibility => false;
 
     /// <summary>
     /// Auto-generated summary.

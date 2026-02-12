@@ -76,8 +76,7 @@ internal sealed class OracleDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    // Permite o parse de DELETE alvo FROM ... JOIN (...) usado pelos testes smart.
-    public override bool SupportsDeleteTargetAlias => true;
+    public override bool SupportsDeleteTargetAlias => false;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
