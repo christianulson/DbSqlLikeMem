@@ -311,7 +311,7 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public virtual bool SupportsDeleteTargetAlias => false;
+    public virtual bool SupportsDeleteTargetAlias => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
