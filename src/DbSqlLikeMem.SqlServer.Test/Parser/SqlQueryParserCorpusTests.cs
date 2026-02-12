@@ -47,6 +47,9 @@ public sealed class SqlQueryParserCorpusTests(
             var sql = (string)row[0];
             var why = row.Length > 1 ? (string)row[1] : "valid statement";
             var minVersion = 0;
+            var expectation = why.StartsWith("invalid:", StringComparison.OrdinalIgnoreCase)
+                ? SqlCaseExpectation.ThrowInvalid
+                : SqlCaseExpectation.ParseOk;
 
             var trimmed = sql.TrimStart();
             if (trimmed.StartsWith("MERGE", StringComparison.OrdinalIgnoreCase))
@@ -56,7 +59,7 @@ public sealed class SqlQueryParserCorpusTests(
             else if (trimmed.Contains("FETCH", StringComparison.OrdinalIgnoreCase))
                 minVersion = SqlServerDialect.OffsetFetchMinVersion;
 
-            yield return Case(sql, why, SqlCaseExpectation.ParseOk, minVersion);
+            yield return Case(sql, why, expectation, minVersion);
         }
 
         // Inválidas (ThrowInvalid)
