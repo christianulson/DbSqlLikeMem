@@ -110,4 +110,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
             return TemporaryTableScope.Connection;
         return TemporaryTableScope.None;
     }
+
+    public override bool SupportsDateAddFunction(string functionName)
+        => functionName.Equals("DATEADD", StringComparison.OrdinalIgnoreCase);
 }

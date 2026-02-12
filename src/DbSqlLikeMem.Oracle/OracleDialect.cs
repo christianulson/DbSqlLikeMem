@@ -92,4 +92,7 @@ internal sealed class OracleDialect : SqlDialectBase
     public override bool IsIntegerCastTypeName(string typeName)
         => base.IsIntegerCastTypeName(typeName)
             || typeName.StartsWith("NUMBER", StringComparison.OrdinalIgnoreCase);
+
+    public override bool SupportsDateAddFunction(string functionName)
+        => false;
 }

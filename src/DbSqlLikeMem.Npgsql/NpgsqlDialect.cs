@@ -115,4 +115,7 @@ internal sealed class NpgsqlDialect : SqlDialectBase
             ? TemporaryTableScope.Connection
             : TemporaryTableScope.None;
     }
+
+    public override bool SupportsDateAddFunction(string functionName)
+        => false;
 }

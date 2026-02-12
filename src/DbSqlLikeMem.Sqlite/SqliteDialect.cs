@@ -115,4 +115,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// PT: Comportamento de LIKE no mock segue o padrão do dialeto e é case-insensitive.
     /// </summary>
     public override bool LikeIsCaseInsensitive => true;
+
+    public override bool SupportsDateAddFunction(string functionName)
+        => functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase);
 }
