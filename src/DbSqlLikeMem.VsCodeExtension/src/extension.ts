@@ -52,6 +52,13 @@ interface TemplateSettings {
   repositoryTargetFolder: string;
 }
 
+interface ConnectionInput {
+  name: string;
+  databaseType: string;
+  databaseName: string;
+  connectionString: string;
+}
+
 
 interface GenerationPlan {
   objectRef: DatabaseObjectReference;
@@ -366,42 +373,35 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       await refreshTree();
       vscode.window.showInformationMessage(`Conexão ${connection.name} removida.`);
     }),
+    vscode.commands.registerCommand('dbSqlLikeMem.editConnection', async (item?: DbNodeItem) => {
+      const connection = await resolveConnectionFromItem(state.connections, item);
+      if (!connection) {
+        return;
+      }
+
+      const updatedConnection = await promptConnectionInput(connection);
+      if (!updatedConnection) {
+        return;
+      }
+
+      state.connections = state.connections.map((x) => x.id === connection.id
+        ? { ...x, ...updatedConnection }
+        : x);
+
+      await saveState(context, state);
+      await refreshTree();
+      vscode.window.showInformationMessage(`Conexão ${updatedConnection.name} atualizada.`);
+    }),
     vscode.commands.registerCommand('dbSqlLikeMem.addConnection', async () => {
-      const name = await vscode.window.showInputBox({ prompt: 'Nome da conexão' });
-      if (!name) {
+      const newConnection = await promptConnectionInput();
+      if (!newConnection) {
         return;
       }
 
-      const databaseType = await vscode.window.showQuickPick(['SqlServer', 'PostgreSql', 'Oracle', 'MySql', 'Sqlite'], {
-        placeHolder: 'Tipo do banco'
-      });
-
-      if (!databaseType) {
-        return;
-      }
-
-      const databaseName = await vscode.window.showInputBox({ prompt: 'Nome do database/schema principal' });
-      if (!databaseName) {
-        return;
-      }
-
-      const connectionString = await vscode.window.showInputBox({
-        prompt: 'Connection string (armazenada localmente no storage da extensão)',
-        password: true,
-        ignoreFocusOut: true
-      });
-
-      if (!connectionString) {
-        return;
-      }
-
-      const connectionId = `${databaseType}-${databaseName}-${Date.now()}`;
+      const connectionId = `${newConnection.databaseType}-${newConnection.databaseName}-${Date.now()}`;
       state.connections.push({
         id: connectionId,
-        name,
-        databaseType,
-        databaseName,
-        connectionString
+        ...newConnection
       });
 
       if (!state.mappingConfigurations.some((x) => x.connectionId === connectionId)) {
@@ -928,6 +928,49 @@ async function pickConnection(connections: ConnectionDefinition[]): Promise<Conn
   );
 
   return selected?.connection;
+}
+
+async function promptConnectionInput(connection?: ConnectionDefinition): Promise<ConnectionInput | undefined> {
+  const name = await vscode.window.showInputBox({
+    prompt: 'Nome da conexão',
+    value: connection?.name
+  });
+  if (!name) {
+    return undefined;
+  }
+
+  const databaseType = await vscode.window.showQuickPick(['SqlServer', 'PostgreSql', 'Oracle', 'MySql', 'Sqlite'], {
+    placeHolder: 'Tipo do banco',
+    title: connection ? 'Editar conexão' : 'Adicionar conexão'
+  });
+  if (!databaseType) {
+    return undefined;
+  }
+
+  const databaseName = await vscode.window.showInputBox({
+    prompt: 'Nome do database/schema principal',
+    value: connection?.databaseName
+  });
+  if (!databaseName) {
+    return undefined;
+  }
+
+  const connectionString = await vscode.window.showInputBox({
+    prompt: 'Connection string (armazenada localmente no storage da extensão)',
+    password: true,
+    ignoreFocusOut: true,
+    value: connection?.connectionString
+  });
+  if (!connectionString) {
+    return undefined;
+  }
+
+  return {
+    name,
+    databaseType,
+    databaseName,
+    connectionString
+  };
 }
 
 async function resolveConnectionFromItem(
