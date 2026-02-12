@@ -471,29 +471,37 @@ public abstract class TableMock
                 if (rhs.StartsWith("(")
                 && rhs.EndsWith(")"))
                 {
-                    var inner = rhs[1..^1];
-                    var parts = inner.Split(',')
-                        .Select(_=>_.Trim())
-                        .ToArray();
+                    var inner = rhs[1..^1].Trim();
 
-                    var tmp = new List<object?>();
-                    foreach (var part in parts)
+                    if (Regex.IsMatch(inner, @"^(SELECT|WITH)\b", RegexOptions.IgnoreCase))
                     {
-                        table.CurrentColumn = cond.C;
-                        var val = table.Resolve(part, info.DbType, info.Nullable, pars, table.Columns);
-                        table.CurrentColumn = null;
-                        val = val is DBNull ? null : val;
-
-                        if (val is System.Collections.IEnumerable ie && val is not string)
-                        {
-                            foreach (var v in ie) tmp.Add(v);
-                        }
-                        else
-                        {
-                            tmp.Add(val);
-                        }
+                        candidates = ResolveInSubqueryCandidates(table, info, inner, pars);
                     }
-                    candidates = tmp;
+                    else
+                    {
+                        var parts = inner.Split(',')
+                            .Select(_=>_.Trim())
+                            .ToArray();
+
+                        var tmp = new List<object?>();
+                        foreach (var part in parts)
+                        {
+                            table.CurrentColumn = cond.C;
+                            var val = table.Resolve(part, info.DbType, info.Nullable, pars, table.Columns);
+                            table.CurrentColumn = null;
+                            val = val is DBNull ? null : val;
+
+                            if (val is System.Collections.IEnumerable ie && val is not string)
+                            {
+                                foreach (var v in ie) tmp.Add(v);
+                            }
+                            else
+                            {
+                                tmp.Add(val);
+                            }
+                        }
+                        candidates = tmp;
+                    }
                 }
                 else
                 {
@@ -526,6 +534,62 @@ public abstract class TableMock
 
             return false;
         });
+
+
+    private static IEnumerable<object?> ResolveInSubqueryCandidates(
+        ITableMock table,
+        ColumnDef targetInfo,
+        string subquerySql,
+        DbParameterCollection? pars)
+    {
+        var m = Regex.Match(
+            subquerySql,
+            @"^SELECT\s+(?<col>[A-Za-z0-9_`\.]+)\s+FROM\s+`?(?<table>[A-Za-z0-9_]+)`?(?:\s+WHERE\s+(?<where>[\s\S]+))?$",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        if (!m.Success)
+            return [];
+
+        var sourceTableName = m.Groups["table"].Value.NormalizeName();
+        if (!table.Schema.TryGetTable(sourceTableName, out var sourceTableObj) || sourceTableObj == null)
+            return [];
+
+        var sourceTable = sourceTableObj;
+        var sourceColName = m.Groups["col"].Value.Trim().Trim('`');
+        var dot = sourceColName.LastIndexOf('.');
+        if (dot >= 0 && dot + 1 < sourceColName.Length)
+            sourceColName = sourceColName[(dot + 1)..];
+
+        var sourceCol = sourceTable.GetColumn(sourceColName);
+        var whereRaw = m.Groups["where"].Success ? m.Groups["where"].Value.Trim() : null;
+        var whereConds = ParseWhereSimple(whereRaw);
+
+        var tmp = new List<object?>();
+        foreach (var row in sourceTable)
+        {
+            if (whereConds.Count > 0 && !IsMatchSimple(sourceTable, pars, whereConds, row))
+                continue;
+
+            var v = sourceCol.GetGenValue != null ? sourceCol.GetGenValue(row, sourceTable) : row[sourceCol.Index];
+            if (v is DBNull) v = null;
+
+            if (v != null)
+            {
+                try
+                {
+                    v = DbTypeParser.Parse(targetInfo.DbType, v.ToString()!);
+                }
+                catch
+                {
+                    // best effort: keep original value when coercion is not possible
+                }
+            }
+
+            tmp.Add(v);
+        }
+
+        return tmp;
+    }
 
     private static string? TryExtractWhereRaw(string sql)
     {

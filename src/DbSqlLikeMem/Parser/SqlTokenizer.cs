@@ -275,6 +275,17 @@ internal sealed class SqlTokenizer
     {
         token = default!;
 
+        // Greedy safeguard for tokens like "<=>" even when the dialect does not
+        // explicitly list the full operator (prevents tokenizing as "<=" + ">").
+        if (_pos + 3 <= _sql.Length
+            && string.CompareOrdinal(_sql, _pos, "<=>", 0, 3) == 0)
+        {
+            var p = _pos;
+            _pos += 3;
+            token = new SqlToken(SqlTokenKind.Operator, "<=>", p);
+            return true;
+        }
+
         // Compat parser: operadores JSON podem ser aceitos conforme regra do dialeto.
         if (_dialect.SupportsJsonArrowOperators || _dialect.AllowsParserCrossDialectJsonOperators)
         {

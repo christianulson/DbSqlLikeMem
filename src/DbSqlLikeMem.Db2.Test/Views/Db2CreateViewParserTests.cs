@@ -69,12 +69,10 @@ SELECT * FROM v_users;
     /// </summary>
     [Theory]
     [MemberDataDb2Version]
-    public void Parse_CreateView_WithBackticks_ShouldWork(int version)
+    public void Parse_CreateView_WithBackticks_ShouldFail_ByDb2Spec(int version)
     {
         const string sql = "CREATE VIEW `v` AS SELECT `id` FROM `users`;";
-        var q = SqlQueryParser.ParseMulti(sql, new Db2Dialect(version)).Single();
-        var cv = Assert.IsType<SqlCreateViewQuery>(q);
-        Assert.Equal("v", cv.Table?.Name);
+        Assert.ThrowsAny<Exception>(() => SqlQueryParser.ParseMulti(sql, new Db2Dialect(version)).ToList());
     }
 
     /// <summary>
