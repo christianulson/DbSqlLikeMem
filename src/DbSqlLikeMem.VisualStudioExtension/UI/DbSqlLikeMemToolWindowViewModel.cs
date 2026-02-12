@@ -15,6 +15,10 @@ using DbSqlLikeMem.VisualStudioExtension.Services;
 
 namespace DbSqlLikeMem.VisualStudioExtension.UI;
 
+/// <summary>
+/// Represents the view model that drives the DbSqlLikeMem tool window UI.
+/// Representa o view model que controla a interface da janela DbSqlLikeMem.
+/// </summary>
 public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 {
     private readonly StatePersistenceService statePersistenceService = new();
@@ -34,6 +38,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     private string objectFilterText = string.Empty;
     private FilterMode objectFilterMode = FilterMode.Like;
 
+    /// <summary>
+    /// Initializes the view model, loads persisted state, and builds the initial tree.
+    /// Inicializa o view model, carrega o estado persistido e monta a árvore inicial.
+    /// </summary>
     public DbSqlLikeMemToolWindowViewModel()
     {
         stateFilePath = statePersistenceService.GetDefaultStatePath();
@@ -41,12 +49,28 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         RefreshTree();
     }
 
+    /// <summary>
+    /// Gets the root explorer nodes shown in the tree.
+    /// Obtém os nós raiz do explorador mostrados na árvore.
+    /// </summary>
     public ObservableCollection<ExplorerNode> Nodes { get; } = [];
 
+    /// <summary>
+    /// Gets the current status message displayed to the user.
+    /// Obtém a mensagem de status atual exibida ao usuário.
+    /// </summary>
     public string StatusMessage { get; private set; } = "Pronto.";
 
+    /// <summary>
+    /// Gets a value indicating whether an operation is currently running.
+    /// Obtém um valor que indica se uma operação está em andamento.
+    /// </summary>
     public bool IsBusy { get; private set; }
 
+    /// <summary>
+    /// Gets or sets the text used to filter displayed database objects.
+    /// Obtém ou define o texto usado para filtrar objetos de banco exibidos.
+    /// </summary>
     public string ObjectFilterText
     {
         get => objectFilterText;
@@ -63,6 +87,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// Gets or sets the filtering mode used when applying object filters.
+    /// Obtém ou define o modo de filtragem usado ao aplicar filtros de objetos.
+    /// </summary>
     public FilterMode ObjectFilterMode
     {
         get => objectFilterMode;
@@ -79,8 +107,16 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// Occurs when a bindable property value changes.
+    /// Ocorre quando o valor de uma propriedade vinculável é alterado.
+    /// </summary>
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    /// <summary>
+    /// Tests a database connection and returns whether it succeeds with a message.
+    /// Testa uma conexão com banco e retorna se ela foi bem-sucedida com uma mensagem.
+    /// </summary>
     public async Task<(bool Success, string Message)> TestConnectionAsync(string databaseType, string connectionString)
     {
         try
@@ -99,6 +135,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// Adds a new connection and default mappings to the persisted state.
+    /// Adiciona uma nova conexão e mapeamentos padrão ao estado persistido.
+    /// </summary>
     public void AddConnection(string name, string databaseType, string connectionString)
     {
         var connection = new ConnectionDefinition(Guid.NewGuid().ToString("N"), databaseType, name, connectionString, name);
@@ -113,9 +153,17 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         RefreshTree();
     }
 
+    /// <summary>
+    /// Gets a connection definition by its identifier.
+    /// Obtém uma definição de conexão pelo identificador.
+    /// </summary>
     public ConnectionDefinition? GetConnection(string connectionId)
         => connections.FirstOrDefault(c => c.Id == connectionId);
 
+    /// <summary>
+    /// Updates an existing connection represented by the selected explorer node.
+    /// Atualiza uma conexão existente representada pelo nó selecionado no explorador.
+    /// </summary>
     public void UpdateConnection(ExplorerNode selectedConnectionNode, string name, string databaseType, string connectionString)
     {
         if (selectedConnectionNode.ConnectionId is null)
@@ -137,6 +185,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         RefreshTree();
     }
 
+    /// <summary>
+    /// Removes a connection and related mappings from the current state.
+    /// Remove uma conexão e os mapeamentos relacionados do estado atual.
+    /// </summary>
     public void RemoveConnection(ExplorerNode selectedConnectionNode)
     {
         if (selectedConnectionNode.ConnectionId is null)
@@ -162,6 +214,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         RefreshTree();
     }
 
+    /// <summary>
+    /// Applies default mapping values to all configured connections.
+    /// Aplica valores padrão de mapeamento para todas as conexões configuradas.
+    /// </summary>
     public void ApplyDefaultMapping(string fileNamePattern, string outputDirectory)
     {
         for (var i = 0; i < mappings.Count; i++)
@@ -174,14 +230,26 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         SetStatusMessage("Mapeamentos atualizados.");
     }
 
+    /// <summary>
+    /// Gets the current default mapping values used by the mapping dialog.
+    /// Obtém os valores padrão de mapeamento usados pela janela de mapeamento.
+    /// </summary>
     public (string FileNamePattern, string OutputDirectory) GetMappingDefaults()
     {
         var firstMapping = mappings.FirstOrDefault()?.Mappings.Values.FirstOrDefault();
         return (firstMapping?.FileNamePattern ?? "{NamePascal}{Type}Factory.cs", firstMapping?.OutputDirectory ?? "Generated");
     }
 
+    /// <summary>
+    /// Gets the current template configuration.
+    /// Obtém a configuração atual de templates.
+    /// </summary>
     public TemplateConfiguration GetTemplateConfiguration() => templateConfiguration;
 
+    /// <summary>
+    /// Updates the template and output settings used for model and repository generation.
+    /// Atualiza os templates e diretórios usados na geração de modelos e repositórios.
+    /// </summary>
     public void ConfigureTemplates(string modelTemplatePath, string repositoryTemplatePath, string modelOutputDirectory, string repositoryOutputDirectory)
     {
         templateConfiguration = new TemplateConfiguration(
@@ -194,12 +262,20 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     }
 
 
+    /// <summary>
+    /// Requests cancellation of the currently running operation.
+    /// Solicita o cancelamento da operação em execução.
+    /// </summary>
     public void CancelCurrentOperation()
     {
         currentOperationCts?.Cancel();
         SetStatusMessage("Cancelamento solicitado.");
     }
 
+    /// <summary>
+    /// Reloads database objects for all configured connections.
+    /// Recarrega os objetos de banco para todas as conexões configuradas.
+    /// </summary>
     public async Task RefreshObjectsAsync()
     {
         if (!TryBeginOperation("Atualizando objetos de banco..."))
@@ -252,6 +328,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// Previews generated files that would be overwritten for a selected node.
+    /// Lista previamente os arquivos gerados que seriam sobrescritos para um nó selecionado.
+    /// </summary>
     public IReadOnlyCollection<string> PreviewConflictsForNode(ExplorerNode node)
     {
         var connection = ResolveConnection(node);
@@ -272,6 +352,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         return [.. FindExistingFiles(connection, mapping, selectedObjects)];
     }
 
+    /// <summary>
+    /// Generates test classes for the selected node and returns generated file paths.
+    /// Gera classes de teste para o nó selecionado e retorna os caminhos gerados.
+    /// </summary>
     public async Task<IReadOnlyCollection<string>> GenerateForNodeAsync(ExplorerNode node)
     {
         if (!TryBeginOperation("Gerando classes de teste..."))
@@ -317,9 +401,17 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     }
 
 
+    /// <summary>
+    /// Generates model classes for the selected node using template settings.
+    /// Gera classes de modelo para o nó selecionado usando as configurações de template.
+    /// </summary>
     public Task<IReadOnlyCollection<string>> GenerateModelClassesForNodeAsync(ExplorerNode node)
         => GenerateFromTemplateForNodeAsync(node, templateConfiguration.ModelTemplatePath, templateConfiguration.ModelOutputDirectory, "Model", "// Model for {{Schema}}.{{ObjectName}}\npublic class {{ClassName}}\n{\n}\n");
 
+    /// <summary>
+    /// Generates repository classes for the selected node using template settings.
+    /// Gera classes de repositório para o nó selecionado usando as configurações de template.
+    /// </summary>
     public Task<IReadOnlyCollection<string>> GenerateRepositoryClassesForNodeAsync(ExplorerNode node)
         => GenerateFromTemplateForNodeAsync(node, templateConfiguration.RepositoryTemplatePath, templateConfiguration.RepositoryOutputDirectory, "Repository", "// Repository for {{Schema}}.{{ObjectName}}\npublic class {{ClassName}}\n{\n}\n");
 
@@ -388,6 +480,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// Checks consistency between database metadata and local generated artifacts.
+    /// Verifica a consistência entre metadados do banco e artefatos locais gerados.
+    /// </summary>
     public async Task CheckConsistencyAsync(ExplorerNode node)
     {
         if (!TryBeginOperation("Checando consistência..."))
@@ -478,7 +574,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     {
         try
         {
-            var loaded = statePersistenceService.LoadAsync(stateFilePath).GetAwaiter().GetResult();
+            var loaded = statePersistenceService.Load(stateFilePath);
             if (loaded is null)
             {
                 return;
@@ -511,7 +607,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             .ToArray();
 
         var state = new ExtensionState(safeConnections, [.. mappings], templateConfiguration);
-        statePersistenceService.SaveAsync(state, stateFilePath).GetAwaiter().GetResult();
+        statePersistenceService.Save(state, stateFilePath);
     }
 
     private void RefreshTree()

@@ -47,7 +47,7 @@ internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
             var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
             for (var i = 0; i < reader.FieldCount; i++)
             {
-                row[reader.GetName(i)] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                row[reader.GetName(i)] = await reader.IsDBNullAsync(i, cancellationToken) ? null : reader.GetValue(i);
             }
 
             rows.Add(row);

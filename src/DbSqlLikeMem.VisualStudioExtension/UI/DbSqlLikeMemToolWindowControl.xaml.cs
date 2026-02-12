@@ -25,6 +25,10 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
     private readonly DbSqlLikeMemToolWindowViewModel viewModel;
 
+    /// <summary>
+    /// Initializes the DbSqlLikeMem tool window user control and its view model.
+    /// Inicializa o controle da janela DbSqlLikeMem e seu view model.
+    /// </summary>
     public DbSqlLikeMemToolWindowControl()
     {
         InitializeComponent();
@@ -32,8 +36,8 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         DataContext = viewModel;
     }
 
-    private async void OnAddConnectionClick(object sender, RoutedEventArgs e)
-        => await RunSafeAsync(async () =>
+    private void OnAddConnectionClick(object sender, RoutedEventArgs e)
+        => ThreadHelper.JoinableTaskFactory.RunAsync(async () => await RunSafeAsync(async () =>
         {
             var dialog = new ConnectionDialog { Owner = System.Windows.Window.GetWindow(this) };
 
@@ -51,10 +55,10 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
             viewModel.AddConnection(dialog.ConnectionName, dialog.DatabaseType, dialog.ConnectionString);
             await viewModel.RefreshObjectsAsync();
-        });
+        }));
 
-    private async void OnEditConnectionClick(object sender, RoutedEventArgs e)
-        => await RunSafeAsync(async () =>
+    private void OnEditConnectionClick(object sender, RoutedEventArgs e)
+        => ThreadHelper.JoinableTaskFactory.RunAsync(async () => await RunSafeAsync(async () =>
         {
             if (ExplorerTree.SelectedItem is not ExplorerNode selected || selected.Kind != ExplorerNodeKind.Connection)
             {
@@ -85,7 +89,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
             viewModel.UpdateConnection(selected, dialog.ConnectionName, dialog.DatabaseType, dialog.ConnectionString);
             await viewModel.RefreshObjectsAsync();
-        });
+        }));
 
     private void OnRemoveConnectionClick(object sender, RoutedEventArgs e)
     {
@@ -123,14 +127,14 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         }
     }
 
-    private async void OnRefreshObjectsClick(object sender, RoutedEventArgs e)
-        => await RunSafeAsync(() => viewModel.RefreshObjectsAsync());
+    private void OnRefreshObjectsClick(object sender, RoutedEventArgs e)
+        => ThreadHelper.JoinableTaskFactory.RunAsync(async () => await RunSafeAsync(() => viewModel.RefreshObjectsAsync()));
 
     private void OnCancelOperationClick(object sender, RoutedEventArgs e)
         => viewModel.CancelCurrentOperation();
 
-    private async void OnGenerateClassesClick(object sender, RoutedEventArgs e)
-        => await RunSafeAsync(async () =>
+    private void OnGenerateClassesClick(object sender, RoutedEventArgs e)
+        => ThreadHelper.JoinableTaskFactory.RunAsync(async () => await RunSafeAsync(async () =>
         {
             if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
             {
@@ -151,12 +155,13 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
             }
 
             var generatedFiles = await viewModel.GenerateForNodeAsync(selected);
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             AddFilesToActiveProject(generatedFiles);
-        });
+        }));
 
 
-    private async void OnGenerateModelClassesClick(object sender, RoutedEventArgs e)
-        => await RunSafeAsync(async () =>
+    private void OnGenerateModelClassesClick(object sender, RoutedEventArgs e)
+        => ThreadHelper.JoinableTaskFactory.RunAsync(async () => await RunSafeAsync(async () =>
         {
             if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
             {
@@ -165,11 +170,12 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
             }
 
             var generatedFiles = await viewModel.GenerateModelClassesForNodeAsync(selected);
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             AddFilesToActiveProject(generatedFiles);
-        });
+        }));
 
-    private async void OnGenerateRepositoryClassesClick(object sender, RoutedEventArgs e)
-        => await RunSafeAsync(async () =>
+    private void OnGenerateRepositoryClassesClick(object sender, RoutedEventArgs e)
+        => ThreadHelper.JoinableTaskFactory.RunAsync(async () => await RunSafeAsync(async () =>
         {
             if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
             {
@@ -178,11 +184,12 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
             }
 
             var generatedFiles = await viewModel.GenerateRepositoryClassesForNodeAsync(selected);
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             AddFilesToActiveProject(generatedFiles);
-        });
+        }));
 
-    private async void OnCheckConsistencyClick(object sender, RoutedEventArgs e)
-        => await RunSafeAsync(async () =>
+    private void OnCheckConsistencyClick(object sender, RoutedEventArgs e)
+        => ThreadHelper.JoinableTaskFactory.RunAsync(async () => await RunSafeAsync(async () =>
         {
             if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
             {
@@ -191,7 +198,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
             }
 
             await viewModel.CheckConsistencyAsync(selected);
-        });
+        }));
 
     private async Task RunSafeAsync(Func<Task> action)
     {

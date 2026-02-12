@@ -57,6 +57,38 @@ public sealed class StatePersistenceService
         return JsonSerializer.Deserialize<ExtensionState>(json, SerializerOptions);
     }
 
+
+    /// <summary>
+    /// Persists extension state to disk synchronously.
+    /// Persiste o estado da extensão em disco de forma síncrona.
+    /// </summary>
+    public void Save(ExtensionState state, string outputPath)
+    {
+        var directory = Path.GetDirectoryName(outputPath);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        var json = JsonSerializer.Serialize(state, SerializerOptions);
+        File.WriteAllText(outputPath, json);
+    }
+
+    /// <summary>
+    /// Loads extension state from disk synchronously.
+    /// Carrega o estado da extensão a partir do disco de forma síncrona.
+    /// </summary>
+    public ExtensionState? Load(string inputPath)
+    {
+        if (!File.Exists(inputPath))
+        {
+            return null;
+        }
+
+        var json = File.ReadAllText(inputPath);
+        return JsonSerializer.Deserialize<ExtensionState>(json, SerializerOptions);
+    }
+
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
