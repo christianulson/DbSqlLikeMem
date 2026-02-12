@@ -88,4 +88,8 @@ internal sealed class OracleDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
+
+    public override bool IsIntegerCastTypeName(string typeName)
+        => base.IsIntegerCastTypeName(typeName)
+            || typeName.StartsWith("NUMBER", StringComparison.OrdinalIgnoreCase);
 }
