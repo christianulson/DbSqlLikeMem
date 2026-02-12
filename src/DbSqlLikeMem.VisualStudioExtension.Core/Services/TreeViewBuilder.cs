@@ -18,7 +18,7 @@ public sealed class TreeViewBuilder
         var dbNode = new TreeNode(connection.DatabaseName) { ContextKey = "database-name" };
         root.Children.Add(dbNode);
 
-        foreach (var objectType in Enum.GetValues<DatabaseObjectType>())
+        foreach (DatabaseObjectType objectType in Enum.GetValues(typeof(DatabaseObjectType)))
         {
             var typeNode = new TreeNode(GetGroupLabel(objectType)) { ContextKey = "object-type", ObjectType = objectType };
 

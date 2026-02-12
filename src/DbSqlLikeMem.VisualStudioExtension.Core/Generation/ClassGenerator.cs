@@ -33,7 +33,7 @@ public sealed class ClassGenerator
             var fullPath = Path.Combine(mapping.OutputDirectory, fileName);
             var content = classContentFactory(dbObject);
 
-            await File.WriteAllTextAsync(fullPath, content, CancellationToken.None);
+            await Task.Run(() => File.WriteAllText(fullPath, content), cancellationToken);
             writtenFiles.Add(fullPath);
         }
 
@@ -49,13 +49,36 @@ public sealed class ClassGenerator
         var namePascal = GenerationRuleSet.ToPascalCase(dbObject.Name);
         var typeName = dbObject.Type.ToString();
 
-        return safePattern
-            .Replace("{NamePascal}", namePascal, StringComparison.OrdinalIgnoreCase)
-            .Replace("{Name}", dbObject.Name, StringComparison.OrdinalIgnoreCase)
-            .Replace("{Type}", typeName, StringComparison.OrdinalIgnoreCase)
-            .Replace("{Schema}", dbObject.Schema, StringComparison.OrdinalIgnoreCase)
-            .Replace("{DatabaseType}", connection.DatabaseType, StringComparison.OrdinalIgnoreCase)
-            .Replace("{DatabaseName}", connection.DatabaseName, StringComparison.OrdinalIgnoreCase);
+        return ReplaceIgnoreCase(
+            ReplaceIgnoreCase(
+                ReplaceIgnoreCase(
+                    ReplaceIgnoreCase(
+                        ReplaceIgnoreCase(
+                            ReplaceIgnoreCase(safePattern, "{NamePascal}", namePascal),
+                            "{Name}",
+                            dbObject.Name),
+                        "{Type}",
+                        typeName),
+                    "{Schema}",
+                    dbObject.Schema),
+                "{DatabaseType}",
+                connection.DatabaseType),
+            "{DatabaseName}",
+            connection.DatabaseName);
+    }
+
+    private static string ReplaceIgnoreCase(string value, string oldValue, string newValue)
+    {
+        var current = value;
+        var index = current.IndexOf(oldValue, StringComparison.OrdinalIgnoreCase);
+
+        while (index >= 0)
+        {
+            current = current.Remove(index, oldValue.Length).Insert(index, newValue);
+            index = current.IndexOf(oldValue, index + newValue.Length, StringComparison.OrdinalIgnoreCase);
+        }
+
+        return current;
     }
 
 }
