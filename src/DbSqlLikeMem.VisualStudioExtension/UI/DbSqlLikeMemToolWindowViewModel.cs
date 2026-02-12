@@ -524,13 +524,11 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
         foreach (var typeGroup in byType)
         {
-            var typeNode = new ExplorerNode { Label = typeGroup.Key, Kind = ExplorerNodeKind.DatabaseType };
+            var typeNode = new ExplorerNode(typeGroup.Key, ExplorerNodeKind.DatabaseType);
             foreach (var connection in typeGroup.OrderBy(c => c.DatabaseName, StringComparer.OrdinalIgnoreCase))
             {
-                var connectionNode = new ExplorerNode
+                var connectionNode = new ExplorerNode(connection.DatabaseName, ExplorerNodeKind.Connection)
                 {
-                    Label = connection.DatabaseName,
-                    Kind = ExplorerNodeKind.Connection,
                     ConnectionId = connection.Id
                 };
 
@@ -540,16 +538,16 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
                 foreach (var objectType in Enum.GetValues<DatabaseObjectType>())
                 {
-                    var objectTypeNode = new ExplorerNode
-                    {
-                        Label = objectType switch
+                    var objectTypeNode = new ExplorerNode(
+                        objectType switch
                         {
                             DatabaseObjectType.Table => "Tables",
                             DatabaseObjectType.View => "Views",
                             DatabaseObjectType.Procedure => "Procedures",
                             _ => objectType.ToString()
                         },
-                        Kind = ExplorerNodeKind.ObjectType,
+                        ExplorerNodeKind.ObjectType)
+                    {
                         ConnectionId = connection.Id,
                         ObjectType = objectType
                     };
@@ -565,10 +563,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                     {
                         var key = BuildObjectKey(connection.Id, dbObject);
                         var status = healthByObject.TryGetValue(key, out var health) ? health.Status : null;
-                        objectTypeNode.Children.Add(new ExplorerNode
+                        objectTypeNode.Children.Add(new ExplorerNode(
+                            string.IsNullOrWhiteSpace(dbObject.Schema) ? dbObject.Name : $"{dbObject.Schema}.{dbObject.Name}",
+                            ExplorerNodeKind.Object)
                         {
-                            Label = string.IsNullOrWhiteSpace(dbObject.Schema) ? dbObject.Name : $"{dbObject.Schema}.{dbObject.Name}",
-                            Kind = ExplorerNodeKind.Object,
                             ConnectionId = connection.Id,
                             ObjectType = dbObject.Type,
                             DatabaseObject = dbObject,

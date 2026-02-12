@@ -13,15 +13,21 @@ public enum ExplorerNodeKind
 
 public sealed class ExplorerNode
 {
-    public required string Label { get; init; }
+    public ExplorerNode(string label, ExplorerNodeKind kind)
+    {
+        Label = label;
+        Kind = kind;
+    }
 
-    public required ExplorerNodeKind Kind { get; init; }
+    public string Label { get; }
 
-    public string? ConnectionId { get; init; }
+    public ExplorerNodeKind Kind { get; }
 
-    public DatabaseObjectType? ObjectType { get; init; }
+    public string? ConnectionId { get; set; }
 
-    public DatabaseObjectReference? DatabaseObject { get; init; }
+    public DatabaseObjectType? ObjectType { get; set; }
+
+    public DatabaseObjectReference? DatabaseObject { get; set; }
 
     public ObjectHealthStatus? HealthStatus { get; set; }
 
