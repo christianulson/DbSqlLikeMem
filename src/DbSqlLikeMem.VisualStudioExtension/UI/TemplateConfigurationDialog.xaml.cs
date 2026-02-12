@@ -7,6 +7,10 @@ namespace DbSqlLikeMem.VisualStudioExtension.UI;
 
 public partial class TemplateConfigurationDialog : Window
 {
+    /// <summary>
+    /// Initializes a dialog to configure model and repository templates and output folders.
+    /// Inicializa uma janela para configurar templates e pastas de saída de modelos e repositórios.
+    /// </summary>
     public TemplateConfigurationDialog(TemplateConfiguration current)
     {
         InitializeComponent();
@@ -16,9 +20,25 @@ public partial class TemplateConfigurationDialog : Window
         RepositoryOutputDirectoryTextBox.Text = current.RepositoryOutputDirectory;
     }
 
+    /// <summary>
+    /// Gets the configured model template path.
+    /// Obtém o caminho configurado do template de modelo.
+    /// </summary>
     public string ModelTemplatePath { get; private set; } = string.Empty;
+    /// <summary>
+    /// Gets the configured repository template path.
+    /// Obtém o caminho configurado do template de repositório.
+    /// </summary>
     public string RepositoryTemplatePath { get; private set; } = string.Empty;
+    /// <summary>
+    /// Gets the output directory for generated model classes.
+    /// Obtém o diretório de saída para classes de modelo geradas.
+    /// </summary>
     public string ModelOutputDirectory { get; private set; } = "Generated/Models";
+    /// <summary>
+    /// Gets the output directory for generated repository classes.
+    /// Obtém o diretório de saída para classes de repositório geradas.
+    /// </summary>
     public string RepositoryOutputDirectory { get; private set; } = "Generated/Repositories";
 
     private void OnSaveClick(object sender, RoutedEventArgs e)

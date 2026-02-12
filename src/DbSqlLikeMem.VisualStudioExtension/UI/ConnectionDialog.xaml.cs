@@ -6,16 +6,32 @@ namespace DbSqlLikeMem.VisualStudioExtension.UI;
 
 public partial class ConnectionDialog : Window
 {
+    /// <summary>
+    /// Initializes a dialog used to collect connection settings from the user.
+    /// Inicializa uma janela usada para coletar configurações de conexão do usuário.
+    /// </summary>
     public ConnectionDialog()
     {
         InitializeComponent();
         Loaded += OnLoaded;
     }
 
+    /// <summary>
+    /// Gets or sets the display name of the saved connection.
+    /// Obtém ou define o nome de exibição da conexão salva.
+    /// </summary>
     public string ConnectionName { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the selected database provider type.
+    /// Obtém ou define o tipo de provedor de banco selecionado.
+    /// </summary>
     public string DatabaseType { get; set; } = "SqlServer";
 
+    /// <summary>
+    /// Gets or sets the connection string used to access the database.
+    /// Obtém ou define a connection string usada para acessar o banco de dados.
+    /// </summary>
     public string ConnectionString { get; set; } = string.Empty;
 
     private void OnLoaded(object sender, RoutedEventArgs e)
