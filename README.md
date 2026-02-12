@@ -181,6 +181,10 @@ dotnet test src/DbSqlLikeMem.slnx
 
 **PT-BR:** Contribuições são bem-vindas! Se você quiser melhorar o DbSqlLikeMem, abra uma issue para discutir sua ideia ou envie um pull request.
 
+**EN:** If you want to support the project financially, use **GitHub Sponsors** ("Sponsor" button) or **Buy Me a Coffee**: https://buymeacoffee.com/chrisulson.
+
+**PT-BR:** Se você quiser apoiar o projeto financeiramente, use o **GitHub Sponsors** (botão "Sponsor") ou o **Buy Me a Coffee**: https://buymeacoffee.com/chrisulson.
+
 **EN:** High-impact areas:  
 **PT-BR:** Áreas de alto impacto:
 
