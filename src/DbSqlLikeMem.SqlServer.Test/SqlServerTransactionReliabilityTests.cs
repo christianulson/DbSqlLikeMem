@@ -64,12 +64,6 @@ public sealed class SqlServerTransactionReliabilityTests
         using var transaction = (SqlServerTransactionMock)connection.BeginTransaction();
         transaction.Save("sp_release");
 
-        if (false)
-        {
-            transaction.Release("sp_release");
-            return;
-        }
-
         Assert.Throws<NotSupportedException>(() => transaction.Release("sp_release"));
     }
 

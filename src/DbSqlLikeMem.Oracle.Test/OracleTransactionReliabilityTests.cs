@@ -64,13 +64,7 @@ public sealed class OracleTransactionReliabilityTests
         using var transaction = (OracleTransactionMock)connection.BeginTransaction();
         transaction.Save("sp_release");
 
-        if (true)
-        {
-            transaction.Release("sp_release");
-            return;
-        }
-
-        Assert.Throws<NotSupportedException>(() => transaction.Release("sp_release"));
+        transaction.Release("sp_release");
     }
 
     /// <summary>
