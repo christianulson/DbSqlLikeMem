@@ -1,20 +1,26 @@
-# Prompts de implementação (copy/paste)
+#!/usr/bin/env python3
+"""Generate docs/implementation-prompts.md and ensure docs/README.md links to it."""
+
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+DOCS = ROOT / "docs"
+PROMPTS_FILE = DOCS / "implementation-prompts.md"
+DOCS_INDEX = DOCS / "README.md"
+
+INTRO = """# Prompts de implementação (copy/paste)
 
 > Arquivo gerado por `scripts/update_implementation_prompts.py`.
 
 Prompts prontos para colar em outras janelas e implementar as próximas features de maior uso no DbSqlLikeMem, cobrindo **MySQL, SQL Server, Oracle, PostgreSQL (Npgsql), SQLite e DB2**.
 
 > Dica: execute em ordem **P0 → P14**. Os prompts já incluem objetivo, escopo, critérios de aceite e validação.
-Prompts prontos para colar em outras janelas e implementar as próximas features de maior uso no DbSqlLikeMem, cobrindo **MySQL, SQL Server, Oracle, PostgreSQL (Npgsql), SQLite e DB2**.
+"""
 
-> Dica: execute em ordem **P0 → P6**. Os prompts já incluem objetivo, escopo, critérios de aceite e validação.
-
----
-
-## P0 — Baseline multi-provider (alinhar realidade de código, testes e docs)
-
-```text
-Você está no repositório DbSqlLikeMem.
+PHASES = [
+    (
+        "P0 — Baseline multi-provider (alinhar realidade de código, testes e docs)",
+        """Você está no repositório DbSqlLikeMem.
 
 Objetivo:
 Validar e alinhar documentação, matriz de compatibilidade e versões simuladas para TODOS os providers: MySQL, SQL Server, Oracle, PostgreSQL (Npgsql), SQLite e DB2.
@@ -32,15 +38,11 @@ Tarefas:
 
 Critérios de aceite:
 - Documentação condizente com o código.
-- Mesma lista de providers em README e docs.
-```
-
----
-
-## P1 — SQL Core mais utilizado (todos os providers)
-
-```text
-Você está no repositório DbSqlLikeMem.
+- Mesma lista de providers em README e docs.""",
+    ),
+    (
+        "P1 — SQL Core mais utilizado (todos os providers)",
+        """Você está no repositório DbSqlLikeMem.
 
 Objetivo:
 Fechar gaps de SQL Core mais usados em aplicações reais para todos os providers.
@@ -61,15 +63,11 @@ Requisitos técnicos:
 
 Critérios de aceite:
 - Cenários SQL Core verdes nos 6 providers.
-- Sem regressões nos testes já verdes.
-```
-
----
-
-## P2 — Composição de consulta (todos os providers): GROUP BY/HAVING + UNION + CTE
-
-```text
-Você está no repositório DbSqlLikeMem.
+- Sem regressões nos testes já verdes.""",
+    ),
+    (
+        "P2 — Composição de consulta (todos os providers): GROUP BY/HAVING + UNION + CTE",
+        """Você está no repositório DbSqlLikeMem.
 
 Objetivo:
 Evoluir a composição de consultas para cenários de API e relatório em todos os providers.
@@ -89,15 +87,11 @@ Requisitos:
 
 Critérios de aceite:
 - Casos acima verdes no conjunto de providers.
-- Sem quebra em SELECT simples já suportado.
-```
-
----
-
-## P3 — Advanced SQL de alto impacto (todos os providers)
-
-```text
-Você está no repositório DbSqlLikeMem.
+- Sem quebra em SELECT simples já suportado.""",
+    ),
+    (
+        "P3 — Advanced SQL de alto impacto (todos os providers)",
+        """Você está no repositório DbSqlLikeMem.
 
 Objetivo:
 Implementar recursos avançados populares para analytics/relatórios, respeitando diferenças por dialeto.
@@ -117,15 +111,11 @@ Requisitos:
 
 Critérios de aceite:
 - Testes avançados relevantes verdes por provider.
-- Limitações conhecidas documentadas.
-```
-
----
-
-## P4 — Tipagem, collation e coerção implícita (consistência cross-provider)
-
-```text
-Você está no repositório DbSqlLikeMem.
+- Limitações conhecidas documentadas.""",
+    ),
+    (
+        "P4 — Tipagem, collation e coerção implícita (consistência cross-provider)",
+        """Você está no repositório DbSqlLikeMem.
 
 Objetivo:
 Padronizar regras de comparação textual e coerção implícita, com comportamento previsível entre providers.
@@ -140,15 +130,11 @@ Referência de testes:
 
 Critérios de aceite:
 - Regras implementadas e documentadas.
-- Sem comportamento surpresa em cenários básicos de filtro/comparação.
-```
-
----
-
-## P5 — Backlog automático a partir dos GapTests (todos os providers)
-
-```text
-Você está no repositório DbSqlLikeMem.
+- Sem comportamento surpresa em cenários básicos de filtro/comparação.""",
+    ),
+    (
+        "P5 — Backlog automático a partir dos GapTests (todos os providers)",
+        """Você está no repositório DbSqlLikeMem.
 
 Objetivo:
 Gerar backlog técnico priorizado a partir de *SqlCompatibilityGapTests e *AdvancedSqlGapTests de todos os providers.
@@ -164,15 +150,11 @@ Formato de saída (Markdown):
 Regras:
 1) Agrupar por épico: Parser, Executor, Funções SQL, Tipagem/Collation, Performance.
 2) Priorizar por impacto x esforço.
-3) Cada item deve citar arquivo(s) de teste-alvo.
-```
-
----
-
-## P6 — Hardening obrigatório antes de PR
-
-```text
-Você está no repositório DbSqlLikeMem.
+3) Cada item deve citar arquivo(s) de teste-alvo.""",
+    ),
+    (
+        "P6 — Hardening obrigatório antes de PR",
+        """Você está no repositório DbSqlLikeMem.
 
 Objetivo:
 Garantir qualidade antes de abrir PR, mesmo em mudanças focadas em um provider.
@@ -189,15 +171,11 @@ Formato da PR:
 - O que ainda não cobre
 - Testes executados
 - Riscos conhecidos
-- Próximos passos
-```
-
----
-
-## P7 — DML avançado e mutações cross-dialect
-
-```text
-Você está no repositório DbSqlLikeMem.
+- Próximos passos""",
+    ),
+    (
+        "P7 — DML avançado e mutações cross-dialect",
+        """Você está no repositório DbSqlLikeMem.
 
 Objetivo:
 Expandir cobertura de DML avançado por dialeto (INSERT/UPDATE/DELETE) com foco em cenários reais de aplicação.
@@ -218,15 +196,11 @@ Referência de testes:
 
 Critérios de aceite:
 - Cenários de mutação mais comuns suportados nos 6 providers.
-- Diferenças de sintaxe/semântica isoladas no Dialect.
-```
-
----
-
-## P8 — Paginação e ordenação avançada por versão
-
-```text
-Você está no repositório DbSqlLikeMem.
+- Diferenças de sintaxe/semântica isoladas no Dialect.""",
+    ),
+    (
+        "P8 — Paginação e ordenação avançada por versão",
+        """Você está no repositório DbSqlLikeMem.
 
 Objetivo:
 Padronizar paginação e ordenação avançada, respeitando versões simuladas de cada banco.
@@ -243,15 +217,11 @@ Referência de testes:
 
 Critérios de aceite:
 - Comportamento previsível para consultas paginadas.
-- Erros descritivos quando sintaxe não for suportada pelo provider/versão.
-```
-
----
-
-## P9 — JSON e funções especializadas por provider
-
-```text
-Você está no repositório DbSqlLikeMem.
+- Erros descritivos quando sintaxe não for suportada pelo provider/versão.""",
+    ),
+    (
+        "P9 — JSON e funções especializadas por provider",
+        """Você está no repositório DbSqlLikeMem.
 
 Objetivo:
 Melhorar suporte a consultas JSON em cada provider com um núcleo comum de avaliação.
@@ -270,15 +240,11 @@ Referência de testes:
 
 Critérios de aceite:
 - JSON parsing/execution estável nos providers com suporte.
-- Mensagens claras de "não suportado" nos demais.
-```
-
----
-
-## P10 — Procedimentos, funções e parâmetros de saída
-
-```text
-Você está no repositório DbSqlLikeMem.
+- Mensagens claras de "não suportado" nos demais.""",
+    ),
+    (
+        "P10 — Procedimentos, funções e parâmetros de saída",
+        """Você está no repositório DbSqlLikeMem.
 
 Objetivo:
 Evoluir simulação de rotinas de banco para cenários enterprise.
@@ -296,15 +262,11 @@ Referência de testes:
 
 Critérios de aceite:
 - Execução previsível de procedures nos providers com suporte.
-- Compatibilidade de parâmetros coerente com ADO.NET.
-```
-
----
-
-## P11 — Confiabilidade transacional e concorrência
-
-```text
-Você está no repositório DbSqlLikeMem.
+- Compatibilidade de parâmetros coerente com ADO.NET.""",
+    ),
+    (
+        "P11 — Confiabilidade transacional e concorrência",
+        """Você está no repositório DbSqlLikeMem.
 
 Objetivo:
 Aumentar fidelidade de transações e comportamento concorrente para cenários críticos.
@@ -321,15 +283,11 @@ Referência de testes:
 
 Critérios de aceite:
 - Transações reproduzem efeitos esperados em cenários comuns.
-- Sem regressões em testes existentes de transaction/strategy.
-```
-
----
-
-## P12 — Observabilidade, diagnóstico e ergonomia de erro
-
-```text
-Você está no repositório DbSqlLikeMem.
+- Sem regressões em testes existentes de transaction/strategy.""",
+    ),
+    (
+        "P12 — Observabilidade, diagnóstico e ergonomia de erro",
+        """Você está no repositório DbSqlLikeMem.
 
 Objetivo:
 Melhorar a experiência de debug e troubleshooting para reduzir tempo de investigação de falhas em testes.
@@ -346,15 +304,11 @@ Referência de testes:
 
 Critérios de aceite:
 - Falhas mais explicativas e acionáveis para o desenvolvedor.
-- Sem ruído excessivo quando modo verbose estiver desativado.
-```
-
----
-
-## P13 — Performance e escala do engine em memória
-
-```text
-Você está no repositório DbSqlLikeMem.
+- Sem ruído excessivo quando modo verbose estiver desativado.""",
+    ),
+    (
+        "P13 — Performance e escala do engine em memória",
+        """Você está no repositório DbSqlLikeMem.
 
 Objetivo:
 Reduzir custo de execução em cenários de massa de dados e suites grandes de testes.
@@ -371,15 +325,11 @@ Referência de testes:
 
 Critérios de aceite:
 - Ganho mensurável de tempo/memória em cenários-alvo.
-- Sem alteração de comportamento funcional.
-```
-
----
-
-## P14 — Conformidade de ecossistema (.NET, ORM, tooling)
-
-```text
-Você está no repositório DbSqlLikeMem.
+- Sem alteração de comportamento funcional.""",
+    ),
+    (
+        "P14 — Conformidade de ecossistema (.NET, ORM, tooling)",
+        """Você está no repositório DbSqlLikeMem.
 
 Objetivo:
 Fortalecer integração com ecossistema .NET e garantir estabilidade em pipelines de CI/CD.
@@ -396,5 +346,52 @@ Referência de testes:
 
 Critérios de aceite:
 - Uso mais robusto em projetos reais com diferentes stacks.
-- Regressões capturadas cedo via CI.
-```
+- Regressões capturadas cedo via CI.""",
+    ),
+]
+
+
+def generate_prompts_md() -> str:
+    parts = [INTRO.strip(), ""]
+    for title, body in PHASES:
+        parts.extend([
+            "---",
+            "",
+            f"## {title}",
+            "",
+            "```text",
+            body.strip(),
+            "```",
+            "",
+        ])
+    return "\n".join(parts).rstrip() + "\n"
+
+
+def ensure_docs_index_link() -> None:
+    content = DOCS_INDEX.read_text(encoding="utf-8")
+    link = "- [Prompts de implementação (copy/paste)](implementation-prompts.md)"
+    if link in content:
+        return
+
+    needle = "- [Provedores, versões e compatibilidade](providers-and-features.md)\n"
+    insert_block = (
+        "- [Prompts de implementação (copy/paste)](implementation-prompts.md)\n"
+        "  - roadmap em fases\n"
+        "  - prompts prontos para paralelizar implementações\n"
+    )
+    if needle in content:
+        content = content.replace(needle, needle + insert_block)
+    else:
+        content += "\n" + insert_block
+
+    DOCS_INDEX.write_text(content, encoding="utf-8")
+
+
+def main() -> None:
+    PROMPTS_FILE.write_text(generate_prompts_md(), encoding="utf-8")
+    ensure_docs_index_link()
+    print(f"Updated {PROMPTS_FILE.relative_to(ROOT)}")
+
+
+if __name__ == "__main__":
+    main()
