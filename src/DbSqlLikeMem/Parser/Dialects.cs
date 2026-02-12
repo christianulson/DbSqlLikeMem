@@ -80,6 +80,13 @@ internal interface ISqlDialect
     bool SupportsNullSafeEq { get; }
     bool SupportsJsonArrowOperators { get; }
 
+    // Parser-only compatibility toggles (keep runtime rules separated)
+    bool AllowsParserCrossDialectQuotedIdentifiers { get; }
+    bool AllowsParserCrossDialectJsonOperators { get; }
+    bool AllowsParserInsertSelectUpsertSuffix { get; }
+    bool AllowsParserDeleteWithoutFromCompatibility { get; }
+    bool AllowsParserLimitOffsetCompatibility { get; }
+
     // Table hints
     bool SupportsSqlServerTableHints { get; }
     bool SupportsMySqlIndexHints { get; }
@@ -325,6 +332,26 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// Auto-generated summary.
     /// </summary>
     public virtual bool SupportsJsonArrowOperators => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public virtual bool AllowsParserCrossDialectQuotedIdentifiers => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public virtual bool AllowsParserCrossDialectJsonOperators => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public virtual bool AllowsParserInsertSelectUpsertSuffix => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public virtual bool AllowsParserDeleteWithoutFromCompatibility => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public virtual bool AllowsParserLimitOffsetCompatibility => false;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
