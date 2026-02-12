@@ -87,7 +87,7 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsDeleteTargetAlias => true;
+    public override bool SupportsDeleteTargetAlias => false;
 
     /// <summary>
     /// Auto-generated summary.
