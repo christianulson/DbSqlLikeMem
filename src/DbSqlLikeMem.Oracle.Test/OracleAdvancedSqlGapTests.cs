@@ -104,6 +104,10 @@ ORDER BY id").ToList();
 
 
 
+    /// <summary>
+    /// EN: Ensures NUMBER cast target is treated as integer-compatible in Oracle behavior.
+    /// PT: Garante que o alvo de cast NUMBER seja tratado como compatível com inteiro no comportamento Oracle.
+    /// </summary>
     [Fact]
     public void Cast_StringToInt_NumberType_ShouldWork()
     {
