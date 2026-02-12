@@ -91,6 +91,8 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsNullSafeEq => true;
+    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL"];
+    public override bool ConcatReturnsNullOnNullInput => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>

@@ -88,6 +88,8 @@ internal sealed class OracleDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
+    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["NVL"];
+    public override bool ConcatReturnsNullOnNullInput => false;
 
     public override bool IsIntegerCastTypeName(string typeName)
         => base.IsIntegerCastTypeName(typeName)

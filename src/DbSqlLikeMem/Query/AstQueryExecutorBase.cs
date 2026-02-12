@@ -1838,21 +1838,15 @@ internal abstract class AstQueryExecutorBase(
             return idx >= 0 ? idx + 1 : 0;
         }
 
-        if (fn.Name.Equals("IF", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("IIF", StringComparison.OrdinalIgnoreCase))
+        var isIf = fn.Name.Equals("IF", StringComparison.OrdinalIgnoreCase);
+        var isIif = fn.Name.Equals("IIF", StringComparison.OrdinalIgnoreCase);
+        if ((isIf && Dialect.SupportsIfFunction) || (isIif && Dialect.SupportsIifFunction))
         {
             var cond = EvalArg(0).ToBool();
             return cond ? EvalArg(1) : EvalArg(2);
         }
 
-        if (fn.Name.Equals("IFNULL", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("NVL", StringComparison.OrdinalIgnoreCase))
-        {
-            var v = EvalArg(0);
-            return IsNullish(v) ? EvalArg(1) : v;
-        }
-
-        if (fn.Name.Equals("ISNULL", StringComparison.OrdinalIgnoreCase))
+        if (Dialect.NullSubstituteFunctionNames.Any(n => n.Equals(fn.Name, StringComparison.OrdinalIgnoreCase)))
         {
             var v = EvalArg(0);
             return IsNullish(v) ? EvalArg(1) : v;
@@ -2027,12 +2021,19 @@ internal abstract class AstQueryExecutorBase(
 
         if (fn.Name.Equals("CONCAT", StringComparison.OrdinalIgnoreCase))
         {
-            // MySQL: CONCAT returns NULL if any argument is NULL
             var parts = new string[fn.Args.Count];
             for (int i = 0; i < fn.Args.Count; i++)
             {
                 var v = EvalArg(i);
-                if (IsNullish(v)) return null;
+                if (IsNullish(v))
+                {
+                    if (Dialect.ConcatReturnsNullOnNullInput)
+                        return null;
+
+                    parts[i] = string.Empty;
+                    continue;
+                }
+
 #pragma warning disable CA1508 // Avoid dead conditional code
                 parts[i] = v?.ToString() ?? "";
 #pragma warning restore CA1508 // Avoid dead conditional code
