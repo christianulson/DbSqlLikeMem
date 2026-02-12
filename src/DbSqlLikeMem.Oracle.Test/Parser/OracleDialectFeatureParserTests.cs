@@ -71,7 +71,7 @@ public sealed class OracleDialectFeatureParserTests
         Assert.False(d.AreUnionColumnTypesCompatible(DbType.Int32, DbType.String));
 
         Assert.True(d.IsIntegerCastTypeName("INT"));
-        Assert.Equal(true, d.IsIntegerCastTypeName("NUMBER"));
+        Assert.True(d.IsIntegerCastTypeName("NUMBER"));
 
         Assert.False(d.RegexInvalidPatternEvaluatesToFalse);
     }

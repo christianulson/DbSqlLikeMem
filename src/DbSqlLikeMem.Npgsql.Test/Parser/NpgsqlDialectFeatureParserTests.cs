@@ -115,7 +115,7 @@ RETURNING id";
         Assert.False(d.AreUnionColumnTypesCompatible(DbType.Int32, DbType.String));
 
         Assert.True(d.IsIntegerCastTypeName("INT"));
-        Assert.Equal(false, d.IsIntegerCastTypeName("NUMBER"));
+        Assert.False(d.IsIntegerCastTypeName("NUMBER"));
 
         Assert.False(d.RegexInvalidPatternEvaluatesToFalse);
     }
