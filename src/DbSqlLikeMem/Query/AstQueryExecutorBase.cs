@@ -1008,6 +1008,10 @@ internal abstract class AstQueryExecutorBase(
         List<EvalRow> sampleRows,
         IDictionary<string, Source> ctes)
     {
+        if (exprAst is WindowFunctionExpr w)
+            return Dialect?.InferWindowFunctionDbType(w, arg => InferDbTypeFromExpression(arg, sampleRows, ctes))
+                ?? DbType.Object;
+
         foreach (var row in sampleRows)
         {
             var value = Eval(exprAst, row, group: null, ctes);

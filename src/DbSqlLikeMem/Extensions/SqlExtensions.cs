@@ -86,6 +86,9 @@ internal static class SqlExtensions
 
     internal static int Compare(this object a, object b, ISqlDialect? dialect = null)
     {
+        if (a is string sa && b is string sb)
+            return string.Compare(sa, sb, dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
+
         if (a.GetType() == b.GetType() && a is IComparable comparable)
             return comparable.CompareTo(b);
 
@@ -114,6 +117,9 @@ internal static class SqlExtensions
     {
         if (a is null || a is DBNull) return b is null || b is DBNull;
         if (b is null || b is DBNull) return false;
+
+        if (a is string sa && b is string sb)
+            return string.Equals(sa, sb, dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
 
         if (a.GetType() == b.GetType())
             return a.Equals(b);
