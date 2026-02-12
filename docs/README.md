@@ -12,6 +12,9 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
   - matriz por banco
   - capacidades SQL por dialeto/versão
   - sugestões de evolução do parser
+- [Prompts de implementação (copy/paste)](implementation-prompts.md)
+  - roadmap em fases
+  - prompts prontos para paralelizar implementações
 - [Matriz SQL (feature x dialeto)](sql-compatibility-matrix.md)
   - visão resumida por recursos
   - status por provider
