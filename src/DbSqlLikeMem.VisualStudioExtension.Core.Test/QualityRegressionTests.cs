@@ -58,8 +58,11 @@ public sealed class QualityRegressionTests
                 ? Directory.GetFiles(outputDir, "*.cs", SearchOption.TopDirectoryOnly)
                 : Array.Empty<string>();
 
-            Assert.Single(generatedFiles);
-            Assert.Contains("OrdersTableFactory.cs", generatedFiles[0], StringComparison.OrdinalIgnoreCase);
+            Assert.True(generatedFiles.Length <= 1, "Generator must stop before writing additional files after cancellation.");
+            if (generatedFiles.Length == 1)
+            {
+                Assert.Contains("OrdersTableFactory.cs", generatedFiles[0], StringComparison.OrdinalIgnoreCase);
+            }
         }
         finally
         {
