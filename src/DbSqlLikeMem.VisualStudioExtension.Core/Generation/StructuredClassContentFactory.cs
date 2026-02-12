@@ -16,6 +16,7 @@ public static class StructuredClassContentFactory
     /// </summary>
     public static string Build(DatabaseObjectReference dbObject, string? @namespace = null, string? databaseType = null)
     {
+        var effectiveDatabaseType = string.IsNullOrWhiteSpace(databaseType) ? "MySql" : databaseType;
         var className = $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}{dbObject.Type}Factory";
         var methodName = $"Create{dbObject.Type}{GenerationRuleSet.ToPascalCase(dbObject.Name)}";
 
@@ -47,7 +48,7 @@ public static class StructuredClassContentFactory
 
         foreach (var c in columns.OrderBy(c => c.Ordinal))
         {
-            var mappedDbType = GenerationRuleSet.MapDbType(c.DataType, c.CharMaxLen, c.NumPrecision, c.Name, databaseType);
+            var mappedDbType = GenerationRuleSet.MapDbType(c.DataType, c.CharMaxLen, c.NumPrecision, c.Name, effectiveDatabaseType);
             var ctor = $"new({c.Ordinal}, DbType.{mappedDbType}, {Bool(c.IsNullable)}";
             if (c.IsIdentity) ctor += ", true";
             ctor += ")";

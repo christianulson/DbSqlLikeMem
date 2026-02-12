@@ -33,6 +33,8 @@ public sealed class ClassGenerator
             var fullPath = Path.Combine(mapping.OutputDirectory, fileName);
             var content = classContentFactory(dbObject);
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             await File.WriteAllTextAsync(fullPath, content, cancellationToken);
             writtenFiles.Add(fullPath);
         }
