@@ -88,6 +88,10 @@ SELECT id FROM t WHERE id = 1
 
 
 
+    /// <summary>
+    /// EN: Ensures UNION normalizes equivalent numeric literals into a single row.
+    /// PT: Garante que o UNION normalize literais numéricos equivalentes em uma única linha.
+    /// </summary>
     [Fact]
     public void Union_ShouldNormalizeEquivalentNumericTypes()
     {
@@ -100,6 +104,10 @@ SELECT 1 AS v
         Assert.Single(rows);
     }
 
+    /// <summary>
+    /// EN: Ensures UNION rejects incompatible column types across SELECT parts.
+    /// PT: Garante que o UNION rejeite tipos de coluna incompatíveis entre partes do SELECT.
+    /// </summary>
     [Fact]
     public void Union_ShouldValidateIncompatibleColumnTypes()
     {
@@ -113,6 +121,10 @@ SELECT 'x' AS v
 
 
 
+    /// <summary>
+    /// EN: Ensures UNION schema keeps aliases from the first SELECT projection.
+    /// PT: Garante que o schema do UNION mantenha os aliases da primeira projeção SELECT.
+    /// </summary>
     [Fact]
     public void Union_ShouldNormalizeSchemaToFirstSelectAlias()
     {
