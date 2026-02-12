@@ -103,6 +103,31 @@ internal sealed class Db2Dialect : SqlDialectBase
     public override bool SupportsJsonArrowOperators => false;
 
     /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public override bool AllowsParserCrossDialectQuotedIdentifiers => true;
+
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public override bool AllowsParserCrossDialectJsonOperators => true;
+
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public override bool AllowsParserInsertSelectUpsertSuffix => true;
+
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public override bool AllowsParserDeleteWithoutFromCompatibility => true;
+
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public override bool AllowsParserLimitOffsetCompatibility => true;
+
+    /// <summary>
     /// EN: Mock rule: DB2 text comparisons are case-insensitive by default unless explicit collation is introduced.
     /// PT: Regra do mock: comparações textuais DB2 são case-insensitive por padrão até existir collation explícita.
     /// </summary>
