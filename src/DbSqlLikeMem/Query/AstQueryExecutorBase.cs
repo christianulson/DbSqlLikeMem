@@ -1776,7 +1776,8 @@ internal abstract class AstQueryExecutorBase(
             return cond ? EvalArg(1) : EvalArg(2);
         }
 
-        if (fn.Name.Equals("IFNULL", StringComparison.OrdinalIgnoreCase))
+        if (fn.Name.Equals("IFNULL", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("NVL", StringComparison.OrdinalIgnoreCase))
         {
             var v = EvalArg(0);
             return IsNullish(v) ? EvalArg(1) : v;
