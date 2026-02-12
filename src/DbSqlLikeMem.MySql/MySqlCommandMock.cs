@@ -220,14 +220,6 @@ public class MySqlCommandMock(
         var executor = AstQueryExecutorFactory.Create(connection!.Db.Dialect, connection, Parameters);
 
         // Correção do erro de Contains e CA1847/CA1307
-        if (sql.Contains("UNION", StringComparison.OrdinalIgnoreCase) && !sql.Contains(';'))
-        {
-            var chain = SqlQueryParser.ParseUnionChain(sql, connection.Db.Dialect);
-            // Garantindo o Cast correto para SqlSelectQuery
-            var unionTable = executor.ExecuteUnion([.. chain.Parts.Cast<SqlSelectQuery>()], chain.AllFlags, sql);
-            connection.Metrics.Selects += unionTable.Count;
-            return new MySqlDataReaderMock([unionTable]);
-        }
 
 
         // Parse Multiplo (ex: "SELECT 1; SELECT 2;" ou "CREATE TEMPORARY TABLE ...; SELECT ...")
@@ -265,6 +257,10 @@ public class MySqlCommandMock(
 
                 case SqlSelectQuery selectQ:
                     tables.Add(executor.ExecuteSelect(selectQ));
+                    break;
+
+                case SqlUnionQuery unionQ:
+                    tables.Add(executor.ExecuteUnion(unionQ.Parts, unionQ.AllFlags, unionQ.OrderBy, unionQ.RowLimit, unionQ.RawSql));
                     break;
 
                 default:

@@ -87,7 +87,9 @@ internal sealed class SqlQueryParser
     /// </summary>
     public sealed record UnionChain(
         IReadOnlyList<SqlSelectQuery> Parts,
-        IReadOnlyList<bool> AllFlags
+        IReadOnlyList<bool> AllFlags,
+        IReadOnlyList<SqlOrderByItem> OrderBy,
+        SqlRowLimit? RowLimit
     );
 
     /// <summary>
@@ -97,10 +99,10 @@ internal sealed class SqlQueryParser
     {
         var parsed = Parse(sql, dialect);
         if (parsed is SqlUnionQuery uq)
-            return new UnionChain(uq.Parts, uq.AllFlags);
+            return new UnionChain(uq.Parts, uq.AllFlags, uq.OrderBy, uq.RowLimit);
 
         if (parsed is SqlSelectQuery sq)
-            return new UnionChain([sq], []);
+            return new UnionChain([sq], [], [], null);
 
         throw new InvalidOperationException("UNION chain deve conter apenas SELECT.");
     }
@@ -487,10 +489,20 @@ internal sealed class SqlQueryParser
     /// </summary>
     private SqlQueryBase ParseSelectOrUnionQuery()
     {
-        var first = ParseSelectQuery();
+        var first = ParseSelectQuery(allowOrderByAndLimit: false);
 
         if (!IsWord(Peek(), "UNION"))
-            return first;
+        {
+            var orderBy = TryParseOrderBy();
+            var rowLimit = TryParseRowLimitTail(orderBy.Count > 0);
+            ExpectEndOrUnionBoundary();
+
+            return first with
+            {
+                OrderBy = orderBy,
+                RowLimit = rowLimit
+            };
+        }
 
         var parts = new List<SqlSelectQuery> { first };
         var allFlags = new List<bool>();
@@ -506,15 +518,19 @@ internal sealed class SqlQueryParser
             }
 
             allFlags.Add(isAll);
-            parts.Add(ParseSelectQuery());
+            parts.Add(ParseSelectQuery(allowCtes: false, allowOrderByAndLimit: false));
         }
 
-        return new SqlUnionQuery(parts, allFlags);
+        var unionOrderBy = TryParseOrderBy();
+        var unionRowLimit = TryParseRowLimitTail(unionOrderBy.Count > 0);
+        ExpectEndOrUnionBoundary();
+
+        return new SqlUnionQuery(parts, allFlags, unionOrderBy, unionRowLimit);
     }
 
-    public SqlSelectQuery ParseSelectQuery()
+    public SqlSelectQuery ParseSelectQuery(bool allowCtes = true, bool allowOrderByAndLimit = true)
     {
-        var ctes = TryParseCtes();
+        var ctes = allowCtes ? TryParseCtes() : [];
 
         ExpectWord("SELECT");
         if (IsWord(Peek(), "SELECT"))
@@ -527,15 +543,32 @@ internal sealed class SqlQueryParser
         var where = TryParseWhereExpr();
         var groupBy = TryParseGroupBy();
         var having = TryParseHavingExpr();
-        var orderBy = TryParseOrderBy();
-        var rowLimit = TryParseRowLimitTail(orderBy.Count > 0);
+        var orderBy = allowOrderByAndLimit ? TryParseOrderBy() : [];
+        var rowLimit = allowOrderByAndLimit ? TryParseRowLimitTail(orderBy.Count > 0) : null;
         if (top is not null)
         {
             // TOP é prefixo (SQL Server). Se também apareceu LIMIT/FETCH no fim, prioriza o fim.
             rowLimit ??= top;
         }
 
-        ExpectEndOrUnionBoundary();
+        if (allowOrderByAndLimit)
+        {
+            ExpectEndOrUnionBoundary();
+        }
+        else
+        {
+            var t = Peek();
+            if (!IsEnd(t)
+                && !IsWord(t, "UNION")
+                && !IsWord(t, "ORDER")
+                && !IsWord(t, "LIMIT")
+                && !IsWord(t, "OFFSET")
+                && !IsWord(t, "FETCH")
+                && !IsSymbol(t, ";"))
+            {
+                throw new InvalidOperationException($"Token inesperado após SELECT: {t.Kind} '{t.Text}'");
+            }
+        }
 
         return new SqlSelectQuery(
             Ctes: ctes,
@@ -1167,7 +1200,7 @@ internal sealed class SqlQueryParser
                     null,
                     alias,
                     Derived: null,
-                    DerivedUnion: new UnionChain(union.Parts, union.AllFlags),
+                    DerivedUnion: new UnionChain(union.Parts, union.AllFlags, union.OrderBy, union.RowLimit),
                     DerivedSql: innerSql);
             }
 
