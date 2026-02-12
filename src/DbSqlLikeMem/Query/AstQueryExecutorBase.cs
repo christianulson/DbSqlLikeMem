@@ -968,13 +968,14 @@ internal abstract class AstQueryExecutorBase(
             var preferred = si.Alias ?? asAlias ?? InferColumnAlias(raw);
             var tableAl = q.Table?.Alias ?? q.Table?.Name ?? "";
             var colAlias = MakeUniqueAlias(cols, preferred, tableAl);
+            var inferredDbType = InferDbTypeFromExpression(exprAst, sampleRows, ctes);
 
             cols.Add(new TableResultColMock(
                 tableAlias: q.Table?.Alias ?? q.Table?.Name ?? "",
                 columnAlias: colAlias,
                 columnName: colAlias,
                 columIndex: cols.Count,
-                dbType: DbType.Object,
+                dbType: inferredDbType,
                 isNullable: true));
 
             if (exprAst is WindowFunctionExpr w)
@@ -1002,6 +1003,35 @@ internal abstract class AstQueryExecutorBase(
             Console.WriteLine($" - {c.ColumnAlias}");
 
         return new SelectPlan { Columns = cols, Evaluators = evals, WindowSlots = windowSlots };
+    }
+
+    private DbType InferDbTypeFromExpression(
+        SqlExpr exprAst,
+        List<EvalRow> sampleRows,
+        IDictionary<string, Source> ctes)
+    {
+        foreach (var row in sampleRows)
+        {
+            var value = Eval(exprAst, row, group: null, ctes);
+            if (value is null || value is DBNull)
+                continue;
+
+            var type = value.GetType();
+            if (type == typeof(string)) return DbType.String;
+            if (type == typeof(bool)) return DbType.Boolean;
+            if (type == typeof(decimal)) return DbType.Decimal;
+            if (type == typeof(double)) return DbType.Double;
+            if (type == typeof(float)) return DbType.Single;
+            if (type == typeof(byte)) return DbType.Byte;
+            if (type == typeof(short)) return DbType.Int16;
+            if (type == typeof(int)) return DbType.Int32;
+            if (type == typeof(long)) return DbType.Int64;
+            if (type == typeof(DateTime)) return DbType.DateTime;
+            if (type == typeof(Guid)) return DbType.Guid;
+            return DbType.Object;
+        }
+
+        return DbType.Object;
     }
 
     private static bool IncludExtraColumns(
