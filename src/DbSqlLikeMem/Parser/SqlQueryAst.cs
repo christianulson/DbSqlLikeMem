@@ -128,7 +128,7 @@ internal enum SqlJoinType
 
 internal sealed record SqlJoin(SqlJoinType Type, SqlTableSource Table, SqlExpr On);
 
-internal sealed record SqlOrderByItem(string Raw, bool Desc);
+internal sealed record SqlOrderByItem(string Raw, bool Desc, bool? NullsFirst = null);
 
 internal abstract record SqlRowLimit;
 internal sealed record SqlLimitOffset(int Count, int? Offset) : SqlRowLimit;

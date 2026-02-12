@@ -86,6 +86,7 @@ internal sealed class OracleDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsFetchFirst => Version >= FetchFirstMinVersion;
+    public override bool SupportsOrderByNullsModifier => true;
 
     /// <summary>
     /// Auto-generated summary.
@@ -102,6 +103,7 @@ internal sealed class OracleDialect : SqlDialectBase
     public override bool SupportsWithRecursive => false;
     public override bool SupportsWithMaterializedHint => false;
     public override bool SupportsOnConflictClause => false;
+    public override bool SupportsJsonValueFunction => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>

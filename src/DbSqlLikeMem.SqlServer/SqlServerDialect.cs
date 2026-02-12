@@ -104,6 +104,8 @@ internal sealed class SqlServerDialect : SqlDialectBase
     public override bool SupportsWithRecursive => false;
     public override bool SupportsWithMaterializedHint => false;
     public override bool SupportsOnConflictClause => false;
+    public override bool SupportsJsonValueFunction => true;
+    public override bool SupportsOpenJsonFunction => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>

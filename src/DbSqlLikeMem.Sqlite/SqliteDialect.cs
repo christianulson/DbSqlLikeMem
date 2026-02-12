@@ -72,6 +72,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsOnDuplicateKeyUpdate => true;
     public override bool SupportsOnConflictClause => true;
+    public override bool SupportsOrderByNullsModifier => true;
 
     /// <summary>
     /// Auto-generated summary.
@@ -99,6 +100,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsJsonArrowOperators => true;
+    public override bool SupportsJsonExtractFunction => true;
 
     /// <summary>
     /// EN: Mock rule: SQLite text comparisons are case-insensitive by default in this project.

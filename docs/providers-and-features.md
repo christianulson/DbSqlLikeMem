@@ -136,3 +136,45 @@ Se a diferença altera **validade sintática** ou **interpretação semântica**
 - [Matriz SQL (feature x dialeto)](sql-compatibility-matrix.md)
 - [Checklist de known gaps](known-gaps-checklist.md)
 - [Wiki do GitHub](wiki/README.md)
+
+## P7–P10 — estado consolidado por provider
+
+### P7 — DML avançado
+
+- **UPSERT**:
+  - MySQL: `ON DUPLICATE KEY UPDATE`.
+  - PostgreSQL / SQLite: `ON CONFLICT ... DO UPDATE|DO NOTHING`.
+  - SQL Server / Oracle / DB2: `MERGE` (subset seguro de parser + execução mock).
+- **UPDATE/DELETE com JOIN/subquery**: aceitos em subset comum do parser e avaliados pelo executor/strategies por dialeto.
+- **RETURNING/OUTPUT/RETURNING INTO**:
+  - PostgreSQL: `RETURNING` aceito no parser para `INSERT ... ON CONFLICT` (consumo sintático mínimo).
+  - Demais providers: sem materialização de payload no executor; mensagens de não suportado seguem padrão `SqlUnsupported` quando aplicável.
+
+### P8 — paginação e ordenação por versão
+
+- `LIMIT/OFFSET`: MySQL, PostgreSQL e SQLite.
+- `OFFSET ... FETCH`: SQL Server (>= 2012), Oracle (>= 12), PostgreSQL.
+- `FETCH FIRST/NEXT`: Oracle (>= 12), PostgreSQL e DB2.
+- `TOP`: SQL Server.
+- `ORDER BY ... NULLS FIRST/LAST` (gate de dialeto): PostgreSQL, Oracle e SQLite.
+
+### P9 — JSON por provider
+
+- PostgreSQL: operadores `->`, `->>`, `#>`, `#>>`.
+- MySQL / SQLite: `JSON_EXTRACT` (aliases via parser expression/function handling).
+- SQL Server / Oracle: `JSON_VALUE` (subset escalar no executor).
+- SQL Server: `OPENJSON` (subset mínimo, retorno escalar mock).
+- DB2: fallback explícito de **não suportado** para operadores/funções JSON avançadas.
+
+### P10 — procedures e parâmetros de saída
+
+- Execução de `CommandType.StoredProcedure` compatível com fluxo de validação de assinatura.
+- Suporte a `Input`, `Output`, `InputOutput` e `ReturnValue` (status default `0` quando não preenchido).
+- Validação explícita de direção de parâmetros obrigatórios (`IN` exige Input/InputOutput).
+- Fluxo compatível com uso via Dapper (`Execute` com `commandType: StoredProcedure`).
+
+### Limitações conhecidas (P7–P10)
+
+- `RETURNING`/`OUTPUT` ainda não materializa conjunto retornado completo no executor para todos os dialetos.
+- `OPENJSON` está em modo simplificado (subset escalar), sem projeção tabular completa com `WITH (...)`.
+- `NULLS FIRST/LAST` depende de gate por dialeto; quando não suportado, erro de não suportado é intencional.

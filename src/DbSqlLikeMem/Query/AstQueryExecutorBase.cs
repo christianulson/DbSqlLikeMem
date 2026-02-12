@@ -1394,19 +1394,27 @@ internal abstract class AstQueryExecutorBase(
         {
             foreach (var (Get, Desc, Raw) in keys)
             {
+                var orderByItem = q.OrderBy.FirstOrDefault(o => string.Equals(o.Raw, Raw, StringComparison.OrdinalIgnoreCase));
                 var ka = Get(ra);
                 var kb = Get(rb);
 
-                var cmp = CompareObj(ka, kb);
-
-                // MySQL: NULLS FIRST for ASC, NULLS LAST for DESC
-                if (Desc)
+                int cmp;
+                if (ka is null || kb is null)
                 {
-                    // invert, but keep nulls last
                     if (ka is null && kb is null) cmp = 0;
-                    else if (ka is null) cmp = 1;
-                    else if (kb is null) cmp = -1;
-                    else cmp = -cmp;
+                    else
+                    {
+                        var explicitNullsFirst = orderByItem?.NullsFirst;
+                        if (explicitNullsFirst.HasValue)
+                            cmp = ka is null ? (explicitNullsFirst.Value ? -1 : 1) : (explicitNullsFirst.Value ? 1 : -1);
+                        else
+                            cmp = ka is null ? (Desc ? 1 : -1) : (Desc ? -1 : 1);
+                    }
+                }
+                else
+                {
+                    cmp = CompareObj(ka, kb);
+                    if (Desc) cmp = -cmp;
                 }
 
                 if (cmp != 0) return cmp;
@@ -1855,6 +1863,12 @@ internal abstract class AstQueryExecutorBase(
         if (fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase))
         {
+            if (fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase) && !dialect.SupportsJsonExtractFunction)
+                throw SqlUnsupported.ForDialect(dialect, "JSON_EXTRACT");
+
+            if (fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase) && !dialect.SupportsJsonValueFunction)
+                throw SqlUnsupported.ForDialect(dialect, "JSON_VALUE");
+
             object? json = EvalArg(0);
             var path = EvalArg(1)?.ToString();
 
@@ -1875,6 +1889,18 @@ internal abstract class AstQueryExecutorBase(
                 return null;
             }
 #pragma warning restore CA1031
+        }
+
+        if (fn.Name.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!dialect.SupportsOpenJsonFunction)
+                throw SqlUnsupported.ForDialect(dialect, "OPENJSON");
+
+            object? json = EvalArg(0);
+            if (IsNullish(json))
+                return null;
+
+            return json?.ToString();
         }
 
         // JSON_UNQUOTE(x) (best-effort)

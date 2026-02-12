@@ -1038,13 +1038,31 @@ internal sealed class SqlQueryParser
         var raws = ParseCommaSeparatedRawItemsUntilAny("LIMIT", "OFFSET", "FETCH", "UNION");
         foreach (var r in raws)
         {
-            var desc = r.EndsWith(" DESC", StringComparison.OrdinalIgnoreCase);
+            var raw = r.Trim();
+            bool? nullsFirst = null;
+
+            if (raw.EndsWith(" NULLS FIRST", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!_dialect.SupportsOrderByNullsModifier)
+                    throw SqlUnsupported.ForDialect(_dialect, "ORDER BY ... NULLS FIRST");
+                nullsFirst = true;
+                raw = raw[..^12].Trim();
+            }
+            else if (raw.EndsWith(" NULLS LAST", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!_dialect.SupportsOrderByNullsModifier)
+                    throw SqlUnsupported.ForDialect(_dialect, "ORDER BY ... NULLS LAST");
+                nullsFirst = false;
+                raw = raw[..^11].Trim();
+            }
+
+            var desc = raw.EndsWith(" DESC", StringComparison.OrdinalIgnoreCase);
             var val = desc
-                ? r[..^5].Trim()
-                : (r.EndsWith(" ASC", StringComparison.OrdinalIgnoreCase)
-                    ? r[..^4].Trim()
-                    : r);
-            list.Add(new SqlOrderByItem(val, desc));
+                ? raw[..^5].Trim()
+                : (raw.EndsWith(" ASC", StringComparison.OrdinalIgnoreCase)
+                    ? raw[..^4].Trim()
+                    : raw);
+            list.Add(new SqlOrderByItem(val, desc, nullsFirst));
         }
         return list;
     }

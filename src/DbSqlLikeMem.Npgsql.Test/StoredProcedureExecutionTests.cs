@@ -215,6 +215,67 @@ public sealed class StoredProcedureExecutionTests(
         Assert.False(r.Read());
     }
 
+
+    /// <summary>
+    /// EN: Tests ExecuteNonQuery_StoredProcedure_ShouldPopulateReturnValueDefaultZero behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery_StoredProcedure_ShouldPopulateReturnValueDefaultZero.
+    /// </summary>
+    [Fact]
+    public void ExecuteNonQuery_StoredProcedure_ShouldPopulateReturnValueDefaultZero()
+    {
+        using var c = new NpgsqlConnectionMock();
+        c.Open();
+
+        c.AddProdecure("sp_with_status", new ProcedureDef(
+            RequiredIn: [new ProcParam("p_id", DbType.Int32)],
+            OptionalIn: [],
+            OutParams: [],
+            ReturnParam: new ProcParam("ret", DbType.Int32)
+        ));
+
+        using var command = new NpgsqlCommandMock(c)
+        {
+            CommandType = CommandType.StoredProcedure,
+            CommandText = "sp_with_status"
+        };
+
+        command.Parameters.Add(P("p_id", 1, DbType.Int32));
+        command.Parameters.Add(P("ret", null, DbType.Int32, ParameterDirection.ReturnValue));
+
+        command.ExecuteNonQuery();
+
+        Assert.Equal(0, command.Parameters["@ret"].Value);
+    }
+
+    /// <summary>
+    /// EN: Tests ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenRequiredInputDirectionIsOutput behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenRequiredInputDirectionIsOutput.
+    /// </summary>
+    [Fact]
+    public void ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenRequiredInputDirectionIsOutput()
+    {
+        using var c = new NpgsqlConnectionMock();
+        c.Open();
+
+        c.AddProdecure("sp_with_input", new ProcedureDef(
+            RequiredIn: [new ProcParam("p_id", DbType.Int32)],
+            OptionalIn: [],
+            OutParams: [],
+            ReturnParam: null
+        ));
+
+        using var command = new NpgsqlCommandMock(c)
+        {
+            CommandType = CommandType.StoredProcedure,
+            CommandText = "sp_with_input"
+        };
+
+        command.Parameters.Add(P("p_id", 1, DbType.Int32, ParameterDirection.Output));
+
+        var exception = Assert.Throws<NpgsqlMockException>(() => command.ExecuteNonQuery());
+        Assert.Equal(1414, exception.ErrorCode);
+    }
+
     /// <summary>
     /// EN: Tests DapperExecute_CommandTypeStoredProcedure_ShouldWork behavior.
     /// PT: Testa o comportamento de DapperExecute_CommandTypeStoredProcedure_ShouldWork.
