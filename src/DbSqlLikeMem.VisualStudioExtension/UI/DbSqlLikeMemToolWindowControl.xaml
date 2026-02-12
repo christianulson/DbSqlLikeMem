@@ -20,6 +20,8 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="8" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="8" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -33,8 +35,23 @@
             <Button Content="Cancelar operação" Padding="10,4" Margin="0,0,8,8" Click="OnCancelOperationClick" />
         </WrapPanel>
 
+        <StackPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" Text="Filtro:" />
+            <TextBox Width="220"
+                     Margin="0,0,8,0"
+                     VerticalAlignment="Center"
+                     Text="{Binding ObjectFilterText, UpdateSourceTrigger=PropertyChanged}" />
+            <ComboBox Width="120"
+                      VerticalAlignment="Center"
+                      SelectedValuePath="Tag"
+                      SelectedValue="{Binding ObjectFilterMode}">
+                <ComboBoxItem Content="Contém" Tag="Like" />
+                <ComboBoxItem Content="Exato" Tag="Equals" />
+            </ComboBox>
+        </StackPanel>
+
         <TreeView x:Name="ExplorerTree"
-                  Grid.Row="2"
+                  Grid.Row="4"
                   ItemsSource="{Binding Nodes}">
             <TreeView.ContextMenu>
                 <ContextMenu>
@@ -44,7 +61,7 @@
             </TreeView.ContextMenu>
         </TreeView>
 
-        <Border Grid.Row="3" Margin="0,8,0,0" Padding="6" Background="#11000000" CornerRadius="4">
+        <Border Grid.Row="5" Margin="0,8,0,0" Padding="6" Background="#11000000" CornerRadius="4">
             <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" />
         </Border>
     </Grid>
