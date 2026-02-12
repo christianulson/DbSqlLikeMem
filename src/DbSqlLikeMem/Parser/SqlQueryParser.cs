@@ -110,7 +110,7 @@ internal sealed class SqlQueryParser
         Consume(); // INSERT
         if (IsWord(Peek(), "INTO")) Consume();
 
-        var table = ParseTableSource(); // Tabela
+        var table = ParseTableSource(consumeHints: false); // Tabela
 
         // Colunas opcionais: (col1, col2)
         var cols = ParseCols();
@@ -792,7 +792,7 @@ internal sealed class SqlQueryParser
             throw new InvalidOperationException($"Esperava nome da view, veio {nameTok.Kind} '{nameTok.Text}'");
 
 
-        var viewName = ParseTableSource();
+        var viewName = ParseTableSource(consumeHints: false);
 
         // Optional column list: (col1, col2, ...)
         var colNames = new List<string>();
@@ -865,7 +865,7 @@ internal sealed class SqlQueryParser
             ifExists = true;
         }
 
-        var viewName = ParseTableSource();
+        var viewName = ParseTableSource(consumeHints: false);
 
         return new SqlDropViewQuery
         {
@@ -1152,7 +1152,7 @@ internal sealed class SqlQueryParser
         return list;
     }
 
-    private SqlTableSource ParseTableSource()
+    private SqlTableSource(bool consumeHints = true)
     {
         if (IsSymbol(Peek(), "("))
         {
@@ -1189,9 +1189,11 @@ internal sealed class SqlQueryParser
             db = table;
             table = ExpectIdentifier();
         }
-        ConsumeTableHintsIfPresent();
+        if (consumeHints)
+            ConsumeTableHintsIfPresent();
         var alias2 = ReadOptionalAlias();
-        ConsumeTableHintsIfPresent();
+        if (consumeHints)
+            ConsumeTableHintsIfPresent();
         return new SqlTableSource(db, table, alias2, null, null, null);
     }
 
