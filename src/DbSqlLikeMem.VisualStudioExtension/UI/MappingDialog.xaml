@@ -1,0 +1,30 @@
+<Window x:Class="DbSqlLikeMem.VisualStudioExtension.UI.MappingDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Configurar mapeamentos"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="300" />
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Padrão de arquivo:" />
+        <TextBox x:Name="FilePatternTextBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,8" Text="{NamePascal}{Type}Factory.cs" />
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Diretório de saída:" />
+        <TextBox x:Name="OutputDirectoryTextBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" Text="Generated" />
+
+        <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Cancelar" Width="90" Margin="0,0,8,0" IsCancel="True" />
+            <Button Content="Salvar" Width="90" IsDefault="True" Click="OnSaveClick" />
+        </StackPanel>
+    </Grid>
+</Window>
