@@ -237,7 +237,7 @@ internal abstract class AstQueryExecutorBase(
 
         // 6) DISTINCT
         if (selectQuery.Distinct)
-            projected = ApplyDistinct(projected);
+            projected = ApplyDistinct(projected, Dialect);
 
         // 7) ORDER BY / LIMIT
         projected = ApplyOrderAndLimit(projected, selectQuery, ctes);
@@ -741,7 +741,7 @@ internal abstract class AstQueryExecutorBase(
         }
 
         if (q.Distinct)
-            res = ApplyDistinct(res);
+            res = ApplyDistinct(res, Dialect);
 
         // ORDER / LIMIT
         res = ApplyOrderAndLimit(res, q, ctes);
@@ -2486,14 +2486,14 @@ internal abstract class AstQueryExecutorBase(
             if (vals.Any(IsNullish))
                 continue;
 
-            var key = string.Join("\u001F", vals.Select(NormalizeDistinctKey));
+            var key = string.Join("\u001F", vals.Select(v => NormalizeDistinctKey(v, Dialect)));
             set.Add(key);
         }
 
         return set.Count;
     }
 
-    private static string NormalizeDistinctKey(object? v)
+    private static string NormalizeDistinctKey(object? v, ISqlDialect? dialect = null)
     {
         // chave determinística; evita variações idiotas
         if (v is null) return "NULL";
@@ -2506,6 +2506,9 @@ internal abstract class AstQueryExecutorBase(
             float f => f.ToString("R", CultureInfo.InvariantCulture),
             DateTime dt => dt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
             bool b => b ? "1" : "0",
+            string s => (dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase) == StringComparison.Ordinal
+                ? s
+                : s.ToUpperInvariant(),
             _ => v.ToString() ?? ""
         };
     }
@@ -2742,18 +2745,19 @@ internal abstract class AstQueryExecutorBase(
     }
 
     private static TableResultMock ApplyDistinct(
-        TableResultMock res)
+        TableResultMock res,
+        ISqlDialect? dialect)
     {
-        var seen = new HashSet<object?[]>(ArrayObjectEqualityComparer.Instance);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
         var outRows = new List<Dictionary<int, object?>>();
 
         foreach (var row in res)
         {
-            var key = new object?[res.Columns.Count];
+            var key = new string[res.Columns.Count];
             for (int i = 0; i < res.Columns.Count; i++)
-                key[i] = row.TryGetValue(i, out var v) ? v : null;
+                key[i] = NormalizeDistinctKey(row.TryGetValue(i, out var v) ? v : null, dialect);
 
-            if (seen.Add(key))
+            if (seen.Add(string.Join("\u001F", key)))
                 outRows.Add(row);
         }
 
