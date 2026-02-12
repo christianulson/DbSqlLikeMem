@@ -150,8 +150,16 @@ public abstract class TableMock
     public IEnumerable<int>? Lookup(IndexDef def, string key)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(def, nameof(def));
-        return _ix.TryGetValue(def.Name.NormalizeName(), out var map)
-            && map.TryGetValue(key.NormalizeName(), out var list)
+        if (!_ix.TryGetValue(def.Name.NormalizeName(), out var map))
+            return null;
+
+        // Backward-compatible lookup: callers often pass raw values for single-column
+        // indexes (e.g. "John"). Internally keys are serialized, so try both formats.
+        if (map.TryGetValue(key.NormalizeName(), out var list))
+            return list;
+
+        var serializedKey = SerializeIndexKeyPart(key);
+        return map.TryGetValue(serializedKey, out list)
             ? list
             : null;
     }

@@ -968,13 +968,14 @@ internal abstract class AstQueryExecutorBase(
             var preferred = si.Alias ?? asAlias ?? InferColumnAlias(raw);
             var tableAl = q.Table?.Alias ?? q.Table?.Name ?? "";
             var colAlias = MakeUniqueAlias(cols, preferred, tableAl);
+            var inferredDbType = InferDbTypeFromExpression(exprAst, sampleRows, ctes);
 
             cols.Add(new TableResultColMock(
                 tableAlias: q.Table?.Alias ?? q.Table?.Name ?? "",
                 columnAlias: colAlias,
                 columnName: colAlias,
                 columIndex: cols.Count,
-                dbType: DbType.Object,
+                dbType: inferredDbType,
                 isNullable: true));
 
             if (exprAst is WindowFunctionExpr w)
@@ -1002,6 +1003,31 @@ internal abstract class AstQueryExecutorBase(
             Console.WriteLine($" - {c.ColumnAlias}");
 
         return new SelectPlan { Columns = cols, Evaluators = evals, WindowSlots = windowSlots };
+    }
+
+    private DbType InferDbTypeFromExpression(
+        SqlExpr exprAst,
+        List<EvalRow> sampleRows,
+        IDictionary<string, Source> ctes)
+    {
+        foreach (var row in sampleRows)
+        {
+            var value = Eval(exprAst, row, group: null, ctes);
+            if (value is null || value is DBNull)
+                continue;
+
+            var type = Nullable.GetUnderlyingType(value.GetType()) ?? value.GetType();
+            try
+            {
+                return type.ConvertTypeToDbType();
+            }
+            catch (ArgumentException)
+            {
+                return DbType.Object;
+            }
+        }
+
+        return DbType.Object;
     }
 
     private static bool IncludExtraColumns(
