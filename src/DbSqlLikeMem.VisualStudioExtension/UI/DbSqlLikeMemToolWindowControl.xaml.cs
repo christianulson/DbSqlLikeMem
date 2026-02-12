@@ -106,8 +106,22 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         }
     }
 
+    private void OnExplorerContextMenuOpening(object sender, System.ComponentModel.CancelEventArgs e)
+    {
+        var isObjectTypeNodeSelected = ExplorerTree.SelectedItem is ExplorerNode selected && selected.Kind == ExplorerNodeKind.ObjectType;
+
+        ConfigureMappingsMenuItem.Visibility = isObjectTypeNodeSelected ? Visibility.Visible : Visibility.Collapsed;
+        ConfigureTemplatesMenuItem.Visibility = isObjectTypeNodeSelected ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     private void OnConfigureMappingsClick(object sender, RoutedEventArgs e)
     {
+        if (ExplorerTree.SelectedItem is not ExplorerNode selected || selected.Kind != ExplorerNodeKind.ObjectType)
+        {
+            MessageBox.Show(System.Windows.Window.GetWindow(this), "Selecione um tipo de objeto para configurar mapeamentos.", "Configurar mapeamentos", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
         var defaults = viewModel.GetMappingDefaults();
         var dialog = new MappingDialog(defaults.FileNamePattern, defaults.OutputDirectory) { Owner = System.Windows.Window.GetWindow(this) };
 
@@ -120,6 +134,12 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
     private void OnConfigureTemplatesClick(object sender, RoutedEventArgs e)
     {
+        if (ExplorerTree.SelectedItem is not ExplorerNode selected || selected.Kind != ExplorerNodeKind.ObjectType)
+        {
+            MessageBox.Show(System.Windows.Window.GetWindow(this), "Selecione um tipo de objeto para configurar templates.", "Configurar templates", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
         var dialog = new TemplateConfigurationDialog(viewModel.GetTemplateConfiguration()) { Owner = System.Windows.Window.GetWindow(this) };
         if (dialog.ShowDialog() == true)
         {

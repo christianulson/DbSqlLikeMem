@@ -28,10 +28,6 @@
 
         <WrapPanel Grid.Row="0" Orientation="Horizontal" ItemHeight="28">
             <Button Content="Adicionar conexão" Padding="10,4" Margin="0,0,8,8" Click="OnAddConnectionClick" />
-            <Button Content="Editar conexão" Padding="10,4" Margin="0,0,8,8" Click="OnEditConnectionClick" />
-            <Button Content="Remover conexão" Padding="10,4" Margin="0,0,8,8" Click="OnRemoveConnectionClick" />
-            <Button Content="Configurar mapeamentos" Padding="10,4" Margin="0,0,8,8" Click="OnConfigureMappingsClick" />
-            <Button Content="Configurar templates" Padding="10,4" Margin="0,0,8,8" Click="OnConfigureTemplatesClick" />
             <Button Content="Atualizar objetos" Padding="10,4" Margin="0,0,8,8" Click="OnRefreshObjectsClick" />
             <Button Content="Cancelar operação" Padding="10,4" Margin="0,0,8,8" Click="OnCancelOperationClick" />
         </WrapPanel>
@@ -55,7 +51,10 @@
                   Grid.Row="4"
                   ItemsSource="{Binding Nodes}">
             <TreeView.ContextMenu>
-                <ContextMenu>
+                <ContextMenu Opening="OnExplorerContextMenuOpening">
+                    <MenuItem x:Name="ConfigureMappingsMenuItem" Header="Configurar mapeamentos" Click="OnConfigureMappingsClick" />
+                    <MenuItem x:Name="ConfigureTemplatesMenuItem" Header="Configurar templates" Click="OnConfigureTemplatesClick" />
+                    <Separator />
                     <MenuItem Header="Gerar classes de teste" Click="OnGenerateClassesClick" />
                     <MenuItem Header="Gerar classes de modelos" Click="OnGenerateModelClassesClick" />
                     <MenuItem Header="Gerar classes de repositório" Click="OnGenerateRepositoryClassesClick" />
