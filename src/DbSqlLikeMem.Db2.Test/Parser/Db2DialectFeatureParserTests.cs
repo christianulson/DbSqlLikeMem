@@ -117,4 +117,27 @@ public sealed class Db2DialectFeatureParserTests
         var parsed = SqlQueryParser.Parse(sql, new Db2Dialect(version));
         Assert.IsType<SqlSelectQuery>(parsed);
     }
+
+
+    /// <summary>
+    /// EN: Ensures runtime dialect hooks used by executor remain stable across supported versions.
+    /// PT: Garante que os hooks de runtime do dialeto usados pelo executor permaneçam estáveis nas versões suportadas.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [MemberDataDb2Version]
+    public void RuntimeDialectRules_ShouldRemainStable(int version)
+    {
+        var d = new Db2Dialect(version);
+
+        Assert.True(d.AreUnionColumnTypesCompatible(DbType.Int32, DbType.Decimal));
+        Assert.True(d.AreUnionColumnTypesCompatible(DbType.String, DbType.AnsiString));
+        Assert.False(d.AreUnionColumnTypesCompatible(DbType.Int32, DbType.String));
+
+        Assert.True(d.IsIntegerCastTypeName("INT"));
+        Assert.Equal(false, d.IsIntegerCastTypeName("NUMBER"));
+
+        Assert.False(d.RegexInvalidPatternEvaluatesToFalse);
+    }
+
 }

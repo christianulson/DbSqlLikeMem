@@ -77,6 +77,28 @@ public sealed class SqlServerDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures runtime dialect hooks used by executor remain stable across supported versions.
+    /// PT: Garante que os hooks de runtime do dialeto usados pelo executor permaneçam estáveis nas versões suportadas.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [MemberDataSqlServerVersion]
+    public void RuntimeDialectRules_ShouldRemainStable(int version)
+    {
+        var d = new SqlServerDialect(version);
+
+        Assert.True(d.AreUnionColumnTypesCompatible(DbType.Int32, DbType.Decimal));
+        Assert.True(d.AreUnionColumnTypesCompatible(DbType.String, DbType.AnsiString));
+        Assert.False(d.AreUnionColumnTypesCompatible(DbType.Int32, DbType.String));
+
+        Assert.True(d.IsIntegerCastTypeName("INT"));
+        Assert.Equal(false, d.IsIntegerCastTypeName("NUMBER"));
+
+        Assert.False(d.RegexInvalidPatternEvaluatesToFalse);
+    }
+
+
+    /// <summary>
     /// EN: Ensures unsupported SQL uses the standard not-supported message.
     /// PT: Garante que SQL não suportado use a mensagem padrão de não suportado.
     /// </summary>

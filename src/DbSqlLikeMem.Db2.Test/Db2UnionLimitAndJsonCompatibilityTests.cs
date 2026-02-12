@@ -86,6 +86,46 @@ SELECT id FROM t WHERE id = 1
         Assert.Equal([123m, 456m, null], [.. rows.Select(r => (object?)r.v)]);
     }
 
+
+
+    [Fact]
+    public void Union_ShouldNormalizeEquivalentNumericTypes()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT 1.0 AS v
+UNION
+SELECT 1 AS v
+").ToList();
+
+        Assert.Single(rows);
+    }
+
+    [Fact]
+    public void Union_ShouldValidateIncompatibleColumnTypes()
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            _cnn.Query<dynamic>(@"
+SELECT 1 AS v
+UNION
+SELECT 'x' AS v
+").ToList());
+    }
+
+
+
+    [Fact]
+    public void Union_ShouldNormalizeSchemaToFirstSelectAlias()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id AS v FROM t WHERE id IN (1, 2)
+UNION ALL
+SELECT id AS x FROM t WHERE id = 3
+ORDER BY v
+").ToList();
+
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.v)]);
+    }
+
     /// <summary>
     /// EN: Disposes test resources.
     /// PT: Descarta os recursos do teste.
