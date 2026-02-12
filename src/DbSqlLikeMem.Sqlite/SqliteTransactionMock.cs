@@ -54,7 +54,11 @@ public class SqliteTransactionMock(
     /// PT: Cria um savepoint na transação ativa.
     /// </summary>
     /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
-    public void Save(string savepointName)
+    #if NET6_0_OR_GREATER
+    public override void Save(string savepointName)
+#else
+    public new void Save(string savepointName)
+#endif
     {
         lock (cnn.Db.SyncRoot)
             cnn.CreateSavepoint(savepointName);
@@ -65,7 +69,11 @@ public class SqliteTransactionMock(
     /// PT: Executa rollback para um savepoint nomeado.
     /// </summary>
     /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
-    public void Rollback(string savepointName)
+    #if NET6_0_OR_GREATER
+    public override void Rollback(string savepointName)
+#else
+    public new void Rollback(string savepointName)
+#endif
     {
         lock (cnn.Db.SyncRoot)
             cnn.RollbackTransaction(savepointName);
@@ -76,7 +84,11 @@ public class SqliteTransactionMock(
     /// PT: Libera um savepoint nomeado.
     /// </summary>
     /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
-    public void Release(string savepointName)
+    #if NET6_0_OR_GREATER
+    public override void Release(string savepointName)
+#else
+    public new void Release(string savepointName)
+#endif
     {
         lock (cnn.Db.SyncRoot)
             cnn.ReleaseSavepoint(savepointName);
