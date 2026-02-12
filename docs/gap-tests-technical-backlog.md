@@ -18,6 +18,7 @@ Prioridade calculada por cobertura de providers + risco de regressão - esforço
 | P1 | Union Inside SubSelect | DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite | G | Médio | AST + precedência de operadores; Normalização de schemas em set operators |
 | P2 | Where ParenthesesGrouping | DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite | M | Baixo | AST + precedência de operadores |
 | P2 | Where Precedence AND ShouldBindStrongerThan OR | DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite | M | Baixo | AST + precedência de operadores |
+| P2 | Cast StringToInt NumberType | Oracle | M | Alto | AST + precedência de operadores |
 
 ## Épico: Executor
 
@@ -66,6 +67,7 @@ Prioridade calculada por cobertura de providers + risco de regressão - esforço
 - [ ] **Union Inside SubSelect**  `providers: DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite` · `esforço: G` · `risco: Médio`  Dependências: AST + precedência de operadores; Normalização de schemas em set operators
 - [ ] **Where ParenthesesGrouping**  `providers: DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite` · `esforço: M` · `risco: Baixo`  Dependências: AST + precedência de operadores
 - [ ] **Where Precedence AND ShouldBindStrongerThan OR**  `providers: DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite` · `esforço: M` · `risco: Baixo`  Dependências: AST + precedência de operadores
+- [ ] **Cast StringToInt NumberType**  `providers: Oracle` · `esforço: M` · `risco: Alto`  Dependências: AST + precedência de operadores
 
 ### Executor
 - [ ] **CorrelatedSubquery InSelectList**  `providers: DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite` · `esforço: G` · `risco: Alto`  Dependências: Planejador de execução em memória; Escopo de aliases em subquery correlata
