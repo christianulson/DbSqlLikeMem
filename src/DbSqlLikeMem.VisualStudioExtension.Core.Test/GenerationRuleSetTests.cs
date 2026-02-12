@@ -30,7 +30,7 @@ public sealed class GenerationRuleSetTests
     /// </summary>
     [Theory]
     [InlineData("tinyint", null, 8, "Flags", "MySql", "Byte")]
-    [InlineData("tinyint", 1, null, "IsEnabled", "MySql", "Boolean")]
+    [InlineData("tinyint", 1L, null, "IsEnabled", "MySql", "Boolean")]
     [InlineData("tinyint", null, 1, "IsEnabled", "MySql", "Boolean")]
     [InlineData("bit", null, 1, "IsDeleted", "MySql", "Boolean")]
     [InlineData("bit", null, 8, "Mask", "MySql", "UInt64")]
@@ -53,11 +53,11 @@ public sealed class GenerationRuleSetTests
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
-    [InlineData("binary", 16, null, "Token", "Guid")]
-    [InlineData("varbinary", 16, null, "Token", "Guid")]
-    [InlineData("char", 36, null, "OrderGuid", "Guid")]
-    [InlineData("char", 36, null, "OrderUuid", "Guid")]
-    [InlineData("char", 36, null, "OrderCode", "String")]
+    [InlineData("binary", 16L, null, "Token", "Guid")]
+    [InlineData("varbinary", 16L, null, "Token", "Guid")]
+    [InlineData("char", 36L, null, "OrderGuid", "Guid")]
+    [InlineData("char", 36L, null, "OrderUuid", "Guid")]
+    [InlineData("char", 36L, null, "OrderCode", "String")]
     public void MapDbType_AppliesGuidHeuristics(string dataType, long? charMaxLen, int? precision, string column, string expected)
     {
         var type = GenerationRuleSet.MapDbType(dataType, charMaxLen, precision, column, "SqlServer");
