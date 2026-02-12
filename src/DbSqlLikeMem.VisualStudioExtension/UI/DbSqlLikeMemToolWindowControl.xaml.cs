@@ -7,6 +7,9 @@ using System.Windows;
 using System.Windows.Controls;
 using DbSqlLikeMem.VisualStudioExtension.Services;
 using EnvDTE;
+using DteProject = EnvDTE.Project;
+using DteProjectItem = EnvDTE.ProjectItem;
+using DteProjectItems = EnvDTE.ProjectItems;
 using Microsoft.VisualStudio.Shell;
 
 namespace DbSqlLikeMem.VisualStudioExtension.UI;
@@ -32,7 +35,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     private async void OnAddConnectionClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(async () =>
         {
-            var dialog = new ConnectionDialog { Owner = Window.GetWindow(this) };
+            var dialog = new ConnectionDialog { Owner = System.Windows.Window.GetWindow(this) };
 
             if (dialog.ShowDialog() != true)
             {
@@ -42,7 +45,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
             var test = await viewModel.TestConnectionAsync(dialog.DatabaseType, dialog.ConnectionString);
             if (!test.Success)
             {
-                MessageBox.Show(this, test.Message, "Falha de conexão", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(System.Windows.Window.GetWindow(this), test.Message, "Falha de conexão", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -55,14 +58,14 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         {
             if (ExplorerTree.SelectedItem is not ExplorerNode selected || selected.Kind != ExplorerNodeKind.Connection)
             {
-                MessageBox.Show(this, "Selecione um nó de conexão para editar.", "Editar conexão", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(System.Windows.Window.GetWindow(this), "Selecione um nó de conexão para editar.", "Editar conexão", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
             var existing = selected.ConnectionId is null ? null : viewModel.GetConnection(selected.ConnectionId);
             var dialog = new ConnectionDialog
             {
-                Owner = Window.GetWindow(this),
+                Owner = System.Windows.Window.GetWindow(this),
                 ConnectionName = existing?.DatabaseName ?? selected.Label,
                 DatabaseType = existing?.DatabaseType ?? "SqlServer",
                 ConnectionString = existing?.ConnectionString ?? string.Empty
@@ -76,7 +79,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
             var test = await viewModel.TestConnectionAsync(dialog.DatabaseType, dialog.ConnectionString);
             if (!test.Success)
             {
-                MessageBox.Show(this, test.Message, "Falha de conexão", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(System.Windows.Window.GetWindow(this), test.Message, "Falha de conexão", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -88,11 +91,11 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     {
         if (ExplorerTree.SelectedItem is not ExplorerNode selected || selected.Kind != ExplorerNodeKind.Connection)
         {
-            MessageBox.Show(this, "Selecione um nó de conexão para remover.", "Remover conexão", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(System.Windows.Window.GetWindow(this), "Selecione um nó de conexão para remover.", "Remover conexão", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
-        var confirm = MessageBox.Show(this, $"Remover conexão '{selected.Label}'?", "Confirmação", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        var confirm = MessageBox.Show(System.Windows.Window.GetWindow(this), $"Remover conexão '{selected.Label}'?", "Confirmação", MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (confirm == MessageBoxResult.Yes)
         {
             viewModel.RemoveConnection(selected);
@@ -102,7 +105,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     private void OnConfigureMappingsClick(object sender, RoutedEventArgs e)
     {
         var defaults = viewModel.GetMappingDefaults();
-        var dialog = new MappingDialog(defaults.FileNamePattern, defaults.OutputDirectory) { Owner = Window.GetWindow(this) };
+        var dialog = new MappingDialog(defaults.FileNamePattern, defaults.OutputDirectory) { Owner = System.Windows.Window.GetWindow(this) };
 
         if (dialog.ShowDialog() == true)
         {
@@ -113,7 +116,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
     private void OnConfigureTemplatesClick(object sender, RoutedEventArgs e)
     {
-        var dialog = new TemplateConfigurationDialog(viewModel.GetTemplateConfiguration()) { Owner = Window.GetWindow(this) };
+        var dialog = new TemplateConfigurationDialog(viewModel.GetTemplateConfiguration()) { Owner = System.Windows.Window.GetWindow(this) };
         if (dialog.ShowDialog() == true)
         {
             viewModel.ConfigureTemplates(dialog.ModelTemplatePath, dialog.RepositoryTemplatePath, dialog.ModelOutputDirectory, dialog.RepositoryOutputDirectory);
@@ -131,7 +134,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         {
             if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
             {
-                MessageBox.Show(this, "Selecione conexão, tipo de objeto ou objeto para gerar classes de teste.", "Gerar classes de teste", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(System.Windows.Window.GetWindow(this), "Selecione conexão, tipo de objeto ou objeto para gerar classes de teste.", "Gerar classes de teste", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -140,7 +143,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
             {
                 var preview = string.Join(Environment.NewLine, conflicts.Take(10));
                 var message = $"{conflicts.Count} arquivo(s) já existem e serão sobrescritos:\n\n{preview}";
-                var confirm = MessageBox.Show(this, message, "Pré-visualização de sobrescrita", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                var confirm = MessageBox.Show(System.Windows.Window.GetWindow(this), message, "Pré-visualização de sobrescrita", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                 if (confirm != MessageBoxResult.Yes)
                 {
                     return;
@@ -157,7 +160,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         {
             if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
             {
-                MessageBox.Show(this, "Selecione conexão, tipo de objeto ou objeto para gerar classes de modelos.", "Gerar modelos", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(System.Windows.Window.GetWindow(this), "Selecione conexão, tipo de objeto ou objeto para gerar classes de modelos.", "Gerar modelos", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -170,7 +173,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         {
             if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
             {
-                MessageBox.Show(this, "Selecione conexão, tipo de objeto ou objeto para gerar classes de repositório.", "Gerar repositórios", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(System.Windows.Window.GetWindow(this), "Selecione conexão, tipo de objeto ou objeto para gerar classes de repositório.", "Gerar repositórios", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -183,7 +186,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         {
             if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
             {
-                MessageBox.Show(this, "Selecione conexão, tipo de objeto ou objeto para checar consistência.", "Checar consistência", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(System.Windows.Window.GetWindow(this), "Selecione conexão, tipo de objeto ou objeto para checar consistência.", "Checar consistência", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -199,7 +202,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         catch (Exception ex)
         {
             ExtensionLogger.Log($"UI operation error: {ex}");
-            MessageBox.Show(this, ex.Message, "Erro inesperado", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(System.Windows.Window.GetWindow(this), ex.Message, "Erro inesperado", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -213,13 +216,13 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
             return;
         }
 
-        var dte = Package.GetGlobalService(typeof(SDTE)) as DTE;
+        var dte = Package.GetGlobalService(typeof(DTE)) as DTE;
         if (dte?.ActiveSolutionProjects is not Array activeProjects || activeProjects.Length == 0)
         {
             return;
         }
 
-        if (activeProjects.GetValue(0) is not Project project)
+        if (activeProjects.GetValue(0) is not DteProject project)
         {
             return;
         }
@@ -233,7 +236,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         }
     }
 
-    private static bool ProjectContainsFile(ProjectItems? items, string fullPath)
+    private static bool ProjectContainsFile(DteProjectItems? items, string fullPath)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
@@ -242,7 +245,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
             return false;
         }
 
-        foreach (ProjectItem item in items)
+        foreach (DteProjectItem item in items)
         {
             var itemPath = item.FileCount > 0 ? item.FileNames[1] : string.Empty;
             if (string.Equals(Path.GetFullPath(itemPath), Path.GetFullPath(fullPath), StringComparison.OrdinalIgnoreCase))

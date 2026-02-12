@@ -26,7 +26,7 @@ internal static class ConnectionStringProtector
             return value;
         }
 
-        var payload = value[Prefix.Length..];
+        var payload = value.Substring(Prefix.Length);
         var protectedBytes = Convert.FromBase64String(payload);
         var plainBytes = ProtectedData.Unprotect(protectedBytes, null, DataProtectionScope.CurrentUser);
         return Encoding.UTF8.GetString(plainBytes);
