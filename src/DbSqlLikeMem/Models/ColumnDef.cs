@@ -137,4 +137,10 @@ public sealed class ColumnDef
     /// PT: Função geradora de valor calculado para colunas derivadas.
     /// </summary>
     public Func<IReadOnlyDictionary<int, object?>, ITableMock, object?>? GetGenValue { get; set; }
+
+    /// <summary>
+    /// EN: When true, stores the generated value in the row and keeps it updated on writes.
+    /// PT: Quando true, armazena o valor calculado na linha e o mantém atualizado em escritas.
+    /// </summary>
+    public bool PersistComputedValue { get; set; }
 }
