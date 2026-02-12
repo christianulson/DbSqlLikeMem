@@ -1,11 +1,7 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
-using System.Linq;
-using System.Threading;
 using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 using DbSqlLikeMem.VisualStudioExtension.Core.Persistence;

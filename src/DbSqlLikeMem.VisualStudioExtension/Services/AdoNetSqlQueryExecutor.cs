@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Data.Common;
 using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
@@ -7,8 +6,8 @@ namespace DbSqlLikeMem.VisualStudioExtension.Services;
 
 internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
 {
-    private static readonly IReadOnlyDictionary<string, string[]> ProviderCandidates =
-        new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, string[]> ProviderCandidates =
+        new(StringComparer.OrdinalIgnoreCase)
         {
             ["sqlserver"] = ["System.Data.SqlClient", "Microsoft.Data.SqlClient"],
             ["postgresql"] = ["Npgsql"],

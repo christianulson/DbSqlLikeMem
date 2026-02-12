@@ -1,4 +1,3 @@
-using System;
 using Microsoft.VisualStudio.Shell;
 
 namespace DbSqlLikeMem.VisualStudioExtension;

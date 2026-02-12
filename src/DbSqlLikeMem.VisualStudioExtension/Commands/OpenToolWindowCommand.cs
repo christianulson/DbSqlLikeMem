@@ -1,6 +1,4 @@
-using System;
 using System.ComponentModel.Design;
-using System.Threading.Tasks;
 using Microsoft.VisualStudio.Shell;
 
 namespace DbSqlLikeMem.VisualStudioExtension.Commands;
