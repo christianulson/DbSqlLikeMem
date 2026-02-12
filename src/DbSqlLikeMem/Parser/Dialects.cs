@@ -102,6 +102,10 @@ internal interface ISqlDialect
     StringComparison TextComparison { get; }
     bool SupportsImplicitNumericStringComparison { get; }
     bool LikeIsCaseInsensitive { get; }
+    // Dialect-specific runtime semantics
+    bool RegexInvalidPatternEvaluatesToFalse { get; }
+    bool AreUnionColumnTypesCompatible(DbType first, DbType second);
+    bool IsIntegerCastTypeName(string typeName);
 }
 
 internal abstract class SqlDialectBase : ISqlDialect
@@ -239,6 +243,47 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// PT: Controla sensibilidade de maiúsculas/minúsculas no LIKE do mock quando não há collation explícita.
     /// </summary>
     public virtual bool LikeIsCaseInsensitive => true;
+    public virtual bool RegexInvalidPatternEvaluatesToFalse => false;
+
+    public virtual bool AreUnionColumnTypesCompatible(DbType first, DbType second)
+    {
+        if (first == second)
+            return true;
+
+        static bool IsNumeric(DbType t)
+            => t is DbType.Byte or DbType.SByte
+            or DbType.Int16 or DbType.UInt16
+            or DbType.Int32 or DbType.UInt32
+            or DbType.Int64 or DbType.UInt64
+            or DbType.Decimal or DbType.Double
+            or DbType.Single or DbType.VarNumeric;
+
+        static bool IsText(DbType t)
+            => t is DbType.AnsiString or DbType.String
+            or DbType.AnsiStringFixedLength or DbType.StringFixedLength;
+
+        if (IsNumeric(first) && IsNumeric(second))
+            return true;
+
+        if (IsText(first) && IsText(second))
+            return true;
+
+        return false;
+    }
+
+    public virtual bool IsIntegerCastTypeName(string typeName)
+    {
+        if (string.IsNullOrWhiteSpace(typeName))
+            return false;
+
+        return typeName.Equals("SIGNED", StringComparison.OrdinalIgnoreCase)
+            || typeName.Equals("UNSIGNED", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("INT", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("INTEGER", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("BIGINT", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("SMALLINT", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("TINYINT", StringComparison.OrdinalIgnoreCase);
+    }
     /// <summary>
     /// Auto-generated summary.
     /// </summary>

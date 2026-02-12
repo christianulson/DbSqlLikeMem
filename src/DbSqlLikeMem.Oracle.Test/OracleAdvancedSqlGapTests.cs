@@ -102,6 +102,16 @@ ORDER BY id").ToList();
         Assert.Equal(42, (int)rows[0].v);
     }
 
+
+
+    [Fact]
+    public void Cast_StringToInt_NumberType_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT CAST('42' AS NUMBER) AS v").ToList();
+        Assert.Single(rows);
+        Assert.Equal(42, (int)rows[0].v);
+    }
+
     /// <summary>
     /// EN: Tests Regexp_Operator_ShouldWork behavior.
     /// PT: Testa o comportamento de Regexp_Operator_ShouldWork.
@@ -112,6 +122,8 @@ ORDER BY id").ToList();
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name REGEXP '^J' ORDER BY id").ToList();
         Assert.Equal([1, 3], [.. rows.Select(r => (int)r.id)]);
     }
+
+
 
     /// <summary>
     /// EN: Tests OrderBy_Field_Function_ShouldWork behavior.

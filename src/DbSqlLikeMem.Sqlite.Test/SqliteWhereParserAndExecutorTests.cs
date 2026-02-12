@@ -25,6 +25,8 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
         users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = "john@x.com", [3] = "a,b" });
         users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Jane", [2] = null, [3] = "b,c" });
         users.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Bob", [2] = "bob@x.com", [3] = null });
+        users.Add(new Dictionary<int, object?> { [0] = 4, [1] = "A|B", [2] = "C", [3] = null });
+        users.Add(new Dictionary<int, object?> { [0] = 5, [1] = "A", [2] = "B|C", [3] = null });
 
         _cnn = new SqliteConnectionMock(db);
         _cnn.Open();
@@ -75,6 +77,32 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
         Assert.Equal(before + 1, _cnn.Metrics.IndexLookups);
         Assert.Equal(beforeIndexHint + 1, _cnn.Metrics.IndexHints["ix_users_name_email"]);
         Assert.Equal(beforeTableHint + 1, _cnn.Metrics.TableHints["users"]);
+    }
+
+
+    /// <summary>
+    /// EN: Tests Where_IndexedEqualityWithCompositeValuesContainingSeparator_ShouldReturnCorrectRow behavior.
+    /// PT: Testa o comportamento de Where_IndexedEqualityWithCompositeValuesContainingSeparator_ShouldReturnCorrectRow.
+    /// </summary>
+    [Fact]
+    public void Where_IndexedEqualityWithCompositeValuesContainingSeparator_ShouldReturnCorrectRow()
+    {
+        var before = _cnn.Metrics.IndexLookups;
+        var beforeIndexHint = _cnn.Metrics.IndexHints.TryGetValue("ix_users_name_email", out var ih) ? ih : 0;
+
+        var rows = _cnn.Query<dynamic>(
+            "SELECT id FROM users WHERE name = @name AND email = @email",
+            new
+            {
+                name = "A",
+                email = "B|C"
+            })
+            .ToList();
+
+        Assert.Single(rows);
+        Assert.Equal(5, (int)rows[0].id);
+        Assert.Equal(before + 1, _cnn.Metrics.IndexLookups);
+        Assert.Equal(beforeIndexHint + 1, _cnn.Metrics.IndexHints["ix_users_name_email"]);
     }
 
     /// <summary>

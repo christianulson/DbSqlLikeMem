@@ -86,6 +86,8 @@ internal abstract class AstQueryExecutorBase(
             JoinFields = tables[0].JoinFields
         };
 
+        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para UNION.");
+
         // valida colunas compatíveis
         for (int i = 0; i < tables.Count; i++)
         {
@@ -99,6 +101,8 @@ internal abstract class AstQueryExecutorBase(
 
                 throw new InvalidOperationException(msg);
             }
+
+            ValidateUnionColumnTypes(result.Columns, tables[i].Columns, i, sqlContextForErrors, dialect);
         }
 
         // merge
@@ -123,7 +127,7 @@ internal abstract class AstQueryExecutorBase(
                 // UNION => DISTINCT
                 foreach (var row in tables[i])
                 {
-                    if (!ContainsRow(result, row))
+                    if (!ContainsRow(result, row, dialect))
                         result.Add(row);
                 }
             }
@@ -140,7 +144,8 @@ internal abstract class AstQueryExecutorBase(
 
     private static bool ContainsRow(
         TableResultMock table,
-        Dictionary<int, object?> candidate)
+        Dictionary<int, object?> candidate,
+        ISqlDialect dialect)
     {
         // comparação simples: mesmas chaves + mesmos valores
         // (se precisar mais forte depois, você troca aqui)
@@ -152,12 +157,34 @@ internal abstract class AstQueryExecutorBase(
             foreach (var kv in candidate)
             {
                 if (!row.TryGetValue(kv.Key, out var v)) { ok = false; break; }
-                if (!Equals(v, kv.Value)) { ok = false; break; }
+                if (!v.EqualsSql(kv.Value, dialect)) { ok = false; break; }
             }
 
             if (ok) return true;
         }
         return false;
+    }
+
+    private static void ValidateUnionColumnTypes(
+        IList<TableResultColMock> expected,
+        IList<TableResultColMock> current,
+        int currentIndex,
+        string? sqlContextForErrors,
+        ISqlDialect dialect)
+    {
+        for (int i = 0; i < expected.Count; i++)
+        {
+            if (dialect.AreUnionColumnTypesCompatible(expected[i].DbType, current[i].DbType))
+                continue;
+
+            var msg =
+                "UNION: tipo de coluna incompatível. " +
+                $"Coluna[{i}] Primeiro={expected[i].DbType}, SELECT[{currentIndex}]={current[i].DbType}.";
+            if (!string.IsNullOrWhiteSpace(sqlContextForErrors))
+                msg += "\nSQL: " + sqlContextForErrors;
+
+            throw new InvalidOperationException(msg);
+        }
     }
 
     /// <summary>
@@ -344,12 +371,14 @@ internal abstract class AstQueryExecutorBase(
         if (best is null)
             return null;
 
-        var key = string.Join("|", best.KeyCols.Select(col =>
-        {
-            var norm = col.NormalizeName();
-            var value = equalsByColumn[norm];
-            return value?.ToString() ?? "<null>";
-        }));
+        var key = src.Physical is TableMock physicalTable
+            ? physicalTable.BuildIndexKeyFromValues(best, equalsByColumn)
+            : string.Join("|", best.KeyCols.Select(col =>
+            {
+                var norm = col.NormalizeName();
+                var value = equalsByColumn[norm];
+                return value?.ToString() ?? "<null>";
+            }));
 
         var positions = LookupIndexWithMetrics(src.Physical, best, key);
         if (positions is null)
@@ -1622,9 +1651,23 @@ internal abstract class AstQueryExecutorBase(
             SqlBinaryOp.GreaterOrEqual => cmp >= 0,
             SqlBinaryOp.Less => cmp < 0,
             SqlBinaryOp.LessOrEqual => cmp <= 0,
-            SqlBinaryOp.Regexp => Regex.IsMatch(l.ToString() ?? "", r.ToString() ?? ""),
+            SqlBinaryOp.Regexp => EvalRegexp(l, r, Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para REGEXP.")),
             _ => throw new InvalidOperationException($"Binary op não suportado: {b.Op}")
         };
+    }
+
+    private static bool EvalRegexp(object l, object r, ISqlDialect dialect)
+    {
+        try
+        {
+            return Regex.IsMatch(l.ToString() ?? "", r.ToString() ?? "");
+        }
+        catch (ArgumentException)
+        {
+            if (dialect.RegexInvalidPatternEvaluatesToFalse)
+                return false;
+            throw;
+        }
     }
 
     private bool EvalIn(
@@ -1874,9 +1917,7 @@ internal abstract class AstQueryExecutorBase(
 
             try
             {
-                if (type.Equals("SIGNED", StringComparison.OrdinalIgnoreCase)
-                    || type.Equals("UNSIGNED", StringComparison.OrdinalIgnoreCase)
-                    || type.StartsWith("INT", StringComparison.OrdinalIgnoreCase))
+                if ((Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para CAST.")).IsIntegerCastTypeName(type))
                 {
                     if (v is long l) return (int)l;
                     if (v is int i) return i;
@@ -1919,9 +1960,7 @@ internal abstract class AstQueryExecutorBase(
 
             try
             {
-                if (type.Equals("SIGNED", StringComparison.OrdinalIgnoreCase)
-                    || type.Equals("UNSIGNED", StringComparison.OrdinalIgnoreCase)
-                    || type.StartsWith("INT", StringComparison.OrdinalIgnoreCase))
+                if ((Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para CAST.")).IsIntegerCastTypeName(type))
                 {
                     if (v is long l) return (int)l;
                     if (v is int i) return i;
