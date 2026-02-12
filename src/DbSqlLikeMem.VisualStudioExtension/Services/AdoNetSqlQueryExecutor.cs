@@ -7,6 +7,17 @@ namespace DbSqlLikeMem.VisualStudioExtension.Services;
 
 internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
 {
+    private static readonly IReadOnlyDictionary<string, string[]> ProviderCandidates =
+        new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["sqlserver"] = ["System.Data.SqlClient", "Microsoft.Data.SqlClient"],
+            ["postgresql"] = ["Npgsql"],
+            ["mysql"] = ["MySqlConnector", "MySql.Data.MySqlClient"],
+            ["oracle"] = ["Oracle.ManagedDataAccess.Client"],
+            ["sqlite"] = ["Microsoft.Data.Sqlite", "System.Data.SQLite"],
+            ["db2"] = ["IBM.Data.DB2", "IBM.Data.DB2.Core"]
+        };
+
     public async Task<IReadOnlyCollection<IReadOnlyDictionary<string, object?>>> QueryAsync(
         ConnectionDefinition connection,
         string sql,
@@ -47,17 +58,26 @@ internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
 
     internal static DbProviderFactory GetFactory(string databaseType)
     {
-        var provider = databaseType.Trim().ToLowerInvariant() switch
+        if (!ProviderCandidates.TryGetValue(databaseType.Trim().ToLowerInvariant(), out var providerNames))
         {
-            "sqlserver" => "System.Data.SqlClient",
-            "postgresql" => "Npgsql",
-            "mysql" => "MySql.Data.MySqlClient",
-            "oracle" => "Oracle.ManagedDataAccess.Client",
-            "sqlite" => "Microsoft.Data.Sqlite",
-            "db2" => "IBM.Data.DB2",
-            _ => throw new NotSupportedException($"Banco não suportado para conexão real: {databaseType}")
-        };
+            throw new NotSupportedException($"Banco não suportado para conexão real: {databaseType}");
+        }
 
-        return DbProviderFactories.GetFactory(provider);
+        foreach (var providerName in providerNames)
+        {
+            try
+            {
+                return DbProviderFactories.GetFactory(providerName);
+            }
+            catch (ArgumentException)
+            {
+                // try next
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"Nenhum provider ADO.NET registrado para '{databaseType}'. Tentativas: {string.Join(", ", providerNames)}. " +
+            "Instale o provider correspondente (pacote NuGet e/ou registro no machine.config)."
+        );
     }
 }

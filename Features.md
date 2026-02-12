@@ -59,3 +59,20 @@
 - `ON DUPLICATE KEY UPDATE`: não suportado.
 - Operador null-safe `<=>`: não suportado.
 - Operadores JSON `->` e `->>`: não suportados.
+
+
+## Extensões (VS Code e Visual Studio)
+
+As extensões agora suportam, além da geração tradicional para testes, fluxos separados para artefatos de aplicação:
+
+- **Gerar classes de teste** (ação principal existente, com foco em classes de teste).
+- **Gerar classes de modelos** (novo).
+- **Gerar classes de repositório** (novo).
+- **Configurar templates** via botão no topo para arquivos texto com tokens.
+- **Check de consistência com status visual** para indicar ausência/divergência/sincronização dos artefatos esperados.
+
+### Tokens de template
+
+- `{{ClassName}}`, `{{ObjectName}}`, `{{Schema}}`, `{{ObjectType}}`, `{{DatabaseType}}`, `{{DatabaseName}}`.
+
+> Observação: esses recursos são voltados a gerar arquivos para uso em projetos reais do usuário (não apenas arquivos de teste).

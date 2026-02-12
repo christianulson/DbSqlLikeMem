@@ -34,8 +34,20 @@ interface DatabaseObjectReference {
 interface ExtensionState {
   connections: ConnectionDefinition[];
   mappingConfigurations: ConnectionMappingConfiguration[];
+  templateSettings: TemplateSettings;
+  generationCheckByObjectKey: Record<string, GenerationCheckStatus>;
   filterText: string;
   filterMode: FilterMode;
+}
+
+type GenerationKind = 'model' | 'repository';
+type GenerationCheckStatus = 'ok' | 'partial' | 'missing';
+
+interface TemplateSettings {
+  modelTemplatePath: string;
+  repositoryTemplatePath: string;
+  modelTargetFolder: string;
+  repositoryTargetFolder: string;
 }
 
 interface TreeNode {
@@ -46,11 +58,19 @@ interface TreeNode {
   children?: TreeNode[];
   connectionId?: string;
   objectRef?: DatabaseObjectReference;
+  generationStatus?: GenerationCheckStatus;
 }
 
 const DEFAULT_STATE: ExtensionState = {
   connections: [],
   mappingConfigurations: [],
+  templateSettings: {
+    modelTemplatePath: '',
+    repositoryTemplatePath: '',
+    modelTargetFolder: 'src/Models',
+    repositoryTargetFolder: 'src/Repositories'
+  },
+  generationCheckByObjectKey: {},
   filterText: '',
   filterMode: 'Like'
 };
@@ -63,6 +83,14 @@ class DbNodeItem extends vscode.TreeItem {
     if (node.kind === 'object') {
       this.contextValue = 'db-object';
       this.description = node.objectType;
+      const status = (node as TreeNode & { generationStatus?: GenerationCheckStatus }).generationStatus;
+      if (status === 'ok') {
+        this.iconPath = new vscode.ThemeIcon('pass-filled');
+      } else if (status === 'partial') {
+        this.iconPath = new vscode.ThemeIcon('warning');
+      } else if (status === 'missing') {
+        this.iconPath = new vscode.ThemeIcon('error');
+      }
     } else {
       this.contextValue = `db-${node.kind}`;
     }
@@ -110,7 +138,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   let state = await loadState(context);
 
   const refreshTree = (): void => {
-    const tree = buildTree(state.connections, state.filterText, state.filterMode, metadataProvider);
+    const tree = buildTree(state.connections, state.filterText, state.filterMode, metadataProvider, state.generationCheckByObjectKey);
     treeProvider.setTree(tree);
   };
 
@@ -288,8 +316,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
 
       const fileSuffix = await vscode.window.showInputBox({
-        prompt: 'Sufixo dos arquivos/classe (ex: Entity)',
-        value: 'Entity'
+        prompt: 'Sufixo dos arquivos/classe de teste (ex: Tests)',
+        value: 'Tests'
       });
 
       if (!fileSuffix) {
@@ -310,6 +338,48 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       await saveState(context, state);
       vscode.window.showInformationMessage(`Mapeamentos salvos para ${connection.name}.`);
     }),
+    vscode.commands.registerCommand('dbSqlLikeMem.configureTemplates', async () => {
+      const modelTemplatePath = await vscode.window.showInputBox({
+        prompt: 'Template de modelo (caminho relativo ao workspace)',
+        value: state.templateSettings.modelTemplatePath || 'templates/model.template.txt'
+      });
+      if (modelTemplatePath === undefined) {
+        return;
+      }
+
+      const repositoryTemplatePath = await vscode.window.showInputBox({
+        prompt: 'Template de repositório (caminho relativo ao workspace)',
+        value: state.templateSettings.repositoryTemplatePath || 'templates/repository.template.txt'
+      });
+      if (repositoryTemplatePath === undefined) {
+        return;
+      }
+
+      const modelTargetFolder = await vscode.window.showInputBox({
+        prompt: 'Pasta destino para classes de modelo',
+        value: state.templateSettings.modelTargetFolder
+      });
+      if (!modelTargetFolder) {
+        return;
+      }
+
+      const repositoryTargetFolder = await vscode.window.showInputBox({
+        prompt: 'Pasta destino para classes de repositório',
+        value: state.templateSettings.repositoryTargetFolder
+      });
+      if (!repositoryTargetFolder) {
+        return;
+      }
+
+      state.templateSettings = {
+        modelTemplatePath: modelTemplatePath.trim(),
+        repositoryTemplatePath: repositoryTemplatePath.trim(),
+        modelTargetFolder: modelTargetFolder.trim(),
+        repositoryTargetFolder: repositoryTargetFolder.trim()
+      };
+      await saveState(context, state);
+      vscode.window.showInformationMessage('Templates de geração configurados.');
+    }),
     vscode.commands.registerCommand('dbSqlLikeMem.generateClasses', async (item?: DbNodeItem) => {
       const connection = await resolveConnectionFromItem(state.connections, item);
       if (!connection) {
@@ -318,7 +388,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
       const mapping = state.mappingConfigurations.find((x) => x.connectionId === connection.id);
       if (!mapping) {
-        vscode.window.showWarningMessage('Configure os mapeamentos antes de gerar as classes.');
+        vscode.window.showWarningMessage('Configure os mapeamentos antes de gerar as classes de teste.');
         return;
       }
 
@@ -345,7 +415,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         await fs.writeFile(targetFile, generateClassTemplate(className, objectRef), 'utf8');
       }
 
-      vscode.window.showInformationMessage(`Classes geradas para ${connection.name}.`);
+      vscode.window.showInformationMessage(`Classes de teste geradas para ${connection.name}.`);
+    }),
+    vscode.commands.registerCommand('dbSqlLikeMem.generateModelClasses', async (item?: DbNodeItem) => {
+      await generateTemplateBasedFiles(state, metadataProvider, await resolveConnectionFromItem(state.connections, item), 'model');
+    }),
+    vscode.commands.registerCommand('dbSqlLikeMem.generateRepositoryClasses', async (item?: DbNodeItem) => {
+      await generateTemplateBasedFiles(state, metadataProvider, await resolveConnectionFromItem(state.connections, item), 'repository');
     }),
     vscode.commands.registerCommand('dbSqlLikeMem.checkConsistency', async (item?: DbNodeItem) => {
       const connection = await resolveConnectionFromItem(state.connections, item);
@@ -361,14 +437,28 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
       const objects = metadataProvider.getObjects(connection);
       const missing: string[] = [];
+      const checks: Record<string, GenerationCheckStatus> = {};
 
       for (const objectRef of objects) {
-        const expected = sanitizeClassName(`${objectRef.name}Entity.cs`);
-        const found = await findFileCaseInsensitive(workspaceFolder, expected);
-        if (!found) {
+        const modelExpected = sanitizeClassName(`${objectRef.name}Model.cs`);
+        const repositoryExpected = sanitizeClassName(`${objectRef.name}Repository.cs`);
+        const modelFound = await findFileCaseInsensitive(workspaceFolder, modelExpected);
+        const repositoryFound = await findFileCaseInsensitive(workspaceFolder, repositoryExpected);
+
+        const key = buildObjectKey(connection.id, objectRef);
+        checks[key] = modelFound && repositoryFound ? 'ok' : (modelFound || repositoryFound ? 'partial' : 'missing');
+
+        if (!modelFound || !repositoryFound) {
           missing.push(`${objectRef.objectType}: ${objectRef.schema}.${objectRef.name}`);
         }
       }
+
+      state.generationCheckByObjectKey = {
+        ...state.generationCheckByObjectKey,
+        ...checks
+      };
+      await saveState(context, state);
+      refreshTree();
 
       if (missing.length === 0) {
         vscode.window.showInformationMessage(`Consistência OK para ${connection.name} (status verde).`);
@@ -412,7 +502,8 @@ function buildTree(
   connections: ConnectionDefinition[],
   filterText: string,
   filterMode: FilterMode,
-  provider: FakeMetadataProvider
+  provider: FakeMetadataProvider,
+  generationCheckByObjectKey: Record<string, GenerationCheckStatus>
 ): TreeNode[] {
   const byType = new Map<string, TreeNode>();
 
@@ -494,12 +585,84 @@ function applyFilter(
 }
 
 async function loadState(context: vscode.ExtensionContext): Promise<ExtensionState> {
-  const raw = context.globalState.get<ExtensionState>('dbSqlLikeMem.state');
-  return raw ?? structuredClone(DEFAULT_STATE);
+  const raw = context.globalState.get<Partial<ExtensionState>>('dbSqlLikeMem.state');
+  if (!raw) {
+    return structuredClone(DEFAULT_STATE);
+  }
+
+  return {
+    ...structuredClone(DEFAULT_STATE),
+    ...raw,
+    templateSettings: {
+      ...DEFAULT_STATE.templateSettings,
+      ...(raw.templateSettings ?? {})
+    },
+    generationCheckByObjectKey: raw.generationCheckByObjectKey ?? {}
+  };
 }
 
 async function saveState(context: vscode.ExtensionContext, state: ExtensionState): Promise<void> {
   await context.globalState.update('dbSqlLikeMem.state', state);
+}
+
+
+
+function buildObjectKey(connectionId: string, objectRef: DatabaseObjectReference): string {
+  return `${connectionId}|${objectRef.objectType}|${objectRef.schema}|${objectRef.name}`;
+}
+
+async function generateTemplateBasedFiles(
+  state: ExtensionState,
+  metadataProvider: FakeMetadataProvider,
+  connection: ConnectionDefinition | undefined,
+  kind: GenerationKind
+): Promise<void> {
+  if (!connection) {
+    return;
+  }
+
+  const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  if (!workspaceFolder) {
+    vscode.window.showWarningMessage('Abra uma pasta no VS Code para gerar arquivos.');
+    return;
+  }
+
+  const templateRelativePath = kind === 'model' ? state.templateSettings.modelTemplatePath : state.templateSettings.repositoryTemplatePath;
+  const targetFolder = kind === 'model' ? state.templateSettings.modelTargetFolder : state.templateSettings.repositoryTargetFolder;
+  const suffix = kind === 'model' ? 'Model' : 'Repository';
+  const objects = metadataProvider.getObjects(connection);
+
+  let templateText = kind === 'model'
+    ? '// Model generated from {{Schema}}.{{ObjectName}}\npublic class {{ClassName}}\n{\n}\n'
+    : '// Repository generated from {{Schema}}.{{ObjectName}}\npublic class {{ClassName}}\n{\n}\n';
+
+  if (templateRelativePath.trim()) {
+    const templateFullPath = path.join(workspaceFolder, templateRelativePath);
+    try {
+      templateText = await fs.readFile(templateFullPath, 'utf8');
+    } catch {
+      vscode.window.showWarningMessage(`Template não encontrado: ${templateRelativePath}. Usando template padrão.`);
+    }
+  }
+
+  for (const objectRef of objects) {
+    const className = sanitizeClassName(`${objectRef.name}${suffix}`);
+    const targetDir = path.join(workspaceFolder, targetFolder);
+    const targetFile = path.join(targetDir, `${className}.cs`);
+
+    const content = templateText
+      .split('{{ClassName}}').join(className)
+      .split('{{ObjectName}}').join(objectRef.name)
+      .split('{{Schema}}').join(objectRef.schema)
+      .split('{{ObjectType}}').join(objectRef.objectType)
+      .split('{{DatabaseType}}').join(connection.databaseType)
+      .split('{{DatabaseName}}').join(connection.databaseName);
+
+    await fs.mkdir(targetDir, { recursive: true });
+    await fs.writeFile(targetFile, content, 'utf8');
+  }
+
+  vscode.window.showInformationMessage(`${kind === 'model' ? 'Modelos' : 'Repositórios'} gerados para ${connection.name}.`);
 }
 
 function sanitizeClassName(value: string): string {
@@ -507,11 +670,16 @@ function sanitizeClassName(value: string): string {
 }
 
 function generateClassTemplate(className: string, objectRef: DatabaseObjectReference): string {
-  return `// Auto-generated by DbSqlLikeMem VS Code extension\n` +
+  return `// Auto-generated test class by DbSqlLikeMem VS Code extension\n` +
     `// Source: ${objectRef.objectType} ${objectRef.schema}.${objectRef.name}\n` +
+    `using Xunit;\n\n` +
     `public class ${className}\n` +
     `{\n` +
-    `    // TODO: map columns\n` +
+    `    [Fact]\n` +
+    `    public void Should_validate_${sanitizeClassName(objectRef.name)}()\n` +
+    `    {\n` +
+    `        // TODO: implementar cenário de teste\n` +
+    `    }\n` +
     `}\n`;
 }
 

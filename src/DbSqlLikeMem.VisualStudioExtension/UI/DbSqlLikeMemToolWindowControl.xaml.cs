@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using DbSqlLikeMem.VisualStudioExtension.Services;
+using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 
 namespace DbSqlLikeMem.VisualStudioExtension.UI;
 
@@ -98,11 +101,22 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
     private void OnConfigureMappingsClick(object sender, RoutedEventArgs e)
     {
-        var dialog = new MappingDialog { Owner = Window.GetWindow(this) };
+        var defaults = viewModel.GetMappingDefaults();
+        var dialog = new MappingDialog(defaults.FileNamePattern, defaults.OutputDirectory) { Owner = Window.GetWindow(this) };
 
         if (dialog.ShowDialog() == true)
         {
             viewModel.ApplyDefaultMapping(dialog.FileNamePattern, dialog.OutputDirectory);
+        }
+    }
+
+
+    private void OnConfigureTemplatesClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new TemplateConfigurationDialog(viewModel.GetTemplateConfiguration()) { Owner = Window.GetWindow(this) };
+        if (dialog.ShowDialog() == true)
+        {
+            viewModel.ConfigureTemplates(dialog.ModelTemplatePath, dialog.RepositoryTemplatePath, dialog.ModelOutputDirectory, dialog.RepositoryOutputDirectory);
         }
     }
 
@@ -117,7 +131,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         {
             if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
             {
-                MessageBox.Show(this, "Selecione conexão, tipo de objeto ou objeto para gerar classes.", "Gerar classes", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(this, "Selecione conexão, tipo de objeto ou objeto para gerar classes de teste.", "Gerar classes de teste", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -133,7 +147,35 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
                 }
             }
 
-            await viewModel.GenerateForNodeAsync(selected);
+            var generatedFiles = await viewModel.GenerateForNodeAsync(selected);
+            AddFilesToActiveProject(generatedFiles);
+        });
+
+
+    private async void OnGenerateModelClassesClick(object sender, RoutedEventArgs e)
+        => await RunSafeAsync(async () =>
+        {
+            if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
+            {
+                MessageBox.Show(this, "Selecione conexão, tipo de objeto ou objeto para gerar classes de modelos.", "Gerar modelos", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var generatedFiles = await viewModel.GenerateModelClassesForNodeAsync(selected);
+            AddFilesToActiveProject(generatedFiles);
+        });
+
+    private async void OnGenerateRepositoryClassesClick(object sender, RoutedEventArgs e)
+        => await RunSafeAsync(async () =>
+        {
+            if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
+            {
+                MessageBox.Show(this, "Selecione conexão, tipo de objeto ou objeto para gerar classes de repositório.", "Gerar repositórios", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var generatedFiles = await viewModel.GenerateRepositoryClassesForNodeAsync(selected);
+            AddFilesToActiveProject(generatedFiles);
         });
 
     private async void OnCheckConsistencyClick(object sender, RoutedEventArgs e)
@@ -159,5 +201,61 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
             ExtensionLogger.Log($"UI operation error: {ex}");
             MessageBox.Show(this, ex.Message, "Erro inesperado", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    private void AddFilesToActiveProject(IEnumerable<string> files)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        var fileList = files?.Where(File.Exists).Distinct(StringComparer.OrdinalIgnoreCase).ToArray() ?? Array.Empty<string>();
+        if (fileList.Length == 0)
+        {
+            return;
+        }
+
+        var dte = Package.GetGlobalService(typeof(SDTE)) as DTE;
+        if (dte?.ActiveSolutionProjects is not Array activeProjects || activeProjects.Length == 0)
+        {
+            return;
+        }
+
+        if (activeProjects.GetValue(0) is not Project project)
+        {
+            return;
+        }
+
+        foreach (var file in fileList)
+        {
+            if (!ProjectContainsFile(project.ProjectItems, file))
+            {
+                project.ProjectItems?.AddFromFile(file);
+            }
+        }
+    }
+
+    private static bool ProjectContainsFile(ProjectItems? items, string fullPath)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        if (items is null)
+        {
+            return false;
+        }
+
+        foreach (ProjectItem item in items)
+        {
+            var itemPath = item.FileCount > 0 ? item.FileNames[1] : string.Empty;
+            if (string.Equals(Path.GetFullPath(itemPath), Path.GetFullPath(fullPath), StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (ProjectContainsFile(item.ProjectItems, fullPath))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

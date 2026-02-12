@@ -29,6 +29,7 @@
             <Button Content="Editar conexão" Padding="10,4" Margin="0,0,8,8" Click="OnEditConnectionClick" />
             <Button Content="Remover conexão" Padding="10,4" Margin="0,0,8,8" Click="OnRemoveConnectionClick" />
             <Button Content="Configurar mapeamentos" Padding="10,4" Margin="0,0,8,8" Click="OnConfigureMappingsClick" />
+            <Button Content="Configurar templates" Padding="10,4" Margin="0,0,8,8" Click="OnConfigureTemplatesClick" />
             <Button Content="Atualizar objetos" Padding="10,4" Margin="0,0,8,8" Click="OnRefreshObjectsClick" />
             <Button Content="Cancelar operação" Padding="10,4" Margin="0,0,8,8" Click="OnCancelOperationClick" />
         </WrapPanel>
@@ -38,7 +39,9 @@
                   ItemsSource="{Binding Nodes}">
             <TreeView.ContextMenu>
                 <ContextMenu>
-                    <MenuItem Header="Gerar classes" Click="OnGenerateClassesClick" />
+                    <MenuItem Header="Gerar classes de teste" Click="OnGenerateClassesClick" />
+                    <MenuItem Header="Gerar classes de modelos" Click="OnGenerateModelClassesClick" />
+                    <MenuItem Header="Gerar classes de repositório" Click="OnGenerateRepositoryClassesClick" />
                     <MenuItem Header="Checar consistência" Click="OnCheckConsistencyClick" />
                 </ContextMenu>
             </TreeView.ContextMenu>
