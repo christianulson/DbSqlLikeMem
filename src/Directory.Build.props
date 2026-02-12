@@ -6,9 +6,12 @@
 		<Nullable>enable</Nullable>
 		<IsPackable>true</IsPackable>
 		<Authors>DbSqlLikeMem Contributors</Authors>
-		<PackageTags>in-memory;database;sql;unit-testing;mock;dapper</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/christianulson/DbSqlLikeMem</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/christianulson/DbSqlLikeMem</PackageProjectUrl>
+		<PackageTags>in-memory;database;sql;unit-testing;mock;dapper;ado.net;npgsql;sqlite;oracle;sqlserver;mysql;db2</PackageTags>
+		<PackageReleaseNotes>See release notes and changelog in the GitHub repository.</PackageReleaseNotes>
 		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 		<Version>0.1.0</Version>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>

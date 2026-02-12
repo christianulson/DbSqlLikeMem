@@ -28,6 +28,7 @@ jobs:
         run: dotnet pack src/DbSqlLikeMem.slnx -c Release -o ./artifacts
 
       - name: Publish to NuGet.org
+        shell: bash
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
