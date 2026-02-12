@@ -15,6 +15,8 @@ namespace DbSqlLikeMem.VisualStudioExtension;
 [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
 [InstalledProductRegistration("DbSqlLikeMem", "Explorer e geração de classes para objetos de banco", "0.1")]
 [ProvideMenuResource("Menus.ctmenu", 1)]
+[ProvideAutoLoad(UIContextGuids80.NoSolution, PackageAutoLoadFlags.BackgroundLoad)]
+[ProvideAutoLoad(UIContextGuids80.SolutionExists, PackageAutoLoadFlags.BackgroundLoad)]
 [ProvideToolWindow(typeof(DbSqlLikeMemToolWindow))]
 [Guid(PackageGuidString)]
 public sealed class DbSqlLikeMemExtensionPackage : AsyncPackage
