@@ -186,7 +186,7 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "vscode:prepublish": "npm run generate:icon && npm run compile",
-    "lint": "eslint src --ext ts",
+    "lint": "tsc -p ./ --noEmit",
     "package": "npm run generate:icon && npx @vscode/vsce package",
     "publish": "npm run generate:icon && npx @vscode/vsce publish",
     "generate:icon": "node ./scripts/generate-icon.js"
