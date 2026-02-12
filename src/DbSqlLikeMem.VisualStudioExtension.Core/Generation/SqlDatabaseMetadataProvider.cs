@@ -208,5 +208,5 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
     }
 
     private static string Escape(string value)
-        => value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("|", "\\|", StringComparison.Ordinal).Replace(";", "\\;", StringComparison.Ordinal).Replace(",", "\\,", StringComparison.Ordinal);
+        => value.Replace("\\", "\\\\").Replace("|", "\\|").Replace(";", "\\;").Replace(",", "\\,");
 }

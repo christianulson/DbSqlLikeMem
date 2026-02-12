@@ -101,7 +101,8 @@ public static class GenerationRuleSet
         }
 
         return Regex.Matches(match.Groups[2].Value, @"'((?:\\'|[^'])*)'")
-            .Select(static m => m.Groups[1].Value.Replace("\\'", "'", StringComparison.Ordinal))
+            .Cast<Match>()
+            .Select(m => m.Groups[1].Value.Replace("\\'", "'"))
             .ToArray();
     }
 
@@ -129,7 +130,7 @@ public static class GenerationRuleSet
     /// Executa esta operação da API.
     /// </summary>
     public static string Literal(string value)
-        => $"\"{value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
+        => "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 
     private static bool IsNumericDbType(string dbType)
         => dbType is "Byte" or "Int16" or "Int32" or "Int64" or "Decimal" or "Double" or "Single" or "UInt64";
@@ -161,6 +162,6 @@ public static class GenerationRuleSet
             return cleaned.ToUpperInvariant();
         }
 
-        return string.Concat(char.ToUpper(cleaned[0], CultureInfo.InvariantCulture), cleaned[1..]);
+        return string.Concat(char.ToUpper(cleaned[0], CultureInfo.InvariantCulture), cleaned.Substring(1));
     }
 }

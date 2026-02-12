@@ -37,7 +37,8 @@ public sealed class StatePersistenceService
         }
 
         var json = JsonSerializer.Serialize(state, SerializerOptions);
-        return File.WriteAllTextAsync(outputPath, json, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.Run(() => File.WriteAllText(outputPath, json), cancellationToken);
     }
 
     /// <summary>
@@ -51,7 +52,8 @@ public sealed class StatePersistenceService
             return null;
         }
 
-        var json = await File.ReadAllTextAsync(inputPath, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        var json = await Task.Run(() => File.ReadAllText(inputPath), cancellationToken);
         return JsonSerializer.Deserialize<ExtensionState>(json, SerializerOptions);
     }
 
