@@ -315,6 +315,43 @@ public sealed class SqlServerUpdateStrategyTests(
         Assert.Contains("Duplicate", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+
+    [Fact]
+    public void Update_ShouldRecomputePersistedGeneratedColumn_AndAllowUniqueIndex()
+    {
+        var db = new SqlServerDbMock();
+        var table = db.AddTable("gen_persisted");
+
+        table.Columns["id"] = new(0, DbType.Int32, false);
+        table.Columns["base"] = new(1, DbType.Int32, false);
+        table.Columns["gen"] = new(2, DbType.Int32, false)
+        {
+            GetGenValue = (row, _) => ((int?)row[1] ?? 0) * 2,
+            PersistComputedValue = true
+        };
+
+        table.CreateIndex(new IndexDef("ux_gen", ["gen"], unique: true));
+        table.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, 10 } });
+
+        Assert.Equal(20, table[0][2]);
+
+        using var connection = NewConn(threadSafe: false, db);
+        using var command = new SqlServerCommandMock(connection)
+        {
+            CommandText = "UPDATE gen_persisted SET base = 15 WHERE id = 1"
+        };
+
+        var rowsAffected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, rowsAffected);
+        Assert.Equal(15, table[0][1]);
+        Assert.Equal(30, table[0][2]);
+
+        var duplicate = Assert.ThrowsAny<SqlServerMockException>(() =>
+            table.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, 15 } }));
+        Assert.Contains("Duplicate", duplicate.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     // ---------------- helpers ----------------
 
     private static SqlServerConnectionMock NewConn(bool threadSafe, SqlServerDbMock db)

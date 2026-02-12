@@ -315,6 +315,7 @@ public abstract class TableMock
     public void Add(Dictionary<int, object?> value)
     {
         ApplyDefaultValues(value);
+        RefreshPersistedComputedValues(value);
         EnsureUniqueOnInsert(value);
         Items.Add(value);
         // Update indexes with the new row
@@ -335,8 +336,22 @@ public abstract class TableMock
             else if (col.DefaultValue != null && value[col.Index] == null)
                 value[col.Index] = col.DefaultValue;
 
+            if (col.GetGenValue != null && col.PersistComputedValue)
+                value[col.Index] = col.GetGenValue(value, this);
+
             if (!col.Nullable && value[col.Index] == null)
                 throw ColumnCannotBeNull(it.Key);
+        }
+    }
+
+    private void RefreshPersistedComputedValues(IDictionary<int, object?> row)
+    {
+        foreach (var col in Columns.Values)
+        {
+            if (col.GetGenValue == null || !col.PersistComputedValue)
+                continue;
+
+            row[col.Index] = col.GetGenValue(new ReadOnlyDictionary<int, object?>(row), this);
         }
     }
 
@@ -672,7 +687,10 @@ public abstract class TableMock
         int rowIdx,
         int colIdx,
         object? value)
-        => Items[rowIdx][colIdx] = value;
+    {
+        Items[rowIdx][colIdx] = value;
+        RefreshPersistedComputedValues(Items[rowIdx]);
+    }
 
     private List<Dictionary<int, object?>>? _backup;
 
