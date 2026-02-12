@@ -1,5 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import * as vscode from 'vscode';
 
 type DatabaseObjectType = 'Table' | 'View' | 'Procedure';
@@ -133,27 +135,92 @@ class ConnectionTreeDataProvider implements vscode.TreeDataProvider<DbNodeItem> 
   }
 }
 
-class FakeMetadataProvider {
-  public getObjects(connection: ConnectionDefinition): DatabaseObjectReference[] {
-    const schema = connection.databaseType.toLowerCase() === 'oracle' ? 'SYSTEM' : 'dbo';
+interface DatabaseMetadataProvider {
+  getObjects(connection: ConnectionDefinition): Promise<DatabaseObjectReference[]>;
+}
 
-    return [
-      { schema, name: 'Customers', objectType: 'Table' },
-      { schema, name: 'Orders', objectType: 'Table' },
-      { schema, name: 'ActiveCustomers', objectType: 'View' },
-      { schema, name: 'RecalculateBalances', objectType: 'Procedure' }
-    ];
+class SqlMetadataProvider implements DatabaseMetadataProvider {
+  private warnedConnectionIds = new Set<string>();
+
+  public async getObjects(connection: ConnectionDefinition): Promise<DatabaseObjectReference[]> {
+    if (connection.databaseType.toLowerCase() !== 'sqlserver') {
+      return [];
+    }
+
+    const parsed = parseSqlServerConnectionString(connection.connectionString);
+    if (!parsed.server) {
+      this.warnConnectionFailure(connection, 'Connection string sem servidor (Server/Data Source).');
+      return [];
+    }
+
+    const query = "SET NOCOUNT ON; SELECT TABLE_SCHEMA AS [schema], TABLE_NAME AS [name], CASE TABLE_TYPE WHEN 'BASE TABLE' THEN 'Table' ELSE 'View' END AS [objectType] FROM INFORMATION_SCHEMA.TABLES UNION ALL SELECT ROUTINE_SCHEMA AS [schema], ROUTINE_NAME AS [name], 'Procedure' AS [objectType] FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_TYPE = 'PROCEDURE' ORDER BY [schema], [name];";
+    const args = ['-S', parsed.server, '-W', '-s', '|', '-Q', query, '-h', '-1'];
+
+    if (parsed.database) {
+      args.push('-d', parsed.database);
+    }
+
+    if (parsed.userId && parsed.password) {
+      args.push('-U', parsed.userId, '-P', parsed.password);
+    } else {
+      args.push('-E');
+    }
+
+    try {
+      const execFileAsync = promisify(execFile);
+      const { stdout } = await execFileAsync('sqlcmd', args, { maxBuffer: 10 * 1024 * 1024 });
+      return stdout
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line && line.includes('|'))
+        .map((line) => line.split('|').map((x) => x.trim()))
+        .filter((parts) => parts.length >= 3)
+        .map((parts) => ({ schema: parts[0], name: parts[1], objectType: parts[2] as DatabaseObjectType }))
+        .filter((x) => (x.objectType === 'Table' || x.objectType === 'View' || x.objectType === 'Procedure') && x.schema && x.name);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.warnConnectionFailure(connection, message);
+      return [];
+    }
+  }
+
+  private warnConnectionFailure(connection: ConnectionDefinition, message: string): void {
+    if (this.warnedConnectionIds.has(connection.id)) {
+      return;
+    }
+
+    this.warnedConnectionIds.add(connection.id);
+    vscode.window.showWarningMessage(`Falha ao conectar em ${connection.name}: ${message}`);
   }
 }
 
+function parseSqlServerConnectionString(connectionString: string): { server?: string; database?: string; userId?: string; password?: string } {
+  const map = new Map<string, string>();
+  for (const pair of connectionString.split(';')) {
+    const [rawKey, ...rawValue] = pair.split('=');
+    if (!rawKey || rawValue.length === 0) {
+      continue;
+    }
+
+    map.set(rawKey.trim().toLowerCase(), rawValue.join('=').trim());
+  }
+
+  return {
+    server: map.get('server') ?? map.get('data source'),
+    database: map.get('database') ?? map.get('initial catalog'),
+    userId: map.get('user id') ?? map.get('uid'),
+    password: map.get('password') ?? map.get('pwd')
+  };
+}
+
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  const metadataProvider = new FakeMetadataProvider();
+  const metadataProvider = new SqlMetadataProvider();
   const treeProvider = new ConnectionTreeDataProvider();
 
   let state = await loadState(context);
 
-  const refreshTree = (): void => {
-    const tree = buildTree(state.connections, state.filterText, state.filterMode, metadataProvider, state.generationCheckByObjectKey);
+  const refreshTree = async (): Promise<void> => {
+    const tree = await buildTree(state.connections, state.filterText, state.filterMode, metadataProvider, state.generationCheckByObjectKey);
     treeProvider.setTree(tree);
   };
 
@@ -221,7 +288,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           }
 
           await saveState(context, state);
-          refreshTree();
+          await refreshTree();
           render();
           vscode.window.showInformationMessage(existingId ? `Conexão ${name} atualizada.` : `Conexão ${name} salva.`);
           return;
@@ -236,7 +303,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           state.connections = state.connections.filter((x) => x.id !== connectionId);
           state.mappingConfigurations = state.mappingConfigurations.filter((x) => x.connectionId !== connectionId);
           await saveState(context, state);
-          refreshTree();
+          await refreshTree();
           render();
           vscode.window.showInformationMessage('Conexão removida.');
           return;
@@ -277,6 +344,28 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       render();
     }),
     vscode.commands.registerCommand('dbSqlLikeMem.refresh', refreshTree),
+    vscode.commands.registerCommand('dbSqlLikeMem.removeConnection', async (item?: DbNodeItem) => {
+      const connection = await resolveConnectionFromItem(state.connections, item);
+      if (!connection) {
+        return;
+      }
+
+      const confirmed = await vscode.window.showWarningMessage(
+        `Remover conexão ${connection.name}?`,
+        { modal: true },
+        'Remover'
+      );
+
+      if (confirmed !== 'Remover') {
+        return;
+      }
+
+      state.connections = state.connections.filter((x) => x.id !== connection.id);
+      state.mappingConfigurations = state.mappingConfigurations.filter((x) => x.connectionId !== connection.id);
+      await saveState(context, state);
+      await refreshTree();
+      vscode.window.showInformationMessage(`Conexão ${connection.name} removida.`);
+    }),
     vscode.commands.registerCommand('dbSqlLikeMem.addConnection', async () => {
       const name = await vscode.window.showInputBox({ prompt: 'Nome da conexão' });
       if (!name) {
@@ -323,7 +412,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
 
       await saveState(context, state);
-      refreshTree();
+      await refreshTree();
     }),
     vscode.commands.registerCommand('dbSqlLikeMem.setFilter', async () => {
       const text = await vscode.window.showInputBox({
@@ -346,7 +435,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       state.filterText = text;
       state.filterMode = mode as FilterMode;
       await saveState(context, state);
-      refreshTree();
+      await refreshTree();
     }),
     vscode.commands.registerCommand('dbSqlLikeMem.configureMappings', async (item?: DbNodeItem) => {
       const connection = await resolveConnectionFromItem(state.connections, item) ?? await pickConnection(state.connections);
@@ -479,7 +568,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return;
       }
 
-      const objects = metadataProvider.getObjects(connection);
+      const objects = await metadataProvider.getObjects(connection);
       const filtered = applyFilter(objects, state.filterText, state.filterMode);
       const plans: GenerationPlan[] = [];
 
@@ -524,7 +613,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return;
       }
 
-      const objects = metadataProvider.getObjects(connection);
+      const objects = await metadataProvider.getObjects(connection);
       const missing: string[] = [];
       const checks: Record<string, GenerationCheckStatus> = {};
 
@@ -547,7 +636,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         ...checks
       };
       await saveState(context, state);
-      refreshTree();
+      await refreshTree();
 
       if (missing.length === 0) {
         vscode.window.showInformationMessage(`Consistência OK para ${connection.name} (status verde).`);
@@ -575,25 +664,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       const bytes = await vscode.workspace.fs.readFile(openUri[0]);
       state = JSON.parse(Buffer.from(bytes).toString('utf8')) as ExtensionState;
       await saveState(context, state);
-      refreshTree();
+      await refreshTree();
       vscode.window.showInformationMessage('Estado importado com sucesso.');
     })
   );
 
-  refreshTree();
+  await refreshTree();
 }
 
 export function deactivate(): void {
   // no-op
 }
 
-function buildTree(
+async function buildTree(
   connections: ConnectionDefinition[],
   filterText: string,
   filterMode: FilterMode,
-  provider: FakeMetadataProvider,
+  provider: DatabaseMetadataProvider,
   generationCheckByObjectKey: Record<string, GenerationCheckStatus>
-): TreeNode[] {
+): Promise<TreeNode[]> {
   const byType = new Map<string, TreeNode>();
 
   for (const connection of connections) {
@@ -612,7 +701,7 @@ function buildTree(
       connectionId: connection.id
     };
 
-    const objects = applyFilter(provider.getObjects(connection), filterText, filterMode);
+    const objects = applyFilter(await provider.getObjects(connection), filterText, filterMode);
     const objectGroups: Record<DatabaseObjectType, DatabaseObjectReference[]> = {
       Table: objects.filter((x) => x.objectType === 'Table'),
       View: objects.filter((x) => x.objectType === 'View'),
@@ -706,7 +795,7 @@ function buildObjectKey(connectionId: string, objectRef: DatabaseObjectReference
 
 async function generateTemplateBasedFiles(
   state: ExtensionState,
-  metadataProvider: FakeMetadataProvider,
+  metadataProvider: DatabaseMetadataProvider,
   connection: ConnectionDefinition | undefined,
   kind: GenerationKind
 ): Promise<void> {
@@ -723,7 +812,7 @@ async function generateTemplateBasedFiles(
   const templateRelativePath = kind === 'model' ? state.templateSettings.modelTemplatePath : state.templateSettings.repositoryTemplatePath;
   const targetFolder = kind === 'model' ? state.templateSettings.modelTargetFolder : state.templateSettings.repositoryTargetFolder;
   const suffix = kind === 'model' ? 'Model' : 'Repository';
-  const objects = applyFilter(metadataProvider.getObjects(connection), state.filterText, state.filterMode);
+  const objects = applyFilter(await metadataProvider.getObjects(connection), state.filterText, state.filterMode);
 
   let templateText = kind === 'model'
     ? '// Model generated from {{Schema}}.{{ObjectName}}\npublic class {{ClassName}}\n{\n}\n'
@@ -869,7 +958,7 @@ function getManagerHtml(state: ExtensionState): string {
   const connectionsTable = state.connections.length === 0
     ? '<p><em>Nenhuma conexão configurada.</em></p>'
     : `<table><thead><tr><th>Nome</th><th>Tipo</th><th>Database</th><th>Ações</th></tr></thead><tbody>${state.connections
-      .map((c) => `<tr><td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.databaseType)}</td><td>${escapeHtml(c.databaseName)}</td><td><button data-edit="${escapeHtml(c.id)}" data-name="${escapeHtml(c.name)}" data-type="${escapeHtml(c.databaseType)}" data-db="${escapeHtml(c.databaseName)}">Editar</button> <button data-remove="${escapeHtml(c.id)}">Remover</button></td></tr>`)
+      .map((c) => `<tr><td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.databaseType)}</td><td>${escapeHtml(c.databaseName)}</td><td class="actions"><button class="icon-btn" title="Editar conexão" aria-label="Editar conexão" data-edit="${escapeHtml(c.id)}" data-name="${escapeHtml(c.name)}" data-type="${escapeHtml(c.databaseType)}" data-db="${escapeHtml(c.databaseName)}">✏️</button><button class="icon-btn" title="Excluir conexão" aria-label="Excluir conexão" data-remove="${escapeHtml(c.id)}">🗑️</button></td></tr>`)
       .join('')}</tbody></table>`;
 
   const mappingsTable = state.connections.length === 0
@@ -898,6 +987,8 @@ function getManagerHtml(state: ExtensionState): string {
     label { display: block; margin-top: 8px; font-size: 12px; opacity: 0.9; }
     input, select { width: 100%; margin-top: 4px; padding: 6px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); }
     button { margin-top: 10px; padding: 6px 10px; }
+    .icon-btn { width: 30px; height: 30px; padding: 0; margin-top: 0; margin-right: 4px; font-size: 16px; line-height: 1; }
+    .actions { white-space: nowrap; }
     table { width: 100%; border-collapse: collapse; margin-top: 8px; }
     th, td { border: 1px solid var(--vscode-panel-border); padding: 6px; text-align: left; }
     .full { grid-column: 1 / -1; }
