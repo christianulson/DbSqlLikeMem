@@ -1808,6 +1808,8 @@ internal abstract class AstQueryExecutorBase(
         EvalGroup? group,
         IDictionary<string, Source> ctes)
     {
+        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para avaliação de função.");
+
         // Aggregate?
         if (group is not null && _aggFns.Contains(fn.Name))
             return EvalAggregate(fn, group, ctes);
@@ -1824,13 +1826,13 @@ internal abstract class AstQueryExecutorBase(
 
         var isIf = fn.Name.Equals("IF", StringComparison.OrdinalIgnoreCase);
         var isIif = fn.Name.Equals("IIF", StringComparison.OrdinalIgnoreCase);
-        if ((isIf && Dialect.SupportsIfFunction) || (isIif && Dialect.SupportsIifFunction))
+        if ((isIf && dialect.SupportsIfFunction) || (isIif && dialect.SupportsIifFunction))
         {
             var cond = EvalArg(0).ToBool();
             return cond ? EvalArg(1) : EvalArg(2);
         }
 
-        if (Dialect.NullSubstituteFunctionNames.Any(n => n.Equals(fn.Name, StringComparison.OrdinalIgnoreCase)))
+        if (dialect.NullSubstituteFunctionNames.Any(n => n.Equals(fn.Name, StringComparison.OrdinalIgnoreCase)))
         {
             var v = EvalArg(0);
             return IsNullish(v) ? EvalArg(1) : v;

@@ -410,8 +410,8 @@ ORDER BY k.COLSEQ;
     }
 
     private static string Normalize(string databaseType)
-        => databaseType.Replace("_", string.Empty, StringComparison.OrdinalIgnoreCase)
-            .Replace("-", string.Empty, StringComparison.OrdinalIgnoreCase)
+        => databaseType.Replace("_", string.Empty)
+            .Replace("-", string.Empty)
             .Trim()
             .ToLowerInvariant();
 }

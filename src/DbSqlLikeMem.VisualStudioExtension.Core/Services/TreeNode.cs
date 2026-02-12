@@ -8,6 +8,10 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Services;
 /// </summary>
 public sealed class TreeNode
 {
+    /// <summary>
+    /// Initializes a new instance of this API type.
+    /// Inicializa uma nova instância deste tipo da API.
+    /// </summary>
     public TreeNode(string label)
     {
         Label = label;
