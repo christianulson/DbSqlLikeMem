@@ -23,7 +23,7 @@ public sealed class Db2ConnectionMock
     public Db2ConnectionMock(
        Db2DbMock? db = null,
        string? defaultDatabase = null
-    ) : base(db ?? new(), defaultDatabase)
+    ) : base(db ?? [], defaultDatabase)
     {
         _serverVersion = $"DB2 {Db.Version}";
     }

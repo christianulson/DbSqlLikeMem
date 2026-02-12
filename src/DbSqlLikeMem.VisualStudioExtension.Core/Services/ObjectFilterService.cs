@@ -19,7 +19,7 @@ public sealed class ObjectFilterService
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            return objects.ToArray();
+            return [.. objects];
         }
 
         return mode switch
@@ -27,10 +27,8 @@ public sealed class ObjectFilterService
             FilterMode.Equals => objects
                 .Where(o => o.Name.Equals(value, StringComparison.OrdinalIgnoreCase))
                 .ToArray(),
-            FilterMode.Like => objects
-                .Where(o => o.Name.Contains(value, StringComparison.OrdinalIgnoreCase))
-                .ToArray(),
-            _ => Array.Empty<DatabaseObjectReference>()
+            FilterMode.Like => [.. objects.Where(o => o.Name.Contains(value, StringComparison.OrdinalIgnoreCase))],
+            _ => []
         };
     }
 }

@@ -19,7 +19,7 @@ public sealed class SqliteConnectionMock
     public SqliteConnectionMock(
        SqliteDbMock? db = null,
        string? defaultDatabase = null
-    ) : base(db ?? new(), defaultDatabase)
+    ) : base(db ?? [], defaultDatabase)
     {
         _serverVersion = $"SQLite {Db.Version}";
     }

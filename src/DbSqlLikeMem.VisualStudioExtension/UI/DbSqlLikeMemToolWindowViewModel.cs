@@ -24,8 +24,8 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
     private CancellationTokenSource? currentOperationCts;
 
-    private readonly ObservableCollection<ConnectionDefinition> connections = new();
-    private readonly ObservableCollection<ConnectionMappingConfiguration> mappings = new();
+    private readonly ObservableCollection<ConnectionDefinition> connections = [];
+    private readonly ObservableCollection<ConnectionMappingConfiguration> mappings = [];
     private readonly Dictionary<string, IReadOnlyCollection<DatabaseObjectReference>> objectsByConnection = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, ObjectHealthResult> healthByObject = new(StringComparer.OrdinalIgnoreCase);
     private TemplateConfiguration templateConfiguration = TemplateConfiguration.Default;
@@ -41,7 +41,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         RefreshTree();
     }
 
-    public ObservableCollection<ExplorerNode> Nodes { get; } = new();
+    public ObservableCollection<ExplorerNode> Nodes { get; } = [];
 
     public string StatusMessage { get; private set; } = "Pronto.";
 
@@ -225,7 +225,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                 catch (Exception ex)
                 {
                     ExtensionLogger.Log($"RefreshObjectsAsync error [{connection.DatabaseName}]: {ex}");
-                    return (connection.Id, objects: (IReadOnlyCollection<DatabaseObjectReference>)Array.Empty<DatabaseObjectReference>(), error: $"{connection.DatabaseName}: {ex.Message}");
+                    return (connection.Id, objects: (IReadOnlyCollection<DatabaseObjectReference>)[], error: $"{connection.DatabaseName}: {ex.Message}");
                 }
             });
 
@@ -257,26 +257,26 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         var connection = ResolveConnection(node);
         if (connection is null || !objectsByConnection.TryGetValue(connection.Id, out var objects))
         {
-            return Array.Empty<string>();
+            return [];
         }
 
         var selectedObjects = ResolveSelectedObjects(node, objects).ToArray();
         if (selectedObjects.Length == 0)
         {
-            return Array.Empty<string>();
+            return [];
         }
 
         var mapping = mappings.FirstOrDefault(m => m.ConnectionId == connection.Id)
             ?? new ConnectionMappingConfiguration(connection.Id, CreateDefaultMappings("Generated", "{NamePascal}{Type}Factory.cs"));
 
-        return FindExistingFiles(connection, mapping, selectedObjects).ToArray();
+        return [.. FindExistingFiles(connection, mapping, selectedObjects)];
     }
 
     public async Task<IReadOnlyCollection<string>> GenerateForNodeAsync(ExplorerNode node)
     {
         if (!TryBeginOperation("Gerando classes de teste..."))
         {
-            return Array.Empty<string>();
+            return [];
         }
 
         try
@@ -285,20 +285,20 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             var connection = ResolveConnection(node);
             if (connection is null)
             {
-                return Array.Empty<string>();
+                return [];
             }
 
             if (!objectsByConnection.TryGetValue(connection.Id, out var objects))
             {
                 SetStatusMessage("Nenhum objeto carregado para gerar. Use Atualizar objetos primeiro.");
-                return Array.Empty<string>();
+                return [];
             }
 
             var selectedObjects = ResolveSelectedObjects(node, objects).ToArray();
             if (selectedObjects.Length == 0)
             {
                 SetStatusMessage("Nenhum objeto selecionado para geração.");
-                return Array.Empty<string>();
+                return [];
             }
 
             var mapping = mappings.FirstOrDefault(m => m.ConnectionId == connection.Id)
@@ -327,7 +327,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     {
         if (!TryBeginOperation($"Gerando classes de {suffix.ToLowerInvariant()}..."))
         {
-            return Array.Empty<string>();
+            return [];
         }
 
         try
@@ -336,14 +336,14 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             if (connection is null || !objectsByConnection.TryGetValue(connection.Id, out var objects))
             {
                 SetStatusMessage("Nenhum objeto carregado para gerar.");
-                return Array.Empty<string>();
+                return [];
             }
 
             var selectedObjects = ResolveSelectedObjects(node, objects).ToArray();
             if (selectedObjects.Length == 0)
             {
                 SetStatusMessage("Nenhum objeto selecionado para geração.");
-                return Array.Empty<string>();
+                return [];
             }
 
             var template = fallbackTemplate;
@@ -353,7 +353,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                 if (!File.Exists(normalizedTemplatePath))
                 {
                     SetStatusMessage($"Template não encontrado: {normalizedTemplatePath}");
-                    return Array.Empty<string>();
+                    return [];
                 }
 
                 template = await Task.Run(() => File.ReadAllText(normalizedTemplatePath), token);
@@ -509,7 +509,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             .Select(c => new ConnectionDefinition(c.Id, c.DatabaseType, c.DatabaseName, ConnectionStringProtector.Protect(c.ConnectionString), c.DisplayName))
             .ToArray();
 
-        var state = new ExtensionState(safeConnections, mappings.ToArray(), templateConfiguration);
+        var state = new ExtensionState(safeConnections, [.. mappings], templateConfiguration);
         statePersistenceService.SaveAsync(state, stateFilePath).GetAwaiter().GetResult();
     }
 
@@ -533,7 +533,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
                 var objects = objectsByConnection.TryGetValue(connection.Id, out var loadedObjects)
                     ? loadedObjects
-                    : Array.Empty<DatabaseObjectReference>();
+                    : [];
 
                 foreach (DatabaseObjectType objectType in Enum.GetValues(typeof(DatabaseObjectType)))
                 {
@@ -629,7 +629,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     {
         if (node.Kind == ExplorerNodeKind.Object && node.DatabaseObject is not null)
         {
-            return new[] { node.DatabaseObject };
+            return [node.DatabaseObject];
         }
 
         if (node.Kind == ExplorerNodeKind.ObjectType && node.ObjectType is not null)
@@ -642,7 +642,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             return objects;
         }
 
-        return Array.Empty<DatabaseObjectReference>();
+        return [];
     }
 
     private static IEnumerable<string> FindExistingFiles(

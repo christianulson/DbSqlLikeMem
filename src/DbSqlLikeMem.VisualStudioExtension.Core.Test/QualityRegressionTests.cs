@@ -56,7 +56,7 @@ public sealed class QualityRegressionTests
 
             var generatedFiles = Directory.Exists(outputDir)
                 ? Directory.GetFiles(outputDir, "*.cs", SearchOption.TopDirectoryOnly)
-                : Array.Empty<string>();
+                : [];
 
             Assert.True(generatedFiles.Length <= 1, "Generator must stop before writing additional files after cancellation.");
             if (generatedFiles.Length == 1)

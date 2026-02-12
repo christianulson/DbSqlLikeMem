@@ -67,7 +67,7 @@ public sealed class SqliteAdditionalBehaviorCoverageTests : XUnitTestBase
         var ids = _cnn.Query<int>("SELECT id FROM users WHERE email = NULL").ToList();
         Assert.Empty(ids);
 
-        ids = _cnn.Query<int>("SELECT id FROM users WHERE email <> NULL").ToList();
+        ids = [.. _cnn.Query<int>("SELECT id FROM users WHERE email <> NULL")];
         Assert.Empty(ids);
     }
 

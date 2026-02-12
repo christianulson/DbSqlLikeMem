@@ -91,7 +91,7 @@ public sealed class SqlDatabaseMetadataProviderTests
             CancellationToken cancellationToken = default)
         {
             var hit = _responses.FirstOrDefault(x => sql.Contains(x.Contains, StringComparison.OrdinalIgnoreCase));
-            return Task.FromResult(hit.Rows ?? Array.Empty<IReadOnlyDictionary<string, object?>>());
+            return Task.FromResult(hit.Rows ?? []);
         }
     }
 }

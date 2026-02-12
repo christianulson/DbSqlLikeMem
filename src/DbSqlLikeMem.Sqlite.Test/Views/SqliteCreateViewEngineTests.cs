@@ -47,8 +47,8 @@ SELECT id, name FROM users WHERE tenantid = 10;
 ");
 
         var rows = _cnn.QueryRows("SELECT id, name FROM v10 ORDER BY id");
-        Assert.Equal([1, 2], rows.Select(r => (int)r["id"]!).ToArray());
-        Assert.Equal(["John", "Bob" ], rows.Select(r => (string)r["name"]!).ToArray());
+        Assert.Equal([1, 2], [.. rows.Select(r => (int)r["id"]!)]);
+        Assert.Equal(["John", "Bob" ], [.. rows.Select(r => (string)r["name"]!)]);
     }
 
     /// <summary>
@@ -64,7 +64,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
         _users.Add(new Dictionary<int, object?> { [0] = 4, [1] = "Zoe", [2] = 10 });
 
         var rows = _cnn.QueryRows("SELECT id FROM v_all ORDER BY id");
-        Assert.Equal([1, 2, 3, 4], rows.Select(r => (int)r["id"]!).ToArray());
+        Assert.Equal([1, 2, 3, 4], [.. rows.Select(r => (int)r["id"]!)]);
     }
 
     /// <summary>
@@ -76,11 +76,11 @@ SELECT id, name FROM users WHERE tenantid = 10;
     {
         _cnn.ExecNonQuery("CREATE VIEW v AS SELECT id FROM users WHERE tenantid = 10;");
         var r1 = _cnn.QueryRows("SELECT id FROM v ORDER BY id");
-        Assert.Equal([1, 2], r1.Select(x => (int)x["id"]!).ToArray());
+        Assert.Equal([1, 2], [.. r1.Select(x => (int)x["id"]!)]);
 
         _cnn.ExecNonQuery("CREATE OR REPLACE VIEW v AS SELECT id FROM users WHERE tenantid = 20;");
         var r2 = _cnn.QueryRows("SELECT id FROM v ORDER BY id");
-        Assert.Equal([3], r2.Select(x => (int)x["id"]!).ToArray());
+        Assert.Equal([3], [.. r2.Select(x => (int)x["id"]!)]);
     }
 
     /// <summary>
@@ -115,7 +115,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
         _cnn.ExecNonQuery("CREATE VIEW v2 AS SELECT id FROM v1 WHERE id > 1;");
 
         var rows = _cnn.QueryRows("SELECT id FROM v2 ORDER BY id");
-        Assert.Equal([2], rows.Select(r => (int)r["id"]!).ToArray());
+        Assert.Equal([2], [.. rows.Select(r => (int)r["id"]!)]);
     }
 
     /// <summary>
@@ -134,7 +134,7 @@ GROUP BY u.id;
 ");
 
         var rows = _cnn.QueryRows("SELECT id, total FROM user_totals ORDER BY id");
-        Assert.Equal([1, 2, 3], rows.Select(r => (int)r["id"]!).ToArray());
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r["id"]!)]);
 
         // user 1: 15, user 2: 7, user 3: sem orders -> NULL (SQLite)
         Assert.Equal(15m, (decimal)rows[0]["total"]!);

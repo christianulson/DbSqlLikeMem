@@ -133,7 +133,7 @@ public static class StructuredClassContentFactory
     }
 
     private static List<string> ParseCommaSeparated(string text)
-        => SplitEscaped(text, ',').Select(Unescape).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+        => [.. SplitEscaped(text, ',').Select(Unescape).Where(s => !string.IsNullOrWhiteSpace(s))];
 
     private static List<IndexMeta> ParseIndexes(string text)
     {
@@ -142,7 +142,7 @@ public static class StructuredClassContentFactory
         {
             var parts = SplitEscaped(item, '|');
             if (parts.Count < 3) continue;
-            result.Add(new IndexMeta(Unescape(parts[0]), parts[1] == "1", SplitEscaped(parts[2], ',').Select(Unescape).Where(x => !string.IsNullOrWhiteSpace(x)).ToList()));
+            result.Add(new IndexMeta(Unescape(parts[0]), parts[1] == "1", [.. SplitEscaped(parts[2], ',').Select(Unescape).Where(x => !string.IsNullOrWhiteSpace(x))]));
         }
         return result;
     }

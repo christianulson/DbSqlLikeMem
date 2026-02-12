@@ -37,7 +37,7 @@ public static class GenerationRuleSet
             return joined;
         }
 
-        var filtered = new string(value.Where(char.IsLetterOrDigit).ToArray());
+        var filtered = new string([.. value.Where(char.IsLetterOrDigit)]);
         return string.IsNullOrWhiteSpace(filtered) ? "Object" : Capitalize(filtered);
     }
 
@@ -100,10 +100,9 @@ public static class GenerationRuleSet
             return [];
         }
 
-        return Regex.Matches(match.Groups[2].Value, @"'((?:\\'|[^'])*)'")
+        return [.. Regex.Matches(match.Groups[2].Value, @"'((?:\\'|[^'])*)'")
             .Cast<Match>()
-            .Select(m => m.Groups[1].Value.Replace("\\'", "'"))
-            .ToArray();
+            .Select(m => m.Groups[1].Value.Replace("\\'", "'"))];
     }
 
     /// <summary>

@@ -39,5 +39,5 @@ public sealed class ExplorerNode
         _ => string.Empty
     };
 
-    public ObservableCollection<ExplorerNode> Children { get; } = new();
+    public ObservableCollection<ExplorerNode> Children { get; } = [];
 }

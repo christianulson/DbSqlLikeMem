@@ -21,7 +21,7 @@ public sealed class SqlServerConnectionMock
     public SqlServerConnectionMock(
        SqlServerDbMock? db = null,
        string? defaultDatabase = null
-    ) : base(db ?? new(), defaultDatabase)
+    ) : base(db ?? [], defaultDatabase)
     {
         _serverVersion = $"SQL Server {Db.Version}";
     }

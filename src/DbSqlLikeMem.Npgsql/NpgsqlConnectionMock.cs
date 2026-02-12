@@ -21,7 +21,7 @@ public sealed class NpgsqlConnectionMock
     public NpgsqlConnectionMock(
        NpgsqlDbMock? db = null,
        string? defaultDatabase = null
-    ) : base(db ?? new(), defaultDatabase)
+    ) : base(db ?? [], defaultDatabase)
     {
         _serverVersion = $"PostgreSQL {Db.Version}";
     }

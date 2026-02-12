@@ -30,7 +30,7 @@ public static class GeneratedClassSnapshotReader
             }
 
             var payload = line.Substring(prefix.Length);
-            var kv = payload.Split(new[] {'='}, 2, StringSplitOptions.None);
+            var kv = payload.Split(['='], 2, StringSplitOptions.None);
             if (kv.Length == 2)
             {
                 kv[0] = kv[0].Trim();

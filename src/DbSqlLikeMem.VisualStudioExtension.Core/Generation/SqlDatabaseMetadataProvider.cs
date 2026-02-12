@@ -31,7 +31,7 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
             new Dictionary<string, object?> { ["databaseName"] = connection.DatabaseName },
             cancellationToken);
 
-        return rows.Select(MapObject).Where(x => x is not null).Cast<DatabaseObjectReference>().ToArray();
+        return [.. rows.Select(MapObject).Where(x => x is not null).Cast<DatabaseObjectReference>()];
     }
 
     /// <inheritdoc/>

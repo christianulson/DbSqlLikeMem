@@ -49,7 +49,7 @@ internal abstract class AstQueryExecutorBase(
 
         try
         {
-            return (SqlExpr)mi.Invoke(null, new object[] { raw, _dialect })!;
+            return (SqlExpr)mi.Invoke(null, [raw, _dialect])!;
         }
         catch (System.Reflection.TargetInvocationException tie) when (tie.InnerException is not null)
         {
@@ -691,8 +691,10 @@ internal abstract class AstQueryExecutorBase(
         // Treat DUAL as a single dummy row source.
         if (tableName.Equals("DUAL", StringComparison.OrdinalIgnoreCase))
         {
-            var one = new TableResultMock();
-            one.Add(new Dictionary<int, object?>());
+            var one = new TableResultMock
+            {
+                ([])
+            };
             return Source.FromResult("DUAL", alias, one);
         }
 
@@ -872,7 +874,7 @@ internal abstract class AstQueryExecutorBase(
 
                 if (!partitions.TryGetValue(key, out var list))
                 {
-                    list = new List<EvalRow>();
+                    list = [];
                     partitions[key] = list;
                 }
                 list.Add(r);
@@ -1462,9 +1464,9 @@ internal abstract class AstQueryExecutorBase(
         // MySQL semantics (best-effort):
         //  a ->  '$.x'  => JSON_EXTRACT(a, '$.x')
         //  a ->> '$.x'  => JSON_UNQUOTE(JSON_EXTRACT(a, '$.x'))
-        var extract = new FunctionCallExpr("JSON_EXTRACT", new[] { ja.Target, ja.Path });
+        var extract = new FunctionCallExpr("JSON_EXTRACT", [ja.Target, ja.Path]);
         return ja.Unquote
-            ? new FunctionCallExpr("JSON_UNQUOTE", new[] { extract })
+            ? new FunctionCallExpr("JSON_UNQUOTE", [extract])
             : extract;
     }
 

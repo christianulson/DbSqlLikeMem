@@ -210,7 +210,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        var fileList = files?.Where(File.Exists).Distinct(StringComparer.OrdinalIgnoreCase).ToArray() ?? Array.Empty<string>();
+        var fileList = files?.Where(File.Exists).Distinct(StringComparer.OrdinalIgnoreCase).ToArray() ?? [];
         if (fileList.Length == 0)
         {
             return;

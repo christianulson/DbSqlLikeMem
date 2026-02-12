@@ -94,6 +94,6 @@ public sealed class SqliteInsertStrategyCoverageTests(
 
         Assert.Equal(2, inserted);
         Assert.Equal(2, t.Count);
-        Assert.Equal([1, 2], t.Select(r => (int)r[0]!).ToArray());
+        Assert.Equal([1, 2], [.. t.Select(r => (int)r[0]!)]);
     }
 }
