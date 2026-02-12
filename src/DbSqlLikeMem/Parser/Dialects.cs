@@ -111,6 +111,7 @@ internal interface ISqlDialect
     bool AreUnionColumnTypesCompatible(DbType first, DbType second);
     bool IsIntegerCastTypeName(string typeName);
     bool SupportsDateAddFunction(string functionName);
+    DbType InferWindowFunctionDbType(WindowFunctionExpr windowFunctionExpr, Func<SqlExpr, DbType> inferArgDbType);
 }
 
 internal abstract class SqlDialectBase : ISqlDialect
@@ -303,6 +304,36 @@ internal abstract class SqlDialectBase : ISqlDialect
         return functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("DATEADD", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public virtual DbType InferWindowFunctionDbType(
+        WindowFunctionExpr windowFunctionExpr,
+        Func<SqlExpr, DbType> inferArgDbType)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(windowFunctionExpr, nameof(windowFunctionExpr));
+        ArgumentNullExceptionCompatible.ThrowIfNull(inferArgDbType, nameof(inferArgDbType));
+
+        if (windowFunctionExpr.Name.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("RANK", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("DENSE_RANK", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("NTILE", StringComparison.OrdinalIgnoreCase))
+            return DbType.Int64;
+
+        if (windowFunctionExpr.Name.Equals("PERCENT_RANK", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("CUME_DIST", StringComparison.OrdinalIgnoreCase))
+            return DbType.Double;
+
+        if (windowFunctionExpr.Name.Equals("LAG", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("LEAD", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("FIRST_VALUE", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase))
+        {
+            if (windowFunctionExpr.Args.Count > 0)
+                return inferArgDbType(windowFunctionExpr.Args[0]);
+        }
+
+        return DbType.Object;
     }
     /// <summary>
     /// Auto-generated summary.
