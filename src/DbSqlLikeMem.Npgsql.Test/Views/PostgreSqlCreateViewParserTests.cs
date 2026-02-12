@@ -81,10 +81,10 @@ SELECT * FROM v_users;
     /// EN: Tests Parse_CreateView_IfNotExists_ShouldBeRejected_ByMySqlSpec behavior.
     /// PT: Testa o comportamento de Parse_CreateView_IfNotExists_ShouldBeRejected_ByMySqlSpec.
     /// </summary>
-    [Fact]
-    public void Parse_CreateView_IfNotExists_ShouldBeRejected_ByMySqlSpec()
+    [Theory]
+    [MemberDataNpgsqlVersion]
+    public void Parse_CreateView_IfNotExists_ShouldBeRejected_ByMySqlSpec(int version)
     {
-        var version = NpgsqlDbVersions.Versions().First();
         const string sql = "CREATE VIEW IF NOT EXISTS v AS SELECT 1;";
         Assert.ThrowsAny<Exception>(() => SqlQueryParser.ParseMulti(sql, new NpgsqlDialect(version)).ToList());
     }

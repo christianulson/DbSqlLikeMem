@@ -79,10 +79,11 @@ SELECT * FROM v_users;
     /// EN: Tests Parse_CreateView_IfNotExists_ShouldBeRejected_ByDb2Spec behavior.
     /// PT: Testa o comportamento de Parse_CreateView_IfNotExists_ShouldBeRejected_ByDb2Spec.
     /// </summary>
-    [Fact]
-    public void Parse_CreateView_IfNotExists_ShouldBeRejected_ByDb2Spec()
+    [Theory]
+    [MemberDataDb2Version]
+    public void Parse_CreateView_IfNotExists_ShouldBeRejected_ByDb2Spec(int version)
     {
         const string sql = "CREATE VIEW IF NOT EXISTS v AS SELECT 1;";
-        Assert.ThrowsAny<Exception>(() => SqlQueryParser.ParseMulti(sql, new Db2Dialect(8)).ToList());
+        Assert.ThrowsAny<Exception>(() => SqlQueryParser.ParseMulti(sql, new Db2Dialect(version)).ToList());
     }
 }
