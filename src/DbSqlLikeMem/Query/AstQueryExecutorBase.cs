@@ -344,12 +344,14 @@ internal abstract class AstQueryExecutorBase(
         if (best is null)
             return null;
 
-        var key = string.Join("|", best.KeyCols.Select(col =>
-        {
-            var norm = col.NormalizeName();
-            var value = equalsByColumn[norm];
-            return value?.ToString() ?? "<null>";
-        }));
+        var key = src.Physical is TableMock physicalTable
+            ? physicalTable.BuildIndexKeyFromValues(best, equalsByColumn)
+            : string.Join("|", best.KeyCols.Select(col =>
+            {
+                var norm = col.NormalizeName();
+                var value = equalsByColumn[norm];
+                return value?.ToString() ?? "<null>";
+            }));
 
         var positions = LookupIndexWithMetrics(src.Physical, best, key);
         if (positions is null)
