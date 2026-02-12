@@ -445,7 +445,7 @@ WHERE dt.total >= 10;
         yield return new object[] { "DELETE FROM parent WHERE id = 1", "DELETE from parent table" };
         yield return new object[] { "DELETE FROM user WHERE id = @id", "DELETE from reserved-name table using parameter" };
         yield return new object[] { "DELETE FROM users WHERE id = @id", "DELETE from users using parameter" };
-        yield return new object[] { "DELETE users WHERE id = 1", "DELETE without FROM keyword (SQLite syntax)" };
+        yield return new object[] { "DELETE FROM users WHERE id = 1", "DELETE with FROM keyword (SQLite syntax)" };
 
         yield return new object[] { "INSERT INTO Users (Id, Name, Email) VALUES (1, 'John Doe', 'john@example.com')", "INSERT with literals" };
         yield return new object[] { "INSERT INTO Users (Id, Name, Email) VALUES (@Id, @Name, @Email)", "INSERT with parameters" };

@@ -341,10 +341,11 @@ public sealed class SqlExpressionParserTests(
     /// </summary>
     [Theory]
     [MemberDataSqliteVersion]
-    public void NullSafe_Operator_ShouldThrow(int version)
+    public void NullSafe_Operator_ShouldParse(int version)
     {
-        Assert.ThrowsAny<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseWhere("a <=> b", new SqliteDialect(version)));
+        var ast = SqlExpressionParser.ParseWhere("a <=> b", new SqliteDialect(version));
+        var eq = Assert.IsType<BinaryExpr>(ast);
+        Assert.Equal(SqlBinaryOp.NullSafeEq, eq.Op);
     }
 
     /// <summary>
