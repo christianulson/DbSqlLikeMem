@@ -25,7 +25,7 @@ public class OracleConnectionMock
     public OracleConnectionMock(
        OracleDbMock? db = null,
        string? defaultDatabase = null
-    ) : base(db ?? new(), defaultDatabase)
+    ) : base(db ?? [], defaultDatabase)
     {
         _serverVersion = $"Oracle {Db.Version}";
     }

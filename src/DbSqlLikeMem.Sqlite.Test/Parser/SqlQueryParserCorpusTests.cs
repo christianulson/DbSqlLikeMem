@@ -45,6 +45,9 @@ public sealed class SqlQueryParserCorpusTests(
             var sql = (string)row[0];
             var why = row.Length > 1 ? (string)row[1] : "valid statement";
             var minVersion = 0;
+            var expectation = why.StartsWith("invalid:", StringComparison.OrdinalIgnoreCase)
+                ? SqlCaseExpectation.ThrowInvalid
+                : SqlCaseExpectation.ParseOk;
 
             var trimmed = sql.TrimStart();
             if (trimmed.StartsWith("MERGE", StringComparison.OrdinalIgnoreCase))
@@ -52,7 +55,7 @@ public sealed class SqlQueryParserCorpusTests(
             else if (trimmed.Contains("WITH", StringComparison.OrdinalIgnoreCase))
                 minVersion = SqliteDialect.WithCteMinVersion;
 
-            yield return Case(sql, why, SqlCaseExpectation.ParseOk, minVersion);
+            yield return Case(sql, why, expectation, minVersion);
         }
 
         // Inválidas (ThrowInvalid)
@@ -445,7 +448,7 @@ WHERE dt.total >= 10;
         yield return new object[] { "DELETE FROM parent WHERE id = 1", "DELETE from parent table" };
         yield return new object[] { "DELETE FROM user WHERE id = @id", "DELETE from reserved-name table using parameter" };
         yield return new object[] { "DELETE FROM users WHERE id = @id", "DELETE from users using parameter" };
-        yield return new object[] { "DELETE users WHERE id = 1", "DELETE without FROM keyword (SQLite syntax)" };
+        yield return new object[] { "DELETE FROM users WHERE id = 1", "DELETE with FROM keyword (SQLite syntax)" };
 
         yield return new object[] { "INSERT INTO Users (Id, Name, Email) VALUES (1, 'John Doe', 'john@example.com')", "INSERT with literals" };
         yield return new object[] { "INSERT INTO Users (Id, Name, Email) VALUES (@Id, @Name, @Email)", "INSERT with parameters" };

@@ -177,6 +177,10 @@ public sealed class SqlServerMockTests
     }
 
 
+    /// <summary>
+    /// EN: Ensures SELECT with SQL Server table hints executes correctly.
+    /// PT: Garante que SELECT com hints de tabela do SQL Server execute corretamente.
+    /// </summary>
     [Fact]
     public void TestSelect_WithSqlServerTableHints_ShouldExecute()
     {

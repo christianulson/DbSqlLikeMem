@@ -1,8 +1,16 @@
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public sealed class ClassGenerator
 {
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public async Task<IReadOnlyCollection<string>> GenerateAsync(
         GenerationRequest request,
         ConnectionMappingConfiguration configuration,
@@ -25,7 +33,9 @@ public sealed class ClassGenerator
             var fullPath = Path.Combine(mapping.OutputDirectory, fileName);
             var content = classContentFactory(dbObject);
 
-            await File.WriteAllTextAsync(fullPath, content, cancellationToken);
+#pragma warning disable AsyncFixer02 // Blocking call inside an async method
+            File.WriteAllText(fullPath, content);
+#pragma warning restore AsyncFixer02 // Blocking call inside an async method
             writtenFiles.Add(fullPath);
         }
 
@@ -41,13 +51,36 @@ public sealed class ClassGenerator
         var namePascal = GenerationRuleSet.ToPascalCase(dbObject.Name);
         var typeName = dbObject.Type.ToString();
 
-        return safePattern
-            .Replace("{NamePascal}", namePascal, StringComparison.OrdinalIgnoreCase)
-            .Replace("{Name}", dbObject.Name, StringComparison.OrdinalIgnoreCase)
-            .Replace("{Type}", typeName, StringComparison.OrdinalIgnoreCase)
-            .Replace("{Schema}", dbObject.Schema, StringComparison.OrdinalIgnoreCase)
-            .Replace("{DatabaseType}", connection.DatabaseType, StringComparison.OrdinalIgnoreCase)
-            .Replace("{DatabaseName}", connection.DatabaseName, StringComparison.OrdinalIgnoreCase);
+        return ReplaceIgnoreCase(
+            ReplaceIgnoreCase(
+                ReplaceIgnoreCase(
+                    ReplaceIgnoreCase(
+                        ReplaceIgnoreCase(
+                            ReplaceIgnoreCase(safePattern, "{NamePascal}", namePascal),
+                            "{Name}",
+                            dbObject.Name),
+                        "{Type}",
+                        typeName),
+                    "{Schema}",
+                    dbObject.Schema),
+                "{DatabaseType}",
+                connection.DatabaseType),
+            "{DatabaseName}",
+            connection.DatabaseName);
+    }
+
+    private static string ReplaceIgnoreCase(string value, string oldValue, string newValue)
+    {
+        var current = value;
+        var index = current.IndexOf(oldValue, StringComparison.OrdinalIgnoreCase);
+
+        while (index >= 0)
+        {
+            current = current.Remove(index, oldValue.Length).Insert(index, newValue);
+            index = current.IndexOf(oldValue, index + newValue.Length, StringComparison.OrdinalIgnoreCase);
+        }
+
+        return current;
     }
 
 }

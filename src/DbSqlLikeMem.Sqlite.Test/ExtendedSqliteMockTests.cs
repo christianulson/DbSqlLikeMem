@@ -261,4 +261,25 @@ public sealed class ExtendedSqliteMockTests(
         Assert.Equal("A", table[0][1]);
         Assert.Equal("B", table[1][1]);
     }
+
+
+    /// <summary>
+    /// EN: Tests UniqueCompositeIndexShouldNotCollideWhenValuesContainSeparator behavior.
+    /// PT: Testa o comportamento de UniqueCompositeIndexShouldNotCollideWhenValuesContainSeparator.
+    /// </summary>
+    [Fact]
+    public void UniqueCompositeIndexShouldNotCollideWhenValuesContainSeparator()
+    {
+        var db = new SqliteDbMock();
+        var table = db.AddTable("t");
+        table.Columns["first"] = new(0, DbType.String, false);
+        table.Columns["second"] = new(1, DbType.String, false);
+        table.CreateIndex(new IndexDef("ux_first_second", ["first", "second"], unique: true));
+
+        table.Add(new Dictionary<int, object?> { { 0, "A|B" }, { 1, "C" } });
+        table.Add(new Dictionary<int, object?> { { 0, "A" }, { 1, "B|C" } });
+
+        Assert.Equal(2, table.Count);
+    }
+
 }

@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Data;
+
 namespace DbSqlLikeMem;
 
 /// <summary>
@@ -7,6 +11,18 @@ namespace DbSqlLikeMem;
 public interface ITableMock
     : IReadOnlyList<IReadOnlyDictionary<int, object?>>
 {
+    /// <summary>
+    /// EN: Normalized table name.
+    /// PT: Nome normalizado da tabela.
+    /// </summary>
+    string TableName { get; }
+
+    /// <summary>
+    /// EN: Schema to which the table belongs.
+    /// PT: Schema ao qual a tabela pertence.
+    /// </summary>
+    SchemaMock Schema { get; }
+
     /// <summary>
     /// EN: Gets or sets the next identity value for auto-increment columns.
     /// PT: Obtém ou define o próximo valor de identidade para colunas auto incrementais.

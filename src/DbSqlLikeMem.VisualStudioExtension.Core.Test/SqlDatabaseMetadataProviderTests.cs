@@ -1,7 +1,15 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public sealed class SqlDatabaseMetadataProviderTests
 {
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Fact]
     public async Task GetObjectAsync_ReturnsCompleteStructureMetadata()
     {
@@ -28,7 +36,7 @@ public sealed class SqlDatabaseMetadataProviderTests
         var conn = new ConnectionDefinition("1", "MySql", "ERP", "conn");
         var reference = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table);
 
-        var result = await provider.GetObjectAsync(conn, reference);
+        var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.Contains("Id|int|1|0|1", result!.Properties!["Columns"]);
@@ -38,6 +46,10 @@ public sealed class SqlDatabaseMetadataProviderTests
         Assert.Equal("CustomerId|Customers|Id", result.Properties["ForeignKeys"]);
     }
 
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Theory]
     [InlineData("MySql")]
     [InlineData("SqlServer")]
@@ -61,9 +73,17 @@ public sealed class SqlDatabaseMetadataProviderTests
     {
         private readonly List<(string Contains, IReadOnlyCollection<IReadOnlyDictionary<string, object?>> Rows)> _responses = [];
 
+        /// <summary>
+        /// Executes this API operation.
+        /// Executa esta operação da API.
+        /// </summary>
         public void WhenContains(string containsSql, IReadOnlyCollection<IReadOnlyDictionary<string, object?>> rows)
             => _responses.Add((containsSql, rows));
 
+        /// <summary>
+        /// Executes this API operation.
+        /// Executa esta operação da API.
+        /// </summary>
         public Task<IReadOnlyCollection<IReadOnlyDictionary<string, object?>>> QueryAsync(
             ConnectionDefinition connection,
             string sql,
@@ -71,7 +91,7 @@ public sealed class SqlDatabaseMetadataProviderTests
             CancellationToken cancellationToken = default)
         {
             var hit = _responses.FirstOrDefault(x => sql.Contains(x.Contains, StringComparison.OrdinalIgnoreCase));
-            return Task.FromResult(hit.Rows ?? Array.Empty<IReadOnlyDictionary<string, object?>>());
+            return Task.FromResult(hit.Rows ?? []);
         }
     }
 }

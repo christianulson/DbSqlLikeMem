@@ -14,6 +14,10 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests ParseWhere_ShouldNotThrow_ForSupportedRealWorldExpressions behavior.
     /// PT: Testa o comportamento de ParseWhere_ShouldNotThrow_ForSupportedRealWorldExpressions.
     /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Theory]
     [MemberDataBySqliteVersion(nameof(WhereExpressions_Supported))]
     public void ParseWhere_ShouldNotThrow_ForSupportedRealWorldExpressions(string whereExpr, int version)
@@ -89,6 +93,10 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests ParseWhere_ShouldThrow_ForUnsupportedExpressions behavior.
     /// PT: Testa o comportamento de ParseWhere_ShouldThrow_ForUnsupportedExpressions.
     /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Theory]
     [MemberDataBySqliteVersion(nameof(WhereExpressions_Unsupported))]
     public void ParseWhere_ShouldThrow_ForUnsupportedExpressions(string whereExpr, int version)
@@ -122,6 +130,10 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests Precedence_OR_ShouldBindLooserThan_AND behavior.
     /// PT: Testa o comportamento de Precedence_OR_ShouldBindLooserThan_AND.
     /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Theory]
     [MemberDataSqliteVersion]
     public void Precedence_OR_ShouldBindLooserThan_AND(int version)
@@ -150,6 +162,10 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests Parentheses_ShouldOverridePrecedence behavior.
     /// PT: Testa o comportamento de Parentheses_ShouldOverridePrecedence.
     /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Theory]
     [MemberDataSqliteVersion]
     public void Parentheses_ShouldOverridePrecedence(int version)
@@ -171,6 +187,10 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests Not_ShouldWork behavior.
     /// PT: Testa o comportamento de Not_ShouldWork.
     /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Theory]
     [MemberDataSqliteVersion]
     public void Not_ShouldWork(int version)
@@ -188,6 +208,10 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests IsNotNull_ShouldProduce_IsNullExpr_Negated behavior.
     /// PT: Testa o comportamento de IsNotNull_ShouldProduce_IsNullExpr_Negated.
     /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Theory]
     [MemberDataSqliteVersion]
     public void IsNotNull_ShouldProduce_IsNullExpr_Negated(int version)
@@ -200,6 +224,10 @@ public sealed class SqlExpressionParserTests(
     /// <summary>
     /// EN: Tests In_ShouldParse_List behavior.
     /// PT: Testa o comportamento de In_ShouldParse_List.
+    /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
     /// </summary>
     [Theory]
     [MemberDataSqliteVersion]
@@ -214,6 +242,10 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests Like_ShouldParse behavior.
     /// PT: Testa o comportamento de Like_ShouldParse.
     /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Theory]
     [MemberDataSqliteVersion]
     public void Like_ShouldParse(int version)
@@ -226,6 +258,10 @@ public sealed class SqlExpressionParserTests(
     /// <summary>
     /// EN: Tests Identifier_WithAliasDotColumn_ShouldParse behavior.
     /// PT: Testa o comportamento de Identifier_WithAliasDotColumn_ShouldParse.
+    /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
     /// </summary>
     [Theory]
     [MemberDataSqliteVersion]
@@ -249,6 +285,10 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests Parameter_Tokens_ShouldParse behavior.
     /// PT: Testa o comportamento de Parameter_Tokens_ShouldParse.
     /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Theory]
     [MemberDataSqliteVersion]
     public void Parameter_Tokens_ShouldParse(int version)
@@ -262,6 +302,10 @@ public sealed class SqlExpressionParserTests(
     /// <summary>
     /// EN: Tests Backtick_Identifier_ShouldParse behavior.
     /// PT: Testa o comportamento de Backtick_Identifier_ShouldParse.
+    /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
     /// </summary>
     [Theory]
     [MemberDataSqliteVersion]
@@ -277,6 +321,10 @@ public sealed class SqlExpressionParserTests(
     /// EN: Tests DoubleQuoted_String_ShouldParse behavior.
     /// PT: Testa o comportamento de DoubleQuoted_String_ShouldParse.
     /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Theory]
     [MemberDataSqliteVersion]
     public void DoubleQuoted_String_ShouldParse(int version)
@@ -287,17 +335,26 @@ public sealed class SqlExpressionParserTests(
         Assert.Equal("John", lit.Value);
     }
 
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Theory]
     [MemberDataSqliteVersion]
-    public void NullSafe_Operator_ShouldThrow(int version)
+    public void NullSafe_Operator_ShouldParse(int version)
     {
-        Assert.ThrowsAny<InvalidOperationException>(() =>
-            SqlExpressionParser.ParseWhere("a <=> b", new SqliteDialect(version)));
+        var ast = SqlExpressionParser.ParseWhere("a <=> b", new SqliteDialect(version));
+        var eq = Assert.IsType<BinaryExpr>(ast);
+        Assert.Equal(SqlBinaryOp.NullSafeEq, eq.Op);
     }
 
     /// <summary>
     /// EN: Tests Printer_ShouldBeStable_ForSimpleExpression behavior.
     /// PT: Testa o comportamento de Printer_ShouldBeStable_ForSimpleExpression.
+    /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
     /// </summary>
     [Theory]
     [MemberDataSqliteVersion]

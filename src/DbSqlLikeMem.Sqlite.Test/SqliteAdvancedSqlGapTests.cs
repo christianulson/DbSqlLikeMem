@@ -42,6 +42,10 @@ public sealed class SqliteAdvancedSqlGapTests : XUnitTestBase
     /// EN: Tests Window_RowNumber_PartitionBy_ShouldWork behavior.
     /// PT: Testa o comportamento de Window_RowNumber_PartitionBy_ShouldWork.
     /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Fact]
     public void Window_RowNumber_PartitionBy_ShouldWork()
     {
@@ -57,6 +61,10 @@ ORDER BY tenantid, id").ToList();
     /// <summary>
     /// EN: Tests CorrelatedSubquery_InSelectList_ShouldWork behavior.
     /// PT: Testa o comportamento de CorrelatedSubquery_InSelectList_ShouldWork.
+    /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
     /// </summary>
     [Fact]
     public void CorrelatedSubquery_InSelectList_ShouldWork()
@@ -74,6 +82,10 @@ ORDER BY u.id").ToList();
     /// EN: Tests DateAdd_IntervalDay_ShouldWork behavior.
     /// PT: Testa o comportamento de DateAdd_IntervalDay_ShouldWork.
     /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Fact]
     public void DateAdd_IntervalDay_ShouldWork()
     {
@@ -89,9 +101,34 @@ ORDER BY id").ToList();
             [.. rows.Select(r => (DateTime)r.d)]);
     }
 
+
+
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
+    [Fact]
+    public void Date_Function_WithModifier_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id, DATE(created, '+1 day') AS d
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([
+            new DateTime(2020, 1, 2, 0, 0, 0, DateTimeKind.Local),
+            new DateTime(2020, 1, 3, 0, 0, 0, DateTimeKind.Local),
+            new DateTime(2020, 1, 4, 0, 0, 0, DateTimeKind.Local)],
+            [.. rows.Select(r => (DateTime)r.d)]);
+    }
+
     /// <summary>
     /// EN: Tests Cast_StringToInt_ShouldWork behavior.
     /// PT: Testa o comportamento de Cast_StringToInt_ShouldWork.
+    /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
     /// </summary>
     [Fact]
     public void Cast_StringToInt_ShouldWork()
@@ -105,6 +142,10 @@ ORDER BY id").ToList();
     /// EN: Tests Regexp_Operator_ShouldWork behavior.
     /// PT: Testa o comportamento de Regexp_Operator_ShouldWork.
     /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Fact]
     public void Regexp_Operator_ShouldWork()
     {
@@ -112,9 +153,15 @@ ORDER BY id").ToList();
         Assert.Equal([1, 3], [.. rows.Select(r => (int)r.id)]);
     }
 
+
+
     /// <summary>
     /// EN: Tests OrderBy_Field_Function_ShouldWork behavior.
     /// PT: Testa o comportamento de OrderBy_Field_Function_ShouldWork.
+    /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
     /// </summary>
     [Fact]
     public void OrderBy_Field_Function_ShouldWork()
@@ -126,6 +173,10 @@ ORDER BY id").ToList();
     /// <summary>
     /// EN: Tests Collation_CaseSensitivity_ShouldFollowColumnCollation behavior.
     /// PT: Testa o comportamento de Collation_CaseSensitivity_ShouldFollowColumnCollation.
+    /// </summary>
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
     /// </summary>
     [Fact]
     public void Collation_CaseSensitivity_ShouldFollowColumnCollation()

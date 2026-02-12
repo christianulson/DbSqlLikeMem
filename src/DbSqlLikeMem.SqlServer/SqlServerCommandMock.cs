@@ -111,7 +111,7 @@ public class SqlServerCommandMock(
             SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect),
             SqlMergeQuery mergeQ => connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect),
             SqlSelectQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT."),
-            _ => throw new NotSupportedException($"Tipo de query não suportado em ExecuteNonQuery: {query.GetType().Name}")
+            _ => throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteNonQuery", query.GetType())
         };
     }
 
@@ -142,14 +142,6 @@ public class SqlServerCommandMock(
 
         var executor = new SqlServerAstQueryExecutor(connection!, Parameters);
 
-        if (sql.Contains("UNION", StringComparison.OrdinalIgnoreCase) && !sql.Contains(';'))
-        {
-            var chain = SqlQueryParser.ParseUnionChain(sql, connection!.Db.Dialect);
-            var unionTable = executor.ExecuteUnion([.. chain.Parts.Cast<SqlSelectQuery>()], chain.AllFlags, sql);
-            connection.Metrics.Selects += unionTable.Count;
-            return new SqlServerDataReaderMock([unionTable]);
-        }
-
         var queries = SqlQueryParser.ParseMulti(sql, connection!.Db.Dialect).ToList();
         var tables = new List<TableResultMock>();
 
@@ -159,6 +151,10 @@ public class SqlServerCommandMock(
             {
                 case SqlSelectQuery selectQ:
                     tables.Add(executor.ExecuteSelect(selectQ));
+                    break;
+
+                case SqlUnionQuery unionQ:
+                    tables.Add(executor.ExecuteUnion(unionQ.Parts, unionQ.AllFlags, unionQ.OrderBy, unionQ.RowLimit, unionQ.RawSql));
                     break;
                 case SqlInsertQuery insertQ:
                     connection.ExecuteInsert(insertQ, Parameters, connection.Db.Dialect);
@@ -182,7 +178,7 @@ public class SqlServerCommandMock(
                     connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect);
                     break;
                 default:
-                    throw new NotSupportedException($"Tipo de query não suportado em ExecuteReader: {query.GetType().Name}");
+                    throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteReader", query.GetType());
             }
         }
 

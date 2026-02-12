@@ -17,7 +17,7 @@ public sealed class MySqlConnectionMock
     public MySqlConnectionMock(
        MySqlDbMock? db = null,
        string? defaultDatabase = null
-    ) : base(db ?? new(), defaultDatabase)
+    ) : base(db ?? [], defaultDatabase)
     {
         _serverVersion = $"MySQL {Db.Version}";
     }

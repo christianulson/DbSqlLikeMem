@@ -163,7 +163,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         // column names: prefer explicit list if provided; else use select result columns
         var names = (query.ColumnNames is { Count: > 0 })
             ? query.ColumnNames
-            : res.Columns.Select(c => c.ColumnName).ToList();
+            : [.. res.Columns.Select(c => c.ColumnName)];
 
         for (int i = 0; i < names.Count; i++)
         {

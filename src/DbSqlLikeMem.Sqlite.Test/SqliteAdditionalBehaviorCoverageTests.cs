@@ -67,7 +67,7 @@ public sealed class SqliteAdditionalBehaviorCoverageTests : XUnitTestBase
         var ids = _cnn.Query<int>("SELECT id FROM users WHERE email = NULL").ToList();
         Assert.Empty(ids);
 
-        ids = _cnn.Query<int>("SELECT id FROM users WHERE email <> NULL").ToList();
+        ids = [.. _cnn.Query<int>("SELECT id FROM users WHERE email <> NULL")];
         Assert.Empty(ids);
     }
 
@@ -178,7 +178,7 @@ ORDER BY userid
     [Fact]
     public void Delete_WithInParameterList_ShouldDeleteMatchingRows()
     {
-        var deleted = _cnn.Execute("DELETE users WHERE id IN @ids", new { ids = param });
+        var deleted = _cnn.Execute("DELETE FROM users WHERE id IN @ids", new { ids = param });
         Assert.Equal(2, deleted);
 
         var remaining = _cnn.Query<int>("SELECT id FROM users ORDER BY id").ToList();

@@ -18,6 +18,15 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
 - [Plano executável P7–P10](p7-p10-implementation-plan.md)
   - matriz por provider
   - testes-alvo para implementação
+- [Matriz SQL (feature x dialeto)](sql-compatibility-matrix.md)
+  - visão resumida por recursos
+  - status por provider
+- [Checklist de known gaps](known-gaps-checklist.md)
+  - backlog técnico de compatibilidade
+  - acompanhamento de hardening/regressão
+- [Relatório de hardening/regressão](hardening-regression-report.md)
+  - regressões corrigidas
+  - próximos itens priorizados
 - [Publicação](publishing.md)
   - NuGet
   - Visual Studio (VSIX)

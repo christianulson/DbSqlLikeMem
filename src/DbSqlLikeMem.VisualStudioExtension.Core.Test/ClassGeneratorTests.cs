@@ -1,7 +1,15 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public class ClassGeneratorTests
 {
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Theory]
     [InlineData("MySql")]
     [InlineData("SqlServer")]
@@ -27,7 +35,7 @@ public class ClassGeneratorTests
                     [DatabaseObjectType.Table] = new(DatabaseObjectType.Table, outputDir, string.Empty)
                 });
 
-            var files = await generator.GenerateAsync(request, config, _ => "// test");
+            var files = await generator.GenerateAsync(request, config, _ => "// test", TestContext.Current.CancellationToken);
 
             var file = Assert.Single(files);
             Assert.Equal(Path.Combine(outputDir, "SalesOrderTableFactory.cs"), file);
@@ -42,6 +50,10 @@ public class ClassGeneratorTests
         }
     }
 
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Fact]
     public async Task GenerateAsync_ReplacesPatternTokensIncludingDatabaseContext()
     {
@@ -64,7 +76,7 @@ public class ClassGeneratorTests
                         "{DatabaseType}.{DatabaseName}.{Schema}.{NamePascal}.{Type}.cs")
                 });
 
-            var files = await generator.GenerateAsync(request, config, _ => "// test");
+            var files = await generator.GenerateAsync(request, config, _ => "// test", TestContext.Current.CancellationToken);
 
             var file = Assert.Single(files);
             Assert.Equal(

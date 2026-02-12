@@ -10,10 +10,10 @@
 | SQL Server | `DbSqlLikeMem.SqlServer` | 7, 2000, 2005, 2008, 2012, 2014, 2016, 2017, 2019, 2022 |
 | Oracle | `DbSqlLikeMem.Oracle` | 7, 8, 9, 10, 11, 12, 18, 19, 21, 23 |
 | PostgreSQL (Npgsql) | `DbSqlLikeMem.Npgsql` | 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 |
-| SQLite | `DbSqlLikeMem.Sqlite` | 3 |
+| SQLite (Sqlite) | `DbSqlLikeMem.Sqlite` | 3 |
 | DB2 | `DbSqlLikeMem.Db2` | 8, 9, 10, 11 |
 
-## Capacidades comuns (MySQL / SQL Server / Oracle / PostgreSQL)
+## Capacidades comuns (todos os providers)
 
 - Mock de conexão/ADO.NET específico do provedor.
 - Parser e execução de SQL para DDL/DML comuns.
@@ -43,6 +43,62 @@
 - `ON DUPLICATE KEY UPDATE`: não suportado.
 - Operador null-safe `<=>`: não suportado.
 - Operadores JSON `->` e `->>`: não suportados.
+
+### Regras padronizadas de collation e coerção implícita (mock)
+
+Para reduzir ambiguidades entre dialetos e manter testes determinísticos (`Typing_ImplicitCasts_And_Collation*` e `Collation_CaseSensitivity*`), o projeto adota regras explícitas no executor em memória.
+
+#### 1) Comparação textual (`=`, `<>`, `IN`, `CASE`, fallback textual em `ORDER BY`)
+
+| Provider | Regra no mock |
+| --- | --- |
+| MySQL | `StringComparison.OrdinalIgnoreCase` |
+| SQL Server | `StringComparison.OrdinalIgnoreCase` |
+| Oracle | `StringComparison.OrdinalIgnoreCase` |
+| PostgreSQL (Npgsql) | `StringComparison.OrdinalIgnoreCase` |
+| SQLite | `StringComparison.OrdinalIgnoreCase` |
+| DB2 | `StringComparison.OrdinalIgnoreCase` |
+
+> Observação: em bancos reais, esse comportamento depende de collation da instância/database/coluna. No mock, a regra acima é fixa por provider para garantir previsibilidade de teste.
+
+#### 2) `LIKE`
+
+| Provider | Regra no mock |
+| --- | --- |
+| MySQL | case-insensitive por padrão |
+| SQL Server | case-insensitive por padrão |
+| Oracle | case-insensitive por padrão |
+| PostgreSQL (Npgsql) | case-insensitive por padrão |
+| SQLite | case-insensitive por padrão |
+| DB2 | case-insensitive por padrão |
+
+#### 3) Coerção implícita número vs string
+
+- A coerção implícita só ocorre quando **ambos os lados** podem ser convertidos para número (`decimal`) com `CultureInfo.InvariantCulture`.
+- Exemplo suportado: `id = '2'`.
+- Exemplo sem coerção numérica (cai para comparação textual): `id = '2x'`.
+- A regra vale para operadores de comparação (`=`, `<>`, `>`, `>=`, `<`, `<=`) e para os caminhos internos de ordenação/comparação usados pelo executor AST.
+
+## Fase 3 — recursos analíticos (todos os providers)
+
+Decisões de compatibilidade implementadas para cobrir os cenários de relatório mais comuns:
+
+- `ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)`: habilitado no executor AST para todos os dialetos que passam por `AstQueryExecutorBase`, incluindo SQLite e DB2.
+- Subquery correlacionada em `SELECT` list: avaliada como subconsulta escalar com acesso ao `outer row` (primeira célula da primeira linha; `null` se vazio).
+- `CAST` string->número (casos básicos): suporte para `SIGNED`/`UNSIGNED`/`INT*` e `DECIMAL`/`NUMERIC` com parsing `InvariantCulture` e fallback previsível (`0`/`0m` em `CAST`, `null` em `TRY_CAST`).
+- Operações de data com regra explícita por dialeto (`SupportsDateAddFunction`):
+  - **MySQL**: `DATE_ADD` e `TIMESTAMPADD`.
+  - **SQLite**: `DATE_ADD` (além de `DATE(...)`/`DATETIME(...)` com modificadores simples como `'+1 day'`).
+  - **SQL Server**: `DATEADD`.
+  - **DB2**: `DATE_ADD` e `TIMESTAMPADD`.
+  - **PostgreSQL / Oracle**: sem função `DATE_ADD/DATEADD/TIMESTAMPADD` no mock; o caminho suportado é aritmética com `INTERVAL` (ex.: `created + INTERVAL ...`).
+
+### Limitações conhecidas (próxima fase)
+
+- Window functions além de `ROW_NUMBER` (ex.: `RANK`, `DENSE_RANK`, `LAG`, frames `ROWS/RANGE`) ainda não foram implementadas.
+- `CAST` numérico ainda não cobre formatações locais complexas, notação científica avançada e tipos de alta precisão específicos por provedor.
+- Data/time cobre unidades comuns (`year/month/day/hour/minute/second`), mas não trata timezone explícito, calendário ISO avançado nem regras específicas de cada engine real.
+- Subquery escalar retorna sempre a primeira célula da primeira linha, sem erro para múltiplas linhas (comportamento simplificado de mock).
 
 ## Regras candidatas para extrair do parser para os Dialects
 
@@ -77,4 +133,6 @@ Se a diferença altera **validade sintática** ou **interpretação semântica**
 
 - [Começando rápido](getting-started.md)
 - [Publicação](publishing.md)
+- [Matriz SQL (feature x dialeto)](sql-compatibility-matrix.md)
+- [Checklist de known gaps](known-gaps-checklist.md)
 - [Wiki do GitHub](wiki/README.md)

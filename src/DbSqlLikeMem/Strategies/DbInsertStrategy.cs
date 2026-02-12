@@ -121,10 +121,20 @@ internal static class DbInsertStrategy
                 // Insert implicito: INSERT INTO t VALUES (1, 2)
                 // Mapeia por index da tabela
                 var tableCols = table.Columns.Values.OrderBy(c => c.Index).ToList();
+
+                // Fallback defensivo: se o parser não trouxe a lista explícita de colunas
+                // e a quantidade de valores bate apenas com colunas não-identity,
+                // mapeia para as não-identity (caso comum: INSERT INTO t(name) VALUES(...)).
+                // Isso evita jogar o primeiro valor em uma identity e deixar colunas obrigatórias nulas.
+                var nonIdentityCols = tableCols.Where(c => !c.Identity).ToList();
+                var targetCols = valueBlock.Count == tableCols.Count
+                    ? tableCols
+                    : (valueBlock.Count == nonIdentityCols.Count ? nonIdentityCols : tableCols);
+
                 for (int i = 0; i < valueBlock.Count; i++)
                 {
-                    if (i >= tableCols.Count) break;
-                    SetColValue(table, pars, tableCols[i].Index, valueBlock[i], newRow);
+                    if (i >= targetCols.Count) break;
+                    SetColValue(table, pars, targetCols[i].Index, valueBlock[i], newRow);
                 }
             }
             else if (colNames.Count > 0)
