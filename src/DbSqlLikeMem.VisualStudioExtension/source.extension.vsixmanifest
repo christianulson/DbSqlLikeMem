@@ -3,13 +3,19 @@
   <Identifier Id="DbSqlLikeMem.VisualStudioExtension">
     <Name>DbSqlLikeMem Visual Studio Extension</Name>
     <Author>DbSqlLikeMem</Author>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Description xml:space="preserve">Tool Window para geração e validação de classes a partir de objetos de banco.</Description>
     <Locale>pt-BR</Locale>
     <InstalledByMsi>false</InstalledByMsi>
     <SupportedProducts>
-      <VisualStudio Version="[17.0,18.0)">
+      <VisualStudio Version="[16.0,18.0)">
         <Edition>Community</Edition>
+      </VisualStudio>
+      <VisualStudio Version="[16.0,18.0)">
+        <Edition>Professional</Edition>
+      </VisualStudio>
+      <VisualStudio Version="[16.0,18.0)">
+        <Edition>Enterprise</Edition>
       </VisualStudio>
     </SupportedProducts>
     <SupportedFrameworkRuntimeEdition MinVersion="4.7.2" MaxVersion="4.8" />
