@@ -30,6 +30,7 @@
             <Button Content="Remover conexão" Padding="10,4" Margin="0,0,8,8" Click="OnRemoveConnectionClick" />
             <Button Content="Configurar mapeamentos" Padding="10,4" Margin="0,0,8,8" Click="OnConfigureMappingsClick" />
             <Button Content="Atualizar objetos" Padding="10,4" Margin="0,0,8,8" Click="OnRefreshObjectsClick" />
+            <Button Content="Cancelar operação" Padding="10,4" Margin="0,0,8,8" Click="OnCancelOperationClick" />
         </WrapPanel>
 
         <TreeView x:Name="ExplorerTree"

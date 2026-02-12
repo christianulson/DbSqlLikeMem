@@ -29,3 +29,12 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 ## Compatibilidade VSIX
 
 - Compatível com Visual Studio **2019, 2022 e linha futura (incluindo 2026)** (`[16.0,19.0)`) nas edições Community/Professional/Enterprise.
+
+
+## Qualidade e performance
+
+- Operações longas com proteção contra concorrência (uma operação por vez) e cancelamento manual.
+- Refresh de objetos com execução paralela por conexão para reduzir tempo total em cenários multi-banco.
+- Checagem de consistência com processamento paralelo e propagação de cancelamento.
+- Timeout de teste de conexão para evitar bloqueios longos na UI.
+- Tratamento centralizado de exceções em eventos da UI (resiliência + log).

@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 using DbSqlLikeMem.VisualStudioExtension.Core.Persistence;
@@ -16,7 +18,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 {
     private readonly StatePersistenceService statePersistenceService = new();
     private readonly SqlDatabaseMetadataProvider metadataProvider = new(new AdoNetSqlQueryExecutor());
+    private readonly SemaphoreSlim operationLock = new(1, 1);
     private readonly string stateFilePath;
+
+    private CancellationTokenSource? currentOperationCts;
 
     private readonly ObservableCollection<ConnectionDefinition> connections = new();
     private readonly ObservableCollection<ConnectionMappingConfiguration> mappings = new();
@@ -34,16 +39,19 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
     public string StatusMessage { get; private set; } = "Pronto.";
 
+    public bool IsBusy { get; private set; }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public async Task<(bool Success, string Message)> TestConnectionAsync(string databaseType, string connectionString)
     {
         try
         {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             var factory = AdoNetSqlQueryExecutor.GetFactory(databaseType);
             using var connection = factory.CreateConnection() ?? throw new InvalidOperationException("Falha ao criar conexão.");
             connection.ConnectionString = connectionString;
-            await connection.OpenAsync();
+            await connection.OpenAsync(timeout.Token);
             return (true, "Conexão validada com sucesso.");
         }
         catch (Exception ex)
@@ -66,7 +74,6 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         SaveState();
         RefreshTree();
     }
-
 
     public ConnectionDefinition? GetConnection(string connectionId)
         => connections.FirstOrDefault(c => c.Id == connectionId);
@@ -129,28 +136,63 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         SetStatusMessage("Mapeamentos atualizados.");
     }
 
-    public async Task RefreshObjectsAsync()
+    public void CancelCurrentOperation()
     {
-        objectsByConnection.Clear();
-        healthByObject.Clear();
-
-        foreach (var connection in connections)
-        {
-            try
-            {
-                var objects = await metadataProvider.ListObjectsAsync(connection);
-                objectsByConnection[connection.Id] = objects;
-            }
-            catch (Exception ex)
-            {
-                ExtensionLogger.Log($"RefreshObjectsAsync error [{connection.DatabaseName}]: {ex}");
-                SetStatusMessage($"Falha ao carregar objetos de {connection.DatabaseName}: {ex.Message}");
-            }
-        }
-
-        RefreshTree();
+        currentOperationCts?.Cancel();
+        SetStatusMessage("Cancelamento solicitado.");
     }
 
+    public async Task RefreshObjectsAsync()
+    {
+        if (!TryBeginOperation("Atualizando objetos de banco..."))
+        {
+            return;
+        }
+
+        try
+        {
+            objectsByConnection.Clear();
+            healthByObject.Clear();
+
+            var token = currentOperationCts?.Token ?? CancellationToken.None;
+            var failures = new List<string>();
+
+            var tasks = connections.Select(async connection =>
+            {
+                try
+                {
+                    var objects = await metadataProvider.ListObjectsAsync(connection, token);
+                    return (connection.Id, objects, error: (string?)null);
+                }
+                catch (Exception ex)
+                {
+                    ExtensionLogger.Log($"RefreshObjectsAsync error [{connection.DatabaseName}]: {ex}");
+                    return (connection.Id, objects: (IReadOnlyCollection<DatabaseObjectReference>)Array.Empty<DatabaseObjectReference>(), error: $"{connection.DatabaseName}: {ex.Message}");
+                }
+            });
+
+            var results = await Task.WhenAll(tasks);
+            foreach (var result in results)
+            {
+                if (!string.IsNullOrWhiteSpace(result.error))
+                {
+                    failures.Add(result.error);
+                    continue;
+                }
+
+                objectsByConnection[result.Id] = result.objects;
+            }
+
+            RefreshTree();
+            SetStatusMessage(failures.Count == 0
+                ? $"Objetos atualizados para {objectsByConnection.Count} conexão(ões)."
+                : $"Atualização parcial ({failures.Count} falha(s)). Veja o log para detalhes.");
+        }
+        finally
+        {
+            EndOperation();
+        }
+    }
 
     public IReadOnlyCollection<string> PreviewConflictsForNode(ExplorerNode node)
     {
@@ -174,85 +216,115 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
     public async Task GenerateForNodeAsync(ExplorerNode node)
     {
-        var connection = ResolveConnection(node);
-        if (connection is null)
+        if (!TryBeginOperation("Gerando classes..."))
         {
             return;
         }
 
-        if (!objectsByConnection.TryGetValue(connection.Id, out var objects))
+        try
         {
-            SetStatusMessage("Nenhum objeto carregado para gerar. Use Atualizar objetos primeiro.");
-            return;
-        }
+            var token = currentOperationCts?.Token ?? CancellationToken.None;
+            var connection = ResolveConnection(node);
+            if (connection is null)
+            {
+                return;
+            }
 
-        var selectedObjects = ResolveSelectedObjects(node, objects).ToArray();
-        if (selectedObjects.Length == 0)
+            if (!objectsByConnection.TryGetValue(connection.Id, out var objects))
+            {
+                SetStatusMessage("Nenhum objeto carregado para gerar. Use Atualizar objetos primeiro.");
+                return;
+            }
+
+            var selectedObjects = ResolveSelectedObjects(node, objects).ToArray();
+            if (selectedObjects.Length == 0)
+            {
+                SetStatusMessage("Nenhum objeto selecionado para geração.");
+                return;
+            }
+
+            var mapping = mappings.FirstOrDefault(m => m.ConnectionId == connection.Id)
+                ?? new ConnectionMappingConfiguration(connection.Id, CreateDefaultMappings("Generated", "{NamePascal}{Type}Factory.cs"));
+
+            var generator = new ClassGenerator();
+            var request = new GenerationRequest(connection, selectedObjects);
+            var generated = await generator.GenerateAsync(request, mapping, o => StructuredClassContentFactory.Build(o, "Generated", connection.DatabaseType), token);
+            SetStatusMessage($"Geração concluída. Arquivos gerados: {generated.Count}.");
+        }
+        finally
         {
-            SetStatusMessage("Nenhum objeto selecionado para geração.");
-            return;
+            EndOperation();
         }
-
-        var mapping = mappings.FirstOrDefault(m => m.ConnectionId == connection.Id)
-            ?? new ConnectionMappingConfiguration(connection.Id, CreateDefaultMappings("Generated", "{NamePascal}{Type}Factory.cs"));
-
-        var conflicts = FindExistingFiles(connection, mapping, selectedObjects).ToArray();
-        if (conflicts.Length > 0)
-        {
-            SetStatusMessage($"Pré-visualização: {conflicts.Length} arquivo(s) serão sobrescritos.");
-        }
-
-        var generator = new ClassGenerator();
-        var request = new GenerationRequest(connection, selectedObjects);
-        var generated = await generator.GenerateAsync(request, mapping, o => StructuredClassContentFactory.Build(o, "Generated", connection.DatabaseType));
-        SetStatusMessage($"Geração concluída. Arquivos gerados: {generated.Count}.");
     }
 
     public async Task CheckConsistencyAsync(ExplorerNode node)
     {
-        var connection = ResolveConnection(node);
-        if (connection is null)
+        if (!TryBeginOperation("Checando consistência..."))
         {
             return;
         }
 
-        if (!objectsByConnection.TryGetValue(connection.Id, out var objects))
+        try
         {
-            SetStatusMessage("Nenhum objeto carregado para checar consistência.");
-            return;
-        }
-
-        var mapping = mappings.FirstOrDefault(m => m.ConnectionId == connection.Id);
-        if (mapping is null)
-        {
-            SetStatusMessage("Mapeamento não encontrado para a conexão selecionada.");
-            return;
-        }
-
-        var checker = new ObjectConsistencyChecker();
-        var selectedObjects = ResolveSelectedObjects(node, objects).ToArray();
-
-        foreach (var dbObject in selectedObjects)
-        {
-            if (!mapping.Mappings.TryGetValue(dbObject.Type, out var objectMapping))
+            var token = currentOperationCts?.Token ?? CancellationToken.None;
+            var connection = ResolveConnection(node);
+            if (connection is null)
             {
-                continue;
+                return;
             }
 
-            var filePath = Path.Combine(objectMapping.OutputDirectory, ResolveFileName(objectMapping.FileNamePattern, connection, dbObject));
-            if (!File.Exists(filePath))
+            if (!objectsByConnection.TryGetValue(connection.Id, out var objects))
             {
-                healthByObject[BuildObjectKey(connection.Id, dbObject)] = new ObjectHealthResult(dbObject, filePath, ObjectHealthStatus.MissingInDatabase, "Arquivo local não encontrado.");
-                continue;
+                SetStatusMessage("Nenhum objeto carregado para checar consistência.");
+                return;
             }
 
-            var snapshot = await GeneratedClassSnapshotReader.ReadAsync(filePath, dbObject);
-            var result = await checker.CheckAsync(connection, snapshot, metadataProvider);
-            healthByObject[BuildObjectKey(connection.Id, dbObject)] = result;
-        }
+            var mapping = mappings.FirstOrDefault(m => m.ConnectionId == connection.Id);
+            if (mapping is null)
+            {
+                SetStatusMessage("Mapeamento não encontrado para a conexão selecionada.");
+                return;
+            }
 
-        RefreshTree();
-        SetStatusMessage("Checagem de consistência finalizada.");
+            var checker = new ObjectConsistencyChecker();
+            var selectedObjects = ResolveSelectedObjects(node, objects).ToArray();
+            var updates = new ConcurrentBag<(string Key, ObjectHealthResult Result)>();
+
+            var tasks = selectedObjects.Select(async dbObject =>
+            {
+                token.ThrowIfCancellationRequested();
+
+                if (!mapping.Mappings.TryGetValue(dbObject.Type, out var objectMapping))
+                {
+                    return;
+                }
+
+                var filePath = Path.Combine(objectMapping.OutputDirectory, ResolveFileName(objectMapping.FileNamePattern, connection, dbObject));
+                if (!File.Exists(filePath))
+                {
+                    updates.Add((BuildObjectKey(connection.Id, dbObject), new ObjectHealthResult(dbObject, filePath, ObjectHealthStatus.MissingInDatabase, "Arquivo local não encontrado.")));
+                    return;
+                }
+
+                var snapshot = await GeneratedClassSnapshotReader.ReadAsync(filePath, dbObject, token);
+                var result = await checker.CheckAsync(connection, snapshot, metadataProvider, token);
+                updates.Add((BuildObjectKey(connection.Id, dbObject), result));
+            });
+
+            await Task.WhenAll(tasks);
+
+            foreach (var update in updates)
+            {
+                healthByObject[update.Key] = update.Result;
+            }
+
+            RefreshTree();
+            SetStatusMessage($"Checagem de consistência finalizada para {updates.Count} objeto(s).");
+        }
+        finally
+        {
+            EndOperation();
+        }
     }
 
     private static IReadOnlyDictionary<DatabaseObjectType, ObjectTypeMapping> CreateDefaultMappings(string outputDirectory, string fileNamePattern)
@@ -371,6 +443,36 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         }
 
         OnPropertyChanged(nameof(Nodes));
+    }
+
+    private bool TryBeginOperation(string message)
+    {
+        if (!operationLock.Wait(0))
+        {
+            SetStatusMessage("Já existe uma operação em andamento.");
+            return false;
+        }
+
+        currentOperationCts?.Dispose();
+        currentOperationCts = new CancellationTokenSource();
+        IsBusy = true;
+        OnPropertyChanged(nameof(IsBusy));
+        SetStatusMessage(message);
+        return true;
+    }
+
+    private void EndOperation()
+    {
+        currentOperationCts?.Dispose();
+        currentOperationCts = null;
+
+        if (IsBusy)
+        {
+            IsBusy = false;
+            OnPropertyChanged(nameof(IsBusy));
+        }
+
+        operationLock.Release();
     }
 
     private ConnectionDefinition? ResolveConnection(ExplorerNode node)

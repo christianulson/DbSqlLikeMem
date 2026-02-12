@@ -1,12 +1,22 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using DbSqlLikeMem.VisualStudioExtension.Services;
 
 namespace DbSqlLikeMem.VisualStudioExtension.UI;
 
 public partial class DbSqlLikeMemToolWindowControl : UserControl
 {
+    private static readonly HashSet<ExplorerNodeKind> GenerationSupportedKinds =
+    [
+        ExplorerNodeKind.Connection,
+        ExplorerNodeKind.ObjectType,
+        ExplorerNodeKind.Object
+    ];
+
     private readonly DbSqlLikeMemToolWindowViewModel viewModel;
 
     public DbSqlLikeMemToolWindowControl()
@@ -17,57 +27,59 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     }
 
     private async void OnAddConnectionClick(object sender, RoutedEventArgs e)
-    {
-        var dialog = new ConnectionDialog { Owner = Window.GetWindow(this) };
-
-        if (dialog.ShowDialog() != true)
+        => await RunSafeAsync(async () =>
         {
-            return;
-        }
+            var dialog = new ConnectionDialog { Owner = Window.GetWindow(this) };
 
-        var test = await viewModel.TestConnectionAsync(dialog.DatabaseType, dialog.ConnectionString);
-        if (!test.Success)
-        {
-            MessageBox.Show(this, test.Message, "Falha de conexão", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
+            if (dialog.ShowDialog() != true)
+            {
+                return;
+            }
 
-        viewModel.AddConnection(dialog.ConnectionName, dialog.DatabaseType, dialog.ConnectionString);
-        await viewModel.RefreshObjectsAsync();
-    }
+            var test = await viewModel.TestConnectionAsync(dialog.DatabaseType, dialog.ConnectionString);
+            if (!test.Success)
+            {
+                MessageBox.Show(this, test.Message, "Falha de conexão", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            viewModel.AddConnection(dialog.ConnectionName, dialog.DatabaseType, dialog.ConnectionString);
+            await viewModel.RefreshObjectsAsync();
+        });
 
     private async void OnEditConnectionClick(object sender, RoutedEventArgs e)
-    {
-        if (ExplorerTree.SelectedItem is not ExplorerNode selected || selected.Kind != ExplorerNodeKind.Connection)
+        => await RunSafeAsync(async () =>
         {
-            MessageBox.Show(this, "Selecione um nó de conexão para editar.", "Editar conexão", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
+            if (ExplorerTree.SelectedItem is not ExplorerNode selected || selected.Kind != ExplorerNodeKind.Connection)
+            {
+                MessageBox.Show(this, "Selecione um nó de conexão para editar.", "Editar conexão", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
 
-        var existing = selected.ConnectionId is null ? null : viewModel.GetConnection(selected.ConnectionId);
-        var dialog = new ConnectionDialog
-        {
-            Owner = Window.GetWindow(this),
-            ConnectionName = existing?.DatabaseName ?? selected.Label,
-            DatabaseType = existing?.DatabaseType ?? "SqlServer",
-            ConnectionString = existing?.ConnectionString ?? string.Empty
-        };
+            var existing = selected.ConnectionId is null ? null : viewModel.GetConnection(selected.ConnectionId);
+            var dialog = new ConnectionDialog
+            {
+                Owner = Window.GetWindow(this),
+                ConnectionName = existing?.DatabaseName ?? selected.Label,
+                DatabaseType = existing?.DatabaseType ?? "SqlServer",
+                ConnectionString = existing?.ConnectionString ?? string.Empty
+            };
 
-        if (dialog.ShowDialog() != true)
-        {
-            return;
-        }
+            if (dialog.ShowDialog() != true)
+            {
+                return;
+            }
 
-        var test = await viewModel.TestConnectionAsync(dialog.DatabaseType, dialog.ConnectionString);
-        if (!test.Success)
-        {
-            MessageBox.Show(this, test.Message, "Falha de conexão", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
+            var test = await viewModel.TestConnectionAsync(dialog.DatabaseType, dialog.ConnectionString);
+            if (!test.Success)
+            {
+                MessageBox.Show(this, test.Message, "Falha de conexão", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
 
-        viewModel.UpdateConnection(selected, dialog.ConnectionName, dialog.DatabaseType, dialog.ConnectionString);
-        await viewModel.RefreshObjectsAsync();
-    }
+            viewModel.UpdateConnection(selected, dialog.ConnectionName, dialog.DatabaseType, dialog.ConnectionString);
+            await viewModel.RefreshObjectsAsync();
+        });
 
     private void OnRemoveConnectionClick(object sender, RoutedEventArgs e)
     {
@@ -95,41 +107,57 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     }
 
     private async void OnRefreshObjectsClick(object sender, RoutedEventArgs e)
-    {
-        await viewModel.RefreshObjectsAsync();
-    }
+        => await RunSafeAsync(() => viewModel.RefreshObjectsAsync());
+
+    private void OnCancelOperationClick(object sender, RoutedEventArgs e)
+        => viewModel.CancelCurrentOperation();
 
     private async void OnGenerateClassesClick(object sender, RoutedEventArgs e)
-    {
-        if (ExplorerTree.SelectedItem is not ExplorerNode selected || !new[] { ExplorerNodeKind.Connection, ExplorerNodeKind.ObjectType, ExplorerNodeKind.Object }.Contains(selected.Kind))
+        => await RunSafeAsync(async () =>
         {
-            MessageBox.Show(this, "Selecione conexão, tipo de objeto ou objeto para gerar classes.", "Gerar classes", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        var conflicts = viewModel.PreviewConflictsForNode(selected);
-        if (conflicts.Count > 0)
-        {
-            var preview = string.Join(Environment.NewLine, conflicts.Take(10));
-            var message = $"{conflicts.Count} arquivo(s) já existem e serão sobrescritos:\n\n{preview}";
-            var confirm = MessageBox.Show(this, message, "Pré-visualização de sobrescrita", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-            if (confirm != MessageBoxResult.Yes)
+            if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
             {
+                MessageBox.Show(this, "Selecione conexão, tipo de objeto ou objeto para gerar classes.", "Gerar classes", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
-        }
 
-        await viewModel.GenerateForNodeAsync(selected);
-    }
+            var conflicts = viewModel.PreviewConflictsForNode(selected);
+            if (conflicts.Count > 0)
+            {
+                var preview = string.Join(Environment.NewLine, conflicts.Take(10));
+                var message = $"{conflicts.Count} arquivo(s) já existem e serão sobrescritos:\n\n{preview}";
+                var confirm = MessageBox.Show(this, message, "Pré-visualização de sobrescrita", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                if (confirm != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+            }
+
+            await viewModel.GenerateForNodeAsync(selected);
+        });
 
     private async void OnCheckConsistencyClick(object sender, RoutedEventArgs e)
-    {
-        if (ExplorerTree.SelectedItem is not ExplorerNode selected || !new[] { ExplorerNodeKind.Connection, ExplorerNodeKind.ObjectType, ExplorerNodeKind.Object }.Contains(selected.Kind))
+        => await RunSafeAsync(async () =>
         {
-            MessageBox.Show(this, "Selecione conexão, tipo de objeto ou objeto para checar consistência.", "Checar consistência", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
+            if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
+            {
+                MessageBox.Show(this, "Selecione conexão, tipo de objeto ou objeto para checar consistência.", "Checar consistência", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
 
-        await viewModel.CheckConsistencyAsync(selected);
+            await viewModel.CheckConsistencyAsync(selected);
+        });
+
+    private async Task RunSafeAsync(Func<Task> action)
+    {
+        try
+        {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            ExtensionLogger.Log($"UI operation error: {ex}");
+            MessageBox.Show(this, ex.Message, "Erro inesperado", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 }
