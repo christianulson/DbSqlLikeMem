@@ -50,6 +50,39 @@ public sealed class NpgsqlTransactionMock(
     }
 
     /// <summary>
+    /// EN: Creates a savepoint in the active transaction.
+    /// PT: Cria um savepoint na transação ativa.
+    /// </summary>
+    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
+    public void Save(string savepointName)
+    {
+        lock (cnn.Db.SyncRoot)
+            cnn.CreateSavepoint(savepointName);
+    }
+
+    /// <summary>
+    /// EN: Rolls back to a named savepoint.
+    /// PT: Executa rollback para um savepoint nomeado.
+    /// </summary>
+    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
+    public void Rollback(string savepointName)
+    {
+        lock (cnn.Db.SyncRoot)
+            cnn.RollbackTransaction(savepointName);
+    }
+
+    /// <summary>
+    /// EN: Releases a named savepoint.
+    /// PT: Libera um savepoint nomeado.
+    /// </summary>
+    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
+    public void Release(string savepointName)
+    {
+        lock (cnn.Db.SyncRoot)
+            cnn.ReleaseSavepoint(savepointName);
+    }
+
+    /// <summary>
     /// EN: Disposes the transaction resources.
     /// PT: Descarta os recursos da transação.
     /// </summary>

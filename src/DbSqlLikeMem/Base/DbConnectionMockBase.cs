@@ -12,7 +12,24 @@ public abstract class DbConnectionMockBase(
     string? defaultDatabase = null
     ) : DbConnection
 {
+    private sealed class TableReferenceComparer : IEqualityComparer<ITableMock>
+    {
+        public static readonly TableReferenceComparer Instance = new();
+
+        public bool Equals(ITableMock? x, ITableMock? y) => ReferenceEquals(x, y);
+
+        public int GetHashCode(ITableMock obj)
+            => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
+    }
+
+    private sealed record TransactionTableSnapshot(
+        int NextIdentity,
+        List<Dictionary<int, object?>> Rows);
+
     private bool _disposed;
+    private readonly Dictionary<string, Dictionary<ITableMock, TransactionTableSnapshot>> _savepoints =
+        new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<string> _savepointOrder = [];
 
     /// <summary>
     /// EN: In-memory database associated with this connection.
@@ -87,6 +104,30 @@ public abstract class DbConnectionMockBase(
     /// PT: Transação ativa atual, se houver.
     /// </summary>
     protected DbTransaction? CurrentTransaction { get; private set; }
+
+    /// <summary>
+    /// EN: Indicates whether there is an active transaction in this connection.
+    /// PT: Indica se existe transação ativa nesta conexão.
+    /// </summary>
+    public bool HasActiveTransaction => CurrentTransaction != null;
+
+    /// <summary>
+    /// EN: Active transaction isolation level for the current connection.
+    /// PT: Nível de isolamento ativo da transação atual da conexão.
+    /// </summary>
+    public IsolationLevel CurrentIsolationLevel { get; private set; } = IsolationLevel.Unspecified;
+
+    /// <summary>
+    /// EN: Indicates whether savepoints are supported by this provider.
+    /// PT: Indica se savepoints são suportados por este provedor.
+    /// </summary>
+    protected virtual bool SupportsSavepoints => true;
+
+    /// <summary>
+    /// EN: Indicates whether release savepoint is supported by this provider.
+    /// PT: Indica se RELEASE SAVEPOINT é suportado por este provedor.
+    /// </summary>
+    protected virtual bool SupportsReleaseSavepoint => true;
 
     private readonly Dictionary<string, ITableMock> _temporaryTables =
         new(StringComparer.OrdinalIgnoreCase);
@@ -336,16 +377,23 @@ public abstract class DbConnectionMockBase(
         IsolationLevel isolationLevel)
     {
         if (!Db.ThreadSafe)
-            return BeginTransactionCore();
+            return BeginTransactionCore(isolationLevel);
 
         lock (Db.SyncRoot)
-            return BeginTransactionCore();
+            return BeginTransactionCore(isolationLevel);
     }
 
     private DbTransaction BeginTransactionCore()
     {
-        CurrentTransaction = CreateTransaction();
-        Db.BackupAllTablesBestEffort();
+        return BeginTransactionCore(IsolationLevel.Unspecified);
+    }
+
+    private DbTransaction BeginTransactionCore(IsolationLevel isolationLevel)
+    {
+        CurrentIsolationLevel = isolationLevel;
+        CurrentTransaction = CreateTransaction(isolationLevel);
+        ClearTransactionStateCore();
+        CreateSavepointCore("__tx_begin__");
         return CurrentTransaction;
     }
 
@@ -354,7 +402,7 @@ public abstract class DbConnectionMockBase(
     /// PT: Cria uma instância de transação específica do provedor.
     /// </summary>
     /// <returns>EN: Transaction instance. PT: Instância da transação.</returns>
-    protected abstract DbTransaction CreateTransaction();
+    protected abstract DbTransaction CreateTransaction(IsolationLevel isolationLevel);
 
     /// <summary>
     /// EN: Changes the current database/schema of the connection.
@@ -417,8 +465,9 @@ public abstract class DbConnectionMockBase(
     private void CommitCore()
     {
         Debug.WriteLine("Transaction Committed");
-        Db.ClearBackupAllTablesBestEffort();
+        ClearTransactionStateCore();
         CurrentTransaction = null;
+        CurrentIsolationLevel = IsolationLevel.Unspecified;
     }
 
     /// <summary>
@@ -440,8 +489,155 @@ public abstract class DbConnectionMockBase(
     private void RollbackCore()
     {
         Debug.WriteLine("Transaction Rolled Back");
-        Db.RestoreAllTablesBestEffort();
+        RollbackToSavepointCore("__tx_begin__");
+        ClearTransactionStateCore();
         CurrentTransaction = null;
+        CurrentIsolationLevel = IsolationLevel.Unspecified;
+    }
+
+    /// <summary>
+    /// EN: Creates a named savepoint inside the active transaction.
+    /// PT: Cria um savepoint nomeado dentro da transação ativa.
+    /// </summary>
+    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
+    public void CreateSavepoint(string savepointName)
+    {
+        if (!Db.ThreadSafe)
+        {
+            CreateSavepointCore(savepointName);
+            return;
+        }
+
+        lock (Db.SyncRoot)
+            CreateSavepointCore(savepointName);
+    }
+
+    /// <summary>
+    /// EN: Rolls back to a named savepoint inside the active transaction.
+    /// PT: Executa rollback para um savepoint nomeado dentro da transação ativa.
+    /// </summary>
+    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
+    public void RollbackTransaction(string savepointName)
+    {
+        if (!Db.ThreadSafe)
+        {
+            RollbackToSavepointCore(savepointName);
+            return;
+        }
+
+        lock (Db.SyncRoot)
+            RollbackToSavepointCore(savepointName);
+    }
+
+    /// <summary>
+    /// EN: Releases a named savepoint from the active transaction.
+    /// PT: Libera um savepoint nomeado da transação ativa.
+    /// </summary>
+    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
+    public void ReleaseSavepoint(string savepointName)
+    {
+        if (!Db.ThreadSafe)
+        {
+            ReleaseSavepointCore(savepointName);
+            return;
+        }
+
+        lock (Db.SyncRoot)
+            ReleaseSavepointCore(savepointName);
+    }
+
+    private void CreateSavepointCore(string savepointName)
+    {
+        EnsureActiveTransaction();
+        if (!SupportsSavepoints)
+            throw new NotSupportedException($"Operation not supported by provider: SAVEPOINT ({Db.Dialect.Name}).");
+
+        var normalizedName = NormalizeSavepointName(savepointName);
+        var snapshot = CaptureSnapshot();
+        if (_savepoints.ContainsKey(normalizedName))
+            _savepointOrder.Remove(normalizedName);
+        _savepoints[normalizedName] = snapshot;
+        _savepointOrder.Add(normalizedName);
+    }
+
+    private void RollbackToSavepointCore(string savepointName)
+    {
+        EnsureActiveTransaction();
+        if (!SupportsSavepoints)
+            throw new NotSupportedException($"Operation not supported by provider: ROLLBACK TO SAVEPOINT ({Db.Dialect.Name}).");
+
+        var normalizedName = NormalizeSavepointName(savepointName);
+        if (!_savepoints.TryGetValue(normalizedName, out var snapshot))
+            throw new InvalidOperationException($"Savepoint '{savepointName}' was not found.");
+
+        RestoreSnapshot(snapshot);
+
+        var savepointIndex = _savepointOrder.FindIndex(name => name.Equals(normalizedName, StringComparison.OrdinalIgnoreCase));
+        if (savepointIndex >= 0)
+        {
+            for (var idx = _savepointOrder.Count - 1; idx > savepointIndex; idx--)
+            {
+                _savepoints.Remove(_savepointOrder[idx]);
+                _savepointOrder.RemoveAt(idx);
+            }
+        }
+    }
+
+    private void ReleaseSavepointCore(string savepointName)
+    {
+        EnsureActiveTransaction();
+        if (!SupportsSavepoints || !SupportsReleaseSavepoint)
+            throw new NotSupportedException($"Operation not supported by provider: RELEASE SAVEPOINT ({Db.Dialect.Name}).");
+
+        var normalizedName = NormalizeSavepointName(savepointName);
+        if (!_savepoints.Remove(normalizedName))
+            throw new InvalidOperationException($"Savepoint '{savepointName}' was not found.");
+
+        _savepointOrder.RemoveAll(name => name.Equals(normalizedName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string NormalizeSavepointName(string savepointName)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(savepointName, nameof(savepointName));
+        return savepointName.Trim();
+    }
+
+    private void EnsureActiveTransaction()
+    {
+        if (CurrentTransaction == null)
+            throw new InvalidOperationException("No active transaction for savepoint operation.");
+    }
+
+    private Dictionary<ITableMock, TransactionTableSnapshot> CaptureSnapshot()
+    {
+        var snapshot = new Dictionary<ITableMock, TransactionTableSnapshot>(TableReferenceComparer.Instance);
+        foreach (var table in Db.ListAllTablesBestEffort())
+        {
+            var rows = table.Select(row => row.ToDictionary(entry => entry.Key, entry => entry.Value)).ToList();
+            snapshot[table] = new TransactionTableSnapshot(table.NextIdentity, rows);
+        }
+        return snapshot;
+    }
+
+    private static void RestoreSnapshot(Dictionary<ITableMock, TransactionTableSnapshot> snapshot)
+    {
+        foreach (var (table, tableSnapshot) in snapshot)
+        {
+            while (table.Count > 0)
+                table.RemoveAt(table.Count - 1);
+
+            foreach (var row in tableSnapshot.Rows)
+                table.Add(row.ToDictionary(entry => entry.Key, entry => entry.Value));
+
+            table.NextIdentity = tableSnapshot.NextIdentity;
+            table.RebuildAllIndexes();
+        }
+    }
+
+    private void ClearTransactionStateCore()
+    {
+        _savepoints.Clear();
+        _savepointOrder.Clear();
     }
 
     internal void MaybeDelayOrDrop()

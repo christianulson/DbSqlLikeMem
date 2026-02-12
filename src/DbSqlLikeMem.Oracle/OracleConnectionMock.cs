@@ -35,8 +35,8 @@ public class OracleConnectionMock
     /// PT: Cria um mock de transação Oracle.
     /// </summary>
     /// <returns>EN: Transaction instance. PT: Instância da transação.</returns>
-    protected override DbTransaction CreateTransaction()
-        => new OracleTransactionMock(this);
+    protected override DbTransaction CreateTransaction(IsolationLevel isolationLevel)
+        => new OracleTransactionMock(this, isolationLevel);
 
     /// <summary>
     /// EN: Creates an Oracle command mock for the transaction.

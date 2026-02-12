@@ -31,8 +31,8 @@ public sealed class SqlServerConnectionMock
     /// PT: Cria um mock de transação SQL Server.
     /// </summary>
     /// <returns>EN: Transaction instance. PT: Instância da transação.</returns>
-    protected override DbTransaction CreateTransaction()
-        => new SqlServerTransactionMock(this);
+    protected override DbTransaction CreateTransaction(IsolationLevel isolationLevel)
+        => new SqlServerTransactionMock(this, isolationLevel);
 
     /// <summary>
     /// EN: Creates a SQL Server command mock for the transaction.
@@ -42,6 +42,12 @@ public sealed class SqlServerConnectionMock
     /// <returns>EN: Command instance. PT: Instância do comando.</returns>
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new SqlServerCommandMock(this, transaction as SqlServerTransactionMock);
+
+    /// <summary>
+    /// EN: SQL Server mock does not support RELEASE SAVEPOINT syntax.
+    /// PT: O mock SQL Server não suporta sintaxe RELEASE SAVEPOINT.
+    /// </summary>
+    protected override bool SupportsReleaseSavepoint => false;
 
     internal override Exception NewException(string message, int code)
         => new SqlServerMockException(message, code);

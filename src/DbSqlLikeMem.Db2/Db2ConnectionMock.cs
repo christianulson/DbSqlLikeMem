@@ -33,8 +33,8 @@ public sealed class Db2ConnectionMock
     /// PT: Cria um mock de transação DB2.
     /// </summary>
     /// <returns>EN: Transaction instance. PT: Instância da transação.</returns>
-    protected override DbTransaction CreateTransaction()
-        => new Db2TransactionMock(this);
+    protected override DbTransaction CreateTransaction(IsolationLevel isolationLevel)
+        => new Db2TransactionMock(this, isolationLevel);
 
     /// <summary>
     /// EN: Creates a DB2 command mock for the transaction.

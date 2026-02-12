@@ -93,6 +93,9 @@ public class NpgsqlCommandMock(
 
         var sqlRaw = CommandText.Trim();
 
+        if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
+            return transactionControlResult;
+
         // Mantém atalhos existentes (CALL / CREATE TABLE AS SELECT) por compatibilidade do engine atual
         if (sqlRaw.StartsWith("call ", StringComparison.OrdinalIgnoreCase))
             return connection!.ExecuteCall(sqlRaw, Parameters);
@@ -184,6 +187,59 @@ public class NpgsqlCommandMock(
         connection.Metrics.Selects += tables.Sum(t => t.Count);
 
         return new NpgsqlDataReaderMock(tables);
+    }
+
+
+    private bool TryExecuteTransactionControlCommand(string sqlRaw, out int affectedRows)
+    {
+        affectedRows = 0;
+
+        ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+
+        if (sqlRaw.Equals("begin", StringComparison.OrdinalIgnoreCase) ||
+            sqlRaw.Equals("begin transaction", StringComparison.OrdinalIgnoreCase) ||
+            sqlRaw.Equals("start transaction", StringComparison.OrdinalIgnoreCase))
+        {
+            if (connection!.State != ConnectionState.Open)
+                connection.Open();
+
+            if (!connection.HasActiveTransaction)
+                connection.BeginTransaction();
+
+            return true;
+        }
+
+        if (sqlRaw.StartsWith("savepoint ", StringComparison.OrdinalIgnoreCase))
+        {
+            connection!.CreateSavepoint(sqlRaw[10..].Trim());
+            return true;
+        }
+
+        if (sqlRaw.StartsWith("rollback to savepoint ", StringComparison.OrdinalIgnoreCase))
+        {
+            connection!.RollbackTransaction(sqlRaw[22..].Trim());
+            return true;
+        }
+
+        if (sqlRaw.StartsWith("release savepoint ", StringComparison.OrdinalIgnoreCase))
+        {
+            connection!.ReleaseSavepoint(sqlRaw[18..].Trim());
+            return true;
+        }
+
+        if (sqlRaw.Equals("commit", StringComparison.OrdinalIgnoreCase))
+        {
+            connection!.CommitTransaction();
+            return true;
+        }
+
+        if (sqlRaw.Equals("rollback", StringComparison.OrdinalIgnoreCase))
+        {
+            connection!.RollbackTransaction();
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>

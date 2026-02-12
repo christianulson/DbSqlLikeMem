@@ -27,8 +27,8 @@ public sealed class MySqlConnectionMock
     /// PT: Cria um mock de transação MySQL.
     /// </summary>
     /// <returns>EN: Transaction instance. PT: Instância da transação.</returns>
-    protected override DbTransaction CreateTransaction()
-        => new MySqlTransactionMock(this);
+    protected override DbTransaction CreateTransaction(IsolationLevel isolationLevel)
+        => new MySqlTransactionMock(this, isolationLevel);
 
     /// <summary>
     /// EN: Creates a MySQL command mock for the transaction.

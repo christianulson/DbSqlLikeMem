@@ -31,8 +31,8 @@ public sealed class NpgsqlConnectionMock
     /// PT: Cria um mock de transação PostgreSQL.
     /// </summary>
     /// <returns>EN: Transaction instance. PT: Instância da transação.</returns>
-    protected override DbTransaction CreateTransaction()
-        => new NpgsqlTransactionMock(this);
+    protected override DbTransaction CreateTransaction(IsolationLevel isolationLevel)
+        => new NpgsqlTransactionMock(this, isolationLevel);
 
     /// <summary>
     /// EN: Creates a PostgreSQL command mock for the transaction.

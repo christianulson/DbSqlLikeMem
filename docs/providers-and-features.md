@@ -173,6 +173,23 @@ Se a diferença altera **validade sintática** ou **interpretação semântica**
 - Validação explícita de direção de parâmetros obrigatórios (`IN` exige Input/InputOutput).
 - Fluxo compatível com uso via Dapper (`Execute` com `commandType: StoredProcedure`).
 
+
+### P11 — confiabilidade transacional e concorrência
+
+| Provider | Savepoint | Release savepoint | Isolation (mock simplificado) |
+| --- | --- | --- | --- |
+| MySQL | ✅ `SAVEPOINT` / `ROLLBACK TO SAVEPOINT` | ✅ | ✅ `ReadCommitted`, `RepeatableRead`, `Serializable` |
+| SQL Server | ✅ `SAVEPOINT` / `ROLLBACK TO SAVEPOINT` | ❌ não suportado (mensagem explícita) | ✅ `ReadCommitted`, `RepeatableRead`, `Serializable` |
+| Oracle | ✅ `SAVEPOINT` / `ROLLBACK TO SAVEPOINT` | ✅ | ✅ `ReadCommitted`, `RepeatableRead`, `Serializable` |
+| PostgreSQL (Npgsql) | ✅ `SAVEPOINT` / `ROLLBACK TO SAVEPOINT` | ✅ | ✅ `ReadCommitted`, `RepeatableRead`, `Serializable` |
+| SQLite (Sqlite) | ✅ `SAVEPOINT` / `ROLLBACK TO SAVEPOINT` | ✅ | ✅ `ReadCommitted`, `RepeatableRead`, `Serializable` |
+| DB2 | ✅ `SAVEPOINT` / `ROLLBACK TO SAVEPOINT` | ✅ | ✅ `ReadCommitted`, `RepeatableRead`, `Serializable` |
+
+Notas do modelo simplificado (determinístico):
+- O mock mantém snapshots por savepoint para garantir rollback intermediário consistente em múltiplos comandos DML.
+- `Commit` descarta snapshots ativos; `Rollback` restaura o snapshot inicial da transação.
+- Operações concorrentes continuam protegidas por `Db.SyncRoot` quando `ThreadSafe = true`.
+
 ### Limitações conhecidas (P7–P10)
 
 - `RETURNING`/`OUTPUT` ainda não materializa conjunto retornado completo no executor para todos os dialetos.

@@ -94,6 +94,9 @@ public class MySqlCommandMock(
 
         var sqlRaw = CommandText.Trim();
 
+        if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
+            return transactionControlResult;
+
         // 2. Comandos especiais que talvez o Parser ainda não suporte nativamente (DDL, CALL)
         if (sqlRaw.StartsWith("call ", StringComparison.OrdinalIgnoreCase))
         {
@@ -144,6 +147,58 @@ public class MySqlCommandMock(
             SqlSelectQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT."),
             _ => throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteNonQuery", query.GetType())
         };
+    }
+
+    private bool TryExecuteTransactionControlCommand(string sqlRaw, out int affectedRows)
+    {
+        affectedRows = 0;
+
+        ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+
+        if (sqlRaw.Equals("begin", StringComparison.OrdinalIgnoreCase) ||
+            sqlRaw.Equals("begin transaction", StringComparison.OrdinalIgnoreCase) ||
+            sqlRaw.Equals("start transaction", StringComparison.OrdinalIgnoreCase))
+        {
+            if (connection!.State != ConnectionState.Open)
+                connection.Open();
+
+            if (!connection.HasActiveTransaction)
+                connection.BeginTransaction();
+
+            return true;
+        }
+
+        if (sqlRaw.StartsWith("savepoint ", StringComparison.OrdinalIgnoreCase))
+        {
+            connection!.CreateSavepoint(sqlRaw[10..].Trim());
+            return true;
+        }
+
+        if (sqlRaw.StartsWith("rollback to savepoint ", StringComparison.OrdinalIgnoreCase))
+        {
+            connection!.RollbackTransaction(sqlRaw[22..].Trim());
+            return true;
+        }
+
+        if (sqlRaw.StartsWith("release savepoint ", StringComparison.OrdinalIgnoreCase))
+        {
+            connection!.ReleaseSavepoint(sqlRaw[18..].Trim());
+            return true;
+        }
+
+        if (sqlRaw.Equals("commit", StringComparison.OrdinalIgnoreCase))
+        {
+            connection!.CommitTransaction();
+            return true;
+        }
+
+        if (sqlRaw.Equals("rollback", StringComparison.OrdinalIgnoreCase))
+        {
+            connection!.RollbackTransaction();
+            return true;
+        }
+
+        return false;
     }
 
     private static bool IsDeleteMissingFrom(string sqlRaw)
