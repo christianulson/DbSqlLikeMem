@@ -61,14 +61,19 @@ Para reduzir ambiguidades entre dialetos e manter testes determinísticos, o pro
 
 > Observação: bancos reais podem variar conforme collation configurada em coluna/base/instância. Quando o comportamento real não é 100% reproduzível no mock, esta regra fixa é a referência oficial para testes.
 
-## Fase 3 — recursos analíticos (SQLite/DB2)
+## Fase 3 — recursos analíticos (todos os providers)
 
 Decisões de compatibilidade implementadas para cobrir os cenários de relatório mais comuns:
 
 - `ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)`: habilitado no executor AST para todos os dialetos que passam por `AstQueryExecutorBase`, incluindo SQLite e DB2.
 - Subquery correlacionada em `SELECT` list: avaliada como subconsulta escalar com acesso ao `outer row` (primeira célula da primeira linha; `null` se vazio).
 - `CAST` string->número (casos básicos): suporte para `SIGNED`/`UNSIGNED`/`INT*` e `DECIMAL`/`NUMERIC` com parsing `InvariantCulture` e fallback previsível (`0`/`0m` em `CAST`, `null` em `TRY_CAST`).
-- Operações de data: comportamento unificado para `DATE_ADD`, `DATEADD` e `TIMESTAMPADD`; adicionalmente, `DATE(...)`/`DATETIME(...)` aceitam modificadores SQLite simples como `'+1 day'`.
+- Operações de data com regra explícita por dialeto (`SupportsDateAddFunction`):
+  - **MySQL**: `DATE_ADD` e `TIMESTAMPADD`.
+  - **SQLite**: `DATE_ADD` (além de `DATE(...)`/`DATETIME(...)` com modificadores simples como `'+1 day'`).
+  - **SQL Server**: `DATEADD`.
+  - **DB2**: `DATE_ADD` e `TIMESTAMPADD`.
+  - **PostgreSQL / Oracle**: sem função `DATE_ADD/DATEADD/TIMESTAMPADD` no mock; o caminho suportado é aritmética com `INTERVAL` (ex.: `created + INTERVAL ...`).
 
 ### Limitações conhecidas (próxima fase)
 

@@ -2148,6 +2148,8 @@ internal abstract class AstQueryExecutorBase(
 
         if (fn.Name.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase))
         {
+            if (!(Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para operações de data.")).SupportsDateAddFunction("DATE_ADD"))
+                return null;
             var baseVal = EvalArg(0);
             if (IsNullish(baseVal)) return null;
             if (!TryCoerceDateTime(baseVal, out var dt))
@@ -2172,6 +2174,8 @@ internal abstract class AstQueryExecutorBase(
 
         if (fn.Name.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase))
         {
+            if (!(Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para operações de data.")).SupportsDateAddFunction("TIMESTAMPADD"))
+                return null;
             if (fn.Args.Count < 3)
                 return null;
 
@@ -2188,6 +2192,8 @@ internal abstract class AstQueryExecutorBase(
 
         if (fn.Name.Equals("DATEADD", StringComparison.OrdinalIgnoreCase))
         {
+            if (!(Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para operações de data.")).SupportsDateAddFunction("DATEADD"))
+                return null;
             if (fn.Args.Count < 3)
                 return null;
 

@@ -110,6 +110,7 @@ internal interface ISqlDialect
     bool RegexInvalidPatternEvaluatesToFalse { get; }
     bool AreUnionColumnTypesCompatible(DbType first, DbType second);
     bool IsIntegerCastTypeName(string typeName);
+    bool SupportsDateAddFunction(string functionName);
 }
 
 internal abstract class SqlDialectBase : ISqlDialect
@@ -292,6 +293,16 @@ internal abstract class SqlDialectBase : ISqlDialect
             || typeName.StartsWith("BIGINT", StringComparison.OrdinalIgnoreCase)
             || typeName.StartsWith("SMALLINT", StringComparison.OrdinalIgnoreCase)
             || typeName.StartsWith("TINYINT", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public virtual bool SupportsDateAddFunction(string functionName)
+    {
+        if (string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        return functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("DATEADD", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase);
     }
     /// <summary>
     /// Auto-generated summary.

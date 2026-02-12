@@ -98,4 +98,8 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsJsonArrowOperators => true;
     public override bool SupportsMySqlIndexHints => true;
+
+    public override bool SupportsDateAddFunction(string functionName)
+        => functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)
+        || functionName.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase);
 }
