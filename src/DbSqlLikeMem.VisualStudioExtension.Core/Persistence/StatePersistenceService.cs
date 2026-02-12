@@ -28,7 +28,7 @@ public sealed class StatePersistenceService
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
-    public async Task SaveAsync(ExtensionState state, string outputPath, CancellationToken cancellationToken = default)
+    public Task SaveAsync(ExtensionState state, string outputPath, CancellationToken cancellationToken = default)
     {
         var directory = Path.GetDirectoryName(outputPath);
         if (!string.IsNullOrWhiteSpace(directory))
@@ -37,7 +37,7 @@ public sealed class StatePersistenceService
         }
 
         var json = JsonSerializer.Serialize(state, SerializerOptions);
-        await File.WriteAllTextAsync(outputPath, json, cancellationToken);
+        return File.WriteAllTextAsync(outputPath, json, cancellationToken);
     }
 
     /// <summary>
