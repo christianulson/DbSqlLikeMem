@@ -41,6 +41,7 @@
     "onCommand:dbSqlLikeMem.generateRepositoryClasses",
     "onCommand:dbSqlLikeMem.openManager",
     "onView:dbSqlLikeMem.connections",
+    "onCommand:dbSqlLikeMem.editConnection",
     "onCommand:dbSqlLikeMem.removeConnection"
   ],
   "main": "./out/extension.js",
@@ -110,6 +111,10 @@
       {
         "command": "dbSqlLikeMem.setFilter",
         "title": "DbSqlLikeMem: Set Filter"
+      },
+      {
+        "command": "dbSqlLikeMem.editConnection",
+        "title": "DbSqlLikeMem: Edit Connection"
       },
       {
         "command": "dbSqlLikeMem.removeConnection",
@@ -192,6 +197,16 @@
           "icon": {
             "id": "trash"
           }
+        },
+        {
+          "command": "dbSqlLikeMem.editConnection",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-database",
+          "group": "1_connection"
+        },
+        {
+          "command": "dbSqlLikeMem.removeConnection",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-database",
+          "group": "1_connection@1"
         },
         {
           "command": "dbSqlLikeMem.generateClasses",
