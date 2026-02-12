@@ -32,6 +32,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="System.Design" />
+  </ItemGroup>
+
+  <ItemGroup>
     <VSCTCompile Include="DbSqlLikeMemExtension.vsct" />
     <None Include="source.extension.vsixmanifest">
       <SubType>Designer</SubType>

@@ -356,7 +356,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                     return Array.Empty<string>();
                 }
 
-                template = await File.ReadAllTextAsync(normalizedTemplatePath);
+                template = await Task.Run(() => File.ReadAllText(normalizedTemplatePath), token);
             }
 
             var normalizedOutputDirectory = NormalizePath(outputDirectory);
@@ -366,16 +366,15 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             foreach (var dbObject in selectedObjects)
             {
                 var className = $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}{suffix}";
-                var content = template
-                    .Replace("{{ClassName}}", className, StringComparison.OrdinalIgnoreCase)
-                    .Replace("{{ObjectName}}", dbObject.Name, StringComparison.OrdinalIgnoreCase)
-                    .Replace("{{Schema}}", dbObject.Schema, StringComparison.OrdinalIgnoreCase)
-                    .Replace("{{ObjectType}}", dbObject.Type.ToString(), StringComparison.OrdinalIgnoreCase)
-                    .Replace("{{DatabaseType}}", connection.DatabaseType, StringComparison.OrdinalIgnoreCase)
-                    .Replace("{{DatabaseName}}", connection.DatabaseName, StringComparison.OrdinalIgnoreCase);
+                var content = ReplaceIgnoreCase(template, "{{ClassName}}", className);
+                content = ReplaceIgnoreCase(content, "{{ObjectName}}", dbObject.Name);
+                content = ReplaceIgnoreCase(content, "{{Schema}}", dbObject.Schema);
+                content = ReplaceIgnoreCase(content, "{{ObjectType}}", dbObject.Type.ToString());
+                content = ReplaceIgnoreCase(content, "{{DatabaseType}}", connection.DatabaseType);
+                content = ReplaceIgnoreCase(content, "{{DatabaseName}}", connection.DatabaseName);
 
                 var filePath = Path.Combine(normalizedOutputDirectory, $"{className}.cs");
-                await File.WriteAllTextAsync(filePath, content);
+                await Task.Run(() => File.WriteAllText(filePath, content), token);
                 generatedFiles.Add(filePath);
             }
 
@@ -468,7 +467,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
     private static IReadOnlyDictionary<DatabaseObjectType, ObjectTypeMapping> CreateDefaultMappings(string outputDirectory, string fileNamePattern)
     {
-        return Enum.GetValues<DatabaseObjectType>()
+        return ((DatabaseObjectType[])Enum.GetValues(typeof(DatabaseObjectType)))
             .ToDictionary(
                 t => t,
                 t => new ObjectTypeMapping(t, outputDirectory, fileNamePattern));
@@ -536,7 +535,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                     ? loadedObjects
                     : Array.Empty<DatabaseObjectReference>();
 
-                foreach (var objectType in Enum.GetValues<DatabaseObjectType>())
+                foreach (DatabaseObjectType objectType in Enum.GetValues(typeof(DatabaseObjectType)))
                 {
                     var objectTypeNode = new ExplorerNode(
                         objectType switch
@@ -562,7 +561,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                     foreach (var dbObject in filteredObjects)
                     {
                         var key = BuildObjectKey(connection.Id, dbObject);
-                        var status = healthByObject.TryGetValue(key, out var health) ? health.Status : null;
+                        ObjectHealthStatus? status = healthByObject.TryGetValue(key, out var health) ? health.Status : (ObjectHealthStatus?)null;
                         objectTypeNode.Children.Add(new ExplorerNode(
                             string.IsNullOrWhiteSpace(dbObject.Schema) ? dbObject.Name : $"{dbObject.Schema}.{dbObject.Name}",
                             ExplorerNodeKind.Object)
@@ -675,13 +674,34 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         var namePascal = GenerationRuleSet.ToPascalCase(dbObject.Name);
         var typeName = dbObject.Type.ToString();
 
-        return safePattern
-            .Replace("{NamePascal}", namePascal, StringComparison.OrdinalIgnoreCase)
-            .Replace("{Name}", dbObject.Name, StringComparison.OrdinalIgnoreCase)
-            .Replace("{Type}", typeName, StringComparison.OrdinalIgnoreCase)
-            .Replace("{Schema}", dbObject.Schema, StringComparison.OrdinalIgnoreCase)
-            .Replace("{DatabaseType}", connection.DatabaseType, StringComparison.OrdinalIgnoreCase)
-            .Replace("{DatabaseName}", connection.DatabaseName, StringComparison.OrdinalIgnoreCase);
+        var resolved = ReplaceIgnoreCase(safePattern, "{NamePascal}", namePascal);
+        resolved = ReplaceIgnoreCase(resolved, "{Name}", dbObject.Name);
+        resolved = ReplaceIgnoreCase(resolved, "{Type}", typeName);
+        resolved = ReplaceIgnoreCase(resolved, "{Schema}", dbObject.Schema);
+        resolved = ReplaceIgnoreCase(resolved, "{DatabaseType}", connection.DatabaseType);
+        return ReplaceIgnoreCase(resolved, "{DatabaseName}", connection.DatabaseName);
+    }
+
+
+    private static string ReplaceIgnoreCase(string input, string oldValue, string newValue)
+    {
+        if (string.IsNullOrEmpty(input) || string.IsNullOrEmpty(oldValue))
+        {
+            return input;
+        }
+
+        var startIndex = 0;
+        while (true)
+        {
+            var index = input.IndexOf(oldValue, startIndex, StringComparison.OrdinalIgnoreCase);
+            if (index < 0)
+            {
+                return input;
+            }
+
+            input = input.Substring(0, index) + newValue + input.Substring(index + oldValue.Length);
+            startIndex = index + newValue.Length;
+        }
     }
 
     private static string BuildObjectKey(string connectionId, DatabaseObjectReference dbObject)
