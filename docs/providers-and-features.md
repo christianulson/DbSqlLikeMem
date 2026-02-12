@@ -10,10 +10,10 @@
 | SQL Server | `DbSqlLikeMem.SqlServer` | 7, 2000, 2005, 2008, 2012, 2014, 2016, 2017, 2019, 2022 |
 | Oracle | `DbSqlLikeMem.Oracle` | 7, 8, 9, 10, 11, 12, 18, 19, 21, 23 |
 | PostgreSQL (Npgsql) | `DbSqlLikeMem.Npgsql` | 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 |
-| SQLite | `DbSqlLikeMem.Sqlite` | 3 |
+| SQLite (Sqlite) | `DbSqlLikeMem.Sqlite` | 3 |
 | DB2 | `DbSqlLikeMem.Db2` | 8, 9, 10, 11 |
 
-## Capacidades comuns (MySQL / SQL Server / Oracle / PostgreSQL)
+## Capacidades comuns (todos os providers)
 
 - Mock de conexão/ADO.NET específico do provedor.
 - Parser e execução de SQL para DDL/DML comuns.
