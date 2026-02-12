@@ -21,9 +21,11 @@ internal sealed class SqliteDialect : SqlDialectBase
             new KeyValuePair<string, SqlBinaryOp>(">=", SqlBinaryOp.GreaterOrEqual),
             new KeyValuePair<string, SqlBinaryOp>("<", SqlBinaryOp.Less),
             new KeyValuePair<string, SqlBinaryOp>("<=", SqlBinaryOp.LessOrEqual),
+            new KeyValuePair<string, SqlBinaryOp>("<=>", SqlBinaryOp.NullSafeEq),
         ],
         operators:
         [
+            "<=>",
             "->>", "->",
             ">=", "<=", "<>", "!=", "==",
             "&&", "||"
@@ -90,7 +92,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsNullSafeEq => false;
+    public override bool SupportsNullSafeEq => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
