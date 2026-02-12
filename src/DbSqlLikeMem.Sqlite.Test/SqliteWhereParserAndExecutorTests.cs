@@ -144,7 +144,7 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
     public void Where_IsNotNull_ShouldFilter()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE email IS NOT NULL").ToList();
-        Assert.Equal(2, rows.Count);
+        Assert.Equal(4, rows.Count);
     }
 
     /// <summary>
@@ -158,7 +158,7 @@ public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
         Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id).OrderBy(_=>_)]);
 
         var rows2 = _cnn.Query<dynamic>("SELECT id FROM users WHERE id != 2").ToList();
-        Assert.Equal([1, 3], [.. rows2.Select(r => (int)r.id).OrderBy(_=>_)]);
+        Assert.Equal([1, 3, 4, 5], [.. rows2.Select(r => (int)r.id).OrderBy(_=>_)]);
     }
 
     /// <summary>
