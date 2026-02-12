@@ -186,13 +186,39 @@ public abstract class TableMock
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(idx, nameof(idx));
         ArgumentNullExceptionCompatible.ThrowIfNull(row, nameof(row));
-        return string.Join("|", idx.KeyCols.Select(colName =>
+        return string.Concat(idx.KeyCols.Select(colName =>
         {
             var ci = Columns[colName];
             if (ci.GetGenValue != null)
-                return ci.GetGenValue(row, this)?.ToString() ?? "<null>";
-            return row.TryGetValue(ci.Index, out var v) ? (v?.ToString() ?? "<null>") : "<null>";
+                return SerializeIndexKeyPart(ci.GetGenValue(row, this));
+
+            var value = row.TryGetValue(ci.Index, out var v) ? v : null;
+            return SerializeIndexKeyPart(value);
         }));
+    }
+
+    internal string BuildIndexKeyFromValues(
+        IndexDef idx,
+        IReadOnlyDictionary<string, object?> valuesByColumn)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(idx, nameof(idx));
+        ArgumentNullExceptionCompatible.ThrowIfNull(valuesByColumn, nameof(valuesByColumn));
+
+        return string.Concat(idx.KeyCols.Select(colName =>
+        {
+            var normalized = colName.NormalizeName();
+            valuesByColumn.TryGetValue(normalized, out var value);
+            return SerializeIndexKeyPart(value);
+        }));
+    }
+
+    private static string SerializeIndexKeyPart(object? value)
+    {
+        if (value is null || value is DBNull)
+            return "n;";
+
+        var text = value.ToString() ?? string.Empty;
+        return $"s{text.Length}:{text};";
     }
 
     /// <summary>
