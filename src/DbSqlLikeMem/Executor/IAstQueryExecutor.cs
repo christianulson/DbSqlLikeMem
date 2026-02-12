@@ -13,5 +13,7 @@ internal interface IAstQueryExecutor
     TableResultMock ExecuteUnion(
         IReadOnlyList<SqlSelectQuery> parts,
         IReadOnlyList<bool> allFlags,
+        IReadOnlyList<SqlOrderByItem>? orderBy = null,
+        SqlRowLimit? rowLimit = null,
         string? sqlContextForErrors = null);
 }

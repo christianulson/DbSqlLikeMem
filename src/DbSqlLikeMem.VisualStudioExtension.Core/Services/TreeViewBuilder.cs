@@ -2,23 +2,30 @@ using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Services;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public sealed class TreeViewBuilder
 {
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public TreeNode Build(ConnectionDefinition connection, IReadOnlyCollection<DatabaseObjectReference> objects)
     {
-        var root = new TreeNode { Label = connection.DatabaseType, ContextKey = "database-type" };
-        var dbNode = new TreeNode { Label = connection.DatabaseName, ContextKey = "database-name" };
+        var root = new TreeNode(connection.DatabaseType) { ContextKey = "database-type" };
+        var dbNode = new TreeNode(connection.DatabaseName) { ContextKey = "database-name" };
         root.Children.Add(dbNode);
 
-        foreach (var objectType in Enum.GetValues<DatabaseObjectType>())
+        foreach (DatabaseObjectType objectType in Enum.GetValues(typeof(DatabaseObjectType)))
         {
-            var typeNode = new TreeNode { Label = GetGroupLabel(objectType), ContextKey = "object-type", ObjectType = objectType };
+            var typeNode = new TreeNode(GetGroupLabel(objectType)) { ContextKey = "object-type", ObjectType = objectType };
 
             foreach (var item in objects.Where(o => o.Type == objectType).OrderBy(o => o.Name, StringComparer.OrdinalIgnoreCase))
             {
-                typeNode.Children.Add(new TreeNode
+                typeNode.Children.Add(new TreeNode(item.Name)
                 {
-                    Label = item.Name,
                     ContextKey = "object",
                     ObjectType = objectType
                 });

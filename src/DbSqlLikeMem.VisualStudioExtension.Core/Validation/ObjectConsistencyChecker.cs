@@ -3,8 +3,16 @@ using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Validation;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public sealed class ObjectConsistencyChecker
 {
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public async Task<ObjectHealthResult> CheckAsync(
         ConnectionDefinition connection,
         LocalObjectSnapshot snapshot,

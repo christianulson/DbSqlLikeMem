@@ -112,6 +112,8 @@ ORDER BY id").ToList();
         Assert.Equal([1, 3], [.. rows.Select(r => (int)r.id)]);
     }
 
+
+
     /// <summary>
     /// EN: Tests OrderBy_Field_Function_ShouldWork behavior.
     /// PT: Testa o comportamento de OrderBy_Field_Function_ShouldWork.

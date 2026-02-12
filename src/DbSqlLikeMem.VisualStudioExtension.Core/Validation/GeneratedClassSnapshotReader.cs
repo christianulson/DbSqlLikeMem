@@ -2,14 +2,23 @@ using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Validation;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public static class GeneratedClassSnapshotReader
 {
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     public static async Task<LocalObjectSnapshot> ReadAsync(
         string filePath,
         DatabaseObjectReference fallbackReference,
         CancellationToken cancellationToken = default)
     {
-        var lines = await File.ReadAllLinesAsync(filePath, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        var lines = await Task.Run(() => File.ReadAllLines(filePath), cancellationToken);
         var metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var line in lines)
@@ -20,7 +29,13 @@ public static class GeneratedClassSnapshotReader
                 continue;
             }
 
-            var kv = line[prefix.Length..].Split('=', 2, StringSplitOptions.TrimEntries);
+            var payload = line.Substring(prefix.Length);
+            var kv = payload.Split(new[] {'='}, 2, StringSplitOptions.None);
+            if (kv.Length == 2)
+            {
+                kv[0] = kv[0].Trim();
+                kv[1] = kv[1].Trim();
+            }
             if (kv.Length == 2)
             {
                 metadata[kv[0]] = kv[1];

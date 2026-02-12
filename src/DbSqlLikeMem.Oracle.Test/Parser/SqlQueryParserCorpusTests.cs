@@ -46,10 +46,13 @@ public sealed class SqlQueryParserCorpusTests(
             var sql = (string)row[0];
             var why = row.Length > 1 ? (string)row[1] : "valid statement";
             var minVersion = 0;
+            var expectation = SqlCaseExpectation.ParseOk;
 
             var trimmed = sql.TrimStart();
             if (trimmed.StartsWith("MERGE", StringComparison.OrdinalIgnoreCase))
                 minVersion = OracleDialect.MergeMinVersion;
+            else if (trimmed.StartsWith("WITH RECURSIVE", StringComparison.OrdinalIgnoreCase))
+                expectation = SqlCaseExpectation.ThrowNotSupported;
             else if (trimmed.Contains("WITH", StringComparison.OrdinalIgnoreCase))
                 minVersion = OracleDialect.WithCteMinVersion;
             else if (trimmed.Contains("OFFSET", StringComparison.OrdinalIgnoreCase))
@@ -57,7 +60,7 @@ public sealed class SqlQueryParserCorpusTests(
             else if (trimmed.Contains("FETCH", StringComparison.OrdinalIgnoreCase))
                 minVersion = OracleDialect.FetchFirstMinVersion;
 
-            yield return Case(sql, why, SqlCaseExpectation.ParseOk, minVersion);
+            yield return Case(sql, why, expectation, minVersion);
         }
 
         // Inválidas (ThrowInvalid)

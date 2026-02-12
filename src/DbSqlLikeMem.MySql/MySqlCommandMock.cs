@@ -142,7 +142,7 @@ public class MySqlCommandMock(
             SqlCreateViewQuery cv => connection.ExecuteCreateView(cv, Parameters, connection.Db.Dialect),
             SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect),
             SqlSelectQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT."),
-            _ => throw new NotSupportedException($"Tipo de query não suportado em ExecuteNonQuery: {query.GetType().Name}")
+            _ => throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteNonQuery", query.GetType())
         };
     }
 
@@ -220,14 +220,6 @@ public class MySqlCommandMock(
         var executor = AstQueryExecutorFactory.Create(connection!.Db.Dialect, connection, Parameters);
 
         // Correção do erro de Contains e CA1847/CA1307
-        if (sql.Contains("UNION", StringComparison.OrdinalIgnoreCase) && !sql.Contains(';'))
-        {
-            var chain = SqlQueryParser.ParseUnionChain(sql, connection.Db.Dialect);
-            // Garantindo o Cast correto para SqlSelectQuery
-            var unionTable = executor.ExecuteUnion([.. chain.Parts.Cast<SqlSelectQuery>()], chain.AllFlags, sql);
-            connection.Metrics.Selects += unionTable.Count;
-            return new MySqlDataReaderMock([unionTable]);
-        }
 
 
         // Parse Multiplo (ex: "SELECT 1; SELECT 2;" ou "CREATE TEMPORARY TABLE ...; SELECT ...")
@@ -267,8 +259,12 @@ public class MySqlCommandMock(
                     tables.Add(executor.ExecuteSelect(selectQ));
                     break;
 
+                case SqlUnionQuery unionQ:
+                    tables.Add(executor.ExecuteUnion(unionQ.Parts, unionQ.AllFlags, unionQ.OrderBy, unionQ.RowLimit, unionQ.RawSql));
+                    break;
+
                 default:
-                    throw new NotSupportedException($"Tipo de query não suportado em ExecuteReader: {q.GetType().Name}");
+                    throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteReader", q.GetType());
             }
         }
 

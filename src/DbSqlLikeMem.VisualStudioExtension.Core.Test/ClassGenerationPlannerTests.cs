@@ -1,7 +1,15 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public class ClassGenerationPlannerTests
 {
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Fact]
     public void BuildPlan_WithoutConfiguration_RequiresConfiguration()
     {
@@ -17,6 +25,10 @@ public class ClassGenerationPlannerTests
         Assert.Contains(DatabaseObjectType.Table, plan.MissingMappings);
     }
 
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Fact]
     public void BuildPlan_WithPartialMappings_ReturnsMissingTypes()
     {

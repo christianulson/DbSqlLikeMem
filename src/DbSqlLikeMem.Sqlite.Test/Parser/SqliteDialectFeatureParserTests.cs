@@ -1,7 +1,15 @@
 namespace DbSqlLikeMem.Sqlite.Test.Parser;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public sealed class SqliteDialectFeatureParserTests
 {
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Theory]
     [MemberDataSqliteVersion]
     public void ParseInsert_OnConflict_DoUpdate_ShouldParse(int version)
@@ -15,6 +23,10 @@ public sealed class SqliteDialectFeatureParserTests
         Assert.Single(ins.OnDupAssigns);
     }
 
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Theory]
     [MemberDataSqliteVersion]
     public void ParseWithCte_AsNotMaterialized_ShouldParse(int version)
@@ -25,6 +37,10 @@ public sealed class SqliteDialectFeatureParserTests
 
         Assert.IsType<SqlSelectQuery>(parsed);
     }
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Theory]
     [MemberDataSqliteVersion]
     public void ParseSelect_WithMySqlIndexHints_ShouldBeRejected(int version)
@@ -32,6 +48,63 @@ public sealed class SqliteDialectFeatureParserTests
         var sql = "SELECT id FROM users USE INDEX (idx_users_id)";
 
         Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+    }
+
+
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
+    [Theory]
+    [MemberDataSqliteVersion]
+    public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT id FROM users USE INDEX (idx_users_id)", new SqliteDialect(version)));
+
+        Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("sqlite", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
+    [Theory]
+    [MemberDataSqliteVersion]
+    public void ParseSelect_UnionOrderBy_ShouldParseAsUnion(int version)
+    {
+        var sql = "SELECT id FROM users WHERE id = 1 UNION SELECT id FROM users WHERE id = 2 ORDER BY id";
+
+        var parsed = SqlQueryParser.Parse(sql, new SqliteDialect(version));
+
+        var union = Assert.IsType<SqlUnionQuery>(parsed);
+        Assert.Equal(2, union.Parts.Count);
+        Assert.Single(union.AllFlags);
+        Assert.False(union.AllFlags[0]);
+    }
+
+
+
+    /// <summary>
+    /// EN: Ensures runtime dialect hooks used by executor remain stable across supported versions.
+    /// PT: Garante que os hooks de runtime do dialeto usados pelo executor permaneçam estáveis nas versões suportadas.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [MemberDataSqliteVersion]
+    public void RuntimeDialectRules_ShouldRemainStable(int version)
+    {
+        var d = new SqliteDialect(version);
+
+        Assert.True(d.AreUnionColumnTypesCompatible(DbType.Int32, DbType.Decimal));
+        Assert.True(d.AreUnionColumnTypesCompatible(DbType.String, DbType.AnsiString));
+        Assert.False(d.AreUnionColumnTypesCompatible(DbType.Int32, DbType.String));
+
+        Assert.True(d.IsIntegerCastTypeName("INT"));
+        Assert.False(d.IsIntegerCastTypeName("NUMBER"));
+
+        Assert.False(d.RegexInvalidPatternEvaluatesToFalse);
     }
 
 }

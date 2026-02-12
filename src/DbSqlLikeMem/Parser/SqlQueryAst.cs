@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace DbSqlLikeMem;
 internal abstract record SqlQueryBase
 {
@@ -22,6 +24,13 @@ internal sealed record SqlSelectQuery(
     SqlRowLimit? RowLimit,
     IReadOnlyList<string> GroupBy,
     SqlExpr? Having
+) : SqlQueryBase;
+
+internal sealed record SqlUnionQuery(
+    IReadOnlyList<SqlSelectQuery> Parts,
+    IReadOnlyList<bool> AllFlags,
+    IReadOnlyList<SqlOrderByItem> OrderBy,
+    SqlRowLimit? RowLimit
 ) : SqlQueryBase;
 
 internal sealed record SqlInsertQuery : SqlQueryBase

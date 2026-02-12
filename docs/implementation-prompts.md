@@ -5,6 +5,9 @@
 Prompts prontos para colar em outras janelas e implementar as próximas features de maior uso no DbSqlLikeMem, cobrindo **MySQL, SQL Server, Oracle, PostgreSQL (Npgsql), SQLite e DB2**.
 
 > Dica: execute em ordem **P0 → P14**. Os prompts já incluem objetivo, escopo, critérios de aceite e validação.
+Prompts prontos para colar em outras janelas e implementar as próximas features de maior uso no DbSqlLikeMem, cobrindo **MySQL, SQL Server, Oracle, PostgreSQL (Npgsql), SQLite e DB2**.
+
+> Dica: execute em ordem **P0 → P6**. Os prompts já incluem objetivo, escopo, critérios de aceite e validação.
 
 ---
 

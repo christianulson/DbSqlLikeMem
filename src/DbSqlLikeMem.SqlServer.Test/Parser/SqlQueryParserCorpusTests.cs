@@ -47,6 +47,9 @@ public sealed class SqlQueryParserCorpusTests(
             var sql = (string)row[0];
             var why = row.Length > 1 ? (string)row[1] : "valid statement";
             var minVersion = 0;
+            var expectation = why.StartsWith("invalid:", StringComparison.OrdinalIgnoreCase)
+                ? SqlCaseExpectation.ThrowInvalid
+                : SqlCaseExpectation.ParseOk;
 
             var trimmed = sql.TrimStart();
             if (trimmed.StartsWith("MERGE", StringComparison.OrdinalIgnoreCase))
@@ -56,7 +59,7 @@ public sealed class SqlQueryParserCorpusTests(
             else if (trimmed.Contains("FETCH", StringComparison.OrdinalIgnoreCase))
                 minVersion = SqlServerDialect.OffsetFetchMinVersion;
 
-            yield return Case(sql, why, SqlCaseExpectation.ParseOk, minVersion);
+            yield return Case(sql, why, expectation, minVersion);
         }
 
         // Inválidas (ThrowInvalid)
@@ -246,13 +249,13 @@ FROM active_users au
 GROUP BY au.tenant_id;
 ", "WITH CTE + GROUP BY" };
 
-        yield return new object[] { @"WITH RECURSIVE seq(n) AS (
+        yield return new object[] { @"WITH seq(n) AS (
   SELECT 1
   UNION ALL
   SELECT n + 1 FROM seq WHERE n < 10
 )
 SELECT n FROM seq;
-", "WITH RECURSIVE" };
+", "recursive CTE (SQL Server style, without RECURSIVE keyword)" };
 
         // Derived table containing WITH (MySQL 8 supports WITH inside derived tables)
         yield return new object[] { @"SELECT *

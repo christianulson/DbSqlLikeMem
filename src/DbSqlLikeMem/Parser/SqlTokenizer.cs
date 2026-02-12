@@ -68,7 +68,10 @@ internal sealed class SqlTokenizer
 
             // If we see an identifier quote that the current dialect does not allow,
             // fail fast with a clear error instead of tokenizing a confusing sequence.
-            if ((ch == '`' || ch == '[' || ch == '"') && !_dialect.TryGetIdentifierQuote(ch, out _) && !_dialect.IsStringQuote(ch))
+            if ((ch == '`' || ch == '[' || ch == '"')
+                && !_dialect.TryGetIdentifierQuote(ch, out _)
+                && !_dialect.IsStringQuote(ch)
+                && !_dialect.AllowsParserCrossDialectQuotedIdentifiers)
                 throw new InvalidOperationException($"Dialeto '{_dialect.Name}' não permite identificadores iniciados com '{ch}'.");
 
             if (IsIdentStart(ch) || IsStartOfQuotedIdentifier(ch))
@@ -91,7 +94,41 @@ internal sealed class SqlTokenizer
     }
 
     private bool IsStartOfQuotedIdentifier(char ch)
-        => _dialect.TryGetIdentifierQuote(ch, out _);
+        => TryGetIdentifierQuote(ch, out _);
+
+    private bool TryGetIdentifierQuote(char begin, out SqlQuotePair pair)
+    {
+        if (_dialect.TryGetIdentifierQuote(begin, out pair))
+            return true;
+
+        if (!_dialect.AllowsParserCrossDialectQuotedIdentifiers)
+        {
+            pair = default;
+            return false;
+        }
+
+        // Parser em modo compatível: aceita aspas de outros dialetos para round-trip.
+        if (begin == '`')
+        {
+            pair = new SqlQuotePair('`', '`');
+            return true;
+        }
+
+        if (begin == '[')
+        {
+            pair = new SqlQuotePair('[', ']');
+            return true;
+        }
+
+        if (begin == '"' && !_dialect.IsStringQuote(begin))
+        {
+            pair = new SqlQuotePair('"', '"');
+            return true;
+        }
+
+        pair = default;
+        return false;
+    }
 
     private SqlToken ReadString()
     {
@@ -174,7 +211,7 @@ internal sealed class SqlTokenizer
         {
             var open = Read();
 
-            if (!_dialect.TryGetIdentifierQuote(open, out var pair))
+            if (!TryGetIdentifierQuote(open, out var pair))
                 throw new InvalidOperationException($"Dialeto '{_dialect.Name}' não permite identificadores iniciados com '{open}'.");
 
             char close = pair.End;
@@ -237,6 +274,32 @@ internal sealed class SqlTokenizer
     private bool TryReadOperator(out SqlToken token)
     {
         token = default!;
+
+        // Greedy safeguard for tokens like "<=>" even when the dialect does not
+        // explicitly list the full operator (prevents tokenizing as "<=" + ">").
+        if (_pos + 3 <= _sql.Length
+            && string.CompareOrdinal(_sql, _pos, "<=>", 0, 3) == 0)
+        {
+            var p = _pos;
+            _pos += 3;
+            token = new SqlToken(SqlTokenKind.Operator, "<=>", p);
+            return true;
+        }
+
+        // Compat parser: operadores JSON podem ser aceitos conforme regra do dialeto.
+        if (_dialect.SupportsJsonArrowOperators || _dialect.AllowsParserCrossDialectJsonOperators)
+        {
+            foreach (var op in new[] { "#>>", "->>", "#>", "->" })
+            {
+                if (_pos + op.Length <= _sql.Length && string.CompareOrdinal(_sql, _pos, op, 0, op.Length) == 0)
+                {
+                    var p = _pos;
+                    _pos += op.Length;
+                    token = new SqlToken(SqlTokenKind.Operator, op, p);
+                    return true;
+                }
+            }
+        }
 
         foreach (var op in _dialect.Operators)
         {

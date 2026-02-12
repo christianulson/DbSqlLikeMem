@@ -1,7 +1,15 @@
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public sealed class GeneratedClassSnapshotReaderTests
 {
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
     [Fact]
     public async Task ReadAsync_ParsesMetadataAndCheckerDetectsDifference()
     {
@@ -14,13 +22,17 @@ public sealed class GeneratedClassSnapshotReaderTests
 // DBSqlLikeMem:PrimaryKey=Id
 // DBSqlLikeMem:Indexes=IX_Orders_Name|0|Name
 // DBSqlLikeMem:ForeignKeys=CustomerId|Customers|Id
+/// <summary>
+/// Represents this public API type.
+/// Representa este tipo público da API.
+/// </summary>
 public static class OrdersTableFactory {}
-""");
+""", TestContext.Current.CancellationToken);
 
         try
         {
             var fallback = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table);
-            var snapshot = await GeneratedClassSnapshotReader.ReadAsync(file, fallback);
+            var snapshot = await GeneratedClassSnapshotReader.ReadAsync(file, fallback, TestContext.Current.CancellationToken);
 
             var dbObject = new DatabaseObjectReference(
                 "dbo",
@@ -34,10 +46,7 @@ public static class OrdersTableFactory {}
 
             var provider = new SnapshotProvider(dbObject);
             var checker = new ObjectConsistencyChecker();
-            var result = await checker.CheckAsync(
-                new ConnectionDefinition("1", "MySql", "ERP", "conn"),
-                snapshot,
-                provider);
+            var result = await checker.CheckAsync(new ConnectionDefinition("1", "MySql", "ERP", "conn"), snapshot, provider, TestContext.Current.CancellationToken);
 
             Assert.Equal(ObjectHealthStatus.DifferentFromDatabase, result.Status);
         }
@@ -52,10 +61,18 @@ public static class OrdersTableFactory {}
 
     private sealed class SnapshotProvider(DatabaseObjectReference dbObject) : IDatabaseMetadataProvider
     {
+        /// <summary>
+        /// Executes this API operation.
+        /// Executa esta operação da API.
+        /// </summary>
         public Task<IReadOnlyCollection<DatabaseObjectReference>> ListObjectsAsync(ConnectionDefinition connection,
             CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyCollection<DatabaseObjectReference>>([dbObject]);
 
+        /// <summary>
+        /// Executes this API operation.
+        /// Executa esta operação da API.
+        /// </summary>
         public Task<DatabaseObjectReference?> GetObjectAsync(ConnectionDefinition connection, DatabaseObjectReference reference,
             CancellationToken cancellationToken = default)
             => Task.FromResult<DatabaseObjectReference?>(dbObject);

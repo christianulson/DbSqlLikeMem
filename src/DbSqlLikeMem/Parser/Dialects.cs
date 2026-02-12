@@ -80,6 +80,13 @@ internal interface ISqlDialect
     bool SupportsNullSafeEq { get; }
     bool SupportsJsonArrowOperators { get; }
 
+    // Parser-only compatibility toggles (keep runtime rules separated)
+    bool AllowsParserCrossDialectQuotedIdentifiers { get; }
+    bool AllowsParserCrossDialectJsonOperators { get; }
+    bool AllowsParserInsertSelectUpsertSuffix { get; }
+    bool AllowsParserDeleteWithoutFromCompatibility { get; }
+    bool AllowsParserLimitOffsetCompatibility { get; }
+
     // Table hints
     bool SupportsSqlServerTableHints { get; }
     bool SupportsMySqlIndexHints { get; }
@@ -90,6 +97,21 @@ internal interface ISqlDialect
 
     // Operator mapping
     bool TryMapBinaryOperator(string token, out SqlBinaryOp op);
+
+    // Comparison semantics
+    StringComparison TextComparison { get; }
+    bool SupportsImplicitNumericStringComparison { get; }
+    bool LikeIsCaseInsensitive { get; }
+    bool SupportsIfFunction { get; }
+    bool SupportsIifFunction { get; }
+    IReadOnlyCollection<string> NullSubstituteFunctionNames { get; }
+    bool ConcatReturnsNullOnNullInput { get; }
+    // Dialect-specific runtime semantics
+    bool RegexInvalidPatternEvaluatesToFalse { get; }
+    bool AreUnionColumnTypesCompatible(DbType first, DbType second);
+    bool IsIntegerCastTypeName(string typeName);
+    bool SupportsDateAddFunction(string functionName);
+    DbType InferWindowFunctionDbType(WindowFunctionExpr windowFunctionExpr, Func<SqlExpr, DbType> inferArgDbType);
 }
 
 internal abstract class SqlDialectBase : ISqlDialect
@@ -209,6 +231,110 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// Auto-generated summary.
     /// </summary>
     public virtual bool IsStringQuote(char ch) => ch == '\'';
+
+    /// <summary>
+    /// EN: String comparison mode used by textual operators (=, &lt;&gt;, ORDER BY fallback, etc.).
+    /// PT: Modo de comparação textual usado por operadores textuais (=, &lt;&gt;, ORDER BY fallback, etc.).
+    /// </summary>
+    public virtual StringComparison TextComparison => StringComparison.OrdinalIgnoreCase;
+
+    /// <summary>
+    /// EN: Enables controlled implicit cast between numeric and numeric-string values in comparisons.
+    /// PT: Habilita cast implícito controlado entre números e strings numéricas em comparações.
+    /// </summary>
+    public virtual bool SupportsImplicitNumericStringComparison => true;
+
+    /// <summary>
+    /// EN: Controls LIKE case sensitivity in the mock when no explicit collation is available.
+    /// PT: Controla sensibilidade de maiúsculas/minúsculas no LIKE do mock quando não há collation explícita.
+    /// </summary>
+    public virtual bool LikeIsCaseInsensitive => true;
+    public virtual bool SupportsIfFunction => true;
+    public virtual bool SupportsIifFunction => true;
+    public virtual IReadOnlyCollection<string> NullSubstituteFunctionNames
+        => ["IFNULL", "ISNULL", "NVL"];
+    public virtual bool ConcatReturnsNullOnNullInput => true;
+    public virtual bool RegexInvalidPatternEvaluatesToFalse => false;
+
+    public virtual bool AreUnionColumnTypesCompatible(DbType first, DbType second)
+    {
+        if (first == second)
+            return true;
+
+        static bool IsNumeric(DbType t)
+            => t is DbType.Byte or DbType.SByte
+            or DbType.Int16 or DbType.UInt16
+            or DbType.Int32 or DbType.UInt32
+            or DbType.Int64 or DbType.UInt64
+            or DbType.Decimal or DbType.Double
+            or DbType.Single or DbType.VarNumeric;
+
+        static bool IsText(DbType t)
+            => t is DbType.AnsiString or DbType.String
+            or DbType.AnsiStringFixedLength or DbType.StringFixedLength;
+
+        if (IsNumeric(first) && IsNumeric(second))
+            return true;
+
+        if (IsText(first) && IsText(second))
+            return true;
+
+        return false;
+    }
+
+    public virtual bool IsIntegerCastTypeName(string typeName)
+    {
+        if (string.IsNullOrWhiteSpace(typeName))
+            return false;
+
+        return typeName.Equals("SIGNED", StringComparison.OrdinalIgnoreCase)
+            || typeName.Equals("UNSIGNED", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("INT", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("INTEGER", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("BIGINT", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("SMALLINT", StringComparison.OrdinalIgnoreCase)
+            || typeName.StartsWith("TINYINT", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public virtual bool SupportsDateAddFunction(string functionName)
+    {
+        if (string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        return functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("DATEADD", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public virtual DbType InferWindowFunctionDbType(
+        WindowFunctionExpr windowFunctionExpr,
+        Func<SqlExpr, DbType> inferArgDbType)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(windowFunctionExpr, nameof(windowFunctionExpr));
+        ArgumentNullExceptionCompatible.ThrowIfNull(inferArgDbType, nameof(inferArgDbType));
+
+        if (windowFunctionExpr.Name.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("RANK", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("DENSE_RANK", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("NTILE", StringComparison.OrdinalIgnoreCase))
+            return DbType.Int64;
+
+        if (windowFunctionExpr.Name.Equals("PERCENT_RANK", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("CUME_DIST", StringComparison.OrdinalIgnoreCase))
+            return DbType.Double;
+
+        if (windowFunctionExpr.Name.Equals("LAG", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("LEAD", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("FIRST_VALUE", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase)
+            || windowFunctionExpr.Name.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase))
+        {
+            if (windowFunctionExpr.Args.Count > 0)
+                return inferArgDbType(windowFunctionExpr.Args[0]);
+        }
+
+        return DbType.Object;
+    }
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
@@ -281,7 +407,7 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public virtual bool SupportsDeleteTargetAlias => false;
+    public virtual bool SupportsDeleteTargetAlias => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
@@ -302,6 +428,26 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// Auto-generated summary.
     /// </summary>
     public virtual bool SupportsJsonArrowOperators => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public virtual bool AllowsParserCrossDialectQuotedIdentifiers => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public virtual bool AllowsParserCrossDialectJsonOperators => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public virtual bool AllowsParserInsertSelectUpsertSuffix => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public virtual bool AllowsParserDeleteWithoutFromCompatibility => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public virtual bool AllowsParserLimitOffsetCompatibility => false;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>

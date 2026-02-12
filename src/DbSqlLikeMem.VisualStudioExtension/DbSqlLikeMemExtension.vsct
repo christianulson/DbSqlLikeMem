@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable">
+  <Extern href="stdidcmd.h" />
+  <Extern href="vsshlids.h" />
+
+  <Commands package="guidDbSqlLikeMemPackage">
+    <Groups>
+      <Group guid="guidDbSqlLikeMemCmdSet" id="DbSqlLikeMemGroup" priority="0x0600">
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_MENU_VIEW" />
+      </Group>
+    </Groups>
+
+    <Buttons>
+      <Button guid="guidDbSqlLikeMemCmdSet" id="OpenToolWindowCommandId" priority="0x0100" type="Button">
+        <Parent guid="guidDbSqlLikeMemCmdSet" id="DbSqlLikeMemGroup" />
+        <Strings>
+          <ButtonText>DbSqlLikeMem Explorer</ButtonText>
+        </Strings>
+      </Button>
+    </Buttons>
+  </Commands>
+
+  <Symbols>
+    <GuidSymbol name="guidDbSqlLikeMemPackage" value="{F175DDF6-0067-43ED-9FD7-5780F8E8FF70}" />
+    <GuidSymbol name="guidDbSqlLikeMemCmdSet" value="{AE30167A-A4D2-41D7-8A97-15792AFDAE4F}">
+      <IDSymbol name="DbSqlLikeMemGroup" value="0x1020" />
+      <IDSymbol name="OpenToolWindowCommandId" value="0x0100" />
+    </GuidSymbol>
+  </Symbols>
+</CommandTable>
