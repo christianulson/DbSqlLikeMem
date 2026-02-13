@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Data.Common;
 using System.ComponentModel;
 using System.IO;
+using System.Text;
 using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 using DbSqlLikeMem.VisualStudioExtension.Core.Persistence;
@@ -31,6 +32,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     private readonly Dictionary<string, ObjectHealthResult> healthByObject = new(StringComparer.OrdinalIgnoreCase);
     private TemplateConfiguration templateConfiguration = TemplateConfiguration.Default;
     private readonly ObjectFilterService objectFilterService = new();
+    private readonly Dictionary<string, (string Text, FilterMode Mode)> objectTypeFilters = new(StringComparer.OrdinalIgnoreCase);
 
     private string objectFilterText = string.Empty;
     private FilterMode objectFilterMode = FilterMode.Like;
@@ -239,6 +241,51 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         return (firstMapping?.FileNamePattern ?? "{NamePascal}{Type}Factory.cs", firstMapping?.OutputDirectory ?? "Generated");
     }
 
+    public (string FilterText, FilterMode FilterMode) GetObjectTypeFilter(ExplorerNode objectTypeNode)
+    {
+        if (objectTypeNode.Kind != ExplorerNodeKind.ObjectType || objectTypeNode.ConnectionId is null || objectTypeNode.ObjectType is null)
+        {
+            return (string.Empty, FilterMode.Like);
+        }
+
+        var key = BuildObjectTypeFilterKey(objectTypeNode.ConnectionId, objectTypeNode.ObjectType.Value);
+        return objectTypeFilters.TryGetValue(key, out var filter)
+            ? filter
+            : (string.Empty, FilterMode.Like);
+    }
+
+    public void SetObjectTypeFilter(ExplorerNode objectTypeNode, string filterText, FilterMode filterMode)
+    {
+        if (objectTypeNode.Kind != ExplorerNodeKind.ObjectType || objectTypeNode.ConnectionId is null || objectTypeNode.ObjectType is null)
+        {
+            return;
+        }
+
+        var key = BuildObjectTypeFilterKey(objectTypeNode.ConnectionId, objectTypeNode.ObjectType.Value);
+        var normalized = filterText?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            objectTypeFilters.Remove(key);
+        }
+        else
+        {
+            objectTypeFilters[key] = (normalized, filterMode);
+        }
+
+        RefreshTree();
+    }
+
+    public void ClearObjectTypeFilter(ExplorerNode objectTypeNode)
+    {
+        if (objectTypeNode.Kind != ExplorerNodeKind.ObjectType || objectTypeNode.ConnectionId is null || objectTypeNode.ObjectType is null)
+        {
+            return;
+        }
+
+        objectTypeFilters.Remove(BuildObjectTypeFilterKey(objectTypeNode.ConnectionId, objectTypeNode.ObjectType.Value));
+        RefreshTree();
+    }
+
     /// <summary>
     /// Gets the current template configuration.
     /// Obtém a configuração atual de templates.
@@ -269,6 +316,79 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     {
         currentOperationCts?.Cancel();
         SetStatusMessage("Cancelamento solicitado.");
+    }
+
+
+    /// <summary>
+    /// Ensures objects for the selected connection are loaded (lazy load on tree selection).
+    /// Garante que os objetos da conexão selecionada estejam carregados (carga sob demanda).
+    /// </summary>
+    public async Task EnsureConnectionObjectsLoadedAsync(ExplorerNode selectedNode)
+    {
+        var connectionId = selectedNode.Kind switch
+        {
+            ExplorerNodeKind.Connection => selectedNode.ConnectionId,
+            ExplorerNodeKind.Schema => selectedNode.ConnectionId,
+            ExplorerNodeKind.ObjectType => selectedNode.ConnectionId,
+            ExplorerNodeKind.Object => selectedNode.ConnectionId,
+            ExplorerNodeKind.TableDetailGroup => selectedNode.ConnectionId,
+            ExplorerNodeKind.TableDetailItem => selectedNode.ConnectionId,
+            _ => null
+        };
+
+        if (string.IsNullOrWhiteSpace(connectionId))
+        {
+            return;
+        }
+
+        var connection = connections.FirstOrDefault(c => c.Id == connectionId);
+        if (connection is null)
+        {
+            return;
+        }
+
+        var needsObjectList = !objectsByConnection.ContainsKey(connectionId);
+        var needsSelectedTableDetails = selectedNode.Kind == ExplorerNodeKind.Object
+            && selectedNode.ObjectType == DatabaseObjectType.Table
+            && (selectedNode.DatabaseObject?.Properties is null || selectedNode.DatabaseObject.Properties.Count == 0);
+
+        if (!needsObjectList && !needsSelectedTableDetails)
+        {
+            return;
+        }
+
+        if (!TryBeginOperation($"Carregando objetos de {connection.FriendlyName}..."))
+        {
+            return;
+        }
+
+        try
+        {
+            var token = currentOperationCts?.Token ?? CancellationToken.None;
+
+            if (needsObjectList)
+            {
+                var objects = await metadataProvider.ListObjectsAsync(connection, token);
+                objectsByConnection[connection.Id] = objects;
+            }
+
+            if (selectedNode.Kind == ExplorerNodeKind.Object && selectedNode.ObjectType == DatabaseObjectType.Table)
+            {
+                await EnsureTableDetailsLoadedAsync(connection, selectedNode, token);
+            }
+
+            RefreshTree();
+            SetStatusMessage($"Objetos carregados para {connection.FriendlyName}.");
+        }
+        catch (Exception ex)
+        {
+            ExtensionLogger.Log($"EnsureConnectionObjectsLoadedAsync error [{connection.DatabaseName}]: {ex}");
+            SetStatusMessage($"Falha ao carregar objetos de {connection.FriendlyName}. Veja o log.");
+        }
+        finally
+        {
+            EndOperation();
+        }
     }
 
     /// <summary>
@@ -632,12 +752,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                     ? loadedObjects
                     : [];
 
-                var filteredObjects = objectFilterService.Filter(objects, ObjectFilterText, ObjectFilterMode)
-                    .OrderBy(o => o.Schema, StringComparer.OrdinalIgnoreCase)
-                    .ThenBy(o => o.Name, StringComparer.OrdinalIgnoreCase)
-                    .ToArray();
-
-                var schemaGroups = filteredObjects
+                var schemaGroups = objects
                     .GroupBy(o => string.IsNullOrWhiteSpace(o.Schema) ? connection.DatabaseName : o.Schema, StringComparer.OrdinalIgnoreCase)
                     .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
 
@@ -650,14 +765,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
                     foreach (DatabaseObjectType objectType in Enum.GetValues(typeof(DatabaseObjectType)))
                     {
+                        var filter = GetObjectTypeFilter(connection.Id, objectType);
+                        var hasFilter = !string.IsNullOrWhiteSpace(filter.Text);
                         var objectTypeNode = new ExplorerNode(
-                            objectType switch
-                            {
-                                DatabaseObjectType.Table => "Tables",
-                                DatabaseObjectType.View => "Views",
-                                DatabaseObjectType.Procedure => "Procedures",
-                                _ => objectType.ToString()
-                            },
+                            BuildObjectTypeLabel(objectType, hasFilter),
                             ExplorerNodeKind.ObjectType)
                         {
                             ConnectionId = connection.Id,
@@ -665,20 +776,34 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                         };
 
                         var typedObjects = schemaGroup
-                            .Where(o => o.Type == objectType)
+                            .Where(o => o.Type == objectType);
+
+                        if (hasFilter)
+                        {
+                            typedObjects = objectFilterService.Filter(typedObjects, filter.Text, filter.Mode);
+                        }
+
+                        typedObjects = typedObjects
                             .OrderBy(o => o.Name, StringComparer.OrdinalIgnoreCase);
 
                         foreach (var dbObject in typedObjects)
                         {
                             var key = BuildObjectKey(connection.Id, dbObject);
                             ObjectHealthStatus? status = healthByObject.TryGetValue(key, out var health) ? health.Status : (ObjectHealthStatus?)null;
-                            objectTypeNode.Children.Add(new ExplorerNode(dbObject.Name, ExplorerNodeKind.Object)
+                            var objectNode = new ExplorerNode(dbObject.Name, ExplorerNodeKind.Object)
                             {
                                 ConnectionId = connection.Id,
                                 ObjectType = dbObject.Type,
                                 DatabaseObject = dbObject,
                                 HealthStatus = status
-                            });
+                            };
+
+                            if (dbObject.Type == DatabaseObjectType.Table)
+                            {
+                                AddTableDetailsNodes(objectNode, dbObject);
+                            }
+
+                            objectTypeNode.Children.Add(objectNode);
                         }
 
                         if (objectTypeNode.Children.Count > 0)
@@ -734,6 +859,30 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         }
     }
 
+    private (string Text, FilterMode Mode) GetObjectTypeFilter(string connectionId, DatabaseObjectType objectType)
+    {
+        var key = BuildObjectTypeFilterKey(connectionId, objectType);
+        return objectTypeFilters.TryGetValue(key, out var filter)
+            ? filter
+            : (string.Empty, FilterMode.Like);
+    }
+
+    private static string BuildObjectTypeFilterKey(string connectionId, DatabaseObjectType objectType)
+        => $"{connectionId}|{objectType}";
+
+    private static string BuildObjectTypeLabel(DatabaseObjectType objectType, bool hasFilter)
+    {
+        var baseLabel = objectType switch
+        {
+            DatabaseObjectType.Table => "Tables",
+            DatabaseObjectType.View => "Views",
+            DatabaseObjectType.Procedure => "Procedures",
+            _ => objectType.ToString()
+        };
+
+        return hasFilter ? $"{baseLabel} 🔎" : baseLabel;
+    }
+
     private static string BuildNodeKey(ExplorerNode node)
         => node.Kind switch
         {
@@ -743,8 +892,257 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             ExplorerNodeKind.ObjectType => $"otype|{node.ConnectionId}|{node.ObjectType}",
             ExplorerNodeKind.Object when node.DatabaseObject is not null =>
                 $"obj|{node.ConnectionId}|{node.DatabaseObject.Type}|{node.DatabaseObject.Schema}|{node.DatabaseObject.Name}",
+            ExplorerNodeKind.TableDetailGroup => $"detailgroup|{node.ConnectionId}|{node.TableDetailKind}|{node.Label}",
+            ExplorerNodeKind.TableDetailItem => $"detailitem|{node.ConnectionId}|{node.TableDetailKind}|{node.Label}",
             _ => $"other|{node.Label}"
         };
+
+    private async Task EnsureTableDetailsLoadedAsync(ConnectionDefinition connection, ExplorerNode selectedNode, CancellationToken token)
+    {
+        if (selectedNode.DatabaseObject is null)
+        {
+            return;
+        }
+
+        var detailed = await metadataProvider.GetObjectAsync(connection, selectedNode.DatabaseObject, token);
+        if (detailed is null || !objectsByConnection.TryGetValue(connection.Id, out var existing))
+        {
+            return;
+        }
+
+        objectsByConnection[connection.Id] = existing
+            .Select(o =>
+                o.Type == detailed.Type
+                && string.Equals(o.Schema, detailed.Schema, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(o.Name, detailed.Name, StringComparison.OrdinalIgnoreCase)
+                    ? detailed
+                    : o)
+            .ToArray();
+    }
+
+    private static void AddTableDetailsNodes(ExplorerNode tableNode, DatabaseObjectReference dbObject)
+    {
+        var columns = ParseColumns(dbObject);
+        var indexes = ParseIndexes(dbObject);
+        var foreignKeys = ParseForeignKeys(dbObject);
+        var triggers = ParseTriggers(dbObject);
+
+        var pkColumns = ParsePrimaryKey(dbObject);
+        var fkColumns = new HashSet<string>(foreignKeys.Select(f => f.Column), StringComparer.OrdinalIgnoreCase);
+
+        var columnsNode = new ExplorerNode("Colunas", ExplorerNodeKind.TableDetailGroup)
+        {
+            ConnectionId = tableNode.ConnectionId,
+            TableDetailKind = "Columns"
+        };
+
+        foreach (var column in columns)
+        {
+            var icon = pkColumns.Contains(column.Name)
+                ? "🔑"
+                : fkColumns.Contains(column.Name)
+                    ? "🔗"
+                    : "•";
+
+            columnsNode.Children.Add(new ExplorerNode($"{icon} {column.Name} ({column.DataType})", ExplorerNodeKind.TableDetailItem)
+            {
+                ConnectionId = tableNode.ConnectionId,
+                TableDetailKind = "Column"
+            });
+        }
+
+        var indexesNode = new ExplorerNode("Índices", ExplorerNodeKind.TableDetailGroup)
+        {
+            ConnectionId = tableNode.ConnectionId,
+            TableDetailKind = "Indexes"
+        };
+
+        foreach (var index in indexes)
+        {
+            indexesNode.Children.Add(new ExplorerNode(index, ExplorerNodeKind.TableDetailItem)
+            {
+                ConnectionId = tableNode.ConnectionId,
+                TableDetailKind = "Index"
+            });
+        }
+
+        var foreignKeysNode = new ExplorerNode("Chave estrangeira", ExplorerNodeKind.TableDetailGroup)
+        {
+            ConnectionId = tableNode.ConnectionId,
+            TableDetailKind = "ForeignKeys"
+        };
+
+        foreach (var fk in foreignKeys)
+        {
+            foreignKeysNode.Children.Add(new ExplorerNode($"{fk.Column} → {fk.RefTable}.{fk.RefColumn}", ExplorerNodeKind.TableDetailItem)
+            {
+                ConnectionId = tableNode.ConnectionId,
+                TableDetailKind = "ForeignKey"
+            });
+        }
+
+        var triggersNode = new ExplorerNode("Triggers", ExplorerNodeKind.TableDetailGroup)
+        {
+            ConnectionId = tableNode.ConnectionId,
+            TableDetailKind = "Triggers"
+        };
+
+        foreach (var trigger in triggers)
+        {
+            triggersNode.Children.Add(new ExplorerNode(trigger, ExplorerNodeKind.TableDetailItem)
+            {
+                ConnectionId = tableNode.ConnectionId,
+                TableDetailKind = "Trigger"
+            });
+        }
+
+        tableNode.Children.Add(columnsNode);
+        tableNode.Children.Add(indexesNode);
+        tableNode.Children.Add(foreignKeysNode);
+        tableNode.Children.Add(triggersNode);
+    }
+
+    private static HashSet<string> ParsePrimaryKey(DatabaseObjectReference dbObject)
+        => SplitEscaped(GetMetadata(dbObject, "PrimaryKey"), ',')
+            .Select(Unescape)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    private static IReadOnlyCollection<(string Name, string DataType)> ParseColumns(DatabaseObjectReference dbObject)
+    {
+        var text = GetMetadata(dbObject, "Columns");
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return [];
+        }
+
+        var cols = new List<(string Name, string DataType)>();
+        foreach (var row in SplitEscaped(text, ';'))
+        {
+            if (string.IsNullOrWhiteSpace(row))
+            {
+                continue;
+            }
+
+            var parts = SplitEscaped(row, '|').ToArray();
+            if (parts.Length < 2)
+            {
+                continue;
+            }
+
+            var name = Unescape(parts[0]);
+            var dataType = Unescape(parts[1]);
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                cols.Add((name, dataType));
+            }
+        }
+
+        return cols;
+    }
+
+    private static IReadOnlyCollection<string> ParseIndexes(DatabaseObjectReference dbObject)
+    {
+        var text = GetMetadata(dbObject, "Indexes");
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return [];
+        }
+
+        var list = new List<string>();
+        foreach (var row in SplitEscaped(text, ';'))
+        {
+            var parts = SplitEscaped(row, '|').ToArray();
+            if (parts.Length < 3)
+            {
+                continue;
+            }
+
+            var name = Unescape(parts[0]);
+            var columns = SplitEscaped(parts[2], ',').Select(Unescape).Where(x => !string.IsNullOrWhiteSpace(x));
+            list.Add($"{name} ({string.Join(", ", columns)})");
+        }
+
+        return list;
+    }
+
+    private static IReadOnlyCollection<(string Column, string RefTable, string RefColumn)> ParseForeignKeys(DatabaseObjectReference dbObject)
+    {
+        var text = GetMetadata(dbObject, "ForeignKeys");
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return [];
+        }
+
+        var list = new List<(string, string, string)>();
+        foreach (var row in SplitEscaped(text, ';'))
+        {
+            var parts = SplitEscaped(row, '|').ToArray();
+            if (parts.Length < 3)
+            {
+                continue;
+            }
+
+            list.Add((Unescape(parts[0]), Unescape(parts[1]), Unescape(parts[2])));
+        }
+
+        return list;
+    }
+
+    private static IReadOnlyCollection<string> ParseTriggers(DatabaseObjectReference dbObject)
+    {
+        var text = GetMetadata(dbObject, "Triggers");
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return [];
+        }
+
+        return SplitEscaped(text, ';').Select(Unescape).Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
+    }
+
+    private static string GetMetadata(DatabaseObjectReference dbObject, string key)
+        => dbObject.Properties is not null && dbObject.Properties.TryGetValue(key, out var value)
+            ? value
+            : string.Empty;
+
+    private static IEnumerable<string> SplitEscaped(string text, char separator)
+    {
+        var current = new StringBuilder();
+        var escape = false;
+
+        foreach (var ch in text)
+        {
+            if (escape)
+            {
+                current.Append(ch);
+                escape = false;
+                continue;
+            }
+
+            if (ch == '\\')
+            {
+                escape = true;
+                continue;
+            }
+
+            if (ch == separator)
+            {
+                yield return current.ToString();
+                current.Clear();
+                continue;
+            }
+
+            current.Append(ch);
+        }
+
+        yield return current.ToString();
+    }
+
+    private static string Unescape(string value)
+        => value.Replace("\\|", "|")
+            .Replace("\\;", ";")
+            .Replace("\\,", ",")
+            .Replace("\\\\", "\\");
 
     private bool TryBeginOperation(string message)
     {

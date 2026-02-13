@@ -106,8 +106,13 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
     private void OnExplorerContextMenuOpened(object sender, RoutedEventArgs e)
     {
-        var isConnectionNodeSelected = ExplorerTree.SelectedItem is ExplorerNode selectedConnection && selectedConnection.Kind == ExplorerNodeKind.Connection;
-        var isObjectTypeNodeSelected = ExplorerTree.SelectedItem is ExplorerNode selected && selected.Kind == ExplorerNodeKind.ObjectType;
+        var selectedNode = ExplorerTree.SelectedItem as ExplorerNode;
+        var isConnectionNodeSelected = selectedNode?.Kind == ExplorerNodeKind.Connection;
+        var isObjectTypeNodeSelected = selectedNode?.Kind == ExplorerNodeKind.ObjectType;
+        var isGenerationSupportedSelected = selectedNode is not null && GenerationSupportedKinds.Contains(selectedNode.Kind);
+        var canClearObjectTypeFilter = isObjectTypeNodeSelected
+            && selectedNode is not null
+            && !string.IsNullOrWhiteSpace(viewModel.GetObjectTypeFilter(selectedNode).FilterText);
 
         EditConnectionMenuItem.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
         RemoveConnectionMenuItem.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
@@ -117,7 +122,29 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
         ConfigureMappingsMenuItem.Visibility = isObjectTypeNodeSelected ? Visibility.Visible : Visibility.Collapsed;
         ConfigureTemplatesMenuItem.Visibility = isObjectTypeNodeSelected ? Visibility.Visible : Visibility.Collapsed;
+        ConfigureObjectTypeFilterMenuItem.Visibility = isObjectTypeNodeSelected ? Visibility.Visible : Visibility.Collapsed;
+        ClearObjectTypeFilterMenuItem.Visibility = canClearObjectTypeFilter ? Visibility.Visible : Visibility.Collapsed;
+
+        GenerationActionsSeparator.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
+        GenerateAllClassesMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
+        GenerateByTypeSeparator.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
+        GenerateTestClassesMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
+        GenerateModelClassesMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
+        GenerateRepositoryClassesMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
+        CheckConsistencyMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
     }
+
+
+    private async void OnExplorerTreeSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        => await RunSafeAsync(async () =>
+        {
+            if (e.NewValue is not ExplorerNode node)
+            {
+                return;
+            }
+
+            await viewModel.EnsureConnectionObjectsLoadedAsync(node);
+        });
 
     private void OnExplorerTreePreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -184,11 +211,72 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         }
     }
 
+    private void OnConfigureObjectTypeFilterClick(object sender, RoutedEventArgs e)
+    {
+        if (ExplorerTree.SelectedItem is not ExplorerNode selected || selected.Kind != ExplorerNodeKind.ObjectType)
+        {
+            MessageBox.Show(System.Windows.Window.GetWindow(this), "Selecione um tipo de objeto para configurar o filtro.", "Filtro de itens", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var current = viewModel.GetObjectTypeFilter(selected);
+        var dialog = new ObjectTypeFilterDialog(current.FilterText, current.FilterMode)
+        {
+            Owner = System.Windows.Window.GetWindow(this)
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            viewModel.SetObjectTypeFilter(selected, dialog.FilterText, dialog.FilterMode);
+        }
+    }
+
+    private void OnClearObjectTypeFilterClick(object sender, RoutedEventArgs e)
+    {
+        if (ExplorerTree.SelectedItem is not ExplorerNode selected || selected.Kind != ExplorerNodeKind.ObjectType)
+        {
+            MessageBox.Show(System.Windows.Window.GetWindow(this), "Selecione um tipo de objeto para limpar o filtro.", "Filtro de itens", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        viewModel.ClearObjectTypeFilter(selected);
+    }
+
     private async void OnRefreshObjectsClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(() => viewModel.RefreshObjectsAsync());
 
     private void OnCancelOperationClick(object sender, RoutedEventArgs e)
         => viewModel.CancelCurrentOperation();
+
+
+    private async void OnGenerateAllClassesClick(object sender, RoutedEventArgs e)
+        => await RunSafeAsync(async () =>
+        {
+            if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
+            {
+                MessageBox.Show(System.Windows.Window.GetWindow(this), "Selecione conexão, tipo de objeto ou objeto para gerar classes.", "Gerar classes", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var conflicts = viewModel.PreviewConflictsForNode(selected);
+            if (conflicts.Count > 0)
+            {
+                var preview = string.Join(Environment.NewLine, conflicts.Take(10));
+                var message = $"{conflicts.Count} arquivo(s) já existem e serão sobrescritos:\n\n{preview}";
+                var confirm = MessageBox.Show(System.Windows.Window.GetWindow(this), message, "Pré-visualização de sobrescrita", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                if (confirm != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+            }
+
+            var generatedTestFiles = await viewModel.GenerateForNodeAsync(selected);
+            var generatedModelFiles = await viewModel.GenerateModelClassesForNodeAsync(selected);
+            var generatedRepositoryFiles = await viewModel.GenerateRepositoryClassesForNodeAsync(selected);
+
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            AddFilesToActiveProject(generatedTestFiles.Concat(generatedModelFiles).Concat(generatedRepositoryFiles));
+        });
 
     private async void OnGenerateClassesClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(async () =>
