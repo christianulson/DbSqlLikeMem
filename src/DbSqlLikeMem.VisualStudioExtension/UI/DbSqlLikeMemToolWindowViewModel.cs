@@ -318,6 +318,55 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         SetStatusMessage("Cancelamento solicitado.");
     }
 
+    public async Task ExportStateAsync(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            throw new ArgumentException("Caminho de exportação inválido.", nameof(filePath));
+        }
+
+        var state = BuildPersistedState();
+        await statePersistenceService.ExportAsync(state, filePath);
+        SetStatusMessage("Configurações exportadas com sucesso.");
+    }
+
+    public async Task ImportStateAsync(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            throw new ArgumentException("Caminho de importação inválido.", nameof(filePath));
+        }
+
+        var imported = await statePersistenceService.ImportAsync(filePath);
+        if (imported is null)
+        {
+            throw new InvalidOperationException("Arquivo de configuração vazio ou inválido.");
+        }
+
+        connections.Clear();
+        foreach (var connection in imported.Connections)
+        {
+            var decrypted = ConnectionStringProtector.Unprotect(connection.ConnectionString);
+            connections.Add(new ConnectionDefinition(connection.Id, connection.DatabaseType, connection.DatabaseName, decrypted, connection.DisplayName));
+        }
+
+        mappings.Clear();
+        foreach (var mapping in imported.Mappings)
+        {
+            mappings.Add(mapping);
+        }
+
+        templateConfiguration = imported.TemplateConfiguration ?? TemplateConfiguration.Default;
+
+        objectsByConnection.Clear();
+        healthByObject.Clear();
+        objectTypeFilters.Clear();
+
+        SaveState();
+        RefreshTree();
+        SetStatusMessage("Configurações importadas com sucesso.");
+    }
+
 
     /// <summary>
     /// Ensures objects for the selected connection are loaded (lazy load on tree selection).
@@ -722,12 +771,17 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
     private void SaveState()
     {
+        var state = BuildPersistedState();
+        statePersistenceService.Save(state, stateFilePath);
+    }
+
+    private ExtensionState BuildPersistedState()
+    {
         var safeConnections = connections
             .Select(c => new ConnectionDefinition(c.Id, c.DatabaseType, c.DatabaseName, ConnectionStringProtector.Protect(c.ConnectionString), c.DisplayName))
             .ToArray();
 
-        var state = new ExtensionState(safeConnections, [.. mappings], templateConfiguration);
-        statePersistenceService.Save(state, stateFilePath);
+        return new ExtensionState(safeConnections, [.. mappings], templateConfiguration);
     }
 
     private void RefreshTree()

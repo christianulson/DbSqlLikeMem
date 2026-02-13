@@ -35,6 +35,10 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 8. **Checagem complementar de artefatos gerados**
    - A consistência considera também a presença de arquivos de Model e Repository, além das classes já geradas pelo fluxo principal.
 
+9. **Importação e exportação de configurações**
+   - Botões no topo para **Importar configurações** e **Exportar configurações** em JSON.
+   - Exportação inclui conexões, mapeamentos e templates, com `ConnectionString` protegida (DPAPI por usuário).
+
 ## Compatibilidade VSIX
 
 - Compatível com Visual Studio **2019, 2022 e linha futura (incluindo 2026)** (`[16.0,19.0)`) nas edições Community/Professional/Enterprise.
