@@ -20,11 +20,12 @@ echo "Running cross-dialect smoke checks over common SQL test classes..."
 
 for project in "${projects[@]}"; do
   echo "==> Restoring ${project}"
-  dotnet restore "${project}" >/dev/null
+  dotnet restore "${project}" -p:TargetFramework=net8.0 >/dev/null
 
   for class_name in "${cross_dialect_classes[@]}"; do
     echo "==> ${project} :: ${class_name}"
     dotnet test "${project}" \
+      --framework net8.0 \
       --configuration Release \
       --no-restore \
       --verbosity minimal \

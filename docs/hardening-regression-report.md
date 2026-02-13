@@ -54,7 +54,7 @@
 
 ## Atualizações implementadas nesta etapa
 
-1. **Workflow de CI por provider adicionado**: `.github/workflows/provider-test-matrix.yml` executa restore/test por matriz (`MySql`, `SqlServer`, `Oracle`, `Npgsql`, `Sqlite`, `Db2`) e publica artefatos de resultados.
+1. **Workflow de CI por provider adicionado**: `.github/workflows/provider-test-matrix.yml` executa restore/test por matriz (`MySql`, `SqlServer`, `Oracle`, `Npgsql`, `Sqlite`, `Db2`) fixando `TargetFramework=net8.0` no CI Linux e publica artefatos de resultados.
 2. **Smoke cross-dialeto inicial adicionada**: `scripts/run_cross_dialect_equivalence.sh` roda uma suíte mínima comum (`ExistsTests`, `SubqueryFromAndJoinsTests`, `SelectIntoInsertSelectUpdateDeleteFromSelectTests`) em todos os providers.
 3. **Checklist de gaps atualizado** com os itens recém-implementados em CI e status parcial da suíte de equivalência.
 

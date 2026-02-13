@@ -36,10 +36,10 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Restore
-        run: dotnet restore ${{ matrix.project }}
+        run: dotnet restore ${{ matrix.project }} -p:TargetFramework=net8.0
 
       - name: Test provider project (${{ matrix.provider }})
-        run: dotnet test ${{ matrix.project }} --configuration Release --no-restore --verbosity minimal
+        run: dotnet test ${{ matrix.project }} --framework net8.0 --configuration Release --no-restore --verbosity minimal
 
       - name: Upload provider TRX (${{ matrix.provider }})
         if: always()
