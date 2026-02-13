@@ -34,13 +34,11 @@ public partial class MainWindow : Window
 
     private void OnOpenTemplateDialog(object sender, RoutedEventArgs e)
     {
-        _ = new TemplateConfigurationDialog(new TemplateConfiguration
-        {
-            ModelTemplatePath = string.Empty,
-            RepositoryTemplatePath = string.Empty,
-            ModelOutputDirectory = Path.Combine(Environment.CurrentDirectory, "Generated", "Models"),
-            RepositoryOutputDirectory = Path.Combine(Environment.CurrentDirectory, "Generated", "Repositories")
-        })
+        _ = new TemplateConfigurationDialog(new TemplateConfiguration(
+            string.Empty,
+            string.Empty,
+            Path.Combine(Environment.CurrentDirectory, "Generated", "Models"),
+            Path.Combine(Environment.CurrentDirectory, "Generated", "Repositories")))
         {
             Owner = this
         }.ShowDialog();
