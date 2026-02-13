@@ -8,13 +8,13 @@
     <Locale>pt-BR</Locale>
     <InstalledByMsi>false</InstalledByMsi>
     <SupportedProducts>
-      <VisualStudio Version="[16.0,19.0)">
+      <VisualStudio Version="[17.0,19.0)">
         <Edition>Community</Edition>
       </VisualStudio>
-      <VisualStudio Version="[16.0,19.0)">
+      <VisualStudio Version="[17.0,19.0)">
         <Edition>Professional</Edition>
       </VisualStudio>
-      <VisualStudio Version="[16.0,19.0)">
+      <VisualStudio Version="[17.0,19.0)">
         <Edition>Enterprise</Edition>
       </VisualStudio>
     </SupportedProducts>
