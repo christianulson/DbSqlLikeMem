@@ -79,3 +79,13 @@ public class {{ClassName}}
 - Em geral esses bindings são de UI interna do VS (MRU/Copilot/review pane) e podem aparecer mesmo sem a DbSqlLikeMem aberta.
 - Para confirmar a causa, rode com log (`/log`) e inspecione `%APPDATA%\Microsoft\VisualStudio\17.0_*Exp\ActivityLog.xml` buscando por `DbSqlLikeMem`.
 - Se ainda não aparecer, execute `devenv /rootsuffix Exp /setup` e reabra a instância experimental para forçar atualização dos menus VSCT.
+
+## Harness local para validar XAML (fora do VS)
+
+- Foi adicionado o projeto `DbSqlLikeMem.VisualStudioExtension.XamlHarness`, uma aplicação WPF simples para validar se os XAML da extensão estão carregando corretamente sem depender do host do Visual Studio.
+- Esse projeto ajuda no cenário em que a VSIX não aparece no menu de debug do Visual Studio, permitindo testar o `DbSqlLikeMemToolWindowControl` e os diálogos (`ConnectionDialog`, `MappingDialog`, `TemplateConfigurationDialog`) de forma isolada.
+- Execução:
+
+```bash
+dotnet run --project src/DbSqlLikeMem.VisualStudioExtension.XamlHarness/DbSqlLikeMem.VisualStudioExtension.XamlHarness.csproj
+```
