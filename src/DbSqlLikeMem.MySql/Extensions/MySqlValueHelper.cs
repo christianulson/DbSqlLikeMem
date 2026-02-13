@@ -1,4 +1,5 @@
 using System.Text.Json;
+using DbSqlLikeMem.Resources;
 
 namespace DbSqlLikeMem.MySql;
 
@@ -37,7 +38,7 @@ internal static class MySqlValueHelper
                 .Replace("\r\n", string.Empty)
                 .Replace(";", string.Empty);
             if (pars == null || !pars.Contains(name))
-                throw new MySqlMockException($"Parâmetro {name} não encontrado.");
+                throw new MySqlMockException(SqlExceptionMessages.ParameterNotFound(name));
             return ((MySqlParameter)pars[name]).Value;
         }
 
@@ -45,7 +46,7 @@ internal static class MySqlValueHelper
         if (token.Equals("null", StringComparison.OrdinalIgnoreCase))
             return isNullable 
                 ? null
-                : throw new MySqlMockException("Coluna não aceita NULL");
+                : throw new MySqlMockException(SqlExceptionMessages.ColumnDoesNotAcceptNull());
 
         // ---------- lista ( ..., ... )  para IN ------------------------
         var m = _list.Match(token);
@@ -138,10 +139,10 @@ internal static class MySqlValueHelper
             return value;
 
         if (cdef.Size is int size && value is string s && s.Length > size)
-            throw new MySqlMockException($"Data too long for column '{CurrentColumn}'", 1406);
+            throw new MySqlMockException(SqlExceptionMessages.DataTooLongForColumn(CurrentColumn), 1406);
 
         if (cdef.DecimalPlaces is int scale && value is decimal d && GetDecimalScale(d) > scale)
-            throw new MySqlMockException($"Data truncated for column '{CurrentColumn}'", 1265);
+            throw new MySqlMockException(SqlExceptionMessages.DataTruncatedForColumn(CurrentColumn), 1265);
 
         return value;
     }

@@ -1,5 +1,6 @@
 using Microsoft.Data.SqlClient;
 using System.Text.Json;
+using DbSqlLikeMem.Resources;
 
 namespace DbSqlLikeMem.SqlServer;
 
@@ -38,7 +39,7 @@ internal static class SqlServerValueHelper
                 .Replace("\r\n", string.Empty)
                 .Replace(";", string.Empty);
             if (pars == null || !pars.Contains(name))
-                throw new SqlServerMockException($"Parâmetro {name} não encontrado.");
+                throw new SqlServerMockException(SqlExceptionMessages.ParameterNotFound(name));
             return ((SqlParameter)pars[name]).Value;
         }
 
@@ -46,7 +47,7 @@ internal static class SqlServerValueHelper
         if (token.Equals("null", StringComparison.OrdinalIgnoreCase))
             return isNullable 
                 ? null
-                : throw new SqlServerMockException("Coluna não aceita NULL");
+                : throw new SqlServerMockException(SqlExceptionMessages.ColumnDoesNotAcceptNull());
 
         // ---------- lista ( ..., ... )  para IN ------------------------
         var m = _list.Match(token);
