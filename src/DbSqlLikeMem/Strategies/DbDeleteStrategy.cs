@@ -24,6 +24,7 @@ internal static class DbDeleteStrategy
         ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(query!.Table!.Name, nameof(query.Table.Name));
         var tableName = query.Table.Name!;
+        var dialect = connection.Db.Dialect;
         if (!connection.TryGetTable(tableName, out var table, query.Table.DbName)
             || table == null)
             throw new InvalidOperationException($"Table {tableName} does not exist.");
@@ -60,7 +61,10 @@ internal static class DbDeleteStrategy
         // 3. Remover (ordem inversa para não quebrar índices durante loop)
         foreach (var idx in indexesToDelete.OrderByDescending(x => x))
         {
+            var oldRow = SnapshotRow(table[idx]);
+            TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeDelete, oldRow, null);
             table.RemoveAt(idx);
+            TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterDelete, oldRow, null);
         }
 
         // Rebuild índices (necessário pois posições mudaram)
@@ -68,6 +72,29 @@ internal static class DbDeleteStrategy
 
         connection.Metrics.Deletes += rowsToDelete.Count;
         return rowsToDelete.Count;
+    }
+
+    private static IReadOnlyDictionary<int, object?> SnapshotRow(IReadOnlyDictionary<int, object?> row)
+        => row.ToDictionary(_ => _.Key, _ => _.Value);
+
+    private static void TryExecuteTableTrigger(
+        DbConnectionMockBase connection,
+        ISqlDialect dialect,
+        ITableMock table,
+        string tableName,
+        string? schemaName,
+        TableTriggerEvent evt,
+        IReadOnlyDictionary<int, object?>? oldRow,
+        IReadOnlyDictionary<int, object?>? newRow)
+    {
+        if (!dialect.SupportsTriggers)
+            return;
+
+        if (connection.IsTemporaryTable(table, tableName, schemaName))
+            return;
+
+        if (table is TableMock tableMock)
+            tableMock.ExecuteTriggers(evt, oldRow, newRow);
     }
 
     private static void ValidateForeignKeys(
