@@ -271,6 +271,57 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         SetStatusMessage("Cancelamento solicitado.");
     }
 
+
+    /// <summary>
+    /// Ensures objects for the selected connection are loaded (lazy load on tree selection).
+    /// Garante que os objetos da conexão selecionada estejam carregados (carga sob demanda).
+    /// </summary>
+    public async Task EnsureConnectionObjectsLoadedAsync(ExplorerNode selectedNode)
+    {
+        var connectionId = selectedNode.Kind switch
+        {
+            ExplorerNodeKind.Connection => selectedNode.ConnectionId,
+            ExplorerNodeKind.Schema => selectedNode.ConnectionId,
+            ExplorerNodeKind.ObjectType => selectedNode.ConnectionId,
+            ExplorerNodeKind.Object => selectedNode.ConnectionId,
+            _ => null
+        };
+
+        if (string.IsNullOrWhiteSpace(connectionId) || objectsByConnection.ContainsKey(connectionId))
+        {
+            return;
+        }
+
+        var connection = connections.FirstOrDefault(c => c.Id == connectionId);
+        if (connection is null)
+        {
+            return;
+        }
+
+        if (!TryBeginOperation($"Carregando objetos de {connection.FriendlyName}..."))
+        {
+            return;
+        }
+
+        try
+        {
+            var token = currentOperationCts?.Token ?? CancellationToken.None;
+            var objects = await metadataProvider.ListObjectsAsync(connection, token);
+            objectsByConnection[connection.Id] = objects;
+            RefreshTree();
+            SetStatusMessage($"Objetos carregados para {connection.FriendlyName}.");
+        }
+        catch (Exception ex)
+        {
+            ExtensionLogger.Log($"EnsureConnectionObjectsLoadedAsync error [{connection.DatabaseName}]: {ex}");
+            SetStatusMessage($"Falha ao carregar objetos de {connection.FriendlyName}. Veja o log.");
+        }
+        finally
+        {
+            EndOperation();
+        }
+    }
+
     /// <summary>
     /// Reloads database objects for all configured connections.
     /// Recarrega os objetos de banco para todas as conexões configuradas.

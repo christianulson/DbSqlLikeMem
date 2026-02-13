@@ -92,6 +92,33 @@ public sealed class ExplorerNode
     /// </summary>
     public ObjectHealthStatus? HealthStatus { get; set; }
 
+
+    /// <summary>
+    /// Gets an icon glyph for the node kind.
+    /// Obtém um glifo de ícone para o tipo de nó.
+    /// </summary>
+    public string NodeGlyph => Kind switch
+    {
+        ExplorerNodeKind.DatabaseType => "🗃",
+        ExplorerNodeKind.Connection => "🔌",
+        ExplorerNodeKind.Schema => "🧩",
+        ExplorerNodeKind.ObjectType => ObjectType switch
+        {
+            DatabaseObjectType.Table => "🗂",
+            DatabaseObjectType.View => "👁",
+            DatabaseObjectType.Procedure => "⚙",
+            _ => "📁"
+        },
+        ExplorerNodeKind.Object => ObjectType switch
+        {
+            DatabaseObjectType.Table => "▦",
+            DatabaseObjectType.View => "◫",
+            DatabaseObjectType.Procedure => "ƒ",
+            _ => "•"
+        },
+        _ => ""
+    };
+
     /// <summary>
     /// Gets an emoji glyph that represents the current health status.
     /// Obtém um glifo em emoji que representa o status de saúde atual.

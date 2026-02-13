@@ -10,6 +10,7 @@
     <UserControl.Resources>
         <HierarchicalDataTemplate DataType="{x:Type ui:ExplorerNode}" ItemsSource="{Binding Children}">
             <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding NodeGlyph}" Margin="0,0,6,0" />
                 <TextBlock Text="{Binding StatusGlyph}" Margin="0,0,6,0" />
                 <TextBlock Text="{Binding Label}" />
             </StackPanel>
@@ -54,6 +55,7 @@
         <TreeView x:Name="ExplorerTree"
                   Grid.Row="4"
                   PreviewMouseRightButtonDown="OnExplorerTreePreviewMouseRightButtonDown"
+                  SelectedItemChanged="OnExplorerTreeSelectedItemChanged"
                   ItemsSource="{Binding Nodes}">
             <TreeView.ItemContainerStyle>
                 <Style TargetType="TreeViewItem">

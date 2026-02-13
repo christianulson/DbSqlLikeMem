@@ -119,6 +119,18 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         ConfigureTemplatesMenuItem.Visibility = isObjectTypeNodeSelected ? Visibility.Visible : Visibility.Collapsed;
     }
 
+
+    private async void OnExplorerTreeSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        => await RunSafeAsync(async () =>
+        {
+            if (e.NewValue is not ExplorerNode node)
+            {
+                return;
+            }
+
+            await viewModel.EnsureConnectionObjectsLoadedAsync(node);
+        });
+
     private void OnExplorerTreePreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
     {
         var source = e.OriginalSource as DependencyObject;
