@@ -110,6 +110,7 @@ public class NpgsqlCommandMock(
             SqlInsertQuery insertQ => connection.ExecuteInsert(insertQ, Parameters, connection.Db.Dialect),
             SqlUpdateQuery updateQ => connection.ExecuteUpdateSmart(updateQ, Parameters, connection.Db.Dialect),
             SqlDeleteQuery deleteQ => connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect),
+            SqlMergeQuery mergeQ => connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect),
             SqlCreateTemporaryTableQuery tempQ => connection.ExecuteCreateTemporaryTableAsSelect(tempQ, Parameters, connection.Db.Dialect),
             SqlCreateViewQuery viewQ => connection.ExecuteCreateView(viewQ, Parameters, connection.Db.Dialect),
             SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect),
@@ -167,6 +168,9 @@ public class NpgsqlCommandMock(
                     break;
                 case SqlDeleteQuery deleteQ:
                     connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect);
+                    break;
+                case SqlMergeQuery mergeQ:
+                    connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect);
                     break;
                 case SqlCreateTemporaryTableQuery tempQ:
                     connection.ExecuteCreateTemporaryTableAsSelect(tempQ, Parameters, connection.Db.Dialect);

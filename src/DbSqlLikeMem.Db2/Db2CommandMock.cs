@@ -141,6 +141,7 @@ public class Db2CommandMock(
             SqlInsertQuery insertQ => connection.ExecuteInsert(insertQ, Parameters, connection.Db.Dialect),
             SqlUpdateQuery updateQ => connection.ExecuteUpdateSmart(updateQ, Parameters, connection.Db.Dialect),
             SqlDeleteQuery deleteQ => connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect),
+            SqlMergeQuery mergeQ => connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect),
             SqlCreateViewQuery cv => connection.ExecuteCreateView(cv, Parameters, connection.Db.Dialect),
             SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect),
             SqlSelectQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT."),
@@ -236,6 +237,10 @@ public class Db2CommandMock(
 
                 case SqlDeleteQuery deleteQ:
                     connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect);
+                    break;
+
+                case SqlMergeQuery mergeQ:
+                    connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect);
                     break;
 
                 case SqlSelectQuery selectQ:
