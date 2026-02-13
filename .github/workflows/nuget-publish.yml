@@ -27,16 +27,28 @@ jobs:
       - name: Pack
         run: dotnet pack src/DbSqlLikeMem.slnx -c Release -o ./artifacts
 
-      - name: Publish to NuGet.org
+      - name: Resolve NuGet API key
+        id: nuget_key
         shell: bash
         env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_API_KEY_SECRET: ${{ secrets.NUGET_API_KEY }}
+          NUGET_ORG_API_KEY_SECRET: ${{ secrets.NUGET_ORG_API_KEY }}
+          NUGET_API_KEY_VAR: ${{ vars.NUGET_API_KEY }}
+          NUGET_ORG_API_KEY_VAR: ${{ vars.NUGET_ORG_API_KEY }}
         run: |
-          if [ -z "$NUGET_API_KEY" ]; then
-            echo "::error::NUGET_API_KEY is empty. Configure it as a Repository secret or attach the job to a GitHub Environment that defines this secret."
+          NUGET_KEY="${NUGET_API_KEY_SECRET:-${NUGET_ORG_API_KEY_SECRET:-${NUGET_API_KEY_VAR:-${NUGET_ORG_API_KEY_VAR:-}}}}"
+
+          if [ -z "$NUGET_KEY" ]; then
+            echo "::error::NuGet API key is empty. Configure one of: secrets.NUGET_API_KEY, secrets.NUGET_ORG_API_KEY, vars.NUGET_API_KEY or vars.NUGET_ORG_API_KEY."
+            echo "::error::If you store it at Environment level, attach this job to that Environment and ensure the tag/branch is allowed by Environment rules."
             exit 1
           fi
 
+          echo "NUGET_API_KEY=$NUGET_KEY" >> "$GITHUB_ENV"
+
+      - name: Publish to NuGet.org
+        shell: bash
+        run: |
           dotnet nuget push "./artifacts/*.nupkg" \
             --api-key "$NUGET_API_KEY" \
             --source "https://api.nuget.org/v3/index.json" \
