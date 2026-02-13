@@ -1,6 +1,7 @@
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using Oracle.ManagedDataAccess.Client;
+using DbSqlLikeMem.Resources;
 
 namespace DbSqlLikeMem.Oracle;
 
@@ -111,7 +112,7 @@ public class OracleCommandMock(
             SqlMergeQuery mergeQ => connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect),
             SqlCreateViewQuery viewQ => connection.ExecuteCreateView(viewQ, Parameters, connection.Db.Dialect),
             SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect),
-            SqlSelectQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT."),
+            SqlSelectQuery _ => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelect()),
             _ => throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteNonQuery", query.GetType())
         };
     }
@@ -181,7 +182,7 @@ public class OracleCommandMock(
         }
 
         if (tables.Count == 0 && queries.Count > 0)
-            throw new InvalidOperationException("ExecuteReader foi chamado, mas nenhuma query SELECT foi encontrada.");
+            throw new InvalidOperationException(SqlExceptionMessages.ExecuteReaderWithoutSelectQuery());
 
         connection.Metrics.Selects += tables.Sum(t => t.Count);
 

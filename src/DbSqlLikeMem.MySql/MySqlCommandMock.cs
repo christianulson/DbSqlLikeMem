@@ -1,3 +1,5 @@
+using DbSqlLikeMem.Resources;
+
 namespace DbSqlLikeMem.MySql;
 
 /// <summary>
@@ -108,7 +110,7 @@ public class MySqlCommandMock(
         {
             var q = SqlQueryParser.Parse(sqlRaw, connection!.Db.Dialect);
             if (q is not SqlCreateTemporaryTableQuery ct)
-                throw new InvalidOperationException("Invalid CREATE TEMPORARY TABLE statement.");
+                throw new InvalidOperationException(SqlExceptionMessages.InvalidCreateTemporaryTableStatement());
             return connection.ExecuteCreateTemporaryTableAsSelect(ct, Parameters, connection.Db.Dialect);
         }
 
@@ -117,7 +119,7 @@ public class MySqlCommandMock(
         {
             var q = SqlQueryParser.Parse(sqlRaw, connection!.Db.Dialect);
             if (q is not SqlCreateViewQuery cv)
-                throw new InvalidOperationException("Invalid CREATE VIEW statement.");
+                throw new InvalidOperationException(SqlExceptionMessages.InvalidCreateViewStatement());
             return connection.ExecuteCreateView(cv, Parameters, connection.Db.Dialect);
         }
 
@@ -132,7 +134,7 @@ public class MySqlCommandMock(
         }
 
         if (!connection!.Db.Dialect.SupportsDeleteWithoutFrom && IsDeleteMissingFrom(sqlRaw))
-            throw new InvalidOperationException("Invalid DELETE statement: expected FROM keyword.");
+            throw new InvalidOperationException(SqlExceptionMessages.InvalidDeleteExpectedFromKeyword());
 
         // 3. Parse via AST para comandos DML (Insert, Update, Delete)
         var query = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect);
@@ -144,7 +146,7 @@ public class MySqlCommandMock(
             SqlDeleteQuery deleteQ => connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect),
             SqlCreateViewQuery cv => connection.ExecuteCreateView(cv, Parameters, connection.Db.Dialect),
             SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect),
-            SqlSelectQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT."),
+            SqlSelectQuery _ => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelect()),
             _ => throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteNonQuery", query.GetType())
         };
     }
@@ -226,7 +228,7 @@ public class MySqlCommandMock(
             .ToArray();
 
         if (parts.Length < 3 || !parts[0].Equals("DROP", StringComparison.OrdinalIgnoreCase) || !parts[1].Equals("VIEW", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Invalid DROP VIEW statement.");
+            throw new InvalidOperationException(SqlExceptionMessages.InvalidDropViewStatement());
 
         var i = 2;
         var ifExists = false;
@@ -239,7 +241,7 @@ public class MySqlCommandMock(
         }
 
         if (i >= parts.Length)
-            throw new InvalidOperationException("Invalid DROP VIEW statement.");
+            throw new InvalidOperationException(SqlExceptionMessages.InvalidDropViewStatement());
 
         var viewName = parts[i].Trim().Trim('`', '"').NormalizeName();
         connection!.DropView(viewName, ifExists);
@@ -324,7 +326,7 @@ public class MySqlCommandMock(
         }
 
         if (tables.Count == 0 && hasAnyQuery)
-            throw new InvalidOperationException("ExecuteReader foi chamado, mas nenhuma query SELECT foi encontrada.");
+            throw new InvalidOperationException(SqlExceptionMessages.ExecuteReaderWithoutSelectQuery());
 
         connection.Metrics.Selects += tables.Sum(t => t.Count);
 

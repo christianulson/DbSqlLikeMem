@@ -85,7 +85,7 @@ public sealed class MySqlInsertStrategyExtrasTests(
 
         // Act & Assert
         var ex = Assert.Throws<MySqlMockException>(() => cmd.ExecuteNonQuery());
-        Assert.Contains("Duplicate entry", ex.Message, StringComparison.Ordinal);
+        Assert.Contains(DbSqlLikeMem.Resources.SqlExceptionMessages.DuplicateKey(string.Empty, string.Empty).Split('\'')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }
 
@@ -124,7 +124,7 @@ public class MySqlDeleteStrategyForeignKeyTests
 
         // Act & Assert
         var ex = Assert.Throws<MySqlMockException>(() => cmd.ExecuteNonQuery());
-        Assert.Contains("Cannot delete or update a parent row", ex.Message, StringComparison.Ordinal);
+        Assert.Contains(DbSqlLikeMem.Resources.SqlExceptionMessages.ReferencedRow(string.Empty).Split('(')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }
 

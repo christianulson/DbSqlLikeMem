@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="DuplicateKey" xml:space="preserve">
+    <value>Duplicate entry '{0}' for key '{1}'</value>
+  </data>
+  <data name="UnknownColumn" xml:space="preserve">
+    <value>Unknown column '{0}'</value>
+  </data>
+  <data name="ColumnCannotBeNull" xml:space="preserve">
+    <value>Column '{0}' cannot be null</value>
+  </data>
+  <data name="ForeignKeyFails" xml:space="preserve">
+    <value>Cannot add or update a child row: a foreign key constraint fails ({0} → {1})</value>
+  </data>
+  <data name="ReferencedRow" xml:space="preserve">
+    <value>Cannot delete or update a parent row: a foreign key constraint fails (child referencing '{0}')</value>
+  </data>
+  <data name="ParameterAlreadyDefined" xml:space="preserve">
+    <value>Parameter '{0}' has already been defined.</value>
+  </data>
+  <data name="ParameterNotFoundInCollection" xml:space="preserve">
+    <value>Parameter '{0}' not found in the collection</value>
+  </data>
+  <data name="InvalidCreateTemporaryTableStatement" xml:space="preserve">
+    <value>Invalid CREATE TEMPORARY TABLE statement.</value>
+  </data>
+  <data name="InvalidCreateViewStatement" xml:space="preserve">
+    <value>Invalid CREATE VIEW statement.</value>
+  </data>
+  <data name="InvalidDeleteExpectedFromKeyword" xml:space="preserve">
+    <value>Invalid DELETE statement: expected FROM keyword.</value>
+  </data>
+  <data name="UseExecuteReaderForSelect" xml:space="preserve">
+    <value>Use ExecuteReader for SELECT commands.</value>
+  </data>
+  <data name="UseExecuteReaderForSelectUnion" xml:space="preserve">
+    <value>Use ExecuteReader for SELECT/UNION commands.</value>
+  </data>
+  <data name="ExecuteReaderWithoutSelectQuery" xml:space="preserve">
+    <value>ExecuteReader was called, but no SELECT query was found.</value>
+  </data>
+  <data name="InvalidDropViewStatement" xml:space="preserve">
+    <value>Invalid DROP VIEW statement.</value>
+  </data>
+  <data name="ParameterNotFound" xml:space="preserve">
+    <value>Parameter {0} not found.</value>
+  </data>
+  <data name="ColumnDoesNotAcceptNull" xml:space="preserve">
+    <value>Column does not accept NULL</value>
+  </data>
+  <data name="DataTooLongForColumn" xml:space="preserve">
+    <value>Data too long for column '{0}'</value>
+  </data>
+  <data name="DataTruncatedForColumn" xml:space="preserve">
+    <value>Data truncated for column '{0}'</value>
+  </data>
+</root>

@@ -1,3 +1,4 @@
+using DbSqlLikeMem.Resources;
 ﻿using IBM.Data.Db2;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
@@ -110,7 +111,7 @@ public class Db2CommandMock(
         {
             var q = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect);
             if (q is not SqlCreateTemporaryTableQuery ct)
-                throw new InvalidOperationException("Invalid CREATE TEMPORARY TABLE statement.");
+                throw new InvalidOperationException(SqlExceptionMessages.InvalidCreateTemporaryTableStatement());
             return connection.ExecuteCreateTemporaryTableAsSelect(ct, Parameters, connection.Db.Dialect);
         }
 
@@ -119,7 +120,7 @@ public class Db2CommandMock(
         {
             var q = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect);
             if (q is not SqlCreateViewQuery cv)
-                throw new InvalidOperationException("Invalid CREATE VIEW statement.");
+                throw new InvalidOperationException(SqlExceptionMessages.InvalidCreateViewStatement());
             return connection.ExecuteCreateView(cv, Parameters, connection.Db.Dialect);
         }
 
@@ -144,8 +145,8 @@ public class Db2CommandMock(
             SqlMergeQuery mergeQ => connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect),
             SqlCreateViewQuery cv => connection.ExecuteCreateView(cv, Parameters, connection.Db.Dialect),
             SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect),
-            SqlSelectQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT."),
-            SqlUnionQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT/UNION."),
+            SqlSelectQuery _ => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelect()),
+            SqlUnionQuery _ => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelectUnion()),
             _ => throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteNonQuery", query.GetType())
         };
     }
@@ -159,7 +160,7 @@ public class Db2CommandMock(
             .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         if (parts.Length < 3 || !parts[0].Equals("DROP", StringComparison.OrdinalIgnoreCase) || !parts[1].Equals("VIEW", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Invalid DROP VIEW statement.");
+            throw new InvalidOperationException(SqlExceptionMessages.InvalidDropViewStatement());
 
         var i = 2;
         var ifExists = false;
@@ -172,7 +173,7 @@ public class Db2CommandMock(
         }
 
         if (i >= parts.Length)
-            throw new InvalidOperationException("Invalid DROP VIEW statement.");
+            throw new InvalidOperationException(SqlExceptionMessages.InvalidDropViewStatement());
 
         var viewName = parts[i].Trim().Trim('`', '"').NormalizeName();
         connection.DropView(viewName, ifExists);
@@ -257,7 +258,7 @@ public class Db2CommandMock(
         }
 
         if (tables.Count == 0 && queries.Count > 0)
-            throw new InvalidOperationException("ExecuteReader foi chamado, mas nenhuma query SELECT foi encontrada.");
+            throw new InvalidOperationException(SqlExceptionMessages.ExecuteReaderWithoutSelectQuery());
 
         connection.Metrics.Selects += tables.Sum(t => t.Count);
 

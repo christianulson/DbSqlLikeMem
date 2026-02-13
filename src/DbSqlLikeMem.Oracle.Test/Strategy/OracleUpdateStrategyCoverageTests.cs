@@ -53,6 +53,6 @@ public sealed class OracleUpdateStrategyCoverageTests(
         };
 
         var ex = Assert.Throws<OracleMockException>(() => cmd.ExecuteNonQuery());
-        Assert.Contains("Coluna não aceita NULL", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(DbSqlLikeMem.Resources.SqlExceptionMessages.ColumnDoesNotAcceptNull(), ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }

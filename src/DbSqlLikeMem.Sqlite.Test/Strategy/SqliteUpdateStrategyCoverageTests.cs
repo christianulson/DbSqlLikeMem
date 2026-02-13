@@ -52,6 +52,6 @@ public sealed class SqliteUpdateStrategyCoverageTests(
         };
 
         var ex = Assert.Throws<SqliteMockException>(() => cmd.ExecuteNonQuery());
-        Assert.Contains("Coluna não aceita NULL", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(DbSqlLikeMem.Resources.SqlExceptionMessages.ColumnDoesNotAcceptNull(), ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }

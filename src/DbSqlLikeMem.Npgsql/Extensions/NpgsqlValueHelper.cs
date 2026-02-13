@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Npgsql;
+using DbSqlLikeMem.Resources;
 
 namespace DbSqlLikeMem.Npgsql;
 
@@ -38,7 +39,7 @@ internal static class NpgsqlValueHelper
                 .Replace("\r\n", string.Empty)
                 .Replace(";", string.Empty);
             if (pars == null || !pars.Contains(name))
-                throw new NpgsqlMockException($"Parâmetro {name} não encontrado.");
+                throw new NpgsqlMockException(SqlExceptionMessages.ParameterNotFound(name));
             return ((NpgsqlParameter)pars[name]).Value;
         }
 
@@ -46,7 +47,7 @@ internal static class NpgsqlValueHelper
         if (token.Equals("null", StringComparison.OrdinalIgnoreCase))
             return isNullable 
                 ? null
-                : throw new NpgsqlMockException("Coluna não aceita NULL");
+                : throw new NpgsqlMockException(SqlExceptionMessages.ColumnDoesNotAcceptNull());
 
         // ---------- lista ( ..., ... )  para IN ------------------------
         var m = _list.Match(token);

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Data.Common;
 using Microsoft.Data.SqlClient;
+using DbSqlLikeMem.Resources;
 
 namespace DbSqlLikeMem.SqlServer;
 /// <summary>
@@ -23,7 +24,7 @@ public class SqlServerDataParameterCollectionMock
     {
         var normalizedParameterName = NormalizeParameterName(parameter.ParameterName);
         if (!string.IsNullOrEmpty(normalizedParameterName) && NormalizedIndexOf(normalizedParameterName) != -1)
-            throw new ArgumentException($"Parameter '{parameter.ParameterName}' has already been defined.");
+            throw new ArgumentException(SqlExceptionMessages.ParameterAlreadyDefined(parameter.ParameterName));
         if (index < Items.Count)
         {
             foreach (var pair in DicItems.ToList())
@@ -65,7 +66,7 @@ public class SqlServerDataParameterCollectionMock
     {
         var index = IndexOf(parameterName);
         if (index == -1)
-            throw new ArgumentException($"Parameter '{parameterName}' not found in the collection", nameof(parameterName));
+            throw new ArgumentException(SqlExceptionMessages.ParameterNotFoundInCollection(parameterName), nameof(parameterName));
         return Items[index];
     }
 

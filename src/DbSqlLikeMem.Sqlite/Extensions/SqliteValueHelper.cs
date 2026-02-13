@@ -1,3 +1,4 @@
+using DbSqlLikeMem.Resources;
 ﻿using Microsoft.Data.Sqlite;
 using System.Text.Json;
 
@@ -38,7 +39,7 @@ internal static class SqliteValueHelper
                 .Replace("\r\n", string.Empty)
                 .Replace(";", string.Empty);
             if (pars == null || !pars.Contains(name))
-                throw new SqliteMockException($"Parâmetro {name} não encontrado.");
+                throw new SqliteMockException(SqlExceptionMessages.ParameterNotFound(name));
             return ((SqliteParameter)pars[name]).Value;
         }
 
@@ -46,7 +47,7 @@ internal static class SqliteValueHelper
         if (token.Equals("null", StringComparison.OrdinalIgnoreCase))
             return isNullable 
                 ? null
-                : throw new SqliteMockException("Coluna não aceita NULL");
+                : throw new SqliteMockException(SqlExceptionMessages.ColumnDoesNotAcceptNull());
 
         // ---------- lista ( ..., ... )  para IN ------------------------
         var m = _list.Match(token);
@@ -139,10 +140,10 @@ internal static class SqliteValueHelper
             return value;
 
         if (cdef.Size is int size && value is string s && s.Length > size)
-            throw new SqliteMockException($"Data too long for column '{CurrentColumn}'", 1406);
+            throw new SqliteMockException(SqlExceptionMessages.DataTooLongForColumn(CurrentColumn), 1406);
 
         if (cdef.DecimalPlaces is int scale && value is decimal d && GetDecimalScale(d) > scale)
-            throw new SqliteMockException($"Data truncated for column '{CurrentColumn}'", 1265);
+            throw new SqliteMockException(SqlExceptionMessages.DataTruncatedForColumn(CurrentColumn), 1265);
 
         return value;
     }

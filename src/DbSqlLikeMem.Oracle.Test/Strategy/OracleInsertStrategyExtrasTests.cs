@@ -86,7 +86,7 @@ public sealed class OracleInsertStrategyExtrasTests(
 
         // Act & Assert
         var ex = Assert.Throws<OracleMockException>(() => cmd.ExecuteNonQuery());
-        Assert.Contains("Duplicate entry", ex.Message, StringComparison.Ordinal);
+        Assert.Contains(DbSqlLikeMem.Resources.SqlExceptionMessages.DuplicateKey(string.Empty, string.Empty).Split('\'')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }
 
@@ -125,7 +125,7 @@ public class OracleDeleteStrategyForeignKeyTests
 
         // Act & Assert
         var ex = Assert.Throws<OracleMockException>(() => cmd.ExecuteNonQuery());
-        Assert.Contains("Cannot delete or update a parent row", ex.Message, StringComparison.Ordinal);
+        Assert.Contains(DbSqlLikeMem.Resources.SqlExceptionMessages.ReferencedRow(string.Empty).Split('(')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }
 
