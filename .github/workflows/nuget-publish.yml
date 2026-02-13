@@ -13,7 +13,7 @@ permissions:
 jobs:
   publish:
     runs-on: windows-latest
-    environment: ${{ vars.NUGET_PUBLISH_ENVIRONMENT || 'nuget-publish' }}
+    environment: nuget-publish
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,8 +29,23 @@ jobs:
       - name: Pack
         run: dotnet pack src/DbSqlLikeMem.slnx -c Release -o ./artifacts
 
+      - name: Validate NuGet API key (NUGET_API_KEY)
+        shell: bash
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "::error::NUGET_API_KEY is empty or unavailable in Environment 'nuget-publish'."
+            echo "::error::Confirm the workflow run is using Environment 'nuget-publish' and that its protection rules allow this run."
+            exit 1
+          fi
+
+          echo "NUGET_API_KEY is configured."
+
       - name: Publish to NuGet.org
         shell: bash
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
           shopt -s nullglob
           packages=(./artifacts/*.nupkg)
