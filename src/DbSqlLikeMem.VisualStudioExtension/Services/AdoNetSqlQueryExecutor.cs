@@ -144,7 +144,7 @@ internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
             return null;
         }
 
-        var assemblyNameCandidate = fullTypeName[..lastDotIndex];
+        var assemblyNameCandidate = fullTypeName.Substring(0, lastDotIndex);
         try
         {
             var assembly = Assembly.Load(new AssemblyName(assemblyNameCandidate));
