@@ -41,4 +41,11 @@
       <SubType>Designer</SubType>
     </None>
   </ItemGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <StartAction>Program</StartAction>
+    <StartProgram>C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\devenv.exe</StartProgram>
+    <StartArguments>/rootsuffix Exp</StartArguments>
+  </PropertyGroup>
+
 </Project>

@@ -71,6 +71,7 @@ public class {{ClassName}}
 ## Troubleshooting de depuração no VS 2022
 
 - Para depurar a VSIX, inicie com o perfil **VS 2022 Experimental** (`/rootsuffix Exp`).
+- Para depurar com deploy automático da extensão, prefira o perfil **DbSqlLikeMem.VisualStudioExtension** (`commandName: Project`); os perfis `Executable` apenas abrem o devenv e podem não instalar/atualizar a VSIX.
 - Se o comando não aparecer, verifique em **View > Other Windows > DbSqlLikeMem Explorer**.
 - Erros de binding como `GlyphButton`, `AIReviewStatusControl`, `SccCompartment`, `TrackingListView` e `CopilotBadgeDataSource` normalmente são de componentes internos do próprio Visual Studio/Copilot/Git e **não** da janela do DbSqlLikeMem.
 - Os erros de log `TrackingListView.Background` e `CopilotBadgeDataSource -> WindowTitleBarButton.HelpText` também são conhecidos como ruído de binding do shell do VS e não bloqueiam o carregamento do pacote da extensão por si só.
