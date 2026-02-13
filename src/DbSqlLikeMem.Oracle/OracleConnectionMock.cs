@@ -1,5 +1,4 @@
 using System.Data.Common;
-using Dapper;
 
 namespace DbSqlLikeMem.Oracle;
 
@@ -14,8 +13,8 @@ public class OracleConnectionMock
     static OracleConnectionMock()
     {
         // O ODP.NET rejeita DbType.Guid, então mapeamos Guid para Object no fluxo Dapper.
-        SqlMapper.AddTypeMap(typeof(Guid), DbType.Object);
-        SqlMapper.AddTypeMap(typeof(Guid?), DbType.Object);
+        DapperLateBinding.AddTypeMap(typeof(Guid), DbType.Object);
+        DapperLateBinding.AddTypeMap(typeof(Guid?), DbType.Object);
         OracleAstQueryExecutorRegister.Register();
     }
 
