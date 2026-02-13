@@ -54,7 +54,7 @@ internal static class DapperLateBinding
 
     internal static void AddTypeMap(Type type, DbType dbType)
     {
-        if (!TryResolveSqlMapperType(out var sqlMapper))
+        if (!TryResolveSqlMapperType(out var sqlMapper) || sqlMapper == null)
             return;
 
         var mi = sqlMapper.GetMethod(
