@@ -24,10 +24,11 @@ internal static class DbUpdateStrategy
         DbParameterCollection? pars)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
-            ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(query.Table!.Name, nameof(query.Table.Name));
-        var tableName = query.Table.Name!;
+        var queryTable = query.Table;
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(queryTable.Name, nameof(query.Table.Name));
+        var tableName = queryTable.Name!;
         var dialect = connection.Db.Dialect;
-        if (!connection.TryGetTable(tableName, out var table, query.Table?.DbName) || table == null)
+        if (!connection.TryGetTable(tableName, out var table, queryTable.DbName) || table == null)
             throw new InvalidOperationException($"Table {tableName} does not exist.");
 
         // JOIN updates ainda não suportados plenamente no Parser simples, 
@@ -61,9 +62,9 @@ internal static class DbUpdateStrategy
             // Aplica Update
             var simulated = row.ToDictionary(_ => _.Key, _ => _.Value);
             UpdateRowValuesInMemory(table, pars, setPairs, simulated);
-            TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, SnapshotRow(new System.Collections.ObjectModel.ReadOnlyDictionary<int, object?>(simulated)));
+            TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, SnapshotRow(new System.Collections.ObjectModel.ReadOnlyDictionary<int, object?>(simulated)));
             UpdateRowValues(table, pars, setPairs, rowIdx, row);
-            TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, SnapshotRow(table[rowIdx]));
+            TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, SnapshotRow(table[rowIdx]));
 
             // Atualiza índices
             table.UpdateIndexesWithRow(rowIdx);
