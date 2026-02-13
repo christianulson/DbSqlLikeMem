@@ -78,12 +78,10 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de JsonExtract_SimpleObjectPath_ShouldWork.
     /// </summary>
     [Fact]
-    public void JsonExtract_SimpleObjectPath_ShouldWork()
+    public void JsonExtract_SimpleObjectPath_ShouldThrow_WhenNotSupportedByDialect()
     {
-        var rows = _cnn.Query<dynamic>("SELECT id, JSON_EXTRACT(payload, '$.a.b') AS v FROM t ORDER BY id").ToList();
-
-        // implemented as best-effort; null JSON -> null
-        Assert.Equal([123m, 456m, null], [.. rows.Select(r => (object?)r.v)]);
+        Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>("SELECT id, JSON_EXTRACT(payload, '$.a.b') AS v FROM t ORDER BY id").ToList());
     }
 
 

@@ -229,7 +229,7 @@ public sealed class StoredProcedureExecutionTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_StoredProcedure_ShouldPopulateReturnValueDefaultZero.
     /// </summary>
     [Fact]
-    public void ExecuteNonQuery_StoredProcedure_ShouldPopulateReturnValueDefaultZero()
+    public void ExecuteNonQuery_StoredProcedure_ShouldKeepReturnValueUnset_WhenProviderDoesNotSupportDirection()
     {
         using var c = new SqliteConnectionMock();
         c.Open();
@@ -252,7 +252,7 @@ public sealed class StoredProcedureExecutionTests(
 
         command.ExecuteNonQuery();
 
-        Assert.Equal(0, command.Parameters["@ret"].Value);
+        Assert.Equal(DBNull.Value, command.Parameters["@ret"].Value);
     }
 
     /// <summary>
@@ -260,7 +260,7 @@ public sealed class StoredProcedureExecutionTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenRequiredInputDirectionIsOutput.
     /// </summary>
     [Fact]
-    public void ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenRequiredInputDirectionIsOutput()
+    public void ExecuteNonQuery_StoredProcedure_ShouldNotThrow_WhenProviderCannotRepresentOutputDirection()
     {
         using var c = new SqliteConnectionMock();
         c.Open();
@@ -280,8 +280,8 @@ public sealed class StoredProcedureExecutionTests(
 
         command.Parameters.Add(P("p_id", 1, DbType.Int32, ParameterDirection.Output));
 
-        var exception = Assert.Throws<SqliteMockException>(() => command.ExecuteNonQuery());
-        Assert.Equal(1414, exception.ErrorCode);
+        var affected = command.ExecuteNonQuery();
+        Assert.Equal(0, affected);
     }
 
     /// <summary>

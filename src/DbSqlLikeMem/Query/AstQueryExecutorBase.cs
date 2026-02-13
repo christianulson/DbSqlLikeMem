@@ -1399,16 +1399,18 @@ internal abstract class AstQueryExecutorBase(
                 var kb = Get(rb);
 
                 int cmp;
-                if (ka is null || kb is null)
+                var kaIsNull = IsNullish(ka);
+                var kbIsNull = IsNullish(kb);
+                if (kaIsNull || kbIsNull)
                 {
-                    if (ka is null && kb is null) cmp = 0;
+                    if (kaIsNull && kbIsNull) cmp = 0;
                     else
                     {
                         var explicitNullsFirst = orderByItem?.NullsFirst;
                         if (explicitNullsFirst.HasValue)
-                            cmp = ka is null ? (explicitNullsFirst.Value ? -1 : 1) : (explicitNullsFirst.Value ? 1 : -1);
+                            cmp = kaIsNull ? (explicitNullsFirst.Value ? -1 : 1) : (explicitNullsFirst.Value ? 1 : -1);
                         else
-                            cmp = ka is null ? (Desc ? 1 : -1) : (Desc ? -1 : 1);
+                            cmp = kaIsNull ? (Desc ? 1 : -1) : (Desc ? -1 : 1);
                     }
                 }
                 else
@@ -1863,7 +1865,9 @@ internal abstract class AstQueryExecutorBase(
         if (fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase))
         {
-            if (fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase) && !dialect.SupportsJsonExtractFunction)
+            if (fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
+                && !dialect.SupportsJsonExtractFunction
+                && !dialect.SupportsJsonArrowOperators)
                 throw SqlUnsupported.ForDialect(dialect, "JSON_EXTRACT");
 
             if (fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase) && !dialect.SupportsJsonValueFunction)
