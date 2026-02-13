@@ -1,4 +1,5 @@
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
+using System.Data.Common;
 using System.Globalization;
 
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
@@ -28,7 +29,7 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
         var rows = await queryExecutor.QueryAsync(
             connection,
             sql,
-            new Dictionary<string, object?> { ["databaseName"] = connection.DatabaseName },
+            new Dictionary<string, object?> { ["databaseName"] = ResolveDatabaseNameForMetadata(connection) },
             cancellationToken);
 
         return [.. rows.Select(MapObject).Where(x => x is not null).Cast<DatabaseObjectReference>()];
@@ -71,6 +72,51 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
         };
 
         return reference with { Properties = properties };
+    }
+
+
+    private static string ResolveDatabaseNameForMetadata(ConnectionDefinition connection)
+    {
+        if (!string.Equals(connection.DatabaseType, "MySql", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(connection.DatabaseType, "SqlServer", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(connection.DatabaseType, "PostgreSql", StringComparison.OrdinalIgnoreCase))
+        {
+            return connection.DatabaseName;
+        }
+
+        try
+        {
+            var builder = new DbConnectionStringBuilder { ConnectionString = connection.ConnectionString };
+            if (TryReadDatabaseName(builder, out var parsedName))
+            {
+                return parsedName;
+            }
+        }
+        catch
+        {
+            // Fallback to persisted value.
+        }
+
+        return connection.DatabaseName;
+    }
+
+    private static bool TryReadDatabaseName(DbConnectionStringBuilder builder, out string databaseName)
+    {
+        databaseName = string.Empty;
+        foreach (var key in new[] { "Database", "Initial Catalog" })
+        {
+            if (builder.TryGetValue(key, out var value))
+            {
+                var candidate = Convert.ToString(value, CultureInfo.InvariantCulture)?.Trim();
+                if (!string.IsNullOrWhiteSpace(candidate))
+                {
+                    databaseName = candidate;
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static string SerializeColumns(IReadOnlyCollection<IReadOnlyDictionary<string, object?>> rows)
