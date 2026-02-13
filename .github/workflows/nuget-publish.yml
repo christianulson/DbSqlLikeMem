@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   publish:
@@ -28,25 +29,6 @@ jobs:
       - name: Pack
         run: dotnet pack src/DbSqlLikeMem.slnx -c Release -o ./artifacts
 
-      - name: Resolve NuGet API key
-        id: nuget_key
-        shell: bash
-        env:
-          NUGET_API_KEY_SECRET: ${{ secrets.NUGET_API_KEY }}
-          NUGET_ORG_API_KEY_SECRET: ${{ secrets.NUGET_ORG_API_KEY }}
-          NUGET_API_KEY_VAR: ${{ vars.NUGET_API_KEY }}
-          NUGET_ORG_API_KEY_VAR: ${{ vars.NUGET_ORG_API_KEY }}
-        run: |
-          NUGET_KEY="${NUGET_API_KEY_SECRET:-${NUGET_ORG_API_KEY_SECRET:-${NUGET_API_KEY_VAR:-${NUGET_ORG_API_KEY_VAR:-}}}}"
-
-          if [ -z "$NUGET_KEY" ]; then
-            echo "::error::NuGet API key is empty. Configure one of: secrets.NUGET_API_KEY, secrets.NUGET_ORG_API_KEY, vars.NUGET_API_KEY or vars.NUGET_ORG_API_KEY."
-            echo "::error::This workflow runs in Environment '${{ vars.NUGET_PUBLISH_ENVIRONMENT || 'nuget-publish' }}'. If your key is an Environment secret, add it there and ensure tag/branch rules allow this run."
-            exit 1
-          fi
-
-          echo "NUGET_API_KEY=$NUGET_KEY" >> "$GITHUB_ENV"
-
       - name: Publish to NuGet.org
         shell: bash
         run: |
@@ -59,6 +41,5 @@ jobs:
           fi
 
           dotnet nuget push "${packages[@]}" \
-            --api-key "$NUGET_API_KEY" \
             --source "https://api.nuget.org/v3/index.json" \
             --skip-duplicate

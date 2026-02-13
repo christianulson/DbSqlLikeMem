@@ -4,10 +4,11 @@
 
 ### Via GitHub Actions (recomendado)
 
-1. Crie uma API key em https://www.nuget.org/ (Account settings → API Keys).
-2. No repositório do GitHub, adicione o secret `NUGET_API_KEY`.
-3. Atualize a versão em `src/Directory.Build.props` (`Version`).
-4. Crie e envie uma tag de release:
+Este repositório está configurado para **Trusted Publishing** no nuget.org (OIDC), sem necessidade de API key no workflow.
+
+1. No nuget.org, configure o Trusted Publisher para este repositório/workflow.
+2. Atualize a versão em `src/Directory.Build.props` (`Version`).
+3. Crie e envie uma tag de release:
 
 ```bash
 git tag v0.1.0
@@ -18,6 +19,8 @@ Workflow responsável:
 - `.github/workflows/nuget-publish.yml`
 
 Esse pipeline empacota e publica os projetos do solution no nuget.org.
+
+> Observação: para publicação local/manual (fora do GitHub Actions), API key continua sendo necessária.
 
 ### Publicação manual (local)
 
