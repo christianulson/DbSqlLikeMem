@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.Data.Common;
 using System.ComponentModel;
 using System.IO;
 using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
@@ -137,7 +138,8 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     /// </summary>
     public void AddConnection(string name, string databaseType, string connectionString)
     {
-        var connection = new ConnectionDefinition(Guid.NewGuid().ToString("N"), databaseType, name, connectionString, name);
+        var databaseName = ExtractDatabaseName(connectionString, name);
+        var connection = new ConnectionDefinition(Guid.NewGuid().ToString("N"), databaseType, databaseName, connectionString, name);
         connections.Add(connection);
 
         if (!mappings.Any(m => m.ConnectionId == connection.Id))
@@ -174,7 +176,8 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         }
 
         var index = connections.IndexOf(old);
-        connections[index] = new ConnectionDefinition(old.Id, databaseType, name, connectionString, name);
+        var databaseName = ExtractDatabaseName(connectionString, name);
+        connections[index] = new ConnectionDefinition(old.Id, databaseType, databaseName, connectionString, name);
         objectsByConnection.Remove(old.Id);
         healthByObject.Clear();
         SaveState();
@@ -608,6 +611,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
     private void RefreshTree()
     {
+        var expandedNodeKeys = CaptureExpandedNodeKeys();
         Nodes.Clear();
 
         var byType = connections
@@ -619,7 +623,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             var typeNode = new ExplorerNode(typeGroup.Key, ExplorerNodeKind.DatabaseType);
             foreach (var connection in typeGroup.OrderBy(c => c.DatabaseName, StringComparer.OrdinalIgnoreCase))
             {
-                var connectionNode = new ExplorerNode(connection.DatabaseName, ExplorerNodeKind.Connection)
+                var connectionNode = new ExplorerNode(connection.FriendlyName, ExplorerNodeKind.Connection)
                 {
                     ConnectionId = connection.Id
                 };
@@ -675,8 +679,54 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             Nodes.Add(typeNode);
         }
 
+        RestoreExpandedNodeState(expandedNodeKeys);
         OnPropertyChanged(nameof(Nodes));
     }
+
+    private HashSet<string> CaptureExpandedNodeKeys()
+    {
+        var expandedKeys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var node in EnumerateNodes(Nodes))
+        {
+            if (node.IsExpanded)
+            {
+                expandedKeys.Add(BuildNodeKey(node));
+            }
+        }
+
+        return expandedKeys;
+    }
+
+    private void RestoreExpandedNodeState(HashSet<string> expandedNodeKeys)
+    {
+        foreach (var node in EnumerateNodes(Nodes))
+        {
+            node.IsExpanded = expandedNodeKeys.Contains(BuildNodeKey(node));
+        }
+    }
+
+    private static IEnumerable<ExplorerNode> EnumerateNodes(IEnumerable<ExplorerNode> roots)
+    {
+        foreach (var node in roots)
+        {
+            yield return node;
+            foreach (var child in EnumerateNodes(node.Children))
+            {
+                yield return child;
+            }
+        }
+    }
+
+    private static string BuildNodeKey(ExplorerNode node)
+        => node.Kind switch
+        {
+            ExplorerNodeKind.DatabaseType => $"dbtype|{node.Label}",
+            ExplorerNodeKind.Connection => $"conn|{node.ConnectionId}",
+            ExplorerNodeKind.ObjectType => $"otype|{node.ConnectionId}|{node.ObjectType}",
+            ExplorerNodeKind.Object when node.DatabaseObject is not null =>
+                $"obj|{node.ConnectionId}|{node.DatabaseObject.Type}|{node.DatabaseObject.Schema}|{node.DatabaseObject.Name}",
+            _ => $"other|{node.Label}"
+        };
 
     private bool TryBeginOperation(string message)
     {
@@ -706,6 +756,31 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         }
 
         operationLock.Release();
+    }
+
+    private static string ExtractDatabaseName(string connectionString, string fallback)
+    {
+        try
+        {
+            var builder = new DbConnectionStringBuilder { ConnectionString = connectionString };
+            foreach (var key in new[] { "Database", "Initial Catalog" })
+            {
+                if (builder.TryGetValue(key, out var value))
+                {
+                    var candidate = Convert.ToString(value)?.Trim();
+                    if (!string.IsNullOrWhiteSpace(candidate))
+                    {
+                        return candidate;
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // ignore parse errors and keep fallback
+        }
+
+        return fallback;
     }
 
     private ConnectionDefinition? ResolveConnection(ExplorerNode node)

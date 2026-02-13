@@ -55,6 +55,11 @@
                   Grid.Row="4"
                   PreviewMouseRightButtonDown="OnExplorerTreePreviewMouseRightButtonDown"
                   ItemsSource="{Binding Nodes}">
+            <TreeView.ItemContainerStyle>
+                <Style TargetType="TreeViewItem">
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                </Style>
+            </TreeView.ItemContainerStyle>
             <TreeView.ContextMenu>
                 <ContextMenu Opened="OnExplorerContextMenuOpened">
                     <MenuItem x:Name="EditConnectionMenuItem" Header="Editar conexão" Click="OnEditConnectionClick" />
