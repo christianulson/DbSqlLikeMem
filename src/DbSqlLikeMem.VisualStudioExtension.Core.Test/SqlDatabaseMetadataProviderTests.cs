@@ -51,6 +51,10 @@ public sealed class SqlDatabaseMetadataProviderTests
     }
 
 
+    /// <summary>
+    /// Verifies MySQL list query uses database name parsed from connection string.
+    /// Verifica se a consulta de listagem MySQL usa o nome do banco extraído da connection string.
+    /// </summary>
     [Fact]
     public async Task ListObjectsAsync_ForMySql_UsesDatabaseNameFromConnectionString()
     {
