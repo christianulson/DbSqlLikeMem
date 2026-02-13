@@ -727,6 +727,7 @@ internal abstract class AstQueryExecutorBase(
                 outRow[i] = selectPlan.Evaluators[i](r, null);
 
             res.Add(outRow);
+            res.JoinFields.Add(new Dictionary<string, object?>(r.Fields, StringComparer.OrdinalIgnoreCase));
         }
 
         return res;
@@ -756,6 +757,7 @@ internal abstract class AstQueryExecutorBase(
                 outRow[i] = selectPlan.Evaluators[i](first, eg);
 
             res.Add(outRow);
+            res.JoinFields.Add(new Dictionary<string, object?>(first.Fields, StringComparer.OrdinalIgnoreCase));
         }
 
         if (q.Distinct)
@@ -1320,6 +1322,9 @@ internal abstract class AstQueryExecutorBase(
 
         // Pre-parse ORDER BY keys once
         var keys = new List<(Func<Dictionary<int, object?>, object?> Get, bool Desc, string Raw)>();
+        var joinFieldsByRow = new Dictionary<Dictionary<int, object?>, Dictionary<string, object?>>(ReferenceEqualityComparer<Dictionary<int, object?>>.Instance);
+        for (int i = 0; i < res.Count && i < res.JoinFields.Count; i++)
+            joinFieldsByRow[res[i]] = res.JoinFields[i];
 
         foreach (var it in q.OrderBy)
         {
@@ -1369,6 +1374,23 @@ internal abstract class AstQueryExecutorBase(
             Func<Dictionary<int, object?>, object?> get = r =>
             {
                 var fake = EvalRow.FromProjected(res, r, aliasToIndex);
+                if (joinFieldsByRow.TryGetValue(r, out var rowFields))
+                {
+                    foreach (var kv in rowFields)
+                    {
+                        if (!fake.Fields.ContainsKey(kv.Key))
+                            fake.Fields[kv.Key] = kv.Value;
+
+                        var dot = kv.Key.IndexOf('.');
+                        if (dot > 0 && dot + 1 < kv.Key.Length)
+                        {
+                            var unqualified = kv.Key[(dot + 1)..];
+                            if (!fake.Fields.ContainsKey(unqualified))
+                                fake.Fields[unqualified] = kv.Value;
+                        }
+                    }
+                }
+
                 return Eval(expr, fake, group: null, ctes);
             };
 
@@ -1427,6 +1449,16 @@ internal abstract class AstQueryExecutorBase(
         var sorted = res.OrderBy(r => r, Comparer<Dictionary<int, object?>>.Create(CompareRows)).ToList();
         res.Clear();
         foreach (var r in sorted) res.Add(r);
+
+        if (res.JoinFields.Count > 0)
+        {
+            var sortedJoinFields = sorted
+                .Select(r => joinFieldsByRow.TryGetValue(r, out var jf)
+                    ? jf
+                    : new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase))
+                .ToList();
+            res.JoinFields = sortedJoinFields;
+        }
 
         ApplyLimit(res, q);
         return res;
