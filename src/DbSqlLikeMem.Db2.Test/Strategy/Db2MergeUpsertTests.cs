@@ -6,6 +6,11 @@ namespace DbSqlLikeMem.Db2.Test.Strategy;
 /// </summary>
 public sealed class Db2MergeUpsertTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Ensures MERGE parsing follows DB2 dialect version support.
+    /// PT: Garante que o parse de MERGE siga o suporte por versão do dialeto DB2.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [MemberDataDb2Version]
     public void Merge_ShouldFollowDialectVersionSupport(int version)
@@ -15,19 +20,23 @@ public sealed class Db2MergeUpsertTests(ITestOutputHelper helper) : XUnitTestBas
         if (version < Db2Dialect.MergeMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() =>
-                SqlQueryParser.Parse("MERGE INTO users t USING (SELECT 1 AS Id FROM SYSIBM.SYSDUMMY1) s ON t.Id = s.Id WHEN MATCHED THEN UPDATE SET t.Id = s.Id", db.Dialect));
+                SqlQueryParser.Parse("MERGE INTO users t USING (SELECT 1 AS Id) s ON t.Id = s.Id WHEN MATCHED THEN UPDATE SET t.Id = s.Id", db.Dialect));
 
             Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
         var parsed = SqlQueryParser.Parse(
-            "MERGE INTO users t USING (SELECT 1 AS Id FROM SYSIBM.SYSDUMMY1) s ON t.Id = s.Id WHEN MATCHED THEN UPDATE SET t.Id = s.Id",
+            "MERGE INTO users t USING (SELECT 1 AS Id) s ON t.Id = s.Id WHEN MATCHED THEN UPDATE SET t.Id = s.Id",
             db.Dialect);
 
         Assert.IsType<SqlMergeQuery>(parsed);
     }
 
+    /// <summary>
+    /// EN: Ensures MERGE updates an existing row when the ON condition matches.
+    /// PT: Garante que MERGE atualize uma linha existente quando a condição ON é satisfeita.
+    /// </summary>
     [Fact]
     public void Merge_ShouldUpdate_WhenMatched()
     {
@@ -43,7 +52,7 @@ public sealed class Db2MergeUpsertTests(ITestOutputHelper helper) : XUnitTestBas
 
         const string sql = @"
 MERGE INTO users target
-USING (SELECT 1 AS Id, 'NEW' AS Name FROM SYSIBM.SYSDUMMY1) src
+USING (SELECT 1 AS Id, 'NEW' AS Name) src
 ON target.Id = src.Id
 WHEN MATCHED THEN
     UPDATE SET target.Name = src.Name

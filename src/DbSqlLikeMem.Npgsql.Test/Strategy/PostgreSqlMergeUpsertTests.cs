@@ -6,6 +6,11 @@ namespace DbSqlLikeMem.Npgsql.Test.Strategy;
 /// </summary>
 public sealed class PostgreSqlMergeUpsertTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Ensures MERGE parsing follows PostgreSQL dialect version support.
+    /// PT: Garante que o parse de MERGE siga o suporte por versão do dialeto PostgreSQL.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
     [Theory]
     [MemberDataNpgsqlVersion]
     public void Merge_ShouldFollowDialectVersionSupport(int version)
@@ -28,6 +33,10 @@ public sealed class PostgreSqlMergeUpsertTests(ITestOutputHelper helper) : XUnit
         Assert.IsType<SqlMergeQuery>(parsed);
     }
 
+    /// <summary>
+    /// EN: Ensures MERGE updates an existing row when the ON condition matches.
+    /// PT: Garante que MERGE atualize uma linha existente quando a condição ON é satisfeita.
+    /// </summary>
     [Fact]
     public void Merge_ShouldUpdate_WhenMatched()
     {
