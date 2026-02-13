@@ -1,0 +1,68 @@
+name: Provider Test Matrix
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+
+jobs:
+  provider-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - provider: mysql
+            project: src/DbSqlLikeMem.MySql.Test/DbSqlLikeMem.MySql.Test.csproj
+          - provider: sqlserver
+            project: src/DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj
+          - provider: oracle
+            project: src/DbSqlLikeMem.Oracle.Test/DbSqlLikeMem.Oracle.Test.csproj
+          - provider: npgsql
+            project: src/DbSqlLikeMem.Npgsql.Test/DbSqlLikeMem.Npgsql.Test.csproj
+          - provider: sqlite
+            project: src/DbSqlLikeMem.Sqlite.Test/DbSqlLikeMem.Sqlite.Test.csproj
+          - provider: db2
+            project: src/DbSqlLikeMem.Db2.Test/DbSqlLikeMem.Db2.Test.csproj
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore ${{ matrix.project }} -p:TargetFramework=net8.0
+
+      - name: Test provider project (${{ matrix.provider }})
+        run: dotnet test ${{ matrix.project }} --framework net8.0 --configuration Release --no-restore --verbosity minimal
+
+      - name: Upload provider TRX (${{ matrix.provider }})
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.provider }}
+          path: |
+            **/TestResults/*.trx
+            **/TestResults/*.xml
+          if-no-files-found: ignore
+
+  cross-dialect-smoke:
+    runs-on: ubuntu-latest
+    needs: provider-tests
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Run cross-dialect equivalence smoke suite
+        run: bash scripts/run_cross_dialect_equivalence.sh

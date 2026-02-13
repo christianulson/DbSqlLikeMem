@@ -10,19 +10,22 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
-
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 8.0.x
-    - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build --no-restore
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore src/DbSqlLikeMem.slnx
+
+      - name: Build
+        run: dotnet build src/DbSqlLikeMem.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test src/DbSqlLikeMem.slnx --framework net8.0 --configuration Release --no-build --verbosity normal

@@ -19,8 +19,8 @@
 
 - [x] Padronizar mensagem de `NotSupportedException` para SQL não suportado no parser.
 - [x] Adicionar regressão de mensagem padronizada em testes de parser para MySQL/SQL Server/Oracle/Npgsql/DB2/SQLite.
-- [ ] Automatizar geração de relatório de regressão por provider em pipeline CI.
-- [ ] Criar suíte de comparação cruzada (mesmo SQL em múltiplos dialetos) com snapshot de resultados esperados.
+- [x] Automatizar geração de relatório de regressão por provider em pipeline CI (workflow `provider-test-matrix.yml`).
+- [ ] Criar suíte de comparação cruzada (mesmo SQL em múltiplos dialetos) com snapshot de resultados esperados (smoke inicial adicionada em `scripts/run_cross_dialect_equivalence.sh`; snapshot completo pendente).
 
 ## Documentação
 
