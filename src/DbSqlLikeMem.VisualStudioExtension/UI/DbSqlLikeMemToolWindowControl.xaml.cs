@@ -111,6 +111,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
         EditConnectionMenuItem.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
         RemoveConnectionMenuItem.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
+        RefreshConnectionMenuItem.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
         ConnectionActionsSeparator.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
 
         ConfigureMappingsMenuItem.Visibility = isObjectTypeNodeSelected ? Visibility.Visible : Visibility.Collapsed;

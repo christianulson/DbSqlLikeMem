@@ -26,10 +26,16 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <WrapPanel Grid.Row="0" Orientation="Horizontal" ItemHeight="28">
-            <Button Content="Adicionar conexão" Padding="10,4" Margin="0,0,8,8" Click="OnAddConnectionClick" />
-            <Button Content="Atualizar objetos" Padding="10,4" Margin="0,0,8,8" Click="OnRefreshObjectsClick" />
-            <Button Content="Cancelar operação" Padding="10,4" Margin="0,0,8,8" Click="OnCancelOperationClick" />
+        <WrapPanel Grid.Row="0" Orientation="Horizontal" ItemHeight="26">
+            <Button Padding="6,2" Margin="0,0,8,8" Click="OnAddConnectionClick">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="➕" Margin="0,0,2,0" FontSize="12" />
+                    <TextBlock Text="🗄" Margin="0,0,6,0" FontSize="12" />
+                    <TextBlock Text="Adicionar conexão" />
+                </StackPanel>
+            </Button>
+            <Button Content="Atualizar objetos" Padding="8,3" Margin="0,0,8,8" Click="OnRefreshObjectsClick" />
+            <Button Content="Cancelar operação" Padding="8,3" Margin="0,0,8,8" Click="OnCancelOperationClick" />
         </WrapPanel>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Center">
@@ -54,6 +60,7 @@
             <TreeView.ContextMenu>
                 <ContextMenu Opened="OnExplorerContextMenuOpened">
                     <MenuItem x:Name="EditConnectionMenuItem" Header="Editar conexão" Click="OnEditConnectionClick" />
+                    <MenuItem x:Name="RefreshConnectionMenuItem" Header="Atualizar objetos" Click="OnRefreshObjectsClick" />
                     <MenuItem x:Name="RemoveConnectionMenuItem" Header="Remover conexão" Click="OnRemoveConnectionClick" />
                     <Separator x:Name="ConnectionActionsSeparator" />
                     <MenuItem x:Name="ConfigureMappingsMenuItem" Header="Configurar mapeamentos" Click="OnConfigureMappingsClick" />
