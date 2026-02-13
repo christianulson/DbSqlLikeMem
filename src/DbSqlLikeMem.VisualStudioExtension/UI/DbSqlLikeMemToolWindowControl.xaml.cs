@@ -202,6 +202,36 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     private void OnCancelOperationClick(object sender, RoutedEventArgs e)
         => viewModel.CancelCurrentOperation();
 
+
+    private async void OnGenerateAllClassesClick(object sender, RoutedEventArgs e)
+        => await RunSafeAsync(async () =>
+        {
+            if (ExplorerTree.SelectedItem is not ExplorerNode selected || !GenerationSupportedKinds.Contains(selected.Kind))
+            {
+                MessageBox.Show(System.Windows.Window.GetWindow(this), "Selecione conexão, tipo de objeto ou objeto para gerar classes.", "Gerar classes", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var conflicts = viewModel.PreviewConflictsForNode(selected);
+            if (conflicts.Count > 0)
+            {
+                var preview = string.Join(Environment.NewLine, conflicts.Take(10));
+                var message = $"{conflicts.Count} arquivo(s) já existem e serão sobrescritos:\n\n{preview}";
+                var confirm = MessageBox.Show(System.Windows.Window.GetWindow(this), message, "Pré-visualização de sobrescrita", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                if (confirm != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+            }
+
+            var generatedTestFiles = await viewModel.GenerateForNodeAsync(selected);
+            var generatedModelFiles = await viewModel.GenerateModelClassesForNodeAsync(selected);
+            var generatedRepositoryFiles = await viewModel.GenerateRepositoryClassesForNodeAsync(selected);
+
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            AddFilesToActiveProject(generatedTestFiles.Concat(generatedModelFiles).Concat(generatedRepositoryFiles));
+        });
+
     private async void OnGenerateClassesClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(async () =>
         {

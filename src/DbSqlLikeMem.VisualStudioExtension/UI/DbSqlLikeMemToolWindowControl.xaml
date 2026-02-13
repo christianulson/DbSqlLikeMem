@@ -72,6 +72,8 @@
                     <MenuItem x:Name="ConfigureMappingsMenuItem" Header="Configurar mapeamentos" Click="OnConfigureMappingsClick" />
                     <MenuItem x:Name="ConfigureTemplatesMenuItem" Header="Configurar templates" Click="OnConfigureTemplatesClick" />
                     <Separator />
+                    <MenuItem Header="Gerar todas as classes" Click="OnGenerateAllClassesClick" />
+                    <Separator />
                     <MenuItem Header="Gerar classes de teste" Click="OnGenerateClassesClick" />
                     <MenuItem Header="Gerar classes de modelos" Click="OnGenerateModelClassesClick" />
                     <MenuItem Header="Gerar classes de repositório" Click="OnGenerateRepositoryClassesClick" />
