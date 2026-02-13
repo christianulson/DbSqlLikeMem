@@ -74,6 +74,7 @@ public sealed class OracleDialectFeatureParserTests
         Assert.True(d.IsIntegerCastTypeName("NUMBER"));
 
         Assert.False(d.RegexInvalidPatternEvaluatesToFalse);
+        Assert.True(d.SupportsTriggers);
     }
 
 

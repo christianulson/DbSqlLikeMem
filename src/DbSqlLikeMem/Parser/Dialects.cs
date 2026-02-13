@@ -62,6 +62,7 @@ internal interface ISqlDialect
     bool SupportsOnConflictClause { get; }
     bool SupportsReturning { get; }
     bool SupportsMerge { get; }
+    bool SupportsTriggers { get; }
 
     // Pagination
     bool SupportsOffsetFetch { get; }
@@ -396,6 +397,7 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// Auto-generated summary.
     /// </summary>
     public virtual bool SupportsMerge => false;
+    public virtual bool SupportsTriggers => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
