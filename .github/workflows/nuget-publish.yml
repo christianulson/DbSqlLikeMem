@@ -30,10 +30,13 @@ jobs:
       - name: Publish to NuGet.org
         shell: bash
         env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          # Prefer GitHub Secret (secure), but allow fallback to repository/environment variable
+          # to avoid empty-key failures when the value was saved under Variables by mistake.
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY || vars.NUGET_API_KEY }}
         run: |
           if [ -z "$NUGET_API_KEY" ]; then
-            echo "::error::NUGET_API_KEY is empty. Configure it as a Repository secret or attach the job to a GitHub Environment that defines this secret."
+            echo "::error::NUGET_API_KEY is empty. Set it in Settings > Secrets and variables > Actions (recommended: Secrets)."
+            echo "::error::If you use Environment-level configuration, set 'environment:' in this job and define NUGET_API_KEY in that Environment."
             exit 1
           fi
 
