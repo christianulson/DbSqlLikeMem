@@ -49,12 +49,35 @@ jobs:
         run: |
           shopt -s nullglob
           packages=(./artifacts/*.nupkg)
+          publish_packages=()
 
-          if [ ${#packages[@]} -eq 0 ]; then
-            echo "::error::No NuGet packages were found in ./artifacts."
+          for package in "${packages[@]}"; do
+            package_name="$(basename "$package")"
+
+            if [[ "$package_name" == DbSqlLikeMem.VisualStudioExtension.*.nupkg ]]; then
+              echo "Skipping Visual Studio extension package: $package_name"
+              continue
+            fi
+
+            publish_packages+=("$package")
+          done
+
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "::error::NUGET_API_KEY is empty at publish step."
             exit 1
           fi
 
-          dotnet nuget push "${packages[@]}" \
-            --source "https://api.nuget.org/v3/index.json" \
-            --skip-duplicate
+          if [ ${#packages[@]} -eq 0 ]; then
+            echo "::error::No packages were found in ./artifacts."
+            exit 1
+          fi
+
+          if [ ${#publish_packages[@]} -eq 0 ]; then
+            echo "::error::No publishable NuGet packages were found after exclusions."
+            exit 1
+          fi
+
+          for package in "${publish_packages[@]}"; do
+            echo "Publishing $(basename "$package") to NuGet.org"
+            dotnet nuget push "$package" --api-key "$NUGET_API_KEY" --source "https://api.nuget.org/v3/index.json" --skip-duplicate
+          done
