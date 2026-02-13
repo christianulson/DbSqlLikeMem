@@ -45,6 +45,8 @@
             <TreeView.ItemContainerStyle>
                 <Style TargetType="TreeViewItem">
                     <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                    <EventSetter Event="Expanded" Handler="OnExplorerTreeItemExpanded" />
+                    <EventSetter Event="Collapsed" Handler="OnExplorerTreeItemCollapsed" />
                 </Style>
             </TreeView.ItemContainerStyle>
             <TreeView.ContextMenu>

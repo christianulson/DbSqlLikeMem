@@ -163,6 +163,22 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         }
     }
 
+    private void OnExplorerTreeItemExpanded(object sender, RoutedEventArgs e)
+    {
+        if (sender is TreeViewItem item && item.DataContext is ExplorerNode node)
+        {
+            node.IsExpanded = true;
+        }
+    }
+
+    private void OnExplorerTreeItemCollapsed(object sender, RoutedEventArgs e)
+    {
+        if (sender is TreeViewItem item && item.DataContext is ExplorerNode node)
+        {
+            node.IsExpanded = false;
+        }
+    }
+
     private static T? FindParent<T>(DependencyObject child) where T : DependencyObject
     {
         var current = child;
