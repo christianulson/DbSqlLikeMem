@@ -31,17 +31,7 @@ internal sealed class Db2Dialect : SqlDialectBase
  
     internal const int WithCteMinVersion = 8;
     internal const int MergeMinVersion = 9;
-    
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
-    public override bool AllowsBacktickIdentifiers => false;
-    
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
-    public override bool AllowsDoubleQuoteIdentifiers => true;
-    
+            
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
@@ -57,26 +47,7 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// </summary>
     public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.doubled_quote;
 
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
-    public override bool SupportsHashLineComment => false;
-
-
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
-    public override bool SupportsLimitOffset => false;
     public override bool SupportsFetchFirst => true;
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
-    public override bool SupportsOnDuplicateKeyUpdate => false;
-
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
-    public override bool SupportsDeleteWithoutFrom => false;
     
     /// <summary>
     /// Auto-generated summary.
@@ -88,41 +59,9 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
     public override bool SupportsWithRecursive => Version >= WithCteMinVersion;
-    public override bool SupportsWithMaterializedHint => false;
-    public override bool SupportsOnConflictClause => false;
     public override bool SupportsMerge => Version >= MergeMinVersion;
     
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
-    public override bool SupportsNullSafeEq => false;
     public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL"];
-    public override bool ConcatReturnsNullOnNullInput => true;
-    
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
-    public override bool SupportsJsonArrowOperators => false;
-
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
-    public override bool AllowsParserCrossDialectQuotedIdentifiers => false;
-
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
-    public override bool AllowsParserCrossDialectJsonOperators => false;
-
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
-    public override bool AllowsParserInsertSelectUpsertSuffix => false;
-
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
-    public override bool AllowsParserDeleteWithoutFromCompatibility => false;
 
     /// <summary>
     /// Auto-generated summary.
@@ -134,18 +73,6 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// PT: Regra do mock: comparações textuais DB2 são case-insensitive por padrão até existir collation explícita.
     /// </summary>
     public override StringComparison TextComparison => StringComparison.OrdinalIgnoreCase;
-
-    /// <summary>
-    /// EN: Mock rule: allow numeric-vs-numeric-string implicit comparisons (e.g. id = '2').
-    /// PT: Regra do mock: permite comparação implícita número-vs-string-numérica (ex.: id = '2').
-    /// </summary>
-    public override bool SupportsImplicitNumericStringComparison => true;
-
-    /// <summary>
-    /// EN: Mock LIKE behavior follows dialect default and is case-insensitive.
-    /// PT: Comportamento de LIKE no mock segue o padrão do dialeto e é case-insensitive.
-    /// </summary>
-    public override bool LikeIsCaseInsensitive => true;
 
     public override bool SupportsDateAddFunction(string functionName)
         => functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)
