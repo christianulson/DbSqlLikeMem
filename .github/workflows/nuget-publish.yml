@@ -50,7 +50,15 @@ jobs:
       - name: Publish to NuGet.org
         shell: bash
         run: |
-          dotnet nuget push "./artifacts/*.nupkg" \
+          shopt -s nullglob
+          packages=(./artifacts/*.nupkg)
+
+          if [ ${#packages[@]} -eq 0 ]; then
+            echo "::error::No NuGet packages were found in ./artifacts."
+            exit 1
+          fi
+
+          dotnet nuget push "${packages[@]}" \
             --api-key "$NUGET_API_KEY" \
             --source "https://api.nuget.org/v3/index.json" \
             --skip-duplicate
