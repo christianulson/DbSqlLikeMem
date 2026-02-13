@@ -12,6 +12,7 @@ permissions:
 jobs:
   publish:
     runs-on: windows-latest
+    environment: ${{ vars.NUGET_PUBLISH_ENVIRONMENT || 'nuget-publish' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,7 +41,7 @@ jobs:
 
           if [ -z "$NUGET_KEY" ]; then
             echo "::error::NuGet API key is empty. Configure one of: secrets.NUGET_API_KEY, secrets.NUGET_ORG_API_KEY, vars.NUGET_API_KEY or vars.NUGET_ORG_API_KEY."
-            echo "::error::If you store it at Environment level, attach this job to that Environment and ensure the tag/branch is allowed by Environment rules."
+            echo "::error::This workflow runs in Environment '${{ vars.NUGET_PUBLISH_ENVIRONMENT || 'nuget-publish' }}'. If your key is an Environment secret, add it there and ensure tag/branch rules allow this run."
             exit 1
           fi
 
