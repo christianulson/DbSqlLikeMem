@@ -72,7 +72,7 @@ internal static class DapperLateBinding
 
     private static Type ResolveSqlMapperType()
     {
-        if (TryResolveSqlMapperType(out var t))
+        if (TryResolveSqlMapperType(out var t) && t != null)
             return t;
 
         throw new InvalidOperationException(
