@@ -32,14 +32,7 @@ internal sealed class OracleDialect : SqlDialectBase
     internal const int MergeMinVersion = 9;
     internal const int OffsetFetchMinVersion = 12;
     internal const int FetchFirstMinVersion = 12;
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
-    public override bool AllowsBracketIdentifiers => false;
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
-    public override bool AllowsDoubleQuoteIdentifiers => true;
+
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
@@ -59,24 +52,6 @@ internal sealed class OracleDialect : SqlDialectBase
     /// </summary>
     public override StringComparison TextComparison => StringComparison.OrdinalIgnoreCase;
 
-    /// <summary>
-    /// EN: Enables implicit numeric/string comparison only when both values are numeric-convertible.
-    /// PT: Habilita comparação implícita numérica/string apenas quando ambos os valores são conversíveis para número.
-    /// </summary>
-    public override bool SupportsImplicitNumericStringComparison => true;
-
-    /// <summary>
-    /// EN: Keeps LIKE case-insensitive by default in the mock provider.
-    /// PT: Mantém LIKE case-insensitive por padrão no provider mock.
-    /// </summary>
-    public override bool LikeIsCaseInsensitive => true;
-
-
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
-    public override bool SupportsTop => false;
-
     // OFFSET ... FETCH / FETCH FIRST entrou no Oracle 12c.
     /// <summary>
     /// Auto-generated summary.
@@ -91,18 +66,12 @@ internal sealed class OracleDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsDeleteWithoutFrom => false;
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public override bool SupportsDeleteTargetAlias => false;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
     public override bool SupportsWithRecursive => false;
-    public override bool SupportsWithMaterializedHint => false;
-    public override bool SupportsOnConflictClause => false;
     public override bool SupportsJsonValueFunction => true;
     /// <summary>
     /// Auto-generated summary.

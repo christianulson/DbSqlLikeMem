@@ -39,10 +39,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool AllowsBacktickIdentifiers => true;
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
-    public override bool AllowsDoubleQuoteIdentifiers => true;
+
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
@@ -77,12 +74,7 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsDeleteWithoutFrom => false;
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     public override bool SupportsDeleteTargetAlias => false;
-    public override bool AllowsParserDeleteWithoutFromCompatibility => false;
 
     /// <summary>
     /// Auto-generated summary.
@@ -113,12 +105,6 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// PT: Regra do mock: permite comparação implícita número-vs-string-numérica (ex.: id = '2').
     /// </summary>
     public override bool SupportsImplicitNumericStringComparison => true;
-
-    /// <summary>
-    /// EN: Mock LIKE behavior follows dialect default and is case-insensitive.
-    /// PT: Comportamento de LIKE no mock segue o padrão do dialeto e é case-insensitive.
-    /// </summary>
-    public override bool LikeIsCaseInsensitive => true;
 
     public override bool SupportsDateAddFunction(string functionName)
         => functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase);

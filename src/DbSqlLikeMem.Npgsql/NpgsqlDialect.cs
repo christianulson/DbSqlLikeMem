@@ -37,10 +37,7 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     // parser feature tests expect WITH/CTE support across all tested versions.
     internal const int WithCteMinVersion = 6;
     internal const int MergeMinVersion = 15;
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
-    public override bool AllowsDoubleQuoteIdentifiers => true;
+
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
@@ -65,12 +62,6 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// PT: Habilita comparação implícita numérica/string apenas quando ambos os valores são conversíveis para número.
     /// </summary>
     public override bool SupportsImplicitNumericStringComparison => true;
-
-    /// <summary>
-    /// EN: Keeps LIKE case-insensitive by default in the mock provider.
-    /// PT: Mantém LIKE case-insensitive por padrão no provider mock.
-    /// </summary>
-    public override bool LikeIsCaseInsensitive => true;
 
     /// <summary>
     /// Auto-generated summary.
@@ -99,10 +90,6 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsReturning => true;
 
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
-    public override bool SupportsDeleteWithoutFrom => false;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
