@@ -46,6 +46,26 @@ public sealed class SqlDatabaseMetadataProviderTests
         Assert.Equal("CustomerId|Customers|Id", result.Properties["ForeignKeys"]);
     }
 
+
+    [Fact]
+    public async Task ListObjectsAsync_ForMySql_UsesDatabaseNameFromConnectionString()
+    {
+        var executor = new FakeSqlQueryExecutor();
+        executor.WhenContains("FROM INFORMATION_SCHEMA.TABLES", []);
+
+        var provider = new SqlDatabaseMetadataProvider(executor);
+        var conn = new ConnectionDefinition(
+            "1",
+            "MySql",
+            "ApelidoDaConexao",
+            "Server=localhost;Port=3306;Database=addresses;Uid=root;Pwd=secret;");
+
+        _ = await provider.ListObjectsAsync(conn, TestContext.Current.CancellationToken);
+
+        Assert.True(executor.TryGetLastParametersFor("FROM INFORMATION_SCHEMA.TABLES", out var parameters));
+        Assert.Equal("addresses", parameters!["databaseName"]?.ToString());
+    }
+
     /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
@@ -72,6 +92,7 @@ public sealed class SqlDatabaseMetadataProviderTests
     private sealed class FakeSqlQueryExecutor : ISqlQueryExecutor
     {
         private readonly List<(string Contains, IReadOnlyCollection<IReadOnlyDictionary<string, object?>> Rows)> _responses = [];
+        private readonly List<(string Sql, IReadOnlyDictionary<string, object?> Parameters)> _calls = [];
 
         /// <summary>
         /// Executes this API operation.
@@ -79,6 +100,21 @@ public sealed class SqlDatabaseMetadataProviderTests
         /// </summary>
         public void WhenContains(string containsSql, IReadOnlyCollection<IReadOnlyDictionary<string, object?>> rows)
             => _responses.Add((containsSql, rows));
+
+        public bool TryGetLastParametersFor(string containsSql, out IReadOnlyDictionary<string, object?>? parameters)
+        {
+            for (var i = _calls.Count - 1; i >= 0; i--)
+            {
+                if (_calls[i].Sql.Contains(containsSql, StringComparison.OrdinalIgnoreCase))
+                {
+                    parameters = _calls[i].Parameters;
+                    return true;
+                }
+            }
+
+            parameters = null;
+            return false;
+        }
 
         /// <summary>
         /// Executes this API operation.
@@ -90,6 +126,7 @@ public sealed class SqlDatabaseMetadataProviderTests
             IReadOnlyDictionary<string, object?> parameters,
             CancellationToken cancellationToken = default)
         {
+            _calls.Add((sql, parameters));
             var hit = _responses.FirstOrDefault(x => sql.Contains(x.Contains, StringComparison.OrdinalIgnoreCase));
             return Task.FromResult(hit.Rows ?? []);
         }

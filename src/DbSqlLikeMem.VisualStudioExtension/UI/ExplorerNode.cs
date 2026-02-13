@@ -98,6 +98,13 @@ public sealed class ExplorerNode
         _ => string.Empty
     };
 
+
+    /// <summary>
+    /// Gets or sets whether the node is expanded in the tree view.
+    /// Obtém ou define se o nó está expandido na árvore.
+    /// </summary>
+    public bool IsExpanded { get; set; }
+
     /// <summary>
     /// Gets the child nodes of this explorer node.
     /// Obtém os nós filhos deste nó do explorador.
