@@ -118,6 +118,7 @@ RETURNING id";
         Assert.False(d.IsIntegerCastTypeName("NUMBER"));
 
         Assert.False(d.RegexInvalidPatternEvaluatesToFalse);
+        Assert.True(d.SupportsTriggers);
     }
 
 

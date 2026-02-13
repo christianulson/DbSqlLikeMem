@@ -100,6 +100,13 @@ Decisões de compatibilidade implementadas para cobrir os cenários de relatóri
 - Data/time cobre unidades comuns (`year/month/day/hour/minute/second`), mas não trata timezone explícito, calendário ISO avançado nem regras específicas de cada engine real.
 - Subquery escalar retorna sempre a primeira célula da primeira linha, sem erro para múltiplas linhas (comportamento simplificado de mock).
 
+
+## Triggers em tabelas não temporárias
+
+- O runtime em memória executa triggers registradas via `TableMock.AddTrigger(...)` para eventos `Before/After Insert|Update|Delete`.
+- A execução ocorre apenas quando o dialeto expõe `SupportsTriggers = true`.
+- **Tabelas temporárias** (escopo conexão/global temporary) **não** executam triggers no executor, por regra explícita de compatibilidade.
+
 ## Regras candidatas para extrair do parser para os Dialects
 
 Para deixar o parser mais fiel por banco/versão, estas regras costumam dar bom ganho quando saem de `if` no parser e passam a ser capacidade do dialeto:

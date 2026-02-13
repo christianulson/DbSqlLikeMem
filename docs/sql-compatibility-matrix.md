@@ -19,6 +19,7 @@
 | Table hints SQL Server `WITH (...)` | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Index hints MySQL (`USE/IGNORE/FORCE INDEX`) | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Operadores JSON `->` / `->>` | ⚠️ (dependente de parser/executor por cenário) | ❌ | ❌ | ✅ | ❌ | ✅ |
+| Triggers em tabelas não temporárias (`TableMock`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ## Notas rápidas
 
