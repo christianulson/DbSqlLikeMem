@@ -369,7 +369,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             if (needsObjectList)
             {
                 var objects = await metadataProvider.ListObjectsAsync(connection, token);
-                objectsByConnection[connection.Id] = objects;
+                objectsByConnection[connection.Id] = await EnrichTableObjectsAsync(connection, objects, token);
             }
 
             if (selectedNode.Kind == ExplorerNodeKind.Object && selectedNode.ObjectType == DatabaseObjectType.Table)
@@ -415,7 +415,8 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                 try
                 {
                     var objects = await metadataProvider.ListObjectsAsync(connection, token);
-                    return (connection.Id, objects, error: (string?)null);
+                    var enriched = await EnrichTableObjectsAsync(connection, objects, token);
+                    return (connection.Id, objects: enriched, error: (string?)null);
                 }
                 catch (Exception ex)
                 {
@@ -896,6 +897,37 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             ExplorerNodeKind.TableDetailItem => $"detailitem|{node.ConnectionId}|{node.TableDetailKind}|{node.Label}",
             _ => $"other|{node.Label}"
         };
+
+    private async Task<IReadOnlyCollection<DatabaseObjectReference>> EnrichTableObjectsAsync(
+        ConnectionDefinition connection,
+        IReadOnlyCollection<DatabaseObjectReference> objects,
+        CancellationToken token)
+    {
+        var tableObjects = objects.Where(o => o.Type == DatabaseObjectType.Table).ToArray();
+        if (tableObjects.Length == 0)
+        {
+            return objects;
+        }
+
+        var detailedMap = new Dictionary<string, DatabaseObjectReference>(StringComparer.OrdinalIgnoreCase);
+        foreach (var table in tableObjects)
+        {
+            var detailed = await metadataProvider.GetObjectAsync(connection, table, token);
+            if (detailed is not null)
+            {
+                detailedMap[BuildObjectKey(connection.Id, table)] = detailed;
+            }
+        }
+
+        if (detailedMap.Count == 0)
+        {
+            return objects;
+        }
+
+        return objects
+            .Select(o => detailedMap.TryGetValue(BuildObjectKey(connection.Id, o), out var detailed) ? detailed : o)
+            .ToArray();
+    }
 
     private async Task EnsureTableDetailsLoadedAsync(ConnectionDefinition connection, ExplorerNode selectedNode, CancellationToken token)
     {

@@ -31,6 +31,9 @@ public sealed class SqlDatabaseMetadataProviderTests
         executor.WhenContains("FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE", [
             Row(("ColumnName", "CustomerId"), ("RefTable", "Customers"), ("RefColumn", "Id"))
         ]);
+        executor.WhenContains("FROM INFORMATION_SCHEMA.TRIGGERS", [
+            Row(("TriggerName", "trg_orders_audit"))
+        ]);
 
         var provider = new SqlDatabaseMetadataProvider(executor);
         var conn = new ConnectionDefinition("1", "MySql", "ERP", "conn");
@@ -44,6 +47,7 @@ public sealed class SqlDatabaseMetadataProviderTests
         Assert.DoesNotContain("PRIMARY", result.Properties["Indexes"], StringComparison.OrdinalIgnoreCase);
         Assert.Contains("IX_Orders_CustomerId|0|CustomerId", result.Properties["Indexes"]);
         Assert.Equal("CustomerId|Customers|Id", result.Properties["ForeignKeys"]);
+        Assert.Equal("trg_orders_audit", result.Properties["Triggers"]);
     }
 
 
@@ -84,6 +88,7 @@ public sealed class SqlDatabaseMetadataProviderTests
         Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildPrimaryKeyQuery(databaseType)));
         Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildIndexesQuery(databaseType)));
         Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildForeignKeysQuery(databaseType)));
+        Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildTriggersQuery(databaseType)));
     }
 
     private static IReadOnlyDictionary<string, object?> Row(params (string Key, object? Value)[] items)
