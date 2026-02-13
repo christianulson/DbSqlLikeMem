@@ -1,6 +1,8 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 using DbSqlLikeMem.VisualStudioExtension.Services;
 using EnvDTE;
 using DteProject = EnvDTE.Project;
@@ -104,10 +106,47 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
     private void OnExplorerContextMenuOpened(object sender, RoutedEventArgs e)
     {
+        var isConnectionNodeSelected = ExplorerTree.SelectedItem is ExplorerNode selectedConnection && selectedConnection.Kind == ExplorerNodeKind.Connection;
         var isObjectTypeNodeSelected = ExplorerTree.SelectedItem is ExplorerNode selected && selected.Kind == ExplorerNodeKind.ObjectType;
+
+        EditConnectionMenuItem.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
+        RemoveConnectionMenuItem.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
+        ConnectionActionsSeparator.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
 
         ConfigureMappingsMenuItem.Visibility = isObjectTypeNodeSelected ? Visibility.Visible : Visibility.Collapsed;
         ConfigureTemplatesMenuItem.Visibility = isObjectTypeNodeSelected ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void OnExplorerTreePreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        var source = e.OriginalSource as DependencyObject;
+        if (source is null)
+        {
+            return;
+        }
+
+        var treeViewItem = FindParent<TreeViewItem>(source);
+        if (treeViewItem is not null)
+        {
+            treeViewItem.IsSelected = true;
+            treeViewItem.Focus();
+        }
+    }
+
+    private static T? FindParent<T>(DependencyObject child) where T : DependencyObject
+    {
+        var current = child;
+        while (current is not null)
+        {
+            if (current is T parent)
+            {
+                return parent;
+            }
+
+            current = VisualTreeHelper.GetParent(current);
+        }
+
+        return null;
     }
 
     private void OnConfigureMappingsClick(object sender, RoutedEventArgs e)
