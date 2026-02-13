@@ -241,6 +241,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         return (firstMapping?.FileNamePattern ?? "{NamePascal}{Type}Factory.cs", firstMapping?.OutputDirectory ?? "Generated");
     }
 
+    /// <summary>
+    /// Gets the persisted filter text and mode for the informed object-type node.
+    /// Obtém o texto e o modo de filtro persistidos para o nó de tipo de objeto informado.
+    /// </summary>
     public (string FilterText, FilterMode FilterMode) GetObjectTypeFilter(ExplorerNode objectTypeNode)
     {
         if (objectTypeNode.Kind != ExplorerNodeKind.ObjectType || objectTypeNode.ConnectionId is null || objectTypeNode.ObjectType is null)
@@ -254,6 +258,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             : (string.Empty, FilterMode.Like);
     }
 
+    /// <summary>
+    /// Sets or clears the filter for the informed object-type node and refreshes the explorer tree.
+    /// Define ou limpa o filtro para o nó de tipo de objeto informado e atualiza a árvore do explorador.
+    /// </summary>
     public void SetObjectTypeFilter(ExplorerNode objectTypeNode, string filterText, FilterMode filterMode)
     {
         if (objectTypeNode.Kind != ExplorerNodeKind.ObjectType || objectTypeNode.ConnectionId is null || objectTypeNode.ObjectType is null)
@@ -275,6 +283,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         RefreshTree();
     }
 
+    /// <summary>
+    /// Clears the filter for the informed object-type node and refreshes the explorer tree.
+    /// Limpa o filtro para o nó de tipo de objeto informado e atualiza a árvore do explorador.
+    /// </summary>
     public void ClearObjectTypeFilter(ExplorerNode objectTypeNode)
     {
         if (objectTypeNode.Kind != ExplorerNodeKind.ObjectType || objectTypeNode.ConnectionId is null || objectTypeNode.ObjectType is null)
@@ -318,6 +330,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         SetStatusMessage("Cancelamento solicitado.");
     }
 
+    /// <summary>
+    /// Exports current extension state to a JSON file.
+    /// Exporta o estado atual da extensão para um arquivo JSON.
+    /// </summary>
     public async Task ExportStateAsync(string filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath))
@@ -330,6 +346,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         SetStatusMessage("Configurações exportadas com sucesso.");
     }
 
+    /// <summary>
+    /// Imports extension state from a JSON file and refreshes the UI.
+    /// Importa o estado da extensão de um arquivo JSON e atualiza a interface.
+    /// </summary>
     public async Task ImportStateAsync(string filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath))
