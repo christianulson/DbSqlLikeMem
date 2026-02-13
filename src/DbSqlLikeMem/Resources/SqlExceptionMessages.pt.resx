@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <root>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
@@ -65,5 +65,14 @@
   </data>
   <data name="DataTruncatedForColumn" xml:space="preserve">
     <value>Dados truncados para a coluna '{0}'</value>
+  </data>
+  <data name="DapperMethodOverloadNotFound" xml:space="preserve">
+    <value>Não encontrei overload de Dapper.SqlMapper.{0} com prefixo (IDbConnection, string, object) e cauda opcional.</value>
+  </data>
+  <data name="DapperAddTypeMapMethodNotFound" xml:space="preserve">
+    <value>Dapper.SqlMapper.AddTypeMap(Type, DbType) não encontrado.</value>
+  </data>
+  <data name="DapperRuntimeNotFound" xml:space="preserve">
+    <value>Dapper não foi encontrado em runtime. Adicione referência ao pacote Dapper ou Dapper.StrongName para habilitar execução LINQ via late-binding.</value>
   </data>
 </root>

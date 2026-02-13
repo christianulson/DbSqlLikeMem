@@ -1,4 +1,5 @@
 using System.Reflection;
+using DbSqlLikeMem.Resources;
 
 namespace DbSqlLikeMem;
 
@@ -27,7 +28,7 @@ internal static class DapperLateBinding
 
         if (candidates.Count == 0)
             throw new InvalidOperationException(
-                $"Não encontrei overload de {SqlMapperTypeName}.{name} com prefixo (IDbConnection, string, object) e cauda opcional.");
+                SqlExceptionMessages.DapperMethodOverloadNotFound(name));
 
         return candidates
             .OrderByDescending(x => x.Params.Length)
@@ -65,7 +66,7 @@ internal static class DapperLateBinding
             modifiers: null);
 
         if (mi is null)
-            throw new MissingMethodException($"{SqlMapperTypeName}.AddTypeMap(Type, DbType) não encontrado.");
+            throw new MissingMethodException(SqlExceptionMessages.DapperAddTypeMapMethodNotFound());
 
         mi.Invoke(null, [type, dbType]);
     }
@@ -76,7 +77,7 @@ internal static class DapperLateBinding
             return t;
 
         throw new InvalidOperationException(
-            "Dapper não foi encontrado em runtime. Adicione referência ao pacote Dapper ou Dapper.StrongName para habilitar execução LINQ via late-binding.");
+            SqlExceptionMessages.DapperRuntimeNotFound());
     }
 
     private static bool TryResolveSqlMapperType(out Type? t)
