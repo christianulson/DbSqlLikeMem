@@ -22,6 +22,12 @@ public enum ExplorerNodeKind
     Connection,
 
     /// <summary>
+    /// Represents a schema/database grouping node.
+    /// Representa um nó de agrupamento por schema/banco.
+    /// </summary>
+    Schema,
+
+    /// <summary>
     /// Represents an object-type grouping node.
     /// Representa um nó de agrupamento por tipo de objeto.
     /// </summary>

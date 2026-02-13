@@ -632,45 +632,62 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                     ? loadedObjects
                     : [];
 
-                foreach (DatabaseObjectType objectType in Enum.GetValues(typeof(DatabaseObjectType)))
+                var filteredObjects = objectFilterService.Filter(objects, ObjectFilterText, ObjectFilterMode)
+                    .OrderBy(o => o.Schema, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(o => o.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+
+                var schemaGroups = filteredObjects
+                    .GroupBy(o => string.IsNullOrWhiteSpace(o.Schema) ? connection.DatabaseName : o.Schema, StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+
+                foreach (var schemaGroup in schemaGroups)
                 {
-                    var objectTypeNode = new ExplorerNode(
-                        objectType switch
-                        {
-                            DatabaseObjectType.Table => "Tables",
-                            DatabaseObjectType.View => "Views",
-                            DatabaseObjectType.Procedure => "Procedures",
-                            _ => objectType.ToString()
-                        },
-                        ExplorerNodeKind.ObjectType)
+                    var schemaNode = new ExplorerNode(schemaGroup.Key, ExplorerNodeKind.Schema)
                     {
-                        ConnectionId = connection.Id,
-                        ObjectType = objectType
+                        ConnectionId = connection.Id
                     };
 
-                    var typedObjects = objects
-                        .Where(o => o.Type == objectType);
-
-                    var filteredObjects = objectFilterService.Filter(typedObjects, ObjectFilterText, ObjectFilterMode)
-                        .OrderBy(o => o.Schema, StringComparer.OrdinalIgnoreCase)
-                        .ThenBy(o => o.Name, StringComparer.OrdinalIgnoreCase);
-
-                    foreach (var dbObject in filteredObjects)
+                    foreach (DatabaseObjectType objectType in Enum.GetValues(typeof(DatabaseObjectType)))
                     {
-                        var key = BuildObjectKey(connection.Id, dbObject);
-                        ObjectHealthStatus? status = healthByObject.TryGetValue(key, out var health) ? health.Status : (ObjectHealthStatus?)null;
-                        objectTypeNode.Children.Add(new ExplorerNode(
-                            string.IsNullOrWhiteSpace(dbObject.Schema) ? dbObject.Name : $"{dbObject.Schema}.{dbObject.Name}",
-                            ExplorerNodeKind.Object)
+                        var objectTypeNode = new ExplorerNode(
+                            objectType switch
+                            {
+                                DatabaseObjectType.Table => "Tables",
+                                DatabaseObjectType.View => "Views",
+                                DatabaseObjectType.Procedure => "Procedures",
+                                _ => objectType.ToString()
+                            },
+                            ExplorerNodeKind.ObjectType)
                         {
                             ConnectionId = connection.Id,
-                            ObjectType = dbObject.Type,
-                            DatabaseObject = dbObject,
-                            HealthStatus = status
-                        });
+                            ObjectType = objectType
+                        };
+
+                        var typedObjects = schemaGroup
+                            .Where(o => o.Type == objectType)
+                            .OrderBy(o => o.Name, StringComparer.OrdinalIgnoreCase);
+
+                        foreach (var dbObject in typedObjects)
+                        {
+                            var key = BuildObjectKey(connection.Id, dbObject);
+                            ObjectHealthStatus? status = healthByObject.TryGetValue(key, out var health) ? health.Status : (ObjectHealthStatus?)null;
+                            objectTypeNode.Children.Add(new ExplorerNode(dbObject.Name, ExplorerNodeKind.Object)
+                            {
+                                ConnectionId = connection.Id,
+                                ObjectType = dbObject.Type,
+                                DatabaseObject = dbObject,
+                                HealthStatus = status
+                            });
+                        }
+
+                        if (objectTypeNode.Children.Count > 0)
+                        {
+                            schemaNode.Children.Add(objectTypeNode);
+                        }
                     }
 
-                    connectionNode.Children.Add(objectTypeNode);
+                    connectionNode.Children.Add(schemaNode);
                 }
 
                 typeNode.Children.Add(connectionNode);
@@ -722,6 +739,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         {
             ExplorerNodeKind.DatabaseType => $"dbtype|{node.Label}",
             ExplorerNodeKind.Connection => $"conn|{node.ConnectionId}",
+            ExplorerNodeKind.Schema => $"schema|{node.ConnectionId}|{node.Label}",
             ExplorerNodeKind.ObjectType => $"otype|{node.ConnectionId}|{node.ObjectType}",
             ExplorerNodeKind.Object when node.DatabaseObject is not null =>
                 $"obj|{node.ConnectionId}|{node.DatabaseObject.Type}|{node.DatabaseObject.Schema}|{node.DatabaseObject.Name}",
