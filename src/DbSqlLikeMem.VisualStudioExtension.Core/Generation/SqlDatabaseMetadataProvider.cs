@@ -112,7 +112,7 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
                 var candidate = Convert.ToString(value, CultureInfo.InvariantCulture)?.Trim();
                 if (!string.IsNullOrWhiteSpace(candidate))
                 {
-                    databaseName = candidate;
+                    databaseName = candidate!;
                     return true;
                 }
             }

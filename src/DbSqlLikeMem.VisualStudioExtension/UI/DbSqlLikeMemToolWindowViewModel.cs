@@ -416,7 +416,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             return;
         }
 
-        var needsObjectList = !objectsByConnection.ContainsKey(connectionId);
+        var needsObjectList = !objectsByConnection.ContainsKey(connectionId!);
         var needsSelectedTableDetails = selectedNode.Kind == ExplorerNodeKind.Object
             && selectedNode.ObjectType == DatabaseObjectType.Table
             && (selectedNode.DatabaseObject?.Properties is null || selectedNode.DatabaseObject.Properties.Count == 0);
@@ -1292,7 +1292,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                     var candidate = Convert.ToString(value)?.Trim();
                     if (!string.IsNullOrWhiteSpace(candidate))
                     {
-                        return candidate;
+                        return candidate!;
                     }
                 }
             }

@@ -15,6 +15,7 @@
     <OutputType>Library</OutputType>
     <AssemblyName>DbSqlLikeMem.VisualStudioExtension</AssemblyName>
     <RootNamespace>DbSqlLikeMem.VisualStudioExtension</RootNamespace>
+	  <NoWarn>$(NoWarn);VSTHRD200;VSTHRD100</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

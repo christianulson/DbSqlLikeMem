@@ -25,7 +25,7 @@ internal static class DbUpdateStrategy
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
         var queryTable = query.Table;
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(queryTable.Name, nameof(query.Table.Name));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(queryTable!.Name, nameof(query.Table.Name));
         var tableName = queryTable.Name!;
         var dialect = connection.Db.Dialect;
         if (!connection.TryGetTable(tableName, out var table, queryTable.DbName) || table == null)
