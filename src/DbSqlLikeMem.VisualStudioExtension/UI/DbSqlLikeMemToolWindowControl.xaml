@@ -26,16 +26,14 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <WrapPanel Grid.Row="0" Orientation="Horizontal" ItemHeight="26">
-            <Button Padding="6,2" Margin="0,0,8,8" Click="OnAddConnectionClick">
+        <WrapPanel Grid.Row="0" Orientation="Horizontal">
+            <Button Padding="10,4" MinWidth="156" Margin="0,0,8,8" Click="OnAddConnectionClick">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="➕" Margin="0,0,2,0" FontSize="12" />
-                    <TextBlock Text="🗄" Margin="0,0,6,0" FontSize="12" />
-                    <TextBlock Text="Adicionar conexão" />
+                    <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="14" Margin="0,0,6,0" />
+                    <TextBlock Text="Adicionar conexão" FontWeight="SemiBold" />
                 </StackPanel>
             </Button>
-            <Button Content="Atualizar objetos" Padding="8,3" Margin="0,0,8,8" Click="OnRefreshObjectsClick" />
-            <Button Content="Cancelar operação" Padding="8,3" Margin="0,0,8,8" Click="OnCancelOperationClick" />
+            <Button Content="Atualizar objetos" Padding="10,4" Margin="0,0,8,8" Click="OnRefreshObjectsClick" />
         </WrapPanel>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Center">
@@ -61,6 +59,7 @@
                 <ContextMenu Opened="OnExplorerContextMenuOpened">
                     <MenuItem x:Name="EditConnectionMenuItem" Header="Editar conexão" Click="OnEditConnectionClick" />
                     <MenuItem x:Name="RefreshConnectionMenuItem" Header="Atualizar objetos" Click="OnRefreshObjectsClick" />
+                    <MenuItem x:Name="CancelConnectionOperationMenuItem" Header="Cancelar operação" Click="OnCancelOperationClick" />
                     <MenuItem x:Name="RemoveConnectionMenuItem" Header="Remover conexão" Click="OnRemoveConnectionClick" />
                     <Separator x:Name="ConnectionActionsSeparator" />
                     <MenuItem x:Name="ConfigureMappingsMenuItem" Header="Configurar mapeamentos" Click="OnConfigureMappingsClick" />
