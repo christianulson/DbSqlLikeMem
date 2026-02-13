@@ -10,6 +10,7 @@
     <UserControl.Resources>
         <HierarchicalDataTemplate DataType="{x:Type ui:ExplorerNode}" ItemsSource="{Binding Children}">
             <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding NodeGlyph}" Margin="0,0,6,0" />
                 <TextBlock Text="{Binding StatusGlyph}" Margin="0,0,6,0" />
                 <TextBlock Text="{Binding Label}" />
             </StackPanel>
@@ -20,54 +21,57 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="8" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="8" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <WrapPanel Grid.Row="0" Orientation="Horizontal" ItemHeight="28">
-            <Button Content="Adicionar conexão" Padding="10,4" Margin="0,0,8,8" Click="OnAddConnectionClick" />
+        <WrapPanel Grid.Row="0" Orientation="Horizontal">
+            <Button Padding="10,4" MinWidth="156" Margin="0,0,8,8" Click="OnAddConnectionClick">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="14" Margin="0,0,6,0" />
+                    <TextBlock Text="Adicionar conexão" FontWeight="SemiBold" />
+                </StackPanel>
+            </Button>
             <Button Content="Atualizar objetos" Padding="10,4" Margin="0,0,8,8" Click="OnRefreshObjectsClick" />
-            <Button Content="Cancelar operação" Padding="10,4" Margin="0,0,8,8" Click="OnCancelOperationClick" />
+            <Button Content="Importar configurações" Padding="10,4" Margin="0,0,8,8" Click="OnImportSettingsClick" />
+            <Button Content="Exportar configurações" Padding="10,4" Margin="0,0,8,8" Click="OnExportSettingsClick" />
         </WrapPanel>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Center">
-            <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" Text="Filtro:" />
-            <TextBox Width="220"
-                     Margin="0,0,8,0"
-                     VerticalAlignment="Center"
-                     Text="{Binding ObjectFilterText, UpdateSourceTrigger=PropertyChanged}" />
-            <ComboBox Width="120"
-                      VerticalAlignment="Center"
-                      SelectedValuePath="Tag"
-                      SelectedValue="{Binding ObjectFilterMode}">
-                <ComboBoxItem Content="Contém" Tag="Like" />
-                <ComboBoxItem Content="Exato" Tag="Equals" />
-            </ComboBox>
-        </StackPanel>
-
         <TreeView x:Name="ExplorerTree"
-                  Grid.Row="4"
+                  Grid.Row="2"
                   PreviewMouseRightButtonDown="OnExplorerTreePreviewMouseRightButtonDown"
+                  SelectedItemChanged="OnExplorerTreeSelectedItemChanged"
                   ItemsSource="{Binding Nodes}">
+            <TreeView.ItemContainerStyle>
+                <Style TargetType="TreeViewItem">
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                    <EventSetter Event="Expanded" Handler="OnExplorerTreeItemExpanded" />
+                    <EventSetter Event="Collapsed" Handler="OnExplorerTreeItemCollapsed" />
+                </Style>
+            </TreeView.ItemContainerStyle>
             <TreeView.ContextMenu>
                 <ContextMenu Opened="OnExplorerContextMenuOpened">
                     <MenuItem x:Name="EditConnectionMenuItem" Header="Editar conexão" Click="OnEditConnectionClick" />
+                    <MenuItem x:Name="RefreshConnectionMenuItem" Header="Atualizar objetos" Click="OnRefreshObjectsClick" />
+                    <MenuItem x:Name="CancelConnectionOperationMenuItem" Header="Cancelar operação" Click="OnCancelOperationClick" />
                     <MenuItem x:Name="RemoveConnectionMenuItem" Header="Remover conexão" Click="OnRemoveConnectionClick" />
                     <Separator x:Name="ConnectionActionsSeparator" />
                     <MenuItem x:Name="ConfigureMappingsMenuItem" Header="Configurar mapeamentos" Click="OnConfigureMappingsClick" />
                     <MenuItem x:Name="ConfigureTemplatesMenuItem" Header="Configurar templates" Click="OnConfigureTemplatesClick" />
-                    <Separator />
-                    <MenuItem Header="Gerar classes de teste" Click="OnGenerateClassesClick" />
-                    <MenuItem Header="Gerar classes de modelos" Click="OnGenerateModelClassesClick" />
-                    <MenuItem Header="Gerar classes de repositório" Click="OnGenerateRepositoryClassesClick" />
-                    <MenuItem Header="Checar consistência" Click="OnCheckConsistencyClick" />
+                    <MenuItem x:Name="ConfigureObjectTypeFilterMenuItem" Header="Filtrar itens..." Click="OnConfigureObjectTypeFilterClick" />
+                    <MenuItem x:Name="ClearObjectTypeFilterMenuItem" Header="Limpar filtro" Click="OnClearObjectTypeFilterClick" />
+                    <Separator x:Name="GenerationActionsSeparator" />
+                    <MenuItem x:Name="GenerateAllClassesMenuItem" Header="Gerar todas as classes" Click="OnGenerateAllClassesClick" />
+                    <Separator x:Name="GenerateByTypeSeparator" />
+                    <MenuItem x:Name="GenerateTestClassesMenuItem" Header="Gerar classes de teste" Click="OnGenerateClassesClick" />
+                    <MenuItem x:Name="GenerateModelClassesMenuItem" Header="Gerar classes de modelos" Click="OnGenerateModelClassesClick" />
+                    <MenuItem x:Name="GenerateRepositoryClassesMenuItem" Header="Gerar classes de repositório" Click="OnGenerateRepositoryClassesClick" />
+                    <MenuItem x:Name="CheckConsistencyMenuItem" Header="Checar consistência" Click="OnCheckConsistencyClick" />
                 </ContextMenu>
             </TreeView.ContextMenu>
         </TreeView>
 
-        <Border Grid.Row="5" Margin="0,8,0,0" Padding="6" Background="#11000000" CornerRadius="4">
+        <Border Grid.Row="3" Margin="0,8,0,0" Padding="6" Background="#11000000" CornerRadius="4">
             <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" />
         </Border>
     </Grid>

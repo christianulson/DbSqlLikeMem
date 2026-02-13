@@ -22,10 +22,28 @@ public enum ExplorerNodeKind
     Connection,
 
     /// <summary>
+    /// Represents a schema/database grouping node.
+    /// Representa um nó de agrupamento por schema/banco.
+    /// </summary>
+    Schema,
+
+    /// <summary>
     /// Represents an object-type grouping node.
     /// Representa um nó de agrupamento por tipo de objeto.
     /// </summary>
     ObjectType,
+
+    /// <summary>
+    /// Represents a fixed details group under table objects.
+    /// Representa um grupo fixo de detalhes sob objetos de tabela.
+    /// </summary>
+    TableDetailGroup,
+
+    /// <summary>
+    /// Represents a table detail leaf entry (column/index/fk/trigger).
+    /// Representa uma entrada folha de detalhe de tabela (coluna/índice/fk/trigger).
+    /// </summary>
+    TableDetailItem,
 
     /// <summary>
     /// Represents a database object leaf node.
@@ -75,6 +93,12 @@ public sealed class ExplorerNode
     public DatabaseObjectType? ObjectType { get; set; }
 
     /// <summary>
+    /// Gets or sets the table detail group/item kind.
+    /// Obtém ou define o tipo de grupo/item de detalhe da tabela.
+    /// </summary>
+    public string? TableDetailKind { get; set; }
+
+    /// <summary>
     /// Gets or sets the database object metadata represented by this node.
     /// Obtém ou define os metadados do objeto de banco representado por este nó.
     /// </summary>
@@ -85,6 +109,49 @@ public sealed class ExplorerNode
     /// Obtém ou define o status de saúde do objeto representado.
     /// </summary>
     public ObjectHealthStatus? HealthStatus { get; set; }
+
+
+    /// <summary>
+    /// Gets an icon glyph for the node kind.
+    /// Obtém um glifo de ícone para o tipo de nó.
+    /// </summary>
+    public string NodeGlyph => Kind switch
+    {
+        ExplorerNodeKind.DatabaseType => "🗃",
+        ExplorerNodeKind.Connection => "🔌",
+        ExplorerNodeKind.Schema => "🧩",
+        ExplorerNodeKind.ObjectType => ObjectType switch
+        {
+            DatabaseObjectType.Table => "🗂",
+            DatabaseObjectType.View => "👁",
+            DatabaseObjectType.Procedure => "⚙",
+            _ => "📁"
+        },
+        ExplorerNodeKind.Object => ObjectType switch
+        {
+            DatabaseObjectType.Table => "▦",
+            DatabaseObjectType.View => "◫",
+            DatabaseObjectType.Procedure => "ƒ",
+            _ => "•"
+        },
+        ExplorerNodeKind.TableDetailGroup => TableDetailKind switch
+        {
+            "Columns" => "🧱",
+            "Indexes" => "🗂",
+            "ForeignKeys" => "🔗",
+            "Triggers" => "⚡",
+            _ => "📁"
+        },
+        ExplorerNodeKind.TableDetailItem => TableDetailKind switch
+        {
+            "Column" => "▫",
+            "Index" => "◻",
+            "ForeignKey" => "↪",
+            "Trigger" => "⚑",
+            _ => "•"
+        },
+        _ => ""
+    };
 
     /// <summary>
     /// Gets an emoji glyph that represents the current health status.
@@ -97,6 +164,13 @@ public sealed class ExplorerNode
         ObjectHealthStatus.MissingInDatabase or ObjectHealthStatus.MissingLocalArtifacts => "🔴",
         _ => string.Empty
     };
+
+
+    /// <summary>
+    /// Gets or sets whether the node is expanded in the tree view.
+    /// Obtém ou define se o nó está expandido na árvore.
+    /// </summary>
+    public bool IsExpanded { get; set; }
 
     /// <summary>
     /// Gets the child nodes of this explorer node.
