@@ -8,6 +8,7 @@ using EnvDTE;
 using DteProject = EnvDTE.Project;
 using DteProjectItem = EnvDTE.ProjectItem;
 using DteProjectItems = EnvDTE.ProjectItems;
+using Microsoft.Win32;
 using Microsoft.VisualStudio.Shell;
 
 namespace DbSqlLikeMem.VisualStudioExtension.UI;
@@ -244,6 +245,46 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
     private async void OnRefreshObjectsClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(() => viewModel.RefreshObjectsAsync());
+
+    private async void OnImportSettingsClick(object sender, RoutedEventArgs e)
+        => await RunSafeAsync(async () =>
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = "Importar configurações",
+                Filter = "Arquivos JSON (*.json)|*.json|Todos os arquivos (*.*)|*.*",
+                CheckFileExists = true,
+                Multiselect = false
+            };
+
+            if (dialog.ShowDialog(System.Windows.Window.GetWindow(this)) != true)
+            {
+                return;
+            }
+
+            await viewModel.ImportStateAsync(dialog.FileName);
+        });
+
+    private async void OnExportSettingsClick(object sender, RoutedEventArgs e)
+        => await RunSafeAsync(async () =>
+        {
+            var dialog = new SaveFileDialog
+            {
+                Title = "Exportar configurações",
+                Filter = "Arquivos JSON (*.json)|*.json|Todos os arquivos (*.*)|*.*",
+                AddExtension = true,
+                DefaultExt = "json",
+                FileName = "dbsqllikemem-settings.json",
+                OverwritePrompt = true
+            };
+
+            if (dialog.ShowDialog(System.Windows.Window.GetWindow(this)) != true)
+            {
+                return;
+            }
+
+            await viewModel.ExportStateAsync(dialog.FileName);
+        });
 
     private void OnCancelOperationClick(object sender, RoutedEventArgs e)
         => viewModel.CancelCurrentOperation();

@@ -33,6 +33,8 @@
                 </StackPanel>
             </Button>
             <Button Content="Atualizar objetos" Padding="10,4" Margin="0,0,8,8" Click="OnRefreshObjectsClick" />
+            <Button Content="Importar configurações" Padding="10,4" Margin="0,0,8,8" Click="OnImportSettingsClick" />
+            <Button Content="Exportar configurações" Padding="10,4" Margin="0,0,8,8" Click="OnExportSettingsClick" />
         </WrapPanel>
 
         <TreeView x:Name="ExplorerTree"

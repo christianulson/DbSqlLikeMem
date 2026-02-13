@@ -318,6 +318,55 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         SetStatusMessage("Cancelamento solicitado.");
     }
 
+    public async Task ExportStateAsync(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            throw new ArgumentException("Caminho de exportação inválido.", nameof(filePath));
+        }
+
+        var state = BuildPersistedState();
+        await statePersistenceService.ExportAsync(state, filePath);
+        SetStatusMessage("Configurações exportadas com sucesso.");
+    }
+
+    public async Task ImportStateAsync(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            throw new ArgumentException("Caminho de importação inválido.", nameof(filePath));
+        }
+
+        var imported = await statePersistenceService.ImportAsync(filePath);
+        if (imported is null)
+        {
+            throw new InvalidOperationException("Arquivo de configuração vazio ou inválido.");
+        }
+
+        connections.Clear();
+        foreach (var connection in imported.Connections)
+        {
+            var decrypted = ConnectionStringProtector.Unprotect(connection.ConnectionString);
+            connections.Add(new ConnectionDefinition(connection.Id, connection.DatabaseType, connection.DatabaseName, decrypted, connection.DisplayName));
+        }
+
+        mappings.Clear();
+        foreach (var mapping in imported.Mappings)
+        {
+            mappings.Add(mapping);
+        }
+
+        templateConfiguration = imported.TemplateConfiguration ?? TemplateConfiguration.Default;
+
+        objectsByConnection.Clear();
+        healthByObject.Clear();
+        objectTypeFilters.Clear();
+
+        SaveState();
+        RefreshTree();
+        SetStatusMessage("Configurações importadas com sucesso.");
+    }
+
 
     /// <summary>
     /// Ensures objects for the selected connection are loaded (lazy load on tree selection).
@@ -369,7 +418,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             if (needsObjectList)
             {
                 var objects = await metadataProvider.ListObjectsAsync(connection, token);
-                objectsByConnection[connection.Id] = objects;
+                objectsByConnection[connection.Id] = await EnrichTableObjectsAsync(connection, objects, token);
             }
 
             if (selectedNode.Kind == ExplorerNodeKind.Object && selectedNode.ObjectType == DatabaseObjectType.Table)
@@ -415,7 +464,8 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                 try
                 {
                     var objects = await metadataProvider.ListObjectsAsync(connection, token);
-                    return (connection.Id, objects, error: (string?)null);
+                    var enriched = await EnrichTableObjectsAsync(connection, objects, token);
+                    return (connection.Id, objects: enriched, error: (string?)null);
                 }
                 catch (Exception ex)
                 {
@@ -721,12 +771,17 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
     private void SaveState()
     {
+        var state = BuildPersistedState();
+        statePersistenceService.Save(state, stateFilePath);
+    }
+
+    private ExtensionState BuildPersistedState()
+    {
         var safeConnections = connections
             .Select(c => new ConnectionDefinition(c.Id, c.DatabaseType, c.DatabaseName, ConnectionStringProtector.Protect(c.ConnectionString), c.DisplayName))
             .ToArray();
 
-        var state = new ExtensionState(safeConnections, [.. mappings], templateConfiguration);
-        statePersistenceService.Save(state, stateFilePath);
+        return new ExtensionState(safeConnections, [.. mappings], templateConfiguration);
     }
 
     private void RefreshTree()
@@ -896,6 +951,37 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             ExplorerNodeKind.TableDetailItem => $"detailitem|{node.ConnectionId}|{node.TableDetailKind}|{node.Label}",
             _ => $"other|{node.Label}"
         };
+
+    private async Task<IReadOnlyCollection<DatabaseObjectReference>> EnrichTableObjectsAsync(
+        ConnectionDefinition connection,
+        IReadOnlyCollection<DatabaseObjectReference> objects,
+        CancellationToken token)
+    {
+        var tableObjects = objects.Where(o => o.Type == DatabaseObjectType.Table).ToArray();
+        if (tableObjects.Length == 0)
+        {
+            return objects;
+        }
+
+        var detailedMap = new Dictionary<string, DatabaseObjectReference>(StringComparer.OrdinalIgnoreCase);
+        foreach (var table in tableObjects)
+        {
+            var detailed = await metadataProvider.GetObjectAsync(connection, table, token);
+            if (detailed is not null)
+            {
+                detailedMap[BuildObjectKey(connection.Id, table)] = detailed;
+            }
+        }
+
+        if (detailedMap.Count == 0)
+        {
+            return objects;
+        }
+
+        return objects
+            .Select(o => detailedMap.TryGetValue(BuildObjectKey(connection.Id, o), out var detailed) ? detailed : o)
+            .ToArray();
+    }
 
     private async Task EnsureTableDetailsLoadedAsync(ConnectionDefinition connection, ExplorerNode selectedNode, CancellationToken token)
     {

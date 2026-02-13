@@ -57,6 +57,14 @@ public static class SqlMetadataQueryFactory
     public static string BuildForeignKeysQuery(string databaseType)
         => ResolveStrategy(databaseType).BuildForeignKeysQuery();
 
+    /// <summary>
+    /// Builds the metadata query that lists triggers for the specified database type.
+    /// </summary>
+    /// <param name="databaseType">The target database type.</param>
+    /// <returns>The SQL query text.</returns>
+    public static string BuildTriggersQuery(string databaseType)
+        => ResolveStrategy(databaseType).BuildTriggersQuery();
+
     private static ISqlMetadataQueryStrategy ResolveStrategy(string databaseType)
     {
         var normalizedType = Normalize(databaseType);
@@ -75,6 +83,7 @@ public static class SqlMetadataQueryFactory
         string BuildPrimaryKeyQuery();
         string BuildIndexesQuery();
         string BuildForeignKeysQuery();
+        string BuildTriggersQuery();
     }
 
     private sealed class MySqlMetadataQueryStrategy : ISqlMetadataQueryStrategy
@@ -116,6 +125,14 @@ SELECT KCU.COLUMN_NAME AS ColumnName, KCU.REFERENCED_TABLE_NAME AS RefTable, KCU
 FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU
 WHERE KCU.TABLE_SCHEMA=@schemaName AND KCU.TABLE_NAME=@objectName AND KCU.REFERENCED_TABLE_NAME IS NOT NULL
 ORDER BY KCU.CONSTRAINT_NAME, KCU.ORDINAL_POSITION;
+""";
+
+        public string BuildTriggersQuery()
+            => """
+SELECT TRIGGER_NAME AS TriggerName
+FROM INFORMATION_SCHEMA.TRIGGERS
+WHERE TRIGGER_SCHEMA=@schemaName AND EVENT_OBJECT_TABLE=@objectName
+ORDER BY TRIGGER_NAME;
 """;
     }
 
@@ -181,6 +198,16 @@ JOIN sys.objects rt ON rt.object_id=fkc.referenced_object_id
 JOIN sys.columns rc ON rc.object_id=fkc.referenced_object_id AND rc.column_id=fkc.referenced_column_id
 WHERE s.name=@schemaName AND o.name=@objectName
 ORDER BY fkc.constraint_column_id;
+""";
+
+        public string BuildTriggersQuery()
+            => """
+SELECT tr.name AS TriggerName
+FROM sys.triggers tr
+JOIN sys.objects o ON o.object_id=tr.parent_id
+JOIN sys.schemas s ON s.schema_id=o.schema_id
+WHERE s.name=@schemaName AND o.name=@objectName
+ORDER BY tr.name;
 """;
     }
 
@@ -254,6 +281,16 @@ JOIN pg_attribute a_ref ON a_ref.attrelid=rel_ref.oid AND a_ref.attnum=keys.refa
 WHERE con.contype='f' AND nsp.nspname=@schemaName AND rel.relname=@objectName
 ORDER BY keys.ord;
 """;
+
+        public string BuildTriggersQuery()
+            => """
+SELECT t.tgname AS TriggerName
+FROM pg_trigger t
+JOIN pg_class c ON c.oid=t.tgrelid
+JOIN pg_namespace n ON n.oid=c.relnamespace
+WHERE NOT t.tgisinternal AND n.nspname=@schemaName AND c.relname=@objectName
+ORDER BY t.tgname;
+""";
     }
 
     private sealed class OracleMetadataQueryStrategy : ISqlMetadataQueryStrategy
@@ -311,6 +348,14 @@ JOIN ALL_CONS_COLUMNS rcc ON rcc.OWNER=rc.OWNER AND rcc.CONSTRAINT_NAME=rc.CONST
 WHERE c.CONSTRAINT_TYPE='R' AND c.OWNER=@schemaName AND c.TABLE_NAME=@objectName
 ORDER BY cc.POSITION;
 """;
+
+        public string BuildTriggersQuery()
+            => """
+SELECT TRIGGER_NAME AS TriggerName
+FROM ALL_TRIGGERS
+WHERE OWNER=@schemaName AND TABLE_NAME=@objectName
+ORDER BY TRIGGER_NAME;
+""";
     }
 
     private sealed class SqliteMetadataQueryStrategy : ISqlMetadataQueryStrategy
@@ -346,7 +391,10 @@ ORDER BY cid;
             => "-- sqlite indexes fetched through pragma index_list/index_info externally; return empty by default";
 
         public string BuildForeignKeysQuery()
-            => "SELECT \"\" AS ColumnName, \"\" AS RefTable, \"\" AS RefColumn WHERE 1=0;";
+            => "SELECT "" AS ColumnName, "" AS RefTable, "" AS RefColumn WHERE 1=0;";
+
+        public string BuildTriggersQuery()
+            => "SELECT "" AS TriggerName WHERE 1=0;";
     }
 
     private sealed class Db2MetadataQueryStrategy : ISqlMetadataQueryStrategy
@@ -406,6 +454,14 @@ JOIN SYSCAT.KEYCOLUSE k ON k.CONSTNAME=r.CONSTNAME AND k.TABSCHEMA=r.TABSCHEMA
 JOIN SYSCAT.KEYCOLUSE rk ON rk.CONSTNAME=r.REFKEYNAME AND rk.TABSCHEMA=r.REFTABSCHEMA AND rk.COLSEQ=k.COLSEQ
 WHERE r.TABSCHEMA=@schemaName AND r.TABNAME=@objectName
 ORDER BY k.COLSEQ;
+""";
+
+        public string BuildTriggersQuery()
+            => """
+SELECT RTRIM(TRIGNAME) AS TriggerName
+FROM SYSCAT.TRIGGERS
+WHERE TABSCHEMA=@schemaName AND TABNAME=@objectName
+ORDER BY TRIGNAME;
 """;
     }
 

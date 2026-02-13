@@ -62,13 +62,15 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
         var pks = await queryExecutor.QueryAsync(connection, SqlMetadataQueryFactory.BuildPrimaryKeyQuery(connection.DatabaseType), args, cancellationToken);
         var indexes = await queryExecutor.QueryAsync(connection, SqlMetadataQueryFactory.BuildIndexesQuery(connection.DatabaseType), args, cancellationToken);
         var fks = await queryExecutor.QueryAsync(connection, SqlMetadataQueryFactory.BuildForeignKeysQuery(connection.DatabaseType), args, cancellationToken);
+        var triggers = await queryExecutor.QueryAsync(connection, SqlMetadataQueryFactory.BuildTriggersQuery(connection.DatabaseType), args, cancellationToken);
 
         var properties = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["Columns"] = SerializeColumns(columns),
             ["PrimaryKey"] = SerializePrimaryKey(pks),
             ["Indexes"] = SerializeIndexes(indexes),
-            ["ForeignKeys"] = SerializeForeignKeys(fks)
+            ["ForeignKeys"] = SerializeForeignKeys(fks),
+            ["Triggers"] = SerializeTriggers(triggers)
         };
 
         return reference with { Properties = properties };
@@ -185,6 +187,12 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
         => indexName.Equals("PRIMARY", StringComparison.OrdinalIgnoreCase)
            || indexName.Equals("PK", StringComparison.OrdinalIgnoreCase)
            || indexName.StartsWith("PK_", StringComparison.OrdinalIgnoreCase);
+
+    private static string SerializeTriggers(IReadOnlyCollection<IReadOnlyDictionary<string, object?>> rows)
+        => string.Join(";", rows
+            .Select(r => ReadString(r, "TriggerName"))
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Select(Escape));
 
     private static string SerializeForeignKeys(IReadOnlyCollection<IReadOnlyDictionary<string, object?>> rows)
     {
