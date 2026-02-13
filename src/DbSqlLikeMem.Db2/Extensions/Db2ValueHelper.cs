@@ -1,3 +1,4 @@
+using DbSqlLikeMem.Resources;
 ﻿using IBM.Data.Db2;
 using System.Text.Json;
 
@@ -38,7 +39,7 @@ internal static class Db2ValueHelper
                 .Replace("\r\n", string.Empty, StringComparison.Ordinal)
                 .Replace(";", string.Empty, StringComparison.Ordinal);
             if (pars == null || !pars.Contains(name))
-                throw new Db2MockException($"Parâmetro {name} não encontrado.");
+                throw new Db2MockException(SqlExceptionMessages.ParameterNotFound(name));
             return ((DB2Parameter)pars[name]).Value;
         }
 
@@ -46,7 +47,7 @@ internal static class Db2ValueHelper
         if (token.Equals("null", StringComparison.OrdinalIgnoreCase))
             return isNullable 
                 ? null
-                : throw new Db2MockException("Coluna não aceita NULL");
+                : throw new Db2MockException(SqlExceptionMessages.ColumnDoesNotAcceptNull());
 
         // ---------- lista ( ..., ... )  para IN ------------------------
         var m = _list.Match(token);
@@ -139,10 +140,10 @@ internal static class Db2ValueHelper
             return value;
 
         if (cdef.Size is int size && value is string s && s.Length > size)
-            throw new Db2MockException($"Data too long for column '{CurrentColumn}'", 1406);
+            throw new Db2MockException(SqlExceptionMessages.DataTooLongForColumn(CurrentColumn), 1406);
 
         if (cdef.DecimalPlaces is int scale && value is decimal d && GetDecimalScale(d) > scale)
-            throw new Db2MockException($"Data truncated for column '{CurrentColumn}'", 1265);
+            throw new Db2MockException(SqlExceptionMessages.DataTruncatedForColumn(CurrentColumn), 1265);
 
         return value;
     }

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="DuplicateKey" xml:space="preserve">
+    <value>Entrada duplicada '{0}' para a chave '{1}'</value>
+  </data>
+  <data name="UnknownColumn" xml:space="preserve">
+    <value>Coluna desconhecida '{0}'</value>
+  </data>
+  <data name="ColumnCannotBeNull" xml:space="preserve">
+    <value>A coluna '{0}' não pode ser nula</value>
+  </data>
+  <data name="ForeignKeyFails" xml:space="preserve">
+    <value>Não é possível adicionar ou atualizar uma linha filha: a restrição de chave estrangeira falhou ({0} → {1})</value>
+  </data>
+  <data name="ReferencedRow" xml:space="preserve">
+    <value>Não é possível excluir ou atualizar uma linha pai: a restrição de chave estrangeira falhou (filho referenciando '{0}')</value>
+  </data>
+  <data name="ParameterAlreadyDefined" xml:space="preserve">
+    <value>Parâmetro '{0}' já foi definido.</value>
+  </data>
+  <data name="ParameterNotFoundInCollection" xml:space="preserve">
+    <value>Parâmetro '{0}' não encontrado na coleção</value>
+  </data>
+  <data name="InvalidCreateTemporaryTableStatement" xml:space="preserve">
+    <value>Instrução CREATE TEMPORARY TABLE inválida.</value>
+  </data>
+  <data name="InvalidCreateViewStatement" xml:space="preserve">
+    <value>Instrução CREATE VIEW inválida.</value>
+  </data>
+  <data name="InvalidDeleteExpectedFromKeyword" xml:space="preserve">
+    <value>Instrução DELETE inválida: era esperada a palavra-chave FROM.</value>
+  </data>
+  <data name="UseExecuteReaderForSelect" xml:space="preserve">
+    <value>Use ExecuteReader para comandos SELECT.</value>
+  </data>
+  <data name="UseExecuteReaderForSelectUnion" xml:space="preserve">
+    <value>Use ExecuteReader para comandos SELECT/UNION.</value>
+  </data>
+  <data name="ExecuteReaderWithoutSelectQuery" xml:space="preserve">
+    <value>ExecuteReader foi chamado, mas nenhuma query SELECT foi encontrada.</value>
+  </data>
+  <data name="InvalidDropViewStatement" xml:space="preserve">
+    <value>Instrução DROP VIEW inválida.</value>
+  </data>
+  <data name="ParameterNotFound" xml:space="preserve">
+    <value>Parâmetro {0} não encontrado.</value>
+  </data>
+  <data name="ColumnDoesNotAcceptNull" xml:space="preserve">
+    <value>Coluna não aceita NULL</value>
+  </data>
+  <data name="DataTooLongForColumn" xml:space="preserve">
+    <value>Dados longos demais para a coluna '{0}'</value>
+  </data>
+  <data name="DataTruncatedForColumn" xml:space="preserve">
+    <value>Dados truncados para a coluna '{0}'</value>
+  </data>
+</root>
