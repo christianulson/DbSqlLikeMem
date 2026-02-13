@@ -8,11 +8,12 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   publish:
     runs-on: windows-latest
-    environment: ${{ vars.NUGET_PUBLISH_ENVIRONMENT || 'nuget-publish' }}
+    environment: nuget-publish
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,27 +29,23 @@ jobs:
       - name: Pack
         run: dotnet pack src/DbSqlLikeMem.slnx -c Release -o ./artifacts
 
-      - name: Resolve NuGet API key
-        id: nuget_key
+      - name: Validate NuGet API key (NUGET_API_KEY)
         shell: bash
         env:
-          NUGET_API_KEY_SECRET: ${{ secrets.NUGET_API_KEY }}
-          NUGET_ORG_API_KEY_SECRET: ${{ secrets.NUGET_ORG_API_KEY }}
-          NUGET_API_KEY_VAR: ${{ vars.NUGET_API_KEY }}
-          NUGET_ORG_API_KEY_VAR: ${{ vars.NUGET_ORG_API_KEY }}
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
-          NUGET_KEY="${NUGET_API_KEY_SECRET:-${NUGET_ORG_API_KEY_SECRET:-${NUGET_API_KEY_VAR:-${NUGET_ORG_API_KEY_VAR:-}}}}"
-
-          if [ -z "$NUGET_KEY" ]; then
-            echo "::error::NuGet API key is empty. Configure one of: secrets.NUGET_API_KEY, secrets.NUGET_ORG_API_KEY, vars.NUGET_API_KEY or vars.NUGET_ORG_API_KEY."
-            echo "::error::This workflow runs in Environment '${{ vars.NUGET_PUBLISH_ENVIRONMENT || 'nuget-publish' }}'. If your key is an Environment secret, add it there and ensure tag/branch rules allow this run."
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "::error::NUGET_API_KEY is empty or unavailable in Environment 'nuget-publish'."
+            echo "::error::Confirm the workflow run is using Environment 'nuget-publish' and that its protection rules allow this run."
             exit 1
           fi
 
-          echo "NUGET_API_KEY=$NUGET_KEY" >> "$GITHUB_ENV"
+          echo "NUGET_API_KEY is configured."
 
       - name: Publish to NuGet.org
         shell: bash
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
           shopt -s nullglob
           packages=(./artifacts/*.nupkg)
