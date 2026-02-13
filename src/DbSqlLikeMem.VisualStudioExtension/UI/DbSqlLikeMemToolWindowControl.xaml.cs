@@ -110,6 +110,9 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         var isConnectionNodeSelected = selectedNode?.Kind == ExplorerNodeKind.Connection;
         var isObjectTypeNodeSelected = selectedNode?.Kind == ExplorerNodeKind.ObjectType;
         var isGenerationSupportedSelected = selectedNode is not null && GenerationSupportedKinds.Contains(selectedNode.Kind);
+        var canClearObjectTypeFilter = isObjectTypeNodeSelected
+            && selectedNode is not null
+            && !string.IsNullOrWhiteSpace(viewModel.GetObjectTypeFilter(selectedNode).FilterText);
 
         EditConnectionMenuItem.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
         RemoveConnectionMenuItem.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
@@ -119,6 +122,8 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
         ConfigureMappingsMenuItem.Visibility = isObjectTypeNodeSelected ? Visibility.Visible : Visibility.Collapsed;
         ConfigureTemplatesMenuItem.Visibility = isObjectTypeNodeSelected ? Visibility.Visible : Visibility.Collapsed;
+        ConfigureObjectTypeFilterMenuItem.Visibility = isObjectTypeNodeSelected ? Visibility.Visible : Visibility.Collapsed;
+        ClearObjectTypeFilterMenuItem.Visibility = canClearObjectTypeFilter ? Visibility.Visible : Visibility.Collapsed;
 
         GenerationActionsSeparator.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
         GenerateAllClassesMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
@@ -204,6 +209,37 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         {
             viewModel.ConfigureTemplates(dialog.ModelTemplatePath, dialog.RepositoryTemplatePath, dialog.ModelOutputDirectory, dialog.RepositoryOutputDirectory);
         }
+    }
+
+    private void OnConfigureObjectTypeFilterClick(object sender, RoutedEventArgs e)
+    {
+        if (ExplorerTree.SelectedItem is not ExplorerNode selected || selected.Kind != ExplorerNodeKind.ObjectType)
+        {
+            MessageBox.Show(System.Windows.Window.GetWindow(this), "Selecione um tipo de objeto para configurar o filtro.", "Filtro de itens", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var current = viewModel.GetObjectTypeFilter(selected);
+        var dialog = new ObjectTypeFilterDialog(current.FilterText, current.FilterMode)
+        {
+            Owner = System.Windows.Window.GetWindow(this)
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            viewModel.SetObjectTypeFilter(selected, dialog.FilterText, dialog.FilterMode);
+        }
+    }
+
+    private void OnClearObjectTypeFilterClick(object sender, RoutedEventArgs e)
+    {
+        if (ExplorerTree.SelectedItem is not ExplorerNode selected || selected.Kind != ExplorerNodeKind.ObjectType)
+        {
+            MessageBox.Show(System.Windows.Window.GetWindow(this), "Selecione um tipo de objeto para limpar o filtro.", "Filtro de itens", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        viewModel.ClearObjectTypeFilter(selected);
     }
 
     private async void OnRefreshObjectsClick(object sender, RoutedEventArgs e)

@@ -32,6 +32,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     private readonly Dictionary<string, ObjectHealthResult> healthByObject = new(StringComparer.OrdinalIgnoreCase);
     private TemplateConfiguration templateConfiguration = TemplateConfiguration.Default;
     private readonly ObjectFilterService objectFilterService = new();
+    private readonly Dictionary<string, (string Text, FilterMode Mode)> objectTypeFilters = new(StringComparer.OrdinalIgnoreCase);
 
     private string objectFilterText = string.Empty;
     private FilterMode objectFilterMode = FilterMode.Like;
@@ -238,6 +239,51 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     {
         var firstMapping = mappings.FirstOrDefault()?.Mappings.Values.FirstOrDefault();
         return (firstMapping?.FileNamePattern ?? "{NamePascal}{Type}Factory.cs", firstMapping?.OutputDirectory ?? "Generated");
+    }
+
+    public (string FilterText, FilterMode FilterMode) GetObjectTypeFilter(ExplorerNode objectTypeNode)
+    {
+        if (objectTypeNode.Kind != ExplorerNodeKind.ObjectType || objectTypeNode.ConnectionId is null || objectTypeNode.ObjectType is null)
+        {
+            return (string.Empty, FilterMode.Like);
+        }
+
+        var key = BuildObjectTypeFilterKey(objectTypeNode.ConnectionId, objectTypeNode.ObjectType.Value);
+        return objectTypeFilters.TryGetValue(key, out var filter)
+            ? filter
+            : (string.Empty, FilterMode.Like);
+    }
+
+    public void SetObjectTypeFilter(ExplorerNode objectTypeNode, string filterText, FilterMode filterMode)
+    {
+        if (objectTypeNode.Kind != ExplorerNodeKind.ObjectType || objectTypeNode.ConnectionId is null || objectTypeNode.ObjectType is null)
+        {
+            return;
+        }
+
+        var key = BuildObjectTypeFilterKey(objectTypeNode.ConnectionId, objectTypeNode.ObjectType.Value);
+        var normalized = filterText?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            objectTypeFilters.Remove(key);
+        }
+        else
+        {
+            objectTypeFilters[key] = (normalized, filterMode);
+        }
+
+        RefreshTree();
+    }
+
+    public void ClearObjectTypeFilter(ExplorerNode objectTypeNode)
+    {
+        if (objectTypeNode.Kind != ExplorerNodeKind.ObjectType || objectTypeNode.ConnectionId is null || objectTypeNode.ObjectType is null)
+        {
+            return;
+        }
+
+        objectTypeFilters.Remove(BuildObjectTypeFilterKey(objectTypeNode.ConnectionId, objectTypeNode.ObjectType.Value));
+        RefreshTree();
     }
 
     /// <summary>
@@ -706,12 +752,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                     ? loadedObjects
                     : [];
 
-                var filteredObjects = objectFilterService.Filter(objects, ObjectFilterText, ObjectFilterMode)
-                    .OrderBy(o => o.Schema, StringComparer.OrdinalIgnoreCase)
-                    .ThenBy(o => o.Name, StringComparer.OrdinalIgnoreCase)
-                    .ToArray();
-
-                var schemaGroups = filteredObjects
+                var schemaGroups = objects
                     .GroupBy(o => string.IsNullOrWhiteSpace(o.Schema) ? connection.DatabaseName : o.Schema, StringComparer.OrdinalIgnoreCase)
                     .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
 
@@ -724,14 +765,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
                     foreach (DatabaseObjectType objectType in Enum.GetValues(typeof(DatabaseObjectType)))
                     {
+                        var filter = GetObjectTypeFilter(connection.Id, objectType);
+                        var hasFilter = !string.IsNullOrWhiteSpace(filter.Text);
                         var objectTypeNode = new ExplorerNode(
-                            objectType switch
-                            {
-                                DatabaseObjectType.Table => "Tables",
-                                DatabaseObjectType.View => "Views",
-                                DatabaseObjectType.Procedure => "Procedures",
-                                _ => objectType.ToString()
-                            },
+                            BuildObjectTypeLabel(objectType, hasFilter),
                             ExplorerNodeKind.ObjectType)
                         {
                             ConnectionId = connection.Id,
@@ -739,7 +776,14 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                         };
 
                         var typedObjects = schemaGroup
-                            .Where(o => o.Type == objectType)
+                            .Where(o => o.Type == objectType);
+
+                        if (hasFilter)
+                        {
+                            typedObjects = objectFilterService.Filter(typedObjects, filter.Text, filter.Mode);
+                        }
+
+                        typedObjects = typedObjects
                             .OrderBy(o => o.Name, StringComparer.OrdinalIgnoreCase);
 
                         foreach (var dbObject in typedObjects)
@@ -813,6 +857,30 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                 yield return child;
             }
         }
+    }
+
+    private (string Text, FilterMode Mode) GetObjectTypeFilter(string connectionId, DatabaseObjectType objectType)
+    {
+        var key = BuildObjectTypeFilterKey(connectionId, objectType);
+        return objectTypeFilters.TryGetValue(key, out var filter)
+            ? filter
+            : (string.Empty, FilterMode.Like);
+    }
+
+    private static string BuildObjectTypeFilterKey(string connectionId, DatabaseObjectType objectType)
+        => $"{connectionId}|{objectType}";
+
+    private static string BuildObjectTypeLabel(DatabaseObjectType objectType, bool hasFilter)
+    {
+        var baseLabel = objectType switch
+        {
+            DatabaseObjectType.Table => "Tables",
+            DatabaseObjectType.View => "Views",
+            DatabaseObjectType.Procedure => "Procedures",
+            _ => objectType.ToString()
+        };
+
+        return hasFilter ? $"{baseLabel} 🔎" : baseLabel;
     }
 
     private static string BuildNodeKey(ExplorerNode node)
