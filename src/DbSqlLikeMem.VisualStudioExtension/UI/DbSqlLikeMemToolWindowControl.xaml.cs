@@ -106,8 +106,10 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
     private void OnExplorerContextMenuOpened(object sender, RoutedEventArgs e)
     {
-        var isConnectionNodeSelected = ExplorerTree.SelectedItem is ExplorerNode selectedConnection && selectedConnection.Kind == ExplorerNodeKind.Connection;
-        var isObjectTypeNodeSelected = ExplorerTree.SelectedItem is ExplorerNode selected && selected.Kind == ExplorerNodeKind.ObjectType;
+        var selectedNode = ExplorerTree.SelectedItem as ExplorerNode;
+        var isConnectionNodeSelected = selectedNode?.Kind == ExplorerNodeKind.Connection;
+        var isObjectTypeNodeSelected = selectedNode?.Kind == ExplorerNodeKind.ObjectType;
+        var isGenerationSupportedSelected = selectedNode is not null && GenerationSupportedKinds.Contains(selectedNode.Kind);
 
         EditConnectionMenuItem.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
         RemoveConnectionMenuItem.Visibility = isConnectionNodeSelected ? Visibility.Visible : Visibility.Collapsed;
@@ -117,6 +119,14 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
         ConfigureMappingsMenuItem.Visibility = isObjectTypeNodeSelected ? Visibility.Visible : Visibility.Collapsed;
         ConfigureTemplatesMenuItem.Visibility = isObjectTypeNodeSelected ? Visibility.Visible : Visibility.Collapsed;
+
+        GenerationActionsSeparator.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
+        GenerateAllClassesMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
+        GenerateByTypeSeparator.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
+        GenerateTestClassesMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
+        GenerateModelClassesMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
+        GenerateRepositoryClassesMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
+        CheckConsistencyMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
     }
 
 

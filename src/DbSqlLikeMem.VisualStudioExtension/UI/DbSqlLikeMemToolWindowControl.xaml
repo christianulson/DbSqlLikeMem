@@ -71,13 +71,13 @@
                     <Separator x:Name="ConnectionActionsSeparator" />
                     <MenuItem x:Name="ConfigureMappingsMenuItem" Header="Configurar mapeamentos" Click="OnConfigureMappingsClick" />
                     <MenuItem x:Name="ConfigureTemplatesMenuItem" Header="Configurar templates" Click="OnConfigureTemplatesClick" />
-                    <Separator />
-                    <MenuItem Header="Gerar todas as classes" Click="OnGenerateAllClassesClick" />
-                    <Separator />
-                    <MenuItem Header="Gerar classes de teste" Click="OnGenerateClassesClick" />
-                    <MenuItem Header="Gerar classes de modelos" Click="OnGenerateModelClassesClick" />
-                    <MenuItem Header="Gerar classes de repositório" Click="OnGenerateRepositoryClassesClick" />
-                    <MenuItem Header="Checar consistência" Click="OnCheckConsistencyClick" />
+                    <Separator x:Name="GenerationActionsSeparator" />
+                    <MenuItem x:Name="GenerateAllClassesMenuItem" Header="Gerar todas as classes" Click="OnGenerateAllClassesClick" />
+                    <Separator x:Name="GenerateByTypeSeparator" />
+                    <MenuItem x:Name="GenerateTestClassesMenuItem" Header="Gerar classes de teste" Click="OnGenerateClassesClick" />
+                    <MenuItem x:Name="GenerateModelClassesMenuItem" Header="Gerar classes de modelos" Click="OnGenerateModelClassesClick" />
+                    <MenuItem x:Name="GenerateRepositoryClassesMenuItem" Header="Gerar classes de repositório" Click="OnGenerateRepositoryClassesClick" />
+                    <MenuItem x:Name="CheckConsistencyMenuItem" Header="Checar consistência" Click="OnCheckConsistencyClick" />
                 </ContextMenu>
             </TreeView.ContextMenu>
         </TreeView>

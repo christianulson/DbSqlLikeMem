@@ -34,6 +34,18 @@ public enum ExplorerNodeKind
     ObjectType,
 
     /// <summary>
+    /// Represents a fixed details group under table objects.
+    /// Representa um grupo fixo de detalhes sob objetos de tabela.
+    /// </summary>
+    TableDetailGroup,
+
+    /// <summary>
+    /// Represents a table detail leaf entry (column/index/fk/trigger).
+    /// Representa uma entrada folha de detalhe de tabela (coluna/índice/fk/trigger).
+    /// </summary>
+    TableDetailItem,
+
+    /// <summary>
     /// Represents a database object leaf node.
     /// Representa um nó folha de objeto de banco.
     /// </summary>
@@ -81,6 +93,12 @@ public sealed class ExplorerNode
     public DatabaseObjectType? ObjectType { get; set; }
 
     /// <summary>
+    /// Gets or sets the table detail group/item kind.
+    /// Obtém ou define o tipo de grupo/item de detalhe da tabela.
+    /// </summary>
+    public string? TableDetailKind { get; set; }
+
+    /// <summary>
     /// Gets or sets the database object metadata represented by this node.
     /// Obtém ou define os metadados do objeto de banco representado por este nó.
     /// </summary>
@@ -114,6 +132,22 @@ public sealed class ExplorerNode
             DatabaseObjectType.Table => "▦",
             DatabaseObjectType.View => "◫",
             DatabaseObjectType.Procedure => "ƒ",
+            _ => "•"
+        },
+        ExplorerNodeKind.TableDetailGroup => TableDetailKind switch
+        {
+            "Columns" => "🧱",
+            "Indexes" => "🗂",
+            "ForeignKeys" => "🔗",
+            "Triggers" => "⚡",
+            _ => "📁"
+        },
+        ExplorerNodeKind.TableDetailItem => TableDetailKind switch
+        {
+            "Column" => "▫",
+            "Index" => "◻",
+            "ForeignKey" => "↪",
+            "Trigger" => "⚑",
             _ => "•"
         },
         _ => ""
