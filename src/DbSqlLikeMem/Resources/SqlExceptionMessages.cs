@@ -62,6 +62,15 @@ internal static class SqlExceptionMessages
     public static string DataTruncatedForColumn(string column) =>
         Format(nameof(DataTruncatedForColumn), column);
 
+    public static string DapperMethodOverloadNotFound(string methodName) =>
+        Format(nameof(DapperMethodOverloadNotFound), methodName);
+
+    public static string DapperAddTypeMapMethodNotFound() =>
+        Format(nameof(DapperAddTypeMapMethodNotFound));
+
+    public static string DapperRuntimeNotFound() =>
+        Format(nameof(DapperRuntimeNotFound));
+
     private static string Format(string key, params object?[] args)
     {
         var template = ResourceManager.GetString(key, CultureInfo.CurrentUICulture)
