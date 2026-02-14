@@ -1,7 +1,15 @@
 namespace DbSqlLikeMem.Npgsql.Test.Strategy;
 
+/// <summary>
+/// EN: Contains trigger behavior tests for the PostgreSQL strategy.
+/// PT: Contém testes de comportamento de gatilhos para a estratégia PostgreSQL.
+/// </summary>
 public sealed class PostgreSqlTriggerStrategyTests
 {
+    /// <summary>
+    /// EN: Ensures that an AFTER INSERT trigger is executed for a non-temporary table.
+    /// PT: Garante que um gatilho AFTER INSERT seja executado para uma tabela não temporária.
+    /// </summary>
     [Fact]
     public void NonTemporaryTable_ShouldExecuteAfterInsertTrigger()
     {
@@ -20,6 +28,10 @@ public sealed class PostgreSqlTriggerStrategyTests
         Assert.Equal(1, calls);
     }
 
+    /// <summary>
+    /// EN: Ensures that triggers are not executed for a temporary table.
+    /// PT: Garante que os gatilhos não sejam executados para uma tabela temporária.
+    /// </summary>
     [Fact]
     public void TemporaryTable_ShouldNotExecuteAfterInsertTrigger()
     {
