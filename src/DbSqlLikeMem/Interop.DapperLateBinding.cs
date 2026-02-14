@@ -1,6 +1,3 @@
-using System.Reflection;
-using DbSqlLikeMem.Resources;
-
 namespace DbSqlLikeMem;
 
 internal static class DapperLateBinding

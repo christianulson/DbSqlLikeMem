@@ -1,5 +1,3 @@
-using DbSqlLikeMem.Resources;
-﻿using IBM.Data.Db2;
 using System.Text.Json;
 
 namespace DbSqlLikeMem.Db2;

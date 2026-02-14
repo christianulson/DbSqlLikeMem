@@ -1,5 +1,4 @@
-using DbSqlLikeMem.Resources;
-﻿using Microsoft.Data.Sqlite;
+using Microsoft.Data.Sqlite;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 

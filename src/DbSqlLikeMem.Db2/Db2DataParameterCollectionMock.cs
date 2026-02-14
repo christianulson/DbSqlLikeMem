@@ -1,7 +1,4 @@
-using DbSqlLikeMem.Resources;
-﻿using IBM.Data.Db2;
 using System.Collections;
-using System.Data.Common;
 
 namespace DbSqlLikeMem.Db2;
 /// <summary>

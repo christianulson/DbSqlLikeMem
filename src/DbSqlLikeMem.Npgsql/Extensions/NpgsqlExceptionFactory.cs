@@ -1,5 +1,3 @@
-using DbSqlLikeMem.Resources;
-
 namespace DbSqlLikeMem.Npgsql;
 
 internal static class NpgsqlExceptionFactory

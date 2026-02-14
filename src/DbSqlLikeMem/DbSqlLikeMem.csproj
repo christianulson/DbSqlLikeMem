@@ -43,6 +43,8 @@
 		<InternalsVisibleTo Include="DbSqlLikeMem.Db2.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.MySql" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.MiniProfiler" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.MiniProfiler.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Npgsql" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Npgsql.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Oracle" />
@@ -53,9 +55,12 @@
 		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer.Test" />
 	</ItemGroup>
 	<ItemGroup>
+		<Using Include="DbSqlLikeMem.Resources" />
+		<Using Include="System.Collections" />
 		<Using Include="System.Data" />
 		<Using Include="System.Data.Common" />
 		<Using Include="System.Globalization" />
+		<Using Include="System.Reflection" />
 		<Using Include="System.Text.RegularExpressions" />
 	</ItemGroup>
 </Project>

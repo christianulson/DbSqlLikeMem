@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace DbSqlLikeMem;
 /// <summary>
 /// EN: Defines a column dictionary accessible by name.

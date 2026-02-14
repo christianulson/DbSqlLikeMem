@@ -1,5 +1,4 @@
 using System.Text.Json;
-using DbSqlLikeMem.Resources;
 
 namespace DbSqlLikeMem.MySql;
 

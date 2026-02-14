@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Oracle.ManagedDataAccess.Client;
-using DbSqlLikeMem.Resources;
 
 namespace DbSqlLikeMem.Oracle;
 

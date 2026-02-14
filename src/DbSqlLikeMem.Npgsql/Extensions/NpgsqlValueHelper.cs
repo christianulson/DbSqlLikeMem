@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Npgsql;
-using DbSqlLikeMem.Resources;
 
 namespace DbSqlLikeMem.Npgsql;
 

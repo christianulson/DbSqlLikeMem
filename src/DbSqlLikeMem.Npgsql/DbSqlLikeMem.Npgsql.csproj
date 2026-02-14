@@ -31,6 +31,7 @@
 		<InternalsVisibleTo Include="DbSqlLikeMem.Npgsql.Test" />
 	</ItemGroup>
 	<ItemGroup>
+		<Using Include="DbSqlLikeMem.Resources" />
 		<Using Include="System.Data" />
 		<Using Include="System.Globalization" />
 		<Using Include="System.Text.RegularExpressions" />

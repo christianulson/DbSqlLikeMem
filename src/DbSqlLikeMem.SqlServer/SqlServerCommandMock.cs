@@ -1,7 +1,6 @@
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Data.SqlClient;
-using DbSqlLikeMem.Resources;
 
 
 namespace DbSqlLikeMem.SqlServer;

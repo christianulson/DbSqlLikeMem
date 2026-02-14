@@ -1,6 +1,4 @@
-using DbSqlLikeMem.Resources;
-
-﻿namespace DbSqlLikeMem.Sqlite;
+namespace DbSqlLikeMem.Sqlite;
 
 internal static class SqliteExceptionFactory
 {

@@ -80,6 +80,7 @@
 		<Using Include="Dapper" />
 		<Using Include="DbSqlLikeMem" />
 		<Using Include="DbSqlLikeMem.MySql" />
+		<Using Include="DbSqlLikeMem.Resources" />
 		<Using Include="DbSqlLikeMem.Test" />
 		<Using Include="FluentAssertions" />
 		<Using Include="MySql.Data.MySqlClient" />

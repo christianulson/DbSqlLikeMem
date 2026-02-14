@@ -1,5 +1,4 @@
-﻿using System.Data.Common;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 namespace DbSqlLikeMem.Db2;
 /// <summary>

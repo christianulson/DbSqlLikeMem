@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace DbSqlLikeMem;
 /// <summary>
 /// EN: Implements an index dictionary with case-insensitive comparison.
