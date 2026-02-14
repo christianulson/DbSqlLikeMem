@@ -136,7 +136,7 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
                 NumPrecision = ReadNullableInt(r, "NumPrecision"),
                 NumScale = ReadNullableInt(r, "NumScale"),
                 ColumnType = ReadString(r, "ColumnType"),
-                Generated = ReadString(r, "Generated")
+                Generated = ReadString(r, "ColumnGenerated")
             })
             .Where(c => !string.IsNullOrWhiteSpace(c.Name))
             .OrderBy(c => c.Ordinal)

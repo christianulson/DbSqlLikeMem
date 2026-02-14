@@ -11,9 +11,6 @@
         WindowStartupLocation="CenterScreen">
     <DockPanel Margin="10">
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
-            <Button Content="Abrir ConnectionDialog" Click="OnOpenConnectionDialog" Margin="0,0,8,0" Padding="10,4" />
-            <Button Content="Abrir MappingDialog" Click="OnOpenMappingDialog" Margin="0,0,8,0" Padding="10,4" />
-            <Button Content="Abrir TemplateConfigurationDialog" Click="OnOpenTemplateDialog" Margin="0,0,8,0" Padding="10,4" />
             <TextBlock VerticalAlignment="Center" Foreground="DimGray" Text="Use este app para validar se os XAML carregam fora do Visual Studio."/>
         </StackPanel>
 

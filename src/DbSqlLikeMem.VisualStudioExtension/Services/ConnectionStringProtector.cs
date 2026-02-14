@@ -10,9 +10,7 @@ internal static class ConnectionStringProtector
     public static string Protect(string plainText)
     {
         if (string.IsNullOrWhiteSpace(plainText))
-        {
             return plainText;
-        }
 
         var bytes = Encoding.UTF8.GetBytes(plainText);
         var protectedBytes = ProtectedData.Protect(bytes, null, DataProtectionScope.CurrentUser);
@@ -22,9 +20,7 @@ internal static class ConnectionStringProtector
     public static string Unprotect(string value)
     {
         if (string.IsNullOrWhiteSpace(value) || !value.StartsWith(Prefix, StringComparison.Ordinal))
-        {
             return value;
-        }
 
         var payload = value.Substring(Prefix.Length);
         var protectedBytes = Convert.FromBase64String(payload);

@@ -90,49 +90,84 @@ public static class SqlMetadataQueryFactory
     {
         public string BuildListObjectsQuery()
             => """
-SELECT TABLE_SCHEMA AS SchemaName, TABLE_NAME AS ObjectName,
-       CASE TABLE_TYPE WHEN 'BASE TABLE' THEN 'Table' WHEN 'VIEW' THEN 'View' ELSE TABLE_TYPE END AS ObjectType
-FROM INFORMATION_SCHEMA.TABLES
-WHERE TABLE_SCHEMA = @databaseName
-UNION ALL
-SELECT ROUTINE_SCHEMA AS SchemaName, ROUTINE_NAME AS ObjectName, 'Procedure' AS ObjectType
-FROM INFORMATION_SCHEMA.ROUTINES
-WHERE ROUTINE_SCHEMA = @databaseName
+  SELECT TABLE_SCHEMA AS `SchemaName`
+       , TABLE_NAME AS ObjectName
+       , CASE TABLE_TYPE 
+         WHEN 'BASE TABLE' THEN 'Table' 
+         WHEN 'VIEW' THEN 'View' 
+         ELSE TABLE_TYPE 
+         END AS `ObjectType`
+    FROM INFORMATION_SCHEMA.TABLES
+   WHERE TABLE_SCHEMA = @databaseName
+   UNION ALL
+  SELECT ROUTINE_SCHEMA AS `SchemaName`
+       , ROUTINE_NAME AS `ObjectName`
+       , 'Procedure' AS `ObjectType`
+    FROM INFORMATION_SCHEMA.ROUTINES
+   WHERE ROUTINE_SCHEMA = @databaseName
 ORDER BY SchemaName, ObjectType, ObjectName;
 """;
 
         public string BuildObjectColumnsQuery()
             => """
-SELECT COLUMN_NAME AS ColumnName, DATA_TYPE AS DataType, ORDINAL_POSITION AS Ordinal,
-       IS_NULLABLE AS IsNullable, EXTRA AS Extra,
-       COLUMN_DEFAULT AS DefaultValue, CHARACTER_MAXIMUM_LENGTH AS CharMaxLen,
-       NUMERIC_PRECISION AS NumPrecision, NUMERIC_SCALE AS NumScale, COLUMN_TYPE AS ColumnType,
-       GENERATION_EXPRESSION AS Generated
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_SCHEMA = @schemaName AND TABLE_NAME = @objectName
+  SELECT COLUMN_NAME AS `ColumnName`
+       , DATA_TYPE AS `DataType`
+       , ORDINAL_POSITION AS `Ordinal`
+       , IS_NULLABLE AS `IsNullable`
+       , EXTRA AS `Extra`
+       , COLUMN_DEFAULT AS `DefaultValue`
+       , CHARACTER_MAXIMUM_LENGTH AS `CharMaxLen`
+       , NUMERIC_PRECISION AS `NumPrecision`
+       , NUMERIC_SCALE AS 'NumScale'
+       , COLUMN_TYPE AS `ColumnType`
+       , GENERATION_EXPRESSION AS `ColumnGenerated`
+    FROM INFORMATION_SCHEMA.COLUMNS
+   WHERE TABLE_SCHEMA = @schemaName
+     AND TABLE_NAME = @objectName
 ORDER BY ORDINAL_POSITION;
 """;
 
         public string BuildPrimaryKeyQuery()
-            => "SELECT COLUMN_NAME AS ColumnName FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA=@schemaName AND TABLE_NAME=@objectName AND INDEX_NAME='PRIMARY' ORDER BY SEQ_IN_INDEX;";
+            => @"
+  SELECT COLUMN_NAME AS `ColumnName` 
+    FROM INFORMATION_SCHEMA.STATISTICS 
+   WHERE TABLE_SCHEMA=@schemaName 
+     AND TABLE_NAME=@objectName 
+     AND INDEX_NAME='PRIMARY' 
+ORDER BY SEQ_IN_INDEX;";
 
         public string BuildIndexesQuery()
-            => "SELECT INDEX_NAME AS IndexName, NON_UNIQUE AS NonUnique, COLUMN_NAME AS ColumnName, SEQ_IN_INDEX AS Seq FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA=@schemaName AND TABLE_NAME=@objectName ORDER BY INDEX_NAME, SEQ_IN_INDEX;";
+            => @"
+  SELECT INDEX_NAME AS `IndexName`
+       , NON_UNIQUE AS `NonUnique`
+       , COLUMN_NAME AS `ColumnName`
+       , SEQ_IN_INDEX AS `Seq` 
+    FROM INFORMATION_SCHEMA.STATISTICS 
+   WHERE TABLE_SCHEMA=@schemaName 
+     AND TABLE_NAME=@objectName 
+ORDER BY INDEX_NAME, SEQ_IN_INDEX;
+";
 
         public string BuildForeignKeysQuery()
             => """
-SELECT KCU.COLUMN_NAME AS ColumnName, KCU.REFERENCED_TABLE_NAME AS RefTable, KCU.REFERENCED_COLUMN_NAME AS RefColumn
-FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU
-WHERE KCU.TABLE_SCHEMA=@schemaName AND KCU.TABLE_NAME=@objectName AND KCU.REFERENCED_TABLE_NAME IS NOT NULL
-ORDER BY KCU.CONSTRAINT_NAME, KCU.ORDINAL_POSITION;
+SELECT KCU.COLUMN_NAME AS `ColumnName`
+     , KCU.REFERENCED_TABLE_NAME AS `RefTable`
+     , KCU.REFERENCED_COLUMN_NAME AS `RefColumn`
+  FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU
+ WHERE KCU.TABLE_SCHEMA=@schemaName
+   AND KCU.TABLE_NAME=@objectName
+   AND KCU.REFERENCED_TABLE_NAME IS NOT NULL
+ ORDER BY KCU.CONSTRAINT_NAME
+        , KCU.ORDINAL_POSITION;
 """;
 
         public string BuildTriggersQuery()
             => """
-SELECT TRIGGER_NAME AS TriggerName
-FROM INFORMATION_SCHEMA.TRIGGERS
-WHERE TRIGGER_SCHEMA=@schemaName AND EVENT_OBJECT_TABLE=@objectName
-ORDER BY TRIGGER_NAME;
+SELECT TRIGGER_NAME AS `TriggerName`
+  FROM INFORMATION_SCHEMA.TRIGGERS
+ WHERE TRIGGER_SCHEMA=@schemaName
+   AND EVENT_OBJECT_TABLE=@objectName
+ ORDER BY TRIGGER_NAME;
 """;
     }
 
@@ -140,73 +175,98 @@ ORDER BY TRIGGER_NAME;
     {
         public string BuildListObjectsQuery()
             => """
-SELECT s.name AS SchemaName, o.name AS ObjectName,
-       CASE o.type WHEN 'U' THEN 'Table' WHEN 'V' THEN 'View' WHEN 'P' THEN 'Procedure' ELSE o.type END AS ObjectType
-FROM sys.objects o
-JOIN sys.schemas s ON s.schema_id = o.schema_id
-WHERE o.type IN ('U', 'V', 'P')
-ORDER BY s.name, ObjectType, o.name;
+  SELECT s.name AS [SchemaName]
+       , o.name AS [ObjectName]
+       , CASE o.type 
+         WHEN 'U' THEN 'Table' 
+         WHEN 'V' THEN 'View' 
+         WHEN 'P' THEN 'Procedure' 
+         ELSE o.type 
+         END AS [ObjectType]
+    FROM sys.objects o
+    JOIN sys.schemas s ON s.schema_id = o.schema_id
+   WHERE o.type IN ('U', 'V', 'P')
+ORDER BY s.name
+       , ObjectType
+       , o.name;
 """;
 
         public string BuildObjectColumnsQuery()
             => """
-SELECT c.name AS ColumnName, t.name AS DataType, c.column_id AS Ordinal,
-       c.is_nullable AS IsNullable, c.is_identity AS IsIdentity,
-       OBJECT_DEFINITION(c.default_object_id) AS DefaultValue,
-       c.max_length AS CharMaxLen, c.precision AS NumPrecision, c.scale AS NumScale,
-       '' AS ColumnType, '' AS Generated
-FROM sys.columns c
-JOIN sys.types t ON t.user_type_id = c.user_type_id
-JOIN sys.objects o ON o.object_id = c.object_id
-JOIN sys.schemas s ON s.schema_id = o.schema_id
-WHERE s.name = @schemaName AND o.name = @objectName
+  SELECT c.name AS [ColumnName]
+       , t.name AS [DataType]
+       , c.column_id AS [Ordinal]
+       , c.is_nullable AS [IsNullable]
+       , c.is_identity AS [IsIdentity]
+       , OBJECT_DEFINITION(c.default_object_id) AS [DefaultValue]
+       , c.max_length AS [CharMaxLen]
+       , c.precision AS [NumPrecision]
+       , c.scale AS [NumScale]
+       , '' AS [ColumnType]
+       , '' AS [ColumnGenerated]
+    FROM sys.columns c
+    JOIN sys.types t ON t.user_type_id = c.user_type_id
+    JOIN sys.objects o ON o.object_id = c.object_id
+    JOIN sys.schemas s ON s.schema_id = o.schema_id
+   WHERE s.name = @schemaName AND o.name = @objectName
 ORDER BY c.column_id;
 """;
 
         public string BuildPrimaryKeyQuery()
             => """
-SELECT c.name AS ColumnName
-FROM sys.indexes i
-JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id
-JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id
-JOIN sys.objects o ON o.object_id = i.object_id
-JOIN sys.schemas s ON s.schema_id = o.schema_id
-WHERE i.is_primary_key = 1 AND s.name=@schemaName AND o.name=@objectName
-ORDER BY ic.key_ordinal;
+SELECT c.name AS [ColumnName]
+  FROM sys.indexes i
+  JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id
+  JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id
+  JOIN sys.objects o ON o.object_id = i.object_id
+  JOIN sys.schemas s ON s.schema_id = o.schema_id
+ WHERE i.is_primary_key = 1
+   AND s.name=@schemaName
+   AND o.name=@objectName
+ ORDER BY ic.key_ordinal;
 """;
 
         public string BuildIndexesQuery()
             => """
-SELECT i.name AS IndexName, i.is_unique AS IsUnique, c.name AS ColumnName, ic.key_ordinal AS Seq
-FROM sys.indexes i
-JOIN sys.index_columns ic ON ic.object_id=i.object_id AND ic.index_id=i.index_id
-JOIN sys.columns c ON c.object_id=ic.object_id AND c.column_id=ic.column_id
-JOIN sys.objects o ON o.object_id=i.object_id
-JOIN sys.schemas s ON s.schema_id=o.schema_id
-WHERE i.is_hypothetical=0 AND i.name IS NOT NULL AND s.name=@schemaName AND o.name=@objectName
+  SELECT i.name AS [IndexName]
+       , i.is_unique AS [IsUnique]
+       , c.name AS [ColumnName]
+       , ic.key_ordinal AS [Seq]
+    FROM sys.indexes i
+    JOIN sys.index_columns ic ON ic.object_id=i.object_id AND ic.index_id=i.index_id
+    JOIN sys.columns c ON c.object_id=ic.object_id AND c.column_id=ic.column_id
+    JOIN sys.objects o ON o.object_id=i.object_id
+    JOIN sys.schemas s ON s.schema_id=o.schema_id
+   WHERE i.is_hypothetical=0 
+     AND i.name IS NOT NULL 
+     AND s.name=@schemaName 
+     AND o.name=@objectName
 ORDER BY i.name, ic.key_ordinal;
 """;
 
         public string BuildForeignKeysQuery()
             => """
-SELECT pc.name AS ColumnName, rt.name AS RefTable, rc.name AS RefColumn
-FROM sys.foreign_key_columns fkc
-JOIN sys.objects o ON o.object_id=fkc.parent_object_id
-JOIN sys.schemas s ON s.schema_id=o.schema_id
-JOIN sys.columns pc ON pc.object_id=fkc.parent_object_id AND pc.column_id=fkc.parent_column_id
-JOIN sys.objects rt ON rt.object_id=fkc.referenced_object_id
-JOIN sys.columns rc ON rc.object_id=fkc.referenced_object_id AND rc.column_id=fkc.referenced_column_id
-WHERE s.name=@schemaName AND o.name=@objectName
+  SELECT pc.name AS [ColumnName]
+       , rt.name AS [RefTable]
+       , rc.name AS [RefColumn]
+    FROM sys.foreign_key_columns fkc
+    JOIN sys.objects o ON o.object_id=fkc.parent_object_id
+    JOIN sys.schemas s ON s.schema_id=o.schema_id
+    JOIN sys.columns pc ON pc.object_id=fkc.parent_object_id AND pc.column_id=fkc.parent_column_id
+    JOIN sys.objects rt ON rt.object_id=fkc.referenced_object_id
+    JOIN sys.columns rc ON rc.object_id=fkc.referenced_object_id 
+                       AND rc.column_id=fkc.referenced_column_id
+   WHERE s.name=@schemaName AND o.name=@objectName
 ORDER BY fkc.constraint_column_id;
 """;
 
         public string BuildTriggersQuery()
             => """
-SELECT tr.name AS TriggerName
-FROM sys.triggers tr
-JOIN sys.objects o ON o.object_id=tr.parent_id
-JOIN sys.schemas s ON s.schema_id=o.schema_id
-WHERE s.name=@schemaName AND o.name=@objectName
+  SELECT tr.name AS [TriggerName]
+    FROM sys.triggers tr
+    JOIN sys.objects o ON o.object_id=tr.parent_id
+    JOIN sys.schemas s ON s.schema_id=o.schema_id
+   WHERE s.name=@schemaName AND o.name=@objectName
 ORDER BY tr.name;
 """;
     }
@@ -237,7 +297,7 @@ SELECT column_name AS ColumnName, data_type AS DataType, ordinal_position AS Ord
        numeric_precision AS NumPrecision,
        numeric_scale AS NumScale,
        udt_name AS ColumnType,
-       '' AS Generated
+       '' AS ColumnGenerated
 FROM information_schema.columns
 WHERE table_schema = @schemaName AND table_name = @objectName
 ORDER BY ordinal_position;
@@ -314,7 +374,7 @@ SELECT COLUMN_NAME AS ColumnName, DATA_TYPE AS DataType, COLUMN_ID AS Ordinal,
        DATA_PRECISION AS NumPrecision,
        DATA_SCALE AS NumScale,
        DATA_TYPE AS ColumnType,
-       '' AS Generated
+       '' AS ColumnGenerated
 FROM ALL_TAB_COLUMNS
 WHERE OWNER = @schemaName AND TABLE_NAME = @objectName
 ORDER BY COLUMN_ID;
@@ -379,7 +439,7 @@ SELECT name AS ColumnName, type AS DataType, cid AS Ordinal,
        NULL AS NumPrecision,
        NULL AS NumScale,
        type AS ColumnType,
-       '' AS Generated
+       '' AS ColumnGenerated
 FROM pragma_table_info(@objectName)
 ORDER BY cid;
 """;
@@ -422,7 +482,7 @@ SELECT RTRIM(COLNAME) AS ColumnName, RTRIM(TYPENAME) AS DataType, COLNO AS Ordin
        SCALE AS NumPrecision,
        SCALE AS NumScale,
        RTRIM(TYPENAME) AS ColumnType,
-       '' AS Generated
+       '' AS ColumnGenerated
 FROM SYSCAT.COLUMNS
 WHERE TABSCHEMA = @schemaName AND TABNAME = @objectName
 ORDER BY COLNO;
