@@ -312,7 +312,7 @@ public sealed class Db2UpdateStrategyTests(
         };
 
         var ex = Assert.ThrowsAny<Db2MockException>(() => command.ExecuteNonQuery());
-        Assert.Contains("Duplicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(DbSqlLikeMem.Resources.SqlExceptionMessages.DuplicateKey(string.Empty, string.Empty).Split('\'')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     // ---------------- helpers ----------------
