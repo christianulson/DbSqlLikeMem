@@ -10,7 +10,7 @@ public sealed class SqlServerTriggerStrategyTests
         table.Columns["id"] = new(0, DbType.Int32, false);
         table.Columns["name"] = new(1, DbType.String, false);
 
-        var triggerTable = Assert.IsType<TableMock>(table);
+        var triggerTable = Assert.IsType<TableMock>(table, exactMatch: false);
         var events = new List<TableTriggerEvent>();
         triggerTable.AddTrigger(TableTriggerEvent.BeforeInsert, _ => events.Add(TableTriggerEvent.BeforeInsert));
         triggerTable.AddTrigger(TableTriggerEvent.AfterInsert, _ => events.Add(TableTriggerEvent.AfterInsert));
@@ -52,7 +52,7 @@ public sealed class SqlServerTriggerStrategyTests
         temp.Columns["name"] = new(1, DbType.String, false);
 
         var calls = 0;
-        var triggerTable = Assert.IsType<TableMock>(temp);
+        var triggerTable = Assert.IsType<TableMock>(temp, exactMatch: false);
         triggerTable.AddTrigger(TableTriggerEvent.AfterInsert, _ => calls++);
 
         using var insert = new SqlServerCommandMock(connection)

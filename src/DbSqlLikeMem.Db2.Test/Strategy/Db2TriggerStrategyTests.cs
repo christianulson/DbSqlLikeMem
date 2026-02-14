@@ -10,7 +10,7 @@ public sealed class Db2TriggerStrategyTests
         table.Columns["id"] = new(0, DbType.Int32, false);
 
         var calls = 0;
-        var triggerTable = Assert.IsType<TableMock>(table);
+        var triggerTable = Assert.IsType<TableMock>(table, exactMatch: false);
         triggerTable.AddTrigger(TableTriggerEvent.AfterInsert, _ => calls++);
 
         using var connection = new Db2ConnectionMock(db);
@@ -30,7 +30,7 @@ public sealed class Db2TriggerStrategyTests
         table.Columns["id"] = new(0, DbType.Int32, false);
 
         var calls = 0;
-        var triggerTable = Assert.IsType<TableMock>(table);
+        var triggerTable = Assert.IsType<TableMock>(table, exactMatch: false);
         triggerTable.AddTrigger(TableTriggerEvent.AfterInsert, _ => calls++);
 
         using var cmd = new Db2CommandMock(connection) { CommandText = "INSERT INTO temp_users (id) VALUES (1)" };

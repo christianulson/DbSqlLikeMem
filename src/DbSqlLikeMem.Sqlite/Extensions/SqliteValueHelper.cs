@@ -140,10 +140,10 @@ internal static class SqliteValueHelper
             return value;
 
         if (cdef.Size is int size && value is string s && s.Length > size)
-            throw new SqliteMockException(SqlExceptionMessages.DataTooLongForColumn(CurrentColumn), 1406);
+            throw new SqliteMockException(SqlExceptionMessages.DataTooLongForColumn(CurrentColumn!), 1406);
 
         if (cdef.DecimalPlaces is int scale && value is decimal d && GetDecimalScale(d) > scale)
-            throw new SqliteMockException(SqlExceptionMessages.DataTruncatedForColumn(CurrentColumn), 1265);
+            throw new SqliteMockException(SqlExceptionMessages.DataTruncatedForColumn(CurrentColumn!), 1265);
 
         return value;
     }

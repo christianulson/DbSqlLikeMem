@@ -1,9 +1,8 @@
-using System.Globalization;
 using System.Resources;
 
 namespace DbSqlLikeMem.Resources;
 
-public static class SqlExceptionMessages
+internal static class SqlExceptionMessages
 {
     private static readonly ResourceManager ResourceManager =
         new("DbSqlLikeMem.Resources.SqlExceptionMessages", typeof(SqlExceptionMessages).Assembly);
