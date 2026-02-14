@@ -1,6 +1,4 @@
-using DbSqlLikeMem.Resources;
-
-﻿namespace DbSqlLikeMem.Db2;
+namespace DbSqlLikeMem.Db2;
 
 internal static class Db2ExceptionFactory
 {

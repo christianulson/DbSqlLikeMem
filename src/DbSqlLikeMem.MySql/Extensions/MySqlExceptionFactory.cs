@@ -1,5 +1,3 @@
-using DbSqlLikeMem.Resources;
-
 namespace DbSqlLikeMem.MySql;
 
 internal static class MySqlExceptionFactory

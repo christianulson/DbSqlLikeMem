@@ -84,6 +84,7 @@
 		<Using Include="Dapper" />
 		<Using Include="DbSqlLikeMem" />
 		<Using Include="DbSqlLikeMem.Npgsql" />
+		<Using Include="DbSqlLikeMem.Resources" />
 		<Using Include="DbSqlLikeMem.Test" />
 		<Using Include="FluentAssertions" />
 		<Using Include="Npgsql" />

@@ -1,5 +1,3 @@
-using DbSqlLikeMem.Resources;
-
 namespace DbSqlLikeMem.SqlServer;
 
 internal static class SqlServerExceptionFactory

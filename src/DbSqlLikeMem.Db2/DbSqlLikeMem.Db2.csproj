@@ -20,7 +20,11 @@
 		<InternalsVisibleTo Include="DbSqlLikeMem.Db2.Test" />
 	</ItemGroup>
 	<ItemGroup>
+		<Using Include="DbSqlLikeMem.Resources" />
+		<Using Include="IBM.Data.Db2;" />
 		<Using Include="System.Data" />
+		<Using Include="System.Data.Common" />
+		<Using Include="System.Diagnostics.CodeAnalysis" />
 		<Using Include="System.Globalization" />
 		<Using Include="System.Text.RegularExpressions" />
 	</ItemGroup>

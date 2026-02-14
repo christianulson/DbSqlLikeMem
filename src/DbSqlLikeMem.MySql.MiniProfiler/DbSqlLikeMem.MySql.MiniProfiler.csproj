@@ -1,0 +1,57 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>MySQL provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
+	</PropertyGroup>
+	<ItemGroup>
+	  <Compile Include="..\DbSqlLikeMem.MySql\Attributes\MemberDataByMySqlVersionAttribute.cs" Link="Attributes\MemberDataByMySqlVersionAttribute.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\Attributes\MemberDataMySqlVersionAttribute.cs" Link="Attributes\MemberDataMySqlVersionAttribute.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\Extensions\MySqlExceptionFactory.cs" Link="Extensions\MySqlExceptionFactory.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\Extensions\MySqlLinqExtensions.cs" Link="Extensions\MySqlLinqExtensions.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\Extensions\MySqlValueHelper.cs" Link="Extensions\MySqlValueHelper.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\Models\MySqlDbMock.cs" Link="Models\MySqlDbMock.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\Models\MySqlSchemaMock.cs" Link="Models\MySqlSchemaMock.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\Models\MySqlTableMock.cs" Link="Models\MySqlTableMock.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlCommandMock.cs" Link="MySqlCommandMock.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlConnectionMock.cs" Link="MySqlConnectionMock.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlDataParameterCollectionMock.cs" Link="MySqlDataParameterCollectionMock.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlDataReaderMock.cs" Link="MySqlDataReaderMock.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlDbVersions.cs" Link="MySqlDbVersions.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlDialect.cs" Link="MySqlDialect.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlLinqProvider.cs" Link="MySqlLinqProvider.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlMockException.cs" Link="MySqlMockException.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlQueryable.cs" Link="MySqlQueryable.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlTransactionMock.cs" Link="MySqlTransactionMock.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlTranslator.cs" Link="MySqlTranslator.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\Query\MySqlAstQueryExecutor.cs" Link="Query\MySqlAstQueryExecutor.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="MiniProfiler.Providers.MySql" Version="4.5.4" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem\DbSqlLikeMem.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.MiniProfiler.Test" />
+	</ItemGroup>
+	<ItemGroup>
+		<Using Include="DbSqlLikeMem.Resources" />
+		<Using Include="MySqlConnector" />
+		<Using Include="System.Collections" />
+		<Using Include="System.Data" />
+		<Using Include="System.Data.Common" />
+		<Using Include="System.Diagnostics.CodeAnalysis" />
+		<Using Include="System.Globalization" />
+		<Using Include="System.Linq.Expressions" />
+		<Using Include="System.Reflection" />
+		<Using Include="System.Text.Json" />
+		<Using Include="System.Text.RegularExpressions" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Attributes\" />
+	  <Folder Include="Extensions\" />
+	  <Folder Include="Models\" />
+	  <Folder Include="Query\" />
+	</ItemGroup>
+</Project>

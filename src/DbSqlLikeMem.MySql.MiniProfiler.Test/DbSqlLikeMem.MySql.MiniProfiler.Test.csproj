@@ -1,0 +1,149 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+		<TargetFrameworks>net48;net6.0;net8.0;net10.0</TargetFrameworks>
+	</PropertyGroup>
+
+
+	<!--<ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+		<PackageReference Include="Dapper" Version="2.1.35" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+		<PackageReference Include="Dapper" Version="2.1.35" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
+		<PackageReference Include="Dapper" Version="2.1.66" />
+	</ItemGroup>-->
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+		<PackageReference Include="xunit.abstractions" Version="2.0.3" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="2.1.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="3.0.2">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+		<PackageReference Include="xunit.v3" Version="3.2.2" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+
+	<ItemGroup>
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\CsvLoaderAndIndexTests.cs" Link="CsvLoaderAndIndexTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\DapperTests.cs" Link="DapperTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\DapperUserTests.cs" Link="DapperUserTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\DapperUserTests2.cs" Link="DapperUserTests2.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\ExistsTests.cs" Link="ExistsTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\ExtendedMySqlMockTests.cs" Link="ExtendedMySqlMockTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\FluentTest.cs" Link="FluentTest.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\MySqlAdditionalBehaviorCoverageTests.cs" Link="MySqlAdditionalBehaviorCoverageTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\MySqlAdvancedSqlGapTests.cs" Link="MySqlAdvancedSqlGapTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\MySqlAggregationTests.cs" Link="MySqlAggregationTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\MySqlDataParameterCollectionMockTest.cs" Link="MySqlDataParameterCollectionMockTest.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\MySqlJoinTests.cs" Link="MySqlJoinTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\MySqlLinqProviderTest.cs" Link="MySqlLinqProviderTest.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\MySqlMockTests.cs" Link="MySqlMockTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\MySqlSelectAndWhereMoreCoverageTests.cs" Link="MySqlSelectAndWhereMoreCoverageTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\MySqlSqlCompatibilityGapTests.cs" Link="MySqlSqlCompatibilityGapTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\MySqlTransactionReliabilityTests.cs" Link="MySqlTransactionReliabilityTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\MySqlTransactionTests.cs" Link="MySqlTransactionTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\MySqlUnionLimitAndJsonCompatibilityTests.cs" Link="MySqlUnionLimitAndJsonCompatibilityTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\MySqlWhereParserAndExecutorTests.cs" Link="MySqlWhereParserAndExecutorTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\Parser\MySqlDialectFeatureParserTests.cs" Link="Parser\MySqlDialectFeatureParserTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\Parser\SqlExpressionParserTests.cs" Link="Parser\SqlExpressionParserTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\Parser\SqlExprPrinterTest.cs" Link="Parser\SqlExprPrinterTest.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\Parser\SqlQueryParserCorpusTests.cs" Link="Parser\SqlQueryParserCorpusTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\Performance\MySqlPerformanceTests.cs" Link="Performance\MySqlPerformanceTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\Query\QueryExecutorExtrasTests.cs" Link="Query\QueryExecutorExtrasTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\SelectIntoInsertSelectUpdateDeleteFromSelectTests.cs" Link="SelectIntoInsertSelectUpdateDeleteFromSelectTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\SqlValueHelperTests .cs" Link="SqlValueHelperTests .cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\StoredProcedureExecutionTests.cs" Link="StoredProcedureExecutionTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\StoredProcedureSignatureTests.cs" Link="StoredProcedureSignatureTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\Strategy\MySqlDeleteStrategyTests.cs" Link="Strategy\MySqlDeleteStrategyTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\Strategy\MySqlInsertOnDuplicateTests.cs" Link="Strategy\MySqlInsertOnDuplicateTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\Strategy\MySqlInsertStrategyCoverageTests.cs" Link="Strategy\MySqlInsertStrategyCoverageTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\Strategy\MySqlInsertStrategyExtrasTests.cs" Link="Strategy\MySqlInsertStrategyExtrasTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\Strategy\MySqlInsertStrategyTests.cs" Link="Strategy\MySqlInsertStrategyTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\Strategy\MySqlTransactionTests.cs" Link="Strategy\MySqlTransactionTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\Strategy\MySqlTriggerStrategyTests.cs" Link="Strategy\MySqlTriggerStrategyTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\Strategy\MySqlUpdateStrategyCoverageTests.cs" Link="Strategy\MySqlUpdateStrategyCoverageTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\Strategy\MySqlUpdateStrategyTests.cs" Link="Strategy\MySqlUpdateStrategyTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\SubqueryFromAndJoinsTests.cs" Link="SubqueryFromAndJoinsTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\TemporaryTable\MySqlTemporaryTableEngineTests.cs" Link="TemporaryTable\MySqlTemporaryTableEngineTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\TemporaryTable\MySqlTemporaryTableParserTests.cs" Link="TemporaryTable\MySqlTemporaryTableParserTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\Views\MySqlCreateViewEngineTests.cs" Link="Views\MySqlCreateViewEngineTests.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.Test\Views\MySqlCreateViewParserTests.cs" Link="Views\MySqlCreateViewParserTests.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="coverlet.collector" Version="6.0.4" />
+		<PackageReference Include="FluentAssertions" Version="8.8.0" />
+		<PackageReference Include="FluentAssertions.Analyzers" Version="0.34.1">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+	
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.MySql.MiniProfiler\DbSqlLikeMem.MySql.MiniProfiler.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net48' Or '$(TargetFramework)' == 'netstandard2.1' Or '$(TargetFramework)' == 'net6.0'">
+		<Using Include="Xunit.Abstractions" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="Dapper" />
+		<Using Include="DbSqlLikeMem" />
+		<Using Include="DbSqlLikeMem.MySql" />
+		<Using Include="DbSqlLikeMem.Resources" />
+		<Using Include="DbSqlLikeMem.Test" />
+		<Using Include="MySqlConnector" />
+		<Using Include="FluentAssertions" />
+		<Using Include="System.Data" />
+		<Using Include="System.Globalization" />
+		<Using Include="Xunit" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Views\" />
+	  <Folder Include="TemporaryTable\" />
+	  <Folder Include="Strategy\" />
+	  <Folder Include="Query\" />
+	  <Folder Include="Performance\" />
+	  <Folder Include="Parser\" />
+	</ItemGroup>
+
+</Project>

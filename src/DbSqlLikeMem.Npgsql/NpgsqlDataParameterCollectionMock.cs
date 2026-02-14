@@ -2,7 +2,6 @@ using System.Collections;
 using System.Data.Common;
 using Npgsql;
 using NpgsqlTypes;
-using DbSqlLikeMem.Resources;
 
 namespace DbSqlLikeMem.Npgsql;
 

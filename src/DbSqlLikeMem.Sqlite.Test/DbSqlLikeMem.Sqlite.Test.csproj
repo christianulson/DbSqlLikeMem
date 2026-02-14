@@ -79,6 +79,7 @@
 		<Using Include="Dapper" />
 		<Using Include="DbSqlLikeMem" />
 		<Using Include="DbSqlLikeMem.Sqlite" />
+		<Using Include="DbSqlLikeMem.Resources" />
 		<Using Include="DbSqlLikeMem.Test" />
 		<Using Include="FluentAssertions" />
 		<Using Include="Microsoft.Data.Sqlite" />

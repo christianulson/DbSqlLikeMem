@@ -1,5 +1,3 @@
-using DbSqlLikeMem.Resources;
-
 namespace DbSqlLikeMem.MySql;
 /// <summary>
 /// EN: Mock parameter collection for MySQL commands.

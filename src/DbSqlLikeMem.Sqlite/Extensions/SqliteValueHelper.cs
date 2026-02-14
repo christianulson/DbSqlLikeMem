@@ -1,5 +1,4 @@
-using DbSqlLikeMem.Resources;
-﻿using Microsoft.Data.Sqlite;
+using Microsoft.Data.Sqlite;
 using System.Text.Json;
 
 namespace DbSqlLikeMem.Sqlite;

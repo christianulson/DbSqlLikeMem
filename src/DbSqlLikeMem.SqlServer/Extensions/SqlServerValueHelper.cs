@@ -1,6 +1,5 @@
 using Microsoft.Data.SqlClient;
 using System.Text.Json;
-using DbSqlLikeMem.Resources;
 
 namespace DbSqlLikeMem.SqlServer;
 

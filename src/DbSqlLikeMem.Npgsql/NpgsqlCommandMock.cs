@@ -1,7 +1,6 @@
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using Npgsql;
-using DbSqlLikeMem.Resources;
 
 namespace DbSqlLikeMem.Npgsql;
 

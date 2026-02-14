@@ -1,4 +1,3 @@
-using System;
 using System.Windows;
 
 namespace DbSqlLikeMem.VisualStudioExtension.XamlHarness;

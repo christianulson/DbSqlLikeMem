@@ -5,6 +5,8 @@
     <Project Path="DbSqlLikeMem.Db2ConsoleGenerator/DbSqlLikeMem.Db2ConsoleGenerator.csproj" />
   </Folder>
   <Folder Name="/MySql/">
+    <Project Path="DbSqlLikeMem.MySql.MiniProfiler.Test/DbSqlLikeMem.MySql.MiniProfiler.Test.csproj" />
+    <Project Path="DbSqlLikeMem.MySql.MiniProfiler/DbSqlLikeMem.MySql.MiniProfiler.csproj" />
     <Project Path="DbSqlLikeMem.MySql.Test/DbSqlLikeMem.MySql.Test.csproj" />
     <Project Path="DbSqlLikeMem.MySql/DbSqlLikeMem.MySql.csproj" />
     <Project Path="DbSqlLikeMem.MySqlConsoleGenerator/DbSqlLikeMem.MySqlConsoleGenerator.csproj" />

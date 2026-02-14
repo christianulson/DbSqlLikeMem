@@ -1,8 +1,3 @@
-using DbSqlLikeMem.Resources;
-﻿using IBM.Data.Db2;
-using System.Data.Common;
-using System.Diagnostics.CodeAnalysis;
-
 namespace DbSqlLikeMem.Db2;
 
 /// <summary>
