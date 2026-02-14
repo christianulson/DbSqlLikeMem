@@ -312,7 +312,7 @@ public sealed class PostgreSqlUpdateStrategyTests(
         };
 
         var ex = Assert.ThrowsAny<NpgsqlMockException>(() => command.ExecuteNonQuery());
-        Assert.Contains("Duplicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(DbSqlLikeMem.Resources.SqlExceptionMessages.DuplicateKey(string.Empty, string.Empty).Split('\'')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     // ---------------- helpers ----------------
