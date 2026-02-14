@@ -61,6 +61,9 @@
 - Operadores JSON `->` e `->>`: não suportados.
 
 
+- Triggers em tabelas não temporárias: suportadas via `TableMock` (before/after insert, update e delete).
+- Tabelas temporárias (connection/global): triggers não são executadas.
+
 ## Extensões (VS Code e Visual Studio)
 
 As extensões agora suportam, além da geração tradicional para testes, fluxos separados para artefatos de aplicação:

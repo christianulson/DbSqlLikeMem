@@ -29,6 +29,19 @@ public sealed class DbSqlLikeMemExtensionPackage : AsyncPackage
     /// Initializes commands and services required by the extension package.
     /// Inicializa os comandos e serviços necessários pelo pacote da extensão.
     /// </summary>
-    protected override Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
-        => OpenToolWindowCommand.InitializeAsync(this);
+    protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
+    {
+        await base.InitializeAsync(cancellationToken, progress);
+
+        try
+        {
+            await OpenToolWindowCommand.InitializeAsync(this);
+        }
+        catch (Exception ex)
+        {
+            await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+            ActivityLog.LogError(nameof(DbSqlLikeMemExtensionPackage), $"Falha ao inicializar a extensão DbSqlLikeMem: {ex}");
+            throw;
+        }
+    }
 }

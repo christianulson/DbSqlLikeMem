@@ -1,4 +1,5 @@
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
+using System.Data.Common;
 using System.Globalization;
 
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
@@ -28,7 +29,7 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
         var rows = await queryExecutor.QueryAsync(
             connection,
             sql,
-            new Dictionary<string, object?> { ["databaseName"] = connection.DatabaseName },
+            new Dictionary<string, object?> { ["databaseName"] = ResolveDatabaseNameForMetadata(connection) },
             cancellationToken);
 
         return [.. rows.Select(MapObject).Where(x => x is not null).Cast<DatabaseObjectReference>()];
@@ -61,16 +62,63 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
         var pks = await queryExecutor.QueryAsync(connection, SqlMetadataQueryFactory.BuildPrimaryKeyQuery(connection.DatabaseType), args, cancellationToken);
         var indexes = await queryExecutor.QueryAsync(connection, SqlMetadataQueryFactory.BuildIndexesQuery(connection.DatabaseType), args, cancellationToken);
         var fks = await queryExecutor.QueryAsync(connection, SqlMetadataQueryFactory.BuildForeignKeysQuery(connection.DatabaseType), args, cancellationToken);
+        var triggers = await queryExecutor.QueryAsync(connection, SqlMetadataQueryFactory.BuildTriggersQuery(connection.DatabaseType), args, cancellationToken);
 
         var properties = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["Columns"] = SerializeColumns(columns),
             ["PrimaryKey"] = SerializePrimaryKey(pks),
             ["Indexes"] = SerializeIndexes(indexes),
-            ["ForeignKeys"] = SerializeForeignKeys(fks)
+            ["ForeignKeys"] = SerializeForeignKeys(fks),
+            ["Triggers"] = SerializeTriggers(triggers)
         };
 
         return reference with { Properties = properties };
+    }
+
+
+    private static string ResolveDatabaseNameForMetadata(ConnectionDefinition connection)
+    {
+        if (!string.Equals(connection.DatabaseType, "MySql", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(connection.DatabaseType, "SqlServer", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(connection.DatabaseType, "PostgreSql", StringComparison.OrdinalIgnoreCase))
+        {
+            return connection.DatabaseName;
+        }
+
+        try
+        {
+            var builder = new DbConnectionStringBuilder { ConnectionString = connection.ConnectionString };
+            if (TryReadDatabaseName(builder, out var parsedName))
+            {
+                return parsedName;
+            }
+        }
+        catch
+        {
+            // Fallback to persisted value.
+        }
+
+        return connection.DatabaseName;
+    }
+
+    private static bool TryReadDatabaseName(DbConnectionStringBuilder builder, out string databaseName)
+    {
+        databaseName = string.Empty;
+        foreach (var key in new[] { "Database", "Initial Catalog" })
+        {
+            if (builder.TryGetValue(key, out var value))
+            {
+                var candidate = Convert.ToString(value, CultureInfo.InvariantCulture)?.Trim();
+                if (!string.IsNullOrWhiteSpace(candidate))
+                {
+                    databaseName = candidate!;
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static string SerializeColumns(IReadOnlyCollection<IReadOnlyDictionary<string, object?>> rows)
@@ -88,7 +136,7 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
                 NumPrecision = ReadNullableInt(r, "NumPrecision"),
                 NumScale = ReadNullableInt(r, "NumScale"),
                 ColumnType = ReadString(r, "ColumnType"),
-                Generated = ReadString(r, "Generated")
+                Generated = ReadString(r, "ColumnGenerated")
             })
             .Where(c => !string.IsNullOrWhiteSpace(c.Name))
             .OrderBy(c => c.Ordinal)
@@ -139,6 +187,12 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
         => indexName.Equals("PRIMARY", StringComparison.OrdinalIgnoreCase)
            || indexName.Equals("PK", StringComparison.OrdinalIgnoreCase)
            || indexName.StartsWith("PK_", StringComparison.OrdinalIgnoreCase);
+
+    private static string SerializeTriggers(IReadOnlyCollection<IReadOnlyDictionary<string, object?>> rows)
+        => string.Join(";", rows
+            .Select(r => ReadString(r, "TriggerName"))
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Select(Escape));
 
     private static string SerializeForeignKeys(IReadOnlyCollection<IReadOnlyDictionary<string, object?>> rows)
     {

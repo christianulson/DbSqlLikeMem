@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+	<TargetFrameworks></TargetFrameworks>
+    <TargetFramework Condition="'$(TargetFramework)' == ''">net472</TargetFramework>
+    <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>DbSqlLikeMem.VisualStudioExtension.XamlHarness</AssemblyName>
+    <RootNamespace>DbSqlLikeMem.VisualStudioExtension.XamlHarness</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DbSqlLikeMem.VisualStudioExtension\DbSqlLikeMem.VisualStudioExtension.csproj" />
+    <ProjectReference Include="..\DbSqlLikeMem.VisualStudioExtension.Core\DbSqlLikeMem.VisualStudioExtension.Core.csproj" />
+  </ItemGroup>
+</Project>

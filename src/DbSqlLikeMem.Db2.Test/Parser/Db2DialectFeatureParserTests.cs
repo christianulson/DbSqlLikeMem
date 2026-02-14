@@ -138,6 +138,7 @@ public sealed class Db2DialectFeatureParserTests
         Assert.False(d.IsIntegerCastTypeName("NUMBER"));
 
         Assert.False(d.RegexInvalidPatternEvaluatesToFalse);
+        Assert.True(d.SupportsTriggers);
     }
 
 }

@@ -31,6 +31,9 @@ public sealed class SqlDatabaseMetadataProviderTests
         executor.WhenContains("FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE", [
             Row(("ColumnName", "CustomerId"), ("RefTable", "Customers"), ("RefColumn", "Id"))
         ]);
+        executor.WhenContains("FROM INFORMATION_SCHEMA.TRIGGERS", [
+            Row(("TriggerName", "trg_orders_audit"))
+        ]);
 
         var provider = new SqlDatabaseMetadataProvider(executor);
         var conn = new ConnectionDefinition("1", "MySql", "ERP", "conn");
@@ -44,6 +47,31 @@ public sealed class SqlDatabaseMetadataProviderTests
         Assert.DoesNotContain("PRIMARY", result.Properties["Indexes"], StringComparison.OrdinalIgnoreCase);
         Assert.Contains("IX_Orders_CustomerId|0|CustomerId", result.Properties["Indexes"]);
         Assert.Equal("CustomerId|Customers|Id", result.Properties["ForeignKeys"]);
+        Assert.Equal("trg_orders_audit", result.Properties["Triggers"]);
+    }
+
+
+    /// <summary>
+    /// Verifies MySQL list query uses database name parsed from connection string.
+    /// Verifica se a consulta de listagem MySQL usa o nome do banco extraído da connection string.
+    /// </summary>
+    [Fact]
+    public async Task ListObjectsAsync_ForMySql_UsesDatabaseNameFromConnectionString()
+    {
+        var executor = new FakeSqlQueryExecutor();
+        executor.WhenContains("FROM INFORMATION_SCHEMA.TABLES", []);
+
+        var provider = new SqlDatabaseMetadataProvider(executor);
+        var conn = new ConnectionDefinition(
+            "1",
+            "MySql",
+            "ApelidoDaConexao",
+            "Server=localhost;Port=3306;Database=addresses;Uid=root;Pwd=secret;");
+
+        _ = await provider.ListObjectsAsync(conn, TestContext.Current.CancellationToken);
+
+        Assert.True(executor.TryGetLastParametersFor("FROM INFORMATION_SCHEMA.TABLES", out var parameters));
+        Assert.Equal("addresses", parameters!["databaseName"]?.ToString());
     }
 
     /// <summary>
@@ -64,6 +92,7 @@ public sealed class SqlDatabaseMetadataProviderTests
         Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildPrimaryKeyQuery(databaseType)));
         Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildIndexesQuery(databaseType)));
         Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildForeignKeysQuery(databaseType)));
+        Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildTriggersQuery(databaseType)));
     }
 
     private static IReadOnlyDictionary<string, object?> Row(params (string Key, object? Value)[] items)
@@ -72,6 +101,7 @@ public sealed class SqlDatabaseMetadataProviderTests
     private sealed class FakeSqlQueryExecutor : ISqlQueryExecutor
     {
         private readonly List<(string Contains, IReadOnlyCollection<IReadOnlyDictionary<string, object?>> Rows)> _responses = [];
+        private readonly List<(string Sql, IReadOnlyDictionary<string, object?> Parameters)> _calls = [];
 
         /// <summary>
         /// Executes this API operation.
@@ -79,6 +109,21 @@ public sealed class SqlDatabaseMetadataProviderTests
         /// </summary>
         public void WhenContains(string containsSql, IReadOnlyCollection<IReadOnlyDictionary<string, object?>> rows)
             => _responses.Add((containsSql, rows));
+
+        public bool TryGetLastParametersFor(string containsSql, out IReadOnlyDictionary<string, object?>? parameters)
+        {
+            for (var i = _calls.Count - 1; i >= 0; i--)
+            {
+                if (_calls[i].Sql.Contains(containsSql, StringComparison.OrdinalIgnoreCase))
+                {
+                    parameters = _calls[i].Parameters;
+                    return true;
+                }
+            }
+
+            parameters = null;
+            return false;
+        }
 
         /// <summary>
         /// Executes this API operation.
@@ -90,6 +135,7 @@ public sealed class SqlDatabaseMetadataProviderTests
             IReadOnlyDictionary<string, object?> parameters,
             CancellationToken cancellationToken = default)
         {
+            _calls.Add((sql, parameters));
             var hit = _responses.FirstOrDefault(x => sql.Contains(x.Contains, StringComparison.OrdinalIgnoreCase));
             return Task.FromResult(hit.Rows ?? []);
         }

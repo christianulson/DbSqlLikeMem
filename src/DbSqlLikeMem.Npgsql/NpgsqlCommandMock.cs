@@ -1,6 +1,7 @@
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using Npgsql;
+using DbSqlLikeMem.Resources;
 
 namespace DbSqlLikeMem.Npgsql;
 
@@ -114,7 +115,7 @@ public class NpgsqlCommandMock(
             SqlCreateTemporaryTableQuery tempQ => connection.ExecuteCreateTemporaryTableAsSelect(tempQ, Parameters, connection.Db.Dialect),
             SqlCreateViewQuery viewQ => connection.ExecuteCreateView(viewQ, Parameters, connection.Db.Dialect),
             SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect),
-            SqlSelectQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT."),
+            SqlSelectQuery _ => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelect()),
             _ => throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteNonQuery", query.GetType())
         };
     }
@@ -187,7 +188,7 @@ public class NpgsqlCommandMock(
         }
 
         if (tables.Count == 0 && queries.Count > 0)
-            throw new InvalidOperationException("ExecuteReader foi chamado, mas nenhuma query SELECT foi encontrada.");
+            throw new InvalidOperationException(SqlExceptionMessages.ExecuteReaderWithoutSelectQuery());
         connection.Metrics.Selects += tables.Sum(t => t.Count);
 
         return new NpgsqlDataReaderMock(tables);

@@ -8,10 +8,12 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   publish:
     runs-on: windows-latest
+    environment: nuget-publish
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,20 +29,55 @@ jobs:
       - name: Pack
         run: dotnet pack src/DbSqlLikeMem.slnx -c Release -o ./artifacts
 
-      - name: Publish to NuGet.org
+      - name: Validate NuGet API key (NUGET_API_KEY)
         shell: bash
         env:
-          # Prefer GitHub Secret (secure), but allow fallback to repository/environment variable
-          # to avoid empty-key failures when the value was saved under Variables by mistake.
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY || vars.NUGET_API_KEY }}
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
           if [ -z "$NUGET_API_KEY" ]; then
-            echo "::error::NUGET_API_KEY is empty. Set it in Settings > Secrets and variables > Actions (recommended: Secrets)."
-            echo "::error::If you use Environment-level configuration, set 'environment:' in this job and define NUGET_API_KEY in that Environment."
+            echo "::error::NUGET_API_KEY is empty or unavailable in Environment 'nuget-publish'."
+            echo "::error::Confirm the workflow run is using Environment 'nuget-publish' and that its protection rules allow this run."
             exit 1
           fi
 
-          dotnet nuget push "./artifacts/*.nupkg" \
-            --api-key "$NUGET_API_KEY" \
-            --source "https://api.nuget.org/v3/index.json" \
-            --skip-duplicate
+          echo "NUGET_API_KEY is configured."
+
+      - name: Publish to NuGet.org
+        shell: bash
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          shopt -s nullglob
+          packages=(./artifacts/*.nupkg)
+          publish_packages=()
+
+          for package in "${packages[@]}"; do
+            package_name="$(basename "$package")"
+
+            if [[ "$package_name" == DbSqlLikeMem.VisualStudioExtension.*.nupkg ]]; then
+              echo "Skipping Visual Studio extension package: $package_name"
+              continue
+            fi
+
+            publish_packages+=("$package")
+          done
+
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "::error::NUGET_API_KEY is empty at publish step."
+            exit 1
+          fi
+
+          if [ ${#packages[@]} -eq 0 ]; then
+            echo "::error::No packages were found in ./artifacts."
+            exit 1
+          fi
+
+          if [ ${#publish_packages[@]} -eq 0 ]; then
+            echo "::error::No publishable NuGet packages were found after exclusions."
+            exit 1
+          fi
+
+          for package in "${publish_packages[@]}"; do
+            echo "Publishing $(basename "$package") to NuGet.org"
+            dotnet nuget push "$package" --api-key "$NUGET_API_KEY" --source "https://api.nuget.org/v3/index.json" --skip-duplicate
+          done

@@ -1,3 +1,4 @@
+using DbSqlLikeMem.Resources;
 ﻿using Microsoft.Data.Sqlite;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
@@ -110,7 +111,7 @@ public class SqliteCommandMock(
         {
             var q = SqlQueryParser.Parse(sqlRaw, connection!.Db.Dialect);
             if (q is not SqlCreateTemporaryTableQuery ct)
-                throw new InvalidOperationException("Invalid CREATE TEMPORARY TABLE statement.");
+                throw new InvalidOperationException(SqlExceptionMessages.InvalidCreateTemporaryTableStatement());
             return connection.ExecuteCreateTemporaryTableAsSelect(ct, Parameters, connection.Db.Dialect);
         }
 
@@ -119,7 +120,7 @@ public class SqliteCommandMock(
         {
             var q = SqlQueryParser.Parse(sqlRaw, connection!.Db.Dialect);
             if (q is not SqlCreateViewQuery cv)
-                throw new InvalidOperationException("Invalid CREATE VIEW statement.");
+                throw new InvalidOperationException(SqlExceptionMessages.InvalidCreateViewStatement());
             return connection.ExecuteCreateView(cv, Parameters, connection.Db.Dialect);
         }
 
@@ -138,8 +139,8 @@ public class SqliteCommandMock(
             SqlDeleteQuery deleteQ => connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect),
             SqlCreateViewQuery cv => connection.ExecuteCreateView(cv, Parameters, connection.Db.Dialect),
             SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect),
-            SqlSelectQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT."),
-            SqlUnionQuery _ => throw new InvalidOperationException("Use ExecuteReader para comandos SELECT/UNION."),
+            SqlSelectQuery _ => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelect()),
+            SqlUnionQuery _ => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelectUnion()),
             _ => throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteNonQuery", query.GetType())
         };
     }
@@ -218,7 +219,7 @@ public class SqliteCommandMock(
         }
 
         if (tables.Count == 0 && queries.Count > 0)
-            throw new InvalidOperationException("ExecuteReader foi chamado, mas nenhuma query SELECT foi encontrada.");
+            throw new InvalidOperationException(SqlExceptionMessages.ExecuteReaderWithoutSelectQuery());
 
         connection.Metrics.Selects += tables.Sum(t => t.Count);
 

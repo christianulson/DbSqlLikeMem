@@ -52,6 +52,6 @@ public sealed class Db2UpdateStrategyCoverageTests(
         };
 
         var ex = Assert.Throws<Db2MockException>(() => cmd.ExecuteNonQuery());
-        Assert.Contains("Coluna não aceita NULL", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(DbSqlLikeMem.Resources.SqlExceptionMessages.ColumnDoesNotAcceptNull(), ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -20,11 +20,8 @@ internal sealed class OpenToolWindowCommand
     public static async Task InitializeAsync(AsyncPackage package)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(package.DisposalToken);
-        var commandService = await package.GetServiceAsync(typeof(IMenuCommandService)) as OleMenuCommandService;
-        if (commandService is null)
-        {
+        if (await package.GetServiceAsync(typeof(IMenuCommandService)).ConfigureAwait(true) is not OleMenuCommandService commandService)
             return;
-        }
 
         _ = new OpenToolWindowCommand(package, commandService);
     }
@@ -34,9 +31,7 @@ internal sealed class OpenToolWindowCommand
         ThreadHelper.ThrowIfNotOnUIThread();
         var window = package.FindToolWindow(typeof(DbSqlLikeMemToolWindow), 0, true);
         if (window?.Frame is null)
-        {
             throw new InvalidOperationException("Não foi possível criar a janela da extensão DbSqlLikeMem.");
-        }
 
         Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(((Microsoft.VisualStudio.Shell.Interop.IVsWindowFrame)window.Frame).Show());
     }

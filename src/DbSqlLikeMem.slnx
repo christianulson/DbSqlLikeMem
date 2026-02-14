@@ -37,6 +37,9 @@
   <Folder Name="/VisualStudioExtension/">
     <Project Path="DbSqlLikeMem.VisualStudioExtension.Core.Test/DbSqlLikeMem.VisualStudioExtension.Core.Test.csproj" />
     <Project Path="DbSqlLikeMem.VisualStudioExtension.Core/DbSqlLikeMem.VisualStudioExtension.Core.csproj" />
+    <Project Path="DbSqlLikeMem.VisualStudioExtension.XamlHarness/DbSqlLikeMem.VisualStudioExtension.XamlHarness.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
     <Project Path="DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj" />
   </Folder>
   <Project Path="DbSqlLikeMem.Test/DbSqlLikeMem.Test.csproj" />
