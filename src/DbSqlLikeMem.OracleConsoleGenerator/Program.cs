@@ -5,6 +5,7 @@ using System.Text;
 using Dapper;
 using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 using Microsoft.Extensions.Configuration;
+using Oracle.ManagedDataAccess.Client;
 
 namespace TableStructureGenerator;
 
@@ -54,6 +55,9 @@ static partial class Program
             Console.WriteLine("No connection strings found in appsettings.json.");
             return;
         }
+
+        foreach (var c in connections.GroupBy(_ => _.ProviderName))
+            DbProviderFactories.RegisterFactory(c.Key, OracleClientFactory.Instance);
 
         bool runAll = args.Any(a => string.Equals(a, "--all", StringComparison.OrdinalIgnoreCase));
 
