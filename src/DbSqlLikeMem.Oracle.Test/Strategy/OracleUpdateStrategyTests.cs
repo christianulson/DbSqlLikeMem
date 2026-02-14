@@ -313,7 +313,7 @@ public sealed class OracleUpdateStrategyTests(
         };
 
         var ex = Assert.ThrowsAny<OracleMockException>(() => command.ExecuteNonQuery());
-        Assert.Contains("Duplicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(DbSqlLikeMem.Resources.SqlExceptionMessages.DuplicateKey(string.Empty, string.Empty).Split('\'')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     // ---------------- helpers ----------------

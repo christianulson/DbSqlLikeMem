@@ -105,6 +105,7 @@ public sealed class SqliteDialectFeatureParserTests
         Assert.False(d.IsIntegerCastTypeName("NUMBER"));
 
         Assert.False(d.RegexInvalidPatternEvaluatesToFalse);
+        Assert.True(d.SupportsTriggers);
     }
 
 }

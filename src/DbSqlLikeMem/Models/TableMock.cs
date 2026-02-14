@@ -90,6 +90,39 @@ public abstract class TableMock
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, List<int>>> _ix
         = new(StringComparer.OrdinalIgnoreCase);
 
+    private readonly Dictionary<TableTriggerEvent, List<Action<TableTriggerContext>>> _triggers = [];
+
+    /// <summary>
+    /// EN: Registers a trigger callback for the specified table event.
+    /// PT: Registra um callback de trigger para o evento de tabela especificado.
+    /// </summary>
+    /// <param name="evt">EN: Trigger event. PT: Evento da trigger.</param>
+    /// <param name="handler">EN: Callback handler. PT: Manipulador de callback.</param>
+    public void AddTrigger(TableTriggerEvent evt, Action<TableTriggerContext> handler)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(handler, nameof(handler));
+        if (!_triggers.TryGetValue(evt, out var handlers))
+        {
+            handlers = [];
+            _triggers[evt] = handlers;
+        }
+
+        handlers.Add(handler);
+    }
+
+    internal void ExecuteTriggers(
+        TableTriggerEvent evt,
+        IReadOnlyDictionary<int, object?>? oldRow,
+        IReadOnlyDictionary<int, object?>? newRow)
+    {
+        if (!_triggers.TryGetValue(evt, out var handlers) || handlers.Count == 0)
+            return;
+
+        var context = new TableTriggerContext(this, oldRow, newRow);
+        foreach (var handler in handlers)
+            handler(context);
+    }
+
     /// <summary>
     /// EN: Returns the ColumnDef for <paramref name="columnName"/> or throws UnknownColumn.
     /// PT: Retorna o ColumnDef para <paramref name="columnName"/>

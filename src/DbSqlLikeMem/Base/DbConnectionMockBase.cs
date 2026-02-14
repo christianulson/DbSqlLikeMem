@@ -278,6 +278,24 @@ public abstract class DbConnectionMockBase(
             schemaName ?? Database);
     }
 
+    internal bool IsTemporaryTable(
+        ITableMock table,
+        string tableName,
+        string? schemaName = null)
+    {
+        if (TryGetTemporaryTable(tableName, out var connectionTemp, schemaName)
+            && connectionTemp != null
+            && ReferenceEquals(connectionTemp, table))
+            return true;
+
+        if (TryGetGlobalTemporaryTable(tableName, out var globalTemp, schemaName)
+            && globalTemp != null
+            && ReferenceEquals(globalTemp, table))
+            return true;
+
+        return false;
+    }
+
     /// <summary>
     /// EN: Lists the tables in the current schema.
     /// PT: Lista as tabelas do schema atual.

@@ -181,7 +181,7 @@ static partial class Program
                 CharMaxLen: ReadNullableLong(row, "CharMaxLen"),
                 NumPrecision: ReadNullableInt(row, "NumPrecision"),
                 NumScale: ReadNullableInt(row, "NumScale"),
-                Generated: string.IsNullOrWhiteSpace(ReadString(row, "Generated")) ? null : ReadString(row, "Generated")))
+                Generated: string.IsNullOrWhiteSpace(ReadString(row, "ColumnGenerated")) ? null : ReadString(row, "ColumnGenerated")))
             .Where(static c => !string.IsNullOrWhiteSpace(c.ColumnName))
             .OrderBy(static c => c.Ordinal)
             .ToList();

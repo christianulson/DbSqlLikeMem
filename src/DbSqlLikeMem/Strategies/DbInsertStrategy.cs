@@ -54,7 +54,9 @@ internal static class DbInsertStrategy
             if (!query.HasOnDuplicateKeyUpdate)
             {
                 // Inserção normal
+                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, SnapshotRow(newRow));
                 table.Add(newRow);
+                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, SnapshotRow(table[table.Count - 1]));
                 insertedCount++;
                 continue;
             }
@@ -64,12 +66,16 @@ internal static class DbInsertStrategy
             if (conflictIdx is null)
             {
                 // Sem conflito -> Insere
+                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, SnapshotRow(newRow));
                 table.Add(newRow);
+                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, SnapshotRow(table[table.Count - 1]));
                 insertedCount++;
             }
             else
             {
                 // Conflito -> Update
+                var oldSnapshot = SnapshotRow(table[conflictIdx.Value]);
+                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, SnapshotRow(newRow));
                 ApplyOnDuplicateUpdateAst(
                     table,
                     conflictIdx.Value,
@@ -77,6 +83,7 @@ internal static class DbInsertStrategy
                     query.OnDupAssigns,
                     pars,
                     dialect);
+                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, SnapshotRow(table[conflictIdx.Value]));
 
                 // Rebuild índices afetados (simplificado: rebuild all)
                 table.RebuildAllIndexes();
@@ -406,4 +413,27 @@ internal static class DbInsertStrategy
     // --- Helpers Genéricos (Mantidos ou Levemente Adaptados) ---
 
     // Defaults and uniqueness are handled by TableMock.
+
+    private static IReadOnlyDictionary<int, object?> SnapshotRow(IReadOnlyDictionary<int, object?> row)
+        => row.ToDictionary(_ => _.Key, _ => _.Value);
+
+    private static void TryExecuteTableTrigger(
+        DbConnectionMockBase connection,
+        ISqlDialect dialect,
+        ITableMock table,
+        string tableName,
+        string? schemaName,
+        TableTriggerEvent evt,
+        IReadOnlyDictionary<int, object?>? oldRow,
+        IReadOnlyDictionary<int, object?>? newRow)
+    {
+        if (!dialect.SupportsTriggers)
+            return;
+
+        if (connection.IsTemporaryTable(table, tableName, schemaName))
+            return;
+
+        if (table is TableMock tableMock)
+            tableMock.ExecuteTriggers(evt, oldRow, newRow);
+    }
 }

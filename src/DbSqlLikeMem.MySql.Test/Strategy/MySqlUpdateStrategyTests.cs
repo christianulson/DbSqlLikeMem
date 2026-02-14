@@ -312,7 +312,7 @@ public sealed class MySqlUpdateStrategyTests(
         };
 
         var ex = Assert.ThrowsAny<MySqlMockException>(() => command.ExecuteNonQuery());
-        Assert.Contains("Duplicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(DbSqlLikeMem.Resources.SqlExceptionMessages.DuplicateKey(string.Empty, string.Empty).Split('\'')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -353,7 +353,7 @@ public sealed class MySqlUpdateStrategyTests(
 
         var duplicate = Assert.ThrowsAny<MySqlMockException>(() =>
             table.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, 15 } }));
-        Assert.Contains("Duplicate", duplicate.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(DbSqlLikeMem.Resources.SqlExceptionMessages.DuplicateKey(string.Empty, string.Empty).Split('\'')[0].Trim(), duplicate.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     // ---------------- helpers ----------------

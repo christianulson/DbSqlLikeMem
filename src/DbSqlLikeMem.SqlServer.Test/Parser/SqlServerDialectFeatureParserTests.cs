@@ -95,6 +95,7 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.False(d.IsIntegerCastTypeName("NUMBER"));
 
         Assert.False(d.RegexInvalidPatternEvaluatesToFalse);
+        Assert.True(d.SupportsTriggers);
     }
 
 

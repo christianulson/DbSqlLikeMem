@@ -5,7 +5,7 @@
 ### Via GitHub Actions (recomendado)
 
 1. Crie uma API key em https://www.nuget.org/ (Account settings → API Keys).
-2. No repositório do GitHub, adicione o secret `NUGET_API_KEY`.
+2. No repositório do GitHub, adicione o secret **`NUGET_API_KEY`** no Environment **`nuget-publish`**.
 3. Atualize a versão em `src/Directory.Build.props` (`Version`).
 4. Crie e envie uma tag de release:
 
@@ -19,11 +19,21 @@ Workflow responsável:
 
 Esse pipeline empacota e publica os projetos do solution no nuget.org.
 
+O pacote `DbSqlLikeMem.VisualStudioExtension.*.nupkg` é ignorado nesse workflow, pois a extensão Visual Studio é publicada separadamente pelo fluxo de VSIX.
+
+> Observação: o workflow usa especificamente `secrets.NUGET_API_KEY` do Environment `nuget-publish` para `dotnet nuget push`.
+
 ### Publicação manual (local)
 
 ```bash
 dotnet pack src/DbSqlLikeMem.slnx -c Release -o ./artifacts
-dotnet nuget push "./artifacts/*.nupkg" --api-key "<SUA_API_KEY>" --source "https://api.nuget.org/v3/index.json"
+# publica somente pacotes NuGet da biblioteca (exclui o pacote da extensão VS)
+for p in ./artifacts/*.nupkg; do
+  case "$(basename "$p")" in
+    DbSqlLikeMem.VisualStudioExtension.*.nupkg) continue ;;
+  esac
+  dotnet nuget push "$p" --api-key "<SUA_API_KEY>" --source "https://api.nuget.org/v3/index.json" --skip-duplicate
+done
 ```
 
 ---

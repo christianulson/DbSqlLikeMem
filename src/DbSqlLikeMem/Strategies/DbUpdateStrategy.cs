@@ -24,9 +24,11 @@ internal static class DbUpdateStrategy
         DbParameterCollection? pars)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
-            ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(query.Table!.Name, nameof(query.Table.Name));
-        var tableName = query.Table.Name!;
-        if (!connection.TryGetTable(tableName, out var table, query.Table?.DbName) || table == null)
+        var queryTable = query.Table;
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(queryTable!.Name, nameof(query.Table.Name));
+        var tableName = queryTable.Name!;
+        var dialect = connection.Db.Dialect;
+        if (!connection.TryGetTable(tableName, out var table, queryTable.DbName) || table == null)
             throw new InvalidOperationException($"Table {tableName} does not exist.");
 
         // JOIN updates ainda não suportados plenamente no Parser simples, 
@@ -51,12 +53,18 @@ internal static class DbUpdateStrategy
             // Match Where
             if (!TableMock.IsMatchSimple(table, pars, conditions, row)) continue;
 
+            var oldSnapshot = SnapshotRow(row);
+
             // Valida Unique Constraints antes de aplicar
             var changedCols = setPairs.Select(sp => sp.Col).ToList();
             ValidateUniqueBeforeUpdate(tableName, tableMock, pars, setPairs, rowIdx, row, changedCols);
 
             // Aplica Update
+            var simulated = row.ToDictionary(_ => _.Key, _ => _.Value);
+            UpdateRowValuesInMemory(table, pars, setPairs, simulated);
+            TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, SnapshotRow(new System.Collections.ObjectModel.ReadOnlyDictionary<int, object?>(simulated)));
             UpdateRowValues(table, pars, setPairs, rowIdx, row);
+            TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, SnapshotRow(table[rowIdx]));
 
             // Atualiza índices
             table.UpdateIndexesWithRow(rowIdx);
@@ -281,6 +289,30 @@ internal static class DbUpdateStrategy
         table.CurrentColumn = null;
         var raw = table.Resolve(token, dbType, isNullable, pars, table.Columns);
         return raw is DBNull ? null : raw;
+    }
+
+
+    private static IReadOnlyDictionary<int, object?> SnapshotRow(IReadOnlyDictionary<int, object?> row)
+        => row.ToDictionary(_ => _.Key, _ => _.Value);
+
+    private static void TryExecuteTableTrigger(
+        DbConnectionMockBase connection,
+        ISqlDialect dialect,
+        ITableMock table,
+        string tableName,
+        string? schemaName,
+        TableTriggerEvent evt,
+        IReadOnlyDictionary<int, object?>? oldRow,
+        IReadOnlyDictionary<int, object?>? newRow)
+    {
+        if (!dialect.SupportsTriggers)
+            return;
+
+        if (connection.IsTemporaryTable(table, tableName, schemaName))
+            return;
+
+        if (table is TableMock tableMock)
+            tableMock.ExecuteTriggers(evt, oldRow, newRow);
     }
 
 }

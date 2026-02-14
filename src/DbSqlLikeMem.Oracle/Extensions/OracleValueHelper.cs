@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Oracle.ManagedDataAccess.Client;
+using DbSqlLikeMem.Resources;
 
 namespace DbSqlLikeMem.Oracle;
 
@@ -38,7 +39,7 @@ internal static class OracleValueHelper
                 .Replace("\r\n", string.Empty)
                 .Replace(";", string.Empty);
             if (pars == null || !pars.Contains(name))
-                throw new OracleMockException($"Parâmetro {name} não encontrado.");
+                throw new OracleMockException(SqlExceptionMessages.ParameterNotFound(name));
             return ((OracleParameter)pars[name]).Value;
         }
 
@@ -46,7 +47,7 @@ internal static class OracleValueHelper
         if (token.Equals("null", StringComparison.OrdinalIgnoreCase))
             return isNullable 
                 ? null
-                : throw new OracleMockException("Coluna não aceita NULL");
+                : throw new OracleMockException(SqlExceptionMessages.ColumnDoesNotAcceptNull());
 
         // ---------- lista ( ..., ... )  para IN ------------------------
         var m = _list.Match(token);
