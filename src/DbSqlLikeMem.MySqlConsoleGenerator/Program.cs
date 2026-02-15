@@ -200,9 +200,11 @@ SELECT COLUMN_NAME
         var pk = new List<string>();
         const string qPk = @"
 SELECT COLUMN_NAME
-FROM INFORMATION_SCHEMA.STATISTICS
-WHERE TABLE_SCHEMA=@schema AND TABLE_NAME=@table AND INDEX_NAME='PRIMARY'
-ORDER BY SEQ_IN_INDEX;";
+  FROM INFORMATION_SCHEMA.STATISTICS
+ WHERE TABLE_SCHEMA=@schema 
+   AND TABLE_NAME=@table 
+   AND INDEX_NAME='PRIMARY'
+ ORDER BY SEQ_IN_INDEX;";
         using (var cmd = new MySqlCommand(qPk, cn))
         {
             cmd.Parameters.AddWithValue("@schema", schema);
@@ -219,7 +221,8 @@ SELECT INDEX_NAME
      , SEQ_IN_INDEX
      , COLUMN_NAME
   FROM INFORMATION_SCHEMA.STATISTICS
- WHERE TABLE_SCHEMA=@schema AND TABLE_NAME=@table
+ WHERE TABLE_SCHEMA=@schema 
+   AND TABLE_NAME=@table
  ORDER BY INDEX_NAME, SEQ_IN_INDEX;";
         using (var cmd = new MySqlCommand(qIdx, cn))
         {

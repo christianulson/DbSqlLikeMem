@@ -1827,7 +1827,7 @@ internal sealed class SqlQueryParser
         throw new InvalidOperationException($"Token inesperado após SELECT: {t.Kind} '{t.Text}'");
     }
 
-    private static readonly HashSet<string> JoinStart = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> JoinStart = new(StringComparer.OrdinalIgnoreCase)
     {
         "JOIN", "INNER", "LEFT", "RIGHT", "CROSS", "OUTER"
     };
@@ -1866,7 +1866,7 @@ internal sealed class SqlQueryParser
         throw new InvalidOperationException($"Não encontrei nenhum destes tokens no nível top-level: {string.Join(", ", words)}");
     }
 
-    private static readonly HashSet<string> ClauseKeywordToken = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> ClauseKeywordToken = new(StringComparer.OrdinalIgnoreCase)
     {
         "FROM"   ,
         "WHERE"  ,
