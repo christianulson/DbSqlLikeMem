@@ -1,10 +1,13 @@
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
+using System.Reflection.Emit;
+using System.Security.Principal;
 
 namespace DbSqlLikeMem;
 
 /// <summary>
-/// EN: Base for an in-memory table with data, columns, and indexes.
+/// EN: Base for an in-memory table with data, columns, and _indexes.
 /// PT: Base de uma tabela em memória com dados, colunas e índices.
 /// </summary>
 public abstract class TableMock
@@ -27,7 +30,8 @@ public abstract class TableMock
     {
         TableName = tableName.NormalizeName();
         Schema = schema;
-        Columns = columns;
+        foreach (var c in columns)
+            _columns.Add(c.Key, c.Value);
         AddRange(rows ?? []);
     }
 
@@ -42,42 +46,45 @@ public abstract class TableMock
     /// PT: Schema ao qual a tabela pertence.
     /// </summary>
     public SchemaMock Schema { get; }
-    
+
     /// <summary>
     /// EN: Next identity value for auto-increment columns.
     /// PT: Próximo valor de identidade para colunas auto incrementais.
     /// </summary>
     public int NextIdentity { get; set; } = 1;
 
+    private readonly ColumnDictionary _columns = [];
     /// <summary>
     /// EN: Table column dictionary.
     /// PT: Dicionário de colunas da tabela.
     /// </summary>
-    public IColumnDictionary Columns { get; }
+    public ImmutableDictionary<string, ColumnDef> Columns => _columns.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase);
 
     private List<Dictionary<int, object?>> Items { get; } = [];
 
+    internal HashSet<int> _primaryKeyIndexes = [];
     // ---------- Wave D : índices ---------------------------------
     /// <summary>
     /// EN: Indexes of columns that form the primary key.
     /// PT: Índices das colunas que formam a chave primária.
     /// </summary>
-    public HashSet<int> PrimaryKeyIndexes { get; } = [];
-
+    public ImmutableHashSet<int> PrimaryKeyIndexes => [.. _primaryKeyIndexes];
 
     private readonly List<(string Col, string RefTable, string RefCol)> _foreignKeys = [];
-    
+
     /// <summary>
     /// EN: List of foreign keys defined in the table.
     /// PT: Lista de chaves estrangeiras definidas na tabela.
     /// </summary>
     public IReadOnlyList<(string Col, string RefTable, string RefCol)> ForeignKeys => _foreignKeys;
 
+    internal IndexDictionary _indexes = [];
+
     /// <summary>
     /// EN: Indexes declared on the table.
     /// PT: Índices declarados na tabela.
     /// </summary>
-    public IndexDictionary Indexes { get; } = [];
+    public ImmutableDictionary<string, IndexDef> Indexes => _indexes.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase);
 
     // nome-do-índice → chave-derivada(string) → posições (List<int>)
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, List<int>>> _ix
@@ -114,6 +121,46 @@ public abstract class TableMock
         var context = new TableTriggerContext(this, oldRow, newRow);
         foreach (var handler in handlers)
             handler(context);
+    }
+
+
+    /// <summary>
+    /// EN: Add new Vollumn to Table
+    /// PT: Incluir nova coluna na tabela
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="dbType"></param>
+    /// <param name="nullable"></param>
+    /// <param name="size"></param>
+    /// <param name="decimalPlaces"></param>
+    /// <param name="identity"></param>
+    /// <param name="defaultValue"></param>
+    /// <param name="enumValues"></param>
+    /// <returns></returns>
+    public ColumnDef AddColumn(
+        string name,
+        DbType dbType,
+        bool nullable,
+        int? size = null,
+        int? decimalPlaces = null,
+        bool identity = false,
+        object? defaultValue = null,
+        IList<string>? enumValues = null)
+    {
+        var idx = _columns.Count;
+        var col = new ColumnDef(
+            table: this,
+            index: idx,
+            dbType: dbType,
+            nullable: nullable,
+            size: size,
+            decimalPlaces: decimalPlaces,
+            identity: identity,
+            defaultValue: defaultValue,
+            enumValues: enumValues);
+
+        _columns.Add(name, col);
+        return col;
     }
 
     /// <summary>
@@ -180,7 +227,7 @@ public abstract class TableMock
             return null;
 
         // Backward-compatible lookup: callers often pass raw values for single-column
-        // indexes (e.g. "John"). Internally keys are serialized, so try both formats.
+        // _indexes (e.g. "John"). Internally keys are serialized, so try both formats.
         if (map.TryGetValue(key.NormalizeName(), out var list))
             return list;
 
@@ -191,7 +238,7 @@ public abstract class TableMock
     }
 
     /// <summary>
-    /// EN: Updates indexes after inserting or changing a row.
+    /// EN: Updates _indexes after inserting or changing a row.
     /// PT: Atualiza os índices após inserir ou alterar uma linha.
     /// </summary>
     /// <param name="rowIdx">EN: Changed row index. PT: Índice da linha alterada.</param>
@@ -205,12 +252,12 @@ public abstract class TableMock
     }
 
     /// <summary>
-    /// EN: Rebuilds all table indexes.
+    /// EN: Rebuilds all table _indexes.
     /// PT: Reconstrói todos os índices da tabela.
     /// </summary>
     public void RebuildAllIndexes()
     {
-        foreach (var ix in Indexes)
+        foreach (var ix in _indexes)
             RebuildIndex(ix.Value);
     }
 
@@ -344,7 +391,7 @@ public abstract class TableMock
         RefreshPersistedComputedValues(value);
         EnsureUniqueOnInsert(value);
         Items.Add(value);
-        // Update indexes with the new row
+        // Update _indexes with the new row
         int newIdx = Count - 1;
         UpdateIndexesWithRow(newIdx);
     }
@@ -402,7 +449,7 @@ public abstract class TableMock
             }
         }
 
-        foreach (var idx in Indexes.GetUnique())
+        foreach (var idx in _indexes.GetUnique())
         {
             var key = BuildIndexKey(idx, newRow);
             var hits = Lookup(idx, key);
@@ -442,7 +489,7 @@ public abstract class TableMock
             }
         }
 
-        foreach (var idx in Indexes.GetUnique())
+        foreach (var idx in _indexes.GetUnique())
         {
             var key = BuildIndexKey(idx, newRow);
             var hits = Lookup(idx, key);
@@ -467,7 +514,7 @@ public abstract class TableMock
         int rowIdx,
         IReadOnlyCollection<string> changedCols)
     {
-        foreach (var ix in Indexes.GetUnique())
+        foreach (var ix in _indexes.GetUnique())
         {
             if (!ix.KeyCols.Intersect(changedCols, StringComparer.OrdinalIgnoreCase).Any()) continue;
 
@@ -564,7 +611,7 @@ public abstract class TableMock
                     else
                     {
                         var parts = inner.Split(',')
-                            .Select(_=>_.Trim())
+                            .Select(_ => _.Trim())
                             .ToArray();
 
                         var tmp = new List<object?>();
@@ -618,7 +665,6 @@ public abstract class TableMock
 
             return false;
         });
-
 
     private static IEnumerable<object?> ResolveInSubqueryCandidates(
         ITableMock table,
@@ -724,7 +770,7 @@ public abstract class TableMock
     /// EN: Backs up current rows.
     /// PT: Faz backup das linhas atuais.
     /// </summary>
-    public void Backup() => _backup = [.. this.Select(row => row.ToDictionary(_=>_.Key, _=>_.Value))];
+    public void Backup() => _backup = [.. this.Select(row => row.ToDictionary(_ => _.Key, _ => _.Value))];
 
     /// <summary>
     /// EN: Restores the previous backup, if any.
@@ -779,7 +825,7 @@ public abstract class TableMock
         DbType dbType,
         bool isNullable,
         IDataParameterCollection? pars = null,
-        IColumnDictionary? colDict = null);
+        ImmutableDictionary<string, ColumnDef>? colDict = null);
 
     /// <summary>
     /// EN: Creates an exception for an unknown column.
@@ -819,7 +865,7 @@ public abstract class TableMock
     /// Auto-generated summary.
     /// </summary>
     public IEnumerator<IReadOnlyDictionary<int, object?>> GetEnumerator()
-        => Items.Select(_=> new ReadOnlyDictionary<int, object?>(_)).ToList().AsReadOnly().GetEnumerator();
+        => Items.Select(_ => new ReadOnlyDictionary<int, object?>(_)).ToList().AsReadOnly().GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator()
         => GetEnumerator();

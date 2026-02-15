@@ -296,7 +296,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
             deleted++;
         }
 
-        // rebuild indexes
+        // rebuild _indexes
         target.RebuildAllIndexes();
         connection.Metrics.Deletes += deleted;
         return deleted;

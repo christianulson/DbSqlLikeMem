@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace DbSqlLikeMem;
 
 /// <summary>
@@ -26,10 +28,10 @@ public interface ITableMock
     int NextIdentity { get; set; }
 
     /// <summary>
-    /// EN: Holds the column indexes that compose the primary key.
+    /// EN: Holds the column _indexes that compose the primary key.
     /// PT: Mantém os índices das colunas que compõem a chave primária.
     /// </summary>
-    HashSet<int> PrimaryKeyIndexes { get; }
+    ImmutableHashSet<int> PrimaryKeyIndexes { get; }
 
     /// <summary>
     /// EN: Exposes foreign keys configured on the table.
@@ -57,7 +59,17 @@ public interface ITableMock
     /// EN: Gets the table column dictionary.
     /// PT: Obtém o dicionário de colunas da tabela.
     /// </summary>
-    IColumnDictionary Columns{ get; }
+    ImmutableDictionary<string, ColumnDef> Columns { get; }
+
+    ColumnDef AddColumn(
+        string name,
+        DbType dbType,
+        bool nullable,
+        int? size = null,
+        int? decimalPlaces = null,
+        bool identity = false,
+        object? defaultValue = null,
+        IList<string>? enumValues = null);
 
     /// <summary>
     /// EN: Finds a column by name or throws if it does not exist.
@@ -68,10 +80,10 @@ public interface ITableMock
     ColumnDef GetColumn(string columnName);
 
     /// <summary>
-    /// EN: Gets the indexes declared for the table.
+    /// EN: Gets the _indexes declared for the table.
     /// PT: Obtém os índices declarados para a tabela.
     /// </summary>
-    IndexDictionary Indexes { get; }
+    ImmutableDictionary<string, IndexDef> Indexes { get; }
 
     /// <summary>
     /// EN: Creates an index using the provided definition.
@@ -88,7 +100,7 @@ public interface ITableMock
     void UpdateIndexesWithRow(int rowIdx);
 
     /// <summary>
-    /// EN: Rebuilds all table indexes.
+    /// EN: Rebuilds all table _indexes.
     /// PT: Reconstrói todos os índices da tabela.
     /// </summary>
     void RebuildAllIndexes();
@@ -190,7 +202,7 @@ public interface ITableMock
         DbType dbType,
         bool isNullable,
         IDataParameterCollection? pars = null,
-        IColumnDictionary? colDict = null);
+        ImmutableDictionary<string, ColumnDef>? colDict = null);
 
     /// <summary>
     /// EN: Creates the exception for an unknown column.

@@ -63,7 +63,7 @@ public readonly struct Index : IEquatable<Index>
     /// Determines whether this index equals another index.
     /// </summary>
     /// <param name="other">Other index to compare.</param>
-    /// <returns>True when both indexes represent the same value.</returns>
+    /// <returns>True when both _indexes represent the same value.</returns>
     public bool Equals(Index other)
         => _value == other._value;
 
@@ -89,7 +89,7 @@ public readonly struct Index : IEquatable<Index>
 public readonly struct Range : IEquatable<Range>
 {
     /// <summary>
-    /// Initializes a new range with start and end indexes.
+    /// Initializes a new range with start and end _indexes.
     /// </summary>
     /// <param name="start">Start index, inclusive.</param>
     /// <param name="end">End index, exclusive.</param>
@@ -154,7 +154,7 @@ public readonly struct Range : IEquatable<Range>
     /// Determines whether this range equals another range.
     /// </summary>
     /// <param name="other">Other range to compare.</param>
-    /// <returns>True when both ranges have equal start and end indexes.</returns>
+    /// <returns>True when both ranges have equal start and end _indexes.</returns>
     public bool Equals(Range other)
         => Start.Equals(other.Start) && End.Equals(other.End);
 

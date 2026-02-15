@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text.Json;
 
 namespace DbSqlLikeMem.Db2;
@@ -28,7 +29,7 @@ internal static class Db2ValueHelper
         DbType dbType,
         bool isNullable,
         IDataParameterCollection? pars = null,
-        IColumnDictionary? colDict = null)
+        ImmutableDictionary<string, ColumnDef>? colDict = null)
     {
         // ---------- parâmetro Dapper @p -------------------------------
         if (token.StartsWith('@'))
@@ -72,7 +73,7 @@ internal static class Db2ValueHelper
 
     private static bool TryParseEnumOrSet(
         string token,
-        IColumnDictionary? colDict,
+        ImmutableDictionary<string, ColumnDef>? colDict,
         out object? value)
     {
         value = null;
@@ -126,7 +127,9 @@ internal static class Db2ValueHelper
         }
     }
 
-    private static object? ValidateColumnValue(object? value, IColumnDictionary? colDict)
+    private static object? ValidateColumnValue(
+        object? value,
+        ImmutableDictionary<string, ColumnDef>? colDict)
     {
         if (value is null || value is DBNull)
             return value;

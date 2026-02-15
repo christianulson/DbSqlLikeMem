@@ -362,7 +362,6 @@ public abstract class DbMock
 
     #endregion
 
-
     internal virtual IReadOnlyList<ITableMock> ListAllTablesBestEffort()
     {
         var allTables = new List<ITableMock>();

@@ -1,4 +1,6 @@
-﻿namespace DbSqlLikeMem.Sqlite;
+﻿using System.Collections.Immutable;
+
+namespace DbSqlLikeMem.Sqlite;
 
 /// <summary>
 /// EN: Table mock specialized for SQLite schema operations.
@@ -29,7 +31,7 @@ internal class SqliteTableMock(
         DbType dbType,
         bool isNullable,
         IDataParameterCollection? pars = null,
-        IColumnDictionary? colDict = null)
+        ImmutableDictionary<string, ColumnDef>? colDict = null)
     {
         var exp = SqliteValueHelper.Resolve(token, dbType, isNullable, pars, colDict);
         return exp;
