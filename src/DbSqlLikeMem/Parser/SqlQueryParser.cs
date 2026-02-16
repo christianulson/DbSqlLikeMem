@@ -942,10 +942,10 @@ internal sealed class SqlQueryParser
         {
             // Fail fast on known-invalid patterns before any splitting/normalization.
             // Example: COUNT(DISTINCT DISTINCT id)
-            if (System.Text.RegularExpressions.Regex.IsMatch(
+            if (Regex.IsMatch(
                     r,
                     @"\bDISTINCT\s+DISTINCT\b",
-                    System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                    RegexOptions.IgnoreCase))
             {
                 throw new InvalidOperationException("invalid: duplicated DISTINCT keyword");
             }
@@ -957,10 +957,10 @@ internal sealed class SqlQueryParser
             // Fail fast: duplicated DISTINCT inside function calls like COUNT(DISTINCT DISTINCT id)
             // (the expression parser also checks, but this guard prevents corpus regressions when
             // select-item splitting/reconstruction changes token boundaries).
-            if (System.Text.RegularExpressions.Regex.IsMatch(
+            if (Regex.IsMatch(
                     expr,
                     @"\bDISTINCT\s+DISTINCT\b",
-                    System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                    RegexOptions.IgnoreCase))
             {
                 throw new InvalidOperationException("invalid: duplicated DISTINCT keyword");
             }

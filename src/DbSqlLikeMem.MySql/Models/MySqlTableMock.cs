@@ -9,7 +9,7 @@ namespace DbSqlLikeMem.MySql;
 internal class MySqlTableMock(
         string tableName,
         MySqlSchemaMock schema,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null
         ) : TableMock(tableName, schema, columns, rows)
 {

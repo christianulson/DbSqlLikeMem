@@ -32,9 +32,9 @@ public sealed class PostgreSqlTransactionTests(
         // Arrange
         var db = new NpgsqlDbMock();
         var table = db.AddTable("Users");
-        table.Columns["Id"] = new(0, DbType.Int32, false);
-        table.Columns["Name"] = new(1, DbType.String, false);
-        table.Columns["Email"] = new(2, DbType.String, false);
+        table.AddColumn("Id", DbType.Int32, false);
+        table.AddColumn("Name", DbType.String, false);
+        table.AddColumn("Email", DbType.String, false);
 
         using var connection = new NpgsqlConnectionMock(db);
         connection.Open();
@@ -64,9 +64,9 @@ public sealed class PostgreSqlTransactionTests(
         // Arrange
         var db = new NpgsqlDbMock();
         var table = db.AddTable("Users");
-        table.Columns["Id"] = new(0, DbType.Int32, false);
-        table.Columns["Name"] = new(1, DbType.String, false);
-        table.Columns["Email"] = new(2, DbType.String, false);
+        table.AddColumn("Id", DbType.Int32, false);
+        table.AddColumn("Name", DbType.String, false);
+        table.AddColumn("Email", DbType.String, false);
 
         using var connection = new NpgsqlConnectionMock(db);
         connection.Open();

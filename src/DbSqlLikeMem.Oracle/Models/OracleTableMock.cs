@@ -9,7 +9,7 @@ namespace DbSqlLikeMem.Oracle;
 internal class OracleTableMock(
         string tableName,
         OracleSchemaMock schema,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null
         ) : TableMock(tableName, schema, columns, rows)
 {    public override string? CurrentColumn

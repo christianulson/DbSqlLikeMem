@@ -18,9 +18,9 @@ public class SqliteInsertOnDuplicateTests(
     {
         var db = new SqliteDbMock(version);
         var t = db.AddTable("users");
-        t.Columns["Id"] = new ColumnDef(0, DbType.Int32, false);
-        t.Columns["Name"] = new ColumnDef(1, DbType.String, false);
-        t.PrimaryKeyIndexes.Add(0);
+        t.AddColumn("Id", DbType.Int32, false);
+        t.AddColumn("Name", DbType.String, false);
+        t.AddPrimaryKeyIndexes("id");
 
         using var cnn = new SqliteConnectionMock(db);
 
@@ -43,9 +43,9 @@ public class SqliteInsertOnDuplicateTests(
     {
         var db = new SqliteDbMock(version);
         var t = db.AddTable("users");
-        t.Columns["Id"] = new ColumnDef(0, DbType.Int32, false);
-        t.Columns["Name"] = new ColumnDef(1, DbType.String, false);
-        t.PrimaryKeyIndexes.Add(0);
+        t.AddColumn("Id", DbType.Int32, false);
+        t.AddColumn("Name", DbType.String, false);
+        t.AddPrimaryKeyIndexes("id");
 
         t.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "OLD" } });
 
@@ -70,10 +70,10 @@ public class SqliteInsertOnDuplicateTests(
     {
         var db = new SqliteDbMock(version);
         var t = db.AddTable("users");
-        t.Columns["Id"] = new ColumnDef(0, DbType.Int32, false);
-        t.Columns["Email"] = new ColumnDef(1, DbType.String, false);
-        t.Columns["Name"] = new ColumnDef(2, DbType.String, false);
-        t.PrimaryKeyIndexes.Add(0);
+        t.AddColumn("Id", DbType.Int32, false);
+        t.AddColumn("Email", DbType.String, false);
+        t.AddColumn("Name", DbType.String, false);
+        t.AddPrimaryKeyIndexes("id");
         t.CreateIndex(new IndexDef("UQ_Email", ["Email"], unique: true));
 
         t.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "a@a.com" }, { 2, "A" } });
@@ -100,9 +100,9 @@ public class SqliteInsertOnDuplicateTests(
     {
         var db = new SqliteDbMock(version);
         var t = db.AddTable("users");
-        t.Columns["Id"] = new ColumnDef(0, DbType.Int32, false);
-        t.Columns["Name"] = new ColumnDef(1, DbType.String, false);
-        t.PrimaryKeyIndexes.Add(0);
+        t.AddColumn("Id", DbType.Int32, false);
+        t.AddColumn("Name", DbType.String, false);
+        t.AddPrimaryKeyIndexes("id");
 
         t.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "OLD" } });
 
@@ -132,9 +132,9 @@ public class SqliteInsertOnDuplicateTests(
     {
         var db = new SqliteDbMock(version);
         var t = db.AddTable("users");
-        t.Columns["Id"] = new ColumnDef(0, DbType.Int32, false);
-        t.Columns["Qtd"] = new ColumnDef(1, DbType.Int32, false);
-        t.PrimaryKeyIndexes.Add(0);
+        t.AddColumn("Id", DbType.Int32, false);
+        t.AddColumn("Qtd", DbType.Int32, false);
+        t.AddPrimaryKeyIndexes("id");
 
         t.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, 1 } });
 

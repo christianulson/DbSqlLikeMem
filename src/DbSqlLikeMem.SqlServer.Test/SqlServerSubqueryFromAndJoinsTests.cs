@@ -55,7 +55,7 @@ public sealed class SqlServerSubqueryFromAndJoinsTests(
         cnn.Define("orders");
         cnn.Column<int>("orders", "Id");
         cnn.Column<int>("orders", "UserId");
-        cnn.Column<decimal>("orders", "Amount");
+        cnn.Column<decimal>("orders", "Amount", decimalPlaces: 2);
 
         cnn.Seed("users", null,
             [1, "Ana"],

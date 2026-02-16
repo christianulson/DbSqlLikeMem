@@ -9,7 +9,7 @@ namespace DbSqlLikeMem.Db2;
 internal class Db2TableMock(
         string tableName,
         Db2SchemaMock schema,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null
         ) : TableMock(tableName, schema, columns, rows)
 {

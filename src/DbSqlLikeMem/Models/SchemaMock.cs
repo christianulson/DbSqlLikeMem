@@ -19,7 +19,7 @@ public abstract class SchemaMock
     protected SchemaMock(
         string schemaName,
         DbMock db,
-        IDictionary<string, (IColumnDictionary columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null,
+        IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null,
         IDictionary<string, ProcedureDef>? procedures = null/*,
         IDictionary<string, SqlSelectQuery>? views = null*/
     )
@@ -85,7 +85,7 @@ public abstract class SchemaMock
     /// <returns>EN: New table instance. PT: Nova instância de tabela.</returns>
     protected abstract TableMock NewTable(
         string tableName,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null);
 
     /// <summary>
@@ -98,7 +98,7 @@ public abstract class SchemaMock
     /// <returns>EN: Created table. PT: Tabela criada.</returns>
     public TableMock CreateTable(
         string tableName,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null)
     {
         var t = NewTable(tableName, columns, rows);
@@ -116,7 +116,7 @@ public abstract class SchemaMock
     /// <returns>EN: New table instance. PT: Nova instância de tabela.</returns>
     internal TableMock CreateTableInstance(
         string tableName,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null)
         => NewTable(tableName, columns, rows);
 

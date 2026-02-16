@@ -7,7 +7,7 @@ namespace DbSqlLikeMem.Oracle;
 public class OracleSchemaMock(
     string schemaName,
     OracleDbMock db,
-    IDictionary<string, (IColumnDictionary columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null
+    IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null
     ) : SchemaMock(schemaName, db, tables)
 {
     /// <summary>
@@ -20,7 +20,7 @@ public class OracleSchemaMock(
     /// <returns>EN: Table mock. PT: Mock de tabela.</returns>
     protected override TableMock NewTable(
         string tableName,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null)
         => new OracleTableMock(tableName, this, columns, rows);
 }

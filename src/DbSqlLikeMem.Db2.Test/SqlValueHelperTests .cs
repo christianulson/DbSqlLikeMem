@@ -99,19 +99,19 @@ public sealed class SqlValueHelperTests(
     [Fact]
     public void Resolve_Enum_ShouldValidateAgainstColumnDef()
     {
-        var cols = new ColumnDictionary
-        {
-            ["Status"] = new ColumnDef(0, DbType.String, false)
-        };
-        cols["Status"].EnumValues.UnionWith(["active", "inactive"]);
+        var tb = new Db2DbMock().AddTable("tb");
+
+        tb.AddColumn("Status", DbType.String, false);
+
+        tb.Columns["Status"].EnumValues.UnionWith(["active", "inactive"]);
 
         Db2ValueHelper.CurrentColumn = "Status";
 
-        var ok = Db2ValueHelper.Resolve("'Active'", DbType.String, false, null, cols);
+        var ok = Db2ValueHelper.Resolve("'Active'", DbType.String, false, null, tb.Columns);
         Assert.Equal("active", ok);
 
         var ex = Assert.Throws<Db2MockException>(() =>
-            Db2ValueHelper.Resolve("'blocked'", DbType.String, false, null, cols));
+            Db2ValueHelper.Resolve("'blocked'", DbType.String, false, null, tb.Columns));
         Assert.Equal(1265, ex.ErrorCode);
     }
 
@@ -122,25 +122,22 @@ public sealed class SqlValueHelperTests(
     [Fact]
     public void Resolve_Set_ShouldReturnHashSet_AndValidate()
     {
-        var cols = new ColumnDictionary
-        {
-            ["Tags"] = new ColumnDef(0, DbType.Int32, false)
-            {
-                EnumValues = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "a", "b", "c" }
-            }
-        };
+        var tb = new Db2DbMock().AddTable("tb");
+
+        tb.AddColumn("Tags", DbType.Int32, false,
+                enumValues: ["a", "b", "c"]);
 
         var prev = Db2ValueHelper.CurrentColumn;
         try
         {
             Db2ValueHelper.CurrentColumn = "Tags";
 
-            var ok = Db2ValueHelper.Resolve("'a,b'", DbType.Int32, isNullable: false, pars: null, colDict: cols);
+            var ok = Db2ValueHelper.Resolve("'a,b'", DbType.Int32, isNullable: false, pars: null, colDict: tb.Columns);
             var hs = Assert.IsType<HashSet<string>>(ok);
             Assert.True(hs.SetEquals(["a", "b"]));
 
             var ex = Assert.Throws<Db2MockException>(() =>
-                Db2ValueHelper.Resolve("'a,x'", DbType.Int32, isNullable: false, pars: null, colDict: cols));
+                Db2ValueHelper.Resolve("'a,x'", DbType.Int32, isNullable: false, pars: null, colDict: tb.Columns));
             Assert.Equal(1265, ex.ErrorCode);
         }
         finally
@@ -156,17 +153,16 @@ public sealed class SqlValueHelperTests(
     [Fact]
     public void Resolve_ShouldValidateStringSize()
     {
-        var cols = new ColumnDictionary
-        {
-            ["Name"] = new ColumnDef(0, DbType.String, false) { Size = 3 }
-        };
+        var tb = new Db2DbMock().AddTable("tb");
+
+        tb.AddColumn("Name", DbType.String, false, size: 3);
 
         var prev = Db2ValueHelper.CurrentColumn;
         try
         {
             Db2ValueHelper.CurrentColumn = "Name";
             var ex = Assert.Throws<Db2MockException>(() =>
-                Db2ValueHelper.Resolve("'abcd'", DbType.String, false, null, cols));
+                Db2ValueHelper.Resolve("'abcd'", DbType.String, false, null, tb.Columns));
             Assert.Equal(1406, ex.ErrorCode);
         }
         finally
@@ -182,17 +178,16 @@ public sealed class SqlValueHelperTests(
     [Fact]
     public void Resolve_ShouldValidateDecimalPlaces()
     {
-        var cols = new ColumnDictionary
-        {
-            ["Amount"] = new ColumnDef(0, DbType.Decimal, false) { DecimalPlaces = 2 }
-        };
+        var tb = new Db2DbMock().AddTable("tb");
+
+        tb.AddColumn("Amount", DbType.Decimal, false, decimalPlaces: 2);
 
         var prev = Db2ValueHelper.CurrentColumn;
         try
         {
             Db2ValueHelper.CurrentColumn = "Amount";
             var ex = Assert.Throws<Db2MockException>(() =>
-                Db2ValueHelper.Resolve("10.123", DbType.Decimal, false, null, cols));
+                Db2ValueHelper.Resolve("10.123", DbType.Decimal, false, null, tb.Columns));
             Assert.Equal(1265, ex.ErrorCode);
         }
         finally

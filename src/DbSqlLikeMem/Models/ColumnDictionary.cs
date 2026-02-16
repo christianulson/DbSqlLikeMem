@@ -1,4 +1,5 @@
 namespace DbSqlLikeMem;
+
 /// <summary>
 /// EN: Implements a column dictionary with case-insensitive comparison.
 /// PT: Implementa um dicionário de colunas com comparação case-insensitive.

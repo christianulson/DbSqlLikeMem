@@ -1,3 +1,4 @@
+using DbSqlLikeMem.Interfaces;
 using System.Collections.Immutable;
 
 namespace DbSqlLikeMem;
@@ -31,13 +32,15 @@ public interface ITableMock
     /// EN: Holds the column _indexes that compose the primary key.
     /// PT: Mantém os índices das colunas que compõem a chave primária.
     /// </summary>
-    ImmutableHashSet<int> PrimaryKeyIndexes { get; }
+    IReadOnlyHashSet<int> PrimaryKeyIndexes { get; }
+
+    void AddPrimaryKeyIndexes(params string[] columns);
 
     /// <summary>
     /// EN: Exposes foreign keys configured on the table.
     /// PT: Expõe as chaves estrangeiras configuradas na tabela.
     /// </summary>
-    IReadOnlyList<(
+    IReadOnlyList <(
         string Col, 
         string RefTable,
         string RefCol

@@ -9,7 +9,7 @@ namespace DbSqlLikeMem.Npgsql;
 internal class NpgsqlTableMock(
         string tableName,
         SchemaMock schema,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null
         ) : TableMock(tableName, schema, columns, rows)
 {

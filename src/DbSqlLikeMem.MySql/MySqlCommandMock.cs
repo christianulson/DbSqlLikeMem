@@ -304,10 +304,10 @@ public class MySqlCommandMock(
         if (sqlRaw.StartsWith("delete from ", StringComparison.OrdinalIgnoreCase))
             return false;
 
-        return !System.Text.RegularExpressions.Regex.IsMatch(
+        return !Regex.IsMatch(
             sqlRaw,
             @"^\s*delete\s+[^\s]+\s+from\s+",
-            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            RegexOptions.IgnoreCase);
     }
 
     private int ExecuteDropView(string sqlRaw)

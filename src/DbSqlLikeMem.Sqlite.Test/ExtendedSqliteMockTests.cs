@@ -16,8 +16,8 @@ public sealed class ExtendedSqliteMockTests(
     {
         var db = new SqliteDbMock();
         var table = db.AddTable("users");
-        table.Columns["id"] = new(0, DbType.Int32, false) { Identity = true };
-        table.Columns["name"] = new(1, DbType.String, false);
+        table.AddColumn("id", DbType.Int32, false, identity: true);
+        table.AddColumn("name", DbType.String, false);
         using var cnn = new SqliteConnectionMock(db);
         cnn.Open();
         var rows1 = cnn.Execute("INSERT INTO users (name) VALUES (@name)", new { name = "Alice" });
@@ -42,8 +42,8 @@ public sealed class ExtendedSqliteMockTests(
     {
         var db = new SqliteDbMock();
         var table = db.AddTable("data");
-        table.Columns["id"] = new(0, DbType.Int32, false);
-        table.Columns["info"] = new(1, DbType.String, true);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("info", DbType.String, true);
         using var cnn = new SqliteConnectionMock(db);
         cnn.Open();
 
@@ -61,8 +61,8 @@ public sealed class ExtendedSqliteMockTests(
     {
         var db = new SqliteDbMock();
         var table = db.AddTable("data");
-        table.Columns["id"] = new(0, DbType.Int32, false);
-        table.Columns["info"] = new(1, DbType.String, false);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("info", DbType.String, false);
         using var cnn = new SqliteConnectionMock(db);
         cnn.Open();
 
@@ -81,9 +81,9 @@ public sealed class ExtendedSqliteMockTests(
     {
         var db = new SqliteDbMock();
         var table = db.AddTable("t");
-        table.Columns["first"] = new(0, DbType.String, false);
-        table.Columns["second"] = new(1, DbType.String, false);
-        table.Columns["value"] = new(2, DbType.Int32, false);
+        table.AddColumn("first", DbType.String, false);
+        table.AddColumn("second", DbType.String, false);
+        table.AddColumn("value", DbType.Int32, false);
         table.Add(new Dictionary<int, object?> { { 0, "A" }, { 1, "X" }, { 2, 1 } });
         table.Add(new Dictionary<int, object?> { { 0, "A" }, { 1, "Y" }, { 2, 2 } });
         table.Add(new Dictionary<int, object?> { { 0, "B" }, { 1, "X" }, { 2, 3 } });
@@ -106,7 +106,7 @@ public sealed class ExtendedSqliteMockTests(
     {
         var db = new SqliteDbMock();
         var table = db.AddTable("t");
-        table.Columns["name"] = new(0, DbType.String, false);
+        table.AddColumn("name", DbType.String, false);
         table.Add(new Dictionary<int, object?> { { 0, "alice" } });
         table.Add(new Dictionary<int, object?> { { 0, "bob" } });
         using var cnn = new SqliteConnectionMock(db);
@@ -126,7 +126,7 @@ public sealed class ExtendedSqliteMockTests(
     {
         var db = new SqliteDbMock();
         var table = db.AddTable("t");
-        table.Columns["id"] = new(0, DbType.Int32, false);
+        table.AddColumn("id", DbType.Int32, false);
         table.Add(new Dictionary<int, object?> { { 0, 1 } });
         table.Add(new Dictionary<int, object?> { { 0, 2 } });
         table.Add(new Dictionary<int, object?> { { 0, 3 } });
@@ -147,7 +147,7 @@ public sealed class ExtendedSqliteMockTests(
     {
         var db = new SqliteDbMock();
         var table = db.AddTable("t");
-        table.Columns["id"] = new(0, DbType.Int32, false);
+        table.AddColumn("id", DbType.Int32, false);
         table.Add(new Dictionary<int, object?> { { 0, 2 } });
         table.Add(new Dictionary<int, object?> { { 0, 1 } });
         table.Add(new Dictionary<int, object?> { { 0, 2 } });
@@ -168,8 +168,8 @@ public sealed class ExtendedSqliteMockTests(
     {
         var db = new SqliteDbMock();
         var table = db.AddTable("t");
-        table.Columns["grp"] = new(0, DbType.String, false);
-        table.Columns["val"] = new(1, DbType.Int32, false);
+        table.AddColumn("grp", DbType.String, false);
+        table.AddColumn("val", DbType.Int32, false);
         table.Add(new Dictionary<int, object?> { { 0, "a" }, { 1, 1 } });
         table.Add(new Dictionary<int, object?> { { 0, "a" }, { 1, 2 } });
         table.Add(new Dictionary<int, object?> { { 0, "b" }, { 1, 3 } });
@@ -193,13 +193,13 @@ public sealed class ExtendedSqliteMockTests(
         // Parent
         var db = new SqliteDbMock();
         var parent = db.AddTable("parent");
-        parent.Columns["id"] = new(0, DbType.Int32, false);
+        parent.AddColumn("id", DbType.Int32, false);
         parent.Add(new Dictionary<int, object?> { { 0, 1 } });
-        parent.PrimaryKeyIndexes.Add(parent.Columns["id"].Index);
+        parent.AddPrimaryKeyIndexes("id");
         // Child with FK to parent
         var child = db.AddTable("child");
-        child.Columns["pid"] = new(0, DbType.Int32, false);
-        child.Columns["data"] = new(1, DbType.String, false);
+        child.AddColumn("pid", DbType.Int32, false);
+        child.AddColumn("data", DbType.String, false);
         child.CreateForeignKey("pid", "parent", "id");
         child.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "x" } });
 
@@ -220,12 +220,12 @@ public sealed class ExtendedSqliteMockTests(
         // Parent
         var db = new SqliteDbMock();
         var parent = db.AddTable("parent");
-        parent.Columns["id"] = new(0, DbType.Int32, false);
+        parent.AddColumn("id", DbType.Int32, false);
         parent.Add(new Dictionary<int, object?> { { 0, 1 } });
         // Child with FK to parent
         var child = db.AddTable("child");
-        child.Columns["pid"] = new(0, DbType.Int32, false);
-        child.Columns["data"] = new(1, DbType.String, false);
+        child.AddColumn("pid", DbType.Int32, false);
+        child.AddColumn("data", DbType.String, false);
         child.CreateForeignKey("pid", "parent", "id");
         child.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "x" } });
 
@@ -245,8 +245,8 @@ public sealed class ExtendedSqliteMockTests(
     {
         var db = new SqliteDbMock();
         var table = db.AddTable("users");
-        table.Columns["id"] = new(0, DbType.Int32, false);
-        table.Columns["name"] = new(1, DbType.String, false);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("name", DbType.String, false);
         using var cnn = new SqliteConnectionMock(db);
         cnn.Open();
 
@@ -272,8 +272,8 @@ public sealed class ExtendedSqliteMockTests(
     {
         var db = new SqliteDbMock();
         var table = db.AddTable("t");
-        table.Columns["first"] = new(0, DbType.String, false);
-        table.Columns["second"] = new(1, DbType.String, false);
+        table.AddColumn("first", DbType.String, false);
+        table.AddColumn("second", DbType.String, false);
         table.CreateIndex(new IndexDef("ux_first_second", ["first", "second"], unique: true));
 
         table.Add(new Dictionary<int, object?> { { 0, "A|B" }, { 1, "C" } });

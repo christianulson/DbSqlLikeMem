@@ -14,18 +14,18 @@ public sealed class SqlServerSelectAndWhereMoreCoverageTests : XUnitTestBase
     {
         var db = new SqlServerDbMock();
         var users = db.AddTable("users");
-        users.Columns["id"] = new(0, DbType.Int32, false);
-        users.Columns["name"] = new(1, DbType.String, false);
-        users.Columns["email"] = new(2, DbType.String, true);
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("email", DbType.String, true);
 
         users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = "john@x.com" });
         users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob",  [2] = null });
         users.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Jane", [2] = "jane@x.com" });
 
         var orders = db.AddTable("orders");
-        orders.Columns["id"] = new(0, DbType.Int32, false);
-        orders.Columns["userId"] = new(1, DbType.Int32, false);
-        orders.Columns["amount"] = new(2, DbType.Decimal, false);
+        orders.AddColumn("id", DbType.Int32, false);
+        orders.AddColumn("userId", DbType.Int32, false);
+        orders.AddColumn("amount", DbType.Decimal, false, decimalPlaces: 2);
 
         orders.Add(new Dictionary<int, object?> { [0] = 10, [1] = 1, [2] = 50m });
         orders.Add(new Dictionary<int, object?> { [0] = 11, [1] = 2, [2] = 200m });

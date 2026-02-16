@@ -14,10 +14,10 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
     {
         var db = new MySqlDbMock();
         var users = db.AddTable("users");
-        users.Columns["id"] = new(0, DbType.Int32, false);
-        users.Columns["name"] = new(1, DbType.String, false);
-        users.Columns["email"] = new(2, DbType.String, true);
-        users.Columns["tags"] = new(3, DbType.String, true); // CSV-like "a,b,c"
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("email", DbType.String, true);
+        users.AddColumn("tags", DbType.String, true); // CSV-like "a,b,c"
 
         users.CreateIndex(new IndexDef("ix_users_name", ["name"]));
         users.CreateIndex(new IndexDef("ix_users_name_email", ["name", "email"]));

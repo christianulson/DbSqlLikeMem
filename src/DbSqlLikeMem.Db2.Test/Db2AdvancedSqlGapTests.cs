@@ -28,7 +28,7 @@ public sealed class Db2AdvancedSqlGapTests : XUnitTestBase
         var orders = db.AddTable("orders");
         orders.AddColumn("id", DbType.Int32, false);
         orders.AddColumn("userid", DbType.Int32, false);
-        orders.AddColumn("amount", DbType.Decimal, false);
+        orders.AddColumn("amount", DbType.Decimal, false, decimalPlaces: 2);
 
         orders.Add(new Dictionary<int, object?> { [0] = 10, [1] = 1, [2] = 10m });
         orders.Add(new Dictionary<int, object?> { [0] = 11, [1] = 1, [2] = 5m });

@@ -9,7 +9,7 @@ namespace DbSqlLikeMem.SqlServer;
 public class SqlServerTableMock(
         string tableName,
         SqlServerSchemaMock schema,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null
         ) : TableMock(tableName, schema, columns, rows)
 {

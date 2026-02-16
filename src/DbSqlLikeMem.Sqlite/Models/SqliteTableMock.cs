@@ -9,7 +9,7 @@ namespace DbSqlLikeMem.Sqlite;
 internal class SqliteTableMock(
         string tableName,
         SqliteSchemaMock schema,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null
         ) : TableMock(tableName, schema, columns, rows)
 {

@@ -155,6 +155,7 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
 
     protected override int AddToBatch(IDbCommand command)
     {
+        ArgumentNullExceptionCompatible.ThrowIfNull(commandBatch, nameof(commandBatch));
         MySqlCommandMock mySqlCommand = (MySqlCommandMock)command;
         if (mySqlCommand.BatchableCommandText == null)
         {
@@ -162,15 +163,16 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         }
 
         IDbCommand item = (IDbCommand)((ICloneable)command).Clone();
-        commandBatch.Add(item);
+        commandBatch!.Add(item);
         return commandBatch.Count - 1;
     }
 
     protected override int ExecuteBatch()
     {
+        ArgumentNullExceptionCompatible.ThrowIfNull(commandBatch, nameof(commandBatch));
         int num = 0;
         int num2 = 0;
-        while (num2 < commandBatch.Count)
+        while (num2 < commandBatch!.Count)
         {
             MySqlCommandMock mySqlCommand = (MySqlCommandMock)commandBatch[num2++];
             int num3 = num2;
@@ -196,7 +198,8 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
 
     protected override void ClearBatch()
     {
-        if (commandBatch.Count > 0)
+        ArgumentNullExceptionCompatible.ThrowIfNull(commandBatch, nameof(commandBatch));
+        if (commandBatch!.Count > 0)
         {
             MySqlCommandMock mySqlCommand = (MySqlCommandMock)commandBatch[0];
             mySqlCommand.Batch?.Clear();
@@ -320,7 +323,7 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         {
             try
             {
-                int result = base.Fill(dataTable, dataReader);
+                int result = Fill(dataTable, dataReader);
                 taskCompletionSource.SetResult(result);
             }
             catch (Exception exception)
@@ -345,7 +348,7 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         {
             try
             {
-                int result = base.Fill(dataTable, command, behavior);
+                int result = Fill(dataTable, command, behavior);
                 taskCompletionSource.SetResult(result);
             }
             catch (Exception exception)
@@ -420,7 +423,7 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         {
             try
             {
-                int result = base.Fill(dataSet, srcTable, dataReader, startRecord, maxRecords);
+                int result = Fill(dataSet, srcTable, dataReader, startRecord, maxRecords);
                 taskCompletionSource.SetResult(result);
             }
             catch (Exception exception)
@@ -450,7 +453,7 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         }
         try
         {
-            int result = base.Fill(dataTables, startRecord, maxRecords, command, behavior);
+            int result = Fill(dataTables, startRecord, maxRecords, command, behavior);
             taskCompletionSource.SetResult(result);
         }
         catch (Exception exception)
@@ -475,7 +478,7 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
 
         try
         {
-            int result = base.Fill(dataSet, startRecord, maxRecords, srcTable, command, behavior);
+            int result = Fill(dataSet, startRecord, maxRecords, srcTable, command, behavior);
             taskCompletionSource.SetResult(result);
         }
         catch (Exception exception)
@@ -552,7 +555,7 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
 
         try
         {
-            DataTable[] result = base.FillSchema(dataSet, schemaType, srcTable, dataReader);
+            DataTable[] result = FillSchema(dataSet, schemaType, srcTable, dataReader);
             taskCompletionSource.SetResult(result);
         }
         catch (Exception exception)
@@ -577,7 +580,7 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
 
         try
         {
-            DataTable[] result = base.FillSchema(dataSet, schemaType, command, srcTable, behavior);
+            DataTable[] result = FillSchema(dataSet, schemaType, command, srcTable, behavior);
             taskCompletionSource.SetResult(result);
         }
         catch (Exception exception)
@@ -629,7 +632,7 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
 
         try
         {
-            DataTable result = base.FillSchema(dataTable, schemaType, dataReader);
+            DataTable result = FillSchema(dataTable, schemaType, dataReader);
             taskCompletionSource.SetResult(result);
         }
         catch (Exception exception)
@@ -656,7 +659,7 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
 
         try
         {
-            DataTable result = base.FillSchema(dataTable, schemaType, command, behavior);
+            DataTable result = FillSchema(dataTable, schemaType, command, behavior);
             taskCompletionSource.SetResult(result);
         }
         catch (Exception exception)

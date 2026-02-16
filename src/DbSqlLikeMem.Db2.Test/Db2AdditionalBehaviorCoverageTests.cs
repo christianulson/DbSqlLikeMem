@@ -31,7 +31,7 @@ public sealed class Db2AdditionalBehaviorCoverageTests : XUnitTestBase
         var orders = db.AddTable("orders");
         orders.AddColumn("id", DbType.Int32, false, identity: false );
         orders.AddColumn("userid", DbType.Int32, false);
-        orders.AddColumn("amount", DbType.Decimal, false);
+        orders.AddColumn("amount", DbType.Decimal, false, decimalPlaces: 2);
 
         orders.Add(new Dictionary<int, object?> { [0] = 10, [1] = 1, [2] = 50m });
         orders.Add(new Dictionary<int, object?> { [0] = 11, [1] = 2, [2] = 200m });

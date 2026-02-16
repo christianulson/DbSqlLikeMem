@@ -16,9 +16,9 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     {
         var db = new SqlServerDbMock();
         var users = db.AddTable("users");
-        users.Columns["id"] = new ColumnDef(0, DbType.Int32, false);
-        users.Columns["name"] = new ColumnDef(1, DbType.String, false);
-        users.Columns["tenantid"] = new ColumnDef(2, DbType.Int32, false);
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
         users.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "A" }, { 2, 10 } });
         users.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, "B" }, { 2, 20 } });
         users.Add(new Dictionary<int, object?> { { 0, 3 }, { 1, "C" }, { 2, 10 } });
@@ -48,15 +48,15 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     {
         var db = new SqlServerDbMock();
         var users = db.AddTable("users");
-        users.Columns["id"] = new ColumnDef(0, DbType.Int32, false);
-        users.Columns["name"] = new ColumnDef(1, DbType.String, false);
-        users.Columns["tenantid"] = new ColumnDef(2, DbType.Int32, false);
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
         users.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "A" }, { 2, 10 } });
         users.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, "B" }, { 2, 20 } });
 
         var audit = db.AddTable("audit_users");
-        audit.Columns["userid"] = new ColumnDef(0, DbType.Int32, false);
-        audit.Columns["username"] = new ColumnDef(1, DbType.String, false);
+        audit.AddColumn("userid", DbType.Int32, false);
+        audit.AddColumn("username", DbType.String, false);
 
         using var c = new SqlServerConnectionMock(db);
         const string sql = "INSERT INTO audit_users (userid, username) SELECT id, name FROM users WHERE tenantid = 10";
@@ -79,16 +79,16 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     {
         var db = new SqlServerDbMock();
         var users = db.AddTable("users");
-        users.Columns["id"] = new ColumnDef(0, DbType.Int32, false);
-        users.Columns["tenantid"] = new ColumnDef(1, DbType.Int32, false);
-        users.Columns["total"] = new ColumnDef(2, DbType.Decimal, true);
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
+        users.AddColumn("total", DbType.Decimal, true, decimalPlaces: 2);
         users.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, 10 }, { 2, null } });
         users.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, 10 }, { 2, null } });
         users.Add(new Dictionary<int, object?> { { 0, 3 }, { 1, 20 }, { 2, null } });
 
         var orders = db.AddTable("orders");
-        orders.Columns["userid"] = new ColumnDef(0, DbType.Int32, false);
-        orders.Columns["amount"] = new ColumnDef(1, DbType.Decimal, false);
+        orders.AddColumn("userid", DbType.Int32, false);
+        orders.AddColumn("amount", DbType.Decimal, false, decimalPlaces: 2);
         orders.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, 10m } });
         orders.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, 5m } });
         orders.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, 7m } });
@@ -118,8 +118,8 @@ WHERE u.tenantid = 10";
     {
         var db = new SqlServerDbMock();
         var users = db.AddTable("users");
-        users.Columns["id"] = new ColumnDef(0, DbType.Int32, false);
-        users.Columns["tenantid"] = new ColumnDef(1, DbType.Int32, false);
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
         users.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, 10 } });
         users.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, 10 } });
         users.Add(new Dictionary<int, object?> { { 0, 3 }, { 1, 20 } });

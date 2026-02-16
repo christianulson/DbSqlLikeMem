@@ -1,5 +1,16 @@
 namespace DbSqlLikeMem;
 
+public sealed record Col(
+    string name,
+    DbType dbType,
+    bool nullable,
+    int? size = null,
+    int? decimalPlaces = null,
+    bool identity = false,
+    object? defaultValue = null,
+    IList<string>? enumValues = null
+);
+
 /// <summary>
 /// EN: Defines column metadata including type, nullability, and identity.
 /// PT: Define os metadados de uma coluna, incluindo tipo, nulabilidade e identidade.
@@ -16,6 +27,9 @@ public sealed class ColumnDef
     /// <param name="nullable">EN: Whether it accepts nulls. PT: Indica se aceita nulos.</param>
     /// <param name="size"></param>
     /// <param name="decimalPlaces"></param>
+    /// <param name="identity"></param>
+    /// <param name="defaultValue"></param>
+    /// <param name="enumValues"></param>
     public ColumnDef(
         ITableMock table,
         int index,
@@ -29,13 +43,14 @@ public sealed class ColumnDef
     {
         if (dbType == DbType.String
             && size <= 0)
-            throw new InvalidOperationException("Tamenho do campo é obrigatório para o tipo String");
+            throw new InvalidOperationException("Tamanho do campo é obrigatório para o tipo String");
         if ((dbType == DbType.Currency
                 || dbType == DbType.Decimal
                 || dbType == DbType.Double)
             && !decimalPlaces.HasValue)
+            throw new InvalidOperationException($"DbType {dbType} é obrigatório informafar decimalPlaces");
 
-            Table = table;
+        Table = table;
         Index = index;
         DbType = dbType;
         Nullable = nullable;

@@ -28,6 +28,8 @@ static partial class Program
 
 #pragma warning restore CA1812
 
+    private const string DatabaseType = "mysql";
+
     static void Main(string[] args)
     {
         var baseDirectory = Directory.GetCurrentDirectory()
@@ -301,51 +303,40 @@ SELECT KCU.COLUMN_NAME
         // map: nome → ordinal (de fato já vem na meta)
         foreach (var c in columns.OrderBy(c => c.Ordinal))
         {
-            var dbType = GenerationRuleSet.MapDbType(c.DataType, c.CharMaxLen, c.NumPrecision, c.ColumnName, "MySql");
+            var dbType = GenerationRuleSet.MapDbType(c.DataType, c.CharMaxLen, c.NumPrecision, c.ColumnName, DatabaseType);
             var nullable = c.IsNullable ? "true" : "false";
-            var ctor = $"new({c.Ordinal}, DbType.{dbType}, {nullable}";
+            var ctor = $"DbType.{dbType}, {nullable}";
 
             if (c.IsIdentity) ctor += ", true";
-            ctor += ")";
-
-            w.WriteLine($"        table.Columns[\"{c.ColumnName}\"] = {ctor};");
-
-            // DefaultValue, se literal simples (evitar funções como CURRENT_TIMESTAMP)
             if (!string.IsNullOrEmpty(c.DefaultValue)
                 && GenerationRuleSet.IsSimpleLiteralDefault(c.DefaultValue!))
-            {
-                var literal = GenerationRuleSet.FormatDefaultLiteral(c.DefaultValue!, dbType);
-                w.WriteLine($"        table.Columns[\"{c.ColumnName}\"].DefaultValue = {literal};");
-            }
-
+                ctor += $", defaultValue: {GenerationRuleSet.FormatDefaultLiteral(c.DefaultValue!, dbType)}";
             if (c.CharMaxLen is > 0 and <= int.MaxValue)
-                w.WriteLine($"        table.Columns[\"{c.ColumnName}\"].Size = {(int)c.CharMaxLen};");
-
+                ctor += $", size: {(int)c.CharMaxLen}";
             if (c.NumScale is >= 0)
-                w.WriteLine($"        table.Columns[\"{c.ColumnName}\"].DecimalPlaces = {c.NumScale.Value};");
+                ctor += $", decimalPlaces = {c.NumScale.Value}";
 
-            // EnumValues, se enum(...)
             var enums = GenerationRuleSet.TryParseEnumValues(c.ColumnType);
             if (enums.Length > 0)
-            {
-                var arr = string.Join(", ", enums.Select(GenerationRuleSet.Literal));
-                w.WriteLine($"        table.Columns[\"{c.ColumnName}\"].EnumValues = new[] {{ {arr} }};");
-            }
+                ctor += $", enumValues: [{string.Join(", ", enums.Select(GenerationRuleSet.Literal))}]";
+
+
+            var col = $"        table.AddColumn(\"{c.ColumnName}\", {ctor})";
             if (!string.IsNullOrWhiteSpace(c.Generated))
             {
                 if (!GenerationRuleSet.TryConvertIfIsNull(c.Generated, out var genCode))
                     throw new NotSupportedException($"Expressão não suportada: {c.Generated}");
 
-                w.WriteLine(
-                    $"        table.Columns[\"{c.ColumnName}\"].GetGenValue = {genCode};");
+                col += $"\n          .GetGenValue = {genCode}";
             }
+            col += ";";
+            w.WriteLine(col);
         }
 
         // PK
         if (primaryKey.Count > 0)
         {
-            foreach (var pkCol in primaryKey)
-                w.WriteLine($"        table.PrimaryKeyIndexes.Add(table.Columns[\"{pkCol}\"]?.Index);");
+            w.WriteLine($"        table.AddPrimaryKeyIndexes({string.Join(",", primaryKey.Select(_ => $"\"{_}\""))});");
             var cols = string.Join(", ", primaryKey.Select(GenerationRuleSet.Literal));
             w.WriteLine($"        table.CreateIndex(new IndexDef(\"PRIMARY\", [{cols}], unique: true));");
         }
@@ -361,7 +352,7 @@ SELECT KCU.COLUMN_NAME
         // FKs
         foreach (var (col, rtab, rcol) in foreignKeys)
         {
-            w.WriteLine($"        table.ForeignKeys.Add(({GenerationRuleSet.Literal(col)}, {GenerationRuleSet.Literal(rtab)}, {GenerationRuleSet.Literal(rcol)}));");
+            w.WriteLine($"        table.CreateForeignKey({GenerationRuleSet.Literal(col)}, {GenerationRuleSet.Literal(rtab)}, {GenerationRuleSet.Literal(rcol)});");
         }
 
         w.WriteLine("        return table;");

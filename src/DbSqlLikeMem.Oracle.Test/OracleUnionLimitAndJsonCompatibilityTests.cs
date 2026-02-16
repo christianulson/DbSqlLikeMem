@@ -16,8 +16,8 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests : XUnitTestBase
     {
         var db = new OracleDbMock();
         var t = db.AddTable("t");
-        t.Columns["id"] = new(0, DbType.Int32, false);
-        t.Columns["payload"] = new(1, DbType.String, true);
+        t.AddColumn("id", DbType.Int32, false);
+        t.AddColumn("payload", DbType.String, true);
         t.Add(new Dictionary<int, object?> { [0] = 1, [1] = "{\"a\":{\"b\":123}}" });
         t.Add(new Dictionary<int, object?> { [0] = 2, [1] = "{\"a\":{\"b\":456}}" });
         t.Add(new Dictionary<int, object?> { [0] = 3, [1] = null });

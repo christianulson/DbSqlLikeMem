@@ -24,7 +24,7 @@ public sealed class ExistsTests(
         cnn.Define("orders");
         cnn.Column<int>("orders", "Id");
         cnn.Column<int>("orders", "UserId");
-        cnn.Column<decimal>("orders", "Amount");
+        cnn.Column<decimal>("orders", "Amount", decimalPlaces: 2);
 
         cnn.Seed("users", null,
             [1, "Ana"],
@@ -67,7 +67,7 @@ ORDER BY u.Id";
         cnn.Define("orders");
         cnn.Column<int>("orders", "Id");
         cnn.Column<int>("orders", "UserId");
-        cnn.Column<decimal>("orders", "Amount");
+        cnn.Column<decimal>("orders", "Amount", decimalPlaces: 2);
 
         cnn.Seed("users", null,
             [1, "Ana"],
@@ -109,7 +109,7 @@ ORDER BY u.Id";
         cnn.Define("orders");
         cnn.Column<int>("orders", "Id");
         cnn.Column<int>("orders", "UserId");
-        cnn.Column<decimal>("orders", "Amount");
+        cnn.Column<decimal>("orders", "Amount", decimalPlaces: 2);
 
         cnn.Seed("users", null,
             [1, "Ana"],

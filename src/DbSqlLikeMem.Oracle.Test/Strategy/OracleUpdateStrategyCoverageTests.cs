@@ -17,8 +17,8 @@ public sealed class OracleUpdateStrategyCoverageTests(
     {
         var db = new OracleDbMock();
         var users = db.AddTable("users");
-        users.Columns["id"] = new ColumnDef(0, DbType.Int32, false);
-        users.Columns["total"] = new ColumnDef(1, DbType.Decimal, true);
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("total", DbType.Decimal, true, decimalPlaces: 2);
         users.Add(new Dictionary<int, object?> { [0] = 1, [1] = 10m });
 
         using var cnn = new OracleConnectionMock(db);
@@ -42,8 +42,8 @@ public sealed class OracleUpdateStrategyCoverageTests(
     {
         var db = new OracleDbMock();
         var users = db.AddTable("users");
-        users.Columns["id"] = new ColumnDef(0, DbType.Int32, false);
-        users.Columns["total"] = new ColumnDef(1, DbType.Decimal, false);
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("total", DbType.Decimal, false, decimalPlaces: 2);
         users.Add(new Dictionary<int, object?> { [0] = 1, [1] = 10m });
 
         using var cnn = new OracleConnectionMock(db);
@@ -53,6 +53,6 @@ public sealed class OracleUpdateStrategyCoverageTests(
         };
 
         var ex = Assert.Throws<OracleMockException>(() => cmd.ExecuteNonQuery());
-        Assert.Contains(DbSqlLikeMem.Resources.SqlExceptionMessages.ColumnDoesNotAcceptNull(), ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlExceptionMessages.ColumnDoesNotAcceptNull(), ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }

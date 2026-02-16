@@ -11,7 +11,7 @@ public static class DbSeedExtensions
     public static DbConnectionMockBase Define(
         this DbConnectionMockBase cnn,
         string tableName,
-        IColumnDictionary? columns = null,
+        IEnumerable<Col>? columns = null,
         IEnumerable<Dictionary<int, object?>>? rows = null,
         string? schemaName = null)
     {
@@ -28,7 +28,7 @@ public static class DbSeedExtensions
     public static ITableMock DefineTable(
         this DbConnectionMockBase cnn,
         string tableName,
-        IColumnDictionary? columns = null,
+        IEnumerable<Col>? columns = null,
         IEnumerable<Dictionary<int, object?>>? rows = null,
         string? schemaName = null)
     {
