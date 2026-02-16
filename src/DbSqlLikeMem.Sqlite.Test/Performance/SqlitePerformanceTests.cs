@@ -24,12 +24,11 @@ public sealed class SqlitePerformanceTests : XUnitTestBase
     public SqlitePerformanceTests(ITestOutputHelper helper) : base(helper)
     {
         var db = new SqliteDbMock();
-        db.AddTable("Users", new ColumnDictionary
-        {
-            { "Id", new(0, DbType.Int32, false) },
-            { "Name", new(1, DbType.String, false) },
-            { "Email", new(2, DbType.String, true) }
-        });
+        db.AddTable("Users", [
+            new("Id", DbType.Int32, false) ,
+            new("Name", DbType.String, false) ,
+            new("Email", DbType.String, true)
+        ]);
 
         _connection = new SqliteConnectionMock(db);
         _connection.Open();

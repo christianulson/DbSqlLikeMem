@@ -942,10 +942,10 @@ internal sealed class SqlQueryParser
         {
             // Fail fast on known-invalid patterns before any splitting/normalization.
             // Example: COUNT(DISTINCT DISTINCT id)
-            if (System.Text.RegularExpressions.Regex.IsMatch(
+            if (Regex.IsMatch(
                     r,
                     @"\bDISTINCT\s+DISTINCT\b",
-                    System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                    RegexOptions.IgnoreCase))
             {
                 throw new InvalidOperationException("invalid: duplicated DISTINCT keyword");
             }
@@ -957,10 +957,10 @@ internal sealed class SqlQueryParser
             // Fail fast: duplicated DISTINCT inside function calls like COUNT(DISTINCT DISTINCT id)
             // (the expression parser also checks, but this guard prevents corpus regressions when
             // select-item splitting/reconstruction changes token boundaries).
-            if (System.Text.RegularExpressions.Regex.IsMatch(
+            if (Regex.IsMatch(
                     expr,
                     @"\bDISTINCT\s+DISTINCT\b",
-                    System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                    RegexOptions.IgnoreCase))
             {
                 throw new InvalidOperationException("invalid: duplicated DISTINCT keyword");
             }
@@ -1827,7 +1827,7 @@ internal sealed class SqlQueryParser
         throw new InvalidOperationException($"Token inesperado após SELECT: {t.Kind} '{t.Text}'");
     }
 
-    private static readonly HashSet<string> JoinStart = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> JoinStart = new(StringComparer.OrdinalIgnoreCase)
     {
         "JOIN", "INNER", "LEFT", "RIGHT", "CROSS", "OUTER"
     };
@@ -1866,7 +1866,7 @@ internal sealed class SqlQueryParser
         throw new InvalidOperationException($"Não encontrei nenhum destes tokens no nível top-level: {string.Join(", ", words)}");
     }
 
-    private static readonly HashSet<string> ClauseKeywordToken = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> ClauseKeywordToken = new(StringComparer.OrdinalIgnoreCase)
     {
         "FROM"   ,
         "WHERE"  ,

@@ -27,8 +27,8 @@ public sealed class PostgreSqlLinqProviderTest
     {
         var db = new NpgsqlDbMock();
         var t = db.AddTable("users");
-        t.Columns["Id"] = new ColumnDef(0, DbType.Int32, false);
-        t.Columns["Name"] = new ColumnDef(1, DbType.String, false);
+        t.AddColumn("Id", DbType.Int32, false);
+        t.AddColumn("Name", DbType.String, false);
         t.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "A" } });
         t.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, "B" } });
 

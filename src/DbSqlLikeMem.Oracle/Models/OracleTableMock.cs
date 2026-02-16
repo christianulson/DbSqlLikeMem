@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace DbSqlLikeMem.Oracle;
 
 /// <summary>
@@ -7,7 +9,7 @@ namespace DbSqlLikeMem.Oracle;
 internal class OracleTableMock(
         string tableName,
         OracleSchemaMock schema,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null
         ) : TableMock(tableName, schema, columns, rows)
 {    public override string? CurrentColumn
@@ -24,7 +26,7 @@ internal class OracleTableMock(
         DbType dbType,
         bool isNullable,
         IDataParameterCollection? pars = null,
-        IColumnDictionary? colDict = null)
+        ImmutableDictionary<string, ColumnDef>? colDict = null)
     {
         var exp = OracleValueHelper.Resolve(token, dbType, isNullable, pars, colDict);
         return exp;

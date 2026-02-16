@@ -33,7 +33,7 @@ internal abstract class AstQueryExecutorBase(
 
         var dialectType = _dialect.GetType();
         var mi = typeof(SqlExpressionParser)
-            .GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .GetMethods(BindingFlags.Public | BindingFlags.Static)
             .FirstOrDefault(m =>
             {
                 if (m.Name != nameof(SqlExpressionParser.ParseWhere)) return false;

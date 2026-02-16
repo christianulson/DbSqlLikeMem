@@ -16,16 +16,16 @@ public sealed class PostgreSqlMockTests
         ) : base(helper)
     {
         var db = new NpgsqlDbMock();
-        db.AddTable("Users", new ColumnDictionary{
-            { "Id", new(0, DbType.Int32, false) },
-            { "Name", new(1, DbType.String, false) },
-            { "Email", new(2, DbType.String, true) }
-        });
-        db.AddTable("Orders", new ColumnDictionary{
-            { "OrderId", new(0, DbType.Int32, false) },
-            { "UserId", new(1, DbType.Int32, false) },
-            { "Amount", new(0, DbType.Decimal, false) }
-        });
+        db.AddTable("Users", [
+            new("Id", DbType.Int32, false),
+            new("Name", DbType.String, false) ,
+            new ("Email", DbType.String, true)
+        ]);
+        db.AddTable("Orders", [
+            new("OrderId",  DbType.Int32, false),
+            new("UserId",  DbType.Int32, false),
+            new("Amount",  DbType.Decimal, false, decimalPlaces: 2)
+        ]);
         _connection = new NpgsqlConnectionMock(db);
         _connection.Open();
     }
@@ -43,7 +43,7 @@ public sealed class PostgreSqlMockTests
         };
         var rowsAffected = command.ExecuteNonQuery();
         Assert.Equal(1, rowsAffected);
-        Assert.Equal("John Doe",_connection.GetTable("Users")[0][1]);
+        Assert.Equal("John Doe", _connection.GetTable("Users")[0][1]);
     }
 
     /// <summary>
@@ -62,7 +62,7 @@ public sealed class PostgreSqlMockTests
         command.CommandText = "UPDATE Users SET Name = 'Jane Doe' WHERE Id = 1";
         var rowsAffected = command.ExecuteNonQuery();
         Assert.Equal(1, rowsAffected);
-        Assert.Equal("Jane Doe",_connection.GetTable("Users")[0][1]);
+        Assert.Equal("Jane Doe", _connection.GetTable("Users")[0][1]);
     }
 
     /// <summary>

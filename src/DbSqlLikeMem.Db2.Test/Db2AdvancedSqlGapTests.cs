@@ -16,19 +16,19 @@ public sealed class Db2AdvancedSqlGapTests : XUnitTestBase
     {
         var db = new Db2DbMock();
         var users = db.AddTable("users");
-        users.Columns["id"] = new(0, DbType.Int32, false);
-        users.Columns["name"] = new(1, DbType.String, false);
-        users.Columns["tenantid"] = new(2, DbType.Int32, false);
-        users.Columns["created"] = new(3, DbType.DateTime, false);
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
+        users.AddColumn("created", DbType.DateTime, false);
 
         users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = 10, [3] = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Local) });
         users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob", [2] = 10, [3] = new DateTime(2020, 1, 2, 0, 0, 0, DateTimeKind.Local) });
         users.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Jane", [2] = 20, [3] = new DateTime(2020, 1, 3, 0, 0, 0, DateTimeKind.Local) });
 
         var orders = db.AddTable("orders");
-        orders.Columns["id"] = new(0, DbType.Int32, false);
-        orders.Columns["userid"] = new(1, DbType.Int32, false);
-        orders.Columns["amount"] = new(2, DbType.Decimal, false);
+        orders.AddColumn("id", DbType.Int32, false);
+        orders.AddColumn("userid", DbType.Int32, false);
+        orders.AddColumn("amount", DbType.Decimal, false, decimalPlaces: 2);
 
         orders.Add(new Dictionary<int, object?> { [0] = 10, [1] = 1, [2] = 10m });
         orders.Add(new Dictionary<int, object?> { [0] = 11, [1] = 1, [2] = 5m });

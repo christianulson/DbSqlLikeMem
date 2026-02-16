@@ -16,8 +16,8 @@ public sealed class CsvLoaderAndIndexTests(
     {
         var db = new SqliteDbMock();
         var tb = db.AddTable("users");
-        tb.Columns["id"] = new(0, DbType.Int32, false);
-        tb.Columns["name"] = new(1, DbType.String, false);
+        tb.AddColumn("id", DbType.Int32, false);
+        tb.AddColumn("name", DbType.String, false);
 
         using var cnn = new SqliteConnectionMock(db);
 
@@ -42,7 +42,7 @@ public sealed class CsvLoaderAndIndexTests(
     {
         var db = new SqliteDbMock();
         var tb = db.AddTable("users");
-        tb.Columns["id"] = new(0, DbType.Int32, false);
+        tb.AddColumn("id", DbType.Int32, false);
 
         var ex = Assert.Throws<SqliteMockException>(() => tb.GetColumn("nope"));
         Assert.Equal(1054, ex.ErrorCode);
@@ -57,8 +57,8 @@ public sealed class CsvLoaderAndIndexTests(
     {
         var db = new SqliteDbMock();
         var tb = db.AddTable("users");
-        tb.Columns["id"] = new(0, DbType.Int32, false);
-        tb.Columns["name"] = new(1, DbType.String, false);
+        tb.AddColumn("id", DbType.Int32, false);
+        tb.AddColumn("name", DbType.String, false);
 
         tb.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John" });
         tb.Add(new Dictionary<int, object?> { [0] = 2, [1] = "John" });
@@ -80,8 +80,8 @@ public sealed class CsvLoaderAndIndexTests(
     {
         var db = new SqliteDbMock();
         var tb = db.AddTable("users");
-        tb.Columns["id"] = new(0, DbType.Int32, false);
-        tb.Columns["name"] = new(1, DbType.String, false);
+        tb.AddColumn("id", DbType.Int32, false);
+        tb.AddColumn("name", DbType.String, false);
 
         tb.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John" });
 

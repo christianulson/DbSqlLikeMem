@@ -15,8 +15,8 @@ public sealed class MySqlTransactionReliabilityTests
     {
         var db = new MySqlDbMock();
         var table = db.AddTable("Users");
-        table.Columns["Id"] = new(0, DbType.Int32, false);
-        table.Columns["Name"] = new(1, DbType.String, false);
+        table.AddColumn("Id", DbType.Int32, false);
+        table.AddColumn("Name", DbType.String, false);
 
         using var connection = new MySqlConnectionMock(db);
         connection.Open();
@@ -76,8 +76,8 @@ public sealed class MySqlTransactionReliabilityTests
     {
         var db = new MySqlDbMock { ThreadSafe = true };
         var table = db.AddTable("Users");
-        table.Columns["Id"] = new(0, DbType.Int32, false);
-        table.Columns["Name"] = new(1, DbType.String, false);
+        table.AddColumn("Id", DbType.Int32, false);
+        table.AddColumn("Name", DbType.String, false);
 
         Parallel.For(1, 41, id =>
         {

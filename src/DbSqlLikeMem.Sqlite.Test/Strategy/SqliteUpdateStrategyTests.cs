@@ -312,7 +312,7 @@ public sealed class SqliteUpdateStrategyTests(
         };
 
         var ex = Assert.ThrowsAny<SqliteMockException>(() => command.ExecuteNonQuery());
-        Assert.Contains(DbSqlLikeMem.Resources.SqlExceptionMessages.DuplicateKey(string.Empty, string.Empty).Split('\'')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlExceptionMessages.DuplicateKey(string.Empty, string.Empty).Split('\'')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     // ---------------- helpers ----------------
@@ -326,31 +326,28 @@ public sealed class SqliteUpdateStrategyTests(
     private static ITableMock NewUsersTable_Min(SqliteDbMock db)
     {
         var table = db.AddTable("users");
-        table.Columns["id"] = new(0, DbType.Int32, false);
-        table.Columns["name"] = new(1, DbType.String, false);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("name", DbType.String, false);
         return table;
     }
 
     private static ITableMock NewUsersTable_WithEmail(SqliteDbMock db)
     {
         var table = db.AddTable("users");
-        table.Columns["id"] = new(0, DbType.Int32, false);
-        table.Columns["name"] = new(1, DbType.String, false);
-        table.Columns["email"] = new(2, DbType.String, false);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("name", DbType.String, false);
+        table.AddColumn("email", DbType.String, false);
         return table;
     }
 
     private static ITableMock NewGenTable(SqliteDbMock db)
     {
         var table = db.AddTable("gen");
-        table.Columns["id"] = new(0, DbType.Int32, false);
-        table.Columns["base"] = new(1, DbType.Int32, false);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("base", DbType.Int32, false);
 
-        table.Columns["gen"] = new(2, DbType.Int32, false)
-        {
-            // qualquer GetGenValue != null faz UpdateRowValue pular essa coluna
-            GetGenValue = (row, t) => ((int?)row[1] ?? 0) * 2
-        };
+        table.AddColumn("gen", DbType.Int32, false)
+            .GetGenValue = (row, t) => ((int?)row[1] ?? 0) * 2;
 
         return table;
     }

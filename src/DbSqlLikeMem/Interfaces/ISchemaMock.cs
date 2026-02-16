@@ -16,7 +16,7 @@ public interface ISchemaMock
     /// <returns>EN: Created table. PT: Tabela criada.</returns>
     TableMock CreateTable(
         string tableName,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null);
 
     /// <summary>

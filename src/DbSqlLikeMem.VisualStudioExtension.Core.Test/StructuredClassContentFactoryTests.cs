@@ -27,10 +27,10 @@ public sealed class StructuredClassContentFactoryTests
 
         var content = StructuredClassContentFactory.Build(dbObject, "Sample.Namespace");
 
-        Assert.Contains("table.Columns[\"Id\"] = new(0, DbType.Int32, false, true);", content);
-        Assert.Contains("table.PrimaryKeyIndexes.Add(table.Columns[\"Id\"]?.Index);", content);
+        Assert.Contains("table.AddColumn(\"Id\", DbType.Int32, false, true", content);
+        Assert.Contains("table.AddPrimaryKeyIndexes(\"Id\");", content);
         Assert.Contains("table.CreateIndex(new IndexDef(\"IX_Orders_CustomerId\", [\"CustomerId\"], unique: false));", content);
-        Assert.Contains("table.ForeignKeys.Add((\"CustomerId\", \"Customers\", \"Id\"));", content);
+        Assert.Contains("table.CreateForeignKey(\"CustomerId\", \"Customers\", \"Id\");", content);
     }
 
     /// <summary>
@@ -54,8 +54,7 @@ public sealed class StructuredClassContentFactoryTests
 
         var content = StructuredClassContentFactory.Build(dbObject);
 
-        Assert.Contains("table.PrimaryKeyIndexes.Add(table.Columns[\"OrderId\"]?.Index);", content);
-        Assert.Contains("table.PrimaryKeyIndexes.Add(table.Columns[\"ItemId\"]?.Index);", content);
+        Assert.Contains("table.AddPrimaryKeyIndexes(\"OrderId\",\"ItemId\");", content);
         Assert.Contains("table.CreateIndex(new IndexDef(\"PRIMARY\", [\"OrderId\", \"ItemId\"], unique: true));", content);
     }
 
@@ -81,8 +80,8 @@ public sealed class StructuredClassContentFactoryTests
 
         var content = StructuredClassContentFactory.Build(dbObject, databaseType: "SqlServer");
 
-        Assert.Contains("table.Columns[\"IsEnabled\"] = new(0, DbType.Byte, false);", content);
-        Assert.Contains("table.Columns[\"BitMask\"] = new(1, DbType.Boolean, false);", content);
+        Assert.Contains("table.AddColumn(\"IsEnabled\", DbType.Byte, false", content);
+        Assert.Contains("table.AddColumn(\"BitMask\", DbType.Boolean, false", content);
     }
     /// <summary>
     /// Executes this API operation.
@@ -105,8 +104,8 @@ public sealed class StructuredClassContentFactoryTests
 
         var content = StructuredClassContentFactory.Build(dbObject);
 
-        Assert.Contains("table.Columns[\"IsEnabled\"] = new(0, DbType.Boolean, false);", content);
-        Assert.Contains("table.Columns[\"BitMask\"] = new(1, DbType.UInt64, false);", content);
-        Assert.Contains("table.Columns[\"IsEnabled\"].DefaultValue = true;", content);
+        Assert.Contains("table.AddColumn(\"IsEnabled\", DbType.Boolean, false", content);
+        Assert.Contains("table.AddColumn(\"BitMask\", DbType.UInt64, false", content);
+        Assert.Contains(", defaultValue: true", content);
     }
 }

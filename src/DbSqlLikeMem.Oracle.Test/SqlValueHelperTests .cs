@@ -104,19 +104,18 @@ public sealed class SqlValueHelperTests(
     [Fact]
     public void Resolve_Enum_ShouldValidateAgainstColumnDef()
     {
-        var cols = new ColumnDictionary
-        {
-            ["Status"] = new ColumnDef(0, DbType.String, false)
-        };
-        cols["Status"].EnumValues.UnionWith(["active", "inactive"]);
+        var tb = new OracleDbMock().AddTable("tb");
+
+        tb.AddColumn("Status", DbType.String, false)
+        .EnumValues.UnionWith(["active", "inactive"]);
 
         OracleValueHelper.CurrentColumn = "Status";
 
-        var ok = OracleValueHelper.Resolve("'Active'", DbType.String, false, null, cols);
+        var ok = OracleValueHelper.Resolve("'Active'", DbType.String, false, null, tb.Columns);
         Assert.Equal("active", ok);
 
         var ex = Assert.Throws<OracleMockException>(() =>
-            OracleValueHelper.Resolve("'blocked'", DbType.String, false, null, cols));
+            OracleValueHelper.Resolve("'blocked'", DbType.String, false, null, tb.Columns));
         Assert.Equal(1265, ex.ErrorCode);
     }
 
@@ -127,25 +126,22 @@ public sealed class SqlValueHelperTests(
     [Fact]
     public void Resolve_Set_ShouldReturnHashSet_AndValidate()
     {
-        var cols = new ColumnDictionary
-        {
-            ["Tags"] = new ColumnDef(0, DbType.Int32, false)
-            {
-                EnumValues = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "a", "b", "c" }
-            }
-        };
+        var tb = new OracleDbMock().AddTable("tb");
+
+        tb.AddColumn("Tags", DbType.Int32, false,
+                enumValues: ["a", "b", "c"]);
 
         var prev = OracleValueHelper.CurrentColumn;
         try
         {
             OracleValueHelper.CurrentColumn = "Tags";
 
-            var ok = OracleValueHelper.Resolve("'a,b'", DbType.Int32, isNullable: false, pars: null, colDict: cols);
+            var ok = OracleValueHelper.Resolve("'a,b'", DbType.Int32, isNullable: false, pars: null, colDict: tb.Columns);
             var hs = Assert.IsType<HashSet<string>>(ok);
             Assert.True(hs.SetEquals(["a", "b"]));
 
             var ex = Assert.Throws<OracleMockException>(() =>
-                OracleValueHelper.Resolve("'a,x'", DbType.Int32, isNullable: false, pars: null, colDict: cols));
+                OracleValueHelper.Resolve("'a,x'", DbType.Int32, isNullable: false, pars: null, colDict: tb.Columns));
             Assert.Equal(1265, ex.ErrorCode);
         }
         finally
@@ -161,17 +157,16 @@ public sealed class SqlValueHelperTests(
     [Fact]
     public void Resolve_ShouldValidateStringSize()
     {
-        var cols = new ColumnDictionary
-        {
-            ["Name"] = new ColumnDef(0, DbType.String, false) { Size = 3 }
-        };
+        var tb = new OracleDbMock().AddTable("tb");
+
+        tb.AddColumn("Name", DbType.String, false, size: 3);
 
         var prev = OracleValueHelper.CurrentColumn;
         try
         {
             OracleValueHelper.CurrentColumn = "Name";
             var ex = Assert.Throws<OracleMockException>(() =>
-                OracleValueHelper.Resolve("'abcd'", DbType.String, false, null, cols));
+                OracleValueHelper.Resolve("'abcd'", DbType.String, false, null, tb.Columns));
             Assert.Equal(12899, ex.ErrorCode);
         }
         finally
@@ -187,17 +182,16 @@ public sealed class SqlValueHelperTests(
     [Fact]
     public void Resolve_ShouldValidateDecimalPlaces()
     {
-        var cols = new ColumnDictionary
-        {
-            ["Amount"] = new ColumnDef(0, DbType.Decimal, false) { DecimalPlaces = 2 }
-        };
+        var tb = new OracleDbMock().AddTable("tb");
+
+        tb.AddColumn("Amount", DbType.Decimal, false, decimalPlaces: 2);
 
         var prev = OracleValueHelper.CurrentColumn;
         try
         {
             OracleValueHelper.CurrentColumn = "Amount";
             var ex = Assert.Throws<OracleMockException>(() =>
-                OracleValueHelper.Resolve("10.123", DbType.Decimal, false, null, cols));
+                OracleValueHelper.Resolve("10.123", DbType.Decimal, false, null, tb.Columns));
             Assert.Equal(1438, ex.ErrorCode);
         }
         finally

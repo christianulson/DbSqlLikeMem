@@ -706,7 +706,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             var selectedObjects = ResolveSelectedObjects(node, objects).ToArray();
             var updates = new ConcurrentBag<(string Key, ObjectHealthResult Result)>();
 
-            var tasks = selectedObjects.Select(async dbObject =>
+            var tasks = selectedObjects.Select((Func<DatabaseObjectReference, Task>)(async dbObject =>
             {
                 token.ThrowIfCancellationRequested();
 
@@ -715,7 +715,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                     return;
                 }
 
-                var filePath = Path.Combine(objectMapping.OutputDirectory, ResolveFileName(objectMapping.FileNamePattern, connection, dbObject));
+                var filePath = Path.Combine((string)objectMapping.OutputDirectory, ResolveFileName((string)objectMapping.FileNamePattern, connection, dbObject));
                 var modelPath = Path.Combine(NormalizePath(templateConfiguration.ModelOutputDirectory), $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}Model.cs");
                 var repositoryPath = Path.Combine(NormalizePath(templateConfiguration.RepositoryOutputDirectory), $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}Repository.cs");
 
@@ -733,7 +733,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                 var snapshot = await GeneratedClassSnapshotReader.ReadAsync(filePath, dbObject, token);
                 var result = await checker.CheckAsync(connection, snapshot, metadataProvider, token);
                 updates.Add((BuildObjectKey(connection.Id, dbObject), result));
-            });
+            }));
 
             await Task.WhenAll(tasks);
 

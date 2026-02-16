@@ -31,10 +31,105 @@ public class MySqlCommandMock(
     /// EN: Gets or sets the associated connection.
     /// PT: Obtém ou define a conexão associada.
     /// </summary>
+    public new MySqlConnectionMock? Connection
+    {
+        get
+        {
+            return connection;
+        }
+        set
+        {
+            if (connection != value)
+                Transaction = null;
+
+            connection = value;
+        }
+    }
+
+    /// <summary>
+    /// EN: Gets or sets the associated connection.
+    /// PT: Obtém ou define a conexão associada.
+    /// </summary>
     protected override DbConnection? DbConnection
     {
         get => connection;
         set => connection = value as MySqlConnectionMock;
+    }
+
+    internal List<MySqlCommandMock>? Batch { get; private set; }
+    internal string? BatchableCommandText { get; private set; }
+
+    internal void AddToBatch(MySqlCommandMock command)
+    {
+        if (Batch == null)
+        {
+            Batch = new List<MySqlCommandMock>();
+        }
+
+        Batch.Add(command);
+    }
+
+    internal string? GetCommandTextForBatching()
+    {
+        if (BatchableCommandText == null)
+        {
+            if (string.Compare(CommandText.Substring(0, 6), "INSERT", StringComparison.OrdinalIgnoreCase) == 0)
+            {
+                var tk = new SqlTokenizer(CommandText, connection!.Db.Dialect);
+                var mySqlTokenizer = tk.Tokenize();
+                //string text = Connection.driver.Property("sql_mode").ToUpperInvariant();
+                //mySqlTokenizer.AnsiQuotes = text.IndexOf("ANSI_QUOTES") != -1;
+                //mySqlTokenizer.BackslashEscapes = text.IndexOf("NO_BACKSLASH_ESCAPES") == -1;
+                var i = 0;
+                for (string text2 = mySqlTokenizer[i].Text; text2 != null; text2 = mySqlTokenizer[i].Text)
+                {
+                    if (mySqlTokenizer[i].Text.ToUpperInvariant() == "VALUES"
+                        && mySqlTokenizer[i].Kind != SqlTokenKind.Symbol)
+                    {
+                        i++;
+                        text2 = mySqlTokenizer[i].Text;
+                        int num = 1;
+                        while (text2 != null)
+                        {
+                            BatchableCommandText += text2;
+                            i++;
+                            text2 = mySqlTokenizer[i].Text;
+                            if (text2 == "(")
+                            {
+                                num++;
+                            }
+                            else if (text2 == ")")
+                            {
+                                num--;
+                            }
+
+                            if (num == 0)
+                            {
+                                break;
+                            }
+                        }
+
+                        if (text2 != null)
+                        {
+                            BatchableCommandText += text2;
+                        }
+                        i++;
+                        text2 = mySqlTokenizer[i].Text;
+                        if (text2 != null && (text2 == "," || text2.ToUpperInvariant() == "ON"))
+                        {
+                            BatchableCommandText = null;
+                            break;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                BatchableCommandText = CommandText;
+            }
+        }
+
+        return BatchableCommandText;
     }
 
     private readonly MySqlDataParameterCollectionMock collectionMock = [];
@@ -209,10 +304,10 @@ public class MySqlCommandMock(
         if (sqlRaw.StartsWith("delete from ", StringComparison.OrdinalIgnoreCase))
             return false;
 
-        return !System.Text.RegularExpressions.Regex.IsMatch(
+        return !Regex.IsMatch(
             sqlRaw,
             @"^\s*delete\s+[^\s]+\s+from\s+",
-            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            RegexOptions.IgnoreCase);
     }
 
     private int ExecuteDropView(string sqlRaw)

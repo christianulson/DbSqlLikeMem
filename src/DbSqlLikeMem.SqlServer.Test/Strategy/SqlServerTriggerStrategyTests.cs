@@ -15,8 +15,8 @@ public sealed class SqlServerTriggerStrategyTests
     {
         var db = new SqlServerDbMock();
         var table = db.AddTable("users");
-        table.Columns["id"] = new(0, DbType.Int32, false);
-        table.Columns["name"] = new(1, DbType.String, false);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("name", DbType.String, false);
 
         var triggerTable = Assert.IsType<TableMock>(table, exactMatch: false);
         var events = new List<TableTriggerEvent>();
@@ -60,8 +60,8 @@ public sealed class SqlServerTriggerStrategyTests
         using var connection = new SqlServerConnectionMock(db);
 
         var temp = connection.AddTemporaryTable("#users");
-        temp.Columns["id"] = new(0, DbType.Int32, false);
-        temp.Columns["name"] = new(1, DbType.String, false);
+        temp.AddColumn("id", DbType.Int32, false);
+        temp.AddColumn("name", DbType.String, false);
 
         var calls = 0;
         var triggerTable = Assert.IsType<TableMock>(temp, exactMatch: false);

@@ -218,23 +218,23 @@ public sealed class OracleCommandDeleteTests(
     private static ITableMock NewUsersTable(OracleDbMock db)
     {
         var t = db.AddTable("users");
-        t.Columns["id"] = new ColumnDef(0, DbType.Int32, false);
-        t.Columns["name"] = new ColumnDef(1, DbType.String, false);
+        t.AddColumn("id", DbType.Int32, false);
+        t.AddColumn("name", DbType.String, false);
         return t;
     }
 
     private static ITableMock NewParentTable(OracleDbMock db)
     {
         var t = db.AddTable("parent");
-        t.Columns["id"] = new ColumnDef(0, DbType.Int32, false);
+        t.AddColumn("id", DbType.Int32, false);
         return t;
     }
 
     private static ITableMock NewChildTable(OracleDbMock db)
     {
         var t = db.AddTable("child");
-        t.Columns["id"] = new ColumnDef(0, DbType.Int32, false);
-        t.Columns["parent_id"] = new ColumnDef(1, DbType.Int32, false);
+        t.AddColumn("id", DbType.Int32, false);
+        t.AddColumn("parent_id", DbType.Int32, false);
         return t;
     }
 

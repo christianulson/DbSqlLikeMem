@@ -1,10 +1,13 @@
+using DbSqlLikeMem.Interfaces;
+using DbSqlLikeMem.Models;
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 
 namespace DbSqlLikeMem;
 
 /// <summary>
-/// EN: Base for an in-memory table with data, columns, and indexes.
+/// EN: Base for an in-memory table with data, columns, and _indexes.
 /// PT: Base de uma tabela em memória com dados, colunas e índices.
 /// </summary>
 public abstract class TableMock
@@ -22,12 +25,13 @@ public abstract class TableMock
     protected TableMock(
         string tableName,
         SchemaMock schema,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null)
     {
         TableName = tableName.NormalizeName();
         Schema = schema;
-        Columns = columns;
+        foreach (var c in columns)
+            AddColumn(c);
         AddRange(rows ?? []);
     }
 
@@ -42,42 +46,54 @@ public abstract class TableMock
     /// PT: Schema ao qual a tabela pertence.
     /// </summary>
     public SchemaMock Schema { get; }
-    
+
     /// <summary>
     /// EN: Next identity value for auto-increment columns.
     /// PT: Próximo valor de identidade para colunas auto incrementais.
     /// </summary>
     public int NextIdentity { get; set; } = 1;
 
+    private readonly ColumnDictionary _columns = [];
     /// <summary>
     /// EN: Table column dictionary.
     /// PT: Dicionário de colunas da tabela.
     /// </summary>
-    public IColumnDictionary Columns { get; }
+    public ImmutableDictionary<string, ColumnDef> Columns => _columns.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase);
 
     private List<Dictionary<int, object?>> Items { get; } = [];
 
+    internal HashSet<int> _primaryKeyIndexes = [];
+    
     // ---------- Wave D : índices ---------------------------------
     /// <summary>
     /// EN: Indexes of columns that form the primary key.
     /// PT: Índices das colunas que formam a chave primária.
     /// </summary>
-    public HashSet<int> PrimaryKeyIndexes { get; } = [];
+    public IReadOnlyHashSet<int> PrimaryKeyIndexes => new ReadOnlyHashSet<int>(_primaryKeyIndexes);
 
+    public void AddPrimaryKeyIndexes(params string[] columns)
+    {
+        foreach (var colName in columns)
+            _primaryKeyIndexes.Add(Columns[colName].Index);
+        if (_primaryKeyIndexes.Count != columns.Length)
+            throw new InvalidOperationException("Colunas da PK Duplicadas");
+    }
 
     private readonly List<(string Col, string RefTable, string RefCol)> _foreignKeys = [];
-    
+
     /// <summary>
     /// EN: List of foreign keys defined in the table.
     /// PT: Lista de chaves estrangeiras definidas na tabela.
     /// </summary>
     public IReadOnlyList<(string Col, string RefTable, string RefCol)> ForeignKeys => _foreignKeys;
 
+    internal IndexDictionary _indexes = [];
+
     /// <summary>
     /// EN: Indexes declared on the table.
     /// PT: Índices declarados na tabela.
     /// </summary>
-    public IndexDictionary Indexes { get; } = [];
+    public ImmutableDictionary<string, IndexDef> Indexes => _indexes.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase);
 
     // nome-do-índice → chave-derivada(string) → posições (List<int>)
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, List<int>>> _ix
@@ -116,6 +132,70 @@ public abstract class TableMock
             handler(context);
     }
 
+
+    /// <summary>
+    /// EN: Add new Vollumn to Table
+    /// PT: Incluir nova coluna na tabela
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="dbType"></param>
+    /// <param name="nullable"></param>
+    /// <param name="size"></param>
+    /// <param name="decimalPlaces"></param>
+    /// <param name="identity"></param>
+    /// <param name="defaultValue"></param>
+    /// <param name="enumValues"></param>
+    /// <returns></returns>
+    public ColumnDef AddColumn(
+        string name,
+        DbType dbType,
+        bool nullable,
+        int? size = null,
+        int? decimalPlaces = null,
+        bool identity = false,
+        object? defaultValue = null,
+        IList<string>? enumValues = null)
+    {
+        var idx = _columns.Count;
+        var col = new ColumnDef(
+            table: this,
+            index: idx,
+            dbType: dbType,
+            nullable: nullable,
+            size: size,
+            decimalPlaces: decimalPlaces,
+            identity: identity,
+            defaultValue: defaultValue,
+            enumValues: enumValues);
+
+        _columns.Add(name, col);
+        return col;
+    }
+
+    /// <summary>
+    /// EN: Add new Vollumn to Table
+    /// PT: Incluir nova coluna na tabela
+    /// </summary>
+    /// <returns></returns>
+    public ColumnDef AddColumn(
+        Col column)
+    {
+        var idx = _columns.Count;
+        var col = new ColumnDef(
+            table: this,
+            index: idx,
+            dbType: column.dbType,
+            nullable: column.nullable,
+            size: column.size,
+            decimalPlaces: column.decimalPlaces,
+            identity: column.identity,
+            defaultValue: column.defaultValue,
+            enumValues: column.enumValues);
+
+        _columns.Add(column.name, col);
+        return col;
+    }
+
     /// <summary>
     /// EN: Returns the ColumnDef for <paramref name="columnName"/> or throws UnknownColumn.
     /// PT: Retorna o ColumnDef para <paramref name="columnName"/>
@@ -146,9 +226,9 @@ public abstract class TableMock
         ArgumentNullExceptionCompatible.ThrowIfNull(def, nameof(def));
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(def.Name, nameof(def.Name));
         var name = def.Name.NormalizeName();
-        if (Indexes.ContainsKey(name))
+        if (_indexes.ContainsKey(name))
             throw new InvalidOperationException($"Índice '{name}' já existe.");
-        Indexes.Add(name, def);
+        _indexes.Add(name, def);
         RebuildIndex(def);
     }
 
@@ -180,7 +260,7 @@ public abstract class TableMock
             return null;
 
         // Backward-compatible lookup: callers often pass raw values for single-column
-        // indexes (e.g. "John"). Internally keys are serialized, so try both formats.
+        // _indexes (e.g. "John"). Internally keys are serialized, so try both formats.
         if (map.TryGetValue(key.NormalizeName(), out var list))
             return list;
 
@@ -191,13 +271,13 @@ public abstract class TableMock
     }
 
     /// <summary>
-    /// EN: Updates indexes after inserting or changing a row.
+    /// EN: Updates _indexes after inserting or changing a row.
     /// PT: Atualiza os índices após inserir ou alterar uma linha.
     /// </summary>
     /// <param name="rowIdx">EN: Changed row index. PT: Índice da linha alterada.</param>
     public void UpdateIndexesWithRow(int rowIdx)
     {
-        foreach (var it in Indexes)
+        foreach (var it in _indexes)
         {
             var key = BuildIndexKey(it.Value, Items[rowIdx]);
             _ix[it.Key].AddOrUpdate(key, [rowIdx], (_, list) => { list.Add(rowIdx); return list; });
@@ -205,12 +285,12 @@ public abstract class TableMock
     }
 
     /// <summary>
-    /// EN: Rebuilds all table indexes.
+    /// EN: Rebuilds all table _indexes.
     /// PT: Reconstrói todos os índices da tabela.
     /// </summary>
     public void RebuildAllIndexes()
     {
-        foreach (var ix in Indexes)
+        foreach (var ix in _indexes)
             RebuildIndex(ix.Value);
     }
 
@@ -220,15 +300,15 @@ public abstract class TableMock
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(idx, nameof(idx));
         ArgumentNullExceptionCompatible.ThrowIfNull(row, nameof(row));
-        return string.Concat(idx.KeyCols.Select(colName =>
+        return string.Concat(idx.KeyCols.Select((Func<string, string>)(colName =>
         {
             var ci = Columns[colName];
             if (ci.GetGenValue != null)
                 return SerializeIndexKeyPart(ci.GetGenValue(row, this));
 
             var value = row.TryGetValue(ci.Index, out var v) ? v : null;
-            return SerializeIndexKeyPart(value);
-        }));
+            return SerializeIndexKeyPart((object?)value);
+        })));
     }
 
     internal string BuildIndexKeyFromValues(
@@ -238,12 +318,12 @@ public abstract class TableMock
         ArgumentNullExceptionCompatible.ThrowIfNull(idx, nameof(idx));
         ArgumentNullExceptionCompatible.ThrowIfNull(valuesByColumn, nameof(valuesByColumn));
 
-        return string.Concat(idx.KeyCols.Select(colName =>
+        return string.Concat(idx.KeyCols.Select((Func<string, string>)(colName =>
         {
             var normalized = colName.NormalizeName();
             valuesByColumn.TryGetValue(normalized, out var value);
-            return SerializeIndexKeyPart(value);
-        }));
+            return SerializeIndexKeyPart((object?)value);
+        })));
     }
 
     private static string SerializeIndexKeyPart(object? value)
@@ -344,7 +424,7 @@ public abstract class TableMock
         RefreshPersistedComputedValues(value);
         EnsureUniqueOnInsert(value);
         Items.Add(value);
-        // Update indexes with the new row
+        // Update _indexes with the new row
         int newIdx = Count - 1;
         UpdateIndexesWithRow(newIdx);
     }
@@ -383,12 +463,12 @@ public abstract class TableMock
 
     internal void EnsureUniqueOnInsert(Dictionary<int, object?> newRow)
     {
-        if (PrimaryKeyIndexes.Count > 0)
+        if (_primaryKeyIndexes.Count > 0)
         {
             for (int i = 0; i < Count; i++)
             {
                 var pks = new List<string>();
-                foreach (var pkIdx in PrimaryKeyIndexes)
+                foreach (var pkIdx in _primaryKeyIndexes)
                 {
                     if (newRow.TryGetValue(pkIdx, out var pkVal)
                         && this[i].TryGetValue(pkIdx, out var cur)
@@ -397,12 +477,12 @@ public abstract class TableMock
                         pks.Add($"{Columns.First(_ => _.Value.Index == pkIdx).Key}: {pkVal}");
                     }
                 }
-                if (PrimaryKeyIndexes.Count == pks.Count)
+                if (_primaryKeyIndexes.Count == pks.Count)
                     throw DuplicateKey(TableName, "PRIMARY", string.Join(",", pks));
             }
         }
 
-        foreach (var idx in Indexes.GetUnique())
+        foreach (var idx in _indexes.GetUnique())
         {
             var key = BuildIndexKey(idx, newRow);
             var hits = Lookup(idx, key);
@@ -419,12 +499,12 @@ public abstract class TableMock
         conflictIndexName = null;
         conflictKey = null;
 
-        if (PrimaryKeyIndexes.Count > 0)
+        if (_primaryKeyIndexes.Count > 0)
         {
             for (int i = 0; i < Count; i++)
             {
                 var pks = new List<string>();
-                foreach (var pkIdx in PrimaryKeyIndexes)
+                foreach (var pkIdx in _primaryKeyIndexes)
                 {
                     if (newRow.TryGetValue(pkIdx, out var pkVal)
                         && this[i].TryGetValue(pkIdx, out var cur)
@@ -433,7 +513,7 @@ public abstract class TableMock
                         pks.Add($"{Columns.First(_ => _.Value.Index == pkIdx).Key}: {pkVal}");
                     }
                 }
-                if (PrimaryKeyIndexes.Count == pks.Count)
+                if (_primaryKeyIndexes.Count == pks.Count)
                 {
                     conflictIndexName = "PRIMARY";
                     conflictKey = string.Join(",", pks);
@@ -442,7 +522,7 @@ public abstract class TableMock
             }
         }
 
-        foreach (var idx in Indexes.GetUnique())
+        foreach (var idx in _indexes.GetUnique())
         {
             var key = BuildIndexKey(idx, newRow);
             var hits = Lookup(idx, key);
@@ -467,7 +547,7 @@ public abstract class TableMock
         int rowIdx,
         IReadOnlyCollection<string> changedCols)
     {
-        foreach (var ix in Indexes.GetUnique())
+        foreach (var ix in _indexes.GetUnique())
         {
             if (!ix.KeyCols.Intersect(changedCols, StringComparer.OrdinalIgnoreCase).Any()) continue;
 
@@ -564,7 +644,7 @@ public abstract class TableMock
                     else
                     {
                         var parts = inner.Split(',')
-                            .Select(_=>_.Trim())
+                            .Select(_ => _.Trim())
                             .ToArray();
 
                         var tmp = new List<object?>();
@@ -618,7 +698,6 @@ public abstract class TableMock
 
             return false;
         });
-
 
     private static IEnumerable<object?> ResolveInSubqueryCandidates(
         ITableMock table,
@@ -724,7 +803,7 @@ public abstract class TableMock
     /// EN: Backs up current rows.
     /// PT: Faz backup das linhas atuais.
     /// </summary>
-    public void Backup() => _backup = [.. this.Select(row => row.ToDictionary(_=>_.Key, _=>_.Value))];
+    public void Backup() => _backup = [.. this.Select(row => row.ToDictionary(_ => _.Key, _ => _.Value))];
 
     /// <summary>
     /// EN: Restores the previous backup, if any.
@@ -738,7 +817,7 @@ public abstract class TableMock
         Items.Clear();
         foreach (var row in _backup) Add(row);
 
-        foreach (var ix in Indexes)
+        foreach (var ix in _indexes)
             RebuildIndex(ix.Value);
     }
 
@@ -779,7 +858,7 @@ public abstract class TableMock
         DbType dbType,
         bool isNullable,
         IDataParameterCollection? pars = null,
-        IColumnDictionary? colDict = null);
+        ImmutableDictionary<string, ColumnDef>? colDict = null);
 
     /// <summary>
     /// EN: Creates an exception for an unknown column.
@@ -819,7 +898,7 @@ public abstract class TableMock
     /// Auto-generated summary.
     /// </summary>
     public IEnumerator<IReadOnlyDictionary<int, object?>> GetEnumerator()
-        => Items.Select(_=> new ReadOnlyDictionary<int, object?>(_)).ToList().AsReadOnly().GetEnumerator();
+        => Items.Select(_ => new ReadOnlyDictionary<int, object?>(_)).ToList().AsReadOnly().GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator()
         => GetEnumerator();

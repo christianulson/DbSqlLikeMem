@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
@@ -7,7 +9,7 @@ namespace DbSqlLikeMem.SqlServer;
 public class SqlServerTableMock(
         string tableName,
         SqlServerSchemaMock schema,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null
         ) : TableMock(tableName, schema, columns, rows)
 {
@@ -27,7 +29,7 @@ public class SqlServerTableMock(
         DbType dbType,
         bool isNullable,
         IDataParameterCollection? pars = null,
-        IColumnDictionary? colDict = null)
+        ImmutableDictionary<string, ColumnDef>? colDict = null)
     {
         var exp = SqlServerValueHelper.Resolve(token, dbType, isNullable, pars, colDict);
         return exp;

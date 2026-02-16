@@ -16,8 +16,8 @@ public sealed class Db2TransactionTests(
         // Arrange
         var db = new Db2DbMock();
         var table = db.AddTable("users");
-        table.Columns["id"] = new(0, DbType.Int32, false);
-        table.Columns["name"] = new(1, DbType.String, false);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("name", DbType.String, false);
 
         using var connection = new Db2ConnectionMock(db);
         connection.Open();
@@ -50,8 +50,8 @@ public sealed class Db2TransactionTests(
         // Arrange
         var db = new Db2DbMock();
         var table = db.AddTable("users");
-        table.Columns["id"] = new(0, DbType.Int32, false);
-        table.Columns["name"] = new(1, DbType.String, false);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("name", DbType.String, false);
 
         using var connection = new Db2ConnectionMock(db);
         connection.Open();

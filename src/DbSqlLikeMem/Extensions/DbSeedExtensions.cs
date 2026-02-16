@@ -11,7 +11,7 @@ public static class DbSeedExtensions
     public static DbConnectionMockBase Define(
         this DbConnectionMockBase cnn,
         string tableName,
-        IColumnDictionary? columns = null,
+        IEnumerable<Col>? columns = null,
         IEnumerable<Dictionary<int, object?>>? rows = null,
         string? schemaName = null)
     {
@@ -28,7 +28,7 @@ public static class DbSeedExtensions
     public static ITableMock DefineTable(
         this DbConnectionMockBase cnn,
         string tableName,
-        IColumnDictionary? columns = null,
+        IEnumerable<Col>? columns = null,
         IEnumerable<Dictionary<int, object?>>? rows = null,
         string? schemaName = null)
     {
@@ -65,22 +65,17 @@ public static class DbSeedExtensions
         if (tb!.Columns.ContainsKey(column))
             throw new InvalidOperationException($"Coluna '{column}' já existe em '{tableName}'.");
 
-        var idx = tb.Columns.Count;
         var dbType = MapTypeToDbType(typeof(T));
 
-        tb.Columns[column] = new ColumnDef
-        {
-            Index = idx,
-            DbType = dbType,
-            Nullable = nullable,
-            Identity = identity,
-            DefaultValue = defaultValue,
-            Size = size,
-            DecimalPlaces = decimalPlaces
-        };
-
-        // opcional: armazenar PK info, se precisar depois
-        if (pk) tb.PrimaryKeyIndexes.Add(idx);
+        tb.AddColumn(
+            name: column,
+            dbType: dbType,
+            nullable: nullable,
+            decimalPlaces: decimalPlaces,
+            size: size,
+            identity: identity,
+            defaultValue: defaultValue
+        );
 
         if (references is not null)
         {
@@ -111,27 +106,18 @@ public static class DbSeedExtensions
         if (tb.Columns.ContainsKey(column))
             throw new InvalidOperationException($"Coluna '{column}' já existe em '{tb}'.");
 
-        var idx = tb.Columns.Count;
         var dbType = MapTypeToDbType(typeof(T));
 
-        tb.Columns[column] = new ColumnDef
-        {
-            Index = idx,
-            DbType = dbType,
-            Nullable = nullable,
-            Identity = identity,
-            DefaultValue = defaultValue,
-            Size = size,
-            DecimalPlaces = decimalPlaces,
-            EnumValues = enumOrSetValues?.Length > 0
-                ? new HashSet<string>(
-                    enumOrSetValues.Select(v => v.ToLower(CultureInfo.CurrentCulture)),
-                    StringComparer.OrdinalIgnoreCase)
-                : []
-        };
-
-        // opcional: armazenar PK info, se precisar depois
-        if (pk) tb.PrimaryKeyIndexes.Add(idx);
+        tb.AddColumn(
+            name: column,
+            dbType: dbType,
+            nullable: nullable,
+            decimalPlaces: decimalPlaces,
+            size: size,
+            identity: identity,
+            defaultValue: defaultValue,
+            enumValues: enumOrSetValues
+        );
 
         if (references is not null)
         {

@@ -15,7 +15,7 @@ public sealed class MySqlTriggerStrategyTests
     {
         var db = new MySqlDbMock();
         var table = db.AddTable("users");
-        table.Columns["id"] = new(0, DbType.Int32, false);
+        table.AddColumn("id", DbType.Int32, false);
 
         var calls = 0;
         var triggerTable = Assert.IsType<TableMock>(table, exactMatch: false);
@@ -39,7 +39,7 @@ public sealed class MySqlTriggerStrategyTests
         using var connection = new MySqlConnectionMock(db);
 
         var table = connection.AddTemporaryTable("temp_users");
-        table.Columns["id"] = new(0, DbType.Int32, false);
+        table.AddColumn("id", DbType.Int32, false);
 
         var calls = 0;
         var triggerTable = Assert.IsType<TableMock>(table, exactMatch: false);

@@ -60,6 +60,7 @@ public class OracleCommandMock(
     /// Auto-generated summary.
     /// </summary>
     public override UpdateRowSource UpdatedRowSource { get; set; }
+    
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
@@ -187,7 +188,6 @@ public class OracleCommandMock(
 
         return new OracleDataReaderMock(tables);
     }
-
 
     private bool TryExecuteTransactionControlCommand(string sqlRaw, out int affectedRows)
     {

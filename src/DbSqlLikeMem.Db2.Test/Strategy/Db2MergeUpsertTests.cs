@@ -42,9 +42,9 @@ public sealed class Db2MergeUpsertTests(ITestOutputHelper helper) : XUnitTestBas
     {
         var db = new Db2DbMock(Db2Dialect.MergeMinVersion);
         var t = db.AddTable("users");
-        t.Columns["Id"] = new ColumnDef(0, DbType.Int32, false);
-        t.Columns["Name"] = new ColumnDef(1, DbType.String, false);
-        t.PrimaryKeyIndexes.Add(0);
+        t.AddColumn("Id", DbType.Int32, false);
+        t.AddColumn("Name", DbType.String, false);
+        t.AddPrimaryKeyIndexes("id");
         t.Add(new Dictionary<int, object?> { [0] = 1, [1] = "OLD" });
 
         using var cnn = new Db2ConnectionMock(db);

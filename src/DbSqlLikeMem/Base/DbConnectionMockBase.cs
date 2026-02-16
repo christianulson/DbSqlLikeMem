@@ -163,7 +163,7 @@ public abstract class DbConnectionMockBase(
     /// <returns>EN: Created table. PT: Tabela criada.</returns>
     public ITableMock AddTemporaryTable(
         string tableName,
-        IColumnDictionary? columns = null,
+        IEnumerable<Col>? columns = null,
         IEnumerable<Dictionary<int, object?>>? rows = null,
         string? schemaName = null)
     {
@@ -172,7 +172,7 @@ public abstract class DbConnectionMockBase(
         if (!Db.TryGetValue(schemaKey, out var schemaMock) || schemaMock == null)
             schemaMock = Db.CreateSchema(schemaKey);
         var schema = (SchemaMock)schemaMock;
-        var table = schema.CreateTableInstance(tableName, columns ?? new ColumnDictionary(), rows);
+        var table = schema.CreateTableInstance(tableName, columns ?? [], rows);
         _temporaryTables.Add(key, table);
         return table;
     }
@@ -210,7 +210,7 @@ public abstract class DbConnectionMockBase(
     /// <returns>EN: Created table. PT: Tabela criada.</returns>
     public ITableMock AddTable(
         string tableName,
-        IColumnDictionary? columns = null,
+        IEnumerable<Col>? columns = null,
         IEnumerable<Dictionary<int, object?>>? rows = null,
         string? schemaName = null)
         => Db.AddTable(

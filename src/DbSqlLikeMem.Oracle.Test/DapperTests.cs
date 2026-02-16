@@ -17,13 +17,13 @@ public sealed class DapperTests : XUnitTestBase
     {
         var db = new OracleDbMock();
         var table = db.AddTable("Users");
-        table.Columns["Id"] = new(0, DbType.Int32, false);
-        table.Columns["Name"] = new(1, DbType.String, false);
-        table.Columns["Email"] = new(2, DbType.String, false);
-        table.Columns["CreatedDate"] = new(3, DbType.DateTime, false);
-        table.Columns["UpdatedData"] = new(4, DbType.DateTime, true);
-        table.Columns["TestGuid"] = new(5, DbType.Guid, false);
-        table.Columns["TestGuidNull"] = new(6, DbType.Guid, true);
+        table.AddColumn("Id", DbType.Int32, false);
+        table.AddColumn("Name", DbType.String, false);
+        table.AddColumn("Email", DbType.String, false);
+        table.AddColumn("CreatedDate", DbType.DateTime, false);
+        table.AddColumn("UpdatedData", DbType.DateTime, true);
+        table.AddColumn("TestGuid", DbType.Guid, false);
+        table.AddColumn("TestGuidNull", DbType.Guid, true);
 
         _connection = new OracleConnectionMock(db);
         _connection.Open();
@@ -50,9 +50,9 @@ public sealed class DapperTests : XUnitTestBase
         // Arrange
         var db = new OracleDbMock();
         var table = db.AddTable("Users");
-        table.Columns["id"] = new(0, DbType.Int32, false);
-        table.Columns["name"] = new(1, DbType.String, false);
-        table.Columns["CreatedDate"] = new(2, DbType.DateTime, false);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("name", DbType.String, false);
+        table.AddColumn("CreatedDate", DbType.DateTime, false);
 
         var dt = DateTime.UtcNow;
         table.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "John Doe" }, { 2, dt } });
@@ -87,9 +87,9 @@ public sealed class DapperTests : XUnitTestBase
         // Arrange
         var db = new OracleDbMock();
         var table = db.AddTable("users");
-        table.Columns["id"] = new(0, DbType.Int32, false);
-        table.Columns["name"] = new(1, DbType.String, false);
-        table.Columns["CreatedDate"] = new(2, DbType.DateTime, false);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("name", DbType.String, false);
+        table.AddColumn("CreatedDate", DbType.DateTime, false);
 
         var dt = DateTime.UtcNow;
 
@@ -117,10 +117,10 @@ public sealed class DapperTests : XUnitTestBase
         // Arrange
         var db = new OracleDbMock();
         var table = db.AddTable("users");
-        table.Columns["id"] = new(0, DbType.Int32, false);
-        table.Columns["name"] = new(1, DbType.String, false);
-        table.Columns["CreatedDate"] = new(2, DbType.DateTime, false);
-        table.Columns["UpdatedData"] = new(3, DbType.DateTime, true);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("name", DbType.String, false);
+        table.AddColumn("CreatedDate", DbType.DateTime, false);
+        table.AddColumn("UpdatedData", DbType.DateTime, true);
 
         var dtInsert = DateTime.UtcNow.AddDays(-1);
         var dtUpdate = DateTime.UtcNow;
@@ -160,8 +160,8 @@ UPDATE users
         // Arrange
         var db = new OracleDbMock();
         var table = db.AddTable("users");
-        table.Columns["id"] = new(0, DbType.Int32, false);
-        table.Columns["name"] = new(1, DbType.String, false);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("name", DbType.String, false);
 
         table.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "John Doe" } });
 
@@ -189,14 +189,14 @@ UPDATE users
         // Arrange
         var db = new OracleDbMock();
         var table1 = db.AddTable("users");
-        table1.Columns["id"] = new(0, DbType.Int32, false);
-        table1.Columns["name"] = new(1, DbType.String, false);
+        table1.AddColumn("id", DbType.Int32, false);
+        table1.AddColumn("name", DbType.String, false);
         table1.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "John Doe" } });
 
         var table2 = db.AddTable("emails");
-        table2.Columns["id"] = new(0, DbType.Int32, false);
-        table2.Columns["email"] = new(1, DbType.String, false);
-        table2.Columns["CreatedDate"] = new(2, DbType.DateTime, false);
+        table2.AddColumn("id", DbType.Int32, false);
+        table2.AddColumn("email", DbType.String, false);
+        table2.AddColumn("CreatedDate", DbType.DateTime, false);
         table2.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "john.doe@example.com" }, { 2, dt } });
         table2.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, "jane.doe@example.com" }, { 2, dt2 } });
 

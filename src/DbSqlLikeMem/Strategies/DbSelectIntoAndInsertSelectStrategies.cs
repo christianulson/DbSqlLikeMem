@@ -97,7 +97,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         {
             var colName = res.Columns[i].ColumnName;
             var dbType = InferDbType(res, i);
-            newTable.Columns[colName] = new ColumnDef(i, dbType, nullable: true);
+            newTable.AddColumn(colName, dbType, nullable: true);
         }
 
         foreach (var row in res)
@@ -169,7 +169,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         {
             var colName = names[i];
             var dbType = (i < res.Columns.Count) ? InferDbType(res, i) : DbType.String;
-            newTable.Columns[colName] = new ColumnDef(i, dbType, nullable: true);
+            newTable.AddColumn(colName, dbType, nullable: true);
         }
 
         foreach (var row in res)

@@ -16,16 +16,16 @@ public sealed class SqlServerCreateViewEngineTests : XUnitTestBase
     {
         var db = new SqlServerDbMock();
         _users = db.AddTable("users");
-        _users.Columns["id"] = new(0, DbType.Int32, false) { Identity = false };
-        _users.Columns["name"] = new(1, DbType.String, false);
-        _users.Columns["tenantid"] = new(2, DbType.Int32, false);
+        _users.AddColumn("id", DbType.Int32, false, identity: false);
+        _users.AddColumn("name", DbType.String, false);
+        _users.AddColumn("tenantid", DbType.Int32, false);
         _users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = 10 });
         _users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob",  [2] = 10 });
         _users.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Jane", [2] = 20 });
 
         _orders = db.AddTable("orders");
-        _orders.Columns["userid"] = new(0, DbType.Int32, false);
-        _orders.Columns["amount"] = new(1, DbType.Decimal, false);
+        _orders.AddColumn("userid", DbType.Int32, false);
+        _orders.AddColumn("amount", DbType.Decimal, false, decimalPlaces: 2);
         _orders.Add(new Dictionary<int, object?> { [0] = 1, [1] = 10m });
         _orders.Add(new Dictionary<int, object?> { [0] = 1, [1] = 5m });
         _orders.Add(new Dictionary<int, object?> { [0] = 2, [1] = 7m });
@@ -93,7 +93,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
         var db = new SqlServerDbMock();
         // cria uma tabela física chamada vshadow, com dados diferentes
         var vshadow = db.AddTable("vshadow");
-        vshadow.Columns["id"] = new(0, DbType.Int32, false);
+        vshadow.AddColumn("id", DbType.Int32, false);
         vshadow.Add(new Dictionary<int, object?> { [0] = 999 });
 
         // cria view com o mesmo nome

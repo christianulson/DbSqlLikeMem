@@ -19,9 +19,9 @@ public sealed class Db2AdditionalBehaviorCoverageTests : XUnitTestBase
         // users
         var db = new Db2DbMock();
         var users = db.AddTable("users");
-        users.Columns["id"] = new(0, DbType.Int32, false) { Identity = false };
-        users.Columns["name"] = new(1, DbType.String, false);
-        users.Columns["email"] = new(2, DbType.String, true);
+        users.AddColumn("id", DbType.Int32, false, identity: false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("email", DbType.String, true);
 
         users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = "john@x.com" });
         users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob", [2] = null });
@@ -29,9 +29,9 @@ public sealed class Db2AdditionalBehaviorCoverageTests : XUnitTestBase
 
         // orders
         var orders = db.AddTable("orders");
-        orders.Columns["id"] = new(0, DbType.Int32, false) { Identity = false };
-        orders.Columns["userid"] = new(1, DbType.Int32, false);
-        orders.Columns["amount"] = new(2, DbType.Decimal, false);
+        orders.AddColumn("id", DbType.Int32, false, identity: false );
+        orders.AddColumn("userid", DbType.Int32, false);
+        orders.AddColumn("amount", DbType.Decimal, false, decimalPlaces: 2);
 
         orders.Add(new Dictionary<int, object?> { [0] = 10, [1] = 1, [2] = 50m });
         orders.Add(new Dictionary<int, object?> { [0] = 11, [1] = 2, [2] = 200m });
@@ -194,8 +194,8 @@ ORDER BY userid
     {
         var db = new Db2DbMock();
         var users = db.AddTable("users");
-        users.Columns["id"] = new(0, DbType.Int32, false) { Identity = false };
-        users.Columns["counter"] = new(1, DbType.Int32, false);
+        users.AddColumn("id", DbType.Int32, false, identity: false );
+        users.AddColumn("counter", DbType.Int32, false);
 
         users.Add(new Dictionary<int, object?> { [0] = 1, [1] = 0 });
         users.Add(new Dictionary<int, object?> { [0] = 2, [1] = 0 });
