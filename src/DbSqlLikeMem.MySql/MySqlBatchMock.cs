@@ -151,7 +151,7 @@ public sealed class MySqlBatchMock :
             cancellationToken).ConfigureAwait(false);
     }
 
-    private new ValueTask<DbDataReader> ExecuteReaderAsync(CommandBehavior behavior,
+    private ValueTask<DbDataReader> ExecuteReaderAsync(CommandBehavior behavior,
         //IOBehavior ioBehavior, 
         CancellationToken cancellationToken)
     {

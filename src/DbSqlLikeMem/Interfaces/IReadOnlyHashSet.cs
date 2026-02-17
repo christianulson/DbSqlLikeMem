@@ -1,4 +1,5 @@
-﻿using System.Runtime.Serialization;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.Serialization;
 
 namespace DbSqlLikeMem.Interfaces;
 
@@ -28,5 +29,5 @@ public interface IReadOnlyHashSet<T> : IReadOnlyCollection<T>, IDeserializationC
 
     bool SetEquals(IEnumerable<T> other);
 
-    bool TryGetValue(T equalValue, out T actualValue);
+    bool TryGetValue(T equalValue, [MaybeNullWhen(false)] out T actualValue);
 }
