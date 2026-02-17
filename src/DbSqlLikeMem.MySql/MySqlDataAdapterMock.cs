@@ -18,11 +18,11 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
     /// Mock API member implementation for compatibility with MySQL provider contracts.
     /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
     /// </summary>
-    public new MySqlCommandMock DeleteCommand
+    public new MySqlCommandMock? DeleteCommand
     {
         get
         {
-            return (MySqlCommandMock)base.DeleteCommand;
+            return base.DeleteCommand as MySqlCommandMock;
         }
         set
         {
@@ -34,11 +34,11 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
     /// Mock API member implementation for compatibility with MySQL provider contracts.
     /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
     /// </summary>
-    public new MySqlCommandMock InsertCommand
+    public new MySqlCommandMock? InsertCommand
     {
         get
         {
-            return (MySqlCommandMock)base.InsertCommand;
+            return base.InsertCommand as MySqlCommandMock;
         }
         set
         {
@@ -46,16 +46,16 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         }
     }
 
-    [Category("Fill")]
     /// <summary>
-    /// Mock API member implementation for compatibility with MySQL provider contracts.
-    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// EN: Mock API member implementation for compatibility with MySQL provider contracts.
+    /// PT: Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
     /// </summary>
-    public new MySqlCommandMock SelectCommand
+    [Category("Fill")]
+    public new MySqlCommandMock? SelectCommand
     {
         get
         {
-            return (MySqlCommandMock)base.SelectCommand;
+            return base.SelectCommand as MySqlCommandMock;
         }
         set
         {
@@ -67,11 +67,11 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
     /// Mock API member implementation for compatibility with MySQL provider contracts.
     /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
     /// </summary>
-    public new MySqlCommandMock UpdateCommand
+    public new MySqlCommandMock? UpdateCommand
     {
         get
         {
-            return (MySqlCommandMock)base.UpdateCommand;
+            return base.UpdateCommand as MySqlCommandMock;
         }
         set
         {
@@ -289,7 +289,7 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
     protected override IDataParameter GetBatchedParameter(int commandIdentifier, int parameterIndex)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(commandBatch, nameof(commandBatch));
-        object? parameter = commandBatch[commandIdentifier].Parameters[parameterIndex];
+        object? parameter = commandBatch![commandIdentifier].Parameters[parameterIndex];
         return (IDataParameter)parameter!;
     }
 
@@ -297,15 +297,15 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
     /// Mock API member implementation for compatibility with MySQL provider contracts.
     /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
     /// </summary>
-    protected override RowUpdatedEventArgs CreateRowUpdatedEvent(DataRow dataRow, IDbCommand command, StatementType statementType, DataTableMapping tableMapping)
-        => new MySqlRowUpdatedEventArgs(dataRow, command, statementType, tableMapping);
+    protected override RowUpdatedEventArgs CreateRowUpdatedEvent(DataRow dataRow, IDbCommand? command, StatementType statementType, DataTableMapping tableMapping)
+        => new MySqlRowUpdatedEventArgs(dataRow, command!, statementType, tableMapping);
 
     /// <summary>
     /// Mock API member implementation for compatibility with MySQL provider contracts.
     /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
     /// </summary>
-    protected override RowUpdatingEventArgs CreateRowUpdatingEvent(DataRow dataRow, IDbCommand command, StatementType statementType, DataTableMapping tableMapping)
-        => new MySqlRowUpdatingEventArgs(dataRow, command, statementType, tableMapping);
+    protected override RowUpdatingEventArgs CreateRowUpdatingEvent(DataRow dataRow, IDbCommand? command, StatementType statementType, DataTableMapping tableMapping)
+        => new MySqlRowUpdatingEventArgs(dataRow, command!, statementType, tableMapping);
 
     /// <summary>
     /// Mock API member implementation for compatibility with MySQL provider contracts.

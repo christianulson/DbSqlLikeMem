@@ -21,18 +21,17 @@ public sealed class MySqlDataSourceMock(MySqlDbMock? db = null)
 #endif
         string ConnectionString => string.Empty;
 
+#if NET8_0_OR_GREATER
     /// <summary>
     /// Creates a database connection bound to the configured mock database.
     /// Cria uma conexão de banco vinculada ao banco de dados mock configurado.
     /// </summary>
-#if NET8_0_OR_GREATER
-    protected override
+    protected override DbConnection CreateDbConnection() => new MySqlConnectionMock(db);
 #else
     /// <summary>
     /// Creates a database connection bound to the configured mock database.
     /// Cria uma conexão de banco vinculada ao banco de dados mock configurado.
     /// </summary>
-    public
+    public DbConnection CreateDbConnection() => new MySqlConnectionMock(db);
 #endif
-         DbConnection CreateDbConnection() => new MySqlConnectionMock(db);
 }
