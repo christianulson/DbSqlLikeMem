@@ -283,7 +283,7 @@ internal abstract class AstQueryExecutorBase(
                 // pega alias mesmo se o parser não preencheu si.Alias
                 var (exprRaw, alias) = SplitTrailingAsAlias(si.Raw, si.Alias);
                 if (string.IsNullOrWhiteSpace(alias))
-                    return (Alias: null, Ast: null);
+                    return ((string Alias, SqlExpr Ast)?)null;
 
                 SqlExpr ast;
 #pragma warning disable CA1031 // Do not catch general exception types
@@ -298,10 +298,10 @@ internal abstract class AstQueryExecutorBase(
                 }
 #pragma warning restore CA1031
 
-                return (Alias: alias, Ast: (SqlExpr?)ast);
+                return (alias, ast);
             })
-            .Where(x => x.Alias is not null && x.Ast is not null)
-            .Select(x => (Alias: x.Alias!, Ast: x.Ast!))
+            .Where(x => x.HasValue)
+            .Select(x => x!.Value)
             .ToList();
 
         var havingExpr = q.Having;
