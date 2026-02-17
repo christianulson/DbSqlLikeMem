@@ -131,7 +131,9 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
 
     internal void RebuildIndex()
     {
+        _items.Clear();
         var tableColumns = Table.Columns;
+        var pkColumnsByIndex = tableColumns.ToDictionary(_ => _.Value.Index, _ => _.Key);
         for (int i = 0; i < Table.Count; i++)
         {
             var row = Table[i];
@@ -160,10 +162,10 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
 
             foreach (var pkIdx in Table.PrimaryKeyIndexes)
             {
-                var colPk = tableColumns.First(_ => _.Value.Index == pkIdx);
-                if (idxRow.ContainsKey(colPk.Key))
+                if (!pkColumnsByIndex.TryGetValue(pkIdx, out var pkName)
+                    || idxRow.ContainsKey(pkName))
                     continue;
-                idxRow.Add(colPk.Key, row[pkIdx]);
+                idxRow.Add(pkName, row[pkIdx]);
             }
         }
     }
@@ -231,11 +233,23 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
             : null;
     }
 
+    internal IReadOnlyDictionary<int, Dictionary<string, object?>>? LookupMutable(string key)
+    {
+        if (_items.TryGetValue(key.NormalizeName(), out var list))
+            return list;
+
+        var serializedKey = SerializeIndexKeyPart(key);
+        return _items.TryGetValue(serializedKey, out list)
+            ? list
+            : null;
+    }
+
     public void UpdateIndexesWithRow(
         int rowIndex,
         IReadOnlyDictionary<int, object?> newRow)
     {
         var tableColumns = Table.Columns;
+        var pkColumnsByIndex = tableColumns.ToDictionary(_ => _.Value.Index, _ => _.Key);
         var key = BuildIndexKey(newRow);
 
         if (!_items.TryGetValue(key, out var lstItems))
@@ -270,10 +284,10 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
 
         foreach (var pkIdx in Table.PrimaryKeyIndexes)
         {
-            var colPk = tableColumns.First(_ => _.Value.Index == pkIdx);
-            if (idxRow.ContainsKey(colPk.Key))
+            if (!pkColumnsByIndex.TryGetValue(pkIdx, out var pkName)
+                || idxRow.ContainsKey(pkName))
                 continue;
-            idxRow.Add(colPk.Key, newRow[pkIdx]);
+            idxRow.Add(pkName, newRow[pkIdx]);
         }
     }
 
@@ -283,6 +297,7 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
         IReadOnlyDictionary<int, object?> newRow)
     {
         var tableColumns = Table.Columns;
+        var pkColumnsByIndex = tableColumns.ToDictionary(_ => _.Value.Index, _ => _.Key);
         var oldkey = BuildIndexKey(oldRow);
         var key = BuildIndexKey(newRow);
         if (oldkey != key && _items.TryGetValue(oldkey, out var oldLstItems))
@@ -323,10 +338,10 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
 
         foreach (var pkIdx in Table.PrimaryKeyIndexes)
         {
-            var colPk = tableColumns.First(_ => _.Value.Index == pkIdx);
-            if (idxRow.ContainsKey(colPk.Key))
+            if (!pkColumnsByIndex.TryGetValue(pkIdx, out var pkName)
+                || idxRow.ContainsKey(pkName))
                 continue;
-            idxRow.Add(colPk.Key, newRow[pkIdx]);
+            idxRow.Add(pkName, newRow[pkIdx]);
         }
     }
 
