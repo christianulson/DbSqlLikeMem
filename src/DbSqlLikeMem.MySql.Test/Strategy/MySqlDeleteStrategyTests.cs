@@ -126,7 +126,7 @@ public sealed class MySqlCommandDeleteTests(
 
         var child = NewChildTable(db);
         // FK: child.parent_id -> parent.id
-        child.CreateForeignKey("parent_id", "parent", "id");
+        child.CreateForeignKey("ix_parent_id", "parent", [("parent_id", "id")]);
         child.Add(RowChild(id: 1, parentId: 10));
 
         using var conn = NewConn(threadSafe: false, db);

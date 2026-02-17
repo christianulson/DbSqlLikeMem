@@ -87,7 +87,7 @@ public sealed class ExtendedMySqlMockTests(
         table.Add(new Dictionary<int, object?> { { 0, "A" }, { 1, "X" }, { 2, 1 } });
         table.Add(new Dictionary<int, object?> { { 0, "A" }, { 1, "Y" }, { 2, 2 } });
         table.Add(new Dictionary<int, object?> { { 0, "B" }, { 1, "X" }, { 2, 3 } });
-        table.CreateIndex(new IndexDef("ix_fs2", item, unique: false));
+        table.CreateIndex("ix_fs2", item, unique: false);
 
         using var cnn = new NpgsqlConnectionMock(db);
         cnn.Open();
@@ -200,7 +200,7 @@ public sealed class ExtendedMySqlMockTests(
         var child = db.AddTable("child");
         child.AddColumn("pid", DbType.Int32, false);
         child.AddColumn("data", DbType.String, false);
-        child.CreateForeignKey("pid", "parent", "id");
+        child.CreateForeignKey("ix_parent_id", "parent", [("pid", "id")]);
         child.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "x" } });
 
         using var cnn = new NpgsqlConnectionMock(db);
@@ -226,7 +226,7 @@ public sealed class ExtendedMySqlMockTests(
         var child = db.AddTable("child");
         child.AddColumn("pid", DbType.Int32, false);
         child.AddColumn("data", DbType.String, false);
-        child.CreateForeignKey("pid", "parent", "id");
+        child.CreateForeignKey("ix_parent_id", "parent", [("pid", "id")]);
         child.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "x" } });
 
         using var cnn = new NpgsqlConnectionMock(db);

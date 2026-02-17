@@ -175,7 +175,7 @@ public sealed class MySqlBatchMock :
 #else
     public Task PrepareAsync(CancellationToken cancellationToken = default) =>
 #endif
-        PrepareAsync(cancellationToken);
+        DbPrepareAsync(cancellationToken);
 
 #if NET6_0_OR_GREATER
     public override void Cancel()

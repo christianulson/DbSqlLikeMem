@@ -74,7 +74,7 @@ public class SqliteInsertOnDuplicateTests(
         t.AddColumn("Email", DbType.String, false);
         t.AddColumn("Name", DbType.String, false);
         t.AddPrimaryKeyIndexes("id");
-        t.CreateIndex(new IndexDef("UQ_Email", ["Email"], unique: true));
+        t.CreateIndex("UQ_Email", ["Email"], unique: true);
 
         t.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "a@a.com" }, { 2, "A" } });
 

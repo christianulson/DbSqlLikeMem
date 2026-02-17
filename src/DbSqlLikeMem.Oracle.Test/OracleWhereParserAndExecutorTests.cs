@@ -21,8 +21,8 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
         users.AddColumn("email", DbType.String, true);
         users.AddColumn("tags", DbType.String, true); // CSV-like "a,b,c"
 
-        users.CreateIndex(new IndexDef("ix_users_name", ["name"]));
-        users.CreateIndex(new IndexDef("ix_users_name_email", ["name", "email"]));
+        users.CreateIndex("ix_users_name", ["name"]);
+        users.CreateIndex("ix_users_name_email", ["name", "email"]);
 
         users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = "john@x.com", [3] = "a,b" });
         users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Jane", [2] = null, [3] = "b,c" });

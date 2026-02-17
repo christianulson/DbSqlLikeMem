@@ -299,7 +299,7 @@ public sealed class SqlServerUpdateStrategyTests(
         var db = new SqlServerDbMock();
         var table = NewUsersTable_WithEmail(db);
 
-        table.CreateIndex(new IndexDef("Teste", ["name", "email"], unique: true));
+        table.CreateIndex("Teste", ["name", "email"], unique: true);
 
 
         table.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "John" }, { 2, "a@a.com" } });
@@ -332,7 +332,7 @@ public sealed class SqlServerUpdateStrategyTests(
         c.GetGenValue = (row, _) => ((int?)row[1] ?? 0) * 2;
         c.PersistComputedValue = true;
 
-        table.CreateIndex(new IndexDef("ux_gen", ["gen"], unique: true));
+        table.CreateIndex("ux_gen", ["gen"], unique: true);
         table.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, 10 } });
 
         Assert.Equal(20, table[0][2]);

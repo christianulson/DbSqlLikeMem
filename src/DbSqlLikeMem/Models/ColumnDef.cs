@@ -30,8 +30,9 @@ public sealed class ColumnDef
     /// <param name="identity"></param>
     /// <param name="defaultValue"></param>
     /// <param name="enumValues"></param>
-    public ColumnDef(
+    internal ColumnDef(
         ITableMock table,
+        string name, 
         int index,
         DbType dbType,
         bool nullable,
@@ -51,6 +52,7 @@ public sealed class ColumnDef
             throw new InvalidOperationException($"DbType {dbType} é obrigatório informafar decimalPlaces");
 
         Table = table;
+        Name = name;
         Index = index;
         DbType = dbType;
         Nullable = nullable;
@@ -72,6 +74,8 @@ public sealed class ColumnDef
     /// PT: Tabela pai.
     /// </summary>
     public ITableMock Table { get; private set; }
+
+    public string Name { get; private set; }
 
     /// <summary>
     /// EN: Gets the column position within the table.

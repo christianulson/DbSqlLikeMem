@@ -1,4 +1,5 @@
 using DbSqlLikeMem.Interfaces;
+using DbSqlLikeMem.Models;
 using System.Collections.Immutable;
 
 namespace DbSqlLikeMem;
@@ -40,11 +41,7 @@ public interface ITableMock
     /// EN: Exposes foreign keys configured on the table.
     /// PT: Expõe as chaves estrangeiras configuradas na tabela.
     /// </summary>
-    IReadOnlyList <(
-        string Col, 
-        string RefTable,
-        string RefCol
-        )> ForeignKeys { get; }
+    IReadOnlyDictionary<string, ForeignDef> ForeignKeys { get; }
 
     /// <summary>
     /// EN: Creates a foreign key linking a local column to a column in another table.
@@ -53,10 +50,10 @@ public interface ITableMock
     /// <param name="col">EN: Local column name. PT: Nome da coluna local.</param>
     /// <param name="refTable">EN: Referenced table. PT: Tabela referenciada.</param>
     /// <param name="refCol">EN: Referenced column. PT: Coluna referenciada.</param>
-    void CreateForeignKey(
-        string col,
+    ForeignDef CreateForeignKey(
+        string name,
         string refTable,
-        string refCol);
+        HashSet<(string col, string refCol)> references);
 
     /// <summary>
     /// EN: Gets the table column dictionary.
@@ -92,8 +89,11 @@ public interface ITableMock
     /// EN: Creates an index using the provided definition.
     /// PT: Cria um índice com a definição informada.
     /// </summary>
-    /// <param name="def">EN: Index definition. PT: Definição do índice.</param>
-    void CreateIndex(IndexDef def);
+    IndexDef CreateIndex(
+        string name,
+        IEnumerable<string> keyCols,
+        string[]? include = null,
+        bool unique = false);
 
     /// <summary>
     /// EN: Updates index structures using the specified row.
@@ -114,7 +114,7 @@ public interface ITableMock
     /// <param name="def">EN: Index definition. PT: Definição do índice.</param>
     /// <param name="key">EN: Key to search. PT: Chave a buscar.</param>
     /// <returns>EN: List of positions or null if none. PT: Lista de posições ou null se não houver.</returns>
-    IEnumerable<int>? Lookup(IndexDef def, string key);
+    IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>? Lookup(IndexDef def, string key);
 
     /// <summary>
     /// EN: Adds multiple items by converting them into rows.

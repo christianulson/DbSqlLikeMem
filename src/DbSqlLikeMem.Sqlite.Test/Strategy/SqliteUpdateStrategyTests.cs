@@ -299,7 +299,7 @@ public sealed class SqliteUpdateStrategyTests(
         var db = new SqliteDbMock();
         var table = NewUsersTable_WithEmail(db);
 
-        table.CreateIndex(new IndexDef("Teste", ["name", "email"], unique: true));
+        table.CreateIndex("Teste", ["name", "email"], unique: true);
 
 
         table.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "John" }, { 2, "a@a.com" } });

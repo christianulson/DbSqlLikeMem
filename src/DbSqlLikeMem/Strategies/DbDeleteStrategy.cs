@@ -109,15 +109,14 @@ internal static class DbDeleteStrategy
         {
             foreach (var childTable in connection.ListTables(dbName))
             {
-                foreach (var (Col, _, RefCol) in childTable.ForeignKeys.Where(f => f.RefTable.Equals(tableName, StringComparison.OrdinalIgnoreCase)))
+                foreach (var kvp in childTable.ForeignKeys
+                    .Where(f => f.Value.RefTable.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)))
                 {
-                    var parentInfo = table.GetColumn(RefCol);
-                    var childInfo = childTable.GetColumn(Col);
-
-                    var keyVal = parentRow[parentInfo.Index];
-
-                    // Se encontrar qualquer linha na filha com esse valor de FK
-                    if (childTable.Any(childRow => Equals(childRow[childInfo.Index], keyVal)))
+                    if (kvp.Value.References.All(_ =>
+                    {
+                        var keyVal = parentRow[_.refCol.Index];
+                        return childTable.Any(childRow => Equals(childRow[_.col.Index], keyVal));
+                    }))
                     {
                         throw table.ReferencedRow(tableName);
                     }

@@ -283,7 +283,7 @@ internal abstract class AstQueryExecutorBase(
                 // pega alias mesmo se o parser não preencheu si.Alias
                 var (exprRaw, alias) = SplitTrailingAsAlias(si.Raw, si.Alias);
                 if (string.IsNullOrWhiteSpace(alias))
-                    return (Alias: (string?)null, Ast: (SqlExpr?)null);
+                    return (Alias: null, Ast: null);
 
                 SqlExpr ast;
 #pragma warning disable CA1031 // Do not catch general exception types
@@ -385,8 +385,8 @@ internal abstract class AstQueryExecutorBase(
         if (best is null)
             return null;
 
-        var key = src.Physical is TableMock physicalTable
-            ? physicalTable.BuildIndexKeyFromValues(best, equalsByColumn)
+        var key = src.Physical is TableMock
+            ? best.BuildIndexKeyFromValues(equalsByColumn)
             : string.Join("|", best.KeyCols.Select(col =>
             {
                 var norm = col.NormalizeName();
@@ -402,14 +402,14 @@ internal abstract class AstQueryExecutorBase(
     }
 
 
-    private IEnumerable<int>? LookupIndexWithMetrics(
+    private IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>? LookupIndexWithMetrics(
         ITableMock table,
         IndexDef indexDef,
         string key)
     {
         _cnn.Metrics.IndexLookups++;
         _cnn.Metrics.IncrementIndexHint(indexDef.Name.NormalizeName());
-        return table.Lookup(indexDef, key);
+        return indexDef.Lookup(key);
     }
 
     private bool TryCollectColumnEqualities(
@@ -650,7 +650,7 @@ internal abstract class AstQueryExecutorBase(
         {
             var res = ExecuteUnion(
                 [.. ts.DerivedUnion.Parts
-                    .Select(_=>_ as SqlSelectQuery)
+                    .Select(_=>_)
                     .Where(_=>_!= null)
                     .Select(_=>_!)],
                 ts.DerivedUnion.AllFlags,
@@ -2916,7 +2916,7 @@ internal abstract class AstQueryExecutorBase(
         }
 
         public IEnumerable<Dictionary<string, object?>> RowsByIndexes(
-            IEnumerable<int> indexes)
+            IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>> indexes)
         {
             if (Physical is null)
                 return Rows();
@@ -2925,18 +2925,18 @@ internal abstract class AstQueryExecutorBase(
         }
 
         private IEnumerable<Dictionary<string, object?>> EnumerateRowsByIndexes(
-            IEnumerable<int> indexes)
+            IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>> indexes)
         {
             var emitted = new HashSet<int>();
             foreach (var raw in indexes)
             {
-                if (raw < 0 || raw >= Physical!.Count)
+                if (raw.Key < 0 || raw.Key >= Physical!.Count)
                     continue;
 
-                if (!emitted.Add(raw))
+                if (!emitted.Add(raw.Key))
                     continue;
 
-                var row = Physical[raw];
+                var row = Physical[raw.Key];
                 var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
                 foreach (var col in ColumnNames)
                 {
@@ -2955,11 +2955,13 @@ internal abstract class AstQueryExecutorBase(
         /// </summary>
         public static Source FromPhysical(string tableName, string alias, ITableMock physical)
             => new(tableName, alias, physical);
+       
         /// <summary>
         /// Auto-generated summary.
         /// </summary>
         public static Source FromResult(string tableName, string alias, TableResultMock result)
             => new(tableName, alias, result);
+       
         /// <summary>
         /// Auto-generated summary.
         /// </summary>
@@ -3153,41 +3155,41 @@ internal abstract class AstQueryExecutorBase(
         }
     }
 
-    private sealed class ArrayObjectEqualityComparer : IEqualityComparer<object?[]>
-    {
-        /// <summary>
-        /// Auto-generated summary.
-        /// </summary>
-        public static readonly ArrayObjectEqualityComparer Instance = new();
+    //private sealed class ArrayObjectEqualityComparer : IEqualityComparer<object?[]>
+    //{
+    //    /// <summary>
+    //    /// Auto-generated summary.
+    //    /// </summary>
+    //    public static readonly ArrayObjectEqualityComparer Instance = new();
 
-        /// <summary>
-        /// Auto-generated summary.
-        /// </summary>
-        public bool Equals(object?[]? x, object?[]? y)
-        {
-            if (ReferenceEquals(x, y)) return true;
-            if (x is null || y is null) return false;
-            if (x.Length != y.Length) return false;
+    //    /// <summary>
+    //    /// Auto-generated summary.
+    //    /// </summary>
+    //    public bool Equals(object?[]? x, object?[]? y)
+    //    {
+    //        if (ReferenceEquals(x, y)) return true;
+    //        if (x is null || y is null) return false;
+    //        if (x.Length != y.Length) return false;
 
-            for (int i = 0; i < x.Length; i++)
-            {
-                if (!Equals(x[i], y[i])) return false;
-            }
-            return true;
-        }
+    //        for (int i = 0; i < x.Length; i++)
+    //        {
+    //            if (!Equals(x[i], y[i])) return false;
+    //        }
+    //        return true;
+    //    }
 
-        /// <summary>
-        /// Auto-generated summary.
-        /// </summary>
-        public int GetHashCode(object?[] obj)
-        {
-            unchecked
-            {
-                int h = 17;
-                for (int i = 0; i < obj.Length; i++)
-                    h = (h * 31) + (obj[i]?.GetHashCode() ?? 0);
-                return h;
-            }
-        }
-    }
+    //    /// <summary>
+    //    /// Auto-generated summary.
+    //    /// </summary>
+    //    public int GetHashCode(object?[] obj)
+    //    {
+    //        unchecked
+    //        {
+    //            int h = 17;
+    //            for (int i = 0; i < obj.Length; i++)
+    //                h = (h * 31) + (obj[i]?.GetHashCode() ?? 0);
+    //            return h;
+    //        }
+    //    }
+    //}
 }

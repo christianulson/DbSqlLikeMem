@@ -64,11 +64,10 @@ public sealed class CsvLoaderAndIndexTests(
         tb.Add(new Dictionary<int, object?> { [0] = 2, [1] = "John" });
         tb.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Jane" });
 
-        var idxDef = new IndexDef("ix_name", ["name"]);
-        tb.CreateIndex(idxDef);
+        var idxDef = tb.CreateIndex("ix_name", ["name"]);
 
         var ix = tb.Lookup(idxDef, "John" );
-        Assert.Equal([0, 1], [.. ix!.OrderBy(_=>_)]);
+        Assert.Equal([0, 1], [.. ix.Select(_=>_.Key)!.OrderBy(_=>_)]);
     }
 
     /// <summary>

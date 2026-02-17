@@ -60,10 +60,19 @@ public abstract class TableMock
     /// </summary>
     public ImmutableDictionary<string, ColumnDef> Columns => _columns.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase);
 
-    private List<Dictionary<int, object?>> Items { get; } = [];
+    private readonly List<Dictionary<int, object?>> _items = [];
+
+    public IReadOnlyList<ImmutableDictionary<int, object?>> Items => [.. _items.Select(_=>
+    {
+        var dic = ImmutableDictionary.CreateBuilder<int, object?>();
+        foreach(var d in _){
+            dic.Add(d.Key, d.Value);
+        }
+        return dic.ToImmutable();
+    })];
 
     internal HashSet<int> _primaryKeyIndexes = [];
-    
+
     // ---------- Wave D : índices ---------------------------------
     /// <summary>
     /// EN: Indexes of columns that form the primary key.
@@ -79,13 +88,13 @@ public abstract class TableMock
             throw new InvalidOperationException("Colunas da PK Duplicadas");
     }
 
-    private readonly List<(string Col, string RefTable, string RefCol)> _foreignKeys = [];
+    private readonly Dictionary<string, ForeignDef> _foreignKeys = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// EN: List of foreign keys defined in the table.
     /// PT: Lista de chaves estrangeiras definidas na tabela.
     /// </summary>
-    public IReadOnlyList<(string Col, string RefTable, string RefCol)> ForeignKeys => _foreignKeys;
+    public IReadOnlyDictionary<string, ForeignDef> ForeignKeys => _foreignKeys;
 
     internal IndexDictionary _indexes = [];
 
@@ -94,10 +103,6 @@ public abstract class TableMock
     /// PT: Índices declarados na tabela.
     /// </summary>
     public ImmutableDictionary<string, IndexDef> Indexes => _indexes.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase);
-
-    // nome-do-índice → chave-derivada(string) → posições (List<int>)
-    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, List<int>>> _ix
-        = new(StringComparer.OrdinalIgnoreCase);
 
     private readonly Dictionary<TableTriggerEvent, List<Action<TableTriggerContext>>> _triggers = [];
 
@@ -159,6 +164,7 @@ public abstract class TableMock
         var idx = _columns.Count;
         var col = new ColumnDef(
             table: this,
+            name: name,
             index: idx,
             dbType: dbType,
             nullable: nullable,
@@ -183,6 +189,7 @@ public abstract class TableMock
         var idx = _columns.Count;
         var col = new ColumnDef(
             table: this,
+            name: column.name,
             index: idx,
             dbType: column.dbType,
             nullable: column.nullable,
@@ -220,30 +227,20 @@ public abstract class TableMock
     /// EN: Creates and registers an index on the table.
     /// PT: Cria e registra um índice na tabela.
     /// </summary>
-    /// <param name="def">EN: Index definition. PT: Definição do índice.</param>
-    public void CreateIndex(IndexDef def)
+    public IndexDef CreateIndex(
+        string name,
+        IEnumerable<string> keyCols,
+        string[]? include = null,
+        bool unique = false)
     {
-        ArgumentNullExceptionCompatible.ThrowIfNull(def, nameof(def));
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(def.Name, nameof(def.Name));
-        var name = def.Name.NormalizeName();
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(name, nameof(name));
+        ArgumentNullExceptionCompatible.ThrowIfNull(keyCols, nameof(keyCols));
+        name = name.NormalizeName();
         if (_indexes.ContainsKey(name))
             throw new InvalidOperationException($"Índice '{name}' já existe.");
-        _indexes.Add(name, def);
-        RebuildIndex(def);
-    }
-
-    internal void RebuildIndex(IndexDef def)
-    {
-        ArgumentNullExceptionCompatible.ThrowIfNull(def, nameof(def));
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(def.Name, nameof(def.Name));
-        var name = def.Name.NormalizeName();
-        var map = new ConcurrentDictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
-        for (int i = 0; i < Count; i++)
-        {
-            var key = BuildIndexKey(def, Items[i]);
-            map.AddOrUpdate(key, [i], (_, list) => { list.Add(i); return list; });
-        }
-        _ix[name] = map;
+        var idx = new IndexDef(this, name, keyCols, include, unique);
+        _indexes.Add(name, idx);
+        return idx;
     }
 
     /// <summary>
@@ -253,21 +250,15 @@ public abstract class TableMock
     /// <param name="def">EN: Index definition. PT: Definição do índice.</param>
     /// <param name="key">EN: Key to search. PT: Chave a buscar.</param>
     /// <returns>EN: List of positions or null. PT: Lista de posições ou null.</returns>
-    public IEnumerable<int>? Lookup(IndexDef def, string key)
+    public IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>? Lookup(
+        IndexDef def,
+        string key)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(def, nameof(def));
-        if (!_ix.TryGetValue(def.Name.NormalizeName(), out var map))
+        if (!_indexes.TryGetValue(def.Name.NormalizeName(), out var map))
             return null;
 
-        // Backward-compatible lookup: callers often pass raw values for single-column
-        // _indexes (e.g. "John"). Internally keys are serialized, so try both formats.
-        if (map.TryGetValue(key.NormalizeName(), out var list))
-            return list;
-
-        var serializedKey = SerializeIndexKeyPart(key);
-        return map.TryGetValue(serializedKey, out list)
-            ? list
-            : null;
+        return map.Lookup(key);
     }
 
     /// <summary>
@@ -278,10 +269,7 @@ public abstract class TableMock
     public void UpdateIndexesWithRow(int rowIdx)
     {
         foreach (var it in _indexes)
-        {
-            var key = BuildIndexKey(it.Value, Items[rowIdx]);
-            _ix[it.Key].AddOrUpdate(key, [rowIdx], (_, list) => { list.Add(rowIdx); return list; });
-        }
+            it.Value.UpdateIndexesWithRow(rowIdx, this[rowIdx]);
     }
 
     /// <summary>
@@ -291,59 +279,28 @@ public abstract class TableMock
     public void RebuildAllIndexes()
     {
         foreach (var ix in _indexes)
-            RebuildIndex(ix.Value);
+            ix.Value.RebuildIndex();
     }
 
-    internal string BuildIndexKey(
-        IndexDef idx,
-        IReadOnlyDictionary<int, object?> row)
-    {
-        ArgumentNullExceptionCompatible.ThrowIfNull(idx, nameof(idx));
-        ArgumentNullExceptionCompatible.ThrowIfNull(row, nameof(row));
-        return string.Concat(idx.KeyCols.Select((Func<string, string>)(colName =>
-        {
-            var ci = Columns[colName];
-            if (ci.GetGenValue != null)
-                return SerializeIndexKeyPart(ci.GetGenValue(row, this));
-
-            var value = row.TryGetValue(ci.Index, out var v) ? v : null;
-            return SerializeIndexKeyPart((object?)value);
-        })));
-    }
-
-    internal string BuildIndexKeyFromValues(
-        IndexDef idx,
-        IReadOnlyDictionary<string, object?> valuesByColumn)
-    {
-        ArgumentNullExceptionCompatible.ThrowIfNull(idx, nameof(idx));
-        ArgumentNullExceptionCompatible.ThrowIfNull(valuesByColumn, nameof(valuesByColumn));
-
-        return string.Concat(idx.KeyCols.Select((Func<string, string>)(colName =>
-        {
-            var normalized = colName.NormalizeName();
-            valuesByColumn.TryGetValue(normalized, out var value);
-            return SerializeIndexKeyPart((object?)value);
-        })));
-    }
-
-    private static string SerializeIndexKeyPart(object? value)
-    {
-        if (value is null || value is DBNull)
-            return "n;";
-
-        var text = value.ToString() ?? string.Empty;
-        return $"s{text.Length}:{text};";
-    }
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public void CreateForeignKey(
-        string col,
+    public ForeignDef CreateForeignKey(
+        string name,
         string refTable,
-        string refCol)
+        HashSet<(string col, string refCol)> references)
     {
-        _foreignKeys.Add((col, refTable, refCol));
+        var tbRef = Schema[refTable];
+        var fk = new ForeignDef(
+            this,
+            name,
+            tbRef,
+            [.. references.Select(_ => (col: Columns[_.col], refCol: tbRef.Columns[_.refCol]))]
+            );
+
+        _foreignKeys.Add(name, fk);
+        return fk;
     }
 
     /// <summary>
@@ -423,7 +380,7 @@ public abstract class TableMock
         ApplyDefaultValues(value);
         RefreshPersistedComputedValues(value);
         EnsureUniqueOnInsert(value);
-        Items.Add(value);
+        _items.Add(value);
         // Update _indexes with the new row
         int newIdx = Count - 1;
         UpdateIndexesWithRow(newIdx);
@@ -484,7 +441,7 @@ public abstract class TableMock
 
         foreach (var idx in _indexes.GetUnique())
         {
-            var key = BuildIndexKey(idx, newRow);
+            var key = idx.BuildIndexKey(newRow);
             var hits = Lookup(idx, key);
             if (hits?.Any() == true)
                 throw DuplicateKey(TableName, idx.Name, key);
@@ -524,7 +481,7 @@ public abstract class TableMock
 
         foreach (var idx in _indexes.GetUnique())
         {
-            var key = BuildIndexKey(idx, newRow);
+            var key = idx.BuildIndexKey(newRow);
             var hits = Lookup(idx, key);
             if (hits != null)
             {
@@ -533,7 +490,7 @@ public abstract class TableMock
                 {
                     conflictIndexName = idx.Name;
                     conflictKey = key;
-                    return hitsList[0];
+                    return hitsList[0].Key;
                 }
             }
         }
@@ -548,18 +505,8 @@ public abstract class TableMock
         IReadOnlyCollection<string> changedCols)
     {
         foreach (var ix in _indexes.GetUnique())
-        {
-            if (!ix.KeyCols.Intersect(changedCols, StringComparer.OrdinalIgnoreCase).Any()) continue;
+            ix.EnsureUniqueBeforeUpdate(rowIdx, existingRow, simulatedRow, changedCols);
 
-            var oldKey = BuildIndexKey(ix, existingRow);
-            var newKey = BuildIndexKey(ix, simulatedRow);
-
-            if (!oldKey.Equals(newKey, StringComparison.Ordinal) &&
-                Lookup(ix, newKey)?.Any(i => i != rowIdx) == true)
-            {
-                throw DuplicateKey(tableName, ix.Name, newKey);
-            }
-        }
     }
 
     internal static string? ResolveWhereRaw(
@@ -780,8 +727,8 @@ public abstract class TableMock
     /// </summary>
     public Dictionary<int, object?> RemoveAt(int idx)
     {
-        var it = Items[idx];
-        Items.RemoveAt(idx);
+        var it = _items[idx];
+        _items.RemoveAt(idx);
         return it;
     }
 
@@ -793,8 +740,8 @@ public abstract class TableMock
         int colIdx,
         object? value)
     {
-        Items[rowIdx][colIdx] = value;
-        RefreshPersistedComputedValues(Items[rowIdx]);
+        _items[rowIdx][colIdx] = value;
+        RefreshPersistedComputedValues(_items[rowIdx]);
     }
 
     private List<Dictionary<int, object?>>? _backup;
@@ -814,11 +761,11 @@ public abstract class TableMock
         if (_backup == null)
             return;
 
-        Items.Clear();
+        _items.Clear();
         foreach (var row in _backup) Add(row);
 
         foreach (var ix in _indexes)
-            RebuildIndex(ix.Value);
+            ix.Value.RebuildIndex();
     }
 
     /// <summary>

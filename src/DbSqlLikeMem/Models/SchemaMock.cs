@@ -1,10 +1,12 @@
+using DbSqlLikeMem.Models;
+
 namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Base for an in-memory schema responsible for tables and procedures.
 /// PT: Base de um schema em memória, responsável por tabelas e procedimentos.
 /// </summary>
-public abstract class SchemaMock 
+public abstract class SchemaMock
     : ISchemaMock
     , IEnumerable<KeyValuePair<string, ITableMock>>
 {
@@ -242,15 +244,14 @@ public abstract class SchemaMock
         {
             foreach (var childTable in tables.Values)
             {
-                foreach (var (Col, _, RefCol) in childTable.ForeignKeys.Where(f =>
-                    f.RefTable.Equals(tableName, StringComparison.OrdinalIgnoreCase)))
+                foreach (var kvp in childTable.ForeignKeys.Where(f =>
+                    f.Value.RefTable.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)))
                 {
-                    var parentInfo = table.GetColumn(RefCol);
-                    var childInfo = childTable.GetColumn(Col);
-
-                    var keyVal = parentRow[parentInfo.Index];
-
-                    if (childTable.Any(childRow => Equals(childRow[childInfo.Index], keyVal)))
+                    if (kvp.Value.References.All(_ =>
+                    {
+                        var keyVal = parentRow[_.refCol.Index];
+                        return childTable.Any(childRow => Equals(childRow[_.col.Index], keyVal));
+                    }))
                     {
                         throw table.ReferencedRow(tableName);
                     }

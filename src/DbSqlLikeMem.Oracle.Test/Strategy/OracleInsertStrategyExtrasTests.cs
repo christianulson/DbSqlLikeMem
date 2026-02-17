@@ -113,7 +113,7 @@ public class OracleDeleteStrategyForeignKeyTests
         // Arrange child
         var child = db.AddTable("c");
         child.AddColumn("pid", DbType.Int32, false);
-        child.CreateForeignKey("pid", "p", "id");     // c(pid) → p(id)
+        child.CreateForeignKey("ix_parent_id", "parent", [("pid", "id")]);    // c(pid) → p(id)
         child.Add(new Dictionary<int, object?> { { 0, 42 } });
 
         using var cnn = new OracleConnectionMock(db);
