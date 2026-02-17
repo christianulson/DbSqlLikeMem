@@ -130,7 +130,7 @@ public sealed class MySqlBatchMock :
     {
         //this.ResetCommandTimeout();
 #pragma warning disable CA2012 // OK to read .Result because the ValueTask is completed
-        return ExecuteReaderAsync(behavior, CancellationToken.None).Result;
+        return ExecuteReaderCoreAsync(behavior, CancellationToken.None).Result;
 #pragma warning restore CA2012
     }
 
@@ -156,7 +156,7 @@ public sealed class MySqlBatchMock :
         CancellationToken cancellationToken)
     {
         if (!IsValid(out var exception))
-            return ValueTask.FromException<DbDataReader>(exception!);
+            return new ValueTask<DbDataReader>(Task.FromException<DbDataReader>(exception!));
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -192,7 +192,7 @@ public sealed class MySqlBatchMock :
             }
         }
 
-        return ValueTask.FromResult<DbDataReader>(new MySqlDataReaderMock(tables));
+        return new ValueTask<DbDataReader>(new MySqlDataReaderMock(tables));
 
         //var payloadCreator = IsPrepared ? SingleCommandPayloadCreator.Instance :
         //    ConcatenatedCommandPayloadCreator.Instance;
@@ -422,7 +422,7 @@ public sealed class MySqlBatchMock :
         if (BatchCommands.Count == 0)
             return null;
 
-        using var command = CreateExecutableCommand((MySqlBatchCommandMock)BatchCommands[0]);
+        using var command = CreateExecutableCommand(BatchCommands.Commands[0]);
         return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
     }
 
