@@ -298,7 +298,7 @@ internal abstract class AstQueryExecutorBase(
                 }
 #pragma warning restore CA1031
 
-                return (alias, ast);
+                return (Alias: alias!, Ast: ast);
             })
             .Where(x => x.HasValue)
             .Select(x => x!.Value)

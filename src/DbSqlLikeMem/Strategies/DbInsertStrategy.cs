@@ -355,8 +355,7 @@ internal static class DbInsertStrategy
         {
             var colInfo = table.GetColumn(col);
             if (colInfo.GetGenValue != null) continue;
-            var parser = new SqlParser(exprRaw, dialect);
-            var expr = parser.ParseExpression();
+            var expr = SqlExpressionParser.ParseScalar(exprRaw, dialect);
             var resolved = Eval(expr);
             var coerced = Coerce(colInfo.DbType, resolved);
             targetRow[colInfo.Index] = coerced;
