@@ -35,6 +35,11 @@ public interface ITableMock
     /// </summary>
     IReadOnlyHashSet<int> PrimaryKeyIndexes { get; }
 
+    /// <summary>
+    /// EN: Adds primary key index columns by name.
+    /// PT: Adiciona colunas de índice de chave primária pelo nome.
+    /// </summary>
+    /// <param name="columns">EN: Primary key columns. PT: Colunas da chave primária.</param>
     void AddPrimaryKeyIndexes(params string[] columns);
 
     /// <summary>
@@ -47,9 +52,9 @@ public interface ITableMock
     /// EN: Creates a foreign key linking a local column to a column in another table.
     /// PT: Cria uma chave estrangeira ligando uma coluna local a uma coluna de outra tabela.
     /// </summary>
-    /// <param name="col">EN: Local column name. PT: Nome da coluna local.</param>
+    /// <param name="name">EN: Foreign key name. PT: Nome da chave estrangeira.</param>
     /// <param name="refTable">EN: Referenced table. PT: Tabela referenciada.</param>
-    /// <param name="refCol">EN: Referenced column. PT: Coluna referenciada.</param>
+    /// <param name="references">EN: Local/reference column mappings. PT: Mapeamentos coluna local/referenciada.</param>
     ForeignDef CreateForeignKey(
         string name,
         string refTable,
@@ -61,6 +66,18 @@ public interface ITableMock
     /// </summary>
     ImmutableDictionary<string, ColumnDef> Columns { get; }
 
+    /// <summary>
+    /// EN: Adds a new column definition to the table.
+    /// PT: Adiciona uma nova definição de coluna à tabela.
+    /// </summary>
+    /// <param name="name">EN: Column name. PT: Nome da coluna.</param>
+    /// <param name="dbType">EN: Column type. PT: Tipo da coluna.</param>
+    /// <param name="nullable">EN: Allows null values. PT: Permite valores nulos.</param>
+    /// <param name="size">EN: Optional size/length. PT: Tamanho/comprimento opcional.</param>
+    /// <param name="decimalPlaces">EN: Optional decimal places. PT: Casas decimais opcionais.</param>
+    /// <param name="identity">EN: Auto-increment flag. PT: Indicador de auto incremento.</param>
+    /// <param name="defaultValue">EN: Optional default value. PT: Valor padrão opcional.</param>
+    /// <param name="enumValues">EN: Optional enum values. PT: Valores de enum opcionais.</param>
     ColumnDef AddColumn(
         string name,
         DbType dbType,
