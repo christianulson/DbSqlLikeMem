@@ -10,6 +10,8 @@ public abstract class SchemaMock
     : ISchemaMock
     , IEnumerable<KeyValuePair<string, ITableMock>>
 {
+    private const int ParallelFkScanThreshold = 2048;
+
     /// <summary>
     /// EN: Initializes the schema with name, database, and optional collections.
     /// PT: Inicializa o schema com nome, banco e coleções opcionais.
@@ -234,7 +236,6 @@ public abstract class SchemaMock
     #endregion
 
     #endregion
-
     internal void ValidateForeignKeysOnDelete(
         string tableName,
         ITableMock table,
@@ -244,14 +245,11 @@ public abstract class SchemaMock
         {
             foreach (var childTable in tables.Values)
             {
-                foreach (var kvp in childTable.ForeignKeys.Where(f =>
-                    f.Value.RefTable.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)))
+                foreach (var fk in childTable.ForeignKeys.Values.Where(f =>
+                    f.RefTable.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)))
                 {
-                    if (kvp.Value.References.All(_ =>
-                    {
-                        var keyVal = parentRow[_.refCol.Index];
-                        return childTable.Any(childRow => Equals(childRow[_.col.Index], keyVal));
-                    }))
+                    if (HasReferenceByIndex(childTable, fk, parentRow)
+                        || HasReferenceByScan(childTable, fk, parentRow))
                     {
                         throw table.ReferencedRow(tableName);
                     }
@@ -259,4 +257,44 @@ public abstract class SchemaMock
             }
         }
     }
+
+    private bool HasReferenceByScan(
+        ITableMock childTable,
+        ForeignDef fk,
+        IReadOnlyDictionary<int, object?> parentRow)
+    {
+        if (Db.ThreadSafe && childTable.Count >= ParallelFkScanThreshold)
+        {
+            return childTable
+                .AsParallel()
+                .Any(childRow => fk.References.All(r =>
+                    Equals(childRow[r.col.Index], parentRow[r.refCol.Index])));
+        }
+
+        return childTable.Any(childRow => fk.References.All(r =>
+            Equals(childRow[r.col.Index], parentRow[r.refCol.Index])));
+    }
+
+    private static bool HasReferenceByIndex(
+        ITableMock childTable,
+        ForeignDef fk,
+        IReadOnlyDictionary<int, object?> parentRow)
+    {
+        var matchingIndex = childTable.Indexes.Values
+            .OrderByDescending(_ => _.KeyCols.Count)
+            .FirstOrDefault(ix => fk.References.All(r =>
+                ix.KeyCols.Contains(r.col.Name, StringComparer.OrdinalIgnoreCase)));
+
+        if (matchingIndex is null)
+            return false;
+
+        var valuesByColumn = fk.References.ToDictionary(
+            _ => _.col.Name.NormalizeName(),
+            _ => parentRow[_.refCol.Index],
+            StringComparer.OrdinalIgnoreCase);
+
+        var key = matchingIndex.BuildIndexKeyFromValues(valuesByColumn);
+        return matchingIndex.LookupMutable(key)?.Count > 0;
+    }
+
 }
