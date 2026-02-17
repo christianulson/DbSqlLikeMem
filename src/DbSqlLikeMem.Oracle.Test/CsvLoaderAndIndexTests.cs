@@ -68,7 +68,7 @@ public sealed class CsvLoaderAndIndexTests(
         var idxDef = tb.CreateIndex("ix_name", ["name"]);
 
         var ix = tb.Lookup(idxDef, "John");
-        Assert.Equal([0, 1], [.. ix.Select(_ => _.Key)!.OrderBy(_ => _)]);
+        Assert.Equal([0, 1], [.. ix!.Select(_ => _.Key).OrderBy(_ => _)]);
     }
 
     /// <summary>

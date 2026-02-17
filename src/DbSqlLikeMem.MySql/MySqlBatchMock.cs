@@ -66,9 +66,6 @@ public sealed class MySqlBatchMock :
     public MySqlTransactionMock? Transaction { get; set; }
 #endif
 
-    /// <summary>
-    /// The collection of commands that will be executed in the batch.
-    /// </summary>
 #if NET6_0_OR_GREATER
     /// <summary>
     /// Mock API member implementation for compatibility with MySQL provider contracts.
@@ -88,11 +85,6 @@ public sealed class MySqlBatchMock :
     public MySqlBatchCommandCollectionMock BatchCommands { get; }
 #endif
 
-    /// <summary>
-    /// Executes all the commands in the batch, returning a <see cref="MySqlDataReader"/> that can iterate
-    /// over the result sets. If multiple resultsets are returned, use <see cref="MySqlDataReader.NextResult"/>
-    /// to access them.
-    /// </summary>
 #if NET6_0_OR_GREATER
     /// <summary>
     /// Mock API member implementation for compatibility with MySQL provider contracts.
@@ -108,13 +100,6 @@ public sealed class MySqlBatchMock :
 #endif
         (MySqlDataReaderMock) ExecuteDbDataReader(commandBehavior);
 
-    /// <summary>
-    /// Executes all the commands in the batch, returning a <see cref="MySqlDataReader"/> that can iterate
-    /// over the result sets. If multiple resultsets are returned, use <see cref="MySqlDataReader.NextResultAsync(CancellationToken)"/>
-    /// to access them.
-    /// </summary>
-    /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
-    /// <returns>A <see cref="Task{MySqlDataReaderMock}"/> containing the result of the asynchronous operation.</returns>
 #if NET6_0_OR_GREATER
     /// <summary>
     /// Mock API member implementation for compatibility with MySQL provider contracts.
@@ -166,7 +151,7 @@ public sealed class MySqlBatchMock :
             cancellationToken).ConfigureAwait(false);
     }
 
-    private ValueTask<DbDataReader> ExecuteReaderAsync(CommandBehavior behavior,
+    private new ValueTask<DbDataReader> ExecuteReaderAsync(CommandBehavior behavior,
         //IOBehavior ioBehavior, 
         CancellationToken cancellationToken)
     {
