@@ -49,45 +49,72 @@ public sealed class MySqlPerformanceTests : XUnitTestBase
         const int totalRows = 2000;
         const int sampledReads = 1000;
 
+        var insertStatements = new string[totalRows];
+        var updateStatements = new string[totalRows];
+        var deleteStatements = new string[totalRows];
+        var readStatements = new string[sampledReads];
+
+        for (var i = 1; i <= totalRows; i++)
+        {
+            var rowIndex = i - 1;
+            insertStatements[rowIndex] = $"INSERT INTO Users (Id, Name, Email) VALUES ({i}, 'User {i}', 'user{i}@mail.com')";
+            updateStatements[rowIndex] = $"UPDATE Users SET Name = 'Updated {i}' WHERE Id = {i}";
+            deleteStatements[rowIndex] = $"DELETE FROM Users WHERE Id = {i}";
+        }
+
+        for (var i = 1; i <= sampledReads; i++)
+        {
+            var userId = (i % totalRows) + 1;
+            readStatements[i - 1] = $"SELECT Id, Name, Email FROM Users WHERE Id = {userId}";
+        }
+
         using var command = new MySqlCommandMock(_connection);
 
+        var insertedRows = 0;
         var insertElapsedMs = Measure(() =>
         {
-            for (var i = 1; i <= totalRows; i++)
+            for (var i = 0; i < insertStatements.Length; i++)
             {
-                command.CommandText = $"INSERT INTO Users (Id, Name, Email) VALUES ({i}, 'User {i}', 'user{i}@mail.com')";
-                Assert.Equal(1, command.ExecuteNonQuery());
+                command.CommandText = insertStatements[i];
+                insertedRows += command.ExecuteNonQuery();
             }
         });
+        Assert.Equal(totalRows, insertedRows);
 
+        var successfulReads = 0;
         var readElapsedMs = Measure(() =>
         {
-            for (var i = 1; i <= sampledReads; i++)
+            for (var i = 0; i < readStatements.Length; i++)
             {
-                var userId = (i % totalRows) + 1;
-                command.CommandText = $"SELECT Id, Name, Email FROM Users WHERE Id = {userId}";
+                command.CommandText = readStatements[i];
                 using var reader = command.ExecuteReader();
-                Assert.True(reader.Read());
+                if (reader.Read())
+                    successfulReads++;
             }
         });
+        Assert.Equal(sampledReads, successfulReads);
 
+        var updatedRows = 0;
         var updateElapsedMs = Measure(() =>
         {
-            for (var i = 1; i <= totalRows; i++)
+            for (var i = 0; i < updateStatements.Length; i++)
             {
-                command.CommandText = $"UPDATE Users SET Name = 'Updated {i}' WHERE Id = {i}";
-                Assert.Equal(1, command.ExecuteNonQuery());
+                command.CommandText = updateStatements[i];
+                updatedRows += command.ExecuteNonQuery();
             }
         });
+        Assert.Equal(totalRows, updatedRows);
 
+        var deletedRows = 0;
         var deleteElapsedMs = Measure(() =>
         {
-            for (var i = 1; i <= totalRows; i++)
+            for (var i = 0; i < deleteStatements.Length; i++)
             {
-                command.CommandText = $"DELETE FROM Users WHERE Id = {i}";
-                Assert.Equal(1, command.ExecuteNonQuery());
+                command.CommandText = deleteStatements[i];
+                deletedRows += command.ExecuteNonQuery();
             }
         });
+        Assert.Equal(totalRows, deletedRows);
 
         Console.WriteLine($"[MySql][Performance] Inserts: {totalRows} in {insertElapsedMs}ms ({OpsPerSecond(totalRows, insertElapsedMs):F2} ops/s)");
         Console.WriteLine($"[MySql][Performance] Reads: {sampledReads} in {readElapsedMs}ms ({OpsPerSecond(sampledReads, readElapsedMs):F2} ops/s)");
