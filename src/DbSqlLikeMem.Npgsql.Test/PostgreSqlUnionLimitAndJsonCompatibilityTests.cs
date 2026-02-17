@@ -7,13 +7,20 @@ namespace DbSqlLikeMem.Npgsql.Test;
 public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests : XUnitTestBase
 {
     private readonly NpgsqlConnectionMock _cnn;
+    private const int PostgreSqlJsonbMinVersion = 9;
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public PostgreSqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper)
     {
-        var db = new NpgsqlDbMock();
+        _cnn = CreateConnection();
+        _cnn.Open();
+    }
+
+    private static NpgsqlConnectionMock CreateConnection(int? version = null)
+    {
+        var db = new NpgsqlDbMock(version);
         var t = db.AddTable("t");
         t.AddColumn("id", DbType.Int32, false);
         t.AddColumn("payload", DbType.String, true);
@@ -21,8 +28,7 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests : XUnitTestBas
         t.Add(new Dictionary<int, object?> { [0] = 2, [1] = "{\"a\":{\"b\":456}}" });
         t.Add(new Dictionary<int, object?> { [0] = 3, [1] = null });
 
-        _cnn = new NpgsqlConnectionMock(db);
-        _cnn.Open();
+        return new NpgsqlConnectionMock(db);
     }
 
     /// <summary>
@@ -65,10 +71,21 @@ SELECT id FROM t WHERE id = 1
     /// EN: Tests JsonPathExtract_ShouldWork behavior.
     /// PT: Testa o comportamento de JsonPathExtract_ShouldWork.
     /// </summary>
-    [Fact]
-    public void JsonPathExtract_ShouldWork()
+    [Theory]
+    [MemberDataNpgsqlVersion]
+    public void JsonPathExtract_ShouldRespectVersion(int version)
     {
-        var rows = _cnn.Query<dynamic>("SELECT id, (payload::jsonb #>> '{a,b}')::numeric AS v FROM t ORDER BY id").ToList();
+        using var cnn = CreateConnection(version);
+        cnn.Open();
+
+        if (version < PostgreSqlJsonbMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                cnn.Query<dynamic>("SELECT id, (payload::jsonb #>> '{a,b}')::numeric AS v FROM t ORDER BY id").ToList());
+            return;
+        }
+
+        var rows = cnn.Query<dynamic>("SELECT id, (payload::jsonb #>> '{a,b}')::numeric AS v FROM t ORDER BY id").ToList();
 
         // implemented as best-effort; null JSON -> null
         Assert.Equal([123m, 456m, null], [.. rows.Select(r => (object?)r.v)]);

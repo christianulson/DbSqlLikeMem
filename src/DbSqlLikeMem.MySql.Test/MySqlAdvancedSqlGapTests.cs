@@ -8,13 +8,20 @@ namespace DbSqlLikeMem.MySql.Test;
 public sealed class MySqlAdvancedSqlGapTests : XUnitTestBase
 {
     private readonly MySqlConnectionMock _cnn;
+    private const int MySqlWindowFunctionsMinVersion = 8;
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public MySqlAdvancedSqlGapTests(ITestOutputHelper helper) : base(helper)
     {
-        var db = new MySqlDbMock();
+        _cnn = CreateConnection();
+        _cnn.Open();
+    }
+
+    private static MySqlConnectionMock CreateConnection(int? version = null)
+    {
+        var db = new MySqlDbMock(version);
         var users = db.AddTable("users");
         users.AddColumn("id", DbType.Int32, false);
         users.AddColumn("name", DbType.String, false);
@@ -34,18 +41,32 @@ public sealed class MySqlAdvancedSqlGapTests : XUnitTestBase
         orders.Add(new Dictionary<int, object?> { [0] = 11, [1] = 1, [2] = 5m });
         orders.Add(new Dictionary<int, object?> { [0] = 12, [1] = 2, [2] = 7m });
 
-        _cnn = new MySqlConnectionMock(db);
-        _cnn.Open();
+        return new MySqlConnectionMock(db);
     }
 
     /// <summary>
     /// EN: Tests Window_RowNumber_PartitionBy_ShouldWork behavior.
     /// PT: Testa o comportamento de Window_RowNumber_PartitionBy_ShouldWork.
     /// </summary>
-    [Fact]
-    public void Window_RowNumber_PartitionBy_ShouldWork()
+    [Theory]
+    [MemberDataMySqlVersion]
+    public void Window_RowNumber_PartitionBy_ShouldRespectVersion(int version)
     {
-        var rows = _cnn.Query<dynamic>(@"
+        using var cnn = CreateConnection(version);
+        cnn.Open();
+
+        if (version < MySqlWindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                cnn.Query<dynamic>(@"
+SELECT id, tenantid,
+       ROW_NUMBER() OVER (PARTITION BY tenantid ORDER BY id) AS rn
+FROM users
+ORDER BY tenantid, id").ToList());
+            return;
+        }
+
+        var rows = cnn.Query<dynamic>(@"
 SELECT id, tenantid,
        ROW_NUMBER() OVER (PARTITION BY tenantid ORDER BY id) AS rn
 FROM users

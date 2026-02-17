@@ -7,13 +7,20 @@ namespace DbSqlLikeMem.MySql.Test;
 public sealed class MySqlUnionLimitAndJsonCompatibilityTests : XUnitTestBase
 {
     private readonly MySqlConnectionMock _cnn;
+    private const int MySqlJsonExtractMinVersion = 5;
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public MySqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper)
     {
-        var db = new MySqlDbMock();
+        _cnn = CreateConnection();
+        _cnn.Open();
+    }
+
+    private static MySqlConnectionMock CreateConnection(int? version = null)
+    {
+        var db = new MySqlDbMock(version);
         var t = db.AddTable("t");
         t.AddColumn("id", DbType.Int32, false);
         t.AddColumn("payload", DbType.String, true);
@@ -21,9 +28,9 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests : XUnitTestBase
         t.Add(new Dictionary<int, object?> { [0] = 2, [1] = "{\"a\":{\"b\":456}}" });
         t.Add(new Dictionary<int, object?> { [0] = 3, [1] = null });
 
-        _cnn = new MySqlConnectionMock(db);
-        _cnn.Open();
+        return new MySqlConnectionMock(db);
     }
+
 
     /// <summary>
     /// EN: Tests UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates behavior.
@@ -77,10 +84,21 @@ SELECT id FROM t WHERE id = 1
     /// EN: Tests JsonExtract_SimpleObjectPath_ShouldWork behavior.
     /// PT: Testa o comportamento de JsonExtract_SimpleObjectPath_ShouldWork.
     /// </summary>
-    [Fact]
-    public void JsonExtract_SimpleObjectPath_ShouldWork()
+    [Theory]
+    [MemberDataMySqlVersion]
+    public void JsonExtract_SimpleObjectPath_ShouldRespectVersion(int version)
     {
-        var rows = _cnn.Query<dynamic>("SELECT id, JSON_EXTRACT(payload, '$.a.b') AS v FROM t ORDER BY id").ToList();
+        using var cnn = CreateConnection(version);
+        cnn.Open();
+
+        if (version < MySqlJsonExtractMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                cnn.Query<dynamic>("SELECT id, JSON_EXTRACT(payload, '$.a.b') AS v FROM t ORDER BY id").ToList());
+            return;
+        }
+
+        var rows = cnn.Query<dynamic>("SELECT id, JSON_EXTRACT(payload, '$.a.b') AS v FROM t ORDER BY id").ToList();
 
         // implemented as best-effort; null JSON -> null
         Assert.Equal([123m, 456m, null], [.. rows.Select(r => (object?)r.v)]);
