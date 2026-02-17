@@ -19,6 +19,7 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
     /// EN: Initializes the index definition.
     /// PT: Inicializa a definição do índice.
     /// </summary>
+    /// <param name="table">EN: Parent table. PT: Tabela pai.</param>
     /// <param name="name">EN: Index name. PT: Nome do índice.</param>
     /// <param name="keyCols">EN: Index key columns. PT: Colunas chave do índice.</param>
     /// <param name="include">EN: Additional included columns. PT: Colunas incluídas adicionais.</param>
@@ -104,7 +105,7 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
     {
         if (!_items.TryGetValue(key, out var v))
         {
-            value = null;
+            value = default!;
             return false;
         }
         value = (IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>)new ReadOnlyDictionary<int, ReadOnlyDictionary<string, object?>>(
@@ -211,7 +212,6 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
     /// EN: Looks up values in the index using the given key.
     /// PT: Procura valores no índice usando a chave informada.
     /// </summary>
-    /// <param name="def">EN: Index definition. PT: Definição do índice.</param>
     /// <param name="key">EN: Key to search. PT: Chave a buscar.</param>
     /// <returns>EN: List of positions or null. PT: Lista de posições ou null.</returns>
     public IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>? Lookup(string key)
