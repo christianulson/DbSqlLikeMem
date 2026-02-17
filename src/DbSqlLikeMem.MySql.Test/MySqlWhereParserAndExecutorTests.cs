@@ -21,6 +21,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
         users.CreateIndex("ix_users_name", ["name"]);
         users.CreateIndex("ix_users_name_email", ["name", "email"]);
+        users.CreateIndex("ix_users_name_include_email", ["name"], ["email"]);
 
         users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = "john@x.com", [3] = "a,b" });
         users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Jane", [2] = null, [3] = "b,c" });
@@ -77,6 +78,51 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
         Assert.Equal(beforeTableHint + 1, _cnn.Metrics.TableHints["users"]);
     }
 
+
+    /// <summary>
+    /// EN: Tests Where_IndexWithIncludeCoveringProjection_ShouldExposeRequestedColumnsInIndex behavior.
+    /// PT: Testa o comportamento de Where_IndexWithIncludeCoveringProjection_ShouldExposeRequestedColumnsInIndex.
+    /// </summary>
+    [Fact]
+    public void Where_IndexWithIncludeCoveringProjection_ShouldExposeRequestedColumnsInIndex()
+    {
+        var table = _cnn.GetTable("users");
+        var idx = table.Indexes["ix_users_name_include_email"];
+
+        var lookup = table.Lookup(idx, "John");
+
+        Assert.NotNull(lookup);
+        var idxRow = lookup!.Single().Value;
+        Assert.Equal("John", idxRow["name"]);
+        Assert.Equal("john@x.com", idxRow["email"]);
+        Assert.Equal(1, idxRow["id"]);
+
+        var rows = _cnn.Query<dynamic>("SELECT id, email FROM users WHERE name = 'John'").ToList();
+        Assert.Single(rows);
+        Assert.Equal(1, (int)rows[0].id);
+        Assert.Equal("john@x.com", (string)rows[0].email);
+    }
+
+    /// <summary>
+    /// EN: Tests Where_IndexWithoutRequestedColumn_ShouldFallbackToTableRow behavior.
+    /// PT: Testa o comportamento de Where_IndexWithoutRequestedColumn_ShouldFallbackToTableRow.
+    /// </summary>
+    [Fact]
+    public void Where_IndexWithoutRequestedColumn_ShouldFallbackToTableRow()
+    {
+        var table = _cnn.GetTable("users");
+        var idx = table.Indexes["ix_users_name_include_email"];
+
+        var lookup = table.Lookup(idx, "John");
+
+        Assert.NotNull(lookup);
+        var idxRow = lookup!.Single().Value;
+        Assert.False(idxRow.ContainsKey("tags"));
+
+        var rows = _cnn.Query<dynamic>("SELECT tags FROM users WHERE name = 'John'").ToList();
+        Assert.Single(rows);
+        Assert.Equal("a,b", (string)rows[0].tags);
+    }
 
     /// <summary>
     /// EN: Tests Where_NonIndexedPredicate_ShouldNotIncreaseIndexLookupMetric behavior.
