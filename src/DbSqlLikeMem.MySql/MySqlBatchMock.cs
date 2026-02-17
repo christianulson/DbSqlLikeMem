@@ -155,16 +155,44 @@ public sealed class MySqlBatchMock :
         //IOBehavior ioBehavior, 
         CancellationToken cancellationToken)
     {
-        //if (!IsValid(out var exception))
-        //    return ValueTaskExtensions.FromException<MySqlDataReaderMock>(exception);
+        if (!IsValid(out var exception))
+            return ValueTask.FromException<DbDataReader>(exception!);
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         CurrentCommandBehavior = behavior;
         foreach (MySqlBatchCommandMock batchCommand in BatchCommands)
             batchCommand.Batch = this;
 
-        MySqlConnectionMock connection = Connection ?? throw new InvalidOperationException("Connection property must be non-null.");
-        var executor = connection.CreateCommand();
-        throw new NotImplementedException();
+        var tables = new List<TableResultMock>();
+        foreach (var batchCommand in BatchCommands)
+        {
+            using var command = CreateExecutableCommand(batchCommand);
+
+            try
+            {
+                using var reader = command.ExecuteReader();
+                do
+                {
+                    var rows = new List<object[]>();
+                    while (reader.Read())
+                    {
+                        var row = new object[reader.FieldCount];
+                        reader.GetValues(row);
+                        rows.Add(row);
+                    }
+
+                    if (reader.FieldCount > 0)
+                        tables.Add(new TableResultMock(rows));
+                } while (reader.NextResult());
+            }
+            catch (InvalidOperationException ex) when (ex.Message == SqlExceptionMessages.ExecuteReaderWithoutSelectQuery())
+            {
+                command.ExecuteNonQuery();
+            }
+        }
+
+        return ValueTask.FromResult<DbDataReader>(new MySqlDataReaderMock(tables));
 
         //var payloadCreator = IsPrepared ? SingleCommandPayloadCreator.Instance :
         //    ConcatenatedCommandPayloadCreator.Instance;
@@ -370,31 +398,46 @@ public sealed class MySqlBatchMock :
 
     private async Task<int> DbExecuteNonQueryAsync(CancellationToken cancellationToken)
     {
-        using var reader = await ExecuteReaderAsync(CommandBehavior.Default, cancellationToken).ConfigureAwait(false);
-        do
+        if (!IsValid(out var exception))
+            throw exception!;
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var total = 0;
+        foreach (var batchCommand in BatchCommands)
         {
-            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-            {}
-        } while (await reader.NextResultAsync(cancellationToken).ConfigureAwait(false));
-        return reader.RecordsAffected;
+            using var command = CreateExecutableCommand(batchCommand);
+            total += await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return total;
     }
 
     private async Task<object?> DbExecuteScalarAsync(CancellationToken cancellationToken)
     {
-        var hasSetResult = false;
-        object? result = null;
-        using var reader = await ExecuteReaderAsync(CommandBehavior.Default, cancellationToken).ConfigureAwait(false);
-        do
-        {
-            var hasResult = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSetResult)
-            {
-                if (hasResult)
-                    result = reader.GetValue(0);
-                hasSetResult = true;
-            }
-        } while (await reader.NextResultAsync(cancellationToken).ConfigureAwait(false));
-        return result;
+        if (!IsValid(out var exception))
+            throw exception!;
+
+        cancellationToken.ThrowIfCancellationRequested();
+        if (BatchCommands.Count == 0)
+            return null;
+
+        using var command = CreateExecutableCommand(BatchCommands[0]);
+        return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private MySqlCommandMock CreateExecutableCommand(MySqlBatchCommandMock batchCommand)
+    {
+        var command = Connection!.CreateCommand();
+        command.Transaction = Transaction;
+        command.CommandType = batchCommand.CommandType;
+        command.CommandText = batchCommand.CommandText;
+        command.CommandTimeout = Timeout;
+
+        foreach (MySqlParameter parameter in batchCommand.Parameters)
+            command.Parameters.Add(parameter.ParameterName, parameter.MySqlDbType).Value = parameter.Value;
+
+        return command;
     }
 
     private bool IsValid(
