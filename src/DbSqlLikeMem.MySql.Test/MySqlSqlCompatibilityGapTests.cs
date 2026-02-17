@@ -7,14 +7,21 @@ namespace DbSqlLikeMem.MySql.Test;
 public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
 {
     private readonly MySqlConnectionMock _cnn;
+    private const int MySqlCteMinVersion = 8;
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public MySqlSqlCompatibilityGapTests(ITestOutputHelper helper) : base(helper)
     {
+        _cnn = CreateConnection();
+        _cnn.Open();
+    }
+
+    private static MySqlConnectionMock CreateConnection(int? version = null)
+    {
         // users
-        var db = new MySqlDbMock();
+        var db = new MySqlDbMock(version);
         var users = db.AddTable("users");
         users.Columns["id"] = new(0, DbType.Int32, false);
         users.Columns["name"] = new(1, DbType.String, false);
@@ -34,9 +41,7 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
         orders.Add(new Dictionary<int, object?> { [0] = 11, [1] = 2, [2] = 200m });
         orders.Add(new Dictionary<int, object?> { [0] = 12, [1] = 2, [2] = 10m });
 
-        _cnn = new MySqlConnectionMock(db);
-
-        _cnn.Open();
+        return new MySqlConnectionMock(db);
     }
 
     /// <summary>
@@ -257,10 +262,23 @@ ORDER BY id
     /// EN: Tests Cte_With_ShouldWork behavior.
     /// PT: Testa o comportamento de Cte_With_ShouldWork.
     /// </summary>
-    [Fact]
-    public void Cte_With_ShouldWork()
+    [Theory]
+    [MemberDataMySqlVersion]
+    public void Cte_With_ShouldRespectVersion(int version)
     {
-        var rows = _cnn.Query<dynamic>(
+        using var cnn = CreateConnection(version);
+        cnn.Open();
+
+        if (version < MySqlCteMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                cnn.Query<dynamic>(
+                    "WITH u AS (SELECT id, name FROM users WHERE id <= 2) " +
+                    "SELECT id FROM u ORDER BY id DESC").ToList());
+            return;
+        }
+
+        var rows = cnn.Query<dynamic>(
             "WITH u AS (SELECT id, name FROM users WHERE id <= 2) " +
             "SELECT id FROM u ORDER BY id DESC").ToList();
         Assert.Equal([2,1], [.. rows.Select(r => (int)r.id)]);

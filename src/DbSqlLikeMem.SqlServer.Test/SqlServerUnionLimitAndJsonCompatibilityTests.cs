@@ -7,13 +7,21 @@ namespace DbSqlLikeMem.SqlServer.Test;
 public sealed class SqlServerUnionLimitAndJsonCompatibilityTests : XUnitTestBase
 {
     private readonly SqlServerConnectionMock _cnn;
+    private const int SqlServerOffsetFetchMinVersion = 2012;
+    private const int SqlServerJsonFunctionsMinVersion = 2016;
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public SqlServerUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper)
     {
-        var db = new SqlServerDbMock();
+        _cnn = CreateConnection();
+        _cnn.Open();
+    }
+
+    private static SqlServerConnectionMock CreateConnection(int? version = null)
+    {
+        var db = new SqlServerDbMock(version);
         var t = db.AddTable("t");
         t.Columns["id"] = new(0, DbType.Int32, false);
         t.Columns["payload"] = new(1, DbType.String, true);
@@ -21,8 +29,7 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests : XUnitTestBase
         t.Add(new Dictionary<int, object?> { [0] = 2, [1] = "{\"a\":{\"b\":456}}" });
         t.Add(new Dictionary<int, object?> { [0] = 3, [1] = null });
 
-        _cnn = new SqlServerConnectionMock(db);
-        _cnn.Open();
+        return new SqlServerConnectionMock(db);
     }
 
     /// <summary>
@@ -53,11 +60,22 @@ SELECT id FROM t WHERE id = 1
     /// EN: Tests OffsetFetch_ShouldWork behavior.
     /// PT: Testa o comportamento de OffsetFetch_ShouldWork.
     /// </summary>
-    [Fact]
-    public void OffsetFetch_ShouldWork()
+    [Theory]
+    [MemberDataSqlServerVersion]
+    public void OffsetFetch_ShouldRespectVersion(int version)
     {
+        using var cnn = CreateConnection(version);
+        cnn.Open();
+
+        if (version < SqlServerOffsetFetchMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                cnn.Query<dynamic>("SELECT id FROM t ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY").ToList());
+            return;
+        }
+
         // SQL Server: OFFSET/FETCH
-        var rows = _cnn.Query<dynamic>("SELECT id FROM t ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY").ToList();
+        var rows = cnn.Query<dynamic>("SELECT id FROM t ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY").ToList();
         Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id)]);
     }
 
@@ -65,10 +83,21 @@ SELECT id FROM t WHERE id = 1
     /// EN: Tests JsonValue_SimpleObjectPath_ShouldWork behavior.
     /// PT: Testa o comportamento de JsonValue_SimpleObjectPath_ShouldWork.
     /// </summary>
-    [Fact]
-    public void JsonValue_SimpleObjectPath_ShouldWork()
+    [Theory]
+    [MemberDataSqlServerVersion]
+    public void JsonValue_SimpleObjectPath_ShouldRespectVersion(int version)
     {
-        var rows = _cnn.Query<dynamic>("SELECT id, TRY_CAST(JSON_VALUE(payload, '$.a.b') AS DECIMAL(18,0)) AS v FROM t ORDER BY id").ToList();
+        using var cnn = CreateConnection(version);
+        cnn.Open();
+
+        if (version < SqlServerJsonFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                cnn.Query<dynamic>("SELECT id, TRY_CAST(JSON_VALUE(payload, '$.a.b') AS DECIMAL(18,0)) AS v FROM t ORDER BY id").ToList());
+            return;
+        }
+
+        var rows = cnn.Query<dynamic>("SELECT id, TRY_CAST(JSON_VALUE(payload, '$.a.b') AS DECIMAL(18,0)) AS v FROM t ORDER BY id").ToList();
 
         // implemented as best-effort; null JSON -> null
         Assert.Equal([123m, 456m, null], [.. rows.Select(r => (object?)r.v)]);
