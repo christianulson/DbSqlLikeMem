@@ -285,8 +285,14 @@ public abstract class TableMock
     /// </summary>
     public void RebuildAllIndexes()
     {
-        foreach (var ix in _indexes)
-            ix.Value.RebuildIndex();
+        if (_indexes.Count <= 1 || !Schema.Db.ThreadSafe)
+        {
+            foreach (var ix in _indexes)
+                ix.Value.RebuildIndex();
+            return;
+        }
+
+        Parallel.ForEach(_indexes.Values, ix => ix.RebuildIndex());
     }
 
 
@@ -308,6 +314,65 @@ public abstract class TableMock
 
         _foreignKeys.Add(name, fk);
         return fk;
+    }
+
+    internal void ValidateForeignKeysOnRow(IReadOnlyDictionary<int, object?> row)
+    {
+        foreach (var fk in _foreignKeys.Values)
+        {
+            var hasNull = false;
+            foreach (var (col, _) in fk.References)
+            {
+                if (!row.TryGetValue(col.Index, out var val)
+                    || val is null
+                    || val is DBNull)
+                {
+                    hasNull = true;
+                    break;
+                }
+            }
+
+            if (hasNull)
+                continue;
+
+            if (!HasReferencedRow(fk, row))
+            {
+                var refCols = string.Join(",", fk.References.Select(_ => _.col.Name));
+                throw ForeignKeyFails(refCols, fk.RefTable.TableName);
+            }
+        }
+    }
+
+    private bool HasReferencedRow(
+        ForeignDef fk,
+        IReadOnlyDictionary<int, object?> row)
+    {
+        var refTable = fk.RefTable;
+        var matchingIndex = refTable.Indexes.Values
+            .OrderByDescending(_ => _.KeyCols.Count)
+            .FirstOrDefault(ix => fk.References.All(r =>
+                ix.KeyCols.Contains(r.refCol.Name, StringComparer.OrdinalIgnoreCase)));
+
+        if (matchingIndex is not null)
+        {
+            var valuesByColumn = fk.References.ToDictionary(
+                _ => _.refCol.Name.NormalizeName(),
+                _ => row[_.col.Index],
+                StringComparer.OrdinalIgnoreCase);
+
+            var key = matchingIndex.BuildIndexKeyFromValues(valuesByColumn);
+            if (matchingIndex.LookupMutable(key)?.Count > 0)
+                return true;
+        }
+
+        if (Schema.Db.ThreadSafe && refTable.Count >= 2048)
+        {
+            return refTable.AsParallel().Any(refRow => fk.References.All(r =>
+                Equals(refRow[r.refCol.Index], row[r.col.Index])));
+        }
+
+        return refTable.Any(refRow => fk.References.All(r =>
+            Equals(refRow[r.refCol.Index], row[r.col.Index])));
     }
 
     /// <summary>
@@ -425,10 +490,54 @@ public abstract class TableMock
         }
     }
 
+    private bool TryFindPrimaryConflictByIndex(
+        IReadOnlyDictionary<int, object?> newRow,
+        out int rowIndex)
+    {
+        rowIndex = -1;
+        if (_primaryKeyIndexes.Count == 0)
+            return false;
+
+        var pkColumnNames = _columns
+            .Where(_ => _primaryKeyIndexes.Contains(_.Value.Index))
+            .Select(_ => _.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var pkIndex = _indexes.GetUnique()
+            .FirstOrDefault(ix =>
+                ix.KeyCols.Count == pkColumnNames.Count
+                && ix.KeyCols.All(pkColumnNames.Contains));
+
+        if (pkIndex is null)
+            return false;
+
+        var valuesByColumn = _columns
+            .Where(_ => _primaryKeyIndexes.Contains(_.Value.Index))
+            .ToDictionary(
+                _ => _.Key.NormalizeName(),
+                _ => newRow.TryGetValue(_.Value.Index, out var val) ? val : null,
+                StringComparer.OrdinalIgnoreCase);
+
+        var key = pkIndex.BuildIndexKeyFromValues(valuesByColumn);
+        var hits = pkIndex.LookupMutable(key);
+        if (hits is not { Count: > 0 })
+            return false;
+
+        rowIndex = hits.First().Key;
+        return true;
+    }
+
     internal void EnsureUniqueOnInsert(Dictionary<int, object?> newRow)
     {
         if (_primaryKeyIndexes.Count > 0)
         {
+            if (TryFindPrimaryConflictByIndex(newRow, out _))
+            {
+                var dupPk = _columns
+                    .Where(_ => _primaryKeyIndexes.Contains(_.Value.Index))
+                    .Select(_ => $"{_.Key}: {(newRow.TryGetValue(_.Value.Index, out var v) ? v : null)}");
+                throw DuplicateKey(TableName, "PRIMARY", string.Join(",", dupPk));
+            }
             var pkColumnNames = _columns.ToDictionary(_ => _.Value.Index, _ => _.Key);
             for (int i = 0; i < Count; i++)
             {
@@ -450,7 +559,7 @@ public abstract class TableMock
         foreach (var idx in _indexes.GetUnique())
         {
             var key = idx.BuildIndexKey(newRow);
-            var hits = Lookup(idx, key);
+            var hits = idx.LookupMutable(key);
             if (hits?.Any() == true)
                 throw DuplicateKey(TableName, idx.Name, key);
         }
@@ -463,6 +572,16 @@ public abstract class TableMock
     {
         conflictIndexName = null;
         conflictKey = null;
+
+        if (TryFindPrimaryConflictByIndex(newRow, out var conflictByIndex))
+        {
+            var dupPk = _columns
+                .Where(_ => _primaryKeyIndexes.Contains(_.Value.Index))
+                .Select(_ => $"{_.Key}: {(newRow.TryGetValue(_.Value.Index, out var v) ? v : null)}");
+            conflictIndexName = "PRIMARY";
+            conflictKey = string.Join(",", dupPk);
+            return conflictByIndex;
+        }
 
         if (_primaryKeyIndexes.Count > 0)
         {
@@ -491,16 +610,12 @@ public abstract class TableMock
         foreach (var idx in _indexes.GetUnique())
         {
             var key = idx.BuildIndexKey(newRow);
-            var hits = Lookup(idx, key);
-            if (hits != null)
+            var hits = idx.LookupMutable(key);
+            if (hits is { Count: > 0 })
             {
-                var hitsList = hits.ToList();
-                if (hitsList.Count > 0)
-                {
-                    conflictIndexName = idx.Name;
-                    conflictKey = key;
-                    return hitsList[0].Key;
-                }
+                conflictIndexName = idx.Name;
+                conflictKey = key;
+                return hits.First().Key;
             }
         }
         return null;

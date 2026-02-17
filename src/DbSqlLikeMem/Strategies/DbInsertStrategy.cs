@@ -54,6 +54,7 @@ internal static class DbInsertStrategy
             if (!query.HasOnDuplicateKeyUpdate)
             {
                 // Inserção normal
+                tableMock.ValidateForeignKeysOnRow(newRow);
                 TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, SnapshotRow(newRow));
                 table.Add(newRow);
                 TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, SnapshotRow(table[table.Count - 1]));
@@ -66,6 +67,7 @@ internal static class DbInsertStrategy
             if (conflictIdx is null)
             {
                 // Sem conflito -> Insere
+                tableMock.ValidateForeignKeysOnRow(newRow);
                 TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, SnapshotRow(newRow));
                 table.Add(newRow);
                 TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, SnapshotRow(table[table.Count - 1]));
@@ -75,6 +77,17 @@ internal static class DbInsertStrategy
             {
                 // Conflito -> Update
                 var oldSnapshot = SnapshotRow(table[conflictIdx.Value]);
+                var simulatedUpdated = table[conflictIdx.Value].ToDictionary(_ => _.Key, _ => _.Value);
+                ApplyOnDuplicateUpdateAstInMemory(
+                    table,
+                    conflictIdx.Value,
+                    newRow,
+                    query.OnDupAssigns,
+                    pars,
+                    dialect,
+                    simulatedUpdated);
+                tableMock.ValidateForeignKeysOnRow(new System.Collections.ObjectModel.ReadOnlyDictionary<int, object?>(simulatedUpdated));
+
                 TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, SnapshotRow(newRow));
                 ApplyOnDuplicateUpdateAst(
                     table,
@@ -230,6 +243,125 @@ internal static class DbInsertStrategy
     }
 
     // --- Helpers de ON DUPLICATE ---
+
+    private static void ApplyOnDuplicateUpdateAstInMemory(
+        ITableMock table,
+        int existinIndex,
+        IReadOnlyDictionary<int, object?> insertedRow,
+        IReadOnlyList<(string Col, string ExprRaw)> assigns,
+        DbParameterCollection? pars,
+        ISqlDialect dialect,
+        IDictionary<int, object?> targetRow)
+    {
+        object? GetParamValue(string rawName)
+        {
+            if (pars is null) return null;
+            var n = rawName.Trim();
+            if (n.Length > 0 && (n[0] == '@' || n[0] == ':' || n[0] == '?')) n = n[1..];
+
+            foreach (DbParameter p in pars)
+            {
+                var pn = p.ParameterName?.TrimStart('@', ':', '?') ?? "";
+                if (string.Equals(pn, n, StringComparison.OrdinalIgnoreCase))
+                    return p.Value is DBNull ? null : p.Value;
+            }
+            return null;
+        }
+
+        object? GetInsertedColumnValue(string col)
+        {
+            var info = table.GetColumn(col);
+            return insertedRow.TryGetValue(info.Index, out var v) ? v : null;
+        }
+
+        object? GetExistingColumnValue(string col)
+        {
+            var info = table.GetColumn(col);
+            return targetRow.TryGetValue(info.Index, out var v) ? v : null;
+        }
+
+        static object? Coerce(DbType dbType, object? value)
+        {
+            if (value is null || value is DBNull) return null;
+            try
+            {
+                return dbType switch
+                {
+                    DbType.String => value.ToString(),
+                    DbType.Int16 => Convert.ToInt16(value),
+                    DbType.Int32 => Convert.ToInt32(value),
+                    DbType.Int64 => Convert.ToInt64(value),
+                    DbType.Byte => Convert.ToByte(value),
+                    DbType.Boolean => value is bool b ? b : Convert.ToInt32(value) != 0,
+                    DbType.Decimal => Convert.ToDecimal(value),
+                    DbType.Double => Convert.ToDouble(value),
+                    DbType.Single => Convert.ToSingle(value),
+                    DbType.DateTime => value is DateTime dt ? dt : Convert.ToDateTime(value),
+                    _ => value
+                };
+            }
+            catch { return value; }
+        }
+
+        object? Eval(SqlExpr expr)
+        {
+            return expr switch
+            {
+                LiteralExpr lit => lit.Value,
+                ParameterExpr p => GetParamValue(p.Name),
+                IdentifierExpr id => TryGetExcludedValueFromName(id.Name, out var excluded)
+                    ? excluded
+                    : GetExistingColumnValue(id.Name.Contains('.') ? id.Name.Split('.').Last() : id.Name),
+                ColumnExpr c => string.Equals(c.Qualifier, "excluded", StringComparison.OrdinalIgnoreCase)
+                    ? GetInsertedColumnValue(c.Name)
+                    : GetExistingColumnValue(c.Name),
+                UnaryExpr u when u.Op == SqlUnaryOp.Not => !(Convert.ToBoolean(Eval(u.Expr) ?? false)),
+                IsNullExpr n => (Eval(n.Expr) is null) ^ n.Negated,
+                BinaryExpr b => b.Op switch
+                {
+                    SqlBinaryOp.Add => (Convert.ToDecimal(Eval(b.Left) ?? 0m) + Convert.ToDecimal(Eval(b.Right) ?? 0m)),
+                    SqlBinaryOp.Subtract => (Convert.ToDecimal(Eval(b.Left) ?? 0m) - Convert.ToDecimal(Eval(b.Right) ?? 0m)),
+                    SqlBinaryOp.Multiply => (Convert.ToDecimal(Eval(b.Left) ?? 0m) * Convert.ToDecimal(Eval(b.Right) ?? 0m)),
+                    SqlBinaryOp.Divide => (Convert.ToDecimal(Eval(b.Left) ?? 0m) / Convert.ToDecimal(Eval(b.Right) ?? 0m)),
+                    SqlBinaryOp.Eq => Equals(Eval(b.Left), Eval(b.Right)),
+                    SqlBinaryOp.Neq => !Equals(Eval(b.Left), Eval(b.Right)),
+                    SqlBinaryOp.And => Convert.ToBoolean(Eval(b.Left) ?? false) && Convert.ToBoolean(Eval(b.Right) ?? false),
+                    SqlBinaryOp.Or => Convert.ToBoolean(Eval(b.Left) ?? false) || Convert.ToBoolean(Eval(b.Right) ?? false),
+                    _ => throw new NotSupportedException($"Operador não suportado em ON DUPLICATE: {b.Op}")
+                },
+                _ => throw new NotSupportedException($"Expressão não suportada em ON DUPLICATE: {expr.GetType().Name}")
+            };
+        }
+
+        bool TryGetExcludedValueFromName(string rawName, out object? val)
+        {
+            val = null;
+            var n = rawName.Trim();
+            int dot = n.IndexOf('.');
+            if (dot <= 0) return false;
+
+            var qualifier = n[..dot];
+            var col = n[(dot + 1)..];
+
+            if (!(string.Equals(qualifier, "excluded", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(qualifier, "values", StringComparison.OrdinalIgnoreCase)))
+                return false;
+
+            val = GetInsertedColumnValue(col);
+            return true;
+        }
+
+        foreach (var (col, exprRaw) in assigns)
+        {
+            var colInfo = table.GetColumn(col);
+            if (colInfo.GetGenValue != null) continue;
+            var parser = new SqlParser(exprRaw, dialect);
+            var expr = parser.ParseExpression();
+            var resolved = Eval(expr);
+            var coerced = Coerce(colInfo.DbType, resolved);
+            targetRow[colInfo.Index] = coerced;
+        }
+    }
 
     private static void ApplyOnDuplicateUpdateAst(
         ITableMock table,

@@ -52,3 +52,18 @@ A API de `IndexDef` retorna dicionários somente-leitura criando cópias (`ToDic
   - `DELETE` com 1 FK simples e 1 FK composta;
   - `INSERT` em tabela com PK composta e índice único.
 - Comparar alocações (`Allocated MB/op`) e tempo (`Mean`, `P95`) antes/depois das correções.
+
+
+## Pontos candidatos a paralelismo (e status)
+
+1. **Rebuild de múltiplos índices da mesma tabela**
+   - Status: **Aplicado** (`Parallel.ForEach`) quando `ThreadSafe=true` e há mais de um índice.
+   - Ganho esperado: reduzir tempo de rebuild em `DELETE/UPDATE` com muitas estruturas de índice.
+
+2. **Validação de FK em `DELETE` com tabelas filhas grandes**
+   - Status: **Aplicado** (`AsParallel().Any(...)`) com threshold para evitar overhead em tabelas pequenas.
+   - Ganho esperado: reduzir latência de scans de referência em FKs compostas.
+
+3. **Lookup por índice para FK antes de scan completo**
+   - Status: **Aplicado** em `SchemaMock` e `DbDeleteStrategy`.
+   - Ganho esperado: em cenários com índice aderente ao FK, evita varredura de tabela filha.

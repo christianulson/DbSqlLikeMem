@@ -2,6 +2,8 @@ namespace DbSqlLikeMem;
 
 internal static class DbDeleteStrategy
 {
+    private const int ParallelFkScanThreshold = 2048;
+
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
@@ -112,14 +114,31 @@ internal static class DbDeleteStrategy
                     f.RefTable.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)))
                 {
                     if (HasReferenceByIndex(childTable, fk, parentRow)
-                        || childTable.Any(childRow => fk.References.All(r =>
-                            Equals(childRow[r.col.Index], parentRow[r.refCol.Index]))))
+                        || HasReferenceByScan(childTable, fk, parentRow, connection.Db.ThreadSafe))
                     {
                         throw table.ReferencedRow(tableName);
                     }
                 }
             }
         }
+    }
+
+    private static bool HasReferenceByScan(
+        ITableMock childTable,
+        Models.ForeignDef fk,
+        IReadOnlyDictionary<int, object?> parentRow,
+        bool allowParallel)
+    {
+        if (allowParallel && childTable.Count >= ParallelFkScanThreshold)
+        {
+            return childTable
+                .AsParallel()
+                .Any(childRow => fk.References.All(r =>
+                    Equals(childRow[r.col.Index], parentRow[r.refCol.Index])));
+        }
+
+        return childTable.Any(childRow => fk.References.All(r =>
+            Equals(childRow[r.col.Index], parentRow[r.refCol.Index])));
     }
 
     private static bool HasReferenceByIndex(

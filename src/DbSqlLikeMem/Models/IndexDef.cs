@@ -359,8 +359,8 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
         if (oldKey.Equals(newKey, StringComparison.Ordinal))
             return;
         
-        var pk = string.Join(",", Table.PrimaryKeyIndexes.Select(pkIdx => oldKey[pkIdx]));
-        if (Lookup(newKey)?.ContainsKey(rowIndex) == true)
+        var hits = LookupMutable(newKey);
+        if (hits is not null && hits.Keys.Any(idx => idx != rowIndex))
         {
             throw Table.DuplicateKey(Table.TableName, Name, $"{newKey} ({string.Join(",", KeyCols)})");
         }
