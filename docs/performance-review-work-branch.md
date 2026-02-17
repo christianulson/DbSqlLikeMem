@@ -5,6 +5,15 @@ Esta revisão focou nos fluxos que ficaram mais sensíveis após as mudanças de
 
 ## Principais pontos com impacto potencial
 
+## Status rápido — custo de `Immutable` / `ReadOnly`
+
+Resumo objetivo do estado atual:
+
+- **`TableMock.Columns` e `TableMock.Indexes`:** hoje já usam cache (`_columnsCache` / `_indexesCache`), então o custo de `ToImmutableDictionary(...)` acontece só na primeira leitura após mutação.
+- **`IndexDef` (`Lookup`, `TryGetValue`, indexer, `Values`, enumerador):** ainda cria estruturas `ReadOnlyDictionary` com cópia (`ToDictionary`) em cada acesso público, o que mantém pressão de alocação em cenários de lookup intenso.
+
+Conclusão prática: **a maior perda residual não está no `Immutable` cacheado de metadados, mas sim nas cópias recorrentes para `ReadOnly` na API pública de índice**.
+
 ### 1) Validação de FK em `DELETE` faz varreduras repetidas
 No fluxo de exclusão, para cada linha pai a ser removida, o código percorre todas as tabelas e todas as FKs relevantes; para cada referência da FK, chama `childTable.Any(...)`. Isso gera múltiplas passadas sobre a tabela filha.
 
@@ -19,11 +28,11 @@ A API de `IndexDef` retorna dicionários somente-leitura criando cópias (`ToDic
 - Local: `IndexDef.Lookup`, `IndexDef.TryGetValue`, `IndexDef.this[string]`, `IndexDef.GetEnumerator`.
 - Impacto: pressão de alocação e GC em consultas com alto volume de lookups, mesmo quando o resultado do índice é pequeno.
 
-## 3) Acesso a metadados recria estruturas imutáveis com frequência
-`TableMock.Columns` e `TableMock.Indexes` convertem o dicionário interno para `ImmutableDictionary` a cada acesso.
+## 3) Acesso a metadados ainda pode pagar custo de materialização após mutações
+`TableMock.Columns` e `TableMock.Indexes` usam cache (`_columnsCache`/`_indexesCache`), mas ainda precisam materializar `ImmutableDictionary` na primeira leitura após invalidação.
 
 - Local: `TableMock.Columns`, `TableMock.Indexes`.
-- Impacto: custo cumulativo em caminhos quentes (`GetColumn`, `UpdateIndexesWithRow`, montagem de linhas em `SELECT`).
+- Impacto: menor que antes, porém pode somar custo em fluxos com muita mutação de schema/índices e leituras subsequentes.
 
 ## 4) Inserção com PK única ainda depende de varredura linear
 `EnsureUniqueOnInsert` percorre todas as linhas para validar PK e ainda usa `Columns.First(...)` dentro de loop.
@@ -43,7 +52,7 @@ A API de `IndexDef` retorna dicionários somente-leitura criando cópias (`ToDic
 2. **Alta prioridade:** revisar `RebuildIndex` para limpar `_items` antes da reconstrução.
 3. **Média prioridade:** reduzir cópias em `Lookup` (ex.: caminho interno sem materialização para executor SQL).
 4. **Média prioridade:** cachear mapa `pkIndex -> columnName` para evitar `Columns.First(...)` em loop.
-5. **Média prioridade:** evitar recriar `ImmutableDictionary` em acessos frequentes (`Columns`/`Indexes`) — usar visão somente leitura estável ou cache invalidado por mutação.
+5. **Média prioridade:** manter cache de `ImmutableDictionary` e revisar pontos de invalidação para minimizar rematerializações em cenários de mutação intensa.
 
 ## Quick wins de medição
 

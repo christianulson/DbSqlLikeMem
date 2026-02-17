@@ -1,5 +1,3 @@
-using System.Collections.ObjectModel;
-
 namespace DbSqlLikeMem;
 
 public sealed record Idx(
@@ -70,7 +68,64 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
     /// </summary>
     public IReadOnlyList<string> Include { get; }
 
+
     private readonly Dictionary<string, Dictionary<int, Dictionary<string, object?>>> _items = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, BucketReadOnlyView> _readonlyBuckets = new(StringComparer.OrdinalIgnoreCase);
+
+    private IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>> AsReadOnlyBucket(
+        string key,
+        Dictionary<int, Dictionary<string, object?>> bucket)
+    {
+        if (_readonlyBuckets.TryGetValue(key, out var cached))
+            return cached;
+
+        var view = new BucketReadOnlyView(bucket);
+        _readonlyBuckets[key] = view;
+        return view;
+    }
+
+    private void RemoveBucketIfEmpty(string key, Dictionary<int, Dictionary<string, object?>> bucket)
+    {
+        if (bucket.Count > 0)
+            return;
+
+        _items.Remove(key);
+        _readonlyBuckets.Remove(key);
+    }
+
+    private sealed class BucketReadOnlyView(Dictionary<int, Dictionary<string, object?>> source)
+        : IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>
+    {
+        private readonly Dictionary<int, Dictionary<string, object?>> _source = source;
+
+        public int Count => _source.Count;
+
+        public IEnumerable<int> Keys => _source.Keys;
+
+        public IEnumerable<IReadOnlyDictionary<string, object?>> Values
+            => _source.Values.Select(static row => (IReadOnlyDictionary<string, object?>)row);
+
+        public IReadOnlyDictionary<string, object?> this[int key] => _source[key];
+
+        public bool ContainsKey(int key) => _source.ContainsKey(key);
+
+        public bool TryGetValue(int key, out IReadOnlyDictionary<string, object?> value)
+        {
+            if (_source.TryGetValue(key, out var row))
+            {
+                value = row;
+                return true;
+            }
+
+            value = default!;
+            return false;
+        }
+
+        public IEnumerator<KeyValuePair<int, IReadOnlyDictionary<string, object?>>> GetEnumerator()
+            => _source.Select(static item => new KeyValuePair<int, IReadOnlyDictionary<string, object?>>(item.Key, item.Value)).GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    }
 
     public IEnumerable<string> Keys => _items.Keys;
 
@@ -78,25 +133,15 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
     {
         get
         {
-            foreach (var i in _items.Values)
-            {
-                var r = new ReadOnlyDictionary<int, ReadOnlyDictionary<string, object?>>(
-                    i.ToDictionary(
-                        _ => _.Key,
-                        _ => new ReadOnlyDictionary<string, object?>(_.Value)));
-
-                yield return (IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>)r;
-            }
+            foreach (var item in _items)
+                yield return AsReadOnlyBucket(item.Key, item.Value);
         }
     }
 
     public int Count => _items.Count;
 
     public IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>> this[string key]
-        => (IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>)new ReadOnlyDictionary<int, ReadOnlyDictionary<string, object?>>(
-            _items[key].ToDictionary(
-                _ => _.Key,
-                _ => new ReadOnlyDictionary<string, object?>(_.Value)));
+        => AsReadOnlyBucket(key, _items[key]);
 
     public bool ContainsKey(string key)
         => _items.ContainsKey(key);
@@ -108,23 +153,16 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
             value = default!;
             return false;
         }
-        value = (IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>)new ReadOnlyDictionary<int, ReadOnlyDictionary<string, object?>>(
-            v.ToDictionary(
-                _ => _.Key,
-                _ => new ReadOnlyDictionary<string, object?>(_.Value)));
+        value = AsReadOnlyBucket(key, v);
         return true;
     }
 
     public IEnumerator<KeyValuePair<string, IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>>> GetEnumerator()
     {
-        foreach (var it in _items)
+        foreach (var item in _items)
             yield return new KeyValuePair<string, IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>>(
-                it.Key,
-                (IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>)new ReadOnlyDictionary<int, ReadOnlyDictionary<string, object?>>(
-                    it.Value.ToDictionary(
-                        _ => _.Key,
-                        _ => new ReadOnlyDictionary<string, object?>(_.Value)))
-                );
+                item.Key,
+                AsReadOnlyBucket(item.Key, item.Value));
     }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -132,6 +170,7 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
     internal void RebuildIndex()
     {
         _items.Clear();
+        _readonlyBuckets.Clear();
         var tableColumns = Table.Columns;
         var pkColumnsByIndex = tableColumns.ToDictionary(_ => _.Value.Index, _ => _.Key);
         for (int i = 0; i < Table.Count; i++)
@@ -218,18 +257,13 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
     {
         // Backward-compatible lookup: callers often pass raw values for single-column
         // _indexes (e.g. "John"). Internally keys are serialized, so try both formats.
-        if (_items.TryGetValue(key.NormalizeName(), out var list))
-            return (IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>)new ReadOnlyDictionary<int, ReadOnlyDictionary<string, object?>>(
-                list.ToDictionary(
-                    _ => _.Key,
-                    _ => new ReadOnlyDictionary<string, object?>(_.Value)));
+        var normalizedKey = key.NormalizeName();
+        if (_items.TryGetValue(normalizedKey, out var list))
+            return AsReadOnlyBucket(normalizedKey, list);
 
         var serializedKey = SerializeIndexKeyPart(key);
         return _items.TryGetValue(serializedKey, out list)
-            ? (IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>)new ReadOnlyDictionary<int, ReadOnlyDictionary<string, object?>>(
-                list.ToDictionary(
-                    _ => _.Key,
-                    _ => new ReadOnlyDictionary<string, object?>(_.Value)))
+            ? AsReadOnlyBucket(serializedKey, list)
             : null;
     }
 
@@ -301,7 +335,10 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
         var oldkey = BuildIndexKey(oldRow);
         var key = BuildIndexKey(newRow);
         if (oldkey != key && _items.TryGetValue(oldkey, out var oldLstItems))
+        {
             oldLstItems.Remove(rowIndex);
+            RemoveBucketIfEmpty(oldkey, oldLstItems);
+        }
         
 
         if (!_items.TryGetValue(key, out var lstItems))
@@ -309,8 +346,6 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
             lstItems = [];
             _items.Add(key, lstItems);
         }
-
-        var pk = string.Join(",", Table.PrimaryKeyIndexes.Select(pkIdx => newRow[pkIdx]));
 
         if (lstItems.TryGetValue(rowIndex, out var idxRow))
         {
