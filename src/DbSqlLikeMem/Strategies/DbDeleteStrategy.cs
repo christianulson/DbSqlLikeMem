@@ -104,25 +104,44 @@ internal static class DbDeleteStrategy
         List<IReadOnlyDictionary<int, object?>> rowsToDelete,
         string? dbName)
     {
-        // Verifica se alguma tabela filha referencia as linhas deletadas
         foreach (var parentRow in rowsToDelete)
         {
             foreach (var childTable in connection.ListTables(dbName))
             {
-                foreach (var kvp in childTable.ForeignKeys
-                    .Where(f => f.Value.RefTable.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)))
+                foreach (var fk in childTable.ForeignKeys.Values.Where(f =>
+                    f.RefTable.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)))
                 {
-                    if (kvp.Value.References.All(_ =>
-                    {
-                        var keyVal = parentRow[_.refCol.Index];
-                        return childTable.Any(childRow => Equals(childRow[_.col.Index], keyVal));
-                    }))
+                    if (HasReferenceByIndex(childTable, fk, parentRow)
+                        || childTable.Any(childRow => fk.References.All(r =>
+                            Equals(childRow[r.col.Index], parentRow[r.refCol.Index]))))
                     {
                         throw table.ReferencedRow(tableName);
                     }
                 }
             }
         }
+    }
+
+    private static bool HasReferenceByIndex(
+        ITableMock childTable,
+        Models.ForeignDef fk,
+        IReadOnlyDictionary<int, object?> parentRow)
+    {
+        var matchingIndex = childTable.Indexes.Values
+            .OrderByDescending(_ => _.KeyCols.Count)
+            .FirstOrDefault(ix => fk.References.All(r =>
+                ix.KeyCols.Contains(r.col.Name, StringComparer.OrdinalIgnoreCase)));
+
+        if (matchingIndex is null)
+            return false;
+
+        var valuesByColumn = fk.References.ToDictionary(
+            _ => _.col.Name.NormalizeName(),
+            _ => parentRow[_.refCol.Index],
+            StringComparer.OrdinalIgnoreCase);
+
+        var key = matchingIndex.BuildIndexKeyFromValues(valuesByColumn);
+        return matchingIndex.LookupMutable(key)?.Count > 0;
     }
 
 }

@@ -54,11 +54,13 @@ public abstract class TableMock
     public int NextIdentity { get; set; } = 1;
 
     private readonly ColumnDictionary _columns = [];
+    private ImmutableDictionary<string, ColumnDef>? _columnsCache;
     /// <summary>
     /// EN: Table column dictionary.
     /// PT: Dicionário de colunas da tabela.
     /// </summary>
-    public ImmutableDictionary<string, ColumnDef> Columns => _columns.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase);
+    public ImmutableDictionary<string, ColumnDef> Columns
+        => _columnsCache ??= _columns.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase);
 
     private readonly List<Dictionary<int, object?>> _items = [];
 
@@ -97,12 +99,14 @@ public abstract class TableMock
     public IReadOnlyDictionary<string, ForeignDef> ForeignKeys => _foreignKeys;
 
     internal IndexDictionary _indexes = [];
+    private ImmutableDictionary<string, IndexDef>? _indexesCache;
 
     /// <summary>
     /// EN: Indexes declared on the table.
     /// PT: Índices declarados na tabela.
     /// </summary>
-    public ImmutableDictionary<string, IndexDef> Indexes => _indexes.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase);
+    public ImmutableDictionary<string, IndexDef> Indexes
+        => _indexesCache ??= _indexes.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase);
 
     private readonly Dictionary<TableTriggerEvent, List<Action<TableTriggerContext>>> _triggers = [];
 
@@ -175,6 +179,7 @@ public abstract class TableMock
             enumValues: enumValues);
 
         _columns.Add(name, col);
+        _columnsCache = null;
         return col;
     }
 
@@ -200,6 +205,7 @@ public abstract class TableMock
             enumValues: column.enumValues);
 
         _columns.Add(column.name, col);
+        _columnsCache = null;
         return col;
     }
 
@@ -212,13 +218,13 @@ public abstract class TableMock
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(columnName, nameof(columnName));
         var normalized = columnName.NormalizeName();
-        if (!Columns.TryGetValue(normalized, out var info))
+        if (!_columns.TryGetValue(normalized, out var info))
         {
             var dotIndex = normalized.LastIndexOf('.');
             if (dotIndex >= 0 && dotIndex + 1 < normalized.Length)
                 normalized = normalized[(dotIndex + 1)..];
         }
-        if (!Columns.TryGetValue(normalized, out info))
+        if (!_columns.TryGetValue(normalized, out info))
             throw UnknownColumn(columnName);
         return info;
     }
@@ -240,6 +246,7 @@ public abstract class TableMock
             throw new InvalidOperationException($"Índice '{name}' já existe.");
         var idx = new IndexDef(this, name, keyCols, include, unique);
         _indexes.Add(name, idx);
+        _indexesCache = null;
         return idx;
     }
 
@@ -422,6 +429,7 @@ public abstract class TableMock
     {
         if (_primaryKeyIndexes.Count > 0)
         {
+            var pkColumnNames = _columns.ToDictionary(_ => _.Value.Index, _ => _.Key);
             for (int i = 0; i < Count; i++)
             {
                 var pks = new List<string>();
@@ -431,7 +439,7 @@ public abstract class TableMock
                         && this[i].TryGetValue(pkIdx, out var cur)
                         && Equals(cur, pkVal))
                     {
-                        pks.Add($"{Columns.First(_ => _.Value.Index == pkIdx).Key}: {pkVal}");
+                        pks.Add($"{pkColumnNames[pkIdx]}: {pkVal}");
                     }
                 }
                 if (_primaryKeyIndexes.Count == pks.Count)
@@ -458,6 +466,7 @@ public abstract class TableMock
 
         if (_primaryKeyIndexes.Count > 0)
         {
+            var pkColumnNames = _columns.ToDictionary(_ => _.Value.Index, _ => _.Key);
             for (int i = 0; i < Count; i++)
             {
                 var pks = new List<string>();
@@ -467,7 +476,7 @@ public abstract class TableMock
                         && this[i].TryGetValue(pkIdx, out var cur)
                         && Equals(cur, pkVal))
                     {
-                        pks.Add($"{Columns.First(_ => _.Value.Index == pkIdx).Key}: {pkVal}");
+                        pks.Add($"{pkColumnNames[pkIdx]}: {pkVal}");
                     }
                 }
                 if (_primaryKeyIndexes.Count == pks.Count)

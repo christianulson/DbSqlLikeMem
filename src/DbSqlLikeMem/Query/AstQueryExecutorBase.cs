@@ -398,18 +398,18 @@ internal abstract class AstQueryExecutorBase(
         if (positions is null)
             return [];
 
-        return src.RowsByIndexes(positions);
+        return src.RowsByIndexes(positions.Keys);
     }
 
 
-    private IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>? LookupIndexWithMetrics(
+    private IReadOnlyDictionary<int, Dictionary<string, object?>>? LookupIndexWithMetrics(
         ITableMock table,
         IndexDef indexDef,
         string key)
     {
         _cnn.Metrics.IndexLookups++;
         _cnn.Metrics.IncrementIndexHint(indexDef.Name.NormalizeName());
-        return indexDef.Lookup(key);
+        return indexDef.LookupMutable(key);
     }
 
     private bool TryCollectColumnEqualities(
@@ -2916,7 +2916,7 @@ internal abstract class AstQueryExecutorBase(
         }
 
         public IEnumerable<Dictionary<string, object?>> RowsByIndexes(
-            IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>> indexes)
+            IEnumerable<int> indexes)
         {
             if (Physical is null)
                 return Rows();
@@ -2925,18 +2925,18 @@ internal abstract class AstQueryExecutorBase(
         }
 
         private IEnumerable<Dictionary<string, object?>> EnumerateRowsByIndexes(
-            IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>> indexes)
+            IEnumerable<int> indexes)
         {
             var emitted = new HashSet<int>();
             foreach (var raw in indexes)
             {
-                if (raw.Key < 0 || raw.Key >= Physical!.Count)
+                if (raw < 0 || raw >= Physical!.Count)
                     continue;
 
-                if (!emitted.Add(raw.Key))
+                if (!emitted.Add(raw))
                     continue;
 
-                var row = Physical[raw.Key];
+                var row = Physical[raw];
                 var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
                 foreach (var col in ColumnNames)
                 {
