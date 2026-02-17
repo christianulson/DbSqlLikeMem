@@ -12,7 +12,8 @@ public class MySqlCommandMock(
     private bool disposedValue;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// Gets or sets the command text.
+    /// Obtém ou define o texto do comando.
     /// </summary>
     [AllowNull]
     public override string CommandText { get; set; } = string.Empty;
@@ -83,7 +84,7 @@ public class MySqlCommandMock(
                 var i = 0;
                 for (string text2 = mySqlTokenizer[i].Text; text2 != null; text2 = mySqlTokenizer[i].Text)
                 {
-                    if (mySqlTokenizer[i].Text.ToUpperInvariant() == "VALUES"
+                    if (string.Equals(mySqlTokenizer[i].Text, "VALUES", StringComparison.OrdinalIgnoreCase)
                         && mySqlTokenizer[i].Kind != SqlTokenKind.Symbol)
                     {
                         i++;
@@ -115,7 +116,7 @@ public class MySqlCommandMock(
                         }
                         i++;
                         text2 = mySqlTokenizer[i].Text;
-                        if (text2 != null && (text2 == "," || text2.ToUpperInvariant() == "ON"))
+                        if (text2 != null && (text2 == "," || string.Equals(text2, "ON", StringComparison.OrdinalIgnoreCase)))
                         {
                             BatchableCommandText = null;
                             break;
