@@ -210,7 +210,7 @@ public sealed class ExtendedMySqlMockTests(
         var child = db.AddTable("child");
         child.AddColumn("pid", DbType.Int32, false);
         child.AddColumn("data", DbType.String, false);
-        child.CreateForeignKey("ix_parent_id", "parent", [("pid", "id")]);
+        child.CreateForeignKey("ix_parent_id", parent.TableName, [("pid", "id")]);
         child.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "x" } });
 
         using var cnn = new OracleConnectionMock(db);
@@ -237,7 +237,7 @@ public sealed class ExtendedMySqlMockTests(
         var child = db.AddTable("child");
         child.AddColumn("pid", DbType.Int32, false);
         child.AddColumn("data", DbType.String, false);
-        child.CreateForeignKey("ix_parent_id", "parent", [("pid", "id")]);
+        child.CreateForeignKey("ix_parent_id", parent.TableName, [("pid", "id")]);
         child.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "x" } });
 
         using var cnn = new OracleConnectionMock(db);
