@@ -12,6 +12,8 @@ internal abstract class AstQueryExecutorBase(
     object dialect)
     : IAstQueryExecutor
 {
+    private static readonly ConcurrentDictionary<Type, Func<string, object, SqlExpr>> _parseWhereDelegateCache = new();
+
     private readonly DbConnectionMockBase _cnn = cnn ?? throw new ArgumentNullException(nameof(cnn));
     private readonly IDataParameterCollection _pars = pars ?? throw new ArgumentNullException(nameof(pars));
     private readonly object _dialect = dialect ?? throw new ArgumentNullException(nameof(dialect));
@@ -32,6 +34,12 @@ internal abstract class AstQueryExecutorBase(
             throw new ArgumentException("Expressão vazia.", nameof(raw));
 
         var dialectType = _dialect.GetType();
+        var parserDelegate = _parseWhereDelegateCache.GetOrAdd(dialectType, CreateParseWhereDelegate);
+        return parserDelegate(raw, _dialect);
+    }
+
+    private static Func<string, object, SqlExpr> CreateParseWhereDelegate(Type dialectType)
+    {
         var mi = typeof(SqlExpressionParser)
             .GetMethods(BindingFlags.Public | BindingFlags.Static)
             .FirstOrDefault(m =>
@@ -47,14 +55,17 @@ internal abstract class AstQueryExecutorBase(
             throw new MissingMethodException(
                 $"{nameof(SqlExpressionParser)}.{nameof(SqlExpressionParser.ParseWhere)}(string, {dialectType.Name}) não encontrado.");
 
-        try
+        return (raw, dialectInstance) =>
         {
-            return (SqlExpr)mi.Invoke(null, [raw, _dialect])!;
-        }
-        catch (System.Reflection.TargetInvocationException tie) when (tie.InnerException is not null)
-        {
-            throw tie.InnerException;
-        }
+            try
+            {
+                return (SqlExpr)mi.Invoke(null, [raw, dialectInstance])!;
+            }
+            catch (TargetInvocationException tie) when (tie.InnerException is not null)
+            {
+                throw tie.InnerException;
+            }
+        };
     }
 
     /// <summary>
@@ -77,9 +88,19 @@ internal abstract class AstQueryExecutorBase(
             throw new InvalidOperationException($"UNION: allFlags.Count inválido. parts={parts.Count}, allFlags={allFlags.Count}");
 
         // Executa cada SELECT
-        var tables = new List<TableResultMock>(parts.Count);
-        foreach (var q in parts)
-            tables.Add(ExecuteSelect(q));
+        var tables = new TableResultMock[parts.Count];
+
+        if (parts.Count == 1)
+        {
+            tables[0] = ExecuteSelect(parts[0]);
+        }
+        else
+        {
+            Parallel.For(0, parts.Count, i =>
+            {
+                tables[i] = ExecuteSelect(parts[i]);
+            });
+        }
 
         // Base do resultado
         var result = new TableResultMock
@@ -112,8 +133,14 @@ internal abstract class AstQueryExecutorBase(
         // - entre 1 e 2 usa allFlags[1]
         // etc.
         // Começa com o primeiro
+        var needsDistinct = allFlags.Any(flag => !flag);
+        var seenRows = needsDistinct ? new HashSet<Dictionary<int, object?>>(new SqlRowDictionaryComparer(dialect)) : null;
+
         foreach (var row in tables[0])
+        {
             result.Add(row);
+            seenRows?.Add(row);
+        }
 
         for (int i = 1; i < tables.Count; i++)
         {
@@ -123,15 +150,14 @@ internal abstract class AstQueryExecutorBase(
             {
                 foreach (var row in tables[i])
                     result.Add(row);
+                continue;
             }
-            else
+
+            // UNION => DISTINCT
+            foreach (var row in tables[i])
             {
-                // UNION => DISTINCT
-                foreach (var row in tables[i])
-                {
-                    if (!ContainsRow(result, row, dialect))
-                        result.Add(row);
-                }
+                if (seenRows!.Add(row))
+                    result.Add(row);
             }
         }
 
@@ -156,27 +182,56 @@ internal abstract class AstQueryExecutorBase(
         return result;
     }
 
-    private static bool ContainsRow(
-        TableResultMock table,
-        Dictionary<int, object?> candidate,
-        ISqlDialect dialect)
+    private sealed class SqlRowDictionaryComparer(ISqlDialect dialect)
+        : IEqualityComparer<Dictionary<int, object?>>
     {
-        // comparação simples: mesmas chaves + mesmos valores
-        // (se precisar mais forte depois, você troca aqui)
-        foreach (var row in table)
+        public bool Equals(Dictionary<int, object?>? x, Dictionary<int, object?>? y)
         {
-            if (row.Count != candidate.Count) continue;
+            if (ReferenceEquals(x, y))
+                return true;
+            if (x is null || y is null || x.Count != y.Count)
+                return false;
 
-            var ok = true;
-            foreach (var kv in candidate)
+            foreach (var (key, value) in x)
             {
-                if (!row.TryGetValue(kv.Key, out var v)) { ok = false; break; }
-                if (!v.EqualsSql(kv.Value, dialect)) { ok = false; break; }
+                if (!y.TryGetValue(key, out var rightValue))
+                    return false;
+
+                if (!value.EqualsSql(rightValue, dialect))
+                    return false;
             }
 
-            if (ok) return true;
+            return true;
         }
-        return false;
+
+        public int GetHashCode(Dictionary<int, object?> row)
+        {
+            var hash = new HashCode();
+            foreach (var key in row.Keys.OrderBy(k => k))
+            {
+                hash.Add(key);
+                hash.Add(NormalizeHash(row[key]));
+            }
+
+            return hash.ToHashCode();
+        }
+
+        private object? NormalizeHash(object? value)
+        {
+            if (value is null || value is DBNull)
+                return null;
+
+            if ((dialect.SupportsImplicitNumericStringComparison)
+                && decimal.TryParse(value.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var numeric))
+                return numeric;
+
+            if (value is string text)
+                return dialect.TextComparison == StringComparison.OrdinalIgnoreCase
+                    ? text.ToUpperInvariant()
+                    : text;
+
+            return value;
+        }
     }
 
     private static void ValidateUnionColumnTypes(
@@ -247,7 +302,8 @@ internal abstract class AstQueryExecutorBase(
             return ExecuteGroup(selectQuery, ctes, rows);
 
         // 5) Project non-grouped
-        var projected = ProjectRows(selectQuery, [.. rows], ctes);
+        var projectedRows = rows as List<EvalRow> ?? rows.ToList();
+        var projected = ProjectRows(selectQuery, projectedRows, ctes);
 
         // 6) DISTINCT
         if (selectQuery.Distinct)
