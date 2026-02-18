@@ -13,6 +13,7 @@ public sealed class ExistsTests(
     /// PT: Testa o comportamento de Exists_ShouldFilterUsersWithOrders.
     /// </summary>
     [Fact]
+    [Trait("Category", "Exists")]
     public void Exists_ShouldFilterUsersWithOrders()
     {
         using var cnn = new OracleConnectionMock();
@@ -56,6 +57,7 @@ ORDER BY u.Id";
     /// PT: Testa o comportamento de NotExists_ShouldFilterUsersWithoutOrders.
     /// </summary>
     [Fact]
+    [Trait("Category", "Exists")]
     public void NotExists_ShouldFilterUsersWithoutOrders()
     {
         using var cnn = new OracleConnectionMock();
@@ -98,6 +100,7 @@ ORDER BY u.Id";
     /// PT: Testa o comportamento de Exists_WithExtraPredicate_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "Exists")]
     public void Exists_WithExtraPredicate_ShouldWork()
     {
         using var cnn = new OracleConnectionMock();

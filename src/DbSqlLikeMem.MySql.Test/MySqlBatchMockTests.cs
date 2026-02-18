@@ -11,6 +11,7 @@ public sealed class MySqlBatchMockTests
     /// PT: Garante que o ExecuteNonQuery execute todos os comandos do lote e retorne a quantidade de linhas afetadas.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlBatchMock")]
     public void ExecuteNonQuery_ShouldExecuteAllBatchCommands()
     {
         var db = new MySqlDbMock();
@@ -37,6 +38,7 @@ public sealed class MySqlBatchMockTests
     /// PT: Garante que o ExecuteScalar retorne o resultado escalar do primeiro comando do lote.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlBatchMock")]
     public void ExecuteScalar_ShouldUseFirstBatchCommandResult()
     {
         var db = new MySqlDbMock();
@@ -68,6 +70,7 @@ public sealed class MySqlBatchMockTests
     /// PT: Garante que o ExecuteReader retorne múltiplos conjuntos de resultados produzidos por comandos em lote sequenciais.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlBatchMock")]
     public void ExecuteReader_ShouldReturnResultsFromMultipleBatchCommands()
     {
         var db = new MySqlDbMock();
@@ -103,6 +106,7 @@ public sealed class MySqlBatchMockTests
     /// PT: Garante que o ExecuteReader suporte lotes que executam comandos sem retorno antes de consultas select.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlBatchMock")]
     public void ExecuteReader_ShouldAllowNonQueryBeforeSelect()
     {
         var db = new MySqlDbMock();

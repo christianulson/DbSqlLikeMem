@@ -24,6 +24,7 @@ public sealed class Db2LinqProviderTest
     /// PT: Testa o comportamento de LinqProvider_ShouldQueryWhereAndReturnRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "Db2LinqProviderTest")]
     public void LinqProvider_ShouldQueryWhereAndReturnRows()
     {
         var db = new Db2DbMock();

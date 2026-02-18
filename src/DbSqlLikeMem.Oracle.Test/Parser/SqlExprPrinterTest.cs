@@ -12,6 +12,7 @@ public sealed class SqlExprPrinterTest(
     /// PT: Testa o comportamento de ExprPrinter_ShouldAllow_Roundtrip_Parse_Print_Parse.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataByOracleVersion(nameof(Expressions))]
     public void ExprPrinter_ShouldAllow_Roundtrip_Parse_Print_Parse(string expr, int version)
     {

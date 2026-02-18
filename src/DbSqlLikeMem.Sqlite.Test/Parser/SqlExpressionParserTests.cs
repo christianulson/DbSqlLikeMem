@@ -19,6 +19,7 @@ public sealed class SqlExpressionParserTests(
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataBySqliteVersion(nameof(WhereExpressions_Supported))]
     public void ParseWhere_ShouldNotThrow_ForSupportedRealWorldExpressions(string whereExpr, int version)
     {
@@ -98,6 +99,7 @@ public sealed class SqlExpressionParserTests(
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataBySqliteVersion(nameof(WhereExpressions_Unsupported))]
     public void ParseWhere_ShouldThrow_ForUnsupportedExpressions(string whereExpr, int version)
     {
@@ -135,6 +137,7 @@ public sealed class SqlExpressionParserTests(
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void Precedence_OR_ShouldBindLooserThan_AND(int version)
     {
@@ -167,6 +170,7 @@ public sealed class SqlExpressionParserTests(
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void Parentheses_ShouldOverridePrecedence(int version)
     {
@@ -192,6 +196,7 @@ public sealed class SqlExpressionParserTests(
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void Not_ShouldWork(int version)
     {
@@ -213,6 +218,7 @@ public sealed class SqlExpressionParserTests(
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void IsNotNull_ShouldProduce_IsNullExpr_Negated(int version)
     {
@@ -230,6 +236,7 @@ public sealed class SqlExpressionParserTests(
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void In_ShouldParse_List(int version)
     {
@@ -247,6 +254,7 @@ public sealed class SqlExpressionParserTests(
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void Like_ShouldParse(int version)
     {
@@ -264,6 +272,7 @@ public sealed class SqlExpressionParserTests(
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void Identifier_WithAliasDotColumn_ShouldParse(int version)
     {
@@ -290,6 +299,7 @@ public sealed class SqlExpressionParserTests(
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void Parameter_Tokens_ShouldParse(int version)
     {
@@ -308,6 +318,7 @@ public sealed class SqlExpressionParserTests(
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void Backtick_Identifier_ShouldParse(int version)
     {
@@ -326,6 +337,7 @@ public sealed class SqlExpressionParserTests(
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void DoubleQuoted_String_ShouldParse(int version)
     {
@@ -340,6 +352,7 @@ public sealed class SqlExpressionParserTests(
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void NullSafe_Operator_ShouldParse(int version)
     {
@@ -357,6 +370,7 @@ public sealed class SqlExpressionParserTests(
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void Printer_ShouldBeStable_ForSimpleExpression(int version)
     {

@@ -12,6 +12,7 @@ public sealed class SqlServerInsertStrategyCoverageTests(
     /// PT: Testa o comportamento de Insert_MultiRowValues_ShouldInsertAllRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Insert_MultiRowValues_ShouldInsertAllRows()
     {
         var db = new SqlServerDbMock();
@@ -40,6 +41,7 @@ public sealed class SqlServerInsertStrategyCoverageTests(
     /// PT: Testa o comportamento de Insert_WithIdentityColumnOmitted_ShouldAutoIncrement.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Insert_WithIdentityColumnOmitted_ShouldAutoIncrement()
     {
         var db = new SqlServerDbMock();
@@ -70,6 +72,7 @@ public sealed class SqlServerInsertStrategyCoverageTests(
     /// PT: Testa o comportamento de InsertSelect_ShouldInsertRowsFromSelect.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void InsertSelect_ShouldInsertRowsFromSelect()
     {
         var db = new SqlServerDbMock();

@@ -49,6 +49,7 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_Precedence_AND_ShouldBindStrongerThan_OR.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlSqlCompatibilityGap")]
     public void Where_Precedence_AND_ShouldBindStrongerThan_OR()
     {
         // MySQL precedence: AND binds stronger than OR.
@@ -62,6 +63,7 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_OR_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlSqlCompatibilityGap")]
     public void Where_OR_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id = 1 OR id = 3").ToList();
@@ -73,6 +75,7 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_ParenthesesGrouping_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlSqlCompatibilityGap")]
     public void Where_ParenthesesGrouping_ShouldWork()
     {
         // (id=1 OR id=2) AND email IS NULL => only user 2
@@ -86,6 +89,7 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     /// PT: Testa o comportamento de Select_Expressions_Arithmetic_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlSqlCompatibilityGap")]
     public void Select_Expressions_Arithmetic_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id, id + 1 AS nextId FROM users ORDER BY id").ToList();
@@ -97,6 +101,7 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     /// PT: Testa o comportamento de Select_Expressions_CASE_WHEN_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlSqlCompatibilityGap")]
     public void Select_Expressions_CASE_WHEN_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id, CASE WHEN email IS NULL THEN 0 ELSE 1 END AS hasEmail FROM users ORDER BY id").ToList();
@@ -108,6 +113,7 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     /// PT: Testa o comportamento de Select_Expressions_IF_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlSqlCompatibilityGap")]
     public void Select_Expressions_IF_ShouldWork()
     {
         // MySQL: IF(cond, then, else)
@@ -120,6 +126,7 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     /// PT: Testa o comportamento de Select_Expressions_IIF_ShouldWork_AsAliasForIF.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlSqlCompatibilityGap")]
     public void Select_Expressions_IIF_ShouldWork_AsAliasForIF()
     {
         // Not native MySQL, but requested as convenience.
@@ -132,6 +139,7 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     /// PT: Testa o comportamento de Functions_COALESCE_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlSqlCompatibilityGap")]
     public void Functions_COALESCE_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id, COALESCE(NULL, email, 'none') AS em FROM users ORDER BY id").ToList();
@@ -143,6 +151,7 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     /// PT: Testa o comportamento de Functions_IFNULL_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlSqlCompatibilityGap")]
     public void Functions_IFNULL_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id, IFNULL(email, 'none') AS em FROM users ORDER BY id").ToList();
@@ -154,6 +163,7 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     /// PT: Testa o comportamento de Functions_CONCAT_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlSqlCompatibilityGap")]
     public void Functions_CONCAT_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id, CONCAT(name, '#', id) AS tag FROM users ORDER BY id").ToList();
@@ -165,6 +175,7 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     /// PT: Testa o comportamento de Distinct_ShouldBeConsistent.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlSqlCompatibilityGap")]
     public void Distinct_ShouldBeConsistent()
     {
         // duplicate names
@@ -178,6 +189,7 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     /// PT: Testa o comportamento de Join_ComplexOn_WithOr_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlSqlCompatibilityGap")]
     public void Join_ComplexOn_WithOr_ShouldWork()
     {
         // include orders joined when (o.userId = u.id OR o.userId = 0)
@@ -198,6 +210,7 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     /// PT: Testa o comportamento de GroupBy_Having_ShouldSupportAggregates.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlSqlCompatibilityGap")]
     public void GroupBy_Having_ShouldSupportAggregates()
     {
         var rows = _cnn.Query<dynamic>(
@@ -215,6 +228,7 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     /// PT: Testa o comportamento de OrderBy_ShouldSupportAlias_And_Ordinal.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlSqlCompatibilityGap")]
     public void OrderBy_ShouldSupportAlias_And_Ordinal()
     {
         var rows1 = _cnn.Query<dynamic>("SELECT id, id + 1 AS x FROM users ORDER BY x DESC").ToList();
@@ -230,6 +244,7 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     /// PT: Testa o comportamento de Union_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlSqlCompatibilityGap")]
     public void Union_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(
@@ -245,6 +260,7 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     /// PT: Testa o comportamento de Union_Inside_SubSelect_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlSqlCompatibilityGap")]
     public void Union_Inside_SubSelect_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -263,6 +279,7 @@ ORDER BY id
     /// PT: Testa o comportamento de Cte_With_ShouldWork.
     /// </summary>
     [Theory]
+    [Trait("Category", "MySqlSqlCompatibilityGap")]
     [MemberDataMySqlVersion]
     public void Cte_With_ShouldRespectVersion(int version)
     {
@@ -289,6 +306,7 @@ ORDER BY id
     /// PT: Testa o comportamento de Typing_ImplicitCasts_And_Collation_ShouldMatchMySqlDefault.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlSqlCompatibilityGap")]
     public void Typing_ImplicitCasts_And_Collation_ShouldMatchMySqlDefault()
     {
         // Many MySQL installations use case-insensitive collations by default.

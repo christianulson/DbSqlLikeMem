@@ -10,6 +10,7 @@ public sealed class Db2TemporaryTableParserTests
     /// PT: Testa o comportamento de ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect.
     /// </summary>
     [Theory]
+    [Trait("Category", "TemporaryTable")]
     [MemberDataDb2Version]
     public void ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect(int version)
     {
@@ -56,6 +57,7 @@ SELECT * FROM tmp_users;
     /// PT: Testa o comportamento de Parse_ShouldAccept_CreateTemporaryTable_Variants.
     /// </summary>
     [Theory]
+    [Trait("Category", "TemporaryTable")]
     [MemberDataByDb2Version(nameof(CreateTempTableStatements))]
     public void Parse_ShouldAccept_CreateTemporaryTable_Variants(string sql, int version)
     {
@@ -72,6 +74,7 @@ SELECT * FROM tmp_users;
     /// PT: Testa o comportamento de Parse_ShouldReject_Backticks_ByDb2Spec.
     /// </summary>
     [Theory]
+    [Trait("Category", "TemporaryTable")]
     [MemberDataDb2Version]
     public void Parse_ShouldReject_Backticks_ByDb2Spec(int version)
     {
@@ -87,6 +90,7 @@ WHERE `tenantid` = 10";
     /// Auto-generated summary.
     /// </summary>
     [Theory]
+    [Trait("Category", "TemporaryTable")]
     [MemberDataDb2Version]
     public void Parse_ShouldAccept_GlobalTemporaryTable(int version)
     {

@@ -37,6 +37,7 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests : XUnitTestBase
     /// PT: Testa o comportamento de UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
     public void UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates()
     {
         // UNION ALL keeps duplicates
@@ -61,6 +62,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de Limit_OffsetCommaSyntax_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
     public void Limit_OffsetCommaSyntax_ShouldWork()
     {
         // MySQL supports: LIMIT offset, count
@@ -73,6 +75,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de Limit_OffsetKeywordSyntax_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
     public void Limit_OffsetKeywordSyntax_ShouldWork()
     {
         // MySQL supports: LIMIT count OFFSET offset
@@ -85,6 +88,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de JsonExtract_SimpleObjectPath_ShouldWork.
     /// </summary>
     [Theory]
+    [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
     [MemberDataMySqlVersion]
     public void JsonExtract_SimpleObjectPath_ShouldRespectVersion(int version)
     {
@@ -112,6 +116,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de OrderBy_NullsFirst_ShouldThrow_WhenDialectDoesNotSupportModifier.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
     public void OrderBy_NullsFirst_ShouldThrow_WhenDialectDoesNotSupportModifier()
     {
         Assert.Throws<NotSupportedException>(() =>
@@ -124,6 +129,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de JsonFunction_ShouldThrow_WhenNotSupportedByDialect.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
     public void JsonFunction_ShouldThrow_WhenNotSupportedByDialect()
     {
         Assert.Throws<NotSupportedException>(() =>
@@ -135,6 +141,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Garante que o UNION normalize literais numéricos equivalentes em uma única linha.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
     public void Union_ShouldNormalizeEquivalentNumericTypes()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -151,6 +158,7 @@ SELECT 1 AS v
     /// PT: Garante que o UNION rejeite tipos de coluna incompatíveis entre partes do SELECT.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
     public void Union_ShouldValidateIncompatibleColumnTypes()
     {
         Assert.Throws<InvalidOperationException>(() =>
@@ -168,6 +176,7 @@ SELECT 'x' AS v
     /// PT: Garante que o schema do UNION mantenha os aliases da primeira projeção SELECT.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
     public void Union_ShouldNormalizeSchemaToFirstSelectAlias()
     {
         var rows = _cnn.Query<dynamic>(@"

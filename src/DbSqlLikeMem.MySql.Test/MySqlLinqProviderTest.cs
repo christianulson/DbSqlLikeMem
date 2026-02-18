@@ -23,6 +23,7 @@ public sealed class MySqlLinqProviderTest
     /// PT: Testa o comportamento de LinqProvider_ShouldQueryWhereAndReturnRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlLinqProviderTest")]
     public void LinqProvider_ShouldQueryWhereAndReturnRows()
     {
         var db = new MySqlDbMock();

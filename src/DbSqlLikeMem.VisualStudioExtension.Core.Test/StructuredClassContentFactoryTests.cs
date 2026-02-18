@@ -11,6 +11,7 @@ public sealed class StructuredClassContentFactoryTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "StructuredClassContentFactory")]
     public void Build_GeneratesColumnsPkIndexesAndForeignKeysLikeConsole()
     {
         var dbObject = new DatabaseObjectReference(
@@ -38,6 +39,7 @@ public sealed class StructuredClassContentFactoryTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "StructuredClassContentFactory")]
     public void Build_WithCompositePrimaryKey_CreatesPrimaryIndexWithAllFields()
     {
         var dbObject = new DatabaseObjectReference(
@@ -64,6 +66,7 @@ public sealed class StructuredClassContentFactoryTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "StructuredClassContentFactory")]
     public void Build_WithSqlServerStrategy_DoesNotTreatTinyIntAsBoolean()
     {
         var dbObject = new DatabaseObjectReference(
@@ -88,6 +91,7 @@ public sealed class StructuredClassContentFactoryTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "StructuredClassContentFactory")]
     public void Build_UsesSameTypeRulesAsConsoleGenerator_ForTinyIntAndBit()
     {
         var dbObject = new DatabaseObjectReference(

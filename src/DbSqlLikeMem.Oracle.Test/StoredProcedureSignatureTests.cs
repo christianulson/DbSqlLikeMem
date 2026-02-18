@@ -13,6 +13,7 @@ public sealed class StoredProcedureSignatureTests(
     /// PT: Testa o comportamento de StoredProcedure_ShouldValidateRequiredInAndOutParams.
     /// </summary>
     [Fact]
+    [Trait("Category", "StoredProcedureSignature")]
     public void StoredProcedure_ShouldValidateRequiredInAndOutParams()
     {
         using var c = new OracleConnectionMock();
@@ -44,6 +45,7 @@ public sealed class StoredProcedureSignatureTests(
     /// PT: Testa o comportamento de StoredProcedure_ShouldThrowWhenMissingRequiredParam.
     /// </summary>
     [Fact]
+    [Trait("Category", "StoredProcedureSignature")]
     public void StoredProcedure_ShouldThrowWhenMissingRequiredParam()
     {
         using var c = new OracleConnectionMock();
@@ -67,6 +69,7 @@ public sealed class StoredProcedureSignatureTests(
     /// PT: Testa o comportamento de CallStatement_ShouldValidateAgainstRegisteredProcedure.
     /// </summary>
     [Fact]
+    [Trait("Category", "StoredProcedureSignature")]
     public void CallStatement_ShouldValidateAgainstRegisteredProcedure()
     {
         using var c = new OracleConnectionMock();

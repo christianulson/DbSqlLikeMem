@@ -12,6 +12,7 @@ public sealed class NpgsqlDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_DoNothing_ShouldParse(int version)
     {
@@ -30,6 +31,7 @@ public sealed class NpgsqlDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
     public void ParseWithCte_AsMaterialized_ShouldParse(int version)
     {
@@ -46,6 +48,7 @@ public sealed class NpgsqlDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_OnConstraint_DoUpdate_ShouldParse(int version)
     {
@@ -68,6 +71,7 @@ DO UPDATE SET name = EXCLUDED.name";
     /// </summary>
     /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
     public void ParseInsert_OnConflict_TargetWhere_UpdateWhere_Returning_ShouldParse(int version)
     {
@@ -91,6 +95,7 @@ RETURNING id";
     /// </summary>
     /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
     public void ParseSelect_WithSqlServerTableHints_ShouldBeRejected(int version)
     {
@@ -105,6 +110,7 @@ RETURNING id";
     /// </summary>
     /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
     public void RuntimeDialectRules_ShouldRemainStable(int version)
     {
@@ -128,6 +134,7 @@ RETURNING id";
     /// </summary>
     /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
     public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
     {

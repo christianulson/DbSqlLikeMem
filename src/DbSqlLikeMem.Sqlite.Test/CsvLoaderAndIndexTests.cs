@@ -12,6 +12,7 @@ public sealed class CsvLoaderAndIndexTests(
     /// PT: Testa o comportamento de CsvLoader_ShouldLoadRows_ByColumnName.
     /// </summary>
     [Fact]
+    [Trait("Category", "CsvLoaderAndIndex")]
     public void CsvLoader_ShouldLoadRows_ByColumnName()
     {
         var db = new SqliteDbMock();
@@ -38,6 +39,7 @@ public sealed class CsvLoaderAndIndexTests(
     /// PT: Testa o comportamento de GetColumn_ShouldThrow_UnknownColumn.
     /// </summary>
     [Fact]
+    [Trait("Category", "CsvLoaderAndIndex")]
     public void GetColumn_ShouldThrow_UnknownColumn()
     {
         var db = new SqliteDbMock();
@@ -53,6 +55,7 @@ public sealed class CsvLoaderAndIndexTests(
     /// PT: Testa o comportamento de Index_Lookup_ShouldReturnRowPositions.
     /// </summary>
     [Fact]
+    [Trait("Category", "CsvLoaderAndIndex")]
     public void Index_Lookup_ShouldReturnRowPositions()
     {
         var db = new SqliteDbMock();
@@ -75,6 +78,7 @@ public sealed class CsvLoaderAndIndexTests(
     /// PT: Testa o comportamento de BackupRestore_ShouldRollbackData.
     /// </summary>
     [Fact]
+    [Trait("Category", "CsvLoaderAndIndex")]
     public void BackupRestore_ShouldRollbackData()
     {
         var db = new SqliteDbMock();

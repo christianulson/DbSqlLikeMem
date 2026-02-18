@@ -26,6 +26,7 @@ public sealed class OracleLinqProviderTest
     /// PT: Testa o comportamento de LinqProvider_ShouldQueryWhereAndReturnRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleLinqProviderTest")]
     public void LinqProvider_ShouldQueryWhereAndReturnRows()
     {
         var db = new OracleDbMock();

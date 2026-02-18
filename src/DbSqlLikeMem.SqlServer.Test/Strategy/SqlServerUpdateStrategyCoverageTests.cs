@@ -12,6 +12,7 @@ public sealed class SqlServerUpdateStrategyCoverageTests(
     /// PT: Testa o comportamento de Update_SetNullableColumnToNull_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_SetNullableColumnToNull_ShouldWork()
     {
         var db = new SqlServerDbMock();
@@ -37,6 +38,7 @@ public sealed class SqlServerUpdateStrategyCoverageTests(
     /// PT: Testa o comportamento de Update_SetNotNullableColumnToNull_ShouldThrow.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_SetNotNullableColumnToNull_ShouldThrow()
     {
         var db = new SqlServerDbMock();

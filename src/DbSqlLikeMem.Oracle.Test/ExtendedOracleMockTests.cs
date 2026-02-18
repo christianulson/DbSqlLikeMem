@@ -13,6 +13,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de InsertAutoIncrementShouldAssignIdentityWhenNotSpecified.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedOracleMock")]
     public void InsertAutoIncrementShouldAssignIdentityWhenNotSpecified()
     {
         var db = new OracleDbMock();
@@ -39,6 +40,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de InsertNullIntoNullableColumnShouldSucceed.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedOracleMock")]
     public void InsertNullIntoNullableColumnShouldSucceed()
     {
         var db = new OracleDbMock();
@@ -58,6 +60,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de InsertNullIntoNonNullableColumnShouldThrow.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedOracleMock")]
     public void InsertNullIntoNonNullableColumnShouldThrow()
     {
         var db = new OracleDbMock();
@@ -78,6 +81,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de CompositeIndexFilterShouldReturnCorrectRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedOracleMock")]
     public void CompositeIndexFilterShouldReturnCorrectRows()
     {
         var db = new OracleDbMock();
@@ -103,6 +107,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de LikeFilterShouldReturnMatchingRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedOracleMock")]
     public void LikeFilterShouldReturnMatchingRows()
     {
         var db = new OracleDbMock();
@@ -123,6 +128,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de InFilterShouldReturnMatchingRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedOracleMock")]
     public void InFilterShouldReturnMatchingRows()
     {
         var db = new OracleDbMock();
@@ -144,6 +150,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de OrderByLimitOffsetDistinctShouldReturnExpectedRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedOracleMock")]
     public void OrderByLimitOffsetDistinctShouldReturnExpectedRows()
     {
         var db = new OracleDbMock();
@@ -165,6 +172,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de HavingFilterShouldApplyAfterAggregation.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedOracleMock")]
     public void HavingFilterShouldApplyAfterAggregation()
     {
         var db = new OracleDbMock();
@@ -189,6 +197,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de ForeignKeyDeleteShouldThrowOnReferencedParentDeletion.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedOracleMock")]
     public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletion()
     {
         // Parent
@@ -216,6 +225,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedOracleMock")]
     public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK()
     {
         // Parent
@@ -242,6 +252,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de MultipleParameterSetsInsertShouldInsertAllRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedOracleMock")]
     public void MultipleParameterSetsInsertShouldInsertAllRows()
     {
         var db = new OracleDbMock();

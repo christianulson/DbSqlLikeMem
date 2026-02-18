@@ -37,6 +37,7 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests : XUnitTestBase
     /// PT: Testa o comportamento de UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
     public void UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates()
     {
         // UNION ALL keeps duplicates
@@ -61,6 +62,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de OffsetFetch_ShouldWork.
     /// </summary>
     [Theory]
+    [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
     [MemberDataSqlServerVersion]
     public void OffsetFetch_ShouldRespectVersion(int version)
     {
@@ -84,6 +86,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de JsonValue_SimpleObjectPath_ShouldWork.
     /// </summary>
     [Theory]
+    [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
     [MemberDataSqlServerVersion]
     public void JsonValue_SimpleObjectPath_ShouldRespectVersion(int version)
     {
@@ -111,6 +114,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de OrderBy_NullsFirst_ShouldThrow_WhenDialectDoesNotSupportModifier.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
     public void OrderBy_NullsFirst_ShouldThrow_WhenDialectDoesNotSupportModifier()
     {
         Assert.Throws<NotSupportedException>(() =>
@@ -123,6 +127,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de JsonFunction_ShouldThrow_WhenNotSupportedByDialect.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
     public void JsonFunction_ShouldThrow_WhenNotSupportedByDialect()
     {
         Assert.Throws<NotSupportedException>(() =>
@@ -134,6 +139,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Garante que o UNION normalize literais numéricos equivalentes em uma única linha.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
     public void Union_ShouldNormalizeEquivalentNumericTypes()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -150,6 +156,7 @@ SELECT 1 AS v
     /// PT: Garante que o UNION rejeite tipos de coluna incompatíveis entre partes do SELECT.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
     public void Union_ShouldValidateIncompatibleColumnTypes()
     {
         Assert.Throws<InvalidOperationException>(() =>
@@ -167,6 +174,7 @@ SELECT 'x' AS v
     /// PT: Garante que o schema do UNION mantenha os aliases da primeira projeção SELECT.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
     public void Union_ShouldNormalizeSchemaToFirstSelectAlias()
     {
         var rows = _cnn.Query<dynamic>(@"

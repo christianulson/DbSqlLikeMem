@@ -38,6 +38,7 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_IndexedEquality_ShouldUseIndexLookupMetric.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_IndexedEquality_ShouldUseIndexLookupMetric()
     {
         var before = _cnn.Metrics.IndexLookups;
@@ -58,6 +59,7 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_IndexedEqualityWithParameter_ShouldUseCompositeIndexLookupMetric.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_IndexedEqualityWithParameter_ShouldUseCompositeIndexLookupMetric()
     {
         var before = _cnn.Metrics.IndexLookups;
@@ -85,6 +87,7 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_IndexWithIncludeCoveringProjection_ShouldExposeRequestedColumnsInIndex.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_IndexWithIncludeCoveringProjection_ShouldExposeRequestedColumnsInIndex()
     {
         var table = _cnn.GetTable("users");
@@ -109,6 +112,7 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_IndexWithoutRequestedColumn_ShouldFallbackToTableRow.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_IndexWithoutRequestedColumn_ShouldFallbackToTableRow()
     {
         var table = _cnn.GetTable("users");
@@ -130,6 +134,7 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_NonIndexedPredicate_ShouldNotIncreaseIndexLookupMetric.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_NonIndexedPredicate_ShouldNotIncreaseIndexLookupMetric()
     {
         var before = _cnn.Metrics.IndexLookups;
@@ -148,6 +153,7 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_IN_ShouldFilter.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_IN_ShouldFilter()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id IN (1,3)").ToList();
@@ -161,6 +167,7 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_IsNotNull_ShouldFilter.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_IsNotNull_ShouldFilter()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE email IS NOT NULL").ToList();
@@ -172,6 +179,7 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_Operators_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_Operators_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id >= 2 AND id <= 3").ToList();
@@ -186,6 +194,7 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_Like_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_Like_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name LIKE '%oh%'").ToList();
@@ -198,6 +207,7 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_FindInSet_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_FindInSet_ShouldWork()
     {
         // FIND_IN_SET('b', tags) -> John(a,b) e Jane(b,c)
@@ -210,6 +220,7 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_AND_ShouldBeCaseInsensitive_InRealLife.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_AND_ShouldBeCaseInsensitive_InRealLife()
     {
         // esse teste é pra pegar o bug clássico: split só em " AND " / " and "

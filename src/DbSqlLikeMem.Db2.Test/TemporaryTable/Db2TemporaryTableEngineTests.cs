@@ -12,6 +12,7 @@ public sealed class Db2TemporaryTableEngineTests
     /// PT: Testa o comportamento de CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "TemporaryTable")]
     public void CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows()
     {
         var db = new Db2DbMock();
