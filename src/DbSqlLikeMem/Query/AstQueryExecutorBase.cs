@@ -1091,6 +1091,11 @@ internal abstract class AstQueryExecutorBase(
 
             if (exprAst is WindowFunctionExpr w)
             {
+                if (!(Dialect?.SupportsWindowFunctions ?? true))
+                    throw SqlUnsupported.ForDialect(
+                        Dialect!,
+                        $"window functions ({w.Name})");
+
                 // slot.Map preenchido depois (quando tivermos todas as rows)
                 var slot = new WindowSlot
                 {
