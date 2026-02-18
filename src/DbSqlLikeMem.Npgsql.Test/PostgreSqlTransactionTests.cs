@@ -27,6 +27,7 @@ public sealed class PostgreSqlTransactionTests(
     /// PT: Testa o comportamento de TransactionCommitShouldPersistData.
     /// </summary>
     [Fact]
+    [Trait("Category", "PostgreSqlTransaction")]
     public void TransactionCommitShouldPersistData()
     {
         // Arrange
@@ -59,6 +60,7 @@ public sealed class PostgreSqlTransactionTests(
     /// PT: Testa o comportamento de TransactionRollbackShouldNotPersistData.
     /// </summary>
     [Fact]
+    [Trait("Category", "PostgreSqlTransaction")]
     public void TransactionRollbackShouldNotPersistData()
     {
         // Arrange

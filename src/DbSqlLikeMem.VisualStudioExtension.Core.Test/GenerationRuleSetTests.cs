@@ -11,6 +11,7 @@ public sealed class GenerationRuleSetTests
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "GenerationRuleSet")]
     [InlineData("customer_order", "CustomerOrder")]
     [InlineData("customer-order", "CustomerOrder")]
     [InlineData("customer.order", "CustomerOrder")]
@@ -29,6 +30,7 @@ public sealed class GenerationRuleSetTests
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "GenerationRuleSet")]
     [InlineData("tinyint", null, 8, "Flags", "MySql", "Byte")]
     [InlineData("tinyint", 1L, null, "IsEnabled", "MySql", "Boolean")]
     [InlineData("tinyint", null, 1, "IsEnabled", "MySql", "Boolean")]
@@ -53,6 +55,7 @@ public sealed class GenerationRuleSetTests
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "GenerationRuleSet")]
     [InlineData("binary", 16L, null, "Token", "Guid")]
     [InlineData("varbinary", 16L, null, "Token", "Guid")]
     [InlineData("char", 36L, null, "OrderGuid", "Guid")]
@@ -69,6 +72,7 @@ public sealed class GenerationRuleSetTests
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "GenerationRuleSet")]
     [InlineData("(now())", false)]
     [InlineData("current_timestamp", false)]
     [InlineData("null", false)]
@@ -84,6 +88,7 @@ public sealed class GenerationRuleSetTests
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "GenerationRuleSet")]
     [InlineData("('0')", "Boolean", "false")]
     [InlineData("('1')", "Boolean", "true")]
     [InlineData("('abc')", "String", "\"abc\"")]
@@ -99,6 +104,7 @@ public sealed class GenerationRuleSetTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "GenerationRuleSet")]
     public void TryParseEnumValues_ReturnsEntriesForEnumAndSet()
     {
         var enumValues = GenerationRuleSet.TryParseEnumValues("enum('A','B','C')");
@@ -113,6 +119,7 @@ public sealed class GenerationRuleSetTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "GenerationRuleSet")]
     public void TryParseEnumValues_ReturnsEmptyForNonEnumType()
     {
         var values = GenerationRuleSet.TryParseEnumValues("varchar(100)");
@@ -124,6 +131,7 @@ public sealed class GenerationRuleSetTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "GenerationRuleSet")]
     public void TryConvertIfIsNull_ReturnsLambdaWhenPatternMatches()
     {
         var success = GenerationRuleSet.TryConvertIfIsNull("if((`deleted` is null), 1, null)", out var code);
@@ -138,6 +146,7 @@ public sealed class GenerationRuleSetTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "GenerationRuleSet")]
     public void TryConvertIfIsNull_ReturnsFalseWhenPatternDoesNotMatch()
     {
         var success = GenerationRuleSet.TryConvertIfIsNull("coalesce(`deleted`, 1)", out var code);
@@ -151,6 +160,7 @@ public sealed class GenerationRuleSetTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "GenerationRuleSet")]
     public void Literal_EscapesSlashAndQuotes()
     {
         var value = GenerationRuleSet.Literal("c:\\temp\\\"file\"");

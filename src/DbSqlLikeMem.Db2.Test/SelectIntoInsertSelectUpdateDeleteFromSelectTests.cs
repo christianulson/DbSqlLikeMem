@@ -12,6 +12,7 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     /// PT: Testa o comportamento de CreateTableAsSelect_ShouldCreateNewTableWithRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
     public void CreateTableAsSelect_ShouldCreateNewTableWithRows()
     {
         var db = new Db2DbMock();
@@ -44,6 +45,7 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     /// PT: Testa o comportamento de InsertIntoSelect_ShouldInsertRowsFromQuery.
     /// </summary>
     [Fact]
+    [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
     public void InsertIntoSelect_ShouldInsertRowsFromQuery()
     {
         var db = new Db2DbMock();
@@ -75,6 +77,7 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     /// PT: Testa o comportamento de UpdateJoinDerivedSelect_ShouldUpdateRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
     public void UpdateJoinDerivedSelect_ShouldUpdateRows()
     {
         var db = new Db2DbMock();
@@ -114,6 +117,7 @@ WHERE u.tenantid = 10";
     /// PT: Testa o comportamento de DeleteJoinDerivedSelect_ShouldDeleteRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
     public void DeleteJoinDerivedSelect_ShouldDeleteRows()
     {
         var db = new Db2DbMock();

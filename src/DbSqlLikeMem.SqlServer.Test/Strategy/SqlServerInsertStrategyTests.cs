@@ -11,6 +11,7 @@ public sealed class SqlServerInsertStrategyTests(
     /// PT: Testa o comportamento de InsertIntoTableShouldAddNewRow.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void InsertIntoTableShouldAddNewRow()
     {
         // Arrange

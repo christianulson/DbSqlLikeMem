@@ -11,6 +11,7 @@ public sealed class Db2InsertStrategyTests(
     /// PT: Testa o comportamento de InsertIntoTableShouldAddNewRow.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void InsertIntoTableShouldAddNewRow()
     {
         // Arrange

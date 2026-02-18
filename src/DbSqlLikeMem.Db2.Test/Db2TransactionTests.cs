@@ -27,6 +27,7 @@ public sealed class Db2TransactionTests(
     /// PT: Testa o comportamento de TransactionCommitShouldPersistData.
     /// </summary>
     [Fact]
+    [Trait("Category", "Db2Transaction")]
     public void TransactionCommitShouldPersistData()
     {
         // Arrange
@@ -59,6 +60,7 @@ public sealed class Db2TransactionTests(
     /// PT: Testa o comportamento de TransactionRollbackShouldNotPersistData.
     /// </summary>
     [Fact]
+    [Trait("Category", "Db2Transaction")]
     public void TransactionRollbackShouldNotPersistData()
     {
         // Arrange

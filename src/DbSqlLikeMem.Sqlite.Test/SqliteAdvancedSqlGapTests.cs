@@ -47,6 +47,7 @@ public sealed class SqliteAdvancedSqlGapTests : XUnitTestBase
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Window_RowNumber_PartitionBy_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -67,6 +68,7 @@ ORDER BY tenantid, id").ToList();
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
     public void CorrelatedSubquery_InSelectList_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -87,6 +89,7 @@ ORDER BY u.id").ToList();
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
     public void DateAdd_IntervalDay_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -108,6 +111,7 @@ ORDER BY id").ToList();
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Date_Function_WithModifier_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -131,6 +135,7 @@ ORDER BY id").ToList();
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Cast_StringToInt_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT CAST('42' AS SIGNED) AS v").ToList();
@@ -147,6 +152,7 @@ ORDER BY id").ToList();
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Regexp_Operator_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name REGEXP '^J' ORDER BY id").ToList();
@@ -164,6 +170,7 @@ ORDER BY id").ToList();
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
     public void OrderBy_Field_Function_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users ORDER BY FIELD(id, 3, 1, 2)").ToList();
@@ -179,6 +186,7 @@ ORDER BY id").ToList();
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Collation_CaseSensitivity_ShouldFollowColumnCollation()
     {
         // Example expectation in SQLite: behavior depends on column collation.

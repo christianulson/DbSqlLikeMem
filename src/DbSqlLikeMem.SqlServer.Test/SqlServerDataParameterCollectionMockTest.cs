@@ -11,6 +11,7 @@ public sealed class SqlServerDataParameterCollectionMockTest(
     /// PT: Testa o comportamento de ParameterCollection_Normalize_ShouldWork_ForAtQuestionAndQuotedNames.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlServerDataParameterCollectionMockTest")]
     public void ParameterCollection_Normalize_ShouldWork_ForAtQuestionAndQuotedNames()
     {
         Assert.Equal("id", SqlServerDataParameterCollectionMock.NormalizeParameterName("@id"));
@@ -25,6 +26,7 @@ public sealed class SqlServerDataParameterCollectionMockTest(
     /// PT: Testa o comportamento de ParameterCollection_Add_DuplicateName_ShouldThrow.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlServerDataParameterCollectionMockTest")]
     public void ParameterCollection_Add_DuplicateName_ShouldThrow()
     {
         var pars = new SqlServerDataParameterCollectionMock();
@@ -38,6 +40,7 @@ public sealed class SqlServerDataParameterCollectionMockTest(
     /// PT: Testa o comportamento de ParameterCollection_RemoveAt_ShouldReindexDictionary.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlServerDataParameterCollectionMockTest")]
     public void ParameterCollection_RemoveAt_ShouldReindexDictionary()
     {
         var pars = new SqlServerDataParameterCollectionMock();

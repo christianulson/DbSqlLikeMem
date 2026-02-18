@@ -12,6 +12,7 @@ public sealed class OracleDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
     public void ParseSelect_WithRecursive_ShouldBeRejected(int version)
     {
@@ -32,6 +33,7 @@ public sealed class OracleDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
     public void ParseInsert_OnConflict_ShouldBeRejected(int version)
     {
@@ -46,6 +48,7 @@ public sealed class OracleDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
     public void ParseSelect_WithSqlServerTableHints_ShouldBeRejected(int version)
     {
@@ -61,6 +64,7 @@ public sealed class OracleDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
     public void RuntimeDialectRules_ShouldRemainStable(int version)
     {
@@ -84,6 +88,7 @@ public sealed class OracleDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
     public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
     {

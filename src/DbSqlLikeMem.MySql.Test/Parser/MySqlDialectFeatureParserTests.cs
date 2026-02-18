@@ -12,6 +12,7 @@ public sealed class MySqlDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
     public void ParseInsert_OnConflict_ShouldRespectDialectRule(int version)
     {
@@ -26,6 +27,7 @@ public sealed class MySqlDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
     public void ParseSelect_WithRecursive_ShouldRespectVersion(int version)
     {
@@ -47,6 +49,7 @@ public sealed class MySqlDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
     public void ParseSelect_WithIndexHints_ShouldParse(int version)
     {
@@ -63,6 +66,7 @@ public sealed class MySqlDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
     public void RuntimeDialectRules_ShouldRemainStable(int version)
     {
@@ -86,6 +90,7 @@ public sealed class MySqlDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
     public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
     {

@@ -13,6 +13,7 @@ public class MySqlInsertOnDuplicateTests(
     /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldInsertWhenNoConflict.
     /// </summary>
     [Theory]
+    [Trait("Category", "Strategy")]
     [MemberDataMySqlVersion]
     public void Insert_OnDuplicate_ShouldInsertWhenNoConflict(int version)
     {
@@ -38,6 +39,7 @@ public class MySqlInsertOnDuplicateTests(
     /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateExistingRow_ByPrimaryKey_UsingValues.
     /// </summary>
     [Theory]
+    [Trait("Category", "Strategy")]
     [MemberDataMySqlVersion]
     public void Insert_OnDuplicate_ShouldUpdateExistingRow_ByPrimaryKey_UsingValues(int version)
     {
@@ -65,6 +67,7 @@ public class MySqlInsertOnDuplicateTests(
     /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateExistingRow_ByUniqueIndex.
     /// </summary>
     [Theory]
+    [Trait("Category", "Strategy")]
     [MemberDataMySqlVersion]
     public void Insert_OnDuplicate_ShouldUpdateExistingRow_ByUniqueIndex(int version)
     {
@@ -95,6 +98,7 @@ public class MySqlInsertOnDuplicateTests(
     /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateUsingLiteralAndParam.
     /// </summary>
     [Theory]
+    [Trait("Category", "Strategy")]
     [MemberDataMySqlVersion]
     public void Insert_OnDuplicate_ShouldUpdateUsingLiteralAndParam(int version)
     {
@@ -127,6 +131,7 @@ public class MySqlInsertOnDuplicateTests(
     /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateAggragating.
     /// </summary>
     [Theory]
+    [Trait("Category", "Strategy")]
     [MemberDataMySqlVersion]
     public void Insert_OnDuplicate_ShouldUpdateAggragating(int version)
     {

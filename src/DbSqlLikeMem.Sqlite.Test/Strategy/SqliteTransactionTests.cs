@@ -12,6 +12,7 @@ public sealed class SqliteTransactionTests(
     /// PT: Testa o comportamento de TransactionShouldCommit.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void TransactionShouldCommit()
     {
         // Arrange
@@ -46,6 +47,7 @@ public sealed class SqliteTransactionTests(
     /// PT: Testa o comportamento de TransactionShouldRollback.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void TransactionShouldRollback()
     {
         // Arrange

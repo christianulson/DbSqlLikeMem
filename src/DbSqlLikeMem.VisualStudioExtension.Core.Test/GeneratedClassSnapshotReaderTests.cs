@@ -11,6 +11,7 @@ public sealed class GeneratedClassSnapshotReaderTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "GeneratedClassSnapshotReader")]
     public async Task ReadAsync_ParsesMetadataAndCheckerDetectsDifference()
     {
         var file = Path.Combine(Path.GetTempPath(), $"dbsql-snapshot-{Guid.NewGuid():N}.cs");

@@ -57,6 +57,7 @@ public sealed class DapperUserTests2(
     /// PT: Testa o comportamento de QueryUserShouldReturnCorrectData.
     /// </summary>
     [Fact]
+    [Trait("Category", "DapperUserTests2")]
     public void QueryUserShouldReturnCorrectData()
     {
         // Arrange
@@ -113,6 +114,7 @@ public sealed class DapperUserTests2(
     /// PT: Testa o comportamento de QueryMultipleShouldReturnMultipleUserResultSets.
     /// </summary>
     [Fact]
+    [Trait("Category", "DapperUserTests2")]
     public void QueryMultipleShouldReturnMultipleUserResultSets()
     {
         // Arrange
@@ -176,6 +178,7 @@ public sealed class DapperUserTests2(
     /// PT: Testa o comportamento de QueryWithJoinShouldReturnJoinedData.
     /// </summary>
     [Fact]
+    [Trait("Category", "DapperUserTests2")]
     public void QueryWithJoinShouldReturnJoinedData()
     {
         // Arrange

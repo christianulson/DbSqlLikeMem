@@ -1,8 +1,17 @@
 namespace DbSqlLikeMem.MySql.Test;
 
+/// <summary>
+/// EN: Validates batch command execution behavior in <see cref="MySqlBatchMock"/>.
+/// PT: Valida o comportamento de execução de comandos em lote no <see cref="MySqlBatchMock"/>.
+/// </summary>
 public sealed class MySqlBatchMockTests
 {
+    /// <summary>
+    /// EN: Ensures ExecuteNonQuery executes all batch commands and returns the affected rows count.
+    /// PT: Garante que o ExecuteNonQuery execute todos os comandos do lote e retorne a quantidade de linhas afetadas.
+    /// </summary>
     [Fact]
+    [Trait("Category", "MySqlBatchMock")]
     public void ExecuteNonQuery_ShouldExecuteAllBatchCommands()
     {
         var db = new MySqlDbMock();
@@ -24,7 +33,12 @@ public sealed class MySqlBatchMockTests
         Assert.Equal(2, connection.GetTable("users").Count);
     }
 
+    /// <summary>
+    /// EN: Ensures ExecuteScalar returns the first command scalar result from the batch.
+    /// PT: Garante que o ExecuteScalar retorne o resultado escalar do primeiro comando do lote.
+    /// </summary>
     [Fact]
+    [Trait("Category", "MySqlBatchMock")]
     public void ExecuteScalar_ShouldUseFirstBatchCommandResult()
     {
         var db = new MySqlDbMock();
@@ -51,7 +65,12 @@ public sealed class MySqlBatchMockTests
         Assert.Equal("Ana", result);
     }
 
+    /// <summary>
+    /// EN: Ensures ExecuteReader returns multiple result sets produced by sequential batch commands.
+    /// PT: Garante que o ExecuteReader retorne múltiplos conjuntos de resultados produzidos por comandos em lote sequenciais.
+    /// </summary>
     [Fact]
+    [Trait("Category", "MySqlBatchMock")]
     public void ExecuteReader_ShouldReturnResultsFromMultipleBatchCommands()
     {
         var db = new MySqlDbMock();
@@ -82,7 +101,12 @@ public sealed class MySqlBatchMockTests
         Assert.Equal(1, reader.GetInt32(0));
     }
 
+    /// <summary>
+    /// EN: Ensures ExecuteReader supports batches that execute non-query commands before select queries.
+    /// PT: Garante que o ExecuteReader suporte lotes que executam comandos sem retorno antes de consultas select.
+    /// </summary>
     [Fact]
+    [Trait("Category", "MySqlBatchMock")]
     public void ExecuteReader_ShouldAllowNonQueryBeforeSelect()
     {
         var db = new MySqlDbMock();

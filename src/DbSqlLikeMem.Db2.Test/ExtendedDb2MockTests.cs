@@ -12,6 +12,7 @@ public sealed class ExtendedDb2MockTests(
     /// PT: Testa o comportamento de InsertAutoIncrementShouldAssignIdentityWhenNotSpecified.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedDb2Mock")]
     public void InsertAutoIncrementShouldAssignIdentityWhenNotSpecified()
     {
         var db = new Db2DbMock();
@@ -38,6 +39,7 @@ public sealed class ExtendedDb2MockTests(
     /// PT: Testa o comportamento de InsertNullIntoNullableColumnShouldSucceed.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedDb2Mock")]
     public void InsertNullIntoNullableColumnShouldSucceed()
     {
         var db = new Db2DbMock();
@@ -57,6 +59,7 @@ public sealed class ExtendedDb2MockTests(
     /// PT: Testa o comportamento de InsertNullIntoNonNullableColumnShouldThrow.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedDb2Mock")]
     public void InsertNullIntoNonNullableColumnShouldThrow()
     {
         var db = new Db2DbMock();
@@ -77,6 +80,7 @@ public sealed class ExtendedDb2MockTests(
     /// PT: Testa o comportamento de CompositeIndexFilterShouldReturnCorrectRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedDb2Mock")]
     public void CompositeIndexFilterShouldReturnCorrectRows()
     {
         var db = new Db2DbMock();
@@ -102,6 +106,7 @@ public sealed class ExtendedDb2MockTests(
     /// PT: Testa o comportamento de LikeFilterShouldReturnMatchingRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedDb2Mock")]
     public void LikeFilterShouldReturnMatchingRows()
     {
         var db = new Db2DbMock();
@@ -122,6 +127,7 @@ public sealed class ExtendedDb2MockTests(
     /// PT: Testa o comportamento de InFilterShouldReturnMatchingRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedDb2Mock")]
     public void InFilterShouldReturnMatchingRows()
     {
         var db = new Db2DbMock();
@@ -143,6 +149,7 @@ public sealed class ExtendedDb2MockTests(
     /// PT: Testa o comportamento de OrderByLimitOffsetDistinctShouldReturnExpectedRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedDb2Mock")]
     public void OrderByLimitOffsetDistinctShouldReturnExpectedRows()
     {
         var db = new Db2DbMock();
@@ -164,6 +171,7 @@ public sealed class ExtendedDb2MockTests(
     /// PT: Testa o comportamento de HavingFilterShouldApplyAfterAggregation.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedDb2Mock")]
     public void HavingFilterShouldApplyAfterAggregation()
     {
         var db = new Db2DbMock();
@@ -188,6 +196,7 @@ public sealed class ExtendedDb2MockTests(
     /// PT: Testa o comportamento de ForeignKeyDeleteShouldThrowOnReferencedParentDeletion.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedDb2Mock")]
     public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletion()
     {
         // Parent
@@ -215,6 +224,7 @@ public sealed class ExtendedDb2MockTests(
     /// PT: Testa o comportamento de ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedDb2Mock")]
     public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK()
     {
         // Parent
@@ -241,6 +251,7 @@ public sealed class ExtendedDb2MockTests(
     /// PT: Testa o comportamento de MultipleParameterSetsInsertShouldInsertAllRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedDb2Mock")]
     public void MultipleParameterSetsInsertShouldInsertAllRows()
     {
         var db = new Db2DbMock();

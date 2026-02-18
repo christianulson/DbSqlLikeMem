@@ -12,6 +12,7 @@ public sealed class Db2MergeUpsertTests(ITestOutputHelper helper) : XUnitTestBas
     /// </summary>
     /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
     [Theory]
+    [Trait("Category", "Strategy")]
     [MemberDataDb2Version]
     public void Merge_ShouldFollowDialectVersionSupport(int version)
     {
@@ -38,6 +39,7 @@ public sealed class Db2MergeUpsertTests(ITestOutputHelper helper) : XUnitTestBas
     /// PT: Garante que MERGE atualize uma linha existente quando a condição ON é satisfeita.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Merge_ShouldUpdate_WhenMatched()
     {
         var db = new Db2DbMock(Db2Dialect.MergeMinVersion);

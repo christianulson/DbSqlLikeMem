@@ -11,6 +11,7 @@ public sealed class SqlServerTriggerStrategyTests
     /// PT: Garante que os gatilhos de insert, update e delete sejam executados para uma tabela não temporária.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void NonTemporaryTable_ShouldExecuteInsertUpdateDeleteTriggers()
     {
         var db = new SqlServerDbMock();
@@ -54,6 +55,7 @@ public sealed class SqlServerTriggerStrategyTests
     /// PT: Garante que os gatilhos não sejam executados para uma tabela temporária.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void TemporaryTable_ShouldNotExecuteTriggers()
     {
         var db = new SqlServerDbMock();

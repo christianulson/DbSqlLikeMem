@@ -12,6 +12,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de InsertAutoIncrementShouldAssignIdentityWhenNotSpecified.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedSqlServerMock")]
     public void InsertAutoIncrementShouldAssignIdentityWhenNotSpecified()
     {
         var db = new SqlServerDbMock();
@@ -38,6 +39,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de InsertNullIntoNullableColumnShouldSucceed.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedSqlServerMock")]
     public void InsertNullIntoNullableColumnShouldSucceed()
     {
         var db = new SqlServerDbMock();
@@ -57,6 +59,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de InsertNullIntoNonNullableColumnShouldThrow.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedSqlServerMock")]
     public void InsertNullIntoNonNullableColumnShouldThrow()
     {
         var db = new SqlServerDbMock();
@@ -77,6 +80,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de CompositeIndexFilterShouldReturnCorrectRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedSqlServerMock")]
     public void CompositeIndexFilterShouldReturnCorrectRows()
     {
         var db = new SqlServerDbMock();
@@ -102,6 +106,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de LikeFilterShouldReturnMatchingRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedSqlServerMock")]
     public void LikeFilterShouldReturnMatchingRows()
     {
         var db = new SqlServerDbMock();
@@ -122,6 +127,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de InFilterShouldReturnMatchingRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedSqlServerMock")]
     public void InFilterShouldReturnMatchingRows()
     {
         var db = new SqlServerDbMock();
@@ -143,6 +149,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de OrderByLimitOffsetDistinctShouldReturnExpectedRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedSqlServerMock")]
     public void OrderByLimitOffsetDistinctShouldReturnExpectedRows()
     {
         var db = new SqlServerDbMock();
@@ -164,6 +171,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de HavingFilterShouldApplyAfterAggregation.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedSqlServerMock")]
     public void HavingFilterShouldApplyAfterAggregation()
     {
         var db = new SqlServerDbMock();
@@ -188,6 +196,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de ForeignKeyDeleteShouldThrowOnReferencedParentDeletion.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedSqlServerMock")]
     public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletion()
     {
         // Parent
@@ -215,6 +224,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedSqlServerMock")]
     public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK()
     {
         // Parent
@@ -241,6 +251,7 @@ public sealed class ExtendedMySqlMockTests(
     /// PT: Testa o comportamento de MultipleParameterSetsInsertShouldInsertAllRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "ExtendedSqlServerMock")]
     public void MultipleParameterSetsInsertShouldInsertAllRows()
     {
         var db = new SqlServerDbMock();

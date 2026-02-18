@@ -36,6 +36,7 @@ public sealed class SqliteMockTests
     /// PT: Testa o comportamento de TestInsert.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteMock")]
     public void TestInsert()
     {
         using var command = new SqliteCommandMock(_connection)
@@ -52,6 +53,7 @@ public sealed class SqliteMockTests
     /// PT: Testa o comportamento de TestUpdate.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteMock")]
     public void TestUpdate()
     {
         using var command = new SqliteCommandMock(_connection)
@@ -71,6 +73,7 @@ public sealed class SqliteMockTests
     /// PT: Testa o comportamento de TestDelete.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteMock")]
     public void TestDelete()
     {
         using var command = new SqliteCommandMock(_connection)
@@ -90,6 +93,7 @@ public sealed class SqliteMockTests
     /// PT: Testa o comportamento de TestTransactionCommit.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteMock")]
     public void TestTransactionCommit()
     {
         using (var transaction = _connection.BeginTransaction())
@@ -125,6 +129,7 @@ public sealed class SqliteMockTests
     /// PT: Testa o comportamento de TestTransactionCommitInsertUpdate.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteMock")]
     public void TestTransactionCommitInsertUpdate()
     {
         using var cmd = _connection.CreateCommand();
@@ -147,6 +152,7 @@ public sealed class SqliteMockTests
     /// PT: Testa o comportamento de TestTransactionRollback.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteMock")]
     public void TestTransactionRollback()
     {
         using (var transaction = _connection.BeginTransaction())

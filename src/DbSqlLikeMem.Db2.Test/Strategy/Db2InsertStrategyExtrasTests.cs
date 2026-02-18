@@ -11,6 +11,7 @@ public sealed class Db2InsertStrategyExtrasTests(
     /// PT: Testa o comportamento de MultiRowInsertShouldAddAllRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void MultiRowInsertShouldAddAllRows()
     {
         // Arrange
@@ -38,6 +39,7 @@ public sealed class Db2InsertStrategyExtrasTests(
     /// PT: Testa o comportamento de InsertWithDefaultValueAndIdentityShouldApplyDefaults.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void InsertWithDefaultValueAndIdentityShouldApplyDefaults()
     {
         // Arrange
@@ -69,6 +71,7 @@ public sealed class Db2InsertStrategyExtrasTests(
     /// PT: Testa o comportamento de InsertDuplicatePrimaryKeyShouldThrow.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void InsertDuplicatePrimaryKeyShouldThrow()
     {
         // Arrange
@@ -100,6 +103,7 @@ public class Db2DeleteStrategyForeignKeyTests
     /// PT: Testa o comportamento de DeleteReferencedRowShouldThrow.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void DeleteReferencedRowShouldThrow()
     {
         // Arrange parent
@@ -139,6 +143,7 @@ public class Db2UpdateStrategyExtrasTests
     /// PT: Testa o comportamento de UpdateMultipleConditionsShouldOnlyAffectMatchingRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void UpdateMultipleConditionsShouldOnlyAffectMatchingRows()
     {
         // Arrange

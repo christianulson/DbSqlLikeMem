@@ -12,6 +12,7 @@ public sealed class Db2CreateViewParserTests(
     /// PT: Testa o comportamento de ParseMulti_CreateView_ThenSelect_ShouldReturnTwoStatements.
     /// </summary>
     [Theory]
+    [Trait("Category", "Views")]
     [MemberDataDb2Version]
     public void ParseMulti_CreateView_ThenSelect_ShouldReturnTwoStatements(int version)
     {
@@ -39,6 +40,7 @@ SELECT * FROM v_users;
     /// PT: Testa o comportamento de Parse_CreateOrReplaceView_ShouldSetFlag.
     /// </summary>
     [Theory]
+    [Trait("Category", "Views")]
     [MemberDataDb2Version]
     public void Parse_CreateOrReplaceView_ShouldSetFlag(int version)
     {
@@ -54,6 +56,7 @@ SELECT * FROM v_users;
     /// PT: Testa o comportamento de Parse_CreateView_WithExplicitColumnList_ShouldCaptureNames.
     /// </summary>
     [Theory]
+    [Trait("Category", "Views")]
     [MemberDataDb2Version]
     public void Parse_CreateView_WithExplicitColumnList_ShouldCaptureNames(int version)
     {
@@ -68,6 +71,7 @@ SELECT * FROM v_users;
     /// PT: Testa o comportamento de Parse_CreateView_WithBackticks_ShouldWork.
     /// </summary>
     [Theory]
+    [Trait("Category", "Views")]
     [MemberDataDb2Version]
     public void Parse_CreateView_WithBackticks_ShouldFail_ByDb2Spec(int version)
     {
@@ -80,6 +84,7 @@ SELECT * FROM v_users;
     /// PT: Testa o comportamento de Parse_CreateView_IfNotExists_ShouldBeRejected_ByDb2Spec.
     /// </summary>
     [Theory]
+    [Trait("Category", "Views")]
     [MemberDataDb2Version]
     public void Parse_CreateView_IfNotExists_ShouldBeRejected_ByDb2Spec(int version)
     {

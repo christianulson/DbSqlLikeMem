@@ -23,6 +23,7 @@ public sealed class PostgreSqlLinqProviderTest
     /// PT: Testa o comportamento de LinqProvider_ShouldQueryWhereAndReturnRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "PostgreSqlLinqProviderTest")]
     public void LinqProvider_ShouldQueryWhereAndReturnRows()
     {
         var db = new NpgsqlDbMock();

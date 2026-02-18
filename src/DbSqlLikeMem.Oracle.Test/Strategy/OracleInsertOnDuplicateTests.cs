@@ -11,6 +11,7 @@ public sealed class OracleMergeUpsertTests(ITestOutputHelper helper) : XUnitTest
     /// PT: Testa o comportamento de Merge_ShouldInsert_WhenNotMatched.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Merge_ShouldInsert_WhenNotMatched()
     {
         var db = new OracleDbMock();
@@ -41,6 +42,7 @@ WHEN NOT MATCHED THEN
     /// PT: Testa o comportamento de Merge_ShouldUpdate_WhenMatched.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Merge_ShouldUpdate_WhenMatched()
     {
         var db = new OracleDbMock();

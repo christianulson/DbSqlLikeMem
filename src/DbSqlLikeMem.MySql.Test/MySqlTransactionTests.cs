@@ -27,6 +27,7 @@ public sealed class MySqlTransactionTests(
     /// PT: Testa o comportamento de TransactionCommitShouldPersistData.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlTransaction")]
     public void TransactionCommitShouldPersistData()
     {
         // Arrange
@@ -59,6 +60,7 @@ public sealed class MySqlTransactionTests(
     /// PT: Testa o comportamento de TransactionRollbackShouldNotPersistData.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlTransaction")]
     public void TransactionRollbackShouldNotPersistData()
     {
         // Arrange

@@ -14,6 +14,7 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_ShouldReadDapperParameter_ByName.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_ShouldReadDapperParameter_ByName()
     {
         using var cnn = new NpgsqlConnectionMock();
@@ -34,6 +35,7 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_ShouldThrow_WhenParameterMissing.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_ShouldThrow_WhenParameterMissing()
     {
         Assert.Throws<NpgsqlMockException>(() =>
@@ -45,6 +47,7 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_ShouldParseInList_ToListOfResolvedValues.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_ShouldParseInList_ToListOfResolvedValues()
     {
         var v = NpgsqlValueHelper.Resolve("(1, 2, 3)", DbType.Int32, isNullable: false, pars: null, colDict: null);
@@ -58,6 +61,7 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_NullOnNonNullable_ShouldThrow.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_NullOnNonNullable_ShouldThrow()
     {
         Assert.Throws<NpgsqlMockException>(() =>
@@ -69,6 +73,7 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_Json_ShouldReturnJsonDocument_WhenValid.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_Json_ShouldReturnJsonDocument_WhenValid()
     {
         var v = NpgsqlValueHelper.Resolve("{\"a\":1}", DbType.Object, isNullable: false, pars: null, colDict: null);
@@ -82,6 +87,7 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Like_ShouldMatch_MySqlStyle.
     /// </summary>
     [Theory]
+    [Trait("Category", "SqlValueHelperTests ")]
     [InlineData("John", "%oh%", true)]
     [InlineData("John", "J_hn", true)]
     [InlineData("John", "J__n", true)]
@@ -97,6 +103,7 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_Enum_ShouldValidateAgainstColumnDef.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_Enum_ShouldValidateAgainstColumnDef()
     {
         var tb = new NpgsqlDbMock().AddTable("tb");
@@ -119,6 +126,7 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_Set_ShouldReturnHashSet_AndValidate.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_Set_ShouldReturnHashSet_AndValidate()
     {
         var tb = new NpgsqlDbMock().AddTable("tb");
@@ -150,6 +158,7 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_ShouldValidateStringSize.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_ShouldValidateStringSize()
     {
         var tb = new NpgsqlDbMock().AddTable("tb");
@@ -175,6 +184,7 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_ShouldValidateDecimalPlaces.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_ShouldValidateDecimalPlaces()
     {
         var tb = new NpgsqlDbMock().AddTable("tb");

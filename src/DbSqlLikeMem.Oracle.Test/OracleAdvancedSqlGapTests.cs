@@ -44,6 +44,7 @@ public sealed class OracleAdvancedSqlGapTests : XUnitTestBase
     /// PT: Testa o comportamento de Window_RowNumber_PartitionBy_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAdvancedSqlGap")]
     public void Window_RowNumber_PartitionBy_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -60,6 +61,7 @@ ORDER BY tenantid, id").ToList();
     /// PT: Testa o comportamento de CorrelatedSubquery_InSelectList_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAdvancedSqlGap")]
     public void CorrelatedSubquery_InSelectList_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -76,6 +78,7 @@ ORDER BY u.id").ToList();
     /// PT: Testa o comportamento de DateAdd_IntervalDay_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAdvancedSqlGap")]
     public void DateAdd_IntervalDay_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -95,6 +98,7 @@ ORDER BY id").ToList();
     /// PT: Testa o comportamento de Cast_StringToInt_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAdvancedSqlGap")]
     public void Cast_StringToInt_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT TO_NUMBER('42') AS v").ToList();
@@ -109,6 +113,7 @@ ORDER BY id").ToList();
     /// PT: Garante que o alvo de cast NUMBER seja tratado como compatível com inteiro no comportamento Oracle.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAdvancedSqlGap")]
     public void Cast_StringToInt_NumberType_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT CAST('42' AS NUMBER) AS v").ToList();
@@ -121,6 +126,7 @@ ORDER BY id").ToList();
     /// PT: Testa o comportamento de Regexp_Operator_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAdvancedSqlGap")]
     public void Regexp_Operator_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name REGEXP '^J' ORDER BY id").ToList();
@@ -134,6 +140,7 @@ ORDER BY id").ToList();
     /// PT: Testa o comportamento de OrderBy_Field_Function_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAdvancedSqlGap")]
     public void OrderBy_Field_Function_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users ORDER BY CASE id WHEN 3 THEN 1 WHEN 1 THEN 2 WHEN 2 THEN 3 ELSE 4 END").ToList();
@@ -145,6 +152,7 @@ ORDER BY id").ToList();
     /// PT: Testa o comportamento de Collation_CaseSensitivity_ShouldFollowColumnCollation.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAdvancedSqlGap")]
     public void Collation_CaseSensitivity_ShouldFollowColumnCollation()
     {
         // Example expectation in MySQL: behavior depends on column collation.
