@@ -36,8 +36,8 @@ internal sealed class SqlQueryAstCache
         return new SqlQueryAstCache(parsed);
     }
 
-    public static string BuildKey(string sql, string dialectName)
-        => string.Concat(dialectName, "::", NormalizeSql(sql));
+    public static string BuildKey(string sql, string dialectName, int dialectVersion)
+        => string.Concat(dialectName, "::v", dialectVersion.ToString(CultureInfo.InvariantCulture), "::", NormalizeSql(sql));
 
     public bool TryGet(string key, out SqlQueryBase query)
     {

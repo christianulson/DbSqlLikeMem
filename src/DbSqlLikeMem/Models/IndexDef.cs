@@ -199,13 +199,7 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
                 idxRow.Add(item!, row[col.Index]);
             }
 
-            foreach (var pkIdx in Table.PrimaryKeyIndexes)
-            {
-                if (!pkColumnsByIndex.TryGetValue(pkIdx, out var pkName)
-                    || idxRow.ContainsKey(pkName))
-                    continue;
-                idxRow.Add(pkName, row[pkIdx]);
-            }
+            AddRowLocatorColumns(idxRow, row, pkColumnsByIndex);
         }
     }
 
@@ -246,6 +240,34 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
         var text = value.ToString() ?? string.Empty;
         return $"s{text.Length}:{text};";
     }
+
+    private void AddRowLocatorColumns(
+        Dictionary<string, object?> idxRow,
+        IReadOnlyDictionary<int, object?> row,
+        IReadOnlyDictionary<int, string> columnsByIndex)
+    {
+        var addedLocator = false;
+
+        foreach (var pkIdx in Table.PrimaryKeyIndexes)
+        {
+            if (!columnsByIndex.TryGetValue(pkIdx, out var pkName)
+                || idxRow.ContainsKey(pkName))
+                continue;
+
+            idxRow.Add(pkName, row[pkIdx]);
+            addedLocator = true;
+        }
+
+        if (addedLocator)
+            return;
+
+        if (!Table.Columns.TryGetValue("id", out var idColumn)
+            || idxRow.ContainsKey(idColumn.Name))
+            return;
+
+        idxRow.Add(idColumn.Name, row[idColumn.Index]);
+    }
+
 
     /// <summary>
     /// EN: Looks up values in the index using the given key.
@@ -316,13 +338,7 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
             idxRow.Add(item!, newRow[col.Index]);
         }
 
-        foreach (var pkIdx in Table.PrimaryKeyIndexes)
-        {
-            if (!pkColumnsByIndex.TryGetValue(pkIdx, out var pkName)
-                || idxRow.ContainsKey(pkName))
-                continue;
-            idxRow.Add(pkName, newRow[pkIdx]);
-        }
+        AddRowLocatorColumns(idxRow, newRow, pkColumnsByIndex);
     }
 
     public void UpdateIndexesWithRow(
@@ -371,13 +387,7 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
             idxRow.Add(item!, newRow[col.Index]);
         }
 
-        foreach (var pkIdx in Table.PrimaryKeyIndexes)
-        {
-            if (!pkColumnsByIndex.TryGetValue(pkIdx, out var pkName)
-                || idxRow.ContainsKey(pkName))
-                continue;
-            idxRow.Add(pkName, newRow[pkIdx]);
-        }
+        AddRowLocatorColumns(idxRow, newRow, pkColumnsByIndex);
     }
 
     internal void EnsureUniqueBeforeUpdate(
