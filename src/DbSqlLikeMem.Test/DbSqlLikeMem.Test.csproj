@@ -53,6 +53,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem\DbSqlLikeMem.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Using Include="Xunit" />
 	</ItemGroup>
 
