@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace DbSqlLikeMem;
 
 /// <summary>
@@ -96,10 +98,7 @@ internal abstract class AstQueryExecutorBase(
         }
         else
         {
-            Parallel.For(0, parts.Count, i =>
-            {
-                tables[i] = ExecuteSelect(parts[i]);
-            });
+            Parallel.For(0, parts.Count, i => tables[i] = ExecuteSelect(parts[i]));
         }
 
         // Base do resultado
@@ -112,7 +111,8 @@ internal abstract class AstQueryExecutorBase(
         var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para UNION.");
 
         // valida colunas compatíveis
-        for (int i = 0; i < tables.Count; i++)
+        var total = tables.Count();
+        for (int i = 0; i < total; i++)
         {
             if (tables[i].Columns.Count != result.Columns.Count)
             {
@@ -142,7 +142,7 @@ internal abstract class AstQueryExecutorBase(
             seenRows?.Add(row);
         }
 
-        for (int i = 1; i < tables.Count; i++)
+        for (int i = 1; i < total; i++)
         {
             var isUnionAll = allFlags[i - 1];
 
@@ -192,12 +192,12 @@ internal abstract class AstQueryExecutorBase(
             if (x is null || y is null || x.Count != y.Count)
                 return false;
 
-            foreach (var (key, value) in x)
+            foreach (var item in x)
             {
-                if (!y.TryGetValue(key, out var rightValue))
+                if (!y.TryGetValue(item.Key, out var rightValue))
                     return false;
 
-                if (!value.EqualsSql(rightValue, dialect))
+                if (!item.Value.EqualsSql(rightValue, dialect))
                     return false;
             }
 
