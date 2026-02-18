@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 
 namespace DbSqlLikeMem;
@@ -9,6 +10,9 @@ internal sealed class SqlQueryParser
     private int _i;
     // INSERT ... SELECT pode ter um sufixo de UPSERT após o SELECT (MySQL ON DUPLICATE..., Postgres ON CONFLICT ...)
     private bool _allowOnDuplicateBoundary;
+
+    private static readonly SqlQueryAstCache _astCache = SqlQueryAstCache.CreateFromEnvironment();
+
 
     /// <summary>
     /// Auto-generated summary.
@@ -29,7 +33,21 @@ internal sealed class SqlQueryParser
     public static SqlQueryBase Parse(string sql, ISqlDialect dialect)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
+        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
 
+        var cacheKey = SqlQueryAstCache.BuildKey(sql, dialect.Name);
+        if (_astCache.TryGet(cacheKey, out var cached))
+            return cached with { RawSql = sql };
+
+        var parsed = ParseUncached(sql, dialect);
+        _astCache.Set(cacheKey, parsed);
+
+        // Para estratégias que precisam do SQL original (ex: UPDATE/DELETE ... JOIN (SELECT ...))
+        return parsed with { RawSql = sql };
+    }
+
+    private static SqlQueryBase ParseUncached(string sql, ISqlDialect dialect)
+    {
         var q = new SqlQueryParser(sql, dialect);
         var first = q.Peek();
 
@@ -58,8 +76,7 @@ internal sealed class SqlQueryParser
         else
             throw new InvalidOperationException("SQL não suportado ou parser inválido: " + first.Text);
 
-        // Para estratégias que precisam do SQL original (ex: UPDATE/DELETE ... JOIN (SELECT ...))
-        return result with { RawSql = sql };
+        return result;
     }
 
     /// <summary>
