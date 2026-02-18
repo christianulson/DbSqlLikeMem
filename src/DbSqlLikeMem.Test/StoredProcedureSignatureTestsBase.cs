@@ -1,6 +1,4 @@
-using System.Data;
 using System.Data.Common;
-using System.Globalization;
 
 namespace DbSqlLikeMem.Test;
 
@@ -8,9 +6,10 @@ namespace DbSqlLikeMem.Test;
 /// EN: Shared stored procedure signature validation tests executed by provider-specific derived classes.
 /// PT: Testes compartilhados de validação de assinatura de procedures executados por classes derivadas de cada provedor.
 /// </summary>
-public abstract class StoredProcedureSignatureTestsBase(
+public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)
+    where TSqlMockException : SqlMockException
 {
     protected abstract DbConnectionMockBase CreateConnection();
 
@@ -63,7 +62,7 @@ public abstract class StoredProcedureSignatureTestsBase(
         cmd.CommandType = CommandType.StoredProcedure;
         cmd.CommandText = "sp_demo";
 
-        var ex = Assert.Throws<SqlMockException>(() => cmd.ExecuteNonQuery());
+        var ex = Assert.Throws<TSqlMockException>(() => cmd.ExecuteNonQuery());
         Assert.Equal(1318, ex.ErrorCode);
     }
 
