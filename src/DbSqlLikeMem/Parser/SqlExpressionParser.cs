@@ -19,6 +19,7 @@ internal sealed class SqlExpressionParser(
     {
         var d = dialect;
         var toks = new SqlTokenizer(whereSql, d).Tokenize();
+        EnsureJsonArrowSupport(toks, d);
         var p = new SqlExpressionParser(toks, d);
         var expr = p.ParseExpression(0);
         p.ExpectEnd();
@@ -34,10 +35,21 @@ internal sealed class SqlExpressionParser(
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
         var d = dialect;
         var toks = new SqlTokenizer(sql, d).Tokenize();
+        EnsureJsonArrowSupport(toks, d);
         var p = new SqlExpressionParser(toks, d);
         var expr = p.ParseExpression(0);
         p.ExpectEnd();
         return expr;
+    }
+
+    private static void EnsureJsonArrowSupport(IReadOnlyList<SqlToken> toks, ISqlDialect dialect)
+    {
+        if (dialect.SupportsJsonArrowOperators || dialect.AllowsParserCrossDialectJsonOperators)
+            return;
+
+        if (toks.Any(t => t.Kind == SqlTokenKind.Operator
+            && (t.Text == "->" || t.Text == "->>" || t.Text == "#>" || t.Text == "#>>")))
+            throw SqlUnsupported.ForDialect(dialect, "JSON -> / ->> / #> / #>> operators");
     }
 
     // Pratt: parse com binding power

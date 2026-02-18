@@ -31,6 +31,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
     internal const int WithCteMinVersion = 2005;
     internal const int MergeMinVersion = 2008;
     internal const int OffsetFetchMinVersion = 2012;
+    internal const int JsonFunctionsMinVersion = 2016;
 
     /// <summary>
     /// Auto-generated summary.
@@ -82,8 +83,8 @@ internal sealed class SqlServerDialect : SqlDialectBase
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
     // SQL Server supports CTE but not the "WITH RECURSIVE" keyword form.
     public override bool SupportsWithRecursive => false;
-    public override bool SupportsJsonValueFunction => true;
-    public override bool SupportsOpenJsonFunction => true;
+    public override bool SupportsJsonValueFunction => Version >= JsonFunctionsMinVersion;
+    public override bool SupportsOpenJsonFunction => Version >= JsonFunctionsMinVersion;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
