@@ -35,15 +35,84 @@ internal sealed class SqlQueryParser
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
 
-        var cacheKey = SqlQueryAstCache.BuildKey(sql, dialect.Name);
+        // Fast feature gate before cache lookup to avoid serving incompatible ASTs for version-gated commands.
+        var tokens = new SqlTokenizer(sql, dialect).Tokenize();
+        var first = tokens.Count > 0 ? tokens[0] : default;
+        if (IsWord(first, "MERGE") && !dialect.SupportsMerge)
+            throw SqlUnsupported.ForDialect(dialect, "MERGE statement");
+
+        var cacheKey = SqlQueryAstCache.BuildKey(sql, dialect.Name, dialect.Version);
         if (_astCache.TryGet(cacheKey, out var cached))
+        {
+            EnsureDialectSupport(cached, dialect);
             return cached with { RawSql = sql };
+        }
 
         var parsed = ParseUncached(sql, dialect);
+        EnsureDialectSupport(parsed, dialect);
         _astCache.Set(cacheKey, parsed);
 
         // Para estratégias que precisam do SQL original (ex: UPDATE/DELETE ... JOIN (SELECT ...))
         return parsed with { RawSql = sql };
+    }
+
+    private static void EnsureDialectSupport(SqlQueryBase parsed, ISqlDialect dialect)
+    {
+        switch (parsed)
+        {
+            case SqlMergeQuery when !dialect.SupportsMerge:
+                throw SqlUnsupported.ForDialect(dialect, "MERGE statement");
+            case SqlSelectQuery select:
+                EnsureSelectDialectSupport(select, dialect);
+                break;
+            case SqlUnionQuery union:
+                foreach (var part in union.Parts)
+                    EnsureSelectDialectSupport(part, dialect);
+                EnsureRowLimitDialectSupport(union.RowLimit, dialect);
+                break;
+            case SqlInsertQuery insert when insert.InsertSelect is not null:
+                EnsureSelectDialectSupport(insert.InsertSelect, dialect);
+                break;
+            case SqlUpdateQuery update when update.UpdateFromSelect is not null:
+                EnsureSelectDialectSupport(update.UpdateFromSelect, dialect);
+                break;
+            case SqlDeleteQuery delete when delete.DeleteFromSelect is not null:
+                EnsureSelectDialectSupport(delete.DeleteFromSelect, dialect);
+                break;
+        }
+    }
+
+    private static void EnsureSelectDialectSupport(SqlSelectQuery select, ISqlDialect dialect)
+    {
+        if (select.Ctes.Count > 0 && !dialect.SupportsWithCte)
+            throw SqlUnsupported.ForDialect(dialect, "WITH/CTE");
+
+        EnsureRowLimitDialectSupport(select.RowLimit, dialect);
+
+        if (select.Table?.Derived is not null)
+            EnsureSelectDialectSupport(select.Table.Derived, dialect);
+
+        foreach (var join in select.Joins)
+        {
+            if (join.Table.Derived is not null)
+                EnsureSelectDialectSupport(join.Table.Derived, dialect);
+        }
+    }
+
+    private static void EnsureRowLimitDialectSupport(SqlRowLimit? rowLimit, ISqlDialect dialect)
+    {
+        if (rowLimit is SqlFetch fetch)
+        {
+            if (fetch.Offset.HasValue)
+            {
+                if (!dialect.SupportsOffsetFetch)
+                    throw SqlUnsupported.ForDialect(dialect, "OFFSET/FETCH");
+                return;
+            }
+
+            if (!dialect.SupportsFetchFirst)
+                throw SqlUnsupported.ForDialect(dialect, "FETCH FIRST/NEXT");
+        }
     }
 
     private static SqlQueryBase ParseUncached(string sql, ISqlDialect dialect)
