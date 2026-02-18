@@ -221,9 +221,8 @@ internal abstract class AstQueryExecutorBase(
             if (value is null || value is DBNull)
                 return null;
 
-            if ((dialect.SupportsImplicitNumericStringComparison)
-                && decimal.TryParse(value.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var numeric))
-                return numeric;
+            if (TryNormalizeNumericHash(value, out var numericHash))
+                return numericHash;
 
             if (value is string text)
                 return dialect.TextComparison == StringComparison.OrdinalIgnoreCase
@@ -231,6 +230,60 @@ internal abstract class AstQueryExecutorBase(
                     : text;
 
             return value;
+        }
+
+        private bool TryNormalizeNumericHash(object value, out string normalized)
+        {
+            normalized = string.Empty;
+
+            if (TryGetNumericValue(value, out var numeric))
+            {
+                normalized = numeric.ToString("G29", CultureInfo.InvariantCulture);
+                return true;
+            }
+
+            if (!dialect.SupportsImplicitNumericStringComparison)
+                return false;
+
+            if (value is string text
+                && decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed))
+            {
+                normalized = parsed.ToString("G29", CultureInfo.InvariantCulture);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetNumericValue(object value, out decimal numeric)
+        {
+            switch (value)
+            {
+                case byte b:
+                    numeric = b;
+                    return true;
+                case short s:
+                    numeric = s;
+                    return true;
+                case int i:
+                    numeric = i;
+                    return true;
+                case long l:
+                    numeric = l;
+                    return true;
+                case float f:
+                    numeric = (decimal)f;
+                    return true;
+                case double d:
+                    numeric = (decimal)d;
+                    return true;
+                case decimal m:
+                    numeric = m;
+                    return true;
+                default:
+                    numeric = default;
+                    return false;
+            }
         }
     }
 
