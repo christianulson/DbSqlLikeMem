@@ -329,8 +329,48 @@ internal static class DbInsertStrategy
                     SqlBinaryOp.Or => Convert.ToBoolean(Eval(b.Left) ?? false) || Convert.ToBoolean(Eval(b.Right) ?? false),
                     _ => throw new NotSupportedException($"Operador não suportado em ON DUPLICATE: {b.Op}")
                 },
+                CallExpr call => EvalCall(call),
+                FunctionCallExpr fn => EvalFunction(fn),
                 _ => throw new NotSupportedException($"Expressão não suportada em ON DUPLICATE: {expr.GetType().Name}")
             };
+        }
+
+        object? EvalFunction(FunctionCallExpr fn)
+        {
+            if (fn.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase) && fn.Args.Count == 1)
+            {
+                var col = fn.Args[0] switch
+                {
+                    IdentifierExpr id => id.Name,
+                    ColumnExpr c => c.Name,
+                    _ => null
+                };
+
+                if (!string.IsNullOrWhiteSpace(col))
+                    return GetInsertedColumnValue(col!);
+            }
+
+            throw new NotSupportedException($"Função não suportada em ON DUPLICATE: {fn.Name}()");
+        }
+
+        object? EvalCall(CallExpr call)
+        {
+            if (call.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase) && call.Args.Count == 1)
+            {
+                var col = call.Args[0] switch
+                {
+                    IdentifierExpr id => id.Name,
+                    ColumnExpr c => c.Name,
+                    _ => null
+                };
+
+                if (string.IsNullOrWhiteSpace(col))
+                    throw new NotSupportedException("VALUES() espera 1 coluna");
+
+                return GetInsertedColumnValue(col!);
+            }
+
+            throw new NotSupportedException($"CALL não suportado em ON DUPLICATE: {call.Name}");
         }
 
         bool TryGetExcludedValueFromName(string rawName, out object? val)
