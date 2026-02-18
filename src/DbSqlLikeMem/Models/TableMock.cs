@@ -1,7 +1,5 @@
 using DbSqlLikeMem.Interfaces;
 using DbSqlLikeMem.Models;
-using System.Collections.Concurrent;
-using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 
 namespace DbSqlLikeMem;
@@ -54,24 +52,18 @@ public abstract class TableMock
     public int NextIdentity { get; set; } = 1;
 
     private readonly ColumnDictionary _columns = [];
-    private ImmutableDictionary<string, ColumnDef>? _columnsCache;
+    
     /// <summary>
     /// EN: Table column dictionary.
     /// PT: Dicionário de colunas da tabela.
     /// </summary>
-    public ImmutableDictionary<string, ColumnDef> Columns
-        => _columnsCache ??= _columns.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase);
+    public IReadOnlyDictionary<string, ColumnDef> Columns
+        => new ReadOnlyDictionary<string, ColumnDef>(_columns);
 
     private readonly List<Dictionary<int, object?>> _items = [];
 
-    public IReadOnlyList<ImmutableDictionary<int, object?>> Items => [.. _items.Select(_=>
-    {
-        var dic = ImmutableDictionary.CreateBuilder<int, object?>();
-        foreach(var d in _){
-            dic.Add(d.Key, d.Value);
-        }
-        return dic.ToImmutable();
-    })];
+    public IReadOnlyList<IReadOnlyDictionary<int, object?>> Items => [.. _items
+        .Select(_=> new ReadOnlyDictionary<int, object?>(_))];
 
     internal HashSet<int> _primaryKeyIndexes = [];
 
@@ -99,14 +91,13 @@ public abstract class TableMock
     public IReadOnlyDictionary<string, ForeignDef> ForeignKeys => _foreignKeys;
 
     internal IndexDictionary _indexes = [];
-    private ImmutableDictionary<string, IndexDef>? _indexesCache;
 
     /// <summary>
     /// EN: Indexes declared on the table.
     /// PT: Índices declarados na tabela.
     /// </summary>
-    public ImmutableDictionary<string, IndexDef> Indexes
-        => _indexesCache ??= _indexes.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase);
+    public IReadOnlyDictionary<string, IndexDef> Indexes
+        => new ReadOnlyDictionary<string, IndexDef>(_indexes);
 
     private readonly Dictionary<TableTriggerEvent, List<Action<TableTriggerContext>>> _triggers = [];
 
@@ -179,7 +170,6 @@ public abstract class TableMock
             enumValues: enumValues);
 
         _columns.Add(name, col);
-        _columnsCache = null;
         return col;
     }
 
@@ -205,7 +195,6 @@ public abstract class TableMock
             enumValues: column.enumValues);
 
         _columns.Add(column.name, col);
-        _columnsCache = null;
         return col;
     }
 
@@ -246,7 +235,6 @@ public abstract class TableMock
             throw new InvalidOperationException($"Índice '{name}' já existe.");
         var idx = new IndexDef(this, name, keyCols, include, unique);
         _indexes.Add(name, idx);
-        _indexesCache = null;
         return idx;
     }
 
@@ -907,12 +895,12 @@ public abstract class TableMock
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public int Count => Items.Count;
+    public int Count => _items.Count;
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public IReadOnlyDictionary<int, object?> this[int index] => Items[index];
+    public IReadOnlyDictionary<int, object?> this[int index] => _items[index];
 
     /// <summary>
     /// EN: Resolves a token to a value in the table context.
@@ -929,7 +917,7 @@ public abstract class TableMock
         DbType dbType,
         bool isNullable,
         IDataParameterCollection? pars = null,
-        ImmutableDictionary<string, ColumnDef>? colDict = null);
+        IReadOnlyDictionary<string, ColumnDef>? colDict = null);
 
     /// <summary>
     /// EN: Creates an exception for an unknown column.
@@ -969,7 +957,7 @@ public abstract class TableMock
     /// Auto-generated summary.
     /// </summary>
     public IEnumerator<IReadOnlyDictionary<int, object?>> GetEnumerator()
-        => Items.Select(_ => new ReadOnlyDictionary<int, object?>(_)).ToList().AsReadOnly().GetEnumerator();
+        => _items.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator()
         => GetEnumerator();

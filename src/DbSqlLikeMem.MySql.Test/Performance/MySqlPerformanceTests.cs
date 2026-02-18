@@ -24,11 +24,14 @@ public sealed class MySqlPerformanceTests : XUnitTestBase
     public MySqlPerformanceTests(ITestOutputHelper helper) : base(helper)
     {
         var db = new MySqlDbMock();
-        db.AddTable("Users", [
+        var tb = db.AddTable("Users", [
             new("Id", DbType.Int32, false) ,
             new("Name", DbType.String, false) ,
             new("Email", DbType.String, true)
         ]);
+        tb.AddPrimaryKeyIndexes("Id");
+        tb.CreateIndex("PRIMARY", ["Id"], unique: true);
+        tb.CreateIndex("Name", ["Name"], include: ["Email"], unique: true);
 
         _connection = new MySqlConnectionMock(db);
         _connection.Open();

@@ -1,6 +1,4 @@
-﻿using System.Collections.Immutable;
-
-namespace DbSqlLikeMem.Db2;
+﻿namespace DbSqlLikeMem.Db2;
 
 /// <summary>
 /// EN: Table mock specialized for DB2 schema operations.
@@ -31,7 +29,7 @@ internal class Db2TableMock(
         DbType dbType,
         bool isNullable,
         IDataParameterCollection? pars = null,
-        ImmutableDictionary<string, ColumnDef>? colDict = null)
+        IReadOnlyDictionary<string, ColumnDef>? colDict = null)
     {
         var exp = Db2ValueHelper.Resolve(token, dbType, isNullable, pars, colDict);
         return exp;

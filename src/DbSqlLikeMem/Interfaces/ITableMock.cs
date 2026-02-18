@@ -1,6 +1,5 @@
 using DbSqlLikeMem.Interfaces;
 using DbSqlLikeMem.Models;
-using System.Collections.Immutable;
 
 namespace DbSqlLikeMem;
 
@@ -64,7 +63,7 @@ public interface ITableMock
     /// EN: Gets the table column dictionary.
     /// PT: Obtém o dicionário de colunas da tabela.
     /// </summary>
-    ImmutableDictionary<string, ColumnDef> Columns { get; }
+    IReadOnlyDictionary<string, ColumnDef> Columns { get; }
 
     /// <summary>
     /// EN: Adds a new column definition to the table.
@@ -100,7 +99,7 @@ public interface ITableMock
     /// EN: Gets the _indexes declared for the table.
     /// PT: Obtém os índices declarados para a tabela.
     /// </summary>
-    ImmutableDictionary<string, IndexDef> Indexes { get; }
+    IReadOnlyDictionary<string, IndexDef> Indexes { get; }
 
     /// <summary>
     /// EN: Creates an index using the provided definition.
@@ -222,7 +221,7 @@ public interface ITableMock
         DbType dbType,
         bool isNullable,
         IDataParameterCollection? pars = null,
-        ImmutableDictionary<string, ColumnDef>? colDict = null);
+        IReadOnlyDictionary<string, ColumnDef>? colDict = null);
 
     /// <summary>
     /// EN: Creates the exception for an unknown column.

@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-
 namespace DbSqlLikeMem.Npgsql;
 
 /// <summary>
@@ -30,7 +28,7 @@ internal class NpgsqlTableMock(
         DbType dbType,
         bool isNullable,
         IDataParameterCollection? pars = null,
-        ImmutableDictionary<string, ColumnDef>? colDict = null)
+        IReadOnlyDictionary<string, ColumnDef>? colDict = null)
     {
         var exp = NpgsqlValueHelper.Resolve(token, dbType, isNullable, pars, colDict);
         return exp;
