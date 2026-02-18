@@ -12,6 +12,7 @@ public sealed class SqlServerDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
     public void ParseSelect_OffsetWithoutOrderBy_ShouldRespectDialectRule(int version)
     {
@@ -32,6 +33,7 @@ public sealed class SqlServerDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
     public void ParseSelect_WithRecursive_ShouldBeRejected(int version)
     {
@@ -52,6 +54,7 @@ public sealed class SqlServerDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
     public void ParseSelect_WithSqlServerTableHints_ShouldParse(int version)
     {
@@ -67,6 +70,7 @@ public sealed class SqlServerDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
     public void ParseSelect_WithLegacySqlServerTableHint_ShouldParse(int version)
     {
@@ -82,6 +86,7 @@ public sealed class SqlServerDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
     public void RuntimeDialectRules_ShouldRemainStable(int version)
     {
@@ -105,6 +110,7 @@ public sealed class SqlServerDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
     public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
     {

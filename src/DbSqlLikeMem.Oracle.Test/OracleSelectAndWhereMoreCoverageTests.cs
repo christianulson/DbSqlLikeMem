@@ -43,6 +43,7 @@ public sealed class OracleSelectAndWhereMoreCoverageTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_Between_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleSelectAndWhereMoreCoverage")]
     public void Where_Between_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id BETWEEN 2 AND 3 ORDER BY id").ToList();
@@ -54,6 +55,7 @@ public sealed class OracleSelectAndWhereMoreCoverageTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_NotIn_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleSelectAndWhereMoreCoverage")]
     public void Where_NotIn_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id NOT IN (1,3)").ToList();
@@ -66,6 +68,7 @@ public sealed class OracleSelectAndWhereMoreCoverageTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_ExistsSubquery_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleSelectAndWhereMoreCoverage")]
     public void Where_ExistsSubquery_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -87,6 +90,7 @@ ORDER BY u.id").ToList();
     /// PT: Testa o comportamento de Select_CaseWhen_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleSelectAndWhereMoreCoverage")]
     public void Select_CaseWhen_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -106,6 +110,7 @@ ORDER BY id").ToList();
     /// PT: Testa o comportamento de Select_IfNull_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleSelectAndWhereMoreCoverage")]
     public void Select_IfNull_ShouldWork()
     {
         var row = _cnn.QuerySingle<dynamic>("SELECT COALESCE(email,'(none)') AS em FROM users WHERE id = 2");

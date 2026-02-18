@@ -11,6 +11,7 @@ public class ObjectConsistencyCheckerTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "ObjectConsistencyChecker")]
     public async Task CheckAsync_WhenObjectMissing_ReturnsMissingStatus()
     {
         var checker = new ObjectConsistencyChecker();
@@ -30,6 +31,7 @@ public class ObjectConsistencyCheckerTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "ObjectConsistencyChecker")]
     public async Task CheckAsync_WhenPropertiesDifferent_ReturnsDifferentStatus()
     {
         var checker = new ObjectConsistencyChecker();

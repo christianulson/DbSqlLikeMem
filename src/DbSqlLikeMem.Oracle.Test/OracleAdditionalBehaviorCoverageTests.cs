@@ -49,6 +49,7 @@ public sealed class OracleAdditionalBehaviorCoverageTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_IsNull_And_IsNotNull_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAdditionalBehaviorCoverage")]
     public void Where_IsNull_And_IsNotNull_ShouldWork()
     {
         var nullIds = _cnn.Query<int>("SELECT id FROM users WHERE email IS NULL ORDER BY id").ToList();
@@ -63,6 +64,7 @@ public sealed class OracleAdditionalBehaviorCoverageTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_EqualNull_ShouldReturnNoRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAdditionalBehaviorCoverage")]
     public void Where_EqualNull_ShouldReturnNoRows()
     {
         // MySQL: any comparison with NULL yields UNKNOWN (i.e., filtered out in WHERE)
@@ -78,6 +80,7 @@ public sealed class OracleAdditionalBehaviorCoverageTests : XUnitTestBase
     /// PT: Testa o comportamento de LeftJoin_ShouldPreserveLeftRows_WhenNoMatch.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAdditionalBehaviorCoverage")]
     public void LeftJoin_ShouldPreserveLeftRows_WhenNoMatch()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -104,6 +107,7 @@ ORDER BY u.id
     /// PT: Testa o comportamento de OrderBy_Desc_ThenAsc_ShouldBeDeterministic.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAdditionalBehaviorCoverage")]
     public void OrderBy_Desc_ThenAsc_ShouldBeDeterministic()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -121,6 +125,7 @@ ORDER BY amount DESC, id ASC
     /// PT: Testa o comportamento de Aggregation_CountStar_Vs_CountColumn_ShouldRespectNulls.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAdditionalBehaviorCoverage")]
     public void Aggregation_CountStar_Vs_CountColumn_ShouldRespectNulls()
     {
         var r = _cnn.QuerySingle<dynamic>("SELECT COUNT(*) c1, COUNT(email) c2 FROM users");
@@ -134,6 +139,7 @@ ORDER BY amount DESC, id ASC
     /// PT: Testa o comportamento de Having_ShouldFilterGroups.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAdditionalBehaviorCoverage")]
     public void Having_ShouldFilterGroups()
     {
         var userIds = _cnn.Query<int>(@"
@@ -152,6 +158,7 @@ ORDER BY userid
     /// PT: Testa o comportamento de Where_In_WithParameterList_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAdditionalBehaviorCoverage")]
     public void Where_In_WithParameterList_ShouldWork()
     {
         var ids = _cnn.Query<int>("SELECT id FROM users WHERE id IN @ids ORDER BY id", new { ids = param }).ToList();
@@ -163,6 +170,7 @@ ORDER BY userid
     /// PT: Testa o comportamento de Insert_WithColumnsOutOfOrder_ShouldMapCorrectly.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAdditionalBehaviorCoverage")]
     public void Insert_WithColumnsOutOfOrder_ShouldMapCorrectly()
     {
         _cnn.Execute("INSERT INTO users (name, id, email) VALUES (@name, @id, @email)", new { id = 4, name = "Zed", email = "zed@x.com" });
@@ -178,6 +186,7 @@ ORDER BY userid
     /// PT: Testa o comportamento de Delete_WithInParameterList_ShouldDeleteMatchingRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAdditionalBehaviorCoverage")]
     public void Delete_WithInParameterList_ShouldDeleteMatchingRows()
     {
         var deleted = _cnn.Execute("DELETE FROM users WHERE id IN @ids", new { ids = param });
@@ -192,6 +201,7 @@ ORDER BY userid
     /// PT: Testa o comportamento de Update_SetExpression_ShouldUpdateRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAdditionalBehaviorCoverage")]
     public void Update_SetExpression_ShouldUpdateRows()
     {
         var db = new OracleDbMock();

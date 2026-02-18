@@ -27,6 +27,7 @@ public sealed class SqlServerTransactionTests(
     /// PT: Testa o comportamento de TransactionCommitShouldPersistData.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlServerTransaction")]
     public void TransactionCommitShouldPersistData()
     {
         // Arrange
@@ -59,6 +60,7 @@ public sealed class SqlServerTransactionTests(
     /// PT: Testa o comportamento de TransactionRollbackShouldNotPersistData.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlServerTransaction")]
     public void TransactionRollbackShouldNotPersistData()
     {
         // Arrange

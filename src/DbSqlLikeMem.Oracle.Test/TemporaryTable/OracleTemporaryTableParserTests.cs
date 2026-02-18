@@ -11,6 +11,7 @@ public sealed class OracleTemporaryTableParserTests
     /// PT: Testa o comportamento de ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect.
     /// </summary>
     [Theory]
+    [Trait("Category", "TemporaryTable")]
     [MemberDataOracleVersion]
     public void ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect(int version)
     {
@@ -66,6 +67,7 @@ WHERE tenantid = 10",
     /// PT: Testa o comportamento de Parse_ShouldAccept_CreateTemporaryTable_Variants.
     /// </summary>
     [Theory]
+    [Trait("Category", "TemporaryTable")]
     [MemberDataByOracleVersion(nameof(CreateTempTableStatements))]
     public void Parse_ShouldAccept_CreateTemporaryTable_Variants(string sql, int version)
     {
@@ -81,6 +83,7 @@ WHERE tenantid = 10",
     /// PT: Descreve o comportamento validado por Parse_ShouldAccept_GlobalTemporaryTable.
     /// </summary>
     [Theory]
+    [Trait("Category", "TemporaryTable")]
     [MemberDataOracleVersion]
     public void Parse_ShouldAccept_GlobalTemporaryTable(int version)
     {

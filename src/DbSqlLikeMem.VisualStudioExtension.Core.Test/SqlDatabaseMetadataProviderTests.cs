@@ -11,6 +11,7 @@ public sealed class SqlDatabaseMetadataProviderTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlDatabaseMetadataProvider")]
     public async Task GetObjectAsync_ReturnsCompleteStructureMetadata()
     {
         var executor = new FakeSqlQueryExecutor();
@@ -56,6 +57,7 @@ public sealed class SqlDatabaseMetadataProviderTests
     /// Verifica se a consulta de listagem MySQL usa o nome do banco extraído da connection string.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlDatabaseMetadataProvider")]
     public async Task ListObjectsAsync_ForMySql_UsesDatabaseNameFromConnectionString()
     {
         var executor = new FakeSqlQueryExecutor();
@@ -79,6 +81,7 @@ public sealed class SqlDatabaseMetadataProviderTests
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "SqlDatabaseMetadataProvider")]
     [InlineData("MySql")]
     [InlineData("SqlServer")]
     [InlineData("PostgreSql")]

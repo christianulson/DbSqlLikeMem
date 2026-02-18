@@ -11,6 +11,7 @@ public sealed class OracleTriggerStrategyTests
     /// PT: Garante que um gatilho AFTER INSERT seja executado para uma tabela não temporária.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void NonTemporaryTable_ShouldExecuteAfterInsertTrigger()
     {
         var db = new OracleDbMock();
@@ -33,6 +34,7 @@ public sealed class OracleTriggerStrategyTests
     /// PT: Garante que os gatilhos não sejam executados para uma tabela temporária.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void TemporaryTable_ShouldNotExecuteAfterInsertTrigger()
     {
         var db = new OracleDbMock();

@@ -33,6 +33,7 @@ public sealed class OracleAggregationTests : XUnitTestBase
     /// PT: Testa o comportamento de GroupBy_WithCountAndSum_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAggregation")]
     public void GroupBy_WithCountAndSum_ShouldWork()
     {
         const string sql = """
@@ -59,6 +60,7 @@ public sealed class OracleAggregationTests : XUnitTestBase
     /// PT: Testa o comportamento de Having_ShouldFilterAggregates.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAggregation")]
     public void Having_ShouldFilterAggregates()
     {
         const string sql = """
@@ -78,6 +80,7 @@ public sealed class OracleAggregationTests : XUnitTestBase
     /// PT: Testa o comportamento de Distinct_Order_Limit_Offset_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleAggregation")]
     public void Distinct_Order_Limit_Offset_ShouldWork()
     {
         const string sql = """

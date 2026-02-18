@@ -621,6 +621,7 @@ select id
     /// PT: Testa o comportamento de Parse_ShouldHandle_MultiStatementStrings_BySplitting.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
     public void Parse_ShouldHandle_MultiStatementStrings_BySplitting(int version)
     {
@@ -644,6 +645,7 @@ select id
     /// PT: Testa o comportamento de Parse_Corpus.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataBySqlServerVersion(nameof(Statements))]
     public void Parse_Corpus(string sql, string why, SqlCaseExpectation expectation, int minVersion, int version)
     {

@@ -12,6 +12,7 @@ public sealed class Db2CommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_remove_1_linha.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void ExecuteNonQuery_DELETE_remove_1_linha()
     {
         var db = new Db2DbMock();
@@ -35,6 +36,7 @@ public sealed class Db2CommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_remove_varias_linhas.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void ExecuteNonQuery_DELETE_remove_varias_linhas()
     {
         var db = new Db2DbMock();
@@ -59,6 +61,7 @@ public sealed class Db2CommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_quando_nao_acha_retorna_0.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void ExecuteNonQuery_DELETE_quando_nao_acha_retorna_0()
     {
         var db = new Db2DbMock();
@@ -80,6 +83,7 @@ public sealed class Db2CommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_tabela_inexistente_dispara.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void ExecuteNonQuery_DELETE_tabela_inexistente_dispara()
     {
         var db = new Db2DbMock();
@@ -95,6 +99,7 @@ public sealed class Db2CommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_sql_invalido_sem_FROM_dispara.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void ExecuteNonQuery_DELETE_sql_invalido_sem_FROM_dispara()
     {
         var db = new Db2DbMock();
@@ -114,6 +119,7 @@ public sealed class Db2CommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_bloqueia_quando_fk_referencia.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void ExecuteNonQuery_DELETE_bloqueia_quando_fk_referencia()
     {
         var db = new Db2DbMock();
@@ -140,6 +146,7 @@ public sealed class Db2CommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_funciona_com_ThreadSafe_true_ou_false.
     /// </summary>
     [Theory]
+    [Trait("Category", "Strategy")]
     [InlineData(false)]
     [InlineData(true)]
     public void ExecuteNonQuery_DELETE_funciona_com_ThreadSafe_true_ou_false(bool threadSafe)
@@ -162,6 +169,7 @@ public sealed class Db2CommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_case_insensitive.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void ExecuteNonQuery_DELETE_case_insensitive()
     {
         var db = new Db2DbMock();
@@ -182,6 +190,7 @@ public sealed class Db2CommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_com_parametro_se_suportado.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void ExecuteNonQuery_DELETE_com_parametro_se_suportado()
     {
         var db = new Db2DbMock();

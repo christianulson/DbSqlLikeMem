@@ -28,6 +28,7 @@ public sealed class QueryExecutorExtrasTests(
     /// PT: Testa o comportamento de GroupByAndAggregationsShouldComputeCorrectly.
     /// </summary>
     [Fact]
+    [Trait("Category", "Query")]
     public void GroupByAndAggregationsShouldComputeCorrectly()
     {
         // Arrange
@@ -65,6 +66,7 @@ GROUP BY grp";
     /// PT: Testa o comportamento de OrderByLimitOffsetShouldPageCorrectly.
     /// </summary>
     [Fact]
+    [Trait("Category", "Query")]
     public void OrderByLimitOffsetShouldPageCorrectly()
     {
         // Arrange
@@ -114,6 +116,7 @@ public class SqlTranslatorTests
     /// PT: Testa o comportamento de TranslateBasicWhereAndOrderBySqlCorrect.
     /// </summary>
     [Fact]
+    [Trait("Category", "Query")]
     public void TranslateBasicWhereAndOrderBySqlCorrect()
     {
         // Arrange

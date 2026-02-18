@@ -36,6 +36,7 @@ public sealed class MySqlMockTests
     /// PT: Testa o comportamento de TestInsert.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlMock")]
     public void TestInsert()
     {
         using var command = new MySqlCommandMock(_connection)
@@ -52,6 +53,7 @@ public sealed class MySqlMockTests
     /// PT: Testa o comportamento de TestUpdate.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlMock")]
     public void TestUpdate()
     {
         using var command = new MySqlCommandMock(_connection)
@@ -71,6 +73,7 @@ public sealed class MySqlMockTests
     /// PT: Testa o comportamento de TestDelete.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlMock")]
     public void TestDelete()
     {
         using var command = new MySqlCommandMock(_connection)
@@ -90,6 +93,7 @@ public sealed class MySqlMockTests
     /// PT: Testa o comportamento de TestTransactionCommit.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlMock")]
     public void TestTransactionCommit()
     {
         using (var transaction = _connection.BeginTransaction())
@@ -125,6 +129,7 @@ public sealed class MySqlMockTests
     /// PT: Testa o comportamento de TestTransactionCommitInsertUpdate.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlMock")]
     public void TestTransactionCommitInsertUpdate()
     {
         using var cmd = _connection.CreateCommand();
@@ -147,6 +152,7 @@ public sealed class MySqlMockTests
     /// PT: Testa o comportamento de TestTransactionRollback.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlMock")]
     public void TestTransactionRollback()
     {
         using (var transaction = _connection.BeginTransaction())
@@ -183,6 +189,7 @@ public sealed class MySqlMockTests
     /// PT: Garante que SELECT com hints de índice do MySQL execute corretamente.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlMock")]
     public void TestSelect_WithMySqlIndexHint_ShouldExecute()
     {
         using var command = new MySqlCommandMock(_connection)

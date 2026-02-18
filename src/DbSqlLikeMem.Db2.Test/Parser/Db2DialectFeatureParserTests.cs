@@ -15,6 +15,7 @@ public sealed class Db2DialectFeatureParserTests
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataDb2Version]
     public void ParseSelect_WithRecursive_ShouldFollowDb2VersionSupport(int version)
     {
@@ -39,6 +40,7 @@ public sealed class Db2DialectFeatureParserTests
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataDb2Version]
     public void ParseInsert_OnConflict_ShouldBeRejected(int version)
     {
@@ -56,6 +58,7 @@ public sealed class Db2DialectFeatureParserTests
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataDb2Version]
     public void ParseSelect_WithMySqlIndexHints_ShouldBeRejected(int version)
     {
@@ -70,6 +73,7 @@ public sealed class Db2DialectFeatureParserTests
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataDb2Version]
     public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
     {
@@ -85,6 +89,7 @@ public sealed class Db2DialectFeatureParserTests
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataDb2Version]
     public void ParseSelect_UnionOrderBy_ShouldParseAsUnion(int version)
     {
@@ -103,6 +108,7 @@ public sealed class Db2DialectFeatureParserTests
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataDb2Version]
     public void ParseSelect_WithCteSimple_ShouldParse(int version)
     {
@@ -125,6 +131,7 @@ public sealed class Db2DialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataDb2Version]
     public void RuntimeDialectRules_ShouldRemainStable(int version)
     {

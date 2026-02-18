@@ -31,6 +31,7 @@ public sealed class OracleTransactionTests(
     /// PT: Testa o comportamento de TransactionCommitShouldPersistData.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleTransaction")]
     public void TransactionCommitShouldPersistData()
     {
         // Arrange
@@ -63,6 +64,7 @@ public sealed class OracleTransactionTests(
     /// PT: Testa o comportamento de TransactionRollbackShouldNotPersistData.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleTransaction")]
     public void TransactionRollbackShouldNotPersistData()
     {
         // Arrange
