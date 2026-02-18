@@ -1698,6 +1698,9 @@ internal abstract class AstQueryExecutorBase(
                 return EvalCase(c, row, group, ctes);
 
             case JsonAccessExpr ja:
+                if (!Dialect.SupportsJsonArrowOperators)
+                    throw SqlUnsupported.ForDialect(Dialect, "JSON -> / ->> / #> / #>> operators");
+
                 var mapped = MapJsonAccess(ja);
                 return Eval(mapped, row, group, ctes);
             case FunctionCallExpr fn:

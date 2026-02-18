@@ -112,6 +112,7 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsJsonArrowOperators => Version >= JsonExtractMinVersion;
+    public override bool AllowsParserCrossDialectJsonOperators => true;
     public override bool SupportsJsonExtractFunction => Version >= JsonExtractMinVersion;
     public override bool SupportsMySqlIndexHints => true;
 
