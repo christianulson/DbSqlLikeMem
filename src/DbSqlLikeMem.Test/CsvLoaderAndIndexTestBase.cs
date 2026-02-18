@@ -1,15 +1,14 @@
-using System.Data;
-
 namespace DbSqlLikeMem.Test;
 
 /// <summary>
 /// EN: Shared CsvLoader and index behavior tests executed by provider-specific derived classes.
 /// PT: Testes compartilhados de CsvLoader e índices executados por classes derivadas de cada provedor.
 /// </summary>
-public abstract class CsvLoaderAndIndexTestBase<TDbMock>(
+public abstract class CsvLoaderAndIndexTestBase<TDbMock, TSqlMockException>(
     ITestOutputHelper helper
     ) : XUnitTestBase(helper)
     where TDbMock : DbMock
+    where TSqlMockException : SqlMockException
 {
     protected abstract TDbMock CreateDb();
 
@@ -50,7 +49,7 @@ public abstract class CsvLoaderAndIndexTestBase<TDbMock>(
         var tb = db.AddTable("users");
         tb.AddColumn("id", DbType.Int32, false);
 
-        var ex = Assert.Throws<SqlMockException>(() => tb.GetColumn("nope"));
+        var ex = Assert.Throws<TSqlMockException>(() => tb.GetColumn("nope"));
         Assert.Equal(1054, ex.ErrorCode);
     }
 
