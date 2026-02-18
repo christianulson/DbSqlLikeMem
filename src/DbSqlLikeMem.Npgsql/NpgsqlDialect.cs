@@ -100,6 +100,7 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsJsonArrowOperators => Version >= JsonbMinVersion;
+    public override bool AllowsParserCrossDialectJsonOperators => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
