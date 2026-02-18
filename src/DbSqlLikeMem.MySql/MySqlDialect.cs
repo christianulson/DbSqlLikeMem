@@ -34,6 +34,7 @@ internal sealed class MySqlDialect : SqlDialectBase
  
     internal const int WithCteMinVersion = 8;
     internal const int MergeMinVersion = int.MaxValue;
+    internal const int WindowFunctionsMinVersion = 8;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
@@ -99,6 +100,7 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
     public override bool SupportsWithRecursive => Version >= WithCteMinVersion;
+    public override bool SupportsWindowFunctions => Version >= WindowFunctionsMinVersion;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
