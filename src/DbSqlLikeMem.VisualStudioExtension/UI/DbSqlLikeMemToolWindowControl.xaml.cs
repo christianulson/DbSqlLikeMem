@@ -140,6 +140,24 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         GenerateRepositoryClassesMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
         CheckConsistencyMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
         ExtractScenarioMenuItem.Visibility = canExtractScenario ? Visibility.Visible : Visibility.Collapsed;
+
+        if (sender is ContextMenu contextMenu)
+        {
+            var hasVisibleAction = false;
+            foreach (var item in contextMenu.Items)
+            {
+                if (item is Control control && control.Visibility == Visibility.Visible)
+                {
+                    hasVisibleAction = true;
+                    break;
+                }
+            }
+
+            if (!hasVisibleAction)
+            {
+                contextMenu.IsOpen = false;
+            }
+        }
     }
 
 

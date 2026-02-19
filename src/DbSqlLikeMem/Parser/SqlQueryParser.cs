@@ -576,6 +576,7 @@ internal sealed class SqlQueryParser
         {
             var orderBy = TryParseOrderBy();
             var rowLimit = TryParseRowLimitTail(orderBy.Count > 0);
+            TryConsumeQueryHintOption();
             ExpectEndOrUnionBoundary();
 
             return first with
@@ -604,6 +605,7 @@ internal sealed class SqlQueryParser
 
         var unionOrderBy = TryParseOrderBy();
         var unionRowLimit = TryParseRowLimitTail(unionOrderBy.Count > 0);
+        TryConsumeQueryHintOption();
         ExpectEndOrUnionBoundary();
 
         return new SqlUnionQuery(parts, allFlags, unionOrderBy, unionRowLimit);
@@ -626,6 +628,8 @@ internal sealed class SqlQueryParser
         var having = TryParseHavingExpr();
         var orderBy = allowOrderByAndLimit ? TryParseOrderBy() : [];
         var rowLimit = allowOrderByAndLimit ? TryParseRowLimitTail(orderBy.Count > 0) : null;
+        if (allowOrderByAndLimit)
+            TryConsumeQueryHintOption();
         if (top is not null)
         {
             // TOP é prefixo (SQL Server). Se também apareceu LIMIT/FETCH no fim, prioriza o fim.
@@ -1231,6 +1235,18 @@ internal sealed class SqlQueryParser
         return null;
     }
 
+    private void TryConsumeQueryHintOption()
+    {
+        if (!IsWord(Peek(), "OPTION"))
+            return;
+
+        if (!_dialect.SupportsSqlServerQueryHints)
+            throw SqlUnsupported.ForDialect(_dialect, "OPTION(query hints)");
+
+        Consume(); // OPTION
+        _ = ReadBalancedParenRawTokens();
+    }
+
     // --- Helpers de CTE e Table Source ---
 
     private List<SqlCte> TryParseCtes()
@@ -1493,7 +1509,35 @@ internal sealed class SqlQueryParser
         if (!IsSymbol(Peek(), "("))
             throw new InvalidOperationException("MySQL index hint inválido: esperado lista de índices entre parênteses.");
 
-        _ = ReadBalancedParenRawTokens();
+        var hintIndexListRaw = ReadBalancedParenRawTokens();
+        ValidateMySqlIndexHintList(hintIndexListRaw);
+    }
+
+    private static void ValidateMySqlIndexHintList(string hintIndexListRaw)
+    {
+        var rawItems = hintIndexListRaw.Split(',').Select(static x => x.Trim()).ToList();
+
+        if (rawItems.Count == 0 || rawItems.All(static x => x.Length == 0))
+            throw new InvalidOperationException("MySQL index hint inválido: lista de índices vazia.");
+
+        if (rawItems.Any(static x => x.Length == 0))
+            throw new InvalidOperationException("MySQL index hint inválido: lista contém item vazio.");
+
+        foreach (var item in rawItems)
+        {
+            if (item.Equals("PRIMARY", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            // MySQL quoted identifier with backticks; supports escaped backtick as `` inside name.
+            if (Regex.IsMatch(item, @"^`(?:``|[^`])+`$", RegexOptions.CultureInvariant))
+                continue;
+
+            // Unquoted: accept common MySQL identifier chars including '$'.
+            if (Regex.IsMatch(item, @"^[A-Za-z_$][A-Za-z0-9_$]*$", RegexOptions.CultureInvariant))
+                continue;
+
+            throw new InvalidOperationException($"MySQL index hint inválido: índice '{item}' não é válido.");
+        }
     }
 
     private SqlJoin ParseJoin()
