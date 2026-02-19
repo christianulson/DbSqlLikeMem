@@ -67,6 +67,7 @@
                     <MenuItem x:Name="GenerateModelClassesMenuItem" Header="Gerar classes de modelos" Click="OnGenerateModelClassesClick" />
                     <MenuItem x:Name="GenerateRepositoryClassesMenuItem" Header="Gerar classes de repositório" Click="OnGenerateRepositoryClassesClick" />
                     <MenuItem x:Name="CheckConsistencyMenuItem" Header="Checar consistência" Click="OnCheckConsistencyClick" />
+                    <MenuItem x:Name="ExtractScenarioMenuItem" Header="Extrair cenário de teste" Click="OnExtractScenarioClick" />
                 </ContextMenu>
             </TreeView.ContextMenu>
         </TreeView>
