@@ -20,18 +20,38 @@ namespace DbSqlLikeMem.VisualStudioExtension.UI;
 /// </summary>
 public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 {
+    /// <summary>
+    /// Represents a selectable table option for test scenario extraction.
+    /// Representa uma opção de tabela selecionável para extração de cenários de teste.
+    /// </summary>
     public sealed class ScenarioTableOption
     {
+        /// <summary>
+        /// Initializes a scenario table option.
+        /// Inicializa uma opção de tabela do cenário.
+        /// </summary>
         public ScenarioTableOption(string schema, string tableName)
         {
             Schema = schema;
             TableName = tableName;
         }
 
+        /// <summary>
+        /// Gets the schema name.
+        /// Obtém o nome do schema.
+        /// </summary>
         public string Schema { get; }
 
+        /// <summary>
+        /// Gets the table name.
+        /// Obtém o nome da tabela.
+        /// </summary>
         public string TableName { get; }
 
+        /// <summary>
+        /// Gets the display name combining schema and table.
+        /// Obtém o nome de exibição combinando schema e tabela.
+        /// </summary>
         public string DisplayName => string.IsNullOrWhiteSpace(Schema) ? TableName : $"{Schema}.{TableName}";
     }
 
@@ -620,6 +640,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     public Task<IReadOnlyCollection<string>> GenerateRepositoryClassesForNodeAsync(ExplorerNode node)
         => GenerateFromTemplateForNodeAsync(node, templateConfiguration.RepositoryTemplatePath, templateConfiguration.RepositoryOutputDirectory, "Repository", "// Repository for {{Schema}}.{{ObjectName}}\npublic class {{ClassName}}\n{\n}\n");
 
+    /// <summary>
+    /// Lists available tables for scenario extraction in a connection.
+    /// Lista as tabelas disponíveis para extração de cenário em uma conexão.
+    /// </summary>
     public async Task<IReadOnlyCollection<ScenarioTableOption>> ListScenarioTablesAsync(string connectionId)
     {
         var connection = connections.FirstOrDefault(c => c.Id == connectionId);
@@ -642,6 +666,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             .ToArray();
     }
 
+    /// <summary>
+    /// Loads preview rows for a selected table and filter.
+    /// Carrega linhas de pré-visualização para uma tabela e filtro selecionados.
+    /// </summary>
     public async Task<IReadOnlyCollection<IReadOnlyDictionary<string, object?>>> PreviewScenarioRowsAsync(
         string connectionId,
         string schema,
@@ -659,6 +687,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         return await metadataProviderQueryAsync(connection, sql);
     }
 
+    /// <summary>
+    /// Extracts a scenario file from selected rows with optional FK parent data.
+    /// Extrai um arquivo de cenário a partir das linhas selecionadas com dados pai de FK opcionais.
+    /// </summary>
     public async Task<string> ExtractScenarioAsync(
         string connectionId,
         string scenarioName,
@@ -1359,8 +1391,8 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             .Replace("\\,", ",")
             .Replace("\\\\", "\\");
 
-    private async Task<IReadOnlyCollection<IReadOnlyDictionary<string, object?>>> metadataProviderQueryAsync(ConnectionDefinition connection, string sql)
-        => await new AdoNetSqlQueryExecutor().QueryAsync(connection, sql, new Dictionary<string, object?>(), CancellationToken.None);
+    private Task<IReadOnlyCollection<IReadOnlyDictionary<string, object?>>> metadataProviderQueryAsync(ConnectionDefinition connection, string sql)
+        => new AdoNetSqlQueryExecutor().QueryAsync(connection, sql, new Dictionary<string, object?>(), CancellationToken.None);
 
     private static string BuildScenarioSelectSql(string databaseType, string schema, string table, string filter, int limit)
     {
@@ -1420,7 +1452,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                 ?? schema;
             var parentTable = QualifyTable(connection.DatabaseType, parentSchema, fk.RefTable);
             var refColumn = QuoteIdentifier(connection.DatabaseType, fk.RefColumn);
-            var inValues = string.Join(", ", values.Select(v => FormatSqlLiteral(v)));
+            var inValues = string.Join(", ", values.Select(v => FormatSqlLiteral(v!)));
             var sql = $"SELECT * FROM {parentTable} WHERE {refColumn} IN ({inValues});";
             var rows = await metadataProviderQueryAsync(connection, sql);
 
