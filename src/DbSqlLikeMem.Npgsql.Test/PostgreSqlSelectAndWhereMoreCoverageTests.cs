@@ -14,18 +14,18 @@ public sealed class PostgreSqlSelectAndWhereMoreCoverageTests : XUnitTestBase
     {
         var db = new NpgsqlDbMock();
         var users = db.AddTable("users");
-        users.Columns["id"] = new(0, DbType.Int32, false);
-        users.Columns["name"] = new(1, DbType.String, false);
-        users.Columns["email"] = new(2, DbType.String, true);
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("email", DbType.String, true);
 
         users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = "john@x.com" });
         users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob",  [2] = null });
         users.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Jane", [2] = "jane@x.com" });
 
         var orders = db.AddTable("orders");
-        orders.Columns["id"] = new(0, DbType.Int32, false);
-        orders.Columns["userId"] = new(1, DbType.Int32, false);
-        orders.Columns["amount"] = new(2, DbType.Decimal, false);
+        orders.AddColumn("id", DbType.Int32, false);
+        orders.AddColumn("userId", DbType.Int32, false);
+        orders.AddColumn("amount", DbType.Decimal, false, decimalPlaces: 2);
 
         orders.Add(new Dictionary<int, object?> { [0] = 10, [1] = 1, [2] = 50m });
         orders.Add(new Dictionary<int, object?> { [0] = 11, [1] = 2, [2] = 200m });
@@ -41,6 +41,7 @@ public sealed class PostgreSqlSelectAndWhereMoreCoverageTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_Between_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "PostgreSqlSelectAndWhereMoreCoverage")]
     public void Where_Between_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id BETWEEN 2 AND 3 ORDER BY id").ToList();
@@ -52,6 +53,7 @@ public sealed class PostgreSqlSelectAndWhereMoreCoverageTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_NotIn_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "PostgreSqlSelectAndWhereMoreCoverage")]
     public void Where_NotIn_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id NOT IN (1,3)").ToList();
@@ -64,6 +66,7 @@ public sealed class PostgreSqlSelectAndWhereMoreCoverageTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_ExistsSubquery_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "PostgreSqlSelectAndWhereMoreCoverage")]
     public void Where_ExistsSubquery_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -85,6 +88,7 @@ ORDER BY u.id").ToList();
     /// PT: Testa o comportamento de Select_CaseWhen_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "PostgreSqlSelectAndWhereMoreCoverage")]
     public void Select_CaseWhen_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -104,6 +108,7 @@ ORDER BY id").ToList();
     /// PT: Testa o comportamento de Select_IfNull_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "PostgreSqlSelectAndWhereMoreCoverage")]
     public void Select_IfNull_ShouldWork()
     {
         var row = _cnn.QuerySingle<dynamic>("SELECT COALESCE(email,'(none)') AS em FROM users WHERE id = 2");

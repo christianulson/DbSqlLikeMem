@@ -49,55 +49,42 @@ public static class StructuredClassContentFactory
         foreach (var c in columns.OrderBy(c => c.Ordinal))
         {
             var mappedDbType = GenerationRuleSet.MapDbType(c.DataType, c.CharMaxLen, c.NumPrecision, c.Name, effectiveDatabaseType);
-            var ctor = $"new({c.Ordinal}, DbType.{mappedDbType}, {Bool(c.IsNullable)}";
+            var ctor = $"DbType.{mappedDbType}, {Bool(c.IsNullable)}";
             if (c.IsIdentity) ctor += ", true";
-            ctor += ")";
-            sb.AppendLine($"        table.Columns[{Literal(c.Name)}] = {ctor};");
-
             if (!string.IsNullOrWhiteSpace(c.DefaultValue) && GenerationRuleSet.IsSimpleLiteralDefault(c.DefaultValue))
-            {
-                sb.AppendLine($"        table.Columns[{Literal(c.Name)}].DefaultValue = {GenerationRuleSet.FormatDefaultLiteral(c.DefaultValue, mappedDbType)};");
-            }
-
+                ctor += $", defaultValue: {GenerationRuleSet.FormatDefaultLiteral(c.DefaultValue, mappedDbType)}";
             if (c.CharMaxLen is > 0 and <= int.MaxValue)
-            {
-                sb.AppendLine($"        table.Columns[{Literal(c.Name)}].Size = {(int)c.CharMaxLen.Value};");
-            }
-
+                ctor += $", size: {(int)c.CharMaxLen.Value}";
             if (c.NumScale is >= 0)
-            {
-                sb.AppendLine($"        table.Columns[{Literal(c.Name)}].DecimalPlaces = {c.NumScale.Value};");
-            }
+                ctor += $", decimalPlaces: {c.NumScale.Value}";
 
             var enums = GenerationRuleSet.TryParseEnumValues(c.ColumnType);
             if (enums.Length > 0)
-            {
-                sb.AppendLine($"        table.Columns[{Literal(c.Name)}].EnumValues = new[] {{ {string.Join(", ", enums.Select(Literal))} }};");
-            }
+                ctor += $", enumValues: [{string.Join(", ", enums.Select(Literal))}]";
 
+            sb.AppendLine();
+            sb.Append($"        table.AddColumn({Literal(c.Name)}, {ctor})");
             if (!string.IsNullOrWhiteSpace(c.Generated) && GenerationRuleSet.TryConvertIfIsNull(c.Generated, out var genCode))
-            {
-                sb.AppendLine($"        table.Columns[{Literal(c.Name)}].GetGenValue = {genCode};");
-            }
+                sb.Append($"\n            .GetGenValue = {genCode}");
+
+            sb.Append(';');
         }
+        sb.AppendLine();
 
         if (primaryKey.Count > 0)
         {
-            foreach (var pk in primaryKey)
-            {
-                sb.AppendLine($"        table.PrimaryKeyIndexes.Add(table.Columns[{Literal(pk)}]?.Index);");
-            }
-            sb.AppendLine($"        table.CreateIndex(new IndexDef(\"PRIMARY\", [{string.Join(", ", primaryKey.Select(Literal))}], unique: true));");
+            sb.AppendLine($"        table.AddPrimaryKeyIndexes({string.Join(",", primaryKey.Select(_ => $"\"{_}\""))});");
+            sb.AppendLine($"        table.CreateIndex(\"PRIMARY\", [{string.Join(", ", primaryKey.Select(Literal))}], unique: true);");
         }
 
         foreach (var idx in indexes.OrderBy(i => i.Name, StringComparer.OrdinalIgnoreCase))
         {
-            sb.AppendLine($"        table.CreateIndex(new IndexDef({Literal(idx.Name)}, [{string.Join(", ", idx.Columns.Select(Literal))}], unique: {Bool(idx.Unique)}));");
+            sb.AppendLine($"        table.CreateIndex({Literal(idx.Name)}, [{string.Join(", ", idx.Columns.Select(Literal))}], unique: {Bool(idx.Unique)});");
         }
 
         foreach (var fk in foreignKeys)
         {
-            sb.AppendLine($"        table.ForeignKeys.Add(({Literal(fk.Column)}, {Literal(fk.RefTable)}, {Literal(fk.RefColumn)}));");
+            sb.AppendLine($"        table.CreateForeignKey({Literal(fk.Column)}, {Literal(fk.RefTable)}, {Literal(fk.RefColumn)});");
         }
 
         sb.AppendLine("        return table;");

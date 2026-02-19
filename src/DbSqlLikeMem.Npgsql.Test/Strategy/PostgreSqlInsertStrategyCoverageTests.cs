@@ -12,12 +12,13 @@ public sealed class PostgreSqlInsertStrategyCoverageTests(
     /// PT: Testa o comportamento de Insert_MultiRowValues_ShouldInsertAllRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Insert_MultiRowValues_ShouldInsertAllRows()
     {
         var db = new NpgsqlDbMock();
         var t = db.AddTable("t");
-        t.Columns["id"] = new ColumnDef(0, DbType.Int32, false) { Identity = false };
-        t.Columns["name"] = new ColumnDef(1, DbType.String, false);
+        t.AddColumn("id", DbType.Int32, false, identity: false);
+        t.AddColumn("name", DbType.String, false);
 
         using var cnn = new NpgsqlConnectionMock(db);
         using var cmd = new NpgsqlCommandMock(cnn)
@@ -40,14 +41,15 @@ public sealed class PostgreSqlInsertStrategyCoverageTests(
     /// PT: Testa o comportamento de Insert_WithIdentityColumnOmitted_ShouldAutoIncrement.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Insert_WithIdentityColumnOmitted_ShouldAutoIncrement()
     {
         var db = new NpgsqlDbMock();
         var t = db.AddTable("t");
-        t.Columns["id"] = new ColumnDef(0, DbType.Int32, false) { Identity = true };
-        t.Columns["name"] = new ColumnDef(1, DbType.String, false);
+        t.AddColumn("id", DbType.Int32, false, identity: true);
+        t.AddColumn("name", DbType.String, false);
 
-        t.PrimaryKeyIndexes.Add(0);
+        t.AddPrimaryKeyIndexes("id");
 
         using var cnn = new NpgsqlConnectionMock(db);
         using var cmd = new NpgsqlCommandMock(cnn)
@@ -70,18 +72,19 @@ public sealed class PostgreSqlInsertStrategyCoverageTests(
     /// PT: Testa o comportamento de InsertSelect_ShouldInsertRowsFromSelect.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void InsertSelect_ShouldInsertRowsFromSelect()
     {
         var db = new NpgsqlDbMock();
         var users = db.AddTable("users");
-        users.Columns["id"] = new ColumnDef(0, DbType.Int32, false);
-        users.Columns["tenantid"] = new ColumnDef(1, DbType.Int32, false);
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
         users.Add(new Dictionary<int, object?> { [0] = 1, [1] = 10 });
         users.Add(new Dictionary<int, object?> { [0] = 2, [1] = 10 });
         users.Add(new Dictionary<int, object?> { [0] = 3, [1] = 20 });
 
         var t = db.AddTable("t");
-        t.Columns["id"] = new ColumnDef(0, DbType.Int32, false);
+        t.AddColumn("id", DbType.Int32, false);
 
         using var cnn = new NpgsqlConnectionMock(db);
 

@@ -1,5 +1,16 @@
 namespace DbSqlLikeMem;
 
+public sealed record Col(
+    string name,
+    DbType dbType,
+    bool nullable,
+    int? size = null,
+    int? decimalPlaces = null,
+    bool identity = false,
+    object? defaultValue = null,
+    IList<string>? enumValues = null
+);
+
 /// <summary>
 /// EN: Defines column metadata including type, nullability, and identity.
 /// PT: Define os metadados de uma coluna, incluindo tipo, nulabilidade e identidade.
@@ -7,120 +18,114 @@ namespace DbSqlLikeMem;
 public sealed class ColumnDef
 {
     /// <summary>
-    /// EN: Initializes an empty column definition.
-    /// PT: Inicializa uma definição de coluna vazia.
-    /// </summary>
-    public ColumnDef()
-    { }
-
-    /// <summary>
-    /// EN: Initializes a column with full values, including default.
-    /// PT: Inicializa uma coluna com valores completos, incluindo padrão.
-    /// </summary>
-    /// <param name="index">EN: Column position. PT: Posição da coluna.</param>
-    /// <param name="dbType">EN: Data type. PT: Tipo de dados.</param>
-    /// <param name="nullable">EN: Whether it accepts nulls. PT: Indica se aceita nulos.</param>
-    /// <param name="identity">EN: Whether it is an identity column. PT: Indica se é identidade.</param>
-    /// <param name="defaultValue">EN: Default value. PT: Valor padrão.</param>
-    public ColumnDef(
-        int index,
-        DbType dbType,
-        bool nullable,
-        bool identity,
-        object? defaultValue
-    ) : this(index, dbType, nullable, identity)
-    {
-        DefaultValue = defaultValue;
-    }
-
-    /// <summary>
-    /// EN: Initializes a column with identity and nullability.
-    /// PT: Inicializa uma coluna com identidade e configuração de nulabilidade.
-    /// </summary>
-    /// <param name="index">EN: Column position. PT: Posição da coluna.</param>
-    /// <param name="dbType">EN: Data type. PT: Tipo de dados.</param>
-    /// <param name="nullable">EN: Whether it accepts nulls. PT: Indica se aceita nulos.</param>
-    /// <param name="identity">EN: Whether it is an identity column. PT: Indica se é identidade.</param>
-    public ColumnDef(
-        int index,
-        DbType dbType,
-        bool nullable,
-        bool identity
-    ) : this(index, dbType, nullable)
-    {
-        Identity = identity;
-    }
-
-    /// <summary>
-    /// EN: Initializes a non-null column with index and type.
-    /// PT: Inicializa uma coluna não nula com índice e tipo.
-    /// </summary>
-    /// <param name="index">EN: Column position. PT: Posição da coluna.</param>
-    /// <param name="dbType">EN: Data type. PT: Tipo de dados.</param>
-    public ColumnDef(
-        int index,
-        DbType dbType
-    ) : this(index, dbType, false) 
-    { }
-
-    /// <summary>
     /// EN: Initializes a column with index, type, and nullability.
     /// PT: Inicializa uma coluna com índice, tipo e nulabilidade.
     /// </summary>
+    /// <param name="table">EN: Parent table. PT: Tabela pai.</param>
+    /// <param name="name">EN: Column name. PT: Nome da coluna.</param>
     /// <param name="index">EN: Column position. PT: Posição da coluna.</param>
     /// <param name="dbType">EN: Data type. PT: Tipo de dados.</param>
     /// <param name="nullable">EN: Whether it accepts nulls. PT: Indica se aceita nulos.</param>
-    public ColumnDef(
+    /// <param name="size">EN: Optional column size. PT: Tamanho opcional da coluna.</param>
+    /// <param name="decimalPlaces">EN: Optional decimal places. PT: Casas decimais opcionais.</param>
+    /// <param name="identity">EN: Identity flag. PT: Indicador de identidade.</param>
+    /// <param name="defaultValue">EN: Optional default value. PT: Valor padrão opcional.</param>
+    /// <param name="enumValues">EN: Optional enum values. PT: Valores de enum opcionais.</param>
+    internal ColumnDef(
+        ITableMock table,
+        string name, 
         int index,
         DbType dbType,
-        bool nullable)
+        bool nullable,
+        int? size = null,
+        int? decimalPlaces = null,
+        bool identity = false,
+        object? defaultValue = null,
+        IList<string>? enumValues = null)
     {
+        if (dbType == DbType.String
+            && size <= 0)
+            throw new InvalidOperationException("Tamanho do campo é obrigatório para o tipo String");
+        if ((dbType == DbType.Currency
+                || dbType == DbType.Decimal
+                || dbType == DbType.Double)
+            && !decimalPlaces.HasValue)
+            throw new InvalidOperationException($"DbType {dbType} é obrigatório informafar decimalPlaces");
+
+        Table = table;
+        Name = name;
         Index = index;
         DbType = dbType;
         Nullable = nullable;
+
+        Size = size;
+        DecimalPlaces = decimalPlaces;
+        Identity = identity;
+        DefaultValue = defaultValue;
+        enumValues ??= [];
+        EnumValues = new HashSet<string>(
+                    enumValues.Select(v => v.Trim()),
+                    StringComparer.OrdinalIgnoreCase);
+        if (enumValues.Count != EnumValues.Count)
+            throw new InvalidOperationException("Existem itens de enum duplicados");
     }
+
+    /// <summary>
+    /// EN: Parent table.
+    /// PT: Tabela pai.
+    /// </summary>
+    public ITableMock Table { get; private set; }
+
+    public string Name { get; private set; }
 
     /// <summary>
     /// EN: Gets the column position within the table.
     /// PT: Obtém a posição da coluna na tabela.
     /// </summary>
     public int Index { get; init; }
+
     /// <summary>
     /// EN: Gets the column data type.
     /// PT: Obtém o tipo de dados da coluna.
     /// </summary>
     public DbType DbType { get; init; }
+
     /// <summary>
     /// EN: Indicates whether the column accepts null values.
     /// PT: Indica se a coluna aceita valores nulos.
     /// </summary>
     public bool Nullable { get; init; }
+
     /// <summary>
     /// EN: Maximum size/length for character/binary columns.
     /// PT: Tamanho máximo para colunas de caracteres/binárias.
     /// </summary>
     public int? Size { get; init; }
+
     /// <summary>
     /// EN: Maximum number of decimal places for numeric columns.
     /// PT: Quantidade máxima de casas decimais para colunas numéricas.
     /// </summary>
     public int? DecimalPlaces { get; init; }
+
     /// <summary>
     /// EN: Indicates whether the column is auto-increment.
     /// PT: Indica se a coluna é auto incrementável.
     /// </summary>
-    public bool Identity { get; set; }
+    public bool Identity { get; private set; }
+
     /// <summary>
     /// EN: Gets or sets the column default value.
     /// PT: Obtém ou define o valor padrão da coluna.
     /// </summary>
-    public object? DefaultValue { get; set; }
+    public object? DefaultValue { get; private set; }
 
     /// <summary>
     /// EN: Allowed values when the column is an enum.
     /// PT: Lista de valores permitidos quando a coluna é um enum.
     /// </summary>
-    public HashSet<string> EnumValues { get; internal set; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    public HashSet<string> EnumValues { get; private set; }
+
     /// <summary>
     /// EN: Sets the allowed values for the enum column.
     /// PT: Define os valores permitidos para a coluna enum.

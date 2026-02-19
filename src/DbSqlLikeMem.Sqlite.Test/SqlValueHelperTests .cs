@@ -14,6 +14,7 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_ShouldReadDapperParameter_ByName.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_ShouldReadDapperParameter_ByName()
     {
         using var cnn = new SqliteConnectionMock();
@@ -34,6 +35,7 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_ShouldThrow_WhenParameterMissing.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_ShouldThrow_WhenParameterMissing()
     {
         Assert.Throws<SqliteMockException>(() =>
@@ -45,6 +47,7 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_ShouldParseInList_ToListOfResolvedValues.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_ShouldParseInList_ToListOfResolvedValues()
     {
         var v = SqliteValueHelper.Resolve("(1, 2, 3)", DbType.Int32, isNullable: false, pars: null, colDict: null);
@@ -58,6 +61,7 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_NullOnNonNullable_ShouldThrow.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_NullOnNonNullable_ShouldThrow()
     {
         Assert.Throws<SqliteMockException>(() =>
@@ -69,6 +73,7 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_Json_ShouldReturnJsonDocument_WhenValid.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_Json_ShouldReturnJsonDocument_WhenValid()
     {
         var v = SqliteValueHelper.Resolve("{\"a\":1}", DbType.Object, isNullable: false, pars: null, colDict: null);
@@ -82,6 +87,7 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Like_ShouldMatch_SqliteStyle.
     /// </summary>
     [Theory]
+    [Trait("Category", "SqlValueHelperTests ")]
     [InlineData("John", "%oh%", true)]
     [InlineData("John", "J_hn", true)]
     [InlineData("John", "J__n", true)]
@@ -97,21 +103,22 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_Enum_ShouldValidateAgainstColumnDef.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_Enum_ShouldValidateAgainstColumnDef()
     {
-        var cols = new ColumnDictionary
-        {
-            ["Status"] = new ColumnDef(0, DbType.String, false)
-        };
-        cols["Status"].EnumValues.UnionWith(["active", "inactive"]);
+
+        var tb = new SqliteDbMock().AddTable("tb");
+
+        var c = tb.AddColumn("Status", DbType.String, false);
+        c.EnumValues.UnionWith(["active", "inactive"]);
 
         SqliteValueHelper.CurrentColumn = "Status";
 
-        var ok = SqliteValueHelper.Resolve("'Active'", DbType.String, false, null, cols);
+        var ok = SqliteValueHelper.Resolve("'Active'", DbType.String, false, null, tb.Columns);
         Assert.Equal("active", ok);
 
         var ex = Assert.Throws<SqliteMockException>(() =>
-            SqliteValueHelper.Resolve("'blocked'", DbType.String, false, null, cols));
+            SqliteValueHelper.Resolve("'blocked'", DbType.String, false, null, tb.Columns));
         Assert.Equal(1265, ex.ErrorCode);
     }
 
@@ -120,27 +127,25 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_Set_ShouldReturnHashSet_AndValidate.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_Set_ShouldReturnHashSet_AndValidate()
     {
-        var cols = new ColumnDictionary
-        {
-            ["Tags"] = new ColumnDef(0, DbType.Int32, false)
-            {
-                EnumValues = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "a", "b", "c" }
-            }
-        };
+        var tb = new SqliteDbMock().AddTable("tb");
+
+        tb.AddColumn("Tags", DbType.Int32, false,
+                enumValues: ["a", "b", "c"]);
 
         var prev = SqliteValueHelper.CurrentColumn;
         try
         {
             SqliteValueHelper.CurrentColumn = "Tags";
 
-            var ok = SqliteValueHelper.Resolve("'a,b'", DbType.Int32, isNullable: false, pars: null, colDict: cols);
+            var ok = SqliteValueHelper.Resolve("'a,b'", DbType.Int32, isNullable: false, pars: null, colDict: tb.Columns);
             var hs = Assert.IsType<HashSet<string>>(ok);
             Assert.True(hs.SetEquals(["a", "b"]));
 
             var ex = Assert.Throws<SqliteMockException>(() =>
-                SqliteValueHelper.Resolve("'a,x'", DbType.Int32, isNullable: false, pars: null, colDict: cols));
+                SqliteValueHelper.Resolve("'a,x'", DbType.Int32, isNullable: false, pars: null, colDict: tb.Columns));
             Assert.Equal(1265, ex.ErrorCode);
         }
         finally
@@ -154,19 +159,20 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_ShouldValidateStringSize.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_ShouldValidateStringSize()
     {
-        var cols = new ColumnDictionary
-        {
-            ["Name"] = new ColumnDef(0, DbType.String, false) { Size = 3 }
-        };
+
+        var tb = new SqliteDbMock().AddTable("tb");
+
+        tb.AddColumn("Name", DbType.String, false, size: 3);
 
         var prev = SqliteValueHelper.CurrentColumn;
         try
         {
             SqliteValueHelper.CurrentColumn = "Name";
             var ex = Assert.Throws<SqliteMockException>(() =>
-                SqliteValueHelper.Resolve("'abcd'", DbType.String, false, null, cols));
+                SqliteValueHelper.Resolve("'abcd'", DbType.String, false, null, tb.Columns));
             Assert.Equal(1406, ex.ErrorCode);
         }
         finally
@@ -180,19 +186,19 @@ public sealed class SqlValueHelperTests(
     /// PT: Testa o comportamento de Resolve_ShouldValidateDecimalPlaces.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
     public void Resolve_ShouldValidateDecimalPlaces()
     {
-        var cols = new ColumnDictionary
-        {
-            ["Amount"] = new ColumnDef(0, DbType.Decimal, false) { DecimalPlaces = 2 }
-        };
+        var tb = new SqliteDbMock().AddTable("tb");
+
+        tb.AddColumn("Amount", DbType.Decimal, false, decimalPlaces: 2);
 
         var prev = SqliteValueHelper.CurrentColumn;
         try
         {
             SqliteValueHelper.CurrentColumn = "Amount";
             var ex = Assert.Throws<SqliteMockException>(() =>
-                SqliteValueHelper.Resolve("10.123", DbType.Decimal, false, null, cols));
+                SqliteValueHelper.Resolve("10.123", DbType.Decimal, false, null, tb.Columns));
             Assert.Equal(1265, ex.ErrorCode);
         }
         finally

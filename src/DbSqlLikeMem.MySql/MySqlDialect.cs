@@ -34,6 +34,8 @@ internal sealed class MySqlDialect : SqlDialectBase
  
     internal const int WithCteMinVersion = 8;
     internal const int MergeMinVersion = int.MaxValue;
+    internal const int WindowFunctionsMinVersion = 8;
+    internal const int JsonExtractMinVersion = 5;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
@@ -99,6 +101,7 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
     public override bool SupportsWithRecursive => Version >= WithCteMinVersion;
+    public override bool SupportsWindowFunctions => Version >= WindowFunctionsMinVersion;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
@@ -108,8 +111,9 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsJsonArrowOperators => true;
-    public override bool SupportsJsonExtractFunction => true;
+    public override bool SupportsJsonArrowOperators => Version >= JsonExtractMinVersion;
+    public override bool AllowsParserCrossDialectJsonOperators => true;
+    public override bool SupportsJsonExtractFunction => Version >= JsonExtractMinVersion;
     public override bool SupportsMySqlIndexHints => true;
 
     public override bool SupportsDateAddFunction(string functionName)

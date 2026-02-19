@@ -1,4 +1,5 @@
 using Microsoft.Data.Sqlite;
+using System.Collections.Immutable;
 using System.Text.Json;
 
 namespace DbSqlLikeMem.Sqlite;
@@ -29,7 +30,7 @@ internal static class SqliteValueHelper
         DbType dbType,
         bool isNullable,
         IDataParameterCollection? pars = null,
-        IColumnDictionary? colDict = null)
+        IReadOnlyDictionary<string, ColumnDef>? colDict = null)
     {
         // ---------- parâmetro Dapper @p -------------------------------
         if (token.StartsWith("@"))
@@ -73,7 +74,7 @@ internal static class SqliteValueHelper
 
     private static bool TryParseEnumOrSet(
         string token,
-        IColumnDictionary? colDict,
+        IReadOnlyDictionary<string, ColumnDef>? colDict,
         out object? value)
     {
         value = null;
@@ -127,7 +128,9 @@ internal static class SqliteValueHelper
         }
     }
 
-    private static object? ValidateColumnValue(object? value, IColumnDictionary? colDict)
+    private static object? ValidateColumnValue(
+        object? value,
+        IReadOnlyDictionary<string, ColumnDef>? colDict)
     {
         if (value is null || value is DBNull)
             return value;

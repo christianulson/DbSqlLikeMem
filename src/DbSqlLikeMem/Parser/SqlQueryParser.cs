@@ -10,6 +10,9 @@ internal sealed class SqlQueryParser
     // INSERT ... SELECT pode ter um sufixo de UPSERT após o SELECT (MySQL ON DUPLICATE..., Postgres ON CONFLICT ...)
     private bool _allowOnDuplicateBoundary;
 
+    private static readonly SqlQueryAstCache _astCache = SqlQueryAstCache.CreateFromEnvironment();
+
+
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
@@ -29,7 +32,90 @@ internal sealed class SqlQueryParser
     public static SqlQueryBase Parse(string sql, ISqlDialect dialect)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
+        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
 
+        // Fast feature gate before cache lookup to avoid serving incompatible ASTs for version-gated commands.
+        var tokens = new SqlTokenizer(sql, dialect).Tokenize();
+        var first = tokens.Count > 0 ? tokens[0] : default;
+        if (IsWord(first, "MERGE") && !dialect.SupportsMerge)
+            throw SqlUnsupported.ForDialect(dialect, "MERGE statement");
+
+        var cacheKey = SqlQueryAstCache.BuildKey(sql, dialect.Name, dialect.Version);
+        if (_astCache.TryGet(cacheKey, out var cached))
+        {
+            EnsureDialectSupport(cached, dialect);
+            return cached with { RawSql = sql };
+        }
+
+        var parsed = ParseUncached(sql, dialect);
+        EnsureDialectSupport(parsed, dialect);
+        _astCache.Set(cacheKey, parsed);
+
+        // Para estratégias que precisam do SQL original (ex: UPDATE/DELETE ... JOIN (SELECT ...))
+        return parsed with { RawSql = sql };
+    }
+
+    private static void EnsureDialectSupport(SqlQueryBase parsed, ISqlDialect dialect)
+    {
+        switch (parsed)
+        {
+            case SqlMergeQuery when !dialect.SupportsMerge:
+                throw SqlUnsupported.ForDialect(dialect, "MERGE statement");
+            case SqlSelectQuery select:
+                EnsureSelectDialectSupport(select, dialect);
+                break;
+            case SqlUnionQuery union:
+                foreach (var part in union.Parts)
+                    EnsureSelectDialectSupport(part, dialect);
+                EnsureRowLimitDialectSupport(union.RowLimit, dialect);
+                break;
+            case SqlInsertQuery insert when insert.InsertSelect is not null:
+                EnsureSelectDialectSupport(insert.InsertSelect, dialect);
+                break;
+            case SqlUpdateQuery update when update.UpdateFromSelect is not null:
+                EnsureSelectDialectSupport(update.UpdateFromSelect, dialect);
+                break;
+            case SqlDeleteQuery delete when delete.DeleteFromSelect is not null:
+                EnsureSelectDialectSupport(delete.DeleteFromSelect, dialect);
+                break;
+        }
+    }
+
+    private static void EnsureSelectDialectSupport(SqlSelectQuery select, ISqlDialect dialect)
+    {
+        if (select.Ctes.Count > 0 && !dialect.SupportsWithCte)
+            throw SqlUnsupported.ForDialect(dialect, "WITH/CTE");
+
+        EnsureRowLimitDialectSupport(select.RowLimit, dialect);
+
+        if (select.Table?.Derived is not null)
+            EnsureSelectDialectSupport(select.Table.Derived, dialect);
+
+        foreach (var join in select.Joins)
+        {
+            if (join.Table.Derived is not null)
+                EnsureSelectDialectSupport(join.Table.Derived, dialect);
+        }
+    }
+
+    private static void EnsureRowLimitDialectSupport(SqlRowLimit? rowLimit, ISqlDialect dialect)
+    {
+        if (rowLimit is SqlFetch fetch)
+        {
+            if (fetch.Offset.HasValue)
+            {
+                if (!dialect.SupportsOffsetFetch)
+                    throw SqlUnsupported.ForDialect(dialect, "OFFSET/FETCH");
+                return;
+            }
+
+            if (!dialect.SupportsFetchFirst)
+                throw SqlUnsupported.ForDialect(dialect, "FETCH FIRST/NEXT");
+        }
+    }
+
+    private static SqlQueryBase ParseUncached(string sql, ISqlDialect dialect)
+    {
         var q = new SqlQueryParser(sql, dialect);
         var first = q.Peek();
 
@@ -58,8 +144,7 @@ internal sealed class SqlQueryParser
         else
             throw new InvalidOperationException("SQL não suportado ou parser inválido: " + first.Text);
 
-        // Para estratégias que precisam do SQL original (ex: UPDATE/DELETE ... JOIN (SELECT ...))
-        return result with { RawSql = sql };
+        return result;
     }
 
     /// <summary>
@@ -942,10 +1027,10 @@ internal sealed class SqlQueryParser
         {
             // Fail fast on known-invalid patterns before any splitting/normalization.
             // Example: COUNT(DISTINCT DISTINCT id)
-            if (System.Text.RegularExpressions.Regex.IsMatch(
+            if (Regex.IsMatch(
                     r,
                     @"\bDISTINCT\s+DISTINCT\b",
-                    System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                    RegexOptions.IgnoreCase))
             {
                 throw new InvalidOperationException("invalid: duplicated DISTINCT keyword");
             }
@@ -957,10 +1042,10 @@ internal sealed class SqlQueryParser
             // Fail fast: duplicated DISTINCT inside function calls like COUNT(DISTINCT DISTINCT id)
             // (the expression parser also checks, but this guard prevents corpus regressions when
             // select-item splitting/reconstruction changes token boundaries).
-            if (System.Text.RegularExpressions.Regex.IsMatch(
+            if (Regex.IsMatch(
                     expr,
                     @"\bDISTINCT\s+DISTINCT\b",
-                    System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                    RegexOptions.IgnoreCase))
             {
                 throw new InvalidOperationException("invalid: duplicated DISTINCT keyword");
             }
@@ -980,11 +1065,12 @@ internal sealed class SqlQueryParser
             if (IsWord(Peek(), "FROM"))
                 throw new InvalidOperationException("invalid: duplicated FROM keyword");
             var ts = ParseTableSource();
+            ts = TryParsePivot(ts);
             if (IsWord(Peek(), "FROM"))
                 throw new InvalidOperationException("invalid: FROM inside FROM");
             return ts;
         }
-        return new SqlTableSource(null, "DUAL", null, Derived: null, null, null);
+        return new SqlTableSource(null, "DUAL", null, Derived: null, null, null, Pivot: null);
     }
 
     private List<SqlJoin> ParseJoins(SqlTableSource from)
@@ -1215,11 +1301,12 @@ internal sealed class SqlQueryParser
                     alias,
                     Derived: null,
                     DerivedUnion: new UnionChain(union.Parts, union.AllFlags, union.OrderBy, union.RowLimit),
-                    DerivedSql: innerSql);
+                    DerivedSql: innerSql,
+                    Pivot: null);
             }
 
             if (parsed is SqlSelectQuery sq)
-                return new SqlTableSource(null, null, alias, sq, null, innerSql);
+                return new SqlTableSource(null, null, alias, sq, null, innerSql, Pivot: null);
 
             throw new InvalidOperationException("Derived table deve ser um SELECT");
         }
@@ -1238,7 +1325,97 @@ internal sealed class SqlQueryParser
         var alias2 = ReadOptionalAlias();
         if (consumeHints)
             ConsumeTableHintsIfPresent();
-        return new SqlTableSource(db, table, alias2, null, null, null);
+        return new SqlTableSource(db, table, alias2, null, null, null, Pivot: null);
+    }
+
+    private SqlTableSource TryParsePivot(SqlTableSource source)
+    {
+        if (!IsWord(Peek(), "PIVOT"))
+            return source;
+
+        if (!_dialect.SupportsPivotClause)
+            throw SqlUnsupported.ForDialect(_dialect, "PIVOT");
+
+        Consume(); // PIVOT
+        var raw = ReadBalancedParenRawTokens();
+        var spec = ParsePivotSpec(raw);
+
+        var pivotAlias = ReadOptionalAlias();
+        return source with
+        {
+            Alias = pivotAlias ?? source.Alias,
+            Pivot = spec
+        };
+    }
+
+    private SqlPivotSpec ParsePivotSpec(string raw)
+    {
+        var m = Regex.Match(
+            raw,
+            @"^\s*(?<agg>[A-Za-z_][A-Za-z0-9_]*)\s*\(\s*(?<arg>[^\)]+?)\s*\)\s+FOR\s+(?<for>[A-Za-z_][A-Za-z0-9_\.]*)\s+IN\s*\((?<in>.+)\)\s*$",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        if (!m.Success)
+            throw new InvalidOperationException("invalid: unsupported PIVOT syntax");
+
+        var aggregateFunction = m.Groups["agg"].Value.Trim();
+        var aggregateArgRaw = m.Groups["arg"].Value.Trim();
+        var forColumnRaw = m.Groups["for"].Value.Trim();
+        var inListRaw = m.Groups["in"].Value.Trim();
+
+        var inItems = new List<SqlPivotInItem>();
+        foreach (var itemRaw in SplitPivotInItems(inListRaw))
+        {
+            var item = itemRaw.Trim();
+            if (item.Length == 0)
+                continue;
+
+            var im = Regex.Match(item, @"^(?<val>.+?)(?:\s+AS\s+(?<alias>[A-Za-z_][A-Za-z0-9_]*))?$", RegexOptions.IgnoreCase);
+            if (!im.Success)
+                throw new InvalidOperationException("invalid: unsupported PIVOT IN item");
+
+            var valueRaw = im.Groups["val"].Value.Trim();
+            var alias = im.Groups["alias"].Success
+                ? im.Groups["alias"].Value.Trim()
+                : valueRaw.Trim('\'', '"').Replace('.', '_');
+
+            if (string.IsNullOrWhiteSpace(alias))
+                throw new InvalidOperationException("invalid: PIVOT IN item alias");
+
+            inItems.Add(new SqlPivotInItem(valueRaw, alias));
+        }
+
+        if (inItems.Count == 0)
+            throw new InvalidOperationException("invalid: PIVOT IN list is empty");
+
+        return new SqlPivotSpec(aggregateFunction, aggregateArgRaw, forColumnRaw, inItems);
+    }
+
+    private static IEnumerable<string> SplitPivotInItems(string raw)
+    {
+        var list = new List<string>();
+        var sb = new StringBuilder();
+        int depth = 0;
+
+        foreach (var ch in raw)
+        {
+            if (ch == '(') depth++;
+            if (ch == ')') depth--;
+
+            if (ch == ',' && depth == 0)
+            {
+                list.Add(sb.ToString());
+                sb.Clear();
+                continue;
+            }
+
+            sb.Append(ch);
+        }
+
+        if (sb.Length > 0)
+            list.Add(sb.ToString());
+
+        return list;
     }
 
     private void ConsumeTableHintsIfPresent()
@@ -1827,7 +2004,7 @@ internal sealed class SqlQueryParser
         throw new InvalidOperationException($"Token inesperado após SELECT: {t.Kind} '{t.Text}'");
     }
 
-    private static readonly HashSet<string> JoinStart = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> JoinStart = new(StringComparer.OrdinalIgnoreCase)
     {
         "JOIN", "INNER", "LEFT", "RIGHT", "CROSS", "OUTER"
     };
@@ -1866,7 +2043,7 @@ internal sealed class SqlQueryParser
         throw new InvalidOperationException($"Não encontrei nenhum destes tokens no nível top-level: {string.Join(", ", words)}");
     }
 
-    private static readonly HashSet<string> ClauseKeywordToken = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> ClauseKeywordToken = new(StringComparer.OrdinalIgnoreCase)
     {
         "FROM"   ,
         "WHERE"  ,

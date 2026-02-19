@@ -12,13 +12,14 @@ public sealed class OracleInsertStrategyExtrasTests(
     /// PT: Testa o comportamento de MultiRowInsertShouldAddAllRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void MultiRowInsertShouldAddAllRows()
     {
         // Arrange
         var db = new OracleDbMock();
         var table = db.AddTable("t");
-        table.Columns["id"] = new ColumnDef(0, DbType.Int32, false) { Identity = false };
-        table.Columns["val"] = new ColumnDef(1, DbType.String, true);
+        table.AddColumn("id", DbType.Int32, false, identity: false);
+        table.AddColumn("val", DbType.String, true);
         using var cnn = new OracleConnectionMock(db);
         using var cmd = new OracleCommandMock(cnn)
         {
@@ -39,13 +40,14 @@ public sealed class OracleInsertStrategyExtrasTests(
     /// PT: Testa o comportamento de InsertWithDefaultValueAndIdentityShouldApplyDefaults.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void InsertWithDefaultValueAndIdentityShouldApplyDefaults()
     {
         // Arrange
         var db = new OracleDbMock();
         var table = db.AddTable("t");
-        table.Columns["id"] = new ColumnDef(0, DbType.Int32, false) { Identity = true };
-        table.Columns["name"] = new ColumnDef(1, DbType.String, false) { DefaultValue = "DEF" };
+        table.AddColumn("id", DbType.Int32, false, identity: true);
+        table.AddColumn("name", DbType.String, false, defaultValue: "DEF" );
         using var cnn = new OracleConnectionMock(db);
         using var cmd = new OracleCommandMock(cnn)
         {
@@ -70,13 +72,14 @@ public sealed class OracleInsertStrategyExtrasTests(
     /// PT: Testa o comportamento de InsertDuplicatePrimaryKeyShouldThrow.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void InsertDuplicatePrimaryKeyShouldThrow()
     {
         // Arrange
         var db = new OracleDbMock();
         var table = db.AddTable("t");
-        table.Columns["id"] = new ColumnDef(0, DbType.Int32, false) { Identity = false };
-        table.PrimaryKeyIndexes.Add(0);
+        table.AddColumn("id", DbType.Int32, false, identity: false);
+        table.AddPrimaryKeyIndexes("id");
         using var cnn = new OracleConnectionMock(db);
         using var cmd = new OracleCommandMock(cnn)
         {
@@ -86,7 +89,7 @@ public sealed class OracleInsertStrategyExtrasTests(
 
         // Act & Assert
         var ex = Assert.Throws<OracleMockException>(() => cmd.ExecuteNonQuery());
-        Assert.Contains(DbSqlLikeMem.Resources.SqlExceptionMessages.DuplicateKey(string.Empty, string.Empty).Split('\'')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlExceptionMessages.DuplicateKey(string.Empty, string.Empty).Split('\'')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }
 
@@ -101,19 +104,20 @@ public class OracleDeleteStrategyForeignKeyTests
     /// PT: Testa o comportamento de DeleteReferencedRowShouldThrow.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void DeleteReferencedRowShouldThrow()
     {
         // Arrange parent
         var db = new OracleDbMock();
         var parent = db.AddTable("p");
-        parent.Columns["id"] = new ColumnDef(0, DbType.Int32, false);
-        parent.PrimaryKeyIndexes.Add(0);                   // marca 'id' como PK
+        parent.AddColumn("id", DbType.Int32, false);
+        parent.AddPrimaryKeyIndexes("id");                   // marca 'id' como PK
         parent.Add(new Dictionary<int, object?> { { 0, 42 } });
 
         // Arrange child
         var child = db.AddTable("c");
-        child.Columns["pid"] = new ColumnDef(0, DbType.Int32, false);
-        child.CreateForeignKey("pid", "p", "id");     // c(pid) → p(id)
+        child.AddColumn("pid", DbType.Int32, false);
+        child.CreateForeignKey("ix_parent_id", parent.TableName, [("pid", "id")]);    // c(pid) → p(id)
         child.Add(new Dictionary<int, object?> { { 0, 42 } });
 
         using var cnn = new OracleConnectionMock(db);
@@ -125,7 +129,7 @@ public class OracleDeleteStrategyForeignKeyTests
 
         // Act & Assert
         var ex = Assert.Throws<OracleMockException>(() => cmd.ExecuteNonQuery());
-        Assert.Contains(DbSqlLikeMem.Resources.SqlExceptionMessages.ReferencedRow(string.Empty).Split('(')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlExceptionMessages.ReferencedRow(string.Empty).Split('(')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }
 
@@ -140,14 +144,15 @@ public class OracleUpdateStrategyExtrasTests
     /// PT: Testa o comportamento de UpdateMultipleConditionsShouldOnlyAffectMatchingRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void UpdateMultipleConditionsShouldOnlyAffectMatchingRows()
     {
         // Arrange
         var db = new OracleDbMock();
         var table = db.AddTable("t");
-        table.Columns["id"] = new ColumnDef(0, DbType.Int32, false);
-        table.Columns["grp"] = new ColumnDef(1, DbType.String, false);
-        table.Columns["val"] = new ColumnDef(2, DbType.String, false);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("grp", DbType.String, false);
+        table.AddColumn("val", DbType.String, false);
         table.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "X" }, { 2, "A" } });
         table.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, "Y" }, { 2, "A" } });
         using var cnn = new OracleConnectionMock(db);

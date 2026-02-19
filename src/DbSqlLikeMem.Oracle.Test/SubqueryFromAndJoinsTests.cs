@@ -13,6 +13,7 @@ public sealed class SubqueryFromAndJoinsTests(
     /// PT: Testa o comportamento de FromSubquery_ShouldReturnFilteredRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "SubqueryFromAndJoins")]
     public void FromSubquery_ShouldReturnFilteredRows()
     {
         using var cnn = new OracleConnectionMock();
@@ -45,6 +46,7 @@ public sealed class SubqueryFromAndJoinsTests(
     /// PT: Testa o comportamento de JoinSubquery_ShouldJoinCorrectly.
     /// </summary>
     [Fact]
+    [Trait("Category", "SubqueryFromAndJoins")]
     public void JoinSubquery_ShouldJoinCorrectly()
     {
         using var cnn = new OracleConnectionMock();
@@ -56,7 +58,7 @@ public sealed class SubqueryFromAndJoinsTests(
         cnn.Define("orders");
         cnn.Column<int>("orders", "Id");
         cnn.Column<int>("orders", "UserId");
-        cnn.Column<decimal>("orders", "Amount");
+        cnn.Column<decimal>("orders", "Amount", decimalPlaces:2);
 
         cnn.Seed("users", null,
             [1, "Ana"],
@@ -89,6 +91,7 @@ ORDER BY u.Id, o.Amount";
     /// PT: Testa o comportamento de NestedSubquery_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "SubqueryFromAndJoins")]
     public void NestedSubquery_ShouldWork()
     {
         using var cnn = new OracleConnectionMock();

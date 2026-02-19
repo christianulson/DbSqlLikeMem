@@ -27,14 +27,15 @@ public sealed class MySqlTransactionTests(
     /// PT: Testa o comportamento de TransactionCommitShouldPersistData.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlTransaction")]
     public void TransactionCommitShouldPersistData()
     {
         // Arrange
         var db = new MySqlDbMock();
         var table = db.AddTable("Users");
-        table.Columns["Id"] = new(0, DbType.Int32, false);
-        table.Columns["Name"] = new(1, DbType.String, false);
-        table.Columns["Email"] = new(2, DbType.String, false);
+        table.AddColumn("Id", DbType.Int32, false);
+        table.AddColumn("Name", DbType.String, false);
+        table.AddColumn("Email", DbType.String, false);
 
         using var connection = new MySqlConnectionMock(db);
         connection.Open();
@@ -59,14 +60,15 @@ public sealed class MySqlTransactionTests(
     /// PT: Testa o comportamento de TransactionRollbackShouldNotPersistData.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlTransaction")]
     public void TransactionRollbackShouldNotPersistData()
     {
         // Arrange
         var db = new MySqlDbMock();
         var table = db.AddTable("Users");
-        table.Columns["Id"] = new(0, DbType.Int32, false);
-        table.Columns["Name"] = new(1, DbType.String, false);
-        table.Columns["Email"] = new(2, DbType.String, false);
+        table.AddColumn("Id", DbType.Int32, false);
+        table.AddColumn("Name", DbType.String, false);
+        table.AddColumn("Email", DbType.String, false);
 
         using var connection = new MySqlConnectionMock(db);
         connection.Open();

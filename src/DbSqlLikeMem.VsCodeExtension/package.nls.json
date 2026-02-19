@@ -1,0 +1,6 @@
+{
+  "displayName": "DbSqlLikeMem Tools",
+  "description": "VS Code extension to browse database objects and generate POCO classes for DbSqlLikeMem.",
+  "viewsContainer.title": "DbSqlLikeMem",
+  "views.connections.name": "Connections"
+}

@@ -12,13 +12,14 @@ public sealed class PostgreSqlTemporaryTableEngineTests
     /// PT: Testa o comportamento de CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "TemporaryTable")]
     public void CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows()
     {
         var db = new NpgsqlDbMock();
         var users = db.AddTable("users");
-        users.Columns["id"] = new(0, DbType.Int32, false);
-        users.Columns["name"] = new(1, DbType.String, false);
-        users.Columns["tenantid"] = new(2, DbType.Int32, false);
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
         users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = 10 });
         users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob", [2] = 10 });
         users.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Jane", [2] = 20 });
@@ -48,13 +49,14 @@ SELECT id FROM tmp_users ORDER BY id;";
     /// Auto-generated summary.
     /// </summary>
     [Fact]
+    [Trait("Category", "TemporaryTable")]
     public void CreateTemporaryTable_InPgTempSchema_ShouldReturnProjectedRows()
     {
         var db = new NpgsqlDbMock();
         var users = db.AddTable("users");
-        users.Columns["id"] = new(0, DbType.Int32, false);
-        users.Columns["name"] = new(1, DbType.String, false);
-        users.Columns["tenantid"] = new(2, DbType.Int32, false);
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
         users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = 10 });
         users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob", [2] = 10 });
         users.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Jane", [2] = 20 });

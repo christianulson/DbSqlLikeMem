@@ -24,6 +24,7 @@ public sealed class StoredProcedureExecutionTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_StoredProcedure_ShouldValidateRequiredInputs.
     /// </summary>
     [Fact]
+    [Trait("Category", "StoredProcedureExecution")]
     public void ExecuteNonQuery_StoredProcedure_ShouldValidateRequiredInputs()
     {
         // Arrange
@@ -64,6 +65,7 @@ public sealed class StoredProcedureExecutionTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenMissingRequiredInput.
     /// </summary>
     [Fact]
+    [Trait("Category", "StoredProcedureExecution")]
     public void ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenMissingRequiredInput()
     {
         // Arrange
@@ -102,6 +104,7 @@ public sealed class StoredProcedureExecutionTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenRequiredInputIsNull.
     /// </summary>
     [Fact]
+    [Trait("Category", "StoredProcedureExecution")]
     public void ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenRequiredInputIsNull()
     {
         // Arrange
@@ -140,6 +143,7 @@ public sealed class StoredProcedureExecutionTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_StoredProcedure_ShouldPopulateOutParameters_DefaultValue.
     /// </summary>
     [Fact]
+    [Trait("Category", "StoredProcedureExecution")]
     public void ExecuteNonQuery_StoredProcedure_ShouldPopulateOutParameters_DefaultValue()
     {
         // Arrange
@@ -187,6 +191,7 @@ public sealed class StoredProcedureExecutionTests(
     /// PT: Testa o comportamento de ExecuteReader_CallSyntax_ShouldValidateAndReturnEmptyResultset.
     /// </summary>
     [Fact]
+    [Trait("Category", "StoredProcedureExecution")]
     public void ExecuteReader_CallSyntax_ShouldValidateAndReturnEmptyResultset()
     {
         // Arrange
@@ -221,6 +226,7 @@ public sealed class StoredProcedureExecutionTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_StoredProcedure_ShouldPopulateReturnValueDefaultZero.
     /// </summary>
     [Fact]
+    [Trait("Category", "StoredProcedureExecution")]
     public void ExecuteNonQuery_StoredProcedure_ShouldPopulateReturnValueDefaultZero()
     {
         using var c = new MySqlConnectionMock();
@@ -252,6 +258,7 @@ public sealed class StoredProcedureExecutionTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenRequiredInputDirectionIsOutput.
     /// </summary>
     [Fact]
+    [Trait("Category", "StoredProcedureExecution")]
     public void ExecuteNonQuery_StoredProcedure_ShouldThrow_WhenRequiredInputDirectionIsOutput()
     {
         using var c = new MySqlConnectionMock();
@@ -281,6 +288,7 @@ public sealed class StoredProcedureExecutionTests(
     /// PT: Testa o comportamento de DapperExecute_CommandTypeStoredProcedure_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "StoredProcedureExecution")]
     public void DapperExecute_CommandTypeStoredProcedure_ShouldWork()
     {
         // Arrange
@@ -314,6 +322,7 @@ public sealed class StoredProcedureExecutionTests(
     /// PT: Testa o comportamento de DapperExecute_CommandTypeStoredProcedure_ShouldThrow_OnMissingParam.
     /// </summary>
     [Fact]
+    [Trait("Category", "StoredProcedureExecution")]
     public void DapperExecute_CommandTypeStoredProcedure_ShouldThrow_OnMissingParam()
     {
         // Arrange

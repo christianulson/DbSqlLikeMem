@@ -1,3 +1,6 @@
+using DbSqlLikeMem.Interfaces;
+using DbSqlLikeMem.Models;
+
 namespace DbSqlLikeMem;
 
 /// <summary>
@@ -26,38 +29,63 @@ public interface ITableMock
     int NextIdentity { get; set; }
 
     /// <summary>
-    /// EN: Holds the column indexes that compose the primary key.
+    /// EN: Holds the column _indexes that compose the primary key.
     /// PT: Mantém os índices das colunas que compõem a chave primária.
     /// </summary>
-    HashSet<int> PrimaryKeyIndexes { get; }
+    IReadOnlyHashSet<int> PrimaryKeyIndexes { get; }
+
+    /// <summary>
+    /// EN: Adds primary key index columns by name.
+    /// PT: Adiciona colunas de índice de chave primária pelo nome.
+    /// </summary>
+    /// <param name="columns">EN: Primary key columns. PT: Colunas da chave primária.</param>
+    void AddPrimaryKeyIndexes(params string[] columns);
 
     /// <summary>
     /// EN: Exposes foreign keys configured on the table.
     /// PT: Expõe as chaves estrangeiras configuradas na tabela.
     /// </summary>
-    IReadOnlyList<(
-        string Col, 
-        string RefTable,
-        string RefCol
-        )> ForeignKeys { get; }
+    IReadOnlyDictionary<string, ForeignDef> ForeignKeys { get; }
 
     /// <summary>
     /// EN: Creates a foreign key linking a local column to a column in another table.
     /// PT: Cria uma chave estrangeira ligando uma coluna local a uma coluna de outra tabela.
     /// </summary>
-    /// <param name="col">EN: Local column name. PT: Nome da coluna local.</param>
+    /// <param name="name">EN: Foreign key name. PT: Nome da chave estrangeira.</param>
     /// <param name="refTable">EN: Referenced table. PT: Tabela referenciada.</param>
-    /// <param name="refCol">EN: Referenced column. PT: Coluna referenciada.</param>
-    void CreateForeignKey(
-        string col,
+    /// <param name="references">EN: Local/reference column mappings. PT: Mapeamentos coluna local/referenciada.</param>
+    ForeignDef CreateForeignKey(
+        string name,
         string refTable,
-        string refCol);
+        HashSet<(string col, string refCol)> references);
 
     /// <summary>
     /// EN: Gets the table column dictionary.
     /// PT: Obtém o dicionário de colunas da tabela.
     /// </summary>
-    IColumnDictionary Columns{ get; }
+    IReadOnlyDictionary<string, ColumnDef> Columns { get; }
+
+    /// <summary>
+    /// EN: Adds a new column definition to the table.
+    /// PT: Adiciona uma nova definição de coluna à tabela.
+    /// </summary>
+    /// <param name="name">EN: Column name. PT: Nome da coluna.</param>
+    /// <param name="dbType">EN: Column type. PT: Tipo da coluna.</param>
+    /// <param name="nullable">EN: Allows null values. PT: Permite valores nulos.</param>
+    /// <param name="size">EN: Optional size/length. PT: Tamanho/comprimento opcional.</param>
+    /// <param name="decimalPlaces">EN: Optional decimal places. PT: Casas decimais opcionais.</param>
+    /// <param name="identity">EN: Auto-increment flag. PT: Indicador de auto incremento.</param>
+    /// <param name="defaultValue">EN: Optional default value. PT: Valor padrão opcional.</param>
+    /// <param name="enumValues">EN: Optional enum values. PT: Valores de enum opcionais.</param>
+    ColumnDef AddColumn(
+        string name,
+        DbType dbType,
+        bool nullable,
+        int? size = null,
+        int? decimalPlaces = null,
+        bool identity = false,
+        object? defaultValue = null,
+        IList<string>? enumValues = null);
 
     /// <summary>
     /// EN: Finds a column by name or throws if it does not exist.
@@ -68,17 +96,20 @@ public interface ITableMock
     ColumnDef GetColumn(string columnName);
 
     /// <summary>
-    /// EN: Gets the indexes declared for the table.
+    /// EN: Gets the _indexes declared for the table.
     /// PT: Obtém os índices declarados para a tabela.
     /// </summary>
-    IndexDictionary Indexes { get; }
+    IReadOnlyDictionary<string, IndexDef> Indexes { get; }
 
     /// <summary>
     /// EN: Creates an index using the provided definition.
     /// PT: Cria um índice com a definição informada.
     /// </summary>
-    /// <param name="def">EN: Index definition. PT: Definição do índice.</param>
-    void CreateIndex(IndexDef def);
+    IndexDef CreateIndex(
+        string name,
+        IEnumerable<string> keyCols,
+        string[]? include = null,
+        bool unique = false);
 
     /// <summary>
     /// EN: Updates index structures using the specified row.
@@ -88,7 +119,7 @@ public interface ITableMock
     void UpdateIndexesWithRow(int rowIdx);
 
     /// <summary>
-    /// EN: Rebuilds all table indexes.
+    /// EN: Rebuilds all table _indexes.
     /// PT: Reconstrói todos os índices da tabela.
     /// </summary>
     void RebuildAllIndexes();
@@ -99,7 +130,7 @@ public interface ITableMock
     /// <param name="def">EN: Index definition. PT: Definição do índice.</param>
     /// <param name="key">EN: Key to search. PT: Chave a buscar.</param>
     /// <returns>EN: List of positions or null if none. PT: Lista de posições ou null se não houver.</returns>
-    IEnumerable<int>? Lookup(IndexDef def, string key);
+    IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>? Lookup(IndexDef def, string key);
 
     /// <summary>
     /// EN: Adds multiple items by converting them into rows.
@@ -190,7 +221,7 @@ public interface ITableMock
         DbType dbType,
         bool isNullable,
         IDataParameterCollection? pars = null,
-        IColumnDictionary? colDict = null);
+        IReadOnlyDictionary<string, ColumnDef>? colDict = null);
 
     /// <summary>
     /// EN: Creates the exception for an unknown column.

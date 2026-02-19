@@ -1,86 +1,20 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Verifies stored procedure signature behavior for PostgreSQL.
+/// PT: Verifica o comportamento de assinatura de procedures para PostgreSQL.
 /// </summary>
+/// <param name="helper">
+/// EN: Output helper used by the test base.
+/// PT: Helper de saída usado pela base de testes.
+/// </param>
 public sealed class StoredProcedureSignatureTests(
         ITestOutputHelper helper
-    ) : XUnitTestBase(helper)
+    ) : StoredProcedureSignatureTestsBase<NpgsqlMockException>(helper)
 {
     /// <summary>
-    /// EN: Tests StoredProcedure_ShouldValidateRequiredInAndOutParams behavior.
-    /// PT: Testa o comportamento de StoredProcedure_ShouldValidateRequiredInAndOutParams.
+    /// EN: Creates the PostgreSQL connection mock used in tests.
+    /// PT: Cria o mock de conexão PostgreSQL usado nos testes.
     /// </summary>
-    [Fact]
-    public void StoredProcedure_ShouldValidateRequiredInAndOutParams()
-    {
-        using var c = new NpgsqlConnectionMock();
-
-        c.AddProdecure("sp_demo", new ProcedureDef(
-            RequiredIn: [new ProcParam("tenantId", DbType.Int32, Required: true)],
-            OptionalIn: [new ProcParam("note", DbType.String, Required: false)],
-            OutParams: [new ProcParam("resultCode", DbType.Int32, Required: true)],
-            ReturnParam: new ProcParam("resultCode", DbType.Int32, Value: 0)
-            ));
-
-        using var cmd = new NpgsqlCommandMock(c)
-        {
-            CommandType = CommandType.StoredProcedure,
-            CommandText = "sp_demo"
-        };
-        cmd.Parameters.Add(new NpgsqlParameter { ParameterName = "tenantId", DbType = DbType.Int32, Value = 10 });
-        cmd.Parameters.Add(new NpgsqlParameter { ParameterName = "resultCode", DbType = DbType.Int32, Direction = ParameterDirection.Output, Value = DBNull.Value });
-
-        var n = cmd.ExecuteNonQuery();
-        Assert.Equal(0, n);
-        Assert.Equal(0, Convert.ToInt32(
-            cmd.Parameters["resultCode"].Value,
-            CultureInfo.InvariantCulture));
-    }
-
-    /// <summary>
-    /// EN: Tests StoredProcedure_ShouldThrowWhenMissingRequiredParam behavior.
-    /// PT: Testa o comportamento de StoredProcedure_ShouldThrowWhenMissingRequiredParam.
-    /// </summary>
-    [Fact]
-    public void StoredProcedure_ShouldThrowWhenMissingRequiredParam()
-    {
-        using var c = new NpgsqlConnectionMock();
-        c.AddProdecure("sp_demo", new ProcedureDef(
-            RequiredIn: [new ProcParam("tenantId", DbType.Int32, Required: true)],
-            OptionalIn: [],
-            OutParams: []));
-
-        using var cmd = new NpgsqlCommandMock(c)
-        {
-            CommandType = CommandType.StoredProcedure,
-            CommandText = "sp_demo"
-        };
-
-        var ex = Assert.Throws<NpgsqlMockException>(() => cmd.ExecuteNonQuery());
-        Assert.Equal(1318, ex.ErrorCode);
-    }
-
-    /// <summary>
-    /// EN: Tests CallStatement_ShouldValidateAgainstRegisteredProcedure behavior.
-    /// PT: Testa o comportamento de CallStatement_ShouldValidateAgainstRegisteredProcedure.
-    /// </summary>
-    [Fact]
-    public void CallStatement_ShouldValidateAgainstRegisteredProcedure()
-    {
-        using var c = new NpgsqlConnectionMock();
-        c.AddProdecure("sp_demo", new ProcedureDef(
-            RequiredIn: [new ProcParam("tenantId", DbType.Int32, Required: true)],
-            OptionalIn: [],
-            OutParams: []));
-
-        using var cmd = new NpgsqlCommandMock(c)
-        {
-            CommandText = "CALL sp_demo(@tenantId)"
-        };
-        cmd.Parameters.Add(new NpgsqlParameter { ParameterName = "tenantId", DbType = DbType.Int32, Value = 10 });
-
-        var n = cmd.ExecuteNonQuery();
-        Assert.Equal(0, n);
-    }
+    protected override DbConnectionMockBase CreateConnection() => new NpgsqlConnectionMock();
 }

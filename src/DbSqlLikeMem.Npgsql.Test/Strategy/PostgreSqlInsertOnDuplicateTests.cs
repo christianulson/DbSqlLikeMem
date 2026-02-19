@@ -10,13 +10,14 @@ public sealed class PostgreSqlOnConflictUpsertTests(ITestOutputHelper helper) : 
     /// PT: Testa o comportamento de Insert_OnConflict_ShouldInsert_WhenNoConflict.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Insert_OnConflict_ShouldInsert_WhenNoConflict()
     {
         var db = new NpgsqlDbMock();
         var t = db.AddTable("users");
-        t.Columns["Id"] = new ColumnDef(0, DbType.Int32, false);
-        t.Columns["Name"] = new ColumnDef(1, DbType.String, false);
-        t.PrimaryKeyIndexes.Add(0);
+        t.AddColumn("Id", DbType.Int32, false);
+        t.AddColumn("Name", DbType.String, false);
+        t.AddPrimaryKeyIndexes("id");
 
         using var cnn = new NpgsqlConnectionMock(db);
         cnn.Open();
@@ -34,13 +35,14 @@ public sealed class PostgreSqlOnConflictUpsertTests(ITestOutputHelper helper) : 
     /// PT: Testa o comportamento de Insert_OnConflict_ShouldUpdate_WhenConflict.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Insert_OnConflict_ShouldUpdate_WhenConflict()
     {
         var db = new NpgsqlDbMock();
         var t = db.AddTable("users");
-        t.Columns["Id"] = new ColumnDef(0, DbType.Int32, false);
-        t.Columns["Name"] = new ColumnDef(1, DbType.String, false);
-        t.PrimaryKeyIndexes.Add(0);
+        t.AddColumn("Id", DbType.Int32, false);
+        t.AddColumn("Name", DbType.String, false);
+        t.AddPrimaryKeyIndexes("id");
 
         t.Add(new Dictionary<int, object?> { [0] = 1, [1] = "OLD" });
 

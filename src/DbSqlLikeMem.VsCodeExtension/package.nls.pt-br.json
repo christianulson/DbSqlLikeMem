@@ -1,0 +1,6 @@
+{
+  "displayName": "Ferramentas DbSqlLikeMem",
+  "description": "Extensão VS Code para navegar objetos de banco e gerar classes POCO para DbSqlLikeMem.",
+  "viewsContainer.title": "DbSqlLikeMem",
+  "views.connections.name": "Conexões"
+}

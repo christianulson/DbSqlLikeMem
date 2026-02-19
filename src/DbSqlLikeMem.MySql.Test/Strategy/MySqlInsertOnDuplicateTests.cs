@@ -13,14 +13,15 @@ public class MySqlInsertOnDuplicateTests(
     /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldInsertWhenNoConflict.
     /// </summary>
     [Theory]
+    [Trait("Category", "Strategy")]
     [MemberDataMySqlVersion]
     public void Insert_OnDuplicate_ShouldInsertWhenNoConflict(int version)
     {
         var db = new MySqlDbMock(version);
         var t = db.AddTable("users");
-        t.Columns["Id"] = new ColumnDef(0, DbType.Int32, false);
-        t.Columns["Name"] = new ColumnDef(1, DbType.String, false);
-        t.PrimaryKeyIndexes.Add(0);
+        t.AddColumn("Id", DbType.Int32, false);
+        t.AddColumn("Name", DbType.String, false);
+        t.AddPrimaryKeyIndexes("id");
 
         using var cnn = new MySqlConnectionMock(db);
 
@@ -38,14 +39,15 @@ public class MySqlInsertOnDuplicateTests(
     /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateExistingRow_ByPrimaryKey_UsingValues.
     /// </summary>
     [Theory]
+    [Trait("Category", "Strategy")]
     [MemberDataMySqlVersion]
     public void Insert_OnDuplicate_ShouldUpdateExistingRow_ByPrimaryKey_UsingValues(int version)
     {
         var db = new MySqlDbMock(version);
         var t = db.AddTable("users");
-        t.Columns["Id"] = new ColumnDef(0, DbType.Int32, false);
-        t.Columns["Name"] = new ColumnDef(1, DbType.String, false);
-        t.PrimaryKeyIndexes.Add(0);
+        t.AddColumn("Id", DbType.Int32, false);
+        t.AddColumn("Name", DbType.String, false);
+        t.AddPrimaryKeyIndexes("id");
 
         t.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "OLD" } });
 
@@ -65,16 +67,17 @@ public class MySqlInsertOnDuplicateTests(
     /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateExistingRow_ByUniqueIndex.
     /// </summary>
     [Theory]
+    [Trait("Category", "Strategy")]
     [MemberDataMySqlVersion]
     public void Insert_OnDuplicate_ShouldUpdateExistingRow_ByUniqueIndex(int version)
     {
         var db = new MySqlDbMock(version);
         var t = db.AddTable("users");
-        t.Columns["Id"] = new ColumnDef(0, DbType.Int32, false);
-        t.Columns["Email"] = new ColumnDef(1, DbType.String, false);
-        t.Columns["Name"] = new ColumnDef(2, DbType.String, false);
-        t.PrimaryKeyIndexes.Add(0);
-        t.CreateIndex(new IndexDef("UQ_Email", ["Email"], unique: true));
+        t.AddColumn("Id", DbType.Int32, false);
+        t.AddColumn("Email", DbType.String, false);
+        t.AddColumn("Name", DbType.String, false);
+        t.AddPrimaryKeyIndexes("id");
+        t.CreateIndex("UQ_Email", ["Email"], unique: true);
 
         t.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "a@a.com" }, { 2, "A" } });
 
@@ -95,14 +98,15 @@ public class MySqlInsertOnDuplicateTests(
     /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateUsingLiteralAndParam.
     /// </summary>
     [Theory]
+    [Trait("Category", "Strategy")]
     [MemberDataMySqlVersion]
     public void Insert_OnDuplicate_ShouldUpdateUsingLiteralAndParam(int version)
     {
         var db = new MySqlDbMock(version);
         var t = db.AddTable("users");
-        t.Columns["Id"] = new ColumnDef(0, DbType.Int32, false);
-        t.Columns["Name"] = new ColumnDef(1, DbType.String, false);
-        t.PrimaryKeyIndexes.Add(0);
+        t.AddColumn("Id", DbType.Int32, false);
+        t.AddColumn("Name", DbType.String, false);
+        t.AddPrimaryKeyIndexes("id");
 
         t.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "OLD" } });
 
@@ -127,14 +131,15 @@ public class MySqlInsertOnDuplicateTests(
     /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateAggragating.
     /// </summary>
     [Theory]
+    [Trait("Category", "Strategy")]
     [MemberDataMySqlVersion]
     public void Insert_OnDuplicate_ShouldUpdateAggragating(int version)
     {
         var db = new MySqlDbMock(version);
         var t = db.AddTable("users");
-        t.Columns["Id"] = new ColumnDef(0, DbType.Int32, false);
-        t.Columns["Qtd"] = new ColumnDef(1, DbType.Int32, false);
-        t.PrimaryKeyIndexes.Add(0);
+        t.AddColumn("Id", DbType.Int32, false);
+        t.AddColumn("Qtd", DbType.Int32, false);
+        t.AddPrimaryKeyIndexes("id");
 
         t.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, 1 } });
 

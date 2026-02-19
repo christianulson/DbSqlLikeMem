@@ -7,7 +7,7 @@ namespace DbSqlLikeMem.MySql;
 internal class MySqlTableMock(
         string tableName,
         MySqlSchemaMock schema,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null
         ) : TableMock(tableName, schema, columns, rows)
 {
@@ -25,7 +25,7 @@ internal class MySqlTableMock(
         DbType dbType,
         bool isNullable,
         IDataParameterCollection? pars = null,
-        IColumnDictionary? colDict = null)
+        IReadOnlyDictionary<string, ColumnDef>? colDict = null)
     {
         var exp = MySqlValueHelper.Resolve(token, dbType, isNullable, pars, colDict);
         return exp;

@@ -16,16 +16,16 @@ public sealed class SqliteCreateViewEngineTests : XUnitTestBase
     {
         var db = new SqliteDbMock();
         _users = db.AddTable("users");
-        _users.Columns["id"] = new(0, DbType.Int32, false) { Identity = false };
-        _users.Columns["name"] = new(1, DbType.String, false);
-        _users.Columns["tenantid"] = new(2, DbType.Int32, false);
+        _users.AddColumn("id", DbType.Int32, false, identity: false);
+        _users.AddColumn("name", DbType.String, false);
+        _users.AddColumn("tenantid", DbType.Int32, false);
         _users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = 10 });
         _users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob",  [2] = 10 });
         _users.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Jane", [2] = 20 });
 
         _orders = db.AddTable("orders");
-        _orders.Columns["userid"] = new(0, DbType.Int32, false);
-        _orders.Columns["amount"] = new(1, DbType.Decimal, false);
+        _orders.AddColumn("userid", DbType.Int32, false);
+        _orders.AddColumn("amount", DbType.Decimal, false, decimalPlaces: 2);
         _orders.Add(new Dictionary<int, object?> { [0] = 1, [1] = 10m });
         _orders.Add(new Dictionary<int, object?> { [0] = 1, [1] = 5m });
         _orders.Add(new Dictionary<int, object?> { [0] = 2, [1] = 7m });
@@ -39,6 +39,7 @@ public sealed class SqliteCreateViewEngineTests : XUnitTestBase
     /// PT: Testa o comportamento de CreateView_ThenSelectFromView_ShouldReturnExpectedRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "Views")]
     public void CreateView_ThenSelectFromView_ShouldReturnExpectedRows()
     {
         _cnn.ExecNonQuery(@"
@@ -56,6 +57,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
     /// PT: Testa o comportamento de View_IsNotMaterialized_ShouldReflectBaseTableChanges.
     /// </summary>
     [Fact]
+    [Trait("Category", "Views")]
     public void View_IsNotMaterialized_ShouldReflectBaseTableChanges()
     {
         _cnn.ExecNonQuery("CREATE VIEW v_all AS SELECT id FROM users ORDER BY id;");
@@ -72,6 +74,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
     /// PT: Testa o comportamento de CreateOrReplaceView_ShouldChangeDefinition.
     /// </summary>
     [Fact]
+    [Trait("Category", "Views")]
     public void CreateOrReplaceView_ShouldChangeDefinition()
     {
         _cnn.ExecNonQuery("CREATE VIEW v AS SELECT id FROM users WHERE tenantid = 10;");
@@ -88,11 +91,12 @@ SELECT id, name FROM users WHERE tenantid = 10;
     /// PT: Testa o comportamento de View_NameShouldShadowTable_WhenSameName.
     /// </summary>
     [Fact]
+    [Trait("Category", "Views")]
     public void View_NameShouldShadowTable_WhenSameName()
     {
         // cria uma tabela física chamada vshadow, com dados diferentes
         var vshadow = _cnn.Db.AddTable("vshadow");
-        vshadow.Columns["id"] = new(0, DbType.Int32, false);
+        vshadow.AddColumn("id", DbType.Int32, false);
         vshadow.Add(new Dictionary<int, object?> { [0] = 999 });
 
 
@@ -109,6 +113,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
     /// PT: Testa o comportamento de View_CanReferenceAnotherView.
     /// </summary>
     [Fact]
+    [Trait("Category", "Views")]
     public void View_CanReferenceAnotherView()
     {
         _cnn.ExecNonQuery("CREATE VIEW v1 AS SELECT id FROM users WHERE tenantid = 10;");
@@ -123,6 +128,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
     /// PT: Testa o comportamento de View_WithJoinAndAggregation_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "Views")]
     public void View_WithJoinAndAggregation_ShouldWork()
     {
         _cnn.ExecNonQuery(@"
@@ -147,6 +153,7 @@ GROUP BY u.id;
     /// PT: Testa o comportamento de CreateView_ExistingNameWithoutOrReplace_ShouldThrow.
     /// </summary>
     [Fact]
+    [Trait("Category", "Views")]
     public void CreateView_ExistingNameWithoutOrReplace_ShouldThrow()
     {
         _cnn.ExecNonQuery("CREATE VIEW vdup AS SELECT 1 AS x FROM DUAL;");
@@ -158,6 +165,7 @@ GROUP BY u.id;
     /// PT: Testa o comportamento de DropView_ShouldRemoveDefinition.
     /// </summary>
     [Fact]
+    [Trait("Category", "Views")]
     public void DropView_ShouldRemoveDefinition()
     {
         _cnn.ExecNonQuery("CREATE VIEW vdrop AS SELECT id FROM users;");

@@ -1,13 +1,17 @@
+using DbSqlLikeMem.Models;
+
 namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Base for an in-memory schema responsible for tables and procedures.
 /// PT: Base de um schema em memória, responsável por tabelas e procedimentos.
 /// </summary>
-public abstract class SchemaMock 
+public abstract class SchemaMock
     : ISchemaMock
     , IEnumerable<KeyValuePair<string, ITableMock>>
 {
+    private const int ParallelFkScanThreshold = 2048;
+
     /// <summary>
     /// EN: Initializes the schema with name, database, and optional collections.
     /// PT: Inicializa o schema com nome, banco e coleções opcionais.
@@ -19,7 +23,7 @@ public abstract class SchemaMock
     protected SchemaMock(
         string schemaName,
         DbMock db,
-        IDictionary<string, (IColumnDictionary columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null,
+        IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null,
         IDictionary<string, ProcedureDef>? procedures = null/*,
         IDictionary<string, SqlSelectQuery>? views = null*/
     )
@@ -85,7 +89,7 @@ public abstract class SchemaMock
     /// <returns>EN: New table instance. PT: Nova instância de tabela.</returns>
     protected abstract TableMock NewTable(
         string tableName,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null);
 
     /// <summary>
@@ -98,7 +102,7 @@ public abstract class SchemaMock
     /// <returns>EN: Created table. PT: Tabela criada.</returns>
     public TableMock CreateTable(
         string tableName,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null)
     {
         var t = NewTable(tableName, columns, rows);
@@ -116,7 +120,7 @@ public abstract class SchemaMock
     /// <returns>EN: New table instance. PT: Nova instância de tabela.</returns>
     internal TableMock CreateTableInstance(
         string tableName,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null)
         => NewTable(tableName, columns, rows);
 
@@ -232,7 +236,6 @@ public abstract class SchemaMock
     #endregion
 
     #endregion
-
     internal void ValidateForeignKeysOnDelete(
         string tableName,
         ITableMock table,
@@ -242,15 +245,11 @@ public abstract class SchemaMock
         {
             foreach (var childTable in tables.Values)
             {
-                foreach (var (Col, _, RefCol) in childTable.ForeignKeys.Where(f =>
-                    f.RefTable.Equals(tableName, StringComparison.OrdinalIgnoreCase)))
+                foreach (var fk in childTable.ForeignKeys.Values.Where(f =>
+                    f.RefTable.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)))
                 {
-                    var parentInfo = table.GetColumn(RefCol);
-                    var childInfo = childTable.GetColumn(Col);
-
-                    var keyVal = parentRow[parentInfo.Index];
-
-                    if (childTable.Any(childRow => Equals(childRow[childInfo.Index], keyVal)))
+                    if (HasReferenceByIndex(childTable, fk, parentRow)
+                        || HasReferenceByScan(childTable, fk, parentRow))
                     {
                         throw table.ReferencedRow(tableName);
                     }
@@ -258,4 +257,44 @@ public abstract class SchemaMock
             }
         }
     }
+
+    private bool HasReferenceByScan(
+        ITableMock childTable,
+        ForeignDef fk,
+        IReadOnlyDictionary<int, object?> parentRow)
+    {
+        if (Db.ThreadSafe && childTable.Count >= ParallelFkScanThreshold)
+        {
+            return childTable
+                .AsParallel()
+                .Any(childRow => fk.References.All(r =>
+                    Equals(childRow[r.col.Index], parentRow[r.refCol.Index])));
+        }
+
+        return childTable.Any(childRow => fk.References.All(r =>
+            Equals(childRow[r.col.Index], parentRow[r.refCol.Index])));
+    }
+
+    private static bool HasReferenceByIndex(
+        ITableMock childTable,
+        ForeignDef fk,
+        IReadOnlyDictionary<int, object?> parentRow)
+    {
+        var matchingIndex = childTable.Indexes.Values
+            .OrderByDescending(_ => _.KeyCols.Count)
+            .FirstOrDefault(ix => fk.References.All(r =>
+                ix.KeyCols.Contains(r.col.Name, StringComparer.OrdinalIgnoreCase)));
+
+        if (matchingIndex is null)
+            return false;
+
+        var valuesByColumn = fk.References.ToDictionary(
+            _ => _.col.Name.NormalizeName(),
+            _ => parentRow[_.refCol.Index],
+            StringComparer.OrdinalIgnoreCase);
+
+        var key = matchingIndex.BuildIndexKeyFromValues(valuesByColumn);
+        return matchingIndex.LookupMutable(key)?.Count > 0;
+    }
+
 }

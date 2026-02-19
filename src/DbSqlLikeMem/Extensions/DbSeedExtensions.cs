@@ -11,7 +11,7 @@ public static class DbSeedExtensions
     public static DbConnectionMockBase Define(
         this DbConnectionMockBase cnn,
         string tableName,
-        IColumnDictionary? columns = null,
+        IEnumerable<Col>? columns = null,
         IEnumerable<Dictionary<int, object?>>? rows = null,
         string? schemaName = null)
     {
@@ -28,7 +28,7 @@ public static class DbSeedExtensions
     public static ITableMock DefineTable(
         this DbConnectionMockBase cnn,
         string tableName,
-        IColumnDictionary? columns = null,
+        IEnumerable<Col>? columns = null,
         IEnumerable<Dictionary<int, object?>>? rows = null,
         string? schemaName = null)
     {
@@ -50,7 +50,6 @@ public static class DbSeedExtensions
         bool identity = false,
         bool nullable = false,
         object? defaultValue = null,
-        string? references = null,
         int? size = null,
         int? decimalPlaces = null,
         string? schemaName = null)
@@ -65,28 +64,18 @@ public static class DbSeedExtensions
         if (tb!.Columns.ContainsKey(column))
             throw new InvalidOperationException($"Coluna '{column}' já existe em '{tableName}'.");
 
-        var idx = tb.Columns.Count;
         var dbType = MapTypeToDbType(typeof(T));
 
-        tb.Columns[column] = new ColumnDef
-        {
-            Index = idx,
-            DbType = dbType,
-            Nullable = nullable,
-            Identity = identity,
-            DefaultValue = defaultValue,
-            Size = size,
-            DecimalPlaces = decimalPlaces
-        };
+        tb.AddColumn(
+            name: column,
+            dbType: dbType,
+            nullable: nullable,
+            decimalPlaces: decimalPlaces,
+            size: size,
+            identity: identity,
+            defaultValue: defaultValue
+        );
 
-        // opcional: armazenar PK info, se precisar depois
-        if (pk) tb.PrimaryKeyIndexes.Add(idx);
-
-        if (references is not null)
-        {
-            var parts = references.Split('.');
-            tb.CreateForeignKey(column, parts[0], parts[1]);
-        }
         return cnn;
     }
 
@@ -111,33 +100,19 @@ public static class DbSeedExtensions
         if (tb.Columns.ContainsKey(column))
             throw new InvalidOperationException($"Coluna '{column}' já existe em '{tb}'.");
 
-        var idx = tb.Columns.Count;
         var dbType = MapTypeToDbType(typeof(T));
 
-        tb.Columns[column] = new ColumnDef
-        {
-            Index = idx,
-            DbType = dbType,
-            Nullable = nullable,
-            Identity = identity,
-            DefaultValue = defaultValue,
-            Size = size,
-            DecimalPlaces = decimalPlaces,
-            EnumValues = enumOrSetValues?.Length > 0
-                ? new HashSet<string>(
-                    enumOrSetValues.Select(v => v.ToLower(CultureInfo.CurrentCulture)),
-                    StringComparer.OrdinalIgnoreCase)
-                : []
-        };
+        tb.AddColumn(
+            name: column,
+            dbType: dbType,
+            nullable: nullable,
+            decimalPlaces: decimalPlaces,
+            size: size,
+            identity: identity,
+            defaultValue: defaultValue,
+            enumValues: enumOrSetValues
+        );
 
-        // opcional: armazenar PK info, se precisar depois
-        if (pk) tb.PrimaryKeyIndexes.Add(idx);
-
-        if (references is not null)
-        {
-            var parts = references.Split('.');
-            tb.CreateForeignKey(column, parts[0], parts[1]);
-        }
         return tb;
     }
 
@@ -218,7 +193,7 @@ public static class DbSeedExtensions
         string[]? include = null)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(tb, nameof(tb));
-        tb.CreateIndex(new IndexDef(name, keyCols, include ?? []));
+        tb.CreateIndex(name, keyCols, include ?? []);
         return tb;
     }
 }

@@ -11,6 +11,7 @@ public sealed class SqliteDialectFeatureParserTests
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void ParseInsert_OnConflict_DoUpdate_ShouldParse(int version)
     {
@@ -28,6 +29,7 @@ public sealed class SqliteDialectFeatureParserTests
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void ParseWithCte_AsNotMaterialized_ShouldParse(int version)
     {
@@ -42,6 +44,7 @@ public sealed class SqliteDialectFeatureParserTests
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void ParseSelect_WithMySqlIndexHints_ShouldBeRejected(int version)
     {
@@ -56,6 +59,7 @@ public sealed class SqliteDialectFeatureParserTests
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
     {
@@ -71,6 +75,7 @@ public sealed class SqliteDialectFeatureParserTests
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void ParseSelect_UnionOrderBy_ShouldParseAsUnion(int version)
     {
@@ -92,6 +97,7 @@ public sealed class SqliteDialectFeatureParserTests
     /// </summary>
     /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
     public void RuntimeDialectRules_ShouldRemainStable(int version)
     {

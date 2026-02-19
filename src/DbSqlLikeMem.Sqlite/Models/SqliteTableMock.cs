@@ -7,7 +7,7 @@
 internal class SqliteTableMock(
         string tableName,
         SqliteSchemaMock schema,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null
         ) : TableMock(tableName, schema, columns, rows)
 {
@@ -29,7 +29,7 @@ internal class SqliteTableMock(
         DbType dbType,
         bool isNullable,
         IDataParameterCollection? pars = null,
-        IColumnDictionary? colDict = null)
+        IReadOnlyDictionary<string, ColumnDef>? colDict = null)
     {
         var exp = SqliteValueHelper.Resolve(token, dbType, isNullable, pars, colDict);
         return exp;

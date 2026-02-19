@@ -12,13 +12,14 @@ public sealed class OracleInsertStrategyTests(
     /// PT: Testa o comportamento de InsertIntoTableShouldAddNewRow.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void InsertIntoTableShouldAddNewRow()
     {
         // Arrange
         var db = new OracleDbMock();
         var table = db.AddTable("users");
-        table.Columns["id"] = new(0, DbType.Int32, false);
-        table.Columns["name"] = new(1, DbType.String, false);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("name", DbType.String, false);
 
         using var connection = new OracleConnectionMock(db);
         using var command = new OracleCommandMock(connection)

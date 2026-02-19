@@ -116,6 +116,8 @@ internal interface ISqlDialect
     bool AreUnionColumnTypesCompatible(DbType first, DbType second);
     bool IsIntegerCastTypeName(string typeName);
     bool SupportsDateAddFunction(string functionName);
+    bool SupportsWindowFunctions { get; }
+    bool SupportsPivotClause { get; }
     DbType InferWindowFunctionDbType(WindowFunctionExpr windowFunctionExpr, Func<SqlExpr, DbType> inferArgDbType);
 }
 
@@ -256,6 +258,8 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual bool LikeIsCaseInsensitive => true;
     public virtual bool SupportsIfFunction => true;
     public virtual bool SupportsIifFunction => true;
+    public virtual bool SupportsWindowFunctions => true;
+    public virtual bool SupportsPivotClause => false;
     public virtual IReadOnlyCollection<string> NullSubstituteFunctionNames
         => ["IFNULL", "ISNULL", "NVL"];
     public virtual bool ConcatReturnsNullOnNullInput => true;

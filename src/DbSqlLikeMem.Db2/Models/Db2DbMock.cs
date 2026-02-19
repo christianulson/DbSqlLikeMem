@@ -28,6 +28,6 @@ public class Db2DbMock
     /// <returns>EN: Schema mock. PT: Mock de schema.</returns>
     protected override SchemaMock NewSchema(
         string schemaName,
-        IDictionary<string, (IColumnDictionary columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null
+        IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null
         ) => new Db2SchemaMock(schemaName, this, tables);
 }

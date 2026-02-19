@@ -3,12 +3,14 @@ using System.Collections.ObjectModel;
 using System.Data.Common;
 using System.ComponentModel;
 using System.IO;
+using System.Text.Json;
 using System.Text;
 using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 using DbSqlLikeMem.VisualStudioExtension.Core.Persistence;
 using DbSqlLikeMem.VisualStudioExtension.Core.Services;
 using DbSqlLikeMem.VisualStudioExtension.Core.Validation;
+using DbSqlLikeMem.VisualStudioExtension.Properties;
 using DbSqlLikeMem.VisualStudioExtension.Services;
 
 namespace DbSqlLikeMem.VisualStudioExtension.UI;
@@ -19,6 +21,41 @@ namespace DbSqlLikeMem.VisualStudioExtension.UI;
 /// </summary>
 public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 {
+    /// <summary>
+    /// Represents a selectable table option for test scenario extraction.
+    /// Representa uma opção de tabela selecionável para extração de cenários de teste.
+    /// </summary>
+    public sealed class ScenarioTableOption
+    {
+        /// <summary>
+        /// Initializes a scenario table option.
+        /// Inicializa uma opção de tabela do cenário.
+        /// </summary>
+        public ScenarioTableOption(string schema, string tableName)
+        {
+            Schema = schema;
+            TableName = tableName;
+        }
+
+        /// <summary>
+        /// Gets the schema name.
+        /// Obtém o nome do schema.
+        /// </summary>
+        public string Schema { get; }
+
+        /// <summary>
+        /// Gets the table name.
+        /// Obtém o nome da tabela.
+        /// </summary>
+        public string TableName { get; }
+
+        /// <summary>
+        /// Gets the display name combining schema and table.
+        /// Obtém o nome de exibição combinando schema e tabela.
+        /// </summary>
+        public string DisplayName => string.IsNullOrWhiteSpace(Schema) ? TableName : $"{Schema}.{TableName}";
+    }
+
     private readonly StatePersistenceService statePersistenceService = new();
     private readonly SqlDatabaseMetadataProvider metadataProvider = new(new AdoNetSqlQueryExecutor());
     private readonly SemaphoreSlim operationLock = new(1, 1);
@@ -122,10 +159,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             var factory = AdoNetSqlQueryExecutor.GetFactory(databaseType);
-            using var connection = factory.CreateConnection() ?? throw new InvalidOperationException("Falha ao criar conexão.");
+            using var connection = factory.CreateConnection() ?? throw new InvalidOperationException(Resources.FailedCreateConnection);
             connection.ConnectionString = connectionString;
             await connection.OpenAsync(timeout.Token);
-            return (true, "Conexão validada com sucesso.");
+            return (true, Resources.ConnectionValidatedSuccessfully);
         }
         catch (Exception ex)
         {
@@ -228,7 +265,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         }
 
         SaveState();
-        SetStatusMessage("Mapeamentos atualizados.");
+        SetStatusMessage(Resources.MappingsUpdated);
     }
 
     /// <summary>
@@ -316,7 +353,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             NormalizePath(modelOutputDirectory),
             NormalizePath(repositoryOutputDirectory));
         SaveState();
-        SetStatusMessage("Templates de model/repositório atualizados.");
+        SetStatusMessage(Resources.TemplatesUpdated);
     }
 
 
@@ -338,12 +375,12 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     {
         if (string.IsNullOrWhiteSpace(filePath))
         {
-            throw new ArgumentException("Caminho de exportação inválido.", nameof(filePath));
+            throw new ArgumentException(Resources.InvalidExportPath, nameof(filePath));
         }
 
         var state = BuildPersistedState();
         await statePersistenceService.ExportAsync(state, filePath);
-        SetStatusMessage("Configurações exportadas com sucesso.");
+        SetStatusMessage(Resources.SettingsExportedSuccessfully);
     }
 
     /// <summary>
@@ -354,13 +391,13 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     {
         if (string.IsNullOrWhiteSpace(filePath))
         {
-            throw new ArgumentException("Caminho de importação inválido.", nameof(filePath));
+            throw new ArgumentException(Resources.InvalidImportPath, nameof(filePath));
         }
 
         var imported = await statePersistenceService.ImportAsync(filePath);
         if (imported is null)
         {
-            throw new InvalidOperationException("Arquivo de configuração vazio ou inválido.");
+            throw new InvalidOperationException(Resources.InvalidOrEmptySettingsFile);
         }
 
         connections.Clear();
@@ -384,7 +421,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
         SaveState();
         RefreshTree();
-        SetStatusMessage("Configurações importadas com sucesso.");
+        SetStatusMessage(Resources.SettingsImportedSuccessfully);
     }
 
 
@@ -508,8 +545,8 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
             RefreshTree();
             SetStatusMessage(failures.Count == 0
-                ? $"Objetos atualizados para {objectsByConnection.Count} conexão(ões)."
-                : $"Atualização parcial ({failures.Count} falha(s)). Veja o log para detalhes.");
+                ? string.Format(Resources.ObjectsUpdatedCount, objectsByConnection.Count)
+                : string.Format(Resources.PartialUpdateFailureCount, failures.Count));
         }
         finally
         {
@@ -563,14 +600,14 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
             if (!objectsByConnection.TryGetValue(connection.Id, out var objects))
             {
-                SetStatusMessage("Nenhum objeto carregado para gerar. Use Atualizar objetos primeiro.");
+                SetStatusMessage(Resources.NoObjectsLoadedUseRefresh);
                 return [];
             }
 
             var selectedObjects = ResolveSelectedObjects(node, objects).ToArray();
             if (selectedObjects.Length == 0)
             {
-                SetStatusMessage("Nenhum objeto selecionado para geração.");
+                SetStatusMessage(Resources.NoObjectSelectedForGeneration);
                 return [];
             }
 
@@ -580,7 +617,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             var generator = new ClassGenerator();
             var request = new GenerationRequest(connection, selectedObjects);
             var generated = await generator.GenerateAsync(request, mapping, o => StructuredClassContentFactory.Build(o, "Generated", connection.DatabaseType), token);
-            SetStatusMessage($"Geração de classes de teste concluída. Arquivos gerados: {generated.Count}.");
+            SetStatusMessage(string.Format(Resources.TestClassGenerationCompletedCount, generated.Count));
             return generated;
         }
         finally
@@ -604,6 +641,111 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     public Task<IReadOnlyCollection<string>> GenerateRepositoryClassesForNodeAsync(ExplorerNode node)
         => GenerateFromTemplateForNodeAsync(node, templateConfiguration.RepositoryTemplatePath, templateConfiguration.RepositoryOutputDirectory, "Repository", "// Repository for {{Schema}}.{{ObjectName}}\npublic class {{ClassName}}\n{\n}\n");
 
+    /// <summary>
+    /// Lists available tables for scenario extraction in a connection.
+    /// Lista as tabelas disponíveis para extração de cenário em uma conexão.
+    /// </summary>
+    public async Task<IReadOnlyCollection<ScenarioTableOption>> ListScenarioTablesAsync(string connectionId)
+    {
+        var connection = connections.FirstOrDefault(c => c.Id == connectionId);
+        if (connection is null)
+        {
+            return [];
+        }
+
+        if (!objectsByConnection.TryGetValue(connection.Id, out var objects))
+        {
+            objects = await metadataProvider.ListObjectsAsync(connection, CancellationToken.None);
+            objectsByConnection[connection.Id] = await EnrichTableObjectsAsync(connection, objects, CancellationToken.None);
+        }
+
+        return objectsByConnection[connection.Id]
+            .Where(x => x.Type == DatabaseObjectType.Table)
+            .OrderBy(x => x.Schema, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(x => new ScenarioTableOption(x.Schema, x.Name))
+            .ToArray();
+    }
+
+    /// <summary>
+    /// Loads preview rows for a selected table and filter.
+    /// Carrega linhas de pré-visualização para uma tabela e filtro selecionados.
+    /// </summary>
+    public async Task<IReadOnlyCollection<IReadOnlyDictionary<string, object?>>> PreviewScenarioRowsAsync(
+        string connectionId,
+        string schema,
+        string table,
+        string filter,
+        int limit = 200)
+    {
+        var connection = connections.FirstOrDefault(c => c.Id == connectionId);
+        if (connection is null)
+        {
+            return [];
+        }
+
+        var sql = BuildScenarioSelectSql(connection.DatabaseType, schema, table, filter, limit);
+        return await metadataProviderQueryAsync(connection, sql);
+    }
+
+    /// <summary>
+    /// Extracts a scenario file from selected rows with optional FK parent data.
+    /// Extrai um arquivo de cenário a partir das linhas selecionadas com dados pai de FK opcionais.
+    /// </summary>
+    public async Task<string> ExtractScenarioAsync(
+        string connectionId,
+        string scenarioName,
+        string schema,
+        string table,
+        string filter,
+        IReadOnlyCollection<IReadOnlyDictionary<string, object?>> selectedRows,
+        bool includeParentFk)
+    {
+        var connection = connections.FirstOrDefault(c => c.Id == connectionId)
+            ?? throw new InvalidOperationException(Resources.ConnectionNotFound);
+
+        var scenario = new Dictionary<string, object?>
+        {
+            ["scenarioName"] = scenarioName,
+            ["databaseType"] = connection.DatabaseType,
+            ["connectionName"] = connection.FriendlyName,
+            ["createdAtUtc"] = DateTime.UtcNow,
+            ["tables"] = new List<Dictionary<string, object?>>()
+        };
+
+        var tableEntries = (List<Dictionary<string, object?>>)scenario["tables"]!;
+        tableEntries.Add(new Dictionary<string, object?>
+        {
+            ["schema"] = schema,
+            ["table"] = table,
+            ["filter"] = filter,
+            ["rows"] = selectedRows
+        });
+
+        if (includeParentFk)
+        {
+            var parentRows = await LoadParentRowsByForeignKeysAsync(connection, schema, table, selectedRows);
+            foreach (var parent in parentRows)
+            {
+                tableEntries.Add(parent);
+            }
+        }
+
+        var outputDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DbSqlLikeMem", "Scenarios");
+        Directory.CreateDirectory(outputDirectory);
+        var safeName = string.Concat((scenarioName ?? "Scenario").Where(ch => !Path.GetInvalidFileNameChars().Contains(ch))).Trim();
+        if (string.IsNullOrWhiteSpace(safeName))
+        {
+            safeName = "Scenario";
+        }
+
+        var outputPath = Path.Combine(outputDirectory, $"{safeName}-{DateTime.UtcNow:yyyyMMddHHmmss}.json");
+        var json = JsonSerializer.Serialize(scenario, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(outputPath, json);
+        SetStatusMessage(string.Format(Resources.ScenarioExtractedSuccessfullyPath, outputPath));
+        return outputPath;
+    }
+
     private async Task<IReadOnlyCollection<string>> GenerateFromTemplateForNodeAsync(ExplorerNode node, string templatePath, string outputDirectory, string suffix, string fallbackTemplate)
     {
         if (!TryBeginOperation($"Gerando classes de {suffix.ToLowerInvariant()}..."))
@@ -617,14 +759,14 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             var connection = ResolveConnection(node);
             if (connection is null || !objectsByConnection.TryGetValue(connection.Id, out var objects))
             {
-                SetStatusMessage("Nenhum objeto carregado para gerar.");
+                SetStatusMessage(Resources.NoObjectsLoadedForGeneration);
                 return [];
             }
 
             var selectedObjects = ResolveSelectedObjects(node, objects).ToArray();
             if (selectedObjects.Length == 0)
             {
-                SetStatusMessage("Nenhum objeto selecionado para geração.");
+                SetStatusMessage(Resources.NoObjectSelectedForGeneration);
                 return [];
             }
 
@@ -634,7 +776,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                 var normalizedTemplatePath = NormalizePath(templatePath);
                 if (!File.Exists(normalizedTemplatePath))
                 {
-                    SetStatusMessage($"Template não encontrado: {normalizedTemplatePath}");
+                    SetStatusMessage(string.Format(Resources.TemplateNotFound, normalizedTemplatePath));
                     return [];
                 }
 
@@ -675,7 +817,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     /// </summary>
     public async Task CheckConsistencyAsync(ExplorerNode node)
     {
-        if (!TryBeginOperation("Checando consistência..."))
+        if (!TryBeginOperation(Resources.CheckingConsistency))
         {
             return;
         }
@@ -691,14 +833,14 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
             if (!objectsByConnection.TryGetValue(connection.Id, out var objects))
             {
-                SetStatusMessage("Nenhum objeto carregado para checar consistência.");
+                SetStatusMessage(Resources.NoObjectsLoadedForConsistency);
                 return;
             }
 
             var mapping = mappings.FirstOrDefault(m => m.ConnectionId == connection.Id);
             if (mapping is null)
             {
-                SetStatusMessage("Mapeamento não encontrado para a conexão selecionada.");
+                SetStatusMessage(Resources.MappingNotFoundForConnection);
                 return;
             }
 
@@ -706,7 +848,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             var selectedObjects = ResolveSelectedObjects(node, objects).ToArray();
             var updates = new ConcurrentBag<(string Key, ObjectHealthResult Result)>();
 
-            var tasks = selectedObjects.Select(async dbObject =>
+            var tasks = selectedObjects.Select((Func<DatabaseObjectReference, Task>)(async dbObject =>
             {
                 token.ThrowIfCancellationRequested();
 
@@ -715,7 +857,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                     return;
                 }
 
-                var filePath = Path.Combine(objectMapping.OutputDirectory, ResolveFileName(objectMapping.FileNamePattern, connection, dbObject));
+                var filePath = Path.Combine((string)objectMapping.OutputDirectory, ResolveFileName((string)objectMapping.FileNamePattern, connection, dbObject));
                 var modelPath = Path.Combine(NormalizePath(templateConfiguration.ModelOutputDirectory), $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}Model.cs");
                 var repositoryPath = Path.Combine(NormalizePath(templateConfiguration.RepositoryOutputDirectory), $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}Repository.cs");
 
@@ -726,14 +868,14 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                     var status = !hasModel && !hasRepository
                         ? ObjectHealthStatus.MissingLocalArtifacts
                         : ObjectHealthStatus.DifferentFromDatabase;
-                    updates.Add((BuildObjectKey(connection.Id, dbObject), new ObjectHealthResult(dbObject, filePath, status, "Arquivos gerados ausentes (classe/model/repositório).")));
+                    updates.Add((BuildObjectKey(connection.Id, dbObject), new ObjectHealthResult(dbObject, filePath, status, Resources.MissingGeneratedFiles)));
                     return;
                 }
 
                 var snapshot = await GeneratedClassSnapshotReader.ReadAsync(filePath, dbObject, token);
                 var result = await checker.CheckAsync(connection, snapshot, metadataProvider, token);
                 updates.Add((BuildObjectKey(connection.Id, dbObject), result));
-            });
+            }));
 
             await Task.WhenAll(tasks);
 
@@ -743,7 +885,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             }
 
             RefreshTree();
-            SetStatusMessage($"Checagem de consistência finalizada para {updates.Count} objeto(s).");
+            SetStatusMessage(string.Format(Resources.ConsistencyCheckCompletedCount, updates.Count));
         }
         finally
         {
@@ -785,7 +927,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             ExtensionLogger.Log($"LoadState error: {ex}");
-            SetStatusMessage("Estado local inválido. Iniciando com configuração vazia.");
+            SetStatusMessage(Resources.InvalidLocalStateStartingEmpty);
         }
     }
 
@@ -1057,7 +1199,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             });
         }
 
-        var indexesNode = new ExplorerNode("Índices", ExplorerNodeKind.TableDetailGroup)
+        var indexesNode = new ExplorerNode(Resources.IndexesLabel, ExplorerNodeKind.TableDetailGroup)
         {
             ConnectionId = tableNode.ConnectionId,
             TableDetailKind = "Indexes"
@@ -1072,7 +1214,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             });
         }
 
-        var foreignKeysNode = new ExplorerNode("Chave estrangeira", ExplorerNodeKind.TableDetailGroup)
+        var foreignKeysNode = new ExplorerNode(Resources.ForeignKeysLabel, ExplorerNodeKind.TableDetailGroup)
         {
             ConnectionId = tableNode.ConnectionId,
             TableDetailKind = "ForeignKeys"
@@ -1250,11 +1392,135 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             .Replace("\\,", ",")
             .Replace("\\\\", "\\");
 
+    private Task<IReadOnlyCollection<IReadOnlyDictionary<string, object?>>> metadataProviderQueryAsync(ConnectionDefinition connection, string sql)
+        => new AdoNetSqlQueryExecutor().QueryAsync(connection, sql, new Dictionary<string, object?>(), CancellationToken.None);
+
+    private static string BuildScenarioSelectSql(string databaseType, string schema, string table, string filter, int limit)
+    {
+        var safeLimit = limit < 1 ? 1 : limit > 2000 ? 2000 : limit;
+        var qualified = QualifyTable(databaseType, schema, table);
+        var whereClause = string.IsNullOrWhiteSpace(filter) ? string.Empty : $" WHERE {filter.Trim()}";
+
+        if (string.Equals(databaseType, "SqlServer", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"SELECT TOP {safeLimit} * FROM {qualified}{whereClause};";
+        }
+
+        return $"SELECT * FROM {qualified}{whereClause} LIMIT {safeLimit};";
+    }
+
+    private async Task<IReadOnlyCollection<Dictionary<string, object?>>> LoadParentRowsByForeignKeysAsync(
+        ConnectionDefinition connection,
+        string schema,
+        string table,
+        IReadOnlyCollection<IReadOnlyDictionary<string, object?>> selectedRows)
+    {
+        if (!objectsByConnection.TryGetValue(connection.Id, out var objects))
+        {
+            return [];
+        }
+
+        var source = objects.FirstOrDefault(o => o.Type == DatabaseObjectType.Table
+            && string.Equals(o.Schema, schema, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(o.Name, table, StringComparison.OrdinalIgnoreCase));
+
+        if (source is null)
+        {
+            return [];
+        }
+
+        var foreignKeys = ParseForeignKeys(source);
+        if (foreignKeys.Count == 0)
+        {
+            return [];
+        }
+
+        var parents = new List<Dictionary<string, object?>>();
+        foreach (var fk in foreignKeys)
+        {
+            var values = selectedRows
+                .Select(r => TryReadValueCaseInsensitive(r, fk.Column))
+                .Where(v => v is not null && v != DBNull.Value)
+                .Distinct()
+                .ToArray();
+
+            if (values.Length == 0)
+            {
+                continue;
+            }
+
+            var parentSchema = objects.FirstOrDefault(o => o.Type == DatabaseObjectType.Table && string.Equals(o.Name, fk.RefTable, StringComparison.OrdinalIgnoreCase))?.Schema
+                ?? schema;
+            var parentTable = QualifyTable(connection.DatabaseType, parentSchema, fk.RefTable);
+            var refColumn = QuoteIdentifier(connection.DatabaseType, fk.RefColumn);
+            var inValues = string.Join(", ", values.Select(v => FormatSqlLiteral(v!)));
+            var sql = $"SELECT * FROM {parentTable} WHERE {refColumn} IN ({inValues});";
+            var rows = await metadataProviderQueryAsync(connection, sql);
+
+            parents.Add(new Dictionary<string, object?>
+            {
+                ["schema"] = parentSchema,
+                ["table"] = fk.RefTable,
+                ["filter"] = $"{fk.RefColumn} IN (...)",
+                ["rows"] = rows
+            });
+        }
+
+        return parents;
+    }
+
+    private static object? TryReadValueCaseInsensitive(IReadOnlyDictionary<string, object?> row, string key)
+    {
+        foreach (var item in row)
+        {
+            if (string.Equals(item.Key, key, StringComparison.OrdinalIgnoreCase))
+            {
+                return item.Value;
+            }
+        }
+
+        return null;
+    }
+
+    private static string QualifyTable(string databaseType, string schema, string table)
+    {
+        var quotedTable = QuoteIdentifier(databaseType, table);
+        if (string.IsNullOrWhiteSpace(schema))
+        {
+            return quotedTable;
+        }
+
+        return $"{QuoteIdentifier(databaseType, schema)}.{quotedTable}";
+    }
+
+    private static string QuoteIdentifier(string databaseType, string identifier)
+    {
+        if (string.Equals(databaseType, "SqlServer", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"[{identifier.Replace("]", "]]")}]";
+        }
+
+        return $"\"{identifier.Replace("\"", "\"\"")}\"";
+    }
+
+    private static string FormatSqlLiteral(object value)
+        => value switch
+        {
+            null => "NULL",
+            string s => $"'{s.Replace("'", "''")}'",
+            DateTime dt => $"'{dt:yyyy-MM-dd HH:mm:ss.fffffff}'",
+            DateTimeOffset dto => $"'{dto:yyyy-MM-dd HH:mm:ss.fffffff zzz}'",
+            bool b => b ? "1" : "0",
+            Guid g => $"'{g}'",
+            _ when value is IFormattable f => f.ToString(null, System.Globalization.CultureInfo.InvariantCulture) ?? "NULL",
+            _ => $"'{value.ToString()?.Replace("'", "''")}'"
+        };
+
     private bool TryBeginOperation(string message)
     {
         if (!operationLock.Wait(0))
         {
-            SetStatusMessage("Já existe uma operação em andamento.");
+            SetStatusMessage(Resources.OperationAlreadyInProgress);
             return false;
         }
 

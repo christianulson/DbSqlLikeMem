@@ -51,18 +51,19 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de InsertUserShouldAddUserToTable.
     /// </summary>
     [Fact]
+    [Trait("Category", "DapperUser")]
     public void InsertUserShouldAddUserToTable()
     {
         // Arrange
         var db = new OracleDbMock();
         var table = db.AddTable("Users");
-        table.Columns["Id"] = new(0, DbType.Int32, false);
-        table.Columns["Name"] = new(1, DbType.String, false);
-        table.Columns["Email"] = new(2, DbType.String, false);
-        table.Columns["CreatedDate"] = new(3, DbType.DateTime, false);
-        table.Columns["UpdatedData"] = new(4, DbType.DateTime, true);
-        table.Columns["TestGuid"] = new(5, DbType.Guid, false);
-        table.Columns["TestGuidNull"] = new(6, DbType.Guid, true);
+        table.AddColumn("Id", DbType.Int32, false);
+        table.AddColumn("Name", DbType.String, false);
+        table.AddColumn("Email", DbType.String, false);
+        table.AddColumn("CreatedDate", DbType.DateTime, false);
+        table.AddColumn("UpdatedData", DbType.DateTime, true);
+        table.AddColumn("TestGuid", DbType.Guid, false);
+        table.AddColumn("TestGuidNull", DbType.Guid, true);
 
         using var connection = new OracleConnectionMock(db);
         connection.Open();
@@ -99,18 +100,19 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de QueryUserShouldReturnCorrectData.
     /// </summary>
     [Fact]
+    [Trait("Category", "DapperUser")]
     public void QueryUserShouldReturnCorrectData()
     {
         // Arrange
         var db = new OracleDbMock();
         var table = db.AddTable("Users");
-        table.Columns["Id"] = new(0, DbType.Int32, false);
-        table.Columns["Name"] = new(1, DbType.String, false);
-        table.Columns["Email"] = new(2, DbType.String, false);
-        table.Columns["CreatedDate"] = new(3, DbType.DateTime, false);
-        table.Columns["UpdatedData"] = new(4, DbType.DateTime, true);
-        table.Columns["TestGuid"] = new(5, DbType.Guid, false);
-        table.Columns["TestGuidNull"] = new(6, DbType.Guid, true);
+        table.AddColumn("Id", DbType.Int32, false);
+        table.AddColumn("Name", DbType.String, false);
+        table.AddColumn("Email", DbType.String, false);
+        table.AddColumn("CreatedDate", DbType.DateTime, false);
+        table.AddColumn("UpdatedData", DbType.DateTime, true);
+        table.AddColumn("TestGuid", DbType.Guid, false);
+        table.AddColumn("TestGuidNull", DbType.Guid, true);
 
         var user = new User
         {
@@ -155,18 +157,19 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de UpdateUserShouldModifyUserInTable.
     /// </summary>
     [Fact]
+    [Trait("Category", "DapperUser")]
     public void UpdateUserShouldModifyUserInTable()
     {
         // Arrange
         var db = new OracleDbMock();
         var table = db.AddTable("Users");
-        table.Columns["Id"] = new(0, DbType.Int32, false);
-        table.Columns["Name"] = new(1, DbType.String, false);
-        table.Columns["Email"] = new(2, DbType.String, false);
-        table.Columns["CreatedDate"] = new(3, DbType.DateTime, false);
-        table.Columns["UpdatedData"] = new(4, DbType.DateTime, true);
-        table.Columns["TestGuid"] = new(5, DbType.Guid, false);
-        table.Columns["TestGuidNull"] = new(6, DbType.Guid, true);
+        table.AddColumn("Id", DbType.Int32, false);
+        table.AddColumn("Name", DbType.String, false);
+        table.AddColumn("Email", DbType.String, false);
+        table.AddColumn("CreatedDate", DbType.DateTime, false);
+        table.AddColumn("UpdatedData", DbType.DateTime, true);
+        table.AddColumn("TestGuid", DbType.Guid, false);
+        table.AddColumn("TestGuidNull", DbType.Guid, true);
 
         var user = new User
         {
@@ -225,18 +228,19 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de DeleteUserShouldRemoveUserFromTable.
     /// </summary>
     [Fact]
+    [Trait("Category", "DapperUser")]
     public void DeleteUserShouldRemoveUserFromTable()
     {
         // Arrange
         var db = new OracleDbMock();
         var table = db.AddTable("Users");
-        table.Columns["Id"] = new(0, DbType.Int32, false);
-        table.Columns["Name"] = new(1, DbType.String, false);
-        table.Columns["Email"] = new(2, DbType.String, false);
-        table.Columns["CreatedDate"] = new(3, DbType.DateTime, false);
-        table.Columns["UpdatedData"] = new(4, DbType.DateTime, true);
-        table.Columns["TestGuid"] = new(5, DbType.Guid, false);
-        table.Columns["TestGuidNull"] = new(6, DbType.Guid, true);
+        table.AddColumn("Id", DbType.Int32, false);
+        table.AddColumn("Name", DbType.String, false);
+        table.AddColumn("Email", DbType.String, false);
+        table.AddColumn("CreatedDate", DbType.DateTime, false);
+        table.AddColumn("UpdatedData", DbType.DateTime, true);
+        table.AddColumn("TestGuid", DbType.Guid, false);
+        table.AddColumn("TestGuidNull", DbType.Guid, true);
 
         var user = new User
         {
@@ -276,28 +280,29 @@ public sealed class DapperUserTests(
     /// PT: Testa o comportamento de QueryMultipleShouldReturnMultipleUserResultSets.
     /// </summary>
     [Fact]
+    [Trait("Category", "DapperUser")]
     public void QueryMultipleShouldReturnMultipleUserResultSets()
     {
         // Arrange
         var db = new OracleDbMock();
         var table1 = db.AddTable("Users1");
-        table1.Columns["Id"] = new(0, DbType.Int32, false);
-        table1.Columns["Name"] = new(1, DbType.String, false);
-        table1.Columns["Email"] = new(2, DbType.String, false);
-        table1.Columns["CreatedDate"] = new(3, DbType.DateTime, false);
-        table1.Columns["UpdatedData"] = new(4, DbType.DateTime, true);
-        table1.Columns["TestGuid"] = new(5, DbType.Guid, false);
-        table1.Columns["TestGuidNull"] = new(6, DbType.Guid, true);
+        table1.AddColumn("Id", DbType.Int32, false);
+        table1.AddColumn("Name", DbType.String, false);
+        table1.AddColumn("Email", DbType.String, false);
+        table1.AddColumn("CreatedDate", DbType.DateTime, false);
+        table1.AddColumn("UpdatedData", DbType.DateTime, true);
+        table1.AddColumn("TestGuid", DbType.Guid, false);
+        table1.AddColumn("TestGuidNull", DbType.Guid, true);
         table1.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "John Doe" }, { 2, "john.doe@example.com" }, { 3, DateTime.Now }, { 4, null }, { 5, Guid.NewGuid() }, { 6, null } });
 
         var table2 = db.AddTable("Users2");
-        table2.Columns["Id"] = new(0, DbType.Int32, false);
-        table2.Columns["Name"] = new(1, DbType.String, false);
-        table2.Columns["Email"] = new(2, DbType.String, false);
-        table2.Columns["CreatedDate"] = new(3, DbType.DateTime, false);
-        table2.Columns["UpdatedData"] = new(4, DbType.DateTime, true);
-        table2.Columns["TestGuid"] = new(5, DbType.Guid, false);
-        table2.Columns["TestGuidNull"] = new(6, DbType.Guid, true);
+        table2.AddColumn("Id", DbType.Int32, false);
+        table2.AddColumn("Name", DbType.String, false);
+        table2.AddColumn("Email", DbType.String, false);
+        table2.AddColumn("CreatedDate", DbType.DateTime, false);
+        table2.AddColumn("UpdatedData", DbType.DateTime, true);
+        table2.AddColumn("TestGuid", DbType.Guid, false);
+        table2.AddColumn("TestGuidNull", DbType.Guid, true);
         table2.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, "Jane Doe" }, { 2, "jane.doe@example.com" }, { 3, DateTime.Now }, { 4, null }, { 5, Guid.NewGuid() }, { 6, null } });
 
         using var connection = new OracleConnectionMock(db);

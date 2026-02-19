@@ -1,94 +1,20 @@
-﻿namespace DbSqlLikeMem.Sqlite.Test;
+namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Provides SQLite-specific coverage for CSV loading and index behaviors.
+/// PT: Fornece cobertura específica de SQLite para comportamentos de carregamento de CSV e índices.
 /// </summary>
+/// <param name="helper">
+/// EN: Output helper used by the test base.
+/// PT: Helper de saída usado pela base de testes.
+/// </param>
 public sealed class CsvLoaderAndIndexTests(
     ITestOutputHelper helper
-    ) : XUnitTestBase(helper)
+    ) : CsvLoaderAndIndexTestBase<SqliteDbMock, SqliteMockException>(helper)
 {
     /// <summary>
-    /// EN: Tests CsvLoader_ShouldLoadRows_ByColumnName behavior.
-    /// PT: Testa o comportamento de CsvLoader_ShouldLoadRows_ByColumnName.
+    /// EN: Creates a new SQLite mock database for each scenario.
+    /// PT: Cria um novo banco mock de SQLite para cada cenário.
     /// </summary>
-    [Fact]
-    public void CsvLoader_ShouldLoadRows_ByColumnName()
-    {
-        var db = new SqliteDbMock();
-        var tb = db.AddTable("users");
-        tb.Columns["id"] = new(0, DbType.Int32, false);
-        tb.Columns["name"] = new(1, DbType.String, false);
-
-        using var cnn = new SqliteConnectionMock(db);
-
-        var tmp = Path.GetTempFileName();
-        File.WriteAllText(tmp,
-            "id,name\n" +
-            "1,John\n" +
-            "2,Jane\n");
-
-        db.LoadCsv(tmp, "users");
-
-        Assert.Equal(2, tb.Count);
-        Assert.Equal("John", tb[0][1]);
-    }
-
-    /// <summary>
-    /// EN: Tests GetColumn_ShouldThrow_UnknownColumn behavior.
-    /// PT: Testa o comportamento de GetColumn_ShouldThrow_UnknownColumn.
-    /// </summary>
-    [Fact]
-    public void GetColumn_ShouldThrow_UnknownColumn()
-    {
-        var db = new SqliteDbMock();
-        var tb = db.AddTable("users");
-        tb.Columns["id"] = new(0, DbType.Int32, false);
-
-        var ex = Assert.Throws<SqliteMockException>(() => tb.GetColumn("nope"));
-        Assert.Equal(1054, ex.ErrorCode);
-    }
-
-    /// <summary>
-    /// EN: Tests Index_Lookup_ShouldReturnRowPositions behavior.
-    /// PT: Testa o comportamento de Index_Lookup_ShouldReturnRowPositions.
-    /// </summary>
-    [Fact]
-    public void Index_Lookup_ShouldReturnRowPositions()
-    {
-        var db = new SqliteDbMock();
-        var tb = db.AddTable("users");
-        tb.Columns["id"] = new(0, DbType.Int32, false);
-        tb.Columns["name"] = new(1, DbType.String, false);
-
-        tb.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John" });
-        tb.Add(new Dictionary<int, object?> { [0] = 2, [1] = "John" });
-        tb.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Jane" });
-
-        var idxDef = new IndexDef("ix_name", ["name"]);
-        tb.CreateIndex(idxDef);
-
-        var ix = tb.Lookup(idxDef, "John" );
-        Assert.Equal([0, 1], [.. ix!.OrderBy(_=>_)]);
-    }
-
-    /// <summary>
-    /// EN: Tests BackupRestore_ShouldRollbackData behavior.
-    /// PT: Testa o comportamento de BackupRestore_ShouldRollbackData.
-    /// </summary>
-    [Fact]
-    public void BackupRestore_ShouldRollbackData()
-    {
-        var db = new SqliteDbMock();
-        var tb = db.AddTable("users");
-        tb.Columns["id"] = new(0, DbType.Int32, false);
-        tb.Columns["name"] = new(1, DbType.String, false);
-
-        tb.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John" });
-
-        tb.Backup();
-        tb.UpdateRowColumn(0,1, "Hacked");
-        tb.Restore();
-
-        Assert.Equal("John", tb[0][1]);
-    }
+    protected override SqliteDbMock CreateDb() => new();
 }

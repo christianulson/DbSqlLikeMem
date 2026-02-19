@@ -11,11 +11,12 @@ public sealed class SqliteTriggerStrategyTests
     /// PT: Garante que um gatilho AFTER INSERT seja executado para uma tabela não temporária.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void NonTemporaryTable_ShouldExecuteAfterInsertTrigger()
     {
         var db = new SqliteDbMock();
         var table = db.AddTable("users");
-        table.Columns["id"] = new(0, DbType.Int32, false);
+        table.AddColumn("id", DbType.Int32, false);
 
         var calls = 0;
         var triggerTable = Assert.IsType<TableMock>(table, exactMatch: false);
@@ -33,13 +34,14 @@ public sealed class SqliteTriggerStrategyTests
     /// PT: Garante que os gatilhos não sejam executados para uma tabela temporária.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void TemporaryTable_ShouldNotExecuteAfterInsertTrigger()
     {
         var db = new SqliteDbMock();
         using var connection = new SqliteConnectionMock(db);
 
         var table = connection.AddTemporaryTable("temp_users");
-        table.Columns["id"] = new(0, DbType.Int32, false);
+        table.AddColumn("id", DbType.Int32, false);
 
         var calls = 0;
         var triggerTable = Assert.IsType<TableMock>(table, exactMatch: false);

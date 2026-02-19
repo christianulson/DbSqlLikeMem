@@ -12,6 +12,7 @@ public sealed class MySqlCommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_remove_1_linha.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void ExecuteNonQuery_DELETE_remove_1_linha()
     {
         var db = new MySqlDbMock();
@@ -35,6 +36,7 @@ public sealed class MySqlCommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_remove_varias_linhas.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void ExecuteNonQuery_DELETE_remove_varias_linhas()
     {
         var db = new MySqlDbMock();
@@ -59,6 +61,7 @@ public sealed class MySqlCommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_quando_nao_acha_retorna_0.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void ExecuteNonQuery_DELETE_quando_nao_acha_retorna_0()
     {
         var db = new MySqlDbMock();
@@ -80,6 +83,7 @@ public sealed class MySqlCommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_tabela_inexistente_dispara.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void ExecuteNonQuery_DELETE_tabela_inexistente_dispara()
     {
         var db = new MySqlDbMock();
@@ -95,6 +99,7 @@ public sealed class MySqlCommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_sem_FROM_remove_1_linha.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void ExecuteNonQuery_DELETE_sem_FROM_remove_1_linha()
     {
         var db = new MySqlDbMock();
@@ -118,6 +123,7 @@ public sealed class MySqlCommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_bloqueia_quando_fk_referencia.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void ExecuteNonQuery_DELETE_bloqueia_quando_fk_referencia()
     {
         var db = new MySqlDbMock();
@@ -126,7 +132,7 @@ public sealed class MySqlCommandDeleteTests(
 
         var child = NewChildTable(db);
         // FK: child.parent_id -> parent.id
-        child.CreateForeignKey("parent_id", "parent", "id");
+        child.CreateForeignKey("ix_parent_id", parent.TableName, [("parent_id", "id")]);
         child.Add(RowChild(id: 1, parentId: 10));
 
         using var conn = NewConn(threadSafe: false, db);
@@ -144,6 +150,7 @@ public sealed class MySqlCommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_funciona_com_ThreadSafe_true_ou_false.
     /// </summary>
     [Theory]
+    [Trait("Category", "Strategy")]
     [InlineData(false)]
     [InlineData(true)]
     public void ExecuteNonQuery_DELETE_funciona_com_ThreadSafe_true_ou_false(bool threadSafe)
@@ -166,6 +173,7 @@ public sealed class MySqlCommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_case_insensitive.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void ExecuteNonQuery_DELETE_case_insensitive()
     {
         var db = new MySqlDbMock();
@@ -186,6 +194,7 @@ public sealed class MySqlCommandDeleteTests(
     /// PT: Testa o comportamento de ExecuteNonQuery_DELETE_com_parametro_se_suportado.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void ExecuteNonQuery_DELETE_com_parametro_se_suportado()
     {
         var db = new MySqlDbMock();
@@ -219,23 +228,23 @@ public sealed class MySqlCommandDeleteTests(
     private static ITableMock NewUsersTable(MySqlDbMock db)
     {
         var t = db.AddTable("users");
-        t.Columns["id"] = new ColumnDef(0, DbType.Int32, false);
-        t.Columns["name"] = new ColumnDef(1, DbType.String, false);
+        t.AddColumn("id", DbType.Int32, false);
+        t.AddColumn("name", DbType.String, false);
         return t;
     }
 
     private static ITableMock NewParentTable(MySqlDbMock db)
     {
         var t = db.AddTable("parent");
-        t.Columns["id"] = new ColumnDef(0, DbType.Int32, false);
+        t.AddColumn("id", DbType.Int32, false);
         return t;
     }
 
     private static ITableMock NewChildTable(MySqlDbMock db)
     {
         var t = db.AddTable("child");
-        t.Columns["id"] = new ColumnDef(0, DbType.Int32, false);
-        t.Columns["parent_id"] = new ColumnDef(1, DbType.Int32, false);
+        t.AddColumn("id", DbType.Int32, false);
+        t.AddColumn("parent_id", DbType.Int32, false);
         return t;
     }
 

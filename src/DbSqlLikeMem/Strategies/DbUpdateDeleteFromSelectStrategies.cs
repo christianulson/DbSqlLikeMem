@@ -2,10 +2,10 @@ namespace DbSqlLikeMem;
 
 internal static class DbUpdateDeleteFromSelectStrategies
 {
-    private static readonly Regex _regexDelete = new Regex(
+    private static readonly Regex _regexDelete = new(
         @"^DELETE\s+(?<a>[A-Za-z0-9_]+)\s+FROM\s+`?(?<table>[A-Za-z0-9_]+)`?\s+(?<a2>[A-Za-z0-9_]+)\s+JOIN\s*\(\s*(?<sub>(SELECT|WITH)\b[\s\S]*?)\s*\)\s+(?<s>[A-Za-z0-9_]+)\s+ON\s+(?<on>[\s\S]*?)\s*;?\s*$",
         RegexOptions.IgnoreCase | RegexOptions.Singleline);
-    private static readonly Regex _regexOnSql = new Regex(@"^(?<l>[A-Za-z0-9_]+)\.(?<lc>[A-Za-z0-9_`]+)\s*=\s*(?<r>[A-Za-z0-9_]+)\.(?<rc>[A-Za-z0-9_`]+)$", RegexOptions.IgnoreCase);
+    private static readonly Regex _regexOnSql = new(@"^(?<l>[A-Za-z0-9_]+)\.(?<lc>[A-Za-z0-9_`]+)\s*=\s*(?<r>[A-Za-z0-9_]+)\.(?<rc>[A-Za-z0-9_`]+)$", RegexOptions.IgnoreCase);
 
     /// <summary>
     /// Auto-generated summary.
@@ -296,7 +296,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
             deleted++;
         }
 
-        // rebuild indexes
+        // rebuild _indexes
         target.RebuildAllIndexes();
         connection.Metrics.Deletes += deleted;
         return deleted;

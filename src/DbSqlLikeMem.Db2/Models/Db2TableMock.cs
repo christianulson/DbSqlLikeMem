@@ -7,7 +7,7 @@
 internal class Db2TableMock(
         string tableName,
         Db2SchemaMock schema,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null
         ) : TableMock(tableName, schema, columns, rows)
 {
@@ -29,7 +29,7 @@ internal class Db2TableMock(
         DbType dbType,
         bool isNullable,
         IDataParameterCollection? pars = null,
-        IColumnDictionary? colDict = null)
+        IReadOnlyDictionary<string, ColumnDef>? colDict = null)
     {
         var exp = Db2ValueHelper.Resolve(token, dbType, isNullable, pars, colDict);
         return exp;

@@ -11,12 +11,13 @@ public sealed class MySqlTransactionReliabilityTests
     /// PT: Garante que rollback para savepoint restaure o estado intermediário.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlTransactionReliability")]
     public void SavepointRollbackShouldRestoreIntermediateState()
     {
         var db = new MySqlDbMock();
         var table = db.AddTable("Users");
-        table.Columns["Id"] = new(0, DbType.Int32, false);
-        table.Columns["Name"] = new(1, DbType.String, false);
+        table.AddColumn("Id", DbType.Int32, false);
+        table.AddColumn("Name", DbType.String, false);
 
         using var connection = new MySqlConnectionMock(db);
         connection.Open();
@@ -38,6 +39,7 @@ public sealed class MySqlTransactionReliabilityTests
     /// PT: Garante que o modelo simplificado de isolamento seja determinístico e visível.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlTransactionReliability")]
     public void IsolationLevelShouldBeExposedDeterministically()
     {
         var db = new MySqlDbMock();
@@ -55,6 +57,7 @@ public sealed class MySqlTransactionReliabilityTests
     /// PT: Garante que o suporte a release de savepoint siga as regras de compatibilidade do provedor.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlTransactionReliability")]
     public void ReleaseSavepointCompatibilityShouldBeProviderSpecific()
     {
         var db = new MySqlDbMock();
@@ -72,12 +75,13 @@ public sealed class MySqlTransactionReliabilityTests
     /// PT: Garante que escritas concorrentes mantenham dados consistentes com thread safety habilitado.
     /// </summary>
     [Fact]
+    [Trait("Category", "MySqlTransactionReliability")]
     public void ConcurrentInsertsShouldRemainConsistentWhenThreadSafeEnabled()
     {
         var db = new MySqlDbMock { ThreadSafe = true };
         var table = db.AddTable("Users");
-        table.Columns["Id"] = new(0, DbType.Int32, false);
-        table.Columns["Name"] = new(1, DbType.String, false);
+        table.AddColumn("Id", DbType.Int32, false);
+        table.AddColumn("Name", DbType.String, false);
 
         Parallel.For(1, 41, id =>
         {

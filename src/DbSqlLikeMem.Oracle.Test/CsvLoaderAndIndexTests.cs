@@ -1,95 +1,20 @@
 namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
-/// EN: Defines the class CsvLoaderAndIndexTests.
-/// PT: Define o(a) class CsvLoaderAndIndexTests.
+/// EN: Runs CsvLoader and index shared tests using the Oracle mock implementation.
+/// PT: Executa os testes compartilhados de CsvLoader e índices usando a implementação mock de Oracle.
 /// </summary>
+/// <param name="helper">
+/// EN: xUnit output helper used by the shared base test class.
+/// PT: Helper de saída do xUnit usado pela classe base de testes compartilhada.
+/// </param>
 public sealed class CsvLoaderAndIndexTests(
     ITestOutputHelper helper
-    ) : XUnitTestBase(helper)
+    ) : CsvLoaderAndIndexTestBase<OracleDbMock, OracleMockException>(helper)
 {
     /// <summary>
-    /// EN: Tests CsvLoader_ShouldLoadRows_ByColumnName behavior.
-    /// PT: Testa o comportamento de CsvLoader_ShouldLoadRows_ByColumnName.
+    /// EN: Creates a new Oracle mock database for each test execution.
+    /// PT: Cria um novo banco mock de Oracle para cada execução de teste.
     /// </summary>
-    [Fact]
-    public void CsvLoader_ShouldLoadRows_ByColumnName()
-    {
-        var db = new OracleDbMock();
-        var tb = db.AddTable("users");
-        tb.Columns["id"] = new(0, DbType.Int32, false);
-        tb.Columns["name"] = new(1, DbType.String, false);
-
-        using var cnn = new OracleConnectionMock(db);
-
-        var tmp = Path.GetTempFileName();
-        File.WriteAllText(tmp,
-            "id,name\n" +
-            "1,John\n" +
-            "2,Jane\n");
-
-        db.LoadCsv(tmp, "users");
-
-        Assert.Equal(2, db.GetTable("users").Count);
-        Assert.Equal("John", cnn.Db.GetTable("users")[0][1]);
-    }
-
-    /// <summary>
-    /// EN: Tests GetColumn_ShouldThrow_UnknownColumn behavior.
-    /// PT: Testa o comportamento de GetColumn_ShouldThrow_UnknownColumn.
-    /// </summary>
-    [Fact]
-    public void GetColumn_ShouldThrow_UnknownColumn()
-    {
-        var db = new OracleDbMock();
-        var tb = db.AddTable("users");
-        tb.Columns["id"] = new(0, DbType.Int32, false);
-
-        var ex = Assert.Throws<OracleMockException>(() => tb.GetColumn("nope"));
-        Assert.Equal(1054, ex.ErrorCode);
-    }
-
-    /// <summary>
-    /// EN: Tests Index_Lookup_ShouldReturnRowPositions behavior.
-    /// PT: Testa o comportamento de Index_Lookup_ShouldReturnRowPositions.
-    /// </summary>
-    [Fact]
-    public void Index_Lookup_ShouldReturnRowPositions()
-    {
-        var db = new OracleDbMock();
-        var tb = db.AddTable("users");
-        tb.Columns["id"] = new(0, DbType.Int32, false);
-        tb.Columns["name"] = new(1, DbType.String, false);
-
-        tb.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John" });
-        tb.Add(new Dictionary<int, object?> { [0] = 2, [1] = "John" });
-        tb.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Jane" });
-
-        var idxDef = new IndexDef("ix_name", ["name"]);
-        tb.CreateIndex(idxDef);
-
-        var ix = tb.Lookup(idxDef, "John" );
-        Assert.Equal([0, 1], [.. ix!.OrderBy(_=>_)]);
-    }
-
-    /// <summary>
-    /// EN: Tests BackupRestore_ShouldRollbackData behavior.
-    /// PT: Testa o comportamento de BackupRestore_ShouldRollbackData.
-    /// </summary>
-    [Fact]
-    public void BackupRestore_ShouldRollbackData()
-    {
-        var db = new OracleDbMock();
-        var tb = db.AddTable("users");
-        tb.Columns["id"] = new(0, DbType.Int32, false);
-        tb.Columns["name"] = new(1, DbType.String, false);
-
-        tb.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John" });
-
-        tb.Backup();
-        tb.UpdateRowColumn(0, 1, "Hacked");
-        tb.Restore();
-
-        Assert.Equal("John", tb[0][1]);
-    }
+    protected override OracleDbMock CreateDb() => new();
 }

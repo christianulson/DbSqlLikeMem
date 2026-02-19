@@ -85,7 +85,7 @@ namespace System.Diagnostics.CodeAnalysis
 }
 #endif
 
-#if NET48 || NETSTANDARD2_1
+#if NET48
 
 namespace System.Diagnostics.CodeAnalysis
 {

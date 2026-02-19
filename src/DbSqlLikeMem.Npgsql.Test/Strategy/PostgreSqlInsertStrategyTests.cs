@@ -11,13 +11,14 @@ public sealed class PostgreSqlInsertStrategyTests(
     /// PT: Testa o comportamento de InsertIntoTableShouldAddNewRow.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void InsertIntoTableShouldAddNewRow()
     {
         // Arrange
         var db = new NpgsqlDbMock();
         var table = db.AddTable("users");
-        table.Columns["id"] = new(0, DbType.Int32, false);
-        table.Columns["name"] = new(1, DbType.String, false);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("name", DbType.String, false);
 
         using var connection = new NpgsqlConnectionMock(db);
         using var command = new NpgsqlCommandMock(connection)

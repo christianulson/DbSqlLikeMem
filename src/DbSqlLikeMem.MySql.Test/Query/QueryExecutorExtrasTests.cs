@@ -13,9 +13,9 @@ public sealed class QueryExecutorExtrasTests(
     {
         var db = new MySqlDbMock();
         var t = db.AddTable("tx");
-        t.Columns["id"] = new ColumnDef(0, DbType.Int32, false);
-        t.Columns["grp"] = new ColumnDef(1, DbType.String, false);
-        t.Columns["amt"] = new ColumnDef(2, DbType.Decimal, false);
+        t.AddColumn("id", DbType.Int32, false);
+        t.AddColumn("grp", DbType.String, false);
+        t.AddColumn("amt", DbType.Decimal, false, decimalPlaces: 2);
         // seed 1:A(10),1:B(20),2:A(30)
         t.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "A" }, { 2, 10m } });
         t.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, "B" }, { 2, 20m } });
@@ -28,6 +28,7 @@ public sealed class QueryExecutorExtrasTests(
     /// PT: Testa o comportamento de GroupByAndAggregationsShouldComputeCorrectly.
     /// </summary>
     [Fact]
+    [Trait("Category", "Query")]
     public void GroupByAndAggregationsShouldComputeCorrectly()
     {
         // Arrange
@@ -65,13 +66,14 @@ GROUP BY grp";
     /// PT: Testa o comportamento de OrderByLimitOffsetShouldPageCorrectly.
     /// </summary>
     [Fact]
+    [Trait("Category", "Query")]
     public void OrderByLimitOffsetShouldPageCorrectly()
     {
         // Arrange
         var db = new MySqlDbMock();
         var table = db.AddTable("t");
-        table.Columns["id"] = new ColumnDef(0, DbType.Int32, false);
-        table.Columns["iddesc"] = new ColumnDef(1, DbType.Int32, false);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("iddesc", DbType.Int32, false);
         for (int i = 1; i <= 5; i++)
             table.Add(new Dictionary<int, object?> { { 0, i }, { 1, 4 - i } });
         using var c = new MySqlConnectionMock(db);
@@ -114,6 +116,7 @@ public class SqlTranslatorTests
     /// PT: Testa o comportamento de TranslateBasicWhereAndOrderBySqlCorrect.
     /// </summary>
     [Fact]
+    [Trait("Category", "Query")]
     public void TranslateBasicWhereAndOrderBySqlCorrect()
     {
         // Arrange

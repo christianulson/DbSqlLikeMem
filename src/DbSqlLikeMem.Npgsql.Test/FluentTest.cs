@@ -30,6 +30,7 @@ public sealed class FluentTest(
     /// PT: Testa o comportamento de InsertUpdateDeleteFluentScenario.
     /// </summary>
     [Fact]
+    [Trait("Category", "FluentTest")]
     public void InsertUpdateDeleteFluentScenario()
     {
         using var cnn = BuildConnection();
@@ -73,6 +74,7 @@ public sealed class FluentTest(
     /// PT: Testa o comportamento de TestFluent.
     /// </summary>
     [Fact]
+    [Trait("Category", "FluentTest")]
     public void TestFluent()
     {
         using var cnn = new NpgsqlConnectionMock();

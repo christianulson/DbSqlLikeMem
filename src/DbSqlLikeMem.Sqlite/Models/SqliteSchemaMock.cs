@@ -7,7 +7,7 @@
 public class SqliteSchemaMock(
     string schemaName,
     SqliteDbMock db,
-    IDictionary<string, (IColumnDictionary columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null
+    IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null
     ) : SchemaMock(schemaName, db, tables)
 {
     /// <summary>
@@ -20,7 +20,7 @@ public class SqliteSchemaMock(
     /// <returns>EN: Table mock. PT: Mock de tabela.</returns>
     protected override TableMock NewTable(
         string tableName,
-        IColumnDictionary columns,
+        IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null)
         => new SqliteTableMock(tableName, this, columns, rows);
 }

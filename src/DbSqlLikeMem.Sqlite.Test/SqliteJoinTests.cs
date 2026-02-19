@@ -14,17 +14,17 @@ public sealed class SqliteJoinTests : XUnitTestBase
     {
         var db = new SqliteDbMock();
         var users = db.AddTable("users");
-        users.Columns["id"] = new(0, DbType.Int32, false);
-        users.Columns["name"] = new(1, DbType.String, false);
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
 
         users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John" });
         users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Jane" });
 
         var orders = db.AddTable("orders");
-        orders.Columns["id"] = new(0, DbType.Int32, false);
-        orders.Columns["userId"] = new(1, DbType.Int32, false);
-        orders.Columns["amount"] = new(2, DbType.Decimal, false);
-        orders.Columns["status"] = new(3, DbType.String, false);
+        orders.AddColumn("id", DbType.Int32, false);
+        orders.AddColumn("userId", DbType.Int32, false);
+        orders.AddColumn("amount", DbType.Decimal, false, decimalPlaces: 2);
+        orders.AddColumn("status", DbType.String, false);
 
         orders.Add(new Dictionary<int, object?> { [0] = 10, [1] = 1, [2] = 100m, [3] = "paid" });
         orders.Add(new Dictionary<int, object?> { [0] = 11, [1] = 1, [2] = 50m, [3] = "open" });
@@ -39,6 +39,7 @@ public sealed class SqliteJoinTests : XUnitTestBase
     /// PT: Testa o comportamento de LeftJoin_ShouldKeepAllLeftRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteJoin")]
     public void LeftJoin_ShouldKeepAllLeftRows()
     {
         const string sql = """
@@ -59,6 +60,7 @@ public sealed class SqliteJoinTests : XUnitTestBase
     /// PT: Testa o comportamento de RightJoin_ShouldKeepAllRightRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteJoin")]
     public void RightJoin_ShouldKeepAllRightRows()
     {
         const string sql = """
@@ -93,6 +95,7 @@ public sealed class SqliteJoinTests : XUnitTestBase
     /// PT: Testa o comportamento de Join_ON_WithMultipleConditions_AND_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteJoin")]
     public void Join_ON_WithMultipleConditions_AND_ShouldWork()
     {
         const string sql = """

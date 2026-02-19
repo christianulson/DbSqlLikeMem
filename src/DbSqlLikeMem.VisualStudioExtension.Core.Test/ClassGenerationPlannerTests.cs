@@ -11,6 +11,7 @@ public class ClassGenerationPlannerTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "ClassGenerationPlanner")]
     public void BuildPlan_WithoutConfiguration_RequiresConfiguration()
     {
         var planner = new ClassGenerationPlanner();
@@ -30,6 +31,7 @@ public class ClassGenerationPlannerTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "ClassGenerationPlanner")]
     public void BuildPlan_WithPartialMappings_ReturnsMissingTypes()
     {
         var planner = new ClassGenerationPlanner();

@@ -57,7 +57,7 @@ public abstract class DbMock
     /// <returns>EN: New schema instance. PT: Nova instância de schema.</returns>
     protected abstract SchemaMock NewSchema(
         string schemaName,
-        IDictionary<string, (IColumnDictionary columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null);
+        IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null);
 
     /// <summary>
     /// EN: Creates a schema and registers it in the database.
@@ -68,7 +68,7 @@ public abstract class DbMock
     /// <returns>EN: Created schema. PT: Schema criado.</returns>
     public ISchemaMock CreateSchema(
         string schemaName,
-        IDictionary<string, (IColumnDictionary columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null)
+        IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null)
     {
         var s = NewSchema(schemaName, tables);
         Add(schemaName, s);
@@ -102,7 +102,7 @@ public abstract class DbMock
     {
         if (base.TryGetValue(key, out var v) && v != null)
         {
-            value = (ISchemaMock)v;
+            value = v;
             return true;
         }
         value = null!;
@@ -123,7 +123,7 @@ public abstract class DbMock
 
     internal ITableMock AddGlobalTemporaryTable(
         string tableName,
-        IColumnDictionary? columns = null,
+        IEnumerable<Col>? columns = null,
         IEnumerable<Dictionary<int, object?>>? rows = null,
         string? schemaName = null)
     {
@@ -132,7 +132,7 @@ public abstract class DbMock
         if (!TryGetValue(schemaKey, out var schemaMock) || schemaMock == null)
             schemaMock = CreateSchema(schemaKey);
         var schema = (SchemaMock)schemaMock;
-        var table = schema.CreateTableInstance(tableName, columns ?? new ColumnDictionary(), rows);
+        var table = schema.CreateTableInstance(tableName, columns ?? [], rows);
         _globalTemporaryTables.Add(key, table);
         return table;
     }
@@ -169,14 +169,14 @@ public abstract class DbMock
     /// <returns>EN: Created table. PT: Tabela criada.</returns>
     public ITableMock AddTable(
         string tableName,
-        IColumnDictionary? columns = null,
+        IEnumerable<Col>? columns = null,
         IEnumerable<Dictionary<int, object?>>? rows = null,
         string? schemaName = null)
     {
         var sc = GetSchemaName(schemaName);
         if (!this.TryGetValue(sc, out var s))
             s = CreateSchema(sc);
-        return s!.CreateTable(tableName, columns ?? new ColumnDictionary(), rows);
+        return s!.CreateTable(tableName, columns ?? [], rows);
     }
 
     /// <summary>
@@ -253,7 +253,7 @@ public abstract class DbMock
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(name, nameof(name));
 
         var sc = GetSchemaName(schemaName);
-        var schema = (SchemaMock)this[sc];
+        var schema = this[sc];
 
         if (schema.Views.ContainsKey(name!))
         {
@@ -281,7 +281,7 @@ public abstract class DbMock
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(viewName, nameof(viewName));
         var sc = GetSchemaName(schemaName);
-        if (!((SchemaMock)this[sc]).Views.TryGetValue(viewName, out var vw)
+        if (!this[sc].Views.TryGetValue(viewName, out var vw)
             || vw == null)
             throw new Exception($"View não existe cadastrada {viewName}");
         return vw;
@@ -294,7 +294,7 @@ public abstract class DbMock
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(viewName, nameof(viewName));
         var sc = GetSchemaName(schemaName);
-        return ((SchemaMock)this[sc]).Views.TryGetValue(viewName, out vw)
+        return this[sc].Views.TryGetValue(viewName, out vw)
             && vw != null;
     }
 
@@ -306,7 +306,7 @@ public abstract class DbMock
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(viewName, nameof(viewName));
 
         var sc = GetSchemaName(schemaName);
-        var schema = (SchemaMock)this[sc];
+        var schema = this[sc];
         var normalized = viewName.NormalizeName();
 
         if (schema.Views.Remove(normalized))
@@ -336,8 +336,8 @@ public abstract class DbMock
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(procName, nameof(procName));
         var sc = GetSchemaName(schemaName);
-        if (!this.TryGetValue(sc, out var s))
-            s = CreateSchema(sc);
+        if (!this.TryGetValue(sc, out var s) || s == null)
+            CreateSchema(sc);
         this[sc].Procedures[procName] = pr;
     }
 
@@ -361,7 +361,6 @@ public abstract class DbMock
     }
 
     #endregion
-
 
     internal virtual IReadOnlyList<ITableMock> ListAllTablesBestEffort()
     {

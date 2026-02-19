@@ -15,8 +15,8 @@ public sealed class SqliteUnionLimitAndJsonCompatibilityTests : XUnitTestBase
     {
         var db = new SqliteDbMock();
         var t = db.AddTable("t");
-        t.Columns["id"] = new(0, DbType.Int32, false);
-        t.Columns["payload"] = new(1, DbType.String, true);
+        t.AddColumn("id", DbType.Int32, false);
+        t.AddColumn("payload", DbType.String, true);
         t.Add(new Dictionary<int, object?> { [0] = 1, [1] = "{\"a\":{\"b\":123}}" });
         t.Add(new Dictionary<int, object?> { [0] = 2, [1] = "{\"a\":{\"b\":456}}" });
         t.Add(new Dictionary<int, object?> { [0] = 3, [1] = null });
@@ -30,6 +30,7 @@ public sealed class SqliteUnionLimitAndJsonCompatibilityTests : XUnitTestBase
     /// PT: Testa o comportamento de UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
     public void UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates()
     {
         // UNION ALL keeps duplicates
@@ -54,6 +55,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de Limit_OffsetCommaSyntax_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
     public void Limit_OffsetCommaSyntax_ShouldWork()
     {
         // SQLite supports: LIMIT offset, count
@@ -66,6 +68,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de Limit_OffsetKeywordSyntax_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
     public void Limit_OffsetKeywordSyntax_ShouldWork()
     {
         // SQLite supports: LIMIT count OFFSET offset
@@ -78,6 +81,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de JsonExtract_SimpleObjectPath_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
     public void JsonExtract_SimpleObjectPath_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id, JSON_EXTRACT(payload, '$.a.b') AS v FROM t ORDER BY id").ToList();
@@ -94,6 +98,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de OrderBy_NullsFirst_ShouldApplyExplicitNullOrdering.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
     public void OrderBy_NullsFirst_ShouldApplyExplicitNullOrdering()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM t ORDER BY payload NULLS FIRST, id").ToList();
@@ -106,6 +111,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de JsonFunction_ShouldThrow_WhenNotSupportedByDialect.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
     public void JsonFunction_ShouldThrow_WhenNotSupportedByDialect()
     {
         Assert.Throws<NotSupportedException>(() =>
@@ -117,6 +123,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Garante que o UNION normalize literais numéricos equivalentes em uma única linha.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
     public void Union_ShouldNormalizeEquivalentNumericTypes()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -133,6 +140,7 @@ SELECT 1 AS v
     /// PT: Garante que o UNION rejeite tipos de coluna incompatíveis entre partes do SELECT.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
     public void Union_ShouldValidateIncompatibleColumnTypes()
     {
         Assert.Throws<InvalidOperationException>(() =>
@@ -150,6 +158,7 @@ SELECT 'x' AS v
     /// PT: Garante que o schema do UNION mantenha os aliases da primeira projeção SELECT.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
     public void Union_ShouldNormalizeSchemaToFirstSelectAlias()
     {
         var rows = _cnn.Query<dynamic>(@"

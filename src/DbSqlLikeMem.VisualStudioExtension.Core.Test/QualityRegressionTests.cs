@@ -11,6 +11,7 @@ public sealed class QualityRegressionTests
     /// Garante que a geração respeita cancelamento e não continua gravando arquivos.
     /// </summary>
     [Fact]
+    [Trait("Category", "QualityRegression")]
     public async Task ClassGenerator_WhenCanceled_StopsWritingFurtherFiles()
     {
         var outputDir = Path.Combine(Path.GetTempPath(), $"dbsql-quality-{Guid.NewGuid():N}");
@@ -78,6 +79,7 @@ public sealed class QualityRegressionTests
     /// Garante fallback para referência padrão quando metadados não estão presentes no arquivo.
     /// </summary>
     [Fact]
+    [Trait("Category", "QualityRegression")]
     public async Task GeneratedClassSnapshotReader_WhenMetadataIsMissing_UsesFallbackReference()
     {
         var file = Path.Combine(Path.GetTempPath(), $"dbsql-snapshot-fallback-{Guid.NewGuid():N}.cs");
@@ -113,6 +115,7 @@ public sealed class QualityRegressionTests
     /// Garante status sincronizado quando propriedades locais e do banco são equivalentes.
     /// </summary>
     [Fact]
+    [Trait("Category", "QualityRegression")]
     public async Task ObjectConsistencyChecker_WhenPropertiesMatch_ReturnsSynchronized()
     {
         var properties = new Dictionary<string, string>

@@ -12,6 +12,7 @@ public sealed class PostgreSqlUpdateStrategyTests(
     /// PT: Testa o comportamento de UpdateTableShouldModifyExistingRow.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void UpdateTableShouldModifyExistingRow()
     {
         // Arrange
@@ -40,6 +41,7 @@ public sealed class PostgreSqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldReturnZero_WhenNoRowsMatchWhere.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldReturnZero_WhenNoRowsMatchWhere()
     {
         var db = new NpgsqlDbMock();
@@ -65,6 +67,7 @@ public sealed class PostgreSqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldUpdateMultipleRows_WhenWhereMatchesMultiple.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldUpdateMultipleRows_WhenWhereMatchesMultiple()
     {
         var db = new NpgsqlDbMock();
@@ -93,6 +96,7 @@ public sealed class PostgreSqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldHandleWhereWithAnd_CaseInsensitive.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldHandleWhereWithAnd_CaseInsensitive()
     {
         var db = new NpgsqlDbMock();
@@ -121,6 +125,7 @@ public sealed class PostgreSqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldUpdateMultipleSetPairs.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldUpdateMultipleSetPairs()
     {
         var db = new NpgsqlDbMock();
@@ -146,6 +151,7 @@ public sealed class PostgreSqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldBeCaseInsensitive_ForUpdateSetWhereKeywords.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldBeCaseInsensitive_ForUpdateSetWhereKeywords()
     {
         var db = new NpgsqlDbMock();
@@ -170,6 +176,7 @@ public sealed class PostgreSqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldWork_WithThreadSafeTrueOrFalse.
     /// </summary>
     [Theory]
+    [Trait("Category", "Strategy")]
     [InlineData(false)]
     [InlineData(true)]
     public void Update_ShouldWork_WithThreadSafeTrueOrFalse(bool threadSafe)
@@ -196,6 +203,7 @@ public sealed class PostgreSqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldThrow_WhenTableDoesNotExist.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldThrow_WhenTableDoesNotExist()
     {
         var db = new NpgsqlDbMock();
@@ -214,6 +222,7 @@ public sealed class PostgreSqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldThrow_WhenSqlIsInvalid_NoUpdateToken.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldThrow_WhenSqlIsInvalid_NoUpdateToken()
     {
         var db = new NpgsqlDbMock();
@@ -235,6 +244,7 @@ public sealed class PostgreSqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldNotChangeGeneratedColumn_WhenGetGenValueIsNotNull.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldNotChangeGeneratedColumn_WhenGetGenValueIsNotNull()
     {
         var db = new NpgsqlDbMock();
@@ -260,6 +270,7 @@ public sealed class PostgreSqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldSupportParameter_IfSqlValueHelperSupports.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldSupportParameter_IfSqlValueHelperSupports()
     {
         var db = new NpgsqlDbMock();
@@ -294,12 +305,13 @@ public sealed class PostgreSqlUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldThrowDuplicateKey_WhenUniqueIndexCollides.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldThrowDuplicateKey_WhenUniqueIndexCollides()
     {
         var db = new NpgsqlDbMock();
         var table = NewUsersTable_WithEmail(db);
 
-        table.CreateIndex(new IndexDef("Teste", ["name", "email"], unique: true));
+        table.CreateIndex("Teste", ["name", "email"], unique: true);
 
 
         table.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "John" }, { 2, "a@a.com" } });
@@ -312,7 +324,7 @@ public sealed class PostgreSqlUpdateStrategyTests(
         };
 
         var ex = Assert.ThrowsAny<NpgsqlMockException>(() => command.ExecuteNonQuery());
-        Assert.Contains(DbSqlLikeMem.Resources.SqlExceptionMessages.DuplicateKey(string.Empty, string.Empty).Split('\'')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlExceptionMessages.DuplicateKey(string.Empty, string.Empty).Split('\'')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     // ---------------- helpers ----------------
@@ -326,31 +338,28 @@ public sealed class PostgreSqlUpdateStrategyTests(
     private static ITableMock NewUsersTable_Min(NpgsqlDbMock db)
     {
         var table = db.AddTable("users");
-        table.Columns["id"] = new(0, DbType.Int32, false);
-        table.Columns["name"] = new(1, DbType.String, false);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("name", DbType.String, false);
         return table;
     }
 
     private static ITableMock NewUsersTable_WithEmail(NpgsqlDbMock db)
     {
         var table = db.AddTable("users");
-        table.Columns["id"] = new(0, DbType.Int32, false);
-        table.Columns["name"] = new(1, DbType.String, false);
-        table.Columns["email"] = new(2, DbType.String, false);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("name", DbType.String, false);
+        table.AddColumn("email", DbType.String, false);
         return table;
     }
 
     private static ITableMock NewGenTable(NpgsqlDbMock db)
     {
         var table = db.AddTable("gen");
-        table.Columns["id"] = new(0, DbType.Int32, false);
-        table.Columns["base"] = new(1, DbType.Int32, false);
+        table.AddColumn("id", DbType.Int32, false);
+        table.AddColumn("base", DbType.Int32, false);
 
-        table.Columns["gen"] = new(2, DbType.Int32, false)
-        {
-            // qualquer GetGenValue != null faz UpdateRowValue pular essa coluna
-            GetGenValue = (row, t) => ((int?)row[1] ?? 0) * 2
-        };
+        table.AddColumn("gen", DbType.Int32, false)
+            .GetGenValue = (row, t) => ((int?)row[1] ?? 0) * 2;
 
         return table;
     }

@@ -18,16 +18,16 @@ public sealed class OracleMockTests
         ) : base(helper)
     {
         var db = new OracleDbMock();
-        db.AddTable("Users", new ColumnDictionary {
-            { "Id", new(0, DbType.Int32, false) },
-            { "Name", new(1, DbType.String, false) },
-            { "Email", new(2, DbType.String, true) }
-        });
-        db.AddTable("Orders", new ColumnDictionary {
-            { "OrderId", new(0, DbType.Int32, false) },
-            { "UserId", new(1, DbType.Int32, false) },
-            { "Amount", new(0, DbType.Decimal, false) }
-        });
+        db.AddTable("Users", [
+            new("Id", DbType.Int32, false),
+            new("Name", DbType.String, false) ,
+            new ("Email", DbType.String, true)
+        ]);
+        db.AddTable("Orders", [
+            new("OrderId",  DbType.Int32, false),
+            new("UserId",  DbType.Int32, false),
+            new("Amount",  DbType.Decimal, false, decimalPlaces: 2)
+        ]);
 
         _connection = new OracleConnectionMock(db);
         _connection.Open();
@@ -38,6 +38,7 @@ public sealed class OracleMockTests
     /// PT: Testa o comportamento de TestInsert.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleMock")]
     public void TestInsert()
     {
         using var command = new OracleCommandMock(_connection)
@@ -54,6 +55,7 @@ public sealed class OracleMockTests
     /// PT: Testa o comportamento de TestUpdate.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleMock")]
     public void TestUpdate()
     {
         using var command = new OracleCommandMock(_connection)
@@ -73,6 +75,7 @@ public sealed class OracleMockTests
     /// PT: Testa o comportamento de TestDelete.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleMock")]
     public void TestDelete()
     {
         using var command = new OracleCommandMock(_connection)
@@ -92,6 +95,7 @@ public sealed class OracleMockTests
     /// PT: Testa o comportamento de TestTransactionCommit.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleMock")]
     public void TestTransactionCommit()
     {
         using (var transaction = _connection.BeginTransaction())
@@ -127,6 +131,7 @@ public sealed class OracleMockTests
     /// PT: Testa o comportamento de TestTransactionCommitInsertUpdate.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleMock")]
     public void TestTransactionCommitInsertUpdate()
     {
         using var cmd = _connection.CreateCommand();
@@ -149,6 +154,7 @@ public sealed class OracleMockTests
     /// PT: Testa o comportamento de TestTransactionRollback.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleMock")]
     public void TestTransactionRollback()
     {
         using (var transaction = _connection.BeginTransaction())

@@ -37,6 +37,7 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     // parser feature tests expect WITH/CTE support across all tested versions.
     internal const int WithCteMinVersion = 6;
     internal const int MergeMinVersion = 15;
+    internal const int JsonbMinVersion = 9;
 
     /// <summary>
     /// Auto-generated summary.
@@ -98,7 +99,8 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
-    public override bool SupportsJsonArrowOperators => true;
+    public override bool SupportsJsonArrowOperators => Version >= JsonbMinVersion;
+    public override bool AllowsParserCrossDialectJsonOperators => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
