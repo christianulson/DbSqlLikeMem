@@ -31,7 +31,7 @@ public sealed class StructuredClassContentFactoryTests
         Assert.Contains("table.AddColumn(\"Id\", DbType.Int32, false, true", content);
         Assert.Contains("table.AddPrimaryKeyIndexes(\"Id\");", content);
         Assert.Contains("table.CreateIndex(\"IX_Orders_CustomerId\", [\"CustomerId\"], unique: false);", content);
-        Assert.Contains("table.CreateForeignKey(\"CustomerId\", \"Customers\", \"Id\");", content);
+        Assert.Contains("table.CreateForeignKey(\"FK_orders_CustomerId_Customers_Id\", \"Customers\", [(\"CustomerId\", \"Id\")]);", content);
     }
 
     /// <summary>

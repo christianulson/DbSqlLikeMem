@@ -352,7 +352,7 @@ SELECT KCU.COLUMN_NAME
         // FKs
         foreach (var (col, rtab, rcol) in foreignKeys)
         {
-            w.WriteLine($"        table.CreateForeignKey({GenerationRuleSet.Literal(col)}, {GenerationRuleSet.Literal(rtab)}, {GenerationRuleSet.Literal(rcol)});");
+            w.WriteLine($"        table.CreateForeignKey({GenerationRuleSet.Literal($"FK_{tableName}_{col}_{rtab}_{rcol}")}, {GenerationRuleSet.Literal(rtab)}, [({GenerationRuleSet.Literal(col)}, {GenerationRuleSet.Literal(rcol)})]);");
         }
 
         w.WriteLine("        return table;");
