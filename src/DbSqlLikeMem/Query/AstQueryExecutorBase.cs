@@ -3660,6 +3660,22 @@ private void FillPercentRankOrCumeDist(
                 }
             }
         }
+
+
+        /// <summary>
+        /// EN: Gets a field value by qualified or unqualified column name.
+        /// PT: Obtém o valor de um campo por nome de coluna qualificado ou não qualificado.
+        /// </summary>
+        /// <param name="columnName">EN: Column name to read. PT: Nome da coluna a ler.</param>
+        /// <returns>EN: The field value when present; otherwise null. PT: O valor do campo quando presente; caso contrário, null.</returns>
+        public object? GetByName(string columnName)
+        {
+            if (Fields.TryGetValue(columnName, out var direct))
+                return direct;
+
+            var hit = Fields.FirstOrDefault(kv => kv.Key.EndsWith($".{columnName}", StringComparison.OrdinalIgnoreCase));
+            return hit.Equals(default(KeyValuePair<string, object?>)) ? null : hit.Value;
+        }
     }
 
     private static EvalRow AttachOuterRow(
