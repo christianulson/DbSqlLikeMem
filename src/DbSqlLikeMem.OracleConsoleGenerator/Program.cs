@@ -17,6 +17,7 @@ static partial class Program
         string OutputPath,
         string Schema,
         string Namespace,
+        string? ClassAccessibility = null,
         List<string>? Tables = null);
 
     private sealed record ConnectionInfo(
@@ -105,6 +106,7 @@ static partial class Program
 
                     GenerateTableFile(
                         destiny.Namespace,
+                        destiny.ClassAccessibility,
                         tableName: clean,
                         columns: meta.Columns,
                         primaryKey: meta.PrimaryKey,
@@ -231,6 +233,7 @@ static partial class Program
 
     private static void GenerateTableFile(
         string ns,
+        string? classAccessibility,
         string tableName,
         List<ColumnMeta> columns,
         List<string> primaryKey,
@@ -246,10 +249,17 @@ static partial class Program
 
         w.WriteLine($"namespace {ns};");
         w.WriteLine();
-        w.WriteLine($"public static class {className}");
+        var normalizedAccessibility = string.Equals(classAccessibility, "public", StringComparison.OrdinalIgnoreCase)
+            ? "public"
+            : "internal";
+
+        w.WriteLine($"{normalizedAccessibility} static class {className}");
         w.WriteLine("{");
-        w.WriteLine($"    public static ITableMock {methodName}(this DbMock db)");
+        w.WriteLine($"    {normalizedAccessibility} static ITableMock {methodName}(this DbMock db)");
         w.WriteLine("    {");
+        if (normalizedAccessibility == "public")
+            w.WriteLine("        ArgumentNullException.ThrowIfNull(db);");
+
         w.WriteLine($"        var table = db.AddTable(\"{tableName}\");");
 
         foreach (var c in columns.OrderBy(c => c.Ordinal))
