@@ -94,6 +94,7 @@ internal interface ISqlDialect
 
     // Table hints
     bool SupportsSqlServerTableHints { get; }
+    bool SupportsSqlServerQueryHints { get; }
     bool SupportsMySqlIndexHints { get; }
 
     // Temporary table naming
@@ -467,6 +468,10 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// Auto-generated summary.
     /// </summary>
     public virtual bool SupportsSqlServerTableHints => false;
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public virtual bool SupportsSqlServerQueryHints => false;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
