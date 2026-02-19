@@ -31,6 +31,21 @@ interface DatabaseObjectReference {
   schema: string;
   name: string;
   objectType: DatabaseObjectType;
+  columns?: DatabaseColumnReference[];
+  foreignKeys?: ForeignKeyReference[];
+}
+
+interface DatabaseColumnReference {
+  name: string;
+  dataType: string;
+  isNullable: boolean;
+  ordinalPosition: number;
+}
+
+interface ForeignKeyReference {
+  name: string;
+  referencedSchema: string;
+  referencedTable: string;
 }
 
 interface ExtensionState {
@@ -64,11 +79,12 @@ interface GenerationPlan {
   objectRef: DatabaseObjectReference;
   targetFile: string;
   content: string;
+  namespace?: string;
 }
 interface TreeNode {
   id: string;
   label: string;
-  kind: 'dbType' | 'database' | 'objectType' | 'object';
+  kind: 'dbType' | 'database' | 'objectType' | 'object' | 'section' | 'column' | 'foreignKey';
   objectType?: DatabaseObjectType;
   children?: TreeNode[];
   connectionId?: string;
@@ -115,6 +131,15 @@ class DbNodeItem extends vscode.TreeItem {
       } else if (status === 'missing') {
         this.iconPath = new vscode.ThemeIcon('error');
       }
+    } else if (node.kind === 'section') {
+      this.contextValue = 'db-section';
+      this.iconPath = new vscode.ThemeIcon('list-unordered');
+    } else if (node.kind === 'column') {
+      this.contextValue = 'db-column';
+      this.iconPath = new vscode.ThemeIcon('symbol-field');
+    } else if (node.kind === 'foreignKey') {
+      this.contextValue = 'db-foreignKey';
+      this.iconPath = new vscode.ThemeIcon('link');
     } else {
       this.contextValue = `db-${node.kind}`;
     }
@@ -144,6 +169,7 @@ class ConnectionTreeDataProvider implements vscode.TreeDataProvider<DbNodeItem> 
 
 interface DatabaseMetadataProvider {
   getObjects(connection: ConnectionDefinition): Promise<DatabaseObjectReference[]>;
+  testConnection(connection: ConnectionDefinition): Promise<{ success: boolean; message?: string }>;
 }
 
 class SqlMetadataProvider implements DatabaseMetadataProvider {
@@ -161,7 +187,106 @@ class SqlMetadataProvider implements DatabaseMetadataProvider {
     }
 
     const query = "SET NOCOUNT ON; SELECT TABLE_SCHEMA AS [schema], TABLE_NAME AS [name], CASE TABLE_TYPE WHEN 'BASE TABLE' THEN 'Table' ELSE 'View' END AS [objectType] FROM INFORMATION_SCHEMA.TABLES UNION ALL SELECT ROUTINE_SCHEMA AS [schema], ROUTINE_NAME AS [name], 'Procedure' AS [objectType] FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_TYPE = 'PROCEDURE' ORDER BY [schema], [name];";
-    const args = ['-S', parsed.server, '-W', '-s', '|', '-Q', query, '-h', '-1'];
+    const columnQuery = "SET NOCOUNT ON; SELECT TABLE_SCHEMA AS [schema], TABLE_NAME AS [name], COLUMN_NAME AS [columnName], DATA_TYPE AS [dataType], IS_NULLABLE AS [isNullable], ORDINAL_POSITION AS [ordinalPosition] FROM INFORMATION_SCHEMA.COLUMNS ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION;";
+    const foreignKeyQuery = "SET NOCOUNT ON; SELECT sch.name AS [schema], t.name AS [name], fk.name AS [fkName], refSch.name AS [referencedSchema], refTable.name AS [referencedTable] FROM sys.foreign_keys fk JOIN sys.tables t ON fk.parent_object_id = t.object_id JOIN sys.schemas sch ON t.schema_id = sch.schema_id JOIN sys.tables refTable ON fk.referenced_object_id = refTable.object_id JOIN sys.schemas refSch ON refTable.schema_id = refSch.schema_id ORDER BY sch.name, t.name, fk.name;";
+
+    try {
+      const { stdout } = await this.executeSqlCmd(parsed, query);
+      const objects: DatabaseObjectReference[] = stdout
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line && line.includes('|'))
+        .map((line) => line.split('|').map((x) => x.trim()))
+        .filter((parts) => parts.length >= 3)
+        .map((parts) => ({ schema: parts[0], name: parts[1], objectType: parts[2] as DatabaseObjectType }))
+        .filter((x) => (x.objectType === 'Table' || x.objectType === 'View' || x.objectType === 'Procedure') && x.schema && x.name);
+
+      const byObjectKey = new Map<string, DatabaseObjectReference>();
+      for (const objectRef of objects) {
+        byObjectKey.set(this.buildObjectKey(objectRef.schema, objectRef.name), objectRef);
+      }
+
+      const { stdout: columnsStdout } = await this.executeSqlCmd(parsed, columnQuery);
+      for (const parts of this.parsePipeRows(columnsStdout, 6)) {
+        const owner = byObjectKey.get(this.buildObjectKey(parts[0], parts[1]));
+        if (!owner) {
+          continue;
+        }
+
+        owner.columns ??= [];
+        owner.columns.push({
+          name: parts[2],
+          dataType: parts[3],
+          isNullable: parts[4].toUpperCase() === 'YES',
+          ordinalPosition: Number.parseInt(parts[5], 10) || 0
+        });
+      }
+
+      const { stdout: fkStdout } = await this.executeSqlCmd(parsed, foreignKeyQuery);
+      for (const parts of this.parsePipeRows(fkStdout, 5)) {
+        const owner = byObjectKey.get(this.buildObjectKey(parts[0], parts[1]));
+        if (!owner || owner.objectType !== 'Table') {
+          continue;
+        }
+
+        owner.foreignKeys ??= [];
+        owner.foreignKeys.push({
+          name: parts[2],
+          referencedSchema: parts[3],
+          referencedTable: parts[4]
+        });
+      }
+
+      for (const objectRef of objects) {
+        objectRef.columns?.sort((a: DatabaseColumnReference, b: DatabaseColumnReference) => a.ordinalPosition - b.ordinalPosition);
+      }
+
+      return objects;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.warnConnectionFailure(connection, message);
+      return [];
+    }
+  }
+
+  private parsePipeRows(stdout: string, minParts: number): string[][] {
+    return stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line && line.includes('|'))
+      .map((line) => line.split('|').map((x) => x.trim()))
+      .filter((parts) => parts.length >= minParts);
+  }
+
+  private buildObjectKey(schema: string, name: string): string {
+    return `${schema.toLowerCase()}|${name.toLowerCase()}`;
+  }
+
+  public async testConnection(connection: ConnectionDefinition): Promise<{ success: boolean; message?: string }> {
+    if (connection.databaseType.toLowerCase() !== 'sqlserver') {
+      return { success: true };
+    }
+
+    const parsed = parseSqlServerConnectionString(connection.connectionString);
+    if (!parsed.server) {
+      return { success: false, message: vscode.l10n.t('Connection string without server (Server/Data Source).') };
+    }
+
+    try {
+      await this.executeSqlCmd(parsed, 'SET NOCOUNT ON; SELECT 1;', 15000);
+      return { success: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { success: false, message };
+    }
+  }
+
+  private async executeSqlCmd(
+    parsed: { server?: string; database?: string; userId?: string; password?: string },
+    query: string,
+    timeout = 30000
+  ): Promise<{ stdout: string; stderr: string }> {
+    const args = ['-S', parsed.server ?? '', '-W', '-s', '|', '-Q', query, '-h', '-1'];
 
     if (parsed.database) {
       args.push('-d', parsed.database);
@@ -173,22 +298,8 @@ class SqlMetadataProvider implements DatabaseMetadataProvider {
       args.push('-E');
     }
 
-    try {
-      const execFileAsync = promisify(execFile);
-      const { stdout } = await execFileAsync('sqlcmd', args, { maxBuffer: 10 * 1024 * 1024 });
-      return stdout
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter((line) => line && line.includes('|'))
-        .map((line) => line.split('|').map((x) => x.trim()))
-        .filter((parts) => parts.length >= 3)
-        .map((parts) => ({ schema: parts[0], name: parts[1], objectType: parts[2] as DatabaseObjectType }))
-        .filter((x) => (x.objectType === 'Table' || x.objectType === 'View' || x.objectType === 'Procedure') && x.schema && x.name);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.warnConnectionFailure(connection, message);
-      return [];
-    }
+    const execFileAsync = promisify(execFile);
+    return execFileAsync('sqlcmd', args, { maxBuffer: 10 * 1024 * 1024, timeout });
   }
 
   private warnConnectionFailure(connection: ConnectionDefinition, message: string): void {
@@ -201,6 +312,18 @@ class SqlMetadataProvider implements DatabaseMetadataProvider {
   }
 }
 
+
+
+async function validateAndNotifyConnection(metadataProvider: DatabaseMetadataProvider, connection: ConnectionDefinition): Promise<boolean> {
+  const result = await metadataProvider.testConnection(connection);
+  if (result.success) {
+    vscode.window.showInformationMessage(vscode.l10n.t('Connection {0} validated successfully.', connection.name));
+    return true;
+  }
+
+  vscode.window.showErrorMessage(vscode.l10n.t('Failed to validate connection {0}: {1}', connection.name, result.message ?? vscode.l10n.t('Unknown error')));
+  return false;
+}
 function parseSqlServerConnectionString(connectionString: string): { server?: string; database?: string; userId?: string; password?: string } {
   const map = new Map<string, string>();
   for (const pair of connectionString.split(';')) {
@@ -265,6 +388,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             return;
           }
 
+          const draftConnection: ConnectionDefinition = {
+            id: existingId || `${databaseType}-${databaseName}-${Date.now()}`,
+            name,
+            databaseType,
+            databaseName,
+            connectionString
+          };
+
+          if (!await validateAndNotifyConnection(metadataProvider, draftConnection)) {
+            return;
+          }
+
           if (existingId) {
             const index = state.connections.findIndex((x) => x.id === existingId);
             if (index >= 0) {
@@ -277,14 +412,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
               };
             }
           } else {
-            const connectionId = `${databaseType}-${databaseName}-${Date.now()}`;
-            state.connections.push({
-              id: connectionId,
-              name,
-              databaseType,
-              databaseName,
-              connectionString
-            });
+            const connectionId = draftConnection.id;
+            state.connections.push(draftConnection);
 
             if (!state.mappingConfigurations.some((x) => x.connectionId === connectionId)) {
               state.mappingConfigurations.push({
@@ -384,8 +513,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return;
       }
 
+      const updatedDraft: ConnectionDefinition = {
+        id: connection.id,
+        ...updatedConnection
+      };
+
+      if (!await validateAndNotifyConnection(metadataProvider, updatedDraft)) {
+        return;
+      }
+
       state.connections = state.connections.map((x) => x.id === connection.id
-        ? { ...x, ...updatedConnection }
+        ? updatedDraft
         : x);
 
       await saveState(context, state);
@@ -399,10 +537,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
 
       const connectionId = `${newConnection.databaseType}-${newConnection.databaseName}-${Date.now()}`;
-      state.connections.push({
+      const draftConnection: ConnectionDefinition = {
         id: connectionId,
         ...newConnection
-      });
+      };
+
+      if (!await validateAndNotifyConnection(metadataProvider, draftConnection)) {
+        return;
+      }
+
+      state.connections.push(draftConnection);
 
       if (!state.mappingConfigurations.some((x) => x.connectionId === connectionId)) {
         state.mappingConfigurations.push({
@@ -568,11 +712,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return;
       }
 
-      const objects = await metadataProvider.getObjects(connection);
-      const filtered = applyFilter(objects, state.filterText, state.filterMode);
+      const scopedObjects = await getScopedObjects(connection, item, metadataProvider, state.filterText, state.filterMode);
       const plans: GenerationPlan[] = [];
 
-      for (const objectRef of filtered) {
+      for (const objectRef of scopedObjects) {
         const objectMapping = mapping.mappings.find((x) => x.objectType === objectRef.objectType);
         if (!objectMapping) {
           continue;
@@ -581,7 +724,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         const className = sanitizeClassName(objectRef.name + objectMapping.fileSuffix);
         const targetDir = path.join(workspaceFolder, objectMapping.targetFolder);
         const targetFile = path.join(targetDir, `${className}.cs`);
-        plans.push({ objectRef, targetFile, content: generateClassTemplate(className, objectRef) });
+        plans.push({
+          objectRef,
+          targetFile,
+          namespace: objectMapping.namespace,
+          content: generateClassTemplate(className, objectRef, objectMapping.namespace)
+        });
       }
 
       if (!await confirmOverwrite(plans, vscode.l10n.t('test classes'))) {
@@ -596,10 +744,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       vscode.window.showInformationMessage(vscode.l10n.t('Test classes generated for {0}.', connection.name));
     }),
     vscode.commands.registerCommand('dbSqlLikeMem.generateModelClasses', async (item?: DbNodeItem) => {
-      await generateTemplateBasedFiles(state, metadataProvider, await resolveConnectionFromItem(state.connections, item), 'model');
+      await generateTemplateBasedFiles(state, metadataProvider, await resolveConnectionFromItem(state.connections, item), 'model', item);
     }),
     vscode.commands.registerCommand('dbSqlLikeMem.generateRepositoryClasses', async (item?: DbNodeItem) => {
-      await generateTemplateBasedFiles(state, metadataProvider, await resolveConnectionFromItem(state.connections, item), 'repository');
+      await generateTemplateBasedFiles(state, metadataProvider, await resolveConnectionFromItem(state.connections, item), 'repository', item);
     }),
     vscode.commands.registerCommand('dbSqlLikeMem.checkConsistency', async (item?: DbNodeItem) => {
       const connection = await resolveConnectionFromItem(state.connections, item);
@@ -613,7 +761,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return;
       }
 
-      const objects = await metadataProvider.getObjects(connection);
+      const objects = await getScopedObjects(connection, item, metadataProvider, state.filterText, state.filterMode);
       const missing: string[] = [];
       const checks: Record<string, GenerationCheckStatus> = {};
 
@@ -716,6 +864,7 @@ async function buildTree(
         objectType,
         children: objectGroups[objectType].map((objectRef) => {
           const generationStatus = generationCheckByObjectKey[buildObjectKey(connection.id, objectRef)];
+          const children = createObjectChildren(connection.id, objectRef);
           return {
             id: `obj-${connection.id}-${objectType}-${objectRef.schema}.${objectRef.name}`,
             label: `${objectRef.schema}.${objectRef.name}`,
@@ -723,7 +872,8 @@ async function buildTree(
             objectType,
             objectRef,
             connectionId: connection.id,
-            generationStatus
+            generationStatus,
+            children
           };
         }),
         connectionId: connection.id
@@ -748,6 +898,47 @@ function ensureNode(map: Map<string, TreeNode>, key: string, factory: TreeNode):
   return factory;
 }
 
+function createObjectChildren(connectionId: string, objectRef: DatabaseObjectReference): TreeNode[] {
+  const children: TreeNode[] = [];
+  const objectKey = `${connectionId}-${objectRef.objectType}-${objectRef.schema}.${objectRef.name}`;
+
+  if (objectRef.columns && objectRef.columns.length > 0) {
+    children.push({
+      id: `section-columns-${objectKey}`,
+      label: 'Columns',
+      kind: 'section',
+      connectionId,
+      objectRef,
+      children: objectRef.columns.map((column, index) => ({
+        id: `column-${objectKey}-${index}-${column.name}`,
+        label: `${column.name} (${column.dataType}${column.isNullable ? ', nullable' : ''})`,
+        kind: 'column',
+        connectionId,
+        objectRef
+      }))
+    });
+  }
+
+  if (objectRef.foreignKeys && objectRef.foreignKeys.length > 0) {
+    children.push({
+      id: `section-fks-${objectKey}`,
+      label: 'Foreign Keys',
+      kind: 'section',
+      connectionId,
+      objectRef,
+      children: objectRef.foreignKeys.map((foreignKey, index) => ({
+        id: `fk-${objectKey}-${index}-${foreignKey.name}`,
+        label: `${foreignKey.name} → ${foreignKey.referencedSchema}.${foreignKey.referencedTable}`,
+        kind: 'foreignKey',
+        connectionId,
+        objectRef
+      }))
+    });
+  }
+
+  return children;
+}
+
 function applyFilter(
   objects: DatabaseObjectReference[],
   filterText: string,
@@ -766,6 +957,42 @@ function applyFilter(
   return objects.filter((x) => `${x.schema}.${x.name}`.toLowerCase().includes(needle));
 }
 
+
+
+async function getScopedObjects(
+  connection: ConnectionDefinition,
+  item: DbNodeItem | undefined,
+  provider: DatabaseMetadataProvider,
+  filterText: string,
+  filterMode: FilterMode
+): Promise<DatabaseObjectReference[]> {
+  const filtered = applyFilter(await provider.getObjects(connection), filterText, filterMode);
+  if (!item || !item.node) {
+    return filtered;
+  }
+
+  if (item.node.kind === 'object' && item.node.objectRef) {
+    return filtered.filter((x) =>
+      x.objectType === item.node.objectRef?.objectType
+      && x.schema === item.node.objectRef?.schema
+      && x.name === item.node.objectRef?.name
+    );
+  }
+
+  if ((item.node.kind === 'section' || item.node.kind === 'column' || item.node.kind === 'foreignKey') && item.node.objectRef) {
+    return filtered.filter((x) =>
+      x.objectType === item.node.objectRef?.objectType
+      && x.schema === item.node.objectRef?.schema
+      && x.name === item.node.objectRef?.name
+    );
+  }
+
+  if (item.node.kind === 'objectType' && item.node.objectType) {
+    return filtered.filter((x) => x.objectType === item.node.objectType);
+  }
+
+  return filtered;
+}
 async function loadState(context: vscode.ExtensionContext): Promise<ExtensionState> {
   const raw = context.globalState.get<Partial<ExtensionState>>('dbSqlLikeMem.state');
   if (!raw) {
@@ -797,7 +1024,8 @@ async function generateTemplateBasedFiles(
   state: ExtensionState,
   metadataProvider: DatabaseMetadataProvider,
   connection: ConnectionDefinition | undefined,
-  kind: GenerationKind
+  kind: GenerationKind,
+  item?: DbNodeItem
 ): Promise<void> {
   if (!connection) {
     return;
@@ -812,7 +1040,8 @@ async function generateTemplateBasedFiles(
   const templateRelativePath = kind === 'model' ? state.templateSettings.modelTemplatePath : state.templateSettings.repositoryTemplatePath;
   const targetFolder = kind === 'model' ? state.templateSettings.modelTargetFolder : state.templateSettings.repositoryTargetFolder;
   const suffix = kind === 'model' ? 'Model' : 'Repository';
-  const objects = applyFilter(await metadataProvider.getObjects(connection), state.filterText, state.filterMode);
+  const objects = await getScopedObjects(connection, item, metadataProvider, state.filterText, state.filterMode);
+  const mapping = state.mappingConfigurations.find((x) => x.connectionId === connection.id);
 
   let templateText = kind === 'model'
     ? '// Model generated from {{Schema}}.{{ObjectName}}\npublic class {{ClassName}}\n{\n}\n'
@@ -829,6 +1058,8 @@ async function generateTemplateBasedFiles(
 
   const plans: GenerationPlan[] = [];
   for (const objectRef of objects) {
+    const objectMapping = mapping?.mappings.find((x) => x.objectType === objectRef.objectType);
+    const namespaceValue = objectMapping?.namespace ?? '';
     const className = sanitizeClassName(`${objectRef.name}${suffix}`);
     const targetDir = path.join(workspaceFolder, targetFolder);
     const targetFile = path.join(targetDir, `${className}.cs`);
@@ -839,7 +1070,8 @@ async function generateTemplateBasedFiles(
       .split('{{Schema}}').join(objectRef.schema)
       .split('{{ObjectType}}').join(objectRef.objectType)
       .split('{{DatabaseType}}').join(connection.databaseType)
-      .split('{{DatabaseName}}').join(connection.databaseName);
+      .split('{{DatabaseName}}').join(connection.databaseName)
+      .split('{{Namespace}}').join(namespaceValue);
 
     plans.push({ objectRef, targetFile, content });
   }
@@ -898,8 +1130,8 @@ function sanitizeClassName(value: string): string {
   return value.replace(/[^a-zA-Z0-9_]/g, '_');
 }
 
-function generateClassTemplate(className: string, objectRef: DatabaseObjectReference): string {
-  return `// Auto-generated test class by DbSqlLikeMem VS Code extension\n` +
+function generateClassTemplate(className: string, objectRef: DatabaseObjectReference, namespace?: string): string {
+  const body = `// Auto-generated test class by DbSqlLikeMem VS Code extension\n` +
     `// Source: ${objectRef.objectType} ${objectRef.schema}.${objectRef.name}\n` +
     `using Xunit;\n\n` +
     `public class ${className}\n` +
@@ -910,6 +1142,20 @@ function generateClassTemplate(className: string, objectRef: DatabaseObjectRefer
     `        // TODO: implementar cenário de teste\n` +
     `    }\n` +
     `}\n`;
+
+  if (!namespace?.trim()) {
+    return body;
+  }
+
+  return `namespace ${namespace.trim()}\n{\n${indentMultiline(body, 1)}}\n`;
+}
+
+function indentMultiline(value: string, level: number): string {
+  const indent = '    '.repeat(level);
+  return value
+    .split('\n')
+    .map((line) => line ? `${indent}${line}` : line)
+    .join('\n');
 }
 
 async function pickConnection(connections: ConnectionDefinition[]): Promise<ConnectionDefinition | undefined> {
