@@ -708,7 +708,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
         var outputPath = Path.Combine(outputDirectory, $"{safeName}-{DateTime.UtcNow:yyyyMMddHHmmss}.json");
         var json = JsonSerializer.Serialize(scenario, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(outputPath, json);
+        File.WriteAllText(outputPath, json);
         SetStatusMessage($"Cenário extraído com sucesso: {outputPath}");
         return outputPath;
     }
