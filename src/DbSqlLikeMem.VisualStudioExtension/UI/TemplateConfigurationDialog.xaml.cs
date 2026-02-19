@@ -2,6 +2,8 @@ using System.IO;
 using System.Windows;
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 
+using DbSqlLikeMem.VisualStudioExtension.Properties;
+
 namespace DbSqlLikeMem.VisualStudioExtension.UI;
 
 public partial class TemplateConfigurationDialog : Window
@@ -49,7 +51,7 @@ public partial class TemplateConfigurationDialog : Window
 
         if (string.IsNullOrWhiteSpace(ModelOutputDirectory) || string.IsNullOrWhiteSpace(RepositoryOutputDirectory))
         {
-            MessageBox.Show(this, "Informe os diretórios de saída para Model e Repositório.", "Validação", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, Resources.OutputDirectoriesRequired, Resources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -80,7 +82,7 @@ public partial class TemplateConfigurationDialog : Window
 
         if (!File.Exists(fullPath))
         {
-            MessageBox.Show(this, $"Template não encontrado: {fullPath}", "Validação", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, string.Format(Resources.TemplateNotFound, fullPath), Resources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
         }
 
@@ -97,7 +99,7 @@ public partial class TemplateConfigurationDialog : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, $"Diretório inválido ou sem permissão: {directory}. Detalhe: {ex.Message}", "Validação", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, string.Format(Resources.InvalidDirectoryWithDetail, directory, ex.Message), Resources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
         }
     }

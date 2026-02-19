@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="ConnectionDialogTitle" xml:space="preserve"><value>Adicionar conexão</value></data>
+  <data name="NameLabel" xml:space="preserve"><value>Nome:</value></data>
+  <data name="DatabaseLabel" xml:space="preserve"><value>Banco:</value></data>
+  <data name="ConnectionStringLabel" xml:space="preserve"><value>Connection String:</value></data>
+  <data name="CancelButton" xml:space="preserve"><value>Cancelar</value></data>
+  <data name="SaveButton" xml:space="preserve"><value>Salvar</value></data>
+  <data name="ValidationTitle" xml:space="preserve"><value>Validação</value></data>
+  <data name="FillConnectionNameAndString" xml:space="preserve"><value>Preencha nome e connection string.</value></data>
+  <data name="MappingDialogTitle" xml:space="preserve"><value>Configurar mapeamentos</value></data>
+  <data name="FilePatternLabel" xml:space="preserve"><value>Padrão de arquivo:</value></data>
+  <data name="OutputDirectoryLabel" xml:space="preserve"><value>Diretório de saída:</value></data>
+  <data name="FillMappingPatternAndOutput" xml:space="preserve"><value>Preencha o padrão de arquivo e o diretório de saída.</value></data>
+  <data name="ObjectFilterDialogTitle" xml:space="preserve"><value>Filtro de itens</value></data>
+  <data name="FilterLabel" xml:space="preserve"><value>Filtro:</value></data>
+  <data name="ModeLabel" xml:space="preserve"><value>Modo:</value></data>
+  <data name="ContainsOption" xml:space="preserve"><value>Contém</value></data>
+  <data name="ExactOption" xml:space="preserve"><value>Exato</value></data>
+  <data name="ApplyButton" xml:space="preserve"><value>Aplicar</value></data>
+  <data name="TemplateConfigTitle" xml:space="preserve"><value>Configurar templates</value></data>
+  <data name="ModelTemplateLabel" xml:space="preserve"><value>Template Model:</value></data>
+  <data name="RepositoryTemplateLabel" xml:space="preserve"><value>Template Repositório:</value></data>
+  <data name="ModelOutputLabel" xml:space="preserve"><value>Saída Models:</value></data>
+  <data name="RepositoryOutputLabel" xml:space="preserve"><value>Saída Repositórios:</value></data>
+  <data name="OutputDirectoriesRequired" xml:space="preserve"><value>Informe os diretórios de saída para Model e Repositório.</value></data>
+  <data name="TemplateNotFound" xml:space="preserve"><value>Template não encontrado: {0}</value></data>
+  <data name="InvalidDirectoryWithDetail" xml:space="preserve"><value>Diretório inválido ou sem permissão: {0}. Detalhe: {1}</value></data>
+  <data name="TestScenarioTitle" xml:space="preserve"><value>Extrair cenário de teste</value></data>
+  <data name="ScenarioNameLabel" xml:space="preserve"><value>Nome do cenário:</value></data>
+  <data name="TableLabel" xml:space="preserve"><value>Tabela:</value></data>
+  <data name="FilterSqlLabel" xml:space="preserve"><value>Filtro SQL (WHERE):</value></data>
+  <data name="IncludeParentsCheckbox" xml:space="preserve"><value>Incluir dados de tabelas pai (FK)</value></data>
+  <data name="LoadDataButton" xml:space="preserve"><value>Carregar dados</value></data>
+  <data name="SelectAllButton" xml:space="preserve"><value>Marcar todos</value></data>
+  <data name="ClearAllButton" xml:space="preserve"><value>Desmarcar todos</value></data>
+  <data name="ExtractScenarioButton" xml:space="preserve"><value>Extrair cenário</value></data>
+  <data name="CloseButton" xml:space="preserve"><value>Fechar</value></data>
+  <data name="AddConnectionButton" xml:space="preserve"><value>Adicionar conexão</value></data>
+  <data name="RefreshObjectsButton" xml:space="preserve"><value>Atualizar objetos</value></data>
+  <data name="ImportSettingsButton" xml:space="preserve"><value>Importar configurações</value></data>
+  <data name="ExportSettingsButton" xml:space="preserve"><value>Exportar configurações</value></data>
+  <data name="EditConnectionMenu" xml:space="preserve"><value>Editar conexão</value></data>
+  <data name="CancelOperationMenu" xml:space="preserve"><value>Cancelar operação</value></data>
+  <data name="RemoveConnectionMenu" xml:space="preserve"><value>Remover conexão</value></data>
+  <data name="ConfigureMappingsMenu" xml:space="preserve"><value>Configurar mapeamentos</value></data>
+  <data name="ConfigureTemplatesMenu" xml:space="preserve"><value>Configurar templates</value></data>
+  <data name="FilterItemsMenu" xml:space="preserve"><value>Filtrar itens...</value></data>
+  <data name="ClearFilterMenu" xml:space="preserve"><value>Limpar filtro</value></data>
+  <data name="GenerateAllClassesMenu" xml:space="preserve"><value>Gerar todas as classes</value></data>
+  <data name="GenerateTestClassesMenu" xml:space="preserve"><value>Gerar classes de teste</value></data>
+  <data name="GenerateModelClassesMenu" xml:space="preserve"><value>Gerar classes de modelos</value></data>
+  <data name="GenerateRepositoryClassesMenu" xml:space="preserve"><value>Gerar classes de repositório</value></data>
+  <data name="CheckConsistencyMenu" xml:space="preserve"><value>Checar consistência</value></data>
+  <data name="ExtractTestScenarioMenu" xml:space="preserve"><value>Extrair cenário de teste</value></data>
+  <data name="ConnectionFailureTitle" xml:space="preserve"><value>Falha de conexão</value></data>
+  <data name="SelectConnectionToEdit" xml:space="preserve"><value>Selecione um nó de conexão para editar.</value></data>
+  <data name="SelectConnectionToRemove" xml:space="preserve"><value>Selecione um nó de conexão para remover.</value></data>
+  <data name="ConfirmTitle" xml:space="preserve"><value>Confirmação</value></data>
+  <data name="RemoveConnectionQuestion" xml:space="preserve"><value>Remover conexão '{0}'?</value></data>
+  <data name="ImportSettingsDialogTitle" xml:space="preserve"><value>Importar configurações</value></data>
+  <data name="ExportSettingsDialogTitle" xml:space="preserve"><value>Exportar configurações</value></data>
+  <data name="JsonFileFilter" xml:space="preserve"><value>Arquivos JSON (*.json)|*.json|Todos os arquivos (*.*)|*.*</value></data>
+  <data name="GenerateClassesTitle" xml:space="preserve"><value>Gerar classes</value></data>
+  <data name="OverwritePreviewTitle" xml:space="preserve"><value>Pré-visualização de sobrescrita</value></data>
+  <data name="OverwritePreviewMessage" xml:space="preserve"><value>{0} arquivo(s) já existem e serão sobrescritos:{1}{1}{2}</value></data>
+  <data name="UnexpectedErrorTitle" xml:space="preserve"><value>Erro inesperado</value></data>
+
+  <data name="SelectNodeToGenerateClasses" xml:space="preserve"><value>Selecione conexão, tipo de objeto ou objeto para gerar classes.</value></data>
+  <data name="SelectNodeToGenerateTestClasses" xml:space="preserve"><value>Selecione conexão, tipo de objeto ou objeto para gerar classes de teste.</value></data>
+  <data name="SelectNodeToGenerateModelClasses" xml:space="preserve"><value>Selecione conexão, tipo de objeto ou objeto para gerar classes de modelos.</value></data>
+  <data name="SelectNodeToGenerateRepositoryClasses" xml:space="preserve"><value>Selecione conexão, tipo de objeto ou objeto para gerar classes de repositório.</value></data>
+  <data name="SelectNodeToCheckConsistency" xml:space="preserve"><value>Selecione conexão, tipo de objeto ou objeto para checar consistência.</value></data>
+  <data name="SelectNodeToExtractScenario" xml:space="preserve"><value>Selecione uma conexão, tipo de objeto ou tabela para extrair cenário.</value></data>
+  <data name="NoTablesFoundInConnection" xml:space="preserve"><value>Nenhuma tabela encontrada nesta conexão.</value></data>
+  <data name="SelectTableMessage" xml:space="preserve"><value>Selecione uma tabela.</value></data>
+  <data name="ProvideScenarioNameMessage" xml:space="preserve"><value>Informe um nome para o cenário.</value></data>
+  <data name="SelectAtLeastOneRowMessage" xml:space="preserve"><value>Selecione ao menos uma linha para extração.</value></data>
+  <data name="ScenarioExtractedWithFile" xml:space="preserve"><value>Cenário extraído com sucesso.{0}Arquivo: {1}</value></data>
+  <data name="FailedCreateConnection" xml:space="preserve"><value>Falha ao criar conexão.</value></data>
+  <data name="ConnectionValidatedSuccessfully" xml:space="preserve"><value>Conexão validada com sucesso.</value></data>
+  <data name="TemplatesUpdated" xml:space="preserve"><value>Templates de model/repositório atualizados.</value></data>
+  <data name="InvalidExportPath" xml:space="preserve"><value>Caminho de exportação inválido.</value></data>
+  <data name="SettingsExportedSuccessfully" xml:space="preserve"><value>Configurações exportadas com sucesso.</value></data>
+  <data name="InvalidImportPath" xml:space="preserve"><value>Caminho de importação inválido.</value></data>
+  <data name="InvalidOrEmptySettingsFile" xml:space="preserve"><value>Arquivo de configuração vazio ou inválido.</value></data>
+  <data name="SettingsImportedSuccessfully" xml:space="preserve"><value>Configurações importadas com sucesso.</value></data>
+  <data name="ObjectsUpdatedCount" xml:space="preserve"><value>Objetos atualizados para {0} conexão(ões).</value></data>
+  <data name="PartialUpdateFailureCount" xml:space="preserve"><value>Atualização parcial ({0} falha(s)). Veja o log para detalhes.</value></data>
+  <data name="NoObjectSelectedForGeneration" xml:space="preserve"><value>Nenhum objeto selecionado para geração.</value></data>
+  <data name="TestClassGenerationCompletedCount" xml:space="preserve"><value>Geração de classes de teste concluída. Arquivos gerados: {0}.</value></data>
+  <data name="ConnectionNotFound" xml:space="preserve"><value>Conexão não encontrada.</value></data>
+  <data name="ScenarioExtractedSuccessfullyPath" xml:space="preserve"><value>Cenário extraído com sucesso: {0}</value></data>
+  <data name="CheckingConsistency" xml:space="preserve"><value>Checando consistência...</value></data>
+  <data name="NoObjectsLoadedForConsistency" xml:space="preserve"><value>Nenhum objeto carregado para checar consistência.</value></data>
+  <data name="MappingNotFoundForConnection" xml:space="preserve"><value>Mapeamento não encontrado para a conexão selecionada.</value></data>
+  <data name="MissingGeneratedFiles" xml:space="preserve"><value>Arquivos gerados ausentes (classe/model/repositório).</value></data>
+  <data name="ConsistencyCheckCompletedCount" xml:space="preserve"><value>Checagem de consistência finalizada para {0} objeto(s).</value></data>
+  <data name="InvalidLocalStateStartingEmpty" xml:space="preserve"><value>Estado local inválido. Iniciando com configuração vazia.</value></data>
+  <data name="IndexesLabel" xml:space="preserve"><value>Índices</value></data>
+  <data name="OperationAlreadyInProgress" xml:space="preserve"><value>Já existe uma operação em andamento.</value></data>
+
+  <data name="SelectObjectTypeToConfigureMappings" xml:space="preserve"><value>Selecione um tipo de objeto para configurar mapeamentos.</value></data>
+  <data name="SelectObjectTypeToConfigureTemplates" xml:space="preserve"><value>Selecione um tipo de objeto para configurar templates.</value></data>
+  <data name="SelectObjectTypeToConfigureFilter" xml:space="preserve"><value>Selecione um tipo de objeto para configurar o filtro.</value></data>
+  <data name="SelectObjectTypeToClearFilter" xml:space="preserve"><value>Selecione um tipo de objeto para limpar o filtro.</value></data>
+
+  <data name="MappingsUpdated" xml:space="preserve"><value>Mapeamentos atualizados.</value></data>
+  <data name="NoObjectsLoadedUseRefresh" xml:space="preserve"><value>Nenhum objeto carregado para gerar. Use Atualizar objetos primeiro.</value></data>
+  <data name="NoObjectsLoadedForGeneration" xml:space="preserve"><value>Nenhum objeto carregado para gerar.</value></data>
+  <data name="ForeignKeysLabel" xml:space="preserve"><value>Chave estrangeira</value></data>
+</root>

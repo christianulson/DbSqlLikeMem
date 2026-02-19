@@ -1,7 +1,7 @@
 {
   "name": "dbsqllikemem-vscode-extension",
-  "displayName": "DbSqlLikeMem Tools",
-  "description": "Extensão VS Code para navegar objetos de banco e gerar classes POCO para DbSqlLikeMem.",
+  "displayName": "%displayName%",
+  "description": "%description%",
   "version": "0.1.0",
   "publisher": "dbsqllikemem",
   "license": "SEE LICENSE IN ../../README.md",
@@ -45,12 +45,13 @@
     "onCommand:dbSqlLikeMem.removeConnection"
   ],
   "main": "./out/extension.js",
+  "l10n": "./l10n",
   "contributes": {
     "viewsContainers": {
       "activitybar": [
         {
           "id": "dbSqlLikeMem",
-          "title": "DbSqlLikeMem",
+          "title": "%viewsContainer.title%",
           "icon": "resources/database.svg"
         }
       ]
@@ -59,7 +60,7 @@
       "dbSqlLikeMem": [
         {
           "id": "dbSqlLikeMem.connections",
-          "name": "Connections"
+          "name": "%views.connections.name%"
         }
       ]
     },
