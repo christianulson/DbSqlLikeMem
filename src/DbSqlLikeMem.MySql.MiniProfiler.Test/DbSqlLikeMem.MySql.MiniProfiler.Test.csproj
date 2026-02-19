@@ -55,7 +55,6 @@
 		</PackageReference>
 	</ItemGroup>
 
-
 	<ItemGroup>
 	  <Compile Include="..\DbSqlLikeMem.MySql.Test\CsvLoaderAndIndexTests.cs" Link="CsvLoaderAndIndexTests.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql.Test\DapperTests.cs" Link="DapperTests.cs" />
@@ -105,11 +104,6 @@
 
 	<ItemGroup>
 		<PackageReference Include="coverlet.collector" Version="6.0.4" />
-		<PackageReference Include="FluentAssertions" Version="8.8.0" />
-		<PackageReference Include="FluentAssertions.Analyzers" Version="0.34.1">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
 	</ItemGroup>
 	
 
@@ -142,6 +136,13 @@
 	  <Folder Include="Query\" />
 	  <Folder Include="Performance\" />
 	  <Folder Include="Parser\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Include="..\DbSqlLikeMem.Test\CsvLoaderAndIndexTestBase.cs" Link="SharedTests\CsvLoaderAndIndexTestBase.cs" />
+		<Compile Include="..\DbSqlLikeMem.Test\ExistsTestsBase.cs" Link="SharedTests\ExistsTestsBase.cs" />
+		<Compile Include="..\DbSqlLikeMem.Test\StoredProcedureSignatureTestsBase.cs" Link="SharedTests\StoredProcedureSignatureTestsBase.cs" />
+		<Compile Include="..\DbSqlLikeMem.Test\SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase.cs" Link="SharedTests\SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase.cs" />
 	</ItemGroup>
 
 </Project>
