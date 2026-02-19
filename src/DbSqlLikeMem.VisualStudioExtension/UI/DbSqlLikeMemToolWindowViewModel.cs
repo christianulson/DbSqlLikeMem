@@ -20,8 +20,18 @@ namespace DbSqlLikeMem.VisualStudioExtension.UI;
 /// </summary>
 public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 {
-    public sealed record ScenarioTableOption(string Schema, string TableName)
+    public sealed class ScenarioTableOption
     {
+        public ScenarioTableOption(string schema, string tableName)
+        {
+            Schema = schema;
+            TableName = tableName;
+        }
+
+        public string Schema { get; }
+
+        public string TableName { get; }
+
         public string DisplayName => string.IsNullOrWhiteSpace(Schema) ? TableName : $"{Schema}.{TableName}";
     }
 
