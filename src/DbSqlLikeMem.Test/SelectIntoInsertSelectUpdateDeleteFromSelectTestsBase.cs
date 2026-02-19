@@ -9,12 +9,24 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
     ) : XUnitTestBase(helper)
     where TDbMock : DbMock
 {
+    /// <summary>
+    /// EN: Creates a provider-specific database mock used by shared select/insert/update/delete tests.
+    /// PT: Cria um mock de banco específico do provedor usado pelos testes compartilhados de select/insert/update/delete.
+    /// </summary>
     protected abstract TDbMock CreateDb();
 
+    /// <summary>
+    /// EN: Executes a provider-specific non-query SQL command against the supplied mock database.
+    /// PT: Executa um comando SQL sem retorno específico do provedor no banco mock informado.
+    /// </summary>
     protected abstract int ExecuteNonQuery(
         TDbMock db,
         string sql);
 
+    /// <summary>
+    /// EN: Gets the SQL used to delete rows based on a derived select expression.
+    /// PT: Obtém o SQL usado para excluir linhas com base em uma expressão de subselect derivado.
+    /// </summary>
     protected virtual string DeleteJoinDerivedSelectSql
         => "DELETE FROM users WHERE id IN (SELECT id FROM users WHERE tenantid = 10)";
 
