@@ -28,6 +28,11 @@
 
 ### MySQL
 - `INSERT ... ON DUPLICATE KEY UPDATE`: suportado.
+- `USE/IGNORE/FORCE INDEX`: parser + semântica inicial no executor para seleção de índice em predicados de igualdade.
+  - `FOR JOIN` e sem escopo: afetam candidatos de índice no plano de acesso.
+  - `FOR ORDER BY` / `FOR GROUP BY`: comportamento mínimo inicial (parseados, sem otimização dedicada de sort/group no executor).
+  - `FORCE INDEX` em escopos `FOR ORDER BY` / `FOR GROUP BY` valida existência de índices quando a query usa a cláusula correspondente (`ORDER BY` / `GROUP BY`), com fail-fast para índice inexistente.
+  - Em `FOR ORDER BY` / `FOR GROUP BY`, quando o índice hint existe, o plano de acesso a linhas permanece no modo mínimo atual (sem otimização dedicada de ordenação/agrupamento).
 
 ### SQLite
 - `WITH`/CTE: disponível (>= 3).

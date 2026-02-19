@@ -1330,6 +1330,7 @@ internal sealed class SqlQueryParser
         var first = ExpectIdentifier();
         string? db = null;
         var table = first;
+        var mySqlIndexHints = new List<SqlMySqlIndexHint>();
         if (IsSymbol(Peek(), "."))
         {
             Consume();
@@ -1337,11 +1338,19 @@ internal sealed class SqlQueryParser
             table = ExpectIdentifier();
         }
         if (consumeHints)
-            ConsumeTableHintsIfPresent();
+            mySqlIndexHints.AddRange(ConsumeTableHintsIfPresent());
         var alias2 = ReadOptionalAlias();
         if (consumeHints)
-            ConsumeTableHintsIfPresent();
-        return new SqlTableSource(db, table, alias2, null, null, null, Pivot: null);
+            mySqlIndexHints.AddRange(ConsumeTableHintsIfPresent());
+        return new SqlTableSource(
+            db,
+            table,
+            alias2,
+            null,
+            null,
+            null,
+            Pivot: null,
+            MySqlIndexHints: mySqlIndexHints);
     }
 
     private SqlTableSource TryParsePivot(SqlTableSource source)
@@ -1434,8 +1443,10 @@ internal sealed class SqlQueryParser
         return list;
     }
 
-    private void ConsumeTableHintsIfPresent()
+    private IReadOnlyList<SqlMySqlIndexHint> ConsumeTableHintsIfPresent()
     {
+        var mySqlHints = new List<SqlMySqlIndexHint>();
+
         while (true)
         {
             if (IsWord(Peek(), "WITH") && IsSymbol(Peek(1), "("))
@@ -1462,17 +1473,26 @@ internal sealed class SqlQueryParser
                 if (!_dialect.SupportsMySqlIndexHints)
                     throw SqlUnsupported.ForDialect(_dialect, "INDEX hints");
 
-                ConsumeMySqlIndexHint();
+                mySqlHints.Add(ConsumeMySqlIndexHint());
                 continue;
             }
 
             break;
         }
+
+        return mySqlHints;
     }
 
-    private void ConsumeMySqlIndexHint()
+    private SqlMySqlIndexHint ConsumeMySqlIndexHint()
     {
-        Consume(); // USE | IGNORE | FORCE
+        var kindToken = Consume(); // USE | IGNORE | FORCE
+        var kind = kindToken.Text.NormalizeName() switch
+        {
+            "use" => SqlMySqlIndexHintKind.Use,
+            "ignore" => SqlMySqlIndexHintKind.Ignore,
+            "force" => SqlMySqlIndexHintKind.Force,
+            _ => throw new InvalidOperationException("MySQL index hint inválido: tipo de hint desconhecido.")
+        };
 
         if (IsWord(Peek(), "INDEX") || IsWord(Peek(), "KEY"))
         {
@@ -1483,22 +1503,26 @@ internal sealed class SqlQueryParser
             throw new InvalidOperationException("MySQL index hint inválido: esperado INDEX/KEY.");
         }
 
+        var scope = SqlMySqlIndexHintScope.Any;
         if (IsWord(Peek(), "FOR"))
         {
             Consume();
             if (IsWord(Peek(), "JOIN"))
             {
                 Consume();
+                scope = SqlMySqlIndexHintScope.Join;
             }
             else if (IsWord(Peek(), "ORDER"))
             {
                 Consume();
                 ExpectWord("BY");
+                scope = SqlMySqlIndexHintScope.OrderBy;
             }
             else if (IsWord(Peek(), "GROUP"))
             {
                 Consume();
                 ExpectWord("BY");
+                scope = SqlMySqlIndexHintScope.GroupBy;
             }
             else
             {
@@ -1510,10 +1534,12 @@ internal sealed class SqlQueryParser
             throw new InvalidOperationException("MySQL index hint inválido: esperado lista de índices entre parênteses.");
 
         var hintIndexListRaw = ReadBalancedParenRawTokens();
-        ValidateMySqlIndexHintList(hintIndexListRaw);
+        var indexNames = ValidateMySqlIndexHintList(hintIndexListRaw);
+
+        return new SqlMySqlIndexHint(kind, scope, indexNames);
     }
 
-    private static void ValidateMySqlIndexHintList(string hintIndexListRaw)
+    private static IReadOnlyList<string> ValidateMySqlIndexHintList(string hintIndexListRaw)
     {
         var rawItems = hintIndexListRaw.Split(',').Select(static x => x.Trim()).ToList();
 
@@ -1523,22 +1549,37 @@ internal sealed class SqlQueryParser
         if (rawItems.Any(static x => x.Length == 0))
             throw new InvalidOperationException("MySQL index hint inválido: lista contém item vazio.");
 
+        var parsedItems = new List<string>(rawItems.Count);
         foreach (var item in rawItems)
         {
             if (item.Equals("PRIMARY", StringComparison.OrdinalIgnoreCase))
+            {
+                parsedItems.Add("PRIMARY");
                 continue;
+            }
 
             // MySQL quoted identifier with backticks; supports escaped backtick as `` inside name.
             if (Regex.IsMatch(item, @"^`(?:``|[^`])+`$", RegexOptions.CultureInvariant))
+            {
+                parsedItems.Add(UnquoteMySqlIdentifier(item));
                 continue;
+            }
 
             // Unquoted: accept common MySQL identifier chars including '$'.
             if (Regex.IsMatch(item, @"^[A-Za-z_$][A-Za-z0-9_$]*$", RegexOptions.CultureInvariant))
+            {
+                parsedItems.Add(item);
                 continue;
+            }
 
             throw new InvalidOperationException($"MySQL index hint inválido: índice '{item}' não é válido.");
         }
+
+        return parsedItems;
     }
+
+    private static string UnquoteMySqlIdentifier(string item)
+        => item[1..^1].Replace("``", "`");
 
     private SqlJoin ParseJoin()
     {

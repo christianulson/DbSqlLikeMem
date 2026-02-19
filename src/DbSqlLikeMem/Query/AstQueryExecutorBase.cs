@@ -334,11 +334,21 @@ internal abstract class AstQueryExecutorBase(
         }
 
         // 1) FROM
-        var rows = BuildFrom(selectQuery.Table, ctes, selectQuery.Where);
+        var rows = BuildFrom(
+            selectQuery.Table,
+            ctes,
+            selectQuery.Where,
+            hasOrderBy: selectQuery.OrderBy.Count > 0,
+            hasGroupBy: selectQuery.GroupBy.Count > 0);
 
         // 2) JOINS
         foreach (var j in selectQuery.Joins)
-            rows = ApplyJoin(rows, j, ctes);
+            rows = ApplyJoin(
+                rows,
+                j,
+                ctes,
+                hasOrderBy: selectQuery.OrderBy.Count > 0,
+                hasGroupBy: selectQuery.GroupBy.Count > 0);
 
         // 2.5) Correlated subquery: expose outer row fields/sources to subquery evaluation (EXISTS, IN subselect, etc.)
         if (outerRow is not null)
@@ -372,7 +382,7 @@ internal abstract class AstQueryExecutorBase(
         Dictionary<string, Source> ctes,
         IEnumerable<EvalRow> rows)
     {
-        var keyExprs = q.GroupBy.Select(_ => ParseExpr(_)).ToArray();
+        var keyExprs = BuildGroupByKeyExpressions(q);
 
         var grouped = rows.GroupBy(
             r => new GroupKey([.. keyExprs.Select(e => Eval(e, r, group: null, ctes))]),
@@ -433,12 +443,42 @@ internal abstract class AstQueryExecutorBase(
         return ProjectGrouped(q, grouped, ctes);
     }
 
+    private SqlExpr[] BuildGroupByKeyExpressions(SqlSelectQuery q)
+    {
+        var keyExprs = new List<SqlExpr>(q.GroupBy.Count);
+
+        foreach (var groupByRaw in q.GroupBy)
+        {
+            var raw = groupByRaw.Trim();
+            if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ord))
+            {
+                if (ord < 1)
+                    throw new InvalidOperationException("invalid: GROUP BY ordinal must be >= 1");
+
+                var idx = ord - 1;
+                if (idx >= q.SelectItems.Count)
+                    throw new InvalidOperationException($"invalid: GROUP BY ordinal {ord} out of range");
+
+                var selectItem = q.SelectItems[idx];
+                var (exprRaw, _) = SplitTrailingAsAlias(selectItem.Raw, selectItem.Alias);
+                keyExprs.Add(ParseExpr(exprRaw));
+                continue;
+            }
+
+            keyExprs.Add(ParseExpr(groupByRaw));
+        }
+
+        return [.. keyExprs];
+    }
+
     // ---------------- FROM/JOIN ----------------
 
     private IEnumerable<EvalRow> BuildFrom(
         SqlTableSource? from,
         IDictionary<string, Source> ctes,
-        SqlExpr? where)
+        SqlExpr? where,
+        bool hasOrderBy,
+        bool hasGroupBy)
     {
         if (from is null)
         {
@@ -450,7 +490,7 @@ internal abstract class AstQueryExecutorBase(
         }
 
         var src = ResolveSource(from, ctes);
-        var sourceRows = TryRowsFromIndex(src, where) ?? src.Rows();
+        var sourceRows = TryRowsFromIndex(src, from, where, hasOrderBy, hasGroupBy) ?? src.Rows();
         foreach (var r in sourceRows)
         {
             var fields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
@@ -468,9 +508,19 @@ internal abstract class AstQueryExecutorBase(
 
     private IEnumerable<Dictionary<string, object?>>? TryRowsFromIndex(
         Source src,
-        SqlExpr? where)
+        SqlTableSource? tableSource,
+        SqlExpr? where,
+        bool hasOrderBy,
+        bool hasGroupBy)
     {
-        if (where is null || src.Physical is null || src.Physical.Indexes.Count == 0)
+        if (src.Physical is null || src.Physical.Indexes.Count == 0)
+            return null;
+
+        var hintPlan = BuildMySqlIndexHintPlan(tableSource?.MySqlIndexHints, src.Physical, hasOrderBy, hasGroupBy);
+        if (hintPlan?.MissingForcedIndexes.Count > 0)
+            throw new InvalidOperationException($"MySQL FORCE INDEX referencia índice inexistente: {string.Join(", ", hintPlan.MissingForcedIndexes)}.");
+
+        if (where is null)
             return null;
 
         if (!TryCollectColumnEqualities(where, src, out var equalsByColumn)
@@ -481,6 +531,9 @@ internal abstract class AstQueryExecutorBase(
         foreach (var ix in src.Physical.Indexes.Values)
         {
             if (ix.KeyCols.Count == 0)
+                continue;
+
+            if (hintPlan is not null && !hintPlan.AllowedIndexNames.Contains(ix.Name.NormalizeName()))
                 continue;
 
             var coversAll = ix.KeyCols.All(col => equalsByColumn.ContainsKey(col.NormalizeName()));
@@ -510,6 +563,117 @@ internal abstract class AstQueryExecutorBase(
         return src.RowsByIndexes(positions.Keys);
     }
 
+
+
+    private static MySqlIndexHintPlan? BuildMySqlIndexHintPlan(
+        IReadOnlyList<SqlMySqlIndexHint>? hints,
+        ITableMock table,
+        bool hasOrderBy,
+        bool hasGroupBy)
+    {
+        if (hints is null || hints.Count == 0)
+            return null;
+
+        var allIndexes = table.Indexes.Values.ToList();
+        var existingIndexNames = allIndexes
+            .Select(static ix => ix.Name.NormalizeName())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var primaryEquivalentIndexNames = ResolvePrimaryEquivalentIndexNames(table, allIndexes);
+
+        var forceHintsToValidate = hints
+            .Where(hint => hint.Kind == SqlMySqlIndexHintKind.Force
+                && (hint.Scope == SqlMySqlIndexHintScope.Any
+                    || hint.Scope == SqlMySqlIndexHintScope.Join
+                    || (hint.Scope == SqlMySqlIndexHintScope.OrderBy && hasOrderBy)
+                    || (hint.Scope == SqlMySqlIndexHintScope.GroupBy && hasGroupBy)))
+            .ToList();
+
+        var missingForced = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var hint in forceHintsToValidate)
+        {
+            var normalizedNames = ExpandHintIndexNames(hint.IndexNames, primaryEquivalentIndexNames)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var item in normalizedNames)
+            {
+                if (!existingIndexNames.Contains(item))
+                    missingForced.Add(item);
+            }
+        }
+
+        var joinScopeHints = hints.Where(static h => h.Scope is SqlMySqlIndexHintScope.Any or SqlMySqlIndexHintScope.Join).ToList();
+        var allowedNames = new HashSet<string>(existingIndexNames, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var hint in joinScopeHints)
+        {
+            var normalizedNames = ExpandHintIndexNames(hint.IndexNames, primaryEquivalentIndexNames)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (hint.Kind is SqlMySqlIndexHintKind.Use or SqlMySqlIndexHintKind.Force)
+            {
+                allowedNames.IntersectWith(normalizedNames);
+            }
+            else if (hint.Kind == SqlMySqlIndexHintKind.Ignore)
+            {
+                allowedNames.ExceptWith(normalizedNames);
+            }
+        }
+
+        return new MySqlIndexHintPlan(allowedNames, missingForced);
+    }
+
+
+    private static IEnumerable<string> ExpandHintIndexNames(
+        IReadOnlyList<string> hintedNames,
+        IReadOnlySet<string> primaryEquivalentIndexNames)
+    {
+        foreach (var hintedName in hintedNames)
+        {
+            var normalized = hintedName.NormalizeName();
+            if (!normalized.Equals("primary", StringComparison.OrdinalIgnoreCase))
+            {
+                yield return normalized;
+                continue;
+            }
+
+            if (primaryEquivalentIndexNames.Count == 0)
+            {
+                yield return "primary";
+                continue;
+            }
+
+            foreach (var item in primaryEquivalentIndexNames)
+                yield return item;
+        }
+    }
+
+    private static HashSet<string> ResolvePrimaryEquivalentIndexNames(
+        ITableMock table,
+        IReadOnlyList<IndexDef> allIndexes)
+    {
+        var pkColumnNames = table.PrimaryKeyIndexes
+            .Select(pkIdx => table.Columns.FirstOrDefault(col => col.Value.Index == pkIdx).Key)
+            .Where(static name => !string.IsNullOrWhiteSpace(name))
+            .Select(static name => name!.NormalizeName())
+            .ToList();
+
+        if (pkColumnNames.Count == 0)
+            return [];
+
+        var primaryEquivalent = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var index in allIndexes)
+        {
+            if (index.KeyCols.Count != pkColumnNames.Count)
+                continue;
+
+            var indexCols = index.KeyCols.Select(static col => col.NormalizeName()).ToList();
+            if (indexCols.SequenceEqual(pkColumnNames))
+                primaryEquivalent.Add(index.Name.NormalizeName());
+        }
+
+        return primaryEquivalent;
+    }
 
     private IReadOnlyDictionary<int, Dictionary<string, object?>>? LookupIndexWithMetrics(
         ITableMock table,
@@ -639,9 +803,19 @@ internal abstract class AstQueryExecutorBase(
     private IEnumerable<EvalRow> ApplyJoin(
         IEnumerable<EvalRow> leftRows,
         SqlJoin join,
-        IDictionary<string, Source> ctes)
+        IDictionary<string, Source> ctes,
+        bool hasOrderBy,
+        bool hasGroupBy)
     {
         var rightSrc = ResolveSource(join.Table, ctes);
+
+
+        if (rightSrc.Physical is not null)
+        {
+            var hintPlan = BuildMySqlIndexHintPlan(join.Table.MySqlIndexHints, rightSrc.Physical, hasOrderBy, hasGroupBy);
+            if (hintPlan?.MissingForcedIndexes.Count > 0)
+                throw new InvalidOperationException($"MySQL FORCE INDEX referencia índice inexistente: {string.Join(", ", hintPlan.MissingForcedIndexes)}.");
+        }
 
         // FULL is not MySQL; accept as INNER for test/mock purposes
         var jt = //join.Type == SqlJoinType.Full ? SqlJoinType.Inner : 
@@ -812,7 +986,7 @@ internal abstract class AstQueryExecutorBase(
 
         _cnn.Metrics.IncrementTableHint(tableName);
         var tb = _cnn.GetTable(tableName, ts.DbName);
-        source = Source.FromPhysical(tableName, alias, tb);
+        source = Source.FromPhysical(tableName, alias, tb, ts.MySqlIndexHints);
         return ApplyPivotIfNeeded(source, ts.Pivot, ctes);
     }
 
@@ -1960,7 +2134,7 @@ private void FillPercentRankOrCumeDist(
         }
 
         // Pre-parse ORDER BY keys once
-        var keys = new List<(Func<Dictionary<int, object?>, object?> Get, bool Desc, string Raw)>();
+        var keys = new List<(Func<Dictionary<int, object?>, object?> Get, bool Desc, bool? NullsFirst)>();
         var joinFieldsByRow = new Dictionary<Dictionary<int, object?>, Dictionary<string, object?>>(ReferenceEqualityComparer<Dictionary<int, object?>>.Instance);
         for (int i = 0; i < res.Count && i < res.JoinFields.Count; i++)
             joinFieldsByRow[res[i]] = res.JoinFields[i];
@@ -1981,32 +2155,41 @@ private void FillPercentRankOrCumeDist(
                 if (colIdx >= res.Columns.Count)
                     throw new InvalidOperationException($"invalid: ORDER BY ordinal {ord} out of range");
 
-                keys.Add((r => r.TryGetValue(colIdx, out var v) ? v : null, it.Desc, raw));
+                keys.Add((r => r.TryGetValue(colIdx, out var v) ? v : null, it.Desc, it.NullsFirst));
                 continue;
             }
 
             // column/alias fast-path
-            var col = res.Columns.FirstOrDefault(c => c.ColumnName.Equals(raw, StringComparison.OrdinalIgnoreCase));
+            var col = res.Columns.FirstOrDefault(c =>
+                c.ColumnAlias.Equals(raw, StringComparison.OrdinalIgnoreCase)
+                || c.ColumnName.Equals(raw, StringComparison.OrdinalIgnoreCase));
             if (col is not null)
             {
                 var colIdx = col.ColumIndex;
-                keys.Add((r => r.TryGetValue(colIdx, out var v) ? v : null, it.Desc, raw));
+                keys.Add((r => r.TryGetValue(colIdx, out var v) ? v : null, it.Desc, it.NullsFirst));
                 continue;
             }
 
             var aliasToIndex = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-            // 1) Se você tiver nomes de colunas no res (ex: res.Columns / res.ColumnNames / etc), use isso.
-            // Vou assumir que res.Columns é uma lista/dicionário com ordem e Nome. Ajuste a fonte conforme seu res.
             for (int i = 0; i < res.Columns.Count; i++)
             {
-                var colName = res.Columns[i].ColumnName; // <-- AJUSTE AQUI conforme seu tipo real
-                if (!string.IsNullOrWhiteSpace(colName) && !aliasToIndex.ContainsKey(colName))
-                    aliasToIndex[colName] = i;
-            }
+                var col = res.Columns[i];
 
-            // 2) Fallback: se sua estrutura já tem esse mapa pronto, use ela e delete o loop acima.
-            // Ex: aliasToIndex = res.AliasToIndex;  (se existir)
+                if (!string.IsNullOrWhiteSpace(col.ColumnAlias) && !aliasToIndex.ContainsKey(col.ColumnAlias))
+                    aliasToIndex[col.ColumnAlias] = i;
+
+                if (!string.IsNullOrWhiteSpace(col.ColumnName) && !aliasToIndex.ContainsKey(col.ColumnName))
+                    aliasToIndex[col.ColumnName] = i;
+
+                var tail = col.ColumnName;
+                var dot = tail.LastIndexOf('.');
+                if (dot >= 0 && dot + 1 < tail.Length)
+                    tail = tail[(dot + 1)..];
+
+                if (!string.IsNullOrWhiteSpace(tail) && !aliasToIndex.ContainsKey(tail))
+                    aliasToIndex[tail] = i;
+            }
 
             var expr = ParseExpr(raw);
 
@@ -2033,7 +2216,7 @@ private void FillPercentRankOrCumeDist(
                 return Eval(expr, fake, group: null, ctes);
             };
 
-            keys.Add((Get: get, it.Desc, Raw: raw));
+            keys.Add((Get: get, it.Desc, it.NullsFirst));
         }
 
         if (keys.Count == 0)
@@ -2053,9 +2236,8 @@ private void FillPercentRankOrCumeDist(
 
         int CompareRows(Dictionary<int, object?> ra, Dictionary<int, object?> rb)
         {
-            foreach (var (Get, Desc, Raw) in keys)
+            foreach (var (Get, Desc, NullsFirst) in keys)
             {
-                var orderByItem = q.OrderBy.FirstOrDefault(o => string.Equals(o.Raw, Raw, StringComparison.OrdinalIgnoreCase));
                 var ka = Get(ra);
                 var kb = Get(rb);
 
@@ -2067,7 +2249,7 @@ private void FillPercentRankOrCumeDist(
                     if (kaIsNull && kbIsNull) cmp = 0;
                     else
                     {
-                        var explicitNullsFirst = orderByItem?.NullsFirst;
+                        var explicitNullsFirst = NullsFirst;
                         if (explicitNullsFirst.HasValue)
                             cmp = kaIsNull ? (explicitNullsFirst.Value ? -1 : 1) : (explicitNullsFirst.Value ? 1 : -1);
                         else
@@ -3477,6 +3659,10 @@ private void FillPercentRankOrCumeDist(
 
     // ---------------- INTERNAL TYPES ----------------
 
+    internal sealed record MySqlIndexHintPlan(
+        HashSet<string> AllowedIndexNames,
+        HashSet<string> MissingForcedIndexes);
+
     internal sealed class Source
     {
         internal ITableMock? Physical { get; }
@@ -3493,13 +3679,15 @@ private void FillPercentRankOrCumeDist(
         /// Auto-generated summary.
         /// </summary>
         public IReadOnlyList<string> ColumnNames { get; }
-        private Source(string name, string alias, ITableMock physical)
+        public IReadOnlyList<SqlMySqlIndexHint> MySqlIndexHints { get; }
+        private Source(string name, string alias, ITableMock physical, IReadOnlyList<SqlMySqlIndexHint>? mySqlIndexHints = null)
         {
             Alias = alias;
             Name = name;
             Physical = physical;
             _result = null;
             ColumnNames = [.. physical.Columns.OrderBy(kv => kv.Value.Index).Select(kv => kv.Key!)];
+            MySqlIndexHints = mySqlIndexHints ?? [];
         }
         private Source(string name, string alias, TableResultMock result)
         {
@@ -3508,6 +3696,7 @@ private void FillPercentRankOrCumeDist(
             _result = result;
             Physical = null;
             ColumnNames = [.. result.Columns.OrderBy(c => c.ColumIndex).Select(c => c.ColumnAlias)];
+            MySqlIndexHints = [];
         }
         /// <summary>
         /// Auto-generated summary.
@@ -3515,7 +3704,7 @@ private void FillPercentRankOrCumeDist(
         public Source WithAlias(string alias)
         {
             if (Physical is not null)
-                return FromPhysical(Name, alias, Physical);
+                return FromPhysical(Name, alias, Physical, MySqlIndexHints);
             return FromResult(Name, alias, _result!);
         }
 
@@ -3595,8 +3784,8 @@ private void FillPercentRankOrCumeDist(
         /// <summary>
         /// Auto-generated summary.
         /// </summary>
-        public static Source FromPhysical(string tableName, string alias, ITableMock physical)
-            => new(tableName, alias, physical);
+        public static Source FromPhysical(string tableName, string alias, ITableMock physical, IReadOnlyList<SqlMySqlIndexHint>? mySqlIndexHints = null)
+            => new(tableName, alias, physical, mySqlIndexHints);
        
         /// <summary>
         /// Auto-generated summary.
