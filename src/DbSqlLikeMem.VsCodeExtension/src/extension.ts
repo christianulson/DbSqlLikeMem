@@ -132,13 +132,10 @@ class DbNodeItem extends vscode.TreeItem {
         this.iconPath = new vscode.ThemeIcon('error');
       }
     } else if (node.kind === 'section') {
-      this.contextValue = 'db-section';
       this.iconPath = new vscode.ThemeIcon('list-unordered');
     } else if (node.kind === 'column') {
-      this.contextValue = 'db-column';
       this.iconPath = new vscode.ThemeIcon('symbol-field');
     } else if (node.kind === 'foreignKey') {
-      this.contextValue = 'db-foreignKey';
       this.iconPath = new vscode.ThemeIcon('link');
     } else {
       this.contextValue = `db-${node.kind}`;
