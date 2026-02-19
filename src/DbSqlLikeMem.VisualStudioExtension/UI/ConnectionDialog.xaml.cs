@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 
-using DbSqlLikeMem.VisualStudioExtension.Properties;
+using UiResources = DbSqlLikeMem.VisualStudioExtension.Properties.Resources;
 
 namespace DbSqlLikeMem.VisualStudioExtension.UI;
 
@@ -60,7 +60,7 @@ public partial class ConnectionDialog : Window
 
         if (string.IsNullOrWhiteSpace(ConnectionName) || string.IsNullOrWhiteSpace(ConnectionString))
         {
-            MessageBox.Show(this, Resources.FillConnectionNameAndString, Resources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, UiResources.FillConnectionNameAndString, UiResources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 

@@ -2,7 +2,7 @@ using System.IO;
 using System.Windows;
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 
-using DbSqlLikeMem.VisualStudioExtension.Properties;
+using UiResources = DbSqlLikeMem.VisualStudioExtension.Properties.Resources;
 
 namespace DbSqlLikeMem.VisualStudioExtension.UI;
 
@@ -51,7 +51,7 @@ public partial class TemplateConfigurationDialog : Window
 
         if (string.IsNullOrWhiteSpace(ModelOutputDirectory) || string.IsNullOrWhiteSpace(RepositoryOutputDirectory))
         {
-            MessageBox.Show(this, Resources.OutputDirectoriesRequired, Resources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, UiResources.OutputDirectoriesRequired, UiResources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -82,7 +82,7 @@ public partial class TemplateConfigurationDialog : Window
 
         if (!File.Exists(fullPath))
         {
-            MessageBox.Show(this, string.Format(Resources.TemplateNotFound, fullPath), Resources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, string.Format(UiResources.TemplateNotFound, fullPath), UiResources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
         }
 
@@ -99,7 +99,7 @@ public partial class TemplateConfigurationDialog : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, string.Format(Resources.InvalidDirectoryWithDetail, directory, ex.Message), Resources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, string.Format(UiResources.InvalidDirectoryWithDetail, directory, ex.Message), UiResources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
         }
     }

@@ -1,6 +1,6 @@
 using System.Windows;
 
-using DbSqlLikeMem.VisualStudioExtension.Properties;
+using UiResources = DbSqlLikeMem.VisualStudioExtension.Properties.Resources;
 
 namespace DbSqlLikeMem.VisualStudioExtension.UI;
 
@@ -36,7 +36,7 @@ public partial class MappingDialog : Window
 
         if (string.IsNullOrWhiteSpace(FileNamePattern) || string.IsNullOrWhiteSpace(OutputDirectory))
         {
-            MessageBox.Show(this, Resources.FillMappingPatternAndOutput, Resources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, UiResources.FillMappingPatternAndOutput, UiResources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
