@@ -37,6 +37,21 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>true</DesignTime>
+      <AutoGen>true</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <EmbeddedResource Update="Properties\Resources.*.resx">
+      <DependentUpon>Resources.resx</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
     <VSCTCompile Include="DbSqlLikeMemExtension.vsct" />
     <None Include="source.extension.vsixmanifest">
       <SubType>Designer</SubType>
