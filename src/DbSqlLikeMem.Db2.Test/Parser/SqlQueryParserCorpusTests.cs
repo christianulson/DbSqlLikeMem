@@ -58,6 +58,12 @@ public sealed class SqlQueryParserCorpusTests(
             yield return Case(sql, why, expectation, minVersion);
         }
 
+
+        // Recursos não suportados pelo dialeto
+        yield return Case(
+            "SELECT t10, t20 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10, 20 AS t20)) p",
+            "unsupported: PIVOT clause",
+            SqlCaseExpectation.ThrowNotSupported);
         // Inválidas (ThrowInvalid)
         foreach (var row in InvalidSelectStatements())
         {
