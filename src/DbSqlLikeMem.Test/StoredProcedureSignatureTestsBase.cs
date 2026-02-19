@@ -11,6 +11,10 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
     ) : XUnitTestBase(helper)
     where TSqlMockException : SqlMockException
 {
+    /// <summary>
+    /// EN: Creates a provider-specific mock connection used by stored procedure signature tests.
+    /// PT: Cria uma conexão mock específica do provedor usada pelos testes de assinatura de procedure.
+    /// </summary>
     protected abstract DbConnectionMockBase CreateConnection();
 
     /// <summary>
