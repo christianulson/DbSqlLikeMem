@@ -1,3 +1,5 @@
+using DbSqlLikeMem.Interfaces;
+using DbSqlLikeMem.Models;
 using System.Collections.Concurrent;
 
 namespace DbSqlLikeMem;
@@ -626,7 +628,7 @@ internal abstract class AstQueryExecutorBase(
 
     private static IEnumerable<string> ExpandHintIndexNames(
         IReadOnlyList<string> hintedNames,
-        IReadOnlySet<string> primaryEquivalentIndexNames)
+        IReadOnlyHashSet<string> primaryEquivalentIndexNames)
     {
         foreach (var hintedName in hintedNames)
         {
@@ -648,7 +650,7 @@ internal abstract class AstQueryExecutorBase(
         }
     }
 
-    private static HashSet<string> ResolvePrimaryEquivalentIndexNames(
+    private static IReadOnlyHashSet<string> ResolvePrimaryEquivalentIndexNames(
         ITableMock table,
         IReadOnlyList<IndexDef> allIndexes)
     {
@@ -659,7 +661,7 @@ internal abstract class AstQueryExecutorBase(
             .ToList();
 
         if (pkColumnNames.Count == 0)
-            return [];
+            return new ReadOnlyHashSet<string>(); ;
 
         var primaryEquivalent = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var index in allIndexes)
@@ -672,7 +674,7 @@ internal abstract class AstQueryExecutorBase(
                 primaryEquivalent.Add(index.Name.NormalizeName());
         }
 
-        return primaryEquivalent;
+        return new ReadOnlyHashSet<string>(primaryEquivalent);
     }
 
     private IReadOnlyDictionary<int, Dictionary<string, object?>>? LookupIndexWithMetrics(
@@ -1935,7 +1937,7 @@ private void FillPercentRankOrCumeDist(
 
         if (asPos < 0)
         {
-            // MySQL permite alias sem AS:  SELECT COUNT(*) c1, col c2 FROM ...
+            // MySQL permite alias sem AS:  SELECT COUNT(*) c1, col1 c2 FROM ...
             // Precisamos separar o último identificador (fora de parênteses) como alias,
             // sem quebrar expressões como "t2.*" ou "CAST(x AS CHAR)".
             if (TrySplitTrailingImplicitAlias(raw, out var expr0, out var alias0))
@@ -1995,7 +1997,7 @@ private void FillPercentRankOrCumeDist(
         var token = raw[start..(end + 1)].Trim();
         if (token.Length == 0) return false;
 
-        // Alias tem que ser identificador simples: não aceita "t.col", "*", "?", etc.
+        // Alias tem que ser identificador simples: não aceita "t.col1", "*", "?", etc.
         var m = Regex.Match(token, @"^`?(?<a>[A-Za-z_][A-Za-z0-9_]*)`?$", RegexOptions.CultureInvariant);
         if (!m.Success) return false;
 
@@ -2174,15 +2176,15 @@ private void FillPercentRankOrCumeDist(
 
             for (int i = 0; i < res.Columns.Count; i++)
             {
-                var col = res.Columns[i];
+                var col1 = res.Columns[i];
 
-                if (!string.IsNullOrWhiteSpace(col.ColumnAlias) && !aliasToIndex.ContainsKey(col.ColumnAlias))
-                    aliasToIndex[col.ColumnAlias] = i;
+                if (!string.IsNullOrWhiteSpace(col1.ColumnAlias) && !aliasToIndex.ContainsKey(col1.ColumnAlias))
+                    aliasToIndex[col1.ColumnAlias] = i;
 
-                if (!string.IsNullOrWhiteSpace(col.ColumnName) && !aliasToIndex.ContainsKey(col.ColumnName))
-                    aliasToIndex[col.ColumnName] = i;
+                if (!string.IsNullOrWhiteSpace(col1.ColumnName) && !aliasToIndex.ContainsKey(col1.ColumnName))
+                    aliasToIndex[col1.ColumnName] = i;
 
-                var tail = col.ColumnName;
+                var tail = col1.ColumnName;
                 var dot = tail.LastIndexOf('.');
                 if (dot >= 0 && dot + 1 < tail.Length)
                     tail = tail[(dot + 1)..];
