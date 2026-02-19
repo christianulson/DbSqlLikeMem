@@ -1364,15 +1364,17 @@ private void FillPercentRankOrCumeDist(
                 peerGroupStart = i;
             }
 
-            rankByRow[row] = rank;
-
             var peerLast = i;
             while (peerLast + 1 < part.Count && WindowOrderValuesEqual(cur, orderValuesByRow[part[peerLast + 1]]))
                 peerLast++;
 
             var cume = (double)(peerLast + 1) / part.Count;
             for (var k = peerGroupStart; k <= peerLast; k++)
-                cumeByRow[part[k]] = cume;
+            {
+                var peerRow = part[k];
+                rankByRow[peerRow] = rank;
+                cumeByRow[peerRow] = cume;
+            }
 
             i = peerLast;
             prev = cur;
