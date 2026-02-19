@@ -251,6 +251,24 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
+    /// EN: Tests Union_All_ShouldWork behavior.
+    /// PT: Testa o comportamento de Union_All_ShouldWork.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
+    public void Union_All_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(
+            "SELECT id FROM users WHERE id = 1 " +
+            "UNION ALL " +
+            "SELECT id FROM users WHERE id = 1 " +
+            "ORDER BY id").ToList();
+
+        Assert.Equal([1, 1], [.. rows.Select(r => (int)r.id)]);
+    }
+
+
+    /// <summary>
     /// EN: Tests Union_Inside_SubSelect_ShouldWork behavior.
     /// PT: Testa o comportamento de Union_Inside_SubSelect_ShouldWork.
     /// </summary>
@@ -268,6 +286,26 @@ ORDER BY id
 ").ToList();
         Assert.Equal([1, 2], [.. rows.Select(r => (int)r.id)]);
     }
+
+    /// <summary>
+    /// EN: Tests Union_All_Inside_SubSelect_ShouldWork behavior.
+    /// PT: Testa o comportamento de Union_All_Inside_SubSelect_ShouldWork.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
+    public void Union_All_Inside_SubSelect_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT * FROM (
+SELECT id FROM users WHERE id = 1
+UNION ALL
+SELECT id FROM users WHERE id = 1
+) X
+ORDER BY id
+").ToList();
+        Assert.Equal([1, 1], [.. rows.Select(r => (int)r.id)]);
+    }
+
 
     /// <summary>
     /// EN: Tests Cte_With_ShouldWork behavior.

@@ -77,6 +77,7 @@ internal sealed class OracleDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
+    public override bool SupportsPivotClause => true;
     public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["NVL"];
     public override bool ConcatReturnsNullOnNullInput => false;
 

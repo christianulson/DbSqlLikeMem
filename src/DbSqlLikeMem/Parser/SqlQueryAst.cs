@@ -108,7 +108,20 @@ internal sealed record SqlTableSource(
     string? Alias,
     SqlSelectQuery? Derived,
     SqlQueryParser.UnionChain? DerivedUnion,
-    string? DerivedSql
+    string? DerivedSql,
+    SqlPivotSpec? Pivot
+);
+
+internal sealed record SqlPivotSpec(
+    string AggregateFunction,
+    string AggregateArgRaw,
+    string ForColumnRaw,
+    IReadOnlyList<SqlPivotInItem> InItems
+);
+
+internal sealed record SqlPivotInItem(
+    string ValueRaw,
+    string Alias
 );
 
 /// <summary>

@@ -1065,11 +1065,12 @@ internal sealed class SqlQueryParser
             if (IsWord(Peek(), "FROM"))
                 throw new InvalidOperationException("invalid: duplicated FROM keyword");
             var ts = ParseTableSource();
+            ts = TryParsePivot(ts);
             if (IsWord(Peek(), "FROM"))
                 throw new InvalidOperationException("invalid: FROM inside FROM");
             return ts;
         }
-        return new SqlTableSource(null, "DUAL", null, Derived: null, null, null);
+        return new SqlTableSource(null, "DUAL", null, Derived: null, null, null, Pivot: null);
     }
 
     private List<SqlJoin> ParseJoins(SqlTableSource from)
@@ -1300,11 +1301,12 @@ internal sealed class SqlQueryParser
                     alias,
                     Derived: null,
                     DerivedUnion: new UnionChain(union.Parts, union.AllFlags, union.OrderBy, union.RowLimit),
-                    DerivedSql: innerSql);
+                    DerivedSql: innerSql,
+                    Pivot: null);
             }
 
             if (parsed is SqlSelectQuery sq)
-                return new SqlTableSource(null, null, alias, sq, null, innerSql);
+                return new SqlTableSource(null, null, alias, sq, null, innerSql, Pivot: null);
 
             throw new InvalidOperationException("Derived table deve ser um SELECT");
         }
@@ -1323,7 +1325,97 @@ internal sealed class SqlQueryParser
         var alias2 = ReadOptionalAlias();
         if (consumeHints)
             ConsumeTableHintsIfPresent();
-        return new SqlTableSource(db, table, alias2, null, null, null);
+        return new SqlTableSource(db, table, alias2, null, null, null, Pivot: null);
+    }
+
+    private SqlTableSource TryParsePivot(SqlTableSource source)
+    {
+        if (!IsWord(Peek(), "PIVOT"))
+            return source;
+
+        if (!_dialect.SupportsPivotClause)
+            throw SqlUnsupported.ForDialect(_dialect, "PIVOT");
+
+        Consume(); // PIVOT
+        var raw = ReadBalancedParenRawTokens();
+        var spec = ParsePivotSpec(raw);
+
+        var pivotAlias = ReadOptionalAlias();
+        return source with
+        {
+            Alias = pivotAlias ?? source.Alias,
+            Pivot = spec
+        };
+    }
+
+    private SqlPivotSpec ParsePivotSpec(string raw)
+    {
+        var m = Regex.Match(
+            raw,
+            @"^\s*(?<agg>[A-Za-z_][A-Za-z0-9_]*)\s*\(\s*(?<arg>[^\)]+?)\s*\)\s+FOR\s+(?<for>[A-Za-z_][A-Za-z0-9_\.]*)\s+IN\s*\((?<in>.+)\)\s*$",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        if (!m.Success)
+            throw new InvalidOperationException("invalid: unsupported PIVOT syntax");
+
+        var aggregateFunction = m.Groups["agg"].Value.Trim();
+        var aggregateArgRaw = m.Groups["arg"].Value.Trim();
+        var forColumnRaw = m.Groups["for"].Value.Trim();
+        var inListRaw = m.Groups["in"].Value.Trim();
+
+        var inItems = new List<SqlPivotInItem>();
+        foreach (var itemRaw in SplitPivotInItems(inListRaw))
+        {
+            var item = itemRaw.Trim();
+            if (item.Length == 0)
+                continue;
+
+            var im = Regex.Match(item, @"^(?<val>.+?)(?:\s+AS\s+(?<alias>[A-Za-z_][A-Za-z0-9_]*))?$", RegexOptions.IgnoreCase);
+            if (!im.Success)
+                throw new InvalidOperationException("invalid: unsupported PIVOT IN item");
+
+            var valueRaw = im.Groups["val"].Value.Trim();
+            var alias = im.Groups["alias"].Success
+                ? im.Groups["alias"].Value.Trim()
+                : valueRaw.Trim('\'', '"').Replace('.', '_');
+
+            if (string.IsNullOrWhiteSpace(alias))
+                throw new InvalidOperationException("invalid: PIVOT IN item alias");
+
+            inItems.Add(new SqlPivotInItem(valueRaw, alias));
+        }
+
+        if (inItems.Count == 0)
+            throw new InvalidOperationException("invalid: PIVOT IN list is empty");
+
+        return new SqlPivotSpec(aggregateFunction, aggregateArgRaw, forColumnRaw, inItems);
+    }
+
+    private static IEnumerable<string> SplitPivotInItems(string raw)
+    {
+        var list = new List<string>();
+        var sb = new StringBuilder();
+        int depth = 0;
+
+        foreach (var ch in raw)
+        {
+            if (ch == '(') depth++;
+            if (ch == ')') depth--;
+
+            if (ch == ',' && depth == 0)
+            {
+                list.Add(sb.ToString());
+                sb.Clear();
+                continue;
+            }
+
+            sb.Append(ch);
+        }
+
+        if (sb.Length > 0)
+            list.Add(sb.ToString());
+
+        return list;
     }
 
     private void ConsumeTableHintsIfPresent()
