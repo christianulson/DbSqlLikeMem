@@ -109,7 +109,29 @@ internal sealed record SqlTableSource(
     SqlSelectQuery? Derived,
     SqlQueryParser.UnionChain? DerivedUnion,
     string? DerivedSql,
-    SqlPivotSpec? Pivot
+    SqlPivotSpec? Pivot,
+    IReadOnlyList<SqlMySqlIndexHint>? MySqlIndexHints = null
+);
+
+internal enum SqlMySqlIndexHintKind
+{
+    Use,
+    Ignore,
+    Force
+}
+
+internal enum SqlMySqlIndexHintScope
+{
+    Any,
+    Join,
+    OrderBy,
+    GroupBy
+}
+
+internal sealed record SqlMySqlIndexHint(
+    SqlMySqlIndexHintKind Kind,
+    SqlMySqlIndexHintScope Scope,
+    IReadOnlyList<string> IndexNames
 );
 
 internal sealed record SqlPivotSpec(

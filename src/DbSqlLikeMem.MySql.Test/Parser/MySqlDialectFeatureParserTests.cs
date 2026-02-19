@@ -55,12 +55,55 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var sql = "SELECT u.id FROM users AS u USE INDEX (idx_users_id) IGNORE KEY FOR ORDER BY (idx_users_name)";
 
-        var parsed = SqlQueryParser.Parse(sql, new MySqlDialect(version));
-        Assert.IsType<SqlSelectQuery>(parsed);
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+        Assert.NotNull(parsed.Table);
+        Assert.Equal(2, parsed.Table!.MySqlIndexHints?.Count ?? 0);
     }
 
 
 
+
+    /// <summary>
+    /// EN: Ensures MySQL index hint scope FOR ORDER BY is captured in AST.
+    /// PT: Garante que o escopo FOR ORDER BY de hint de índice MySQL seja capturado na AST.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithIndexHintForOrderBy_ShouldCaptureScope(int version)
+    {
+        var sql = "SELECT u.id FROM users u IGNORE INDEX FOR ORDER BY (idx_users_name) ORDER BY u.name";
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+
+        Assert.NotNull(parsed.Table);
+        var hint = Assert.Single(parsed.Table!.MySqlIndexHints ?? []);
+        Assert.Equal(SqlMySqlIndexHintKind.Ignore, hint.Kind);
+        Assert.Equal(SqlMySqlIndexHintScope.OrderBy, hint.Scope);
+        Assert.Equal(["idx_users_name"], hint.IndexNames);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL index hint scope FOR GROUP BY is captured in AST.
+    /// PT: Garante que o escopo FOR GROUP BY de hint de índice MySQL seja capturado na AST.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithIndexHintForGroupBy_ShouldCaptureScope(int version)
+    {
+        var sql = "SELECT u.id FROM users u FORCE INDEX FOR GROUP BY (idx_users_id) WHERE u.id > 0";
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+
+        Assert.NotNull(parsed.Table);
+        var hint = Assert.Single(parsed.Table!.MySqlIndexHints ?? []);
+        Assert.Equal(SqlMySqlIndexHintKind.Force, hint.Kind);
+        Assert.Equal(SqlMySqlIndexHintScope.GroupBy, hint.Scope);
+        Assert.Equal(["idx_users_id"], hint.IndexNames);
+    }
 
     /// <summary>
     /// EN: Ensures advanced MySQL index hints with PRIMARY and FOR JOIN are parsed.
@@ -74,9 +117,13 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var sql = "SELECT u.id FROM users u FORCE INDEX FOR JOIN (PRIMARY, idx_users_id) WHERE u.id > 0";
 
-        var parsed = SqlQueryParser.Parse(sql, new MySqlDialect(version));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.IsType<SqlSelectQuery>(parsed);
+        Assert.NotNull(parsed.Table);
+        var hint = Assert.Single(parsed.Table!.MySqlIndexHints ?? []);
+        Assert.Equal(SqlMySqlIndexHintKind.Force, hint.Kind);
+        Assert.Equal(SqlMySqlIndexHintScope.Join, hint.Scope);
+        Assert.Equal(["PRIMARY", "idx_users_id"], hint.IndexNames);
     }
 
     /// <summary>
@@ -125,9 +172,13 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var sql = "SELECT id FROM users USE INDEX (idx$users, `idx``quoted`)";
 
-        var parsed = SqlQueryParser.Parse(sql, new MySqlDialect(version));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
-        Assert.IsType<SqlSelectQuery>(parsed);
+        Assert.NotNull(parsed.Table);
+        var hint = Assert.Single(parsed.Table!.MySqlIndexHints ?? []);
+        Assert.Equal(SqlMySqlIndexHintKind.Use, hint.Kind);
+        Assert.Equal(SqlMySqlIndexHintScope.Any, hint.Scope);
+        Assert.Equal(["idx$users", "idx`quoted"], hint.IndexNames);
     }
 
     /// <summary>
