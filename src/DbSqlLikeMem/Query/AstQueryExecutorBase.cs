@@ -847,9 +847,12 @@ internal abstract class AstQueryExecutorBase(
             .ToList();
 
         var forColumnNormalized = pivot.ForColumnRaw[(pivot.ForColumnRaw.LastIndexOf('.') + 1)..];
+        var aggregateArgNormalized = pivot.AggregateArgRaw[(pivot.AggregateArgRaw.LastIndexOf('.') + 1)..];
         var groupColumns = source.ColumnNames
             .Where(c => !c.Equals(pivot.ForColumnRaw, StringComparison.OrdinalIgnoreCase)
-                        && !c.Equals(forColumnNormalized, StringComparison.OrdinalIgnoreCase))
+                        && !c.Equals(forColumnNormalized, StringComparison.OrdinalIgnoreCase)
+                        && !c.Equals(pivot.AggregateArgRaw, StringComparison.OrdinalIgnoreCase)
+                        && !c.Equals(aggregateArgNormalized, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         static string BuildGroupKey(EvalRow row, IEnumerable<string> columns)
