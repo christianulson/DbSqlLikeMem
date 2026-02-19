@@ -6,11 +6,13 @@ Extensão equivalente ao fluxo desenhado para o Visual Studio Extension Core, ad
 
 - Sidebar própria **DbSqlLikeMem** na Activity Bar.
 - Cadastro de conexões (persistidas no `globalState` da extensão).
+- Validação de conexão ao adicionar/editar (com tentativa real para `SqlServer` via `sqlcmd`).
 - TreeView por:
   - Tipo de banco
   - Database
   - Tipo do objeto (`Table`, `View`, `Procedure`)
   - Objeto (`schema.nome`)
+  - Colunas e Foreign Keys (para tabelas SQL Server)
 - Filtro por modo `Like` e `Equals`.
 - Interface gráfica (Manager) para cadastrar/editar/remover conexões e configurar mapeamentos.
 - Configuração de mapeamentos por tipo de objeto (`Table`, `View`, `Procedure`) também no menu de contexto do nó do database.
@@ -19,6 +21,8 @@ Extensão equivalente ao fluxo desenhado para o Visual Studio Extension Core, ad
 - Geração de classes de **repositório** a partir de template com tokens, com prévia de conflitos (sobrescrita).
 - Configuração de templates (botão no topo da view) para modelos e repositórios.
 - Check de consistência para artefatos gerados (teste/model/repositório), com status visual por objeto na árvore.
+- Ações de geração/consistência respeitam o nó selecionado da TreeView (`Database`, `ObjectType` ou objeto individual).
+- Menus de contexto de geração/consistência disponíveis em todos os níveis relevantes da árvore (tipo de banco, database, tipo de objeto, objeto e detalhes como colunas/FKs).
 - Exportação/importação do estado em JSON.
 
 > Atualmente o provedor de metadata é **fake** (retorna objetos fixos) para validar UX e workflow. O próximo passo é substituir pelo provider real por banco.
@@ -122,6 +126,7 @@ Os templates de Model e Repository aceitam os seguintes tokens para substituiç�
 - `{{ObjectType}}`
 - `{{DatabaseType}}`
 - `{{DatabaseName}}`
+- `{{Namespace}}` (quando definido no mapeamento do tipo de objeto)
 
 ### Exemplo rápido de template
 
