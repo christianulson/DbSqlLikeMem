@@ -15,6 +15,10 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
 - [Prompts de implementação (copy/paste)](implementation-prompts.md)
   - roadmap em fases
   - prompts prontos para paralelizar implementações
+- [Playbook de IA para testes de repositório/integração em projeto externo](ai-nuget-test-projects-playbook.md)
+  - prompt pronto para pedir criação de testes no projeto XPTO
+  - fluxo rápido para IA se localizar no repositório
+  - template e checklist de validação
 - [Plano executável P7–P10](p7-p10-implementation-plan.md)
   - matriz por provider
   - testes-alvo para implementação
