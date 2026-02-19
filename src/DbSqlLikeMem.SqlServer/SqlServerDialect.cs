@@ -91,6 +91,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
     public override bool SupportsMerge => Version >= MergeMinVersion;
     public override bool SupportsPivotClause => true;
     public override bool SupportsSqlServerTableHints => true;
+    public override bool SupportsSqlServerQueryHints => true;
     public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["ISNULL"];
     public override bool ConcatReturnsNullOnNullInput => false;
 
