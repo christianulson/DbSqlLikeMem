@@ -10,6 +10,7 @@ using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 using DbSqlLikeMem.VisualStudioExtension.Core.Persistence;
 using DbSqlLikeMem.VisualStudioExtension.Core.Services;
 using DbSqlLikeMem.VisualStudioExtension.Core.Validation;
+using DbSqlLikeMem.VisualStudioExtension.Properties;
 using DbSqlLikeMem.VisualStudioExtension.Services;
 
 namespace DbSqlLikeMem.VisualStudioExtension.UI;
@@ -158,10 +159,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             var factory = AdoNetSqlQueryExecutor.GetFactory(databaseType);
-            using var connection = factory.CreateConnection() ?? throw new InvalidOperationException("Falha ao criar conexão.");
+            using var connection = factory.CreateConnection() ?? throw new InvalidOperationException(Resources.FailedCreateConnection);
             connection.ConnectionString = connectionString;
             await connection.OpenAsync(timeout.Token);
-            return (true, "Conexão validada com sucesso.");
+            return (true, Resources.ConnectionValidatedSuccessfully);
         }
         catch (Exception ex)
         {
@@ -264,7 +265,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         }
 
         SaveState();
-        SetStatusMessage("Mapeamentos atualizados.");
+        SetStatusMessage(Resources.MappingsUpdated);
     }
 
     /// <summary>
@@ -352,7 +353,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             NormalizePath(modelOutputDirectory),
             NormalizePath(repositoryOutputDirectory));
         SaveState();
-        SetStatusMessage("Templates de model/repositório atualizados.");
+        SetStatusMessage(Resources.TemplatesUpdated);
     }
 
 
@@ -374,12 +375,12 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     {
         if (string.IsNullOrWhiteSpace(filePath))
         {
-            throw new ArgumentException("Caminho de exportação inválido.", nameof(filePath));
+            throw new ArgumentException(Resources.InvalidExportPath, nameof(filePath));
         }
 
         var state = BuildPersistedState();
         await statePersistenceService.ExportAsync(state, filePath);
-        SetStatusMessage("Configurações exportadas com sucesso.");
+        SetStatusMessage(Resources.SettingsExportedSuccessfully);
     }
 
     /// <summary>
@@ -390,13 +391,13 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     {
         if (string.IsNullOrWhiteSpace(filePath))
         {
-            throw new ArgumentException("Caminho de importação inválido.", nameof(filePath));
+            throw new ArgumentException(Resources.InvalidImportPath, nameof(filePath));
         }
 
         var imported = await statePersistenceService.ImportAsync(filePath);
         if (imported is null)
         {
-            throw new InvalidOperationException("Arquivo de configuração vazio ou inválido.");
+            throw new InvalidOperationException(Resources.InvalidOrEmptySettingsFile);
         }
 
         connections.Clear();
@@ -420,7 +421,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
         SaveState();
         RefreshTree();
-        SetStatusMessage("Configurações importadas com sucesso.");
+        SetStatusMessage(Resources.SettingsImportedSuccessfully);
     }
 
 
@@ -544,8 +545,8 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
             RefreshTree();
             SetStatusMessage(failures.Count == 0
-                ? $"Objetos atualizados para {objectsByConnection.Count} conexão(ões)."
-                : $"Atualização parcial ({failures.Count} falha(s)). Veja o log para detalhes.");
+                ? string.Format(Resources.ObjectsUpdatedCount, objectsByConnection.Count)
+                : string.Format(Resources.PartialUpdateFailureCount, failures.Count));
         }
         finally
         {
@@ -599,14 +600,14 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
             if (!objectsByConnection.TryGetValue(connection.Id, out var objects))
             {
-                SetStatusMessage("Nenhum objeto carregado para gerar. Use Atualizar objetos primeiro.");
+                SetStatusMessage(Resources.NoObjectsLoadedUseRefresh);
                 return [];
             }
 
             var selectedObjects = ResolveSelectedObjects(node, objects).ToArray();
             if (selectedObjects.Length == 0)
             {
-                SetStatusMessage("Nenhum objeto selecionado para geração.");
+                SetStatusMessage(Resources.NoObjectSelectedForGeneration);
                 return [];
             }
 
@@ -616,7 +617,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             var generator = new ClassGenerator();
             var request = new GenerationRequest(connection, selectedObjects);
             var generated = await generator.GenerateAsync(request, mapping, o => StructuredClassContentFactory.Build(o, "Generated", connection.DatabaseType), token);
-            SetStatusMessage($"Geração de classes de teste concluída. Arquivos gerados: {generated.Count}.");
+            SetStatusMessage(string.Format(Resources.TestClassGenerationCompletedCount, generated.Count));
             return generated;
         }
         finally
@@ -701,7 +702,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         bool includeParentFk)
     {
         var connection = connections.FirstOrDefault(c => c.Id == connectionId)
-            ?? throw new InvalidOperationException("Conexão não encontrada.");
+            ?? throw new InvalidOperationException(Resources.ConnectionNotFound);
 
         var scenario = new Dictionary<string, object?>
         {
@@ -741,7 +742,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         var outputPath = Path.Combine(outputDirectory, $"{safeName}-{DateTime.UtcNow:yyyyMMddHHmmss}.json");
         var json = JsonSerializer.Serialize(scenario, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(outputPath, json);
-        SetStatusMessage($"Cenário extraído com sucesso: {outputPath}");
+        SetStatusMessage(string.Format(Resources.ScenarioExtractedSuccessfullyPath, outputPath));
         return outputPath;
     }
 
@@ -758,14 +759,14 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             var connection = ResolveConnection(node);
             if (connection is null || !objectsByConnection.TryGetValue(connection.Id, out var objects))
             {
-                SetStatusMessage("Nenhum objeto carregado para gerar.");
+                SetStatusMessage(Resources.NoObjectsLoadedForGeneration);
                 return [];
             }
 
             var selectedObjects = ResolveSelectedObjects(node, objects).ToArray();
             if (selectedObjects.Length == 0)
             {
-                SetStatusMessage("Nenhum objeto selecionado para geração.");
+                SetStatusMessage(Resources.NoObjectSelectedForGeneration);
                 return [];
             }
 
@@ -775,7 +776,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                 var normalizedTemplatePath = NormalizePath(templatePath);
                 if (!File.Exists(normalizedTemplatePath))
                 {
-                    SetStatusMessage($"Template não encontrado: {normalizedTemplatePath}");
+                    SetStatusMessage(string.Format(Resources.TemplateNotFound, normalizedTemplatePath));
                     return [];
                 }
 
@@ -816,7 +817,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     /// </summary>
     public async Task CheckConsistencyAsync(ExplorerNode node)
     {
-        if (!TryBeginOperation("Checando consistência..."))
+        if (!TryBeginOperation(Resources.CheckingConsistency))
         {
             return;
         }
@@ -832,14 +833,14 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
             if (!objectsByConnection.TryGetValue(connection.Id, out var objects))
             {
-                SetStatusMessage("Nenhum objeto carregado para checar consistência.");
+                SetStatusMessage(Resources.NoObjectsLoadedForConsistency);
                 return;
             }
 
             var mapping = mappings.FirstOrDefault(m => m.ConnectionId == connection.Id);
             if (mapping is null)
             {
-                SetStatusMessage("Mapeamento não encontrado para a conexão selecionada.");
+                SetStatusMessage(Resources.MappingNotFoundForConnection);
                 return;
             }
 
@@ -867,7 +868,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                     var status = !hasModel && !hasRepository
                         ? ObjectHealthStatus.MissingLocalArtifacts
                         : ObjectHealthStatus.DifferentFromDatabase;
-                    updates.Add((BuildObjectKey(connection.Id, dbObject), new ObjectHealthResult(dbObject, filePath, status, "Arquivos gerados ausentes (classe/model/repositório).")));
+                    updates.Add((BuildObjectKey(connection.Id, dbObject), new ObjectHealthResult(dbObject, filePath, status, Resources.MissingGeneratedFiles)));
                     return;
                 }
 
@@ -884,7 +885,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             }
 
             RefreshTree();
-            SetStatusMessage($"Checagem de consistência finalizada para {updates.Count} objeto(s).");
+            SetStatusMessage(string.Format(Resources.ConsistencyCheckCompletedCount, updates.Count));
         }
         finally
         {
@@ -926,7 +927,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             ExtensionLogger.Log($"LoadState error: {ex}");
-            SetStatusMessage("Estado local inválido. Iniciando com configuração vazia.");
+            SetStatusMessage(Resources.InvalidLocalStateStartingEmpty);
         }
     }
 
@@ -1198,7 +1199,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             });
         }
 
-        var indexesNode = new ExplorerNode("Índices", ExplorerNodeKind.TableDetailGroup)
+        var indexesNode = new ExplorerNode(Resources.IndexesLabel, ExplorerNodeKind.TableDetailGroup)
         {
             ConnectionId = tableNode.ConnectionId,
             TableDetailKind = "Indexes"
@@ -1213,7 +1214,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             });
         }
 
-        var foreignKeysNode = new ExplorerNode("Chave estrangeira", ExplorerNodeKind.TableDetailGroup)
+        var foreignKeysNode = new ExplorerNode(Resources.ForeignKeysLabel, ExplorerNodeKind.TableDetailGroup)
         {
             ConnectionId = tableNode.ConnectionId,
             TableDetailKind = "ForeignKeys"
@@ -1519,7 +1520,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     {
         if (!operationLock.Wait(0))
         {
-            SetStatusMessage("Já existe uma operação em andamento.");
+            SetStatusMessage(Resources.OperationAlreadyInProgress);
             return false;
         }
 

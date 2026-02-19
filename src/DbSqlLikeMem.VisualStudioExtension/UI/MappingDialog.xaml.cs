@@ -1,5 +1,7 @@
 using System.Windows;
 
+using DbSqlLikeMem.VisualStudioExtension.Properties;
+
 namespace DbSqlLikeMem.VisualStudioExtension.UI;
 
 public partial class MappingDialog : Window
@@ -34,7 +36,7 @@ public partial class MappingDialog : Window
 
         if (string.IsNullOrWhiteSpace(FileNamePattern) || string.IsNullOrWhiteSpace(OutputDirectory))
         {
-            MessageBox.Show(this, "Preencha o padrão de arquivo e o diretório de saída.", "Validação", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, Resources.FillMappingPatternAndOutput, Resources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 

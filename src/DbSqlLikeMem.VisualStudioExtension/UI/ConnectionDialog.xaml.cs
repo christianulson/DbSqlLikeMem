@@ -1,6 +1,8 @@
 using System.Windows;
 using System.Windows.Controls;
 
+using DbSqlLikeMem.VisualStudioExtension.Properties;
+
 namespace DbSqlLikeMem.VisualStudioExtension.UI;
 
 public partial class ConnectionDialog : Window
@@ -58,7 +60,7 @@ public partial class ConnectionDialog : Window
 
         if (string.IsNullOrWhiteSpace(ConnectionName) || string.IsNullOrWhiteSpace(ConnectionString))
         {
-            MessageBox.Show(this, "Preencha nome e connection string.", "Validação", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, Resources.FillConnectionNameAndString, Resources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
