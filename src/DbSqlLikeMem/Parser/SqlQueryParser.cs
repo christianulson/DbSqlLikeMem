@@ -2150,6 +2150,7 @@ internal sealed class SqlQueryParser
         "OUTER"  ,
         "OFFSET" ,
         "FETCH"  ,
+        "OPTION" ,
         "SET"    ,  // UPDATE
         "VALUES" ,  // INSERT
         "SELECT" ,  // INSERT...SELECT (e derived cases)
