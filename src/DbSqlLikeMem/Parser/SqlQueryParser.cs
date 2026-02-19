@@ -1704,10 +1704,23 @@ internal sealed class SqlQueryParser
         return sb.ToString().Trim();
 
         bool NeedsIdentifierQuoting(string ident)
-            => ident.Contains(' ')
-               || ident.Contains('\t')
-               || ident.Contains('\n')
-               || ident.Contains('\r');
+        {
+            if (string.IsNullOrWhiteSpace(ident))
+                return true;
+
+            if (_dialect.IsKeyword(ident))
+                return true;
+
+            // Keep quoted when identifier cannot be represented as a bare token.
+            // This preserves names originally written with quotes, e.g. `idx``quoted`.
+            if (!Regex.IsMatch(ident, @"^[A-Za-z_#][A-Za-z0-9_$#]*$", RegexOptions.CultureInvariant))
+                return true;
+
+            return ident.Contains(' ')
+                   || ident.Contains('\t')
+                   || ident.Contains('\n')
+                   || ident.Contains('\r');
+        }
 
         string QuoteIdentifier(string ident)
         {
@@ -2159,6 +2172,8 @@ internal sealed class SqlQueryParser
         "WHEN"   ,
         "MATCHED",
         "THEN"
+      , "PIVOT"
+      , "UNPIVOT"
     };
 
     private static bool IsClauseKeywordToken(SqlToken t)
