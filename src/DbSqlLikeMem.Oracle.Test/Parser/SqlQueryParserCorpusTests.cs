@@ -155,6 +155,7 @@ public sealed class SqlQueryParserCorpusTests(
         yield return new object[] { "SELECT id, name FROM users ORDER BY 2 ASC, 1 DESC", "ORDER BY ordinal positions" };
 
         // CASE/COALESCE/CONCAT/IF/IFNULL/IIF
+        yield return new object[] { "SELECT t10, t20 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10, 20 AS t20)) p", "PIVOT count by tenant" };
         yield return new object[] { "SELECT id, CASE WHEN email IS NULL THEN 0 ELSE 1 END AS hasEmail FROM users ORDER BY id", "CASE WHEN expression" };
         yield return new object[] { "SELECT id, COALESCE(email, 'none') AS em FROM users ORDER BY id", "COALESCE function" };
         yield return new object[] { "SELECT id, CONCAT(name, '#', id) AS tag FROM users ORDER BY id", "CONCAT function with mixed args" };
