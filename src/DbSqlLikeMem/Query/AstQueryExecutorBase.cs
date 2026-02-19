@@ -1166,7 +1166,59 @@ private void FillNthValue(
             map[row] = resolved;
     }
 
-        /// <summary>
+        private static bool TryReadIntLiteral(SqlExpr expr, out int value)
+    {
+        value = default;
+        if (expr is LiteralExpr lit)
+        {
+            var raw = lit.Value;
+            if (raw is null || raw is DBNull)
+                return false;
+
+            if (raw is IConvertible)
+            {
+                try
+                {
+                    value = Convert.ToInt32(raw, CultureInfo.InvariantCulture);
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryReadLongLiteral(SqlExpr expr, out long value)
+    {
+        value = default;
+        if (expr is LiteralExpr lit)
+        {
+            var raw = lit.Value;
+            if (raw is null || raw is DBNull)
+                return false;
+
+            if (raw is IConvertible)
+            {
+                try
+                {
+                    value = Convert.ToInt64(raw, CultureInfo.InvariantCulture);
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// EN: Resolves NTH_VALUE index from literal or evaluated expression with safe fallback.
     /// PT: Resolve o índice do NTH_VALUE a partir de literal ou expressão avaliada com fallback seguro.
     /// </summary>
@@ -1178,7 +1230,7 @@ private int ResolveNthValueIndex(
         if (args.Count < 2)
             return 1;
 
-        if (args[1] is NumberExpr n && int.TryParse(n.Text, out var parsedLiteral) && parsedLiteral > 0)
+        if (TryReadIntLiteral(args[1], out var parsedLiteral) && parsedLiteral > 0)
             return parsedLiteral;
 
         var evaluated = Eval(args[1], sampleRow, null, ctes);
@@ -1245,7 +1297,7 @@ private int ResolveLagLeadOffset(
         if (args.Count < 2)
             return 1;
 
-        if (args[1] is NumberExpr n && int.TryParse(n.Text, out var parsedLiteral) && parsedLiteral >= 0)
+        if (TryReadIntLiteral(args[1], out var parsedLiteral) && parsedLiteral >= 0)
             return parsedLiteral;
 
         var evaluated = Eval(args[1], sampleRow, null, ctes);
@@ -1356,7 +1408,7 @@ private void FillPercentRankOrCumeDist(
             return 1;
 
         var arg = windowFunctionExpr.Args[0];
-        if (arg is NumberExpr n && long.TryParse(n.Text, out var parsedLiteral) && parsedLiteral > 0)
+        if (TryReadLongLiteral(arg, out var parsedLiteral) && parsedLiteral > 0)
             return parsedLiteral;
 
         var evaluated = Eval(arg, sampleRow, null, ctes);
