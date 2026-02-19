@@ -1,8 +1,10 @@
 using System.IO;
+using System.Data;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 using DbSqlLikeMem.VisualStudioExtension.Services;
 using EnvDTE;
 using DteProject = EnvDTE.Project;
@@ -110,7 +112,9 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         var selectedNode = ExplorerTree.SelectedItem as ExplorerNode;
         var isConnectionNodeSelected = selectedNode?.Kind == ExplorerNodeKind.Connection;
         var isObjectTypeNodeSelected = selectedNode?.Kind == ExplorerNodeKind.ObjectType;
+        var isTableNodeSelected = selectedNode?.Kind == ExplorerNodeKind.Object && selectedNode.ObjectType == DatabaseObjectType.Table;
         var isGenerationSupportedSelected = selectedNode is not null && GenerationSupportedKinds.Contains(selectedNode.Kind);
+        var canExtractScenario = isConnectionNodeSelected || isObjectTypeNodeSelected || isTableNodeSelected;
         var canClearObjectTypeFilter = isObjectTypeNodeSelected
             && selectedNode is not null
             && !string.IsNullOrWhiteSpace(viewModel.GetObjectTypeFilter(selectedNode).FilterText);
@@ -133,6 +137,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         GenerateModelClassesMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
         GenerateRepositoryClassesMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
         CheckConsistencyMenuItem.Visibility = isGenerationSupportedSelected ? Visibility.Visible : Visibility.Collapsed;
+        ExtractScenarioMenuItem.Visibility = canExtractScenario ? Visibility.Visible : Visibility.Collapsed;
     }
 
 
@@ -401,6 +406,136 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
             await viewModel.CheckConsistencyAsync(selected);
         });
+
+    private async void OnExtractScenarioClick(object sender, RoutedEventArgs e)
+        => await RunSafeAsync(async () =>
+        {
+            if (ExplorerTree.SelectedItem is not ExplorerNode selected || selected.ConnectionId is null)
+            {
+                MessageBox.Show(System.Windows.Window.GetWindow(this), "Selecione uma conexão, tipo de objeto ou tabela para extrair cenário.", "Extrair cenário", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var tables = await viewModel.ListScenarioTablesAsync(selected.ConnectionId);
+            if (tables.Count == 0)
+            {
+                MessageBox.Show(System.Windows.Window.GetWindow(this), "Nenhuma tabela encontrada nesta conexão.", "Extrair cenário", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var dialog = new TestScenarioDialog(tables)
+            {
+                Owner = System.Windows.Window.GetWindow(this)
+            };
+
+            if (selected.Kind == ExplorerNodeKind.Object && selected.DatabaseObject is not null && selected.DatabaseObject.Type == DatabaseObjectType.Table)
+            {
+                dialog.SetPreselectedTable(selected.DatabaseObject.Schema, selected.DatabaseObject.Name);
+            }
+
+            dialog.LoadDataRequested += async () =>
+            {
+                var chosen = dialog.SelectedTable;
+                if (chosen is null)
+                {
+                    MessageBox.Show(dialog, "Selecione uma tabela.", "Extrair cenário", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                dialog.SetBusy(true);
+                try
+                {
+                    var rows = await viewModel.PreviewScenarioRowsAsync(selected.ConnectionId, chosen.Schema, chosen.TableName, dialog.FilterText);
+                    var table = BuildRowsDataTable(rows);
+                    dialog.SetRows(table);
+                }
+                finally
+                {
+                    dialog.SetBusy(false);
+                }
+            };
+
+            dialog.ExtractRequested += async () =>
+            {
+                var chosen = dialog.SelectedTable;
+                if (chosen is null)
+                {
+                    MessageBox.Show(dialog, "Selecione uma tabela.", "Extrair cenário", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(dialog.ScenarioName))
+                {
+                    MessageBox.Show(dialog, "Informe um nome para o cenário.", "Extrair cenário", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var selectedRows = dialog.GetSelectedRows();
+                if (selectedRows.Count == 0)
+                {
+                    MessageBox.Show(dialog, "Selecione ao menos uma linha para extração.", "Extrair cenário", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                dialog.SetBusy(true);
+                try
+                {
+                    var path = await viewModel.ExtractScenarioAsync(selected.ConnectionId, dialog.ScenarioName, chosen.Schema, chosen.TableName, dialog.FilterText, selectedRows, dialog.IncludeParentReferences);
+                    MessageBox.Show(dialog, $"Cenário extraído com sucesso.\nArquivo: {path}", "Extrair cenário", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                finally
+                {
+                    dialog.SetBusy(false);
+                }
+            };
+
+            dialog.Show();
+        });
+
+    private static DataTable BuildRowsDataTable(IReadOnlyCollection<IReadOnlyDictionary<string, object?>> rows)
+    {
+        var table = new DataTable();
+        table.Columns.Add("_Selected", typeof(bool));
+
+        var orderedColumns = rows
+            .SelectMany(r => r.Keys)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        foreach (var column in orderedColumns)
+        {
+            table.Columns.Add(column, typeof(object));
+        }
+
+        foreach (var row in rows)
+        {
+            var dataRow = table.NewRow();
+            dataRow["_Selected"] = false;
+
+            foreach (var column in orderedColumns)
+            {
+                dataRow[column] = TryReadRowValue(row, column) ?? DBNull.Value;
+            }
+
+            table.Rows.Add(dataRow);
+        }
+
+        return table;
+    }
+
+    private static object? TryReadRowValue(IReadOnlyDictionary<string, object?> row, string key)
+    {
+        foreach (var item in row)
+        {
+            if (string.Equals(item.Key, key, StringComparison.OrdinalIgnoreCase))
+            {
+                return item.Value;
+            }
+        }
+
+        return null;
+    }
 
     private async Task RunSafeAsync(Func<Task> action)
     {

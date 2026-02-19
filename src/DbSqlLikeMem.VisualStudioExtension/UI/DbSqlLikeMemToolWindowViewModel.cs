@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Data.Common;
 using System.ComponentModel;
 using System.IO;
+using System.Text.Json;
 using System.Text;
 using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
@@ -19,6 +20,41 @@ namespace DbSqlLikeMem.VisualStudioExtension.UI;
 /// </summary>
 public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 {
+    /// <summary>
+    /// Represents a selectable table option for test scenario extraction.
+    /// Representa uma opção de tabela selecionável para extração de cenários de teste.
+    /// </summary>
+    public sealed class ScenarioTableOption
+    {
+        /// <summary>
+        /// Initializes a scenario table option.
+        /// Inicializa uma opção de tabela do cenário.
+        /// </summary>
+        public ScenarioTableOption(string schema, string tableName)
+        {
+            Schema = schema;
+            TableName = tableName;
+        }
+
+        /// <summary>
+        /// Gets the schema name.
+        /// Obtém o nome do schema.
+        /// </summary>
+        public string Schema { get; }
+
+        /// <summary>
+        /// Gets the table name.
+        /// Obtém o nome da tabela.
+        /// </summary>
+        public string TableName { get; }
+
+        /// <summary>
+        /// Gets the display name combining schema and table.
+        /// Obtém o nome de exibição combinando schema e tabela.
+        /// </summary>
+        public string DisplayName => string.IsNullOrWhiteSpace(Schema) ? TableName : $"{Schema}.{TableName}";
+    }
+
     private readonly StatePersistenceService statePersistenceService = new();
     private readonly SqlDatabaseMetadataProvider metadataProvider = new(new AdoNetSqlQueryExecutor());
     private readonly SemaphoreSlim operationLock = new(1, 1);
@@ -603,6 +639,111 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     /// </summary>
     public Task<IReadOnlyCollection<string>> GenerateRepositoryClassesForNodeAsync(ExplorerNode node)
         => GenerateFromTemplateForNodeAsync(node, templateConfiguration.RepositoryTemplatePath, templateConfiguration.RepositoryOutputDirectory, "Repository", "// Repository for {{Schema}}.{{ObjectName}}\npublic class {{ClassName}}\n{\n}\n");
+
+    /// <summary>
+    /// Lists available tables for scenario extraction in a connection.
+    /// Lista as tabelas disponíveis para extração de cenário em uma conexão.
+    /// </summary>
+    public async Task<IReadOnlyCollection<ScenarioTableOption>> ListScenarioTablesAsync(string connectionId)
+    {
+        var connection = connections.FirstOrDefault(c => c.Id == connectionId);
+        if (connection is null)
+        {
+            return [];
+        }
+
+        if (!objectsByConnection.TryGetValue(connection.Id, out var objects))
+        {
+            objects = await metadataProvider.ListObjectsAsync(connection, CancellationToken.None);
+            objectsByConnection[connection.Id] = await EnrichTableObjectsAsync(connection, objects, CancellationToken.None);
+        }
+
+        return objectsByConnection[connection.Id]
+            .Where(x => x.Type == DatabaseObjectType.Table)
+            .OrderBy(x => x.Schema, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(x => new ScenarioTableOption(x.Schema, x.Name))
+            .ToArray();
+    }
+
+    /// <summary>
+    /// Loads preview rows for a selected table and filter.
+    /// Carrega linhas de pré-visualização para uma tabela e filtro selecionados.
+    /// </summary>
+    public async Task<IReadOnlyCollection<IReadOnlyDictionary<string, object?>>> PreviewScenarioRowsAsync(
+        string connectionId,
+        string schema,
+        string table,
+        string filter,
+        int limit = 200)
+    {
+        var connection = connections.FirstOrDefault(c => c.Id == connectionId);
+        if (connection is null)
+        {
+            return [];
+        }
+
+        var sql = BuildScenarioSelectSql(connection.DatabaseType, schema, table, filter, limit);
+        return await metadataProviderQueryAsync(connection, sql);
+    }
+
+    /// <summary>
+    /// Extracts a scenario file from selected rows with optional FK parent data.
+    /// Extrai um arquivo de cenário a partir das linhas selecionadas com dados pai de FK opcionais.
+    /// </summary>
+    public async Task<string> ExtractScenarioAsync(
+        string connectionId,
+        string scenarioName,
+        string schema,
+        string table,
+        string filter,
+        IReadOnlyCollection<IReadOnlyDictionary<string, object?>> selectedRows,
+        bool includeParentFk)
+    {
+        var connection = connections.FirstOrDefault(c => c.Id == connectionId)
+            ?? throw new InvalidOperationException("Conexão não encontrada.");
+
+        var scenario = new Dictionary<string, object?>
+        {
+            ["scenarioName"] = scenarioName,
+            ["databaseType"] = connection.DatabaseType,
+            ["connectionName"] = connection.FriendlyName,
+            ["createdAtUtc"] = DateTime.UtcNow,
+            ["tables"] = new List<Dictionary<string, object?>>()
+        };
+
+        var tableEntries = (List<Dictionary<string, object?>>)scenario["tables"]!;
+        tableEntries.Add(new Dictionary<string, object?>
+        {
+            ["schema"] = schema,
+            ["table"] = table,
+            ["filter"] = filter,
+            ["rows"] = selectedRows
+        });
+
+        if (includeParentFk)
+        {
+            var parentRows = await LoadParentRowsByForeignKeysAsync(connection, schema, table, selectedRows);
+            foreach (var parent in parentRows)
+            {
+                tableEntries.Add(parent);
+            }
+        }
+
+        var outputDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DbSqlLikeMem", "Scenarios");
+        Directory.CreateDirectory(outputDirectory);
+        var safeName = string.Concat((scenarioName ?? "Scenario").Where(ch => !Path.GetInvalidFileNameChars().Contains(ch))).Trim();
+        if (string.IsNullOrWhiteSpace(safeName))
+        {
+            safeName = "Scenario";
+        }
+
+        var outputPath = Path.Combine(outputDirectory, $"{safeName}-{DateTime.UtcNow:yyyyMMddHHmmss}.json");
+        var json = JsonSerializer.Serialize(scenario, new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(outputPath, json);
+        SetStatusMessage($"Cenário extraído com sucesso: {outputPath}");
+        return outputPath;
+    }
 
     private async Task<IReadOnlyCollection<string>> GenerateFromTemplateForNodeAsync(ExplorerNode node, string templatePath, string outputDirectory, string suffix, string fallbackTemplate)
     {
@@ -1249,6 +1390,130 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             .Replace("\\;", ";")
             .Replace("\\,", ",")
             .Replace("\\\\", "\\");
+
+    private Task<IReadOnlyCollection<IReadOnlyDictionary<string, object?>>> metadataProviderQueryAsync(ConnectionDefinition connection, string sql)
+        => new AdoNetSqlQueryExecutor().QueryAsync(connection, sql, new Dictionary<string, object?>(), CancellationToken.None);
+
+    private static string BuildScenarioSelectSql(string databaseType, string schema, string table, string filter, int limit)
+    {
+        var safeLimit = limit < 1 ? 1 : limit > 2000 ? 2000 : limit;
+        var qualified = QualifyTable(databaseType, schema, table);
+        var whereClause = string.IsNullOrWhiteSpace(filter) ? string.Empty : $" WHERE {filter.Trim()}";
+
+        if (string.Equals(databaseType, "SqlServer", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"SELECT TOP {safeLimit} * FROM {qualified}{whereClause};";
+        }
+
+        return $"SELECT * FROM {qualified}{whereClause} LIMIT {safeLimit};";
+    }
+
+    private async Task<IReadOnlyCollection<Dictionary<string, object?>>> LoadParentRowsByForeignKeysAsync(
+        ConnectionDefinition connection,
+        string schema,
+        string table,
+        IReadOnlyCollection<IReadOnlyDictionary<string, object?>> selectedRows)
+    {
+        if (!objectsByConnection.TryGetValue(connection.Id, out var objects))
+        {
+            return [];
+        }
+
+        var source = objects.FirstOrDefault(o => o.Type == DatabaseObjectType.Table
+            && string.Equals(o.Schema, schema, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(o.Name, table, StringComparison.OrdinalIgnoreCase));
+
+        if (source is null)
+        {
+            return [];
+        }
+
+        var foreignKeys = ParseForeignKeys(source);
+        if (foreignKeys.Count == 0)
+        {
+            return [];
+        }
+
+        var parents = new List<Dictionary<string, object?>>();
+        foreach (var fk in foreignKeys)
+        {
+            var values = selectedRows
+                .Select(r => TryReadValueCaseInsensitive(r, fk.Column))
+                .Where(v => v is not null && v != DBNull.Value)
+                .Distinct()
+                .ToArray();
+
+            if (values.Length == 0)
+            {
+                continue;
+            }
+
+            var parentSchema = objects.FirstOrDefault(o => o.Type == DatabaseObjectType.Table && string.Equals(o.Name, fk.RefTable, StringComparison.OrdinalIgnoreCase))?.Schema
+                ?? schema;
+            var parentTable = QualifyTable(connection.DatabaseType, parentSchema, fk.RefTable);
+            var refColumn = QuoteIdentifier(connection.DatabaseType, fk.RefColumn);
+            var inValues = string.Join(", ", values.Select(v => FormatSqlLiteral(v!)));
+            var sql = $"SELECT * FROM {parentTable} WHERE {refColumn} IN ({inValues});";
+            var rows = await metadataProviderQueryAsync(connection, sql);
+
+            parents.Add(new Dictionary<string, object?>
+            {
+                ["schema"] = parentSchema,
+                ["table"] = fk.RefTable,
+                ["filter"] = $"{fk.RefColumn} IN (...)",
+                ["rows"] = rows
+            });
+        }
+
+        return parents;
+    }
+
+    private static object? TryReadValueCaseInsensitive(IReadOnlyDictionary<string, object?> row, string key)
+    {
+        foreach (var item in row)
+        {
+            if (string.Equals(item.Key, key, StringComparison.OrdinalIgnoreCase))
+            {
+                return item.Value;
+            }
+        }
+
+        return null;
+    }
+
+    private static string QualifyTable(string databaseType, string schema, string table)
+    {
+        var quotedTable = QuoteIdentifier(databaseType, table);
+        if (string.IsNullOrWhiteSpace(schema))
+        {
+            return quotedTable;
+        }
+
+        return $"{QuoteIdentifier(databaseType, schema)}.{quotedTable}";
+    }
+
+    private static string QuoteIdentifier(string databaseType, string identifier)
+    {
+        if (string.Equals(databaseType, "SqlServer", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"[{identifier.Replace("]", "]]")}]";
+        }
+
+        return $"\"{identifier.Replace("\"", "\"\"")}\"";
+    }
+
+    private static string FormatSqlLiteral(object value)
+        => value switch
+        {
+            null => "NULL",
+            string s => $"'{s.Replace("'", "''")}'",
+            DateTime dt => $"'{dt:yyyy-MM-dd HH:mm:ss.fffffff}'",
+            DateTimeOffset dto => $"'{dto:yyyy-MM-dd HH:mm:ss.fffffff zzz}'",
+            bool b => b ? "1" : "0",
+            Guid g => $"'{g}'",
+            _ when value is IFormattable f => f.ToString(null, System.Globalization.CultureInfo.InvariantCulture) ?? "NULL",
+            _ => $"'{value.ToString()?.Replace("'", "''")}'"
+        };
 
     private bool TryBeginOperation(string message)
     {
