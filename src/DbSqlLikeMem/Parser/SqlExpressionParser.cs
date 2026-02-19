@@ -337,30 +337,72 @@ internal sealed class SqlExpressionParser(
     private bool TryParseLikeInfix(ref SqlExpr left, int minBp)
     {
         var t = Peek();
-        if (!IsKeyword(t, "LIKE"))
+        var negate = false;
+
+        if (IsKeyword(t, "NOT"))
+        {
+            var next = Peek(1);
+            if (!IsKeyword(next, "LIKE"))
+                return false;
+            negate = true;
+        }
+        else if (!IsKeyword(t, "LIKE"))
+        {
             return false;
+        }
 
         var (lbp, rbp) = (50, 51);
         if (lbp < minBp) return false;
 
-        Consume(); // LIKE
+        if (negate)
+        {
+            Consume(); // NOT
+            Consume(); // LIKE
+        }
+        else
+        {
+            Consume(); // LIKE
+        }
+
         var pattern = ParseExpression(rbp);
-        left = new LikeExpr(left, pattern);
+        var expr = (SqlExpr)new LikeExpr(left, pattern);
+        left = negate ? new UnaryExpr(SqlUnaryOp.Not, expr) : expr;
         return true;
     }
 
     private bool TryParseRegexpInfix(ref SqlExpr left, int minBp)
     {
         var t = Peek();
-        if (!IsKeywordOrIdentifierWord(t, "REGEXP"))
+        var negate = false;
+
+        if (IsKeyword(t, "NOT"))
+        {
+            var next = Peek(1);
+            if (!IsKeywordOrIdentifierWord(next, "REGEXP"))
+                return false;
+            negate = true;
+        }
+        else if (!IsKeywordOrIdentifierWord(t, "REGEXP"))
+        {
             return false;
+        }
 
         var (lbp, rbp) = (50, 51);
         if (lbp < minBp) return false;
 
-        Consume(); // REGEXP
+        if (negate)
+        {
+            Consume(); // NOT
+            Consume(); // REGEXP
+        }
+        else
+        {
+            Consume(); // REGEXP
+        }
+
         var pattern = ParseExpression(rbp);
-        left = new BinaryExpr(SqlBinaryOp.Regexp, left, pattern);
+        var expr = (SqlExpr)new BinaryExpr(SqlBinaryOp.Regexp, left, pattern);
+        left = negate ? new UnaryExpr(SqlUnaryOp.Not, expr) : expr;
         return true;
     }
 

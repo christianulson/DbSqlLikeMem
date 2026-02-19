@@ -960,8 +960,20 @@ internal abstract class AstQueryExecutorBase(
         {
             var w = slot.Expr;
 
-            // Only what we need for tests right now
-            if (!w.Name.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase))
+            var isRowNumber = w.Name.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase);
+            var isRank = w.Name.Equals("RANK", StringComparison.OrdinalIgnoreCase);
+            var isDenseRank = w.Name.Equals("DENSE_RANK", StringComparison.OrdinalIgnoreCase);
+            var isNtile = w.Name.Equals("NTILE", StringComparison.OrdinalIgnoreCase);
+            var isPercentRank = w.Name.Equals("PERCENT_RANK", StringComparison.OrdinalIgnoreCase);
+            var isCumeDist = w.Name.Equals("CUME_DIST", StringComparison.OrdinalIgnoreCase);
+            var isLag = w.Name.Equals("LAG", StringComparison.OrdinalIgnoreCase);
+            var isLead = w.Name.Equals("LEAD", StringComparison.OrdinalIgnoreCase);
+            var isFirstValue = w.Name.Equals("FIRST_VALUE", StringComparison.OrdinalIgnoreCase);
+            var isLastValue = w.Name.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase);
+            var isNthValue = w.Name.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase);
+
+            // Keep unsupported window functions as no-op until explicitly implemented.
+            if (!isRowNumber && !isRank && !isDenseRank && !isNtile && !isPercentRank && !isCumeDist && !isLag && !isLead && !isFirstValue && !isLastValue && !isNthValue)
                 continue;
 
             // Partitioning
@@ -1011,14 +1023,376 @@ internal abstract class AstQueryExecutorBase(
                     });
                 }
 
-                long rn = 1;
+                if (isRowNumber)
+                {
+                    long rn = 1;
+                    foreach (var r in part)
+                    {
+                        slot.Map[r] = rn;
+                        rn++;
+                    }
+                    continue;
+                }
+
+                if (isNtile)
+                {
+                    var bucketCount = ResolveNtileBucketCount(w, part.Count, part[0], ctes);
+                    if (bucketCount <= 0)
+                        continue;
+
+                    long rowIndexForNtile = 0;
+                    foreach (var r in part)
+                    {
+                        rowIndexForNtile++;
+                        var tile = ((rowIndexForNtile - 1) * bucketCount) / part.Count + 1;
+                        slot.Map[r] = tile;
+                    }
+                    continue;
+                }
+
+                if (isPercentRank || isCumeDist)
+                {
+                    FillPercentRankOrCumeDist(slot.Map, part, w.Spec.OrderBy, ctes, isPercentRank);
+                    continue;
+                }
+
+                if (isLag || isLead)
+                {
+                    FillLagOrLead(slot.Map, part, w, ctes, isLead);
+                    continue;
+                }
+
+                if (isFirstValue || isLastValue)
+                {
+                    FillFirstOrLastValue(slot.Map, part, w, ctes, isLastValue);
+                    continue;
+                }
+
+                if (isNthValue)
+                {
+                    FillNthValue(slot.Map, part, w, ctes);
+                    continue;
+                }
+
+                object?[]? prevOrderValues = null;
+                long rank = 1;
+                long denseRank = 1;
+                long rowIndex = 0;
+
                 foreach (var r in part)
                 {
-                    slot.Map[r] = rn;
-                    rn++;
+                    rowIndex++;
+
+                    var currentOrderValues = w.Spec.OrderBy
+                        .Select(oi => Eval(oi.Expr, r, null, ctes))
+                        .ToArray();
+
+                    if (prevOrderValues is null)
+                    {
+                        slot.Map[r] = isRank ? rank : denseRank;
+                        prevOrderValues = currentOrderValues;
+                        continue;
+                    }
+
+                    var changed = !WindowOrderValuesEqual(prevOrderValues, currentOrderValues);
+
+                    if (changed)
+                    {
+                        rank = rowIndex;
+                        denseRank++;
+                        prevOrderValues = currentOrderValues;
+                    }
+
+                    slot.Map[r] = isRank ? rank : denseRank;
                 }
             }
         }
+    }
+
+
+
+
+
+
+
+
+        /// <summary>
+    /// EN: Fills FIRST_VALUE/LAST_VALUE results for all rows in the current partition.
+    /// PT: Preenche os resultados de FIRST_VALUE/LAST_VALUE para todas as linhas da partição atual.
+    /// </summary>
+private void FillFirstOrLastValue(
+        Dictionary<EvalRow, object?> map,
+        List<EvalRow> part,
+        WindowFunctionExpr windowFunctionExpr,
+        IDictionary<string, Source> ctes,
+        bool fillLast)
+    {
+        if (part.Count == 0 || windowFunctionExpr.Args.Count == 0)
+            return;
+
+        var valueExpr = windowFunctionExpr.Args[0];
+        var target = fillLast ? part[^1] : part[0];
+        var resolved = Eval(valueExpr, target, null, ctes);
+
+        foreach (var row in part)
+            map[row] = resolved;
+    }
+
+
+        /// <summary>
+    /// EN: Fills NTH_VALUE results using the resolved 1-based index in the ordered partition.
+    /// PT: Preenche os resultados de NTH_VALUE usando o índice 1-based resolvido na partição ordenada.
+    /// </summary>
+private void FillNthValue(
+        Dictionary<EvalRow, object?> map,
+        List<EvalRow> part,
+        WindowFunctionExpr windowFunctionExpr,
+        IDictionary<string, Source> ctes)
+    {
+        if (part.Count == 0 || windowFunctionExpr.Args.Count == 0)
+            return;
+
+        var valueExpr = windowFunctionExpr.Args[0];
+        var nth = ResolveNthValueIndex(windowFunctionExpr.Args, part[0], ctes);
+        if (nth <= 0)
+            return;
+
+        var targetIndex = nth - 1;
+        var resolved = targetIndex >= 0 && targetIndex < part.Count
+            ? Eval(valueExpr, part[targetIndex], null, ctes)
+            : null;
+
+        foreach (var row in part)
+            map[row] = resolved;
+    }
+
+        /// <summary>
+    /// EN: Resolves NTH_VALUE index from literal or evaluated expression with safe fallback.
+    /// PT: Resolve o índice do NTH_VALUE a partir de literal ou expressão avaliada com fallback seguro.
+    /// </summary>
+private int ResolveNthValueIndex(
+        IReadOnlyList<SqlExpr> args,
+        EvalRow sampleRow,
+        IDictionary<string, Source> ctes)
+    {
+        if (args.Count < 2)
+            return 1;
+
+        if (args[1] is NumberExpr n && int.TryParse(n.Text, out var parsedLiteral) && parsedLiteral > 0)
+            return parsedLiteral;
+
+        var evaluated = Eval(args[1], sampleRow, null, ctes);
+        if (evaluated is null || evaluated is DBNull)
+            return 1;
+
+        if (evaluated is IConvertible)
+        {
+            try
+            {
+                var parsed = Convert.ToInt32(evaluated, CultureInfo.InvariantCulture);
+                return parsed > 0 ? parsed : 1;
+            }
+            catch
+            {
+                return 1;
+            }
+        }
+
+        return 1;
+    }
+        /// <summary>
+    /// EN: Fills LAG/LEAD values for rows in the current ordered partition.
+    /// PT: Preenche valores de LAG/LEAD para as linhas da partição ordenada atual.
+    /// </summary>
+private void FillLagOrLead(
+        Dictionary<EvalRow, object?> map,
+        List<EvalRow> part,
+        WindowFunctionExpr windowFunctionExpr,
+        IDictionary<string, Source> ctes,
+        bool fillLead)
+    {
+        if (part.Count == 0 || windowFunctionExpr.Args.Count == 0)
+            return;
+
+        var valueExpr = windowFunctionExpr.Args[0];
+        var offset = ResolveLagLeadOffset(windowFunctionExpr.Args, part[0], ctes);
+        var defaultExpr = windowFunctionExpr.Args.Count >= 3 ? windowFunctionExpr.Args[2] : null;
+
+        for (int i = 0; i < part.Count; i++)
+        {
+            var targetIndex = fillLead ? i + offset : i - offset;
+            var currentRow = part[i];
+
+            if (targetIndex >= 0 && targetIndex < part.Count)
+            {
+                map[currentRow] = Eval(valueExpr, part[targetIndex], null, ctes);
+                continue;
+            }
+
+            map[currentRow] = defaultExpr is null ? null : Eval(defaultExpr, currentRow, null, ctes);
+        }
+    }
+
+        /// <summary>
+    /// EN: Resolves LAG/LEAD offset from literal or evaluated expression with safe fallback.
+    /// PT: Resolve o offset de LAG/LEAD a partir de literal ou expressão avaliada com fallback seguro.
+    /// </summary>
+private int ResolveLagLeadOffset(
+        IReadOnlyList<SqlExpr> args,
+        EvalRow sampleRow,
+        IDictionary<string, Source> ctes)
+    {
+        if (args.Count < 2)
+            return 1;
+
+        if (args[1] is NumberExpr n && int.TryParse(n.Text, out var parsedLiteral) && parsedLiteral >= 0)
+            return parsedLiteral;
+
+        var evaluated = Eval(args[1], sampleRow, null, ctes);
+        if (evaluated is null || evaluated is DBNull)
+            return 1;
+
+        if (evaluated is IConvertible)
+        {
+            try
+            {
+                var parsed = Convert.ToInt32(evaluated, CultureInfo.InvariantCulture);
+                return parsed >= 0 ? parsed : 1;
+            }
+            catch
+            {
+                return 1;
+            }
+        }
+
+        return 1;
+    }
+        /// <summary>
+    /// EN: Computes and fills PERCENT_RANK or CUME_DIST values for the current partition.
+    /// PT: Calcula e preenche valores de PERCENT_RANK ou CUME_DIST para a partição atual.
+    /// </summary>
+private void FillPercentRankOrCumeDist(
+        Dictionary<EvalRow, object?> map,
+        List<EvalRow> part,
+        IReadOnlyList<WindowOrderItem> orderBy,
+        IDictionary<string, Source> ctes,
+        bool fillPercentRank)
+    {
+        if (part.Count == 0)
+            return;
+
+        var orderValuesByRow = new Dictionary<EvalRow, object?[]>(ReferenceEqualityComparer<EvalRow>.Instance);
+        foreach (var row in part)
+        {
+            orderValuesByRow[row] = orderBy
+                .Select(oi => Eval(oi.Expr, row, null, ctes))
+                .ToArray();
+        }
+
+        var rankByRow = new Dictionary<EvalRow, long>(ReferenceEqualityComparer<EvalRow>.Instance);
+        var cumeByRow = new Dictionary<EvalRow, double>(ReferenceEqualityComparer<EvalRow>.Instance);
+
+        long rank = 1;
+        object?[]? prev = null;
+        var peerGroupStart = 0;
+
+        for (var i = 0; i < part.Count; i++)
+        {
+            var row = part[i];
+            var cur = orderValuesByRow[row];
+
+            if (prev is null)
+            {
+                peerGroupStart = i;
+                rank = 1;
+            }
+            else if (!WindowOrderValuesEqual(prev, cur))
+            {
+                rank = i + 1;
+                peerGroupStart = i;
+            }
+
+            rankByRow[row] = rank;
+
+            var peerLast = i;
+            while (peerLast + 1 < part.Count && WindowOrderValuesEqual(cur, orderValuesByRow[part[peerLast + 1]]))
+                peerLast++;
+
+            var cume = (double)(peerLast + 1) / part.Count;
+            for (var k = peerGroupStart; k <= peerLast; k++)
+                cumeByRow[part[k]] = cume;
+
+            i = peerLast;
+            prev = cur;
+        }
+
+        foreach (var row in part)
+        {
+            if (fillPercentRank)
+            {
+                var value = part.Count <= 1 ? 0d : ((double)(rankByRow[row] - 1)) / (part.Count - 1);
+                map[row] = value;
+            }
+            else
+            {
+                map[row] = cumeByRow[row];
+            }
+        }
+    }
+    /// <summary>
+    /// EN: Resolves the bucket count argument for NTILE from literal or evaluated expression.
+    /// PT: Resolve o argumento de quantidade de buckets do NTILE a partir de literal ou expressão avaliada.
+    /// </summary>
+    private long ResolveNtileBucketCount(
+        WindowFunctionExpr windowFunctionExpr,
+        int partitionSize,
+        EvalRow sampleRow,
+        IDictionary<string, Source> ctes)
+    {
+        if (partitionSize <= 0)
+            return 0;
+
+        if (windowFunctionExpr.Args.Count == 0)
+            return 1;
+
+        var arg = windowFunctionExpr.Args[0];
+        if (arg is NumberExpr n && long.TryParse(n.Text, out var parsedLiteral) && parsedLiteral > 0)
+            return parsedLiteral;
+
+        var evaluated = Eval(arg, sampleRow, null, ctes);
+        if (evaluated is null || evaluated is DBNull)
+            return 1;
+
+        if (evaluated is IConvertible)
+        {
+            try
+            {
+                var parsed = Convert.ToInt64(evaluated, CultureInfo.InvariantCulture);
+                return parsed > 0 ? parsed : 1;
+            }
+            catch
+            {
+                return 1;
+            }
+        }
+
+        return 1;
+    }
+    private bool WindowOrderValuesEqual(
+        object?[] left,
+        object?[] right)
+    {
+        if (left.Length != right.Length)
+            return false;
+
+        for (int i = 0; i < left.Length; i++)
+        {
+            var cmp = CompareSql(left[i], right[i]);
+            if (cmp != 0)
+                return false;
+        }
+
+        return true;
     }
 
     private int CompareSql(object? a, object? b)
