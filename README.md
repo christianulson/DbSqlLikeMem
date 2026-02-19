@@ -15,6 +15,7 @@
 - [Documentation overview | Visão geral da documentação](docs/README.md)
 - [Getting started (installation and usage) | Começando rápido (instalação e uso)](docs/getting-started.md)
 - [Providers, versions, and SQL compatibility | Provedores, versões e compatibilidade SQL](docs/providers-and-features.md)
+- [AI playbook for external repository/integration tests | Playbook de IA para testes de repositório/integração](docs/ai-nuget-test-projects-playbook.md)
 - [Publishing (NuGet, VSIX, and VS Code) | Publicação (NuGet, VSIX e VS Code)](docs/publishing.md)
 - [GitHub Wiki guide | Guia para Wiki do GitHub](docs/wiki/README.md)
 
