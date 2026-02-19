@@ -649,6 +649,7 @@ internal sealed class SqlQueryParser
                 && !IsWord(t, "LIMIT")
                 && !IsWord(t, "OFFSET")
                 && !IsWord(t, "FETCH")
+                && !IsWord(t, "OPTION")
                 && !IsSymbol(t, ";"))
             {
                 throw new InvalidOperationException($"Token inesperado após SELECT: {t.Kind} '{t.Text}'");
@@ -1486,13 +1487,16 @@ internal sealed class SqlQueryParser
     private SqlMySqlIndexHint ConsumeMySqlIndexHint()
     {
         var kindToken = Consume(); // USE | IGNORE | FORCE
-        var kind = kindToken.Text.NormalizeName() switch
-        {
-            "use" => SqlMySqlIndexHintKind.Use,
-            "ignore" => SqlMySqlIndexHintKind.Ignore,
-            "force" => SqlMySqlIndexHintKind.Force,
-            _ => throw new InvalidOperationException("MySQL index hint inválido: tipo de hint desconhecido.")
-        };
+        var kind = kindToken.Text.NormalizeName();
+        SqlMySqlIndexHintKind mappedKind;
+        if (kind.Equals("use", StringComparison.OrdinalIgnoreCase))
+            mappedKind = SqlMySqlIndexHintKind.Use;
+        else if (kind.Equals("ignore", StringComparison.OrdinalIgnoreCase))
+            mappedKind = SqlMySqlIndexHintKind.Ignore;
+        else if (kind.Equals("force", StringComparison.OrdinalIgnoreCase))
+            mappedKind = SqlMySqlIndexHintKind.Force;
+        else
+            throw new InvalidOperationException("MySQL index hint inválido: tipo de hint desconhecido.");
 
         if (IsWord(Peek(), "INDEX") || IsWord(Peek(), "KEY"))
         {
@@ -1536,7 +1540,7 @@ internal sealed class SqlQueryParser
         var hintIndexListRaw = ReadBalancedParenRawTokens();
         var indexNames = ValidateMySqlIndexHintList(hintIndexListRaw);
 
-        return new SqlMySqlIndexHint(kind, scope, indexNames);
+        return new SqlMySqlIndexHint(mappedKind, scope, indexNames);
     }
 
     private static IReadOnlyList<string> ValidateMySqlIndexHintList(string hintIndexListRaw)
