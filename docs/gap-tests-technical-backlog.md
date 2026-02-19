@@ -46,6 +46,7 @@ Prioridade calculada por cobertura de providers + risco de regressão - esforço
 | P2 | Window PercentRank And CumeDist | DB2, Oracle, PostgreSQL, SQL Server, SQLite | G | Alto | Planejador de execução em memória; Engine de funções de janela |
 | P2 | Window Rank And DenseRank | DB2, Oracle, PostgreSQL, SQL Server, SQLite | G | Alto | Planejador de execução em memória; Engine de funções de janela |
 | P2 | Window RowNumber PartitionBy | DB2, Oracle, PostgreSQL, SQL Server, SQLite | G | Alto | Planejador de execução em memória; Engine de funções de janela |
+| P2 | Pivot Count ByTenant | Oracle, SQL Server | P | Baixo | Planejador de execução em memória |
 | P2 | Date Function WithModifier | SQLite | P | Baixo | Planejador de execução em memória |
 | P2 | TimestampAdd Day | DB2 | P | Baixo | Planejador de execução em memória |
 | P2 | Window FirstValue And LastValue ShouldRespectVersion | MySQL | G | Alto | Planejador de execução em memória; Engine de funções de janela |
@@ -116,6 +117,7 @@ Prioridade calculada por cobertura de providers + risco de regressão - esforço
 - [ ] **Window PercentRank And CumeDist**  `providers: DB2, Oracle, PostgreSQL, SQL Server, SQLite` · `esforço: G` · `risco: Alto`  Dependências: Planejador de execução em memória; Engine de funções de janela
 - [ ] **Window Rank And DenseRank**  `providers: DB2, Oracle, PostgreSQL, SQL Server, SQLite` · `esforço: G` · `risco: Alto`  Dependências: Planejador de execução em memória; Engine de funções de janela
 - [ ] **Window RowNumber PartitionBy**  `providers: DB2, Oracle, PostgreSQL, SQL Server, SQLite` · `esforço: G` · `risco: Alto`  Dependências: Planejador de execução em memória; Engine de funções de janela
+- [ ] **Pivot Count ByTenant**  `providers: Oracle, SQL Server` · `esforço: P` · `risco: Baixo`  Dependências: Planejador de execução em memória
 - [ ] **Date Function WithModifier**  `providers: SQLite` · `esforço: P` · `risco: Baixo`  Dependências: Planejador de execução em memória
 - [ ] **TimestampAdd Day**  `providers: DB2` · `esforço: P` · `risco: Baixo`  Dependências: Planejador de execução em memória
 - [ ] **Window FirstValue And LastValue ShouldRespectVersion**  `providers: MySQL` · `esforço: G` · `risco: Alto`  Dependências: Planejador de execução em memória; Engine de funções de janela

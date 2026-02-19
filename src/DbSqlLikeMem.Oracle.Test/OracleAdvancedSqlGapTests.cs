@@ -366,6 +366,31 @@ ORDER BY id").ToList();
         Assert.Equal([1], [.. rows.Select(r => (int)r.id)]);
     }
 
+
+
+    /// <summary>
+    /// EN: Tests Pivot_Count_ByTenant_ShouldWork behavior.
+    /// PT: Testa o comportamento de Pivot_Count_ByTenant_ShouldWork.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "OracleAdvancedSqlGap")]
+    public void Pivot_Count_ByTenant_ShouldWork()
+    {
+        var row = _cnn.QuerySingle<dynamic>(@"
+SELECT t10, t20
+FROM (
+    SELECT tenantid, id
+    FROM users
+) src
+PIVOT (
+    COUNT(id)
+    FOR tenantid IN (10 AS t10, 20 AS t20)
+) p");
+
+        Assert.Equal(2, (int)row.t10);
+        Assert.Equal(1, (int)row.t20);
+    }
+
     /// <summary>
     /// EN: Disposes test resources.
     /// PT: Descarta os recursos do teste.

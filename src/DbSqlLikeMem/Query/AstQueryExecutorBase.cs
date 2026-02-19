@@ -755,6 +755,8 @@ internal abstract class AstQueryExecutorBase(
     {
         var alias = ts.Alias ?? ts.Name ?? ts.DbName ?? "t";
 
+        Source source;
+
         if (ts.DerivedUnion is not null)
         {
             var res = ExecuteUnion(
@@ -767,20 +769,22 @@ internal abstract class AstQueryExecutorBase(
                 ts.DerivedUnion.RowLimit,
                 ts.DerivedSql ?? "(derived)"
             );
-            return Source.FromResult(alias, res);
+            source = Source.FromResult(alias, res);
+            return ApplyPivotIfNeeded(source, ts.Pivot, ctes);
         }
 
         if (ts.Derived is not null)
         {
             var res = ExecuteSelect(ts.Derived);
-            return Source.FromResult(alias, res);
+            source = Source.FromResult(alias, res);
+            return ApplyPivotIfNeeded(source, ts.Pivot, ctes);
         }
 
         if (!string.IsNullOrWhiteSpace(ts.Name)
             && ctes.TryGetValue(ts.Name!, out var cteSrc))
         {
-            // alias may differ from CTE name
-            return cteSrc.WithAlias(alias);
+            source = cteSrc.WithAlias(alias);
+            return ApplyPivotIfNeeded(source, ts.Pivot, ctes);
         }
 
         if (string.IsNullOrWhiteSpace(ts.Name))
@@ -788,28 +792,118 @@ internal abstract class AstQueryExecutorBase(
 
         var tableName = ts.Name!.NormalizeName();
 
-        // Non-materialized VIEW: expand definition at execution time
         if (_cnn.TryGetView(tableName, out var viewSelect, ts.DbName)
-            && viewSelect!= null)
+            && viewSelect != null)
         {
             var viewRes = ExecuteSelect(viewSelect, ctes, outerRow: null);
-            return Source.FromResult(alias, viewRes);
+            source = Source.FromResult(alias, viewRes);
+            return ApplyPivotIfNeeded(source, ts.Pivot, ctes);
         }
 
-        // ✅ MySQL allows SELECT without FROM; parser may materialize it as FROM DUAL.
-        // Treat DUAL as a single dummy row source.
         if (tableName.Equals("DUAL", StringComparison.OrdinalIgnoreCase))
         {
             var one = new TableResultMock
             {
                 ([])
             };
-            return Source.FromResult("DUAL", alias, one);
+            source = Source.FromResult("DUAL", alias, one);
+            return ApplyPivotIfNeeded(source, ts.Pivot, ctes);
         }
 
         _cnn.Metrics.IncrementTableHint(tableName);
         var tb = _cnn.GetTable(tableName, ts.DbName);
-        return Source.FromPhysical(tableName, alias, tb);
+        source = Source.FromPhysical(tableName, alias, tb);
+        return ApplyPivotIfNeeded(source, ts.Pivot, ctes);
+    }
+
+    private Source ApplyPivotIfNeeded(Source source, SqlPivotSpec? pivot, IDictionary<string, Source> ctes)
+    {
+        if (pivot is null)
+            return source;
+
+        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para PIVOT.");
+        var inputRows = source.Rows()
+            .Select(fields =>
+            {
+                var rowSources = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase)
+                {
+                    [source.Alias] = source,
+                    [source.Name] = source
+                };
+                return new EvalRow(new Dictionary<string, object?>(fields, StringComparer.OrdinalIgnoreCase), rowSources);
+            })
+            .ToList();
+
+        var forExpr = ParseExpr(pivot.ForColumnRaw);
+        var aggArgExpr = ParseExpr(pivot.AggregateArgRaw);
+
+        var forValues = inputRows.ToDictionary(
+            r => r,
+            r => Eval(forExpr, r, group: null, ctes),
+            ReferenceEqualityComparer<EvalRow>.Instance);
+
+        var inItems = pivot.InItems
+            .Select(i => new { i.Alias, Value = Eval(ParseExpr(i.ValueRaw), new EvalRow(new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase), new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase)), group: null, ctes) })
+            .ToList();
+
+        var forColumnNormalized = pivot.ForColumnRaw[(pivot.ForColumnRaw.LastIndexOf('.') + 1)..];
+        var groupColumns = source.ColumnNames
+            .Where(c => !c.Equals(pivot.ForColumnRaw, StringComparison.OrdinalIgnoreCase)
+                        && !c.Equals(forColumnNormalized, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        static string BuildGroupKey(EvalRow row, IEnumerable<string> columns)
+            => string.Join("", columns.Select(c => row.GetByName(c)?.ToString() ?? "<null>"));
+
+        var grouped = inputRows.GroupBy(r => BuildGroupKey(r, groupColumns)).ToList();
+        var result = new TableResultMock();
+
+        for (int i = 0; i < groupColumns.Count; i++)
+            result.Columns.Add(new TableResultColMock(source.Alias, groupColumns[i], groupColumns[i], i, DbType.Object, true));
+
+        for (int i = 0; i < inItems.Count; i++)
+            result.Columns.Add(new TableResultColMock(source.Alias, inItems[i].Alias, inItems[i].Alias, groupColumns.Count + i, DbType.Object, true));
+
+        foreach (var group in grouped)
+        {
+            var first = group.First();
+            var outRow = new Dictionary<int, object?>();
+
+            for (int i = 0; i < groupColumns.Count; i++)
+                outRow[i] = first.GetByName(groupColumns[i]);
+
+            for (int i = 0; i < inItems.Count; i++)
+            {
+                var bucket = group.Where(r => forValues[r].EqualsSql(inItems[i].Value, dialect)).ToList();
+                outRow[groupColumns.Count + i] = AggregatePivotBucket(pivot.AggregateFunction, aggArgExpr, bucket, ctes);
+            }
+
+            result.Add(outRow);
+        }
+
+        return Source.FromResult(source.Name, source.Alias, result);
+    }
+
+    private object? AggregatePivotBucket(string aggregateFunction, SqlExpr aggArgExpr, List<EvalRow> rows, IDictionary<string, Source> ctes)
+    {
+        if (aggregateFunction.Equals("COUNT", StringComparison.OrdinalIgnoreCase))
+            return rows.Count;
+
+        if (aggregateFunction.Equals("SUM", StringComparison.OrdinalIgnoreCase))
+        {
+            decimal total = 0m;
+            foreach (var row in rows)
+            {
+                var value = Eval(aggArgExpr, row, group: null, ctes);
+                if (IsNullish(value))
+                    continue;
+                total += Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+            }
+
+            return total;
+        }
+
+        throw new NotSupportedException($"PIVOT aggregate '{aggregateFunction}' not supported yet.");
     }
 
     // ---------------- PROJECTION ----------------
