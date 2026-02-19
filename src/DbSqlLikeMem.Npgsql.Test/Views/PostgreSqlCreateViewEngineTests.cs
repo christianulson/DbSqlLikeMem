@@ -39,6 +39,7 @@ public sealed class PostgreSqlCreateViewEngineTests : XUnitTestBase
     /// PT: Testa o comportamento de CreateView_ThenSelectFromView_ShouldReturnExpectedRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "Views")]
     public void CreateView_ThenSelectFromView_ShouldReturnExpectedRows()
     {
         _cnn.ExecNonQuery(@"
@@ -56,6 +57,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
     /// PT: Testa o comportamento de View_IsNotMaterialized_ShouldReflectBaseTableChanges.
     /// </summary>
     [Fact]
+    [Trait("Category", "Views")]
     public void View_IsNotMaterialized_ShouldReflectBaseTableChanges()
     {
         _cnn.ExecNonQuery("CREATE VIEW v_all AS SELECT id FROM users ORDER BY id;");
@@ -72,6 +74,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
     /// PT: Testa o comportamento de CreateOrReplaceView_ShouldChangeDefinition.
     /// </summary>
     [Fact]
+    [Trait("Category", "Views")]
     public void CreateOrReplaceView_ShouldChangeDefinition()
     {
         _cnn.ExecNonQuery("CREATE VIEW v AS SELECT id FROM users WHERE tenantid = 10;");
@@ -88,6 +91,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
     /// PT: Testa o comportamento de View_NameShouldShadowTable_WhenSameName.
     /// </summary>
     [Fact]
+    [Trait("Category", "Views")]
     public void View_NameShouldShadowTable_WhenSameName()
     {
         var db = new NpgsqlDbMock();
@@ -109,6 +113,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
     /// PT: Testa o comportamento de View_CanReferenceAnotherView.
     /// </summary>
     [Fact]
+    [Trait("Category", "Views")]
     public void View_CanReferenceAnotherView()
     {
         _cnn.ExecNonQuery("CREATE VIEW v1 AS SELECT id FROM users WHERE tenantid = 10;");
@@ -123,6 +128,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
     /// PT: Testa o comportamento de View_WithJoinAndAggregation_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "Views")]
     public void View_WithJoinAndAggregation_ShouldWork()
     {
         _cnn.ExecNonQuery(@"
@@ -147,6 +153,7 @@ GROUP BY u.id;
     /// PT: Testa o comportamento de CreateView_ExistingNameWithoutOrReplace_ShouldThrow.
     /// </summary>
     [Fact]
+    [Trait("Category", "Views")]
     public void CreateView_ExistingNameWithoutOrReplace_ShouldThrow()
     {
         _cnn.ExecNonQuery("CREATE VIEW vdup AS SELECT 1 AS x ;");
@@ -158,6 +165,7 @@ GROUP BY u.id;
     /// PT: Testa o comportamento de DropView_ShouldRemoveDefinition.
     /// </summary>
     [Fact]
+    [Trait("Category", "Views")]
     public void DropView_ShouldRemoveDefinition()
     {
         _cnn.ExecNonQuery("CREATE VIEW vdrop AS SELECT id FROM users;");

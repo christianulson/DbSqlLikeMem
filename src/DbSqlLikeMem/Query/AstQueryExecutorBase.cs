@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace DbSqlLikeMem;
 
 /// <summary>
@@ -12,6 +14,8 @@ internal abstract class AstQueryExecutorBase(
     object dialect)
     : IAstQueryExecutor
 {
+    private static readonly ConcurrentDictionary<Type, Func<string, object, SqlExpr>> _parseWhereDelegateCache = new();
+
     private readonly DbConnectionMockBase _cnn = cnn ?? throw new ArgumentNullException(nameof(cnn));
     private readonly IDataParameterCollection _pars = pars ?? throw new ArgumentNullException(nameof(pars));
     private readonly object _dialect = dialect ?? throw new ArgumentNullException(nameof(dialect));
@@ -32,6 +36,12 @@ internal abstract class AstQueryExecutorBase(
             throw new ArgumentException("Expressão vazia.", nameof(raw));
 
         var dialectType = _dialect.GetType();
+        var parserDelegate = _parseWhereDelegateCache.GetOrAdd(dialectType, CreateParseWhereDelegate);
+        return parserDelegate(raw, _dialect);
+    }
+
+    private static Func<string, object, SqlExpr> CreateParseWhereDelegate(Type dialectType)
+    {
         var mi = typeof(SqlExpressionParser)
             .GetMethods(BindingFlags.Public | BindingFlags.Static)
             .FirstOrDefault(m =>
@@ -47,14 +57,17 @@ internal abstract class AstQueryExecutorBase(
             throw new MissingMethodException(
                 $"{nameof(SqlExpressionParser)}.{nameof(SqlExpressionParser.ParseWhere)}(string, {dialectType.Name}) não encontrado.");
 
-        try
+        return (raw, dialectInstance) =>
         {
-            return (SqlExpr)mi.Invoke(null, [raw, _dialect])!;
-        }
-        catch (System.Reflection.TargetInvocationException tie) when (tie.InnerException is not null)
-        {
-            throw tie.InnerException;
-        }
+            try
+            {
+                return (SqlExpr)mi.Invoke(null, [raw, dialectInstance])!;
+            }
+            catch (TargetInvocationException tie) when (tie.InnerException is not null)
+            {
+                throw tie.InnerException;
+            }
+        };
     }
 
     /// <summary>
@@ -77,9 +90,16 @@ internal abstract class AstQueryExecutorBase(
             throw new InvalidOperationException($"UNION: allFlags.Count inválido. parts={parts.Count}, allFlags={allFlags.Count}");
 
         // Executa cada SELECT
-        var tables = new List<TableResultMock>(parts.Count);
-        foreach (var q in parts)
-            tables.Add(ExecuteSelect(q));
+        var tables = new TableResultMock[parts.Count];
+
+        if (parts.Count == 1)
+        {
+            tables[0] = ExecuteSelect(parts[0]);
+        }
+        else
+        {
+            Parallel.For(0, parts.Count, i => tables[i] = ExecuteSelect(parts[i]));
+        }
 
         // Base do resultado
         var result = new TableResultMock
@@ -91,7 +111,8 @@ internal abstract class AstQueryExecutorBase(
         var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para UNION.");
 
         // valida colunas compatíveis
-        for (int i = 0; i < tables.Count; i++)
+        var total = tables.Count();
+        for (int i = 0; i < total; i++)
         {
             if (tables[i].Columns.Count != result.Columns.Count)
             {
@@ -112,10 +133,16 @@ internal abstract class AstQueryExecutorBase(
         // - entre 1 e 2 usa allFlags[1]
         // etc.
         // Começa com o primeiro
-        foreach (var row in tables[0])
-            result.Add(row);
+        var needsDistinct = allFlags.Any(flag => !flag);
+        var seenRows = needsDistinct ? new HashSet<Dictionary<int, object?>>(new SqlRowDictionaryComparer(dialect)) : null;
 
-        for (int i = 1; i < tables.Count; i++)
+        foreach (var row in tables[0])
+        {
+            result.Add(row);
+            seenRows?.Add(row);
+        }
+
+        for (int i = 1; i < total; i++)
         {
             var isUnionAll = allFlags[i - 1];
 
@@ -123,15 +150,14 @@ internal abstract class AstQueryExecutorBase(
             {
                 foreach (var row in tables[i])
                     result.Add(row);
+                continue;
             }
-            else
+
+            // UNION => DISTINCT
+            foreach (var row in tables[i])
             {
-                // UNION => DISTINCT
-                foreach (var row in tables[i])
-                {
-                    if (!ContainsRow(result, row, dialect))
-                        result.Add(row);
-                }
+                if (seenRows!.Add(row))
+                    result.Add(row);
             }
         }
 
@@ -156,27 +182,109 @@ internal abstract class AstQueryExecutorBase(
         return result;
     }
 
-    private static bool ContainsRow(
-        TableResultMock table,
-        Dictionary<int, object?> candidate,
-        ISqlDialect dialect)
+    private sealed class SqlRowDictionaryComparer(ISqlDialect dialect)
+        : IEqualityComparer<Dictionary<int, object?>>
     {
-        // comparação simples: mesmas chaves + mesmos valores
-        // (se precisar mais forte depois, você troca aqui)
-        foreach (var row in table)
+        public bool Equals(Dictionary<int, object?>? x, Dictionary<int, object?>? y)
         {
-            if (row.Count != candidate.Count) continue;
+            if (ReferenceEquals(x, y))
+                return true;
+            if (x is null || y is null || x.Count != y.Count)
+                return false;
 
-            var ok = true;
-            foreach (var kv in candidate)
+            foreach (var item in x)
             {
-                if (!row.TryGetValue(kv.Key, out var v)) { ok = false; break; }
-                if (!v.EqualsSql(kv.Value, dialect)) { ok = false; break; }
+                if (!y.TryGetValue(item.Key, out var rightValue))
+                    return false;
+
+                if (!item.Value.EqualsSql(rightValue, dialect))
+                    return false;
             }
 
-            if (ok) return true;
+            return true;
         }
-        return false;
+
+        public int GetHashCode(Dictionary<int, object?> row)
+        {
+            var hash = new HashCode();
+            foreach (var key in row.Keys.OrderBy(k => k))
+            {
+                hash.Add(key);
+                hash.Add(NormalizeHash(row[key]));
+            }
+
+            return hash.ToHashCode();
+        }
+
+        private object? NormalizeHash(object? value)
+        {
+            if (value is null || value is DBNull)
+                return null;
+
+            if (TryNormalizeNumericHash(value, out var numericHash))
+                return numericHash;
+
+            if (value is string text)
+                return dialect.TextComparison == StringComparison.OrdinalIgnoreCase
+                    ? text.ToUpperInvariant()
+                    : text;
+
+            return value;
+        }
+
+        private bool TryNormalizeNumericHash(object value, out string normalized)
+        {
+            normalized = string.Empty;
+
+            if (TryGetNumericValue(value, out var numeric))
+            {
+                normalized = numeric.ToString("G29", CultureInfo.InvariantCulture);
+                return true;
+            }
+
+            if (!dialect.SupportsImplicitNumericStringComparison)
+                return false;
+
+            if (value is string text
+                && decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed))
+            {
+                normalized = parsed.ToString("G29", CultureInfo.InvariantCulture);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetNumericValue(object value, out decimal numeric)
+        {
+            switch (value)
+            {
+                case byte b:
+                    numeric = b;
+                    return true;
+                case short s:
+                    numeric = s;
+                    return true;
+                case int i:
+                    numeric = i;
+                    return true;
+                case long l:
+                    numeric = l;
+                    return true;
+                case float f:
+                    numeric = (decimal)f;
+                    return true;
+                case double d:
+                    numeric = (decimal)d;
+                    return true;
+                case decimal m:
+                    numeric = m;
+                    return true;
+                default:
+                    numeric = default;
+                    return false;
+            }
+        }
     }
 
     private static void ValidateUnionColumnTypes(
@@ -247,7 +355,8 @@ internal abstract class AstQueryExecutorBase(
             return ExecuteGroup(selectQuery, ctes, rows);
 
         // 5) Project non-grouped
-        var projected = ProjectRows(selectQuery, [.. rows], ctes);
+        var projectedRows = rows as List<EvalRow> ?? rows.ToList();
+        var projected = ProjectRows(selectQuery, projectedRows, ctes);
 
         // 6) DISTINCT
         if (selectQuery.Distinct)
@@ -283,7 +392,7 @@ internal abstract class AstQueryExecutorBase(
                 // pega alias mesmo se o parser não preencheu si.Alias
                 var (exprRaw, alias) = SplitTrailingAsAlias(si.Raw, si.Alias);
                 if (string.IsNullOrWhiteSpace(alias))
-                    return (Alias: (string?)null, Ast: (SqlExpr?)null);
+                    return ((string Alias, SqlExpr Ast)?)null;
 
                 SqlExpr ast;
 #pragma warning disable CA1031 // Do not catch general exception types
@@ -298,10 +407,10 @@ internal abstract class AstQueryExecutorBase(
                 }
 #pragma warning restore CA1031
 
-                return (Alias: alias, Ast: (SqlExpr?)ast);
+                return (Alias: alias!, Ast: ast);
             })
-            .Where(x => x.Alias is not null && x.Ast is not null)
-            .Select(x => (Alias: x.Alias!, Ast: x.Ast!))
+            .Where(x => x.HasValue)
+            .Select(x => x!.Value)
             .ToList();
 
         var havingExpr = q.Having;
@@ -385,8 +494,8 @@ internal abstract class AstQueryExecutorBase(
         if (best is null)
             return null;
 
-        var key = src.Physical is TableMock physicalTable
-            ? physicalTable.BuildIndexKeyFromValues(best, equalsByColumn)
+        var key = src.Physical is TableMock
+            ? best.BuildIndexKeyFromValues(equalsByColumn)
             : string.Join("|", best.KeyCols.Select(col =>
             {
                 var norm = col.NormalizeName();
@@ -398,18 +507,18 @@ internal abstract class AstQueryExecutorBase(
         if (positions is null)
             return [];
 
-        return src.RowsByIndexes(positions);
+        return src.RowsByIndexes(positions.Keys);
     }
 
 
-    private IEnumerable<int>? LookupIndexWithMetrics(
+    private IReadOnlyDictionary<int, Dictionary<string, object?>>? LookupIndexWithMetrics(
         ITableMock table,
         IndexDef indexDef,
         string key)
     {
         _cnn.Metrics.IndexLookups++;
         _cnn.Metrics.IncrementIndexHint(indexDef.Name.NormalizeName());
-        return table.Lookup(indexDef, key);
+        return indexDef.LookupMutable(key);
     }
 
     private bool TryCollectColumnEqualities(
@@ -646,11 +755,13 @@ internal abstract class AstQueryExecutorBase(
     {
         var alias = ts.Alias ?? ts.Name ?? ts.DbName ?? "t";
 
+        Source source;
+
         if (ts.DerivedUnion is not null)
         {
             var res = ExecuteUnion(
                 [.. ts.DerivedUnion.Parts
-                    .Select(_=>_ as SqlSelectQuery)
+                    .Select(_=>_)
                     .Where(_=>_!= null)
                     .Select(_=>_!)],
                 ts.DerivedUnion.AllFlags,
@@ -658,20 +769,22 @@ internal abstract class AstQueryExecutorBase(
                 ts.DerivedUnion.RowLimit,
                 ts.DerivedSql ?? "(derived)"
             );
-            return Source.FromResult(alias, res);
+            source = Source.FromResult(alias, res);
+            return ApplyPivotIfNeeded(source, ts.Pivot, ctes);
         }
 
         if (ts.Derived is not null)
         {
             var res = ExecuteSelect(ts.Derived);
-            return Source.FromResult(alias, res);
+            source = Source.FromResult(alias, res);
+            return ApplyPivotIfNeeded(source, ts.Pivot, ctes);
         }
 
         if (!string.IsNullOrWhiteSpace(ts.Name)
             && ctes.TryGetValue(ts.Name!, out var cteSrc))
         {
-            // alias may differ from CTE name
-            return cteSrc.WithAlias(alias);
+            source = cteSrc.WithAlias(alias);
+            return ApplyPivotIfNeeded(source, ts.Pivot, ctes);
         }
 
         if (string.IsNullOrWhiteSpace(ts.Name))
@@ -679,28 +792,121 @@ internal abstract class AstQueryExecutorBase(
 
         var tableName = ts.Name!.NormalizeName();
 
-        // Non-materialized VIEW: expand definition at execution time
         if (_cnn.TryGetView(tableName, out var viewSelect, ts.DbName)
-            && viewSelect!= null)
+            && viewSelect != null)
         {
             var viewRes = ExecuteSelect(viewSelect, ctes, outerRow: null);
-            return Source.FromResult(alias, viewRes);
+            source = Source.FromResult(alias, viewRes);
+            return ApplyPivotIfNeeded(source, ts.Pivot, ctes);
         }
 
-        // ✅ MySQL allows SELECT without FROM; parser may materialize it as FROM DUAL.
-        // Treat DUAL as a single dummy row source.
         if (tableName.Equals("DUAL", StringComparison.OrdinalIgnoreCase))
         {
             var one = new TableResultMock
             {
                 ([])
             };
-            return Source.FromResult("DUAL", alias, one);
+            source = Source.FromResult("DUAL", alias, one);
+            return ApplyPivotIfNeeded(source, ts.Pivot, ctes);
         }
 
         _cnn.Metrics.IncrementTableHint(tableName);
         var tb = _cnn.GetTable(tableName, ts.DbName);
-        return Source.FromPhysical(tableName, alias, tb);
+        source = Source.FromPhysical(tableName, alias, tb);
+        return ApplyPivotIfNeeded(source, ts.Pivot, ctes);
+    }
+
+    private Source ApplyPivotIfNeeded(Source source, SqlPivotSpec? pivot, IDictionary<string, Source> ctes)
+    {
+        if (pivot is null)
+            return source;
+
+        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para PIVOT.");
+        var inputRows = source.Rows()
+            .Select(fields =>
+            {
+                var rowSources = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase)
+                {
+                    [source.Alias] = source,
+                    [source.Name] = source
+                };
+                return new EvalRow(new Dictionary<string, object?>(fields, StringComparer.OrdinalIgnoreCase), rowSources);
+            })
+            .ToList();
+
+        var forExpr = ParseExpr(pivot.ForColumnRaw);
+        var aggArgExpr = ParseExpr(pivot.AggregateArgRaw);
+
+        var forValues = inputRows.ToDictionary(
+            r => r,
+            r => Eval(forExpr, r, group: null, ctes),
+            ReferenceEqualityComparer<EvalRow>.Instance);
+
+        var inItems = pivot.InItems
+            .Select(i => new { i.Alias, Value = Eval(ParseExpr(i.ValueRaw), new EvalRow(new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase), new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase)), group: null, ctes) })
+            .ToList();
+
+        var forColumnNormalized = pivot.ForColumnRaw[(pivot.ForColumnRaw.LastIndexOf('.') + 1)..];
+        var aggregateArgNormalized = pivot.AggregateArgRaw[(pivot.AggregateArgRaw.LastIndexOf('.') + 1)..];
+        var groupColumns = source.ColumnNames
+            .Where(c => !c.Equals(pivot.ForColumnRaw, StringComparison.OrdinalIgnoreCase)
+                        && !c.Equals(forColumnNormalized, StringComparison.OrdinalIgnoreCase)
+                        && !c.Equals(pivot.AggregateArgRaw, StringComparison.OrdinalIgnoreCase)
+                        && !c.Equals(aggregateArgNormalized, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        static string BuildGroupKey(EvalRow row, IEnumerable<string> columns)
+            => string.Join("", columns.Select(c => row.GetByName(c)?.ToString() ?? "<null>"));
+
+        var grouped = inputRows.GroupBy(r => BuildGroupKey(r, groupColumns)).ToList();
+        var result = new TableResultMock();
+
+        for (int i = 0; i < groupColumns.Count; i++)
+            result.Columns.Add(new TableResultColMock(source.Alias, groupColumns[i], groupColumns[i], i, DbType.Object, true));
+
+        for (int i = 0; i < inItems.Count; i++)
+            result.Columns.Add(new TableResultColMock(source.Alias, inItems[i].Alias, inItems[i].Alias, groupColumns.Count + i, DbType.Object, true));
+
+        foreach (var group in grouped)
+        {
+            var first = group.First();
+            var outRow = new Dictionary<int, object?>();
+
+            for (int i = 0; i < groupColumns.Count; i++)
+                outRow[i] = first.GetByName(groupColumns[i]);
+
+            for (int i = 0; i < inItems.Count; i++)
+            {
+                var bucket = group.Where(r => forValues[r].EqualsSql(inItems[i].Value, dialect)).ToList();
+                outRow[groupColumns.Count + i] = AggregatePivotBucket(pivot.AggregateFunction, aggArgExpr, bucket, ctes);
+            }
+
+            result.Add(outRow);
+        }
+
+        return Source.FromResult(source.Name, source.Alias, result);
+    }
+
+    private object? AggregatePivotBucket(string aggregateFunction, SqlExpr aggArgExpr, List<EvalRow> rows, IDictionary<string, Source> ctes)
+    {
+        if (aggregateFunction.Equals("COUNT", StringComparison.OrdinalIgnoreCase))
+            return rows.Count;
+
+        if (aggregateFunction.Equals("SUM", StringComparison.OrdinalIgnoreCase))
+        {
+            decimal total = 0m;
+            foreach (var row in rows)
+            {
+                var value = Eval(aggArgExpr, row, group: null, ctes);
+                if (IsNullish(value))
+                    continue;
+                total += Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+            }
+
+            return total;
+        }
+
+        throw new NotSupportedException($"PIVOT aggregate '{aggregateFunction}' not supported yet.");
     }
 
     // ---------------- PROJECTION ----------------
@@ -851,8 +1057,20 @@ internal abstract class AstQueryExecutorBase(
         {
             var w = slot.Expr;
 
-            // Only what we need for tests right now
-            if (!w.Name.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase))
+            var isRowNumber = w.Name.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase);
+            var isRank = w.Name.Equals("RANK", StringComparison.OrdinalIgnoreCase);
+            var isDenseRank = w.Name.Equals("DENSE_RANK", StringComparison.OrdinalIgnoreCase);
+            var isNtile = w.Name.Equals("NTILE", StringComparison.OrdinalIgnoreCase);
+            var isPercentRank = w.Name.Equals("PERCENT_RANK", StringComparison.OrdinalIgnoreCase);
+            var isCumeDist = w.Name.Equals("CUME_DIST", StringComparison.OrdinalIgnoreCase);
+            var isLag = w.Name.Equals("LAG", StringComparison.OrdinalIgnoreCase);
+            var isLead = w.Name.Equals("LEAD", StringComparison.OrdinalIgnoreCase);
+            var isFirstValue = w.Name.Equals("FIRST_VALUE", StringComparison.OrdinalIgnoreCase);
+            var isLastValue = w.Name.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase);
+            var isNthValue = w.Name.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase);
+
+            // Keep unsupported window functions as no-op until explicitly implemented.
+            if (!isRowNumber && !isRank && !isDenseRank && !isNtile && !isPercentRank && !isCumeDist && !isLag && !isLead && !isFirstValue && !isLastValue && !isNthValue)
                 continue;
 
             // Partitioning
@@ -902,14 +1120,430 @@ internal abstract class AstQueryExecutorBase(
                     });
                 }
 
-                long rn = 1;
+                if (isRowNumber)
+                {
+                    long rn = 1;
+                    foreach (var r in part)
+                    {
+                        slot.Map[r] = rn;
+                        rn++;
+                    }
+                    continue;
+                }
+
+                if (isNtile)
+                {
+                    var bucketCount = ResolveNtileBucketCount(w, part.Count, part[0], ctes);
+                    if (bucketCount <= 0)
+                        continue;
+
+                    long rowIndexForNtile = 0;
+                    foreach (var r in part)
+                    {
+                        rowIndexForNtile++;
+                        var tile = ((rowIndexForNtile - 1) * bucketCount) / part.Count + 1;
+                        slot.Map[r] = tile;
+                    }
+                    continue;
+                }
+
+                if (isPercentRank || isCumeDist)
+                {
+                    FillPercentRankOrCumeDist(slot.Map, part, w.Spec.OrderBy, ctes, isPercentRank);
+                    continue;
+                }
+
+                if (isLag || isLead)
+                {
+                    FillLagOrLead(slot.Map, part, w, ctes, isLead);
+                    continue;
+                }
+
+                if (isFirstValue || isLastValue)
+                {
+                    FillFirstOrLastValue(slot.Map, part, w, ctes, isLastValue);
+                    continue;
+                }
+
+                if (isNthValue)
+                {
+                    FillNthValue(slot.Map, part, w, ctes);
+                    continue;
+                }
+
+                object?[]? prevOrderValues = null;
+                long rank = 1;
+                long denseRank = 1;
+                long rowIndex = 0;
+
                 foreach (var r in part)
                 {
-                    slot.Map[r] = rn;
-                    rn++;
+                    rowIndex++;
+
+                    var currentOrderValues = w.Spec.OrderBy
+                        .Select(oi => Eval(oi.Expr, r, null, ctes))
+                        .ToArray();
+
+                    if (prevOrderValues is null)
+                    {
+                        slot.Map[r] = isRank ? rank : denseRank;
+                        prevOrderValues = currentOrderValues;
+                        continue;
+                    }
+
+                    var changed = !WindowOrderValuesEqual(prevOrderValues, currentOrderValues);
+
+                    if (changed)
+                    {
+                        rank = rowIndex;
+                        denseRank++;
+                        prevOrderValues = currentOrderValues;
+                    }
+
+                    slot.Map[r] = isRank ? rank : denseRank;
                 }
             }
         }
+    }
+
+
+
+
+
+
+
+
+        /// <summary>
+    /// EN: Fills FIRST_VALUE/LAST_VALUE results for all rows in the current partition.
+    /// PT: Preenche os resultados de FIRST_VALUE/LAST_VALUE para todas as linhas da partição atual.
+    /// </summary>
+private void FillFirstOrLastValue(
+        Dictionary<EvalRow, object?> map,
+        List<EvalRow> part,
+        WindowFunctionExpr windowFunctionExpr,
+        IDictionary<string, Source> ctes,
+        bool fillLast)
+    {
+        if (part.Count == 0 || windowFunctionExpr.Args.Count == 0)
+            return;
+
+        var valueExpr = windowFunctionExpr.Args[0];
+        var target = fillLast ? part[^1] : part[0];
+        var resolved = Eval(valueExpr, target, null, ctes);
+
+        foreach (var row in part)
+            map[row] = resolved;
+    }
+
+
+        /// <summary>
+    /// EN: Fills NTH_VALUE results using the resolved 1-based index in the ordered partition.
+    /// PT: Preenche os resultados de NTH_VALUE usando o índice 1-based resolvido na partição ordenada.
+    /// </summary>
+private void FillNthValue(
+        Dictionary<EvalRow, object?> map,
+        List<EvalRow> part,
+        WindowFunctionExpr windowFunctionExpr,
+        IDictionary<string, Source> ctes)
+    {
+        if (part.Count == 0 || windowFunctionExpr.Args.Count == 0)
+            return;
+
+        var valueExpr = windowFunctionExpr.Args[0];
+        var nth = ResolveNthValueIndex(windowFunctionExpr.Args, part[0], ctes);
+        if (nth <= 0)
+            return;
+
+        var targetIndex = nth - 1;
+        var resolved = targetIndex >= 0 && targetIndex < part.Count
+            ? Eval(valueExpr, part[targetIndex], null, ctes)
+            : null;
+
+        foreach (var row in part)
+            map[row] = resolved;
+    }
+
+        private static bool TryReadIntLiteral(SqlExpr expr, out int value)
+    {
+        value = default;
+        if (expr is LiteralExpr lit)
+        {
+            var raw = lit.Value;
+            if (raw is null || raw is DBNull)
+                return false;
+
+            if (raw is IConvertible)
+            {
+                try
+                {
+                    value = Convert.ToInt32(raw, CultureInfo.InvariantCulture);
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryReadLongLiteral(SqlExpr expr, out long value)
+    {
+        value = default;
+        if (expr is LiteralExpr lit)
+        {
+            var raw = lit.Value;
+            if (raw is null || raw is DBNull)
+                return false;
+
+            if (raw is IConvertible)
+            {
+                try
+                {
+                    value = Convert.ToInt64(raw, CultureInfo.InvariantCulture);
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// EN: Resolves NTH_VALUE index from literal or evaluated expression with safe fallback.
+    /// PT: Resolve o índice do NTH_VALUE a partir de literal ou expressão avaliada com fallback seguro.
+    /// </summary>
+private int ResolveNthValueIndex(
+        IReadOnlyList<SqlExpr> args,
+        EvalRow sampleRow,
+        IDictionary<string, Source> ctes)
+    {
+        if (args.Count < 2)
+            return 1;
+
+        if (TryReadIntLiteral(args[1], out var parsedLiteral) && parsedLiteral > 0)
+            return parsedLiteral;
+
+        var evaluated = Eval(args[1], sampleRow, null, ctes);
+        if (evaluated is null || evaluated is DBNull)
+            return 1;
+
+        if (evaluated is IConvertible)
+        {
+            try
+            {
+                var parsed = Convert.ToInt32(evaluated, CultureInfo.InvariantCulture);
+                return parsed > 0 ? parsed : 1;
+            }
+            catch
+            {
+                return 1;
+            }
+        }
+
+        return 1;
+    }
+        /// <summary>
+    /// EN: Fills LAG/LEAD values for rows in the current ordered partition.
+    /// PT: Preenche valores de LAG/LEAD para as linhas da partição ordenada atual.
+    /// </summary>
+private void FillLagOrLead(
+        Dictionary<EvalRow, object?> map,
+        List<EvalRow> part,
+        WindowFunctionExpr windowFunctionExpr,
+        IDictionary<string, Source> ctes,
+        bool fillLead)
+    {
+        if (part.Count == 0 || windowFunctionExpr.Args.Count == 0)
+            return;
+
+        var valueExpr = windowFunctionExpr.Args[0];
+        var offset = ResolveLagLeadOffset(windowFunctionExpr.Args, part[0], ctes);
+        var defaultExpr = windowFunctionExpr.Args.Count >= 3 ? windowFunctionExpr.Args[2] : null;
+
+        for (int i = 0; i < part.Count; i++)
+        {
+            var targetIndex = fillLead ? i + offset : i - offset;
+            var currentRow = part[i];
+
+            if (targetIndex >= 0 && targetIndex < part.Count)
+            {
+                map[currentRow] = Eval(valueExpr, part[targetIndex], null, ctes);
+                continue;
+            }
+
+            map[currentRow] = defaultExpr is null ? null : Eval(defaultExpr, currentRow, null, ctes);
+        }
+    }
+
+        /// <summary>
+    /// EN: Resolves LAG/LEAD offset from literal or evaluated expression with safe fallback.
+    /// PT: Resolve o offset de LAG/LEAD a partir de literal ou expressão avaliada com fallback seguro.
+    /// </summary>
+private int ResolveLagLeadOffset(
+        IReadOnlyList<SqlExpr> args,
+        EvalRow sampleRow,
+        IDictionary<string, Source> ctes)
+    {
+        if (args.Count < 2)
+            return 1;
+
+        if (TryReadIntLiteral(args[1], out var parsedLiteral) && parsedLiteral >= 0)
+            return parsedLiteral;
+
+        var evaluated = Eval(args[1], sampleRow, null, ctes);
+        if (evaluated is null || evaluated is DBNull)
+            return 1;
+
+        if (evaluated is IConvertible)
+        {
+            try
+            {
+                var parsed = Convert.ToInt32(evaluated, CultureInfo.InvariantCulture);
+                return parsed >= 0 ? parsed : 1;
+            }
+            catch
+            {
+                return 1;
+            }
+        }
+
+        return 1;
+    }
+        /// <summary>
+    /// EN: Computes and fills PERCENT_RANK or CUME_DIST values for the current partition.
+    /// PT: Calcula e preenche valores de PERCENT_RANK ou CUME_DIST para a partição atual.
+    /// </summary>
+private void FillPercentRankOrCumeDist(
+        Dictionary<EvalRow, object?> map,
+        List<EvalRow> part,
+        IReadOnlyList<WindowOrderItem> orderBy,
+        IDictionary<string, Source> ctes,
+        bool fillPercentRank)
+    {
+        if (part.Count == 0)
+            return;
+
+        var orderValuesByRow = new Dictionary<EvalRow, object?[]>(ReferenceEqualityComparer<EvalRow>.Instance);
+        foreach (var row in part)
+        {
+            orderValuesByRow[row] = orderBy
+                .Select(oi => Eval(oi.Expr, row, null, ctes))
+                .ToArray();
+        }
+
+        var rankByRow = new Dictionary<EvalRow, long>(ReferenceEqualityComparer<EvalRow>.Instance);
+        var cumeByRow = new Dictionary<EvalRow, double>(ReferenceEqualityComparer<EvalRow>.Instance);
+
+        long rank = 1;
+        object?[]? prev = null;
+        var peerGroupStart = 0;
+
+        for (var i = 0; i < part.Count; i++)
+        {
+            var row = part[i];
+            var cur = orderValuesByRow[row];
+
+            if (prev is null)
+            {
+                peerGroupStart = i;
+                rank = 1;
+            }
+            else if (!WindowOrderValuesEqual(prev, cur))
+            {
+                rank = i + 1;
+                peerGroupStart = i;
+            }
+
+            var peerLast = i;
+            while (peerLast + 1 < part.Count && WindowOrderValuesEqual(cur, orderValuesByRow[part[peerLast + 1]]))
+                peerLast++;
+
+            var cume = (double)(peerLast + 1) / part.Count;
+            for (var k = peerGroupStart; k <= peerLast; k++)
+            {
+                var peerRow = part[k];
+                rankByRow[peerRow] = rank;
+                cumeByRow[peerRow] = cume;
+            }
+
+            i = peerLast;
+            prev = cur;
+        }
+
+        foreach (var row in part)
+        {
+            if (fillPercentRank)
+            {
+                var value = part.Count <= 1 ? 0d : ((double)(rankByRow[row] - 1)) / (part.Count - 1);
+                map[row] = value;
+            }
+            else
+            {
+                map[row] = cumeByRow[row];
+            }
+        }
+    }
+    /// <summary>
+    /// EN: Resolves the bucket count argument for NTILE from literal or evaluated expression.
+    /// PT: Resolve o argumento de quantidade de buckets do NTILE a partir de literal ou expressão avaliada.
+    /// </summary>
+    private long ResolveNtileBucketCount(
+        WindowFunctionExpr windowFunctionExpr,
+        int partitionSize,
+        EvalRow sampleRow,
+        IDictionary<string, Source> ctes)
+    {
+        if (partitionSize <= 0)
+            return 0;
+
+        if (windowFunctionExpr.Args.Count == 0)
+            return 1;
+
+        var arg = windowFunctionExpr.Args[0];
+        if (TryReadLongLiteral(arg, out var parsedLiteral) && parsedLiteral > 0)
+            return parsedLiteral;
+
+        var evaluated = Eval(arg, sampleRow, null, ctes);
+        if (evaluated is null || evaluated is DBNull)
+            return 1;
+
+        if (evaluated is IConvertible)
+        {
+            try
+            {
+                var parsed = Convert.ToInt64(evaluated, CultureInfo.InvariantCulture);
+                return parsed > 0 ? parsed : 1;
+            }
+            catch
+            {
+                return 1;
+            }
+        }
+
+        return 1;
+    }
+    private bool WindowOrderValuesEqual(
+        object?[] left,
+        object?[] right)
+    {
+        if (left.Length != right.Length)
+            return false;
+
+        for (int i = 0; i < left.Length; i++)
+        {
+            var cmp = CompareSql(left[i], right[i]);
+            if (cmp != 0)
+                return false;
+        }
+
+        return true;
     }
 
     private int CompareSql(object? a, object? b)
@@ -982,6 +1616,11 @@ internal abstract class AstQueryExecutorBase(
 
             if (exprAst is WindowFunctionExpr w)
             {
+                if (!(Dialect?.SupportsWindowFunctions ?? true))
+                    throw SqlUnsupported.ForDialect(
+                        Dialect!,
+                        $"window functions ({w.Name})");
+
                 // slot.Map preenchido depois (quando tivermos todas as rows)
                 var slot = new WindowSlot
                 {
@@ -1584,6 +2223,9 @@ internal abstract class AstQueryExecutorBase(
                 return EvalCase(c, row, group, ctes);
 
             case JsonAccessExpr ja:
+                if (!Dialect!.SupportsJsonArrowOperators)
+                    throw SqlUnsupported.ForDialect(Dialect, "JSON -> / ->> / #> / #>> operators");
+
                 var mapped = MapJsonAccess(ja);
                 return Eval(mapped, row, group, ctes);
             case FunctionCallExpr fn:
@@ -2955,11 +3597,13 @@ internal abstract class AstQueryExecutorBase(
         /// </summary>
         public static Source FromPhysical(string tableName, string alias, ITableMock physical)
             => new(tableName, alias, physical);
+       
         /// <summary>
         /// Auto-generated summary.
         /// </summary>
         public static Source FromResult(string tableName, string alias, TableResultMock result)
             => new(tableName, alias, result);
+       
         /// <summary>
         /// Auto-generated summary.
         /// </summary>
@@ -3018,6 +3662,22 @@ internal abstract class AstQueryExecutorBase(
                         Fields[col] = it.Value;
                 }
             }
+        }
+
+
+        /// <summary>
+        /// EN: Gets a field value by qualified or unqualified column name.
+        /// PT: Obtém o valor de um campo por nome de coluna qualificado ou não qualificado.
+        /// </summary>
+        /// <param name="columnName">EN: Column name to read. PT: Nome da coluna a ler.</param>
+        /// <returns>EN: The field value when present; otherwise null. PT: O valor do campo quando presente; caso contrário, null.</returns>
+        public object? GetByName(string columnName)
+        {
+            if (Fields.TryGetValue(columnName, out var direct))
+                return direct;
+
+            var hit = Fields.FirstOrDefault(kv => kv.Key.EndsWith($".{columnName}", StringComparison.OrdinalIgnoreCase));
+            return hit.Equals(default(KeyValuePair<string, object?>)) ? null : hit.Value;
         }
     }
 
@@ -3153,41 +3813,41 @@ internal abstract class AstQueryExecutorBase(
         }
     }
 
-    private sealed class ArrayObjectEqualityComparer : IEqualityComparer<object?[]>
-    {
-        /// <summary>
-        /// Auto-generated summary.
-        /// </summary>
-        public static readonly ArrayObjectEqualityComparer Instance = new();
+    //private sealed class ArrayObjectEqualityComparer : IEqualityComparer<object?[]>
+    //{
+    //    /// <summary>
+    //    /// Auto-generated summary.
+    //    /// </summary>
+    //    public static readonly ArrayObjectEqualityComparer Instance = new();
 
-        /// <summary>
-        /// Auto-generated summary.
-        /// </summary>
-        public bool Equals(object?[]? x, object?[]? y)
-        {
-            if (ReferenceEquals(x, y)) return true;
-            if (x is null || y is null) return false;
-            if (x.Length != y.Length) return false;
+    //    /// <summary>
+    //    /// Auto-generated summary.
+    //    /// </summary>
+    //    public bool Equals(object?[]? x, object?[]? y)
+    //    {
+    //        if (ReferenceEquals(x, y)) return true;
+    //        if (x is null || y is null) return false;
+    //        if (x.Length != y.Length) return false;
 
-            for (int i = 0; i < x.Length; i++)
-            {
-                if (!Equals(x[i], y[i])) return false;
-            }
-            return true;
-        }
+    //        for (int i = 0; i < x.Length; i++)
+    //        {
+    //            if (!Equals(x[i], y[i])) return false;
+    //        }
+    //        return true;
+    //    }
 
-        /// <summary>
-        /// Auto-generated summary.
-        /// </summary>
-        public int GetHashCode(object?[] obj)
-        {
-            unchecked
-            {
-                int h = 17;
-                for (int i = 0; i < obj.Length; i++)
-                    h = (h * 31) + (obj[i]?.GetHashCode() ?? 0);
-                return h;
-            }
-        }
-    }
+    //    /// <summary>
+    //    /// Auto-generated summary.
+    //    /// </summary>
+    //    public int GetHashCode(object?[] obj)
+    //    {
+    //        unchecked
+    //        {
+    //            int h = 17;
+    //            for (int i = 0; i < obj.Length; i++)
+    //                h = (h * 31) + (obj[i]?.GetHashCode() ?? 0);
+    //            return h;
+    //        }
+    //    }
+    //}
 }

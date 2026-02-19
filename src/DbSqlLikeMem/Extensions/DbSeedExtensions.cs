@@ -50,7 +50,6 @@ public static class DbSeedExtensions
         bool identity = false,
         bool nullable = false,
         object? defaultValue = null,
-        string? references = null,
         int? size = null,
         int? decimalPlaces = null,
         string? schemaName = null)
@@ -77,11 +76,6 @@ public static class DbSeedExtensions
             defaultValue: defaultValue
         );
 
-        if (references is not null)
-        {
-            var parts = references.Split('.');
-            tb.CreateForeignKey(column, parts[0], parts[1]);
-        }
         return cnn;
     }
 
@@ -119,11 +113,6 @@ public static class DbSeedExtensions
             enumValues: enumOrSetValues
         );
 
-        if (references is not null)
-        {
-            var parts = references.Split('.');
-            tb.CreateForeignKey(column, parts[0], parts[1]);
-        }
         return tb;
     }
 
@@ -204,7 +193,7 @@ public static class DbSeedExtensions
         string[]? include = null)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(tb, nameof(tb));
-        tb.CreateIndex(new IndexDef(name, keyCols, include ?? []));
+        tb.CreateIndex(name, keyCols, include ?? []);
         return tb;
     }
 }

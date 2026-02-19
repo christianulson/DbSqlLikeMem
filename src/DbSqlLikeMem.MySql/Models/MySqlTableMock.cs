@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-
 namespace DbSqlLikeMem.MySql;
 
 /// <summary>
@@ -27,7 +25,7 @@ internal class MySqlTableMock(
         DbType dbType,
         bool isNullable,
         IDataParameterCollection? pars = null,
-        ImmutableDictionary<string, ColumnDef>? colDict = null)
+        IReadOnlyDictionary<string, ColumnDef>? colDict = null)
     {
         var exp = MySqlValueHelper.Resolve(token, dbType, isNullable, pars, colDict);
         return exp;

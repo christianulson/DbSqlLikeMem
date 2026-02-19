@@ -11,6 +11,7 @@ public sealed class OracleTransactionReliabilityTests
     /// PT: Garante que rollback para savepoint restaure o estado intermediário.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleTransactionReliability")]
     public void SavepointRollbackShouldRestoreIntermediateState()
     {
         var db = new OracleDbMock();
@@ -38,6 +39,7 @@ public sealed class OracleTransactionReliabilityTests
     /// PT: Garante que o modelo simplificado de isolamento seja determinístico e visível.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleTransactionReliability")]
     public void IsolationLevelShouldBeExposedDeterministically()
     {
         var db = new OracleDbMock();
@@ -55,6 +57,7 @@ public sealed class OracleTransactionReliabilityTests
     /// PT: Garante que o suporte a release de savepoint siga as regras de compatibilidade do provedor.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleTransactionReliability")]
     public void ReleaseSavepointCompatibilityShouldBeProviderSpecific()
     {
         var db = new OracleDbMock();
@@ -72,6 +75,7 @@ public sealed class OracleTransactionReliabilityTests
     /// PT: Garante que escritas concorrentes mantenham dados consistentes com thread safety habilitado.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleTransactionReliability")]
     public void ConcurrentInsertsShouldRemainConsistentWhenThreadSafeEnabled()
     {
         var db = new OracleDbMock { ThreadSafe = true };

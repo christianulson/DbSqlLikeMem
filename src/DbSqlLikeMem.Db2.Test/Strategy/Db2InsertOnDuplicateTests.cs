@@ -13,6 +13,7 @@ public class Db2InsertOnDuplicateTests(
     /// PT: O dialeto DB2 deve rejeitar sintaxe ON DUPLICATE KEY UPDATE.
     /// </summary>
     [Theory]
+    [Trait("Category", "Strategy")]
     [MemberDataDb2Version]
     public void Insert_OnDuplicate_ShouldThrowNotSupported(int version)
     {

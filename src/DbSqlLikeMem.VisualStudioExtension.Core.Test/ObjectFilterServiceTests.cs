@@ -11,6 +11,7 @@ public class ObjectFilterServiceTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "ObjectFilterService")]
     public void Filter_Equals_ReturnsExactMatches()
     {
         var service = new ObjectFilterService();
@@ -31,6 +32,7 @@ public class ObjectFilterServiceTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "ObjectFilterService")]
     public void Filter_Like_ReturnsContainsMatches()
     {
         var service = new ObjectFilterService();
@@ -51,6 +53,7 @@ public class ObjectFilterServiceTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "ObjectFilterService")]
     public void Filter_EmptyValue_ReturnsAllObjects()
     {
         var service = new ObjectFilterService();

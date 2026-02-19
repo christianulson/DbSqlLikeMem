@@ -21,8 +21,9 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
         users.AddColumn("email", DbType.String, true);
         users.AddColumn("tags", DbType.String, true); // CSV-like "a,b,c"
 
-        users.CreateIndex(new IndexDef("ix_users_name", ["name"]));
-        users.CreateIndex(new IndexDef("ix_users_name_email", ["name", "email"]));
+        users.CreateIndex("ix_users_name", ["name"]);
+        users.CreateIndex("ix_users_name_email", ["name", "email"]);
+        users.CreateIndex("ix_users_name_include_email", ["name"], ["email"]);
 
         users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = "john@x.com", [3] = "a,b" });
         users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Jane", [2] = null, [3] = "b,c" });
@@ -37,6 +38,7 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_IndexedEquality_ShouldUseIndexLookupMetric.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_IndexedEquality_ShouldUseIndexLookupMetric()
     {
         var before = _cnn.Metrics.IndexLookups;
@@ -57,6 +59,7 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_IndexedEqualityWithParameter_ShouldUseCompositeIndexLookupMetric.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_IndexedEqualityWithParameter_ShouldUseCompositeIndexLookupMetric()
     {
         var before = _cnn.Metrics.IndexLookups;
@@ -80,10 +83,58 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     }
 
     /// <summary>
+    /// EN: Tests Where_IndexWithIncludeCoveringProjection_ShouldExposeRequestedColumnsInIndex behavior.
+    /// PT: Testa o comportamento de Where_IndexWithIncludeCoveringProjection_ShouldExposeRequestedColumnsInIndex.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
+    public void Where_IndexWithIncludeCoveringProjection_ShouldExposeRequestedColumnsInIndex()
+    {
+        var table = _cnn.GetTable("users");
+        var idx = table.Indexes["ix_users_name_include_email"];
+
+        var lookup = table.Lookup(idx, "John");
+
+        Assert.NotNull(lookup);
+        var idxRow = lookup!.Single().Value;
+        Assert.Equal("John", idxRow["name"]);
+        Assert.Equal("john@x.com", idxRow["email"]);
+        Assert.Equal(1, idxRow["id"]);
+
+        var rows = _cnn.Query<dynamic>("SELECT id, email FROM users WHERE name = 'John'").ToList();
+        Assert.Single(rows);
+        Assert.Equal(1, (int)rows[0].id);
+        Assert.Equal("john@x.com", (string)rows[0].email);
+    }
+
+    /// <summary>
+    /// EN: Tests Where_IndexWithoutRequestedColumn_ShouldFallbackToTableRow behavior.
+    /// PT: Testa o comportamento de Where_IndexWithoutRequestedColumn_ShouldFallbackToTableRow.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
+    public void Where_IndexWithoutRequestedColumn_ShouldFallbackToTableRow()
+    {
+        var table = _cnn.GetTable("users");
+        var idx = table.Indexes["ix_users_name_include_email"];
+
+        var lookup = table.Lookup(idx, "John");
+
+        Assert.NotNull(lookup);
+        var idxRow = lookup!.Single().Value;
+        Assert.False(idxRow.ContainsKey("tags"));
+
+        var rows = _cnn.Query<dynamic>("SELECT tags FROM users WHERE name = 'John'").ToList();
+        Assert.Single(rows);
+        Assert.Equal("a,b", (string)rows[0].tags);
+    }
+
+    /// <summary>
     /// EN: Tests Where_NonIndexedPredicate_ShouldNotIncreaseIndexLookupMetric behavior.
     /// PT: Testa o comportamento de Where_NonIndexedPredicate_ShouldNotIncreaseIndexLookupMetric.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_NonIndexedPredicate_ShouldNotIncreaseIndexLookupMetric()
     {
         var before = _cnn.Metrics.IndexLookups;
@@ -102,6 +153,7 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_IN_ShouldFilter.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_IN_ShouldFilter()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id IN (1,3)").ToList();
@@ -115,6 +167,7 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_IsNotNull_ShouldFilter.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_IsNotNull_ShouldFilter()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE email IS NOT NULL").ToList();
@@ -126,6 +179,7 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_Operators_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_Operators_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id >= 2 AND id <= 3").ToList();
@@ -140,6 +194,7 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_Like_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_Like_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name LIKE '%oh%'").ToList();
@@ -152,6 +207,7 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_FindInSet_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_FindInSet_ShouldWork()
     {
         // FIND_IN_SET('b', tags) -> John(a,b) e Jane(b,c)
@@ -164,6 +220,7 @@ public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
     /// PT: Testa o comportamento de Where_AND_ShouldBeCaseInsensitive_InRealLife.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleWhereParserAndExecutor")]
     public void Where_AND_ShouldBeCaseInsensitive_InRealLife()
     {
         // esse teste é pra pegar o bug clássico: split só em " AND " / " and "

@@ -102,7 +102,7 @@ public abstract class DbMock
     {
         if (base.TryGetValue(key, out var v) && v != null)
         {
-            value = (ISchemaMock)v;
+            value = v;
             return true;
         }
         value = null!;
@@ -253,7 +253,7 @@ public abstract class DbMock
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(name, nameof(name));
 
         var sc = GetSchemaName(schemaName);
-        var schema = (SchemaMock)this[sc];
+        var schema = this[sc];
 
         if (schema.Views.ContainsKey(name!))
         {
@@ -281,7 +281,7 @@ public abstract class DbMock
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(viewName, nameof(viewName));
         var sc = GetSchemaName(schemaName);
-        if (!((SchemaMock)this[sc]).Views.TryGetValue(viewName, out var vw)
+        if (!this[sc].Views.TryGetValue(viewName, out var vw)
             || vw == null)
             throw new Exception($"View não existe cadastrada {viewName}");
         return vw;
@@ -294,7 +294,7 @@ public abstract class DbMock
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(viewName, nameof(viewName));
         var sc = GetSchemaName(schemaName);
-        return ((SchemaMock)this[sc]).Views.TryGetValue(viewName, out vw)
+        return this[sc].Views.TryGetValue(viewName, out vw)
             && vw != null;
     }
 
@@ -306,7 +306,7 @@ public abstract class DbMock
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(viewName, nameof(viewName));
 
         var sc = GetSchemaName(schemaName);
-        var schema = (SchemaMock)this[sc];
+        var schema = this[sc];
         var normalized = viewName.NormalizeName();
 
         if (schema.Views.Remove(normalized))

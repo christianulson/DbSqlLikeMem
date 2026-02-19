@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-
 namespace DbSqlLikeMem.Oracle;
 
 /// <summary>
@@ -26,7 +24,7 @@ internal class OracleTableMock(
         DbType dbType,
         bool isNullable,
         IDataParameterCollection? pars = null,
-        ImmutableDictionary<string, ColumnDef>? colDict = null)
+        IReadOnlyDictionary<string, ColumnDef>? colDict = null)
     {
         var exp = OracleValueHelper.Resolve(token, dbType, isNullable, pars, colDict);
         return exp;

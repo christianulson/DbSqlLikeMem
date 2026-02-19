@@ -2,6 +2,10 @@
 
 namespace DbSqlLikeMem.MySql;
 
+/// <summary>
+/// MySQL mock type used to emulate provider behavior for tests.
+/// Tipo de mock MySQL usado para emular o comportamento do provedor em testes.
+/// </summary>
 public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
 {
     private bool loadingDefaults;
@@ -10,11 +14,15 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
 
     private List<IDbCommand>? commandBatch;
 
-    public new MySqlCommandMock DeleteCommand
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
+    public new MySqlCommandMock? DeleteCommand
     {
         get
         {
-            return (MySqlCommandMock)base.DeleteCommand;
+            return base.DeleteCommand as MySqlCommandMock;
         }
         set
         {
@@ -22,11 +30,15 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         }
     }
 
-    public new MySqlCommandMock InsertCommand
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
+    public new MySqlCommandMock? InsertCommand
     {
         get
         {
-            return (MySqlCommandMock)base.InsertCommand;
+            return base.InsertCommand as MySqlCommandMock;
         }
         set
         {
@@ -34,12 +46,16 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         }
     }
 
+    /// <summary>
+    /// EN: Mock API member implementation for compatibility with MySQL provider contracts.
+    /// PT: Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     [Category("Fill")]
-    public new MySqlCommandMock SelectCommand
+    public new MySqlCommandMock? SelectCommand
     {
         get
         {
-            return (MySqlCommandMock)base.SelectCommand;
+            return base.SelectCommand as MySqlCommandMock;
         }
         set
         {
@@ -47,11 +63,15 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         }
     }
 
-    public new MySqlCommandMock UpdateCommand
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
+    public new MySqlCommandMock? UpdateCommand
     {
         get
         {
-            return (MySqlCommandMock)base.UpdateCommand;
+            return base.UpdateCommand as MySqlCommandMock;
         }
         set
         {
@@ -71,6 +91,10 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         }
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public override int UpdateBatchSize
     {
         get
@@ -83,22 +107,42 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         }
     }
 
-    public event MySqlRowUpdatingEventHandler RowUpdating;
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
+    public event MySqlRowUpdatingEventHandler? RowUpdating;
 
-    public event MySqlRowUpdatedEventHandler RowUpdated;
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
+    public event MySqlRowUpdatedEventHandler? RowUpdated;
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public MySqlDataAdapterMock()
     {
         loadingDefaults = true;
         updateBatchSize = 1;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public MySqlDataAdapterMock(MySqlCommandMock selectCommand)
         : this()
     {
         SelectCommand = selectCommand;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public MySqlDataAdapterMock(string selectCommandText, MySqlConnectionMock connection)
         : this()
     {
@@ -130,6 +174,10 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         }
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     protected override int Update(DataRow[] dataRows, DataTableMapping tableMapping)
     {
         List<MySqlConnectionMock> list = [];
@@ -151,11 +199,19 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         }
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     protected override void InitializeBatching() => commandBatch = new List<IDbCommand>();
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     protected override int AddToBatch(IDbCommand command)
     {
-        ArgumentNullExceptionCompatible.ThrowIfNull(commandBatch, nameof(commandBatch));
+        List<IDbCommand> batch = commandBatch ?? throw new InvalidOperationException("Batching has not been initialized.");
         MySqlCommandMock mySqlCommand = (MySqlCommandMock)command;
         if (mySqlCommand.BatchableCommandText == null)
         {
@@ -163,10 +219,14 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         }
 
         IDbCommand item = (IDbCommand)((ICloneable)command).Clone();
-        commandBatch!.Add(item);
-        return commandBatch.Count - 1;
+        batch.Add(item);
+        return batch.Count - 1;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     protected override int ExecuteBatch()
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(commandBatch, nameof(commandBatch));
@@ -196,6 +256,10 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return num;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     protected override void ClearBatch()
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(commandBatch, nameof(commandBatch));
@@ -208,21 +272,45 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         commandBatch.Clear();
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     protected override void TerminateBatching()
     {
         ClearBatch();
         commandBatch = null;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     protected override IDataParameter GetBatchedParameter(int commandIdentifier, int parameterIndex)
-        => (IDataParameter)commandBatch[commandIdentifier].Parameters[parameterIndex];
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(commandBatch, nameof(commandBatch));
+        object? parameter = commandBatch![commandIdentifier].Parameters[parameterIndex];
+        return (IDataParameter)parameter!;
+    }
 
-    protected override RowUpdatedEventArgs CreateRowUpdatedEvent(DataRow dataRow, IDbCommand command, StatementType statementType, DataTableMapping tableMapping)
-        => new MySqlRowUpdatedEventArgs(dataRow, command, statementType, tableMapping);
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
+    protected override RowUpdatedEventArgs CreateRowUpdatedEvent(DataRow dataRow, IDbCommand? command, StatementType statementType, DataTableMapping tableMapping)
+        => new MySqlRowUpdatedEventArgs(dataRow, command!, statementType, tableMapping);
 
-    protected override RowUpdatingEventArgs CreateRowUpdatingEvent(DataRow dataRow, IDbCommand command, StatementType statementType, DataTableMapping tableMapping)
-        => new MySqlRowUpdatingEventArgs(dataRow, command, statementType, tableMapping);
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
+    protected override RowUpdatingEventArgs CreateRowUpdatingEvent(DataRow dataRow, IDbCommand? command, StatementType statementType, DataTableMapping tableMapping)
+        => new MySqlRowUpdatingEventArgs(dataRow, command!, statementType, tableMapping);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     protected override void OnRowUpdating(RowUpdatingEventArgs value)
     {
         if (this.RowUpdating != null)
@@ -231,6 +319,10 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         }
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     protected override void OnRowUpdated(RowUpdatedEventArgs value)
     {
         if (this.RowUpdated != null)
@@ -239,8 +331,16 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         }
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(DataSet dataSet) => FillAsync(dataSet, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(DataSet dataSet, CancellationToken cancellationToken)
     {
         TaskCompletionSource<int> taskCompletionSource = new();
@@ -264,8 +364,16 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(DataTable dataTable) => FillAsync(dataTable, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(DataTable dataTable, CancellationToken cancellationToken)
     {
         TaskCompletionSource<int> taskCompletionSource = new();
@@ -289,8 +397,16 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(DataSet dataSet, string srcTable) => FillAsync(dataSet, srcTable, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(DataSet dataSet, string srcTable, CancellationToken cancellationToken)
     {
         TaskCompletionSource<int> taskCompletionSource = new();
@@ -314,8 +430,16 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(DataTable dataTable, IDataReader dataReader) => FillAsync(dataTable, dataReader, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(DataTable dataTable, IDataReader dataReader, CancellationToken cancellationToken)
     {
         TaskCompletionSource<int> taskCompletionSource = new();
@@ -339,8 +463,16 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(DataTable dataTable, IDbCommand command, CommandBehavior behavior) => FillAsync(dataTable, command, behavior, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(DataTable dataTable, IDbCommand command, CommandBehavior behavior, CancellationToken cancellationToken)
     {
         TaskCompletionSource<int> taskCompletionSource = new();
@@ -364,8 +496,16 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(int startRecord, int maxRecords, params DataTable[] dataTables) => FillAsync(startRecord, maxRecords, CancellationToken.None, dataTables);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(int startRecord, int maxRecords, CancellationToken cancellationToken, params DataTable[] dataTables)
     {
         TaskCompletionSource<int> taskCompletionSource = new();
@@ -389,8 +529,16 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(DataSet dataSet, int startRecord, int maxRecords, string srcTable) => FillAsync(dataSet, startRecord, maxRecords, srcTable, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(DataSet dataSet, int startRecord, int maxRecords, string srcTable, CancellationToken cancellationToken)
     {
         TaskCompletionSource<int> taskCompletionSource = new();
@@ -414,8 +562,16 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(DataSet dataSet, string srcTable, IDataReader dataReader, int startRecord, int maxRecords) => FillAsync(dataSet, srcTable, dataReader, startRecord, maxRecords, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(DataSet dataSet, string srcTable, IDataReader dataReader, int startRecord, int maxRecords, CancellationToken cancellationToken)
     {
         TaskCompletionSource<int> taskCompletionSource = new();
@@ -439,10 +595,18 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(DataTable[] dataTables, int startRecord, int maxRecords, IDbCommand command, CommandBehavior behavior)
         => FillAsync(dataTables, startRecord, maxRecords, command, behavior, CancellationToken.None);
 
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(DataTable[] dataTables, int startRecord, int maxRecords, IDbCommand command, CommandBehavior behavior, CancellationToken cancellationToken)
     {
         TaskCompletionSource<int> taskCompletionSource = new();
@@ -464,9 +628,17 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(DataSet dataSet, int startRecord, int maxRecords, string srcTable, IDbCommand command, CommandBehavior behavior)
         => FillAsync(dataSet, startRecord, maxRecords, srcTable, command, behavior, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> FillAsync(DataSet dataSet, int startRecord, int maxRecords, string srcTable, IDbCommand command, CommandBehavior behavior, CancellationToken cancellationToken)
     {
         TaskCompletionSource<int> taskCompletionSource = new();
@@ -489,9 +661,17 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<DataTable[]> FillSchemaAsync(DataSet dataSet, SchemaType schemaType)
         => FillSchemaAsync(dataSet, schemaType, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<DataTable[]> FillSchemaAsync(DataSet dataSet, SchemaType schemaType, CancellationToken cancellationToken)
     {
         TaskCompletionSource<DataTable[]> taskCompletionSource = new();
@@ -514,9 +694,17 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<DataTable[]> FillSchemaAsync(DataSet dataSet, SchemaType schemaType, string srcTable)
         => FillSchemaAsync(dataSet, schemaType, srcTable, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<DataTable[]> FillSchemaAsync(DataSet dataSet, SchemaType schemaType, string srcTable, CancellationToken cancellationToken)
     {
         TaskCompletionSource<DataTable[]> taskCompletionSource = new();
@@ -540,9 +728,17 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<DataTable[]> FillSchemaAsync(DataSet dataSet, SchemaType schemaType, string srcTable, IDataReader dataReader)
         => FillSchemaAsync(dataSet, schemaType, srcTable, dataReader, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<DataTable[]> FillSchemaAsync(DataSet dataSet, SchemaType schemaType, string srcTable, IDataReader dataReader, CancellationToken cancellationToken)
     {
         TaskCompletionSource<DataTable[]> taskCompletionSource = new();
@@ -566,9 +762,17 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<DataTable[]> FillSchemaAsync(DataSet dataSet, SchemaType schemaType, IDbCommand command, string srcTable, CommandBehavior behavior)
         => FillSchemaAsync(dataSet, schemaType, command, srcTable, behavior, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<DataTable[]> FillSchemaAsync(DataSet dataSet, SchemaType schemaType, IDbCommand command, string srcTable, CommandBehavior behavior, CancellationToken cancellationToken)
     {
         TaskCompletionSource<DataTable[]> taskCompletionSource = new();
@@ -591,9 +795,17 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<DataTable> FillSchemaAsync(DataTable dataTable, SchemaType schemaType)
         => FillSchemaAsync(dataTable, schemaType, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<DataTable> FillSchemaAsync(DataTable dataTable, SchemaType schemaType, CancellationToken cancellationToken)
     {
         TaskCompletionSource<DataTable> taskCompletionSource = new();
@@ -606,7 +818,7 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
 
         try
         {
-            DataTable result = FillSchema(dataTable, schemaType);
+            DataTable result = FillSchema(dataTable, schemaType) ?? dataTable;
             taskCompletionSource.SetResult(result);
         }
         catch (Exception exception)
@@ -617,9 +829,17 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<DataTable> FillSchemaAsync(DataTable dataTable, SchemaType schemaType, IDataReader dataReader)
         => FillSchemaAsync(dataTable, schemaType, dataReader, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<DataTable> FillSchemaAsync(DataTable dataTable, SchemaType schemaType, IDataReader dataReader, CancellationToken cancellationToken)
     {
         TaskCompletionSource<DataTable> taskCompletionSource = new();
@@ -632,7 +852,7 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
 
         try
         {
-            DataTable result = FillSchema(dataTable, schemaType, dataReader);
+            DataTable result = FillSchema(dataTable, schemaType, dataReader) ?? dataTable;
             taskCompletionSource.SetResult(result);
         }
         catch (Exception exception)
@@ -644,9 +864,17 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<DataTable> FillSchemaAsync(DataTable dataTable, SchemaType schemaType, IDbCommand command, CommandBehavior behavior)
         => FillSchemaAsync(dataTable, schemaType, command, behavior, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<DataTable> FillSchemaAsync(DataTable dataTable, SchemaType schemaType, IDbCommand command, CommandBehavior behavior, CancellationToken cancellationToken)
     {
         TaskCompletionSource<DataTable> taskCompletionSource = new();
@@ -659,7 +887,7 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
 
         try
         {
-            DataTable result = FillSchema(dataTable, schemaType, command, behavior);
+            DataTable result = FillSchema(dataTable, schemaType, command, behavior) ?? dataTable;
             taskCompletionSource.SetResult(result);
         }
         catch (Exception exception)
@@ -670,8 +898,16 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> UpdateAsync(DataRow[] dataRows) => UpdateAsync(dataRows, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> UpdateAsync(DataRow[] dataRows, CancellationToken cancellationToken)
     {
         TaskCompletionSource<int> taskCompletionSource = new();
@@ -695,8 +931,16 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> UpdateAsync(DataSet dataSet) => UpdateAsync(dataSet, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> UpdateAsync(DataSet dataSet, CancellationToken cancellationToken)
     {
         TaskCompletionSource<int> taskCompletionSource = new();
@@ -720,9 +964,17 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> UpdateAsync(DataTable dataTable)
         => UpdateAsync(dataTable, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> UpdateAsync(DataTable dataTable, CancellationToken cancellationToken)
     {
         TaskCompletionSource<int> taskCompletionSource = new();
@@ -746,9 +998,17 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> UpdateAsync(DataRow[] dataRows, DataTableMapping tableMapping)
         => UpdateAsync(dataRows, tableMapping, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> UpdateAsync(DataRow[] dataRows, DataTableMapping tableMapping, CancellationToken cancellationToken)
     {
         TaskCompletionSource<int> taskCompletionSource = new();
@@ -772,9 +1032,17 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
         return taskCompletionSource.Task;
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> UpdateAsync(DataSet dataSet, string srcTable)
         => UpdateAsync(dataSet, srcTable, CancellationToken.None);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> UpdateAsync(DataSet dataSet, string srcTable, CancellationToken cancellationToken)
     {
         TaskCompletionSource<int> taskCompletionSource = new();

@@ -7,13 +7,21 @@ namespace DbSqlLikeMem.SqlServer.Test;
 public sealed class SqlServerUnionLimitAndJsonCompatibilityTests : XUnitTestBase
 {
     private readonly SqlServerConnectionMock _cnn;
+    private const int SqlServerOffsetFetchMinVersion = 2012;
+    private const int SqlServerJsonFunctionsMinVersion = 2016;
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public SqlServerUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper)
     {
-        var db = new SqlServerDbMock();
+        _cnn = CreateConnection();
+        _cnn.Open();
+    }
+
+    private static SqlServerConnectionMock CreateConnection(int? version = null)
+    {
+        var db = new SqlServerDbMock(version);
         var t = db.AddTable("t");
         t.AddColumn("id", DbType.Int32, false);
         t.AddColumn("payload", DbType.String, true);
@@ -21,8 +29,7 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests : XUnitTestBase
         t.Add(new Dictionary<int, object?> { [0] = 2, [1] = "{\"a\":{\"b\":456}}" });
         t.Add(new Dictionary<int, object?> { [0] = 3, [1] = null });
 
-        _cnn = new SqlServerConnectionMock(db);
-        _cnn.Open();
+        return new SqlServerConnectionMock(db);
     }
 
     /// <summary>
@@ -30,6 +37,7 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests : XUnitTestBase
     /// PT: Testa o comportamento de UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
     public void UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates()
     {
         // UNION ALL keeps duplicates
@@ -53,11 +61,23 @@ SELECT id FROM t WHERE id = 1
     /// EN: Tests OffsetFetch_ShouldWork behavior.
     /// PT: Testa o comportamento de OffsetFetch_ShouldWork.
     /// </summary>
-    [Fact]
-    public void OffsetFetch_ShouldWork()
+    [Theory]
+    [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
+    [MemberDataSqlServerVersion]
+    public void OffsetFetch_ShouldRespectVersion(int version)
     {
+        using var cnn = CreateConnection(version);
+        cnn.Open();
+
+        if (version < SqlServerOffsetFetchMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                cnn.Query<dynamic>("SELECT id FROM t ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY").ToList());
+            return;
+        }
+
         // SQL Server: OFFSET/FETCH
-        var rows = _cnn.Query<dynamic>("SELECT id FROM t ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY").ToList();
+        var rows = cnn.Query<dynamic>("SELECT id FROM t ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY").ToList();
         Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id)]);
     }
 
@@ -65,10 +85,22 @@ SELECT id FROM t WHERE id = 1
     /// EN: Tests JsonValue_SimpleObjectPath_ShouldWork behavior.
     /// PT: Testa o comportamento de JsonValue_SimpleObjectPath_ShouldWork.
     /// </summary>
-    [Fact]
-    public void JsonValue_SimpleObjectPath_ShouldWork()
+    [Theory]
+    [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
+    [MemberDataSqlServerVersion]
+    public void JsonValue_SimpleObjectPath_ShouldRespectVersion(int version)
     {
-        var rows = _cnn.Query<dynamic>("SELECT id, TRY_CAST(JSON_VALUE(payload, '$.a.b') AS DECIMAL(18,0)) AS v FROM t ORDER BY id").ToList();
+        using var cnn = CreateConnection(version);
+        cnn.Open();
+
+        if (version < SqlServerJsonFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                cnn.Query<dynamic>("SELECT id, TRY_CAST(JSON_VALUE(payload, '$.a.b') AS DECIMAL(18,0)) AS v FROM t ORDER BY id").ToList());
+            return;
+        }
+
+        var rows = cnn.Query<dynamic>("SELECT id, TRY_CAST(JSON_VALUE(payload, '$.a.b') AS DECIMAL(18,0)) AS v FROM t ORDER BY id").ToList();
 
         // implemented as best-effort; null JSON -> null
         Assert.Equal([123m, 456m, null], [.. rows.Select(r => (object?)r.v)]);
@@ -82,6 +114,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de OrderBy_NullsFirst_ShouldThrow_WhenDialectDoesNotSupportModifier.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
     public void OrderBy_NullsFirst_ShouldThrow_WhenDialectDoesNotSupportModifier()
     {
         Assert.Throws<NotSupportedException>(() =>
@@ -94,6 +127,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de JsonFunction_ShouldThrow_WhenNotSupportedByDialect.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
     public void JsonFunction_ShouldThrow_WhenNotSupportedByDialect()
     {
         Assert.Throws<NotSupportedException>(() =>
@@ -105,6 +139,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Garante que o UNION normalize literais numéricos equivalentes em uma única linha.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
     public void Union_ShouldNormalizeEquivalentNumericTypes()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -121,6 +156,7 @@ SELECT 1 AS v
     /// PT: Garante que o UNION rejeite tipos de coluna incompatíveis entre partes do SELECT.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
     public void Union_ShouldValidateIncompatibleColumnTypes()
     {
         Assert.Throws<InvalidOperationException>(() =>
@@ -138,6 +174,7 @@ SELECT 'x' AS v
     /// PT: Garante que o schema do UNION mantenha os aliases da primeira projeção SELECT.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
     public void Union_ShouldNormalizeSchemaToFirstSelectAlias()
     {
         var rows = _cnn.Query<dynamic>(@"

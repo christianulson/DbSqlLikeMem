@@ -1,4 +1,5 @@
 ﻿using DbSqlLikeMem.Interfaces;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
 
 namespace DbSqlLikeMem.Models;
@@ -345,7 +346,7 @@ public class ReadOnlyHashSet<T> : IReadOnlyHashSet<T>
     //   T:System.Runtime.Serialization.SerializationException:
     //     The System.Runtime.Serialization.SerializationInfo object associated with the
     //     current System.Collections.Generic.HashSet`1 object is invalid.
-    public virtual void OnDeserialization(object sender)
+    public virtual void OnDeserialization(object? sender)
         => _set.OnDeserialization(sender);
     //
     // Summary:
@@ -402,7 +403,7 @@ public class ReadOnlyHashSet<T> : IReadOnlyHashSet<T>
     //
     // Returns:
     //     A value indicating whether the search was successful.
-    public bool TryGetValue(T equalValue, out T actualValue)
+    public bool TryGetValue(T equalValue, [MaybeNullWhen(false)] out T actualValue)
         => _set.TryGetValue(equalValue, out actualValue);
 
     IEnumerator<T> IEnumerable<T>.GetEnumerator()

@@ -23,6 +23,7 @@ public sealed class SqlServerLinqProviderTest
     /// PT: Testa o comportamento de LinqProvider_ShouldQueryWhereAndReturnRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "SqlServerLinqProviderTest")]
     public void LinqProvider_ShouldQueryWhereAndReturnRows()
     {
         var db = new SqlServerDbMock();

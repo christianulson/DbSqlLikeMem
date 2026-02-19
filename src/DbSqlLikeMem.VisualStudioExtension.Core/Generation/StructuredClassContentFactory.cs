@@ -74,12 +74,12 @@ public static class StructuredClassContentFactory
         if (primaryKey.Count > 0)
         {
             sb.AppendLine($"        table.AddPrimaryKeyIndexes({string.Join(",", primaryKey.Select(_ => $"\"{_}\""))});");
-            sb.AppendLine($"        table.CreateIndex(new IndexDef(\"PRIMARY\", [{string.Join(", ", primaryKey.Select(Literal))}], unique: true));");
+            sb.AppendLine($"        table.CreateIndex(\"PRIMARY\", [{string.Join(", ", primaryKey.Select(Literal))}], unique: true);");
         }
 
         foreach (var idx in indexes.OrderBy(i => i.Name, StringComparer.OrdinalIgnoreCase))
         {
-            sb.AppendLine($"        table.CreateIndex(new IndexDef({Literal(idx.Name)}, [{string.Join(", ", idx.Columns.Select(Literal))}], unique: {Bool(idx.Unique)}));");
+            sb.AppendLine($"        table.CreateIndex({Literal(idx.Name)}, [{string.Join(", ", idx.Columns.Select(Literal))}], unique: {Bool(idx.Unique)});");
         }
 
         foreach (var fk in foreignKeys)

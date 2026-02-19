@@ -10,6 +10,7 @@ public sealed class PostgreSqlOnConflictUpsertTests(ITestOutputHelper helper) : 
     /// PT: Testa o comportamento de Insert_OnConflict_ShouldInsert_WhenNoConflict.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Insert_OnConflict_ShouldInsert_WhenNoConflict()
     {
         var db = new NpgsqlDbMock();
@@ -34,6 +35,7 @@ public sealed class PostgreSqlOnConflictUpsertTests(ITestOutputHelper helper) : 
     /// PT: Testa o comportamento de Insert_OnConflict_ShouldUpdate_WhenConflict.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Insert_OnConflict_ShouldUpdate_WhenConflict()
     {
         var db = new NpgsqlDbMock();

@@ -7,13 +7,20 @@ namespace DbSqlLikeMem.Npgsql.Test;
 public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests : XUnitTestBase
 {
     private readonly NpgsqlConnectionMock _cnn;
+    private const int PostgreSqlJsonbMinVersion = 9;
 
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public PostgreSqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper)
     {
-        var db = new NpgsqlDbMock();
+        _cnn = CreateConnection();
+        _cnn.Open();
+    }
+
+    private static NpgsqlConnectionMock CreateConnection(int? version = null)
+    {
+        var db = new NpgsqlDbMock(version);
         var t = db.AddTable("t");
         t.AddColumn("id", DbType.Int32, false);
         t.AddColumn("payload", DbType.String, true);
@@ -21,8 +28,7 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests : XUnitTestBas
         t.Add(new Dictionary<int, object?> { [0] = 2, [1] = "{\"a\":{\"b\":456}}" });
         t.Add(new Dictionary<int, object?> { [0] = 3, [1] = null });
 
-        _cnn = new NpgsqlConnectionMock(db);
-        _cnn.Open();
+        return new NpgsqlConnectionMock(db);
     }
 
     /// <summary>
@@ -30,6 +36,7 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests : XUnitTestBas
     /// PT: Testa o comportamento de UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates.
     /// </summary>
     [Fact]
+    [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]
     public void UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates()
     {
         // UNION ALL keeps duplicates
@@ -54,6 +61,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de LimitOffset_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]
     public void LimitOffset_ShouldWork()
     {
         // MySQL supports: LIMIT offset, count
@@ -65,10 +73,22 @@ SELECT id FROM t WHERE id = 1
     /// EN: Tests JsonPathExtract_ShouldWork behavior.
     /// PT: Testa o comportamento de JsonPathExtract_ShouldWork.
     /// </summary>
-    [Fact]
-    public void JsonPathExtract_ShouldWork()
+    [Theory]
+    [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]
+    [MemberDataNpgsqlVersion]
+    public void JsonPathExtract_ShouldRespectVersion(int version)
     {
-        var rows = _cnn.Query<dynamic>("SELECT id, (payload::jsonb #>> '{a,b}')::numeric AS v FROM t ORDER BY id").ToList();
+        using var cnn = CreateConnection(version);
+        cnn.Open();
+
+        if (version < PostgreSqlJsonbMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                cnn.Query<dynamic>("SELECT id, (payload::jsonb #>> '{a,b}')::numeric AS v FROM t ORDER BY id").ToList());
+            return;
+        }
+
+        var rows = cnn.Query<dynamic>("SELECT id, (payload::jsonb #>> '{a,b}')::numeric AS v FROM t ORDER BY id").ToList();
 
         // implemented as best-effort; null JSON -> null
         Assert.Equal([123m, 456m, null], [.. rows.Select(r => (object?)r.v)]);
@@ -82,6 +102,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de OrderBy_NullsFirst_ShouldApplyExplicitNullOrdering.
     /// </summary>
     [Fact]
+    [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]
     public void OrderBy_NullsFirst_ShouldApplyExplicitNullOrdering()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM t ORDER BY payload NULLS FIRST, id").ToList();
@@ -94,6 +115,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de JsonFunction_ShouldThrow_WhenNotSupportedByDialect.
     /// </summary>
     [Fact]
+    [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]
     public void JsonFunction_ShouldThrow_WhenNotSupportedByDialect()
     {
         Assert.Throws<NotSupportedException>(() =>
@@ -105,6 +127,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Garante que o UNION normalize literais numéricos equivalentes em uma única linha.
     /// </summary>
     [Fact]
+    [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]
     public void Union_ShouldNormalizeEquivalentNumericTypes()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -121,6 +144,7 @@ SELECT 1 AS v
     /// PT: Garante que o UNION rejeite tipos de coluna incompatíveis entre partes do SELECT.
     /// </summary>
     [Fact]
+    [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]
     public void Union_ShouldValidateIncompatibleColumnTypes()
     {
         Assert.Throws<InvalidOperationException>(() =>
@@ -138,6 +162,7 @@ SELECT 'x' AS v
     /// PT: Garante que o schema do UNION mantenha os aliases da primeira projeção SELECT.
     /// </summary>
     [Fact]
+    [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]
     public void Union_ShouldNormalizeSchemaToFirstSelectAlias()
     {
         var rows = _cnn.Query<dynamic>(@"

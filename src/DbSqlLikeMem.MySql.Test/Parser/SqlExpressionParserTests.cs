@@ -15,6 +15,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de ParseWhere_ShouldNotThrow_ForSupportedRealWorldExpressions.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataByMySqlVersion(nameof(WhereExpressions_Supported))]
     public void ParseWhere_ShouldNotThrow_ForSupportedRealWorldExpressions(string whereExpr, int version)
     {
@@ -90,6 +91,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de ParseWhere_ShouldThrow_ForUnsupportedExpressions.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataByMySqlVersion(nameof(WhereExpressions_Unsupported))]
     public void ParseWhere_ShouldThrow_ForUnsupportedExpressions(string whereExpr, int version)
     {
@@ -123,6 +125,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Precedence_OR_ShouldBindLooserThan_AND.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
     public void Precedence_OR_ShouldBindLooserThan_AND(int version)
     {
@@ -151,6 +154,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Parentheses_ShouldOverridePrecedence.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
     public void Parentheses_ShouldOverridePrecedence(int version)
     {
@@ -172,6 +176,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Not_ShouldWork.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
     public void Not_ShouldWork(int version)
     {
@@ -189,6 +194,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de IsNotNull_ShouldProduce_IsNullExpr_Negated.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
     public void IsNotNull_ShouldProduce_IsNullExpr_Negated(int version)
     {
@@ -202,6 +208,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de In_ShouldParse_List.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
     public void In_ShouldParse_List(int version)
     {
@@ -215,6 +222,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Like_ShouldParse.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
     public void Like_ShouldParse(int version)
     {
@@ -228,6 +236,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Identifier_WithAliasDotColumn_ShouldParse.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
     public void Identifier_WithAliasDotColumn_ShouldParse(int version)
     {
@@ -250,6 +259,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Parameter_Tokens_ShouldParse.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
     public void Parameter_Tokens_ShouldParse(int version)
     {
@@ -264,6 +274,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Backtick_Identifier_ShouldParse.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
     public void Backtick_Identifier_ShouldParse(int version)
     {
@@ -278,6 +289,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de DoubleQuoted_String_ShouldParse.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
     public void DoubleQuoted_String_ShouldParse(int version)
     {
@@ -292,6 +304,7 @@ public sealed class SqlExpressionParserTests(
     /// PT: Testa o comportamento de Printer_ShouldBeStable_ForSimpleExpression.
     /// </summary>
     [Theory]
+    [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
     public void Printer_ShouldBeStable_ForSimpleExpression(int version)
     {

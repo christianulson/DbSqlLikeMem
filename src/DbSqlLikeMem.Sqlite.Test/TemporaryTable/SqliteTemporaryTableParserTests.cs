@@ -10,6 +10,7 @@ public sealed class SqliteTemporaryTableParserTests
     /// PT: Testa o comportamento de ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect.
     /// </summary>
     [Theory]
+    [Trait("Category", "TemporaryTable")]
     [MemberDataSqliteVersion]
     public void ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect(int version)
     {
@@ -64,6 +65,7 @@ WHERE `tenantid` = 10",
     /// PT: Testa o comportamento de Parse_ShouldAccept_CreateTemporaryTable_Variants.
     /// </summary>
     [Theory]
+    [Trait("Category", "TemporaryTable")]
     [MemberDataBySqliteVersion(nameof(CreateTempTableStatements))]
     public void Parse_ShouldAccept_CreateTemporaryTable_Variants(string sql, int version)
     {
@@ -78,6 +80,7 @@ WHERE `tenantid` = 10",
     /// Auto-generated summary.
     /// </summary>
     [Theory]
+    [Trait("Category", "TemporaryTable")]
     [MemberDataSqliteVersion]
     public void Parse_ShouldAccept_GlobalTemporaryTable(int version)
     {

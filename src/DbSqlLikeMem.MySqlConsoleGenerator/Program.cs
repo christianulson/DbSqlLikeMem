@@ -314,7 +314,7 @@ SELECT KCU.COLUMN_NAME
             if (c.CharMaxLen is > 0 and <= int.MaxValue)
                 ctor += $", size: {(int)c.CharMaxLen}";
             if (c.NumScale is >= 0)
-                ctor += $", decimalPlaces = {c.NumScale.Value}";
+                ctor += $", decimalPlaces: {c.NumScale.Value}";
 
             var enums = GenerationRuleSet.TryParseEnumValues(c.ColumnType);
             if (enums.Length > 0)
@@ -338,7 +338,7 @@ SELECT KCU.COLUMN_NAME
         {
             w.WriteLine($"        table.AddPrimaryKeyIndexes({string.Join(",", primaryKey.Select(_ => $"\"{_}\""))});");
             var cols = string.Join(", ", primaryKey.Select(GenerationRuleSet.Literal));
-            w.WriteLine($"        table.CreateIndex(new IndexDef(\"PRIMARY\", [{cols}], unique: true));");
+            w.WriteLine($"        table.CreateIndex(\"PRIMARY\", [{cols}], unique: true);");
         }
 
         // Índices (unique e não-unique)
@@ -346,7 +346,7 @@ SELECT KCU.COLUMN_NAME
         {
             var cols = string.Join(", ", Cols.Select(GenerationRuleSet.Literal));
             var uniq = Unique ? "true" : "false";
-            w.WriteLine($"        table.CreateIndex(new IndexDef({GenerationRuleSet.Literal(name)}, [{cols}], unique: {uniq}));");
+            w.WriteLine($"        table.CreateIndex({GenerationRuleSet.Literal(name)}, [{cols}], unique: {uniq});");
         }
 
         // FKs

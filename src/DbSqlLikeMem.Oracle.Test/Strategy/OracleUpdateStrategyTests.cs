@@ -13,6 +13,7 @@ public sealed class OracleUpdateStrategyTests(
     /// PT: Testa o comportamento de UpdateTableShouldModifyExistingRow.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void UpdateTableShouldModifyExistingRow()
     {
         // Arrange
@@ -41,6 +42,7 @@ public sealed class OracleUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldReturnZero_WhenNoRowsMatchWhere.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldReturnZero_WhenNoRowsMatchWhere()
     {
         var db = new OracleDbMock();
@@ -66,6 +68,7 @@ public sealed class OracleUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldUpdateMultipleRows_WhenWhereMatchesMultiple.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldUpdateMultipleRows_WhenWhereMatchesMultiple()
     {
         var db = new OracleDbMock();
@@ -94,6 +97,7 @@ public sealed class OracleUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldHandleWhereWithAnd_CaseInsensitive.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldHandleWhereWithAnd_CaseInsensitive()
     {
         var db = new OracleDbMock();
@@ -122,6 +126,7 @@ public sealed class OracleUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldUpdateMultipleSetPairs.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldUpdateMultipleSetPairs()
     {
         var db = new OracleDbMock();
@@ -147,6 +152,7 @@ public sealed class OracleUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldBeCaseInsensitive_ForUpdateSetWhereKeywords.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldBeCaseInsensitive_ForUpdateSetWhereKeywords()
     {
         var db = new OracleDbMock();
@@ -171,6 +177,7 @@ public sealed class OracleUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldWork_WithThreadSafeTrueOrFalse.
     /// </summary>
     [Theory]
+    [Trait("Category", "Strategy")]
     [InlineData(false)]
     [InlineData(true)]
     public void Update_ShouldWork_WithThreadSafeTrueOrFalse(bool threadSafe)
@@ -197,6 +204,7 @@ public sealed class OracleUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldThrow_WhenTableDoesNotExist.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldThrow_WhenTableDoesNotExist()
     {
         var db = new OracleDbMock();
@@ -215,6 +223,7 @@ public sealed class OracleUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldThrow_WhenSqlIsInvalid_NoUpdateToken.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldThrow_WhenSqlIsInvalid_NoUpdateToken()
     {
         var db = new OracleDbMock();
@@ -236,6 +245,7 @@ public sealed class OracleUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldNotChangeGeneratedColumn_WhenGetGenValueIsNotNull.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldNotChangeGeneratedColumn_WhenGetGenValueIsNotNull()
     {
         var db = new OracleDbMock();
@@ -261,6 +271,7 @@ public sealed class OracleUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldSupportParameter_IfSqlValueHelperSupports.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldSupportParameter_IfSqlValueHelperSupports()
     {
         var db = new OracleDbMock();
@@ -295,12 +306,13 @@ public sealed class OracleUpdateStrategyTests(
     /// PT: Testa o comportamento de Update_ShouldThrowDuplicateKey_WhenUniqueIndexCollides.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Update_ShouldThrowDuplicateKey_WhenUniqueIndexCollides()
     {
         var db = new OracleDbMock();
         var table = NewUsersTable_WithEmail(db);
 
-        table.CreateIndex(new IndexDef("Teste", ["name", "email"], unique: true));
+        table.CreateIndex("Teste", ["name", "email"], unique: true);
 
 
         table.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "John" }, { 2, "a@a.com" } });

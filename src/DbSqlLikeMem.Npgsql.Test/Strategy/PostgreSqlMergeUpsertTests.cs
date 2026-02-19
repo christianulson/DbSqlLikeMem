@@ -12,6 +12,7 @@ public sealed class PostgreSqlMergeUpsertTests(ITestOutputHelper helper) : XUnit
     /// </summary>
     /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
     [Theory]
+    [Trait("Category", "Strategy")]
     [MemberDataNpgsqlVersion]
     public void Merge_ShouldFollowDialectVersionSupport(int version)
     {
@@ -38,6 +39,7 @@ public sealed class PostgreSqlMergeUpsertTests(ITestOutputHelper helper) : XUnit
     /// PT: Garante que MERGE atualize uma linha existente quando a condição ON é satisfeita.
     /// </summary>
     [Fact]
+    [Trait("Category", "Strategy")]
     public void Merge_ShouldUpdate_WhenMatched()
     {
         var db = new NpgsqlDbMock(NpgsqlDialect.MergeMinVersion);

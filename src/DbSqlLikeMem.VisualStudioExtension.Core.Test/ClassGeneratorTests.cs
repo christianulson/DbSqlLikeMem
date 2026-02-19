@@ -11,6 +11,7 @@ public class ClassGeneratorTests
     /// Executa esta operação da API.
     /// </summary>
     [Theory]
+    [Trait("Category", "ClassGenerator")]
     [InlineData("MySql")]
     [InlineData("SqlServer")]
     [InlineData("PostgreSql")]
@@ -55,6 +56,7 @@ public class ClassGeneratorTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "ClassGenerator")]
     public async Task GenerateAsync_ReplacesPatternTokensIncludingDatabaseContext()
     {
         var outputDir = Path.Combine(Path.GetTempPath(), $"dbsql-{Guid.NewGuid():N}");

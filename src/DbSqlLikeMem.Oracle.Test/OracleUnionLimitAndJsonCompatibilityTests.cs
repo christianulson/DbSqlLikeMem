@@ -31,6 +31,7 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests : XUnitTestBase
     /// PT: Testa o comportamento de UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
     public void UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates()
     {
         // UNION ALL keeps duplicates
@@ -55,6 +56,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de OffsetFetch_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
     public void OffsetFetch_ShouldWork()
     {
         // MySQL supports: LIMIT offset, count
@@ -67,6 +69,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de JsonValue_SimpleObjectPath_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
     public void JsonValue_SimpleObjectPath_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id, JSON_VALUE(payload, '$.a.b' RETURNING NUMBER) AS v FROM t ORDER BY id").ToList();
@@ -83,6 +86,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de OrderBy_NullsFirst_ShouldApplyExplicitNullOrdering.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
     public void OrderBy_NullsFirst_ShouldApplyExplicitNullOrdering()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM t ORDER BY payload NULLS FIRST, id").ToList();
@@ -95,6 +99,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Testa o comportamento de JsonFunction_ShouldThrow_WhenNotSupportedByDialect.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
     public void JsonFunction_ShouldThrow_WhenNotSupportedByDialect()
     {
         Assert.Throws<NotSupportedException>(() =>
@@ -106,6 +111,7 @@ SELECT id FROM t WHERE id = 1
     /// PT: Garante que o UNION normalize literais numéricos equivalentes em uma única linha.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
     public void Union_ShouldNormalizeEquivalentNumericTypes()
     {
         var rows = _cnn.Query<dynamic>(@"
@@ -122,6 +128,7 @@ SELECT 1 AS v
     /// PT: Garante que o UNION rejeite tipos de coluna incompatíveis entre partes do SELECT.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
     public void Union_ShouldValidateIncompatibleColumnTypes()
     {
         Assert.Throws<InvalidOperationException>(() =>
@@ -139,6 +146,7 @@ SELECT 'x' AS v
     /// PT: Garante que o schema do UNION mantenha os aliases da primeira projeção SELECT.
     /// </summary>
     [Fact]
+    [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
     public void Union_ShouldNormalizeSchemaToFirstSelectAlias()
     {
         var rows = _cnn.Query<dynamic>(@"

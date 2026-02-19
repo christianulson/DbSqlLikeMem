@@ -13,6 +13,7 @@ public sealed class OracleCreateViewParserTests(
     /// PT: Testa o comportamento de ParseMulti_CreateView_ThenSelect_ShouldReturnTwoStatements.
     /// </summary>
     [Theory]
+    [Trait("Category", "Views")]
     [MemberDataOracleVersion]
     public void ParseMulti_CreateView_ThenSelect_ShouldReturnTwoStatements(int version)
     {
@@ -40,6 +41,7 @@ SELECT * FROM v_users;
     /// PT: Testa o comportamento de Parse_CreateOrReplaceView_ShouldSetFlag.
     /// </summary>
     [Theory]
+    [Trait("Category", "Views")]
     [MemberDataOracleVersion]
     public void Parse_CreateOrReplaceView_ShouldSetFlag(int version)
     {
@@ -55,6 +57,7 @@ SELECT * FROM v_users;
     /// PT: Testa o comportamento de Parse_CreateView_WithExplicitColumnList_ShouldCaptureNames.
     /// </summary>
     [Theory]
+    [Trait("Category", "Views")]
     [MemberDataOracleVersion]
     public void Parse_CreateView_WithExplicitColumnList_ShouldCaptureNames(int version)
     {
@@ -69,6 +72,7 @@ SELECT * FROM v_users;
     /// PT: Testa o comportamento de Parse_CreateView_WithBackticks_ShouldWork.
     /// </summary>
     [Theory]
+    [Trait("Category", "Views")]
     [MemberDataOracleVersion]
     public void Parse_CreateView_WithBackticks_ShouldWork(int version)
     {
@@ -83,6 +87,7 @@ SELECT * FROM v_users;
     /// PT: Testa o comportamento de Parse_CreateView_IfNotExists_ShouldBeRejected_ByMySqlSpec.
     /// </summary>
     [Theory]
+    [Trait("Category", "Views")]
     [MemberDataOracleVersion]
     public void Parse_CreateView_IfNotExists_ShouldBeRejected_ByMySqlSpec(int version)
     {

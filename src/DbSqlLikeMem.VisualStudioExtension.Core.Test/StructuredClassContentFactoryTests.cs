@@ -11,6 +11,7 @@ public sealed class StructuredClassContentFactoryTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "StructuredClassContentFactory")]
     public void Build_GeneratesColumnsPkIndexesAndForeignKeysLikeConsole()
     {
         var dbObject = new DatabaseObjectReference(
@@ -29,7 +30,7 @@ public sealed class StructuredClassContentFactoryTests
 
         Assert.Contains("table.AddColumn(\"Id\", DbType.Int32, false, true", content);
         Assert.Contains("table.AddPrimaryKeyIndexes(\"Id\");", content);
-        Assert.Contains("table.CreateIndex(new IndexDef(\"IX_Orders_CustomerId\", [\"CustomerId\"], unique: false));", content);
+        Assert.Contains("table.CreateIndex(\"IX_Orders_CustomerId\", [\"CustomerId\"], unique: false);", content);
         Assert.Contains("table.CreateForeignKey(\"CustomerId\", \"Customers\", \"Id\");", content);
     }
 
@@ -38,6 +39,7 @@ public sealed class StructuredClassContentFactoryTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "StructuredClassContentFactory")]
     public void Build_WithCompositePrimaryKey_CreatesPrimaryIndexWithAllFields()
     {
         var dbObject = new DatabaseObjectReference(
@@ -55,7 +57,7 @@ public sealed class StructuredClassContentFactoryTests
         var content = StructuredClassContentFactory.Build(dbObject);
 
         Assert.Contains("table.AddPrimaryKeyIndexes(\"OrderId\",\"ItemId\");", content);
-        Assert.Contains("table.CreateIndex(new IndexDef(\"PRIMARY\", [\"OrderId\", \"ItemId\"], unique: true));", content);
+        Assert.Contains("table.CreateIndex(\"PRIMARY\", [\"OrderId\", \"ItemId\"], unique: true);", content);
     }
 
 
@@ -64,6 +66,7 @@ public sealed class StructuredClassContentFactoryTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "StructuredClassContentFactory")]
     public void Build_WithSqlServerStrategy_DoesNotTreatTinyIntAsBoolean()
     {
         var dbObject = new DatabaseObjectReference(
@@ -88,6 +91,7 @@ public sealed class StructuredClassContentFactoryTests
     /// Executa esta operação da API.
     /// </summary>
     [Fact]
+    [Trait("Category", "StructuredClassContentFactory")]
     public void Build_UsesSameTypeRulesAsConsoleGenerator_ForTinyIntAndBit()
     {
         var dbObject = new DatabaseObjectReference(

@@ -39,6 +39,7 @@ public sealed class Db2JoinTests : XUnitTestBase
     /// PT: Testa o comportamento de LeftJoin_ShouldKeepAllLeftRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "Db2Join")]
     public void LeftJoin_ShouldKeepAllLeftRows()
     {
         const string sql = """
@@ -59,6 +60,7 @@ public sealed class Db2JoinTests : XUnitTestBase
     /// PT: Testa o comportamento de RightJoin_ShouldKeepAllRightRows.
     /// </summary>
     [Fact]
+    [Trait("Category", "Db2Join")]
     public void RightJoin_ShouldKeepAllRightRows()
     {
         const string sql = """
@@ -93,6 +95,7 @@ public sealed class Db2JoinTests : XUnitTestBase
     /// PT: Testa o comportamento de Join_ON_WithMultipleConditions_AND_ShouldWork.
     /// </summary>
     [Fact]
+    [Trait("Category", "Db2Join")]
     public void Join_ON_WithMultipleConditions_AND_ShouldWork()
     {
         const string sql = """

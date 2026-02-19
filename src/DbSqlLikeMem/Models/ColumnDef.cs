@@ -21,17 +21,19 @@ public sealed class ColumnDef
     /// EN: Initializes a column with index, type, and nullability.
     /// PT: Inicializa uma coluna com índice, tipo e nulabilidade.
     /// </summary>
-    /// <param name="table"></param>
+    /// <param name="table">EN: Parent table. PT: Tabela pai.</param>
+    /// <param name="name">EN: Column name. PT: Nome da coluna.</param>
     /// <param name="index">EN: Column position. PT: Posição da coluna.</param>
     /// <param name="dbType">EN: Data type. PT: Tipo de dados.</param>
     /// <param name="nullable">EN: Whether it accepts nulls. PT: Indica se aceita nulos.</param>
-    /// <param name="size"></param>
-    /// <param name="decimalPlaces"></param>
-    /// <param name="identity"></param>
-    /// <param name="defaultValue"></param>
-    /// <param name="enumValues"></param>
-    public ColumnDef(
+    /// <param name="size">EN: Optional column size. PT: Tamanho opcional da coluna.</param>
+    /// <param name="decimalPlaces">EN: Optional decimal places. PT: Casas decimais opcionais.</param>
+    /// <param name="identity">EN: Identity flag. PT: Indicador de identidade.</param>
+    /// <param name="defaultValue">EN: Optional default value. PT: Valor padrão opcional.</param>
+    /// <param name="enumValues">EN: Optional enum values. PT: Valores de enum opcionais.</param>
+    internal ColumnDef(
         ITableMock table,
+        string name, 
         int index,
         DbType dbType,
         bool nullable,
@@ -51,6 +53,7 @@ public sealed class ColumnDef
             throw new InvalidOperationException($"DbType {dbType} é obrigatório informafar decimalPlaces");
 
         Table = table;
+        Name = name;
         Index = index;
         DbType = dbType;
         Nullable = nullable;
@@ -72,6 +75,8 @@ public sealed class ColumnDef
     /// PT: Tabela pai.
     /// </summary>
     public ITableMock Table { get; private set; }
+
+    public string Name { get; private set; }
 
     /// <summary>
     /// EN: Gets the column position within the table.

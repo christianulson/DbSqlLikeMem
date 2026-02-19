@@ -1,16 +1,28 @@
 ﻿namespace DbSqlLikeMem.MySql;
 
+/// <summary>
+/// MySQL mock type used to emulate provider behavior for tests.
+/// Tipo de mock MySQL usado para emular o comportamento do provedor em testes.
+/// </summary>
 public sealed class MySqlBatchMock :
 #if NET6_0_OR_GREATER
     DbBatch,
 #endif
     IDisposable
 {
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public MySqlBatchMock()
         : this(null, null)
     {
     }
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public MySqlBatchMock(
         MySqlConnectionMock? connection,
         MySqlTransactionMock? transaction = null)
@@ -21,47 +33,84 @@ public sealed class MySqlBatchMock :
     }
 
 #if NET6_0_OR_GREATER
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public new MySqlConnectionMock? Connection { get; set; }
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     protected override DbConnection? DbConnection { get => Connection; set => Connection = (MySqlConnectionMock?)value; }
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public new MySqlTransactionMock? Transaction { get; set; }
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     protected override DbTransaction? DbTransaction { get => Transaction; set => Transaction = (MySqlTransactionMock?)value; }
 #else
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public MySqlConnectionMock? Connection { get; set; }
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public MySqlTransactionMock? Transaction { get; set; }
 #endif
 
-    /// <summary>
-    /// The collection of commands that will be executed in the batch.
-    /// </summary>
 #if NET6_0_OR_GREATER
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public new MySqlBatchCommandCollectionMock BatchCommands { get; }
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     protected override DbBatchCommandCollection DbBatchCommands => BatchCommands;
 #else
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public MySqlBatchCommandCollectionMock BatchCommands { get; }
 #endif
 
-    /// <summary>
-    /// Executes all the commands in the batch, returning a <see cref="MySqlDataReader"/> that can iterate
-    /// over the result sets. If multiple resultsets are returned, use <see cref="MySqlDataReader.NextResult"/>
-    /// to access them.
-    /// </summary>
 #if NET6_0_OR_GREATER
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public new MySqlDataReaderMock ExecuteReader(CommandBehavior commandBehavior = CommandBehavior.Default) =>
 #else
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public MySqlDataReaderMock ExecuteReader(CommandBehavior commandBehavior = CommandBehavior.Default) =>
 #endif
         (MySqlDataReaderMock) ExecuteDbDataReader(commandBehavior);
 
-    /// <summary>
-    /// Executes all the commands in the batch, returning a <see cref="MySqlDataReader"/> that can iterate
-    /// over the result sets. If multiple resultsets are returned, use <see cref="MySqlDataReader.NextResultAsync(CancellationToken)"/>
-    /// to access them.
-    /// </summary>
-    /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
-    /// <returns>A <see cref="Task{MySqlDataReaderMock}"/> containing the result of the asynchronous operation.</returns>
 #if NET6_0_OR_GREATER
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public new async Task<MySqlDataReaderMock> ExecuteReaderAsync(CancellationToken cancellationToken = default) =>
 #else
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public async Task<MySqlDataReaderMock> ExecuteReaderAsync(CancellationToken cancellationToken = default) =>
 #endif
         (MySqlDataReaderMock)await ExecuteDbDataReaderAsync(CommandBehavior.Default, cancellationToken).ConfigureAwait(false);
@@ -69,6 +118,10 @@ public sealed class MySqlBatchMock :
     //// TODO: new ExecuteReaderAsync(CommandBehavior)
 
 #if NET6_0_OR_GREATER
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
 #else
     [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "Matches .NET 6.0 override")]
@@ -77,11 +130,15 @@ public sealed class MySqlBatchMock :
     {
         //this.ResetCommandTimeout();
 #pragma warning disable CA2012 // OK to read .Result because the ValueTask is completed
-        return ExecuteReaderAsync(behavior, CancellationToken.None).Result;
+        return ExecuteReaderCoreAsync(behavior, CancellationToken.None).Result;
 #pragma warning restore CA2012
     }
 
 #if NET6_0_OR_GREATER
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     protected override async Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
 #else
     private async Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
@@ -89,24 +146,53 @@ public sealed class MySqlBatchMock :
     {
         //this.ResetCommandTimeout();
         //using var registration = ((ICancellableCommand)this).RegisterCancel(cancellationToken);
-        return await ExecuteReaderAsync(behavior,
+        return await ExecuteReaderCoreAsync(behavior,
             //AsyncIOBehavior, 
             cancellationToken).ConfigureAwait(false);
     }
 
-    private ValueTask<DbDataReader> ExecuteReaderAsync(CommandBehavior behavior,
+    private ValueTask<DbDataReader> ExecuteReaderCoreAsync(CommandBehavior behavior,
         //IOBehavior ioBehavior, 
         CancellationToken cancellationToken)
     {
-        //if (!IsValid(out var exception))
-        //    return ValueTaskExtensions.FromException<MySqlDataReaderMock>(exception);
+        if (!IsValid(out var exception))
+            return new ValueTask<DbDataReader>(Task.FromException<DbDataReader>(exception!));
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         CurrentCommandBehavior = behavior;
         foreach (MySqlBatchCommandMock batchCommand in BatchCommands)
             batchCommand.Batch = this;
 
-        var executor = Connection.CreateCommand();
-        throw new NotImplementedException();
+        var tables = new List<TableResultMock>();
+        foreach (var batchCommand in BatchCommands.Commands)
+        {
+            using var command = CreateExecutableCommand(batchCommand);
+
+            try
+            {
+                using var reader = command.ExecuteReader();
+                do
+                {
+                    var rows = new List<object[]>();
+                    while (reader.Read())
+                    {
+                        var row = new object[reader.FieldCount];
+                        reader.GetValues(row);
+                        rows.Add(row);
+                    }
+
+                    if (reader.FieldCount > 0)
+                        tables.Add(CreateTableResult(rows, reader));
+                } while (reader.NextResult());
+            }
+            catch (InvalidOperationException ex) when (ex.Message == SqlExceptionMessages.ExecuteReaderWithoutSelectQuery())
+            {
+                command.ExecuteNonQuery();
+            }
+        }
+
+        return new ValueTask<DbDataReader>(new MySqlDataReaderMock(tables));
 
         //var payloadCreator = IsPrepared ? SingleCommandPayloadCreator.Instance :
         //    ConcatenatedCommandPayloadCreator.Instance;
@@ -114,33 +200,69 @@ public sealed class MySqlBatchMock :
     }
 
 #if NET6_0_OR_GREATER
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public override int ExecuteNonQuery() =>
 #else
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public int ExecuteNonQuery() =>
 #endif
         DbExecuteNonQueryAsync(CancellationToken.None).GetAwaiter().GetResult();
 
 #if NET6_0_OR_GREATER
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public override object? ExecuteScalar() =>
 #else
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public object? ExecuteScalar() =>
 #endif
         ExecuteScalarAsync(CancellationToken.None).GetAwaiter().GetResult();
 
 #if NET6_0_OR_GREATER
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default) =>
 #else
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default) =>
 #endif
         DbExecuteNonQueryAsync(cancellationToken);
 
 #if NET6_0_OR_GREATER
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public override Task<object?> ExecuteScalarAsync(CancellationToken cancellationToken = default) =>
 #else
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task<object?> ExecuteScalarAsync(CancellationToken cancellationToken = default) =>
 #endif
         DbExecuteScalarAsync(cancellationToken);
 
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public
 #if NET6_0_OR_GREATER
         override
@@ -155,8 +277,16 @@ public sealed class MySqlBatchMock :
     }
 
 #if NET6_0_OR_GREATER
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public override void Prepare()
 #else
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public void Prepare()
 #endif
     {
@@ -171,26 +301,54 @@ public sealed class MySqlBatchMock :
     }
 
 #if NET6_0_OR_GREATER
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public override Task PrepareAsync(CancellationToken cancellationToken = default) =>
 #else
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public Task PrepareAsync(CancellationToken cancellationToken = default) =>
 #endif
-        PrepareAsync(cancellationToken);
+        DbPrepareAsync(cancellationToken);
 
 #if NET6_0_OR_GREATER
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public override void Cancel()
 #else
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public void Cancel()
 #endif
     { }//    Connection?.Cancel(this, m_commandId, true);
 
 #if NET6_0_OR_GREATER
+	/// <summary>
+	/// Mock API member implementation for compatibility with MySQL provider contracts.
+	/// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+	/// </summary>
 	protected override DbBatchCommand CreateDbBatchCommand() => new MySqlBatchCommandMock();
 #endif
 
 #if NET6_0_OR_GREATER
+	/// <summary>
+	/// Mock API member implementation for compatibility with MySQL provider contracts.
+	/// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+	/// </summary>
 	public override void Dispose()
 #else
+    /// <summary>
+    /// Mock API member implementation for compatibility with MySQL provider contracts.
+    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// </summary>
     public void Dispose()
 #endif
     {
@@ -240,31 +398,75 @@ public sealed class MySqlBatchMock :
 
     private async Task<int> DbExecuteNonQueryAsync(CancellationToken cancellationToken)
     {
-        using var reader = await ExecuteReaderAsync(CommandBehavior.Default, cancellationToken).ConfigureAwait(false);
-        do
+        if (!IsValid(out var exception))
+            throw exception!;
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var total = 0;
+        foreach (var batchCommand in BatchCommands.Commands)
         {
-            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-            {}
-        } while (await reader.NextResultAsync(cancellationToken).ConfigureAwait(false));
-        return reader.RecordsAffected;
+            using var command = CreateExecutableCommand(batchCommand);
+            total += await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return total;
     }
 
     private async Task<object?> DbExecuteScalarAsync(CancellationToken cancellationToken)
     {
-        var hasSetResult = false;
-        object? result = null;
-        using var reader = await ExecuteReaderAsync(CommandBehavior.Default, cancellationToken).ConfigureAwait(false);
-        do
-        {
-            var hasResult = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-            if (!hasSetResult)
+        if (!IsValid(out var exception))
+            throw exception!;
+
+        cancellationToken.ThrowIfCancellationRequested();
+        if (BatchCommands.Count == 0)
+            return null;
+
+        using var command = CreateExecutableCommand(BatchCommands.Commands[0]);
+        return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private MySqlCommandMock CreateExecutableCommand(MySqlBatchCommandMock batchCommand)
+    {
+        var command = (MySqlCommandMock)Connection!.CreateCommand();
+        command.Transaction = Transaction;
+        command.CommandType = batchCommand.CommandType;
+        command.CommandText = batchCommand.CommandText;
+        command.CommandTimeout = Timeout;
+
+        foreach (MySqlParameter parameter in batchCommand.Parameters)
+            command.Parameters.Add(new MySqlParameter(parameter.ParameterName, parameter.MySqlDbType)
             {
-                if (hasResult)
-                    result = reader.GetValue(0);
-                hasSetResult = true;
-            }
-        } while (await reader.NextResultAsync(cancellationToken).ConfigureAwait(false));
-        return result;
+                Value = parameter.Value,
+            });
+
+        return command;
+    }
+
+    private static TableResultMock CreateTableResult(IReadOnlyCollection<object[]> rows, IDataRecord schemaRecord)
+    {
+        var table = new TableResultMock();
+
+        for (var col = 0; col < schemaRecord.FieldCount; col++)
+        {
+            table.Columns.Add(new TableResultColMock(
+                tableAlias: string.Empty,
+                columnAlias: schemaRecord.GetName(col),
+                columnName: schemaRecord.GetName(col),
+                columIndex: col,
+                dbType: schemaRecord.GetFieldType(col).ConvertTypeToDbType(),
+                isNullable: true));
+        }
+
+        foreach (var row in rows)
+        {
+            var rowData = new Dictionary<int, object?>();
+            for (var col = 0; col < row.Length; col++)
+                rowData[col] = row[col] == DBNull.Value ? null : row[col];
+            table.Add(rowData);
+        }
+
+        return table;
     }
 
     private bool IsValid(

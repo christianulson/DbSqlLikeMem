@@ -8,13 +8,18 @@
 	  <Compile Include="..\DbSqlLikeMem.MySql\Extensions\MySqlExceptionFactory.cs" Link="Extensions\MySqlExceptionFactory.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\Extensions\MySqlLinqExtensions.cs" Link="Extensions\MySqlLinqExtensions.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\Extensions\MySqlValueHelper.cs" Link="Extensions\MySqlValueHelper.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\IMySqlCommandMock.cs" Link="IMySqlCommandMock.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\Models\MySqlDbMock.cs" Link="Models\MySqlDbMock.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\Models\MySqlSchemaMock.cs" Link="Models\MySqlSchemaMock.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\Models\MySqlTableMock.cs" Link="Models\MySqlTableMock.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlBatchCommandCollectionMock.cs" Link="MySqlBatchCommandCollectionMock.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlBatchCommandMock.cs" Link="MySqlBatchCommandMock.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlBatchMock.cs" Link="MySqlBatchMock.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlCommandMock.cs" Link="MySqlCommandMock.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlConnectionMock.cs" Link="MySqlConnectionMock.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlDataParameterCollectionMock.cs" Link="MySqlDataParameterCollectionMock.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlDataReaderMock.cs" Link="MySqlDataReaderMock.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlDataSourceMock.cs" Link="MySqlDataSourceMock.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlDbVersions.cs" Link="MySqlDbVersions.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlDialect.cs" Link="MySqlDialect.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\MySqlLinqProvider.cs" Link="MySqlLinqProvider.cs" />

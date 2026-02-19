@@ -11,6 +11,7 @@ public sealed class Db2TransactionReliabilityTests
     /// PT: Garante que rollback para savepoint restaure o estado intermediário.
     /// </summary>
     [Fact]
+    [Trait("Category", "Db2TransactionReliability")]
     public void SavepointRollbackShouldRestoreIntermediateState()
     {
         var db = new Db2DbMock();
@@ -38,6 +39,7 @@ public sealed class Db2TransactionReliabilityTests
     /// PT: Garante que o modelo simplificado de isolamento seja determinístico e visível.
     /// </summary>
     [Fact]
+    [Trait("Category", "Db2TransactionReliability")]
     public void IsolationLevelShouldBeExposedDeterministically()
     {
         var db = new Db2DbMock();
@@ -55,6 +57,7 @@ public sealed class Db2TransactionReliabilityTests
     /// PT: Garante que o suporte a release de savepoint siga as regras de compatibilidade do provedor.
     /// </summary>
     [Fact]
+    [Trait("Category", "Db2TransactionReliability")]
     public void ReleaseSavepointCompatibilityShouldBeProviderSpecific()
     {
         var db = new Db2DbMock();
@@ -72,6 +75,7 @@ public sealed class Db2TransactionReliabilityTests
     /// PT: Garante que escritas concorrentes mantenham dados consistentes com thread safety habilitado.
     /// </summary>
     [Fact]
+    [Trait("Category", "Db2TransactionReliability")]
     public void ConcurrentInsertsShouldRemainConsistentWhenThreadSafeEnabled()
     {
         var db = new Db2DbMock { ThreadSafe = true };
