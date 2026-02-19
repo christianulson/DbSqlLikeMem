@@ -252,6 +252,24 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
     }
 
     /// <summary>
+    /// EN: Tests Union_All_ShouldWork behavior.
+    /// PT: Testa o comportamento de Union_All_ShouldWork.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "OracleSqlCompatibilityGap")]
+    public void Union_All_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(
+            "SELECT id FROM users WHERE id = 1 " +
+            "UNION ALL " +
+            "SELECT id FROM users WHERE id = 1 " +
+            "ORDER BY id").ToList();
+
+        Assert.Equal([1, 1], [.. rows.Select(r => (int)r.id)]);
+    }
+
+
+    /// <summary>
     /// EN: Tests Union_Inside_SubSelect_ShouldWork behavior.
     /// PT: Testa o comportamento de Union_Inside_SubSelect_ShouldWork.
     /// </summary>

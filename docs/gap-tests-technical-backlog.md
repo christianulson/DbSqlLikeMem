@@ -14,8 +14,9 @@ Prioridade calculada por cobertura de providers + risco de regressão - esforço
 | P0 | Regexp NotOperator | DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite | M | Médio | AST + precedência de operadores |
 | P0 | Regexp Operator | DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite | M | Médio | AST + precedência de operadores |
 | P1 | Union | DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite | M | Médio | AST + precedência de operadores; Normalização de schemas em set operators |
+| P1 | Union All | DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite | M | Médio | AST + precedência de operadores; Normalização de schemas em set operators |
 | P1 | Where OR | DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite | P | Baixo | AST + precedência de operadores |
-| P1 | Union Inside SubSelect | DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite | G | Médio | AST + precedência de operadores; Normalização de schemas em set operators |
+| P2 | Union Inside SubSelect | DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite | G | Médio | AST + precedência de operadores; Normalização de schemas em set operators |
 | P2 | Where ParenthesesGrouping | DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite | M | Baixo | AST + precedência de operadores |
 | P2 | Where Precedence AND ShouldBindStrongerThan OR | DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite | M | Baixo | AST + precedência de operadores |
 | P2 | Cte With | DB2, Oracle, PostgreSQL, SQL Server, SQLite | G | Médio | AST + precedência de operadores; Suporte a CTE no parser + binding |
@@ -85,6 +86,7 @@ Prioridade calculada por cobertura de providers + risco de regressão - esforço
 - [ ] **Regexp NotOperator**  `providers: DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite` · `esforço: M` · `risco: Médio`  Dependências: AST + precedência de operadores
 - [ ] **Regexp Operator**  `providers: DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite` · `esforço: M` · `risco: Médio`  Dependências: AST + precedência de operadores
 - [ ] **Union**  `providers: DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite` · `esforço: M` · `risco: Médio`  Dependências: AST + precedência de operadores; Normalização de schemas em set operators
+- [ ] **Union All**  `providers: DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite` · `esforço: M` · `risco: Médio`  Dependências: AST + precedência de operadores; Normalização de schemas em set operators
 - [ ] **Where OR**  `providers: DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite` · `esforço: P` · `risco: Baixo`  Dependências: AST + precedência de operadores
 - [ ] **Union Inside SubSelect**  `providers: DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite` · `esforço: G` · `risco: Médio`  Dependências: AST + precedência de operadores; Normalização de schemas em set operators
 - [ ] **Where ParenthesesGrouping**  `providers: DB2, MySQL, Oracle, PostgreSQL, SQL Server, SQLite` · `esforço: M` · `risco: Baixo`  Dependências: AST + precedência de operadores
