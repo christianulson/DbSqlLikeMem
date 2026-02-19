@@ -98,8 +98,21 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         var parameter = cmd.CreateParameter();
         parameter.ParameterName = name;
         parameter.DbType = dbType;
-        parameter.Direction = direction;
+        TrySetDirection(parameter, direction);
         parameter.Value = value;
         cmd.Parameters.Add(parameter);
+    }
+
+    private static void TrySetDirection(DbParameter parameter, ParameterDirection direction)
+    {
+        try
+        {
+            parameter.Direction = direction;
+        }
+        catch (ArgumentException) when (parameter.GetType().FullName == "Microsoft.Data.Sqlite.SqliteParameter")
+        {
+            // Microsoft.Data.Sqlite does not support Output/ReturnValue directions.
+            // Keep the default direction so shared signature tests can still run.
+        }
     }
 }
