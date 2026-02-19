@@ -13,7 +13,7 @@
 		<PackageTags>in-memory;database;sql;unit-testing;mock;dapper;ado.net;npgsql;sqlite;oracle;sqlserver;mysql;db2</PackageTags>
 		<PackageReleaseNotes>See release notes and changelog in the GitHub repository.</PackageReleaseNotes>
 		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-		<Version>1.2.0</Version>
+		<Version>1.3.1</Version>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 	</PropertyGroup>
 
