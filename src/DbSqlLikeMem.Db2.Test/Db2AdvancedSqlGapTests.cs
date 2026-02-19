@@ -298,7 +298,10 @@ ORDER BY id").ToList();
     }
 
 
-
+    /// <summary>
+    /// EN: Tests TimestampAdd_Day_ShouldWork behavior.
+    /// PT: Testa o comportamento de TimestampAdd_Day_ShouldWork.
+    /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
     public void TimestampAdd_Day_ShouldWork()

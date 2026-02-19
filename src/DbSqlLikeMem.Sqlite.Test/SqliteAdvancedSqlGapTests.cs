@@ -298,7 +298,10 @@ ORDER BY id").ToList();
     }
 
 
-
+    /// <summary>
+    /// EN: Tests Date_Function_WithModifier_ShouldWork behavior.
+    /// PT: Testa o comportamento de Date_Function_WithModifier_ShouldWork.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Date_Function_WithModifier_ShouldWork()
