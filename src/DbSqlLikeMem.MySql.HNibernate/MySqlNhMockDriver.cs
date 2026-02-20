@@ -14,4 +14,10 @@ public sealed class MySqlNhMockDriver : ReflectionBasedDriver
             "DbSqlLikeMem.MySql.MySqlCommandMock")
     {
     }
+
+    public override bool UseNamedPrefixInSql => throw new NotImplementedException();
+
+    public override bool UseNamedPrefixInParameter => throw new NotImplementedException();
+
+    public override string NamedPrefix => throw new NotImplementedException();
 }

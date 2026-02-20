@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Db2.Test;
+﻿namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
 /// TDD guard-rail tests for SQL features where this in-memory Db2 mock commonly diverges from real DB2.

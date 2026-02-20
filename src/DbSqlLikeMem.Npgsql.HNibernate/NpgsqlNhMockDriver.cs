@@ -14,4 +14,10 @@ public sealed class NpgsqlNhMockDriver : ReflectionBasedDriver
             "DbSqlLikeMem.Npgsql.NpgsqlCommandMock")
     {
     }
+
+    public override bool UseNamedPrefixInSql => throw new NotImplementedException();
+
+    public override bool UseNamedPrefixInParameter => throw new NotImplementedException();
+
+    public override string NamedPrefix => throw new NotImplementedException();
 }

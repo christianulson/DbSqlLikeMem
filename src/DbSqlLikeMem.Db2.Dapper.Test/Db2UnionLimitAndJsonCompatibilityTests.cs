@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Db2.Test;
+﻿namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
 /// Tests that lock-in expected behavior for DB2 features that the in-memory mock already supports.

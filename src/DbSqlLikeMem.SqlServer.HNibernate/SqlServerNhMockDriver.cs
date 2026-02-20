@@ -14,4 +14,10 @@ public sealed class SqlServerNhMockDriver : ReflectionBasedDriver
             "DbSqlLikeMem.SqlServer.SqlServerCommandMock")
     {
     }
+
+    public override bool UseNamedPrefixInSql => throw new NotImplementedException();
+
+    public override bool UseNamedPrefixInParameter => throw new NotImplementedException();
+
+    public override string NamedPrefix => throw new NotImplementedException();
 }

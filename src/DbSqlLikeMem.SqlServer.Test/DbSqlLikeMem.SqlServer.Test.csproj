@@ -74,11 +74,4 @@
 		<Using Include="Xunit" />
 	</ItemGroup>
 
-
-	<ItemGroup>
-		<Compile Include="..\DbSqlLikeMem.Test\CsvLoaderAndIndexTestBase.cs" Link="SharedTests\CsvLoaderAndIndexTestBase.cs" />
-		<Compile Include="..\DbSqlLikeMem.Test\ExistsTestsBase.cs" Link="SharedTests\ExistsTestsBase.cs" />
-		<Compile Include="..\DbSqlLikeMem.Test\StoredProcedureSignatureTestsBase.cs" Link="SharedTests\StoredProcedureSignatureTestsBase.cs" />
-		<Compile Include="..\DbSqlLikeMem.Test\SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase.cs" Link="SharedTests\SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase.cs" />
-	</ItemGroup>
 </Project>

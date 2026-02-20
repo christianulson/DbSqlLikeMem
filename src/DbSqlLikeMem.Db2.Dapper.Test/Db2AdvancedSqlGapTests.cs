@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Db2.Test;
+﻿namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
 /// These are TDD "gap" tests for DB2 features that are NOT implemented yet in the in-memory mock.

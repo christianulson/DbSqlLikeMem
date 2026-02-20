@@ -4,7 +4,6 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <TargetFrameworks>net48;net6.0;net8.0;net10.0</TargetFrameworks>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
@@ -64,17 +63,6 @@
     <Using Include="System.Data" />
     <Using Include="System.Globalization" />
     <Using Include="Xunit" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\DbSqlLikeMem.Oracle.Test\**\*.cs" Exclude="..\DbSqlLikeMem.Oracle.Test\obj\**\*;..\DbSqlLikeMem.Oracle.Test\bin\**\*;..\DbSqlLikeMem.Oracle.Test\NHibernateSmokeTests.cs;..\DbSqlLikeMem.Oracle.Test\DapperTests.cs;..\DbSqlLikeMem.Oracle.Test\DapperUserTests.cs;..\DbSqlLikeMem.Oracle.Test\DapperUserTests2.cs" LinkBase="ProviderTests" />
-    <Compile Include="..\DbSqlLikeMem.Test\CsvLoaderAndIndexTestBase.cs" Link="SharedTests\CsvLoaderAndIndexTestBase.cs" />
-    <Compile Include="..\DbSqlLikeMem.Test\ExistsTestsBase.cs" Link="SharedTests\ExistsTestsBase.cs" />
-    <Compile Include="..\DbSqlLikeMem.Test\StoredProcedureSignatureTestsBase.cs" Link="SharedTests\StoredProcedureSignatureTestsBase.cs" />
-    <Compile Include="..\DbSqlLikeMem.Test\SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase.cs" Link="SharedTests\SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase.cs" />
-    <Compile Include="DapperTests.cs" />
-    <Compile Include="DapperUserTests.cs" />
-    <Compile Include="DapperUserTests2.cs" />
   </ItemGroup>
 
 </Project>

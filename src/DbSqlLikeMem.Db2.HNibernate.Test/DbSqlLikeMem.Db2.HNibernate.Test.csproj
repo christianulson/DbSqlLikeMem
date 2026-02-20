@@ -1,10 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <TargetFrameworks>net6.0;net8.0;net10.0</TargetFrameworks>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
@@ -29,9 +28,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DbSqlLikeMem.Db2\DbSqlLikeMem.Db2.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
     <ProjectReference Include="..\DbSqlLikeMem.Db2.HNibernate\DbSqlLikeMem.Db2.HNibernate.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
-    <ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+    <ProjectReference Include="..\DbSqlLikeMem.NHibernate.Test\DbSqlLikeMem.NHibernate.Test.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -39,11 +37,6 @@
     <Using Include="DbSqlLikeMem.Db2" />
     <Using Include="DbSqlLikeMem.Test" />
     <Using Include="Xunit" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="NHibernateSmokeTests.cs" Link="NHibernateSmokeTests.cs" />
-    <Compile Include="..\DbSqlLikeMem.Test\NHibernateSupportTestsBase.cs" Link="SharedTests\NHibernateSupportTestsBase.cs" />
   </ItemGroup>
 
 </Project>

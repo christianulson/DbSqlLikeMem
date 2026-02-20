@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.Db2.Test;
+namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
 /// EN: Validates transactional reliability additions for P11 scenarios.

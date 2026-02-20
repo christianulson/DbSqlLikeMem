@@ -14,4 +14,10 @@ public sealed class Db2NhMockDriver : ReflectionBasedDriver
             "DbSqlLikeMem.Db2.Db2CommandMock")
     {
     }
+
+    public override bool UseNamedPrefixInSql => throw new NotImplementedException();
+
+    public override bool UseNamedPrefixInParameter => throw new NotImplementedException();
+
+    public override string NamedPrefix => throw new NotImplementedException();
 }

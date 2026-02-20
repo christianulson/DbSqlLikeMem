@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.Db2.Test.Strategy;
+namespace DbSqlLikeMem.Db2.Dapper.Test.Strategy;
 
 /// <summary>
 /// EN: Covers DB2 MERGE upsert behavior in the command mock pipeline.

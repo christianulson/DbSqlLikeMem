@@ -7,8 +7,6 @@
 		<PlatformTarget>x64</PlatformTarget>
 	</PropertyGroup>
 
-
-
 	<ItemGroup Condition="'$(TargetFramework)' == 'net48'">
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
 		<PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
@@ -67,13 +65,6 @@
 		<Using Include="System.Data" />
 		<Using Include="System.Globalization" />
 		<Using Include="Xunit" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Compile Include="..\DbSqlLikeMem.Test\CsvLoaderAndIndexTestBase.cs" Link="SharedTests\CsvLoaderAndIndexTestBase.cs" />
-		<Compile Include="..\DbSqlLikeMem.Test\ExistsTestsBase.cs" Link="SharedTests\ExistsTestsBase.cs" />
-		<Compile Include="..\DbSqlLikeMem.Test\StoredProcedureSignatureTestsBase.cs" Link="SharedTests\StoredProcedureSignatureTestsBase.cs" />
-		<Compile Include="..\DbSqlLikeMem.Test\SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase.cs" Link="SharedTests\SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase.cs" />
 	</ItemGroup>
 
 </Project>

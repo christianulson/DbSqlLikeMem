@@ -5,7 +5,7 @@ using NHibernate.Mapping.ByCode;
 using NHibernate.Mapping.ByCode.Conformist;
 using Environment = NHibernate.Cfg.Environment;
 
-namespace DbSqlLikeMem.Test;
+namespace DbSqlLikeMem.NHibernate.Test;
 
 /// <summary>
 /// EN: Shared NHibernate integration contract tests for provider mock connections.

@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<IsPackable>false</IsPackable>
-		<IsTestProject>true</IsTestProject>
+		<IsTestProject>false</IsTestProject>
 		<TargetFrameworks>net48;net6.0;net8.0;net10.0</TargetFrameworks>
 	</PropertyGroup>
 
@@ -68,15 +68,6 @@
 		<Using Include="System.Data" />
 		<Using Include="System.Globalization" />
 		<Using Include="Xunit" />
-	</ItemGroup>
-
-
-	<ItemGroup>
-		<Compile Remove="CsvLoaderAndIndexTestBase.cs" />
-		<Compile Remove="ExistsTestsBase.cs" />
-		<Compile Remove="NHibernateSupportTestsBase.cs" />
-		<Compile Remove="StoredProcedureSignatureTestsBase.cs" />
-		<Compile Remove="SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase.cs" />
 	</ItemGroup>
 
 </Project>

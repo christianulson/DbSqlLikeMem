@@ -1,10 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <TargetFrameworks>net6.0;net8.0;net10.0</TargetFrameworks>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
@@ -65,17 +64,6 @@
     <Using Include="System.Data" />
     <Using Include="System.Globalization" />
     <Using Include="Xunit" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\DbSqlLikeMem.Db2.Test\**\*.cs" Exclude="..\DbSqlLikeMem.Db2.Test\obj\**\*;..\DbSqlLikeMem.Db2.Test\bin\**\*;..\DbSqlLikeMem.Db2.Test\NHibernateSmokeTests.cs;..\DbSqlLikeMem.Db2.Test\DapperTests.cs;..\DbSqlLikeMem.Db2.Test\DapperUserTests.cs;..\DbSqlLikeMem.Db2.Test\DapperUserTests2.cs" LinkBase="ProviderTests" />
-    <Compile Include="..\DbSqlLikeMem.Test\CsvLoaderAndIndexTestBase.cs" Link="SharedTests\CsvLoaderAndIndexTestBase.cs" />
-    <Compile Include="..\DbSqlLikeMem.Test\ExistsTestsBase.cs" Link="SharedTests\ExistsTestsBase.cs" />
-    <Compile Include="..\DbSqlLikeMem.Test\StoredProcedureSignatureTestsBase.cs" Link="SharedTests\StoredProcedureSignatureTestsBase.cs" />
-    <Compile Include="..\DbSqlLikeMem.Test\SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase.cs" Link="SharedTests\SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase.cs" />
-    <Compile Include="DapperTests.cs" />
-    <Compile Include="DapperUserTests.cs" />
-    <Compile Include="DapperUserTests2.cs" />
   </ItemGroup>
 
 </Project>

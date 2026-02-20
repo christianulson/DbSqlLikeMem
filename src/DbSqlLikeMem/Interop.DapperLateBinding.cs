@@ -5,9 +5,10 @@ internal static class DapperLateBinding
     private const string SqlMapperTypeName = "Dapper.SqlMapper";
     private static readonly string[] CandidateAssemblyNames = ["Dapper", "Dapper.StrongName"];
 
-    internal static MethodInfo FindSqlMapperMethodWithOptionalTail(string name, int genericArgCount)
+    internal static MethodInfo? FindSqlMapperMethodWithOptionalTail(string name, int genericArgCount)
     {
-        var sqlMapper = ResolveSqlMapperType();
+        if (!TryResolveSqlMapperType(out var sqlMapper) || sqlMapper == null)
+            return null;
 
         var candidates = sqlMapper
             .GetMethods(BindingFlags.Public | BindingFlags.Static)
@@ -63,19 +64,20 @@ internal static class DapperLateBinding
             modifiers: null);
 
         if (mi is null)
-            throw new MissingMethodException(SqlExceptionMessages.DapperAddTypeMapMethodNotFound());
+            return;
+            //throw new MissingMethodException(SqlExceptionMessages.DapperAddTypeMapMethodNotFound());
 
         mi.Invoke(null, [type, dbType]);
     }
 
-    private static Type ResolveSqlMapperType()
-    {
-        if (TryResolveSqlMapperType(out var t) && t != null)
-            return t;
+    //private static Type? ResolveSqlMapperType()
+    //{
+    //    if (TryResolveSqlMapperType(out var t) && t != null)
+    //        return t;
 
-        throw new InvalidOperationException(
-            SqlExceptionMessages.DapperRuntimeNotFound());
-    }
+    //    throw new InvalidOperationException(
+    //        SqlExceptionMessages.DapperRuntimeNotFound());
+    //}
 
     private static bool TryResolveSqlMapperType(out Type? t)
     {
