@@ -1,5 +1,3 @@
-using System.Data.Common;
-
 namespace DbSqlLikeMem.Sqlite.NHibernate.Test;
 
 public sealed class NHibernateSmokeTests : NHibernateSupportTestsBase
@@ -10,7 +8,7 @@ public sealed class NHibernateSmokeTests : NHibernateSupportTestsBase
 
     protected override DbConnection CreateOpenConnection()
     {
-        var connection = new SqliteConnectionMock(new SqliteDbMock());
+        var connection = new SqliteConnectionMock([]);
         connection.Open();
         return connection;
     }

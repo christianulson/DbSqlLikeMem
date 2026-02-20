@@ -1,5 +1,4 @@
 using DbSqlLikeMem.Oracle.NHibernate;
-using System.Data.Common;
 
 namespace DbSqlLikeMem.Oracle.Test;
 
@@ -11,7 +10,7 @@ public sealed class NHibernateSmokeTests : NHibernateSupportTestsBase
 
     protected override DbConnection CreateOpenConnection()
     {
-        var connection = new OracleConnectionMock(new OracleDbMock());
+        var connection = new OracleConnectionMock([]);
         connection.Open();
         return connection;
     }

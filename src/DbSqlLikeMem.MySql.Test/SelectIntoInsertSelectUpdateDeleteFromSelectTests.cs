@@ -16,7 +16,7 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     /// EN: Creates a new MySQL mock database for each scenario.
     /// PT: Cria um novo banco mock de MySQL para cada cenário.
     /// </summary>
-    protected override MySqlDbMock CreateDb() => new();
+    protected override MySqlDbMock CreateDb() => [];
 
     /// <summary>
     /// EN: Executes a non-query command using a MySQL mock connection.

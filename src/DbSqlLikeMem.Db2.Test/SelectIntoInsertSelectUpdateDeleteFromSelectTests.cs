@@ -16,7 +16,7 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     /// EN: Creates a new Db2 mock database instance for each test.
     /// PT: Cria uma nova instância de banco mock de Db2 para cada teste.
     /// </summary>
-    protected override Db2DbMock CreateDb() => new();
+    protected override Db2DbMock CreateDb() => [];
 
     /// <summary>
     /// EN: Executes a non-query SQL statement against the provided Db2 mock database.

@@ -1,15 +1,6 @@
 
-<<<<<<< TODO: Unmerged change from project 'DbSqlLikeMem.SqlServer.Dapper.Test (net6.0)', Before:
-namespace DbSqlLikeMem.SqlServer.Test;
-/// <summary>
-=======
-using DbSqlLikeMem.SqlServer.Dapper.Test;
-using DbSqlLikeMem.SqlServer.Test;
+namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
-namespace DbSqlLikeMem.SqlServer.Dapper.Test;
-/// <summary>
->>>>>>> After
-namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 /// <summary>
 /// Auto-generated summary.
 /// </summary>

@@ -42,18 +42,24 @@
 	<ItemGroup>
 		<InternalsVisibleTo Include="DbSqlLikeMem.Db2" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Db2.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Db2.Dapper.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.MySql" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.Dapper.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.MiniProfiler" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.MiniProfiler.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Npgsql" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Npgsql.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Npgsql.Dapper.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Oracle" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Oracle.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Oracle.Dapper.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Sqlite" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Sqlite.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Sqlite.Dapper.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer.Dapper.Test" />
 	</ItemGroup>
 	<ItemGroup>
 		<Using Include="DbSqlLikeMem.Resources" />

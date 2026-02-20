@@ -16,7 +16,7 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     /// EN: Creates a new Oracle mock database instance for each test.
     /// PT: Cria uma nova instância de banco mock de Oracle para cada teste.
     /// </summary>
-    protected override OracleDbMock CreateDb() => new();
+    protected override OracleDbMock CreateDb() => [];
 
     /// <summary>
     /// EN: Executes a non-query SQL statement against the provided Oracle mock database.

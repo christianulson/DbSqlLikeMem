@@ -29,7 +29,7 @@ public sealed class MySqlBatchMock :
     {
         Connection = connection;
         Transaction = transaction;
-        BatchCommands = new();
+        BatchCommands = new MySqlBatchCommandCollectionMock();
     }
 
 #if NET6_0_OR_GREATER

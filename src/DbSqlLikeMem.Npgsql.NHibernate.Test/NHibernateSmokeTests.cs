@@ -1,9 +1,6 @@
-using DbSqlLikeMem.Npgsql.NHibernate;
-using System.Data.Common;
+namespace DbSqlLikeMem.Npgsql.NHibernate.Test;
 
-namespace DbSqlLikeMem.Npgsql.Test;
-
-public sealed class NHibernateSmokeTests : DbSqlLikeMem.Test.NHibernateSupportTestsBase
+public sealed class NHibernateSmokeTests : NHibernateSupportTestsBase
 {
     protected override string NhDialectClass => "NHibernate.Dialect.PostgreSQL83Dialect, NHibernate";
 
@@ -11,7 +8,7 @@ public sealed class NHibernateSmokeTests : DbSqlLikeMem.Test.NHibernateSupportTe
 
     protected override DbConnection CreateOpenConnection()
     {
-        var connection = new NpgsqlConnectionMock(new NpgsqlDbMock());
+        var connection = new NpgsqlConnectionMock([]);
         connection.Open();
         return connection;
     }

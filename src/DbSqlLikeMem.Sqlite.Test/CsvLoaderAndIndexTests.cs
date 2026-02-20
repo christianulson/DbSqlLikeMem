@@ -16,5 +16,5 @@ public sealed class CsvLoaderAndIndexTests(
     /// EN: Creates a new SQLite mock database for each scenario.
     /// PT: Cria um novo banco mock de SQLite para cada cenário.
     /// </summary>
-    protected override SqliteDbMock CreateDb() => new();
+    protected override SqliteDbMock CreateDb() => [];
 }

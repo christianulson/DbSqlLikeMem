@@ -64,7 +64,7 @@ public class MySqlCommandMock(
     {
         if (Batch == null)
         {
-            Batch = new List<MySqlCommandMock>();
+            Batch = [];
         }
 
         Batch.Add(command);

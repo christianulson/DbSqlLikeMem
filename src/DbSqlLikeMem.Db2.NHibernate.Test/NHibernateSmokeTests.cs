@@ -1,5 +1,3 @@
-using System.Data.Common;
-
 namespace DbSqlLikeMem.Db2.NHibernate.Test;
 
 public sealed class NHibernateSmokeTests : NHibernateSupportTestsBase
@@ -10,7 +8,7 @@ public sealed class NHibernateSmokeTests : NHibernateSupportTestsBase
 
     protected override DbConnection CreateOpenConnection()
     {
-        var connection = new Db2ConnectionMock(new Db2DbMock());
+        var connection = new Db2ConnectionMock();
         connection.Open();
         return connection;
     }

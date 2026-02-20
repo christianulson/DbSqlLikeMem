@@ -44,6 +44,7 @@
 		<Using Include="DbSqlLikeMem.SqlServer" />
 		<Using Include="DbSqlLikeMem.NHibernate.Test" />
 		<Using Include="DbSqlLikeMem.Test" />
+		<Using Include="System.Data.Common" />
 		<Using Include="Xunit" />
 	</ItemGroup>
 

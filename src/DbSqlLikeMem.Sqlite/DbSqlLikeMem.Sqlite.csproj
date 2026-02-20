@@ -19,7 +19,10 @@
 		<ProjectReference Include="..\DbSqlLikeMem\DbSqlLikeMem.csproj" />
 	</ItemGroup>
 	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.Sqlite.Dapper.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Sqlite.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Sqlite.NHibernate" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Sqlite.NHibernate.Test" />
 	</ItemGroup>
 	<ItemGroup>
 		<Using Include="DbSqlLikeMem.Resources" />

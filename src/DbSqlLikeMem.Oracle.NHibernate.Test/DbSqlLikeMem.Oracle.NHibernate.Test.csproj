@@ -35,7 +35,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.NHibernate.Test\DbSqlLikeMem.NHibernate.Test.csproj" />
-		<ProjectReference Include="..\DbSqlLikeMem.Oracle.HNibernate\DbSqlLikeMem.Oracle.NHibernate.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Oracle.NHibernate\DbSqlLikeMem.Oracle.NHibernate.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -43,6 +43,7 @@
 		<Using Include="DbSqlLikeMem.Oracle" />
 		<Using Include="DbSqlLikeMem.NHibernate.Test" />
 		<Using Include="DbSqlLikeMem.Test" />
+		<Using Include="System.Data.Common" />
 		<Using Include="Xunit" />
 	</ItemGroup>
 
