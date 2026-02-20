@@ -4,7 +4,8 @@ using System.Reflection;
 namespace DbSqlLikeMem.Db2;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Summary for Db2QueryProvider.
+/// PT: Resumo para Db2QueryProvider.
 /// </summary>
 public sealed class Db2QueryProvider(
     Db2ConnectionMock cnn
@@ -14,7 +15,8 @@ public sealed class Db2QueryProvider(
     private readonly Db2Translator _translator = new();
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for CreateQuery.
+    /// PT: Resumo para CreateQuery.
     /// </summary>
     public IQueryable CreateQuery(Expression expression)
     {
@@ -32,7 +34,8 @@ public sealed class Db2QueryProvider(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
     {
@@ -80,7 +83,8 @@ public sealed class Db2QueryProvider(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public TResult Execute<TResult>(Expression expression)
     {

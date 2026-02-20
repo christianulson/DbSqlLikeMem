@@ -5,13 +5,18 @@ using Npgsql;
 namespace DbSqlLikeMem.Npgsql;
 
 /// <summary>
-/// Npgsql command mock. Faz parse com NpgsqlDialect e executa via engine atual (NpgsqlAstQueryExecutor).
+/// EN: Summary for NpgsqlCommandMock.
+/// PT: Resumo para NpgsqlCommandMock.
 /// </summary>
 public class NpgsqlCommandMock(
     NpgsqlConnectionMock? connection = null,
     NpgsqlTransactionMock? transaction = null
-    ) : DbCommand
+    ) : DbCommand, INpgsqlCommandMock
 {
+    /// <summary>
+    /// EN: Summary for NpgsqlCommandMock.
+    /// PT: Resumo para NpgsqlCommandMock.
+    /// </summary>
     public NpgsqlCommandMock()
         : this(null, null)
     {
@@ -19,25 +24,28 @@ public class NpgsqlCommandMock(
 
     private bool disposedValue;
 
-    /// <summary>
-    /// Auto-generated summary.
-    /// </summary>
     [AllowNull]
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override string CommandText { get; set; } = string.Empty;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override int CommandTimeout { get; set; }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override CommandType CommandType { get; set; } = CommandType.Text;
 
     /// <summary>
-    /// EN: Gets or sets the associated connection.
-    /// PT: Obtém ou define a conexão associada.
+    /// EN: Summary for DbConnection.
+    /// PT: Resumo para DbConnection.
     /// </summary>
     protected override DbConnection? DbConnection
     {
@@ -47,14 +55,14 @@ public class NpgsqlCommandMock(
 
     private readonly NpgsqlDataParameterCollectionMock collectionMock = [];
     /// <summary>
-    /// EN: Gets the parameter collection for the command.
-    /// PT: Obtém a coleção de parâmetros do comando.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     protected override DbParameterCollection DbParameterCollection => collectionMock;
 
     /// <summary>
-    /// EN: Gets or sets the current transaction.
-    /// PT: Obtém ou define a transação atual.
+    /// EN: Summary for DbTransaction.
+    /// PT: Resumo para DbTransaction.
     /// </summary>
     protected override DbTransaction? DbTransaction
     {
@@ -63,30 +71,33 @@ public class NpgsqlCommandMock(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override UpdateRowSource UpdatedRowSource { get; set; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool DesignTimeVisible { get; set; }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for Cancel.
+    /// PT: Resumo para Cancel.
     /// </summary>
     public override void Cancel() => DbTransaction?.Rollback();
 
     /// <summary>
-    /// EN: Creates a new PostgreSQL parameter.
-    /// PT: Cria um novo parâmetro PostgreSQL.
+    /// EN: Summary for CreateDbParameter.
+    /// PT: Resumo para CreateDbParameter.
     /// </summary>
-    /// <returns>EN: Parameter instance. PT: Instância do parâmetro.</returns>
     protected override DbParameter CreateDbParameter()
         // Por enquanto reusa NpgsqlParameter (NpgsqlConnector) para não puxar pacote de SqlClient.
         => new NpgsqlParameter();
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for ExecuteNonQuery.
+    /// PT: Resumo para ExecuteNonQuery.
     /// </summary>
     public override int ExecuteNonQuery()
     {
@@ -126,11 +137,9 @@ public class NpgsqlCommandMock(
     }
 
     /// <summary>
-    /// EN: Executes the command and returns a data reader.
-    /// PT: Executa o comando e retorna um data reader.
+    /// EN: Summary for ExecuteDbDataReader.
+    /// PT: Resumo para ExecuteDbDataReader.
     /// </summary>
-    /// <param name="behavior">EN: Command behavior. PT: Comportamento do comando.</param>
-    /// <returns>EN: Data reader. PT: Data reader.</returns>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
@@ -254,7 +263,8 @@ public class NpgsqlCommandMock(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for ExecuteScalar.
+    /// PT: Resumo para ExecuteScalar.
     /// </summary>
     public override object ExecuteScalar()
     {
@@ -265,15 +275,15 @@ public class NpgsqlCommandMock(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for Prepare.
+    /// PT: Resumo para Prepare.
     /// </summary>
     public override void Prepare() { }
 
     /// <summary>
-    /// EN: Disposes the command and resources.
-    /// PT: Descarta o comando e os recursos.
+    /// EN: Summary for Dispose.
+    /// PT: Resumo para Dispose.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         if (!disposedValue)

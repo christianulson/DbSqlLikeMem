@@ -3,9 +3,8 @@ using System.Data.Common;
 namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
-/// SqlServer mock connection. Hoje é um wrapper/alias do MySqlConnectionMock,
-/// reaproveitando o mesmo engine em memória. Serve para isolar o ponto de troca
-/// quando você implementar um executor/strategies específicos do SQL Server.
+/// EN: Summary for SqlServerConnectionMock.
+/// PT: Resumo para SqlServerConnectionMock.
 /// </summary>
 public sealed class SqlServerConnectionMock
     : DbConnectionMockBase
@@ -16,7 +15,8 @@ public sealed class SqlServerConnectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for SqlServerConnectionMock.
+    /// PT: Resumo para SqlServerConnectionMock.
     /// </summary>
     public SqlServerConnectionMock(
        SqlServerDbMock? db = null,
@@ -27,25 +27,22 @@ public sealed class SqlServerConnectionMock
     }
 
     /// <summary>
-    /// EN: Creates a SQL Server transaction mock.
-    /// PT: Cria um mock de transação SQL Server.
+    /// EN: Summary for CreateTransaction.
+    /// PT: Resumo para CreateTransaction.
     /// </summary>
-    /// <returns>EN: Transaction instance. PT: Instância da transação.</returns>
     protected override DbTransaction CreateTransaction(IsolationLevel isolationLevel)
         => new SqlServerTransactionMock(this, isolationLevel);
 
     /// <summary>
-    /// EN: Creates a SQL Server command mock for the transaction.
-    /// PT: Cria um mock de comando SQL Server para a transação.
+    /// EN: Summary for CreateDbCommandCore.
+    /// PT: Resumo para CreateDbCommandCore.
     /// </summary>
-    /// <param name="transaction">EN: Current transaction. PT: Transação atual.</param>
-    /// <returns>EN: Command instance. PT: Instância do comando.</returns>
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new SqlServerCommandMock(this, transaction as SqlServerTransactionMock);
 
     /// <summary>
-    /// EN: SQL Server mock does not support RELEASE SAVEPOINT syntax.
-    /// PT: O mock SQL Server não suporta sintaxe RELEASE SAVEPOINT.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     protected override bool SupportsReleaseSavepoint => false;
 
