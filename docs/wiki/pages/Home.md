@@ -6,16 +6,16 @@ DbSqlLikeMem is an in-memory database engine for C# unit tests focused on simula
 
 ## Navigation
 
-- [Getting Started](Getting-Started)
-- [Providers and Compatibility](Providers-and-Compatibility)
-- [Publishing](Publishing)
+- [Getting Started](Getting-Started.md)
+- [Providers and Compatibility](Providers-and-Compatibility.md)
+- [Publishing](Publishing.md)
 
 ## Useful repository links
 
-- Main README
-- `docs/getting-started.md`
-- `docs/providers-and-features.md`
-- `docs/publishing.md`
+- [Main README](https://github.com/chrisulson/DbSqlLikeMem/blob/main/README.md)
+- [Getting started (repo docs)](https://github.com/chrisulson/DbSqlLikeMem/blob/main/docs/getting-started.md)
+- [Providers and features (repo docs)](https://github.com/chrisulson/DbSqlLikeMem/blob/main/docs/providers-and-features.md)
+- [Publishing guide (repo docs)](https://github.com/chrisulson/DbSqlLikeMem/blob/main/docs/publishing.md)
 
 ---
 
