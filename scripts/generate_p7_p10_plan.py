@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate an actionable P7-P10 implementation plan mapped to current test files."""
+"""Generate an actionable P7-P14 implementation plan mapped to current test files."""
 
 from pathlib import Path
 
@@ -31,35 +31,58 @@ PILLARS = {
         "StoredProcedureExecutionTests",
         "StoredProcedureSignatureTests",
     ],
+    "P11 (Confiabilidade transacional e concorrência)": [
+        "TransactionTests",
+        "TransactionReliabilityTests",
+    ],
+    "P12 (Observabilidade, diagnóstico e ergonomia de erro)": [
+        "AdditionalBehaviorCoverageTests",
+        "ExecutionPlanTests",
+        "SqlQueryParserCorpusTests",
+    ],
+    "P13 (Performance e escala do engine em memória)": [
+        "PerformanceTests",
+    ],
+    "P14 (Conformidade de ecossistema .NET/ORM/tooling)": [
+        "NHibernateSmokeTests",
+        "DapperTests",
+        "FluentTest",
+        "LinqProviderTest",
+    ],
 }
 
 
 def find_test_paths(provider_folder: str, tokens: list[str]) -> list[str]:
-    base = ROOT / "src" / f"DbSqlLikeMem.{provider_folder}.Test"
-    if not base.exists():
-        return []
+    candidate_bases = [
+        ROOT / "src" / f"DbSqlLikeMem.{provider_folder}.Test",
+        ROOT / "src" / f"DbSqlLikeMem.{provider_folder}.Dapper.Test",
+        ROOT / "src" / f"DbSqlLikeMem.{provider_folder}.NHibernate.Test",
+    ]
 
     found: list[str] = []
     for token in tokens:
-        matches = sorted(base.rglob(f"*{token}*.cs"))
-        found.extend(str(m.relative_to(ROOT)) for m in matches)
+        for base in candidate_bases:
+            if not base.exists():
+                continue
+            matches = sorted(base.rglob(f"*{token}*.cs"))
+            found.extend(str(m.relative_to(ROOT)) for m in matches)
+
     # de-duplicate preserving order
-    unique = list(dict.fromkeys(found))
-    return unique
+    return list(dict.fromkeys(found))
 
 
 def build() -> str:
     lines: list[str] = []
-    lines.append("# Plano executável — P7 a P10")
+    lines.append("# Plano executável — P7 a P14")
     lines.append("")
     lines.append(
         "Documento gerado por `scripts/generate_p7_p10_plan.py` para orientar implementação técnica "
-        "dos itens P7, P8, P9 e P10 com base nos testes existentes por provider."
+        "dos itens P7 a P14 com base nos testes existentes por provider."
     )
     lines.append("")
     lines.append("## Como usar")
     lines.append("")
-    lines.append("1. Escolha um pilar (P7–P10).")
+    lines.append("1. Escolha um pilar (P7–P14).")
     lines.append("2. Implemente provider por provider, priorizando os arquivos mapeados abaixo.")
     lines.append("3. Rode os testes por provider e atualize o status.")
     lines.append("")
@@ -67,15 +90,23 @@ def build() -> str:
     for pillar, tokens in PILLARS.items():
         lines.append(f"## {pillar}")
         lines.append("")
-        lines.append("| Provider | Arquivos de teste-alvo | Status |")
-        lines.append("| --- | --- | --- |")
+        lines.append("| Provider | Arquivos de teste-alvo | Cobertura | Status sugerido |")
+        lines.append("| --- | --- | --- | --- |")
+
         for provider_name, provider_folder in PROVIDERS:
             paths = find_test_paths(provider_folder, tokens)
             if paths:
                 joined = "<br>".join(f"`{p}`" for p in paths)
+                count = len(paths)
+                coverage = f"{count} arquivo" if count == 1 else f"{count} arquivos"
+                status = "🟨 Em evolução"
             else:
                 joined = "_Sem arquivo específico; criar suíte dedicada._"
-            lines.append(f"| {provider_name} | {joined} | ⬜ Pending |")
+                coverage = "0 arquivos"
+                status = "⬜ Gap"
+
+            lines.append(f"| {provider_name} | {joined} | {coverage} | {status} |")
+
         lines.append("")
 
     lines.append("## Checklist de saída por PR")
