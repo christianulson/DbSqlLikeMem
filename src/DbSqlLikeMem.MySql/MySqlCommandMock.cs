@@ -9,6 +9,11 @@ public class MySqlCommandMock(
     MySqlTransactionMock? transaction = null
     ) : DbCommand
 {
+    public MySqlCommandMock()
+        : this(null, null)
+    {
+    }
+
     private bool disposedValue;
 
     /// <summary>
