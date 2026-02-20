@@ -54,11 +54,11 @@ internal static class SqlStringExtencions
         if (!trimmed.Contains('.'))
             return StripIdentifierWrappers(trimmed);
 
-        var parts = trimmed.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var parts = trimmed.Split('.').Select(_=>_.Trim()).Where(_=>!string.IsNullOrEmpty(_)).ToArray();
         for (var i = 0; i < parts.Length; i++)
             parts[i] = StripIdentifierWrappers(parts[i]);
 
-        return string.Join('.', parts);
+        return string.Join(".", parts);
     }
 
     private static string StripIdentifierWrappers(string identifier)
