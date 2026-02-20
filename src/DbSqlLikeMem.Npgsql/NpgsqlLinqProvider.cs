@@ -4,7 +4,8 @@ using System.Reflection;
 namespace DbSqlLikeMem.Npgsql;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Summary for NpgsqlQueryProvider.
+/// PT: Resumo para NpgsqlQueryProvider.
 /// </summary>
 public sealed class NpgsqlQueryProvider(
     NpgsqlConnectionMock cnn
@@ -14,7 +15,8 @@ public sealed class NpgsqlQueryProvider(
     private readonly NpgsqlTranslator _translator = new();
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for CreateQuery.
+    /// PT: Resumo para CreateQuery.
     /// </summary>
     public IQueryable CreateQuery(Expression expression)
     {
@@ -32,7 +34,8 @@ public sealed class NpgsqlQueryProvider(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
     {
@@ -80,7 +83,8 @@ public sealed class NpgsqlQueryProvider(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public TResult Execute<TResult>(Expression expression)
     {

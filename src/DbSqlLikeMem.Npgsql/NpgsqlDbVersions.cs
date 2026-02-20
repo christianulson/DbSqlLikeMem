@@ -3,7 +3,8 @@ namespace DbSqlLikeMem.Npgsql;
 internal static class NpgsqlDbVersions
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for Versions.
+    /// PT: Resumo para Versions.
     /// </summary>
     public static IEnumerable<int> Versions()
     {

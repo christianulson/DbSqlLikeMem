@@ -4,7 +4,8 @@ using System.Reflection;
 namespace DbSqlLikeMem.Oracle;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Summary for OracleQueryProvider.
+/// PT: Resumo para OracleQueryProvider.
 /// </summary>
 public sealed class OracleQueryProvider(
     OracleConnectionMock cnn
@@ -14,7 +15,8 @@ public sealed class OracleQueryProvider(
     private readonly OracleTranslator _translator = new();
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for CreateQuery.
+    /// PT: Resumo para CreateQuery.
     /// </summary>
     public IQueryable CreateQuery(Expression expression)
     {
@@ -32,7 +34,8 @@ public sealed class OracleQueryProvider(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
     {
@@ -80,7 +83,8 @@ public sealed class OracleQueryProvider(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public TResult Execute<TResult>(Expression expression)
     {

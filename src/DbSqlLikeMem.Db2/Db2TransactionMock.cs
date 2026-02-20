@@ -2,8 +2,8 @@
 
 namespace DbSqlLikeMem.Db2;
 /// <summary>
-/// EN: Mock transaction for DB2 connections.
-/// PT: Mock de transação para conexões DB2.
+/// EN: Summary for Db2TransactionMock.
+/// PT: Resumo para Db2TransactionMock.
 /// </summary>
 public class Db2TransactionMock(
         Db2ConnectionMock cnn,
@@ -13,19 +13,21 @@ public class Db2TransactionMock(
     private bool disposedValue;
 
     /// <summary>
-    /// EN: Gets the connection associated with this transaction.
-    /// PT: Obtém a conexão associada a esta transação.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     protected override DbConnection? DbConnection => cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for IsolationLevel.
+    /// PT: Resumo para IsolationLevel.
     /// </summary>
     public override IsolationLevel IsolationLevel
         => isolationLevel ?? IsolationLevel.Unspecified;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for Commit.
+    /// PT: Resumo para Commit.
     /// </summary>
     public override void Commit()
     {
@@ -37,7 +39,8 @@ public class Db2TransactionMock(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for Rollback.
+    /// PT: Resumo para Rollback.
     /// </summary>
     public override void Rollback()
     {
@@ -48,14 +51,17 @@ public class Db2TransactionMock(
         }
     }
 
-    /// <summary>
-    /// EN: Creates a savepoint in the active transaction.
-    /// PT: Cria um savepoint na transação ativa.
-    /// </summary>
-    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
     #if NET6_0_OR_GREATER
+    /// <summary>
+    /// EN: Summary for Save.
+    /// PT: Resumo para Save.
+    /// </summary>
     public override void Save(string savepointName)
 #else
+    /// <summary>
+    /// EN: Summary for Save.
+    /// PT: Resumo para Save.
+    /// </summary>
     public void Save(string savepointName)
 #endif
     {
@@ -63,14 +69,17 @@ public class Db2TransactionMock(
             cnn.CreateSavepoint(savepointName);
     }
 
-    /// <summary>
-    /// EN: Rolls back to a named savepoint.
-    /// PT: Executa rollback para um savepoint nomeado.
-    /// </summary>
-    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
     #if NET6_0_OR_GREATER
+    /// <summary>
+    /// EN: Summary for Rollback.
+    /// PT: Resumo para Rollback.
+    /// </summary>
     public override void Rollback(string savepointName)
 #else
+    /// <summary>
+    /// EN: Summary for Rollback.
+    /// PT: Resumo para Rollback.
+    /// </summary>
     public void Rollback(string savepointName)
 #endif
     {
@@ -78,14 +87,17 @@ public class Db2TransactionMock(
             cnn.RollbackTransaction(savepointName);
     }
 
-    /// <summary>
-    /// EN: Releases a named savepoint.
-    /// PT: Libera um savepoint nomeado.
-    /// </summary>
-    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
     #if NET6_0_OR_GREATER
+    /// <summary>
+    /// EN: Summary for Release.
+    /// PT: Resumo para Release.
+    /// </summary>
     public override void Release(string savepointName)
 #else
+    /// <summary>
+    /// EN: Summary for Release.
+    /// PT: Resumo para Release.
+    /// </summary>
     public void Release(string savepointName)
 #endif
     {
@@ -94,10 +106,9 @@ public class Db2TransactionMock(
     }
 
     /// <summary>
-    /// EN: Disposes the transaction resources.
-    /// PT: Descarta os recursos da transação.
+    /// EN: Summary for Dispose.
+    /// PT: Resumo para Dispose.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         if (!disposedValue)

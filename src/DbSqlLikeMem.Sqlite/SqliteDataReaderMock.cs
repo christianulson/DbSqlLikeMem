@@ -2,8 +2,8 @@
 
 #pragma warning disable CA1010 // Generic interface should also be implemented
 /// <summary>
-/// EN: Mock data reader for SQLite query results.
-/// PT: Leitor de dados mock para resultados SQLite.
+/// EN: Summary for SqliteDataReaderMock.
+/// PT: Resumo para SqliteDataReaderMock.
 /// </summary>
 public class SqliteDataReaderMock(
 #pragma warning restore CA1010 // Generic interface should also be implemented

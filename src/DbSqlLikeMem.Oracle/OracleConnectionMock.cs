@@ -3,9 +3,8 @@ using System.Data.Common;
 namespace DbSqlLikeMem.Oracle;
 
 /// <summary>
-/// Oracle mock connection. Hoje é um wrapper/alias do MySqlConnectionMock,
-/// reaproveitando o mesmo engine em memória. Serve para isolar o ponto de troca
-/// quando você implementar um executor/strategies específicos do Oracle.
+/// EN: Summary for OracleConnectionMock.
+/// PT: Resumo para OracleConnectionMock.
 /// </summary>
 public class OracleConnectionMock
     : DbConnectionMockBase
@@ -19,7 +18,8 @@ public class OracleConnectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for OracleConnectionMock.
+    /// PT: Resumo para OracleConnectionMock.
     /// </summary>
     public OracleConnectionMock(
        OracleDbMock? db = null,
@@ -30,19 +30,16 @@ public class OracleConnectionMock
     }
 
     /// <summary>
-    /// EN: Creates an Oracle transaction mock.
-    /// PT: Cria um mock de transação Oracle.
+    /// EN: Summary for CreateTransaction.
+    /// PT: Resumo para CreateTransaction.
     /// </summary>
-    /// <returns>EN: Transaction instance. PT: Instância da transação.</returns>
     protected override DbTransaction CreateTransaction(IsolationLevel isolationLevel)
         => new OracleTransactionMock(this, isolationLevel);
 
     /// <summary>
-    /// EN: Creates an Oracle command mock for the transaction.
-    /// PT: Cria um mock de comando Oracle para a transação.
+    /// EN: Summary for CreateDbCommandCore.
+    /// PT: Resumo para CreateDbCommandCore.
     /// </summary>
-    /// <param name="transaction">EN: Current transaction. PT: Transação atual.</param>
-    /// <returns>EN: Command instance. PT: Instância do comando.</returns>
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new OracleCommandMock(this, transaction as OracleTransactionMock);
 
