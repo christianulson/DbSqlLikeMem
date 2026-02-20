@@ -1,9 +1,21 @@
 namespace DbSqlLikeMem.MySql.Test;
 
+/// <summary>
+/// EN: Validates generation and persistence of execution plans for MySql command execution.
+/// PT: Valida a geração e a persistência de planos de execução para a execução de comandos MySql.
+/// </summary>
 public sealed class ExecutionPlanTests(
+    /// <summary>
+    /// EN: Receives the test output helper used by the base class.
+    /// PT: Recebe o helper de saída de teste usado pela classe base.
+    /// </summary>
     ITestOutputHelper helper
 ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Ensures ExecuteReader generates an execution plan with core metrics and prints it in test output.
+    /// PT: Garante que o ExecuteReader gere um plano de execução com métricas principais e o imprima na saída do teste.
+    /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
     public void ExecuteReader_ShouldGenerateExecutionPlan_AndPrintOnTestOutput()
@@ -44,6 +56,10 @@ public sealed class ExecutionPlanTests(
         Console.WriteLine("[ExecutionPlan]\n" + cnn.LastExecutionPlan);
     }
 
+    /// <summary>
+    /// EN: Ensures multi-select execution stores an execution plan entry for each result set.
+    /// PT: Garante que a execução com múltiplos selects armazene um plano de execução para cada conjunto de resultados.
+    /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
     public void ExecuteReader_MultiSelect_ShouldKeepExecutionPlanList()

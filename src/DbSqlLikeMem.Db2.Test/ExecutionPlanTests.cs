@@ -1,9 +1,21 @@
 namespace DbSqlLikeMem.Db2.Test;
 
+/// <summary>
+/// EN: Validates generation of execution plans for Db2 command execution.
+/// PT: Valida a geração de planos de execução para a execução de comandos Db2.
+/// </summary>
 public sealed class ExecutionPlanTests(
+    /// <summary>
+    /// EN: Receives the test output helper used by the base class.
+    /// PT: Recebe o helper de saída de teste usado pela classe base.
+    /// </summary>
     ITestOutputHelper helper
 ) : XUnitTestBase(helper)
 {
+    /// <summary>
+    /// EN: Ensures ExecuteReader generates an execution plan with expected performance and row metrics.
+    /// PT: Garante que o ExecuteReader gere um plano de execução com métricas esperadas de desempenho e de linhas.
+    /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
     public void ExecuteReader_ShouldGenerateExecutionPlan_AndPrintOnTestOutput()
