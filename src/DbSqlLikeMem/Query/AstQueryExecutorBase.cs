@@ -591,7 +591,7 @@ internal abstract class AstQueryExecutorBase(
                 }
                 return call with { Args = [.. rewrittenCallArgs] };
             case CaseExpr c:
-                var rewrittenWhens = new List<CaseWhen>(c.Whens.Count);
+                var rewrittenWhens = new List<CaseWhenThen>(c.Whens.Count);
                 foreach (var when in c.Whens)
                 {
                     rewrittenWhens.Add(when with
