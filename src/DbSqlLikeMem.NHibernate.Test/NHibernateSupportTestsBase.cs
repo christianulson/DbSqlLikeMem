@@ -31,6 +31,10 @@ public abstract class NHibernateSupportTestsBase
     /// </summary>
     protected virtual string? NhDriverClass => null;
 
+    /// <summary>
+    /// EN: Verifies native SQL with a named parameter returns the expected row.
+    /// PT: Verifica se SQL nativo com parâmetro nomeado retorna a linha esperada.
+    /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
     public void NHibernate_NativeSql_WithParameter_ShouldReturnExpectedRow()
@@ -51,6 +55,10 @@ public abstract class NHibernateSupportTestsBase
         Assert.Equal("Alice", rows[0]);
     }
 
+    /// <summary>
+    /// EN: Verifies a mapped entity can be saved and loaded using NHibernate.
+    /// PT: Verifica se uma entidade mapeada pode ser salva e carregada usando NHibernate.
+    /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
     public void NHibernate_MappedEntity_SaveAndGet_ShouldWork()
@@ -74,6 +82,10 @@ public abstract class NHibernateSupportTestsBase
         Assert.Equal("Bob", loaded!.Name);
     }
 
+    /// <summary>
+    /// EN: Verifies mapped entity updates are persisted across sessions.
+    /// PT: Verifica se atualizações de entidade mapeada são persistidas entre sessões.
+    /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
     public void NHibernate_MappedEntity_Update_ShouldPersistChanges()
@@ -106,6 +118,10 @@ public abstract class NHibernateSupportTestsBase
         Assert.Equal("After", updated!.Name);
     }
 
+    /// <summary>
+    /// EN: Verifies rolled-back transactions do not persist data changes.
+    /// PT: Verifica se transações com rollback não persistem alterações de dados.
+    /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
     public void NHibernate_TransactionRollback_ShouldDiscardChanges()
