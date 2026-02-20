@@ -9,6 +9,14 @@ public class Db2CommandMock(
     Db2TransactionMock? transaction = null
     ) : DbCommand
 {
+    /// <summary>
+    /// EN: Parameterless constructor required for reflection-based providers.
+    /// PT: Construtor sem parâmetros exigido por providers baseados em reflexão.
+    /// </summary>
+    public Db2CommandMock() : this(null, null)
+    {
+    }
+
     private bool disposedValue;
 
     /// <summary>
