@@ -50,6 +50,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="coverlet.collector" Version="6.0.4" />
+		<PackageReference Include="NHibernate" Version="5.5.2" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -79,6 +80,7 @@
 		<Compile Include="..\DbSqlLikeMem.Test\ExistsTestsBase.cs" Link="SharedTests\ExistsTestsBase.cs" />
 		<Compile Include="..\DbSqlLikeMem.Test\StoredProcedureSignatureTestsBase.cs" Link="SharedTests\StoredProcedureSignatureTestsBase.cs" />
 		<Compile Include="..\DbSqlLikeMem.Test\SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase.cs" Link="SharedTests\SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase.cs" />
+		<Compile Include="..\DbSqlLikeMem.Test\NHibernateSupportTestsBase.cs" Link="SharedTests\NHibernateSupportTestsBase.cs" />
 	</ItemGroup>
 
 </Project>

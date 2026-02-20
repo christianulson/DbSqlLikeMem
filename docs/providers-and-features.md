@@ -25,6 +25,7 @@
 - `CREATE TEMPORARY TABLE` (incluindo variantes `AS SELECT`).
 - Definição de schema via API fluente.
 - Seed de dados e consultas compatíveis com Dapper.
+- Compatibilidade NHibernate via `UserSuppliedConnectionProvider` com suíte de contrato por provider usando dialeto NHibernate específico por banco (SQL nativo, entidade mapeada e transação rollback).
 
 ## Particularidades por banco
 
