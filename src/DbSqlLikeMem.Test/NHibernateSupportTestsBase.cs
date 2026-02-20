@@ -153,7 +153,7 @@ public abstract class NHibernateSupportTestsBase
         _ = command.ExecuteNonQuery();
     }
 
-    private sealed class NhTestUser
+    private class NhTestUser
     {
         public virtual int Id { get; set; }
 

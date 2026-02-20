@@ -74,6 +74,7 @@
 	<ItemGroup>
 		<Compile Remove="CsvLoaderAndIndexTestBase.cs" />
 		<Compile Remove="ExistsTestsBase.cs" />
+		<Compile Remove="NHibernateSupportTestsBase.cs" />
 		<Compile Remove="StoredProcedureSignatureTestsBase.cs" />
 		<Compile Remove="SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase.cs" />
 	</ItemGroup>
