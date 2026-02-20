@@ -1,4 +1,5 @@
 using DbSqlLikeMem.Interfaces;
+using System.Diagnostics;
 using DbSqlLikeMem.Models;
 using System.Collections.Concurrent;
 
@@ -82,6 +83,8 @@ internal abstract class AstQueryExecutorBase(
         SqlRowLimit? rowLimit = null,
         string? sqlContextForErrors = null)
     {
+        var sw = Stopwatch.StartNew();
+
         if (parts is null || parts.Count == 0)
             throw new InvalidOperationException("UNION: nenhuma query.");
 
@@ -180,6 +183,25 @@ internal abstract class AstQueryExecutorBase(
             var ctes = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase);
             result = ApplyOrderAndLimit(result, finalQ, ctes);
         }
+
+        sw.Stop();
+
+        var unionInputTables = parts.Sum(p => CountKnownInputTables(p));
+        var unionEstimatedRead = parts.Sum(p => EstimateRowsRead(p));
+        var unionMetrics = new SqlPlanRuntimeMetrics(
+            InputTables: unionInputTables,
+            EstimatedRowsRead: unionEstimatedRead,
+            ActualRows: result.Count,
+            ElapsedMs: sw.ElapsedMilliseconds);
+
+        var plan = SqlExecutionPlanFormatter.FormatUnion(
+            parts,
+            allFlags,
+            orderBy,
+            rowLimit,
+            unionMetrics);
+        result.ExecutionPlan = plan;
+        _cnn.RegisterExecutionPlan(plan);
 
         return result;
     }
@@ -315,7 +337,64 @@ internal abstract class AstQueryExecutorBase(
     /// Auto-generated summary.
     /// </summary>
     public TableResultMock ExecuteSelect(SqlSelectQuery q)
-        => ExecuteSelect(q, null, null);
+    {
+        var sw = Stopwatch.StartNew();
+        var result = ExecuteSelect(q, null, null);
+        sw.Stop();
+
+        var metrics = BuildPlanRuntimeMetrics(q, result.Count, sw.ElapsedMilliseconds);
+        var plan = SqlExecutionPlanFormatter.FormatSelect(q, metrics);
+        result.ExecutionPlan = plan;
+        _cnn.RegisterExecutionPlan(plan);
+        return result;
+    }
+
+    private SqlPlanRuntimeMetrics BuildPlanRuntimeMetrics(SqlSelectQuery query, int actualRows, long elapsedMs)
+        => new(
+            InputTables: CountKnownInputTables(query),
+            EstimatedRowsRead: EstimateRowsRead(query),
+            ActualRows: actualRows,
+            ElapsedMs: elapsedMs);
+
+    private int CountKnownInputTables(SqlSelectQuery query)
+    {
+        var count = 0;
+        if (query.Table is not null && HasKnownPhysicalTable(query.Table))
+            count++;
+
+        foreach (var join in query.Joins)
+        {
+            if (HasKnownPhysicalTable(join.Table))
+                count++;
+        }
+
+        return count;
+    }
+
+    private long EstimateRowsRead(SqlSelectQuery query)
+    {
+        long total = 0;
+
+        total += GetKnownSourceRows(query.Table);
+        foreach (var join in query.Joins)
+            total += GetKnownSourceRows(join.Table);
+
+        return total;
+    }
+
+    private bool HasKnownPhysicalTable(SqlTableSource source)
+        => source.Name is not null && source.Derived is null && source.DerivedUnion is null;
+
+    private long GetKnownSourceRows(SqlTableSource? source)
+    {
+        if (source is null || !HasKnownPhysicalTable(source) || string.IsNullOrWhiteSpace(source.Name))
+            return 0;
+
+        if (_cnn.TryGetTable(source.Name, out var table) && table is not null)
+            return table.Count;
+
+        return 0;
+    }
 
     private TableResultMock ExecuteSelect(
         SqlSelectQuery selectQuery,

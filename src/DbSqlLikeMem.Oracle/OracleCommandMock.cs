@@ -85,6 +85,7 @@ public class OracleCommandMock(
     public override int ExecuteNonQuery()
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
         if (CommandType == CommandType.StoredProcedure)
@@ -126,6 +127,7 @@ public class OracleCommandMock(
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
         if (CommandType == CommandType.StoredProcedure)

@@ -38,6 +38,8 @@
   **PT-BR:** Fluxo de execução amigável para testes com Dapper.
 - **EN:** Dialect/version-specific behavior.  
   **PT-BR:** Comportamento específico por dialeto/versão.
+- **EN:** Mock execution plans with runtime metrics (`EstimatedCost`, `InputTables`, `EstimatedRowsRead`, `ActualRows`, `SelectivityPct`, `RowsPerMs`, `ElapsedMs`) and per-connection history (`LastExecutionPlan`, `LastExecutionPlans`).  
+  **PT-BR:** Planos de execução mock com métricas de runtime (`EstimatedCost`, `InputTables`, `EstimatedRowsRead`, `ActualRows`, `SelectivityPct`, `RowsPerMs`, `ElapsedMs`) e histórico por conexão (`LastExecutionPlan`, `LastExecutionPlans`).
 
 **EN:** Full compatibility details are available here:  
 **PT-BR:** Os detalhes completos de compatibilidade estão aqui:

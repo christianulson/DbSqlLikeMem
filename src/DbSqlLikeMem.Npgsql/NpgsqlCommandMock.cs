@@ -86,6 +86,7 @@ public class NpgsqlCommandMock(
     public override int ExecuteNonQuery()
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
         if (CommandType == CommandType.StoredProcedure)
@@ -128,6 +129,7 @@ public class NpgsqlCommandMock(
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
         if (CommandType == CommandType.StoredProcedure)

@@ -92,6 +92,45 @@ connection.Execute(
 var users = connection.Query("SELECT * FROM user").ToList();
 ```
 
+### Exemplo 3: inspeção de plano de execução e métricas
+
+```csharp
+using DbSqlLikeMem.MySql;
+
+using var cnn = new MySqlConnectionMock();
+cnn.Define("users");
+cnn.Column<int>("users", "Id");
+cnn.Column<int>("users", "Active");
+cnn.Seed("users", null, [1, 1], [2, 0], [3, 1]);
+
+using var cmd = new MySqlCommandMock(cnn)
+{
+    CommandText = "SELECT Id FROM users WHERE Active = 1 ORDER BY Id"
+};
+
+using var reader = cmd.ExecuteReader();
+while (reader.Read())
+{
+    // consume rows
+}
+
+Console.WriteLine(cnn.LastExecutionPlan);
+// Campos úteis no plano:
+// - EstimatedCost
+// - InputTables
+// - EstimatedRowsRead
+// - ActualRows
+// - SelectivityPct
+// - RowsPerMs
+// - ElapsedMs
+```
+
+Observações:
+
+- `LastExecutionPlan` traz o último plano gerado para a conexão.
+- `LastExecutionPlans` mantém o histórico da última execução do comando (útil para SQL com múltiplos SELECTs).
+- O plano também fica disponível no resultado (`TableResultMock.ExecutionPlan`) internamente no executor AST.
+
 ### Exemplo 2: schema manual + seed (PostgreSQL)
 
 ```csharp
