@@ -3,7 +3,8 @@ namespace DbSqlLikeMem.Oracle;
 internal static class OracleDbVersions
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for Versions.
+    /// PT: Resumo para Versions.
     /// </summary>
     public static IEnumerable<int> Versions()
     {

@@ -3,21 +3,24 @@ using System.Linq.Expressions;
 
 namespace DbSqlLikeMem.SqlServer;
 /// <summary>
-/// EN: IQueryable wrapper for SQL Server LINQ translation.
-/// PT: Wrapper IQueryable para tradução LINQ do SQL Server.
+/// EN: Summary for SqlServerQueryable.
+/// PT: Resumo para SqlServerQueryable.
 /// </summary>
 public class SqlServerQueryable<T> : IOrderedQueryable<T>
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public string TableName { get; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public Expression Expression { get; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public IQueryProvider Provider { get; }
 
@@ -44,13 +47,15 @@ public class SqlServerQueryable<T> : IOrderedQueryable<T>
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for typeof.
+    /// PT: Resumo para typeof.
     /// </summary>
     public Type ElementType => typeof(T);
     IEnumerator IEnumerable.GetEnumerator()
         => Provider.Execute<IEnumerable<T>>(Expression).GetEnumerator();
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for GetEnumerator.
+    /// PT: Resumo para GetEnumerator.
     /// </summary>
     public IEnumerator<T> GetEnumerator()
         => Provider.Execute<IEnumerable<T>>(Expression).GetEnumerator();
