@@ -1,3 +1,4 @@
+using DbSqlLikeMem.Sqlite.HNibernate;
 using System.Data.Common;
 
 namespace DbSqlLikeMem.Sqlite.Test;
@@ -5,6 +6,8 @@ namespace DbSqlLikeMem.Sqlite.Test;
 public sealed class NHibernateSmokeTests : DbSqlLikeMem.Test.NHibernateSupportTestsBase
 {
     protected override string NhDialectClass => "NHibernate.Dialect.SQLiteDialect, NHibernate";
+
+    protected override string NhDriverClass => typeof(SqliteNhMockDriver).AssemblyQualifiedName!;
 
     protected override DbConnection CreateOpenConnection()
     {

@@ -1,3 +1,4 @@
+using DbSqlLikeMem.SqlServer.HNibernate;
 using System.Data.Common;
 
 namespace DbSqlLikeMem.SqlServer.Test;
@@ -5,6 +6,8 @@ namespace DbSqlLikeMem.SqlServer.Test;
 public sealed class NHibernateSmokeTests : DbSqlLikeMem.Test.NHibernateSupportTestsBase
 {
     protected override string NhDialectClass => "NHibernate.Dialect.MsSql2012Dialect, NHibernate";
+
+    protected override string NhDriverClass => typeof(SqlServerNhMockDriver).AssemblyQualifiedName!;
 
     protected override DbConnection CreateOpenConnection()
     {

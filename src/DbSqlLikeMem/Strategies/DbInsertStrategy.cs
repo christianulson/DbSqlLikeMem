@@ -41,7 +41,7 @@ internal static class DbInsertStrategy
         else
         {
             // Caso: INSERT INTO ... VALUES ...
-            newRows = CreateRowsFromValues(query, table, pars);
+            newRows = CreateRowsFromValues(query, table, pars, dialect);
         }
 
         int insertedCount = 0;
@@ -119,7 +119,8 @@ internal static class DbInsertStrategy
     private static List<Dictionary<int, object?>> CreateRowsFromValues(
         SqlInsertQuery query,
         ITableMock table,
-        DbParameterCollection? pars)
+        DbParameterCollection? pars,
+        ISqlDialect dialect)
     {
         var rows = new List<Dictionary<int, object?>>();
         var colNames = query.Columns; // Lista de colunas do Insert
@@ -162,7 +163,7 @@ internal static class DbInsertStrategy
                 // Insert explícito: INSERT INTO t (a,b) VALUES (1, 2)
                 for (int i = 0; i < colNames.Count; i++)
                 {
-                    var colInfo = table.GetColumn(colNames[i]);
+                    var colInfo = ResolveInsertColumn(table, colNames[i], dialect);
                     SetColValue(table, pars, colInfo.Index, valueBlock[i], newRow);
                 }
             }
@@ -170,6 +171,64 @@ internal static class DbInsertStrategy
             rows.Add(newRow);
         }
         return rows;
+    }
+
+    private static ColumnDef ResolveInsertColumn(ITableMock table, string columnName, ISqlDialect dialect)
+    {
+        if (TryGetColumn(table, columnName, out var col))
+            return col;
+
+        var normalized = columnName.Trim();
+
+        if (dialect.AllowsDoubleQuoteIdentifiers
+            && normalized.Length >= 2
+            && normalized[0] == '"'
+            && normalized[^1] == '"')
+        {
+            var withoutDoubleQuotes = normalized[1..^1];
+            if (TryGetColumn(table, withoutDoubleQuotes, out col))
+                return col;
+        }
+
+        if (dialect.AllowsBracketIdentifiers
+            && normalized.Length >= 2
+            && normalized[0] == '['
+            && normalized[^1] == ']')
+        {
+            var withoutBrackets = normalized[1..^1];
+            if (TryGetColumn(table, withoutBrackets, out col))
+                return col;
+        }
+
+        if (dialect.AllowsBacktickIdentifiers
+            && normalized.Length >= 2
+            && normalized[0] == '`'
+            && normalized[^1] == '`')
+        {
+            var withoutBackticks = normalized[1..^1];
+            if (TryGetColumn(table, withoutBackticks, out col))
+                return col;
+        }
+
+        return table.GetColumn(columnName);
+    }
+
+    private static bool TryGetColumn(ITableMock table, string columnName, out ColumnDef col)
+    {
+        var normalized = columnName.NormalizeName();
+        if (table.Columns.TryGetValue(normalized, out col!))
+            return true;
+
+        var dotIndex = normalized.LastIndexOf('.');
+        if (dotIndex >= 0 && dotIndex + 1 < normalized.Length)
+        {
+            var unqualified = normalized[(dotIndex + 1)..];
+            if (table.Columns.TryGetValue(unqualified, out col!))
+                return true;
+        }
+
+        col = null!;
+        return false;
     }
 
     private static List<Dictionary<int, object?>> CreateRowsFromSelect(

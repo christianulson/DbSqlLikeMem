@@ -25,6 +25,12 @@ public abstract class NHibernateSupportTestsBase
     /// </summary>
     protected abstract DbConnection CreateOpenConnection();
 
+    /// <summary>
+    /// EN: Optional NHibernate driver class for provider-specific mocked connections.
+    /// PT: Classe opcional de driver NHibernate para conexões mock específicas do provedor.
+    /// </summary>
+    protected virtual string? NhDriverClass => null;
+
     [Fact]
     [Trait("Category", "NHibernate")]
     public void NHibernate_NativeSql_WithParameter_ShouldReturnExpectedRow()
@@ -136,6 +142,8 @@ public abstract class NHibernateSupportTestsBase
         configuration.SetProperty(Environment.Dialect, NhDialectClass);
         configuration.SetProperty(Environment.ConnectionProvider, typeof(UserSuppliedConnectionProvider).AssemblyQualifiedName!);
         configuration.SetProperty(Environment.ReleaseConnections, "on_close");
+        if (!string.IsNullOrWhiteSpace(NhDriverClass))
+            configuration.SetProperty(Environment.ConnectionDriver, NhDriverClass);
 
         if (withMappings)
         {
