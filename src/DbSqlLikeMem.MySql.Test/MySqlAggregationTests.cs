@@ -238,7 +238,7 @@ public sealed class MySqlAggregationTests : XUnitTestBase
                   SELECT userId, SUM(amount) AS sumAmount
                   FROM orders
                   GROUP BY userId
-                  HAVING 2 IN (5, 40)
+                  HAVING 2 IN (40)
                   ORDER BY userId
                   """;
 

@@ -6,6 +6,8 @@ public sealed class NHibernateSmokeTests : DbSqlLikeMem.Test.NHibernateSupportTe
 {
     protected override string NhDialectClass => "NHibernate.Dialect.DB2Dialect, NHibernate";
 
+    protected override string NhDriverClass => typeof(Db2NhMockDriver).AssemblyQualifiedName!;
+
     protected override DbConnection CreateOpenConnection()
     {
         var connection = new Db2ConnectionMock(new Db2DbMock());
