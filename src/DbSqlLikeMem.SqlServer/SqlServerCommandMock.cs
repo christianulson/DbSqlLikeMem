@@ -13,6 +13,13 @@ public class SqlServerCommandMock(
     SqlServerTransactionMock? transaction = null
     ) : DbCommand
 {
+    /// <summary>
+    /// Parameterless constructor required by reflection-based providers (e.g. NHibernate).
+    /// </summary>
+    public SqlServerCommandMock() : this(null, null)
+    {
+    }
+
     private bool disposedValue;
 
     /// <summary>
