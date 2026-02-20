@@ -119,13 +119,26 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             throw new InvalidOperationException("Invalid CREATE TABLE statement.");
 
         var table = connection.AddTable(createTableMatch.Groups["name"].Value.NormalizeName());
+        var primaryKeyColumns = new List<string>();
         foreach (var columnSql in SplitColumnDefinitions(createTableMatch.Groups["columns"].Value))
         {
+            var tablePrimaryKeyColumns = ParsePrimaryKeyConstraint(columnSql);
+            if (tablePrimaryKeyColumns.Count > 0)
+            {
+                primaryKeyColumns.AddRange(tablePrimaryKeyColumns);
+                continue;
+            }
+
             var col = ParseColumnDefinition(columnSql);
             if (col is null)
                 continue;
             table.AddColumn(col.Value.Name, col.Value.Type, nullable: col.Value.Nullable);
+            if (col.Value.PrimaryKey)
+                primaryKeyColumns.Add(col.Value.Name);
         }
+
+        if (primaryKeyColumns.Count > 0)
+            table.AddPrimaryKeyIndexes([.. primaryKeyColumns.Distinct(StringComparer.OrdinalIgnoreCase)]);
 
         return 0;
     }
@@ -155,7 +168,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             yield return last;
     }
 
-    private static (string Name, DbType Type, bool Nullable)? ParseColumnDefinition(string columnSql)
+    private static (string Name, DbType Type, bool Nullable, bool PrimaryKey)? ParseColumnDefinition(string columnSql)
     {
         var m = Regex.Match(
             columnSql,
@@ -165,13 +178,33 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             return null;
 
         var rest = m.Groups["rest"].Value;
-        if (Regex.IsMatch(rest, @"\b(CONSTRAINT|PRIMARY\s+KEY|UNIQUE\s*\(|FOREIGN\s+KEY|CHECK)\b", RegexOptions.IgnoreCase))
+        if (Regex.IsMatch(rest, @"\b(CONSTRAINT|UNIQUE\s*\(|FOREIGN\s+KEY|CHECK)\b", RegexOptions.IgnoreCase))
             return null;
 
         var name = m.Groups["name"].Value;
         var type = ParseDbTypeFromSqlType(m.Groups["type"].Value);
         var nullable = !Regex.IsMatch(rest, @"\bNOT\s+NULL\b", RegexOptions.IgnoreCase);
-        return (name, type, nullable);
+        var primaryKey = Regex.IsMatch(rest, @"\bPRIMARY\s+KEY\b", RegexOptions.IgnoreCase);
+        return (name, type, nullable, primaryKey);
+    }
+
+    private static IReadOnlyList<string> ParsePrimaryKeyConstraint(string columnSql)
+    {
+        var m = Regex.Match(
+            columnSql,
+            @"^(CONSTRAINT\s+`?[A-Za-z0-9_]+`?\s+)?PRIMARY\s+KEY\s*\((?<cols>[^)]*)\)\s*$",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        if (!m.Success)
+            return [];
+
+        var cols = m.Groups["cols"].Value
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(static name => name.NormalizeName())
+            .Where(static name => !string.IsNullOrWhiteSpace(name))
+            .ToList();
+
+        return cols;
     }
 
     private static DbType ParseDbTypeFromSqlType(string sqlType)
