@@ -158,6 +158,7 @@ public abstract class NHibernateSupportTestsBase
         configuration.SetProperty(Environment.Dialect, NhDialectClass);
         configuration.SetProperty(Environment.ConnectionProvider, typeof(UserSuppliedConnectionProvider).AssemblyQualifiedName!);
         configuration.SetProperty(Environment.ReleaseConnections, "on_close");
+        configuration.SetProperty("hbm2ddl.keywords", "none");
         if (!string.IsNullOrWhiteSpace(NhDriverClass))
             configuration.SetProperty(Environment.ConnectionDriver, NhDriverClass);
 
