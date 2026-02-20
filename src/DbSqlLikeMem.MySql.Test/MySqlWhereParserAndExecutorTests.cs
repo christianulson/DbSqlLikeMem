@@ -471,6 +471,68 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
     }
 
     /// <summary>
+    /// EN: Ensures HAVING can filter grouped rows by aggregate alias.
+    /// PT: Garante que HAVING filtre linhas agrupadas por alias de agregação.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlWhereParserAndExecutor")]
+    public void Having_AggregateAlias_ShouldFilterGroupedRows()
+    {
+        var rows = _cnn.Query<dynamic>(
+            "SELECT name, SUM(id) AS total FROM users GROUP BY name HAVING total >= 2 ORDER BY 2 DESC")
+            .ToList();
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal("Bob", (string)rows[0].name);
+        Assert.Equal(3L, (long)rows[0].total);
+        Assert.Equal("Jane", (string)rows[1].name);
+        Assert.Equal(2L, (long)rows[1].total);
+    }
+
+    /// <summary>
+    /// EN: Ensures GROUP BY + HAVING + ORDER BY supports alias filtering and ordinal ordering together.
+    /// PT: Garante que GROUP BY + HAVING + ORDER BY suporte filtro por alias e ordenação ordinal em conjunto.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlWhereParserAndExecutor")]
+    public void GroupByHavingOrderBy_AliasAndOrdinal_ShouldWorkTogether()
+    {
+        var rows = _cnn.Query<dynamic>(
+            "SELECT name, COUNT(*) AS c FROM users GROUP BY name HAVING c > 0 ORDER BY 1 ASC")
+            .ToList();
+
+        Assert.Equal(["Bob", "Jane", "John"], [.. rows.Select(r => (string)r.name)]);
+    }
+
+    /// <summary>
+    /// EN: Ensures invalid HAVING alias references fail with a clear validation error.
+    /// PT: Garante que referências inválidas de alias no HAVING falhem com erro de validação claro.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlWhereParserAndExecutor")]
+    public void Having_InvalidAlias_ShouldThrow()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _cnn.Query<dynamic>("SELECT name, COUNT(*) AS c FROM users GROUP BY name HAVING missing_alias > 0").ToList());
+
+        Assert.Contains("HAVING reference", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures invalid ORDER BY ordinal remains validated in grouped queries with HAVING.
+    /// PT: Garante que ordinal inválido em ORDER BY continue validado em queries agrupadas com HAVING.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlWhereParserAndExecutor")]
+    public void GroupByHaving_OrderByOrdinalOutOfRange_ShouldThrow()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _cnn.Query<dynamic>("SELECT name, COUNT(*) AS c FROM users GROUP BY name HAVING c > 0 ORDER BY 3").ToList());
+
+        Assert.Contains("ORDER BY ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Tests Where_IN_ShouldFilter behavior.
     /// PT: Testa o comportamento de Where_IN_ShouldFilter.
     /// </summary>

@@ -74,6 +74,201 @@ public sealed class PostgreSqlAggregationTests : XUnitTestBase
     }
 
     /// <summary>
+    /// EN: Ensures HAVING aggregate alias can be combined with ORDER BY ordinal in grouped execution.
+    /// PT: Garante que alias de agregação no HAVING possa ser combinado com ORDER BY ordinal na execução agrupada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlAggregation")]
+    public void Having_AggregateAlias_WithOrderByOrdinal_ShouldWork()
+    {
+        const string sql = """
+                  SELECT userId, SUM(amount) AS sumAmount
+                  FROM orders
+                  GROUP BY userId
+                  HAVING sumAmount > 0
+                  ORDER BY 2 DESC
+                  """;
+
+        var rows = _cnn.Query<dynamic>(sql).ToList();
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(1, (int)rows[0].userId);
+        Assert.Equal(40m, (decimal)rows[0].sumAmount);
+        Assert.Equal(2, (int)rows[1].userId);
+        Assert.Equal(5m, (decimal)rows[1].sumAmount);
+    }
+
+    /// <summary>
+    /// EN: Ensures invalid HAVING alias in grouped execution throws a clear validation error.
+    /// PT: Garante que alias inválido no HAVING em execução agrupada lance erro de validação claro.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlAggregation")]
+    public void Having_InvalidAlias_ShouldThrow()
+    {
+        const string sql = """
+                  SELECT userId, SUM(amount) AS sumAmount
+                  FROM orders
+                  GROUP BY userId
+                  HAVING missing_alias > 0
+                  """;
+
+        var ex = Assert.Throws<InvalidOperationException>(() => _cnn.Query<dynamic>(sql).ToList());
+        Assert.Contains("HAVING reference", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures HAVING ordinal expression resolves to the corresponding projected select item.
+    /// PT: Garante que expressão ordinal no HAVING resolva para o item projetado correspondente no SELECT.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlAggregation")]
+    public void Having_OrdinalExpression_ShouldResolveSelectedColumn()
+    {
+        const string sql = """
+                  SELECT userId, SUM(amount) AS sumAmount
+                  FROM orders
+                  GROUP BY userId
+                  HAVING 2 > 0
+                  ORDER BY userId
+                  """;
+
+        var rows = _cnn.Query<dynamic>(sql).ToList();
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(1, (int)rows[0].userId);
+        Assert.Equal(2, (int)rows[1].userId);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures HAVING mixed with ordinal and aggregate resolves ordinal to the select-item expression.
+    /// PT: Garante que HAVING misto com ordinal e agregação resolva o ordinal para a expressão do item do SELECT.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlAggregation")]
+    public void Having_MixedOrdinalAndAggregate_ShouldResolveOrdinal()
+    {
+        const string sql = """
+                  SELECT userId, SUM(amount) AS sumAmount
+                  FROM orders
+                  GROUP BY userId
+                  HAVING 2 > 10 AND SUM(amount) > 0
+                  ORDER BY userId
+                  """;
+
+        var rows = _cnn.Query<dynamic>(sql).ToList();
+        Assert.Single(rows);
+        Assert.Equal(1, (int)rows[0].userId);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures HAVING CASE expression resolves ordinal references correctly.
+    /// PT: Garante que expressão CASE no HAVING resolva corretamente referências ordinais.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlAggregation")]
+    public void Having_CaseWithOrdinal_ShouldResolveOrdinal()
+    {
+        const string sql = """
+                  SELECT userId, SUM(amount) AS sumAmount
+                  FROM orders
+                  GROUP BY userId
+                  HAVING CASE WHEN 2 > 10 THEN 1 ELSE 0 END = 1
+                  ORDER BY userId
+                  """;
+
+        var rows = _cnn.Query<dynamic>(sql).ToList();
+        Assert.Single(rows);
+        Assert.Equal(1, (int)rows[0].userId);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures HAVING BETWEEN expression resolves ordinal references correctly.
+    /// PT: Garante que expressão BETWEEN no HAVING resolva corretamente referências ordinais.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlAggregation")]
+    public void Having_BetweenWithOrdinal_ShouldResolveOrdinal()
+    {
+        const string sql = """
+                  SELECT userId, SUM(amount) AS sumAmount
+                  FROM orders
+                  GROUP BY userId
+                  HAVING 2 BETWEEN 35 AND 45
+                  ORDER BY userId
+                  """;
+
+        var rows = _cnn.Query<dynamic>(sql).ToList();
+        Assert.Single(rows);
+        Assert.Equal(1, (int)rows[0].userId);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures HAVING IN expression resolves ordinal references correctly.
+    /// PT: Garante que expressão IN no HAVING resolva corretamente referências ordinais.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlAggregation")]
+    public void Having_InWithOrdinal_ShouldResolveOrdinal()
+    {
+        const string sql = """
+                  SELECT userId, SUM(amount) AS sumAmount
+                  FROM orders
+                  GROUP BY userId
+                  HAVING 2 IN (5, 40)
+                  ORDER BY userId
+                  """;
+
+        var rows = _cnn.Query<dynamic>(sql).ToList();
+        Assert.Single(rows);
+        Assert.Equal(1, (int)rows[0].userId);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures numeric thresholds in HAVING aggregate comparisons are treated as constants, not ordinals.
+    /// PT: Garante que limites numéricos em comparações de agregação no HAVING sejam tratados como constantes, não ordinais.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlAggregation")]
+    public void Having_AggregateThresholdConstant_ShouldNotBeTreatedAsOrdinal()
+    {
+        const string sql = """
+                  SELECT userId, SUM(amount) AS sumAmount
+                  FROM orders
+                  GROUP BY userId
+                  HAVING SUM(amount) > 10
+                  ORDER BY userId
+                  """;
+
+        var rows = _cnn.Query<dynamic>(sql).ToList();
+        Assert.Single(rows);
+        Assert.Equal(1, (int)rows[0].userId);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures HAVING ordinal out of range throws a clear validation error.
+    /// PT: Garante que ordinal fora do intervalo no HAVING lance um erro de validação claro.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlAggregation")]
+    public void Having_OrdinalOutOfRange_ShouldThrow()
+    {
+        const string sql = """
+                  SELECT userId, SUM(amount) AS sumAmount
+                  FROM orders
+                  GROUP BY userId
+                  HAVING 3 > 0
+                  """;
+
+        var ex = Assert.Throws<InvalidOperationException>(() => _cnn.Query<dynamic>(sql).ToList());
+        Assert.Contains("HAVING ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+    /// <summary>
     /// EN: Tests Distinct_Order_Limit_Offset_ShouldWork behavior.
     /// PT: Testa o comportamento de Distinct_Order_Limit_Offset_ShouldWork.
     /// </summary>

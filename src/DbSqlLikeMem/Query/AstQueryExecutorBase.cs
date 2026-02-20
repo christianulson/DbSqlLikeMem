@@ -358,7 +358,7 @@ internal abstract class AstQueryExecutorBase(
 
         // 3) WHERE
         if (selectQuery.Where is not null)
-            rows = rows.Where(r => Eval(selectQuery.Where, r, group: null, ctes).ToBool());
+            rows = ApplyRowPredicate(rows, selectQuery.Where, ctes);
 
         // 4) GROUP BY / HAVING / SELECT projection
         bool needsGrouping = selectQuery.GroupBy.Count > 0 || selectQuery.Having is not null || ContainsAggregate(selectQuery);
@@ -425,24 +425,331 @@ internal abstract class AstQueryExecutorBase(
             .Select(x => x!.Value)
             .ToList();
 
-        var havingExpr = q.Having;
+        var havingExpr = NormalizeHavingExpression(q.Having, q);
 
-        grouped = grouped.Where(g =>
-        {
-            var rows = g.ToList();
-            var eg = new EvalGroup(rows);
-            var first = rows[0];
-
-            // clona a row e injeta aliases projetados (C, etc.)
-            var ctx = first.CloneRow();
-            foreach (var (alias, ast) in aliasExprs)
-                ctx.Fields[alias] = Eval(ast, first, eg, ctes);
-
-            return Eval(havingExpr, ctx, eg, ctes).ToBool();
-        });
+        grouped = ApplyHavingPredicate(grouped, havingExpr, aliasExprs, ctes);
 
         // Project grouped
         return ProjectGrouped(q, grouped, ctes);
+    }
+
+
+    private IEnumerable<EvalRow> ApplyRowPredicate(
+        IEnumerable<EvalRow> rows,
+        SqlExpr predicate,
+        IDictionary<string, Source> ctes)
+        => rows.Where(r => Eval(predicate, r, group: null, ctes).ToBool());
+
+    private IEnumerable<IGrouping<GroupKey, EvalRow>> ApplyHavingPredicate(
+        IEnumerable<IGrouping<GroupKey, EvalRow>> grouped,
+        SqlExpr havingExpr,
+        IReadOnlyList<(string Alias, SqlExpr Ast)> aliasExprs,
+        IDictionary<string, Source> ctes)
+    {
+        return grouped.Where(g =>
+        {
+            var evalCtx = BuildHavingEvaluationContext(g, aliasExprs, ctes, out var evalGroup);
+            EnsureHavingIdentifiersAreBound(havingExpr, evalCtx);
+            return Eval(havingExpr, evalCtx, evalGroup, ctes).ToBool();
+        });
+    }
+
+    private EvalRow BuildHavingEvaluationContext(
+        IGrouping<GroupKey, EvalRow> grouped,
+        IReadOnlyList<(string Alias, SqlExpr Ast)> aliasExprs,
+        IDictionary<string, Source> ctes,
+        out EvalGroup evalGroup)
+    {
+        var rows = grouped.ToList();
+        evalGroup = new EvalGroup(rows);
+        var first = rows[0];
+
+        var ctx = first.CloneRow();
+        foreach (var (alias, ast) in aliasExprs)
+            ctx.Fields[alias] = Eval(ast, first, evalGroup, ctes);
+
+        return ctx;
+    }
+
+    private SqlExpr NormalizeHavingExpression(SqlExpr expr, SqlSelectQuery q)
+    {
+        var usedOrdinal = false;
+        int? outOfRangeOrdinal = null;
+        int? nonPositiveOrdinal = null;
+        var rewritten = RewriteHavingOrdinals(
+            expr,
+            q,
+            ref usedOrdinal,
+            allowOrdinalLiteral: true,
+            ref outOfRangeOrdinal,
+            ref nonPositiveOrdinal);
+
+        if (usedOrdinal)
+            return rewritten;
+
+        var hasAggregate = WalkHasAggregate(rewritten);
+        var hasIdentifier = EnumerateIdentifiers(rewritten).Any();
+        if (hasAggregate || hasIdentifier)
+            return rewritten;
+
+        if (nonPositiveOrdinal.HasValue)
+            throw new InvalidOperationException("invalid: HAVING ordinal must be >= 1");
+
+        if (outOfRangeOrdinal.HasValue)
+            throw new InvalidOperationException($"invalid: HAVING ordinal {outOfRangeOrdinal.Value} out of range");
+
+        throw new InvalidOperationException(
+            "invalid: HAVING must reference grouped columns, projected aliases, aggregates, or valid ordinals");
+    }
+
+    private SqlExpr RewriteHavingOrdinals(
+        SqlExpr expr,
+        SqlSelectQuery q,
+        ref bool usedOrdinal,
+        bool allowOrdinalLiteral,
+        ref int? outOfRangeOrdinal,
+        ref int? nonPositiveOrdinal)
+    {
+        switch (expr)
+        {
+            case LiteralExpr l when allowOrdinalLiteral && TryLiteralToIntOrdinal(l.Value, out var ord):
+                {
+                    if (ord < 1)
+                    {
+                        nonPositiveOrdinal ??= ord;
+                        return expr;
+                    }
+
+                    var idx = ord - 1;
+                    if (idx >= q.SelectItems.Count)
+                    {
+                        outOfRangeOrdinal ??= ord;
+                        return expr;
+                    }
+
+                    var selectItem = q.SelectItems[idx];
+                    var (exprRaw, _) = SplitTrailingAsAlias(selectItem.Raw, selectItem.Alias);
+                    usedOrdinal = true;
+                    return ParseExpr(exprRaw);
+                }
+
+            case BinaryExpr b:
+                var leftCanBeOrdinal = IsOrdinalCandidateSide(b.Op, leftSide: true);
+                var rightCanBeOrdinal = IsOrdinalCandidateSide(b.Op, leftSide: false);
+                return b with
+                {
+                    Left = RewriteHavingOrdinals(b.Left, q, ref usedOrdinal, leftCanBeOrdinal, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
+                    Right = RewriteHavingOrdinals(b.Right, q, ref usedOrdinal, rightCanBeOrdinal, ref outOfRangeOrdinal, ref nonPositiveOrdinal)
+                };
+            case UnaryExpr u:
+                return u with { Expr = RewriteHavingOrdinals(u.Expr, q, ref usedOrdinal, allowOrdinalLiteral, ref outOfRangeOrdinal, ref nonPositiveOrdinal) };
+            case IsNullExpr isn:
+                return isn with { Expr = RewriteHavingOrdinals(isn.Expr, q, ref usedOrdinal, allowOrdinalLiteral, ref outOfRangeOrdinal, ref nonPositiveOrdinal) };
+            case LikeExpr like:
+                return like with
+                {
+                    Left = RewriteHavingOrdinals(like.Left, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
+                    Pattern = RewriteHavingOrdinals(like.Pattern, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal)
+                };
+            case InExpr i:
+                return i with
+                {
+                    Left = RewriteHavingOrdinals(i.Left, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
+                    Items = [.. i.Items.Select(it => RewriteHavingOrdinals(it, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal))]
+                };
+            case RowExpr r:
+                return r with { Items = [.. r.Items.Select(it => RewriteHavingOrdinals(it, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal))] };
+            case BetweenExpr bt:
+                return bt with
+                {
+                    Expr = RewriteHavingOrdinals(bt.Expr, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
+                    Low = RewriteHavingOrdinals(bt.Low, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
+                    High = RewriteHavingOrdinals(bt.High, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal)
+                };
+            case FunctionCallExpr fn:
+                return fn with { Args = [.. fn.Args.Select(a => RewriteHavingOrdinals(a, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal))] };
+            case CallExpr call:
+                return call with { Args = [.. call.Args.Select(a => RewriteHavingOrdinals(a, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal))] };
+            case CaseExpr c:
+                return c with
+                {
+                    BaseExpr = c.BaseExpr is null ? null : RewriteHavingOrdinals(c.BaseExpr, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
+                    Whens = [.. c.Whens.Select(w => w with
+                    {
+                        When = RewriteHavingOrdinals(w.When, q, ref usedOrdinal, allowOrdinalLiteral, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
+                        Then = RewriteHavingOrdinals(w.Then, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal)
+                    })],
+                    ElseExpr = c.ElseExpr is null ? null : RewriteHavingOrdinals(c.ElseExpr, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal)
+                };
+            default:
+                return expr;
+        }
+    }
+
+    private static bool IsOrdinalCandidateSide(SqlBinaryOp op, bool leftSide)
+        => op switch
+        {
+            SqlBinaryOp.Eq => true,
+            SqlBinaryOp.Neq => true,
+            SqlBinaryOp.Greater => leftSide,
+            SqlBinaryOp.GreaterOrEqual => leftSide,
+            SqlBinaryOp.Less => !leftSide,
+            SqlBinaryOp.LessOrEqual => !leftSide,
+            SqlBinaryOp.NullSafeEq => true,
+            _ => false
+        };
+
+    private static bool TryLiteralToIntOrdinal(object? value, out int ordinal)
+    {
+        switch (value)
+        {
+            case int i:
+                ordinal = i;
+                return true;
+            case long l when l >= int.MinValue && l <= int.MaxValue:
+                ordinal = (int)l;
+                return true;
+            case short s:
+                ordinal = s;
+                return true;
+            case byte b:
+                ordinal = b;
+                return true;
+            default:
+                ordinal = 0;
+                return false;
+        }
+    }
+
+    private static void EnsureHavingIdentifiersAreBound(SqlExpr expr, EvalRow row)
+    {
+        foreach (var name in EnumerateIdentifiers(expr))
+        {
+            if (IsIdentifierBound(row, name))
+                continue;
+
+            throw new InvalidOperationException($"invalid: HAVING reference '{name}' was not found in grouped projection");
+        }
+    }
+
+    private static bool IsIdentifierBound(EvalRow row, string name)
+    {
+        var dot = name.IndexOf('.');
+        if (dot >= 0)
+        {
+            var qualifier = name[..dot].Trim();
+            var col = name[(dot + 1)..].Trim();
+            if (qualifier.Length == 0 || col.Length == 0)
+                return false;
+
+            if (row.Fields.ContainsKey($"{qualifier}.{col}"))
+                return true;
+
+            if (row.Sources.TryGetValue(qualifier, out var src))
+            {
+                var hit = src.ColumnNames.FirstOrDefault(c => c.Equals(col, StringComparison.OrdinalIgnoreCase));
+                return hit is not null && row.Fields.ContainsKey($"{src.Alias}.{hit}");
+            }
+
+            return false;
+        }
+
+        if (row.Fields.ContainsKey(name))
+            return true;
+
+        return row.Fields.Keys.Any(k => k.EndsWith($".{name}", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static IEnumerable<string> EnumerateIdentifiers(SqlExpr expr)
+    {
+        switch (expr)
+        {
+            case IdentifierExpr id:
+                yield return id.Name;
+                yield break;
+            case ColumnExpr col:
+                yield return string.IsNullOrWhiteSpace(col.Qualifier) ? col.Name : $"{col.Qualifier}.{col.Name}";
+                yield break;
+            case BinaryExpr b:
+                foreach (var id in EnumerateIdentifiers(b.Left))
+                    yield return id;
+                foreach (var id in EnumerateIdentifiers(b.Right))
+                    yield return id;
+                yield break;
+            case UnaryExpr u:
+                foreach (var id in EnumerateIdentifiers(u.Expr))
+                    yield return id;
+                yield break;
+            case IsNullExpr isn:
+                foreach (var id in EnumerateIdentifiers(isn.Expr))
+                    yield return id;
+                yield break;
+            case LikeExpr l:
+                foreach (var id in EnumerateIdentifiers(l.Left))
+                    yield return id;
+                foreach (var id in EnumerateIdentifiers(l.Pattern))
+                    yield return id;
+                yield break;
+            case InExpr i:
+                foreach (var id in EnumerateIdentifiers(i.Left))
+                    yield return id;
+                foreach (var it in i.Items)
+                    foreach (var id in EnumerateIdentifiers(it))
+                        yield return id;
+                yield break;
+            case RowExpr r:
+                foreach (var it in r.Items)
+                    foreach (var id in EnumerateIdentifiers(it))
+                        yield return id;
+                yield break;
+            case CaseExpr c:
+                if (c.BaseExpr is not null)
+                {
+                    foreach (var id in EnumerateIdentifiers(c.BaseExpr))
+                        yield return id;
+                }
+
+                foreach (var when in c.Whens)
+                {
+                    foreach (var id in EnumerateIdentifiers(when.When))
+                        yield return id;
+                    foreach (var id in EnumerateIdentifiers(when.Then))
+                        yield return id;
+                }
+
+                if (c.ElseExpr is not null)
+                {
+                    foreach (var id in EnumerateIdentifiers(c.ElseExpr))
+                        yield return id;
+                }
+                yield break;
+            case FunctionCallExpr fn:
+                foreach (var arg in fn.Args)
+                    foreach (var id in EnumerateIdentifiers(arg))
+                        yield return id;
+                yield break;
+            case CallExpr call:
+                foreach (var arg in call.Args)
+                    foreach (var id in EnumerateIdentifiers(arg))
+                        yield return id;
+                yield break;
+            case JsonAccessExpr ja:
+                foreach (var id in EnumerateIdentifiers(ja.Target))
+                    yield return id;
+                foreach (var id in EnumerateIdentifiers(ja.Path))
+                    yield return id;
+                yield break;
+            case BetweenExpr bt:
+                foreach (var id in EnumerateIdentifiers(bt.Expr))
+                    yield return id;
+                foreach (var id in EnumerateIdentifiers(bt.Low))
+                    yield return id;
+                foreach (var id in EnumerateIdentifiers(bt.High))
+                    yield return id;
+                yield break;
+            default:
+                yield break;
+        }
     }
 
     private SqlExpr[] BuildGroupByKeyExpressions(SqlSelectQuery q)

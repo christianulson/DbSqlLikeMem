@@ -19,6 +19,8 @@
 - Parser e execução de SQL para DDL/DML comuns.
 - Dialeto com diferenças por banco (parser e compatibilidade).
 - Expressões `WHERE` (`AND`/`OR`, `IN`, `LIKE`, `IS NULL`, parâmetros).
+- `GROUP BY`/`HAVING` com agregações (`COUNT`, `SUM`, `MIN`, `MAX`, `AVG`) e suporte a aliases no `HAVING`.
+- `HAVING` por ordinal em caminhos agrupados (ex.: `HAVING 2 > 0`), incluindo reescrita em expressões `CASE`/`BETWEEN`/`IN` e validação de ordinal inválido.
 - `CREATE VIEW` / `CREATE OR REPLACE VIEW`.
 - `CREATE TEMPORARY TABLE` (incluindo variantes `AS SELECT`).
 - Definição de schema via API fluente.
