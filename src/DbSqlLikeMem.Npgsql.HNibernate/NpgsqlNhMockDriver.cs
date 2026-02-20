@@ -6,6 +6,10 @@ namespace DbSqlLikeMem.Npgsql.HNibernate;
 /// </summary>
 public sealed class NpgsqlNhMockDriver : ReflectionBasedDriver
 {
+    /// <summary>
+    /// EN: Initializes a NHibernate mock driver for DbSqlLikeMem Npgsql provider types.
+    /// PT: Inicializa um driver mock do NHibernate para os tipos do provedor Npgsql do DbSqlLikeMem.
+    /// </summary>
     public NpgsqlNhMockDriver()
         : base(
             "DbSqlLikeMem.Npgsql",
@@ -15,9 +19,21 @@ public sealed class NpgsqlNhMockDriver : ReflectionBasedDriver
     {
     }
 
-    public override bool UseNamedPrefixInSql => throw new NotImplementedException();
+    /// <summary>
+    /// EN: Indicates that named parameter prefixes must be rendered in generated SQL text.
+    /// PT: Indica que os prefixos de parâmetros nomeados devem ser renderizados no SQL gerado.
+    /// </summary>
+    public override bool UseNamedPrefixInSql => true;
 
-    public override bool UseNamedPrefixInParameter => throw new NotImplementedException();
+    /// <summary>
+    /// EN: Indicates that parameter names are expected to include the named prefix.
+    /// PT: Indica que os nomes dos parâmetros devem incluir o prefixo nomeado.
+    /// </summary>
+    public override bool UseNamedPrefixInParameter => true;
 
-    public override string NamedPrefix => throw new NotImplementedException();
+    /// <summary>
+    /// EN: Gets the named parameter prefix used by this driver.
+    /// PT: Obtém o prefixo de parâmetro nomeado usado por este driver.
+    /// </summary>
+    public override string NamedPrefix => "@";
 }
