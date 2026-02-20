@@ -12,6 +12,13 @@ public class OracleCommandMock(
     OracleTransactionMock? transaction = null
     ) : DbCommand
 {
+    /// <summary>
+    /// Parameterless constructor required by reflection-based providers (e.g. NHibernate).
+    /// </summary>
+    public OracleCommandMock() : this(null, null)
+    {
+    }
+
     private bool disposedValue;
 
     /// <summary>
