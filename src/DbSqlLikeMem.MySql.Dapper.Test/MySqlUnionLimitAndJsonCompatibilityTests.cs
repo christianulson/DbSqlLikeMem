@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.MySql.Test;
+namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
 /// Tests that lock-in expected behavior for MySQL features that the in-memory mock already supports.

@@ -35,6 +35,7 @@
   <ItemGroup>
     <Using Include="DbSqlLikeMem" />
     <Using Include="DbSqlLikeMem.Db2" />
+	<Using Include="DbSqlLikeMem.NHibernate.Test" />
     <Using Include="DbSqlLikeMem.Test" />
     <Using Include="Xunit" />
   </ItemGroup>

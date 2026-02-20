@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.MySql.Test;
+namespace DbSqlLikeMem.MySql.Dapper.Test;
 /// <summary>
 /// Auto-generated summary.
 /// </summary>

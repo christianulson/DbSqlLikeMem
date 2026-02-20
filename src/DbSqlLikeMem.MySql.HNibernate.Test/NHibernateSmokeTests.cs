@@ -1,9 +1,9 @@
 using DbSqlLikeMem.MySql.HNibernate;
 using System.Data.Common;
 
-namespace DbSqlLikeMem.MySql.Test;
+namespace DbSqlLikeMem.MySql.HNibernate.Test;
 
-public sealed class NHibernateSmokeTests : DbSqlLikeMem.Test.NHibernateSupportTestsBase
+public sealed class NHibernateSmokeTests : NHibernateSupportTestsBase
 {
     protected override string NhDialectClass => "NHibernate.Dialect.MySQLDialect, NHibernate";
 

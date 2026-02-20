@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.MySql.Test;
+namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
 /// These are TDD "gap" tests for MySQL features that are NOT implemented yet in the in-memory mock.
