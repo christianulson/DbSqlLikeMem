@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Sqlite.Test;
+﻿namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
 /// Tests that lock-in expected behavior for SQLite features that the in-memory mock already supports.

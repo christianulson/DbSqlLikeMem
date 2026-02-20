@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.SqlServer.Test.Strategy;
+namespace DbSqlLikeMem.SqlServer.Dapper.Test.Strategy;
 
 /// <summary>
 /// Auto-generated summary.

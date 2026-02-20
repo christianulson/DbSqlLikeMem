@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Sqlite.Test;
+﻿namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
 /// These are TDD "gap" tests for SQLite features that are NOT implemented yet in the in-memory mock.

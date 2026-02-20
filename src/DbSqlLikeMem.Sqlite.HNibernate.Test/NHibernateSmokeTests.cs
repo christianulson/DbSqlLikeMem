@@ -1,7 +1,6 @@
-using DbSqlLikeMem.Sqlite.HNibernate;
 using System.Data.Common;
 
-namespace DbSqlLikeMem.Sqlite.Test;
+namespace DbSqlLikeMem.Sqlite.HNibernate.Test;
 
 public sealed class NHibernateSmokeTests : NHibernateSupportTestsBase
 {

@@ -1,4 +1,15 @@
-﻿namespace DbSqlLikeMem.Sqlite.Test;
+﻿
+<<<<<<< TODO: Unmerged change from project 'DbSqlLikeMem.Sqlite.Dapper.Test (net10.0)', Before:
+namespace DbSqlLikeMem.Sqlite.Test;
+/// <summary>
+=======
+using DbSqlLikeMem.Sqlite.Dapper.Test;
+using DbSqlLikeMem.Sqlite.Test;
+
+namespace DbSqlLikeMem.Sqlite.Dapper.Test;
+/// <summary>
+>>>>>>> After
+namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 /// <summary>
 /// Auto-generated summary.
 /// </summary>

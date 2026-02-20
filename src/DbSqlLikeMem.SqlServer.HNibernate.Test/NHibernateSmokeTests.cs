@@ -1,7 +1,6 @@
-using DbSqlLikeMem.SqlServer.HNibernate;
 using System.Data.Common;
 
-namespace DbSqlLikeMem.SqlServer.Test;
+namespace DbSqlLikeMem.SqlServer.HNibernate.Test;
 
 public sealed class NHibernateSmokeTests : NHibernateSupportTestsBase
 {

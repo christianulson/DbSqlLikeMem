@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Sqlite.Test;
+﻿namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
 /// TDD guard-rail tests for SQL features where this in-memory Sqlite mock commonly diverges from real SQLite.

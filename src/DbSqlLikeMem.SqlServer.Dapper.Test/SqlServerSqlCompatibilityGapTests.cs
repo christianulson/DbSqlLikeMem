@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.SqlServer.Test;
+namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
 /// TDD guard-rail tests for SQL features where this in-memory SqlServer mock commonly diverges from real MySQL.

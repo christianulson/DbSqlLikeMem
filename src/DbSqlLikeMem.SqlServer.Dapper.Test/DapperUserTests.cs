@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.SqlServer.Test;
+namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 /// <summary>
 /// Auto-generated summary.
 /// </summary>

@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace DbSqlLikeMem.SqlServer.Test.Query;
+namespace DbSqlLikeMem.SqlServer.Dapper.Test.Query;
 
 /// <summary>
 /// Auto-generated summary.

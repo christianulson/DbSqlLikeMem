@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.Sqlite.Test;
+namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
 /// EN: Validates transactional reliability additions for P11 scenarios.

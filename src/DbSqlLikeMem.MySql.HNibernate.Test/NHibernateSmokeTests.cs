@@ -1,4 +1,3 @@
-using DbSqlLikeMem.MySql.HNibernate;
 using System.Data.Common;
 
 namespace DbSqlLikeMem.MySql.HNibernate.Test;

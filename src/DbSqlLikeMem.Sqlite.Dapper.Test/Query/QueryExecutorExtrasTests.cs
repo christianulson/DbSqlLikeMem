@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace DbSqlLikeMem.Sqlite.Test.Query;
+namespace DbSqlLikeMem.Sqlite.Dapper.Test.Query;
 
 /// <summary>
 /// Auto-generated summary.

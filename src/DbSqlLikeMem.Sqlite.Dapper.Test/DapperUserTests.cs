@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Sqlite.Test;
+﻿namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 /// <summary>
 /// Auto-generated summary.
 /// </summary>
