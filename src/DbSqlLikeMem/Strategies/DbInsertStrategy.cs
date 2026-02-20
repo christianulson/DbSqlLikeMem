@@ -180,6 +180,24 @@ internal static class DbInsertStrategy
 
         var normalized = columnName.Trim();
 
+        // Alguns clientes ORM podem incluir sufixos lexicais no nome da coluna
+        // (ex.: "id," / "id;" / "id asc").
+        // Tentamos normalizar versões comuns antes de falhar com UnknownColumn.
+        var trimmedPunctuation = normalized.TrimEnd(',', ';');
+        if (!string.Equals(trimmedPunctuation, normalized, StringComparison.Ordinal)
+            && TryGetColumn(table, trimmedPunctuation, out col))
+        {
+            return col;
+        }
+
+        var tokenParts = trimmedPunctuation.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (tokenParts.Length > 0
+            && !string.Equals(tokenParts[0], trimmedPunctuation, StringComparison.Ordinal)
+            && TryGetColumn(table, tokenParts[0], out col))
+        {
+            return col;
+        }
+
         if (dialect.AllowsDoubleQuoteIdentifiers
             && normalized.Length >= 2
             && normalized[0] == '"'
