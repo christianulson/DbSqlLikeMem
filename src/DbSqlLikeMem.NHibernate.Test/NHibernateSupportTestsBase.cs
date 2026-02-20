@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Data.Common;
 using NHibernate.Criterion;
 using NHibernate.Cfg;
@@ -314,6 +315,101 @@ public abstract class NHibernateSupportTestsBase
 
 
     /// <summary>
+    /// EN: Verifies rollback on mapped entity save does not persist rows.
+    /// PT: Verifica se rollback em save de entidade mapeada não persiste linhas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedEntity_SaveRollback_ShouldNotPersist()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            session.Save(new NhTestUser { Id = 7, Name = "RollbackMapped" });
+            tx.Rollback();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var loaded = verifySession.Get<NhTestUser>(7);
+
+        Assert.Null(loaded);
+    }
+
+    /// <summary>
+    /// EN: Verifies one-to-many mapped collections can be loaded from parent entities.
+    /// PT: Verifica se coleções one-to-many mapeadas podem ser carregadas a partir da entidade pai.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedRelationship_OneToMany_ShouldLoadCollection()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE user_groups (id INT PRIMARY KEY, name VARCHAR(100))");
+        ExecuteNonQuery(connection, "CREATE TABLE users_rel (id INT PRIMARY KEY, name VARCHAR(100), group_id INT)");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            var group = new NhUserGroup { Id = 2, Name = "Support" };
+            session.Save(group);
+            session.Save(new NhRelUser { Id = 201, Name = "U1", Group = group });
+            session.Save(new NhRelUser { Id = 202, Name = "U2", Group = group });
+            tx.Commit();
+        }
+
+        using var querySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var loadedGroup = querySession.Get<NhUserGroup>(2);
+
+        Assert.NotNull(loadedGroup);
+        Assert.Equal("Support", loadedGroup!.Name);
+        Assert.Equal(2, loadedGroup.Users.Count);
+    }
+
+    /// <summary>
+    /// EN: Verifies HQL join/group-by aggregation works on mapped one-to-many relationships.
+    /// PT: Verifica se agregação HQL com join/group-by funciona em relacionamentos one-to-many mapeados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_Hql_RelationshipAggregation_ShouldReturnExpectedCounts()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE user_groups (id INT PRIMARY KEY, name VARCHAR(100))");
+        ExecuteNonQuery(connection, "CREATE TABLE users_rel (id INT PRIMARY KEY, name VARCHAR(100), group_id INT)");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            var admins = new NhUserGroup { Id = 3, Name = "Admins" };
+            var guests = new NhUserGroup { Id = 4, Name = "Guests" };
+
+            session.Save(admins);
+            session.Save(guests);
+            session.Save(new NhRelUser { Id = 301, Name = "A1", Group = admins });
+            session.Save(new NhRelUser { Id = 302, Name = "A2", Group = admins });
+            session.Save(new NhRelUser { Id = 303, Name = "G1", Group = guests });
+            tx.Commit();
+        }
+
+        using var querySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var rows = querySession
+            .CreateQuery("select g.Name, count(u.Id) from NhUserGroup g left join g.Users u group by g.Name order by g.Name")
+            .List<object[]>();
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal("Admins", rows[0][0]);
+        Assert.Equal(2L, rows[0][1]);
+        Assert.Equal("Guests", rows[1][0]);
+        Assert.Equal(1L, rows[1][1]);
+    }
+
+    /// <summary>
     /// EN: Verifies mapped many-to-one relationships can be persisted and queried through HQL.
     /// PT: Verifica se relacionamentos many-to-one mapeados podem ser persistidos e consultados via HQL.
     /// </summary>
@@ -475,6 +571,8 @@ public abstract class NHibernateSupportTestsBase
         public virtual int Id { get; set; }
 
         public virtual string Name { get; set; } = string.Empty;
+
+        public virtual IList<NhRelUser> Users { get; set; } = new List<NhRelUser>();
     }
 
     private sealed class NhRelUser
@@ -503,6 +601,15 @@ public abstract class NHibernateSupportTestsBase
                 map.Column("name");
                 map.NotNullable(true);
             });
+
+            Bag(x => x.Users,
+                bag =>
+                {
+                    bag.Key(key => key.Column("group_id"));
+                    bag.Inverse(true);
+                    bag.Cascade(Cascade.None);
+                },
+                rel => rel.OneToMany());
         }
     }
 
