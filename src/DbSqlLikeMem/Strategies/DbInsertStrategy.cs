@@ -190,7 +190,7 @@ internal static class DbInsertStrategy
             return col;
         }
 
-        var tokenParts = trimmedPunctuation.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var tokenParts = trimmedPunctuation.Split(' ').Select(_=>_.Trim()).Where(_=>!string.IsNullOrWhiteSpace(_)).ToArray();
         if (tokenParts.Length > 0
             && !string.Equals(tokenParts[0], trimmedPunctuation, StringComparison.Ordinal)
             && TryGetColumn(table, tokenParts[0], out col))
