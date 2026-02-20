@@ -1,4 +1,5 @@
 using System.Data.Common;
+using NHibernate.Criterion;
 using NHibernate.Cfg;
 using NHibernate.Connection;
 using NHibernate.Mapping.ByCode;
@@ -150,6 +151,165 @@ public abstract class NHibernateSupportTestsBase
                 .UniqueResult());
 
         Assert.Equal(0, count);
+    }
+
+    /// <summary>
+    /// EN: Verifies deleting a mapped entity removes it from the store.
+    /// PT: Verifica se excluir uma entidade mapeada a remove do armazenamento.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedEntity_Delete_ShouldRemoveRow()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            session.Save(new NhTestUser { Id = 5, Name = "DeleteMe" });
+            tx.Commit();
+        }
+
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            var user = session.Get<NhTestUser>(5);
+            Assert.NotNull(user);
+            session.Delete(user!);
+            session.Flush();
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var deleted = verifySession.Get<NhTestUser>(5);
+        Assert.Null(deleted);
+    }
+
+    /// <summary>
+    /// EN: Verifies mapped query pagination works with FirstResult/MaxResults.
+    /// PT: Verifica se a paginação da query mapeada funciona com FirstResult/MaxResults.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedQuery_Pagination_ShouldReturnWindow()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            session.Save(new NhTestUser { Id = 10, Name = "User-10" });
+            session.Save(new NhTestUser { Id = 11, Name = "User-11" });
+            session.Save(new NhTestUser { Id = 12, Name = "User-12" });
+            session.Save(new NhTestUser { Id = 13, Name = "User-13" });
+            tx.Commit();
+        }
+
+        using var querySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var paged = querySession
+            .CreateQuery("from NhTestUser u order by u.Id")
+            .SetFirstResult(1)
+            .SetMaxResults(2)
+            .List<NhTestUser>();
+
+        Assert.Collection(
+            paged,
+            row => Assert.Equal(11, row.Id),
+            row => Assert.Equal(12, row.Id));
+    }
+
+    /// <summary>
+    /// EN: Verifies basic HQL and Criteria APIs work with mapped entities.
+    /// PT: Verifica se APIs básicas de HQL e Criteria funcionam com entidades mapeadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_Hql_AndCriteria_ShouldFilterMappedEntity()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            session.Save(new NhTestUser { Id = 20, Name = "Alpha" });
+            session.Save(new NhTestUser { Id = 21, Name = "Beta" });
+            tx.Commit();
+        }
+
+        using var querySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+
+        var hqlResult = querySession
+            .CreateQuery("from NhTestUser u where u.Name = :name")
+            .SetParameter("name", "Beta")
+            .UniqueResult<NhTestUser>();
+
+        Assert.NotNull(hqlResult);
+        Assert.Equal(21, hqlResult!.Id);
+
+        var criteriaResult = querySession
+            .CreateCriteria<NhTestUser>()
+            .Add(Restrictions.Eq(nameof(NhTestUser.Name), "Alpha"))
+            .UniqueResult<NhTestUser>();
+
+        Assert.NotNull(criteriaResult);
+        Assert.Equal(20, criteriaResult!.Id);
+    }
+
+    /// <summary>
+    /// EN: Verifies null and basic typed parameters (string/int/datetime/decimal) are handled correctly.
+    /// PT: Verifica se parâmetros nulos e tipados básicos (string/int/datetime/decimal) são tratados corretamente.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_NativeSql_NullAndTypedParameters_ShouldRoundTrip()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE typed_values (id INT PRIMARY KEY, str_val VARCHAR(100), int_val INT, dt_val DATETIME, dec_val DECIMAL(10,2))");
+
+        var expectedDate = new DateTime(2024, 10, 15, 8, 30, 0);
+        var expectedDecimal = 12.50m;
+
+        using var sessionFactory = BuildConfiguration().BuildSessionFactory();
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            _ = session
+                .CreateSQLQuery("INSERT INTO typed_values (id, str_val, int_val, dt_val, dec_val) VALUES (:id, :str, :int, :dt, :dec)")
+                .SetParameter("id", 1)
+                .SetParameter("str", (string?)null, NHibernate.NHibernateUtil.String)
+                .SetParameter("int", 42)
+                .SetParameter("dt", expectedDate)
+                .SetParameter("dec", expectedDecimal)
+                .ExecuteUpdate();
+
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+
+        var nullMatchCount = Convert.ToInt32(
+            verifySession
+                .CreateSQLQuery("SELECT COUNT(*) FROM typed_values WHERE (:str IS NULL AND str_val IS NULL)")
+                .SetParameter("str", (string?)null, NHibernate.NHibernateUtil.String)
+                .UniqueResult());
+
+        Assert.Equal(1, nullMatchCount);
+
+        var typeMatchCount = Convert.ToInt32(
+            verifySession
+                .CreateSQLQuery("SELECT COUNT(*) FROM typed_values WHERE int_val = :int AND dt_val = :dt AND dec_val = :dec")
+                .SetParameter("int", 42, NHibernate.NHibernateUtil.Int32)
+                .SetParameter("dt", expectedDate, NHibernate.NHibernateUtil.DateTime)
+                .SetParameter("dec", expectedDecimal, NHibernate.NHibernateUtil.Decimal)
+                .UniqueResult());
+
+        Assert.Equal(1, typeMatchCount);
     }
 
     private Configuration BuildConfiguration(bool withMappings = false)
