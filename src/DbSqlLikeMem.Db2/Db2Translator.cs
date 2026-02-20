@@ -259,5 +259,5 @@ public class Db2Translator : ExpressionVisitor
 
         return "*"; // fallback
     }
-}
+} 
 #pragma warning restore CA1305 // Specify IFormatProvider
