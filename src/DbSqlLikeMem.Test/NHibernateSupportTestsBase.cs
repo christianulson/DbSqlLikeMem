@@ -3,6 +3,7 @@ using NHibernate.Cfg;
 using NHibernate.Connection;
 using NHibernate.Mapping.ByCode;
 using NHibernate.Mapping.ByCode.Conformist;
+using Environment = NHibernate.Cfg.Environment;
 
 namespace DbSqlLikeMem.Test;
 
