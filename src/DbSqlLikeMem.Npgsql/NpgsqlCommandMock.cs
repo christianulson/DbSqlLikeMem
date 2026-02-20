@@ -12,6 +12,11 @@ public class NpgsqlCommandMock(
     NpgsqlTransactionMock? transaction = null
     ) : DbCommand
 {
+    public NpgsqlCommandMock()
+        : this(null, null)
+    {
+    }
+
     private bool disposedValue;
 
     /// <summary>

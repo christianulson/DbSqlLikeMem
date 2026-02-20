@@ -45,9 +45,41 @@ internal static class SqlStringExtencions
     /// </summary>
     public static string NormalizeName(this string name)
     {
-        name = name.Trim();
-        name = name.Trim('`');       // remove `User`
-        name = name.Trim();          // de novo por segurança
-        return name;
+        ArgumentNullExceptionCompatible.ThrowIfNull(name, nameof(name));
+
+        var trimmed = name.Trim();
+        if (trimmed.Length == 0)
+            return string.Empty;
+
+        if (!trimmed.Contains('.'))
+            return StripIdentifierWrappers(trimmed);
+
+        var parts = trimmed.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        for (var i = 0; i < parts.Length; i++)
+            parts[i] = StripIdentifierWrappers(parts[i]);
+
+        return string.Join('.', parts);
+    }
+
+    private static string StripIdentifierWrappers(string identifier)
+    {
+        var normalized = identifier.Trim();
+
+        while (normalized.Length >= 2)
+        {
+            var first = normalized[0];
+            var last = normalized[^1];
+            var hasWrapperPair =
+                (first == '`' && last == '`') ||
+                (first == '"' && last == '"') ||
+                (first == '[' && last == ']');
+
+            if (!hasWrapperPair)
+                break;
+
+            normalized = normalized[1..^1].Trim();
+        }
+
+        return normalized;
     }
 }
