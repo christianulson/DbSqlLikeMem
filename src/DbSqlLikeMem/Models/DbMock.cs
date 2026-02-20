@@ -141,7 +141,29 @@ public abstract class DbMock
         string tableName,
         out ITableMock? tb,
         string? schemaName = null)
-        => _globalTemporaryTables.TryGetValue(BuildTemporaryTableKey(tableName, schemaName), out tb);
+    {
+        var normalizedTableName = tableName.NormalizeName();
+
+        if (!string.IsNullOrWhiteSpace(schemaName))
+            return _globalTemporaryTables.TryGetValue(
+                BuildTemporaryTableKey(normalizedTableName, schemaName),
+                out tb);
+
+        var matches = _globalTemporaryTables
+            .Where(entry => entry.Key.EndsWith($":{normalizedTableName}", StringComparison.OrdinalIgnoreCase))
+            .Select(entry => entry.Value)
+            .Take(2)
+            .ToList();
+
+        if (matches.Count == 1)
+        {
+            tb = matches[0];
+            return true;
+        }
+
+        tb = null;
+        return false;
+    }
 
     internal IReadOnlyList<ITableMock> ListGlobalTemporaryTables(
         string? schemaName = null)
