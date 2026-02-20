@@ -9,7 +9,7 @@ namespace DbSqlLikeMem.Sqlite;
 /// PT: Comando mock para conexões SQLite.
 /// </summary>
 public class SqliteCommandMock(
-    SqliteConnectionMock? connection = null,
+    SqliteConnectionMock? connection,
     SqliteTransactionMock? transaction = null
     ) : DbCommand
 {

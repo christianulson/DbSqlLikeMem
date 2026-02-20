@@ -8,7 +8,7 @@ namespace DbSqlLikeMem.Oracle;
 /// Oracle command mock. Faz parse com OracleDialect e executa via engine atual (OracleAstQueryExecutor).
 /// </summary>
 public class OracleCommandMock(
-    OracleConnectionMock? connection = null,
+    OracleConnectionMock? connection,
     OracleTransactionMock? transaction = null
     ) : DbCommand
 {

@@ -9,7 +9,7 @@ namespace DbSqlLikeMem.SqlServer;
 /// SqlServer command mock. Faz parse com SqlServerDialect e executa via engine atual (SqlServerAstQueryExecutor).
 /// </summary>
 public class SqlServerCommandMock(
-    SqlServerConnectionMock? connection = null,
+    SqlServerConnectionMock? connection,
     SqlServerTransactionMock? transaction = null
     ) : DbCommand
 {
