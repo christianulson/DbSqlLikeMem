@@ -81,34 +81,114 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         // CREATE TABLE name AS SELECT ...
         var m = Regex.Match(sql, @"^CREATE\s+TABLE\s+`?(?<name>[A-Za-z0-9_]+)`?\s+AS\s+(?<select>(SELECT|WITH)\s+.*)$",
             RegexOptions.IgnoreCase | RegexOptions.Singleline);
-        if (!m.Success)
-            throw new InvalidOperationException("Invalid CREATE TABLE ... AS SELECT statement.");
-
-        var tableName = m.Groups["name"].Value.NormalizeName();
-        var selectSql = m.Groups["select"].Value;
-
-        var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
-        var q = SqlQueryParser.Parse(selectSql, dialect);
-        var res = executor.ExecuteSelect((SqlSelectQuery)q);
-
-        var newTable = connection.AddTable(tableName);
-        // map columns
-        for (int i = 0; i < res.Columns.Count; i++)
+        if (m.Success)
         {
-            var colName = res.Columns[i].ColumnName;
-            var dbType = InferDbType(res, i);
-            newTable.AddColumn(colName, dbType, nullable: true);
+            var tableName = m.Groups["name"].Value.NormalizeName();
+            var selectSql = m.Groups["select"].Value;
+
+            var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
+            var q = SqlQueryParser.Parse(selectSql, dialect);
+            var res = executor.ExecuteSelect((SqlSelectQuery)q);
+
+            var newTable = connection.AddTable(tableName);
+            // map columns
+            for (int i = 0; i < res.Columns.Count; i++)
+            {
+                var colName = res.Columns[i].ColumnName;
+                var dbType = InferDbType(res, i);
+                newTable.AddColumn(colName, dbType, nullable: true);
+            }
+
+            foreach (var row in res)
+            {
+                var d = new Dictionary<int, object?>();
+                for (int i = 0; i < res.Columns.Count; i++)
+                    d[i] = row.TryGetValue(i, out var v) ? v : null;
+                newTable.Add(d);
+            }
+
+            return 0;
         }
 
-        foreach (var row in res)
+        // CREATE TABLE name (id INT, name VARCHAR(100), ...)
+        var createTableMatch = Regex.Match(
+            sql,
+            @"^CREATE\s+TABLE\s+`?(?<name>[A-Za-z0-9_]+)`?\s*\((?<columns>.*)\)\s*;?$",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        if (!createTableMatch.Success)
+            throw new InvalidOperationException("Invalid CREATE TABLE statement.");
+
+        var table = connection.AddTable(createTableMatch.Groups["name"].Value.NormalizeName());
+        foreach (var columnSql in SplitColumnDefinitions(createTableMatch.Groups["columns"].Value))
         {
-            var d = new Dictionary<int, object?>();
-            for (int i = 0; i < res.Columns.Count; i++)
-                d[i] = row.TryGetValue(i, out var v) ? v : null;
-            newTable.Add(d);
+            var col = ParseColumnDefinition(columnSql);
+            if (col is null)
+                continue;
+            table.AddColumn(col.Value.Name, col.Value.Type, nullable: col.Value.Nullable);
         }
 
         return 0;
+    }
+
+    private static IEnumerable<string> SplitColumnDefinitions(string columnsSql)
+    {
+        var start = 0;
+        var depth = 0;
+        for (var i = 0; i < columnsSql.Length; i++)
+        {
+            var c = columnsSql[i];
+            if (c == '(')
+                depth++;
+            else if (c == ')')
+                depth--;
+            else if (c == ',' && depth == 0)
+            {
+                var slice = columnsSql[start..i].Trim();
+                if (!string.IsNullOrWhiteSpace(slice))
+                    yield return slice;
+                start = i + 1;
+            }
+        }
+
+        var last = columnsSql[start..].Trim();
+        if (!string.IsNullOrWhiteSpace(last))
+            yield return last;
+    }
+
+    private static (string Name, DbType Type, bool Nullable)? ParseColumnDefinition(string columnSql)
+    {
+        var m = Regex.Match(
+            columnSql,
+            @"^`?(?<name>[A-Za-z0-9_]+)`?\s+(?<type>[A-Za-z0-9_]+)(\s*\([^)]*\))?(?<rest>.*)$",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        if (!m.Success)
+            return null;
+
+        var rest = m.Groups["rest"].Value;
+        if (Regex.IsMatch(rest, @"\b(CONSTRAINT|PRIMARY\s+KEY|UNIQUE\s*\(|FOREIGN\s+KEY|CHECK)\b", RegexOptions.IgnoreCase))
+            return null;
+
+        var name = m.Groups["name"].Value;
+        var type = ParseDbTypeFromSqlType(m.Groups["type"].Value);
+        var nullable = !Regex.IsMatch(rest, @"\bNOT\s+NULL\b", RegexOptions.IgnoreCase);
+        return (name, type, nullable);
+    }
+
+    private static DbType ParseDbTypeFromSqlType(string sqlType)
+    {
+        return sqlType.Trim().NormalizeName() switch
+        {
+            "INT" or "INTEGER" or "SMALLINT" => DbType.Int32,
+            "BIGINT" => DbType.Int64,
+            "DECIMAL" or "NUMERIC" => DbType.Decimal,
+            "FLOAT" or "REAL" or "DOUBLE" => DbType.Double,
+            "BOOLEAN" or "BOOL" => DbType.Boolean,
+            "DATE" => DbType.Date,
+            "TIMESTAMP" or "DATETIME" => DbType.DateTime,
+            "GUID" or "UUID" => DbType.Guid,
+            "BLOB" or "BINARY" or "VARBINARY" => DbType.Binary,
+            _ => DbType.String,
+        };
     }
 
     /// <summary>
