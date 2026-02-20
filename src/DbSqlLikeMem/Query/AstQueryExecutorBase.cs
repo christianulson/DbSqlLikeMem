@@ -390,7 +390,7 @@ internal abstract class AstQueryExecutorBase(
         if (source is null || !HasKnownPhysicalTable(source) || string.IsNullOrWhiteSpace(source.Name))
             return 0;
 
-        if (_cnn.TryGetTable(source.Name, out var table) && table is not null)
+        if (_cnn.TryGetTable(source.Name!, out var table) && table is not null)
             return table.Count;
 
         return 0;
