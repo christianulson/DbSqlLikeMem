@@ -10,6 +10,12 @@ namespace DbSqlLikeMem;
 public class TableResultMock : List<Dictionary<int, object?>>
 {
     /// <summary>
+    /// EN: Textual execution plan generated for the query that produced this result.
+    /// PT: Plano de execução textual gerado para a consulta que produziu este resultado.
+    /// </summary>
+    public string? ExecutionPlan { get; internal set; }
+
+    /// <summary>
     /// EN: Defines the list of columns present in the result, with metadata.
     /// PT: Define a lista de colunas presentes no resultado, com seus metadados.
     /// </summary>

@@ -26,6 +26,32 @@
 - Definição de schema via API fluente.
 - Seed de dados e consultas compatíveis com Dapper.
 - Compatibilidade NHibernate via `UserSuppliedConnectionProvider` com suíte de contrato por provider usando dialeto NHibernate específico por banco (SQL nativo, entidade mapeada e transação rollback).
+- Plano de execução mock para consultas AST (`SELECT`/`UNION`) com histórico por conexão.
+
+## Plano de execução mock e métricas para usuário final
+
+O executor AST registra um plano textual por consulta para facilitar troubleshooting e telemetria de testes.
+
+Métricas disponíveis no plano:
+
+- `EstimatedCost`: custo heurístico simplificado baseado na forma da query.
+- `InputTables`: quantidade de fontes físicas conhecidas no plano (`FROM` + `JOIN`).
+- `EstimatedRowsRead`: soma de linhas estimadas lidas nas fontes físicas conhecidas.
+- `ActualRows`: linhas efetivamente retornadas.
+- `SelectivityPct`: relação entre linhas retornadas e linhas estimadas lidas.
+- `RowsPerMs`: throughput simplificado do resultado (`ActualRows / ElapsedMs`).
+- `ElapsedMs`: tempo total medido no executor.
+
+APIs principais para consumo:
+
+- `DbConnectionMockBase.LastExecutionPlan`: último plano gerado.
+- `DbConnectionMockBase.LastExecutionPlans`: planos da última execução do comando (inclui multi-select).
+- `TableResultMock.ExecutionPlan`: plano associado ao resultado.
+
+Notas:
+
+- As métricas são intencionalmente simplificadas e determinísticas para uso em teste.
+- O valor de `EstimatedRowsRead` considera apenas fontes físicas conhecidas; subqueries/derivações podem não entrar na estimativa.
 
 ## Particularidades por banco
 

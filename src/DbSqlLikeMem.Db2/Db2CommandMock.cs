@@ -82,6 +82,7 @@ public class Db2CommandMock(
     public override int ExecuteNonQuery()
     {
         ArgumentNullException.ThrowIfNull(connection);
+        connection.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
         // 1. Stored Procedure (sem parse SQL)
@@ -184,6 +185,7 @@ public class Db2CommandMock(
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
         ArgumentNullException.ThrowIfNull(connection);
+        connection.ClearExecutionPlans();
         ArgumentNullException.ThrowIfNull(CommandText);
 
         if (CommandType == CommandType.StoredProcedure)
