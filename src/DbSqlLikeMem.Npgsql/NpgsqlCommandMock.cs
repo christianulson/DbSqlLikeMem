@@ -8,7 +8,7 @@ namespace DbSqlLikeMem.Npgsql;
 /// Npgsql command mock. Faz parse com NpgsqlDialect e executa via engine atual (NpgsqlAstQueryExecutor).
 /// </summary>
 public class NpgsqlCommandMock(
-    NpgsqlConnectionMock? connection = null,
+    NpgsqlConnectionMock? connection,
     NpgsqlTransactionMock? transaction = null
     ) : DbCommand
 {

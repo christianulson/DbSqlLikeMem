@@ -5,10 +5,13 @@ namespace DbSqlLikeMem.MySql;
 /// PT: Comando mock para conexões MySQL.
 /// </summary>
 public class MySqlCommandMock(
-    MySqlConnectionMock? connection = null,
+    MySqlConnectionMock? connection,
     MySqlTransactionMock? transaction = null
     ) : DbCommand
 {
+    /// <summary>
+    /// Contructor
+    /// </summary>
     public MySqlCommandMock()
         : this(null, null)
     {

@@ -199,7 +199,9 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             return [];
 
         var cols = m.Groups["cols"].Value
-            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Split(',')
+            .Select(x => x.Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
             .Select(static name => name.NormalizeName())
             .Where(static name => !string.IsNullOrWhiteSpace(name))
             .ToList();

@@ -88,6 +88,10 @@ public sealed class Db2MockTests
         Assert.Empty(_connection.GetTable("users"));
     }
 
+    /// <summary>
+    /// EN Tests CreateTable with inline primary key behavior.
+    /// PT Testa o comportamento de CreateTable com chave primária inline.
+    /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
     public void CreateTable_WithInlinePrimaryKey_ShouldCreateColumnAndAllowInsert()

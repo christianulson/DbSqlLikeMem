@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Db2;
 /// PT: Comando mock para conexões DB2.
 /// </summary>
 public class Db2CommandMock(
-    Db2ConnectionMock? connection = null,
+    Db2ConnectionMock? connection,
     Db2TransactionMock? transaction = null
     ) : DbCommand
 {
