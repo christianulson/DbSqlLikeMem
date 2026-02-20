@@ -312,6 +312,58 @@ public abstract class NHibernateSupportTestsBase
         Assert.Equal(1, typeMatchCount);
     }
 
+
+    /// <summary>
+    /// EN: Verifies optimistic concurrency detects stale updates on versioned entities.
+    /// PT: Verifica se concorrência otimista detecta atualizações obsoletas em entidades versionadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedEntity_OptimisticConcurrency_ShouldDetectStaleUpdate()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users_versioned (id INT PRIMARY KEY, version INT NOT NULL, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var seedTx = seedSession.BeginTransaction())
+        {
+            seedSession.Save(new NhVersionedUser { Id = 30, Name = "Initial" });
+            seedTx.Commit();
+        }
+
+        using var session1 = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        using var session2 = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        using var tx1 = session1.BeginTransaction();
+        using var tx2 = session2.BeginTransaction();
+
+        var user1 = session1.Get<NhVersionedUser>(30);
+        var user2 = session2.Get<NhVersionedUser>(30);
+
+        Assert.NotNull(user1);
+        Assert.NotNull(user2);
+
+        user1!.Name = "Tx1";
+        session1.Flush();
+        tx1.Commit();
+
+        user2!.Name = "Tx2";
+        _ = Assert.ThrowsAny<NHibernate.StaleStateException>(() =>
+        {
+            session2.Flush();
+            tx2.Commit();
+        });
+
+        if (tx2.IsActive)
+            tx2.Rollback();
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var persisted = verifySession.Get<NhVersionedUser>(30);
+
+        Assert.NotNull(persisted);
+        Assert.Equal("Tx1", persisted!.Name);
+    }
+
     private Configuration BuildConfiguration(bool withMappings = false)
     {
         var configuration = new Configuration();
@@ -326,6 +378,7 @@ public abstract class NHibernateSupportTestsBase
         {
             var mapper = new ModelMapper();
             mapper.AddMapping<NhTestUserMap>();
+            mapper.AddMapping<NhVersionedUserMap>();
             configuration.AddMapping(mapper.CompileMappingForAllExplicitlyAddedEntities());
         }
 
@@ -346,6 +399,15 @@ public abstract class NHibernateSupportTestsBase
         public virtual string Name { get; set; } = string.Empty;
     }
 
+    private sealed class NhVersionedUser
+    {
+        public virtual int Id { get; set; }
+
+        public virtual int Version { get; set; }
+
+        public virtual string Name { get; set; } = string.Empty;
+    }
+
     private sealed class NhTestUserMap : ClassMapping<NhTestUser>
     {
         public NhTestUserMap()
@@ -356,6 +418,32 @@ public abstract class NHibernateSupportTestsBase
             {
                 map.Column("id");
                 map.Generator(Generators.Assigned);
+            });
+
+            Property(x => x.Name, map =>
+            {
+                map.Column("name");
+                map.NotNullable(true);
+            });
+        }
+    }
+
+    private sealed class NhVersionedUserMap : ClassMapping<NhVersionedUser>
+    {
+        public NhVersionedUserMap()
+        {
+            Table("users_versioned");
+
+            Id(x => x.Id, map =>
+            {
+                map.Column("id");
+                map.Generator(Generators.Assigned);
+            });
+
+            Version(x => x.Version, map =>
+            {
+                map.Column("version");
+                map.UnsavedValue("0");
             });
 
             Property(x => x.Name, map =>
