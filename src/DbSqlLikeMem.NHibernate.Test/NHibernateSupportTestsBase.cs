@@ -314,6 +314,46 @@ public abstract class NHibernateSupportTestsBase
 
 
     /// <summary>
+    /// EN: Verifies mapped many-to-one relationships can be persisted and queried through HQL.
+    /// PT: Verifica se relacionamentos many-to-one mapeados podem ser persistidos e consultados via HQL.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedRelationship_ManyToOne_ShouldPersistAndQuery()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE user_groups (id INT PRIMARY KEY, name VARCHAR(100))");
+        ExecuteNonQuery(connection, "CREATE TABLE users_rel (id INT PRIMARY KEY, name VARCHAR(100), group_id INT)");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            var group = new NhUserGroup { Id = 1, Name = "Admins" };
+            var user = new NhRelUser { Id = 101, Name = "Alice", Group = group };
+
+            session.Save(group);
+            session.Save(user);
+            tx.Commit();
+        }
+
+        using var querySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var loadedUser = querySession.Get<NhRelUser>(101);
+
+        Assert.NotNull(loadedUser);
+        Assert.NotNull(loadedUser!.Group);
+        Assert.Equal("Admins", loadedUser.Group!.Name);
+
+        var hqlResult = querySession
+            .CreateQuery("select u from NhRelUser u join u.Group g where g.Name = :groupName")
+            .SetParameter("groupName", "Admins")
+            .List<NhRelUser>();
+
+        Assert.Single(hqlResult);
+        Assert.Equal(101, hqlResult[0].Id);
+    }
+
+    /// <summary>
     /// EN: Verifies optimistic concurrency detects stale updates on versioned entities.
     /// PT: Verifica se concorrência otimista detecta atualizações obsoletas em entidades versionadas.
     /// </summary>
@@ -379,6 +419,8 @@ public abstract class NHibernateSupportTestsBase
             var mapper = new ModelMapper();
             mapper.AddMapping<NhTestUserMap>();
             mapper.AddMapping<NhVersionedUserMap>();
+            mapper.AddMapping<NhUserGroupMap>();
+            mapper.AddMapping<NhRelUserMap>();
             configuration.AddMapping(mapper.CompileMappingForAllExplicitlyAddedEntities());
         }
 
@@ -424,6 +466,68 @@ public abstract class NHibernateSupportTestsBase
             {
                 map.Column("name");
                 map.NotNullable(true);
+            });
+        }
+    }
+
+    private sealed class NhUserGroup
+    {
+        public virtual int Id { get; set; }
+
+        public virtual string Name { get; set; } = string.Empty;
+    }
+
+    private sealed class NhRelUser
+    {
+        public virtual int Id { get; set; }
+
+        public virtual string Name { get; set; } = string.Empty;
+
+        public virtual NhUserGroup? Group { get; set; }
+    }
+
+    private sealed class NhUserGroupMap : ClassMapping<NhUserGroup>
+    {
+        public NhUserGroupMap()
+        {
+            Table("user_groups");
+
+            Id(x => x.Id, map =>
+            {
+                map.Column("id");
+                map.Generator(Generators.Assigned);
+            });
+
+            Property(x => x.Name, map =>
+            {
+                map.Column("name");
+                map.NotNullable(true);
+            });
+        }
+    }
+
+    private sealed class NhRelUserMap : ClassMapping<NhRelUser>
+    {
+        public NhRelUserMap()
+        {
+            Table("users_rel");
+
+            Id(x => x.Id, map =>
+            {
+                map.Column("id");
+                map.Generator(Generators.Assigned);
+            });
+
+            Property(x => x.Name, map =>
+            {
+                map.Column("name");
+                map.NotNullable(true);
+            });
+
+            ManyToOne(x => x.Group, map =>
+            {
+                map.Column("group_id");
+                map.Cascade(Cascade.None);
             });
         }
     }
