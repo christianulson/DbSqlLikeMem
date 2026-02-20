@@ -3,7 +3,7 @@ using System.Data.Common;
 
 namespace DbSqlLikeMem.SqlServer.Test;
 
-public sealed class NHibernateSmokeTests : DbSqlLikeMem.Test.NHibernateSupportTestsBase
+public sealed class NHibernateSmokeTests : NHibernateSupportTestsBase
 {
     protected override string NhDialectClass => "NHibernate.Dialect.MsSql2012Dialect, NHibernate";
 
