@@ -1,3 +1,4 @@
+using DbSqlLikeMem.Oracle.HNibernate;
 using System.Data.Common;
 
 namespace DbSqlLikeMem.Oracle.Test;
@@ -5,6 +6,8 @@ namespace DbSqlLikeMem.Oracle.Test;
 public sealed class NHibernateSmokeTests : DbSqlLikeMem.Test.NHibernateSupportTestsBase
 {
     protected override string NhDialectClass => "NHibernate.Dialect.Oracle10gDialect, NHibernate";
+
+    protected override string NhDriverClass => typeof(OracleNhMockDriver).AssemblyQualifiedName!;
 
     protected override DbConnection CreateOpenConnection()
     {
