@@ -143,17 +143,17 @@ public abstract class DbDataReaderMockBase(
     /// EN: Gets an Int16 value from the specified column.
     /// PT: Obtém valor Int16 da coluna indicada.
     /// </summary>
-    public override short GetInt16(int ordinal) => (short)this[ordinal];
+    public override short GetInt16(int ordinal) => Convert.ToInt16(this[ordinal], System.Globalization.CultureInfo.InvariantCulture);
     /// <summary>
     /// EN: Gets an Int32 value from the specified column.
     /// PT: Obtém valor Int32 da coluna indicada.
     /// </summary>
-    public override int GetInt32(int ordinal) => (int)this[ordinal];
+    public override int GetInt32(int ordinal) => Convert.ToInt32(this[ordinal], System.Globalization.CultureInfo.InvariantCulture);
     /// <summary>
     /// EN: Gets an Int64 value from the specified column.
     /// PT: Obtém valor Int64 da coluna indicada.
     /// </summary>
-    public override long GetInt64(int ordinal) => (long)this[ordinal];
+    public override long GetInt64(int ordinal) => Convert.ToInt64(this[ordinal], System.Globalization.CultureInfo.InvariantCulture);
     /// <summary>
     /// EN: Gets the column name by ordinal.
     /// PT: Obtém o nome da coluna pelo ordinal.
