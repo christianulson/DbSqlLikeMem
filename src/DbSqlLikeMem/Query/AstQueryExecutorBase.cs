@@ -563,6 +563,12 @@ internal abstract class AstQueryExecutorBase(
             ref outOfRangeOrdinal,
             ref nonPositiveOrdinal);
 
+        if (nonPositiveOrdinal.HasValue)
+            throw new InvalidOperationException("invalid: HAVING ordinal must be >= 1");
+
+        if (outOfRangeOrdinal.HasValue)
+            throw new InvalidOperationException($"invalid: HAVING ordinal {outOfRangeOrdinal.Value} out of range");
+
         if (usedOrdinal)
             return rewritten;
 
@@ -570,12 +576,6 @@ internal abstract class AstQueryExecutorBase(
         var hasIdentifier = EnumerateIdentifiers(rewritten).Any();
         if (hasAggregate || hasIdentifier)
             return rewritten;
-
-        if (nonPositiveOrdinal.HasValue)
-            throw new InvalidOperationException("invalid: HAVING ordinal must be >= 1");
-
-        if (outOfRangeOrdinal.HasValue)
-            throw new InvalidOperationException($"invalid: HAVING ordinal {outOfRangeOrdinal.Value} out of range");
 
         throw new InvalidOperationException(
             "invalid: HAVING must reference grouped columns, projected aliases, aggregates, or valid ordinals");
