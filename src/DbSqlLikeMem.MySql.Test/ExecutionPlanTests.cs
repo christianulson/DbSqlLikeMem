@@ -5,10 +5,6 @@ namespace DbSqlLikeMem.MySql.Test;
 /// PT: Valida a geração e a persistência de planos de execução para a execução de comandos MySql.
 /// </summary>
 public sealed class ExecutionPlanTests(
-    /// <summary>
-    /// EN: Receives the test output helper used by the base class.
-    /// PT: Recebe o helper de saída de teste usado pela classe base.
-    /// </summary>
     ITestOutputHelper helper
 ) : XUnitTestBase(helper)
 {

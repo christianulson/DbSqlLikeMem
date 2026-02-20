@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace DbSqlLikeMem.MySql.Test.Query;
+namespace DbSqlLikeMem.MySql.Dapper.Test.Query;
 
 /// <summary>
 /// Auto-generated summary.
