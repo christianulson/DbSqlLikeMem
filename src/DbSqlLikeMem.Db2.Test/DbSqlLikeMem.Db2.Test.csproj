@@ -55,6 +55,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.Db2\DbSqlLikeMem.Db2.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Db2.HNibernate\DbSqlLikeMem.Db2.HNibernate.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 

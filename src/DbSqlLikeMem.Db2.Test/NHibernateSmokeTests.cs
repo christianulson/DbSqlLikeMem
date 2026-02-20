@@ -1,3 +1,4 @@
+using DbSqlLikeMem.Db2.HNibernate;
 using System.Data.Common;
 
 namespace DbSqlLikeMem.Db2.Test;

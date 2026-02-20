@@ -1,6 +1,4 @@
-using NHibernate.Driver;
-
-namespace DbSqlLikeMem.Db2.Test;
+namespace DbSqlLikeMem.Db2.HNibernate;
 
 /// <summary>
 /// EN: NHibernate driver bound to DbSqlLikeMem DB2 mock ADO.NET types.
