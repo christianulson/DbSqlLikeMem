@@ -552,13 +552,23 @@ internal abstract class AstQueryExecutorBase(
                     Pattern = RewriteHavingOrdinals(like.Pattern, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal)
                 };
             case InExpr i:
+                var rewrittenInItems = new List<SqlExpr>(i.Items.Count);
+                foreach (var item in i.Items)
+                {
+                    rewrittenInItems.Add(RewriteHavingOrdinals(item, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal));
+                }
                 return i with
                 {
                     Left = RewriteHavingOrdinals(i.Left, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
-                    Items = [.. i.Items.Select(it => RewriteHavingOrdinals(it, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal))]
+                    Items = [.. rewrittenInItems]
                 };
             case RowExpr r:
-                return r with { Items = [.. r.Items.Select(it => RewriteHavingOrdinals(it, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal))] };
+                var rewrittenRowItems = new List<SqlExpr>(r.Items.Count);
+                foreach (var item in r.Items)
+                {
+                    rewrittenRowItems.Add(RewriteHavingOrdinals(item, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal));
+                }
+                return r with { Items = [.. rewrittenRowItems] };
             case BetweenExpr bt:
                 return bt with
                 {
@@ -567,18 +577,33 @@ internal abstract class AstQueryExecutorBase(
                     High = RewriteHavingOrdinals(bt.High, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal)
                 };
             case FunctionCallExpr fn:
-                return fn with { Args = [.. fn.Args.Select(a => RewriteHavingOrdinals(a, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal))] };
+                var rewrittenFnArgs = new List<SqlExpr>(fn.Args.Count);
+                foreach (var arg in fn.Args)
+                {
+                    rewrittenFnArgs.Add(RewriteHavingOrdinals(arg, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal));
+                }
+                return fn with { Args = [.. rewrittenFnArgs] };
             case CallExpr call:
-                return call with { Args = [.. call.Args.Select(a => RewriteHavingOrdinals(a, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal))] };
+                var rewrittenCallArgs = new List<SqlExpr>(call.Args.Count);
+                foreach (var arg in call.Args)
+                {
+                    rewrittenCallArgs.Add(RewriteHavingOrdinals(arg, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal));
+                }
+                return call with { Args = [.. rewrittenCallArgs] };
             case CaseExpr c:
+                var rewrittenWhens = new List<CaseWhen>(c.Whens.Count);
+                foreach (var when in c.Whens)
+                {
+                    rewrittenWhens.Add(when with
+                    {
+                        When = RewriteHavingOrdinals(when.When, q, ref usedOrdinal, allowOrdinalLiteral, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
+                        Then = RewriteHavingOrdinals(when.Then, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal)
+                    });
+                }
                 return c with
                 {
                     BaseExpr = c.BaseExpr is null ? null : RewriteHavingOrdinals(c.BaseExpr, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
-                    Whens = [.. c.Whens.Select(w => w with
-                    {
-                        When = RewriteHavingOrdinals(w.When, q, ref usedOrdinal, allowOrdinalLiteral, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
-                        Then = RewriteHavingOrdinals(w.Then, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal)
-                    })],
+                    Whens = [.. rewrittenWhens],
                     ElseExpr = c.ElseExpr is null ? null : RewriteHavingOrdinals(c.ElseExpr, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal)
                 };
             default:
