@@ -628,6 +628,9 @@ internal abstract class AstQueryExecutorBase(
     {
         switch (value)
         {
+            case decimal m when m >= int.MinValue && m <= int.MaxValue && decimal.Truncate(m) == m:
+                ordinal = (int)m;
+                return true;
             case int i:
                 ordinal = i;
                 return true;
