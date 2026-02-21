@@ -13,6 +13,12 @@ public sealed class NHibernateSmokeTests : NHibernateSupportTestsBase
     protected override string NhDialectClass => "NHibernate.Dialect.MySQLDialect, NHibernate";
 
     /// <summary>
+    /// EN: Enables pagination fallback due to mocked parser limitations for parameterized LIMIT/OFFSET.
+    /// PT: Habilita fallback de paginação devido a limitações do parser mock com LIMIT/OFFSET parametrizado.
+    /// </summary>
+    protected override bool UseInMemoryPaginationFallback => true;
+
+    /// <summary>
     /// Gets the NHibernate driver class that connects NHibernate to the MySQL mock connection.
     /// Obtém a classe de driver do NHibernate que conecta o NHibernate à conexão simulada de MySQL.
     /// </summary>

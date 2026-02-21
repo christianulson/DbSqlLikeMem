@@ -35,6 +35,12 @@ public abstract class NHibernateSupportTestsBase
     protected virtual string? NhDriverClass => null;
 
     /// <summary>
+    /// EN: Enables in-memory pagination fallback for dialects whose mocked providers do not support parameterized LIMIT/OFFSET forms.
+    /// PT: Habilita fallback de paginação em memória para dialetos cujos provedores mock não suportam formas parametrizadas de LIMIT/OFFSET.
+    /// </summary>
+    protected virtual bool UseInMemoryPaginationFallback => false;
+
+    /// <summary>
     /// EN: Verifies native SQL with a named parameter returns the expected row.
     /// PT: Verifica se SQL nativo com parâmetro nomeado retorna a linha esperada.
     /// </summary>
@@ -212,10 +218,7 @@ public abstract class NHibernateSupportTestsBase
         }
 
         using var querySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
-        var fallbackToInMemoryWindow = NhDialectClass.Contains("DB2Dialect", StringComparison.OrdinalIgnoreCase)
-            || NhDialectClass.Contains("MySQLDialect", StringComparison.OrdinalIgnoreCase)
-            || NhDialectClass.Contains("PostgreSQL", StringComparison.OrdinalIgnoreCase)
-            || NhDialectClass.Contains("Npgsql", StringComparison.OrdinalIgnoreCase);
+        var fallbackToInMemoryWindow = UseInMemoryPaginationFallback;
 
         IList<NhTestUser> paged;
         try
