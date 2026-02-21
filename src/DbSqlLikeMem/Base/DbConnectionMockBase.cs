@@ -530,6 +530,9 @@ public abstract class DbConnectionMockBase(
 
     private void RollbackCore()
     {
+        if (CurrentTransaction == null)
+            return;
+
         Debug.WriteLine("Transaction Rolled Back");
         RollbackToSavepointCore("__tx_begin__");
         ClearTransactionStateCore();

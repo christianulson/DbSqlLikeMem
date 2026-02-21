@@ -550,6 +550,7 @@ public abstract class NHibernateSupportTestsBase
     {
         public NhTestUserMap()
         {
+            EntityName(nameof(NhTestUser));
             Table("users");
 
             Id(x => x.Id, map =>
@@ -588,6 +589,7 @@ public abstract class NHibernateSupportTestsBase
     {
         public NhUserGroupMap()
         {
+            EntityName(nameof(NhUserGroup));
             Table("user_groups");
 
             Id(x => x.Id, map =>
@@ -617,6 +619,7 @@ public abstract class NHibernateSupportTestsBase
     {
         public NhRelUserMap()
         {
+            EntityName(nameof(NhRelUser));
             Table("users_rel");
 
             Id(x => x.Id, map =>
@@ -643,6 +646,7 @@ public abstract class NHibernateSupportTestsBase
     {
         public NhVersionedUserMap()
         {
+            EntityName(nameof(NhVersionedUser));
             Table("users_versioned");
 
             Id(x => x.Id, map =>
