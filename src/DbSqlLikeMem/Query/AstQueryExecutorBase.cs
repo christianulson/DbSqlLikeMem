@@ -3144,87 +3144,9 @@ private void FillPercentRankOrCumeDist(
             return null;
         }
 
-
-        // JSON_EXTRACT(json, '$.path') / JSON_VALUE(json, '$.path') (best-effort)
-        if (fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase))
-        {
-            if (fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
-                && !dialect.SupportsJsonExtractFunction
-                && !dialect.SupportsJsonArrowOperators)
-                throw SqlUnsupported.ForDialect(dialect, "JSON_EXTRACT");
-
-            if (fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase) && !dialect.SupportsJsonValueFunction)
-                throw SqlUnsupported.ForDialect(dialect, "JSON_VALUE");
-
-            object? json = EvalArg(0);
-            var path = EvalArg(1)?.ToString();
-
-            if (IsNullish(json) || string.IsNullOrWhiteSpace(path))
-                return null;
-
-            try
-            {
-                return TryReadJsonPathValue(json!, path!);
-            }
-#pragma warning disable CA1031
-            catch (Exception e)
-            {
-#pragma warning disable CA1303 // Do not pass literals as localized parameters
-                Console.WriteLine($"{GetType().Name}.{nameof(EvalFunction)}");
-#pragma warning restore CA1303 // Do not pass literals as localized parameters
-                Console.WriteLine(e);
-                return null;
-            }
-#pragma warning restore CA1031
-        }
-
-        if (fn.Name.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase))
-        {
-            if (!dialect.SupportsOpenJsonFunction)
-                throw SqlUnsupported.ForDialect(dialect, "OPENJSON");
-
-            object? json = EvalArg(0);
-            if (IsNullish(json))
-                return null;
-
-            return json?.ToString();
-        }
-
-        // JSON_UNQUOTE(x) (best-effort)
-        if (fn.Name.Equals("JSON_UNQUOTE", StringComparison.OrdinalIgnoreCase))
-        {
-            object? v = EvalArg(0);
-            if (IsNullish(v)) return null;
-            var s = v!.ToString() ?? "";
-            if (s.Length >= 2 && ((s[0] == '"' && s[^1] == '"') || (s[0] == '\'' && s[^1] == '\'')))
-                return s[1..^1];
-            return s;
-        }
-
-        if (fn.Name.Equals("TO_NUMBER", StringComparison.OrdinalIgnoreCase))
-        {
-            var v = EvalArg(0);
-            if (IsNullish(v)) return null;
-
-            if (v is byte or sbyte or short or ushort or int or uint or long or ulong)
-                return Convert.ToInt64(v, CultureInfo.InvariantCulture);
-
-            if (v is decimal or double or float)
-                return Convert.ToDecimal(v, CultureInfo.InvariantCulture);
-
-            var text = v?.ToString();
-            if (string.IsNullOrWhiteSpace(text))
-                return null;
-
-            if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var li))
-                return li;
-
-            if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var dec))
-                return dec;
-
-            return null;
-        }
+        var jsonNumberResult = TryEvalJsonAndNumberFunctions(fn, dialect, EvalArg, out var handledJsonNumber);
+        if (handledJsonNumber)
+            return jsonNumberResult;
 
         // TRY_CAST(x AS TYPE) - similar ao CAST, mas retorna null em falha
         if (fn.Name.Equals("TRY_CAST", StringComparison.OrdinalIgnoreCase))
@@ -3233,49 +3155,9 @@ private void FillPercentRankOrCumeDist(
         // CAST(x AS TYPE) - aqui chega como CallExpr("CAST", [expr, RawSqlExpr("SIGNED")]) via parser
         if (fn.Name.Equals("CAST", StringComparison.OrdinalIgnoreCase))
             return EvalCast(fn, EvalArg);
-
-        if (fn.Name.Equals("CONCAT", StringComparison.OrdinalIgnoreCase))
-        {
-            var parts = new string[fn.Args.Count];
-            for (int i = 0; i < fn.Args.Count; i++)
-            {
-                var v = EvalArg(i);
-                if (IsNullish(v))
-                {
-                    if (Dialect.ConcatReturnsNullOnNullInput)
-                        return null;
-
-                    parts[i] = string.Empty;
-                    continue;
-                }
-
-#pragma warning disable CA1508 // Avoid dead conditional code
-                parts[i] = v?.ToString() ?? "";
-#pragma warning restore CA1508 // Avoid dead conditional code
-            }
-            return string.Concat(parts);
-        }
-
-        if (fn.Name.Equals("CONCAT_WS", StringComparison.OrdinalIgnoreCase))
-        {
-            // CONCAT_WS(sep, a, b, ...) ignores NULL values (except sep)
-            var sep = EvalArg(0);
-            if (IsNullish(sep)) return null;
-#pragma warning disable CA1508 // Avoid dead conditional code
-            var s = sep?.ToString() ?? "";
-#pragma warning restore CA1508 // Avoid dead conditional code
-
-            var parts = new List<string>();
-            for (int i = 1; i < fn.Args.Count; i++)
-            {
-                var v = EvalArg(i);
-                if (IsNullish(v)) continue;
-#pragma warning disable CA1508 // Avoid dead conditional code
-                parts.Add(v?.ToString() ?? "");
-#pragma warning restore CA1508 // Avoid dead conditional code
-            }
-            return string.Join(s, parts);
-        }
+        var concatResult = TryEvalConcatFunctions(fn, EvalArg, out var handledConcat);
+        if (handledConcat)
+            return concatResult;
 
         if (fn.Name.Equals("LOWER", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("LCASE", StringComparison.OrdinalIgnoreCase))
@@ -3398,6 +3280,275 @@ private void FillPercentRankOrCumeDist(
         return null;
 
         object? EvalArg(int i) => i < fn.Args.Count ? Eval(fn.Args[i], row, group, ctes) : null;
+    }
+
+    private object? EvalTryCast(FunctionCallExpr fn, Func<int, object?> evalArg)
+    {
+        if (fn.Args.Count < 2) return null;
+        var v = evalArg(0);
+        var type = fn.Args[1] is RawSqlExpr trx ? trx.Sql : (evalArg(1)?.ToString() ?? "");
+        type = type.Trim();
+        if (IsNullish(v)) return null;
+
+        try
+        {
+            if ((Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para CAST.")).IsIntegerCastTypeName(type))
+            {
+                if (v is long l) return (int)l;
+                if (v is int i) return i;
+                if (v is decimal d) return (int)d;
+                if (int.TryParse(v!.ToString(), out var ix)) return ix;
+                if (long.TryParse(v!.ToString(), out var lx)) return (int)lx;
+                return null;
+            }
+
+            if (type.StartsWith("DECIMAL", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase))
+            {
+                if (v is decimal dd) return dd;
+                if (decimal.TryParse(v!.ToString(), out var dx)) return dx;
+                return null;
+            }
+
+            return v!.ToString();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private object? EvalCast(FunctionCallExpr fn, Func<int, object?> evalArg)
+    {
+        if (fn.Args.Count < 2) return null;
+
+        var v = evalArg(0);
+        var type = fn.Args[1] is RawSqlExpr rx ? rx.Sql : (evalArg(1)?.ToString() ?? "");
+        type = type.Trim();
+        if (IsNullish(v)) return null;
+
+        try
+        {
+            if ((Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para CAST.")).IsIntegerCastTypeName(type))
+            {
+                if (v is long l) return (int)l;
+                if (v is int i) return i;
+                if (v is decimal d) return (int)d;
+                var text = v!.ToString()?.Trim() ?? string.Empty;
+                if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ix)) return ix;
+                if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var lx)) return (int)lx;
+                if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return (int)dx;
+                return 0;
+            }
+
+            if (type.StartsWith("DECIMAL", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase))
+            {
+                if (v is decimal dd) return dd;
+                if (decimal.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return dx;
+                return 0m;
+            }
+
+            return v!.ToString();
+        }
+#pragma warning disable CA1031
+        catch (Exception e)
+        {
+#pragma warning disable CA1303 // Do not pass literals as localized parameters
+            Console.WriteLine($"{GetType().Name}.{nameof(EvalFunction)}");
+#pragma warning restore CA1303 // Do not pass literals as localized parameters
+            Console.WriteLine(e);
+            return null;
+        }
+#pragma warning restore CA1031
+    }
+
+    private object? TryEvalDateAddFunction(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        Func<int, object?> evalArg,
+        out bool handled)
+    {
+        handled = true;
+        if (fn.Name.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!(Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para operações de data.")).SupportsDateAddFunction("DATE_ADD"))
+                return null;
+            var baseVal = evalArg(0);
+            if (IsNullish(baseVal) || !TryCoerceDateTime(baseVal, out var dt))
+                return null;
+
+            var itExpr = fn.Args.Count > 1 ? fn.Args[1] : null;
+            if (itExpr is not CallExpr ce || !ce.Name.Equals("INTERVAL", StringComparison.OrdinalIgnoreCase) || ce.Args.Count < 2)
+                return dt;
+
+            var nObj = Eval(ce.Args[0], row, group, ctes);
+            var unit = ce.Args[1] is RawSqlExpr rx ? rx.Sql : Eval(ce.Args[1], row, group, ctes)?.ToString() ?? "DAY";
+            var n = Convert.ToInt32((nObj ?? 0m).ToDec());
+            return ApplyDateDelta(dt, unit, n);
+        }
+
+        if (fn.Name.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("DATEADD", StringComparison.OrdinalIgnoreCase))
+        {
+            var featureName = fn.Name.ToUpperInvariant();
+            if (!(Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para operações de data.")).SupportsDateAddFunction(featureName))
+                return null;
+            if (fn.Args.Count < 3)
+                return null;
+
+            var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
+            var amountObj = evalArg(1);
+            var baseVal = evalArg(2);
+            if (IsNullish(baseVal) || !TryCoerceDateTime(baseVal, out var dt))
+                return null;
+
+            var n = Convert.ToInt32((amountObj ?? 0m).ToDec());
+            return ApplyDateDelta(dt, unit, n);
+        }
+
+        handled = false;
+        return null;
+    }
+
+
+    private object? TryEvalJsonAndNumberFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out bool handled)
+    {
+        handled = true;
+
+        if (fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
+                && !dialect.SupportsJsonExtractFunction
+                && !dialect.SupportsJsonArrowOperators)
+                throw SqlUnsupported.ForDialect(dialect, "JSON_EXTRACT");
+
+            if (fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase) && !dialect.SupportsJsonValueFunction)
+                throw SqlUnsupported.ForDialect(dialect, "JSON_VALUE");
+
+            object? json = evalArg(0);
+            var path = evalArg(1)?.ToString();
+            if (IsNullish(json) || string.IsNullOrWhiteSpace(path))
+                return null;
+
+            try
+            {
+                return TryReadJsonPathValue(json!, path!);
+            }
+#pragma warning disable CA1031
+            catch (Exception e)
+            {
+#pragma warning disable CA1303 // Do not pass literals as localized parameters
+                Console.WriteLine($"{GetType().Name}.{nameof(EvalFunction)}");
+#pragma warning restore CA1303 // Do not pass literals as localized parameters
+                Console.WriteLine(e);
+                return null;
+            }
+#pragma warning restore CA1031
+        }
+
+        if (fn.Name.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!dialect.SupportsOpenJsonFunction)
+                throw SqlUnsupported.ForDialect(dialect, "OPENJSON");
+
+            object? json = evalArg(0);
+            return IsNullish(json) ? null : json?.ToString();
+        }
+
+        if (fn.Name.Equals("JSON_UNQUOTE", StringComparison.OrdinalIgnoreCase))
+        {
+            object? v = evalArg(0);
+            if (IsNullish(v)) return null;
+            var s = v!.ToString() ?? string.Empty;
+            if (s.Length >= 2 && ((s[0] == '"' && s[^1] == '"') || (s[0] == '\'' && s[^1] == '\'')))
+                return s[1..^1];
+            return s;
+        }
+
+        if (fn.Name.Equals("TO_NUMBER", StringComparison.OrdinalIgnoreCase))
+        {
+            var v = evalArg(0);
+            if (IsNullish(v)) return null;
+
+            if (v is byte or sbyte or short or ushort or int or uint or long or ulong)
+                return Convert.ToInt64(v, CultureInfo.InvariantCulture);
+            if (v is decimal or double or float)
+                return Convert.ToDecimal(v, CultureInfo.InvariantCulture);
+
+            var text = v?.ToString();
+            if (string.IsNullOrWhiteSpace(text))
+                return null;
+            if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var li))
+                return li;
+            if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var dec))
+                return dec;
+            return null;
+        }
+
+        handled = false;
+        return null;
+    }
+
+    private object? TryEvalConcatFunctions(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out bool handled)
+    {
+        handled = true;
+
+        if (fn.Name.Equals("CONCAT", StringComparison.OrdinalIgnoreCase))
+        {
+            var parts = new string[fn.Args.Count];
+            for (int i = 0; i < fn.Args.Count; i++)
+            {
+                var v = evalArg(i);
+                if (IsNullish(v))
+                {
+                    if (Dialect.ConcatReturnsNullOnNullInput)
+                        return null;
+
+                    parts[i] = string.Empty;
+                    continue;
+                }
+
+#pragma warning disable CA1508 // Avoid dead conditional code
+                parts[i] = v?.ToString() ?? string.Empty;
+#pragma warning restore CA1508 // Avoid dead conditional code
+            }
+            return string.Concat(parts);
+        }
+
+        if (fn.Name.Equals("CONCAT_WS", StringComparison.OrdinalIgnoreCase))
+        {
+            var sep = evalArg(0);
+            if (IsNullish(sep)) return null;
+#pragma warning disable CA1508 // Avoid dead conditional code
+            var separator = sep?.ToString() ?? string.Empty;
+#pragma warning restore CA1508 // Avoid dead conditional code
+
+            var parts = new List<string>();
+            for (int i = 1; i < fn.Args.Count; i++)
+            {
+                var v = evalArg(i);
+                if (IsNullish(v)) continue;
+#pragma warning disable CA1508 // Avoid dead conditional code
+                parts.Add(v?.ToString() ?? string.Empty);
+#pragma warning restore CA1508 // Avoid dead conditional code
+            }
+
+            return string.Join(separator, parts);
+        }
+
+        handled = false;
+        return null;
     }
 
     private object? EvalTryCast(FunctionCallExpr fn, Func<int, object?> evalArg)
