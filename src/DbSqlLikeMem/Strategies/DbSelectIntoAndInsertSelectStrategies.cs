@@ -132,7 +132,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             var col = ParseColumnDefinition(columnSql);
             if (col is null)
                 continue;
-            table.AddColumn(col.Value.Name, col.Value.Type, nullable: col.Value.Nullable);
+            table.AddColumn(col.Value.Name, col.Value.Type, nullable: col.Value.Nullable, size: col.Value.Size, decimalPlaces: col.Value.DecimalPlaces);
             if (col.Value.PrimaryKey)
                 primaryKeyColumns.Add(col.Value.Name);
         }
@@ -168,11 +168,11 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             yield return last;
     }
 
-    private static (string Name, DbType Type, bool Nullable, bool PrimaryKey)? ParseColumnDefinition(string columnSql)
+    private static (string Name, DbType Type, bool Nullable, bool PrimaryKey, int? Size, int? DecimalPlaces)? ParseColumnDefinition(string columnSql)
     {
         var m = Regex.Match(
             columnSql,
-            @"^`?(?<name>[A-Za-z0-9_]+)`?\s+(?<type>[A-Za-z0-9_]+)(\s*\([^)]*\))?(?<rest>.*)$",
+            @"^`?(?<name>[A-Za-z0-9_]+)`?\s+(?<type>[A-Za-z0-9_]+)(\s*\((?<args>[^)]*)\))?(?<rest>.*)$",
             RegexOptions.IgnoreCase | RegexOptions.Singleline);
         if (!m.Success)
             return null;
@@ -183,9 +183,40 @@ internal static class DbSelectIntoAndInsertSelectStrategies
 
         var name = m.Groups["name"].Value;
         var type = ParseDbTypeFromSqlType(m.Groups["type"].Value);
+        var (size, decimalPlaces) = ParseTypeArgs(m.Groups["args"].Value, type);
         var nullable = !Regex.IsMatch(rest, @"\bNOT\s+NULL\b", RegexOptions.IgnoreCase);
         var primaryKey = Regex.IsMatch(rest, @"\bPRIMARY\s+KEY\b", RegexOptions.IgnoreCase);
-        return (name, type, nullable, primaryKey);
+        return (name, type, nullable, primaryKey, size, decimalPlaces);
+    }
+
+
+    private static (int? Size, int? DecimalPlaces) ParseTypeArgs(string rawArgs, DbType dbType)
+    {
+        if (string.IsNullOrWhiteSpace(rawArgs))
+        {
+            if (dbType == DbType.String)
+                return (255, null);
+            if (dbType == DbType.Decimal || dbType == DbType.Double || dbType == DbType.Currency)
+                return (null, 2);
+            return (null, null);
+        }
+
+        var args = rawArgs.Split(',').Select(x => x.Trim()).Where(x => x.Length > 0).ToArray();
+        if (dbType == DbType.String)
+        {
+            if (args.Length > 0 && int.TryParse(args[0], out var parsedSize) && parsedSize > 0)
+                return (parsedSize, null);
+            return (255, null);
+        }
+
+        if (dbType == DbType.Decimal || dbType == DbType.Double || dbType == DbType.Currency)
+        {
+            if (args.Length > 1 && int.TryParse(args[1], out var parsedScale) && parsedScale >= 0)
+                return (null, parsedScale);
+            return (null, 2);
+        }
+
+        return (null, null);
     }
 
     private static IReadOnlyList<string> ParsePrimaryKeyConstraint(string columnSql)
