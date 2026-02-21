@@ -88,6 +88,10 @@ public sealed class MySqlMockTests
         Assert.Empty(_connection.GetTable("users"));
     }
 
+    /// <summary>
+    /// EN: Tests creating a table with an inline primary key and inserting data into it.
+    /// PT: Testa a criação de uma tabela com chave primária inline e a inserção de dados nela.
+    /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
     public void CreateTable_WithInlinePrimaryKey_ShouldCreateColumnAndAllowInsert()
