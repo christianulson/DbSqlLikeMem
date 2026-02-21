@@ -537,7 +537,7 @@ public abstract class NHibernateSupportTestsBase
         public virtual string Name { get; set; } = string.Empty;
     }
 
-    private sealed class NhVersionedUser
+    private class NhVersionedUser
     {
         public virtual int Id { get; set; }
 
@@ -566,7 +566,7 @@ public abstract class NHibernateSupportTestsBase
         }
     }
 
-    private sealed class NhUserGroup
+    private class NhUserGroup
     {
         public virtual int Id { get; set; }
 
@@ -575,7 +575,7 @@ public abstract class NHibernateSupportTestsBase
         public virtual IList<NhRelUser> Users { get; set; } = new List<NhRelUser>();
     }
 
-    private sealed class NhRelUser
+    private class NhRelUser
     {
         public virtual int Id { get; set; }
 

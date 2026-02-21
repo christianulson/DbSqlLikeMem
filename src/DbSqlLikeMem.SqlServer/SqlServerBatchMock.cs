@@ -1,16 +1,18 @@
 using System.Data.Common;
 
-using DbBatch = System.Data.Common.DbBatch;
 using DbConnection = System.Data.Common.DbConnection;
 using DbTransaction = System.Data.Common.DbTransaction;
-using DbBatchCommandCollection = System.Data.Common.DbBatchCommandCollection;
 using DbDataReader = System.Data.Common.DbDataReader;
-using DbBatchCommand = System.Data.Common.DbBatchCommand;
 using DbParameterCollection = System.Data.Common.DbParameterCollection;
 using DbParameter = System.Data.Common.DbParameter;
-namespace DbSqlLikeMem.SqlServer;
 
 #if NET6_0_OR_GREATER
+using DbBatchCommandCollection = System.Data.Common.DbBatchCommandCollection;
+using DbBatchCommand = System.Data.Common.DbBatchCommand;
+using DbBatch = System.Data.Common.DbBatch;
+
+namespace DbSqlLikeMem.SqlServer;
+
 /// <summary>
 /// EN: Summary for SqlServerBatchMock.
 /// PT: Resumo para SqlServerBatchMock.

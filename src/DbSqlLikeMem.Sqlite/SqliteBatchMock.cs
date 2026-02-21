@@ -1,16 +1,18 @@
 using System.Data.Common;
 
-using DbBatch = System.Data.Common.DbBatch;
 using DbConnection = System.Data.Common.DbConnection;
 using DbTransaction = System.Data.Common.DbTransaction;
-using DbBatchCommandCollection = System.Data.Common.DbBatchCommandCollection;
 using DbDataReader = System.Data.Common.DbDataReader;
-using DbBatchCommand = System.Data.Common.DbBatchCommand;
 using DbParameterCollection = System.Data.Common.DbParameterCollection;
 using DbParameter = System.Data.Common.DbParameter;
-namespace DbSqlLikeMem.Sqlite;
 
 #if NET6_0_OR_GREATER
+using DbBatch = System.Data.Common.DbBatch;
+using DbBatchCommand = System.Data.Common.DbBatchCommand;
+using DbBatchCommandCollection = System.Data.Common.DbBatchCommandCollection;
+
+namespace DbSqlLikeMem.Sqlite;
+
 /// <summary>
 /// EN: Summary for SqliteBatchMock.
 /// PT: Resumo para SqliteBatchMock.

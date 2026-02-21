@@ -8,6 +8,7 @@ using DbParameter = System.Data.Common.DbParameter;
 using DbDataAdapter = System.Data.Common.DbDataAdapter;
 using DbBatch = System.Data.Common.DbBatch;
 using DbBatchCommand = System.Data.Common.DbBatchCommand;
+using Microsoft.Data.SqlClient;
 namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
