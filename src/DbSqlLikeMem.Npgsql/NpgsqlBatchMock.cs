@@ -294,7 +294,7 @@ public sealed class NpgsqlBatchCommandMock : DbBatchCommand, INpgsqlCommandMock
     /// EN: Summary for member.
     /// PT: Resumo para member.
     /// </summary>
-    private int recordsAffected;
+    private int recordsAffected = 0;
 
     /// <summary>
     /// EN: Summary for member.

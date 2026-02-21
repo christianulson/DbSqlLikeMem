@@ -6,11 +6,11 @@ namespace DbSqlLikeMem.Sqlite.Test;
 /// </summary>
 public sealed class SqliteProviderSurfaceMocksTests
 {
-    [Fact]
     /// <summary>
     /// EN: Summary for DataAdapter_ShouldKeepTypedSelectCommand.
     /// PT: Resumo para DataAdapter_ShouldKeepTypedSelectCommand.
     /// </summary>
+    [Fact]
     public void DataAdapter_ShouldKeepTypedSelectCommand()
     {
         using var connection = new SqliteConnectionMock(new SqliteDbMock());
@@ -20,11 +20,11 @@ public sealed class SqliteProviderSurfaceMocksTests
         Assert.Equal("SELECT 1", adapter.SelectCommand!.CommandText);
     }
 
-    [Fact]
     /// <summary>
     /// EN: Summary for DataSource_ShouldCreateSqliteConnection.
     /// PT: Resumo para DataSource_ShouldCreateSqliteConnection.
     /// </summary>
+    [Fact]
     public void DataSource_ShouldCreateSqliteConnection()
     {
         var source = new SqliteDataSourceMock(new SqliteDbMock());
@@ -37,11 +37,11 @@ public sealed class SqliteProviderSurfaceMocksTests
     }
 
 #if NET6_0_OR_GREATER
-    [Fact]
     /// <summary>
     /// EN: Summary for Batch_ShouldExecuteAllCommands.
     /// PT: Resumo para Batch_ShouldExecuteAllCommands.
     /// </summary>
+    [Fact]
     public void Batch_ShouldExecuteAllCommands()
     {
         var db = new SqliteDbMock();
@@ -63,11 +63,11 @@ public sealed class SqliteProviderSurfaceMocksTests
         Assert.Equal(2, connection.GetTable("users").Count);
     }
 
-    [Fact]
     /// <summary>
     /// EN: Summary for Batch_ExecuteScalar_ShouldUseFirstCommandResult.
     /// PT: Resumo para Batch_ExecuteScalar_ShouldUseFirstCommandResult.
     /// </summary>
+    [Fact]
     public void Batch_ExecuteScalar_ShouldUseFirstCommandResult()
     {
         var db = new SqliteDbMock();
@@ -94,11 +94,11 @@ public sealed class SqliteProviderSurfaceMocksTests
         Assert.Equal("Ana", result);
     }
 
-    [Fact]
     /// <summary>
     /// EN: Summary for Batch_ExecuteReader_ShouldReturnResultsFromMultipleCommands.
     /// PT: Resumo para Batch_ExecuteReader_ShouldReturnResultsFromMultipleCommands.
     /// </summary>
+    [Fact]
     public void Batch_ExecuteReader_ShouldReturnResultsFromMultipleCommands()
     {
         var db = new SqliteDbMock();
@@ -129,11 +129,11 @@ public sealed class SqliteProviderSurfaceMocksTests
         Assert.Equal(1, reader.GetInt32(0));
     }
 
-    [Fact]
     /// <summary>
     /// EN: Summary for Batch_ExecuteReader_ShouldAllowNonQueryBeforeSelect.
     /// PT: Resumo para Batch_ExecuteReader_ShouldAllowNonQueryBeforeSelect.
     /// </summary>
+    [Fact]
     public void Batch_ExecuteReader_ShouldAllowNonQueryBeforeSelect()
     {
         var db = new SqliteDbMock();

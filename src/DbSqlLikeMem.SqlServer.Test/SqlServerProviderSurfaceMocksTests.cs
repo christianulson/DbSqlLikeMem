@@ -6,11 +6,11 @@ namespace DbSqlLikeMem.SqlServer.Test;
 /// </summary>
 public sealed class SqlServerProviderSurfaceMocksTests
 {
-    [Fact]
     /// <summary>
     /// EN: Summary for DataAdapter_ShouldKeepTypedSelectCommand.
     /// PT: Resumo para DataAdapter_ShouldKeepTypedSelectCommand.
     /// </summary>
+    [Fact]
     public void DataAdapter_ShouldKeepTypedSelectCommand()
     {
         using var connection = new SqlServerConnectionMock(new SqlServerDbMock());
@@ -20,11 +20,11 @@ public sealed class SqlServerProviderSurfaceMocksTests
         Assert.Equal("SELECT 1", adapter.SelectCommand!.CommandText);
     }
 
-    [Fact]
     /// <summary>
     /// EN: Summary for DataSource_ShouldCreateSqlServerConnection.
     /// PT: Resumo para DataSource_ShouldCreateSqlServerConnection.
     /// </summary>
+    [Fact]
     public void DataSource_ShouldCreateSqlServerConnection()
     {
         var source = new SqlServerDataSourceMock(new SqlServerDbMock());
@@ -37,11 +37,11 @@ public sealed class SqlServerProviderSurfaceMocksTests
     }
 
 #if NET6_0_OR_GREATER
-    [Fact]
     /// <summary>
     /// EN: Summary for Batch_ShouldExecuteAllCommands.
     /// PT: Resumo para Batch_ShouldExecuteAllCommands.
     /// </summary>
+    [Fact]
     public void Batch_ShouldExecuteAllCommands()
     {
         var db = new SqlServerDbMock();
@@ -63,11 +63,11 @@ public sealed class SqlServerProviderSurfaceMocksTests
         Assert.Equal(2, connection.GetTable("Users").Count);
     }
 
-    [Fact]
     /// <summary>
     /// EN: Summary for Batch_ExecuteScalar_ShouldUseFirstCommandResult.
     /// PT: Resumo para Batch_ExecuteScalar_ShouldUseFirstCommandResult.
     /// </summary>
+    [Fact]
     public void Batch_ExecuteScalar_ShouldUseFirstCommandResult()
     {
         var db = new SqlServerDbMock();
@@ -94,11 +94,11 @@ public sealed class SqlServerProviderSurfaceMocksTests
         Assert.Equal("Ana", result);
     }
 
-    [Fact]
     /// <summary>
     /// EN: Summary for Batch_ExecuteReader_ShouldReturnResultsFromMultipleCommands.
     /// PT: Resumo para Batch_ExecuteReader_ShouldReturnResultsFromMultipleCommands.
     /// </summary>
+    [Fact]
     public void Batch_ExecuteReader_ShouldReturnResultsFromMultipleCommands()
     {
         var db = new SqlServerDbMock();
@@ -129,11 +129,11 @@ public sealed class SqlServerProviderSurfaceMocksTests
         Assert.Equal(1, reader.GetInt32(0));
     }
 
-    [Fact]
     /// <summary>
     /// EN: Summary for Batch_ExecuteReader_ShouldAllowNonQueryBeforeSelect.
     /// PT: Resumo para Batch_ExecuteReader_ShouldAllowNonQueryBeforeSelect.
     /// </summary>
+    [Fact]
     public void Batch_ExecuteReader_ShouldAllowNonQueryBeforeSelect()
     {
         var db = new SqlServerDbMock();

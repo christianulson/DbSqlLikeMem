@@ -6,11 +6,11 @@ namespace DbSqlLikeMem.Oracle.Test;
 /// </summary>
 public sealed class OracleConnectorFactoryMockTests
 {
-    [Fact]
     /// <summary>
     /// EN: Summary for CreateCoreMembers_ShouldReturnProviderMocks.
     /// PT: Resumo para CreateCoreMembers_ShouldReturnProviderMocks.
     /// </summary>
+    [Fact]
     public void CreateCoreMembers_ShouldReturnProviderMocks()
     {
         var factory = OracleConnectorFactoryMock.GetInstance(new OracleDbMock());
@@ -23,11 +23,11 @@ public sealed class OracleConnectorFactoryMockTests
     }
 
 #if NET6_0_OR_GREATER
-    [Fact]
     /// <summary>
     /// EN: Summary for CreateBatchMembers_ShouldReturnProviderMocks.
     /// PT: Resumo para CreateBatchMembers_ShouldReturnProviderMocks.
     /// </summary>
+    [Fact]
     public void CreateBatchMembers_ShouldReturnProviderMocks()
     {
         var factory = OracleConnectorFactoryMock.GetInstance(new OracleDbMock());
@@ -39,11 +39,11 @@ public sealed class OracleConnectorFactoryMockTests
 #endif
 
 #if NET7_0_OR_GREATER
-    [Fact]
     /// <summary>
     /// EN: Summary for CreateDataSource_ShouldReturnProviderDataSourceMock.
     /// PT: Resumo para CreateDataSource_ShouldReturnProviderDataSourceMock.
     /// </summary>
+    [Fact]
     public void CreateDataSource_ShouldReturnProviderDataSourceMock()
     {
         var factory = OracleConnectorFactoryMock.GetInstance(new OracleDbMock());
