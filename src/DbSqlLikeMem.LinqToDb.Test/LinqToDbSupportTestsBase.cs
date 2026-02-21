@@ -454,4 +454,92 @@ public abstract class LinqToDbSupportTestsBase
         Assert.Equal(1, count);
     }
 
+
+
+    /// <summary>
+    /// EN: Verifies grouped queries with HAVING return the expected aggregate window.
+    /// PT: Verifica se consultas agrupadas com HAVING retornam a janela agregada esperada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "LinqToDb")]
+    public void LinqToDb_FactoryConnection_ShouldSupportGroupByHaving()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE l2db_sales (id INT PRIMARY KEY, category VARCHAR(20), amount INT)";
+            _ = create.ExecuteNonQuery();
+        }
+
+        (int id, string category, int amount)[] rows =
+        [
+            (1, "A", 30),
+            (2, "A", 40),
+            (3, "B", 20),
+            (4, "B", 15),
+            (5, "C", 10),
+        ];
+
+        foreach (var row in rows)
+        {
+            using var insert = connection.CreateCommand();
+            insert.CommandText = "INSERT INTO l2db_sales (id, category, amount) VALUES (@id, @category, @amount)";
+
+            var id = insert.CreateParameter(); id.ParameterName = "@id"; id.Value = row.id; insert.Parameters.Add(id);
+            var category = insert.CreateParameter(); category.ParameterName = "@category"; category.Value = row.category; insert.Parameters.Add(category);
+            var amount = insert.CreateParameter(); amount.ParameterName = "@amount"; amount.Value = row.amount; insert.Parameters.Add(amount);
+            _ = insert.ExecuteNonQuery();
+        }
+
+        using var query = connection.CreateCommand();
+        query.CommandText = "SELECT category, SUM(amount) total FROM l2db_sales GROUP BY category HAVING SUM(amount) >= @minTotal ORDER BY total DESC";
+        var min = query.CreateParameter(); min.ParameterName = "@minTotal"; min.Value = 35; query.Parameters.Add(min);
+
+        var result = new List<(string category, int total)>();
+        using var reader = query.ExecuteReader();
+        while (reader.Read())
+            result.Add((Convert.ToString(reader[0])!, Convert.ToInt32(reader[1])));
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal(("A", 70), result[0]);
+        Assert.Equal(("B", 35), result[1]);
+    }
+
+    /// <summary>
+    /// EN: Verifies OFFSET/FETCH-style pagination returns deterministic windows.
+    /// PT: Verifica se paginação no estilo OFFSET/FETCH retorna janelas determinísticas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "LinqToDb")]
+    public void LinqToDb_FactoryConnection_ShouldSupportPaginationWindow()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE l2db_page_users (id INT PRIMARY KEY, name VARCHAR(100))";
+            _ = create.ExecuteNonQuery();
+        }
+
+        for (var i = 1; i <= 5; i++)
+        {
+            using var insert = connection.CreateCommand();
+            insert.CommandText = "INSERT INTO l2db_page_users (id, name) VALUES (@id, @name)";
+
+            var id = insert.CreateParameter(); id.ParameterName = "@id"; id.Value = i; insert.Parameters.Add(id);
+            var name = insert.CreateParameter(); name.ParameterName = "@name"; name.Value = $"User-{i}"; insert.Parameters.Add(name);
+            _ = insert.ExecuteNonQuery();
+        }
+
+        using var page = connection.CreateCommand();
+        page.CommandText = "SELECT id FROM l2db_page_users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
+
+        var ids = new List<int>();
+        using var reader = page.ExecuteReader();
+        while (reader.Read()) ids.Add(Convert.ToInt32(reader[0]));
+
+        Assert.Equal([2, 3], ids);
+    }
+
 }
