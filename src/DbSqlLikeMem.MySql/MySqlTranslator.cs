@@ -2,11 +2,11 @@ using System.Text;
 
 namespace DbSqlLikeMem.MySql;
 
-/// <summary>
-/// Visitor que converte árvore de Expression em SQL básico.
-/// Suporta .Where, .Select (projeção simples), .OrderBy/.ThenBy, .Skip, .Take e .Count.
-/// </summary>
 #pragma warning disable CA1305 // Specify IFormatProvider
+/// <summary>
+/// EN: Visits expression trees and translates supported LINQ patterns into basic MySQL SQL.
+/// PT: Visita árvores de expressão e traduz padrões LINQ suportados para SQL básico de MySQL.
+/// </summary>
 public class MySqlTranslator : ExpressionVisitor
 {
     private StringBuilder _sb = new();
@@ -19,8 +19,11 @@ public class MySqlTranslator : ExpressionVisitor
     private int? _limit;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Translates an input expression tree into SQL text and positional parameters.
+    /// PT: Traduz uma árvore de expressão de entrada em SQL e parâmetros posicionais.
     /// </summary>
+    /// <param name="expression">EN: Expression tree to translate. PT: Árvore de expressão a ser traduzida.</param>
+    /// <returns>EN: Generated SQL and parameters. PT: SQL gerado e parâmetros.</returns>
     public TranslationResult Translate(Expression expression)
     {
         _sb.Clear();

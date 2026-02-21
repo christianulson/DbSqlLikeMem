@@ -40,82 +40,120 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     internal const int JsonbMinVersion = 9;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.double_quote;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for IsStringQuote.
+    /// PT: Resumo para IsStringQuote.
     /// </summary>
     public override bool IsStringQuote(char ch) => ch == '\'';
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.doubled_quote;
     /// <summary>
-    /// EN: Uses case-insensitive textual comparisons in the in-memory executor for deterministic tests.
-    /// PT: Usa comparações textuais case-insensitive no executor em memória para testes determinísticos.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override StringComparison TextComparison => StringComparison.OrdinalIgnoreCase;
 
     /// <summary>
-    /// EN: Enables implicit numeric/string comparison only when both values are numeric-convertible.
-    /// PT: Habilita comparação implícita numérica/string apenas quando ambos os valores são conversíveis para número.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsImplicitNumericStringComparison => true;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsDollarQuotedStrings => true;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsLimitOffset => true;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsFetchFirst => true;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsOffsetFetch => true;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool SupportsOrderByNullsModifier => true;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsOnConflictClause => true;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsReturning => true;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsDeleteTargetAlias => false;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsJsonArrowOperators => Version >= JsonbMinVersion;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool AllowsParserCrossDialectJsonOperators => true;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool SupportsWithRecursive => Version >= WithCteMinVersion;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool SupportsWithMaterializedHint => true;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override IReadOnlyCollection<string> NullSubstituteFunctionNames => [];
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool ConcatReturnsNullOnNullInput => false;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for GetTemporaryTableScope.
+    /// PT: Resumo para GetTemporaryTableScope.
     /// </summary>
     public override TemporaryTableScope GetTemporaryTableScope(string tableName, string? schemaName)
     {
@@ -126,6 +164,10 @@ internal sealed class NpgsqlDialect : SqlDialectBase
             : TemporaryTableScope.None;
     }
 
+    /// <summary>
+    /// EN: Summary for SupportsDateAddFunction.
+    /// PT: Resumo para SupportsDateAddFunction.
+    /// </summary>
     public override bool SupportsDateAddFunction(string functionName)
         => false;
 }

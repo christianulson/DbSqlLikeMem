@@ -34,73 +34,122 @@ internal sealed class SqlServerDialect : SqlDialectBase
     internal const int JsonFunctionsMinVersion = 2016;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool AllowsBracketIdentifiers => true;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.bracket;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for IsStringQuote.
+    /// PT: Resumo para IsStringQuote.
     /// </summary>
     public override bool IsStringQuote(char ch) => ch == '\'';
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.doubled_quote;
     /// <summary>
-    /// EN: Uses case-insensitive textual comparisons in the in-memory executor for deterministic tests.
-    /// PT: Usa comparações textuais case-insensitive no executor em memória para testes determinísticos.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override StringComparison TextComparison => StringComparison.OrdinalIgnoreCase;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsTop => true;
 
     // OFFSET ... FETCH entrou no SQL Server 2012.
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsOffsetFetch => Version >= OffsetFetchMinVersion;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool RequiresOrderByForOffsetFetch => true;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsDeleteWithoutFrom => true; // DELETE [FROM] t
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsDeleteTargetAlias => true; // DELETE alias FROM t alias JOIN ...
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
     // SQL Server supports CTE but not the "WITH RECURSIVE" keyword form.
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool SupportsWithRecursive => false;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool SupportsJsonValueFunction => Version >= JsonFunctionsMinVersion;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool SupportsOpenJsonFunction => Version >= JsonFunctionsMinVersion;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool SupportsPivotClause => true;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool SupportsSqlServerTableHints => true;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
+    public override bool SupportsSqlServerQueryHints => true;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["ISNULL"];
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool ConcatReturnsNullOnNullInput => false;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool AllowsHashIdentifiers => true;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for GetTemporaryTableScope.
+    /// PT: Resumo para GetTemporaryTableScope.
     /// </summary>
     public override TemporaryTableScope GetTemporaryTableScope(string tableName, string? schemaName)
     {
@@ -113,6 +162,10 @@ internal sealed class SqlServerDialect : SqlDialectBase
         return TemporaryTableScope.None;
     }
 
+    /// <summary>
+    /// EN: Summary for SupportsDateAddFunction.
+    /// PT: Resumo para SupportsDateAddFunction.
+    /// </summary>
     public override bool SupportsDateAddFunction(string functionName)
         => functionName.Equals("DATEADD", StringComparison.OrdinalIgnoreCase);
 }

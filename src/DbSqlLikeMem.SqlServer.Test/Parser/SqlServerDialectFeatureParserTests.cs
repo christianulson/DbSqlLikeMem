@@ -27,6 +27,31 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
     }
 
+
+
+    /// <summary>
+    /// EN: Ensures OFFSET/FETCH accepts command parameters in parser execution mode.
+    /// PT: Garante que OFFSET/FETCH aceite parâmetros de comando no modo de execução do parser.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_WithOffsetFetchParameters_ShouldParse(int version)
+    {
+        if (version < SqlServerDialect.OffsetFetchMinVersion)
+            return;
+
+        var sql = "SELECT id FROM users ORDER BY id OFFSET @p0 ROWS FETCH FIRST @p1 ROWS ONLY";
+        var pars = new SqlServerDataParameterCollectionMock
+        {
+            new Microsoft.Data.SqlClient.SqlParameter("@p0", 1),
+            new Microsoft.Data.SqlClient.SqlParameter("@p1", 2)
+        };
+
+        var parsed = SqlQueryParser.Parse(sql, new SqlServerDialect(version), pars);
+        Assert.IsType<SqlSelectQuery>(parsed);
+    }
     /// <summary>
     /// EN: Ensures WITH RECURSIVE syntax is rejected.
     /// PT: Garante que a sintaxe WITH RECURSIVE seja rejeitada.
@@ -78,6 +103,75 @@ public sealed class SqlServerDialectFeatureParserTests
 
         var parsed = SqlQueryParser.Parse(sql, new SqlServerDialect(version));
         Assert.IsType<SqlSelectQuery>(parsed);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server OPTION(...) query hints are accepted by parser capability.
+    /// PT: Garante que hints de consulta SQL Server OPTION(...) sejam aceitos pela capability do parser.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_WithOptionQueryHint_ShouldParse(int version)
+    {
+        var sql = "SELECT id FROM users OPTION (MAXDOP 1, RECOMPILE)";
+
+        var parsed = SqlQueryParser.Parse(sql, new SqlServerDialect(version));
+
+        Assert.IsType<SqlSelectQuery>(parsed);
+    }
+
+    /// <summary>
+    /// EN: Ensures OPTION(...) is accepted after UNION query tails.
+    /// PT: Garante que OPTION(...) seja aceito após o tail de consultas UNION.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUnion_WithOptionQueryHint_ShouldParse(int version)
+    {
+        var sql = "SELECT id FROM users UNION SELECT id FROM users ORDER BY id OPTION (MAXDOP 1)";
+
+        var parsed = SqlQueryParser.Parse(sql, new SqlServerDialect(version));
+
+        Assert.IsType<SqlUnionQuery>(parsed);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures PIVOT clause parsing is available for this dialect.
+    /// PT: Garante que o parsing da cláusula PIVOT esteja disponível para este dialeto.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_WithPivot_ShouldParse(int version)
+    {
+        var sql = "SELECT t10 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10)) p";
+
+        var parsed = SqlQueryParser.Parse(sql, new SqlServerDialect(version));
+
+        Assert.IsType<SqlSelectQuery>(parsed);
+    }
+
+    /// <summary>
+    /// EN: Ensures invalid PIVOT syntax fails with parser validation error.
+    /// PT: Garante que sintaxe inválida de PIVOT falhe com erro de validação do parser.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_WithInvalidPivotSyntax_ShouldThrowInvalidOperation(int version)
+    {
+        var sql = "SELECT t10 FROM users PIVOT (COUNT(id) tenantid IN (10 AS t10)) p";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("PIVOT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

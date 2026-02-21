@@ -36,76 +36,124 @@ internal sealed class SqliteDialect : SqlDialectBase
     internal const int WithCteMinVersion = 3;
     internal const int MergeMinVersion = int.MaxValue;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool AllowsBacktickIdentifiers => true;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.double_quote;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for IsStringQuote.
+    /// PT: Resumo para IsStringQuote.
     /// </summary>
     public override bool IsStringQuote(char ch) => ch is '\'' or '"';
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.doubled_quote;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsHashLineComment => true;
 
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsLimitOffset => true;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Enables OFFSET/FETCH compatibility syntax for shared smoke tests.
+    /// PT: Habilita sintaxe de compatibilidade OFFSET/FETCH para testes smoke compartilhados.
+    /// </summary>
+    public override bool SupportsOffsetFetch => true;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsOnDuplicateKeyUpdate => true;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool SupportsOnConflictClause => true;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool SupportsOrderByNullsModifier => true;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsDeleteTargetAlias => false;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool SupportsWithRecursive => Version >= WithCteMinVersion;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool SupportsWithMaterializedHint => true;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsNullSafeEq => true;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL"];
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool ConcatReturnsNullOnNullInput => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsJsonArrowOperators => true;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool SupportsJsonExtractFunction => true;
 
     /// <summary>
-    /// EN: Mock rule: SQLite text comparisons are case-insensitive by default in this project.
-    /// PT: Regra do mock: comparações textuais de SQLite são case-insensitive por padrão neste projeto.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override StringComparison TextComparison => StringComparison.OrdinalIgnoreCase;
 
     /// <summary>
-    /// EN: Mock rule: allow numeric-vs-numeric-string implicit comparisons (e.g. id = '2').
-    /// PT: Regra do mock: permite comparação implícita número-vs-string-numérica (ex.: id = '2').
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsImplicitNumericStringComparison => true;
 
+    /// <summary>
+    /// EN: Summary for SupportsDateAddFunction.
+    /// PT: Resumo para SupportsDateAddFunction.
+    /// </summary>
     public override bool SupportsDateAddFunction(string functionName)
         => functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase);
 }

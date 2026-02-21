@@ -53,6 +53,22 @@ public sealed class SqliteDialectFeatureParserTests
         Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
     }
 
+    /// <summary>
+    /// EN: Ensures SQL Server OPTION(...) query hints are rejected for SQLite.
+    /// PT: Garante que hints SQL Server OPTION(...) sejam rejeitados para SQLite.
+    /// </summary>
+    /// <param name="version">EN: SQLite dialect version under test. PT: Versão do dialeto SQLite em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseSelect_WithSqlServerOptionHints_ShouldBeRejected(int version)
+    {
+        var sql = "SELECT id FROM users OPTION (MAXDOP 1)";
+
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+        Assert.Contains("OPTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 
     /// <summary>
     /// Executes this API operation.
@@ -90,6 +106,41 @@ public sealed class SqliteDialectFeatureParserTests
     }
 
 
+    /// <summary>
+    /// EN: Ensures OFFSET/FETCH compatibility syntax is accepted for SQLite parser.
+    /// PT: Garante que a sintaxe de compatibilidade OFFSET/FETCH seja aceita pelo parser SQLite.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseSelect_WithOffsetFetch_ShouldParse(int version)
+    {
+        var sql = "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
+
+        var parsed = SqlQueryParser.Parse(sql, new SqliteDialect(version));
+        Assert.IsType<SqlSelectQuery>(parsed);
+    }
+
+
+
+
+    /// <summary>
+    /// EN: Ensures PIVOT clause is rejected when the dialect capability flag is disabled.
+    /// PT: Garante que a cláusula PIVOT seja rejeitada quando a flag de capacidade do dialeto está desabilitada.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseSelect_WithPivot_ShouldBeRejectedWithDialectMessage(int version)
+    {
+        var sql = "SELECT t10 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10)) p";
+
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+
+        Assert.Contains("PIVOT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("sqlite", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>
     /// EN: Ensures runtime dialect hooks used by executor remain stable across supported versions.

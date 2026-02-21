@@ -16,5 +16,5 @@ public sealed class CsvLoaderAndIndexTests(
     /// EN: Creates a new SQL Server mock database for each test execution.
     /// PT: Cria um novo banco mock de SQL Server para cada execução de teste.
     /// </summary>
-    protected override SqlServerDbMock CreateDb() => new();
+    protected override SqlServerDbMock CreateDb() => [];
 }

@@ -6,18 +6,6 @@
 		<TargetFrameworks>net48;net6.0;net8.0;net10.0</TargetFrameworks>
 	</PropertyGroup>
 
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net48'">
-		<PackageReference Include="Dapper" Version="2.1.35" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-		<PackageReference Include="Dapper" Version="2.1.35" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
-		<PackageReference Include="Dapper" Version="2.1.66" />
-	</ItemGroup>
 	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
 		<OutputType>Exe</OutputType>
 	</PropertyGroup>
@@ -69,7 +57,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Using Include="Dapper" />
 		<Using Include="DbSqlLikeMem" />
 		<Using Include="DbSqlLikeMem.Oracle" />
 		<Using Include="DbSqlLikeMem.Resources" />
@@ -80,11 +67,5 @@
 		<Using Include="System.Globalization" />
 		<Using Include="Xunit" />
 	</ItemGroup>
-
-	<ItemGroup>
-		<Compile Include="..\DbSqlLikeMem.Test\CsvLoaderAndIndexTestBase.cs" Link="SharedTests\CsvLoaderAndIndexTestBase.cs" />
-		<Compile Include="..\DbSqlLikeMem.Test\ExistsTestsBase.cs" Link="SharedTests\ExistsTestsBase.cs" />
-		<Compile Include="..\DbSqlLikeMem.Test\StoredProcedureSignatureTestsBase.cs" Link="SharedTests\StoredProcedureSignatureTestsBase.cs" />
-		<Compile Include="..\DbSqlLikeMem.Test\SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase.cs" Link="SharedTests\SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase.cs" />
-	</ItemGroup>
+	
 </Project>

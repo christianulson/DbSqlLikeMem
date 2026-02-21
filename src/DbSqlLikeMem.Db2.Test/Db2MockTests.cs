@@ -89,6 +89,25 @@ public sealed class Db2MockTests
     }
 
     /// <summary>
+    /// EN Tests CreateTable with inline primary key behavior.
+    /// PT Testa o comportamento de CreateTable com chave primária inline.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void CreateTable_WithInlinePrimaryKey_ShouldCreateColumnAndAllowInsert()
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "CREATE TABLE users_nh (id INT PRIMARY KEY, name VARCHAR(100))";
+        cmd.ExecuteNonQuery();
+
+        cmd.CommandText = "INSERT INTO users_nh (id, name) VALUES (1, 'Alice')";
+        var rows = cmd.ExecuteNonQuery();
+
+        Assert.Equal(1, rows);
+        Assert.Equal("Alice", _connection.GetTable("users_nh")[0][1]);
+    }
+
+    /// <summary>
     /// EN: Tests TestTransactionCommit behavior.
     /// PT: Testa o comportamento de TestTransactionCommit.
     /// </summary>

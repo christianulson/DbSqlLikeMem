@@ -34,57 +34,97 @@ internal sealed class OracleDialect : SqlDialectBase
     internal const int FetchFirstMinVersion = 12;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.double_quote;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for IsStringQuote.
+    /// PT: Resumo para IsStringQuote.
     /// </summary>
     public override bool IsStringQuote(char ch) => ch == '\'';
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.doubled_quote;
     /// <summary>
-    /// EN: Uses case-insensitive textual comparisons in the in-memory executor for deterministic tests.
-    /// PT: Usa comparações textuais case-insensitive no executor em memória para testes determinísticos.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override StringComparison TextComparison => StringComparison.OrdinalIgnoreCase;
 
     // OFFSET ... FETCH / FETCH FIRST entrou no Oracle 12c.
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsOffsetFetch => Version >= OffsetFetchMinVersion;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsFetchFirst => Version >= FetchFirstMinVersion;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool SupportsOrderByNullsModifier => true;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsDeleteTargetAlias => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool SupportsWithRecursive => false;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool SupportsJsonValueFunction => true;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool SupportsPivotClause => true;
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["NVL"];
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
     public override bool ConcatReturnsNullOnNullInput => false;
 
+    /// <summary>
+    /// EN: Summary for IsIntegerCastTypeName.
+    /// PT: Resumo para IsIntegerCastTypeName.
+    /// </summary>
     public override bool IsIntegerCastTypeName(string typeName)
         => base.IsIntegerCastTypeName(typeName)
             || typeName.StartsWith("NUMBER", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// EN: Summary for SupportsDateAddFunction.
+    /// PT: Resumo para SupportsDateAddFunction.
+    /// </summary>
     public override bool SupportsDateAddFunction(string functionName)
         => false;
 }

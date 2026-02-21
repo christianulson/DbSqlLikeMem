@@ -5,10 +5,18 @@ namespace DbSqlLikeMem.MySql;
 /// PT: Comando mock para conexões MySQL.
 /// </summary>
 public class MySqlCommandMock(
-    MySqlConnectionMock? connection = null,
+    MySqlConnectionMock? connection,
     MySqlTransactionMock? transaction = null
     ) : DbCommand
 {
+    /// <summary>
+    /// Contructor
+    /// </summary>
+    public MySqlCommandMock()
+        : this(null, null)
+    {
+    }
+
     private bool disposedValue;
 
     /// <summary>
@@ -64,7 +72,7 @@ public class MySqlCommandMock(
     {
         if (Batch == null)
         {
-            Batch = new List<MySqlCommandMock>();
+            Batch = [];
         }
 
         Batch.Add(command);
@@ -180,6 +188,7 @@ public class MySqlCommandMock(
     public override int ExecuteNonQuery()
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
         // 1. Stored Procedure (sem parse SQL)
@@ -351,6 +360,7 @@ public class MySqlCommandMock(
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
         if (CommandType == CommandType.StoredProcedure)
@@ -377,7 +387,7 @@ public class MySqlCommandMock(
         var tables = new List<TableResultMock>();
         var hasAnyQuery = false;
 
-        foreach (var q in SqlQueryParser.ParseMulti(sql, connection.Db.Dialect))
+        foreach (var q in SqlQueryParser.ParseMulti(sql, connection.Db.Dialect, Parameters))
         {
             hasAnyQuery = true;
 

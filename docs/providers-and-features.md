@@ -19,15 +19,51 @@
 - Parser e execução de SQL para DDL/DML comuns.
 - Dialeto com diferenças por banco (parser e compatibilidade).
 - Expressões `WHERE` (`AND`/`OR`, `IN`, `LIKE`, `IS NULL`, parâmetros).
+- `GROUP BY`/`HAVING` com agregações (`COUNT`, `SUM`, `MIN`, `MAX`, `AVG`) e suporte a aliases no `HAVING`.
+- `HAVING` por ordinal em caminhos agrupados (ex.: `HAVING 2 > 0`), incluindo reescrita em expressões `CASE`/`BETWEEN`/`IN` e validação de ordinal inválido.
 - `CREATE VIEW` / `CREATE OR REPLACE VIEW`.
 - `CREATE TEMPORARY TABLE` (incluindo variantes `AS SELECT`).
 - Definição de schema via API fluente.
 - Seed de dados e consultas compatíveis com Dapper.
+- Compatibilidade NHibernate via `UserSuppliedConnectionProvider` com suíte de contrato por provider usando dialeto NHibernate específico por banco. Cobertura atual: SQL nativo com parâmetros, save/get/update/delete de entidade mapeada, rollback transacional, paginação (`FirstResult`/`MaxResults`), consulta HQL e Criteria simples, além de parâmetros nulos e tipos básicos (`string`/`int`/`datetime`/`decimal`) com validação de binding em `INSERT` e `WHERE`, e concorrência otimista com entidade versionada, além de relacionamento many-to-one/one-to-many mapeado com consulta HQL de associação e agregação por relacionamento.
+- Inicialização de integração EF Core por provider via fábricas de conexão abertas (`DbSqlLikeMem.<Provider>.EfCore`), cobrindo MySQL, SQL Server, Oracle, PostgreSQL (Npgsql), SQLite e DB2 para uso com providers relacionais do EF Core; com suíte de contrato EF Core segmentada por provider (`DbSqlLikeMem.<Provider>.EfCore.Test`) para validar conexão aberta, fluxo SQL parametrizado, commit/rollback transacional (incluindo consistência em múltiplos comandos no mesmo escopo e restauração integral no rollback), mutações (`UPDATE`/`DELETE`), binding de parâmetros nulos/tipados (`decimal`/`datetime`), escalares de agregação (`SUM`/`MAX`), consultas com `IN`/`ORDER BY`, `INNER JOIN`, `EXISTS`, `LEFT JOIN ... IS NULL`, `LIKE` parametrizado com curingas (`%`), filtros compostos com `IS NULL OR ...` (incluindo parâmetro nulo), subquery escalar em `SELECT` (incluindo retorno nulo sem correspondência), cenários `CASE WHEN` em `SELECT` e `HAVING`, leituras transacionais read-after-write no mesmo escopo, além de paginação `OFFSET/FETCH` com ordenação estável por critério determinístico e estabilidade em execuções repetidas da mesma janela e ausência de sobreposição em páginas consecutivas determinísticas.
+- Inicialização de integração LinqToDB por provider via fábricas de conexão abertas (`DbSqlLikeMem.<Provider>.LinqToDb`), cobrindo MySQL, SQL Server, Oracle, PostgreSQL (Npgsql), SQLite e DB2; com suíte de contrato LinqToDB segmentada por provider (`DbSqlLikeMem.<Provider>.LinqToDb.Test`) para validar conexão aberta, fluxo SQL parametrizado, commit/rollback transacional (incluindo consistência em múltiplos comandos no mesmo escopo e restauração integral no rollback), mutações (`UPDATE`/`DELETE`), binding de parâmetros nulos/tipados (`decimal`/`datetime`), escalares de agregação (`SUM`/`MAX`), consultas com `IN`/`ORDER BY`, `INNER JOIN`, `EXISTS`, `LEFT JOIN ... IS NULL`, `LIKE` parametrizado com curingas (`%`), filtros compostos com `IS NULL OR ...` (incluindo parâmetro nulo), subquery escalar em `SELECT` (incluindo retorno nulo sem correspondência), cenários `CASE WHEN` em `SELECT` e `HAVING`, leituras transacionais read-after-write no mesmo escopo, além de paginação `OFFSET/FETCH` com ordenação estável por critério determinístico e estabilidade em execuções repetidas da mesma janela e ausência de sobreposição em páginas consecutivas determinísticas.
+- Plano de execução mock para consultas AST (`SELECT`/`UNION`) com histórico por conexão.
+
+## Plano de execução mock e métricas para usuário final
+
+O executor AST registra um plano textual por consulta para facilitar troubleshooting e telemetria de testes.
+
+Métricas disponíveis no plano:
+
+- `EstimatedCost`: custo heurístico simplificado baseado na forma da query.
+- `InputTables`: quantidade de fontes físicas conhecidas no plano (`FROM` + `JOIN`).
+- `EstimatedRowsRead`: soma de linhas estimadas lidas nas fontes físicas conhecidas.
+- `ActualRows`: linhas efetivamente retornadas.
+- `SelectivityPct`: relação entre linhas retornadas e linhas estimadas lidas.
+- `RowsPerMs`: throughput simplificado do resultado (`ActualRows / ElapsedMs`).
+- `ElapsedMs`: tempo total medido no executor.
+
+APIs principais para consumo:
+
+- `DbConnectionMockBase.LastExecutionPlan`: último plano gerado.
+- `DbConnectionMockBase.LastExecutionPlans`: planos da última execução do comando (inclui multi-select).
+- `TableResultMock.ExecutionPlan`: plano associado ao resultado.
+
+Notas:
+
+- As métricas são intencionalmente simplificadas e determinísticas para uso em teste.
+- O valor de `EstimatedRowsRead` considera apenas fontes físicas conhecidas; subqueries/derivações podem não entrar na estimativa.
 
 ## Particularidades por banco
 
 ### MySQL
 - `INSERT ... ON DUPLICATE KEY UPDATE`: suportado.
+- `USE/IGNORE/FORCE INDEX`: parser + semântica inicial no executor para seleção de índice em predicados de igualdade.
+  - `FOR JOIN` e sem escopo: afetam candidatos de índice no plano de acesso.
+  - `FOR ORDER BY` / `FOR GROUP BY`: comportamento mínimo inicial (parseados, sem otimização dedicada de sort/group no executor).
+  - `FORCE INDEX` em escopos `FOR ORDER BY` / `FOR GROUP BY` valida existência de índices quando a query usa a cláusula correspondente (`ORDER BY` / `GROUP BY`), com fail-fast para índice inexistente.
+  - Em `FOR ORDER BY` / `FOR GROUP BY`, quando o índice hint existe, o plano de acesso a linhas permanece no modo mínimo atual (sem otimização dedicada de ordenação/agrupamento).
 
 ### SQLite
 - `WITH`/CTE: disponível (>= 3).

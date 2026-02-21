@@ -28,11 +28,15 @@
 		<ProjectReference Include="..\DbSqlLikeMem\DbSqlLikeMem.csproj" />
 	</ItemGroup>
 	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.Npgsql.NHibernate" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Npgsql.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Npgsql.Dapper.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Npgsql.NHibernate.Test" />
 	</ItemGroup>
 	<ItemGroup>
 		<Using Include="DbSqlLikeMem.Resources" />
 		<Using Include="System.Data" />
+		<Using Include="System.Data.Common" />
 		<Using Include="System.Globalization" />
 		<Using Include="System.Text.RegularExpressions" />
 	</ItemGroup>

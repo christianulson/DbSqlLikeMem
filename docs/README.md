@@ -8,6 +8,7 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
   - instalação
   - setup de provider
   - exemplos de uso
+  - checklist de revisão da documentação pós-mudanças
 - [Provedores, versões e compatibilidade](providers-and-features.md)
   - matriz por banco
   - capacidades SQL por dialeto/versão
@@ -15,6 +16,10 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
 - [Prompts de implementação (copy/paste)](implementation-prompts.md)
   - roadmap em fases
   - prompts prontos para paralelizar implementações
+- [Playbook de IA para testes de repositório/integração em projeto externo](ai-nuget-test-projects-playbook.md)
+  - prompt pronto para pedir criação de testes no projeto XPTO
+  - fluxo rápido para IA se localizar no repositório
+  - template e checklist de validação
 - [Plano executável P7–P10](p7-p10-implementation-plan.md)
   - matriz por provider
   - testes-alvo para implementação
@@ -27,6 +32,18 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
 - [Relatório de hardening/regressão](hardening-regression-report.md)
   - regressões corrigidas
   - próximos itens priorizados
+- [Backlog técnico de testes de gaps](gap-tests-technical-backlog.md)
+  - priorização de testes por feature SQL
+  - referência para cobertura incremental
+- [Relatório de readiness para NuGet](nuget-readiness-validation-report.md)
+  - checklist de empacotamento
+  - validações antes de publicar
+- [Revisão de performance (work branch)](performance-review-work-branch.md)
+  - achados de performance
+  - recomendações de otimização
+- [Testes por versão de dialeto](testes-por-versao-dialect.md)
+  - cobertura por versão simulada
+  - rastreabilidade de comportamento por provider
 - [Publicação](publishing.md)
   - NuGet
   - Visual Studio (VSIX)

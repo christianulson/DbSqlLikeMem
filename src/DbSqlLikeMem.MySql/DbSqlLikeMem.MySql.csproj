@@ -11,7 +11,10 @@
 		<ProjectReference Include="..\DbSqlLikeMem\DbSqlLikeMem.csproj" />
 	</ItemGroup>
 	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.NHibernate" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.Dapper.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.MySql.NHibernate.Test" />
 	</ItemGroup>
 	<ItemGroup>
 		<Using Include="DbSqlLikeMem.Resources" />

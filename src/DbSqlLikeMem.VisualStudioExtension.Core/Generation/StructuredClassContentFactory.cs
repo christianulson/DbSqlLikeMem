@@ -84,7 +84,7 @@ public static class StructuredClassContentFactory
 
         foreach (var fk in foreignKeys)
         {
-            sb.AppendLine($"        table.CreateForeignKey({Literal(fk.Column)}, {Literal(fk.RefTable)}, {Literal(fk.RefColumn)});");
+            sb.AppendLine($"        table.CreateForeignKey({Literal($"FK_{dbObject.Name}_{fk.Column}_{fk.RefTable}_{fk.RefColumn}")}, {Literal(fk.RefTable)}, [({Literal(fk.Column)}, {Literal(fk.RefColumn)})]);");
         }
 
         sb.AppendLine("        return table;");

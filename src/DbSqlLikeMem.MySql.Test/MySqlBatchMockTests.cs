@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
-/// EN: Validates batch command execution behavior in <see cref="MySqlBatchMock"/>.
-/// PT: Valida o comportamento de execução de comandos em lote no <see cref="MySqlBatchMock"/>.
+/// EN: Summary for MySqlBatchMockTests.
+/// PT: Resumo para MySqlBatchMockTests.
 /// </summary>
 public sealed class MySqlBatchMockTests
 {
     /// <summary>
-    /// EN: Ensures ExecuteNonQuery executes all batch commands and returns the affected rows count.
-    /// PT: Garante que o ExecuteNonQuery execute todos os comandos do lote e retorne a quantidade de linhas afetadas.
+    /// EN: Summary for ExecuteNonQuery_ShouldExecuteAllBatchCommands.
+    /// PT: Resumo para ExecuteNonQuery_ShouldExecuteAllBatchCommands.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlBatchMock")]
@@ -34,8 +34,8 @@ public sealed class MySqlBatchMockTests
     }
 
     /// <summary>
-    /// EN: Ensures ExecuteScalar returns the first command scalar result from the batch.
-    /// PT: Garante que o ExecuteScalar retorne o resultado escalar do primeiro comando do lote.
+    /// EN: Summary for ExecuteScalar_ShouldUseFirstBatchCommandResult.
+    /// PT: Resumo para ExecuteScalar_ShouldUseFirstBatchCommandResult.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlBatchMock")]
@@ -64,11 +64,11 @@ public sealed class MySqlBatchMockTests
 
         Assert.Equal("Ana", result);
     }
-
     /// <summary>
-    /// EN: Ensures ExecuteReader returns multiple result sets produced by sequential batch commands.
-    /// PT: Garante que o ExecuteReader retorne múltiplos conjuntos de resultados produzidos por comandos em lote sequenciais.
+    /// EN: Summary for ExecuteReader_ShouldReturnResultsFromMultipleBatchCommands.
+    /// PT: Resumo para ExecuteReader_ShouldReturnResultsFromMultipleBatchCommands.
     /// </summary>
+
     [Fact]
     [Trait("Category", "MySqlBatchMock")]
     public void ExecuteReader_ShouldReturnResultsFromMultipleBatchCommands()
@@ -102,8 +102,8 @@ public sealed class MySqlBatchMockTests
     }
 
     /// <summary>
-    /// EN: Ensures ExecuteReader supports batches that execute non-query commands before select queries.
-    /// PT: Garante que o ExecuteReader suporte lotes que executam comandos sem retorno antes de consultas select.
+    /// EN: Summary for ExecuteReader_ShouldAllowNonQueryBeforeSelect.
+    /// PT: Resumo para ExecuteReader_ShouldAllowNonQueryBeforeSelect.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlBatchMock")]

@@ -1,11 +1,11 @@
-using System.Collections;
 using System.Linq.Expressions;
 using System.Reflection;
 
 namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Summary for SqlServerQueryProvider.
+/// PT: Resumo para SqlServerQueryProvider.
 /// </summary>
 public sealed class SqlServerQueryProvider(
     SqlServerConnectionMock cnn
@@ -15,7 +15,8 @@ public sealed class SqlServerQueryProvider(
     private readonly SqlServerTranslator _translator = new();
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for CreateQuery.
+    /// PT: Resumo para CreateQuery.
     /// </summary>
     public IQueryable CreateQuery(Expression expression)
     {
@@ -33,7 +34,8 @@ public sealed class SqlServerQueryProvider(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
     {
@@ -81,44 +83,17 @@ public sealed class SqlServerQueryProvider(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public TResult Execute<TResult>(Expression expression)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(expression, nameof(expression));
 
-        // Traduz a árvore de expressão em SQL + parâmetros
         var translation = _translator.Translate(expression);
-
         var sql = translation.Sql ?? string.Empty;
-        var paramObj = translation.Params; // anonymous object / DynamicParameters / null
 
-        // IEnumerable (mas não string)
-        if (typeof(IEnumerable).IsAssignableFrom(typeof(TResult))
-            && typeof(TResult) != typeof(string))
-        {
-            var elementType = typeof(TResult).IsGenericType
-                ? typeof(TResult).GetGenericArguments().First()
-                : typeof(object);
-
-            var def = DapperLateBinding.FindSqlMapperMethodWithOptionalTail("Query", genericArgCount: 1);
-            var mi = def.MakeGenericMethod(elementType);
-
-            var invokeArgs = DapperLateBinding.BuildInvokeArgs(mi.GetParameters(), _cnn, sql, paramObj);
-            var data = mi.Invoke(null, invokeArgs)!;
-
-            return (TResult)data;
-        }
-        else
-        {
-            var def = DapperLateBinding.FindSqlMapperMethodWithOptionalTail("QuerySingleOrDefault", genericArgCount: 1);
-            var mi = def.MakeGenericMethod(typeof(TResult));
-
-            var invokeArgs = DapperLateBinding.BuildInvokeArgs(mi.GetParameters(), _cnn, sql, paramObj);
-            var data = mi.Invoke(null, invokeArgs);
-
-            return (TResult)data!;
-        }
+        return LinqQueryExecutor.Execute<TResult>(_cnn, sql, translation.Params);
     }
 
     // Implementação não-genérica, exigida pela interface

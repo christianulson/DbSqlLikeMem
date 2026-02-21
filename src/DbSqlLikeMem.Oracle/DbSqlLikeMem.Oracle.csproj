@@ -15,11 +15,15 @@
 		<ProjectReference Include="..\DbSqlLikeMem\DbSqlLikeMem.csproj" />
 	</ItemGroup>
 	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.Oracle.NHibernate" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Oracle.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Oracle.Dapper.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Oracle.NHibernate.Test" />
 	</ItemGroup>
 	<ItemGroup>
 		<Using Include="DbSqlLikeMem.Resources" />
 		<Using Include="System.Data" />
+		<Using Include="System.Data.Common" />
 		<Using Include="System.Globalization" />
 		<Using Include="System.Text.RegularExpressions" />
 	</ItemGroup>

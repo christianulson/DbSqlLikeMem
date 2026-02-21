@@ -16,7 +16,7 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     /// EN: Creates a new SQL Server mock database instance for each test.
     /// PT: Cria uma nova instância de banco mock de SQL Server para cada teste.
     /// </summary>
-    protected override SqlServerDbMock CreateDb() => new();
+    protected override SqlServerDbMock CreateDb() => [];
 
     /// <summary>
     /// EN: Executes a non-query SQL statement against the provided SQL Server mock database.

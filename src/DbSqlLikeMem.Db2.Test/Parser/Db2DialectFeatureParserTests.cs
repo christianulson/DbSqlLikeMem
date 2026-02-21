@@ -67,6 +67,22 @@ public sealed class Db2DialectFeatureParserTests
         Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
     }
 
+    /// <summary>
+    /// EN: Ensures SQL Server OPTION(...) query hints are rejected for DB2.
+    /// PT: Garante que hints SQL Server OPTION(...) sejam rejeitados para DB2.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseSelect_WithSqlServerOptionHints_ShouldBeRejected(int version)
+    {
+        var sql = "SELECT id FROM users OPTION (MAXDOP 1)";
+
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
+        Assert.Contains("OPTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 
     /// <summary>
     /// Executes this API operation.
@@ -124,6 +140,41 @@ public sealed class Db2DialectFeatureParserTests
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
+
+
+
+    /// <summary>
+    /// EN: Ensures OFFSET/FETCH pagination is accepted by DB2 parser.
+    /// PT: Garante que paginação OFFSET/FETCH seja aceita pelo parser DB2.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseSelect_WithOffsetFetch_ShouldParse(int version)
+    {
+        var sql = "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
+
+        var parsed = SqlQueryParser.Parse(sql, new Db2Dialect(version));
+        Assert.IsType<SqlSelectQuery>(parsed);
+    }
+
+    /// <summary>
+    /// EN: Ensures PIVOT clause is rejected when the dialect capability flag is disabled.
+    /// PT: Garante que a cláusula PIVOT seja rejeitada quando a flag de capacidade do dialeto está desabilitada.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseSelect_WithPivot_ShouldBeRejectedWithDialectMessage(int version)
+    {
+        var sql = "SELECT t10 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10)) p";
+
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
+
+        Assert.Contains("PIVOT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("db2", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>
     /// EN: Ensures runtime dialect hooks used by executor remain stable across supported versions.

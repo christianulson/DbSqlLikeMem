@@ -4,11 +4,11 @@ using System.Text;
 
 namespace DbSqlLikeMem.Db2;
 
-/// <summary>
-/// Visitor que converte árvore de Expression em SQL básico.
-/// Suporta .Where, .Select (projeção simples), .OrderBy/.ThenBy, .Skip, .Take e .Count.
-/// </summary>
 #pragma warning disable CA1305 // Specify IFormatProvider
+/// <summary>
+/// EN: Summary for Db2Translator.
+/// PT: Resumo para Db2Translator.
+/// </summary>
 public class Db2Translator : ExpressionVisitor
 {
     private StringBuilder _sb = new();
@@ -21,7 +21,8 @@ public class Db2Translator : ExpressionVisitor
     private int? _limit;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for Translate.
+    /// PT: Resumo para Translate.
     /// </summary>
     public TranslationResult Translate(Expression expression)
     {
@@ -62,11 +63,9 @@ public class Db2Translator : ExpressionVisitor
 
 #pragma warning disable CS8605 // Unboxing a possibly null value.
     /// <summary>
-    /// EN: Translates method calls into DB2 expressions.
-    /// PT: Traduz chamadas de método em expressões DB2.
+    /// EN: Summary for VisitMethodCall.
+    /// PT: Resumo para VisitMethodCall.
     /// </summary>
-    /// <param name="node">EN: Method call expression. PT: Expressão de chamada de método.</param>
-    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitMethodCall(MethodCallExpression node)
     {
         ArgumentNullException.ThrowIfNull(node);
@@ -134,11 +133,9 @@ public class Db2Translator : ExpressionVisitor
 #pragma warning restore CS8605 // Unboxing a possibly null value.
 
     /// <summary>
-    /// EN: Translates constants into DB2 literals.
-    /// PT: Traduz constantes em literais DB2.
+    /// EN: Summary for VisitConstant.
+    /// PT: Resumo para VisitConstant.
     /// </summary>
-    /// <param name="node">EN: Constant expression. PT: Expressão constante.</param>
-    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitConstant(ConstantExpression node)
     {
         ArgumentNullException.ThrowIfNull(node);
@@ -177,11 +174,9 @@ public class Db2Translator : ExpressionVisitor
     }
 
     /// <summary>
-    /// EN: Translates binary expressions into DB2 syntax.
-    /// PT: Traduz expressões binárias para a sintaxe DB2.
+    /// EN: Summary for VisitBinary.
+    /// PT: Resumo para VisitBinary.
     /// </summary>
-    /// <param name="node">EN: Binary expression. PT: Expressão binária.</param>
-    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitBinary(BinaryExpression node)
     {
         ArgumentNullException.ThrowIfNull(node);
@@ -202,11 +197,9 @@ public class Db2Translator : ExpressionVisitor
     }
 
     /// <summary>
-    /// EN: Translates member access into DB2 expressions.
-    /// PT: Traduz acesso a membros em expressões DB2.
+    /// EN: Summary for VisitMember.
+    /// PT: Resumo para VisitMember.
     /// </summary>
-    /// <param name="node">EN: Member expression. PT: Expressão de membro.</param>
-    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitMember(MemberExpression node)
     {
         ArgumentNullException.ThrowIfNull(node);
@@ -259,5 +252,5 @@ public class Db2Translator : ExpressionVisitor
 
         return "*"; // fallback
     }
-}
+} 
 #pragma warning restore CA1305 // Specify IFormatProvider

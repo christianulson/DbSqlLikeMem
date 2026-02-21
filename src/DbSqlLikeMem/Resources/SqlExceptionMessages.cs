@@ -2,7 +2,7 @@ using System.Resources;
 
 namespace DbSqlLikeMem.Resources;
 
-internal static class SqlExceptionMessages
+public static class SqlExceptionMessages
 {
     private static readonly ResourceManager ResourceManager =
         new("DbSqlLikeMem.Resources.SqlExceptionMessages", typeof(SqlExceptionMessages).Assembly);

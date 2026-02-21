@@ -16,7 +16,7 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     /// EN: Creates a new PostgreSQL mock database for each scenario.
     /// PT: Cria um novo banco mock de PostgreSQL para cada cenário.
     /// </summary>
-    protected override NpgsqlDbMock CreateDb() => new();
+    protected override NpgsqlDbMock CreateDb() => [];
 
     /// <summary>
     /// EN: Executes a non-query command using a PostgreSQL mock connection.

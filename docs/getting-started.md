@@ -6,8 +6,8 @@
 
 ```xml
 <ItemGroup>
-  <ProjectReference Include="../DbSqlLikeMem/DbSqlLikeMem.csproj" />
-  <ProjectReference Include="../DbSqlLikeMem.SqlServer/DbSqlLikeMem.SqlServer.csproj" />
+  <ProjectReference Include="../src/DbSqlLikeMem/DbSqlLikeMem.csproj" />
+  <ProjectReference Include="../src/DbSqlLikeMem.SqlServer/DbSqlLikeMem.SqlServer.csproj" />
 </ItemGroup>
 ```
 
@@ -22,12 +22,29 @@ Depois referencie no projeto de testes:
 - `DbSqlLikeMem.dll`
 - uma DLL de provider (ex.: `DbSqlLikeMem.SqlServer.dll`)
 
+### Opção 3: pacote NuGet (recomendado para consumo em times)
+
+Instale apenas o provider que representa o banco que você quer simular. O pacote core (`DbSqlLikeMem`) entra como dependência transitiva.
+
+Exemplos:
+
+```bash
+dotnet add package DbSqlLikeMem.SqlServer
+dotnet add package DbSqlLikeMem.Npgsql
+dotnet add package DbSqlLikeMem.MySql
+dotnet add package DbSqlLikeMem.Oracle
+dotnet add package DbSqlLikeMem.Sqlite
+dotnet add package DbSqlLikeMem.Db2
+```
+
 ## NuGet e dependências
 
 Cada provider é empacotado separadamente (ex.: `DbSqlLikeMem.MySql`, `DbSqlLikeMem.Npgsql`).
 
 Durante o `dotnet pack`, cada provider inclui dependência de `DbSqlLikeMem`.
 Assim, ao instalar um provider via nuget.org, o núcleo é instalado automaticamente.
+
+Dica: escolha **um provider por projeto de teste** (ou por suíte), conforme o dialeto que você precisa validar.
 
 ## Seleção de provider em runtime
 
@@ -37,7 +54,9 @@ Quando o banco é escolhido em tempo de execução, use uma factory:
 using DbSqlLikeMem.MySql;
 using DbSqlLikeMem.Npgsql;
 using DbSqlLikeMem.Oracle;
+using DbSqlLikeMem.Sqlite;
 using DbSqlLikeMem.SqlServer;
+using DbSqlLikeMem.Db2;
 
 public static class DbSqlLikeMemFactory
 {
@@ -49,6 +68,8 @@ public static class DbSqlLikeMemFactory
             "sqlserver" => new SqlServerConnectionMock(new SqlServerDbMock()),
             "oracle" => new OracleConnectionMock(new OracleDbMock()),
             "postgres" or "postgresql" or "npgsql" => new NpgsqlConnectionMock(new NpgsqlDbMock()),
+            "sqlite" or "sqlite3" => new SqliteConnectionMock(new SqliteDbMock()),
+            "db2" => new Db2ConnectionMock(new Db2DbMock()),
             _ => throw new ArgumentException($"Unsupported provider: {provider}")
         };
     }
@@ -112,6 +133,54 @@ table.Add(new Dictionary<int, object?>
 using var connection = new NpgsqlConnectionMock(db);
 var result = connection.Query("SELECT * FROM Users WHERE Id = @Id", new { Id = 1 });
 ```
+
+### Exemplo 3: inspeção de plano de execução e métricas
+
+```csharp
+using DbSqlLikeMem.MySql;
+
+using var cnn = new MySqlConnectionMock();
+cnn.Define("users");
+cnn.Column<int>("users", "Id");
+cnn.Column<int>("users", "Active");
+cnn.Seed("users", null, [1, 1], [2, 0], [3, 1]);
+
+using var cmd = new MySqlCommandMock(cnn)
+{
+    CommandText = "SELECT Id FROM users WHERE Active = 1 ORDER BY Id"
+};
+
+using var reader = cmd.ExecuteReader();
+while (reader.Read())
+{
+    // consume rows
+}
+
+Console.WriteLine(cnn.LastExecutionPlan);
+// Campos úteis no plano:
+// - EstimatedCost
+// - InputTables
+// - EstimatedRowsRead
+// - ActualRows
+// - SelectivityPct
+// - RowsPerMs
+// - ElapsedMs
+```
+
+Observações:
+
+- `LastExecutionPlan` traz o último plano gerado para a conexão.
+- `LastExecutionPlans` mantém o histórico da última execução do comando (útil para SQL com múltiplos SELECTs).
+- O plano também fica disponível no resultado (`TableResultMock.ExecutionPlan`) internamente no executor AST.
+
+## Checklist rápido de revisão de documentação
+
+Use esta lista quando fizer alterações grandes no código:
+
+- Atualize a tabela de provedores/versões em `README.md` e `docs/providers-and-features.md`.
+- Verifique se exemplos de `factory` cobrem todos os providers suportados.
+- Confirme se novos recursos aparecem em pelo menos um guia de uso (`docs/getting-started.md`) e um guia de referência (`docs/providers-and-features.md`).
+- Se houver impacto de distribuição, revise `docs/publishing.md`.
 
 ## Testes
 

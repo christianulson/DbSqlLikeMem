@@ -6,6 +6,7 @@ internal sealed class SqlQueryParser
 {
     private readonly IReadOnlyList<SqlToken> _toks;
     private readonly ISqlDialect _dialect;
+    private readonly IDataParameterCollection? _parameters;
     private int _i;
     // INSERT ... SELECT pode ter um sufixo de UPSERT após o SELECT (MySQL ON DUPLICATE..., Postgres ON CONFLICT ...)
     private bool _allowOnDuplicateBoundary;
@@ -17,11 +18,20 @@ internal sealed class SqlQueryParser
     /// Auto-generated summary.
     /// </summary>
     public SqlQueryParser(string sql, ISqlDialect dialect)
+        : this(sql, dialect, null)
+    {
+    }
+
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public SqlQueryParser(string sql, ISqlDialect dialect, IDataParameterCollection? parameters)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
         // Normaliza espaços básicos se necessário, mas o tokenizer cuida da maior parte
         _dialect = dialect;
+        _parameters = parameters;
         _toks = new SqlTokenizer(sql, _dialect).Tokenize();
         _i = 0;
     }
@@ -30,6 +40,9 @@ internal sealed class SqlQueryParser
     /// Auto-generated summary.
     /// </summary>
     public static SqlQueryBase Parse(string sql, ISqlDialect dialect)
+        => Parse(sql, dialect, null);
+
+    public static SqlQueryBase Parse(string sql, ISqlDialect dialect, IDataParameterCollection? parameters)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
@@ -40,6 +53,13 @@ internal sealed class SqlQueryParser
         if (IsWord(first, "MERGE") && !dialect.SupportsMerge)
             throw SqlUnsupported.ForDialect(dialect, "MERGE statement");
 
+        if (parameters is not null)
+        {
+            var uncached = ParseUncached(sql, dialect, parameters);
+            EnsureDialectSupport(uncached, dialect);
+            return uncached with { RawSql = sql };
+        }
+
         var cacheKey = SqlQueryAstCache.BuildKey(sql, dialect.Name, dialect.Version);
         if (_astCache.TryGet(cacheKey, out var cached))
         {
@@ -47,7 +67,7 @@ internal sealed class SqlQueryParser
             return cached with { RawSql = sql };
         }
 
-        var parsed = ParseUncached(sql, dialect);
+        var parsed = ParseUncached(sql, dialect, null);
         EnsureDialectSupport(parsed, dialect);
         _astCache.Set(cacheKey, parsed);
 
@@ -114,9 +134,9 @@ internal sealed class SqlQueryParser
         }
     }
 
-    private static SqlQueryBase ParseUncached(string sql, ISqlDialect dialect)
+    private static SqlQueryBase ParseUncached(string sql, ISqlDialect dialect, IDataParameterCollection? parameters)
     {
-        var q = new SqlQueryParser(sql, dialect);
+        var q = new SqlQueryParser(sql, dialect, parameters);
         var first = q.Peek();
 
         SqlQueryBase? result;
@@ -153,12 +173,18 @@ internal sealed class SqlQueryParser
     public static IEnumerable<SqlQueryBase> ParseMulti(
         string sql,
         ISqlDialect dialect)
+        => ParseMulti(sql, dialect, null);
+
+    public static IEnumerable<SqlQueryBase> ParseMulti(
+        string sql,
+        ISqlDialect dialect,
+        IDataParameterCollection? parameters)
     {
         // O split top-level ainda é útil para separar statements por ';'
         foreach (var s in SplitStatementsTopLevel(sql, dialect))
         {
             if (string.IsNullOrWhiteSpace(s)) continue;
-            yield return Parse(s, dialect);
+            yield return Parse(s, dialect, parameters);
         }
     }
 
@@ -576,6 +602,7 @@ internal sealed class SqlQueryParser
         {
             var orderBy = TryParseOrderBy();
             var rowLimit = TryParseRowLimitTail(orderBy.Count > 0);
+            TryConsumeQueryHintOption();
             ExpectEndOrUnionBoundary();
 
             return first with
@@ -604,6 +631,7 @@ internal sealed class SqlQueryParser
 
         var unionOrderBy = TryParseOrderBy();
         var unionRowLimit = TryParseRowLimitTail(unionOrderBy.Count > 0);
+        TryConsumeQueryHintOption();
         ExpectEndOrUnionBoundary();
 
         return new SqlUnionQuery(parts, allFlags, unionOrderBy, unionRowLimit);
@@ -626,6 +654,8 @@ internal sealed class SqlQueryParser
         var having = TryParseHavingExpr();
         var orderBy = allowOrderByAndLimit ? TryParseOrderBy() : [];
         var rowLimit = allowOrderByAndLimit ? TryParseRowLimitTail(orderBy.Count > 0) : null;
+        if (allowOrderByAndLimit)
+            TryConsumeQueryHintOption();
         if (top is not null)
         {
             // TOP é prefixo (SQL Server). Se também apareceu LIMIT/FETCH no fim, prioriza o fim.
@@ -645,6 +675,7 @@ internal sealed class SqlQueryParser
                 && !IsWord(t, "LIMIT")
                 && !IsWord(t, "OFFSET")
                 && !IsWord(t, "FETCH")
+                && !IsWord(t, "OPTION")
                 && !IsSymbol(t, ";"))
             {
                 throw new InvalidOperationException($"Token inesperado após SELECT: {t.Kind} '{t.Text}'");
@@ -1231,6 +1262,18 @@ internal sealed class SqlQueryParser
         return null;
     }
 
+    private void TryConsumeQueryHintOption()
+    {
+        if (!IsWord(Peek(), "OPTION"))
+            return;
+
+        if (!_dialect.SupportsSqlServerQueryHints)
+            throw SqlUnsupported.ForDialect(_dialect, "OPTION(query hints)");
+
+        Consume(); // OPTION
+        _ = ReadBalancedParenRawTokens();
+    }
+
     // --- Helpers de CTE e Table Source ---
 
     private List<SqlCte> TryParseCtes()
@@ -1314,6 +1357,7 @@ internal sealed class SqlQueryParser
         var first = ExpectIdentifier();
         string? db = null;
         var table = first;
+        var mySqlIndexHints = new List<SqlMySqlIndexHint>();
         if (IsSymbol(Peek(), "."))
         {
             Consume();
@@ -1321,11 +1365,19 @@ internal sealed class SqlQueryParser
             table = ExpectIdentifier();
         }
         if (consumeHints)
-            ConsumeTableHintsIfPresent();
+            mySqlIndexHints.AddRange(ConsumeTableHintsIfPresent());
         var alias2 = ReadOptionalAlias();
         if (consumeHints)
-            ConsumeTableHintsIfPresent();
-        return new SqlTableSource(db, table, alias2, null, null, null, Pivot: null);
+            mySqlIndexHints.AddRange(ConsumeTableHintsIfPresent());
+        return new SqlTableSource(
+            db,
+            table,
+            alias2,
+            null,
+            null,
+            null,
+            Pivot: null,
+            MySqlIndexHints: mySqlIndexHints);
     }
 
     private SqlTableSource TryParsePivot(SqlTableSource source)
@@ -1418,8 +1470,10 @@ internal sealed class SqlQueryParser
         return list;
     }
 
-    private void ConsumeTableHintsIfPresent()
+    private IReadOnlyList<SqlMySqlIndexHint> ConsumeTableHintsIfPresent()
     {
+        var mySqlHints = new List<SqlMySqlIndexHint>();
+
         while (true)
         {
             if (IsWord(Peek(), "WITH") && IsSymbol(Peek(1), "("))
@@ -1446,17 +1500,29 @@ internal sealed class SqlQueryParser
                 if (!_dialect.SupportsMySqlIndexHints)
                     throw SqlUnsupported.ForDialect(_dialect, "INDEX hints");
 
-                ConsumeMySqlIndexHint();
+                mySqlHints.Add(ConsumeMySqlIndexHint());
                 continue;
             }
 
             break;
         }
+
+        return mySqlHints;
     }
 
-    private void ConsumeMySqlIndexHint()
+    private SqlMySqlIndexHint ConsumeMySqlIndexHint()
     {
-        Consume(); // USE | IGNORE | FORCE
+        var kindToken = Consume(); // USE | IGNORE | FORCE
+        var kind = kindToken.Text.NormalizeName();
+        SqlMySqlIndexHintKind mappedKind;
+        if (kind.Equals("use", StringComparison.OrdinalIgnoreCase))
+            mappedKind = SqlMySqlIndexHintKind.Use;
+        else if (kind.Equals("ignore", StringComparison.OrdinalIgnoreCase))
+            mappedKind = SqlMySqlIndexHintKind.Ignore;
+        else if (kind.Equals("force", StringComparison.OrdinalIgnoreCase))
+            mappedKind = SqlMySqlIndexHintKind.Force;
+        else
+            throw new InvalidOperationException("MySQL index hint inválido: tipo de hint desconhecido.");
 
         if (IsWord(Peek(), "INDEX") || IsWord(Peek(), "KEY"))
         {
@@ -1467,22 +1533,26 @@ internal sealed class SqlQueryParser
             throw new InvalidOperationException("MySQL index hint inválido: esperado INDEX/KEY.");
         }
 
+        var scope = SqlMySqlIndexHintScope.Any;
         if (IsWord(Peek(), "FOR"))
         {
             Consume();
             if (IsWord(Peek(), "JOIN"))
             {
                 Consume();
+                scope = SqlMySqlIndexHintScope.Join;
             }
             else if (IsWord(Peek(), "ORDER"))
             {
                 Consume();
                 ExpectWord("BY");
+                scope = SqlMySqlIndexHintScope.OrderBy;
             }
             else if (IsWord(Peek(), "GROUP"))
             {
                 Consume();
                 ExpectWord("BY");
+                scope = SqlMySqlIndexHintScope.GroupBy;
             }
             else
             {
@@ -1493,8 +1563,53 @@ internal sealed class SqlQueryParser
         if (!IsSymbol(Peek(), "("))
             throw new InvalidOperationException("MySQL index hint inválido: esperado lista de índices entre parênteses.");
 
-        _ = ReadBalancedParenRawTokens();
+        var hintIndexListRaw = ReadBalancedParenRawTokens();
+        var indexNames = ValidateMySqlIndexHintList(hintIndexListRaw);
+
+        return new SqlMySqlIndexHint(mappedKind, scope, indexNames);
     }
+
+    private static IReadOnlyList<string> ValidateMySqlIndexHintList(string hintIndexListRaw)
+    {
+        var rawItems = hintIndexListRaw.Split(',').Select(static x => x.Trim()).ToList();
+
+        if (rawItems.Count == 0 || rawItems.All(static x => x.Length == 0))
+            throw new InvalidOperationException("MySQL index hint inválido: lista de índices vazia.");
+
+        if (rawItems.Any(static x => x.Length == 0))
+            throw new InvalidOperationException("MySQL index hint inválido: lista contém item vazio.");
+
+        var parsedItems = new List<string>(rawItems.Count);
+        foreach (var item in rawItems)
+        {
+            if (item.Equals("PRIMARY", StringComparison.OrdinalIgnoreCase))
+            {
+                parsedItems.Add("PRIMARY");
+                continue;
+            }
+
+            // MySQL quoted identifier with backticks; supports escaped backtick as `` inside name.
+            if (Regex.IsMatch(item, @"^`(?:``|[^`])+`$", RegexOptions.CultureInvariant))
+            {
+                parsedItems.Add(UnquoteMySqlIdentifier(item));
+                continue;
+            }
+
+            // Unquoted: accept common MySQL identifier chars including '$'.
+            if (Regex.IsMatch(item, @"^[A-Za-z_$][A-Za-z0-9_$]*$", RegexOptions.CultureInvariant))
+            {
+                parsedItems.Add(item);
+                continue;
+            }
+
+            throw new InvalidOperationException($"MySQL index hint inválido: índice '{item}' não é válido.");
+        }
+
+        return parsedItems;
+    }
+
+    private static string UnquoteMySqlIdentifier(string item)
+        => item[1..^1].Replace("``", "`");
 
     private SqlJoin ParseJoin()
     {
@@ -1615,10 +1730,23 @@ internal sealed class SqlQueryParser
         return sb.ToString().Trim();
 
         bool NeedsIdentifierQuoting(string ident)
-            => ident.Contains(' ')
-               || ident.Contains('\t')
-               || ident.Contains('\n')
-               || ident.Contains('\r');
+        {
+            if (string.IsNullOrWhiteSpace(ident))
+                return true;
+
+            if (_dialect.IsKeyword(ident))
+                return true;
+
+            // Keep quoted when identifier cannot be represented as a bare token.
+            // This preserves names originally written with quotes, e.g. `idx``quoted`.
+            if (!Regex.IsMatch(ident, @"^[A-Za-z_#][A-Za-z0-9_$#]*$", RegexOptions.CultureInvariant))
+                return true;
+
+            return ident.Contains(' ')
+                   || ident.Contains('\t')
+                   || ident.Contains('\n')
+                   || ident.Contains('\r');
+        }
 
         string QuoteIdentifier(string ident)
         {
@@ -1986,7 +2114,36 @@ internal sealed class SqlQueryParser
     private int ExpectNumberInt()
     {
         var t = Consume();
-        return int.Parse(t.Text, CultureInfo.InvariantCulture);
+
+        if (t.Kind == SqlTokenKind.Number)
+            return int.Parse(t.Text, CultureInfo.InvariantCulture);
+
+        if (t.Kind == SqlTokenKind.Parameter)
+            return ResolveParameterInt(t.Text);
+
+        throw new InvalidOperationException($"Esperava número inteiro ou parâmetro, veio {t.Kind} '{t.Text}'.");
+    }
+
+    private int ResolveParameterInt(string parameterToken)
+    {
+        if (_parameters is null)
+            throw new FormatException($"The input string '{parameterToken}' was not in a correct format.");
+
+        var normalized = parameterToken.TrimStart('@', ':', '?');
+
+        foreach (IDataParameter parameter in _parameters)
+        {
+            var name = (parameter.ParameterName ?? string.Empty).TrimStart('@', ':', '?');
+            if (!string.Equals(name, normalized, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (parameter.Value is null || parameter.Value == DBNull.Value)
+                throw new FormatException($"The input string '{parameterToken}' was not in a correct format.");
+
+            return Convert.ToInt32(parameter.Value, CultureInfo.InvariantCulture);
+        }
+
+        throw new FormatException($"The input string '{parameterToken}' was not in a correct format.");
     }
     private void ExpectEndOrUnionBoundary()
     {
@@ -2061,6 +2218,7 @@ internal sealed class SqlQueryParser
         "OUTER"  ,
         "OFFSET" ,
         "FETCH"  ,
+        "OPTION" ,
         "SET"    ,  // UPDATE
         "VALUES" ,  // INSERT
         "SELECT" ,  // INSERT...SELECT (e derived cases)
@@ -2069,6 +2227,8 @@ internal sealed class SqlQueryParser
         "WHEN"   ,
         "MATCHED",
         "THEN"
+      , "PIVOT"
+      , "UNPIVOT"
     };
 
     private static bool IsClauseKeywordToken(SqlToken t)

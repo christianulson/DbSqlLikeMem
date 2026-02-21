@@ -16,5 +16,5 @@ public sealed class CsvLoaderAndIndexTests(
     /// EN: Creates a new Db2 mock database for each test execution.
     /// PT: Cria um novo banco mock de Db2 para cada execução de teste.
     /// </summary>
-    protected override Db2DbMock CreateDb() => new();
+    protected override Db2DbMock CreateDb() => [];
 }

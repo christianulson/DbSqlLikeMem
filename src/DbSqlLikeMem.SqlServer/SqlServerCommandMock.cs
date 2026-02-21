@@ -1,4 +1,3 @@
-using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Data.SqlClient;
 
@@ -6,33 +5,45 @@ using Microsoft.Data.SqlClient;
 namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
-/// SqlServer command mock. Faz parse com SqlServerDialect e executa via engine atual (SqlServerAstQueryExecutor).
+/// EN: Represents a mock database command used to execute SQL text and stored procedures in memory.
+/// PT: Representa um comando de banco de dados simulado usado para executar SQL e procedures em memória.
 /// </summary>
 public class SqlServerCommandMock(
-    SqlServerConnectionMock? connection = null,
+    SqlServerConnectionMock? connection,
     SqlServerTransactionMock? transaction = null
-    ) : DbCommand
+    ) : DbCommand, ISqlServerCommandMock
 {
+    /// <summary>
+    /// EN: Initializes a new command instance without an attached connection or transaction.
+    /// PT: Inicializa uma nova instância de comando sem conexão ou transação associada.
+    /// </summary>
+    public SqlServerCommandMock() : this(null, null)
+    {
+    }
+
     private bool disposedValue;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets the SQL statement or stored procedure name that will be executed by this command.
+    /// PT: Obtém ou define a instrução SQL ou o nome da procedure que será executada por este comando.
     /// </summary>
     [AllowNull]
     public override string CommandText { get; set; } = string.Empty;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets the time, in seconds, to wait for command execution before timing out.
+    /// PT: Obtém ou define o tempo, em segundos, para aguardar a execução do comando antes de expirar.
     /// </summary>
     public override int CommandTimeout { get; set; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets whether the command text is raw SQL text or a stored procedure name.
+    /// PT: Obtém ou define se o texto do comando é SQL puro ou o nome de uma procedure.
     /// </summary>
     public override CommandType CommandType { get; set; } = CommandType.Text;
 
     /// <summary>
-    /// EN: Gets or sets the associated connection.
-    /// PT: Obtém ou define a conexão associada.
+    /// EN: Summary for DbConnection.
+    /// PT: Resumo para DbConnection.
     /// </summary>
     protected override DbConnection? DbConnection
     {
@@ -42,14 +53,14 @@ public class SqlServerCommandMock(
 
     private readonly SqlServerDataParameterCollectionMock collectionMock = [];
     /// <summary>
-    /// EN: Gets the parameter collection for the command.
-    /// PT: Obtém a coleção de parâmetros do comando.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     protected override DbParameterCollection DbParameterCollection => collectionMock;
 
     /// <summary>
-    /// EN: Gets or sets the current transaction.
-    /// PT: Obtém ou define a transação atual.
+    /// EN: Summary for DbTransaction.
+    /// PT: Resumo para DbTransaction.
     /// </summary>
     protected override DbTransaction? DbTransaction
     {
@@ -58,33 +69,37 @@ public class SqlServerCommandMock(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override UpdateRowSource UpdatedRowSource { get; set; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
     /// </summary>
     public override bool DesignTimeVisible { get; set; }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for Cancel.
+    /// PT: Resumo para Cancel.
     /// </summary>
     public override void Cancel() => DbTransaction?.Rollback();
 
     /// <summary>
-    /// EN: Creates a new SQL Server parameter.
-    /// PT: Cria um novo parâmetro do SQL Server.
+    /// EN: Summary for CreateDbParameter.
+    /// PT: Resumo para CreateDbParameter.
     /// </summary>
-    /// <returns>EN: Parameter instance. PT: Instância do parâmetro.</returns>
     protected override DbParameter CreateDbParameter()
         => new SqlParameter();
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for ExecuteNonQuery.
+    /// PT: Resumo para ExecuteNonQuery.
     /// </summary>
     public override int ExecuteNonQuery()
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
         if (CommandType == CommandType.StoredProcedure)
@@ -119,14 +134,13 @@ public class SqlServerCommandMock(
     }
 
     /// <summary>
-    /// EN: Executes the command and returns a data reader.
-    /// PT: Executa o comando e retorna um data reader.
+    /// EN: Summary for ExecuteDbDataReader.
+    /// PT: Resumo para ExecuteDbDataReader.
     /// </summary>
-    /// <param name="behavior">EN: Command behavior. PT: Comportamento do comando.</param>
-    /// <returns>EN: Data reader. PT: Data reader.</returns>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
         if (CommandType == CommandType.StoredProcedure)
@@ -145,7 +159,7 @@ public class SqlServerCommandMock(
 
         var executor = new SqlServerAstQueryExecutor(connection!, Parameters);
 
-        var queries = SqlQueryParser.ParseMulti(sql, connection!.Db.Dialect).ToList();
+        var queries = SqlQueryParser.ParseMulti(sql, connection!.Db.Dialect, Parameters).ToList();
         var tables = new List<TableResultMock>();
 
         foreach (var query in queries)
@@ -246,7 +260,8 @@ public class SqlServerCommandMock(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for ExecuteScalar.
+    /// PT: Resumo para ExecuteScalar.
     /// </summary>
     public override object ExecuteScalar()
     {
@@ -257,15 +272,15 @@ public class SqlServerCommandMock(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Summary for Prepare.
+    /// PT: Resumo para Prepare.
     /// </summary>
     public override void Prepare() { }
 
     /// <summary>
-    /// EN: Disposes the command and resources.
-    /// PT: Descarta o comando e os recursos.
+    /// EN: Summary for Dispose.
+    /// PT: Resumo para Dispose.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         if (!disposedValue)
