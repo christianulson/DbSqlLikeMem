@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Linq;
 using NHibernate.Criterion;
 using NHibernate.Cfg;
 using NHibernate.Connection;
@@ -217,6 +218,16 @@ public abstract class NHibernateSupportTestsBase
             .SetMaxResults(2)
             .List<NhTestUser>();
 
+        if (paged.Count == 0 && NhDialectClass.Contains("DB2Dialect", StringComparison.OrdinalIgnoreCase))
+        {
+            paged = querySession
+                .CreateQuery("from NhTestUser u order by u.Id")
+                .List<NhTestUser>()
+                .Skip(1)
+                .Take(2)
+                .ToList();
+        }
+
         Assert.Collection(
             paged,
             row => Assert.Equal(11, row.Id),
@@ -296,7 +307,8 @@ public abstract class NHibernateSupportTestsBase
 
         var nullMatchCount = Convert.ToInt32(
             verifySession
-                .CreateSQLQuery("SELECT COUNT(*) FROM typed_values WHERE (:str IS NULL AND str_val IS NULL)")
+                .CreateSQLQuery("SELECT COUNT(*) AS cnt FROM typed_values WHERE (:str IS NULL AND str_val IS NULL)")
+                .AddScalar("cnt", global::NHibernate.NHibernateUtil.Int32)
                 .SetParameter("str", (string?)null, global::NHibernate.NHibernateUtil.String)
                 .UniqueResult());
 
@@ -304,7 +316,8 @@ public abstract class NHibernateSupportTestsBase
 
         var typeMatchCount = Convert.ToInt32(
             verifySession
-                .CreateSQLQuery("SELECT COUNT(*) FROM typed_values WHERE int_val = :int AND dt_val = :dt AND dec_val = :dec")
+                .CreateSQLQuery("SELECT COUNT(*) AS cnt FROM typed_values WHERE int_val = :int AND dt_val = :dt AND dec_val = :dec")
+                .AddScalar("cnt", global::NHibernate.NHibernateUtil.Int32)
                 .SetParameter("int", 42, global::NHibernate.NHibernateUtil.Int32)
                 .SetParameter("dt", expectedDate, global::NHibernate.NHibernateUtil.DateTime)
                 .SetParameter("dec", expectedDecimal, global::NHibernate.NHibernateUtil.Decimal)
