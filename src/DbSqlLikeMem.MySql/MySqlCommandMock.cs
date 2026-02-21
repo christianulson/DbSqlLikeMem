@@ -387,7 +387,7 @@ public class MySqlCommandMock(
         var tables = new List<TableResultMock>();
         var hasAnyQuery = false;
 
-        foreach (var q in SqlQueryParser.ParseMulti(sql, connection.Db.Dialect))
+        foreach (var q in SqlQueryParser.ParseMulti(sql, connection.Db.Dialect, Parameters))
         {
             hasAnyQuery = true;
 

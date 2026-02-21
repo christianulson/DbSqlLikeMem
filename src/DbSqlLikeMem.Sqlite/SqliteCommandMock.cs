@@ -186,7 +186,7 @@ public class SqliteCommandMock(
         var executor = AstQueryExecutorFactory.Create(connection!.Db.Dialect, connection, Parameters);
 
         // Parse Multiplo (ex: "SELECT 1; SELECT 2;" ou "CREATE TEMPORARY TABLE ...; SELECT ...")
-        var queries = SqlQueryParser.ParseMulti(sql, connection.Db.Dialect).ToList();
+        var queries = SqlQueryParser.ParseMulti(sql, connection.Db.Dialect, Parameters).ToList();
 
         var tables = new List<TableResultMock>();
 

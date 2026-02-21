@@ -55,6 +55,12 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// PT: Resumo para member.
     /// </summary>
     public override bool SupportsFetchFirst => true;
+
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
+    public override bool SupportsOffsetFetch => true;
     
     /// <summary>
     /// EN: Summary for member.
