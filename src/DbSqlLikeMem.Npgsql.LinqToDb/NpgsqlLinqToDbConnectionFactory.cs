@@ -1,5 +1,5 @@
-using DbSqlLikeMem.Npgsql;
 using DbSqlLikeMem.LinqToDb;
+using System.Data.Common;
 
 namespace DbSqlLikeMem.Npgsql.LinqToDb;
 

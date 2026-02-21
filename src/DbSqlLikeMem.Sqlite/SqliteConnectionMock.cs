@@ -1,6 +1,4 @@
-﻿using System.Data.Common;
-
-namespace DbSqlLikeMem.Sqlite;
+﻿namespace DbSqlLikeMem.Sqlite;
 
 /// <summary>
 /// EN: Summary for SqliteConnectionMock.

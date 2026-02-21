@@ -1,5 +1,3 @@
-using System.Data.Common;
-
 using DbProviderFactory = System.Data.Common.DbProviderFactory;
 using DbCommand = System.Data.Common.DbCommand;
 using DbConnection = System.Data.Common.DbConnection;

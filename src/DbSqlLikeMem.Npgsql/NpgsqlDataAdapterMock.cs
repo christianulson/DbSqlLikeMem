@@ -1,5 +1,3 @@
-using System.Data.Common;
-
 using DbDataAdapter = System.Data.Common.DbDataAdapter;
 namespace DbSqlLikeMem.Npgsql;
 

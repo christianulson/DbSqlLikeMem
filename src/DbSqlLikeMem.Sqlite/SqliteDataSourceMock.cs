@@ -1,5 +1,3 @@
-using System.Data.Common;
-
 using DbConnection = System.Data.Common.DbConnection;
 namespace DbSqlLikeMem.Sqlite;
 

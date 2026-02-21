@@ -1,5 +1,5 @@
 using DbSqlLikeMem.EfCore;
-using DbSqlLikeMem.Oracle;
+using System.Data.Common;
 namespace DbSqlLikeMem.Oracle.EfCore;
 
 /// <summary>

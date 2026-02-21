@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Data.Common;
 using Oracle.ManagedDataAccess.Client;
 
 namespace DbSqlLikeMem.Oracle;

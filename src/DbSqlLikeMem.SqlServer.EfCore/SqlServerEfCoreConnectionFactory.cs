@@ -1,5 +1,5 @@
 using DbSqlLikeMem.EfCore;
-using DbSqlLikeMem.SqlServer;
+using System.Data.Common;
 namespace DbSqlLikeMem.SqlServer.EfCore;
 
 /// <summary>

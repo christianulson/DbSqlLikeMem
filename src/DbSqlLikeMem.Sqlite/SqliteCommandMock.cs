@@ -1,5 +1,4 @@
 using Microsoft.Data.Sqlite;
-using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 
 namespace DbSqlLikeMem.Sqlite;

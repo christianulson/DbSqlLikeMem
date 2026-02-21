@@ -1,5 +1,3 @@
-using System.Data.Common;
-
 using DbBatch = System.Data.Common.DbBatch;
 using DbConnection = System.Data.Common.DbConnection;
 using DbTransaction = System.Data.Common.DbTransaction;

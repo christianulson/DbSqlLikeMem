@@ -1,6 +1,5 @@
 using Microsoft.Data.Sqlite;
 using System.Collections;
-using System.Data.Common;
 
 namespace DbSqlLikeMem.Sqlite;
 /// <summary>

@@ -1,5 +1,3 @@
-using System.Data.Common;
-
 using DbConnection = System.Data.Common.DbConnection;
 using DbTransaction = System.Data.Common.DbTransaction;
 using DbDataReader = System.Data.Common.DbDataReader;

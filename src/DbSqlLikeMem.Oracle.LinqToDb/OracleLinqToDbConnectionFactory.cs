@@ -1,5 +1,5 @@
-using DbSqlLikeMem.Oracle;
 using DbSqlLikeMem.LinqToDb;
+using System.Data.Common;
 
 namespace DbSqlLikeMem.Oracle.LinqToDb;
 

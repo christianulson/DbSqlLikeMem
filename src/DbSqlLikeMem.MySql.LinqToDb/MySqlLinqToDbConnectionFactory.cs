@@ -1,5 +1,5 @@
-using DbSqlLikeMem.MySql;
 using DbSqlLikeMem.LinqToDb;
+using System.Data.Common;
 
 namespace DbSqlLikeMem.MySql.LinqToDb;
 

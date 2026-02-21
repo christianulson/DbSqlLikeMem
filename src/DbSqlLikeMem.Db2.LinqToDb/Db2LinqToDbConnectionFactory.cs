@@ -1,5 +1,5 @@
-using DbSqlLikeMem.Db2;
 using DbSqlLikeMem.LinqToDb;
+using System.Data.Common;
 
 namespace DbSqlLikeMem.Db2.LinqToDb;
 

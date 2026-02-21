@@ -1,5 +1,5 @@
 using DbSqlLikeMem.EfCore;
-using DbSqlLikeMem.Sqlite;
+using System.Data.Common;
 namespace DbSqlLikeMem.Sqlite.EfCore;
 
 /// <summary>

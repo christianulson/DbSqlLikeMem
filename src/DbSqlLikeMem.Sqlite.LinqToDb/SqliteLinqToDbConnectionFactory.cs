@@ -1,5 +1,5 @@
-using DbSqlLikeMem.Sqlite;
 using DbSqlLikeMem.LinqToDb;
+using System.Data.Common;
 
 namespace DbSqlLikeMem.Sqlite.LinqToDb;
 

@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using System.Data.Common;
-using System.Linq;
 using NHibernate.Criterion;
 using NHibernate.Cfg;
 using NHibernate.Connection;

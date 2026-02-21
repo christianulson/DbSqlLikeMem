@@ -1,5 +1,5 @@
 using DbSqlLikeMem.EfCore;
-using DbSqlLikeMem.MySql;
+using System.Data.Common;
 namespace DbSqlLikeMem.MySql.EfCore;
 
 /// <summary>

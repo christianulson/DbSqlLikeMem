@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Data.Common;
 using Microsoft.Data.SqlClient;
 
 namespace DbSqlLikeMem.SqlServer;

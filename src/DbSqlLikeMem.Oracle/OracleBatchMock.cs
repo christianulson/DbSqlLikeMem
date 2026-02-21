@@ -1,5 +1,3 @@
-using System.Data.Common;
-
 namespace DbSqlLikeMem.Oracle;
 
 #if NET6_0_OR_GREATER
