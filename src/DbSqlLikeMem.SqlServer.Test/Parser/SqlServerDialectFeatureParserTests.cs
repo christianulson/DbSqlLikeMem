@@ -27,6 +27,31 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
     }
 
+
+
+    /// <summary>
+    /// EN: Ensures OFFSET/FETCH accepts command parameters in parser execution mode.
+    /// PT: Garante que OFFSET/FETCH aceite parâmetros de comando no modo de execução do parser.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_WithOffsetFetchParameters_ShouldParse(int version)
+    {
+        if (version < SqlServerDialect.OffsetFetchMinVersion)
+            return;
+
+        var sql = "SELECT id FROM users ORDER BY id OFFSET @p0 ROWS FETCH FIRST @p1 ROWS ONLY";
+        var pars = new SqlServerDataParameterCollectionMock
+        {
+            new Microsoft.Data.SqlClient.SqlParameter("@p0", 1),
+            new Microsoft.Data.SqlClient.SqlParameter("@p1", 2)
+        };
+
+        var parsed = SqlQueryParser.Parse(sql, new SqlServerDialect(version), pars);
+        Assert.IsType<SqlSelectQuery>(parsed);
+    }
     /// <summary>
     /// EN: Ensures WITH RECURSIVE syntax is rejected.
     /// PT: Garante que a sintaxe WITH RECURSIVE seja rejeitada.
