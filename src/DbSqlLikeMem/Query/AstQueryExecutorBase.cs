@@ -1536,7 +1536,19 @@ internal abstract class AstQueryExecutorBase(
     {
         var res = new TableResultMock();
         var groupsList = groups.Select(g => new { g.Key, Rows = g.ToList() }).ToList();
-        var selectPlan = BuildSelectPlan(q, groupsList.ConvertAll(g => g.Rows[0]), ctes);
+        var hasGroups = groupsList.Count > 0;
+
+        // SQL aggregate semantics: when no GROUP BY is present and the filtered input is empty,
+        // aggregate projections (e.g. COUNT(*)) still return a single row.
+        if (!hasGroups && q.GroupBy.Count == 0)
+            groupsList.Add(new { Key = default(GroupKey), Rows = new List<EvalRow>() });
+
+        var selectPlan = BuildSelectPlan(
+            q,
+            hasGroups
+                ? groupsList.ConvertAll(g => g.Rows[0])
+                : [],
+            ctes);
 
         // columns
         for (int i = 0; i < selectPlan.Columns.Count; i++)
@@ -1548,7 +1560,7 @@ internal abstract class AstQueryExecutorBase(
             var eg = new EvalGroup(g.Rows);
             var outRow = new Dictionary<int, object?>();
 
-            var first = g.Rows[0];
+            var first = g.Rows.Count > 0 ? g.Rows[0] : EvalRow.Empty();
             for (int i = 0; i < selectPlan.Evaluators.Count; i++)
                 outRow[i] = selectPlan.Evaluators[i](first, eg);
 
@@ -3865,12 +3877,13 @@ private void FillPercentRankOrCumeDist(
         // SelectItems are raw strings; attempt to parse and walk
         foreach (var si in q.SelectItems)
         {
+            var (exprRaw, _) = SplitTrailingAsAlias(si.Raw, si.Alias);
 #pragma warning disable CA1031 // Do not catch general exception types
             try
             {
-                var (exprRaw, _) = SplitTrailingAsAlias(si.Raw, si.Alias);
                 var e = ParseExpr(exprRaw);
-                if (WalkHasAggregate(e)) return true;
+                if (WalkHasAggregate(e) || (e is RawSqlExpr && LooksLikeAggregateExpression(exprRaw)))
+                    return true;
             }
             catch (Exception e)
             {
@@ -3878,13 +3891,22 @@ private void FillPercentRankOrCumeDist(
                 Console.WriteLine($"{GetType().Name}.{nameof(ContainsAggregate)}");
 #pragma warning restore CA1303 // Do not pass literals as localized parameters
                 Console.WriteLine(e);
-                // if expression parser can't parse, assume non-aggregate
+
+                // fallback: preserve aggregate semantics even when expression parsing fails.
+                if (LooksLikeAggregateExpression(exprRaw))
+                    return true;
             }
 #pragma warning restore CA1031 // Do not catch general exception types
         }
         return q.Having is not null
             && WalkHasAggregate(q.Having);
     }
+
+    private static bool LooksLikeAggregateExpression(string exprRaw)
+        => Regex.IsMatch(
+            exprRaw,
+            @"\b(COUNT|SUM|MIN|MAX|AVG)\s*\(",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     private static bool WalkHasAggregate(SqlExpr e) => e switch
     {
@@ -4242,6 +4264,14 @@ private void FillPercentRankOrCumeDist(
         public EvalRow CloneRow()
             => new(new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase),
                    new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase));
+
+        /// <summary>
+        /// EN: Returns an empty evaluation row placeholder.
+        /// PT: Retorna um placeholder de linha de avaliação vazia.
+        /// </summary>
+        public static EvalRow Empty()
+            => new(new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase),
+                   new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase));
 
         /// <summary>
         /// Auto-generated summary.

@@ -142,6 +142,22 @@ public sealed class Db2DialectFeatureParserTests
 
 
 
+
+    /// <summary>
+    /// EN: Ensures OFFSET/FETCH pagination is accepted by DB2 parser.
+    /// PT: Garante que paginação OFFSET/FETCH seja aceita pelo parser DB2.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseSelect_WithOffsetFetch_ShouldParse(int version)
+    {
+        var sql = "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
+
+        var parsed = SqlQueryParser.Parse(sql, new Db2Dialect(version));
+        Assert.IsType<SqlSelectQuery>(parsed);
+    }
+
     /// <summary>
     /// EN: Ensures PIVOT clause is rejected when the dialect capability flag is disabled.
     /// PT: Garante que a cláusula PIVOT seja rejeitada quando a flag de capacidade do dialeto está desabilitada.
