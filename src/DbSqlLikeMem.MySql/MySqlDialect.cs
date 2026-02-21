@@ -87,6 +87,11 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsLimitOffset => true;
     /// <summary>
+    /// EN: Enables SQL Server-style OFFSET/FETCH syntax as parser compatibility mode.
+    /// PT: Habilita sintaxe OFFSET/FETCH estilo SQL Server como modo de compatibilidade do parser.
+    /// </summary>
+    public override bool SupportsOffsetFetch => true;
+    /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsOnDuplicateKeyUpdate => true;
