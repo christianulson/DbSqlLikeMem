@@ -101,7 +101,7 @@ public sealed class NpgsqlConnectorFactoryMock : DbProviderFactory
     /// PT: Resumo para member.
     /// </summary>
 #if NET7_0_OR_GREATER
-    public override NpgsqlDataSourceMock CreateDataSource(string connectionString) => new(db);
+    public override DbDataSource CreateDataSource(string connectionString) => new NpgsqlDataSourceMock(db);
 #else
     public NpgsqlDataSourceMock CreateDataSource(string connectionString) => new(db);
 #endif

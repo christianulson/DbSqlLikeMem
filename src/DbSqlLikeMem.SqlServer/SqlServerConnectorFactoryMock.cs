@@ -103,7 +103,7 @@ public sealed class SqlServerConnectorFactoryMock : DbProviderFactory
     /// PT: Resumo para member.
     /// </summary>
 #if NET7_0_OR_GREATER
-    public override SqlServerDataSourceMock CreateDataSource(string connectionString) => new(db);
+    public override DbDataSource CreateDataSource(string connectionString) => new SqlServerDataSourceMock(db);
 #else
     public SqlServerDataSourceMock CreateDataSource(string connectionString) => new(db);
 #endif
