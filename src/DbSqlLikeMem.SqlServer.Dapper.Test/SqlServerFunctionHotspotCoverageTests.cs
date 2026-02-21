@@ -54,6 +54,29 @@ WHERE id = 1");
         Assert.Equal(new DateTime(2020, 1, 3), (DateTime)row.plus_two_days);
     }
 
+
+    [Fact]
+    [Trait("Category", "SqlServerFunctionCoverage")]
+    public void JsonUnquote_And_ToNumber_ShouldConvertValues()
+    {
+        var row = _cnn.QuerySingle<dynamic>("SELECT JSON_UNQUOTE('\"alpha\"') AS uq, TO_NUMBER('42.50') AS num");
+
+        Assert.Equal("alpha", (string)row.uq);
+        Assert.Equal(42.50m, (decimal)row.num);
+    }
+
+    [Fact]
+    [Trait("Category", "SqlServerFunctionCoverage")]
+    public void DateAdd_WithUnsupportedUnit_ShouldReturnOriginalDate()
+    {
+        var row = _cnn.QuerySingle<dynamic>(@"
+SELECT DATEADD(FOO, 7, created) AS same_date
+FROM fn_data
+WHERE id = 1");
+
+        Assert.Equal(new DateTime(2020, 1, 1), (DateTime)row.same_date);
+    }
+
     protected override void Dispose(bool disposing)
     {
         _cnn?.Dispose();
