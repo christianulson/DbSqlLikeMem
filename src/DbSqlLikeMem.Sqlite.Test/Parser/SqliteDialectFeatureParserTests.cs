@@ -106,6 +106,22 @@ public sealed class SqliteDialectFeatureParserTests
     }
 
 
+    /// <summary>
+    /// EN: Ensures OFFSET/FETCH compatibility syntax is accepted for SQLite parser.
+    /// PT: Garante que a sintaxe de compatibilidade OFFSET/FETCH seja aceita pelo parser SQLite.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseSelect_WithOffsetFetch_ShouldParse(int version)
+    {
+        var sql = "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
+
+        var parsed = SqlQueryParser.Parse(sql, new SqliteDialect(version));
+        Assert.IsType<SqlSelectQuery>(parsed);
+    }
+
+
 
 
     /// <summary>

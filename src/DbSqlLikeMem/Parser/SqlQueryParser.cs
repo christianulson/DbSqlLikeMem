@@ -6,6 +6,7 @@ internal sealed class SqlQueryParser
 {
     private readonly IReadOnlyList<SqlToken> _toks;
     private readonly ISqlDialect _dialect;
+    private readonly IDataParameterCollection? _parameters;
     private int _i;
     // INSERT ... SELECT pode ter um sufixo de UPSERT após o SELECT (MySQL ON DUPLICATE..., Postgres ON CONFLICT ...)
     private bool _allowOnDuplicateBoundary;
@@ -17,11 +18,20 @@ internal sealed class SqlQueryParser
     /// Auto-generated summary.
     /// </summary>
     public SqlQueryParser(string sql, ISqlDialect dialect)
+        : this(sql, dialect, null)
+    {
+    }
+
+    /// <summary>
+    /// Auto-generated summary.
+    /// </summary>
+    public SqlQueryParser(string sql, ISqlDialect dialect, IDataParameterCollection? parameters)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
         // Normaliza espaços básicos se necessário, mas o tokenizer cuida da maior parte
         _dialect = dialect;
+        _parameters = parameters;
         _toks = new SqlTokenizer(sql, _dialect).Tokenize();
         _i = 0;
     }
@@ -30,6 +40,9 @@ internal sealed class SqlQueryParser
     /// Auto-generated summary.
     /// </summary>
     public static SqlQueryBase Parse(string sql, ISqlDialect dialect)
+        => Parse(sql, dialect, null);
+
+    public static SqlQueryBase Parse(string sql, ISqlDialect dialect, IDataParameterCollection? parameters)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
@@ -40,6 +53,13 @@ internal sealed class SqlQueryParser
         if (IsWord(first, "MERGE") && !dialect.SupportsMerge)
             throw SqlUnsupported.ForDialect(dialect, "MERGE statement");
 
+        if (parameters is not null)
+        {
+            var uncached = ParseUncached(sql, dialect, parameters);
+            EnsureDialectSupport(uncached, dialect);
+            return uncached with { RawSql = sql };
+        }
+
         var cacheKey = SqlQueryAstCache.BuildKey(sql, dialect.Name, dialect.Version);
         if (_astCache.TryGet(cacheKey, out var cached))
         {
@@ -47,7 +67,7 @@ internal sealed class SqlQueryParser
             return cached with { RawSql = sql };
         }
 
-        var parsed = ParseUncached(sql, dialect);
+        var parsed = ParseUncached(sql, dialect, null);
         EnsureDialectSupport(parsed, dialect);
         _astCache.Set(cacheKey, parsed);
 
@@ -114,9 +134,9 @@ internal sealed class SqlQueryParser
         }
     }
 
-    private static SqlQueryBase ParseUncached(string sql, ISqlDialect dialect)
+    private static SqlQueryBase ParseUncached(string sql, ISqlDialect dialect, IDataParameterCollection? parameters)
     {
-        var q = new SqlQueryParser(sql, dialect);
+        var q = new SqlQueryParser(sql, dialect, parameters);
         var first = q.Peek();
 
         SqlQueryBase? result;
@@ -153,12 +173,18 @@ internal sealed class SqlQueryParser
     public static IEnumerable<SqlQueryBase> ParseMulti(
         string sql,
         ISqlDialect dialect)
+        => ParseMulti(sql, dialect, null);
+
+    public static IEnumerable<SqlQueryBase> ParseMulti(
+        string sql,
+        ISqlDialect dialect,
+        IDataParameterCollection? parameters)
     {
         // O split top-level ainda é útil para separar statements por ';'
         foreach (var s in SplitStatementsTopLevel(sql, dialect))
         {
             if (string.IsNullOrWhiteSpace(s)) continue;
-            yield return Parse(s, dialect);
+            yield return Parse(s, dialect, parameters);
         }
     }
 
@@ -2088,7 +2114,36 @@ internal sealed class SqlQueryParser
     private int ExpectNumberInt()
     {
         var t = Consume();
-        return int.Parse(t.Text, CultureInfo.InvariantCulture);
+
+        if (t.Kind == SqlTokenKind.Number)
+            return int.Parse(t.Text, CultureInfo.InvariantCulture);
+
+        if (t.Kind == SqlTokenKind.Parameter)
+            return ResolveParameterInt(t.Text);
+
+        throw new InvalidOperationException($"Esperava número inteiro ou parâmetro, veio {t.Kind} '{t.Text}'.");
+    }
+
+    private int ResolveParameterInt(string parameterToken)
+    {
+        if (_parameters is null)
+            throw new FormatException($"The input string '{parameterToken}' was not in a correct format.");
+
+        var normalized = parameterToken.TrimStart('@', ':', '?');
+
+        foreach (IDataParameter parameter in _parameters)
+        {
+            var name = (parameter.ParameterName ?? string.Empty).TrimStart('@', ':', '?');
+            if (!string.Equals(name, normalized, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (parameter.Value is null || parameter.Value == DBNull.Value)
+                throw new FormatException($"The input string '{parameterToken}' was not in a correct format.");
+
+            return Convert.ToInt32(parameter.Value, CultureInfo.InvariantCulture);
+        }
+
+        throw new FormatException($"The input string '{parameterToken}' was not in a correct format.");
     }
     private void ExpectEndOrUnionBoundary()
     {
