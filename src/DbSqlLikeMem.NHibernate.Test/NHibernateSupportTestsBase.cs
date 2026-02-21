@@ -529,139 +529,139 @@ public abstract class NHibernateSupportTestsBase
         command.CommandText = sql;
         _ = command.ExecuteNonQuery();
     }
+}
 
-    private class NhTestUser
+internal class NhTestUser
+{
+    public virtual int Id { get; set; }
+
+    public virtual string Name { get; set; } = string.Empty;
+}
+
+internal class NhVersionedUser
+{
+    public virtual int Id { get; set; }
+
+    public virtual int Version { get; set; }
+
+    public virtual string Name { get; set; } = string.Empty;
+}
+
+internal sealed class NhTestUserMap : ClassMapping<NhTestUser>
+{
+    public NhTestUserMap()
     {
-        public virtual int Id { get; set; }
+        Table("users");
 
-        public virtual string Name { get; set; } = string.Empty;
-    }
-
-    private class NhVersionedUser
-    {
-        public virtual int Id { get; set; }
-
-        public virtual int Version { get; set; }
-
-        public virtual string Name { get; set; } = string.Empty;
-    }
-
-    private sealed class NhTestUserMap : ClassMapping<NhTestUser>
-    {
-        public NhTestUserMap()
+        Id(x => x.Id, map =>
         {
-            Table("users");
+            map.Column("id");
+            map.Generator(Generators.Assigned);
+        });
 
-            Id(x => x.Id, map =>
-            {
-                map.Column("id");
-                map.Generator(Generators.Assigned);
-            });
-
-            Property(x => x.Name, map =>
-            {
-                map.Column("name");
-                map.NotNullable(true);
-            });
-        }
-    }
-
-    private class NhUserGroup
-    {
-        public virtual int Id { get; set; }
-
-        public virtual string Name { get; set; } = string.Empty;
-
-        public virtual IList<NhRelUser> Users { get; set; } = new List<NhRelUser>();
-    }
-
-    private class NhRelUser
-    {
-        public virtual int Id { get; set; }
-
-        public virtual string Name { get; set; } = string.Empty;
-
-        public virtual NhUserGroup? Group { get; set; }
-    }
-
-    private sealed class NhUserGroupMap : ClassMapping<NhUserGroup>
-    {
-        public NhUserGroupMap()
+        Property(x => x.Name, map =>
         {
-            Table("user_groups");
-
-            Id(x => x.Id, map =>
-            {
-                map.Column("id");
-                map.Generator(Generators.Assigned);
-            });
-
-            Property(x => x.Name, map =>
-            {
-                map.Column("name");
-                map.NotNullable(true);
-            });
-
-            Bag(x => x.Users,
-                bag =>
-                {
-                    bag.Key(key => key.Column("group_id"));
-                    bag.Inverse(true);
-                    bag.Cascade(Cascade.None);
-                },
-                rel => rel.OneToMany());
-        }
+            map.Column("name");
+            map.NotNullable(true);
+        });
     }
+}
 
-    private sealed class NhRelUserMap : ClassMapping<NhRelUser>
+internal class NhUserGroup
+{
+    public virtual int Id { get; set; }
+
+    public virtual string Name { get; set; } = string.Empty;
+
+    public virtual IList<NhRelUser> Users { get; set; } = new List<NhRelUser>();
+}
+
+internal class NhRelUser
+{
+    public virtual int Id { get; set; }
+
+    public virtual string Name { get; set; } = string.Empty;
+
+    public virtual NhUserGroup? Group { get; set; }
+}
+
+internal sealed class NhUserGroupMap : ClassMapping<NhUserGroup>
+{
+    public NhUserGroupMap()
     {
-        public NhRelUserMap()
+        Table("user_groups");
+
+        Id(x => x.Id, map =>
         {
-            Table("users_rel");
+            map.Column("id");
+            map.Generator(Generators.Assigned);
+        });
 
-            Id(x => x.Id, map =>
-            {
-                map.Column("id");
-                map.Generator(Generators.Assigned);
-            });
+        Property(x => x.Name, map =>
+        {
+            map.Column("name");
+            map.NotNullable(true);
+        });
 
-            Property(x => x.Name, map =>
+        Bag(x => x.Users,
+            bag =>
             {
-                map.Column("name");
-                map.NotNullable(true);
-            });
-
-            ManyToOne(x => x.Group, map =>
-            {
-                map.Column("group_id");
-                map.Cascade(Cascade.None);
-            });
-        }
+                bag.Key(key => key.Column("group_id"));
+                bag.Inverse(true);
+                bag.Cascade(Cascade.None);
+            },
+            rel => rel.OneToMany());
     }
+}
 
-    private sealed class NhVersionedUserMap : ClassMapping<NhVersionedUser>
+internal sealed class NhRelUserMap : ClassMapping<NhRelUser>
+{
+    public NhRelUserMap()
     {
-        public NhVersionedUserMap()
+        Table("users_rel");
+
+        Id(x => x.Id, map =>
         {
-            Table("users_versioned");
+            map.Column("id");
+            map.Generator(Generators.Assigned);
+        });
 
-            Id(x => x.Id, map =>
-            {
-                map.Column("id");
-                map.Generator(Generators.Assigned);
-            });
+        Property(x => x.Name, map =>
+        {
+            map.Column("name");
+            map.NotNullable(true);
+        });
 
-            Version(x => x.Version, map =>
-            {
-                map.Column("version");
-                map.UnsavedValue("0");
-            });
+        ManyToOne(x => x.Group, map =>
+        {
+            map.Column("group_id");
+            map.Cascade(Cascade.None);
+        });
+    }
+}
 
-            Property(x => x.Name, map =>
-            {
-                map.Column("name");
-                map.NotNullable(true);
-            });
-        }
+internal sealed class NhVersionedUserMap : ClassMapping<NhVersionedUser>
+{
+    public NhVersionedUserMap()
+    {
+        Table("users_versioned");
+
+        Id(x => x.Id, map =>
+        {
+            map.Column("id");
+            map.Generator(Generators.Assigned);
+        });
+
+        Version(x => x.Version, map =>
+        {
+            map.Column("version");
+            map.UnsavedValue("0");
+        });
+
+        Property(x => x.Name, map =>
+        {
+            map.Column("name");
+            map.NotNullable(true);
+        });
     }
 }
