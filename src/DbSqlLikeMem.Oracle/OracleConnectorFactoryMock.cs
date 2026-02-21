@@ -93,7 +93,7 @@ public sealed class OracleConnectorFactoryMock : DbProviderFactory
     /// PT: Resumo para member.
     /// </summary>
 #if NET7_0_OR_GREATER
-    public override OracleDataSourceMock CreateDataSource(string connectionString) => new(db);
+    public override DbDataSource CreateDataSource(string connectionString) => new OracleDataSourceMock(db);
 #else
     public OracleDataSourceMock CreateDataSource(string connectionString) => new(db);
 #endif
