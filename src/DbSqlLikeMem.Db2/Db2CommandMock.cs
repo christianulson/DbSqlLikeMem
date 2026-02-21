@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Db2;
 
 /// <summary>
-/// EN: Summary for Db2CommandMock.
-/// PT: Resumo para Db2CommandMock.
+/// EN: Represents a mock database command used to execute SQL text and stored procedures in memory.
+/// PT: Representa um comando de banco de dados simulado usado para executar SQL e procedures em memória.
 /// </summary>
 public class Db2CommandMock(
     Db2ConnectionMock? connection,
@@ -10,8 +10,8 @@ public class Db2CommandMock(
     ) : DbCommand, IDb2CommandMock
 {
     /// <summary>
-    /// EN: Summary for Db2CommandMock.
-    /// PT: Resumo para Db2CommandMock.
+    /// EN: Initializes a new command instance without an attached connection or transaction.
+    /// PT: Inicializa uma nova instância de comando sem conexão ou transação associada.
     /// </summary>
     public Db2CommandMock() : this(null, null)
     {
@@ -19,21 +19,21 @@ public class Db2CommandMock(
 
     private bool disposedValue;
 
-    [AllowNull]
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets or sets the SQL statement or stored procedure name that will be executed by this command.
+    /// PT: Obtém ou define a instrução SQL ou o nome da procedure que será executada por este comando.
     /// </summary>
+    [AllowNull]
     public override string CommandText { get; set; } = string.Empty;
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets or sets the time, in seconds, to wait for command execution before timing out.
+    /// PT: Obtém ou define o tempo, em segundos, para aguardar a execução do comando antes de expirar.
     /// </summary>
     public override int CommandTimeout { get; set; }
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets or sets whether the command text is raw SQL text or a stored procedure name.
+    /// PT: Obtém ou define se o texto do comando é SQL puro ou o nome de uma procedure.
     /// </summary>
     public override CommandType CommandType { get; set; } = CommandType.Text;
 
