@@ -6,8 +6,10 @@ using DbConnection = System.Data.Common.DbConnection;
 using DbConnectionStringBuilder = System.Data.Common.DbConnectionStringBuilder;
 using DbParameter = System.Data.Common.DbParameter;
 using DbDataAdapter = System.Data.Common.DbDataAdapter;
+#if NET6_0_OR_GREATER
 using DbBatch = System.Data.Common.DbBatch;
 using DbBatchCommand = System.Data.Common.DbBatchCommand;
+#endif
 using Microsoft.Data.SqlClient;
 namespace DbSqlLikeMem.SqlServer;
 
