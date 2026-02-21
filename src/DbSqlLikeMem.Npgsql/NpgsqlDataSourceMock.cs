@@ -20,4 +20,11 @@ public sealed class NpgsqlDataSourceMock(NpgsqlDbMock? db = null)
     /// PT: Resumo para CreateDbConnection.
     /// </summary>
     public NpgsqlConnectionMock CreateDbConnection() => new NpgsqlConnectionMock(db);
+
+    /// <summary>
+    /// EN: Summary for CreateConnection.
+    /// PT: Resumo para CreateConnection.
+    /// </summary>
+    public NpgsqlConnectionMock CreateConnection() => CreateDbConnection();
+
 }
