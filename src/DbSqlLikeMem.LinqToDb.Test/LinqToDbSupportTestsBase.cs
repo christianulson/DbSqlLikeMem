@@ -650,4 +650,230 @@ WHERE p.id IS NULL";
         Assert.Equal(1, Convert.ToInt32(query.ExecuteScalar()));
     }
 
+    /// <summary>
+    /// EN: Verifies CASE WHEN projections and CASE-based HAVING filters are evaluated correctly.
+    /// PT: Verifica se projeções com CASE WHEN e filtros HAVING baseados em CASE são avaliados corretamente.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "LinqToDb")]
+    public void LinqToDb_FactoryConnection_ShouldSupportCaseWhenInSelectAndHaving()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE l2db_case_sales (id INT PRIMARY KEY, category VARCHAR(20), amount INT)";
+            _ = create.ExecuteNonQuery();
+        }
+
+        (int id, string category, int amount)[] rows = [(1, "A", 80), (2, "A", 30), (3, "B", 20), (4, "B", 10)];
+        foreach (var row in rows)
+        {
+            using var insert = connection.CreateCommand();
+            insert.CommandText = "INSERT INTO l2db_case_sales (id, category, amount) VALUES (@id, @category, @amount)";
+            var id = insert.CreateParameter(); id.ParameterName = "@id"; id.Value = row.id; insert.Parameters.Add(id);
+            var category = insert.CreateParameter(); category.ParameterName = "@category"; category.Value = row.category; insert.Parameters.Add(category);
+            var amount = insert.CreateParameter(); amount.ParameterName = "@amount"; amount.Value = row.amount; insert.Parameters.Add(amount);
+            _ = insert.ExecuteNonQuery();
+        }
+
+        using var query = connection.CreateCommand();
+        query.CommandText = @"SELECT
+  category,
+  SUM(CASE WHEN amount >= @cutoff THEN 1 ELSE 0 END) high_count,
+  CASE WHEN SUM(amount) >= @target THEN 'TOP' ELSE 'REGULAR' END tier
+FROM l2db_case_sales
+GROUP BY category
+HAVING SUM(CASE WHEN amount >= @cutoff THEN 1 ELSE 0 END) >= @minHits
+ORDER BY category";
+        var cutoff = query.CreateParameter(); cutoff.ParameterName = "@cutoff"; cutoff.Value = 50; query.Parameters.Add(cutoff);
+        var target = query.CreateParameter(); target.ParameterName = "@target"; target.Value = 100; query.Parameters.Add(target);
+        var minHits = query.CreateParameter(); minHits.ParameterName = "@minHits"; minHits.Value = 1; query.Parameters.Add(minHits);
+
+        using var reader = query.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal("A", Convert.ToString(reader[0]));
+        Assert.Equal(1, Convert.ToInt32(reader[1]));
+        Assert.Equal("TOP", Convert.ToString(reader[2]));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies parameterized LIKE predicates with wildcard values are applied correctly.
+    /// PT: Verifica se predicados LIKE parametrizados com curingas são aplicados corretamente.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "LinqToDb")]
+    public void LinqToDb_FactoryConnection_ShouldSupportParameterizedLikeWithWildcard()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE l2db_like_users (id INT PRIMARY KEY, name VARCHAR(100))";
+            _ = create.ExecuteNonQuery();
+        }
+
+        (int id, string name)[] rows = [(1, "Alice"), (2, "Aline"), (3, "Bruno")];
+        foreach (var row in rows)
+        {
+            using var insert = connection.CreateCommand();
+            insert.CommandText = "INSERT INTO l2db_like_users (id, name) VALUES (@id, @name)";
+            var id = insert.CreateParameter(); id.ParameterName = "@id"; id.Value = row.id; insert.Parameters.Add(id);
+            var name = insert.CreateParameter(); name.ParameterName = "@name"; name.Value = row.name; insert.Parameters.Add(name);
+            _ = insert.ExecuteNonQuery();
+        }
+
+        using var query = connection.CreateCommand();
+        query.CommandText = "SELECT COUNT(*) FROM l2db_like_users WHERE name LIKE @pattern";
+        var pattern = query.CreateParameter();
+        pattern.ParameterName = "@pattern";
+        pattern.Value = "Ali%";
+        query.Parameters.Add(pattern);
+
+        Assert.Equal(2, Convert.ToInt32(query.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies composite filters mixing IS NULL and parameterized alternatives are honored.
+    /// PT: Verifica se filtros compostos combinando IS NULL e alternativas parametrizadas são respeitados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "LinqToDb")]
+    public void LinqToDb_FactoryConnection_ShouldSupportCompositeNullOrFilter()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE l2db_null_filter_users (id INT PRIMARY KEY, nickname VARCHAR(100) NULL)";
+            _ = create.ExecuteNonQuery();
+        }
+
+        using (var insertNull = connection.CreateCommand()) { insertNull.CommandText = "INSERT INTO l2db_null_filter_users (id, nickname) VALUES (1, NULL)"; _ = insertNull.ExecuteNonQuery(); }
+        using (var insertAna = connection.CreateCommand()) { insertAna.CommandText = "INSERT INTO l2db_null_filter_users (id, nickname) VALUES (2, 'Ana')"; _ = insertAna.ExecuteNonQuery(); }
+        using (var insertBob = connection.CreateCommand()) { insertBob.CommandText = "INSERT INTO l2db_null_filter_users (id, nickname) VALUES (3, 'Bob')"; _ = insertBob.ExecuteNonQuery(); }
+
+        using var query = connection.CreateCommand();
+        query.CommandText = "SELECT COUNT(*) FROM l2db_null_filter_users WHERE nickname IS NULL OR nickname = @nickname";
+        var nickname = query.CreateParameter();
+        nickname.ParameterName = "@nickname";
+        nickname.Value = "Ana";
+        query.Parameters.Add(nickname);
+
+        Assert.Equal(2, Convert.ToInt32(query.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies scalar subqueries can be projected in the SELECT list.
+    /// PT: Verifica se subqueries escalares podem ser projetadas na lista SELECT.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "LinqToDb")]
+    public void LinqToDb_FactoryConnection_ShouldSupportScalarSubqueryProjection()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var createUsers = connection.CreateCommand()) { createUsers.CommandText = "CREATE TABLE l2db_scalar_users (id INT PRIMARY KEY, name VARCHAR(100))"; _ = createUsers.ExecuteNonQuery(); }
+        using (var createOrders = connection.CreateCommand()) { createOrders.CommandText = "CREATE TABLE l2db_scalar_orders (id INT PRIMARY KEY, user_id INT, amount INT)"; _ = createOrders.ExecuteNonQuery(); }
+        using (var user = connection.CreateCommand()) { user.CommandText = "INSERT INTO l2db_scalar_users (id, name) VALUES (1, 'Alice')"; _ = user.ExecuteNonQuery(); }
+        using (var order1 = connection.CreateCommand()) { order1.CommandText = "INSERT INTO l2db_scalar_orders (id, user_id, amount) VALUES (10, 1, 25)"; _ = order1.ExecuteNonQuery(); }
+        using (var order2 = connection.CreateCommand()) { order2.CommandText = "INSERT INTO l2db_scalar_orders (id, user_id, amount) VALUES (11, 1, 30)"; _ = order2.ExecuteNonQuery(); }
+
+        using var query = connection.CreateCommand();
+        query.CommandText = @"SELECT
+  u.name,
+  (SELECT SUM(o.amount) FROM l2db_scalar_orders o WHERE o.user_id = u.id) total_amount
+FROM l2db_scalar_users u
+WHERE u.id = 1";
+
+        using var reader = query.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal("Alice", Convert.ToString(reader[0]));
+        Assert.Equal(55, Convert.ToInt32(reader[1]));
+    }
+
+    /// <summary>
+    /// EN: Verifies multiple commands executed within the same transaction scope remain consistent after commit.
+    /// PT: Verifica se múltiplos comandos executados no mesmo escopo transacional permanecem consistentes após commit.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "LinqToDb")]
+    public void LinqToDb_FactoryConnection_TransactionScope_ShouldKeepMultipleCommandsConsistent()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE l2db_tx_scope_accounts (id INT PRIMARY KEY, balance INT)";
+            _ = create.ExecuteNonQuery();
+        }
+
+        using (var seed = connection.CreateCommand())
+        {
+            seed.CommandText = "INSERT INTO l2db_tx_scope_accounts (id, balance) VALUES (1, 100), (2, 50)";
+            _ = seed.ExecuteNonQuery();
+        }
+
+        using (var tx = connection.BeginTransaction())
+        {
+            using var debit = connection.CreateCommand();
+            debit.Transaction = tx;
+            debit.CommandText = "UPDATE l2db_tx_scope_accounts SET balance = balance - @amount WHERE id = @id";
+            var debitAmount = debit.CreateParameter(); debitAmount.ParameterName = "@amount"; debitAmount.Value = 20; debit.Parameters.Add(debitAmount);
+            var debitId = debit.CreateParameter(); debitId.ParameterName = "@id"; debitId.Value = 1; debit.Parameters.Add(debitId);
+            _ = debit.ExecuteNonQuery();
+
+            using var credit = connection.CreateCommand();
+            credit.Transaction = tx;
+            credit.CommandText = "UPDATE l2db_tx_scope_accounts SET balance = balance + @amount WHERE id = @id";
+            var creditAmount = credit.CreateParameter(); creditAmount.ParameterName = "@amount"; creditAmount.Value = 20; credit.Parameters.Add(creditAmount);
+            var creditId = credit.CreateParameter(); creditId.ParameterName = "@id"; creditId.Value = 2; credit.Parameters.Add(creditId);
+            _ = credit.ExecuteNonQuery();
+
+            tx.Commit();
+        }
+
+        using var verify = connection.CreateCommand();
+        verify.CommandText = "SELECT SUM(balance) FROM l2db_tx_scope_accounts";
+        Assert.Equal(150, Convert.ToInt32(verify.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies pagination ordering remains stable when using a deterministic tie-breaker.
+    /// PT: Verifica se a ordenação da paginação permanece estável ao usar um critério de desempate determinístico.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "LinqToDb")]
+    public void LinqToDb_FactoryConnection_ShouldProvideStableOrderingForPagination()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE l2db_page_stable (id INT PRIMARY KEY, grp INT, name VARCHAR(100))";
+            _ = create.ExecuteNonQuery();
+        }
+
+        (int id, int grp, string name)[] rows = [(1, 1, "A"), (2, 1, "B"), (3, 1, "C"), (4, 2, "D")];
+        foreach (var row in rows)
+        {
+            using var insert = connection.CreateCommand();
+            insert.CommandText = "INSERT INTO l2db_page_stable (id, grp, name) VALUES (@id, @grp, @name)";
+            var id = insert.CreateParameter(); id.ParameterName = "@id"; id.Value = row.id; insert.Parameters.Add(id);
+            var grp = insert.CreateParameter(); grp.ParameterName = "@grp"; grp.Value = row.grp; insert.Parameters.Add(grp);
+            var name = insert.CreateParameter(); name.ParameterName = "@name"; name.Value = row.name; insert.Parameters.Add(name);
+            _ = insert.ExecuteNonQuery();
+        }
+
+        using var page = connection.CreateCommand();
+        page.CommandText = "SELECT id FROM l2db_page_stable ORDER BY grp, id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
+
+        var ids = new List<int>();
+        using var reader = page.ExecuteReader();
+        while (reader.Read()) ids.Add(Convert.ToInt32(reader[0]));
+
+        Assert.Equal([2, 3], ids);
+    }
+
 }
