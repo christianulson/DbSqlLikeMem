@@ -71,6 +71,11 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsLimitOffset => true;
     /// <summary>
+    /// EN: Enables OFFSET/FETCH compatibility syntax for shared smoke tests.
+    /// PT: Habilita sintaxe de compatibilidade OFFSET/FETCH para testes smoke compartilhados.
+    /// </summary>
+    public override bool SupportsOffsetFetch => true;
+    /// <summary>
     /// EN: Summary for member.
     /// PT: Resumo para member.
     /// </summary>

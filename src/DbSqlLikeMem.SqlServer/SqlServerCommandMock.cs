@@ -159,7 +159,7 @@ public class SqlServerCommandMock(
 
         var executor = new SqlServerAstQueryExecutor(connection!, Parameters);
 
-        var queries = SqlQueryParser.ParseMulti(sql, connection!.Db.Dialect).ToList();
+        var queries = SqlQueryParser.ParseMulti(sql, connection!.Db.Dialect, Parameters).ToList();
         var tables = new List<TableResultMock>();
 
         foreach (var query in queries)

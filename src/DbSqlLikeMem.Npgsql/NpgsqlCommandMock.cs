@@ -161,7 +161,7 @@ public class NpgsqlCommandMock(
 
         var executor = new NpgsqlAstQueryExecutor(connection!, Parameters);
 
-        var queries = SqlQueryParser.ParseMulti(sql, connection!.Db.Dialect).ToList();
+        var queries = SqlQueryParser.ParseMulti(sql, connection!.Db.Dialect, Parameters).ToList();
         var tables = new List<TableResultMock>();
 
         foreach (var query in queries)

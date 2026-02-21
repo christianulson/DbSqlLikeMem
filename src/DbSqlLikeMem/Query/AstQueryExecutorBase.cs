@@ -3551,6 +3551,137 @@ private void FillPercentRankOrCumeDist(
         return null;
     }
 
+    private object? EvalTryCast(FunctionCallExpr fn, Func<int, object?> evalArg)
+    {
+        if (fn.Args.Count < 2) return null;
+        var v = evalArg(0);
+        var type = fn.Args[1] is RawSqlExpr trx ? trx.Sql : (evalArg(1)?.ToString() ?? "");
+        type = type.Trim();
+        if (IsNullish(v)) return null;
+
+        try
+        {
+            if ((Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para CAST.")).IsIntegerCastTypeName(type))
+            {
+                if (v is long l) return (int)l;
+                if (v is int i) return i;
+                if (v is decimal d) return (int)d;
+                if (int.TryParse(v!.ToString(), out var ix)) return ix;
+                if (long.TryParse(v!.ToString(), out var lx)) return (int)lx;
+                return null;
+            }
+
+            if (type.StartsWith("DECIMAL", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase))
+            {
+                if (v is decimal dd) return dd;
+                if (decimal.TryParse(v!.ToString(), out var dx)) return dx;
+                return null;
+            }
+
+            return v!.ToString();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private object? EvalCast(FunctionCallExpr fn, Func<int, object?> evalArg)
+    {
+        if (fn.Args.Count < 2) return null;
+
+        var v = evalArg(0);
+        var type = fn.Args[1] is RawSqlExpr rx ? rx.Sql : (evalArg(1)?.ToString() ?? "");
+        type = type.Trim();
+        if (IsNullish(v)) return null;
+
+        try
+        {
+            if ((Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para CAST.")).IsIntegerCastTypeName(type))
+            {
+                if (v is long l) return (int)l;
+                if (v is int i) return i;
+                if (v is decimal d) return (int)d;
+                var text = v!.ToString()?.Trim() ?? string.Empty;
+                if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ix)) return ix;
+                if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var lx)) return (int)lx;
+                if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return (int)dx;
+                return 0;
+            }
+
+            if (type.StartsWith("DECIMAL", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase))
+            {
+                if (v is decimal dd) return dd;
+                if (decimal.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return dx;
+                return 0m;
+            }
+
+            return v!.ToString();
+        }
+#pragma warning disable CA1031
+        catch (Exception e)
+        {
+#pragma warning disable CA1303 // Do not pass literals as localized parameters
+            Console.WriteLine($"{GetType().Name}.{nameof(EvalFunction)}");
+#pragma warning restore CA1303 // Do not pass literals as localized parameters
+            Console.WriteLine(e);
+            return null;
+        }
+#pragma warning restore CA1031
+    }
+
+    private object? TryEvalDateAddFunction(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        Func<int, object?> evalArg,
+        out bool handled)
+    {
+        handled = true;
+        if (fn.Name.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!(Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para operações de data.")).SupportsDateAddFunction("DATE_ADD"))
+                return null;
+            var baseVal = evalArg(0);
+            if (IsNullish(baseVal) || !TryCoerceDateTime(baseVal, out var dt))
+                return null;
+
+            var itExpr = fn.Args.Count > 1 ? fn.Args[1] : null;
+            if (itExpr is not CallExpr ce || !ce.Name.Equals("INTERVAL", StringComparison.OrdinalIgnoreCase) || ce.Args.Count < 2)
+                return dt;
+
+            var nObj = Eval(ce.Args[0], row, group, ctes);
+            var unit = ce.Args[1] is RawSqlExpr rx ? rx.Sql : Eval(ce.Args[1], row, group, ctes)?.ToString() ?? "DAY";
+            var n = Convert.ToInt32((nObj ?? 0m).ToDec());
+            return ApplyDateDelta(dt, unit, n);
+        }
+
+        if (fn.Name.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("DATEADD", StringComparison.OrdinalIgnoreCase))
+        {
+            var featureName = fn.Name.ToUpperInvariant();
+            if (!(Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para operações de data.")).SupportsDateAddFunction(featureName))
+                return null;
+            if (fn.Args.Count < 3)
+                return null;
+
+            var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
+            var amountObj = evalArg(1);
+            var baseVal = evalArg(2);
+            if (IsNullish(baseVal) || !TryCoerceDateTime(baseVal, out var dt))
+                return null;
+
+            var n = Convert.ToInt32((amountObj ?? 0m).ToDec());
+            return ApplyDateDelta(dt, unit, n);
+        }
+
+        handled = false;
+        return null;
+    }
+
     private static object? TryReadJsonPathValue(object json, string path)
     {
         var jsonStr = json.ToString() ?? "";
