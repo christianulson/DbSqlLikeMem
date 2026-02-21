@@ -542,4 +542,112 @@ public abstract class LinqToDbSupportTestsBase
         Assert.Equal([2, 3], ids);
     }
 
+
+
+    /// <summary>
+    /// EN: Verifies correlated EXISTS subqueries can be executed with parameterized predicates.
+    /// PT: Verifica se subqueries correlacionadas com EXISTS podem ser executadas com predicados parametrizados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "LinqToDb")]
+    public void LinqToDb_FactoryConnection_ShouldSupportCorrelatedExists()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var createUsers = connection.CreateCommand())
+        {
+            createUsers.CommandText = "CREATE TABLE l2db_exists_users (id INT PRIMARY KEY, name VARCHAR(100))";
+            _ = createUsers.ExecuteNonQuery();
+        }
+
+        using (var createOrders = connection.CreateCommand())
+        {
+            createOrders.CommandText = "CREATE TABLE l2db_exists_orders (id INT PRIMARY KEY, user_id INT, amount INT)";
+            _ = createOrders.ExecuteNonQuery();
+        }
+
+        using (var u1 = connection.CreateCommand())
+        {
+            u1.CommandText = "INSERT INTO l2db_exists_users (id, name) VALUES (1, 'Alice')";
+            _ = u1.ExecuteNonQuery();
+        }
+
+        using (var u2 = connection.CreateCommand())
+        {
+            u2.CommandText = "INSERT INTO l2db_exists_users (id, name) VALUES (2, 'Bob')";
+            _ = u2.ExecuteNonQuery();
+        }
+
+        using (var o1 = connection.CreateCommand())
+        {
+            o1.CommandText = "INSERT INTO l2db_exists_orders (id, user_id, amount) VALUES (100, 1, 50)";
+            _ = o1.ExecuteNonQuery();
+        }
+
+        using var query = connection.CreateCommand();
+        query.CommandText = @"SELECT COUNT(*)
+FROM l2db_exists_users u
+WHERE EXISTS (
+  SELECT 1
+  FROM l2db_exists_orders o
+  WHERE o.user_id = u.id AND o.amount >= @minAmount
+)";
+
+        var min = query.CreateParameter();
+        min.ParameterName = "@minAmount";
+        min.Value = 40;
+        query.Parameters.Add(min);
+
+        Assert.Equal(1, Convert.ToInt32(query.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies LEFT JOIN with IS NULL filter can detect rows without related matches.
+    /// PT: Verifica se LEFT JOIN com filtro IS NULL detecta linhas sem correspondência relacionada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "LinqToDb")]
+    public void LinqToDb_FactoryConnection_ShouldSupportLeftJoinWithIsNullFilter()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var createUsers = connection.CreateCommand())
+        {
+            createUsers.CommandText = "CREATE TABLE l2db_left_users (id INT PRIMARY KEY, name VARCHAR(100))";
+            _ = createUsers.ExecuteNonQuery();
+        }
+
+        using (var createProfiles = connection.CreateCommand())
+        {
+            createProfiles.CommandText = "CREATE TABLE l2db_left_profiles (id INT PRIMARY KEY, user_id INT)";
+            _ = createProfiles.ExecuteNonQuery();
+        }
+
+        using (var u1 = connection.CreateCommand())
+        {
+            u1.CommandText = "INSERT INTO l2db_left_users (id, name) VALUES (1, 'HasProfile')";
+            _ = u1.ExecuteNonQuery();
+        }
+
+        using (var u2 = connection.CreateCommand())
+        {
+            u2.CommandText = "INSERT INTO l2db_left_users (id, name) VALUES (2, 'NoProfile')";
+            _ = u2.ExecuteNonQuery();
+        }
+
+        using (var p1 = connection.CreateCommand())
+        {
+            p1.CommandText = "INSERT INTO l2db_left_profiles (id, user_id) VALUES (10, 1)";
+            _ = p1.ExecuteNonQuery();
+        }
+
+        using var query = connection.CreateCommand();
+        query.CommandText = @"SELECT COUNT(*)
+FROM l2db_left_users u
+LEFT JOIN l2db_left_profiles p ON p.user_id = u.id
+WHERE p.id IS NULL";
+
+        Assert.Equal(1, Convert.ToInt32(query.ExecuteScalar()));
+    }
+
 }
