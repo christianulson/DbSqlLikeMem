@@ -2,6 +2,36 @@
 
 ## NuGet (nuget.org)
 
+### Assinatura de pacote e "0 certificates"
+
+No nuget.org, o campo **Signing Owner ... (0 certificates)** indica que o proprietário ainda não configurou certificado para **Author signing**. Isso não bloqueia publicação, mas melhora confiança e rastreabilidade para consumidores quando você assina.
+
+Formas de melhorar:
+
+1. **Ativar assinatura do pacote no build (`dotnet nuget sign`)** usando um certificado de code signing (PFX) emitido por uma CA confiável.
+2. **Usar um provedor de assinatura em nuvem** (Azure Key Vault, DigiCert KeyLocker, etc.) para evitar armazenar PFX localmente.
+3. **Publicar com pipeline que assina antes do `nuget push`** e validar assinatura com `nuget verify -signatures`.
+
+Exemplo local (Windows) após `dotnet pack`:
+
+```bash
+dotnet nuget sign ./artifacts/DbSqlLikeMem.*.nupkg \
+  --certificate-path "./certs/codesign.pfx" \
+  --certificate-password "<PASSWORD>" \
+  --timestamper "http://timestamp.digicert.com"
+
+nuget verify -Signatures ./artifacts/DbSqlLikeMem.*.nupkg
+```
+
+> Dica: use timestamp RFC3161 para a assinatura continuar válida mesmo após expiração do certificado.
+
+Para projetos open source, outra alternativa é habilitar **proveniência de repositório** (SourceLink + pipeline protegida + políticas de release), mesmo quando author-signing ainda não estiver disponível.
+
+Implementação atual deste repositório:
+
+- `src/Directory.Build.props` publica metadados de repositório no pacote, habilita build determinístico em CI e gera `snupkg` para depuração.
+- `.github/workflows/nuget-publish.yml` valida metadados de repositório nos `.nupkg` antes do `push`.
+
 ### Via GitHub Actions (recomendado)
 
 1. Crie uma API key em https://www.nuget.org/ (Account settings → API Keys).
