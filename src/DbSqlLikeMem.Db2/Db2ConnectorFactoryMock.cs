@@ -92,6 +92,9 @@ public sealed class Db2ConnectorFactoryMock : DbProviderFactory
     public
 #if NET7_0_OR_GREATER
     override
+    DbDataSource
+#else
+    Db2DataSourceMock
 #endif
-    DbDataSource CreateDataSource(string connectionString) => new Db2DataSourceMock(db);
+    CreateDataSource(string connectionString) => new Db2DataSourceMock(db);
 }

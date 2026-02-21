@@ -123,8 +123,11 @@ public sealed class MySqlConnectorFactoryMock : DbProviderFactory
     public
 #if NET7_0_OR_GREATER
     override
+    DbDataSource
+#else
+    MySqlDataSourceMock
 #endif
-    DbDataSource CreateDataSource(string connectionString) => new MySqlDataSourceMock(Db);
+    CreateDataSource(string connectionString) => new MySqlDataSourceMock(Db);
 #pragma warning restore CA1822 // Mark members as static
 
     internal MySqlConnectorFactoryMock(
