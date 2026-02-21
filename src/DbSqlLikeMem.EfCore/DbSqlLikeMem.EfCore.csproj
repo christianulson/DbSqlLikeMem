@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net48;net6.0;net8.0;net10.0</TargetFrameworks>
+    <Description>Shared EF Core helper abstractions for DbSqlLikeMem providers.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="System.Data.Common" />
+  </ItemGroup>
+</Project>
