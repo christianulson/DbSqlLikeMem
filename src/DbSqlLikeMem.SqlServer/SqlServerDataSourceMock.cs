@@ -40,6 +40,10 @@ public sealed class SqlServerDataSourceMock(SqlServerDbMock? db = null)
     /// EN: Summary for CreateConnection.
     /// PT: Resumo para CreateConnection.
     /// </summary>
-    public SqlServerConnectionMock CreateConnection() => new SqlServerConnectionMock(db);
+    public
+#if NET7_0_OR_GREATER
+    new
+#endif
+    SqlServerConnectionMock CreateConnection() => new SqlServerConnectionMock(db);
 
 }

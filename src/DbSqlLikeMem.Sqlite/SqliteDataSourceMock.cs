@@ -40,6 +40,10 @@ public sealed class SqliteDataSourceMock(SqliteDbMock? db = null)
     /// EN: Summary for CreateConnection.
     /// PT: Resumo para CreateConnection.
     /// </summary>
-    public SqliteConnectionMock CreateConnection() => new SqliteConnectionMock(db);
+    public
+#if NET7_0_OR_GREATER
+    new
+#endif
+    SqliteConnectionMock CreateConnection() => new SqliteConnectionMock(db);
 
 }

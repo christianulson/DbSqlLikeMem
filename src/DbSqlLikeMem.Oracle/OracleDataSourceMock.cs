@@ -39,6 +39,10 @@ public sealed class OracleDataSourceMock(OracleDbMock? db = null)
     /// EN: Summary for CreateConnection.
     /// PT: Resumo para CreateConnection.
     /// </summary>
-    public OracleConnectionMock CreateConnection() => new OracleConnectionMock(db);
+    public
+#if NET7_0_OR_GREATER
+    new
+#endif
+    OracleConnectionMock CreateConnection() => new OracleConnectionMock(db);
 
 }
