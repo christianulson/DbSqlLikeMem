@@ -100,22 +100,66 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
+
+    /// <summary>
+    /// EN: Indicates whether recursive CTE syntax is supported by the configured MySQL version.
+    /// PT: Indica se a sintaxe de CTE recursiva é suportada pela versão configurada do MySQL.
+    /// </summary>
     public override bool SupportsWithRecursive => Version >= WithCteMinVersion;
+
+    /// <summary>
+    /// EN: Indicates whether SQL window functions are supported by the configured MySQL version.
+    /// PT: Indica se funções de janela SQL são suportadas pela versão configurada do MySQL.
+    /// </summary>
     public override bool SupportsWindowFunctions => Version >= WindowFunctionsMinVersion;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsNullSafeEq => true;
+
+    /// <summary>
+    /// EN: Gets the null-substitution function names recognized by this dialect.
+    /// PT: Obtém os nomes de funções de substituição de nulos reconhecidos por este dialeto.
+    /// </summary>
     public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL"];
+
+    /// <summary>
+    /// EN: Indicates whether string concatenation returns <c>NULL</c> when any operand is <c>NULL</c>.
+    /// PT: Indica se a concatenação de strings retorna <c>NULL</c> quando qualquer operando é <c>NULL</c>.
+    /// </summary>
     public override bool ConcatReturnsNullOnNullInput => true;
     /// <summary>
     /// Auto-generated summary.
     /// </summary>
     public override bool SupportsJsonArrowOperators => Version >= JsonExtractMinVersion;
+
+    /// <summary>
+    /// EN: Indicates whether parser-level cross-dialect JSON operators are accepted for compatibility.
+    /// PT: Indica se operadores JSON entre dialetos são aceitos pelo parser para compatibilidade.
+    /// </summary>
     public override bool AllowsParserCrossDialectJsonOperators => true;
+
+    /// <summary>
+    /// EN: Indicates whether JSON extraction functions are supported by the configured MySQL version.
+    /// PT: Indica se funções de extração JSON são suportadas pela versão configurada do MySQL.
+    /// </summary>
     public override bool SupportsJsonExtractFunction => Version >= JsonExtractMinVersion;
+
+    /// <summary>
+    /// EN: Indicates whether MySQL index hints are supported in SQL generation.
+    /// PT: Indica se hints de índice do MySQL são suportados na geração de SQL.
+    /// </summary>
     public override bool SupportsMySqlIndexHints => true;
 
+    /// <summary>
+    /// EN: Determines whether a date-add function name is supported by this dialect.
+    /// PT: Determina se um nome de função de soma de data é suportado por este dialeto.
+    /// </summary>
+    /// <param name="functionName">EN: Function name to validate. PT: Nome da função para validar.</param>
+    /// <returns>
+    /// EN: <c>true</c> when the name is <c>DATE_ADD</c> or <c>TIMESTAMPADD</c>; otherwise, <c>false</c>.
+    /// PT: <c>true</c> quando o nome é <c>DATE_ADD</c> ou <c>TIMESTAMPADD</c>; caso contrário, <c>false</c>.
+    /// </returns>
     public override bool SupportsDateAddFunction(string functionName)
         => functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)
         || functionName.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase);
