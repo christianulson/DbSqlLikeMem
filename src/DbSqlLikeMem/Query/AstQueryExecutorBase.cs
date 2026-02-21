@@ -3512,7 +3512,7 @@ private void FillPercentRankOrCumeDist(
                 var v = evalArg(i);
                 if (IsNullish(v))
                 {
-                    if (Dialect.ConcatReturnsNullOnNullInput)
+                    if (Dialect!.ConcatReturnsNullOnNullInput)
                         return null;
 
                     parts[i] = string.Empty;

@@ -74,14 +74,7 @@ WHERE id = 1");
         Assert.Equal(new DateTime(2020, 1, 3), (DateTime)row.plus_two_days);
     }
 
-    /// <summary>
-    /// Releases the test connection resources and then delegates disposal to the base test fixture.
-    /// Libera os recursos de conexão de teste e depois delega o descarte para o fixture base de teste.
-    /// </summary>
-    /// <param name="disposing">
-    /// Indicates whether managed resources should be disposed.
-    /// Indica se os recursos gerenciados devem ser descartados.
-    /// </param>
+
 
     [Fact]
     [Trait("Category", "SqlServerFunctionCoverage")]
@@ -105,6 +98,14 @@ WHERE id = 1");
         Assert.Equal(new DateTime(2020, 1, 1), (DateTime)row.same_date);
     }
 
+    /// <summary>
+    /// Releases the test connection resources and then delegates disposal to the base test fixture.
+    /// Libera os recursos de conexão de teste e depois delega o descarte para o fixture base de teste.
+    /// </summary>
+    /// <param name="disposing">
+    /// Indicates whether managed resources should be disposed.
+    /// Indica se os recursos gerenciados devem ser descartados.
+    /// </param>
     protected override void Dispose(bool disposing)
     {
         _cnn?.Dispose();
