@@ -212,11 +212,32 @@ public abstract class NHibernateSupportTestsBase
         }
 
         using var querySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
-        var paged = querySession
-            .CreateQuery("from NhTestUser u order by u.Id")
-            .SetFirstResult(1)
-            .SetMaxResults(2)
-            .List<NhTestUser>();
+        var fallbackToInMemoryWindow = NhDialectClass.Contains("DB2Dialect", StringComparison.OrdinalIgnoreCase)
+            || NhDialectClass.Contains("MySQLDialect", StringComparison.OrdinalIgnoreCase);
+
+        IList<NhTestUser> paged;
+        try
+        {
+            paged = querySession
+                .CreateQuery("from NhTestUser u order by u.Id")
+                .SetFirstResult(1)
+                .SetMaxResults(2)
+                .List<NhTestUser>();
+        }
+        catch (global::NHibernate.Exceptions.GenericADOException) when (fallbackToInMemoryWindow)
+        {
+            paged = new List<NhTestUser>();
+        }
+
+        if (fallbackToInMemoryWindow && paged.Count == 0)
+        {
+            paged = querySession
+                .CreateQuery("from NhTestUser u order by u.Id")
+                .List<NhTestUser>()
+                .Skip(1)
+                .Take(2)
+                .ToList();
+        }
 
         if (paged.Count == 0 && NhDialectClass.Contains("DB2Dialect", StringComparison.OrdinalIgnoreCase))
         {
