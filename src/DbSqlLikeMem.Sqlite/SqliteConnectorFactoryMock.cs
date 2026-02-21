@@ -102,5 +102,9 @@ public sealed class SqliteConnectorFactoryMock : DbProviderFactory
     /// EN: Summary for member.
     /// PT: Resumo para member.
     /// </summary>
+#if NET7_0_OR_GREATER
+    public override SqliteDataSourceMock CreateDataSource(string connectionString) => new(db);
+#else
     public SqliteDataSourceMock CreateDataSource(string connectionString) => new(db);
+#endif
 }
