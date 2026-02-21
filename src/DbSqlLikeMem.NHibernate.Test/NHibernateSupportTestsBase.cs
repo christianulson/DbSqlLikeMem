@@ -152,7 +152,8 @@ public abstract class NHibernateSupportTestsBase
         using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
         var count = Convert.ToInt32(
             verifySession
-                .CreateSQLQuery("SELECT COUNT(*) FROM users WHERE id = :id")
+                .CreateSQLQuery("SELECT COUNT(*) AS cnt FROM users WHERE id = :id")
+                .AddScalar("cnt", global::NHibernate.NHibernateUtil.Int32)
                 .SetParameter("id", 3)
                 .UniqueResult());
 

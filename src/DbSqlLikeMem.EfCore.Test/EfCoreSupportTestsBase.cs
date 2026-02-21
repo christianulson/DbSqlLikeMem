@@ -787,4 +787,240 @@ WHERE u.id = 1";
         Assert.Equal([2, 3], ids);
     }
 
+
+
+    /// <summary>
+    /// EN: Verifies a multi-command transaction rollback restores the state before all changes in the scope.
+    /// PT: Verifica se o rollback de transação com múltiplos comandos restaura o estado anterior a todas as mudanças do escopo.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "EfCore")]
+    public void EfCore_FactoryConnection_TransactionScopeRollback_ShouldUndoAllCommands()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE ef_tx_scope_rollback (id INT PRIMARY KEY, balance INT)";
+            _ = create.ExecuteNonQuery();
+        }
+
+        using (var seed = connection.CreateCommand())
+        {
+            seed.CommandText = "INSERT INTO ef_tx_scope_rollback (id, balance) VALUES (1, 100), (2, 50)";
+            _ = seed.ExecuteNonQuery();
+        }
+
+        using (var tx = connection.BeginTransaction())
+        {
+            using var debit = connection.CreateCommand();
+            debit.Transaction = tx;
+            debit.CommandText = "UPDATE ef_tx_scope_rollback SET balance = balance - 20 WHERE id = 1";
+            _ = debit.ExecuteNonQuery();
+
+            using var credit = connection.CreateCommand();
+            credit.Transaction = tx;
+            credit.CommandText = "UPDATE ef_tx_scope_rollback SET balance = balance + 20 WHERE id = 2";
+            _ = credit.ExecuteNonQuery();
+
+            tx.Rollback();
+        }
+
+        using var verify = connection.CreateCommand();
+        verify.CommandText = "SELECT balance FROM ef_tx_scope_rollback WHERE id = @id";
+
+        var id = verify.CreateParameter();
+        id.ParameterName = "@id";
+        id.Value = 1;
+        verify.Parameters.Add(id);
+
+        Assert.Equal(100, Convert.ToInt32(verify.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies deterministic pagination returns the same window across repeated executions.
+    /// PT: Verifica se a paginação determinística retorna a mesma janela em execuções repetidas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "EfCore")]
+    public void EfCore_FactoryConnection_PaginationWithDeterministicOrder_ShouldBeStableAcrossExecutions()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE ef_page_repeatable (id INT PRIMARY KEY, grp INT)";
+            _ = create.ExecuteNonQuery();
+        }
+
+        for (var i = 1; i <= 6; i++)
+        {
+            using var insert = connection.CreateCommand();
+            insert.CommandText = "INSERT INTO ef_page_repeatable (id, grp) VALUES (@id, @grp)";
+            var id = insert.CreateParameter(); id.ParameterName = "@id"; id.Value = i; insert.Parameters.Add(id);
+            var grp = insert.CreateParameter(); grp.ParameterName = "@grp"; grp.Value = i <= 3 ? 1 : 2; insert.Parameters.Add(grp);
+            _ = insert.ExecuteNonQuery();
+        }
+
+        List<int> ReadWindow()
+        {
+            using var page = connection.CreateCommand();
+            page.CommandText = "SELECT id FROM ef_page_repeatable ORDER BY grp, id OFFSET 2 ROWS FETCH NEXT 2 ROWS ONLY";
+
+            var ids = new List<int>();
+            using var reader = page.ExecuteReader();
+            while (reader.Read()) ids.Add(Convert.ToInt32(reader[0]));
+            return ids;
+        }
+
+        var first = ReadWindow();
+        var second = ReadWindow();
+
+        Assert.Equal([3, 4], first);
+        Assert.Equal(first, second);
+    }
+
+
+
+    /// <summary>
+    /// EN: Verifies scalar subquery projection returns null when no matching rows are found.
+    /// PT: Verifica se a projeção com subquery escalar retorna nulo quando não existem linhas correspondentes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "EfCore")]
+    public void EfCore_FactoryConnection_ScalarSubqueryProjectionWithoutMatches_ShouldReturnNull()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var createUsers = connection.CreateCommand()) { createUsers.CommandText = "CREATE TABLE ef_scalar_null_users (id INT PRIMARY KEY, name VARCHAR(100))"; _ = createUsers.ExecuteNonQuery(); }
+        using (var createOrders = connection.CreateCommand()) { createOrders.CommandText = "CREATE TABLE ef_scalar_null_orders (id INT PRIMARY KEY, user_id INT, amount INT)"; _ = createOrders.ExecuteNonQuery(); }
+        using (var user = connection.CreateCommand()) { user.CommandText = "INSERT INTO ef_scalar_null_users (id, name) VALUES (1, 'Alice')"; _ = user.ExecuteNonQuery(); }
+
+        using var query = connection.CreateCommand();
+        query.CommandText = @"SELECT
+  u.name,
+  (SELECT SUM(o.amount) FROM ef_scalar_null_orders o WHERE o.user_id = u.id) total_amount
+FROM ef_scalar_null_users u
+WHERE u.id = 1";
+
+        using var reader = query.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal("Alice", Convert.ToString(reader[0]));
+        Assert.True(reader[1] is null || reader[1] is DBNull);
+    }
+
+    /// <summary>
+    /// EN: Verifies transaction-scoped reads observe intermediate writes before commit.
+    /// PT: Verifica se leituras no escopo transacional observam escritas intermediárias antes do commit.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "EfCore")]
+    public void EfCore_FactoryConnection_TransactionScope_ReadAfterWrite_ShouldObserveCurrentTransactionState()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE ef_tx_read_write (id INT PRIMARY KEY, value INT)";
+            _ = create.ExecuteNonQuery();
+        }
+
+        using (var seed = connection.CreateCommand())
+        {
+            seed.CommandText = "INSERT INTO ef_tx_read_write (id, value) VALUES (1, 10)";
+            _ = seed.ExecuteNonQuery();
+        }
+
+        using var tx = connection.BeginTransaction();
+
+        using (var update = connection.CreateCommand())
+        {
+            update.Transaction = tx;
+            update.CommandText = "UPDATE ef_tx_read_write SET value = value + 5 WHERE id = 1";
+            _ = update.ExecuteNonQuery();
+        }
+
+        using var read = connection.CreateCommand();
+        read.Transaction = tx;
+        read.CommandText = "SELECT value FROM ef_tx_read_write WHERE id = 1";
+
+        Assert.Equal(15, Convert.ToInt32(read.ExecuteScalar()));
+        tx.Rollback();
+    }
+
+
+
+    /// <summary>
+    /// EN: Verifies composite null filters remain correct when the comparison parameter is null.
+    /// PT: Verifica se filtros compostos com nulo permanecem corretos quando o parâmetro de comparação é nulo.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "EfCore")]
+    public void EfCore_FactoryConnection_CompositeNullOrFilter_WithNullParameter_ShouldOnlyMatchNullRows()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE ef_null_param_filter (id INT PRIMARY KEY, nickname VARCHAR(100) NULL)";
+            _ = create.ExecuteNonQuery();
+        }
+
+        using (var i1 = connection.CreateCommand()) { i1.CommandText = "INSERT INTO ef_null_param_filter (id, nickname) VALUES (1, NULL)"; _ = i1.ExecuteNonQuery(); }
+        using (var i2 = connection.CreateCommand()) { i2.CommandText = "INSERT INTO ef_null_param_filter (id, nickname) VALUES (2, 'Ana')"; _ = i2.ExecuteNonQuery(); }
+
+        using var query = connection.CreateCommand();
+        query.CommandText = "SELECT COUNT(*) FROM ef_null_param_filter WHERE nickname IS NULL OR nickname = @nickname";
+        var nickname = query.CreateParameter();
+        nickname.ParameterName = "@nickname";
+        nickname.Value = DBNull.Value;
+        query.Parameters.Add(nickname);
+
+        Assert.Equal(1, Convert.ToInt32(query.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies deterministic ordering keeps pagination windows disjoint across consecutive pages.
+    /// PT: Verifica se a ordenação determinística mantém janelas de paginação sem sobreposição entre páginas consecutivas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "EfCore")]
+    public void EfCore_FactoryConnection_PaginationWithDeterministicOrder_ShouldReturnDisjointConsecutivePages()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE ef_page_disjoint (id INT PRIMARY KEY, grp INT)";
+            _ = create.ExecuteNonQuery();
+        }
+
+        for (var i = 1; i <= 8; i++)
+        {
+            using var insert = connection.CreateCommand();
+            insert.CommandText = "INSERT INTO ef_page_disjoint (id, grp) VALUES (@id, @grp)";
+            var id = insert.CreateParameter(); id.ParameterName = "@id"; id.Value = i; insert.Parameters.Add(id);
+            var grp = insert.CreateParameter(); grp.ParameterName = "@grp"; grp.Value = i <= 4 ? 1 : 2; insert.Parameters.Add(grp);
+            _ = insert.ExecuteNonQuery();
+        }
+
+        List<int> ReadPage(int offset)
+        {
+            using var page = connection.CreateCommand();
+            page.CommandText = $"SELECT id FROM ef_page_disjoint ORDER BY grp, id OFFSET {offset} ROWS FETCH NEXT 3 ROWS ONLY";
+
+            var ids = new List<int>();
+            using var reader = page.ExecuteReader();
+            while (reader.Read()) ids.Add(Convert.ToInt32(reader[0]));
+            return ids;
+        }
+
+        var firstPage = ReadPage(0);
+        var secondPage = ReadPage(3);
+
+        Assert.Equal([1, 2, 3], firstPage);
+        Assert.Equal([4, 5, 6], secondPage);
+        Assert.DoesNotContain(secondPage[0], firstPage);
+    }
+
 }
