@@ -283,7 +283,7 @@ public abstract class NHibernateSupportTestsBase
             _ = session
                 .CreateSQLQuery("INSERT INTO typed_values (id, str_val, int_val, dt_val, dec_val) VALUES (:id, :str, :int, :dt, :dec)")
                 .SetParameter("id", 1)
-                .SetParameter("str", (string?)null, NHibernate.NHibernateUtil.String)
+                .SetParameter("str", (string?)null, global::NHibernate.NHibernateUtil.String)
                 .SetParameter("int", 42)
                 .SetParameter("dt", expectedDate)
                 .SetParameter("dec", expectedDecimal)
@@ -297,7 +297,7 @@ public abstract class NHibernateSupportTestsBase
         var nullMatchCount = Convert.ToInt32(
             verifySession
                 .CreateSQLQuery("SELECT COUNT(*) FROM typed_values WHERE (:str IS NULL AND str_val IS NULL)")
-                .SetParameter("str", (string?)null, NHibernate.NHibernateUtil.String)
+                .SetParameter("str", (string?)null, global::NHibernate.NHibernateUtil.String)
                 .UniqueResult());
 
         Assert.Equal(1, nullMatchCount);
@@ -305,9 +305,9 @@ public abstract class NHibernateSupportTestsBase
         var typeMatchCount = Convert.ToInt32(
             verifySession
                 .CreateSQLQuery("SELECT COUNT(*) FROM typed_values WHERE int_val = :int AND dt_val = :dt AND dec_val = :dec")
-                .SetParameter("int", 42, NHibernate.NHibernateUtil.Int32)
-                .SetParameter("dt", expectedDate, NHibernate.NHibernateUtil.DateTime)
-                .SetParameter("dec", expectedDecimal, NHibernate.NHibernateUtil.Decimal)
+                .SetParameter("int", 42, global::NHibernate.NHibernateUtil.Int32)
+                .SetParameter("dt", expectedDate, global::NHibernate.NHibernateUtil.DateTime)
+                .SetParameter("dec", expectedDecimal, global::NHibernate.NHibernateUtil.Decimal)
                 .UniqueResult());
 
         Assert.Equal(1, typeMatchCount);
@@ -484,7 +484,7 @@ public abstract class NHibernateSupportTestsBase
         tx1.Commit();
 
         user2!.Name = "Tx2";
-        _ = Assert.ThrowsAny<NHibernate.StaleStateException>(() =>
+        _ = Assert.ThrowsAny<global::NHibernate.StaleStateException>(() =>
         {
             session2.Flush();
             tx2.Commit();
