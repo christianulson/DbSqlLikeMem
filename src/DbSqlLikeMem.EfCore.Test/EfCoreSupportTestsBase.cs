@@ -325,4 +325,240 @@ public abstract class EfCoreSupportTestsBase
         Assert.Equal(123.45m, result);
     }
 
+
+
+    /// <summary>
+    /// EN: Verifies aggregate scalar queries over inserted rows return expected values.
+    /// PT: Verifica se consultas escalares agregadas sobre linhas inseridas retornam valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "EfCore")]
+    public void EfCore_FactoryConnection_ShouldSupportAggregateScalarQueries()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE ef_agg_values (id INT PRIMARY KEY, score INT)";
+            _ = create.ExecuteNonQuery();
+        }
+
+        for (var i = 1; i <= 3; i++)
+        {
+            using var insert = connection.CreateCommand();
+            insert.CommandText = "INSERT INTO ef_agg_values (id, score) VALUES (@id, @score)";
+            var id = insert.CreateParameter(); id.ParameterName = "@id"; id.Value = i; insert.Parameters.Add(id);
+            var score = insert.CreateParameter(); score.ParameterName = "@score"; score.Value = i * 10; insert.Parameters.Add(score);
+            _ = insert.ExecuteNonQuery();
+        }
+
+        using var sum = connection.CreateCommand();
+        sum.CommandText = "SELECT SUM(score) FROM ef_agg_values";
+        Assert.Equal(60, Convert.ToInt32(sum.ExecuteScalar()));
+
+        using var max = connection.CreateCommand();
+        max.CommandText = "SELECT MAX(score) FROM ef_agg_values";
+        Assert.Equal(30, Convert.ToInt32(max.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies `IN` filtering with parameterized values and ordered results.
+    /// PT: Verifica filtro com `IN` usando valores parametrizados e resultados ordenados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "EfCore")]
+    public void EfCore_FactoryConnection_ShouldFilterWithInAndOrderBy()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE ef_filter_users (id INT PRIMARY KEY, name VARCHAR(100))";
+            _ = create.ExecuteNonQuery();
+        }
+
+        for (var i = 1; i <= 3; i++)
+        {
+            using var insert = connection.CreateCommand();
+            insert.CommandText = "INSERT INTO ef_filter_users (id, name) VALUES (@id, @name)";
+            var id = insert.CreateParameter(); id.ParameterName = "@id"; id.Value = i; insert.Parameters.Add(id);
+            var name = insert.CreateParameter(); name.ParameterName = "@name"; name.Value = $"User-{i}"; insert.Parameters.Add(name);
+            _ = insert.ExecuteNonQuery();
+        }
+
+        using var select = connection.CreateCommand();
+        select.CommandText = "SELECT id FROM ef_filter_users WHERE id IN (@a, @b) ORDER BY id DESC";
+        var a = select.CreateParameter(); a.ParameterName = "@a"; a.Value = 1; select.Parameters.Add(a);
+        var b = select.CreateParameter(); b.ParameterName = "@b"; b.Value = 3; select.Parameters.Add(b);
+
+        var rows = new List<int>();
+        using var reader = select.ExecuteReader();
+        while (reader.Read()) rows.Add(Convert.ToInt32(reader[0]));
+
+        Assert.Equal([3, 1], rows);
+    }
+
+    /// <summary>
+    /// EN: Verifies inner join queries can be executed through provider mock connections.
+    /// PT: Verifica se consultas com inner join podem ser executadas através das conexões mock de provedor.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "EfCore")]
+    public void EfCore_FactoryConnection_ShouldExecuteInnerJoinQuery()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var createUsers = connection.CreateCommand())
+        {
+            createUsers.CommandText = "CREATE TABLE ef_join_users (id INT PRIMARY KEY, dept_id INT)";
+            _ = createUsers.ExecuteNonQuery();
+        }
+        using (var createDepts = connection.CreateCommand())
+        {
+            createDepts.CommandText = "CREATE TABLE ef_join_depts (id INT PRIMARY KEY, title VARCHAR(100))";
+            _ = createDepts.ExecuteNonQuery();
+        }
+        using (var insertDept = connection.CreateCommand())
+        {
+            insertDept.CommandText = "INSERT INTO ef_join_depts (id, title) VALUES (1, 'Engineering')";
+            _ = insertDept.ExecuteNonQuery();
+        }
+        using (var insertUser = connection.CreateCommand())
+        {
+            insertUser.CommandText = "INSERT INTO ef_join_users (id, dept_id) VALUES (10, 1)";
+            _ = insertUser.ExecuteNonQuery();
+        }
+
+        using var join = connection.CreateCommand();
+        join.CommandText = "SELECT COUNT(*) FROM ef_join_users u INNER JOIN ef_join_depts d ON d.id = u.dept_id";
+        Assert.Equal(1, Convert.ToInt32(join.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies grouped queries with HAVING return expected aggregate windows.
+    /// PT: Verifica se consultas agrupadas com HAVING retornam janelas agregadas esperadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "EfCore")]
+    public void EfCore_FactoryConnection_ShouldSupportGroupByHaving()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE ef_sales (id INT PRIMARY KEY, category VARCHAR(20), amount INT)";
+            _ = create.ExecuteNonQuery();
+        }
+
+        (int id, string category, int amount)[] rows = [(1,"A",30),(2,"A",40),(3,"B",20),(4,"B",15),(5,"C",10)];
+        foreach (var row in rows)
+        {
+            using var insert = connection.CreateCommand();
+            insert.CommandText = "INSERT INTO ef_sales (id, category, amount) VALUES (@id, @category, @amount)";
+            var id = insert.CreateParameter(); id.ParameterName = "@id"; id.Value = row.id; insert.Parameters.Add(id);
+            var c = insert.CreateParameter(); c.ParameterName = "@category"; c.Value = row.category; insert.Parameters.Add(c);
+            var a = insert.CreateParameter(); a.ParameterName = "@amount"; a.Value = row.amount; insert.Parameters.Add(a);
+            _ = insert.ExecuteNonQuery();
+        }
+
+        using var query = connection.CreateCommand();
+        query.CommandText = "SELECT category, SUM(amount) total FROM ef_sales GROUP BY category HAVING SUM(amount) >= @minTotal ORDER BY total DESC";
+        var min = query.CreateParameter(); min.ParameterName = "@minTotal"; min.Value = 35; query.Parameters.Add(min);
+
+        var result = new List<(string category,int total)>();
+        using var reader = query.ExecuteReader();
+        while (reader.Read()) result.Add((Convert.ToString(reader[0])!, Convert.ToInt32(reader[1])));
+
+        Assert.Equal(("A",70), result[0]);
+        Assert.Equal(("B",35), result[1]);
+    }
+
+    /// <summary>
+    /// EN: Verifies OFFSET/FETCH-style pagination returns deterministic windows.
+    /// PT: Verifica se paginação estilo OFFSET/FETCH retorna janelas determinísticas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "EfCore")]
+    public void EfCore_FactoryConnection_ShouldSupportPaginationWindow()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE ef_page_users (id INT PRIMARY KEY, name VARCHAR(100))";
+            _ = create.ExecuteNonQuery();
+        }
+
+        for (var i=1;i<=5;i++)
+        {
+            using var insert = connection.CreateCommand();
+            insert.CommandText = "INSERT INTO ef_page_users (id, name) VALUES (@id, @name)";
+            var id = insert.CreateParameter(); id.ParameterName = "@id"; id.Value = i; insert.Parameters.Add(id);
+            var name = insert.CreateParameter(); name.ParameterName = "@name"; name.Value = $"User-{i}"; insert.Parameters.Add(name);
+            _ = insert.ExecuteNonQuery();
+        }
+
+        using var page = connection.CreateCommand();
+        page.CommandText = "SELECT id FROM ef_page_users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
+
+        var ids = new List<int>();
+        using var reader = page.ExecuteReader();
+        while (reader.Read()) ids.Add(Convert.ToInt32(reader[0]));
+
+        Assert.Equal([2,3], ids);
+    }
+
+    /// <summary>
+    /// EN: Verifies correlated EXISTS subqueries can be executed with parameterized predicates.
+    /// PT: Verifica se subqueries correlacionadas com EXISTS podem ser executadas com predicados parametrizados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "EfCore")]
+    public void EfCore_FactoryConnection_ShouldSupportCorrelatedExists()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var u = connection.CreateCommand()) { u.CommandText = "CREATE TABLE ef_exists_users (id INT PRIMARY KEY, name VARCHAR(100))"; _ = u.ExecuteNonQuery(); }
+        using (var o = connection.CreateCommand()) { o.CommandText = "CREATE TABLE ef_exists_orders (id INT PRIMARY KEY, user_id INT, amount INT)"; _ = o.ExecuteNonQuery(); }
+        using (var i1 = connection.CreateCommand()) { i1.CommandText = "INSERT INTO ef_exists_users (id, name) VALUES (1, 'Alice')"; _ = i1.ExecuteNonQuery(); }
+        using (var i2 = connection.CreateCommand()) { i2.CommandText = "INSERT INTO ef_exists_users (id, name) VALUES (2, 'Bob')"; _ = i2.ExecuteNonQuery(); }
+        using (var i3 = connection.CreateCommand()) { i3.CommandText = "INSERT INTO ef_exists_orders (id, user_id, amount) VALUES (100, 1, 50)"; _ = i3.ExecuteNonQuery(); }
+
+        using var query = connection.CreateCommand();
+        query.CommandText = @"SELECT COUNT(*)
+FROM ef_exists_users u
+WHERE EXISTS (
+  SELECT 1 FROM ef_exists_orders o
+  WHERE o.user_id = u.id AND o.amount >= @minAmount
+)";
+        var min = query.CreateParameter(); min.ParameterName = "@minAmount"; min.Value = 40; query.Parameters.Add(min);
+
+        Assert.Equal(1, Convert.ToInt32(query.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies LEFT JOIN with IS NULL can detect rows without related matches.
+    /// PT: Verifica se LEFT JOIN com IS NULL detecta linhas sem correspondências relacionadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "EfCore")]
+    public void EfCore_FactoryConnection_ShouldSupportLeftJoinWithIsNullFilter()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var cu = connection.CreateCommand()) { cu.CommandText = "CREATE TABLE ef_left_users (id INT PRIMARY KEY, name VARCHAR(100))"; _ = cu.ExecuteNonQuery(); }
+        using (var cp = connection.CreateCommand()) { cp.CommandText = "CREATE TABLE ef_left_profiles (id INT PRIMARY KEY, user_id INT)"; _ = cp.ExecuteNonQuery(); }
+        using (var i1 = connection.CreateCommand()) { i1.CommandText = "INSERT INTO ef_left_users (id, name) VALUES (1, 'HasProfile')"; _ = i1.ExecuteNonQuery(); }
+        using (var i2 = connection.CreateCommand()) { i2.CommandText = "INSERT INTO ef_left_users (id, name) VALUES (2, 'NoProfile')"; _ = i2.ExecuteNonQuery(); }
+        using (var p = connection.CreateCommand()) { p.CommandText = "INSERT INTO ef_left_profiles (id, user_id) VALUES (10, 1)"; _ = p.ExecuteNonQuery(); }
+
+        using var query = connection.CreateCommand();
+        query.CommandText = @"SELECT COUNT(*)
+FROM ef_left_users u
+LEFT JOIN ef_left_profiles p ON p.user_id = u.id
+WHERE p.id IS NULL";
+
+        Assert.Equal(1, Convert.ToInt32(query.ExecuteScalar()));
+    }
+
 }
