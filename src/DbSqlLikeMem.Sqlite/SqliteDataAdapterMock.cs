@@ -1,10 +1,13 @@
+using System.Data.Common;
+
+using DbDataAdapter = System.Data.Common.DbDataAdapter;
 namespace DbSqlLikeMem.Sqlite;
 
 /// <summary>
 /// EN: Summary for SqliteDataAdapterMock.
 /// PT: Resumo para SqliteDataAdapterMock.
 /// </summary>
-public sealed class SqliteDataAdapterMock : DbDataAdapter, IDbDataAdapter
+public sealed class SqliteDataAdapterMock : DbDataAdapter
 {
     /// <summary>
     /// EN: Summary for DeleteCommand.

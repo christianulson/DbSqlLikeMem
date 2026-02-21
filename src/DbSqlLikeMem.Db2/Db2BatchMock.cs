@@ -217,6 +217,37 @@ public sealed class Db2BatchMock : DbBatch
     }
 
     /// <summary>
+    /// EN: Summary for ExecuteNonQueryAsync.
+    /// PT: Resumo para ExecuteNonQueryAsync.
+    /// </summary>
+    public override System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(System.Threading.CancellationToken cancellationToken = default)
+        => System.Threading.Tasks.Task.FromResult(ExecuteNonQuery());
+
+    /// <summary>
+    /// EN: Summary for ExecuteDbDataReaderAsync.
+    /// PT: Resumo para ExecuteDbDataReaderAsync.
+    /// </summary>
+    protected override System.Threading.Tasks.Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, System.Threading.CancellationToken cancellationToken = default)
+        => System.Threading.Tasks.Task.FromResult<DbDataReader>(ExecuteDbDataReader(behavior));
+
+    /// <summary>
+    /// EN: Summary for ExecuteScalarAsync.
+    /// PT: Resumo para ExecuteScalarAsync.
+    /// </summary>
+    public override System.Threading.Tasks.Task<object?> ExecuteScalarAsync(System.Threading.CancellationToken cancellationToken = default)
+        => System.Threading.Tasks.Task.FromResult(ExecuteScalar());
+
+    /// <summary>
+    /// EN: Summary for PrepareAsync.
+    /// PT: Resumo para PrepareAsync.
+    /// </summary>
+    public override System.Threading.Tasks.Task PrepareAsync(System.Threading.CancellationToken cancellationToken = default)
+    {
+        Prepare();
+        return System.Threading.Tasks.Task.CompletedTask;
+    }
+
+    /// <summary>
     /// EN: Summary for Prepare.
     /// PT: Resumo para Prepare.
     /// </summary>
@@ -253,7 +284,13 @@ public sealed class Db2BatchCommandMock : DbBatchCommand, IDb2CommandMock
     /// EN: Summary for member.
     /// PT: Resumo para member.
     /// </summary>
-    public override int RecordsAffected { get; set; }
+    private int recordsAffected;
+
+    /// <summary>
+    /// EN: Summary for member.
+    /// PT: Resumo para member.
+    /// </summary>
+    public override int RecordsAffected => recordsAffected;
 
     /// <summary>
     /// EN: Summary for member.

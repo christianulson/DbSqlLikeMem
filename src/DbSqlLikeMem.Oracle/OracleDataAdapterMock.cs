@@ -1,10 +1,12 @@
+using System.Data.Common;
+
 namespace DbSqlLikeMem.Oracle;
 
 /// <summary>
 /// EN: Summary for OracleDataAdapterMock.
 /// PT: Resumo para OracleDataAdapterMock.
 /// </summary>
-public sealed class OracleDataAdapterMock : DbDataAdapter, IDbDataAdapter
+public sealed class OracleDataAdapterMock : DbDataAdapter
 {
     /// <summary>
     /// EN: Summary for DeleteCommand.

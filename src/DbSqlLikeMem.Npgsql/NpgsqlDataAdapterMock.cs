@@ -1,10 +1,13 @@
+using System.Data.Common;
+
+using DbDataAdapter = System.Data.Common.DbDataAdapter;
 namespace DbSqlLikeMem.Npgsql;
 
 /// <summary>
 /// EN: Summary for NpgsqlDataAdapterMock.
 /// PT: Resumo para NpgsqlDataAdapterMock.
 /// </summary>
-public sealed class NpgsqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
+public sealed class NpgsqlDataAdapterMock : DbDataAdapter
 {
     /// <summary>
     /// EN: Summary for DeleteCommand.
