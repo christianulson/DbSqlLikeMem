@@ -261,4 +261,99 @@ public abstract class LinqToDbSupportTestsBase
         Assert.True(value is null || value is DBNull);
     }
 
+
+
+    /// <summary>
+    /// EN: Verifies decimal and datetime parameter values can be persisted and queried.
+    /// PT: Verifica se valores de parâmetros decimal e datetime podem ser persistidos e consultados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "LinqToDb")]
+    public void LinqToDb_FactoryConnection_ShouldPersistDecimalAndDateTimeParameters()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE l2db_typed_values (id INT PRIMARY KEY, amount DECIMAL(18,2), created DATETIME)";
+            _ = create.ExecuteNonQuery();
+        }
+
+        var createdAt = new DateTime(2025, 1, 1, 10, 30, 0, DateTimeKind.Utc);
+        using (var insert = connection.CreateCommand())
+        {
+            insert.CommandText = "INSERT INTO l2db_typed_values (id, amount, created) VALUES (@id, @amount, @created)";
+
+            var id = insert.CreateParameter();
+            id.ParameterName = "@id";
+            id.Value = 1;
+            insert.Parameters.Add(id);
+
+            var amount = insert.CreateParameter();
+            amount.ParameterName = "@amount";
+            amount.Value = 91.25m;
+            insert.Parameters.Add(amount);
+
+            var created = insert.CreateParameter();
+            created.ParameterName = "@created";
+            created.Value = createdAt;
+            insert.Parameters.Add(created);
+
+            Assert.Equal(1, insert.ExecuteNonQuery());
+        }
+
+        using var amountSelect = connection.CreateCommand();
+        amountSelect.CommandText = "SELECT amount FROM l2db_typed_values WHERE id = @id";
+        var idParam = amountSelect.CreateParameter();
+        idParam.ParameterName = "@id";
+        idParam.Value = 1;
+        amountSelect.Parameters.Add(idParam);
+
+        var amountValue = Convert.ToDecimal(amountSelect.ExecuteScalar());
+        Assert.Equal(91.25m, amountValue);
+    }
+
+    /// <summary>
+    /// EN: Verifies aggregate scalar queries over inserted rows return expected values.
+    /// PT: Verifica se consultas escalares agregadas sobre linhas inseridas retornam valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "LinqToDb")]
+    public void LinqToDb_FactoryConnection_ShouldSupportAggregateScalarQueries()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE l2db_agg_values (id INT PRIMARY KEY, score INT)";
+            _ = create.ExecuteNonQuery();
+        }
+
+        for (var i = 1; i <= 3; i++)
+        {
+            using var insert = connection.CreateCommand();
+            insert.CommandText = "INSERT INTO l2db_agg_values (id, score) VALUES (@id, @score)";
+
+            var id = insert.CreateParameter();
+            id.ParameterName = "@id";
+            id.Value = i;
+            insert.Parameters.Add(id);
+
+            var score = insert.CreateParameter();
+            score.ParameterName = "@score";
+            score.Value = i * 10;
+            insert.Parameters.Add(score);
+
+            _ = insert.ExecuteNonQuery();
+        }
+
+        using var sum = connection.CreateCommand();
+        sum.CommandText = "SELECT SUM(score) FROM l2db_agg_values";
+        Assert.Equal(60, Convert.ToInt32(sum.ExecuteScalar()));
+
+        using var max = connection.CreateCommand();
+        max.CommandText = "SELECT MAX(score) FROM l2db_agg_values";
+        Assert.Equal(30, Convert.ToInt32(max.ExecuteScalar()));
+    }
+
 }
