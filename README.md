@@ -209,3 +209,9 @@ dotnet test src/DbSqlLikeMem.slnx
   **PT-BR:** Veja o passo a passo em [docs/wiki/README.md](docs/wiki/README.md).
 - **EN:** Ready-to-use wiki pages are available in [docs/wiki/pages](docs/wiki/pages).  
   **PT-BR:** Arquivos prontos para páginas de wiki estão em [docs/wiki/pages](docs/wiki/pages).
+
+## License | Licença
+
+**EN:** This project is licensed under the **MIT License**. See [LICENSE](LICENSE).
+
+**PT-BR:** Este projeto é licenciado sob a **Licença MIT**. Veja [LICENSE](LICENSE).
