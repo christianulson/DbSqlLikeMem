@@ -182,6 +182,22 @@ public sealed class MySqlDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures OFFSET/FETCH compatibility syntax is accepted for MySQL parser.
+    /// PT: Garante que a sintaxe de compatibilidade OFFSET/FETCH seja aceita pelo parser MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithOffsetFetch_ShouldParse(int version)
+    {
+        var sql = "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
+
+        var parsed = SqlQueryParser.Parse(sql, new MySqlDialect(version));
+        Assert.IsType<SqlSelectQuery>(parsed);
+    }
+
+    /// <summary>
     /// EN: Ensures PIVOT clause is rejected when the dialect capability flag is disabled.
     /// PT: Garante que a cláusula PIVOT seja rejeitada quando a flag de capacidade do dialeto está desabilitada.
     /// </summary>
