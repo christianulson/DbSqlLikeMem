@@ -96,7 +96,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             {
                 var colName = res.Columns[i].ColumnName;
                 var dbType = InferDbType(res, i);
-                newTable.AddColumn(colName, dbType, nullable: true);
+                AddInferredColumn(newTable, colName, dbType);
             }
 
             foreach (var row in res)
@@ -284,7 +284,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         {
             var colName = names[i];
             var dbType = (i < res.Columns.Count) ? InferDbType(res, i) : DbType.String;
-            newTable.AddColumn(colName, dbType, nullable: true);
+            AddInferredColumn(newTable, colName, dbType);
         }
 
         foreach (var row in res)
@@ -422,5 +422,22 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             };
         }
         return DbType.Object;
+    }
+
+    private static void AddInferredColumn(ITableMock table, string columnName, DbType dbType)
+    {
+        if (dbType == DbType.String)
+        {
+            table.AddColumn(columnName, dbType, nullable: true, size: 255);
+            return;
+        }
+
+        if (dbType == DbType.Decimal || dbType == DbType.Double || dbType == DbType.Currency)
+        {
+            table.AddColumn(columnName, dbType, nullable: true, decimalPlaces: 2);
+            return;
+        }
+
+        table.AddColumn(columnName, dbType, nullable: true);
     }
 }
