@@ -6,11 +6,11 @@ namespace DbSqlLikeMem.MySql.Test;
 /// </summary>
 public sealed class MySqlProviderSurfaceMocksTests
 {
-    [Fact]
     /// <summary>
     /// EN: Summary for DataAdapter_ShouldKeepTypedSelectCommand.
     /// PT: Resumo para DataAdapter_ShouldKeepTypedSelectCommand.
     /// </summary>
+    [Fact]
     public void DataAdapter_ShouldKeepTypedSelectCommand()
     {
         using var connection = new MySqlConnectionMock(new MySqlDbMock());
@@ -20,11 +20,11 @@ public sealed class MySqlProviderSurfaceMocksTests
         Assert.Equal("SELECT 1", adapter.SelectCommand!.CommandText);
     }
 
-    [Fact]
     /// <summary>
     /// EN: Summary for DataSource_ShouldCreateMySqlConnection.
     /// PT: Resumo para DataSource_ShouldCreateMySqlConnection.
     /// </summary>
+    [Fact]
     public void DataSource_ShouldCreateMySqlConnection()
     {
         var source = new MySqlDataSourceMock(new MySqlDbMock());

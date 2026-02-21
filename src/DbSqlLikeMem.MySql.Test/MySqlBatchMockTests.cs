@@ -6,12 +6,12 @@ namespace DbSqlLikeMem.MySql.Test;
 /// </summary>
 public sealed class MySqlBatchMockTests
 {
-    [Fact]
-    [Trait("Category", "MySqlBatchMock")]
     /// <summary>
     /// EN: Summary for ExecuteNonQuery_ShouldExecuteAllBatchCommands.
     /// PT: Resumo para ExecuteNonQuery_ShouldExecuteAllBatchCommands.
     /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlBatchMock")]
     public void ExecuteNonQuery_ShouldExecuteAllBatchCommands()
     {
         var db = new MySqlDbMock();
@@ -33,12 +33,12 @@ public sealed class MySqlBatchMockTests
         Assert.Equal(2, connection.GetTable("users").Count);
     }
 
-    [Fact]
-    [Trait("Category", "MySqlBatchMock")]
     /// <summary>
     /// EN: Summary for ExecuteScalar_ShouldUseFirstBatchCommandResult.
     /// PT: Resumo para ExecuteScalar_ShouldUseFirstBatchCommandResult.
     /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlBatchMock")]
     public void ExecuteScalar_ShouldUseFirstBatchCommandResult()
     {
         var db = new MySqlDbMock();
@@ -64,13 +64,13 @@ public sealed class MySqlBatchMockTests
 
         Assert.Equal("Ana", result);
     }
-
-    [Fact]
-    [Trait("Category", "MySqlBatchMock")]
     /// <summary>
     /// EN: Summary for ExecuteReader_ShouldReturnResultsFromMultipleBatchCommands.
     /// PT: Resumo para ExecuteReader_ShouldReturnResultsFromMultipleBatchCommands.
     /// </summary>
+
+    [Fact]
+    [Trait("Category", "MySqlBatchMock")]
     public void ExecuteReader_ShouldReturnResultsFromMultipleBatchCommands()
     {
         var db = new MySqlDbMock();
@@ -101,12 +101,12 @@ public sealed class MySqlBatchMockTests
         Assert.Equal(1, reader.GetInt32(0));
     }
 
-    [Fact]
-    [Trait("Category", "MySqlBatchMock")]
     /// <summary>
     /// EN: Summary for ExecuteReader_ShouldAllowNonQueryBeforeSelect.
     /// PT: Resumo para ExecuteReader_ShouldAllowNonQueryBeforeSelect.
     /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlBatchMock")]
     public void ExecuteReader_ShouldAllowNonQueryBeforeSelect()
     {
         var db = new MySqlDbMock();
