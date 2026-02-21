@@ -1,0 +1,21 @@
+using DbSqlLikeMem.EfCore;
+using DbSqlLikeMem.Npgsql;
+namespace DbSqlLikeMem.Npgsql.EfCore;
+
+/// <summary>
+/// EN: Creates opened Npgsql mock connections for EF Core integration entry points.
+/// PT: Cria conexões mock Npgsql abertas para pontos de integração com EF Core.
+/// </summary>
+public sealed class NpgsqlEfCoreConnectionFactory : IDbSqlLikeMemEfCoreConnectionFactory
+{
+    /// <summary>
+    /// EN: Creates and opens a Npgsql mock connection backed by an in-memory DbSqlLikeMem database.
+    /// PT: Cria e abre uma conexão mock Npgsql apoiada por um banco em memória do DbSqlLikeMem.
+    /// </summary>
+    public DbConnection CreateOpenConnection()
+    {
+        var connection = new NpgsqlConnectionMock(new NpgsqlDbMock());
+        connection.Open();
+        return connection;
+    }
+}

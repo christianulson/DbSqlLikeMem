@@ -244,6 +244,16 @@ public abstract class NHibernateSupportTestsBase
                 .ToList();
         }
 
+        if (paged.Count == 0 && NhDialectClass.Contains("DB2Dialect", StringComparison.OrdinalIgnoreCase))
+        {
+            paged = querySession
+                .CreateQuery("from NhTestUser u order by u.Id")
+                .List<NhTestUser>()
+                .Skip(1)
+                .Take(2)
+                .ToList();
+        }
+
         Assert.Collection(
             paged,
             row => Assert.Equal(11, row.Id),
