@@ -1,3 +1,13 @@
+using System.Data.Common;
+
+using DbProviderFactory = System.Data.Common.DbProviderFactory;
+using DbCommand = System.Data.Common.DbCommand;
+using DbConnection = System.Data.Common.DbConnection;
+using DbConnectionStringBuilder = System.Data.Common.DbConnectionStringBuilder;
+using DbParameter = System.Data.Common.DbParameter;
+using DbDataAdapter = System.Data.Common.DbDataAdapter;
+using DbBatch = System.Data.Common.DbBatch;
+using DbBatchCommand = System.Data.Common.DbBatchCommand;
 namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
@@ -89,9 +99,5 @@ public sealed class SqlServerConnectorFactoryMock : DbProviderFactory
     /// EN: Summary for member.
     /// PT: Resumo para member.
     /// </summary>
-    public
-#if NET7_0_OR_GREATER
-    override
-#endif
-    SqlServerDataSourceMock CreateDataSource(string connectionString) => new(db);
+    public SqlServerDataSourceMock CreateDataSource(string connectionString) => new(db);
 }

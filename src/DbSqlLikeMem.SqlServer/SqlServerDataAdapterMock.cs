@@ -1,10 +1,13 @@
+using System.Data.Common;
+
+using DbDataAdapter = System.Data.Common.DbDataAdapter;
 namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
 /// EN: Summary for SqlServerDataAdapterMock.
 /// PT: Resumo para SqlServerDataAdapterMock.
 /// </summary>
-public sealed class SqlServerDataAdapterMock : DbDataAdapter, IDbDataAdapter
+public sealed class SqlServerDataAdapterMock : DbDataAdapter
 {
     /// <summary>
     /// EN: Summary for DeleteCommand.

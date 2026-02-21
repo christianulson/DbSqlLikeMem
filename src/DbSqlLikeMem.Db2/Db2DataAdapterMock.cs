@@ -1,10 +1,12 @@
+using System.Data.Common;
+
 namespace DbSqlLikeMem.Db2;
 
 /// <summary>
 /// EN: Summary for Db2DataAdapterMock.
 /// PT: Resumo para Db2DataAdapterMock.
 /// </summary>
-public sealed class Db2DataAdapterMock : DbDataAdapter, IDbDataAdapter
+public sealed class Db2DataAdapterMock : DbDataAdapter
 {
     /// <summary>
     /// EN: Summary for DeleteCommand.

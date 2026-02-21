@@ -1,3 +1,5 @@
+using System.Data.Common;
+
 namespace DbSqlLikeMem.Oracle;
 
 /// <summary>
@@ -89,9 +91,5 @@ public sealed class OracleConnectorFactoryMock : DbProviderFactory
     /// EN: Summary for member.
     /// PT: Resumo para member.
     /// </summary>
-    public
-#if NET7_0_OR_GREATER
-    override
-#endif
-    OracleDataSourceMock CreateDataSource(string connectionString) => new(db);
+    public OracleDataSourceMock CreateDataSource(string connectionString) => new(db);
 }
