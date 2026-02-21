@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Db2;
 /// PT: Resumo para Db2DataSourceMock.
 /// </summary>
 public sealed class Db2DataSourceMock(Db2DbMock? db = null)
-#if NET8_0_OR_GREATER
+#if NET7_0_OR_GREATER
     : DbDataSource
 #endif
 {
@@ -14,12 +14,12 @@ public sealed class Db2DataSourceMock(Db2DbMock? db = null)
     /// PT: Resumo para member.
     /// </summary>
     public
-#if NET8_0_OR_GREATER
+#if NET7_0_OR_GREATER
     override
 #endif
     string ConnectionString => string.Empty;
 
-#if NET8_0_OR_GREATER
+#if NET7_0_OR_GREATER
     /// <summary>
     /// EN: Summary for CreateDbConnection.
     /// PT: Resumo para CreateDbConnection.
