@@ -356,4 +356,102 @@ public abstract class LinqToDbSupportTestsBase
         Assert.Equal(30, Convert.ToInt32(max.ExecuteScalar()));
     }
 
+
+
+    /// <summary>
+    /// EN: Verifies `IN` filtering with parameterized values and ordered results.
+    /// PT: Verifica filtro com `IN` usando valores parametrizados e resultados ordenados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "LinqToDb")]
+    public void LinqToDb_FactoryConnection_ShouldFilterWithInAndOrderBy()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var create = connection.CreateCommand())
+        {
+            create.CommandText = "CREATE TABLE l2db_filter_users (id INT PRIMARY KEY, name VARCHAR(100))";
+            _ = create.ExecuteNonQuery();
+        }
+
+        for (var i = 1; i <= 3; i++)
+        {
+            using var insert = connection.CreateCommand();
+            insert.CommandText = "INSERT INTO l2db_filter_users (id, name) VALUES (@id, @name)";
+
+            var id = insert.CreateParameter();
+            id.ParameterName = "@id";
+            id.Value = i;
+            insert.Parameters.Add(id);
+
+            var name = insert.CreateParameter();
+            name.ParameterName = "@name";
+            name.Value = $"User-{i}";
+            insert.Parameters.Add(name);
+
+            _ = insert.ExecuteNonQuery();
+        }
+
+        using var select = connection.CreateCommand();
+        select.CommandText = "SELECT id FROM l2db_filter_users WHERE id IN (@a, @b) ORDER BY id DESC";
+
+        var a = select.CreateParameter();
+        a.ParameterName = "@a";
+        a.Value = 1;
+        select.Parameters.Add(a);
+
+        var b = select.CreateParameter();
+        b.ParameterName = "@b";
+        b.Value = 3;
+        select.Parameters.Add(b);
+
+        var rows = new List<int>();
+        using var reader = select.ExecuteReader();
+        while (reader.Read())
+            rows.Add(Convert.ToInt32(reader[0]));
+
+        Assert.Equal([3, 1], rows);
+    }
+
+    /// <summary>
+    /// EN: Verifies inner join queries can be executed through provider mock connections.
+    /// PT: Verifica se consultas com inner join podem ser executadas através das conexões mock de provedor.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "LinqToDb")]
+    public void LinqToDb_FactoryConnection_ShouldExecuteInnerJoinQuery()
+    {
+        using var connection = CreateFactory().CreateOpenConnection();
+
+        using (var createUsers = connection.CreateCommand())
+        {
+            createUsers.CommandText = "CREATE TABLE l2db_join_users (id INT PRIMARY KEY, dept_id INT)";
+            _ = createUsers.ExecuteNonQuery();
+        }
+
+        using (var createDepts = connection.CreateCommand())
+        {
+            createDepts.CommandText = "CREATE TABLE l2db_join_depts (id INT PRIMARY KEY, title VARCHAR(100))";
+            _ = createDepts.ExecuteNonQuery();
+        }
+
+        using (var insertDept = connection.CreateCommand())
+        {
+            insertDept.CommandText = "INSERT INTO l2db_join_depts (id, title) VALUES (1, 'Engineering')";
+            _ = insertDept.ExecuteNonQuery();
+        }
+
+        using (var insertUser = connection.CreateCommand())
+        {
+            insertUser.CommandText = "INSERT INTO l2db_join_users (id, dept_id) VALUES (10, 1)";
+            _ = insertUser.ExecuteNonQuery();
+        }
+
+        using var join = connection.CreateCommand();
+        join.CommandText = "SELECT COUNT(*) FROM l2db_join_users u INNER JOIN l2db_join_depts d ON d.id = u.dept_id";
+        var count = Convert.ToInt32(join.ExecuteScalar());
+
+        Assert.Equal(1, count);
+    }
+
 }
