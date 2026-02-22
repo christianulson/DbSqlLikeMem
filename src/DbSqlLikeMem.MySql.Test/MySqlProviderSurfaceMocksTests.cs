@@ -35,4 +35,47 @@ public sealed class MySqlProviderSurfaceMocksTests
 #endif
         Assert.IsType<MySqlConnectionMock>(connection);
     }
+
+    /// <summary>
+    /// EN: Ensures default adapter state matches the provider contract surface.
+    /// PT: Garante que o estado padrão do adapter corresponda à superfície contratual do provedor.
+    /// </summary>
+    [Fact]
+    public void DataAdapter_DefaultCtor_ShouldExposeExpectedDefaults()
+    {
+        var adapter = new MySqlDataAdapterMock();
+
+        Assert.True(adapter.LoadDefaults);
+        Assert.Equal(1, adapter.UpdateBatchSize);
+    }
+
+    /// <summary>
+    /// EN: Ensures async fill overload honors a pre-canceled token and returns a canceled task.
+    /// PT: Garante que a sobrecarga assíncrona de fill respeite um token já cancelado e retorne task cancelada.
+    /// </summary>
+    [Fact]
+    public async Task FillAsync_DataSet_WithCanceledToken_ShouldReturnCanceledTask()
+    {
+        var adapter = new MySqlDataAdapterMock();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => adapter.FillAsync(new DataSet(), cts.Token));
+    }
+
+    /// <summary>
+    /// EN: Ensures DataTable async overload also respects pre-canceled tokens.
+    /// PT: Garante que a sobrecarga assíncrona de DataTable também respeite token previamente cancelado.
+    /// </summary>
+    [Fact]
+    public async Task FillAsync_DataTable_WithCanceledToken_ShouldReturnCanceledTask()
+    {
+        var adapter = new MySqlDataAdapterMock();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => adapter.FillAsync(new DataTable(), cts.Token));
+    }
 }
