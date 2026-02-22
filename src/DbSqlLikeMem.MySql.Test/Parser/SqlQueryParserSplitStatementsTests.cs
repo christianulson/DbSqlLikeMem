@@ -37,20 +37,17 @@ public sealed class SqlQueryParserSplitStatementsTests(
     public void ParseInsertSelectWithOnDuplicate_ShouldRemainSingleStatement(int version)
     {
         var dialect = new MySqlDialect(version);
-        var sql = """
-                  INSERT INTO users (Id, Name)
-                  SELECT Id, Name FROM users_archive
-                  ON DUPLICATE KEY UPDATE Name = VALUES(Name);
-                  SELECT COUNT(*) FROM users;
-                  """;
+        var sql = "INSERT INTO users (Id, Name)\n"
+                + "SELECT Id, Name FROM users_archive\n"
+                + "ON DUPLICATE KEY UPDATE Name = VALUES(Name);\n"
+                + "SELECT COUNT(*) FROM users;";
 
         var parts = SqlQueryParser.SplitStatementsTopLevel(sql, dialect);
 
         Assert.Equal(2, parts.Count);
-        var insertAst = SqlQueryParser.Parse(parts[0], dialect);
+        var insertAst = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(parts[0], dialect));
 
-        Assert.NotNull(insertAst.Insert);
-        Assert.NotNull(insertAst.Insert!.Select);
-        Assert.NotNull(insertAst.Insert.OnDuplicate);
+        Assert.NotNull(insertAst.InsertSelect);
+        Assert.True(insertAst.HasOnDuplicateKeyUpdate);
     }
 }
