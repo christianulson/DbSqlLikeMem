@@ -4,16 +4,20 @@ namespace DbSqlLikeMem.MySql.Test.Parser;
 /// EN: Covers statement splitting edge cases that are hotspots in parser execution.
 /// PT: Cobre cenários de divisão de statements que são hotspots na execução do parser.
 /// </summary>
-public sealed class SqlQueryParserSplitStatementsTests
+public sealed class SqlQueryParserSplitStatementsTests(
+    ITestOutputHelper helper
+) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures semicolons inside string literals, parentheses and backtick identifiers do not split statements.
     /// PT: Garante que ponto e vírgula dentro de strings, parênteses e identificadores com crase não dividam statements.
     /// </summary>
-    [Fact]
-    public void SplitStatementsTopLevel_ShouldIgnoreSemicolonsInsideNestedContexts()
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void SplitStatementsTopLevel_ShouldIgnoreSemicolonsInsideNestedContexts(int version)
     {
-        var dialect = new MySqlDialect();
+        var dialect = new MySqlDialect(version);
         var sql = "SELECT ';' AS txt, CONCAT('a;', 'b') AS c FROM `semi;table`; SELECT 2;";
 
         var parts = SqlQueryParser.SplitStatementsTopLevel(sql, dialect);
@@ -27,10 +31,12 @@ public sealed class SqlQueryParserSplitStatementsTests
     /// EN: Ensures parser keeps INSERT ... SELECT ... ON DUPLICATE KEY UPDATE as a single statement boundary.
     /// PT: Garante que o parser mantenha INSERT ... SELECT ... ON DUPLICATE KEY UPDATE como um único statement.
     /// </summary>
-    [Fact]
-    public void ParseInsertSelectWithOnDuplicate_ShouldRemainSingleStatement()
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsertSelectWithOnDuplicate_ShouldRemainSingleStatement(int version)
     {
-        var dialect = new MySqlDialect();
+        var dialect = new MySqlDialect(version);
         var sql = """
                   INSERT INTO users (Id, Name)
                   SELECT Id, Name FROM users_archive
