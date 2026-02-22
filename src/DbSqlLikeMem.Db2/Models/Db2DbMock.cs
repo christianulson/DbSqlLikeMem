@@ -2,7 +2,7 @@
 
 /// <summary>
 /// EN: In-memory database mock configured for DB2.
-/// PT: Mock de banco em memória configurado para DB2.
+/// PT: simulado de banco em memória configurado para DB2.
 /// </summary>
 public class Db2DbMock
     : DbMock
@@ -21,7 +21,7 @@ public class Db2DbMock
 
     /// <summary>
     /// EN: Creates a DB2 schema mock instance.
-    /// PT: Cria uma instância de mock de schema DB2.
+    /// PT: Cria uma instância de simulado de schema DB2.
     /// </summary>
     /// <param name="schemaName">EN: Schema name. PT: Nome do schema.</param>
     /// <param name="tables">EN: Initial tables. PT: Tabelas iniciais.</param>

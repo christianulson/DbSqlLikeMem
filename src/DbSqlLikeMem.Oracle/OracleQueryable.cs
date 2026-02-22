@@ -3,24 +3,24 @@ using System.Linq.Expressions;
 
 namespace DbSqlLikeMem.Oracle;
 /// <summary>
-/// EN: Summary for OracleQueryable.
-/// PT: Resumo para OracleQueryable.
+/// EN: Represents Oracle Queryable.
+/// PT: Representa Oracle Queryable.
 /// </summary>
 public class OracleQueryable<T> : IOrderedQueryable<T>
 {
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets or sets table name.
+    /// PT: Obtém ou define table name.
     /// </summary>
     public string TableName { get; }
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets or sets expression.
+    /// PT: Obtém ou define expression.
     /// </summary>
     public Expression Expression { get; }
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Executes oracle queryable.
+    /// PT: Executa oracle queryable.
     /// </summary>
     public IQueryProvider Provider { get; }
 
@@ -47,15 +47,15 @@ public class OracleQueryable<T> : IOrderedQueryable<T>
     }
 
     /// <summary>
-    /// EN: Summary for typeof.
-    /// PT: Resumo para typeof.
+    /// EN: Executes typeof.
+    /// PT: Executa typeof.
     /// </summary>
     public Type ElementType => typeof(T);
     IEnumerator IEnumerable.GetEnumerator()
         => Provider.Execute<IEnumerable<T>>(Expression).GetEnumerator();
     /// <summary>
-    /// EN: Summary for GetEnumerator.
-    /// PT: Resumo para GetEnumerator.
+    /// EN: Gets enumerator.
+    /// PT: Obtém enumerador.
     /// </summary>
     public IEnumerator<T> GetEnumerator()
         => Provider.Execute<IEnumerable<T>>(Expression).GetEnumerator();

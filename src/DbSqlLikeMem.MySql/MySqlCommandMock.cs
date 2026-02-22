@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql;
 
 /// <summary>
 /// EN: Mock command for MySQL connections.
-/// PT: Comando mock para conexões MySQL.
+/// PT: Comando simulado para conexões MySQL.
 /// </summary>
 public class MySqlCommandMock(
     MySqlConnectionMock? connection,
@@ -353,7 +353,7 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Executes the command and returns a data reader.
-    /// PT: Executa o comando e retorna um data reader.
+    /// PT: Executa o comando e retorna um data leitor.
     /// </summary>
     /// <param name="behavior">EN: Command behavior. PT: Comportamento do comando.</param>
     /// <returns>EN: Data reader. PT: Data reader.</returns>

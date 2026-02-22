@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Oracle.NHibernate;
 
 /// <summary>
 /// EN: NHibernate driver bound to DbSqlLikeMem Oracle mock ADO.NET types.
-/// PT: Driver NHibernate ligado aos tipos ADO.NET mock Oracle do DbSqlLikeMem.
+/// PT: Driver NHibernate ligado aos tipos ADO.NET simulado Oracle do DbSqlLikeMem.
 /// </summary>
 public sealed class OracleNhMockDriver : ReflectionBasedDriver
 {
     /// <summary>
     /// EN: Initializes a NHibernate mock driver for DbSqlLikeMem Oracle provider types.
-    /// PT: Inicializa um driver mock do NHibernate para os tipos do provedor Oracle do DbSqlLikeMem.
+    /// PT: Inicializa um driver simulado do NHibernate para os tipos do provedor Oracle do DbSqlLikeMem.
     /// </summary>
     public OracleNhMockDriver()
         : base(

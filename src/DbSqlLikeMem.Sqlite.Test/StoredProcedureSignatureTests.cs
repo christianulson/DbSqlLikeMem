@@ -14,7 +14,7 @@ public sealed class StoredProcedureSignatureTests(
 {
     /// <summary>
     /// EN: Creates the SQLite connection mock used in tests.
-    /// PT: Cria o mock de conexão SQLite usado nos testes.
+    /// PT: Cria o simulado de conexão SQLite usado nos testes.
     /// </summary>
     protected override DbConnectionMockBase CreateConnection() => new SqliteConnectionMock();
 }

@@ -8,7 +8,7 @@ public sealed class OracleDialectFeatureParserTests
 {
     /// <summary>
     /// EN: Ensures WITH RECURSIVE syntax is rejected for Oracle.
-    /// PT: Garante que a sintaxe WITH RECURSIVE seja rejeitada no Oracle.
+    /// PT: Garante que a sintaxe with recursive seja rejeitada no Oracle.
     /// </summary>
     /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
     [Theory]
@@ -93,7 +93,7 @@ public sealed class OracleDialectFeatureParserTests
 
     /// <summary>
     /// EN: Ensures PIVOT clause parsing is available for this dialect.
-    /// PT: Garante que o parsing da cláusula PIVOT esteja disponível para este dialeto.
+    /// PT: Garante que o parsing da cláusula pivot esteja disponível para este dialeto.
     /// </summary>
     /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]

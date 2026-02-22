@@ -3,7 +3,7 @@ using System.Diagnostics;
 namespace DbSqlLikeMem.MySql;
 /// <summary>
 /// EN: Mock transaction for MySQL connections.
-/// PT: Mock de transação para conexões MySQL.
+/// PT: simulado de transação para conexões MySQL.
 /// </summary>
 public class MySqlTransactionMock(
         MySqlConnectionMock cnn,

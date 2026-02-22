@@ -12,7 +12,7 @@ public abstract class CsvLoaderAndIndexTestBase<TDbMock, TSqlMockException>(
 {
     /// <summary>
     /// EN: Creates a provider-specific database mock used by each shared CsvLoader/index test.
-    /// PT: Cria um mock de banco específico do provedor usado por cada teste compartilhado de CsvLoader/índice.
+    /// PT: Cria um simulado de banco específico do provedor usado por cada teste compartilhado de CsvLoader/índice.
     /// </summary>
     protected abstract TDbMock CreateDb();
 

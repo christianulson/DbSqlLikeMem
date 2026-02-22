@@ -31,21 +31,6 @@
     </Metrics>
   </Hotspot>
   <Hotspot>
-    <Assembly>DbSqlLikeMem</Assembly>
-    <Class>DbSqlLikeMem.AstQueryExecutorBase</Class>
-    <MethodName>EvalFunction(...)</MethodName>
-    <ShortName />
-    <Line>3094</Line>
-    <FileIndex>0</FileIndex>
-    <Metrics>
-      <Metric>
-        <Name>Cyclomatic complexity</Name>
-        <Exceeded>true</Exceeded>
-        <Value>112</Value>
-      </Metric>
-    </Metrics>
-  </Hotspot>
-  <Hotspot>
     <Assembly>MySqlConnector</Assembly>
     <Class>MySqlConnector.Protocol.Payloads.OkPayload</Class>
     <MethodName>Read(...)</MethodName>
@@ -182,10 +167,25 @@
   </Hotspot>
   <Hotspot>
     <Assembly>DbSqlLikeMem</Assembly>
+    <Class>DbSqlLikeMem.AstQueryExecutorBase</Class>
+    <MethodName>EvalFunction(...)</MethodName>
+    <ShortName />
+    <Line>3106</Line>
+    <FileIndex>0</FileIndex>
+    <Metrics>
+      <Metric>
+        <Name>Cyclomatic complexity</Name>
+        <Exceeded>true</Exceeded>
+        <Value>52</Value>
+      </Metric>
+    </Metrics>
+  </Hotspot>
+  <Hotspot>
+    <Assembly>DbSqlLikeMem</Assembly>
     <Class>DbSqlLikeMem.SqlQueryParser</Class>
     <MethodName>SplitStatementsTopLevel(...)</MethodName>
     <ShortName />
-    <Line>2184</Line>
+    <Line>2239</Line>
     <FileIndex>0</FileIndex>
     <Metrics>
       <Metric>
@@ -245,7 +245,7 @@
     <Class>DbSqlLikeMem.SqlQueryParser</Class>
     <MethodName>SplitTrailingAsAliasTopLevel(...)</MethodName>
     <ShortName />
-    <Line>1791</Line>
+    <Line>1817</Line>
     <FileIndex>0</FileIndex>
     <Metrics>
       <Metric>
@@ -350,7 +350,7 @@
     <Class>DbSqlLikeMem.AstQueryExecutorBase</Class>
     <MethodName>ComputeWindowSlots(...)</MethodName>
     <ShortName />
-    <Line>1642</Line>
+    <Line>1654</Line>
     <FileIndex>0</FileIndex>
     <Metrics>
       <Metric>

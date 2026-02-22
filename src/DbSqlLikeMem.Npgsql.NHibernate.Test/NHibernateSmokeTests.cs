@@ -14,7 +14,7 @@ public sealed class NHibernateSmokeTests : NHibernateSupportTestsBase
 
     /// <summary>
     /// EN: Enables pagination fallback due to mocked parser limitations for parameterized LIMIT/OFFSET.
-    /// PT: Habilita fallback de paginação devido a limitações do parser mock com LIMIT/OFFSET parametrizado.
+    /// PT: Habilita fallback de paginação devido a limitações do parser simulado com LIMIT/OFFSET parametrizado.
     /// </summary>
     protected override bool UseInMemoryPaginationFallback => true;
 

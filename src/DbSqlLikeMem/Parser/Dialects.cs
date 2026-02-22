@@ -254,7 +254,7 @@ internal abstract class SqlDialectBase : ISqlDialect
 
     /// <summary>
     /// EN: Controls LIKE case sensitivity in the mock when no explicit collation is available.
-    /// PT: Controla sensibilidade de maiúsculas/minúsculas no LIKE do mock quando não há collation explícita.
+    /// PT: Controla sensibilidade de maiúsculas/minúsculas no LIKE do simulado quando não há collation explícita.
     /// </summary>
     public virtual bool LikeIsCaseInsensitive => true;
     public virtual bool SupportsIfFunction => true;

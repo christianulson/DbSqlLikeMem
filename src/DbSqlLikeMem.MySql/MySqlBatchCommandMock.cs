@@ -1,8 +1,8 @@
 ﻿namespace DbSqlLikeMem.MySql;
 
 /// <summary>
-/// MySQL mock type used to emulate provider behavior for tests.
-/// Tipo de mock MySQL usado para emular o comportamento do provedor em testes.
+/// EN: Represents a command entry executed by MySqlBatchMock.
+/// PT: Representa uma entrada de comando executada por MySqlBatchMock.
 /// </summary>
 public sealed class MySqlBatchCommandMock :
 #if NET6_0_OR_GREATER
@@ -11,8 +11,8 @@ public sealed class MySqlBatchCommandMock :
     IMySqlCommandMock
 {
     /// <summary>
-    /// Mock API member implementation for compatibility with MySQL provider contracts.
-    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// EN: Represents a command entry executed by MySqlBatchMock.
+    /// PT: Representa uma entrada de comando executada por MySqlBatchMock.
     /// </summary>
     public MySqlBatchCommandMock()
         : this(null)
@@ -20,8 +20,8 @@ public sealed class MySqlBatchCommandMock :
     }
 
     /// <summary>
-    /// Mock API member implementation for compatibility with MySQL provider contracts.
-    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// EN: Initializes a batch command with the provided SQL text.
+    /// PT: Inicializa um comando em lote com o texto SQL informado.
     /// </summary>
     public MySqlBatchCommandMock(string? commandText)
     {
@@ -31,40 +31,40 @@ public sealed class MySqlBatchCommandMock :
 
 #if NET6_0_OR_GREATER
     /// <summary>
-    /// Mock API member implementation for compatibility with MySQL provider contracts.
-    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// EN: Gets or sets the SQL text executed by this batch command.
+    /// PT: Obtém ou define o texto SQL executado por este comando em lote.
     /// </summary>
     public override string CommandText { get; set; }
 #else
 	/// <summary>
-	/// Mock API member implementation for compatibility with MySQL provider contracts.
-	/// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+	/// EN: Gets or sets the SQL text executed by this batch command.
+	/// PT: Obtém ou define o texto SQL executado por este comando em lote.
 	/// </summary>
 	public string CommandText { get; set; }
 #endif
 #if NET6_0_OR_GREATER
     /// <summary>
-    /// Mock API member implementation for compatibility with MySQL provider contracts.
-    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// EN: Gets or sets how CommandText is interpreted.
+    /// PT: Obtém ou define como CommandText é interpretado.
     /// </summary>
     public override CommandType CommandType { get; set; }
 #else
 	/// <summary>
-	/// Mock API member implementation for compatibility with MySQL provider contracts.
-	/// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+	/// EN: Gets or sets how CommandText is interpreted.
+	/// PT: Obtém ou define como CommandText é interpretado.
 	/// </summary>
 	public CommandType CommandType { get; set; }
 #endif
 #if NET6_0_OR_GREATER
     /// <summary>
-    /// Mock API member implementation for compatibility with MySQL provider contracts.
-    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// EN: Gets the affected row count reported by this batch command.
+    /// PT: Obtém a contagem de linhas afetadas reportada por este comando em lote.
     /// </summary>
     public override int RecordsAffected =>
 #else
 	/// <summary>
-	/// Mock API member implementation for compatibility with MySQL provider contracts.
-	/// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+	/// EN: Gets the affected row count reported by this batch command.
+	/// PT: Obtém a contagem de linhas afetadas reportada por este comando em lote.
 	/// </summary>
 	public int RecordsAffected =>
 #endif
@@ -72,14 +72,14 @@ public sealed class MySqlBatchCommandMock :
 
 #if NET6_0_OR_GREATER
     /// <summary>
-    /// Mock API member implementation for compatibility with MySQL provider contracts.
-    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// EN: Gets the parameter collection used by this batch command.
+    /// PT: Obtém a coleção de parâmetros usada por este comando em lote.
     /// </summary>
     public new MySqlParameterCollection Parameters =>
 #else
 	/// <summary>
-	/// Mock API member implementation for compatibility with MySQL provider contracts.
-	/// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+	/// EN: Gets the parameter collection used by this batch command.
+	/// PT: Obtém a coleção de parâmetros usada por este comando em lote.
 	/// </summary>
 	public MySqlParameterCollection Parameters =>
 #endif
@@ -88,8 +88,8 @@ public sealed class MySqlBatchCommandMock :
 
 #pragma warning disable CA1822 // Mark members as static
     /// <summary>
-    /// Mock API member implementation for compatibility with MySQL provider contracts.
-    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// EN: Creates metadata and parameters for this batch command when needed.
+    /// PT: Cria metadados e parâmetros para este comando em lote quando necessário.
     /// </summary>
     public
 #if NET8_0_OR_GREATER
@@ -98,8 +98,8 @@ public sealed class MySqlBatchCommandMock :
         DbParameter CreateParameter() => new MySqlParameter();
 
     /// <summary>
-    /// Mock API member implementation for compatibility with MySQL provider contracts.
-    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// EN: Creates metadata and parameters for this batch command when needed.
+    /// PT: Cria metadados e parâmetros para este comando em lote quando necessário.
     /// </summary>
     public
 #if NET8_0_OR_GREATER
@@ -110,8 +110,8 @@ public sealed class MySqlBatchCommandMock :
 
 #if NET6_0_OR_GREATER
     /// <summary>
-    /// Mock API member implementation for compatibility with MySQL provider contracts.
-    /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// EN: Gets the base ADO.NET parameter collection view for this command.
+    /// PT: Obtém a visão da coleção de parâmetros base do ADO.NET para este comando.
     /// </summary>
     protected override DbParameterCollection DbParameterCollection => Parameters;
 #endif

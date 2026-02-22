@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
-/// EN: Summary for MySqlBatchMockTests.
-/// PT: Resumo para MySqlBatchMockTests.
+/// EN: Contains tests for MySQL batch mock behavior.
+/// PT: Contém testes para o comportamento do simulado de lote MySQL.
 /// </summary>
 public sealed class MySqlBatchMockTests
 {
     /// <summary>
-    /// EN: Summary for ExecuteNonQuery_ShouldExecuteAllBatchCommands.
-    /// PT: Resumo para ExecuteNonQuery_ShouldExecuteAllBatchCommands.
+    /// EN: Ensures non-query batch execution runs all commands and accumulates affected rows.
+    /// PT: Garante que a execução não-consulta em lote rode todos os comandos e acumule as linhas afetadas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlBatchMock")]
@@ -34,8 +34,8 @@ public sealed class MySqlBatchMockTests
     }
 
     /// <summary>
-    /// EN: Summary for ExecuteScalar_ShouldUseFirstBatchCommandResult.
-    /// PT: Resumo para ExecuteScalar_ShouldUseFirstBatchCommandResult.
+    /// EN: Ensures scalar execution returns the first command result in the batch.
+    /// PT: Garante que a execução escalar retorne o resultado do primeiro comando no lote.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlBatchMock")]
@@ -65,10 +65,9 @@ public sealed class MySqlBatchMockTests
         Assert.Equal("Ana", result);
     }
     /// <summary>
-    /// EN: Summary for ExecuteReader_ShouldReturnResultsFromMultipleBatchCommands.
-    /// PT: Resumo para ExecuteReader_ShouldReturnResultsFromMultipleBatchCommands.
+    /// EN: Ensures readers can iterate through result sets produced by multiple batch commands.
+    /// PT: Garante que leitores possam iterar pelos conjuntos de resultados produzidos por múltiplos comandos em lote.
     /// </summary>
-
     [Fact]
     [Trait("Category", "MySqlBatchMock")]
     public void ExecuteReader_ShouldReturnResultsFromMultipleBatchCommands()
@@ -102,8 +101,8 @@ public sealed class MySqlBatchMockTests
     }
 
     /// <summary>
-    /// EN: Summary for ExecuteReader_ShouldAllowNonQueryBeforeSelect.
-    /// PT: Resumo para ExecuteReader_ShouldAllowNonQueryBeforeSelect.
+    /// EN: Ensures batches can execute non-query commands before select commands.
+    /// PT: Garante que lotes possam executar comandos não-consulta antes de comandos select.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlBatchMock")]

@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.SqlServer.Test;
 
 /// <summary>
-/// EN: Summary for SqlServerConnectorFactoryMockTests.
-/// PT: Resumo para SqlServerConnectorFactoryMockTests.
+/// EN: Contains tests for sql server connector factory mock.
+/// PT: Contém testes para sql server fábrica de conectores simulada.
 /// </summary>
 public sealed class SqlServerConnectorFactoryMockTests
 {
     /// <summary>
-    /// EN: Summary for CreateCoreMembers_ShouldReturnProviderMocks.
-    /// PT: Resumo para CreateCoreMembers_ShouldReturnProviderMocks.
+    /// EN: Creates a new core members_should return provider mocks instance.
+    /// PT: Verifica se os membros principais retornam mocks do provedor.
     /// </summary>
     [Fact]
     public void CreateCoreMembers_ShouldReturnProviderMocks()
@@ -24,8 +24,8 @@ public sealed class SqlServerConnectorFactoryMockTests
 
 #if NET6_0_OR_GREATER
     /// <summary>
-    /// EN: Summary for CreateBatchMembers_ShouldReturnProviderMocks.
-    /// PT: Resumo para CreateBatchMembers_ShouldReturnProviderMocks.
+    /// EN: Creates a new batch members_should return provider mocks instance.
+    /// PT: Verifica se os membros de lote retornam mocks do provedor.
     /// </summary>
     [Fact]
     public void CreateBatchMembers_ShouldReturnProviderMocks()
@@ -40,8 +40,8 @@ public sealed class SqlServerConnectorFactoryMockTests
 
 #if NET7_0_OR_GREATER
     /// <summary>
-    /// EN: Summary for CreateDataSource_ShouldReturnProviderDataSourceMock.
-    /// PT: Resumo para CreateDataSource_ShouldReturnProviderDataSourceMock.
+    /// EN: Creates a new data source_should return provider data source mock instance.
+    /// PT: Verifica se a fonte de dados do provedor retorna um objeto de fonte de dados simulada.
     /// </summary>
     [Fact]
     public void CreateDataSource_ShouldReturnProviderDataSourceMock()

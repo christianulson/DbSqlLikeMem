@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle;
 
 /// <summary>
 /// EN: Schema mock for Oracle databases.
-/// PT: Mock de esquema para bancos Oracle.
+/// PT: simulado de esquema para bancos Oracle.
 /// </summary>
 public class OracleSchemaMock(
     string schemaName,
@@ -12,7 +12,7 @@ public class OracleSchemaMock(
 {
     /// <summary>
     /// EN: Creates an Oracle table mock for this schema.
-    /// PT: Cria um mock de tabela Oracle para este schema.
+    /// PT: Cria um simulado de tabela Oracle para este schema.
     /// </summary>
     /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
     /// <param name="columns">EN: Table columns. PT: Colunas da tabela.</param>

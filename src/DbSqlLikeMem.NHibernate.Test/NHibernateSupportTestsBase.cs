@@ -10,7 +10,7 @@ namespace DbSqlLikeMem.NHibernate.Test;
 
 /// <summary>
 /// EN: Shared NHibernate integration contract tests for provider mock connections.
-/// PT: Testes de contrato de integração NHibernate compartilhados para conexões mock por provedor.
+/// PT: Testes de contrato de integração NHibernate compartilhados para conexões simulado por provedor.
 /// </summary>
 public abstract class NHibernateSupportTestsBase
 {
@@ -22,19 +22,19 @@ public abstract class NHibernateSupportTestsBase
 
     /// <summary>
     /// EN: Creates and opens a provider-specific mock connection.
-    /// PT: Cria e abre uma conexão mock específica de provedor.
+    /// PT: Cria e abre uma conexão simulada específica de provedor.
     /// </summary>
     protected abstract DbConnection CreateOpenConnection();
 
     /// <summary>
     /// EN: Optional NHibernate driver class for provider-specific mocked connections.
-    /// PT: Classe opcional de driver NHibernate para conexões mock específicas do provedor.
+    /// PT: Classe opcional de driver NHibernate para conexões simulado específicas do provedor.
     /// </summary>
     protected virtual string? NhDriverClass => null;
 
     /// <summary>
     /// EN: Enables in-memory pagination fallback for dialects whose mocked providers do not support parameterized LIMIT/OFFSET forms.
-    /// PT: Habilita fallback de paginação em memória para dialetos cujos provedores mock não suportam formas parametrizadas de LIMIT/OFFSET.
+    /// PT: Habilita fallback de paginação em memória para dialetos cujos provedores simulado não suportam formas parametrizadas de LIMIT/OFFSET.
     /// </summary>
     protected virtual bool UseInMemoryPaginationFallback => false;
 
@@ -196,7 +196,7 @@ public abstract class NHibernateSupportTestsBase
 
     /// <summary>
     /// EN: Verifies mapped query pagination works with FirstResult/MaxResults.
-    /// PT: Verifica se a paginação da query mapeada funciona com FirstResult/MaxResults.
+    /// PT: Verifica se a paginação da consulta mapeada funciona com FirstResult/MaxResults.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]

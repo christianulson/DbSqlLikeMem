@@ -2,7 +2,7 @@
 
 /// <summary>
 /// EN: Schema mock for SQLite databases.
-/// PT: Mock de esquema para bancos SQLite.
+/// PT: simulado de esquema para bancos SQLite.
 /// </summary>
 public class SqliteSchemaMock(
     string schemaName,
@@ -12,7 +12,7 @@ public class SqliteSchemaMock(
 {
     /// <summary>
     /// EN: Creates a SQLite table mock for this schema.
-    /// PT: Cria um mock de tabela SQLite para este schema.
+    /// PT: Cria um simulado de tabela SQLite para este schema.
     /// </summary>
     /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
     /// <param name="columns">EN: Table columns. PT: Colunas da tabela.</param>
