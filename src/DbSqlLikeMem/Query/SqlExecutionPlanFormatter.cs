@@ -1,3 +1,4 @@
+using DbSqlLikeMem.Resources;
 using System.Text;
 
 namespace DbSqlLikeMem;
@@ -12,64 +13,81 @@ internal sealed record SqlPlanRuntimeMetrics(
     public double SelectivityPct => EstimatedRowsRead <= 0 ? 0d : (double)ActualRows / EstimatedRowsRead * 100d;
 }
 
+internal sealed record SqlIndexRecommendation(
+    string Table,
+    string SuggestedIndex,
+    string Reason,
+    int Confidence,
+    long EstimatedRowsReadBefore,
+    long EstimatedRowsReadAfter)
+{
+    public double EstimatedGainPct
+        => EstimatedRowsReadBefore <= 0
+            ? 0d
+            : (double)(EstimatedRowsReadBefore - EstimatedRowsReadAfter) / EstimatedRowsReadBefore * 100d;
+}
+
 internal static class SqlExecutionPlanFormatter
 {
     public static string FormatSelect(
         SqlSelectQuery query,
-        SqlPlanRuntimeMetrics metrics)
+        SqlPlanRuntimeMetrics metrics,
+        IReadOnlyList<SqlIndexRecommendation>? indexRecommendations = null)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("Execution Plan (mock)");
-        sb.AppendLine("- QueryType: SELECT");
-        sb.AppendLine($"- EstimatedCost: {EstimateSelectCost(query)}");
+        sb.AppendLine(SqlExecutionPlanMessages.ExecutionPlanTitle());
+        sb.AppendLine($"- {SqlExecutionPlanMessages.QueryTypeLabel()}: SELECT");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.EstimatedCostLabel()}: {EstimateSelectCost(query)}");
 
         if (query.Ctes.Count > 0)
         {
-            sb.AppendLine($"- CTEs: {query.Ctes.Count}");
+            sb.AppendLine($"- {SqlExecutionPlanMessages.CtesLabel()}: {query.Ctes.Count}");
             foreach (var cte in query.Ctes)
-                sb.AppendLine($"  - CTE Materialize: {cte.Name}");
+                sb.AppendLine($"  - {SqlExecutionPlanMessages.CteMaterializeLabel()}: {cte.Name}");
         }
 
-        sb.AppendLine($"- From: {FormatSource(query.Table)}");
+        sb.AppendLine($"- FROM: {FormatSource(query.Table)}");
 
         if (query.Joins.Count > 0)
         {
             foreach (var join in query.Joins)
             {
                 var on = SqlExprPrinter.Print(join.On);
-                sb.AppendLine($"- Join: {join.Type.ToString().ToUpperInvariant()} {FormatSource(join.Table)} ON {on}");
+                sb.AppendLine($"- JOIN: {join.Type.ToString().ToUpperInvariant()} {FormatSource(join.Table)} ON {on}");
             }
         }
 
         if (query.Where is not null)
-            sb.AppendLine($"- Filter: {SqlExprPrinter.Print(query.Where)}");
+            sb.AppendLine($"- WHERE: {SqlExprPrinter.Print(query.Where)}");
 
         if (query.GroupBy.Count > 0)
-            sb.AppendLine($"- GroupBy: {string.Join(", ", query.GroupBy)}");
+            sb.AppendLine($"- GROUP BY: {string.Join(", ", query.GroupBy)}");
 
         if (query.Having is not null)
-            sb.AppendLine($"- Having: {SqlExprPrinter.Print(query.Having)}");
+            sb.AppendLine($"- HAVING: {SqlExprPrinter.Print(query.Having)}");
 
-        sb.AppendLine($"- Projection: {query.SelectItems.Count} item(s)");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.ProjectionLabel()}: {query.SelectItems.Count} item(s)");
 
         if (query.Distinct)
-            sb.AppendLine("- Distinct: true");
+            sb.AppendLine("- DISTINCT: true");
 
         if (query.OrderBy.Count > 0)
         {
             var order = string.Join(", ", query.OrderBy.Select(o => $"{o.Raw} {(o.Desc ? "DESC" : "ASC")}"));
-            sb.AppendLine($"- Sort: {order}");
+            sb.AppendLine($"- ORDER BY: {order}");
         }
 
         if (query.RowLimit is not null)
-            sb.AppendLine($"- Limit: {FormatLimit(query.RowLimit)}");
+            sb.AppendLine($"- LIMIT/TOP/FETCH: {FormatLimit(query.RowLimit)}");
 
-        sb.AppendLine($"- InputTables: {metrics.InputTables}");
-        sb.AppendLine($"- EstimatedRowsRead: {metrics.EstimatedRowsRead}");
-        sb.AppendLine($"- ActualRows: {metrics.ActualRows}");
-        sb.AppendLine($"- SelectivityPct: {metrics.SelectivityPct:F2}");
-        sb.AppendLine($"- RowsPerMs: {metrics.RowsPerMs:F2}");
-        sb.AppendLine($"- ElapsedMs: {metrics.ElapsedMs}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.InputTablesLabel()}: {metrics.InputTables}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.EstimatedRowsReadLabel()}: {metrics.EstimatedRowsRead}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.ActualRowsLabel()}: {metrics.ActualRows}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.SelectivityPctLabel()}: {metrics.SelectivityPct:F2}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.RowsPerMsLabel()}: {metrics.RowsPerMs:F2}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.ElapsedMsLabel()}: {metrics.ElapsedMs}");
+
+        AppendIndexRecommendations(sb, indexRecommendations);
 
         return sb.ToString().TrimEnd();
     }
@@ -82,34 +100,54 @@ internal static class SqlExecutionPlanFormatter
         SqlPlanRuntimeMetrics metrics)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("Execution Plan (mock)");
-        sb.AppendLine("- QueryType: UNION");
-        sb.AppendLine($"- EstimatedCost: {EstimateUnionCost(parts, allFlags, orderBy, rowLimit)}");
-        sb.AppendLine($"- Parts: {parts.Count}");
+        sb.AppendLine(SqlExecutionPlanMessages.ExecutionPlanTitle());
+        sb.AppendLine($"- {SqlExecutionPlanMessages.QueryTypeLabel()}: UNION");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.EstimatedCostLabel()}: {EstimateUnionCost(parts, allFlags, orderBy, rowLimit)}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.PartsLabel()}: {parts.Count}");
 
         for (int i = 0; i < parts.Count; i++)
-            sb.AppendLine($"  - Part[{i + 1}]: SELECT from {FormatSource(parts[i].Table)}");
+            sb.AppendLine($"  - {SqlExecutionPlanMessages.PartLabel()}[{i + 1}]: SELECT from {FormatSource(parts[i].Table)}");
 
         for (int i = 0; i < allFlags.Count; i++)
-            sb.AppendLine($"  - Combine[{i + 1}]: {(allFlags[i] ? "UNION ALL" : "UNION DISTINCT")}");
+            sb.AppendLine($"  - {SqlExecutionPlanMessages.CombineLabel()}[{i + 1}]: {(allFlags[i] ? "UNION ALL" : "UNION DISTINCT")}");
 
         if ((orderBy?.Count ?? 0) > 0)
         {
             var order = string.Join(", ", orderBy!.Select(o => $"{o.Raw} {(o.Desc ? "DESC" : "ASC")}"));
-            sb.AppendLine($"- Sort: {order}");
+            sb.AppendLine($"- ORDER BY: {order}");
         }
 
         if (rowLimit is not null)
-            sb.AppendLine($"- Limit: {FormatLimit(rowLimit)}");
+            sb.AppendLine($"- LIMIT/TOP/FETCH: {FormatLimit(rowLimit)}");
 
-        sb.AppendLine($"- InputTables: {metrics.InputTables}");
-        sb.AppendLine($"- EstimatedRowsRead: {metrics.EstimatedRowsRead}");
-        sb.AppendLine($"- ActualRows: {metrics.ActualRows}");
-        sb.AppendLine($"- SelectivityPct: {metrics.SelectivityPct:F2}");
-        sb.AppendLine($"- RowsPerMs: {metrics.RowsPerMs:F2}");
-        sb.AppendLine($"- ElapsedMs: {metrics.ElapsedMs}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.InputTablesLabel()}: {metrics.InputTables}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.EstimatedRowsReadLabel()}: {metrics.EstimatedRowsRead}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.ActualRowsLabel()}: {metrics.ActualRows}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.SelectivityPctLabel()}: {metrics.SelectivityPct:F2}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.RowsPerMsLabel()}: {metrics.RowsPerMs:F2}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.ElapsedMsLabel()}: {metrics.ElapsedMs}");
 
         return sb.ToString().TrimEnd();
+    }
+
+    private static void AppendIndexRecommendations(
+        StringBuilder sb,
+        IReadOnlyList<SqlIndexRecommendation>? indexRecommendations)
+    {
+        if (indexRecommendations is null || indexRecommendations.Count == 0)
+            return;
+
+        sb.AppendLine($"- {SqlExecutionPlanMessages.IndexRecommendationsLabel()}:");
+        foreach (var recommendation in indexRecommendations)
+        {
+            sb.AppendLine($"  - {SqlExecutionPlanMessages.TableLabel()}: {recommendation.Table}");
+            sb.AppendLine($"    {SqlExecutionPlanMessages.SuggestedIndexLabel()}: {recommendation.SuggestedIndex}");
+            sb.AppendLine($"    {SqlExecutionPlanMessages.ReasonLabel()}: {recommendation.Reason}");
+            sb.AppendLine($"    {SqlExecutionPlanMessages.ConfidenceLabel()}: {recommendation.Confidence}");
+            sb.AppendLine($"    {SqlExecutionPlanMessages.EstimatedRowsReadBeforeLabel()}: {recommendation.EstimatedRowsReadBefore}");
+            sb.AppendLine($"    {SqlExecutionPlanMessages.EstimatedRowsReadAfterLabel()}: {recommendation.EstimatedRowsReadAfter}");
+            sb.AppendLine($"    {SqlExecutionPlanMessages.EstimatedGainPctLabel()}: {recommendation.EstimatedGainPct:F2}");
+        }
     }
 
     private static string FormatSource(SqlTableSource? source)
