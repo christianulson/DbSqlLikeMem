@@ -38,6 +38,14 @@ jobs:
           import zipfile
           import xml.etree.ElementTree as ET
 
+          def get_child(parent, local_name):
+              for child in parent:
+                  tag = child.tag.split('}', 1)[-1] if '}' in child.tag else child.tag
+                  if tag == local_name:
+                      return child
+
+              return None
+
           packages = glob.glob('./artifacts/*.nupkg')
           packages = [p for p in packages if 'DbSqlLikeMem.VisualStudioExtension.' not in os.path.basename(p)]
 
@@ -53,12 +61,11 @@ jobs:
                   with zf.open(nuspec_name) as nuspec:
                       root = ET.parse(nuspec).getroot()
 
-              ns = {'n': 'http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd'}
-              metadata = root.find('n:metadata', ns)
+              metadata = get_child(root, 'metadata')
               if metadata is None:
                   raise SystemExit(f'::error::{os.path.basename(package)} has no metadata section in nuspec.')
 
-              repository = metadata.find('n:repository', ns)
+              repository = get_child(metadata, 'repository')
               repo_url = repository.attrib.get('url') if repository is not None else None
               if not repo_url or 'github.com/christianulson/DbSqlLikeMem' not in repo_url:
                   raise SystemExit(f'::error::{os.path.basename(package)} is missing expected repository URL metadata.')
