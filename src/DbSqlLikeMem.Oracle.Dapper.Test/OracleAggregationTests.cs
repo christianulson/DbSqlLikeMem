@@ -32,15 +32,6 @@ public sealed class OracleAggregationTests : AggregationHavingOrdinalTestsBase<O
     [Trait("Category", "OracleAggregation")]
     public void Distinct_Order_Limit_Offset_ShouldWork()
     {
-        const string sql = """
-                  SELECT DISTINCT userId
-                  FROM orders
-                  ORDER BY userId
-                  OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY
-                  """;
-
-        var rows = Query(sql);
-        Assert.Single(rows);
-        Assert.Equal(2, (int)rows[0].userId);
+        AssertDistinctOrderPagination("OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY");
     }
 }

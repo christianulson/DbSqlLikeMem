@@ -32,15 +32,6 @@ public sealed class PostgreSqlAggregationTests : AggregationHavingOrdinalTestsBa
     [Trait("Category", "PostgreSqlAggregation")]
     public void Distinct_Order_Limit_Offset_ShouldWork()
     {
-        const string sql = """
-                  SELECT DISTINCT userId
-                  FROM orders
-                  ORDER BY userId
-                  LIMIT 1 OFFSET 1
-                  """;
-
-        var rows = Query(sql);
-        Assert.Single(rows);
-        Assert.Equal(2, (int)rows[0].userId);
+        AssertDistinctOrderPagination("LIMIT 1 OFFSET 1");
     }
 }
