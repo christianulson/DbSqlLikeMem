@@ -60,6 +60,30 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
     /// <returns>EN: Materialized result rows. PT: Linhas do resultado materializadas.</returns>
     protected abstract List<dynamic> Query(string sql);
 
+    /// <summary>
+    /// EN: Validates DISTINCT + ORDER BY + provider pagination syntax over grouped seed data.
+    /// PT: Valida sintaxe de DISTINCT + ORDER BY + paginação do provedor sobre os dados semeados.
+    /// </summary>
+    /// <param name="paginationClause">EN: Provider pagination clause appended after ORDER BY. PT: Cláusula de paginação do provedor anexada após ORDER BY.</param>
+    protected void AssertDistinctOrderPagination(string paginationClause)
+    {
+        if (string.IsNullOrWhiteSpace(paginationClause))
+        {
+            throw new ArgumentException("Pagination clause cannot be null, empty, or whitespace.", nameof(paginationClause));
+        }
+
+        var sql = $"""
+                  SELECT DISTINCT userId
+                  FROM orders
+                  ORDER BY userId
+                  {paginationClause}
+                  """;
+
+        var rows = Query(sql);
+        Assert.Single(rows);
+        Assert.Equal(2, (int)rows[0].userId);
+    }
+
     private static void SeedOrders(TDbMock db)
     {
         var orders = db.AddTable("orders");

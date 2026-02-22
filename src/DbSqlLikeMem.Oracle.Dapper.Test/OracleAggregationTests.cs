@@ -25,22 +25,13 @@ public sealed class OracleAggregationTests : AggregationHavingOrdinalTestsBase<O
     protected override List<dynamic> Query(string sql) => Connection.Query<dynamic>(sql).ToList();
 
     /// <summary>
-    /// EN: Tests Distinct_Order_Limit_Offset_ShouldWork behavior.
-    /// PT: Testa o comportamento de Distinct_Order_Limit_Offset_ShouldWork.
+    /// EN: Tests Distinct_Order_WithPagination_ShouldWork behavior.
+    /// PT: Testa o comportamento de Distinct_Order_WithPagination_ShouldWork.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAggregation")]
-    public void Distinct_Order_Limit_Offset_ShouldWork()
+    public void Distinct_Order_WithPagination_ShouldWork()
     {
-        const string sql = """
-                  SELECT DISTINCT userId
-                  FROM orders
-                  ORDER BY userId
-                  OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY
-                  """;
-
-        var rows = Query(sql);
-        Assert.Single(rows);
-        Assert.Equal(2, (int)rows[0].userId);
+        AssertDistinctOrderPagination("OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY");
     }
 }
