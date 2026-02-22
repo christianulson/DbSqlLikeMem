@@ -1,7 +1,6 @@
 using DbSqlLikeMem.Interfaces;
 using System.Diagnostics;
 using DbSqlLikeMem.Models;
-using DbSqlLikeMem.Resources;
 using System.Collections.Concurrent;
 
 namespace DbSqlLikeMem;
@@ -579,7 +578,7 @@ internal abstract class AstQueryExecutorBase(
             if (string.IsNullOrWhiteSpace(token))
                 continue;
 
-            if (!TryResolveColumn(token, sourceMap, out var tableName, out var columnName))
+            if (!TryResolveColumn(token!, sourceMap, out var tableName, out var columnName))
                 continue;
 
             if (!result.TryGetValue(tableName, out var list))
@@ -691,7 +690,7 @@ internal abstract class AstQueryExecutorBase(
         tableName = string.Empty;
         columnName = string.Empty;
 
-        var parts = token.Split('.', StringSplitOptions.RemoveEmptyEntries).Select(static p => p.Trim()).Where(static p => p.Length > 0).ToArray();
+        var parts = token.Split('.').Select(static p => p.Trim()).Where(static p => p.Length > 0).ToArray();
         if (parts.Length == 0)
             return false;
 

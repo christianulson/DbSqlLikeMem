@@ -1,10 +1,14 @@
+using DbSqlLikeMem.Test;
+
 namespace DbSqlLikeMem.EfCore.Test;
 
 /// <summary>
 /// EN: Defines shared EF Core-oriented provider contract tests for mock connections.
 /// PT: Define testes de contrato compartilhados orientados a EF Core para conexões simulado.
 /// </summary>
-public abstract class EfCoreSupportTestsBase
+public abstract class EfCoreSupportTestsBase(
+    ITestOutputHelper helper
+) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Creates and opens the provider mock connection factory under test.

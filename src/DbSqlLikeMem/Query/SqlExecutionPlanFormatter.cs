@@ -1,4 +1,3 @@
-using DbSqlLikeMem.Resources;
 using System.Text;
 
 namespace DbSqlLikeMem;

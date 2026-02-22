@@ -38,6 +38,10 @@
 		<ProjectReference Include="..\DbSqlLikeMem.Oracle.NHibernate\DbSqlLikeMem.Oracle.NHibernate.csproj" />
 	</ItemGroup>
 
+	<ItemGroup Condition="'$(TargetFramework)' == 'net48' Or '$(TargetFramework)' == 'net6.0'">
+		<Using Include="Xunit.Abstractions" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<Using Include="DbSqlLikeMem" />
 		<Using Include="DbSqlLikeMem.Oracle" />

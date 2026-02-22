@@ -1,10 +1,14 @@
+using DbSqlLikeMem.Test;
+
 namespace DbSqlLikeMem.LinqToDb.Test;
 
 /// <summary>
 /// EN: Defines shared LinqToDB-oriented provider contract tests for mock connections.
 /// PT: Define testes de contrato compartilhados orientados a LinqToDB para conexões simulado.
 /// </summary>
-public abstract class LinqToDbSupportTestsBase
+public abstract class LinqToDbSupportTestsBase(
+    ITestOutputHelper helper
+) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Creates and opens the provider mock connection factory under test.

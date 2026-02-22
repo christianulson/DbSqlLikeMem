@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Npgsql.NHibernate.Test;
 /// Runs smoke tests for NHibernate integration using the PostgreSQL in-memory mock provider.
 /// Executa testes de fumaça para integração do NHibernate usando o provedor simulado em memória do Npgsql.
 /// </summary>
-public sealed class NHibernateSmokeTests : NHibernateSupportTestsBase
+public sealed class NHibernateSmokeTests(
+    ITestOutputHelper helper
+) : NHibernateSupportTestsBase(helper)
 {
     /// <summary>
     /// Gets the NHibernate dialect class used to emulate PostgreSQL SQL behavior.

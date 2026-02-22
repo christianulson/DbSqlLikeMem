@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.SqlServer.NHibernate.Test;
 /// Runs smoke tests for NHibernate integration using the SQL Server in-memory mock provider.
 /// Executa testes de fumaça para integração do NHibernate usando o provedor simulado em memória do SQL Server.
 /// </summary>
-public sealed class NHibernateSmokeTests : NHibernateSupportTestsBase
+public sealed class NHibernateSmokeTests(
+    ITestOutputHelper helper
+) : NHibernateSupportTestsBase(helper)
 {
     /// <summary>
     /// Gets the NHibernate dialect class used to emulate SQL Server SQL behavior.
