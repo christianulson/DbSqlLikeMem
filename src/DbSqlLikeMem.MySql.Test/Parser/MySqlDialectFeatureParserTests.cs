@@ -23,7 +23,7 @@ public sealed class MySqlDialectFeatureParserTests
 
     /// <summary>
     /// EN: Ensures WITH RECURSIVE support follows the configured MySQL version.
-    /// PT: Garante que o suporte a WITH RECURSIVE siga a versão configurada do MySQL.
+    /// PT: Garante que o suporte a with recursive siga a versão configurada do MySQL.
     /// </summary>
     /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
     [Theory]
@@ -199,7 +199,7 @@ public sealed class MySqlDialectFeatureParserTests
 
     /// <summary>
     /// EN: Ensures PIVOT clause is rejected when the dialect capability flag is disabled.
-    /// PT: Garante que a cláusula PIVOT seja rejeitada quando a flag de capacidade do dialeto está desabilitada.
+    /// PT: Garante que a cláusula pivot seja rejeitada quando a flag de capacidade do dialeto está desabilitada.
     /// </summary>
     /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]

@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
-/// EN: Summary for MySqlProviderSurfaceMocksTests.
-/// PT: Resumo para MySqlProviderSurfaceMocksTests.
+/// EN: Contains tests for my sql provider surface mocks.
+/// PT: Contém testes para my sql provedor surface mocks.
 /// </summary>
 public sealed class MySqlProviderSurfaceMocksTests
 {
     /// <summary>
-    /// EN: Summary for DataAdapter_ShouldKeepTypedSelectCommand.
-    /// PT: Resumo para DataAdapter_ShouldKeepTypedSelectCommand.
+    /// EN: Ensures the typed SelectCommand property stays synchronized with the base SelectCommand.
+    /// PT: Garante que a propriedade tipada SelectCommand permaneça sincronizada com a SelectCommand da classe base.
     /// </summary>
     [Fact]
     public void DataAdapter_ShouldKeepTypedSelectCommand()
@@ -21,8 +21,8 @@ public sealed class MySqlProviderSurfaceMocksTests
     }
 
     /// <summary>
-    /// EN: Summary for DataSource_ShouldCreateMySqlConnection.
-    /// PT: Resumo para DataSource_ShouldCreateMySqlConnection.
+    /// EN: Ensures the data source mock creates a provider-specific connection bound to the same in-memory database.
+    /// PT: Garante que o simulado de fonte de dados crie uma conexão específica do provedor vinculada ao mesmo banco em memória.
     /// </summary>
     [Fact]
     public void DataSource_ShouldCreateMySqlConnection()

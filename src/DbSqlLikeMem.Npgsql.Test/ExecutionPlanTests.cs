@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
 /// EN: Execution plan coverage tests for Npgsql mock commands.
-/// PT: Testes de cobertura de plano de execução para comandos mock Npgsql.
+/// PT: Testes de cobertura de plano de execução para comandos simulado Npgsql.
 /// </summary>
 public sealed class ExecutionPlanTests : XUnitTestBase
 {

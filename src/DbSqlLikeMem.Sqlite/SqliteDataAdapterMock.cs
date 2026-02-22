@@ -2,14 +2,14 @@ using DbDataAdapter = System.Data.Common.DbDataAdapter;
 namespace DbSqlLikeMem.Sqlite;
 
 /// <summary>
-/// EN: Summary for SqliteDataAdapterMock.
-/// PT: Resumo para SqliteDataAdapterMock.
+/// EN: Represents the Sqlite Data Adapter Mock type used by provider mocks.
+/// PT: Representa o tipo Sqlite adaptador de dados simulado usado pelos mocks do provedor.
 /// </summary>
 public sealed class SqliteDataAdapterMock : DbDataAdapter
 {
     /// <summary>
-    /// EN: Summary for DeleteCommand.
-    /// PT: Resumo para DeleteCommand.
+    /// EN: Executes delete command.
+    /// PT: Executa delete comando.
     /// </summary>
     public new SqliteCommandMock? DeleteCommand
     {
@@ -18,8 +18,8 @@ public sealed class SqliteDataAdapterMock : DbDataAdapter
     }
 
     /// <summary>
-    /// EN: Summary for InsertCommand.
-    /// PT: Resumo para InsertCommand.
+    /// EN: Executes insert command.
+    /// PT: Executa insert comando.
     /// </summary>
     public new SqliteCommandMock? InsertCommand
     {
@@ -28,8 +28,8 @@ public sealed class SqliteDataAdapterMock : DbDataAdapter
     }
 
     /// <summary>
-    /// EN: Summary for SelectCommand.
-    /// PT: Resumo para SelectCommand.
+    /// EN: Executes select command.
+    /// PT: Executa select comando.
     /// </summary>
     public new SqliteCommandMock? SelectCommand
     {
@@ -38,8 +38,8 @@ public sealed class SqliteDataAdapterMock : DbDataAdapter
     }
 
     /// <summary>
-    /// EN: Summary for UpdateCommand.
-    /// PT: Resumo para UpdateCommand.
+    /// EN: Executes update command.
+    /// PT: Executa update comando.
     /// </summary>
     public new SqliteCommandMock? UpdateCommand
     {
@@ -48,22 +48,22 @@ public sealed class SqliteDataAdapterMock : DbDataAdapter
     }
 
     /// <summary>
-    /// EN: Summary for SqliteDataAdapterMock.
-    /// PT: Resumo para SqliteDataAdapterMock.
+    /// EN: Represents a provider-specific data adapter mock with typed command accessors.
+    /// PT: Representa um simulado de adaptador de dados específico do provedor com acessores tipados de comando.
     /// </summary>
     public SqliteDataAdapterMock()
     {
     }
 
     /// <summary>
-    /// EN: Summary for SqliteDataAdapterMock.
-    /// PT: Resumo para SqliteDataAdapterMock.
+    /// EN: Represents a provider-specific data adapter mock with typed command accessors.
+    /// PT: Representa um simulado de adaptador de dados específico do provedor com acessores tipados de comando.
     /// </summary>
     public SqliteDataAdapterMock(SqliteCommandMock selectCommand) => SelectCommand = selectCommand;
 
     /// <summary>
-    /// EN: Summary for SqliteDataAdapterMock.
-    /// PT: Resumo para SqliteDataAdapterMock.
+    /// EN: Represents a provider-specific data adapter mock with typed command accessors.
+    /// PT: Representa um simulado de adaptador de dados específico do provedor com acessores tipados de comando.
     /// </summary>
     public SqliteDataAdapterMock(string selectCommandText, SqliteConnectionMock connection)
         => SelectCommand = new SqliteCommandMock(connection) { CommandText = selectCommandText };

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
 /// EN: Execution plan coverage tests for Sqlite mock commands.
-/// PT: Testes de cobertura de plano de execução para comandos mock Sqlite.
+/// PT: Testes de cobertura de plano de execução para comandos simulado Sqlite.
 /// </summary>
 public sealed class ExecutionPlanTests : XUnitTestBase
 {

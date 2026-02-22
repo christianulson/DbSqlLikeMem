@@ -48,7 +48,7 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
 
     /// <summary>
     /// EN: Mock API member implementation for compatibility with MySQL provider contracts.
-    /// PT: Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// PT: Implementação de membro da API simulado para compatibilidade com os contratos do provedor MySQL.
     /// </summary>
     [Category("Fill")]
     public new MySqlCommandMock? SelectCommand

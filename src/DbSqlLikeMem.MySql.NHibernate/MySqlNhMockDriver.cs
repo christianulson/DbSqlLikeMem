@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.MySql.NHibernate;
 
 /// <summary>
 /// EN: NHibernate driver bound to DbSqlLikeMem MySql mock ADO.NET types.
-/// PT: Driver NHibernate ligado aos tipos ADO.NET mock MySql do DbSqlLikeMem.
+/// PT: Driver NHibernate ligado aos tipos ADO.NET simulado MySql do DbSqlLikeMem.
 /// </summary>
 public sealed class MySqlNhMockDriver : ReflectionBasedDriver
 {
     /// <summary>
     /// EN: Initializes a NHibernate mock driver for DbSqlLikeMem MySql provider types.
-    /// PT: Inicializa um driver mock do NHibernate para os tipos do provedor MySql do DbSqlLikeMem.
+    /// PT: Inicializa um driver simulado do NHibernate para os tipos do provedor MySql do DbSqlLikeMem.
     /// </summary>
     public MySqlNhMockDriver()
         : base(

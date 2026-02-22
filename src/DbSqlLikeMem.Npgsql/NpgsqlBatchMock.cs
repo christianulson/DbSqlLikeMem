@@ -10,8 +10,8 @@ namespace DbSqlLikeMem.Npgsql;
 
 #if NET6_0_OR_GREATER
 /// <summary>
-/// EN: Summary for NpgsqlBatchMock.
-/// PT: Resumo para NpgsqlBatchMock.
+/// EN: Represents a PostgreSQL batch mock that executes commands against the in-memory database.
+/// PT: Representa um simulado de lote PostgreSQL que executa comandos no banco em memória.
 /// </summary>
 public sealed class NpgsqlBatchMock : DbBatch
 {
@@ -19,14 +19,14 @@ public sealed class NpgsqlBatchMock : DbBatch
     private NpgsqlTransactionMock? transaction;
 
     /// <summary>
-    /// EN: Summary for NpgsqlBatchMock.
-    /// PT: Resumo para NpgsqlBatchMock.
+    /// EN: Initializes a PostgreSQL batch mock with an empty command collection.
+    /// PT: Inicializa um simulado de lote PostgreSQL com uma coleção de comandos vazia.
     /// </summary>
     public NpgsqlBatchMock() => BatchCommands = new NpgsqlBatchCommandCollectionMock();
 
     /// <summary>
-    /// EN: Summary for NpgsqlBatchMock.
-    /// PT: Resumo para NpgsqlBatchMock.
+    /// EN: Initializes a PostgreSQL batch mock bound to a connection and an optional transaction.
+    /// PT: Inicializa um simulado de lote PostgreSQL vinculado a uma conexão e a uma transação opcional.
     /// </summary>
     public NpgsqlBatchMock(NpgsqlConnectionMock connection, NpgsqlTransactionMock? transaction = null) : this()
     {
@@ -35,8 +35,8 @@ public sealed class NpgsqlBatchMock : DbBatch
     }
 
     /// <summary>
-    /// EN: Summary for Connection.
-    /// PT: Resumo para Connection.
+    /// EN: Gets or sets the connection used to execute batch commands.
+    /// PT: Obtém ou define a conexão usada para executar comandos em lote.
     /// </summary>
     public new NpgsqlConnectionMock? Connection
     {
@@ -45,8 +45,8 @@ public sealed class NpgsqlBatchMock : DbBatch
     }
 
     /// <summary>
-    /// EN: Summary for DbConnection.
-    /// PT: Resumo para DbConnection.
+    /// EN: Gets or sets the connection used to execute batch commands.
+    /// PT: Obtém ou define a conexão usada para executar comandos em lote.
     /// </summary>
     protected override DbConnection? DbConnection
     {
@@ -55,8 +55,8 @@ public sealed class NpgsqlBatchMock : DbBatch
     }
 
     /// <summary>
-    /// EN: Summary for Transaction.
-    /// PT: Resumo para Transaction.
+    /// EN: Gets or sets the transaction associated with batch execution.
+    /// PT: Obtém ou define a transação associada à execução em lote.
     /// </summary>
     public new NpgsqlTransactionMock? Transaction
     {
@@ -65,8 +65,8 @@ public sealed class NpgsqlBatchMock : DbBatch
     }
 
     /// <summary>
-    /// EN: Summary for DbTransaction.
-    /// PT: Resumo para DbTransaction.
+    /// EN: Gets or sets the transaction associated with batch execution.
+    /// PT: Obtém ou define a transação associada à execução em lote.
     /// </summary>
     protected override DbTransaction? DbTransaction
     {
@@ -75,32 +75,32 @@ public sealed class NpgsqlBatchMock : DbBatch
     }
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets or sets the command timeout, in seconds, applied to each batch command.
+    /// PT: Obtém ou define o tempo limite do comando, em segundos, aplicado a cada comando do lote.
     /// </summary>
     public override int Timeout { get; set; }
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets the batch command collection executed by this batch.
+    /// PT: Obtém a coleção de comandos de lote executada por este lote.
     /// </summary>
     public new NpgsqlBatchCommandCollectionMock BatchCommands { get; }
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets the batch command collection executed by this batch.
+    /// PT: Obtém a coleção de comandos de lote executada por este lote.
     /// </summary>
     protected override DbBatchCommandCollection DbBatchCommands => BatchCommands;
 
     /// <summary>
-    /// EN: Summary for Cancel.
-    /// PT: Resumo para Cancel.
+    /// EN: Cancels batch execution by rolling back the active transaction.
+    /// PT: Cancela a execução do lote revertendo a transação ativa.
     /// </summary>
     public override void Cancel() => Transaction?.Rollback();
 
     /// <summary>
-    /// EN: Summary for ExecuteNonQuery.
-    /// PT: Resumo para ExecuteNonQuery.
+    /// EN: Executes all batch commands and returns the total number of affected rows.
+    /// PT: Executa todos os comandos do lote e retorna o total de linhas afetadas.
     /// </summary>
     public override int ExecuteNonQuery()
     {
@@ -127,8 +127,8 @@ public sealed class NpgsqlBatchMock : DbBatch
     }
 
     /// <summary>
-    /// EN: Summary for ExecuteDbDataReader.
-    /// PT: Resumo para ExecuteDbDataReader.
+    /// EN: Executes batch commands and returns a data reader over produced result sets.
+    /// PT: Executa os comandos em lote e retorna um leitor de dados com os resultados produzidos.
     /// </summary>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
@@ -202,8 +202,8 @@ public sealed class NpgsqlBatchMock : DbBatch
     }
 
     /// <summary>
-    /// EN: Summary for ExecuteScalar.
-    /// PT: Resumo para ExecuteScalar.
+    /// EN: Executes the first batch command and returns its scalar result.
+    /// PT: Executa o primeiro comando do lote e retorna seu resultado escalar.
     /// </summary>
     public override object? ExecuteScalar()
     {
@@ -225,29 +225,29 @@ public sealed class NpgsqlBatchMock : DbBatch
     }
 
     /// <summary>
-    /// EN: Summary for ExecuteNonQueryAsync.
-    /// PT: Resumo para ExecuteNonQueryAsync.
+    /// EN: Asynchronously executes all batch commands and returns affected rows.
+    /// PT: Executa todos os comandos em lote de forma assíncrona e retorna as linhas afetadas.
     /// </summary>
     public override System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(System.Threading.CancellationToken cancellationToken = default)
         => System.Threading.Tasks.Task.FromResult(ExecuteNonQuery());
 
     /// <summary>
-    /// EN: Summary for ExecuteDbDataReaderAsync.
-    /// PT: Resumo para ExecuteDbDataReaderAsync.
+    /// EN: Asynchronously executes batch commands and returns a data reader.
+    /// PT: Executa os comandos em lote de forma assíncrona e retorna um leitor de dados.
     /// </summary>
     protected override System.Threading.Tasks.Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, System.Threading.CancellationToken cancellationToken = default)
         => System.Threading.Tasks.Task.FromResult<DbDataReader>(ExecuteDbDataReader(behavior));
 
     /// <summary>
-    /// EN: Summary for ExecuteScalarAsync.
-    /// PT: Resumo para ExecuteScalarAsync.
+    /// EN: Asynchronously executes the first batch command and returns its scalar result.
+    /// PT: Executa o primeiro comando do lote de forma assíncrona e retorna seu resultado escalar.
     /// </summary>
     public override System.Threading.Tasks.Task<object?> ExecuteScalarAsync(System.Threading.CancellationToken cancellationToken = default)
         => System.Threading.Tasks.Task.FromResult(ExecuteScalar());
 
     /// <summary>
-    /// EN: Summary for PrepareAsync.
-    /// PT: Resumo para PrepareAsync.
+    /// EN: Completes immediately because this mock does not require server-side preparation.
+    /// PT: Conclui imediatamente porque este simulado não requer preparação no servidor.
     /// </summary>
     public override System.Threading.Tasks.Task PrepareAsync(System.Threading.CancellationToken cancellationToken = default)
     {
@@ -256,80 +256,80 @@ public sealed class NpgsqlBatchMock : DbBatch
     }
 
     /// <summary>
-    /// EN: Summary for Prepare.
-    /// PT: Resumo para Prepare.
+    /// EN: Performs no action because prepared statements are not simulated by this mock.
+    /// PT: Não realiza ação porque instruções preparadas não são simuladas por este simulado.
     /// </summary>
     public override void Prepare() { }
 
     /// <summary>
-    /// EN: Summary for CreateDbBatchCommand.
-    /// PT: Resumo para CreateDbBatchCommand.
+    /// EN: Creates a new db batch command instance.
+    /// PT: Cria uma nova instância de comando de lote do banco.
     /// </summary>
     protected override DbBatchCommand CreateDbBatchCommand() => new NpgsqlBatchCommandMock();
 }
 
 /// <summary>
-/// EN: Summary for NpgsqlBatchCommandMock.
-/// PT: Resumo para NpgsqlBatchCommandMock.
+/// EN: Represents a single command entry executed by NpgsqlBatchMock.
+/// PT: Representa uma entrada de comando executada por NpgsqlBatchMock.
 /// </summary>
 public sealed class NpgsqlBatchCommandMock : DbBatchCommand, INpgsqlCommandMock
 {
     private readonly NpgsqlCommandMock command = new();
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets or sets the SQL text executed by this batch command.
+    /// PT: Obtém ou define o texto SQL executado por este comando em lote.
     /// </summary>
     public override string CommandText { get; set; } = string.Empty;
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets or sets how the command text is interpreted.
+    /// PT: Obtém ou define como o texto do comando é interpretado.
     /// </summary>
     public override CommandType CommandType { get; set; } = CommandType.Text;
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Stores the affected row count reported by the command execution.
+    /// PT: Armazena a contagem de linhas afetadas reportada pela execução do comando.
     /// </summary>
     private int recordsAffected = 0;
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets the number of rows affected by this batch command.
+    /// PT: Obtém o número de linhas afetadas por este comando em lote.
     /// </summary>
     public override int RecordsAffected => recordsAffected;
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets the underlying parameter collection used by this batch command.
+    /// PT: Obtém a coleção de parâmetros subjacente usada por este comando em lote.
     /// </summary>
     protected override DbParameterCollection DbParameterCollection => command.Parameters;
 }
 
 /// <summary>
-/// EN: Summary for NpgsqlBatchCommandCollectionMock.
-/// PT: Resumo para NpgsqlBatchCommandCollectionMock.
+/// EN: Represents the collection that stores commands executed by NpgsqlBatchMock.
+/// PT: Representa a coleção que armazena os comandos executados por NpgsqlBatchMock.
 /// </summary>
 public sealed class NpgsqlBatchCommandCollectionMock : DbBatchCommandCollection
 {
     internal List<NpgsqlBatchCommandMock> Commands { get; } = [];
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets the number of commands currently stored in the batch collection.
+    /// PT: Obtém o número de comandos atualmente armazenados na coleção de lote.
     /// </summary>
     public override int Count => Commands.Count;
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets whether the batch command collection is read-only is supported.
+    /// PT: Obtém se a coleção de comandos de lote é somente leitura.
     /// </summary>
     public override bool IsReadOnly => false;
 
     /// <summary>
-    /// EN: Summary for Add.
-    /// PT: Resumo para Add.
+    /// EN: Adds a command to the batch collection.
+    /// PT: Adiciona um comando à coleção de lote.
     /// </summary>
     public override void Add(DbBatchCommand item)
     {
@@ -338,63 +338,63 @@ public sealed class NpgsqlBatchCommandCollectionMock : DbBatchCommandCollection
     }
 
     /// <summary>
-    /// EN: Summary for Clear.
-    /// PT: Resumo para Clear.
+    /// EN: Removes all commands from the batch collection.
+    /// PT: Remove todos os comandos da coleção de lote.
     /// </summary>
     public override void Clear() => Commands.Clear();
 
     /// <summary>
-    /// EN: Summary for Contains.
-    /// PT: Resumo para Contains.
+    /// EN: Determines whether a command exists in the batch collection.
+    /// PT: Determina se um comando existe na coleção de lote.
     /// </summary>
     public override bool Contains(DbBatchCommand item) => Commands.Contains((NpgsqlBatchCommandMock)item);
 
     /// <summary>
-    /// EN: Summary for CopyTo.
-    /// PT: Resumo para CopyTo.
+    /// EN: Copies commands to an array starting at the specified index.
+    /// PT: Copia os comandos para um array a partir do índice especificado.
     /// </summary>
     public override void CopyTo(DbBatchCommand[] array, int arrayIndex)
         => Commands.Cast<DbBatchCommand>().ToArray().CopyTo(array, arrayIndex);
 
     /// <summary>
-    /// EN: Summary for GetEnumerator.
-    /// PT: Resumo para GetEnumerator.
+    /// EN: Returns an enumerator for iterating over batch commands.
+    /// PT: Retorna um enumerador para iterar sobre os comandos em lote.
     /// </summary>
     public override IEnumerator<DbBatchCommand> GetEnumerator() => Commands.Cast<DbBatchCommand>().GetEnumerator();
 
     /// <summary>
-    /// EN: Summary for IndexOf.
-    /// PT: Resumo para IndexOf.
+    /// EN: Returns the zero-based index of a command in the batch collection.
+    /// PT: Retorna o índice baseado em zero de um comando na coleção de lote.
     /// </summary>
     public override int IndexOf(DbBatchCommand item) => Commands.IndexOf((NpgsqlBatchCommandMock)item);
 
     /// <summary>
-    /// EN: Summary for Insert.
-    /// PT: Resumo para Insert.
+    /// EN: Inserts a command at the specified index in the collection.
+    /// PT: Insere um comando no índice especificado da coleção.
     /// </summary>
     public override void Insert(int index, DbBatchCommand item) => Commands.Insert(index, (NpgsqlBatchCommandMock)item);
 
     /// <summary>
-    /// EN: Summary for Remove.
-    /// PT: Resumo para Remove.
+    /// EN: Removes the specified command from the batch collection.
+    /// PT: Remove o comando especificado da coleção de lote.
     /// </summary>
     public override bool Remove(DbBatchCommand item) => Commands.Remove((NpgsqlBatchCommandMock)item);
 
     /// <summary>
-    /// EN: Summary for RemoveAt.
-    /// PT: Resumo para RemoveAt.
+    /// EN: Removes the command at the specified index.
+    /// PT: Remove o comando no índice especificado.
     /// </summary>
     public override void RemoveAt(int index) => Commands.RemoveAt(index);
 
     /// <summary>
-    /// EN: Summary for GetBatchCommand.
-    /// PT: Resumo para GetBatchCommand.
+    /// EN: Returns the batch command stored at the specified index.
+    /// PT: Retorna o comando em lote armazenado no índice especificado.
     /// </summary>
     protected override DbBatchCommand GetBatchCommand(int index) => Commands[index];
 
     /// <summary>
-    /// EN: Summary for SetBatchCommand.
-    /// PT: Resumo para SetBatchCommand.
+    /// EN: Replaces the batch command stored at the specified index.
+    /// PT: Substitui o comando em lote armazenado no índice especificado.
     /// </summary>
     protected override void SetBatchCommand(int index, DbBatchCommand batchCommand) => Commands[index] = (NpgsqlBatchCommandMock)batchCommand;
 }

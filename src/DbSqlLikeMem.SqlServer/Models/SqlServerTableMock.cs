@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
 /// EN: Table mock specialized for SQL Server schema operations.
-/// PT: Mock de tabela especializado para operações de esquema SQL Server.
+/// PT: simulado de tabela especializado para operações de esquema SQL Server.
 /// </summary>
 public class SqlServerTableMock(
         string tableName,

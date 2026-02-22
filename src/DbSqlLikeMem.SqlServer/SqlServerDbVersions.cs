@@ -3,8 +3,8 @@ namespace DbSqlLikeMem.SqlServer;
 internal static class SqlServerDbVersions
 {
     /// <summary>
-    /// EN: Summary for Versions.
-    /// PT: Resumo para Versions.
+    /// EN: Represents Versions.
+    /// PT: Representa Versions.
     /// </summary>
     public static IEnumerable<int> Versions()
     {

@@ -11,13 +11,13 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
 {
     /// <summary>
     /// EN: Creates a provider-specific database mock used by shared select/insert/update/delete tests.
-    /// PT: Cria um mock de banco específico do provedor usado pelos testes compartilhados de select/insert/update/delete.
+    /// PT: Cria um simulado de banco específico do provedor usado pelos testes compartilhados de select/insert/update/delete.
     /// </summary>
     protected abstract TDbMock CreateDb();
 
     /// <summary>
     /// EN: Executes a provider-specific non-query SQL command against the supplied mock database.
-    /// PT: Executa um comando SQL sem retorno específico do provedor no banco mock informado.
+    /// PT: Executa um comando SQL sem retorno específico do provedor no banco simulado informado.
     /// </summary>
     protected abstract int ExecuteNonQuery(
         TDbMock db,

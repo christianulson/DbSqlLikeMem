@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.LinqToDb.Test;
 
 /// <summary>
 /// EN: Defines shared LinqToDB-oriented provider contract tests for mock connections.
-/// PT: Define testes de contrato compartilhados orientados a LinqToDB para conexões mock.
+/// PT: Define testes de contrato compartilhados orientados a LinqToDB para conexões simulado.
 /// </summary>
 public abstract class LinqToDbSupportTestsBase
 {
     /// <summary>
     /// EN: Creates and opens the provider mock connection factory under test.
-    /// PT: Cria e abre a fábrica de conexão mock do provedor sob teste.
+    /// PT: Cria e abre a fábrica de conexão simulada do provedor sob teste.
     /// </summary>
     protected abstract IDbSqlLikeMemLinqToDbConnectionFactory CreateFactory();
 
@@ -26,7 +26,7 @@ public abstract class LinqToDbSupportTestsBase
 
     /// <summary>
     /// EN: Verifies basic SQL command execution and scalar query via provider mock connection.
-    /// PT: Verifica execução básica de comando SQL e consulta escalar via conexão mock do provedor.
+    /// PT: Verifica execução básica de comando SQL e consulta escalar via conexão simulada do provedor.
     /// </summary>
     [Fact]
     [Trait("Category", "LinqToDb")]
@@ -415,7 +415,7 @@ public abstract class LinqToDbSupportTestsBase
 
     /// <summary>
     /// EN: Verifies inner join queries can be executed through provider mock connections.
-    /// PT: Verifica se consultas com inner join podem ser executadas através das conexões mock de provedor.
+    /// PT: Verifica se consultas com inner join podem ser executadas através das conexões simulado de provedor.
     /// </summary>
     [Fact]
     [Trait("Category", "LinqToDb")]

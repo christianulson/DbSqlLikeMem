@@ -4,8 +4,8 @@ using System.Reflection;
 namespace DbSqlLikeMem.Db2;
 
 /// <summary>
-/// EN: Summary for Db2QueryProvider.
-/// PT: Resumo para Db2QueryProvider.
+/// EN: Provides LINQ query translation and execution for the Db2 mock connection.
+/// PT: Fornece tradução e execução de consultas LINQ para a conexão simulada Db2.
 /// </summary>
 public sealed class Db2QueryProvider(
     Db2ConnectionMock cnn
@@ -15,8 +15,8 @@ public sealed class Db2QueryProvider(
     private readonly Db2Translator _translator = new();
 
     /// <summary>
-    /// EN: Summary for CreateQuery.
-    /// PT: Resumo para CreateQuery.
+    /// EN: Creates a new query instance.
+    /// PT: Cria uma nova instância de consulta.
     /// </summary>
     public IQueryable CreateQuery(Expression expression)
     {
@@ -34,8 +34,8 @@ public sealed class Db2QueryProvider(
     }
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Creates a typed query for the provided expression after null validation.
+    /// PT: Cria uma consulta tipada para a expressão informada após validação de nulo.
     /// </summary>
     public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
     {
@@ -83,8 +83,8 @@ public sealed class Db2QueryProvider(
     }
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Executes the provided expression and returns the translated result.
+    /// PT: Executa a expressão informada e retorna o resultado traduzido.
     /// </summary>
     public TResult Execute<TResult>(Expression expression)
     {

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle;
 
 /// <summary>
 /// EN: Table mock specialized for Oracle schema operations.
-/// PT: Mock de tabela especializado para operações de esquema Oracle.
+/// PT: simulado de tabela especializado para operações de esquema Oracle.
 /// </summary>
 internal class OracleTableMock(
         string tableName,

@@ -54,7 +54,7 @@ public sealed class SqlServerDialectFeatureParserTests
     }
     /// <summary>
     /// EN: Ensures WITH RECURSIVE syntax is rejected.
-    /// PT: Garante que a sintaxe WITH RECURSIVE seja rejeitada.
+    /// PT: Garante que a sintaxe with recursive seja rejeitada.
     /// </summary>
     /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
@@ -142,7 +142,7 @@ public sealed class SqlServerDialectFeatureParserTests
 
     /// <summary>
     /// EN: Ensures PIVOT clause parsing is available for this dialect.
-    /// PT: Garante que o parsing da cláusula PIVOT esteja disponível para este dialeto.
+    /// PT: Garante que o parsing da cláusula pivot esteja disponível para este dialeto.
     /// </summary>
     /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
@@ -159,7 +159,7 @@ public sealed class SqlServerDialectFeatureParserTests
 
     /// <summary>
     /// EN: Ensures invalid PIVOT syntax fails with parser validation error.
-    /// PT: Garante que sintaxe inválida de PIVOT falhe com erro de validação do parser.
+    /// PT: Garante que sintaxe inválida de pivot falhe com erro de validação do parser.
     /// </summary>
     /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]

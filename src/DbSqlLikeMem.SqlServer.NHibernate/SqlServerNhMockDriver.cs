@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.SqlServer.NHibernate;
 
 /// <summary>
 /// EN: NHibernate driver bound to DbSqlLikeMem SqlServer mock ADO.NET types.
-/// PT: Driver NHibernate ligado aos tipos ADO.NET mock SqlServer do DbSqlLikeMem.
+/// PT: Driver NHibernate ligado aos tipos ADO.NET simulado SqlServer do DbSqlLikeMem.
 /// </summary>
 public sealed class SqlServerNhMockDriver : ReflectionBasedDriver
 {
     /// <summary>
     /// EN: Initializes a NHibernate mock driver for DbSqlLikeMem SqlServer provider types.
-    /// PT: Inicializa um driver mock do NHibernate para os tipos do provedor SqlServer do DbSqlLikeMem.
+    /// PT: Inicializa um driver simulado do NHibernate para os tipos do provedor SqlServer do DbSqlLikeMem.
     /// </summary>
     public SqlServerNhMockDriver()
         : base(

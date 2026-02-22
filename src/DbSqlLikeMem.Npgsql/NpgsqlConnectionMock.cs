@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Npgsql;
 
 /// <summary>
-/// EN: Summary for NpgsqlConnectionMock.
-/// PT: Resumo para NpgsqlConnectionMock.
+/// EN: Represents Npgsql Connection Mock.
+/// PT: Representa uma conexão simulada do Npgsql.
 /// </summary>
 public sealed class NpgsqlConnectionMock
     : DbConnectionMockBase
@@ -13,8 +13,8 @@ public sealed class NpgsqlConnectionMock
     }
 
     /// <summary>
-    /// EN: Summary for NpgsqlConnectionMock.
-    /// PT: Resumo para NpgsqlConnectionMock.
+    /// EN: Represents Npgsql Connection Mock.
+    /// PT: Representa uma conexão simulada do Npgsql.
     /// </summary>
     public NpgsqlConnectionMock(
        NpgsqlDbMock? db = null,
@@ -25,15 +25,15 @@ public sealed class NpgsqlConnectionMock
     }
 
     /// <summary>
-    /// EN: Summary for CreateTransaction.
-    /// PT: Resumo para CreateTransaction.
+    /// EN: Creates a new transaction instance.
+    /// PT: Cria uma nova instância de transaction.
     /// </summary>
     protected override DbTransaction CreateTransaction(IsolationLevel isolationLevel)
         => new NpgsqlTransactionMock(this, isolationLevel);
 
     /// <summary>
-    /// EN: Summary for CreateDbCommandCore.
-    /// PT: Resumo para CreateDbCommandCore.
+    /// EN: Creates a new db command core instance.
+    /// PT: Cria uma nova instância de comando de banco principal.
     /// </summary>
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new NpgsqlCommandMock(this, transaction as NpgsqlTransactionMock);

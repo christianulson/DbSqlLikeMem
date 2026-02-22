@@ -2,8 +2,8 @@
 
 namespace DbSqlLikeMem.Db2;
 /// <summary>
-/// EN: Summary for Db2TransactionMock.
-/// PT: Resumo para Db2TransactionMock.
+/// EN: Represents Db2 Transaction Mock.
+/// PT: Representa Db2 Transaction simulado.
 /// </summary>
 public class Db2TransactionMock(
         Db2ConnectionMock cnn,
@@ -13,21 +13,21 @@ public class Db2TransactionMock(
     private bool disposedValue;
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets or sets db connection.
+    /// PT: Obtém ou define db conexão.
     /// </summary>
     protected override DbConnection? DbConnection => cnn;
 
     /// <summary>
-    /// EN: Summary for IsolationLevel.
-    /// PT: Resumo para IsolationLevel.
+    /// EN: Represents Isolation Level.
+    /// PT: Representa Isolation Level.
     /// </summary>
     public override IsolationLevel IsolationLevel
         => isolationLevel ?? IsolationLevel.Unspecified;
 
     /// <summary>
-    /// EN: Summary for Commit.
-    /// PT: Resumo para Commit.
+    /// EN: Commits the current transaction.
+    /// PT: Confirma a transação atual.
     /// </summary>
     public override void Commit()
     {
@@ -39,8 +39,8 @@ public class Db2TransactionMock(
     }
 
     /// <summary>
-    /// EN: Summary for Rollback.
-    /// PT: Resumo para Rollback.
+    /// EN: Rolls back the current transaction.
+    /// PT: Reverte a transação atual.
     /// </summary>
     public override void Rollback()
     {
@@ -53,14 +53,14 @@ public class Db2TransactionMock(
 
     #if NET6_0_OR_GREATER
     /// <summary>
-    /// EN: Summary for Save.
-    /// PT: Resumo para Save.
+    /// EN: Creates a transaction savepoint.
+    /// PT: Cria um ponto de salvamento da transação.
     /// </summary>
     public override void Save(string savepointName)
 #else
     /// <summary>
-    /// EN: Summary for Save.
-    /// PT: Resumo para Save.
+    /// EN: Creates a transaction savepoint.
+    /// PT: Cria um ponto de salvamento da transação.
     /// </summary>
     public void Save(string savepointName)
 #endif
@@ -71,14 +71,14 @@ public class Db2TransactionMock(
 
     #if NET6_0_OR_GREATER
     /// <summary>
-    /// EN: Summary for Rollback.
-    /// PT: Resumo para Rollback.
+    /// EN: Rolls back the current transaction.
+    /// PT: Reverte a transação atual.
     /// </summary>
     public override void Rollback(string savepointName)
 #else
     /// <summary>
-    /// EN: Summary for Rollback.
-    /// PT: Resumo para Rollback.
+    /// EN: Rolls back the current transaction.
+    /// PT: Reverte a transação atual.
     /// </summary>
     public void Rollback(string savepointName)
 #endif
@@ -89,14 +89,14 @@ public class Db2TransactionMock(
 
     #if NET6_0_OR_GREATER
     /// <summary>
-    /// EN: Summary for Release.
-    /// PT: Resumo para Release.
+    /// EN: Releases a previously created savepoint.
+    /// PT: Libera um ponto de salvamento criado anteriormente.
     /// </summary>
     public override void Release(string savepointName)
 #else
     /// <summary>
-    /// EN: Summary for Release.
-    /// PT: Resumo para Release.
+    /// EN: Releases a previously created savepoint.
+    /// PT: Libera um ponto de salvamento criado anteriormente.
     /// </summary>
     public void Release(string savepointName)
 #endif
@@ -106,8 +106,8 @@ public class Db2TransactionMock(
     }
 
     /// <summary>
-    /// EN: Summary for Dispose.
-    /// PT: Resumo para Dispose.
+    /// EN: Releases resources used by this instance.
+    /// PT: Libera os recursos usados por esta instância.
     /// </summary>
     protected override void Dispose(bool disposing)
     {

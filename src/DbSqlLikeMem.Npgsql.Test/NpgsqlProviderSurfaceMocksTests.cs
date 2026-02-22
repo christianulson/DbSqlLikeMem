@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
-/// EN: Summary for NpgsqlProviderSurfaceMocksTests.
-/// PT: Resumo para NpgsqlProviderSurfaceMocksTests.
+/// EN: Contains tests for the Npgsql provider surface mocks.
+/// PT: Contém testes para os mocks da surface do provedor Npgsql.
 /// </summary>
 public sealed class NpgsqlProviderSurfaceMocksTests
 {
     /// <summary>
-    /// EN: Summary for DataAdapter_ShouldKeepTypedSelectCommand.
-    /// PT: Resumo para DataAdapter_ShouldKeepTypedSelectCommand.
+    /// EN: Ensures the typed SelectCommand property stays synchronized with the base SelectCommand.
+    /// PT: Garante que a propriedade tipada SelectCommand permaneça sincronizada com a SelectCommand da classe base.
     /// </summary>
     [Fact]
     public void DataAdapter_ShouldKeepTypedSelectCommand()
@@ -21,8 +21,8 @@ public sealed class NpgsqlProviderSurfaceMocksTests
     }
 
     /// <summary>
-    /// EN: Summary for DataSource_ShouldCreateNpgsqlConnection.
-    /// PT: Resumo para DataSource_ShouldCreateNpgsqlConnection.
+    /// EN: Ensures the data source mock creates a provider-specific connection bound to the same in-memory database.
+    /// PT: Garante que o simulado de fonte de dados crie uma conexão específica do provedor vinculada ao mesmo banco em memória.
     /// </summary>
     [Fact]
     public void DataSource_ShouldCreateNpgsqlConnection()
@@ -38,8 +38,8 @@ public sealed class NpgsqlProviderSurfaceMocksTests
 
 #if NET6_0_OR_GREATER
     /// <summary>
-    /// EN: Summary for Batch_ShouldExecuteAllCommands.
-    /// PT: Resumo para Batch_ShouldExecuteAllCommands.
+    /// EN: Ensures batch execution runs all commands and returns the accumulated affected rows.
+    /// PT: Garante que a execução em lote rode todos os comandos e retorne o total acumulado de linhas afetadas.
     /// </summary>
     [Fact]
     public void Batch_ShouldExecuteAllCommands()
@@ -64,8 +64,8 @@ public sealed class NpgsqlProviderSurfaceMocksTests
     }
 
     /// <summary>
-    /// EN: Summary for Batch_ExecuteScalar_ShouldUseFirstCommandResult.
-    /// PT: Resumo para Batch_ExecuteScalar_ShouldUseFirstCommandResult.
+    /// EN: Ensures scalar batch execution returns the first command scalar result.
+    /// PT: Garante que a execução escalar do lote retorne o resultado escalar do primeiro comando.
     /// </summary>
     [Fact]
     public void Batch_ExecuteScalar_ShouldUseFirstCommandResult()
@@ -95,8 +95,8 @@ public sealed class NpgsqlProviderSurfaceMocksTests
     }
 
     /// <summary>
-    /// EN: Summary for Batch_ExecuteReader_ShouldReturnResultsFromMultipleCommands.
-    /// PT: Resumo para Batch_ExecuteReader_ShouldReturnResultsFromMultipleCommands.
+    /// EN: Ensures batch readers expose result sets from multiple commands.
+    /// PT: Garante que leitores de lote exponham conjuntos de resultados de múltiplos comandos.
     /// </summary>
     [Fact]
     public void Batch_ExecuteReader_ShouldReturnResultsFromMultipleCommands()
@@ -130,8 +130,8 @@ public sealed class NpgsqlProviderSurfaceMocksTests
     }
 
     /// <summary>
-    /// EN: Summary for Batch_ExecuteReader_ShouldAllowNonQueryBeforeSelect.
-    /// PT: Resumo para Batch_ExecuteReader_ShouldAllowNonQueryBeforeSelect.
+    /// EN: Ensures non-query commands can be executed before select commands in the same batch.
+    /// PT: Garante que comandos sem retorno possam ser executados antes de comandos select no mesmo lote.
     /// </summary>
     [Fact]
     public void Batch_ExecuteReader_ShouldAllowNonQueryBeforeSelect()

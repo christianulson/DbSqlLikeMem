@@ -267,7 +267,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures FORCE INDEX FOR ORDER BY missing index is ignored when query has no ORDER BY clause.
-    /// PT: Garante que FORCE INDEX FOR ORDER BY com índice inexistente seja ignorado quando a query não tem ORDER BY.
+    /// PT: Garante que FORCE INDEX FOR ORDER BY com índice inexistente seja ignorado quando a consulta não tem ORDER BY.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -283,7 +283,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures FORCE INDEX FOR GROUP BY missing index is ignored when query has no GROUP BY clause.
-    /// PT: Garante que FORCE INDEX FOR GROUP BY com índice inexistente seja ignorado quando a query não tem GROUP BY.
+    /// PT: Garante que FORCE INDEX FOR GROUP BY com índice inexistente seja ignorado quando a consulta não tem GROUP BY.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]

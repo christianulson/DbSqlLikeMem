@@ -1,14 +1,14 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
-/// EN: Summary for NpgsqlConnectorFactoryMockTests.
-/// PT: Resumo para NpgsqlConnectorFactoryMockTests.
+/// EN: Contains tests for the Npgsql connector factory mock surface.
+/// PT: Contém testes para a surface do simulado de fábrica de conectores do Npgsql.
 /// </summary>
 public sealed class NpgsqlConnectorFactoryMockTests
 {
     /// <summary>
-    /// EN: Summary for CreateCoreMembers_ShouldReturnProviderMocks.
-    /// PT: Resumo para CreateCoreMembers_ShouldReturnProviderMocks.
+    /// EN: Verifies that core factory methods create Npgsql-specific mock instances.
+    /// PT: Verifica se os métodos principais da fábrica criam instâncias de simulado específicas do Npgsql.
     /// </summary>
     [Fact]
     public void CreateCoreMembers_ShouldReturnProviderMocks()
@@ -24,8 +24,8 @@ public sealed class NpgsqlConnectorFactoryMockTests
 
 #if NET6_0_OR_GREATER
     /// <summary>
-    /// EN: Summary for CreateBatchMembers_ShouldReturnProviderMocks.
-    /// PT: Resumo para CreateBatchMembers_ShouldReturnProviderMocks.
+    /// EN: Verifies that batch factory methods create Npgsql-specific batch mocks.
+    /// PT: Verifica se os métodos de lote da fábrica criam mocks de lote específicos do Npgsql.
     /// </summary>
     [Fact]
     public void CreateBatchMembers_ShouldReturnProviderMocks()
@@ -40,8 +40,8 @@ public sealed class NpgsqlConnectorFactoryMockTests
 
 #if NET7_0_OR_GREATER
     /// <summary>
-    /// EN: Summary for CreateDataSource_ShouldReturnProviderDataSourceMock.
-    /// PT: Resumo para CreateDataSource_ShouldReturnProviderDataSourceMock.
+    /// EN: Verifies that CreateDataSource returns an Npgsql data source mock.
+    /// PT: Verifica se CreateDataSource retorna um simulado de fonte de dados do Npgsql.
     /// </summary>
     [Fact]
     public void CreateDataSource_ShouldReturnProviderDataSourceMock()

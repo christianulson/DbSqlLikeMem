@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.Oracle;
 
 /// <summary>
-/// EN: Summary for OracleConnectionMock.
-/// PT: Resumo para OracleConnectionMock.
+/// EN: Represents Oracle Connection Mock.
+/// PT: Representa Oracle conexão simulada.
 /// </summary>
 public class OracleConnectionMock
     : DbConnectionMockBase
@@ -16,8 +16,8 @@ public class OracleConnectionMock
     }
 
     /// <summary>
-    /// EN: Summary for OracleConnectionMock.
-    /// PT: Resumo para OracleConnectionMock.
+    /// EN: Represents Oracle Connection Mock.
+    /// PT: Representa Oracle conexão simulada.
     /// </summary>
     public OracleConnectionMock(
        OracleDbMock? db = null,
@@ -28,15 +28,15 @@ public class OracleConnectionMock
     }
 
     /// <summary>
-    /// EN: Summary for CreateTransaction.
-    /// PT: Resumo para CreateTransaction.
+    /// EN: Creates a new transaction instance.
+    /// PT: Cria uma nova instância de transaction.
     /// </summary>
     protected override DbTransaction CreateTransaction(IsolationLevel isolationLevel)
         => new OracleTransactionMock(this, isolationLevel);
 
     /// <summary>
-    /// EN: Summary for CreateDbCommandCore.
-    /// PT: Resumo para CreateDbCommandCore.
+    /// EN: Creates a new db command core instance.
+    /// PT: Cria uma nova instância de comando de banco principal.
     /// </summary>
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new OracleCommandMock(this, transaction as OracleTransactionMock);
