@@ -67,7 +67,10 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
     /// <param name="paginationClause">EN: Provider pagination clause appended after ORDER BY. PT: Cláusula de paginação do provedor anexada após ORDER BY.</param>
     protected void AssertDistinctOrderPagination(string paginationClause)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(paginationClause);
+        if (string.IsNullOrWhiteSpace(paginationClause))
+        {
+            throw new ArgumentException("Pagination clause cannot be null, empty, or whitespace.", nameof(paginationClause));
+        }
 
         var sql = $"""
                   SELECT DISTINCT userId
