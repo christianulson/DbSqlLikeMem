@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer.Test;
 
 /// <summary>
 /// EN: Execution plan coverage tests for SqlServer mock commands.
-/// PT: Testes de cobertura de plano de execução para comandos mock SqlServer.
+/// PT: Testes de cobertura de plano de execução para comandos simulado SqlServer.
 /// </summary>
 public sealed class ExecutionPlanTests : XUnitTestBase
 {

@@ -2,7 +2,7 @@
 
 /// <summary>
 /// EN: Table mock specialized for SQLite schema operations.
-/// PT: Mock de tabela especializado para operações de esquema SQLite.
+/// PT: simulado de tabela especializado para operações de esquema SQLite.
 /// </summary>
 internal class SqliteTableMock(
         string tableName,

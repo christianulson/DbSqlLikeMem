@@ -98,7 +98,7 @@ public abstract class DbDataReaderMockBase(
     public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) => throw new NotImplementedException();
     /// <summary>
     /// EN: Gets a nested data reader for the specified ordinal.
-    /// PT: Obtém um data reader aninhado para o ordinal especificado.
+    /// PT: Obtém um data leitor aninhado para o ordinal especificado.
     /// </summary>
     /// <param name="ordinal">EN: Column ordinal. PT: Ordinal da coluna.</param>
     /// <returns>EN: Nested data reader. PT: Data reader aninhado.</returns>
@@ -294,7 +294,7 @@ public abstract class DbDataReaderMockBase(
     public override IEnumerator GetEnumerator() => _resultSets.GetEnumerator();
     /// <summary>
     /// EN: Disposes the data reader and associated resources.
-    /// PT: Descarta o data reader e recursos associados.
+    /// PT: Descarta o data leitor e recursos associados.
     /// </summary>
     /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)

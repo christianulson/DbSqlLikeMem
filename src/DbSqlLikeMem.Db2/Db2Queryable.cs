@@ -3,24 +3,24 @@ using System.Linq.Expressions;
 
 namespace DbSqlLikeMem.Db2;
 /// <summary>
-/// EN: Summary for Db2Queryable.
-/// PT: Resumo para Db2Queryable.
+/// EN: Represents Db2 Queryable.
+/// PT: Representa Db2 Queryable.
 /// </summary>
 public class Db2Queryable<T> : IOrderedQueryable<T>
 {
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets or sets table name.
+    /// PT: Obtém ou define table name.
     /// </summary>
     public string TableName { get; }
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets or sets expression.
+    /// PT: Obtém ou define expression.
     /// </summary>
     public Expression Expression { get; }
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Executes db2 queryable.
+    /// PT: Executa db2 queryable.
     /// </summary>
     public IQueryProvider Provider { get; }
 
@@ -47,15 +47,15 @@ public class Db2Queryable<T> : IOrderedQueryable<T>
     }
 
     /// <summary>
-    /// EN: Summary for typeof.
-    /// PT: Resumo para typeof.
+    /// EN: Executes typeof.
+    /// PT: Executa typeof.
     /// </summary>
     public Type ElementType => typeof(T);
     IEnumerator IEnumerable.GetEnumerator()
         => Provider.Execute<IEnumerable<T>>(Expression).GetEnumerator();
     /// <summary>
-    /// EN: Summary for GetEnumerator.
-    /// PT: Resumo para GetEnumerator.
+    /// EN: Gets enumerator.
+    /// PT: Obtém enumerador.
     /// </summary>
     public IEnumerator<T> GetEnumerator()
         => Provider.Execute<IEnumerable<T>>(Expression).GetEnumerator();

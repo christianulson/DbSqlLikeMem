@@ -4,8 +4,8 @@ using System.Reflection;
 namespace DbSqlLikeMem.Sqlite;
 
 /// <summary>
-/// EN: Summary for SqliteQueryProvider.
-/// PT: Resumo para SqliteQueryProvider.
+/// EN: Provides LINQ query translation and execution for the SQLite mock connection.
+/// PT: Fornece tradução e execução de consultas LINQ para a conexão simulada do SQLite.
 /// </summary>
 public sealed class SqliteQueryProvider(
     SqliteConnectionMock cnn
@@ -15,8 +15,8 @@ public sealed class SqliteQueryProvider(
     private readonly SqliteTranslator _translator = new();
 
     /// <summary>
-    /// EN: Summary for CreateQuery.
-    /// PT: Resumo para CreateQuery.
+    /// EN: Creates a new query instance.
+    /// PT: Cria uma nova instância de consulta.
     /// </summary>
     public IQueryable CreateQuery(Expression expression)
     {
@@ -34,8 +34,8 @@ public sealed class SqliteQueryProvider(
     }
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Creates a typed query for the provided expression after null validation.
+    /// PT: Cria uma consulta tipada para a expressão informada após validação de nulo.
     /// </summary>
     public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
     {
@@ -83,8 +83,8 @@ public sealed class SqliteQueryProvider(
     }
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Executes the provided expression and returns the translated result.
+    /// PT: Executa a expressão informada e retorna o resultado traduzido.
     /// </summary>
     public TResult Execute<TResult>(Expression expression)
     {

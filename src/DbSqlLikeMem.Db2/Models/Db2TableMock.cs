@@ -2,7 +2,7 @@
 
 /// <summary>
 /// EN: Table mock specialized for DB2 schema operations.
-/// PT: Mock de tabela especializado para operações de esquema DB2.
+/// PT: simulado de tabela especializado para operações de esquema DB2.
 /// </summary>
 internal class Db2TableMock(
         string tableName,

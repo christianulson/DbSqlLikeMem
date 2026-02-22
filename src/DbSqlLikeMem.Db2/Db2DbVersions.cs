@@ -3,8 +3,8 @@
 internal static class Db2DbVersions
 {
     /// <summary>
-    /// EN: Summary for Versions.
-    /// PT: Resumo para Versions.
+    /// EN: Represents Versions.
+    /// PT: Representa Versions.
     /// </summary>
     public static IEnumerable<int> Versions()
     {

@@ -41,8 +41,8 @@ public class SqliteCommandMock(
     public override CommandType CommandType { get; set; } = CommandType.Text;
 
     /// <summary>
-    /// EN: Summary for DbConnection.
-    /// PT: Resumo para DbConnection.
+    /// EN: Gets or sets the connection associated with this command.
+    /// PT: Obtém ou define a conexão associada a este comando.
     /// </summary>
     protected override DbConnection? DbConnection
     {
@@ -53,14 +53,14 @@ public class SqliteCommandMock(
     private readonly SqliteDataParameterCollectionMock collectionMock = [];
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets the parameter collection associated with this command.
+    /// PT: Obtém a coleção de parâmetros associada a este comando.
     /// </summary>
     protected override DbParameterCollection DbParameterCollection => collectionMock;
 
     /// <summary>
-    /// EN: Summary for DbTransaction.
-    /// PT: Resumo para DbTransaction.
+    /// EN: Gets or sets the transaction associated with this command.
+    /// PT: Obtém ou define a transação associada a este comando.
     /// </summary>
     protected override DbTransaction? DbTransaction
     {
@@ -69,32 +69,32 @@ public class SqliteCommandMock(
     }
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets or sets updated row source.
+    /// PT: Obtém ou define updated row source.
     /// </summary>
     public override UpdateRowSource UpdatedRowSource { get; set; }
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets or sets design time visible.
+    /// PT: Obtém ou define visível em tempo de design.
     /// </summary>
     public override bool DesignTimeVisible { get; set; }
 
     /// <summary>
-    /// EN: Summary for Cancel.
-    /// PT: Resumo para Cancel.
+    /// EN: Cancels the current command execution.
+    /// PT: Cancela a execução atual do comando.
     /// </summary>
     public override void Cancel() => DbTransaction?.Rollback();
 
     /// <summary>
-    /// EN: Summary for CreateDbParameter.
-    /// PT: Resumo para CreateDbParameter.
+    /// EN: Creates a new db parameter instance.
+    /// PT: Cria uma nova instância de parâmetro de banco.
     /// </summary>
     protected override DbParameter CreateDbParameter()
         => new SqliteParameter();
 
     /// <summary>
-    /// EN: Summary for ExecuteNonQuery.
-    /// PT: Resumo para ExecuteNonQuery.
+    /// EN: Executes non-query and returns affected rows.
+    /// PT: Executa non-consulta e retorna as linhas afetadas.
     /// </summary>
     public override int ExecuteNonQuery()
     {
@@ -159,8 +159,8 @@ public class SqliteCommandMock(
     }
 
     /// <summary>
-    /// EN: Summary for ExecuteDbDataReader.
-    /// PT: Resumo para ExecuteDbDataReader.
+    /// EN: Executes the command and returns a data reader.
+    /// PT: Executa o comando e retorna um leitor de dados.
     /// </summary>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
@@ -292,8 +292,8 @@ public class SqliteCommandMock(
     }
 
     /// <summary>
-    /// EN: Summary for ExecuteScalar.
-    /// PT: Resumo para ExecuteScalar.
+    /// EN: Executes the command and returns a scalar value.
+    /// PT: Executa o comando e retorna um valor escalar.
     /// </summary>
     public override object ExecuteScalar()
     {
@@ -306,14 +306,14 @@ public class SqliteCommandMock(
     }
 
     /// <summary>
-    /// EN: Summary for Prepare.
-    /// PT: Resumo para Prepare.
+    /// EN: Represents Prepare.
+    /// PT: Representa Prepare.
     /// </summary>
     public override void Prepare() { }
 
     /// <summary>
-    /// EN: Summary for Dispose.
-    /// PT: Resumo para Dispose.
+    /// EN: Releases resources used by this instance.
+    /// PT: Libera os recursos usados por esta instância.
     /// </summary>
     protected override void Dispose(bool disposing)
     {

@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Db2.Dapper.Test.Strategy;
 
 /// <summary>
 /// EN: Covers DB2 MERGE upsert behavior in the command mock pipeline.
-/// PT: Cobre o comportamento de upsert com MERGE no pipeline do command mock DB2.
+/// PT: Cobre o comportamento de upsert com merge no pipeline do comando simulado DB2.
 /// </summary>
 public sealed class Db2MergeUpsertTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures MERGE parsing follows DB2 dialect version support.
-    /// PT: Garante que o parse de MERGE siga o suporte por versão do dialeto DB2.
+    /// PT: Garante que o parse de merge siga o suporte por versão do dialeto DB2.
     /// </summary>
     /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
     [Theory]
@@ -36,7 +36,7 @@ public sealed class Db2MergeUpsertTests(ITestOutputHelper helper) : XUnitTestBas
 
     /// <summary>
     /// EN: Ensures MERGE updates an existing row when the ON condition matches.
-    /// PT: Garante que MERGE atualize uma linha existente quando a condição ON é satisfeita.
+    /// PT: Garante que merge atualize uma linha existente quando a condição ON é satisfeita.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

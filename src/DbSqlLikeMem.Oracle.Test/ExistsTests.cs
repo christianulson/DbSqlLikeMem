@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Runs shared EXISTS/NOT EXISTS tests using the Oracle mock connection.
-/// PT: Executa os testes compartilhados de EXISTS/NOT EXISTS usando a conexão mock de Oracle.
+/// PT: Executa os testes compartilhados de EXISTS/NOT EXISTS usando a conexão simulada de Oracle.
 /// </summary>
 /// <param name="helper">
 /// EN: xUnit output helper used by the shared base test class.
@@ -14,7 +14,7 @@ public sealed class ExistsTests(
 {
     /// <summary>
     /// EN: Creates an Oracle mock connection used by shared EXISTS tests.
-    /// PT: Cria uma conexão mock de Oracle usada pelos testes compartilhados de EXISTS.
+    /// PT: Cria uma conexão simulada de Oracle usada pelos testes compartilhados de EXISTS.
     /// </summary>
     protected override DbConnectionMockBase CreateConnection() => new OracleConnectionMock();
 }

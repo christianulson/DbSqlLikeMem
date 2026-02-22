@@ -39,7 +39,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Creates the provider-specific database mock used by shared tests.
-    /// PT: Cria o mock de banco específico do provedor usado pelos testes compartilhados.
+    /// PT: Cria o simulado de banco específico do provedor usado pelos testes compartilhados.
     /// </summary>
     /// <returns>EN: Provider-specific database mock. PT: Mock de banco específico do provedor.</returns>
     protected abstract TDbMock CreateDb();

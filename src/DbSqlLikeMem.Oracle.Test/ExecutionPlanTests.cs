@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Execution plan coverage tests for Oracle mock commands.
-/// PT: Testes de cobertura de plano de execução para comandos mock Oracle.
+/// PT: Testes de cobertura de plano de execução para comandos simulado Oracle.
 /// </summary>
 public sealed class ExecutionPlanTests : XUnitTestBase
 {

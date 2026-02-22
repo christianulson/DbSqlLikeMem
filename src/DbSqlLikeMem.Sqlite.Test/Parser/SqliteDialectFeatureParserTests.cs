@@ -126,7 +126,7 @@ public sealed class SqliteDialectFeatureParserTests
 
     /// <summary>
     /// EN: Ensures PIVOT clause is rejected when the dialect capability flag is disabled.
-    /// PT: Garante que a cláusula PIVOT seja rejeitada quando a flag de capacidade do dialeto está desabilitada.
+    /// PT: Garante que a cláusula pivot seja rejeitada quando a flag de capacidade do dialeto está desabilitada.
     /// </summary>
     /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]

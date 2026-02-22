@@ -2,7 +2,7 @@
 
 /// <summary>
 /// EN: Schema mock for DB2 databases.
-/// PT: Mock de esquema para bancos DB2.
+/// PT: simulado de esquema para bancos DB2.
 /// </summary>
 public class Db2SchemaMock(
     string schemaName,
@@ -12,7 +12,7 @@ public class Db2SchemaMock(
 {
     /// <summary>
     /// EN: Creates a DB2 table mock for this schema.
-    /// PT: Cria um mock de tabela DB2 para este schema.
+    /// PT: Cria um simulado de tabela DB2 para este schema.
     /// </summary>
     /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
     /// <param name="columns">EN: Table columns. PT: Colunas da tabela.</param>

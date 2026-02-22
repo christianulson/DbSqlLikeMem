@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.EfCore.Test;
 
 /// <summary>
 /// EN: Defines shared EF Core-oriented provider contract tests for mock connections.
-/// PT: Define testes de contrato compartilhados orientados a EF Core para conexões mock.
+/// PT: Define testes de contrato compartilhados orientados a EF Core para conexões simulado.
 /// </summary>
 public abstract class EfCoreSupportTestsBase
 {
     /// <summary>
     /// EN: Creates and opens the provider mock connection factory under test.
-    /// PT: Cria e abre a fábrica de conexão mock do provedor sob teste.
+    /// PT: Cria e abre a fábrica de conexão simulada do provedor sob teste.
     /// </summary>
     protected abstract IDbSqlLikeMemEfCoreConnectionFactory CreateFactory();
 
@@ -400,7 +400,7 @@ public abstract class EfCoreSupportTestsBase
 
     /// <summary>
     /// EN: Verifies inner join queries can be executed through provider mock connections.
-    /// PT: Verifica se consultas com inner join podem ser executadas através das conexões mock de provedor.
+    /// PT: Verifica se consultas com inner join podem ser executadas através das conexões simulado de provedor.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]

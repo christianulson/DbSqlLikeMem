@@ -2,7 +2,7 @@
 
 /// <summary>
 /// EN: In-memory database mock configured for SQLite.
-/// PT: Mock de banco em memória configurado para SQLite.
+/// PT: simulado de banco em memória configurado para SQLite.
 /// </summary>
 public class SqliteDbMock
     : DbMock
@@ -21,7 +21,7 @@ public class SqliteDbMock
 
     /// <summary>
     /// EN: Creates a SQLite schema mock instance.
-    /// PT: Cria uma instância de mock de schema SQLite.
+    /// PT: Cria uma instância de simulado de schema SQLite.
     /// </summary>
     /// <param name="schemaName">EN: Schema name. PT: Nome do schema.</param>
     /// <param name="tables">EN: Initial tables. PT: Tabelas iniciais.</param>

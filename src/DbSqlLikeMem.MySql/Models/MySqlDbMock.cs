@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql;
 
 /// <summary>
 /// EN: In-memory database mock configured for MySQL.
-/// PT: Mock de banco em memória configurado para MySQL.
+/// PT: simulado de banco em memória configurado para MySQL.
 /// </summary>
 public class MySqlDbMock
     : DbMock
@@ -22,7 +22,7 @@ public class MySqlDbMock
 
     /// <summary>
     /// EN: Creates a MySQL schema mock instance.
-    /// PT: Cria uma instância de mock de schema MySQL.
+    /// PT: Cria uma instância de simulado de schema MySQL.
     /// </summary>
     /// <param name="schemaName">EN: Schema name. PT: Nome do schema.</param>
     /// <param name="tables">EN: Initial tables. PT: Tabelas iniciais.</param>

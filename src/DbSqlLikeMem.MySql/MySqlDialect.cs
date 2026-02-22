@@ -71,7 +71,7 @@ internal sealed class MySqlDialect : SqlDialectBase
 
     /// <summary>
     /// EN: Keeps LIKE case-insensitive by default in the mock provider.
-    /// PT: Mantém LIKE case-insensitive por padrão no provider mock.
+    /// PT: Mantém LIKE case-insensitive por padrão no provedor simulado.
     /// </summary>
     public override bool LikeIsCaseInsensitive => true;
 
