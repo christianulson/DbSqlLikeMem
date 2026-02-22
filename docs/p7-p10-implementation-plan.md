@@ -104,3 +104,12 @@ Documento gerado por `scripts/generate_p7_p10_plan.py` para orientar implementa�
 - [ ] Smoke tests dos demais providers sem regressão.
 - [ ] Documentação de compatibilidade atualizada.
 
+
+
+## Melhorias práticas para o plano de execução (Index Advisor)
+
+- [ ] Incluir seção `IndexRecommendations` no plano para queries SELECT com alto `EstimatedRowsRead`.
+- [ ] Sugerir índice composto com colunas de `WHERE/JOIN` e complementar com `ORDER BY` quando aplicável.
+- [ ] Exibir `Confidence` por recomendação para facilitar priorização técnica.
+- [ ] Cobrir cenários com e sem índice nos testes `ExecutionPlanTests` dos providers.
+

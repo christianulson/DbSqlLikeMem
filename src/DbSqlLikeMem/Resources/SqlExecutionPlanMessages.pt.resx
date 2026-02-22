@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='utf-8'?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="ExecutionPlanTitle" xml:space="preserve"><value>Plano de Execução (mock)</value></data>
+  <data name="QueryTypeLabel" xml:space="preserve"><value>TipoConsulta</value></data>
+  <data name="EstimatedCostLabel" xml:space="preserve"><value>CustoEstimado</value></data>
+  <data name="CtesLabel" xml:space="preserve"><value>CTEs</value></data>
+  <data name="CteMaterializeLabel" xml:space="preserve"><value>CTE Materialize</value></data>
+  <data name="FromLabel" xml:space="preserve"><value>From</value></data>
+  <data name="JoinLabel" xml:space="preserve"><value>Join</value></data>
+  <data name="FilterLabel" xml:space="preserve"><value>Filter</value></data>
+  <data name="GroupByLabel" xml:space="preserve"><value>GroupBy</value></data>
+  <data name="HavingLabel" xml:space="preserve"><value>Having</value></data>
+  <data name="ProjectionLabel" xml:space="preserve"><value>Projeção</value></data>
+  <data name="DistinctLabel" xml:space="preserve"><value>Distinct</value></data>
+  <data name="SortLabel" xml:space="preserve"><value>Sort</value></data>
+  <data name="LimitLabel" xml:space="preserve"><value>Limit</value></data>
+  <data name="InputTablesLabel" xml:space="preserve"><value>TabelasEntrada</value></data>
+  <data name="EstimatedRowsReadLabel" xml:space="preserve"><value>LinhasEstimadasLidas</value></data>
+  <data name="ActualRowsLabel" xml:space="preserve"><value>LinhasReais</value></data>
+  <data name="SelectivityPctLabel" xml:space="preserve"><value>SeletividadePct</value></data>
+  <data name="RowsPerMsLabel" xml:space="preserve"><value>LinhasPorMs</value></data>
+  <data name="ElapsedMsLabel" xml:space="preserve"><value>TempoDecorridoMs</value></data>
+  <data name="IndexRecommendationsLabel" xml:space="preserve"><value>RecomendacoesIndice</value></data>
+  <data name="TableLabel" xml:space="preserve"><value>Tabela</value></data>
+  <data name="SuggestedIndexLabel" xml:space="preserve"><value>IndiceSugerido</value></data>
+  <data name="ReasonLabel" xml:space="preserve"><value>Motivo</value></data>
+  <data name="ConfidenceLabel" xml:space="preserve"><value>Confianca</value></data>
+  <data name="EstimatedRowsReadBeforeLabel" xml:space="preserve"><value>LinhasEstimadasLidasAntes</value></data>
+  <data name="EstimatedRowsReadAfterLabel" xml:space="preserve"><value>LinhasEstimadasLidasDepois</value></data>
+  <data name="EstimatedGainPctLabel" xml:space="preserve"><value>GanhoEstimadoPct</value></data>
+  <data name="PartsLabel" xml:space="preserve"><value>Partes</value></data>
+  <data name="PartLabel" xml:space="preserve"><value>Parte</value></data>
+  <data name="CombineLabel" xml:space="preserve"><value>Combinar</value></data>
+  <data name="ReasonFilterAndOrder" xml:space="preserve"><value>WHERE/JOIN ({0}) + ORDER BY ({1}) sem índice aderente. Chave sugerida: {2}.</value></data>
+  <data name="ReasonFilterOnly" xml:space="preserve"><value>Predicados WHERE/JOIN ({0}) sem índice aderente.</value></data>
+  <data name="ReasonOrderOnly" xml:space="preserve"><value>ORDER BY ({0}) sem índice aderente.</value></data>
+</root>
