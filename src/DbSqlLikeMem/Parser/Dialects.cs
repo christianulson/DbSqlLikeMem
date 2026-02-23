@@ -119,6 +119,8 @@ internal interface ISqlDialect
     bool IsIntegerCastTypeName(string typeName);
     bool SupportsDateAddFunction(string functionName);
     bool SupportsWindowFunctions { get; }
+    bool SupportsLikeEscapeClause { get; }
+    bool IsRowNumberWindowFunction(string functionName);
     bool SupportsPivotClause { get; }
     DbType InferWindowFunctionDbType(WindowFunctionExpr windowFunctionExpr, Func<SqlExpr, DbType> inferArgDbType);
 }
@@ -329,6 +331,11 @@ internal abstract class SqlDialectBase : ISqlDialect
             || functionName.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase);
     }
 
+    public virtual bool SupportsLikeEscapeClause => true;
+
+    public virtual bool IsRowNumberWindowFunction(string functionName)
+        => functionName.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase);
+
     public virtual DbType InferWindowFunctionDbType(
         WindowFunctionExpr windowFunctionExpr,
         Func<SqlExpr, DbType> inferArgDbType)
@@ -336,7 +343,7 @@ internal abstract class SqlDialectBase : ISqlDialect
         ArgumentNullExceptionCompatible.ThrowIfNull(windowFunctionExpr, nameof(windowFunctionExpr));
         ArgumentNullExceptionCompatible.ThrowIfNull(inferArgDbType, nameof(inferArgDbType));
 
-        if (windowFunctionExpr.Name.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase)
+        if (IsRowNumberWindowFunction(windowFunctionExpr.Name)
             || windowFunctionExpr.Name.Equals("RANK", StringComparison.OrdinalIgnoreCase)
             || windowFunctionExpr.Name.Equals("DENSE_RANK", StringComparison.OrdinalIgnoreCase)
             || windowFunctionExpr.Name.Equals("NTILE", StringComparison.OrdinalIgnoreCase))

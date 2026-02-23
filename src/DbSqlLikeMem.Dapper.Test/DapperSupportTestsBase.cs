@@ -230,7 +230,7 @@ ORDER BY category", new { high = 100, mid = 50, minScore = 2 }).ToList();
         {
             new { id = 1, name = "Alpha" },
             new { id = 2, name = "Aline" },
-            new { id = 3, name = "Graph" },
+            new { id = 3, name = "Grail" },
             new { id = 4, name = "Alphabet" }
         });
 

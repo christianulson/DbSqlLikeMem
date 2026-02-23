@@ -368,6 +368,16 @@ internal sealed class SqlExpressionParser(
         }
 
         var pattern = ParseExpression(rbp);
+
+        // Optional ANSI/DB2 form: ... LIKE <pattern> ESCAPE <escape-char>
+        // We currently ignore explicit escape char in the AST (default LIKE escape semantics remain in evaluator),
+        // but we must consume the tokens so the predicate is not truncated.
+        if (_dialect.SupportsLikeEscapeClause && IsKeyword(Peek(), "ESCAPE"))
+        {
+            Consume(); // ESCAPE
+            _ = ParseExpression(rbp); // explicit escape expression (ignored for now)
+        }
+
         var expr = (SqlExpr)new LikeExpr(left, pattern);
         left = negate ? new UnaryExpr(SqlUnaryOp.Not, expr) : expr;
         return true;

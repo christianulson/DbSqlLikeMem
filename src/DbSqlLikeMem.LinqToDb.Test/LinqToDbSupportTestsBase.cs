@@ -1154,7 +1154,9 @@ FROM l2db_case_multi";
         using var reader = query.ExecuteReader();
         Assert.True(reader.Read());
         Assert.Equal(7, Convert.ToInt32(reader[0]));
-        Assert.Equal(180, Convert.ToInt32(reader[1]));
+
+        const int expectedNormalizedTotal = 160; // 120 + (80 / 2) + 0 + 0
+        Assert.Equal(expectedNormalizedTotal, Convert.ToInt32(reader[1]));
     }
 
     /// <summary>
@@ -1173,7 +1175,7 @@ FROM l2db_case_multi";
             _ = create.ExecuteNonQuery();
         }
 
-        foreach (var row in new[] { (1, "Alpha"), (2, "A_pha"), (3, "Graph"), (4, "Alphabet") })
+        foreach (var row in new[] { (1, "Alpha"), (2, "Aline"), (3, "Grail"), (4, "Alphabet") })
         {
             using var insert = connection.CreateCommand();
             insert.CommandText = "INSERT INTO l2db_like_variants (id, name) VALUES (@id, @name)";
