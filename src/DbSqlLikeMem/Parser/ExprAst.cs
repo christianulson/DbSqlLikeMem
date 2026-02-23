@@ -19,8 +19,15 @@ internal sealed record FunctionCallExpr(string Name, IReadOnlyList<SqlExpr> Args
 internal sealed record JsonAccessExpr(SqlExpr Target, SqlExpr Path, bool Unquote) : SqlExpr;
 internal sealed record CallExpr(string Name, IReadOnlyList<SqlExpr> Args, bool Distinct = false) : SqlExpr;
 internal sealed record WindowFunctionExpr(string Name, IReadOnlyList<SqlExpr> Args, WindowSpec Spec, bool Distinct = false) : SqlExpr;
-internal sealed record WindowSpec(IReadOnlyList<SqlExpr> PartitionBy, IReadOnlyList<WindowOrderItem> OrderBy);
+internal sealed record WindowSpec(
+    IReadOnlyList<SqlExpr> PartitionBy,
+    IReadOnlyList<WindowOrderItem> OrderBy,
+    WindowFrameSpec? Frame = null);
 internal sealed record WindowOrderItem(SqlExpr Expr, bool Desc);
+internal enum WindowFrameUnit { Rows, Range, Groups }
+internal enum WindowFrameBoundKind { UnboundedPreceding, Preceding, CurrentRow, Following, UnboundedFollowing }
+internal sealed record WindowFrameBound(WindowFrameBoundKind Kind, int? Offset);
+internal sealed record WindowFrameSpec(WindowFrameUnit Unit, WindowFrameBound Start, WindowFrameBound End);
 internal sealed record BetweenExpr(
     SqlExpr Expr,
     SqlExpr Low,

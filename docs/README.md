@@ -13,6 +13,9 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
   - matriz por banco
   - capacidades SQL por dialeto/versão
   - sugestões de evolução do parser
+- [Roadmap do Core (Parser/Executor)](core-parser-executor-roadmap.md)
+  - melhorias priorizadas por parser/executor
+  - separação de especificidades por dialeto/versão
 - [Prompts de implementação (copy/paste)](implementation-prompts.md)
   - roadmap em fases
   - prompts prontos para paralelizar implementações
