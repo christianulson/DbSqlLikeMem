@@ -140,3 +140,13 @@ Documento gerado por `scripts/generate_p7_p10_plan.py` para orientar implementa�
 - [x] Implementar `PW005` para `DISTINCT` em alto `EstimatedRowsRead`, com severidade contextual (`Warning`/`High`) e metadados técnicos estáveis.
 
 
+
+### PlanWarnings (rodada de manutenção e robustez de contrato)
+- [x] Extrair cenários de `PlanWarnings` para base compartilhada entre providers com wiring mínimo por provider.
+- [x] Reduzir duplicação nos testes `ExecutionPlanTests` de MySQL/SQL Server/SQLite removendo cenários duplicados de warnings.
+- [x] Adicionar testes explícitos para ordem estável do contrato textual de warning: `Code`, `Message`, `Reason`, `SuggestedAction`, `Severity`, `MetricName`, `ObservedValue`, `Threshold`.
+- [x] Adicionar validação de formato parseável para `Threshold` (`key:value;key:value`) no output de warnings.
+- [x] Revisar sobreposição `PW004` (sem `WHERE`) vs `PW005` (`DISTINCT`) e suprimir ruído redundante quando `DISTINCT` já caracteriza leitura alta sem filtro.
+- [x] Manter cobertura de não regressão de `IndexRecommendations` coexistindo com `PlanWarnings`.
+- [x] Validar consistência i18n: todas as chaves de `SqlExecutionPlanMessages` presentes em `resx` base + `de/es/fr/it/pt`.
+- [x] Validar preservação de tokens SQL canônicos sem tradução (`WHERE`, `ORDER BY`, `DISTINCT`, `LIMIT/TOP/FETCH`, `SELECT *`).
