@@ -247,7 +247,7 @@ SELECT id,
 FROM users
 ORDER BY id").ToList();
 
-        Assert.Equal([null, null, null], [.. rows.Select(r => (string?)r.second_name)]);
+        Assert.Equal([(string ?)null, (string?)null, (string?)null], [.. rows.Select(r => (string?)r.second_name)]);
     }
 
     /// <summary>
@@ -264,7 +264,7 @@ SELECT id,
 FROM users
 ORDER BY id").ToList();
 
-        Assert.Equal([null, "Bob", "Jane"], [.. rows.Select(r => (string?)r.second_name)]);
+        Assert.Equal([(string?)null, "Bob", "Jane"], [.. rows.Select(r => (string?)r.second_name)]);
     }
 
     /// <summary>
@@ -281,7 +281,7 @@ SELECT id,
 FROM users
 ORDER BY id").ToList();
 
-        Assert.Equal(["Bob", "Jane", null], [.. rows.Select(r => (string?)r.second_name)]);
+        Assert.Equal(["Bob", "Jane", (string?)null], [.. rows.Select(r => (string?)r.second_name)]);
     }
 
 

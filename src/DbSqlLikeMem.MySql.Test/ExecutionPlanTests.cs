@@ -38,16 +38,16 @@ public sealed class ExecutionPlanTests(
 
         ids.Should().Equal(1, 3);
         cnn.LastExecutionPlan.Should().NotBeNullOrWhiteSpace();
-        cnn.LastExecutionPlan.Should().Contain("QueryType: SELECT");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.QueryTypeLabel()}: SELECT");
         cnn.LastExecutionPlan.Should().Contain("FROM: users");
         cnn.LastExecutionPlan.Should().Contain("WHERE:");
-        cnn.LastExecutionPlan.Should().Contain("EstimatedCost:");
-        cnn.LastExecutionPlan.Should().Contain("ActualRows: 2");
-        cnn.LastExecutionPlan.Should().Contain("InputTables: 1");
-        cnn.LastExecutionPlan.Should().Contain("EstimatedRowsRead: 3");
-        cnn.LastExecutionPlan.Should().Contain("SelectivityPct:");
-        cnn.LastExecutionPlan.Should().Contain("RowsPerMs:");
-        cnn.LastExecutionPlan.Should().Contain("ElapsedMs:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.EstimatedCostLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.ActualRowsLabel()}: 2");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.InputTablesLabel()}: 1");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.EstimatedRowsReadLabel()}: 3");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.SelectivityPctLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.RowsPerMsLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.ElapsedMsLabel()}:");
 
         Console.WriteLine("[ExecutionPlan]\n" + cnn.LastExecutionPlan);
     }
@@ -80,7 +80,7 @@ public sealed class ExecutionPlanTests(
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
-        cnn.LastExecutionPlan.Should().Contain("IndexRecommendations:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.IndexRecommendationsLabel()}:");
         cnn.LastExecutionPlan.Should().Contain("CREATE INDEX IX_users_Active_Id ON users (Active, Id);");
     }
 
@@ -175,9 +175,9 @@ public sealed class ExecutionPlanTests(
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
-        cnn.LastExecutionPlan.Should().Contain("EstimatedRowsReadBefore:");
-        cnn.LastExecutionPlan.Should().Contain("EstimatedRowsReadAfter:");
-        cnn.LastExecutionPlan.Should().Contain("EstimatedGainPct:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.EstimatedRowsReadBeforeLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.EstimatedRowsReadAfterLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.EstimatedGainPctLabel()}:");
     }
 
     /// <summary>
@@ -292,7 +292,8 @@ public sealed class ExecutionPlanTests(
         reader.GetInt32(0).Should().Be(2);
 
         cnn.LastExecutionPlans.Should().HaveCount(2);
-        cnn.LastExecutionPlans.Should().OnlyContain(p => p.Contains("ActualRows:") && p.Contains("EstimatedRowsRead:"));
+        cnn.LastExecutionPlans.Should().OnlyContain(p => p.Contains($"{SqlExecutionPlanMessages.ActualRowsLabel()}:")
+            && p.Contains($"{SqlExecutionPlanMessages.EstimatedRowsReadLabel()}:"));
         Console.WriteLine("[ExecutionPlans]\n" + string.Join("\n---\n", cnn.LastExecutionPlans));
     }
 

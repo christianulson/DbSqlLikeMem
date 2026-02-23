@@ -2403,7 +2403,7 @@ private void FillNthValue(
             return RowsFrameRange.Empty;
 
         if (frame is null)
-            return new RowsFrameRange(0, partitionSize - 1, isEmpty: false);
+            return new RowsFrameRange(0, partitionSize - 1, IsEmpty: false);
 
         var startIndex = ResolveRowsFrameBoundIndex(frame.Start, rowIndex, partitionSize, isStartBound: true);
         var endIndex = ResolveRowsFrameBoundIndex(frame.End, rowIndex, partitionSize, isStartBound: false);
@@ -2411,7 +2411,7 @@ private void FillNthValue(
         if (startIndex > endIndex)
             return RowsFrameRange.Empty;
 
-        return new RowsFrameRange(startIndex, endIndex, isEmpty: false);
+        return new RowsFrameRange(startIndex, endIndex, IsEmpty: false);
     }
 
     private static int ResolveRowsFrameBoundIndex(WindowFrameBound bound, int rowIndex, int partitionSize, bool isStartBound)
@@ -2422,15 +2422,15 @@ private void FillNthValue(
             WindowFrameBoundKind.UnboundedPreceding => 0,
             WindowFrameBoundKind.UnboundedFollowing => lastIndex,
             WindowFrameBoundKind.CurrentRow => rowIndex,
-            WindowFrameBoundKind.Preceding => Math.Clamp(rowIndex - bound.Offset.GetValueOrDefault(), 0, lastIndex),
-            WindowFrameBoundKind.Following => Math.Clamp(rowIndex + bound.Offset.GetValueOrDefault(), 0, lastIndex),
+            WindowFrameBoundKind.Preceding => (rowIndex - bound.Offset.GetValueOrDefault()).Clamp(0, lastIndex),
+            WindowFrameBoundKind.Following => (rowIndex + bound.Offset.GetValueOrDefault()).Clamp(0, lastIndex),
             _ => isStartBound ? 0 : lastIndex
         };
     }
 
     private readonly record struct RowsFrameRange(int StartIndex, int EndIndex, bool IsEmpty)
     {
-        public static RowsFrameRange Empty => new(0, -1, isEmpty: true);
+        public static RowsFrameRange Empty => new(0, -1, IsEmpty: true);
     }
 
         private static bool TryReadIntLiteral(SqlExpr expr, out int value)

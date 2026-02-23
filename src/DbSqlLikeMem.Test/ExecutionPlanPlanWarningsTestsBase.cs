@@ -20,11 +20,11 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
-        cnn.LastExecutionPlan.Should().Contain("Code: PW001");
-        cnn.LastExecutionPlan.Should().Contain("Message:");
-        cnn.LastExecutionPlan.Should().Contain("Reason:");
-        cnn.LastExecutionPlan.Should().Contain("SuggestedAction:");
-        cnn.LastExecutionPlan.Should().Contain("Severity: High");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.CodeLabel()}: PW001");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.MessageLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.ReasonLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.SuggestedActionLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.SeverityLabel()}: {SqlExecutionPlanMessages.SeverityHighValue()}");
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
-        cnn.LastExecutionPlan.Should().NotContain("Code: PW001");
+        cnn.LastExecutionPlan.Should().NotContain($"{SqlExecutionPlanMessages.CodeLabel()}: PW001");
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
-        cnn.LastExecutionPlan.Should().Contain("Code: PW002");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.CodeLabel()}: PW002");
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
-        cnn.LastExecutionPlan.Should().NotContain("Code: PW002");
+        cnn.LastExecutionPlan.Should().NotContain($"{SqlExecutionPlanMessages.CodeLabel()}: PW002");
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
-        cnn.LastExecutionPlan.Should().Contain("Code: PW003");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.CodeLabel()}: PW003");
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
-        cnn.LastExecutionPlan.Should().NotContain("Code: PW003");
+        cnn.LastExecutionPlan.Should().NotContain($"{SqlExecutionPlanMessages.CodeLabel()}: PW003");
     }
 
     [Fact]
@@ -111,14 +111,14 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         var plan = cnn.LastExecutionPlan;
         plan.Should().NotBeNullOrWhiteSpace();
 
-        var idxCode = plan!.IndexOf("Code: PW005", StringComparison.Ordinal);
-        var idxMessage = plan.IndexOf("Message:", idxCode, StringComparison.Ordinal);
-        var idxReason = plan.IndexOf("Reason:", idxMessage, StringComparison.Ordinal);
-        var idxAction = plan.IndexOf("SuggestedAction:", idxReason, StringComparison.Ordinal);
-        var idxSeverity = plan.IndexOf("Severity:", idxAction, StringComparison.Ordinal);
-        var idxMetric = plan.IndexOf("MetricName:", idxSeverity, StringComparison.Ordinal);
-        var idxObserved = plan.IndexOf("ObservedValue:", idxMetric, StringComparison.Ordinal);
-        var idxThreshold = plan.IndexOf("Threshold:", idxObserved, StringComparison.Ordinal);
+        var idxCode = plan!.IndexOf($"{SqlExecutionPlanMessages.CodeLabel()}: PW005", StringComparison.Ordinal);
+        var idxMessage = plan.IndexOf($"{SqlExecutionPlanMessages.MessageLabel()}:", idxCode, StringComparison.Ordinal);
+        var idxReason = plan.IndexOf($"{SqlExecutionPlanMessages.ReasonLabel()}:", idxMessage, StringComparison.Ordinal);
+        var idxAction = plan.IndexOf($"{SqlExecutionPlanMessages.SuggestedActionLabel()}:", idxReason, StringComparison.Ordinal);
+        var idxSeverity = plan.IndexOf($"{SqlExecutionPlanMessages.SeverityLabel()}:", idxAction, StringComparison.Ordinal);
+        var idxMetric = plan.IndexOf($"{SqlExecutionPlanMessages.MetricNameLabel()}:", idxSeverity, StringComparison.Ordinal);
+        var idxObserved = plan.IndexOf($"{SqlExecutionPlanMessages.ObservedValueLabel()}:", idxMetric, StringComparison.Ordinal);
+        var idxThreshold = plan.IndexOf($"{SqlExecutionPlanMessages.ThresholdLabel()}:", idxObserved, StringComparison.Ordinal);
 
         idxCode.Should().BeGreaterThan(-1);
         idxMessage.Should().BeGreaterThan(idxCode);
@@ -144,8 +144,8 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         var thresholds = cnn.LastExecutionPlan!
             .Split(new[] { Environment.NewLine }, StringSplitOptions.None)
             .Select(static line => line.Trim())
-            .Where(static line => line.StartsWith("Threshold:", StringComparison.Ordinal))
-            .Select(static line => line["Threshold:".Length..].Trim())
+            .Where(static line => line.StartsWith($"{SqlExecutionPlanMessages.ThresholdLabel()}:", StringComparison.Ordinal))
+            .Select(static line => line[$"{SqlExecutionPlanMessages.ThresholdLabel()}:".Length..].Trim())
             .ToList();
 
         thresholds.Should().NotBeEmpty();
@@ -164,8 +164,8 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
-        cnn.LastExecutionPlan.Should().Contain("Code: PW005");
-        cnn.LastExecutionPlan.Should().NotContain("Code: PW004");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.CodeLabel()}: PW005");
+        cnn.LastExecutionPlan.Should().NotContain($"{SqlExecutionPlanMessages.CodeLabel()}: PW004");
     }
 
     [Fact]
@@ -179,7 +179,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
-        cnn.LastExecutionPlan.Should().Contain("Code: PW004");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.CodeLabel()}: PW004");
     }
 
     protected static void SeedUsers(DbConnectionMockBase cnn, int totalRows, Func<int, int> activeSelector)
