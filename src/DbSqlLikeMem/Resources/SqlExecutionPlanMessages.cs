@@ -38,6 +38,11 @@ internal static class SqlExecutionPlanMessages
     public static string PartsLabel() => Format(nameof(PartsLabel));
     public static string PartLabel() => Format(nameof(PartLabel));
     public static string CombineLabel() => Format(nameof(CombineLabel));
+    public static string PlanWarningsLabel() => Format(nameof(PlanWarningsLabel));
+    public static string CodeLabel() => Format(nameof(CodeLabel));
+    public static string MessageLabel() => Format(nameof(MessageLabel));
+    public static string SuggestedActionLabel() => Format(nameof(SuggestedActionLabel));
+    public static string SeverityLabel() => Format(nameof(SeverityLabel));
 
     public static string ReasonFilterAndOrder(string filters, string orders, string key)
         => Format(nameof(ReasonFilterAndOrder), filters, orders, key);
@@ -47,6 +52,38 @@ internal static class SqlExecutionPlanMessages
 
     public static string ReasonOrderOnly(string orders)
         => Format(nameof(ReasonOrderOnly), orders);
+
+    public static string WarningOrderByWithoutLimitMessage()
+        => Format(nameof(WarningOrderByWithoutLimitMessage));
+
+
+    public static string SeverityInfoValue() => Format(nameof(SeverityInfoValue));
+    public static string SeverityWarningValue() => Format(nameof(SeverityWarningValue));
+    public static string SeverityHighValue() => Format(nameof(SeverityHighValue));
+
+    public static string WarningOrderByWithoutLimitReason(long estimatedRowsRead)
+        => Format(nameof(WarningOrderByWithoutLimitReason), estimatedRowsRead);
+
+    public static string WarningOrderByWithoutLimitAction()
+        => Format(nameof(WarningOrderByWithoutLimitAction));
+
+    public static string WarningLowSelectivityMessage()
+        => Format(nameof(WarningLowSelectivityMessage));
+
+    public static string WarningLowSelectivityReason(double selectivityPct, long estimatedRowsRead)
+        => Format(nameof(WarningLowSelectivityReason), selectivityPct, estimatedRowsRead);
+
+    public static string WarningLowSelectivityAction()
+        => Format(nameof(WarningLowSelectivityAction));
+
+    public static string WarningSelectStarMessage()
+        => Format(nameof(WarningSelectStarMessage));
+
+    public static string WarningSelectStarReason(long estimatedRowsRead)
+        => Format(nameof(WarningSelectStarReason), estimatedRowsRead);
+
+    public static string WarningSelectStarAction()
+        => Format(nameof(WarningSelectStarAction));
 
     private static string Format(string key, params object?[] args)
     {

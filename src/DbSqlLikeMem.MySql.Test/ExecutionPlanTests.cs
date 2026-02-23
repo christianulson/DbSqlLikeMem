@@ -295,4 +295,164 @@ public sealed class ExecutionPlanTests(
         cnn.LastExecutionPlans.Should().OnlyContain(p => p.Contains("ActualRows:") && p.Contains("EstimatedRowsRead:"));
         Console.WriteLine("[ExecutionPlans]\n" + string.Join("\n---\n", cnn.LastExecutionPlans));
     }
+
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldEmitPlanWarningPW001_WhenOrderByHasNoLimitAndHighRead()
+    {
+        using var cnn = new MySqlConnectionMock();
+
+        SeedUsers(cnn, 120, _ => 1);
+
+        using var cmd = new MySqlCommandMock(cnn)
+        {
+            CommandText = "SELECT Id FROM users ORDER BY Id"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain("PlanWarnings:");
+        cnn.LastExecutionPlan.Should().Contain("Code: PW001");
+        cnn.LastExecutionPlan.Should().Contain("Message:");
+        cnn.LastExecutionPlan.Should().Contain("Reason:");
+        cnn.LastExecutionPlan.Should().Contain("SuggestedAction:");
+        cnn.LastExecutionPlan.Should().Contain("Severity: High");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldNotEmitPlanWarningPW001_WhenLimitIsPresent()
+    {
+        using var cnn = new MySqlConnectionMock();
+
+        SeedUsers(cnn, 120, _ => 1);
+
+        using var cmd = new MySqlCommandMock(cnn)
+        {
+            CommandText = "SELECT Id FROM users ORDER BY Id LIMIT 3"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().NotContain("Code: PW001");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldEmitPlanWarningPW002_WhenSelectivityIsLowAndHighRead()
+    {
+        using var cnn = new MySqlConnectionMock();
+
+        SeedUsers(cnn, 120, _ => 1);
+
+        using var cmd = new MySqlCommandMock(cnn)
+        {
+            CommandText = "SELECT Id FROM users WHERE Active = 1"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain("Code: PW002");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldNotEmitPlanWarningPW002_WhenSelectivityIsHigh()
+    {
+        using var cnn = new MySqlConnectionMock();
+
+        SeedUsers(cnn, 120, i => i == 1 ? 1 : 0);
+
+        using var cmd = new MySqlCommandMock(cnn)
+        {
+            CommandText = "SELECT Id FROM users WHERE Active = 1"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().NotContain("Code: PW002");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldEmitPlanWarningPW003_WhenSelectStarHasHighRead()
+    {
+        using var cnn = new MySqlConnectionMock();
+
+        SeedUsers(cnn, 120, _ => 1);
+
+        using var cmd = new MySqlCommandMock(cnn)
+        {
+            CommandText = "SELECT * FROM users"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain("Code: PW003");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldNotEmitPlanWarningPW003_WhenProjectionIsExplicit()
+    {
+        using var cnn = new MySqlConnectionMock();
+
+        SeedUsers(cnn, 120, _ => 1);
+
+        using var cmd = new MySqlCommandMock(cnn)
+        {
+            CommandText = "SELECT Id FROM users"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().NotContain("Code: PW003");
+    }
+
+
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldNotEmitPlanWarnings_WhenEstimatedRowsReadIsNotHigh()
+    {
+        using var cnn = new MySqlConnectionMock();
+
+        SeedUsers(cnn, 8, _ => 1);
+
+        using var cmd = new MySqlCommandMock(cnn)
+        {
+            CommandText = "SELECT * FROM users ORDER BY Id"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().NotContain("PlanWarnings:");
+        cnn.LastExecutionPlan.Should().NotContain("Code: PW001");
+        cnn.LastExecutionPlan.Should().NotContain("Code: PW002");
+        cnn.LastExecutionPlan.Should().NotContain("Code: PW003");
+    }
+
+
+
+    private static void SeedUsers(MySqlConnectionMock cnn, int totalRows, Func<int, int> activeSelector)
+    {
+        cnn.Define("users");
+        cnn.Column<int>("users", "Id");
+        cnn.Column<int>("users", "Active");
+
+        var rows = new object?[totalRows][];
+        for (var i = 1; i <= totalRows; i++)
+            rows[i - 1] = [i, activeSelector(i)];
+
+        cnn.Seed("users", null, rows);
+    }
+
 }

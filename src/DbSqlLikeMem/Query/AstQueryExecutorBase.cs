@@ -345,12 +345,61 @@ internal abstract class AstQueryExecutorBase(
 
         var metrics = BuildPlanRuntimeMetrics(q, result.Count, sw.ElapsedMilliseconds);
         var indexRecommendations = BuildIndexRecommendations(q, metrics);
-        var plan = SqlExecutionPlanFormatter.FormatSelect(q, metrics, indexRecommendations);
+        var planWarnings = BuildPlanWarnings(q, metrics);
+        var plan = SqlExecutionPlanFormatter.FormatSelect(q, metrics, indexRecommendations, planWarnings);
         result.ExecutionPlan = plan;
         _cnn.RegisterExecutionPlan(plan);
         return result;
     }
 
+
+    private IReadOnlyList<SqlPlanWarning> BuildPlanWarnings(
+        SqlSelectQuery query,
+        SqlPlanRuntimeMetrics metrics)
+    {
+        const long HighReadThreshold = 100;
+        const double LowSelectivityThresholdPct = 60d;
+
+        if (metrics.EstimatedRowsRead < HighReadThreshold)
+            return [];
+
+        var warnings = new List<SqlPlanWarning>();
+
+        if (query.OrderBy.Count > 0 && query.RowLimit is null)
+        {
+            warnings.Add(new SqlPlanWarning(
+                "PW001",
+                SqlExecutionPlanMessages.WarningOrderByWithoutLimitMessage(),
+                SqlExecutionPlanMessages.WarningOrderByWithoutLimitReason(metrics.EstimatedRowsRead),
+                SqlExecutionPlanMessages.WarningOrderByWithoutLimitAction(),
+                SqlPlanWarningSeverity.High));
+        }
+
+        if (metrics.SelectivityPct >= LowSelectivityThresholdPct)
+        {
+            warnings.Add(new SqlPlanWarning(
+                "PW002",
+                SqlExecutionPlanMessages.WarningLowSelectivityMessage(),
+                SqlExecutionPlanMessages.WarningLowSelectivityReason(metrics.SelectivityPct, metrics.EstimatedRowsRead),
+                SqlExecutionPlanMessages.WarningLowSelectivityAction(),
+                SqlPlanWarningSeverity.Warning));
+        }
+
+        if (HasSelectStar(query))
+        {
+            warnings.Add(new SqlPlanWarning(
+                "PW003",
+                SqlExecutionPlanMessages.WarningSelectStarMessage(),
+                SqlExecutionPlanMessages.WarningSelectStarReason(metrics.EstimatedRowsRead),
+                SqlExecutionPlanMessages.WarningSelectStarAction(),
+                SqlPlanWarningSeverity.Info));
+        }
+
+        return warnings;
+    }
+
+    private static bool HasSelectStar(SqlSelectQuery query)
+        => query.SelectItems.Any(static item => string.Equals(item.Raw?.Trim(), "*", StringComparison.Ordinal));
     private IReadOnlyList<SqlIndexRecommendation> BuildIndexRecommendations(
         SqlSelectQuery query,
         SqlPlanRuntimeMetrics metrics)
