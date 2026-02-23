@@ -2935,7 +2935,7 @@ public abstract class NHibernateSupportTestsBase(
         var persisted = verifySession.Get<NhVersionedUser>(1706)!;
 
         Assert.Equal("Base|EXT|APP", persisted.Name);
-        Assert.Equal(1, persisted.Name.Split("|APP", StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, persisted.Name.Split(new[] { "|APP" }, StringSplitOptions.None).Length - 1);
     }
 
     /// <summary>

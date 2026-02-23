@@ -16,11 +16,14 @@ public class DbMockConnectionFactoryTests
     {
         var (db, _) = DbMockConnectionFactory.CreateWithTables(
             "Sqlite",
-            it => it.AddTable(
-                "Users",
-                [new Col("Id", DataTypeDef.Int32()), new Col("Name", DataTypeDef.String())],
-                [new Dictionary<int, object?> { [0] = 1, [1] = "Ana" }]));
+            it =>
+            {
+                var tb = it.AddTable("Users");
+                tb.AddColumn("Id", DbType.Int32, false);
+                tb.AddColumn("Name", DbType.String, false);
+                tb.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Ana" });
+            });
 
-        db.GetTable("Users").Rows.Should().HaveCount(1);
+        db.GetTable("Users").Should().HaveCount(1);
     }
 }
