@@ -29,6 +29,28 @@ dotnet add package DbSqlLikeMem
 
 Escolha também um pacote de provedor (MySql, SqlServer, Oracle, Npgsql, Sqlite ou Db2) para simular o dialeto do seu sistema.
 
+
+## Factory rápida para testes
+
+Para facilitar o uso no dia a dia, você pode criar `DbMock` + `IDbConnection` com uma chamada única:
+
+```csharp
+var (db, conn) = DbMockConnectionFactory.CreateSqliteWithTables(
+    d => d.AddTable("Users",
+        [new Col("Id", DataTypeDef.Int32()), new Col("Name", DataTypeDef.String())],
+        [new Dictionary<int, object?> { [0] = 1, [1] = "Ana" }]));
+```
+
+Também existem atalhos por banco: `CreateOracleWithTables`, `CreateSqlServerWithTables`, `CreateMySqlWithTables`, `CreateSqliteWithTables`, `CreateDb2WithTables` e `CreateNpgsqlWithTables`.
+
+Se preferir, use a versão genérica por string:
+
+```csharp
+var (db, conn) = DbMockConnectionFactory.CreateWithTables("SqlServer", d => { /* mapeamentos */ });
+```
+
+> Dica: a factory resolve a conexão automaticamente via reflexão, então ela funciona melhor quando o pacote do provedor já está referenciado e carregado no seu projeto de teste.
+
 ## Contribuindo
 
 Contribuições são super bem-vindas 💙
