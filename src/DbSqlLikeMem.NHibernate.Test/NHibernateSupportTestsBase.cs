@@ -818,6 +818,233 @@ public abstract class NHibernateSupportTestsBase(
     }
 
     /// <summary>
+    /// EN: Verifies setting a many-to-one association to null persists a null foreign key.
+    /// PT: Verifica se definir associação many-to-one como nula persiste chave estrangeira nula.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedRelationship_SetNavigationToNull_ShouldPersistNullForeignKey()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE user_groups (id INT PRIMARY KEY, name VARCHAR(100))");
+        ExecuteNonQuery(connection, "CREATE TABLE users_rel (id INT PRIMARY KEY, name VARCHAR(100), group_id INT)");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            var group = new NhUserGroup { Id = 20, Name = "NullableGroup" };
+            var user = new NhRelUser { Id = 406, Name = "NullableUser", Group = group };
+            session.Save(group);
+            session.Save(user);
+            tx.Commit();
+        }
+
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            var user = session.Get<NhRelUser>(406)!;
+            user.Group = null;
+            session.Flush();
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var reloaded = verifySession.Get<NhRelUser>(406);
+        Assert.NotNull(reloaded);
+        Assert.Null(reloaded!.Group);
+
+        var nullFkCount = Convert.ToInt32(
+            verifySession
+                .CreateSQLQuery("SELECT COUNT(*) AS cnt FROM users_rel WHERE id = :id AND group_id IS NULL")
+                .AddScalar("cnt", global::NHibernate.NHibernateUtil.Int32)
+                .SetParameter("id", 406)
+                .UniqueResult());
+
+        Assert.Equal(1, nullFkCount);
+    }
+
+    /// <summary>
+    /// EN: Verifies HQL can filter entities whose many-to-one association is null.
+    /// PT: Verifica se HQL pode filtrar entidades cuja associação many-to-one é nula.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_Hql_ManyToOneNullFilter_ShouldReturnUngroupedUsers()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE user_groups (id INT PRIMARY KEY, name VARCHAR(100))");
+        ExecuteNonQuery(connection, "CREATE TABLE users_rel (id INT PRIMARY KEY, name VARCHAR(100), group_id INT)");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            var group = new NhUserGroup { Id = 21, Name = "Hql-Group" };
+            session.Save(group);
+            session.Save(new NhRelUser { Id = 407, Name = "Grouped", Group = group });
+            session.Save(new NhRelUser { Id = 408, Name = "Ungrouped", Group = null });
+            tx.Commit();
+        }
+
+        using var querySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var rows = querySession
+            .CreateQuery("from NhRelUser u where u.Group is null order by u.Id")
+            .List<NhRelUser>();
+
+        Assert.Single(rows);
+        Assert.Equal(408, rows[0].Id);
+    }
+
+    /// <summary>
+    /// EN: Verifies multiple many-to-one reference changes in one session persist only the final foreign-key target.
+    /// PT: Verifica se múltiplas trocas de referência many-to-one em uma sessão persistem apenas o alvo final da chave estrangeira.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedRelationship_UpdateNavigationMultipleTimesInSession_ShouldPersistFinalForeignKey()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE user_groups (id INT PRIMARY KEY, name VARCHAR(100))");
+        ExecuteNonQuery(connection, "CREATE TABLE users_rel (id INT PRIMARY KEY, name VARCHAR(100), group_id INT)");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            var g1 = new NhUserGroup { Id = 12, Name = "Switch-A" };
+            var g2 = new NhUserGroup { Id = 13, Name = "Switch-B" };
+            var g3 = new NhUserGroup { Id = 14, Name = "Switch-C" };
+            var user = new NhRelUser { Id = 402, Name = "SwitchUser", Group = g1 };
+
+            session.Save(g1);
+            session.Save(g2);
+            session.Save(g3);
+            session.Save(user);
+            tx.Commit();
+        }
+
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            var user = session.Get<NhRelUser>(402)!;
+            var g2 = session.Get<NhUserGroup>(13)!;
+            var g3 = session.Get<NhUserGroup>(14)!;
+
+            user.Group = g2;
+            user.Group = g3;
+            session.Flush();
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var updated = verifySession.Get<NhRelUser>(402);
+
+        Assert.NotNull(updated);
+        Assert.NotNull(updated!.Group);
+        Assert.Equal(14, updated.Group!.Id);
+    }
+
+    /// <summary>
+    /// EN: Verifies inverse collections stay consistent after reparenting and a fresh session reload.
+    /// PT: Verifica se coleções inversas permanecem consistentes após reparenting e recarga em nova sessão.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedRelationship_ReparentingWithNewSession_ShouldKeepInverseCollectionsConsistent()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE user_groups (id INT PRIMARY KEY, name VARCHAR(100))");
+        ExecuteNonQuery(connection, "CREATE TABLE users_rel (id INT PRIMARY KEY, name VARCHAR(100), group_id INT)");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            var source = new NhUserGroup { Id = 15, Name = "Reparent-Source" };
+            var target = new NhUserGroup { Id = 16, Name = "Reparent-Target" };
+            var movingUser = new NhRelUser { Id = 404, Name = "Reparent-User", Group = source };
+
+            source.Users.Add(movingUser);
+            seedSession.Save(source);
+            seedSession.Save(target);
+            seedSession.Save(movingUser);
+            tx.Commit();
+        }
+
+        using (var moveSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = moveSession.BeginTransaction())
+        {
+            var user = moveSession.Get<NhRelUser>(404)!;
+            var target = moveSession.Get<NhUserGroup>(16)!;
+
+            user.Group = target;
+            moveSession.Flush();
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var sourceReloaded = verifySession.Get<NhUserGroup>(15)!;
+        var targetReloaded = verifySession.Get<NhUserGroup>(16)!;
+
+        Assert.Empty(sourceReloaded.Users);
+        Assert.Single(targetReloaded.Users);
+        Assert.Equal(404, targetReloaded.Users[0].Id);
+    }
+
+    /// <summary>
+    /// EN: Verifies multiple reparentings in one session persist final inverse-collection state in a fresh session.
+    /// PT: Verifica se múltiplos reparentings em uma sessão persistem o estado final das coleções inversas em nova sessão.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedRelationship_MultipleReparentingsWithinSingleSession_ShouldKeepFinalInverseState()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE user_groups (id INT PRIMARY KEY, name VARCHAR(100))");
+        ExecuteNonQuery(connection, "CREATE TABLE users_rel (id INT PRIMARY KEY, name VARCHAR(100), group_id INT)");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            var g1 = new NhUserGroup { Id = 17, Name = "Reparent-A" };
+            var g2 = new NhUserGroup { Id = 18, Name = "Reparent-B" };
+            var g3 = new NhUserGroup { Id = 19, Name = "Reparent-C" };
+            var user = new NhRelUser { Id = 405, Name = "Reparent-Multi", Group = g1 };
+
+            seedSession.Save(g1);
+            seedSession.Save(g2);
+            seedSession.Save(g3);
+            seedSession.Save(user);
+            tx.Commit();
+        }
+
+        using (var moveSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = moveSession.BeginTransaction())
+        {
+            var user = moveSession.Get<NhRelUser>(405)!;
+            var g2 = moveSession.Get<NhUserGroup>(18)!;
+            var g3 = moveSession.Get<NhUserGroup>(19)!;
+
+            user.Group = g2;
+            user.Group = g3;
+            moveSession.Flush();
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var g1Reloaded = verifySession.Get<NhUserGroup>(17)!;
+        var g2Reloaded = verifySession.Get<NhUserGroup>(18)!;
+        var g3Reloaded = verifySession.Get<NhUserGroup>(19)!;
+
+        Assert.Empty(g1Reloaded.Users);
+        Assert.Empty(g2Reloaded.Users);
+        Assert.Single(g3Reloaded.Users);
+        Assert.Equal(405, g3Reloaded.Users[0].Id);
+    }
+
+    /// <summary>
     /// EN: Verifies removing a child from a parent collection persists relationship changes after flush and in a new session.
     /// PT: Verifica se remover filho da coleção do pai persiste mudanças de relacionamento após flush e em nova sessão.
     /// </summary>
@@ -1296,6 +1523,206 @@ public abstract class NHibernateSupportTestsBase(
     }
 
     /// <summary>
+    /// EN: Verifies FlushMode.Commit defers persistence visibility until transaction commit.
+    /// PT: Verifica se FlushMode.Commit adia a visibilidade de persistência até o commit da transação.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_SessionLifecycle_FlushModeCommit_ShouldDeferPersistenceUntilCommit()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            session.FlushMode = global::NHibernate.FlushMode.Commit;
+            session.Save(new NhTestUser { Id = 49, Name = "FlushMode-Commit" });
+
+            var countBeforeCommit = session
+                .CreateQuery("select count(u.Id) from NhTestUser u where u.Id = :id")
+                .SetParameter("id", 49)
+                .UniqueResult<long>();
+
+            Assert.Equal(0L, countBeforeCommit);
+
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var countAfterCommit = verifySession
+            .CreateQuery("select count(u.Id) from NhTestUser u where u.Id = :id")
+            .SetParameter("id", 49)
+            .UniqueResult<long>();
+
+        Assert.Equal(1L, countAfterCommit);
+    }
+
+    /// <summary>
+    /// EN: Verifies FlushMode.Auto flushes pending inserts before query execution.
+    /// PT: Verifica se FlushMode.Auto executa flush de inserts pendentes antes da execução de query.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_SessionLifecycle_FlushModeAuto_ShouldFlushBeforeQuery()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using var session = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        using var tx = session.BeginTransaction();
+
+        session.FlushMode = global::NHibernate.FlushMode.Auto;
+        session.Save(new NhTestUser { Id = 53, Name = "AutoFlush" });
+
+        var count = session
+            .CreateQuery("select count(u.Id) from NhTestUser u where u.Id = :id")
+            .SetParameter("id", 53)
+            .UniqueResult<long>();
+
+        Assert.Equal(1L, count);
+
+        tx.Commit();
+    }
+
+    /// <summary>
+    /// EN: Verifies FlushMode.Manual requires explicit Flush before commit to persist changes.
+    /// PT: Verifica se FlushMode.Manual exige Flush explícito antes do commit para persistir alterações.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_SessionLifecycle_FlushModeManual_ShouldRequireExplicitFlushToPersist()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            session.FlushMode = global::NHibernate.FlushMode.Manual;
+            session.Save(new NhTestUser { Id = 50, Name = "FlushMode-Manual" });
+
+            var countBeforeExplicitFlush = session
+                .CreateQuery("select count(u.Id) from NhTestUser u where u.Id = :id")
+                .SetParameter("id", 50)
+                .UniqueResult<long>();
+
+            Assert.Equal(0L, countBeforeExplicitFlush);
+
+            session.Flush();
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var countAfterCommit = verifySession
+            .CreateQuery("select count(u.Id) from NhTestUser u where u.Id = :id")
+            .SetParameter("id", 50)
+            .UniqueResult<long>();
+
+        Assert.Equal(1L, countAfterCommit);
+    }
+
+    /// <summary>
+    /// EN: Verifies FlushMode.Manual without explicit Flush does not persist changes on commit.
+    /// PT: Verifica se FlushMode.Manual sem Flush explícito não persiste alterações no commit.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_SessionLifecycle_FlushModeManual_WithoutFlush_ShouldNotPersistOnCommit()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            session.FlushMode = global::NHibernate.FlushMode.Manual;
+            session.Save(new NhTestUser { Id = 51, Name = "Manual-NoFlush" });
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var persisted = verifySession.Get<NhTestUser>(51);
+        Assert.Null(persisted);
+    }
+
+    /// <summary>
+    /// EN: Verifies SaveOrUpdate inserts a new transient assigned-id entity.
+    /// PT: Verifica se SaveOrUpdate insere uma nova entidade transient com id atribuído.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_SessionLifecycle_SaveOrUpdate_WithTransientAssignedEntity_ShouldInsertRow()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            session.SaveOrUpdate(new NhTestUser { Id = 52, Name = "SaveOrUpdate-New" });
+            session.Flush();
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var inserted = verifySession.Get<NhTestUser>(52);
+
+        Assert.NotNull(inserted);
+        Assert.Equal("SaveOrUpdate-New", inserted!.Name);
+    }
+
+    /// <summary>
+    /// EN: Verifies SaveOrUpdate persists changes for a detached entity instance.
+    /// PT: Verifica se SaveOrUpdate persiste alterações para uma instância de entidade destacada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_SessionLifecycle_SaveOrUpdate_WithDetachedEntity_ShouldPersistLatestState()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        NhTestUser detached;
+
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            var initial = new NhTestUser { Id = 48, Name = "Detached-Initial" };
+            seedSession.Save(initial);
+            tx.Commit();
+        }
+
+        using (var loadSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        {
+            detached = loadSession.Get<NhTestUser>(48)!;
+            loadSession.Evict(detached);
+        }
+
+        detached.Name = "Detached-Updated";
+
+        using (var updateSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = updateSession.BeginTransaction())
+        {
+            updateSession.SaveOrUpdate(detached);
+            updateSession.Flush();
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var persisted = verifySession.Get<NhTestUser>(48);
+
+        Assert.NotNull(persisted);
+        Assert.Equal("Detached-Updated", persisted!.Name);
+    }
+
+    /// <summary>
     /// EN: Verifies HQL projection with aliases can be consumed as dictionaries through AliasToEntityMap.
     /// PT: Verifica se projeção HQL com aliases pode ser consumida como dicionário via AliasToEntityMap.
     /// </summary>
@@ -1324,6 +1751,42 @@ public abstract class NHibernateSupportTestsBase(
         Assert.NotNull(row);
         Assert.Equal(70, row!["UserId"]);
         Assert.Equal("Map-A", row["UserName"]);
+    }
+
+    /// <summary>
+    /// EN: Verifies left join projection includes parent rows even when no related children exist.
+    /// PT: Verifica se projeção com left join inclui linhas pai mesmo sem filhos relacionados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_Hql_LeftJoinProjection_ShouldIncludeRowsWithoutRelationship()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE user_groups (id INT PRIMARY KEY, name VARCHAR(100))");
+        ExecuteNonQuery(connection, "CREATE TABLE users_rel (id INT PRIMARY KEY, name VARCHAR(100), group_id INT)");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            var groupWithUser = new NhUserGroup { Id = 31, Name = "LeftJoin-WithUser" };
+            var emptyGroup = new NhUserGroup { Id = 32, Name = "LeftJoin-Empty" };
+            session.Save(groupWithUser);
+            session.Save(emptyGroup);
+            session.Save(new NhRelUser { Id = 810, Name = "OnlyUser", Group = groupWithUser });
+            tx.Commit();
+        }
+
+        using var querySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var rows = querySession
+            .CreateQuery("select g.Name, u.Name from NhUserGroup g left join g.Users u order by g.Id, u.Id")
+            .List<object[]>();
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal("LeftJoin-WithUser", rows[0][0]);
+        Assert.Equal("OnlyUser", rows[0][1]);
+        Assert.Equal("LeftJoin-Empty", rows[1][0]);
+        Assert.Null(rows[1][1]);
     }
 
     /// <summary>
@@ -1621,6 +2084,211 @@ public abstract class NHibernateSupportTestsBase(
             .UniqueResult<long>();
 
         Assert.Equal(2L, count);
+    }
+
+    /// <summary>
+    /// EN: Verifies Criteria with Conjunction/Disjunction applies deterministic filtering and ordering.
+    /// PT: Verifica se Criteria com Conjunction/Disjunction aplica filtro e ordenação determinísticos.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_Criteria_ConjunctionAndDisjunction_ShouldFilterWithDeterministicOrder()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            session.Save(new NhTestUser { Id = 110, Name = "Ann" });
+            session.Save(new NhTestUser { Id = 111, Name = "Amy" });
+            session.Save(new NhTestUser { Id = 112, Name = "Bob" });
+            session.Save(new NhTestUser { Id = 113, Name = "Axe" });
+            tx.Commit();
+        }
+
+        var nameStartsWithA = Restrictions.Like(nameof(NhTestUser.Name), "A%");
+        var idIs111Or113 = Restrictions.Disjunction()
+            .Add(Restrictions.Eq(nameof(NhTestUser.Id), 111))
+            .Add(Restrictions.Eq(nameof(NhTestUser.Id), 113));
+
+        using var querySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var users = querySession
+            .CreateCriteria<NhTestUser>()
+            .Add(Restrictions.Conjunction()
+                .Add(nameStartsWithA)
+                .Add(idIs111Or113))
+            .AddOrder(Order.Asc(nameof(NhTestUser.Id)))
+            .List<NhTestUser>();
+
+        Assert.Equal(2, users.Count);
+        Assert.Equal(111, users[0].Id);
+        Assert.Equal(113, users[1].Id);
+    }
+
+    /// <summary>
+    /// EN: Verifies alternating sequential updates across sessions increase version predictably.
+    /// PT: Verifica se updates sequenciais alternados entre sessões incrementam a versão de forma previsível.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedEntity_OptimisticConcurrency_AlternatingSequentialUpdates_ShouldProduceExpectedVersion()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users_versioned (id INT PRIMARY KEY, version INT NOT NULL, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            seedSession.Save(new NhVersionedUser { Id = 35, Name = "Version-Initial" });
+            tx.Commit();
+        }
+
+        int versionAfterFirstCommit;
+        using (var session1 = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session1.BeginTransaction())
+        {
+            var entity = session1.Get<NhVersionedUser>(35)!;
+            var initialVersion = entity.Version;
+            entity.Name = "Version-Step-1";
+            session1.Flush();
+            tx.Commit();
+            versionAfterFirstCommit = entity.Version;
+            Assert.Equal(initialVersion + 1, versionAfterFirstCommit);
+        }
+
+        int versionAfterSecondCommit;
+        using (var session2 = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session2.BeginTransaction())
+        {
+            var entity = session2.Get<NhVersionedUser>(35)!;
+            entity.Name = "Version-Step-2";
+            session2.Flush();
+            tx.Commit();
+            versionAfterSecondCommit = entity.Version;
+        }
+
+        Assert.Equal(versionAfterFirstCommit + 1, versionAfterSecondCommit);
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var persisted = verifySession.Get<NhVersionedUser>(35);
+
+        Assert.NotNull(persisted);
+        Assert.Equal(versionAfterSecondCommit, persisted!.Version);
+        Assert.Equal("Version-Step-2", persisted.Name);
+    }
+
+    /// <summary>
+    /// EN: Verifies stale-update recovery flow using refresh and controlled retry preserves intended final state.
+    /// PT: Verifica se fluxo de recuperação de stale-update com refresh e retry controlado preserva o estado final pretendido.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedEntity_OptimisticConcurrency_StaleThenRefreshRetry_ShouldPersistIntendedState()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users_versioned (id INT PRIMARY KEY, version INT NOT NULL, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            seedSession.Save(new NhVersionedUser { Id = 36, Name = "Retry-Initial" });
+            tx.Commit();
+        }
+
+        using var staleSession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var staleEntity = staleSession.Get<NhVersionedUser>(36)!;
+
+        using (var writerSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = writerSession.BeginTransaction())
+        {
+            var writerEntity = writerSession.Get<NhVersionedUser>(36)!;
+            writerEntity.Name = "Writer-Commit";
+            writerSession.Flush();
+            tx.Commit();
+        }
+
+        using (var staleTx = staleSession.BeginTransaction())
+        {
+            staleEntity.Name = "Retry-Intent";
+            _ = Assert.Throws<global::NHibernate.StaleObjectStateException>(() => staleSession.Flush());
+            staleTx.Rollback();
+        }
+
+        staleSession.Refresh(staleEntity);
+
+        using (var retryTx = staleSession.BeginTransaction())
+        {
+            staleEntity.Name = "Retry-Intent";
+            staleSession.Flush();
+            retryTx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var persisted = verifySession.Get<NhVersionedUser>(36);
+
+        Assert.NotNull(persisted);
+        Assert.Equal("Retry-Intent", persisted!.Name);
+        Assert.True(persisted.Version >= 3);
+    }
+
+    /// <summary>
+    /// EN: Verifies stale recovery can reapply business intent after refresh and commit merged result.
+    /// PT: Verifica se recuperação de stale pode reaplicar intenção de negócio após refresh e commitar resultado mesclado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedEntity_OptimisticConcurrency_StaleRecoveryWithBusinessIntent_ShouldCommitMergedResult()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users_versioned (id INT PRIMARY KEY, version INT NOT NULL, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            seedSession.Save(new NhVersionedUser { Id = 37, Name = "Intent-Initial" });
+            tx.Commit();
+        }
+
+        using var appSession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var appEntity = appSession.Get<NhVersionedUser>(37)!;
+
+        using (var writerSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = writerSession.BeginTransaction())
+        {
+            var writerEntity = writerSession.Get<NhVersionedUser>(37)!;
+            writerEntity.Name = "Intent-External";
+            writerSession.Flush();
+            tx.Commit();
+        }
+
+        const string suffix = " + AppendedByApp";
+
+        using (var tx = appSession.BeginTransaction())
+        {
+            appEntity.Name = "Intent-Initial" + suffix;
+            _ = Assert.Throws<global::NHibernate.StaleObjectStateException>(() => appSession.Flush());
+            tx.Rollback();
+        }
+
+        appSession.Refresh(appEntity);
+
+        using (var tx = appSession.BeginTransaction())
+        {
+            appEntity.Name += suffix;
+            appSession.Flush();
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var persisted = verifySession.Get<NhVersionedUser>(37);
+
+        Assert.NotNull(persisted);
+        Assert.Equal("Intent-External" + suffix, persisted!.Name);
     }
 
     private Configuration BuildConfiguration(bool withMappings = false)
