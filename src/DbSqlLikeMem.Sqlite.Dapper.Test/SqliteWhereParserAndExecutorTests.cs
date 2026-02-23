@@ -1,14 +1,16 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqliteWhereParserAndExecutorTests.
+/// PT: Define a classe SqliteWhereParserAndExecutorTests.
 /// </summary>
 public sealed class SqliteWhereParserAndExecutorTests : XUnitTestBase
 {
     private readonly SqliteConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests SqliteWhereParserAndExecutorTests behavior.
+    /// PT: Testa o comportamento de SqliteWhereParserAndExecutorTests.
     /// </summary>
     public SqliteWhereParserAndExecutorTests(ITestOutputHelper helper) : base(helper)
     {

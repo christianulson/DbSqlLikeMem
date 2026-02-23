@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Sqlite.EfCore.Test;
 /// EN: Executes shared EF Core smoke contract tests using the Sqlite provider connection factory.
 /// PT: Executa testes compartilhados de contrato smoke de EF Core usando a fábrica de conexão do provedor Sqlite.
 /// </summary>
-public sealed class EfCoreSmokeTests : EfCoreSupportTestsBase
+public sealed class EfCoreSmokeTests(
+    ITestOutputHelper helper
+) : EfCoreSupportTestsBase(helper)
 {
     /// <summary>
     /// EN: Creates the Sqlite EF Core connection factory used by the shared contract tests.

@@ -10,7 +10,8 @@ public sealed class Db2AdvancedSqlGapTests : XUnitTestBase
     private readonly Db2ConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests Db2AdvancedSqlGapTests behavior.
+    /// PT: Testa o comportamento de Db2AdvancedSqlGapTests.
     /// </summary>
     public Db2AdvancedSqlGapTests(ITestOutputHelper helper) : base(helper)
     {

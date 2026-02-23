@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.MySql.Test.TemporaryTable;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class MySqlTemporaryTableEngineTests.
+/// PT: Define a classe MySqlTemporaryTableEngineTests.
 /// </summary>
 public sealed class MySqlTemporaryTableEngineTests
 {

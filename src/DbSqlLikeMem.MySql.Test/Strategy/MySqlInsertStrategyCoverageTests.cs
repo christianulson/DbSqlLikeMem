@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.MySql.Test.Strategy;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class MySqlInsertStrategyCoverageTests.
+/// PT: Define a classe MySqlInsertStrategyCoverageTests.
 /// </summary>
 public sealed class MySqlInsertStrategyCoverageTests(
         ITestOutputHelper helper

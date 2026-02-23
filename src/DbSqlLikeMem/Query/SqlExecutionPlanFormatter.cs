@@ -1,4 +1,3 @@
-using DbSqlLikeMem.Resources;
 using System.Text;
 
 namespace DbSqlLikeMem;
@@ -27,12 +26,27 @@ internal sealed record SqlIndexRecommendation(
             : (double)(EstimatedRowsReadBefore - EstimatedRowsReadAfter) / EstimatedRowsReadBefore * 100d;
 }
 
+internal enum SqlPlanWarningSeverity
+{
+    Info,
+    Warning,
+    High
+}
+
+internal sealed record SqlPlanWarning(
+    string Code,
+    string Message,
+    string Reason,
+    string SuggestedAction,
+    SqlPlanWarningSeverity Severity);
+
 internal static class SqlExecutionPlanFormatter
 {
     public static string FormatSelect(
         SqlSelectQuery query,
         SqlPlanRuntimeMetrics metrics,
-        IReadOnlyList<SqlIndexRecommendation>? indexRecommendations = null)
+        IReadOnlyList<SqlIndexRecommendation>? indexRecommendations = null,
+        IReadOnlyList<SqlPlanWarning>? planWarnings = null)
     {
         var sb = new StringBuilder();
         sb.AppendLine(SqlExecutionPlanMessages.ExecutionPlanTitle());
@@ -88,9 +102,37 @@ internal static class SqlExecutionPlanFormatter
         sb.AppendLine($"- {SqlExecutionPlanMessages.ElapsedMsLabel()}: {metrics.ElapsedMs}");
 
         AppendIndexRecommendations(sb, indexRecommendations);
+        AppendPlanWarnings(sb, planWarnings);
 
         return sb.ToString().TrimEnd();
     }
+
+    private static void AppendPlanWarnings(
+        StringBuilder sb,
+        IReadOnlyList<SqlPlanWarning>? planWarnings)
+    {
+        if (planWarnings is null || planWarnings.Count == 0)
+            return;
+
+        sb.AppendLine($"- {SqlExecutionPlanMessages.PlanWarningsLabel()}:");
+        foreach (var warning in planWarnings)
+        {
+            sb.AppendLine($"  - {SqlExecutionPlanMessages.CodeLabel()}: {warning.Code}");
+            sb.AppendLine($"    {SqlExecutionPlanMessages.MessageLabel()}: {warning.Message}");
+            sb.AppendLine($"    {SqlExecutionPlanMessages.ReasonLabel()}: {warning.Reason}");
+            sb.AppendLine($"    {SqlExecutionPlanMessages.SuggestedActionLabel()}: {warning.SuggestedAction}");
+            sb.AppendLine($"    {SqlExecutionPlanMessages.SeverityLabel()}: {FormatWarningSeverity(warning.Severity)}");
+        }
+    }
+
+    private static string FormatWarningSeverity(SqlPlanWarningSeverity severity)
+        => severity switch
+        {
+            SqlPlanWarningSeverity.Info => SqlExecutionPlanMessages.SeverityInfoValue(),
+            SqlPlanWarningSeverity.Warning => SqlExecutionPlanMessages.SeverityWarningValue(),
+            SqlPlanWarningSeverity.High => SqlExecutionPlanMessages.SeverityHighValue(),
+            _ => severity.ToString()
+        };
 
     public static string FormatUnion(
         IReadOnlyList<SqlSelectQuery> parts,

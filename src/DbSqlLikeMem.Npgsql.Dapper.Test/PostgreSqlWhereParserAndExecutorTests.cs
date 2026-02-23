@@ -1,14 +1,16 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class PostgreSqlWhereParserAndExecutorTests.
+/// PT: Define a classe PostgreSqlWhereParserAndExecutorTests.
 /// </summary>
 public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
 {
     private readonly NpgsqlConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests PostgreSqlWhereParserAndExecutorTests behavior.
+    /// PT: Testa o comportamento de PostgreSqlWhereParserAndExecutorTests.
     /// </summary>
     public PostgreSqlWhereParserAndExecutorTests(ITestOutputHelper helper) : base(helper)
     {

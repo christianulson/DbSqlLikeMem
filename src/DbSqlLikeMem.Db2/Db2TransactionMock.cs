@@ -3,7 +3,7 @@
 namespace DbSqlLikeMem.Db2;
 /// <summary>
 /// EN: Represents Db2 Transaction Mock.
-/// PT: Representa Db2 Transaction simulado.
+/// PT: Representa a transação simulada do Db2.
 /// </summary>
 public class Db2TransactionMock(
         Db2ConnectionMock cnn,
@@ -13,14 +13,14 @@ public class Db2TransactionMock(
     private bool disposedValue;
 
     /// <summary>
-    /// EN: Gets or sets db connection.
-    /// PT: Obtém ou define db conexão.
+    /// EN: Gets the database connection associated with this transaction.
+    /// PT: Obtém a conexão de banco de dados associada a esta transação.
     /// </summary>
     protected override DbConnection? DbConnection => cnn;
 
     /// <summary>
-    /// EN: Represents Isolation Level.
-    /// PT: Representa Isolation Level.
+    /// EN: Gets the isolation level configured for this transaction.
+    /// PT: Obtém o nível de isolamento configurado para esta transação.
     /// </summary>
     public override IsolationLevel IsolationLevel
         => isolationLevel ?? IsolationLevel.Unspecified;
@@ -71,14 +71,14 @@ public class Db2TransactionMock(
 
     #if NET6_0_OR_GREATER
     /// <summary>
-    /// EN: Rolls back the current transaction.
-    /// PT: Reverte a transação atual.
+    /// EN: Rolls back the current transaction to the specified savepoint.
+    /// PT: Reverte a transação atual até o ponto de salvamento informado.
     /// </summary>
     public override void Rollback(string savepointName)
 #else
     /// <summary>
-    /// EN: Rolls back the current transaction.
-    /// PT: Reverte a transação atual.
+    /// EN: Rolls back the current transaction to the specified savepoint.
+    /// PT: Reverte a transação atual até o ponto de salvamento informado.
     /// </summary>
     public void Rollback(string savepointName)
 #endif

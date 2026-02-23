@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.MySql.Test.Views;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class MySqlCreateViewEngineTests.
+/// PT: Define a classe MySqlCreateViewEngineTests.
 /// </summary>
 public sealed class MySqlCreateViewEngineTests : XUnitTestBase
 {
@@ -10,7 +11,8 @@ public sealed class MySqlCreateViewEngineTests : XUnitTestBase
     private readonly ITableMock _orders;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests MySqlCreateViewEngineTests behavior.
+    /// PT: Testa o comportamento de MySqlCreateViewEngineTests.
     /// </summary>
     public MySqlCreateViewEngineTests(ITestOutputHelper helper): base(helper)
     {

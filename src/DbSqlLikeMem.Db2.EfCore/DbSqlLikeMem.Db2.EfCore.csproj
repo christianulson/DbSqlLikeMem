@@ -7,6 +7,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DbSqlLikeMem.Db2\DbSqlLikeMem.Db2.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
-    <ProjectReference Include="..\DbSqlLikeMem.EfCore\DbSqlLikeMem.EfCore.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+    <ProjectReference Include="..\DbSqlLikeMem.EfCore\DbSqlLikeMem.EfCore.csproj" />
   </ItemGroup>
 </Project>

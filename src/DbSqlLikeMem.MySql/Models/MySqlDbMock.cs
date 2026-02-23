@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql;
 
 /// <summary>
 /// EN: In-memory database mock configured for MySQL.
-/// PT: simulado de banco em memória configurado para MySQL.
+/// PT: Banco de dados simulado em memória configurado para MySQL.
 /// </summary>
 public class MySqlDbMock
     : DbMock
@@ -11,7 +11,8 @@ public class MySqlDbMock
     internal override SqlDialectBase Dialect { get; set; }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Initializes an in-memory MySQL mock database with the requested version.
+    /// PT: Inicializa um banco MySQL simulado em memória com a versão informada.
     /// </summary>
     public MySqlDbMock(
         int? version = null

@@ -2,12 +2,14 @@
 
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqliteAstQueryExecutorRegister.
+/// PT: Define a classe SqliteAstQueryExecutorRegister.
 /// </summary>
 public static class SqliteAstQueryExecutorRegister
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Register.
+    /// PT: Implementa Register.
     /// </summary>
     public static void Register()
     {

@@ -10,7 +10,8 @@ public sealed class PostgreSqlAdvancedSqlGapTests : XUnitTestBase
     private readonly NpgsqlConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests PostgreSqlAdvancedSqlGapTests behavior.
+    /// PT: Testa o comportamento de PostgreSqlAdvancedSqlGapTests.
     /// </summary>
     public PostgreSqlAdvancedSqlGapTests(ITestOutputHelper helper) : base(helper)
     {

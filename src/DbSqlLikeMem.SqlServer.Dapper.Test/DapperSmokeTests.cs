@@ -6,7 +6,9 @@ namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 /// EN: Provides provider-specific Dapper smoke coverage through the shared contract base.
 /// PT: Fornece cobertura smoke específica do provedor de Dapper através da base de contrato compartilhada.
 /// </summary>
-public sealed class DapperSmokeTests : DapperSupportTestsBase
+public sealed class DapperSmokeTests(
+    ITestOutputHelper helper
+) : DapperSupportTestsBase(helper)
 {
     /// <summary>
     /// EN: Creates an opened mocked connection for the current provider.

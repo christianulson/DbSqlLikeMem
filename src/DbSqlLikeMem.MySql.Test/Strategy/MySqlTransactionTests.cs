@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.MySql.Test.Strategy;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class MySqlTransactionTests.
+/// PT: Define a classe MySqlTransactionTests.
 /// </summary>
 public sealed class MySqlTransactionTests(
         ITestOutputHelper helper

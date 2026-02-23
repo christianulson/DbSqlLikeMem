@@ -106,10 +106,21 @@ Documento gerado por `scripts/generate_p7_p10_plan.py` para orientar implementa�
 
 
 
-## Melhorias práticas para o plano de execução (Index Advisor)
+## Melhorias práticas para o plano de execução (Execution Plan Advisor)
 
-- [ ] Incluir seção `IndexRecommendations` no plano para queries SELECT com alto `EstimatedRowsRead`.
-- [ ] Sugerir índice composto com colunas de `WHERE/JOIN` e complementar com `ORDER BY` quando aplicável.
-- [ ] Exibir `Confidence` por recomendação para facilitar priorização técnica.
-- [ ] Cobrir cenários com e sem índice nos testes `ExecutionPlanTests` dos providers.
+### Index Advisor
+- [x] Incluir seção `IndexRecommendations` no plano para queries SELECT com alto `EstimatedRowsRead`.
+- [x] Sugerir índice composto com colunas de `WHERE/JOIN` e complementar com `ORDER BY` quando aplicável.
+- [x] Exibir `Confidence` por recomendação para facilitar priorização técnica.
+- [x] Cobrir cenários com e sem índice nos testes `ExecutionPlanTests` dos providers.
+
+### PlanWarnings (MVP)
+- [x] Incluir seção `PlanWarnings` no plano de execução para recomendações práticas ao desenvolvedor.
+- [x] Implementar alerta para `ORDER BY` sem `LIMIT/TOP/FETCH` em consultas com alto `EstimatedRowsRead`.
+- [x] Implementar alerta para baixa seletividade com `EstimatedRowsRead` alto.
+- [x] Implementar alerta opcional para `SELECT *` em leitura estimada alta.
+- [x] Exibir para cada alerta: `Code`, `Message`, `Reason`, `SuggestedAction`, `Severity`.
+- [x] Internacionalizar labels/mensagens do advisor mantendo keywords SQL canônicas (ex.: `WHERE`, `ORDER BY`, `LIMIT/TOP/FETCH`).
+- [x] Cobrir cenários positivos e negativos por regra em `ExecutionPlanTests` (MySQL, SQL Server, SQLite).
+- [x] Aplicar gate de alto volume de leitura para warnings (`EstimatedRowsRead` alto), evitando ruído em consultas pequenas.
 

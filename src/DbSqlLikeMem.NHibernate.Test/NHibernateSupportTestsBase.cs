@@ -1,9 +1,9 @@
-using System.Data.Common;
-using NHibernate.Criterion;
 using NHibernate.Cfg;
 using NHibernate.Connection;
+using NHibernate.Criterion;
 using NHibernate.Mapping.ByCode;
 using NHibernate.Mapping.ByCode.Conformist;
+using System.Data.Common;
 using Environment = NHibernate.Cfg.Environment;
 
 namespace DbSqlLikeMem.NHibernate.Test;
@@ -12,7 +12,9 @@ namespace DbSqlLikeMem.NHibernate.Test;
 /// EN: Shared NHibernate integration contract tests for provider mock connections.
 /// PT: Testes de contrato de integração NHibernate compartilhados para conexões simulado por provedor.
 /// </summary>
-public abstract class NHibernateSupportTestsBase
+public abstract class NHibernateSupportTestsBase(
+    ITestOutputHelper helper
+) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: NHibernate dialect class full name used by this provider contract run.

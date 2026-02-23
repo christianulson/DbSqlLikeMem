@@ -3,8 +3,8 @@ namespace DbSqlLikeMem.SqlServer;
 internal static class SqlServerDbVersions
 {
     /// <summary>
-    /// EN: Represents Versions.
-    /// PT: Representa Versions.
+    /// EN: Returns SQL Server versions supported by this provider mock.
+    /// PT: Retorna as versões do SQL Server suportadas por este mock de provedor.
     /// </summary>
     public static IEnumerable<int> Versions()
     {

@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.MySql;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class MySqlQueryProvider.
+/// PT: Define a classe MySqlQueryProvider.
 /// </summary>
 public sealed class MySqlQueryProvider(
     MySqlConnectionMock cnn
@@ -11,7 +12,8 @@ public sealed class MySqlQueryProvider(
     private readonly MySqlTranslator _translator = new();
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements CreateQuery.
+    /// PT: Implementa CreateQuery.
     /// </summary>
     public IQueryable CreateQuery(Expression expression)
     {
@@ -29,7 +31,8 @@ public sealed class MySqlQueryProvider(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements this member.
+    /// PT: Implementa este membro.
     /// </summary>
     public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
     {
@@ -77,7 +80,8 @@ public sealed class MySqlQueryProvider(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements this member.
+    /// PT: Implementa este membro.
     /// </summary>
     public TResult Execute<TResult>(Expression expression)
     {

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle;
 
 /// <summary>
 /// EN: Represents the Oracle Data Source Mock type used by provider mocks.
-/// PT: Representa o tipo Oracle fonte de dados simulado usado pelos mocks do provedor.
+/// PT: Representa a fonte de dados simulada do Oracle usada pelos mocks do provedor.
 /// </summary>
 public sealed class OracleDataSourceMock(OracleDbMock? db = null)
 #if NET7_0_OR_GREATER
@@ -10,8 +10,8 @@ public sealed class OracleDataSourceMock(OracleDbMock? db = null)
 #endif
 {
     /// <summary>
-    /// EN: Executes connection string.
-    /// PT: Executa string de conexão.
+    /// EN: Gets the connection string exposed by this mock data source.
+    /// PT: Obtém a string de conexão exposta por esta fonte de dados simulada.
     /// </summary>
     public
 #if NET7_0_OR_GREATER
@@ -22,13 +22,13 @@ public sealed class OracleDataSourceMock(OracleDbMock? db = null)
 #if NET7_0_OR_GREATER
     /// <summary>
     /// EN: Creates a new db connection instance.
-    /// PT: Cria uma nova instância de db conexão.
+    /// PT: Cria uma nova instância de conexão de banco de dados.
     /// </summary>
     protected override DbConnection CreateDbConnection() => new OracleConnectionMock(db);
 #else
     /// <summary>
     /// EN: Creates a new db connection instance.
-    /// PT: Cria uma nova instância de db conexão.
+    /// PT: Cria uma nova instância de conexão de banco de dados.
     /// </summary>
     public OracleConnectionMock CreateDbConnection() => new OracleConnectionMock(db);
 #endif

@@ -14,15 +14,18 @@ public abstract class MemberDataByVersionAttribute(
 #endif
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SpecificVersions.
+    /// PT: Obtém ou define SpecificVersions.
     /// </summary>
     public int[]? SpecificVersions { get; set; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets VersionGraterOrEqual.
+    /// PT: Obtém ou define VersionGraterOrEqual.
     /// </summary>
     public int? VersionGraterOrEqual { get; set; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets VersionLessOrEqual.
+    /// PT: Obtém ou define VersionLessOrEqual.
     /// </summary>
     public int? VersionLessOrEqual { get; set; }
 

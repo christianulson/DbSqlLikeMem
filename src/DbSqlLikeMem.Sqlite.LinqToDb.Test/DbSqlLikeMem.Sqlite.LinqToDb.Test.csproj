@@ -38,6 +38,10 @@
     <ProjectReference Include="..\DbSqlLikeMem.Sqlite.LinqToDb\DbSqlLikeMem.Sqlite.LinqToDb.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
   </ItemGroup>
 
+	<ItemGroup Condition="'$(TargetFramework)' == 'net48' Or '$(TargetFramework)' == 'net6.0'">
+		<Using Include="Xunit.Abstractions" />
+	</ItemGroup>
+
   <ItemGroup>
     <Using Include="DbSqlLikeMem.LinqToDb" />
     <Using Include="DbSqlLikeMem.LinqToDb.Test" />

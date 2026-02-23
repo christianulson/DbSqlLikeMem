@@ -1,41 +1,168 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
-  <resheader name="version"><value>2.0</value></resheader>
-  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
-  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
-  <data name="ExecutionPlanTitle" xml:space="preserve"><value>Plan d'exécution (mock)</value></data>
-  <data name="QueryTypeLabel" xml:space="preserve"><value>TypeRequete</value></data>
-  <data name="EstimatedCostLabel" xml:space="preserve"><value>CoutEstime</value></data>
-  <data name="CtesLabel" xml:space="preserve"><value>CTEs</value></data>
-  <data name="CteMaterializeLabel" xml:space="preserve"><value>CTE Materialize</value></data>
-  <data name="FromLabel" xml:space="preserve"><value>From</value></data>
-  <data name="JoinLabel" xml:space="preserve"><value>Join</value></data>
-  <data name="FilterLabel" xml:space="preserve"><value>Filter</value></data>
-  <data name="GroupByLabel" xml:space="preserve"><value>GroupBy</value></data>
-  <data name="HavingLabel" xml:space="preserve"><value>Having</value></data>
-  <data name="ProjectionLabel" xml:space="preserve"><value>Projection</value></data>
-  <data name="DistinctLabel" xml:space="preserve"><value>Distinct</value></data>
-  <data name="SortLabel" xml:space="preserve"><value>Sort</value></data>
-  <data name="LimitLabel" xml:space="preserve"><value>Limit</value></data>
-  <data name="InputTablesLabel" xml:space="preserve"><value>TablesEntree</value></data>
-  <data name="EstimatedRowsReadLabel" xml:space="preserve"><value>LignesEstimeesLues</value></data>
-  <data name="ActualRowsLabel" xml:space="preserve"><value>LignesReelles</value></data>
-  <data name="SelectivityPctLabel" xml:space="preserve"><value>SelectivitePct</value></data>
-  <data name="RowsPerMsLabel" xml:space="preserve"><value>LignesParMs</value></data>
-  <data name="ElapsedMsLabel" xml:space="preserve"><value>TempsEcouleMs</value></data>
-  <data name="IndexRecommendationsLabel" xml:space="preserve"><value>RecommandationsIndex</value></data>
-  <data name="TableLabel" xml:space="preserve"><value>Table</value></data>
-  <data name="SuggestedIndexLabel" xml:space="preserve"><value>IndexSuggere</value></data>
-  <data name="ReasonLabel" xml:space="preserve"><value>Raison</value></data>
-  <data name="ConfidenceLabel" xml:space="preserve"><value>Confiance</value></data>
-  <data name="EstimatedRowsReadBeforeLabel" xml:space="preserve"><value>LignesEstimeesLuesAvant</value></data>
-  <data name="EstimatedRowsReadAfterLabel" xml:space="preserve"><value>LignesEstimeesLuesApres</value></data>
-  <data name="EstimatedGainPctLabel" xml:space="preserve"><value>GainEstimePct</value></data>
-  <data name="PartsLabel" xml:space="preserve"><value>Parties</value></data>
-  <data name="PartLabel" xml:space="preserve"><value>Partie</value></data>
-  <data name="CombineLabel" xml:space="preserve"><value>Combiner</value></data>
-  <data name="ReasonFilterAndOrder" xml:space="preserve"><value>WHERE/JOIN ({0}) + ORDER BY ({1}) sans index compatible. Clé suggérée : {2}.</value></data>
-  <data name="ReasonFilterOnly" xml:space="preserve"><value>Prédicats WHERE/JOIN ({0}) sans index compatible.</value></data>
-  <data name="ReasonOrderOnly" xml:space="preserve"><value>ORDER BY ({0}) sans index compatible.</value></data>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ExecutionPlanTitle" xml:space="preserve">
+    <value>Plan d'exécution (mock)</value>
+  </data>
+  <data name="QueryTypeLabel" xml:space="preserve">
+    <value>TypeRequete</value>
+  </data>
+  <data name="EstimatedCostLabel" xml:space="preserve">
+    <value>CoutEstime</value>
+  </data>
+  <data name="CtesLabel" xml:space="preserve">
+    <value>CTEs</value>
+  </data>
+  <data name="CteMaterializeLabel" xml:space="preserve">
+    <value>CTE Materialize</value>
+  </data>
+  <data name="FromLabel" xml:space="preserve">
+    <value>From</value>
+  </data>
+  <data name="JoinLabel" xml:space="preserve">
+    <value>Join</value>
+  </data>
+  <data name="FilterLabel" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="GroupByLabel" xml:space="preserve">
+    <value>GroupBy</value>
+  </data>
+  <data name="HavingLabel" xml:space="preserve">
+    <value>Having</value>
+  </data>
+  <data name="ProjectionLabel" xml:space="preserve">
+    <value>Projection</value>
+  </data>
+  <data name="DistinctLabel" xml:space="preserve">
+    <value>Distinct</value>
+  </data>
+  <data name="SortLabel" xml:space="preserve">
+    <value>Sort</value>
+  </data>
+  <data name="LimitLabel" xml:space="preserve">
+    <value>Limit</value>
+  </data>
+  <data name="InputTablesLabel" xml:space="preserve">
+    <value>TablesEntree</value>
+  </data>
+  <data name="EstimatedRowsReadLabel" xml:space="preserve">
+    <value>LignesEstimeesLues</value>
+  </data>
+  <data name="ActualRowsLabel" xml:space="preserve">
+    <value>LignesReelles</value>
+  </data>
+  <data name="SelectivityPctLabel" xml:space="preserve">
+    <value>SelectivitePct</value>
+  </data>
+  <data name="RowsPerMsLabel" xml:space="preserve">
+    <value>LignesParMs</value>
+  </data>
+  <data name="ElapsedMsLabel" xml:space="preserve">
+    <value>TempsEcouleMs</value>
+  </data>
+  <data name="IndexRecommendationsLabel" xml:space="preserve">
+    <value>RecommandationsIndex</value>
+  </data>
+  <data name="TableLabel" xml:space="preserve">
+    <value>Table</value>
+  </data>
+  <data name="SuggestedIndexLabel" xml:space="preserve">
+    <value>IndexSuggere</value>
+  </data>
+  <data name="ReasonLabel" xml:space="preserve">
+    <value>Raison</value>
+  </data>
+  <data name="ConfidenceLabel" xml:space="preserve">
+    <value>Confiance</value>
+  </data>
+  <data name="EstimatedRowsReadBeforeLabel" xml:space="preserve">
+    <value>LignesEstimeesLuesAvant</value>
+  </data>
+  <data name="EstimatedRowsReadAfterLabel" xml:space="preserve">
+    <value>LignesEstimeesLuesApres</value>
+  </data>
+  <data name="EstimatedGainPctLabel" xml:space="preserve">
+    <value>GainEstimePct</value>
+  </data>
+  <data name="PartsLabel" xml:space="preserve">
+    <value>Parties</value>
+  </data>
+  <data name="PartLabel" xml:space="preserve">
+    <value>Partie</value>
+  </data>
+  <data name="CombineLabel" xml:space="preserve">
+    <value>Combiner</value>
+  </data>
+  <data name="ReasonFilterAndOrder" xml:space="preserve">
+    <value>WHERE/JOIN ({0}) + ORDER BY ({1}) sans index compatible. Clé suggérée : {2}.</value>
+  </data>
+  <data name="ReasonFilterOnly" xml:space="preserve">
+    <value>Prédicats WHERE/JOIN ({0}) sans index compatible.</value>
+  </data>
+  <data name="ReasonOrderOnly" xml:space="preserve">
+    <value>ORDER BY ({0}) sans index compatible.</value>
+  </data>
+  <data name="PlanWarningsLabel" xml:space="preserve">
+    <value>AlertesPlan</value>
+  </data>
+  <data name="CodeLabel" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="MessageLabel" xml:space="preserve">
+    <value>Message</value>
+  </data>
+  <data name="SuggestedActionLabel" xml:space="preserve">
+    <value>ActionSuggeree</value>
+  </data>
+  <data name="SeverityLabel" xml:space="preserve">
+    <value>Severite</value>
+  </data>
+  <data name="WarningOrderByWithoutLimitMessage" xml:space="preserve">
+    <value>ORDER BY peut être coûteux sans LIMIT/TOP/FETCH.</value>
+  </data>
+  <data name="WarningOrderByWithoutLimitReason" xml:space="preserve">
+    <value>ORDER BY trie environ {0} lignes estimées sans LIMIT/TOP/FETCH.</value>
+  </data>
+  <data name="WarningOrderByWithoutLimitAction" xml:space="preserve">
+    <value>Utilisez LIMIT/TOP/FETCH lorsque possible, ou créez/maintenez un index aligné sur les colonnes de ORDER BY.</value>
+  </data>
+  <data name="WarningLowSelectivityMessage" xml:space="preserve">
+    <value>Faible sélectivité détectée avec un volume de lecture élevé.</value>
+  </data>
+  <data name="WarningLowSelectivityReason" xml:space="preserve">
+    <value>La requête a retourné un pourcentage élevé des lignes scannées (SelectivityPct={0:F2}) avec EstimatedRowsRead={1}.</value>
+  </data>
+  <data name="WarningLowSelectivityAction" xml:space="preserve">
+    <value>Affinez les prédicats WHERE et vérifiez si des prédicats plus sélectifs ou des index sont nécessaires.</value>
+  </data>
+  <data name="WarningSelectStarMessage" xml:space="preserve">
+    <value>SELECT * sur une requête à forte lecture peut augmenter l'I/O et l'utilisation mémoire.</value>
+  </data>
+  <data name="WarningSelectStarReason" xml:space="preserve">
+    <value>SELECT * a été utilisé alors que EstimatedRowsRead est {0}.</value>
+  </data>
+  <data name="WarningSelectStarAction" xml:space="preserve">
+    <value>Projetez uniquement les colonnes nécessaires au lieu de SELECT *.</value>
+  </data>
+  <data name="SeverityInfoValue" xml:space="preserve">
+    <value>Information</value>
+  </data>
+  <data name="SeverityWarningValue" xml:space="preserve">
+    <value>Avertissement</value>
+  </data>
+  <data name="SeverityHighValue" xml:space="preserve">
+    <value>Elevee</value>
+  </data>
 </root>

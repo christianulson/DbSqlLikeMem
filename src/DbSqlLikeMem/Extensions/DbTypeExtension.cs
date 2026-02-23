@@ -1,11 +1,13 @@
 namespace DbSqlLikeMem;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class DbTypeExtension.
+/// PT: Define a classe DbTypeExtension.
 /// </summary>
 public static class DbTypeExtension
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ConvertDbTypeToType.
+    /// PT: Implementa ConvertDbTypeToType.
     /// </summary>
     public static Type ConvertDbTypeToType(
         this DbType dbType)
@@ -34,7 +36,8 @@ public static class DbTypeExtension
         };
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ConvertTypeToDbType.
+    /// PT: Implementa ConvertTypeToDbType.
     /// </summary>
     public static DbType ConvertTypeToDbType(
         this Type type)

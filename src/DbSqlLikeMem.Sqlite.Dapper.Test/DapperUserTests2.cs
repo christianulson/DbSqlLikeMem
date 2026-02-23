@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class DapperUserTests2.
+/// PT: Define a classe DapperUserTests2.
 /// </summary>
 public sealed class DapperUserTests2(
         ITestOutputHelper helper
@@ -10,35 +11,43 @@ public sealed class DapperUserTests2(
     private sealed class User
     {
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Id.
+        /// PT: Obtém ou define Id.
         /// </summary>
         public int Id { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Name.
+        /// PT: Obtém ou define Name.
         /// </summary>
         public required string Name { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Email.
+        /// PT: Obtém ou define Email.
         /// </summary>
         public string? Email { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets CreatedDate.
+        /// PT: Obtém ou define CreatedDate.
         /// </summary>
         public DateTime CreatedDate { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets UpdatedData.
+        /// PT: Obtém ou define UpdatedData.
         /// </summary>
         public DateTime? UpdatedData { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets TestGuid.
+        /// PT: Obtém ou define TestGuid.
         /// </summary>
         public Guid TestGuid { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets TestGuidNull.
+        /// PT: Obtém ou define TestGuidNull.
         /// </summary>
         public Guid? TestGuidNull { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Tenants.
+        /// PT: Obtém ou define Tenants.
         /// </summary>
         public List<int> Tenants { get; set; } = [];
     }

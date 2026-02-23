@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Defines the class SqlValueHelperTests.
-/// PT: Define o(a) class SqlValueHelperTests.
+/// PT: Define a classe SqlValueHelperTests.
 /// </summary>
 public sealed class SqlValueHelperTests(
     ITestOutputHelper helper
@@ -84,12 +84,8 @@ public sealed class SqlValueHelperTests(
     }
 
     /// <summary>
-    /// EN: Describes the behavior validated by Like_ShouldMatch_MySqlStyle.
-    /// PT: Descreve o comportamento validado por Like_ShouldMatch_MySqlStyle.
-    /// </summary>
-    /// <summary>
-    /// EN: Describes the behavior validated by Like_ShouldMatch_MySqlStyle.
-    /// PT: Descreve o comportamento validado por Like_ShouldMatch_MySqlStyle.
+    /// EN: Validates OracleValueHelper LIKE matching semantics against representative patterns.
+    /// PT: Valida a semântica de correspondência do LIKE no OracleValueHelper com padrões representativos.
     /// </summary>
     [Theory]
     [Trait("Category", "SqlValueHelperTests ")]

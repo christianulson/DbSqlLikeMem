@@ -11,7 +11,8 @@ public sealed class MySqlAdvancedSqlGapTests : XUnitTestBase
     private const int MySqlWindowFunctionsMinVersion = 8;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests MySqlAdvancedSqlGapTests behavior.
+    /// PT: Testa o comportamento de MySqlAdvancedSqlGapTests.
     /// </summary>
     public MySqlAdvancedSqlGapTests(ITestOutputHelper helper) : base(helper)
     {

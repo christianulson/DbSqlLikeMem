@@ -9,7 +9,8 @@ public class OracleDbMock : DbMock
     internal override SqlDialectBase Dialect { get; set; }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements OracleDbMock.
+    /// PT: Implementa OracleDbMock.
     /// </summary>
     public OracleDbMock(
         int? version = null

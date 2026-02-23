@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqliteAdditionalBehaviorCoverageTests.
+/// PT: Define a classe SqliteAdditionalBehaviorCoverageTests.
 /// </summary>
 public sealed class SqliteAdditionalBehaviorCoverageTests : XUnitTestBase
 {
@@ -10,7 +11,8 @@ public sealed class SqliteAdditionalBehaviorCoverageTests : XUnitTestBase
     private static readonly int[] paramArray = [1, 2];
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests SqliteAdditionalBehaviorCoverageTests behavior.
+    /// PT: Testa o comportamento de SqliteAdditionalBehaviorCoverageTests.
     /// </summary>
     public SqliteAdditionalBehaviorCoverageTests(
         ITestOutputHelper helper

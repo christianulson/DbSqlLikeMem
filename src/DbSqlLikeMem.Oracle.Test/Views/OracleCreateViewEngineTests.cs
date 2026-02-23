@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test.Views;
 
 /// <summary>
 /// EN: Defines the class OracleCreateViewEngineTests.
-/// PT: Define o(a) class OracleCreateViewEngineTests.
+/// PT: Define a classe OracleCreateViewEngineTests.
 /// </summary>
 public sealed class OracleCreateViewEngineTests : XUnitTestBase
 {

@@ -1,7 +1,6 @@
 using DbSqlLikeMem.Interfaces;
 using System.Diagnostics;
 using DbSqlLikeMem.Models;
-using DbSqlLikeMem.Resources;
 using System.Collections.Concurrent;
 
 namespace DbSqlLikeMem;
@@ -75,7 +74,8 @@ internal abstract class AstQueryExecutorBase(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ExecuteUnion.
+    /// PT: Implementa ExecuteUnion.
     /// </summary>
     public TableResultMock ExecuteUnion(
         IReadOnlyList<SqlSelectQuery> parts,
@@ -335,7 +335,8 @@ internal abstract class AstQueryExecutorBase(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ExecuteSelect.
+    /// PT: Implementa ExecuteSelect.
     /// </summary>
     public TableResultMock ExecuteSelect(SqlSelectQuery q)
     {
@@ -345,12 +346,61 @@ internal abstract class AstQueryExecutorBase(
 
         var metrics = BuildPlanRuntimeMetrics(q, result.Count, sw.ElapsedMilliseconds);
         var indexRecommendations = BuildIndexRecommendations(q, metrics);
-        var plan = SqlExecutionPlanFormatter.FormatSelect(q, metrics, indexRecommendations);
+        var planWarnings = BuildPlanWarnings(q, metrics);
+        var plan = SqlExecutionPlanFormatter.FormatSelect(q, metrics, indexRecommendations, planWarnings);
         result.ExecutionPlan = plan;
         _cnn.RegisterExecutionPlan(plan);
         return result;
     }
 
+
+    private IReadOnlyList<SqlPlanWarning> BuildPlanWarnings(
+        SqlSelectQuery query,
+        SqlPlanRuntimeMetrics metrics)
+    {
+        const long HighReadThreshold = 100;
+        const double LowSelectivityThresholdPct = 60d;
+
+        if (metrics.EstimatedRowsRead < HighReadThreshold)
+            return [];
+
+        var warnings = new List<SqlPlanWarning>();
+
+        if (query.OrderBy.Count > 0 && query.RowLimit is null)
+        {
+            warnings.Add(new SqlPlanWarning(
+                "PW001",
+                SqlExecutionPlanMessages.WarningOrderByWithoutLimitMessage(),
+                SqlExecutionPlanMessages.WarningOrderByWithoutLimitReason(metrics.EstimatedRowsRead),
+                SqlExecutionPlanMessages.WarningOrderByWithoutLimitAction(),
+                SqlPlanWarningSeverity.High));
+        }
+
+        if (metrics.SelectivityPct >= LowSelectivityThresholdPct)
+        {
+            warnings.Add(new SqlPlanWarning(
+                "PW002",
+                SqlExecutionPlanMessages.WarningLowSelectivityMessage(),
+                SqlExecutionPlanMessages.WarningLowSelectivityReason(metrics.SelectivityPct, metrics.EstimatedRowsRead),
+                SqlExecutionPlanMessages.WarningLowSelectivityAction(),
+                SqlPlanWarningSeverity.Warning));
+        }
+
+        if (HasSelectStar(query))
+        {
+            warnings.Add(new SqlPlanWarning(
+                "PW003",
+                SqlExecutionPlanMessages.WarningSelectStarMessage(),
+                SqlExecutionPlanMessages.WarningSelectStarReason(metrics.EstimatedRowsRead),
+                SqlExecutionPlanMessages.WarningSelectStarAction(),
+                SqlPlanWarningSeverity.Info));
+        }
+
+        return warnings;
+    }
+
+    private static bool HasSelectStar(SqlSelectQuery query)
+        => query.SelectItems.Any(static item => string.Equals(item.Raw?.Trim(), "*", StringComparison.Ordinal));
     private IReadOnlyList<SqlIndexRecommendation> BuildIndexRecommendations(
         SqlSelectQuery query,
         SqlPlanRuntimeMetrics metrics)
@@ -579,7 +629,7 @@ internal abstract class AstQueryExecutorBase(
             if (string.IsNullOrWhiteSpace(token))
                 continue;
 
-            if (!TryResolveColumn(token, sourceMap, out var tableName, out var columnName))
+            if (!TryResolveColumn(token!, sourceMap, out var tableName, out var columnName))
                 continue;
 
             if (!result.TryGetValue(tableName, out var list))
@@ -691,7 +741,7 @@ internal abstract class AstQueryExecutorBase(
         tableName = string.Empty;
         columnName = string.Empty;
 
-        var parts = token.Split('.', StringSplitOptions.RemoveEmptyEntries).Select(static p => p.Trim()).Where(static p => p.Length > 0).ToArray();
+        var parts = token.Split('.').Select(static p => p.Trim()).Where(static p => p.Length > 0).ToArray();
         if (parts.Length == 0)
             return false;
 
@@ -1950,17 +2000,20 @@ internal abstract class AstQueryExecutorBase(
     private sealed class SelectPlan
     {
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Columns.
+        /// PT: Obtém ou define Columns.
         /// </summary>
         public required List<TableResultColMock> Columns { get; init; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Evaluators.
+        /// PT: Obtém ou define Evaluators.
         /// </summary>
         public required List<Func<EvalRow, EvalGroup?, object?>> Evaluators { get; init; }
 
         // Window functions computed over the current rowset (e.g. ROW_NUMBER() OVER (...))
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets WindowSlots.
+        /// PT: Obtém ou define WindowSlots.
         /// </summary>
         public required List<WindowSlot> WindowSlots { get; init; }
     }
@@ -1968,11 +2021,13 @@ internal abstract class AstQueryExecutorBase(
     private sealed class WindowSlot
     {
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Expr.
+        /// PT: Obtém ou define Expr.
         /// </summary>
         public required WindowFunctionExpr Expr { get; init; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Map.
+        /// PT: Obtém ou define Map.
         /// </summary>
         public required Dictionary<EvalRow, object?> Map { get; init; }
     }
@@ -1981,15 +2036,18 @@ internal abstract class AstQueryExecutorBase(
         where T : class
     {
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Implements new.
+        /// PT: Implementa new.
         /// </summary>
         public static readonly ReferenceEqualityComparer<T> Instance = new();
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Implements Equals.
+        /// PT: Implementa Equals.
         /// </summary>
         public bool Equals(T? x, T? y) => ReferenceEquals(x, y);
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Implements GetHashCode.
+        /// PT: Implementa GetHashCode.
         /// </summary>
         public int GetHashCode(T obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
     }
@@ -4482,15 +4540,18 @@ private void FillPercentRankOrCumeDist(
         internal ITableMock? Physical { get; }
         private readonly TableResultMock? _result;
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Alias.
+        /// PT: Obtém ou define Alias.
         /// </summary>
         public string Alias { get; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Name.
+        /// PT: Obtém ou define Name.
         /// </summary>
         public string Name { get; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets ColumnNames.
+        /// PT: Obtém ou define ColumnNames.
         /// </summary>
         public IReadOnlyList<string> ColumnNames { get; }
         public IReadOnlyList<SqlMySqlIndexHint> MySqlIndexHints { get; }
@@ -4513,7 +4574,8 @@ private void FillPercentRankOrCumeDist(
             MySqlIndexHints = [];
         }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Implements WithAlias.
+        /// PT: Implementa WithAlias.
         /// </summary>
         public Source WithAlias(string alias)
         {
@@ -4523,7 +4585,8 @@ private void FillPercentRankOrCumeDist(
         }
 
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Implements Rows.
+        /// PT: Implementa Rows.
         /// </summary>
         public IEnumerable<Dictionary<string, object?>> Rows()
         {
@@ -4596,19 +4659,22 @@ private void FillPercentRankOrCumeDist(
         }
 
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Implements FromPhysical.
+        /// PT: Implementa FromPhysical.
         /// </summary>
         public static Source FromPhysical(string tableName, string alias, ITableMock physical, IReadOnlyList<SqlMySqlIndexHint>? mySqlIndexHints = null)
             => new(tableName, alias, physical, mySqlIndexHints);
        
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Implements FromResult.
+        /// PT: Implementa FromResult.
         /// </summary>
         public static Source FromResult(string tableName, string alias, TableResultMock result)
             => new(tableName, alias, result);
        
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Implements FromResult.
+        /// PT: Implementa FromResult.
         /// </summary>
         public static Source FromResult(string tableName, TableResultMock result)
             => new(tableName, tableName, result);
@@ -4619,7 +4685,8 @@ private void FillPercentRankOrCumeDist(
         Dictionary<string, Source> Sources)
     {
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Implements FromProjected.
+        /// PT: Implementa FromProjected.
         /// </summary>
         public static EvalRow FromProjected(
             TableResultMock res,
@@ -4635,7 +4702,8 @@ private void FillPercentRankOrCumeDist(
         }
 
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Implements CloneRow.
+        /// PT: Implementa CloneRow.
         /// </summary>
         public EvalRow CloneRow()
             => new(new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase),
@@ -4650,12 +4718,14 @@ private void FillPercentRankOrCumeDist(
                    new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase));
 
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Implements AddSource.
+        /// PT: Implementa AddSource.
         /// </summary>
         public void AddSource(Source src) => Sources[src.Alias] = src;
 
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Implements AddFields.
+        /// PT: Implementa AddFields.
         /// </summary>
         public void AddFields(Dictionary<string, object?> fields)
         {
@@ -4731,11 +4801,13 @@ private void FillPercentRankOrCumeDist(
     private sealed class EvalGroup
     {
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Rows.
+        /// PT: Obtém ou define Rows.
         /// </summary>
         public List<EvalRow> Rows { get; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Implements EvalGroup.
+        /// PT: Implementa EvalGroup.
         /// </summary>
         public EvalGroup(List<EvalRow> rows) => Rows = rows;
     }
@@ -4743,14 +4815,16 @@ private void FillPercentRankOrCumeDist(
     private readonly record struct GroupKey(object?[] Values)
     {
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Implements GroupKeyComparer.
+        /// PT: Implementa GroupKeyComparer.
         /// </summary>
         public static readonly IEqualityComparer<GroupKey> Comparer = new GroupKeyComparer();
 
         private sealed class GroupKeyComparer : IEqualityComparer<GroupKey>
         {
             /// <summary>
-            /// Auto-generated summary.
+            /// EN: Implements Equals.
+            /// PT: Implementa Equals.
             /// </summary>
             public bool Equals(GroupKey x, GroupKey y)
             {
@@ -4761,7 +4835,8 @@ private void FillPercentRankOrCumeDist(
             }
 
             /// <summary>
-            /// Auto-generated summary.
+            /// EN: Implements GetHashCode.
+            /// PT: Implementa GetHashCode.
             /// </summary>
             public int GetHashCode(GroupKey obj)
             {
@@ -4776,7 +4851,8 @@ private void FillPercentRankOrCumeDist(
     private sealed class ArrayObjectComparer : IComparer<object?>
     {
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Implements Compare.
+        /// PT: Implementa Compare.
         /// </summary>
         public int Compare(object? x, object? y)
         {

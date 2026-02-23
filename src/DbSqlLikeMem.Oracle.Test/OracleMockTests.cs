@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Defines the class OracleMockTests.
-/// PT: Define o(a) class OracleMockTests.
+/// PT: Define a classe OracleMockTests.
 /// </summary>
 public sealed class OracleMockTests
     : XUnitTestBase

@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Db2.LinqToDb.Test;
 /// EN: Executes shared LinqToDB smoke contract tests using the Db2 provider connection factory.
 /// PT: Executa testes compartilhados de contrato smoke de LinqToDB usando a fábrica de conexão do provedor Db2.
 /// </summary>
-public sealed class LinqToDbSmokeTests : LinqToDbSupportTestsBase
+public sealed class LinqToDbSmokeTests(
+    ITestOutputHelper helper
+) : LinqToDbSupportTestsBase(helper)
 {
     /// <summary>
     /// EN: Creates the Db2 LinqToDB connection factory used by shared contract tests.

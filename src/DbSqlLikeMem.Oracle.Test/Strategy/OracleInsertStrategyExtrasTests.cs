@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test.Strategy;
 /// <summary>
 /// EN: Defines the class OracleInsertStrategyExtrasTests.
-/// PT: Define o(a) class OracleInsertStrategyExtrasTests.
+/// PT: Define a classe OracleInsertStrategyExtrasTests.
 /// </summary>
 public sealed class OracleInsertStrategyExtrasTests(
         ITestOutputHelper helper
@@ -95,7 +95,7 @@ public sealed class OracleInsertStrategyExtrasTests(
 
     /// <summary>
     /// EN: Tests delete strategy behavior with foreign keys.
-    /// PT: Testes do comportamento da estratégia de delete com chaves estrangeiras.
+    /// PT: Testes do comportamento da estratégia de exclusão com chaves estrangeiras.
     /// </summary>
 public class OracleDeleteStrategyForeignKeyTests
 {
@@ -135,7 +135,7 @@ public class OracleDeleteStrategyForeignKeyTests
 
     /// <summary>
     /// EN: Extra tests for update strategy behavior.
-    /// PT: Testes extras do comportamento da estratégia de update.
+    /// PT: Testes extras do comportamento da estratégia de atualização.
     /// </summary>
 public class OracleUpdateStrategyExtrasTests
 {

@@ -37,6 +37,10 @@
 		<ProjectReference Include="..\DbSqlLikeMem.Npgsql.NHibernate\DbSqlLikeMem.Npgsql.NHibernate.csproj" />
 	</ItemGroup>
 
+	<ItemGroup Condition="'$(TargetFramework)' == 'net48' Or '$(TargetFramework)' == 'net6.0'">
+		<Using Include="Xunit.Abstractions" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<Using Include="DbSqlLikeMem" />
 		<Using Include="DbSqlLikeMem.Npgsql" />

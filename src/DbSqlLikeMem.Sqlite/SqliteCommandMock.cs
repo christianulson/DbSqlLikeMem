@@ -70,7 +70,7 @@ public class SqliteCommandMock(
 
     /// <summary>
     /// EN: Gets or sets updated row source.
-    /// PT: Obtém ou define updated row source.
+    /// PT: Obtém ou define como os resultados do comando são aplicados ao DataRow.
     /// </summary>
     public override UpdateRowSource UpdatedRowSource { get; set; }
     /// <summary>

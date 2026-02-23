@@ -17,7 +17,8 @@ internal class OracleTableMock(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Resolve.
+    /// PT: Implementa Resolve.
     /// </summary>
     public override object? Resolve(
         string token,
@@ -31,31 +32,36 @@ internal class OracleTableMock(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements UnknownColumn.
+    /// PT: Implementa UnknownColumn.
     /// </summary>
     public override Exception UnknownColumn(string columnName)
         => OracleExceptionFactory.UnknownColumn(columnName);
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements DuplicateKey.
+    /// PT: Implementa DuplicateKey.
     /// </summary>
     public override Exception DuplicateKey(string tbl, string key, object? val)
         => OracleExceptionFactory.DuplicateKey(tbl, key, val);
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ColumnCannotBeNull.
+    /// PT: Implementa ColumnCannotBeNull.
     /// </summary>
     public override Exception ColumnCannotBeNull(string col)
         => OracleExceptionFactory.ColumnCannotBeNull(col);
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ForeignKeyFails.
+    /// PT: Implementa ForeignKeyFails.
     /// </summary>
     public override Exception ForeignKeyFails(string col, string refTbl)
         => OracleExceptionFactory.ForeignKeyFails(col, refTbl);
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ReferencedRow.
+    /// PT: Implementa ReferencedRow.
     /// </summary>
     public override Exception ReferencedRow(string tbl)
         => OracleExceptionFactory.ReferencedRow(tbl);

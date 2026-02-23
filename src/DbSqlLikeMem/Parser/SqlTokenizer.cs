@@ -7,7 +7,8 @@ internal sealed class SqlTokenizer
     private int _pos;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements SqlTokenizer.
+    /// PT: Implementa SqlTokenizer.
     /// </summary>
     public SqlTokenizer(string sql, ISqlDialect dialect)
     {
@@ -16,7 +17,8 @@ internal sealed class SqlTokenizer
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Tokenize.
+    /// PT: Implementa Tokenize.
     /// </summary>
     public IReadOnlyList<SqlToken> Tokenize()
     {

@@ -44,8 +44,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.Dapper.Test\DbSqlLikeMem.Dapper.Test.csproj" />
 		<ProjectReference Include="..\DbSqlLikeMem.MySql\DbSqlLikeMem.MySql.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
-		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net48' Or '$(TargetFramework)' == 'net6.0'">

@@ -37,24 +37,29 @@ internal sealed class MySqlDialect : SqlDialectBase
     internal const int WindowFunctionsMinVersion = 8;
     internal const int JsonExtractMinVersion = 5;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets AllowsBacktickIdentifiers.
+    /// PT: Obtém ou define AllowsBacktickIdentifiers.
     /// </summary>
     public override bool AllowsBacktickIdentifiers => true;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets AllowsDoubleQuoteIdentifiers.
+    /// PT: Obtém ou define AllowsDoubleQuoteIdentifiers.
     /// </summary>
     public override bool AllowsDoubleQuoteIdentifiers => false; // keep tokenizer behavior: " as string
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets IdentifierEscapeStyle.
+    /// PT: Obtém ou define IdentifierEscapeStyle.
     /// </summary>
     public override SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.backtick;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements IsStringQuote.
+    /// PT: Implementa IsStringQuote.
     /// </summary>
     public override bool IsStringQuote(char ch) => ch is '\'' or '"';
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets StringEscapeStyle.
+    /// PT: Obtém ou define StringEscapeStyle.
     /// </summary>
     public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.backslash;
     /// <summary>
@@ -77,13 +82,15 @@ internal sealed class MySqlDialect : SqlDialectBase
 
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsHashLineComment.
+    /// PT: Obtém ou define SupportsHashLineComment.
     /// </summary>
     public override bool SupportsHashLineComment => true;
 
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsLimitOffset.
+    /// PT: Obtém ou define SupportsLimitOffset.
     /// </summary>
     public override bool SupportsLimitOffset => true;
     /// <summary>
@@ -92,17 +99,20 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsOffsetFetch => true;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsOnDuplicateKeyUpdate.
+    /// PT: Obtém ou define SupportsOnDuplicateKeyUpdate.
     /// </summary>
     public override bool SupportsOnDuplicateKeyUpdate => true;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsDeleteWithoutFrom.
+    /// PT: Obtém ou define SupportsDeleteWithoutFrom.
     /// </summary>
     public override bool SupportsDeleteWithoutFrom => true; // MySQL accepts DELETE [FROM] tbl
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsWithCte.
+    /// PT: Obtém ou define SupportsWithCte.
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
 
@@ -118,7 +128,8 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsWindowFunctions => Version >= WindowFunctionsMinVersion;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsNullSafeEq.
+    /// PT: Obtém ou define SupportsNullSafeEq.
     /// </summary>
     public override bool SupportsNullSafeEq => true;
 
@@ -134,7 +145,8 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// </summary>
     public override bool ConcatReturnsNullOnNullInput => true;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsJsonArrowOperators.
+    /// PT: Obtém ou define SupportsJsonArrowOperators.
     /// </summary>
     public override bool SupportsJsonArrowOperators => Version >= JsonExtractMinVersion;
 

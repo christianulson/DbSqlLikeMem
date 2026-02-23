@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class ExtendedDb2MockTests.
+/// PT: Define a classe ExtendedDb2MockTests.
 /// </summary>
 public sealed class ExtendedDb2MockTests(
         ITestOutputHelper helper

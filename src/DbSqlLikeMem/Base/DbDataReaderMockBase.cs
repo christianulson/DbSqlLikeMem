@@ -84,7 +84,8 @@ public abstract class DbDataReaderMockBase(
     /// </summary>
     public override byte GetByte(int ordinal) => (byte)this[ordinal];
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements GetBytes.
+    /// PT: Implementa GetBytes.
     /// </summary>
     public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length) => throw new NotImplementedException();
     /// <summary>
@@ -93,7 +94,8 @@ public abstract class DbDataReaderMockBase(
     /// </summary>
     public override char GetChar(int ordinal) => (char)this[ordinal];
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements GetChars.
+    /// PT: Implementa GetChars.
     /// </summary>
     public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) => throw new NotImplementedException();
     /// <summary>

@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test;
 /// <summary>
 /// EN: Defines the class DapperUserTests.
-/// PT: Define o(a) class DapperUserTests.
+/// PT: Define a classe DapperUserTests.
 /// </summary>
 public sealed class DapperUserTests(
         ITestOutputHelper helper

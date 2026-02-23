@@ -11,7 +11,8 @@ internal sealed class SqlExpressionParser(
     private int _i;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ParseWhere.
+    /// PT: Implementa ParseWhere.
     /// </summary>
     public static SqlExpr ParseWhere(
         string whereSql,
@@ -27,7 +28,8 @@ internal sealed class SqlExpressionParser(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ParseScalar.
+    /// PT: Implementa ParseScalar.
     /// </summary>
     public static SqlExpr ParseScalar(string sql, ISqlDialect dialect)
     {
@@ -54,7 +56,8 @@ internal sealed class SqlExpressionParser(
 
     // Pratt: parse com binding power
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ParseExpression.
+    /// PT: Implementa ParseExpression.
     /// </summary>
     public SqlExpr ParseExpression(int minBp)
     {
