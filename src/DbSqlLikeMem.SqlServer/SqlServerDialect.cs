@@ -32,6 +32,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
     internal const int MergeMinVersion = 2008;
     internal const int OffsetFetchMinVersion = 2012;
     internal const int JsonFunctionsMinVersion = 2016;
+    internal const int WindowFunctionsMinVersion = 2005;
 
     /// <summary>
     /// EN: Gets or sets allows bracket identifiers.
@@ -66,6 +67,18 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// PT: Obtém se há suporte a top.
     /// </summary>
     public override bool SupportsTop => true;
+
+    /// <summary>
+    /// EN: Indicates whether SQL window functions are supported by the configured SQL Server version.
+    /// PT: Indica se funções de janela SQL são suportadas pela versão configurada do SQL Server.
+    /// </summary>
+    public override bool SupportsWindowFunctions => Version >= WindowFunctionsMinVersion;
+
+    /// <summary>
+    /// EN: Indicates whether SQL window frame clauses are supported by the configured version.
+    /// PT: Indica se cláusulas de frame de janela SQL são suportadas pela versão configurada.
+    /// </summary>
+    public override bool SupportsWindowFrameClause => Version >= WindowFunctionsMinVersion;
 
     // OFFSET ... FETCH entrou no SQL Server 2012.
     /// <summary>

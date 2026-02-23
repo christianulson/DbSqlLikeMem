@@ -119,8 +119,12 @@ internal interface ISqlDialect
     bool IsIntegerCastTypeName(string typeName);
     bool SupportsDateAddFunction(string functionName);
     bool SupportsWindowFunctions { get; }
+    bool SupportsWindowFrameClause { get; }
     bool SupportsLikeEscapeClause { get; }
     bool IsRowNumberWindowFunction(string functionName);
+    bool SupportsWindowFunction(string functionName);
+    bool RequiresOrderByInWindowFunction(string functionName);
+    bool TryGetWindowFunctionArgumentArity(string functionName, out int minArgs, out int maxArgs);
     bool SupportsPivotClause { get; }
     DbType InferWindowFunctionDbType(WindowFunctionExpr windowFunctionExpr, Func<SqlExpr, DbType> inferArgDbType);
 }
@@ -275,6 +279,7 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual bool SupportsIfFunction => true;
     public virtual bool SupportsIifFunction => true;
     public virtual bool SupportsWindowFunctions => true;
+    public virtual bool SupportsWindowFrameClause => false;
     public virtual bool SupportsPivotClause => false;
     public virtual IReadOnlyCollection<string> NullSubstituteFunctionNames
         => ["IFNULL", "ISNULL", "NVL"];
@@ -335,6 +340,103 @@ internal abstract class SqlDialectBase : ISqlDialect
 
     public virtual bool IsRowNumberWindowFunction(string functionName)
         => functionName.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// EN: Indicates whether a specific window function name is supported by the current dialect/version.
+    /// PT: Indica se um nome específico de função de janela é suportado pelo dialeto/versão atual.
+    /// </summary>
+    public virtual bool SupportsWindowFunction(string functionName)
+    {
+        if (!SupportsWindowFunctions || string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        if (IsRowNumberWindowFunction(functionName))
+            return true;
+
+        return functionName.Equals("RANK", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("DENSE_RANK", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("NTILE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("PERCENT_RANK", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("CUME_DIST", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LAG", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LEAD", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("FIRST_VALUE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Indicates whether a specific window function requires ORDER BY inside OVER clause.
+    /// PT: Indica se uma função de janela específica exige ORDER BY dentro da cláusula OVER.
+    /// </summary>
+    public virtual bool RequiresOrderByInWindowFunction(string functionName)
+    {
+        if (string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        return IsRowNumberWindowFunction(functionName)
+            || functionName.Equals("RANK", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("DENSE_RANK", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("NTILE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("PERCENT_RANK", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("CUME_DIST", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LAG", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LEAD", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("FIRST_VALUE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Gets accepted argument arity range for a supported window function.
+    /// PT: Obtém o intervalo de aridade aceito para uma função de janela suportada.
+    /// </summary>
+    public virtual bool TryGetWindowFunctionArgumentArity(string functionName, out int minArgs, out int maxArgs)
+    {
+        minArgs = 0;
+        maxArgs = 0;
+
+        if (!SupportsWindowFunction(functionName))
+            return false;
+
+        if (IsRowNumberWindowFunction(functionName)
+            || functionName.Equals("RANK", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("DENSE_RANK", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("PERCENT_RANK", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("CUME_DIST", StringComparison.OrdinalIgnoreCase))
+        {
+            minArgs = 0;
+            maxArgs = 0;
+            return true;
+        }
+
+        if (functionName.Equals("NTILE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("FIRST_VALUE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase))
+        {
+            minArgs = 1;
+            maxArgs = 1;
+            return true;
+        }
+
+        if (functionName.Equals("LAG", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LEAD", StringComparison.OrdinalIgnoreCase))
+        {
+            minArgs = 1;
+            maxArgs = 3;
+            return true;
+        }
+
+        if (functionName.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase))
+        {
+            minArgs = 2;
+            maxArgs = 2;
+            return true;
+        }
+
+        return false;
+    }
 
     public virtual DbType InferWindowFunctionDbType(
         WindowFunctionExpr windowFunctionExpr,

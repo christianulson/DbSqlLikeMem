@@ -2177,9 +2177,17 @@ internal abstract class AstQueryExecutorBase(
             var isLastValue = w.Name.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase);
             var isNthValue = w.Name.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase);
 
-            // Keep unsupported window functions as no-op until explicitly implemented.
+            // Fail fast for unsupported window functions to keep runtime behavior aligned with parser dialect gates.
             if (!isRowNumber && !isRank && !isDenseRank && !isNtile && !isPercentRank && !isCumeDist && !isLag && !isLead && !isFirstValue && !isLastValue && !isNthValue)
-                continue;
+                throw SqlUnsupported.ForDialect(
+                    Dialect ?? throw new InvalidOperationException("Dialect is required for window function validation."),
+                    $"window functions ({w.Name})");
+
+            if (Dialect?.RequiresOrderByInWindowFunction(w.Name) == true && w.Spec.OrderBy.Count == 0)
+                throw new InvalidOperationException($"Window function '{w.Name}' requires ORDER BY in OVER clause.");
+
+            if (w.Spec.Frame is not null && w.Spec.Frame.Unit != WindowFrameUnit.Rows)
+                throw new InvalidOperationException($"Window frame unit '{w.Spec.Frame.Unit}' is not implemented for runtime execution.");
 
             // Partitioning
             var partitions = new Dictionary<string, List<EvalRow>>(StringComparer.Ordinal);
@@ -2336,11 +2344,18 @@ private void FillFirstOrLastValue(
             return;
 
         var valueExpr = windowFunctionExpr.Args[0];
-        var target = fillLast ? part[^1] : part[0];
-        var resolved = Eval(valueExpr, target, null, ctes);
+        for (var i = 0; i < part.Count; i++)
+        {
+            var frameRange = ResolveRowsFrameRange(windowFunctionExpr.Spec.Frame, part.Count, i);
+            if (frameRange.IsEmpty)
+            {
+                map[part[i]] = null;
+                continue;
+            }
 
-        foreach (var row in part)
-            map[row] = resolved;
+            var targetIndex = fillLast ? frameRange.EndIndex : frameRange.StartIndex;
+            map[part[i]] = Eval(valueExpr, part[targetIndex], null, ctes);
+        }
     }
 
 
@@ -2362,13 +2377,60 @@ private void FillNthValue(
         if (nth <= 0)
             return;
 
-        var targetIndex = nth - 1;
-        var resolved = targetIndex >= 0 && targetIndex < part.Count
-            ? Eval(valueExpr, part[targetIndex], null, ctes)
-            : null;
+        for (var i = 0; i < part.Count; i++)
+        {
+            var frameRange = ResolveRowsFrameRange(windowFunctionExpr.Spec.Frame, part.Count, i);
+            if (frameRange.IsEmpty)
+            {
+                map[part[i]] = null;
+                continue;
+            }
 
-        foreach (var row in part)
-            map[row] = resolved;
+            var targetIndex = frameRange.StartIndex + (nth - 1);
+            map[part[i]] = targetIndex <= frameRange.EndIndex
+                ? Eval(valueExpr, part[targetIndex], null, ctes)
+                : null;
+        }
+    }
+
+    /// <summary>
+    /// EN: Resolves row index boundaries for a ROWS window frame for the current row.
+    /// PT: Resolve os limites de índice de linha para um frame ROWS da janela na linha atual.
+    /// </summary>
+    private static RowsFrameRange ResolveRowsFrameRange(WindowFrameSpec? frame, int partitionSize, int rowIndex)
+    {
+        if (partitionSize <= 0)
+            return RowsFrameRange.Empty;
+
+        if (frame is null)
+            return new RowsFrameRange(0, partitionSize - 1, isEmpty: false);
+
+        var startIndex = ResolveRowsFrameBoundIndex(frame.Start, rowIndex, partitionSize, isStartBound: true);
+        var endIndex = ResolveRowsFrameBoundIndex(frame.End, rowIndex, partitionSize, isStartBound: false);
+
+        if (startIndex > endIndex)
+            return RowsFrameRange.Empty;
+
+        return new RowsFrameRange(startIndex, endIndex, isEmpty: false);
+    }
+
+    private static int ResolveRowsFrameBoundIndex(WindowFrameBound bound, int rowIndex, int partitionSize, bool isStartBound)
+    {
+        var lastIndex = partitionSize - 1;
+        return bound.Kind switch
+        {
+            WindowFrameBoundKind.UnboundedPreceding => 0,
+            WindowFrameBoundKind.UnboundedFollowing => lastIndex,
+            WindowFrameBoundKind.CurrentRow => rowIndex,
+            WindowFrameBoundKind.Preceding => Math.Clamp(rowIndex - bound.Offset.GetValueOrDefault(), 0, lastIndex),
+            WindowFrameBoundKind.Following => Math.Clamp(rowIndex + bound.Offset.GetValueOrDefault(), 0, lastIndex),
+            _ => isStartBound ? 0 : lastIndex
+        };
+    }
+
+    private readonly record struct RowsFrameRange(int StartIndex, int EndIndex, bool IsEmpty)
+    {
+        public static RowsFrameRange Empty => new(0, -1, isEmpty: true);
     }
 
         private static bool TryReadIntLiteral(SqlExpr expr, out int value)
@@ -2724,10 +2786,13 @@ private void FillPercentRankOrCumeDist(
 
             if (exprAst is WindowFunctionExpr w)
             {
-                if (!(Dialect?.SupportsWindowFunctions ?? true))
+                if (!(Dialect?.SupportsWindowFunctions ?? true)
+                    || !(Dialect?.SupportsWindowFunction(w.Name) ?? true))
                     throw SqlUnsupported.ForDialect(
                         Dialect!,
                         $"window functions ({w.Name})");
+
+                EnsureWindowFunctionArgumentsAtRuntime(w);
 
                 // slot.Map preenchido depois (quando tivermos todas as rows)
                 var slot = new WindowSlot
@@ -2752,6 +2817,28 @@ private void FillPercentRankOrCumeDist(
             Console.WriteLine($" - {c.ColumnAlias}");
 
         return new SelectPlan { Columns = cols, Evaluators = evals, WindowSlots = windowSlots };
+    }
+
+    /// <summary>
+    /// EN: Validates window function argument arity at runtime to protect execution paths that bypass parser validation.
+    /// PT: Valida a aridade dos argumentos de funções de janela em runtime para proteger caminhos de execução que ignoram a validação do parser.
+    /// </summary>
+    private void EnsureWindowFunctionArgumentsAtRuntime(WindowFunctionExpr windowFunctionExpr)
+    {
+        if (Dialect is null)
+            return;
+
+        if (!Dialect.TryGetWindowFunctionArgumentArity(windowFunctionExpr.Name, out var minArgs, out var maxArgs))
+            return;
+
+        var actualArgs = windowFunctionExpr.Args.Count;
+        if (actualArgs < minArgs || actualArgs > maxArgs)
+        {
+            if (minArgs == maxArgs)
+                throw new InvalidOperationException($"Window function '{windowFunctionExpr.Name}' expects exactly {minArgs} argument(s), but received {actualArgs}.");
+
+            throw new InvalidOperationException($"Window function '{windowFunctionExpr.Name}' expects between {minArgs} and {maxArgs} argument(s), but received {actualArgs}.");
+        }
     }
 
     private DbType InferDbTypeFromExpression(
