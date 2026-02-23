@@ -61,6 +61,13 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// PT: Obtém se há suporte a offset fetch.
     /// </summary>
     public override bool SupportsOffsetFetch => true;
+
+    public override bool SupportsLikeEscapeClause => true;
+
+    public override bool IsRowNumberWindowFunction(string functionName)
+        => functionName.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ROWNUMBER", StringComparison.OrdinalIgnoreCase);
+
     
     /// <summary>
     /// EN: Gets whether delete target alias is supported.

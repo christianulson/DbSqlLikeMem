@@ -2088,7 +2088,7 @@ internal abstract class AstQueryExecutorBase(
         {
             var w = slot.Expr;
 
-            var isRowNumber = w.Name.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase);
+            var isRowNumber = Dialect.IsRowNumberWindowFunction(w.Name);
             var isRank = w.Name.Equals("RANK", StringComparison.OrdinalIgnoreCase);
             var isDenseRank = w.Name.Equals("DENSE_RANK", StringComparison.OrdinalIgnoreCase);
             var isNtile = w.Name.Equals("NTILE", StringComparison.OrdinalIgnoreCase);
