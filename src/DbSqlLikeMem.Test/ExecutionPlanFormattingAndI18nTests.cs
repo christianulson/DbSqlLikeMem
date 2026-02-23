@@ -28,14 +28,14 @@ public sealed class ExecutionPlanFormattingAndI18nTests
 
         var warningLines = lines.Where(l => l.IndexOf(':') >= 0).ToList();
         warningLines.Should().ContainInConsecutiveOrder(
-            warningLines.Single(l => l.Contains("Code:", StringComparison.Ordinal)),
-            warningLines.Single(l => l.Contains("Message:", StringComparison.Ordinal)),
-            warningLines.Single(l => l.Contains("Reason:", StringComparison.Ordinal)),
-            warningLines.Single(l => l.Contains("SuggestedAction:", StringComparison.Ordinal)),
-            warningLines.Single(l => l.Contains("Severity:", StringComparison.Ordinal)),
-            warningLines.Single(l => l.Contains("MetricName:", StringComparison.Ordinal)),
-            warningLines.Single(l => l.Contains("ObservedValue:", StringComparison.Ordinal)),
-            warningLines.Single(l => l.Contains("Threshold:", StringComparison.Ordinal)));
+            warningLines.Single(l => l.Contains($"{SqlExecutionPlanMessages.CodeLabel()}:", StringComparison.Ordinal)),
+            warningLines.Single(l => l.Contains($"{SqlExecutionPlanMessages.MessageLabel()}:", StringComparison.Ordinal)),
+            warningLines.Single(l => l.Contains($"{SqlExecutionPlanMessages.ReasonLabel()}:", StringComparison.Ordinal)),
+            warningLines.Single(l => l.Contains($"{SqlExecutionPlanMessages.SuggestedActionLabel()}:", StringComparison.Ordinal)),
+            warningLines.Single(l => l.Contains($"{SqlExecutionPlanMessages.SeverityLabel()}:", StringComparison.Ordinal)),
+            warningLines.Single(l => l.Contains($"{SqlExecutionPlanMessages.MetricNameLabel()}:", StringComparison.Ordinal)),
+            warningLines.Single(l => l.Contains($"{SqlExecutionPlanMessages.ObservedValueLabel()}:", StringComparison.Ordinal)),
+            warningLines.Single(l => l.Contains($"{SqlExecutionPlanMessages.ThresholdLabel()}:", StringComparison.Ordinal)));
     }
 
     [Fact]
