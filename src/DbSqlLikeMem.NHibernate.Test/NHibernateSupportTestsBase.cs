@@ -2291,6 +2291,730 @@ public abstract class NHibernateSupportTestsBase(
         Assert.Equal("Intent-External" + suffix, persisted!.Name);
     }
 
+    /// <summary>
+    /// EN: Verifies cascade-none mapping does not auto-persist transient children added only through inverse parent collection updates.
+    /// PT: Verifica se mapping com cascade-none não persiste automaticamente filhos transient adicionados apenas via atualização da coleção inversa do pai.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedRelationship_CascadeNone_InverseGraphUpdate_ShouldNotPersistTransientChildWithoutExplicitSave()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE user_groups (id INT PRIMARY KEY, name VARCHAR(100))");
+        ExecuteNonQuery(connection, "CREATE TABLE users_rel (id INT PRIMARY KEY, name VARCHAR(100), group_id INT)");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            seedSession.Save(new NhUserGroup { Id = 70, Name = "Cascade-None" });
+            tx.Commit();
+        }
+
+        using (var graphSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = graphSession.BeginTransaction())
+        {
+            var group = graphSession.Get<NhUserGroup>(70)!;
+            group.Users.Add(new NhRelUser { Id = 1701, Name = "Transient-Child", Group = group });
+
+            graphSession.Flush();
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var persistedChild = verifySession.Get<NhRelUser>(1701);
+        Assert.Null(persistedChild);
+    }
+
+    /// <summary>
+    /// EN: Verifies optional many-to-one can repeatedly transition null -> group -> null and persist final null state in a fresh session.
+    /// PT: Verifica se many-to-one opcional pode transicionar repetidamente null -> group -> null e persistir estado final nulo em nova sessão.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedRelationship_OptionalAssociation_RepeatedTransitions_ShouldPersistFinalNullState()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE user_groups (id INT PRIMARY KEY, name VARCHAR(100))");
+        ExecuteNonQuery(connection, "CREATE TABLE users_rel (id INT PRIMARY KEY, name VARCHAR(100), group_id INT)");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            var group = new NhUserGroup { Id = 71, Name = "Optional-Group" };
+            seedSession.Save(group);
+            seedSession.Save(new NhRelUser { Id = 1702, Name = "Optional-User", Group = null });
+            tx.Commit();
+        }
+
+        using (var updateSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = updateSession.BeginTransaction())
+        {
+            var user = updateSession.Get<NhRelUser>(1702)!;
+            var group = updateSession.Get<NhUserGroup>(71)!;
+
+            user.Group = group;
+            user.Group = null;
+            updateSession.Flush();
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var persisted = verifySession.Get<NhRelUser>(1702)!;
+        Assert.Null(persisted.Group);
+    }
+
+    /// <summary>
+    /// EN: Verifies deleting a parent with existing children and physical FK constraint fails when mapping uses Cascade.None.
+    /// PT: Verifica se excluir pai com filhos existentes e FK física falha quando o mapping usa Cascade.None.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedRelationship_CascadeNone_DeleteParentWithChildrenAndPhysicalFk_ShouldFail()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE user_groups (id INT PRIMARY KEY, name VARCHAR(100))");
+        ExecuteNonQuery(connection, "CREATE TABLE users_rel (id INT PRIMARY KEY, name VARCHAR(100), group_id INT, CONSTRAINT fk_users_rel_group FOREIGN KEY (group_id) REFERENCES user_groups(id))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            var group = new NhUserGroup { Id = 1715, Name = "Fk-Group" };
+            seedSession.Save(group);
+            seedSession.Save(new NhRelUser { Id = 1716, Name = "Fk-Child", Group = group });
+            tx.Commit();
+        }
+
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            var group = session.Get<NhUserGroup>(1715)!;
+            session.Delete(group);
+
+            _ = Assert.ThrowsAny<global::NHibernate.Exceptions.GenericADOException>(() => session.Flush());
+            tx.Rollback();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        Assert.NotNull(verifySession.Get<NhUserGroup>(1715));
+        Assert.NotNull(verifySession.Get<NhRelUser>(1716));
+    }
+
+    /// <summary>
+    /// EN: Verifies parent deletion succeeds after explicit child dissociation when physical FK is present and mapping uses Cascade.None.
+    /// PT: Verifica se exclusão do pai funciona após dissociação explícita do filho quando há FK física e o mapping usa Cascade.None.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedRelationship_CascadeNone_DeleteParentAfterExplicitChildDissociationWithPhysicalFk_ShouldSucceed()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE user_groups (id INT PRIMARY KEY, name VARCHAR(100))");
+        ExecuteNonQuery(connection, "CREATE TABLE users_rel (id INT PRIMARY KEY, name VARCHAR(100), group_id INT, CONSTRAINT fk_users_rel_group2 FOREIGN KEY (group_id) REFERENCES user_groups(id))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            var group = new NhUserGroup { Id = 1717, Name = "Fk-Group-Delete" };
+            seedSession.Save(group);
+            seedSession.Save(new NhRelUser { Id = 1718, Name = "Fk-Child-Delete", Group = group });
+            tx.Commit();
+        }
+
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            var child = session.Get<NhRelUser>(1718)!;
+            child.Group = null;
+            session.Flush();
+
+            var group = session.Get<NhUserGroup>(1717)!;
+            session.Delete(group);
+            session.Flush();
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        Assert.Null(verifySession.Get<NhUserGroup>(1717));
+        var childReloaded = verifySession.Get<NhRelUser>(1718)!;
+        Assert.Null(childReloaded.Group);
+    }
+
+    /// <summary>
+    /// EN: Verifies mutating only the inverse one-to-many collection does not persist FK changes when many-to-one is the owning side.
+    /// PT: Verifica se mutar apenas a coleção one-to-many inversa não persiste mudanças de FK quando many-to-one é o lado dono.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedRelationship_InverseCollectionOnlyMutation_ShouldNotChangeForeignKey()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE user_groups (id INT PRIMARY KEY, name VARCHAR(100))");
+        ExecuteNonQuery(connection, "CREATE TABLE users_rel (id INT PRIMARY KEY, name VARCHAR(100), group_id INT)");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            var group = new NhUserGroup { Id = 1719, Name = "Inverse-Group" };
+            var user = new NhRelUser { Id = 1720, Name = "Inverse-User", Group = group };
+            seedSession.Save(group);
+            seedSession.Save(user);
+            tx.Commit();
+        }
+
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            var group = session.Get<NhUserGroup>(1719)!;
+            var child = group.Users.Single(u => u.Id == 1720);
+
+            group.Users.Remove(child);
+            session.Flush();
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var persistedChild = verifySession.Get<NhRelUser>(1720)!;
+        Assert.NotNull(persistedChild.Group);
+        Assert.Equal(1719, persistedChild.Group!.Id);
+
+        var fkStillSetCount = Convert.ToInt32(
+            verifySession
+                .CreateSQLQuery("SELECT COUNT(*) AS cnt FROM users_rel WHERE id = :id AND group_id = :groupId")
+                .AddScalar("cnt", global::NHibernate.NHibernateUtil.Int32)
+                .SetParameter("id", 1720)
+                .SetParameter("groupId", 1719)
+                .UniqueResult());
+
+        Assert.Equal(1, fkStillSetCount);
+    }
+
+    /// <summary>
+    /// EN: Verifies adding an existing ungrouped child only to the inverse collection does not persist FK when many-to-one is the owning side.
+    /// PT: Verifica se adicionar um filho sem grupo apenas na coleção inversa não persiste FK quando many-to-one é o lado dono.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedRelationship_InverseCollectionOnlyAdd_ShouldNotAssignForeignKey()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE user_groups (id INT PRIMARY KEY, name VARCHAR(100))");
+        ExecuteNonQuery(connection, "CREATE TABLE users_rel (id INT PRIMARY KEY, name VARCHAR(100), group_id INT)");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            seedSession.Save(new NhUserGroup { Id = 1721, Name = "Inverse-Add-Group" });
+            seedSession.Save(new NhRelUser { Id = 1722, Name = "Inverse-Add-User", Group = null });
+            tx.Commit();
+        }
+
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            var group = session.Get<NhUserGroup>(1721)!;
+            var child = session.Get<NhRelUser>(1722)!;
+
+            group.Users.Add(child);
+            session.Flush();
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var persistedChild = verifySession.Get<NhRelUser>(1722)!;
+        Assert.Null(persistedChild.Group);
+
+        var fkStillNullCount = Convert.ToInt32(
+            verifySession
+                .CreateSQLQuery("SELECT COUNT(*) AS cnt FROM users_rel WHERE id = :id AND group_id IS NULL")
+                .AddScalar("cnt", global::NHibernate.NHibernateUtil.Int32)
+                .SetParameter("id", 1722)
+                .UniqueResult());
+
+        Assert.Equal(1, fkStillNullCount);
+    }
+
+    /// <summary>
+    /// EN: Verifies setting many-to-one owning side assigns FK and is reflected by parent collection in a fresh session.
+    /// PT: Verifica se definir o lado dono many-to-one atribui FK e é refletido na coleção do pai em nova sessão.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedRelationship_OwningSideAssignment_ShouldPersistForeignKeyAndBeVisibleFromParentCollection()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE user_groups (id INT PRIMARY KEY, name VARCHAR(100))");
+        ExecuteNonQuery(connection, "CREATE TABLE users_rel (id INT PRIMARY KEY, name VARCHAR(100), group_id INT)");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            seedSession.Save(new NhUserGroup { Id = 1723, Name = "Owning-Group" });
+            seedSession.Save(new NhRelUser { Id = 1724, Name = "Owning-User", Group = null });
+            tx.Commit();
+        }
+
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            var group = session.Get<NhUserGroup>(1723)!;
+            var child = session.Get<NhRelUser>(1724)!;
+
+            child.Group = group;
+            session.Flush();
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var persistedChild = verifySession.Get<NhRelUser>(1724)!;
+        Assert.NotNull(persistedChild.Group);
+        Assert.Equal(1723, persistedChild.Group!.Id);
+
+        var persistedParent = verifySession.Get<NhUserGroup>(1723)!;
+        Assert.Contains(persistedParent.Users, u => u.Id == 1724);
+
+        var fkAssignedCount = Convert.ToInt32(
+            verifySession
+                .CreateSQLQuery("SELECT COUNT(*) AS cnt FROM users_rel WHERE id = :id AND group_id = :groupId")
+                .AddScalar("cnt", global::NHibernate.NHibernateUtil.Int32)
+                .SetParameter("id", 1724)
+                .SetParameter("groupId", 1723)
+                .UniqueResult());
+
+        Assert.Equal(1, fkAssignedCount);
+    }
+
+    /// <summary>
+    /// EN: Verifies when inverse-collection add conflicts with many-to-one assignment, owning-side value wins and final FK matches many-to-one.
+    /// PT: Verifica que quando add na coleção inversa conflita com atribuição many-to-one, o valor do lado dono prevalece e a FK final segue many-to-one.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedRelationship_InverseCollectionConflictWithOwningSide_ShouldPersistOwningSideForeignKey()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE user_groups (id INT PRIMARY KEY, name VARCHAR(100))");
+        ExecuteNonQuery(connection, "CREATE TABLE users_rel (id INT PRIMARY KEY, name VARCHAR(100), group_id INT)");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            seedSession.Save(new NhUserGroup { Id = 1725, Name = "Conflict-A" });
+            seedSession.Save(new NhUserGroup { Id = 1726, Name = "Conflict-B" });
+            seedSession.Save(new NhRelUser { Id = 1727, Name = "Conflict-User", Group = null });
+            tx.Commit();
+        }
+
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            var groupA = session.Get<NhUserGroup>(1725)!;
+            var groupB = session.Get<NhUserGroup>(1726)!;
+            var child = session.Get<NhRelUser>(1727)!;
+
+            groupA.Users.Add(child);
+            child.Group = groupB;
+
+            session.Flush();
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var persistedChild = verifySession.Get<NhRelUser>(1727)!;
+        Assert.NotNull(persistedChild.Group);
+        Assert.Equal(1726, persistedChild.Group!.Id);
+
+        var groupAReloaded = verifySession.Get<NhUserGroup>(1725)!;
+        var groupBReloaded = verifySession.Get<NhUserGroup>(1726)!;
+        Assert.DoesNotContain(groupAReloaded.Users, u => u.Id == 1727);
+        Assert.Contains(groupBReloaded.Users, u => u.Id == 1727);
+    }
+
+    /// <summary>
+    /// EN: Verifies Update vs Merge reattach semantics with explicit Contains and managed-instance identity assertions.
+    /// PT: Verifica semântica de reattach em Update vs Merge com asserts explícitos de Contains e identidade da instância gerenciada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_SessionLifecycle_UpdateVsMerge_ReattachSemantics_ShouldMatchContainsAndIdentityContracts()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        NhTestUser detachedForUpdate;
+
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            seedSession.Save(new NhTestUser { Id = 1703, Name = "Seed-Reattach" });
+            tx.Commit();
+        }
+
+        using (var detachSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        {
+            detachedForUpdate = detachSession.Get<NhTestUser>(1703)!;
+            detachSession.Evict(detachedForUpdate);
+        }
+
+        detachedForUpdate.Name = "Updated-By-Update";
+
+        using (var updateSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = updateSession.BeginTransaction())
+        {
+            updateSession.Update(detachedForUpdate);
+
+            Assert.True(updateSession.Contains(detachedForUpdate));
+            Assert.Same(detachedForUpdate, updateSession.Get<NhTestUser>(1703));
+
+            updateSession.Flush();
+            tx.Commit();
+        }
+
+        NhTestUser detachedForMerge;
+        using (var detachAgainSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        {
+            detachedForMerge = detachAgainSession.Get<NhTestUser>(1703)!;
+            detachAgainSession.Evict(detachedForMerge);
+        }
+
+        detachedForMerge.Name = "Updated-By-Merge";
+
+        using (var mergeSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = mergeSession.BeginTransaction())
+        {
+            var managed = mergeSession.Merge(detachedForMerge);
+
+            Assert.False(mergeSession.Contains(detachedForMerge));
+            Assert.True(mergeSession.Contains(managed));
+            Assert.NotSame(detachedForMerge, managed);
+            Assert.Same(managed, mergeSession.Get<NhTestUser>(1703));
+
+            mergeSession.Flush();
+            tx.Commit();
+        }
+    }
+
+    /// <summary>
+    /// EN: Verifies IsDirty changes only when tracked state mutates and returns to clean after flush.
+    /// PT: Verifica se IsDirty muda apenas quando há mutação do estado rastreado e retorna limpo após flush.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_SessionLifecycle_IsDirty_ShouldReflectMutationsOnly()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            seedSession.Save(new NhTestUser { Id = 1704, Name = "Dirty-Initial" });
+            tx.Commit();
+        }
+
+        using var session = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        using var txDirty = session.BeginTransaction();
+        var user = session.Get<NhTestUser>(1704)!;
+
+        Assert.False(session.IsDirty());
+
+        user.Name = "Dirty-Changed";
+        Assert.True(session.IsDirty());
+
+        session.Flush();
+        Assert.False(session.IsDirty());
+
+        txDirty.Commit();
+    }
+
+    /// <summary>
+    /// EN: Verifies Update throws when another instance with the same identifier is already associated in the session.
+    /// PT: Verifica se Update lança exceção quando outra instância com o mesmo identificador já está associada na sessão.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_SessionLifecycle_Update_WithAlreadyManagedIdentity_ShouldThrowNonUniqueObjectException()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            seedSession.Save(new NhTestUser { Id = 1709, Name = "Managed-Seed" });
+            tx.Commit();
+        }
+
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            var managed = session.Get<NhTestUser>(1709)!;
+            var detached = new NhTestUser { Id = 1709, Name = "Detached-Attempt" };
+
+            _ = Assert.Throws<global::NHibernate.NonUniqueObjectException>(() => session.Update(detached));
+            Assert.Equal("Managed-Seed", managed.Name);
+
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var persisted = verifySession.Get<NhTestUser>(1709)!;
+
+        Assert.Equal("Managed-Seed", persisted.Name);
+    }
+
+    /// <summary>
+    /// EN: Verifies Merge reuses the already managed instance when the same identifier is loaded in the session.
+    /// PT: Verifica se Merge reutiliza a instância já gerenciada quando o mesmo identificador está carregado na sessão.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_SessionLifecycle_Merge_WithAlreadyManagedIdentity_ShouldReturnManagedInstanceAndPersistMergedState()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            seedSession.Save(new NhTestUser { Id = 1714, Name = "Merge-Seed" });
+            tx.Commit();
+        }
+
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            var managed = session.Get<NhTestUser>(1714)!;
+            var detached = new NhTestUser { Id = 1714, Name = "Merge-Detached-Value" };
+
+            var merged = session.Merge(detached);
+
+            Assert.Same(managed, merged);
+            Assert.True(session.Contains(managed));
+            Assert.False(session.Contains(detached));
+            Assert.Equal("Merge-Detached-Value", managed.Name);
+
+            session.Flush();
+            tx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var persisted = verifySession.Get<NhTestUser>(1714)!;
+
+        Assert.Equal("Merge-Detached-Value", persisted.Name);
+    }
+
+    /// <summary>
+    /// EN: Verifies three-session alternating updates preserve final state and increment version per successful commit.
+    /// PT: Verifica se updates alternados em três sessões preservam estado final e incrementam versão por commit bem-sucedido.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedEntity_OptimisticConcurrency_ThreeSessionsAlternatingUpdates_ShouldProduceExpectedFinalVersionAndState()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users_versioned (id INT PRIMARY KEY, version INT NOT NULL, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            seedSession.Save(new NhVersionedUser { Id = 1705, Name = "V0" });
+            tx.Commit();
+        }
+
+        int initialVersion;
+        using (var initialReadSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        {
+            initialVersion = initialReadSession.Get<NhVersionedUser>(1705)!.Version;
+        }
+
+        using var session1 = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        using var session2 = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        using var session3 = sessionFactory.WithOptions().Connection(connection).OpenSession();
+
+        var user1 = session1.Get<NhVersionedUser>(1705)!;
+        var user2 = session2.Get<NhVersionedUser>(1705)!;
+        var user3 = session3.Get<NhVersionedUser>(1705)!;
+
+        using (var tx1 = session1.BeginTransaction())
+        {
+            user1.Name = "V1";
+            session1.Flush();
+            tx1.Commit();
+        }
+
+        using (var tx2 = session2.BeginTransaction())
+        {
+            session2.Refresh(user2);
+            user2.Name = "V2";
+            session2.Flush();
+            tx2.Commit();
+        }
+
+        using (var tx3 = session3.BeginTransaction())
+        {
+            session3.Refresh(user3);
+            user3.Name = "V3";
+            session3.Flush();
+            tx3.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var persisted = verifySession.Get<NhVersionedUser>(1705)!;
+
+        Assert.Equal("V3", persisted.Name);
+        Assert.Equal(initialVersion + 3, persisted.Version);
+    }
+
+    /// <summary>
+    /// EN: Verifies stale-retry flow can safely reapply idempotent business intent without duplicating effect.
+    /// PT: Verifica se fluxo stale+retry reaplica intenção de negócio idempotente sem duplicar efeito.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_MappedEntity_OptimisticConcurrency_StaleRetryWithIdempotentRule_ShouldNotDuplicateEffect()
+    {
+        static void AppendMarkerIfMissing(NhVersionedUser entity, string marker)
+        {
+            if (!entity.Name.Contains(marker, StringComparison.Ordinal))
+                entity.Name += marker;
+        }
+
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users_versioned (id INT PRIMARY KEY, version INT NOT NULL, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var seedSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = seedSession.BeginTransaction())
+        {
+            seedSession.Save(new NhVersionedUser { Id = 1706, Name = "Base" });
+            tx.Commit();
+        }
+
+        using var staleSession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var staleEntity = staleSession.Get<NhVersionedUser>(1706)!;
+
+        using (var writerSession = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = writerSession.BeginTransaction())
+        {
+            var writer = writerSession.Get<NhVersionedUser>(1706)!;
+            writer.Name += "|EXT";
+            writerSession.Flush();
+            tx.Commit();
+        }
+
+        using (var staleTx = staleSession.BeginTransaction())
+        {
+            AppendMarkerIfMissing(staleEntity, "|APP");
+            _ = Assert.Throws<global::NHibernate.StaleObjectStateException>(() => staleSession.Flush());
+            staleTx.Rollback();
+        }
+
+        staleSession.Refresh(staleEntity);
+
+        using (var retryTx = staleSession.BeginTransaction())
+        {
+            AppendMarkerIfMissing(staleEntity, "|APP");
+            staleSession.Flush();
+            retryTx.Commit();
+        }
+
+        using var verifySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var persisted = verifySession.Get<NhVersionedUser>(1706)!;
+
+        Assert.Equal("Base|EXT|APP", persisted.Name);
+        Assert.Equal(1, persisted.Name.Split("|APP", StringSplitOptions.None).Length - 1);
+    }
+
+    /// <summary>
+    /// EN: Verifies HQL join fetch eagerly initializes relationship references; SQL-count N+1 assertions are documented as out of scope for this mock harness.
+    /// PT: Verifica se join fetch em HQL inicializa eager as referências de relacionamento; asserts por contagem SQL para N+1 ficam fora de escopo deste harness de mock.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_Hql_JoinFetch_ShouldInitializeRelationshipReferences()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE user_groups (id INT PRIMARY KEY, name VARCHAR(100))");
+        ExecuteNonQuery(connection, "CREATE TABLE users_rel (id INT PRIMARY KEY, name VARCHAR(100), group_id INT)");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            var group = new NhUserGroup { Id = 72, Name = "Fetch-Group" };
+            session.Save(group);
+            session.Save(new NhRelUser { Id = 1707, Name = "Fetch-A", Group = group });
+            session.Save(new NhRelUser { Id = 1708, Name = "Fetch-B", Group = group });
+            tx.Commit();
+        }
+
+        using var querySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var users = querySession
+            .CreateQuery("select u from NhRelUser u left join fetch u.Group order by u.Id")
+            .List<NhRelUser>();
+
+        Assert.Equal(2, users.Count);
+        Assert.All(users, user =>
+        {
+            Assert.NotNull(user.Group);
+            Assert.True(global::NHibernate.NHibernateUtil.IsInitialized(user.Group));
+        });
+    }
+
+    /// <summary>
+    /// EN: Verifies Criteria can combine projection, ordering, and pagination in one query with deterministic windowed results.
+    /// PT: Verifica se Criteria combina projeção, ordenação e paginação em uma única consulta com janela determinística.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "NHibernate")]
+    public void NHibernate_Criteria_ProjectionOrderingPagination_ShouldReturnDeterministicWindow()
+    {
+        using var connection = CreateOpenConnection();
+        ExecuteNonQuery(connection, "CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100))");
+
+        using var sessionFactory = BuildConfiguration(withMappings: true).BuildSessionFactory();
+        using (var session = sessionFactory.WithOptions().Connection(connection).OpenSession())
+        using (var tx = session.BeginTransaction())
+        {
+            session.Save(new NhTestUser { Id = 1710, Name = "Alpha" });
+            session.Save(new NhTestUser { Id = 1711, Name = "Beta" });
+            session.Save(new NhTestUser { Id = 1712, Name = "Beta" });
+            session.Save(new NhTestUser { Id = 1713, Name = "Gamma" });
+            tx.Commit();
+        }
+
+        using var querySession = sessionFactory.WithOptions().Connection(connection).OpenSession();
+        var rows = querySession
+            .CreateCriteria<NhTestUser>("u")
+            .SetProjection(Projections.ProjectionList()
+                .Add(Projections.Property("u.Id"))
+                .Add(Projections.Property("u.Name")))
+            .AddOrder(Order.Asc("u.Name"))
+            .AddOrder(Order.Desc("u.Id"))
+            .SetFirstResult(1)
+            .SetMaxResults(2)
+            .List<object[]>();
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(1712, rows[0][0]);
+        Assert.Equal("Beta", rows[0][1]);
+        Assert.Equal(1711, rows[1][0]);
+        Assert.Equal("Beta", rows[1][1]);
+    }
+
     private Configuration BuildConfiguration(bool withMappings = false)
     {
         var configuration = new Configuration();
