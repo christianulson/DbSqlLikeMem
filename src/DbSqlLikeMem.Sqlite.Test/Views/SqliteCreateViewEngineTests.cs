@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Test.Views;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqliteCreateViewEngineTests.
+/// PT: Define a classe SqliteCreateViewEngineTests.
 /// </summary>
 public sealed class SqliteCreateViewEngineTests : XUnitTestBase
 {
@@ -10,7 +11,8 @@ public sealed class SqliteCreateViewEngineTests : XUnitTestBase
     private readonly ITableMock _orders;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests SqliteCreateViewEngineTests behavior.
+    /// PT: Testa o comportamento de SqliteCreateViewEngineTests.
     /// </summary>
     public SqliteCreateViewEngineTests(ITestOutputHelper helper): base(helper)
     {

@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.MySql.Test.TemporaryTable;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class MySqlTemporaryTableParserTests.
+/// PT: Define a classe MySqlTemporaryTableParserTests.
 /// </summary>
 public sealed class MySqlTemporaryTableParserTests
 {
@@ -34,7 +35,8 @@ SELECT * FROM tmp_users;
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides test data for CreateTempTableStatements.
+    /// PT: Fornece dados de teste para CreateTempTableStatements.
     /// </summary>
     public static IEnumerable<object[]> CreateTempTableStatements()
     {
@@ -77,7 +79,8 @@ WHERE `tenantid` = 10",
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests Parse_ShouldAccept_GlobalTemporaryTable behavior.
+    /// PT: Testa o comportamento de Parse_ShouldAccept_GlobalTemporaryTable.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]

@@ -10,7 +10,8 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     private const int MySqlCteMinVersion = 8;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests MySqlSqlCompatibilityGapTests behavior.
+    /// PT: Testa o comportamento de MySqlSqlCompatibilityGapTests.
     /// </summary>
     public MySqlSqlCompatibilityGapTests(ITestOutputHelper helper) : base(helper)
     {

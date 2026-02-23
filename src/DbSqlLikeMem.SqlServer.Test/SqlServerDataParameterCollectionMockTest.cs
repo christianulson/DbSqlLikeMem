@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.SqlServer.Test;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlServerDataParameterCollectionMockTest.
+/// PT: Define a classe SqlServerDataParameterCollectionMockTest.
 /// </summary>
 public sealed class SqlServerDataParameterCollectionMockTest(
         ITestOutputHelper helper

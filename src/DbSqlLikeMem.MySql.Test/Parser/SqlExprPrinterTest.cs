@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.MySql.Test.Parser;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlExprPrinterTest.
+/// PT: Define a classe SqlExprPrinterTest.
 /// </summary>
 public sealed class SqlExprPrinterTest(
         ITestOutputHelper helper
@@ -27,7 +28,8 @@ public sealed class SqlExprPrinterTest(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides test data for Expressions.
+    /// PT: Fornece dados de teste para Expressions.
     /// </summary>
     public static IEnumerable<object[]> Expressions()
     {

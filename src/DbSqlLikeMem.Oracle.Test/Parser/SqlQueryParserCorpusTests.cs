@@ -25,7 +25,7 @@ public enum SqlCaseExpectation
 
 /// <summary>
 /// EN: Defines the class SqlQueryParserCorpusTests.
-/// PT: Define o(a) class SqlQueryParserCorpusTests.
+/// PT: Define a classe SqlQueryParserCorpusTests.
 /// </summary>
 public sealed class SqlQueryParserCorpusTests(
     ITestOutputHelper helper
@@ -35,8 +35,8 @@ public sealed class SqlQueryParserCorpusTests(
         => [sql, why, expectation, minVersion];
 
     /// <summary>
-    /// EN: Describes the behavior validated by Statements.
-    /// PT: Descreve o comportamento validado por Statements.
+    /// EN: Provides SQL statements accepted by the parser corpus for Oracle.
+    /// PT: Fornece instruções SQL aceitas pelo corpus do parser para Oracle.
     /// </summary>
     public static IEnumerable<object[]> Statements()
     {
@@ -97,8 +97,8 @@ public sealed class SqlQueryParserCorpusTests(
     // Cada item: (sql, o que está validando)
     // -----------------------------------------------------------------
     /// <summary>
-    /// EN: Describes the behavior validated by SelectStatements.
-    /// PT: Descreve o comportamento validado por SelectStatements.
+    /// EN: Provides SELECT statements that should be parsed successfully for Oracle.
+    /// PT: Fornece instruções SELECT que devem ser analisadas com sucesso em Oracle.
     /// </summary>
     public static IEnumerable<object[]> SelectStatements()
     {
@@ -510,8 +510,8 @@ WHEN NOT MATCHED THEN INSERT (grp, total) VALUES (src.grp, src.total)",
     // Cada item: (sql, motivo)
     // -----------------------------------------------------------------
     /// <summary>
-    /// EN: Describes the behavior validated by InvalidSelectStatements.
-    /// PT: Descreve o comportamento validado por InvalidSelectStatements.
+    /// EN: Provides invalid SELECT statements that should fail parsing for Oracle.
+    /// PT: Fornece instruções SELECT inválidas que devem falhar na análise em Oracle.
     /// </summary>
     public static IEnumerable<object[]> InvalidSelectStatements()
     {
@@ -589,8 +589,8 @@ select id
     // ❌ NÃO-SELECT (continua como você já tinha)
     // -----------------------------------------------------------------
     /// <summary>
-    /// EN: Describes the behavior validated by NonSelectStatements.
-    /// PT: Descreve o comportamento validado por NonSelectStatements.
+    /// EN: Provides non-SELECT SQL statements covered by parser corpus scenarios.
+    /// PT: Fornece instruções SQL sem SELECT cobertas pelos cenários do corpus do parser.
     /// </summary>
     public static IEnumerable<object[]> NonSelectStatements()
     {

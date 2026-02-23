@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test.Strategy;
 
 /// <summary>
 /// EN: Defines the class OracleCommandDeleteTests.
-/// PT: Define o(a) class OracleCommandDeleteTests.
+/// PT: Define a classe OracleCommandDeleteTests.
 /// </summary>
 public sealed class OracleCommandDeleteTests(
         ITestOutputHelper helper

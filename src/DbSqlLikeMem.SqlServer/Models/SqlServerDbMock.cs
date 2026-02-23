@@ -2,14 +2,15 @@ namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
 /// EN: In-memory database mock configured for SQL Server.
-/// PT: simulado de banco em memória configurado para SQL Server.
+/// PT: Banco de dados simulado em memória configurado para SQL Server.
 /// </summary>
 public class SqlServerDbMock : DbMock
 {
     internal override SqlDialectBase Dialect { get; set; }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Initializes an in-memory SQL Server mock database with the requested version.
+    /// PT: Inicializa um banco SQL Server simulado em memória com a versão informada.
     /// </summary>
     public SqlServerDbMock(
         int? version = null

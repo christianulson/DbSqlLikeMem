@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test.Strategy;
 /// <summary>
 /// EN: Defines the class OracleInsertStrategyTests.
-/// PT: Define o(a) class OracleInsertStrategyTests.
+/// PT: Define a classe OracleInsertStrategyTests.
 /// </summary>
 public sealed class OracleInsertStrategyTests(
         ITestOutputHelper helper

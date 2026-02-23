@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class PostgreSqlLinqProviderTest.
+/// PT: Define a classe PostgreSqlLinqProviderTest.
 /// </summary>
 public sealed class PostgreSqlLinqProviderTest
 {
@@ -8,11 +9,13 @@ public sealed class PostgreSqlLinqProviderTest
     private sealed class User
     {
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Id.
+        /// PT: Obtém ou define Id.
         /// </summary>
         public int Id { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Name.
+        /// PT: Obtém ou define Name.
         /// </summary>
         public string Name { get; set; } = "";
     }

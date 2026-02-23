@@ -2,7 +2,7 @@
 
 /// <summary>
 /// EN: In-memory database mock configured for SQLite.
-/// PT: simulado de banco em memória configurado para SQLite.
+/// PT: Banco de dados simulado em memória configurado para SQLite.
 /// </summary>
 public class SqliteDbMock
     : DbMock
@@ -10,7 +10,8 @@ public class SqliteDbMock
     internal override SqlDialectBase Dialect { get; set; }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Initializes an in-memory SQLite mock database with the requested version.
+    /// PT: Inicializa um banco SQLite simulado em memória com a versão informada.
     /// </summary>
     public SqliteDbMock(
         int? version = null

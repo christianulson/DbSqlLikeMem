@@ -2,12 +2,14 @@
 namespace DbSqlLikeMem;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class DbTestHelpers.
+/// PT: Define a classe DbTestHelpers.
 /// </summary>
 public static class DbTestHelpers
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements this member.
+    /// PT: Implementa este membro.
     /// </summary>
     public static List<Dictionary<string, object?>> QueryRows<T>(
         this T cnn,
@@ -31,7 +33,8 @@ public static class DbTestHelpers
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements this member.
+    /// PT: Implementa este membro.
     /// </summary>
     public static void ExecNonQuery<T>(
         this T cnn,

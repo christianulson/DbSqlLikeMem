@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Test.Strategy;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqliteCommandDeleteTests.
+/// PT: Define a classe SqliteCommandDeleteTests.
 /// </summary>
 public sealed class SqliteCommandDeleteTests(
         ITestOutputHelper helper

@@ -23,7 +23,8 @@ internal static class OracleValueHelper
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Resolve.
+    /// PT: Implementa Resolve.
     /// </summary>
     public static object? Resolve(
         string token,
@@ -171,7 +172,8 @@ internal static class OracleValueHelper
 
     // LIKE simples %xxx% → usa Contains
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Like.
+    /// PT: Implementa Like.
     /// </summary>
     public static bool Like(string value, string pattern)
     {

@@ -24,7 +24,8 @@ public enum SqlCaseExpectation
 }
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlQueryParserCorpusTests.
+/// PT: Define a classe SqlQueryParserCorpusTests.
 /// </summary>
 public sealed class SqlQueryParserCorpusTests(
     ITestOutputHelper helper
@@ -34,7 +35,8 @@ public sealed class SqlQueryParserCorpusTests(
         => [sql, why, expectation, minVersion];
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides test data for Statements.
+    /// PT: Fornece dados de teste para Statements.
     /// </summary>
     public static IEnumerable<object[]> Statements()
     {
@@ -98,7 +100,8 @@ public sealed class SqlQueryParserCorpusTests(
     // Cada item: (sql, o que está validando)
     // -----------------------------------------------------------------
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides test data for SelectStatements.
+    /// PT: Fornece dados de teste para SelectStatements.
     /// </summary>
     public static IEnumerable<object[]> SelectStatements()
     {
@@ -499,7 +502,8 @@ ON CONFLICT (grp) DO UPDATE SET total = EXCLUDED.total",
     // Cada item: (sql, motivo)
     // -----------------------------------------------------------------
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides test data for InvalidSelectStatements.
+    /// PT: Fornece dados de teste para InvalidSelectStatements.
     /// </summary>
     public static IEnumerable<object[]> InvalidSelectStatements()
     {
@@ -581,7 +585,8 @@ select id
     // ❌ NÃO-SELECT (continua como você já tinha)
     // -----------------------------------------------------------------
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides test data for NonSelectStatements.
+    /// PT: Fornece dados de teste para NonSelectStatements.
     /// </summary>
     public static IEnumerable<object[]> NonSelectStatements()
     {

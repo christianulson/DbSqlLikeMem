@@ -1,14 +1,16 @@
 ﻿namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class Db2JoinTests.
+/// PT: Define a classe Db2JoinTests.
 /// </summary>
 public sealed class Db2JoinTests : XUnitTestBase
 {
     private readonly Db2ConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests Db2JoinTests behavior.
+    /// PT: Testa o comportamento de Db2JoinTests.
     /// </summary>
     public Db2JoinTests(ITestOutputHelper helper) : base(helper)
     {

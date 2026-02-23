@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SubqueryFromAndJoinsTests.
+/// PT: Define a classe SubqueryFromAndJoinsTests.
 /// </summary>
 public sealed class SubqueryFromAndJoinsTests(
         ITestOutputHelper helper

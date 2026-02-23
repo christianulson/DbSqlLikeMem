@@ -9,7 +9,8 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     private readonly NpgsqlConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests PostgreSqlSqlCompatibilityGapTests behavior.
+    /// PT: Testa o comportamento de PostgreSqlSqlCompatibilityGapTests.
     /// </summary>
     public PostgreSqlSqlCompatibilityGapTests(ITestOutputHelper helper) : base(helper)
     {

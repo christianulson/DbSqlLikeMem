@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Defines the class SubqueryFromAndJoinsTests.
-/// PT: Define o(a) class SubqueryFromAndJoinsTests.
+/// PT: Define a classe SubqueryFromAndJoinsTests.
 /// </summary>
 public sealed class SubqueryFromAndJoinsTests(
         ITestOutputHelper helper

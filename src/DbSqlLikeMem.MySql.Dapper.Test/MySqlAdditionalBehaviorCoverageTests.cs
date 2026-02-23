@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class MySqlAdditionalBehaviorCoverageTests.
+/// PT: Define a classe MySqlAdditionalBehaviorCoverageTests.
 /// </summary>
 public sealed class MySqlAdditionalBehaviorCoverageTests : XUnitTestBase
 {
@@ -10,7 +11,8 @@ public sealed class MySqlAdditionalBehaviorCoverageTests : XUnitTestBase
     private static readonly int[] paramArray = [1, 2];
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests MySqlAdditionalBehaviorCoverageTests behavior.
+    /// PT: Testa o comportamento de MySqlAdditionalBehaviorCoverageTests.
     /// </summary>
     public MySqlAdditionalBehaviorCoverageTests(
         ITestOutputHelper helper

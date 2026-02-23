@@ -15,7 +15,8 @@ internal sealed class SqlQueryParser
 
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements SqlQueryParser.
+    /// PT: Implementa SqlQueryParser.
     /// </summary>
     public SqlQueryParser(string sql, ISqlDialect dialect)
         : this(sql, dialect, null)
@@ -23,7 +24,8 @@ internal sealed class SqlQueryParser
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements SqlQueryParser.
+    /// PT: Implementa SqlQueryParser.
     /// </summary>
     public SqlQueryParser(string sql, ISqlDialect dialect, IDataParameterCollection? parameters)
     {
@@ -37,7 +39,8 @@ internal sealed class SqlQueryParser
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Parse.
+    /// PT: Implementa Parse.
     /// </summary>
     public static SqlQueryBase Parse(string sql, ISqlDialect dialect)
         => Parse(sql, dialect, null);
@@ -168,7 +171,8 @@ internal sealed class SqlQueryParser
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ParseMulti.
+    /// PT: Implementa ParseMulti.
     /// </summary>
     public static IEnumerable<SqlQueryBase> ParseMulti(
         string sql,
@@ -190,7 +194,8 @@ internal sealed class SqlQueryParser
 
     // Mantido para compatibilidade com lógica de Union
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Defines the class UnionChain.
+    /// PT: Define a classe UnionChain.
     /// </summary>
     public sealed record UnionChain(
         IReadOnlyList<SqlSelectQuery> Parts,
@@ -200,7 +205,8 @@ internal sealed class SqlQueryParser
     );
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ParseUnionChain.
+    /// PT: Implementa ParseUnionChain.
     /// </summary>
     public static UnionChain ParseUnionChain(string sql, ISqlDialect dialect)
     {
@@ -592,7 +598,8 @@ internal sealed class SqlQueryParser
     // ------------------------------------------------------------
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ParseSelectOrUnionQuery.
+    /// PT: Implementa ParseSelectOrUnionQuery.
     /// </summary>
     private SqlQueryBase ParseSelectOrUnionQuery()
     {
@@ -2397,7 +2404,8 @@ internal sealed class SqlQueryParser
     }
     // Stub para método que verifica subquery escalar (removido para brevidade, adicione se precisar da validação estrita)
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ParseSubqueryExprOrThrow.
+    /// PT: Implementa ParseSubqueryExprOrThrow.
     /// </summary>
     public static SubqueryExpr ParseSubqueryExprOrThrow(
         string sql,

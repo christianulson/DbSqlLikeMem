@@ -3,7 +3,8 @@ namespace DbSqlLikeMem;
 internal static class DbMergeStrategy
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ExecuteMerge.
+    /// PT: Implementa ExecuteMerge.
     /// </summary>
     public static int ExecuteMerge(
         this DbConnectionMockBase connection,

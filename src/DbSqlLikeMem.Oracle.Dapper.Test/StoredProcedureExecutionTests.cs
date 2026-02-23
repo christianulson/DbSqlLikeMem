@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Defines the class StoredProcedureExecutionTests.
-/// PT: Define o(a) class StoredProcedureExecutionTests.
+/// PT: Define a classe StoredProcedureExecutionTests.
 /// </summary>
 public sealed class StoredProcedureExecutionTests(
         ITestOutputHelper helper

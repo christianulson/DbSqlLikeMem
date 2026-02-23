@@ -1,6 +1,7 @@
 ﻿namespace DbSqlLikeMem.Db2.Test;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class Db2DataParameterCollectionMockTest.
+/// PT: Define a classe Db2DataParameterCollectionMockTest.
 /// </summary>
 public sealed class Db2DataParameterCollectionMockTest(
         ITestOutputHelper helper

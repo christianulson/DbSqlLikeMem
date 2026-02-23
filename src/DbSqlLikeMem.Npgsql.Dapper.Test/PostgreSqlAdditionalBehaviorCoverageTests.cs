@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class PostgreSqlAdditionalBehaviorCoverageTests.
+/// PT: Define a classe PostgreSqlAdditionalBehaviorCoverageTests.
 /// </summary>
 public sealed class PostgreSqlAdditionalBehaviorCoverageTests : XUnitTestBase
 {
@@ -10,7 +11,8 @@ public sealed class PostgreSqlAdditionalBehaviorCoverageTests : XUnitTestBase
     private static readonly int[] paramArray = [1, 2];
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests PostgreSqlAdditionalBehaviorCoverageTests behavior.
+    /// PT: Testa o comportamento de PostgreSqlAdditionalBehaviorCoverageTests.
     /// </summary>
     public PostgreSqlAdditionalBehaviorCoverageTests(
         ITestOutputHelper helper

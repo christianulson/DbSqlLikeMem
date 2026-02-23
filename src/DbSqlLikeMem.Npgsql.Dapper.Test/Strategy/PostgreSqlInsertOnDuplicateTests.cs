@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Npgsql.Test.Strategy;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class PostgreSqlOnConflictUpsertTests.
+/// PT: Define a classe PostgreSqlOnConflictUpsertTests.
 /// </summary>
 public sealed class PostgreSqlOnConflictUpsertTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {

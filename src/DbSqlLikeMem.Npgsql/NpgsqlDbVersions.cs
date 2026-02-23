@@ -4,7 +4,7 @@ internal static class NpgsqlDbVersions
 {
     /// <summary>
     /// EN: Represents Versions.
-    /// PT: Representa Versions.
+    /// PT: Retorna as versões do PostgreSQL suportadas por este mock de provedor.
     /// </summary>
     public static IEnumerable<int> Versions()
     {

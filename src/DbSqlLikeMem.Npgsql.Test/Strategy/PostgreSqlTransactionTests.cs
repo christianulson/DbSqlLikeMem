@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.Npgsql.Test.Strategy;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class PostgreSqlTransactionTests.
+/// PT: Define a classe PostgreSqlTransactionTests.
 /// </summary>
 public sealed class PostgreSqlTransactionTests(
         ITestOutputHelper helper

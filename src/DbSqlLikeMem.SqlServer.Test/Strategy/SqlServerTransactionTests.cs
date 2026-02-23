@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.SqlServer.Test.Strategy;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlServerTransactionTests.
+/// PT: Define a classe SqlServerTransactionTests.
 /// </summary>
 public sealed class SqlServerTransactionTests(
         ITestOutputHelper helper

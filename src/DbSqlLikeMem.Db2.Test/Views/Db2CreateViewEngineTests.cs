@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Db2.Test.Views;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class Db2CreateViewEngineTests.
+/// PT: Define a classe Db2CreateViewEngineTests.
 /// </summary>
 public sealed class Db2CreateViewEngineTests : XUnitTestBase
 {
@@ -10,7 +11,8 @@ public sealed class Db2CreateViewEngineTests : XUnitTestBase
     private readonly ITableMock _orders;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests Db2CreateViewEngineTests behavior.
+    /// PT: Testa o comportamento de Db2CreateViewEngineTests.
     /// </summary>
     public Db2CreateViewEngineTests(ITestOutputHelper helper): base(helper)
     {

@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class FluentTest.
+/// PT: Define a classe FluentTest.
 /// </summary>
 public sealed class FluentTest(
         ITestOutputHelper helper

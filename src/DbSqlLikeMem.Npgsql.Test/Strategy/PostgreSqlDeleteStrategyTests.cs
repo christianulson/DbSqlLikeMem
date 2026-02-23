@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Npgsql.Test.Strategy;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class PostgreSqlCommandDeleteTests.
+/// PT: Define a classe PostgreSqlCommandDeleteTests.
 /// </summary>
 public sealed class PostgreSqlCommandDeleteTests(
         ITestOutputHelper helper

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Defines the class ExtendedMySqlMockTests.
-/// PT: Define o(a) class ExtendedMySqlMockTests.
+/// PT: Define a classe ExtendedMySqlMockTests.
 /// </summary>
 public sealed class ExtendedMySqlMockTests(
         ITestOutputHelper helper

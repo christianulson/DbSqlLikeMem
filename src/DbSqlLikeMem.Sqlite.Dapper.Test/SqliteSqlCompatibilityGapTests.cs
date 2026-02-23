@@ -9,7 +9,8 @@ public sealed class SqliteSqlCompatibilityGapTests : XUnitTestBase
     private readonly SqliteConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests SqliteSqlCompatibilityGapTests behavior.
+    /// PT: Testa o comportamento de SqliteSqlCompatibilityGapTests.
     /// </summary>
     public SqliteSqlCompatibilityGapTests(ITestOutputHelper helper) : base(helper)
     {

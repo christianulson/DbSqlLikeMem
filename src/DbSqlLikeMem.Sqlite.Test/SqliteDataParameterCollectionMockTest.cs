@@ -1,6 +1,7 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Test;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqliteDataParameterCollectionMockTest.
+/// PT: Define a classe SqliteDataParameterCollectionMockTest.
 /// </summary>
 public sealed class SqliteDataParameterCollectionMockTest(
         ITestOutputHelper helper

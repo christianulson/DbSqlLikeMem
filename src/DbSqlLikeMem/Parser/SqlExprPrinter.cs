@@ -4,7 +4,8 @@ namespace DbSqlLikeMem;
 internal static class SqlExprPrinter
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Print.
+    /// PT: Implementa Print.
     /// </summary>
     public static string Print(SqlExpr e)
     {

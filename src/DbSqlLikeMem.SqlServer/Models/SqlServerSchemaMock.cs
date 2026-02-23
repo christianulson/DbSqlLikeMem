@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
 /// EN: Schema mock for SQL Server databases.
-/// PT: simulado de esquema para bancos SQL Server.
+/// PT: Esquema simulado para bancos SQL Server.
 /// </summary>
 public class SqlServerSchemaMock(
     string schemaName,

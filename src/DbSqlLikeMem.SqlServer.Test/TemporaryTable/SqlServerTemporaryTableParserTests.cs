@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.SqlServer.Test.TemporaryTable;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlServerTemporaryTableParserTests.
+/// PT: Define a classe SqlServerTemporaryTableParserTests.
 /// </summary>
 public sealed class SqlServerTemporaryTableParserTests
 {
@@ -34,7 +35,8 @@ SELECT * FROM tmp_users;
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides test data for CreateTempTableStatements.
+    /// PT: Fornece dados de teste para CreateTempTableStatements.
     /// </summary>
     public static IEnumerable<object[]> CreateTempTableStatements()
     {
@@ -77,7 +79,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests Parse_ShouldRecognize_HashTempTableScopes behavior.
+    /// PT: Testa o comportamento de Parse_ShouldRecognize_HashTempTableScopes.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]

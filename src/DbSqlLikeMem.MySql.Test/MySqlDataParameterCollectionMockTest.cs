@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.MySql.Test;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class MySqlDataParameterCollectionMockTest.
+/// PT: Define a classe MySqlDataParameterCollectionMockTest.
 /// </summary>
 public sealed class MySqlDataParameterCollectionMockTest(
         ITestOutputHelper helper
