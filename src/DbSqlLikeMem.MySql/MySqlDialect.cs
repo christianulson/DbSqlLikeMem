@@ -127,6 +127,12 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// PT: Indica se funções de janela SQL são suportadas pela versão configurada do MySQL.
     /// </summary>
     public override bool SupportsWindowFunctions => Version >= WindowFunctionsMinVersion;
+
+    /// <summary>
+    /// EN: Indicates whether SQL window frame clauses are supported by the configured version.
+    /// PT: Indica se cláusulas de frame de janela SQL são suportadas pela versão configurada.
+    /// </summary>
+    public override bool SupportsWindowFrameClause => Version >= WindowFunctionsMinVersion;
     /// <summary>
     /// EN: Gets or sets SupportsNullSafeEq.
     /// PT: Obtém ou define SupportsNullSafeEq.

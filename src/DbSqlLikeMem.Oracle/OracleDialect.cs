@@ -30,6 +30,7 @@ internal sealed class OracleDialect : SqlDialectBase
 
     internal const int WithCteMinVersion = 9;
     internal const int MergeMinVersion = 9;
+    internal const int WindowFunctionsMinVersion = 8;
     internal const int OffsetFetchMinVersion = 12;
     internal const int FetchFirstMinVersion = 12;
 
@@ -66,6 +67,18 @@ internal sealed class OracleDialect : SqlDialectBase
     /// PT: Obtém se há suporte a fetch first.
     /// </summary>
     public override bool SupportsFetchFirst => Version >= FetchFirstMinVersion;
+
+    /// <summary>
+    /// EN: Indicates whether SQL window functions are supported by the configured Oracle version.
+    /// PT: Indica se funções de janela SQL são suportadas pela versão configurada do Oracle.
+    /// </summary>
+    public override bool SupportsWindowFunctions => Version >= WindowFunctionsMinVersion;
+
+    /// <summary>
+    /// EN: Indicates whether SQL window frame clauses are supported by the configured version.
+    /// PT: Indica se cláusulas de frame de janela SQL são suportadas pela versão configurada.
+    /// </summary>
+    public override bool SupportsWindowFrameClause => Version >= WindowFunctionsMinVersion;
     /// <summary>
     /// EN: Gets whether order by nulls modifier is supported.
     /// PT: Obtém se há suporte a order by nulls modifier.

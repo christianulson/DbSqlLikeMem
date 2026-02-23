@@ -165,4 +165,162 @@ public sealed class SqliteDialectFeatureParserTests
         Assert.True(d.SupportsTriggers);
     }
 
+    /// <summary>
+    /// EN: Validates known and unknown window function capability for SQLite dialect versions.
+    /// PT: Valida a capacidade de funções de janela conhecidas e desconhecidas nas versões do dialeto SQLite.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void WindowFunctionCapability_ShouldAllowKnownAndRejectUnknownFunctions(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        Assert.True(dialect.SupportsWindowFunction("ROW_NUMBER"));
+        Assert.True(dialect.SupportsWindowFunction("FIRST_VALUE"));
+        Assert.False(dialect.SupportsWindowFunction("PERCENTILE_CONT"));
+    }
+
+    /// <summary>
+    /// EN: Ensures parser accepts known window functions and rejects unknown names for SQLite dialect versions.
+    /// PT: Garante que o parser aceite funções de janela conhecidas e rejeite nomes desconhecidos nas versões do SQLite.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseScalar_WindowFunctionName_ShouldAllowKnownAndRejectUnknown(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        var expr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id)", dialect);
+        Assert.IsType<WindowFunctionExpr>(expr);
+        Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("PERCENTILE_CONT(0.5) OVER (ORDER BY id)", dialect));
+    }
+
+
+    /// <summary>
+    /// EN: Ensures window functions that require ordering reject OVER clauses without ORDER BY.
+    /// PT: Garante que funções de janela que exigem ordenação rejeitem cláusulas OVER sem ORDER BY.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseScalar_WindowFunctionWithoutOrderBy_ShouldRespectDialectRules(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", dialect));
+
+        Assert.Contains("requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures parser validates window function argument arity for supported functions.
+    /// PT: Garante que o parser valide a aridade dos argumentos de funções de janela suportadas.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseScalar_WindowFunctionArguments_ShouldValidateArity(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        var exRowNumber = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", dialect));
+        Assert.Contains("does not accept arguments", exRowNumber.Message, StringComparison.OrdinalIgnoreCase);
+
+        var exNtile = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("NTILE() OVER (ORDER BY id)", dialect));
+        Assert.Contains("exactly 1 argument", exNtile.Message, StringComparison.OrdinalIgnoreCase);
+
+        var exLag = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("LAG(id, 1, 0, 99) OVER (ORDER BY id)", dialect));
+        Assert.Contains("between 1 and 3 arguments", exLag.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures parser validates literal semantic ranges for window function arguments.
+    /// PT: Garante que o parser valide intervalos semânticos literais para argumentos de funções de janela.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseScalar_WindowFunctionLiteralArguments_ShouldValidateSemanticRange(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        var exNtile = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", dialect));
+        Assert.Contains("positive bucket count", exNtile.Message, StringComparison.OrdinalIgnoreCase);
+
+        var exLag = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("LAG(id, -1, 0) OVER (ORDER BY id)", dialect));
+        Assert.Contains("non-negative offset", exLag.Message, StringComparison.OrdinalIgnoreCase);
+
+        var exNthValue = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("NTH_VALUE(id, 0) OVER (ORDER BY id)", dialect));
+        Assert.Contains("greater than zero", exNthValue.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ORDER BY requirement for window functions is exposed through dialect runtime hook.
+    /// PT: Garante que o requisito de ORDER BY para funções de janela seja exposto pelo hook de runtime do dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void WindowFunctionOrderByRequirementHook_ShouldRespectVersion(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        Assert.True(dialect.RequiresOrderByInWindowFunction("ROW_NUMBER"));
+        Assert.True(dialect.RequiresOrderByInWindowFunction("LAG"));
+
+        Assert.False(dialect.RequiresOrderByInWindowFunction("COUNT"));
+    }
+
+
+    /// <summary>
+    /// EN: Ensures window function argument arity metadata is exposed through dialect hook.
+    /// PT: Garante que os metadados de aridade de argumentos de função de janela sejam expostos pelo hook do dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void WindowFunctionArgumentArityHook_ShouldRespectVersion(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        Assert.True(dialect.TryGetWindowFunctionArgumentArity("ROW_NUMBER", out var rnMin, out var rnMax));
+        Assert.Equal(0, rnMin);
+        Assert.Equal(0, rnMax);
+
+        Assert.True(dialect.TryGetWindowFunctionArgumentArity("LAG", out var lagMin, out var lagMax));
+        Assert.Equal(1, lagMin);
+        Assert.Equal(3, lagMax);
+
+        Assert.False(dialect.TryGetWindowFunctionArgumentArity("COUNT", out _, out _));
+    }
+
+
+    /// <summary>
+    /// EN: Ensures window frame clause tokens are gated by dialect capability.
+    /// PT: Garante que tokens de cláusula de frame de janela sejam controlados pela capability do dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseScalar_WindowFrameClause_ShouldBeRejectedByDialectCapability(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect));
+
+        Assert.Contains("window frame", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 }
