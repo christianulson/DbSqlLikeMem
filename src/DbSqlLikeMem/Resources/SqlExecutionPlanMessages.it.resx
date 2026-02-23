@@ -156,6 +156,48 @@
   <data name="WarningSelectStarAction" xml:space="preserve">
     <value>Proietta solo le colonne necessarie invece di SELECT *.</value>
   </data>
+  <data name="MetricNameLabel" xml:space="preserve">
+    <value>NomeMetrica</value>
+  </data>
+  <data name="ObservedValueLabel" xml:space="preserve">
+    <value>ValoreOsservato</value>
+  </data>
+  <data name="ThresholdLabel" xml:space="preserve">
+    <value>Soglia</value>
+  </data>
+  <data name="WarningLowSelectivityHighImpactMessage" xml:space="preserve">
+    <value>Rilevata selettività molto bassa con alto volume di lettura.</value>
+  </data>
+  <data name="WarningSelectStarHighImpactMessage" xml:space="preserve">
+    <value>SELECT * su query con lettura molto alta aumenta il rischio di I/O e memoria.</value>
+  </data>
+  <data name="WarningSelectStarCriticalImpactMessage" xml:space="preserve">
+    <value>SELECT * su query con lettura estremamente alta ha rischio critico di I/O e memoria.</value>
+  </data>
+  <data name="WarningNoWhereHighReadMessage" xml:space="preserve">
+    <value>Una query ad alta lettura senza WHERE può causare una scansione completa.</value>
+  </data>
+  <data name="WarningNoWhereHighReadHighImpactMessage" xml:space="preserve">
+    <value>Una query con lettura molto alta senza WHERE ha rischio critico di scansione completa.</value>
+  </data>
+  <data name="WarningNoWhereHighReadReason" xml:space="preserve">
+    <value>Nessun predicato WHERE fornito mentre EstimatedRowsRead è {0}.</value>
+  </data>
+  <data name="WarningNoWhereHighReadAction" xml:space="preserve">
+    <value>Aggiungi predicati WHERE selettivi quando possibile oppure conferma che la scansione completa è intenzionale.</value>
+  </data>
+  <data name="WarningDistinctHighReadMessage" xml:space="preserve">
+    <value>DISTINCT su query ad alta lettura può aggiungere un costo elevato di deduplicazione.</value>
+  </data>
+  <data name="WarningDistinctHighReadHighImpactMessage" xml:space="preserve">
+    <value>DISTINCT su query con lettura molto alta ha rischio critico di costo di deduplicazione.</value>
+  </data>
+  <data name="WarningDistinctHighReadReason" xml:space="preserve">
+    <value>DISTINCT è applicato mentre EstimatedRowsRead è {0}.</value>
+  </data>
+  <data name="WarningDistinctHighReadAction" xml:space="preserve">
+    <value>Usa DISTINCT solo quando necessario e valuta se filtri/indici possono ridurre le righe prima della deduplicazione.</value>
+  </data>
   <data name="SeverityInfoValue" xml:space="preserve">
     <value>Informazione</value>
   </data>

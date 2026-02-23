@@ -156,6 +156,48 @@
   <data name="WarningSelectStarAction" xml:space="preserve">
     <value>Projizieren Sie nur benötigte Spalten statt SELECT *.</value>
   </data>
+  <data name="MetricNameLabel" xml:space="preserve">
+    <value>Metrikname</value>
+  </data>
+  <data name="ObservedValueLabel" xml:space="preserve">
+    <value>BeobachteterWert</value>
+  </data>
+  <data name="ThresholdLabel" xml:space="preserve">
+    <value>Schwellenwert</value>
+  </data>
+  <data name="WarningLowSelectivityHighImpactMessage" xml:space="preserve">
+    <value>Sehr niedrige Selektivität bei hohem Lesevolumen erkannt.</value>
+  </data>
+  <data name="WarningSelectStarHighImpactMessage" xml:space="preserve">
+    <value>SELECT * bei sehr hoher Leselast erhöht I/O- und Speicherrisiko deutlich.</value>
+  </data>
+  <data name="WarningSelectStarCriticalImpactMessage" xml:space="preserve">
+    <value>SELECT * bei extrem hoher Leselast hat ein kritisches I/O- und Speicherrisiko.</value>
+  </data>
+  <data name="WarningNoWhereHighReadMessage" xml:space="preserve">
+    <value>Abfrage mit hoher Leselast ohne WHERE kann einen vollständigen Scan auslösen.</value>
+  </data>
+  <data name="WarningNoWhereHighReadHighImpactMessage" xml:space="preserve">
+    <value>Abfrage mit sehr hoher Leselast ohne WHERE hat kritisches Vollscan-Risiko.</value>
+  </data>
+  <data name="WarningNoWhereHighReadReason" xml:space="preserve">
+    <value>Kein WHERE-Prädikat angegeben, während EstimatedRowsRead {0} beträgt.</value>
+  </data>
+  <data name="WarningNoWhereHighReadAction" xml:space="preserve">
+    <value>Fügen Sie nach Möglichkeit selektive WHERE-Prädikate hinzu oder bestätigen Sie, dass ein Vollscan beabsichtigt ist.</value>
+  </data>
+  <data name="WarningDistinctHighReadMessage" xml:space="preserve">
+    <value>DISTINCT bei Abfrage mit hoher Leselast kann teure Deduplizierung verursachen.</value>
+  </data>
+  <data name="WarningDistinctHighReadHighImpactMessage" xml:space="preserve">
+    <value>DISTINCT bei Abfrage mit sehr hoher Leselast hat kritisches Deduplizierungsrisiko.</value>
+  </data>
+  <data name="WarningDistinctHighReadReason" xml:space="preserve">
+    <value>DISTINCT wird angewendet, während EstimatedRowsRead {0} beträgt.</value>
+  </data>
+  <data name="WarningDistinctHighReadAction" xml:space="preserve">
+    <value>Verwenden Sie DISTINCT nur wenn nötig und prüfen Sie, ob Filter/Indizes die Zeilen vor der Deduplizierung reduzieren können.</value>
+  </data>
   <data name="SeverityInfoValue" xml:space="preserve">
     <value>Info</value>
   </data>

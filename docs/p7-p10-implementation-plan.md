@@ -124,3 +124,19 @@ Documento gerado por `scripts/generate_p7_p10_plan.py` para orientar implementa�
 - [x] Cobrir cenários positivos e negativos por regra em `ExecutionPlanTests` (MySQL, SQL Server, SQLite).
 - [x] Aplicar gate de alto volume de leitura para warnings (`EstimatedRowsRead` alto), evitando ruído em consultas pequenas.
 
+
+### PlanWarnings (etapa evolução)
+- [x] Refinar severidade por contexto: `PW002` escala para `High` em seletividade muito alta e `PW003` escala para `Warning` em leitura muito alta.
+- [x] Adicionar metadados técnicos opcionais por alerta (`MetricName`, `ObservedValue`, `Threshold`) preservando compatibilidade do contrato textual.
+- [x] Expandir testes de borda para thresholds (abaixo/igual/acima) das regras `PW001`, `PW002` e `PW003` nos 3 providers.
+- [x] Validar não regressão de `IndexRecommendations` em cenários com `PlanWarnings` simultâneos.
+- [x] Atualizar resources (base + culturas suportadas) para novas labels/mensagens mantendo keywords SQL canônicas.
+- [x] Validar borda de severidade contextual para `PW002` (`84%` => `Warning`, `85%` => `High`) nos 3 providers.
+- [x] Validar borda de severidade contextual para `PW003` (`999` => `Info`, `1000` => `Warning`) nos 3 providers.
+- [x] Garantir consistência entre severidade e texto/metadados (`Threshold`/`ObservedValue`) no output textual.
+- [x] Refinar severidade de `PW003` com faixa crítica de leitura (`>=5000` => `High`) para priorização de risco extremo.
+- [x] Padronizar `Threshold` em formato técnico estável/language-neutral (ex.: `gte:100;warningGte:1000;highGte:5000`) para evitar texto não-localizável no payload.
+- [x] Implementar `PW004` para consultas sem `WHERE` com alto `EstimatedRowsRead`, com severidade contextual (`Warning`/`High`) e metadados técnicos estáveis.
+- [x] Implementar `PW005` para `DISTINCT` em alto `EstimatedRowsRead`, com severidade contextual (`Warning`/`High`) e metadados técnicos estáveis.
+
+

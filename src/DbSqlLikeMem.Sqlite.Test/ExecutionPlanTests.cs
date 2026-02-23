@@ -326,6 +326,348 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
 
 
+
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldEmitPlanWarningPW001_WhenEstimatedRowsReadEqualsThreshold()
+    {
+        using var cnn = new SqliteConnectionMock();
+
+        SeedUsers(cnn, 100, _ => 1);
+
+        using var cmd = new SqliteCommandMock(cnn)
+        {
+            CommandText = "SELECT Id FROM users ORDER BY Id"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain("Code: PW001");
+        cnn.LastExecutionPlan.Should().Contain("MetricName: EstimatedRowsRead");
+        cnn.LastExecutionPlan.Should().Contain("ObservedValue: 100");
+        cnn.LastExecutionPlan.Should().Contain("Threshold: gte:100");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldNotEmitPlanWarnings_WhenEstimatedRowsReadIsBelowThreshold()
+    {
+        using var cnn = new SqliteConnectionMock();
+
+        SeedUsers(cnn, 99, _ => 1);
+
+        using var cmd = new SqliteCommandMock(cnn)
+        {
+            CommandText = "SELECT * FROM users ORDER BY Id"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().NotContain("PlanWarnings:");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldKeepPW002AsWarning_WhenSelectivityIsAtLowThreshold()
+    {
+        using var cnn = new SqliteConnectionMock();
+
+        SeedUsers(cnn, 100, i => i <= 60 ? 1 : 0);
+
+        using var cmd = new SqliteCommandMock(cnn)
+        {
+            CommandText = "SELECT Id FROM users WHERE Active = 1"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain("Code: PW002");
+        cnn.LastExecutionPlan.Should().Contain("Severity: Warning");
+        cnn.LastExecutionPlan.Should().Contain("ObservedValue: 60.00");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldEscalatePW002ToHigh_WhenSelectivityIsVeryLow()
+    {
+        using var cnn = new SqliteConnectionMock();
+
+        SeedUsers(cnn, 120, i => i <= 102 ? 1 : 0);
+
+        using var cmd = new SqliteCommandMock(cnn)
+        {
+            CommandText = "SELECT Id FROM users WHERE Active = 1"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain("Code: PW002");
+        cnn.LastExecutionPlan.Should().Contain("Severity: High");
+        cnn.LastExecutionPlan.Should().Contain("MetricName: SelectivityPct");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldEscalatePW003ToWarning_WhenReadVolumeIsVeryHigh()
+    {
+        using var cnn = new SqliteConnectionMock();
+
+        SeedUsers(cnn, 1000, _ => 1);
+
+        using var cmd = new SqliteCommandMock(cnn)
+        {
+            CommandText = "SELECT * FROM users"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain("Code: PW003");
+        cnn.LastExecutionPlan.Should().Contain("Severity: Warning");
+        cnn.LastExecutionPlan.Should().Contain("ObservedValue: 1000");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldEmitIndexRecommendationsAlongsidePlanWarnings_WhenApplicable()
+    {
+        using var cnn = new SqliteConnectionMock();
+
+        SeedUsers(cnn, 120, _ => 1);
+
+        using var cmd = new SqliteCommandMock(cnn)
+        {
+            CommandText = "SELECT * FROM users WHERE Active = 1 ORDER BY Id"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain("IndexRecommendations:");
+        cnn.LastExecutionPlan.Should().Contain("PlanWarnings:");
+        cnn.LastExecutionPlan.Should().Contain("Code: PW001");
+        cnn.LastExecutionPlan.Should().Contain("Code: PW002");
+        cnn.LastExecutionPlan.Should().Contain("Code: PW003");
+    }
+
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldKeepPW002AsWarning_WhenSelectivityIsBelowHighImpactThreshold()
+    {
+        using var cnn = new SqliteConnectionMock();
+
+        SeedUsers(cnn, 100, i => i <= 84 ? 1 : 0);
+
+        using var cmd = new SqliteCommandMock(cnn)
+        {
+            CommandText = "SELECT Id FROM users WHERE Active = 1"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain("Code: PW002");
+        cnn.LastExecutionPlan.Should().Contain("Severity: Warning");
+        cnn.LastExecutionPlan.Should().NotContain("Severity: High");
+        cnn.LastExecutionPlan.Should().Contain("Threshold: gte:60;highImpactGte:85");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldEscalatePW002ToHigh_WhenSelectivityEqualsHighImpactThreshold()
+    {
+        using var cnn = new SqliteConnectionMock();
+
+        SeedUsers(cnn, 100, i => i <= 85 ? 1 : 0);
+
+        using var cmd = new SqliteCommandMock(cnn)
+        {
+            CommandText = "SELECT Id FROM users WHERE Active = 1"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain("Code: PW002");
+        cnn.LastExecutionPlan.Should().Contain("Severity: High");
+        cnn.LastExecutionPlan.Should().Contain("ObservedValue: 85.00");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldKeepPW003AsInfo_WhenReadVolumeIsBelowVeryHighThreshold()
+    {
+        using var cnn = new SqliteConnectionMock();
+
+        SeedUsers(cnn, 999, _ => 1);
+
+        using var cmd = new SqliteCommandMock(cnn)
+        {
+            CommandText = "SELECT * FROM users"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain("Code: PW003");
+        cnn.LastExecutionPlan.Should().Contain("Severity: Info");
+        cnn.LastExecutionPlan.Should().Contain("Threshold: gte:100;warningGte:1000;highGte:5000");
+    }
+
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldEscalatePW003ToHigh_WhenReadVolumeIsCritical()
+    {
+        using var cnn = new SqliteConnectionMock();
+
+        SeedUsers(cnn, 5000, _ => 1);
+
+        using var cmd = new SqliteCommandMock(cnn)
+        {
+            CommandText = "SELECT * FROM users"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain("Code: PW003");
+        cnn.LastExecutionPlan.Should().Contain("Severity: High");
+        cnn.LastExecutionPlan.Should().Contain("ObservedValue: 5000");
+        cnn.LastExecutionPlan.Should().Contain("highGte:5000");
+    }
+
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldEmitPlanWarningPW004_WhenNoWhereAndHighRead()
+    {
+        using var cnn = new SqliteConnectionMock();
+
+        SeedUsers(cnn, 120, _ => 1);
+
+        using var cmd = new SqliteCommandMock(cnn)
+        {
+            CommandText = "SELECT Id FROM users"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain("Code: PW004");
+        cnn.LastExecutionPlan.Should().Contain("MetricName: EstimatedRowsRead");
+        cnn.LastExecutionPlan.Should().Contain("Threshold: gte:100;highGte:5000");
+        cnn.LastExecutionPlan.Should().Contain("Severity: Warning");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldEscalatePlanWarningPW004ToHigh_WhenNoWhereAndCriticalRead()
+    {
+        using var cnn = new SqliteConnectionMock();
+
+        SeedUsers(cnn, 5000, _ => 1);
+
+        using var cmd = new SqliteCommandMock(cnn)
+        {
+            CommandText = "SELECT Id FROM users"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain("Code: PW004");
+        cnn.LastExecutionPlan.Should().Contain("Severity: High");
+        cnn.LastExecutionPlan.Should().Contain("ObservedValue: 5000");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldNotEmitPlanWarningPW004_WhenWhereIsPresent()
+    {
+        using var cnn = new SqliteConnectionMock();
+
+        SeedUsers(cnn, 120, _ => 1);
+
+        using var cmd = new SqliteCommandMock(cnn)
+        {
+            CommandText = "SELECT Id FROM users WHERE Active = 1"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().NotContain("Code: PW004");
+    }
+
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldEmitPlanWarningPW005_WhenDistinctAndHighRead()
+    {
+        using var cnn = new SqliteConnectionMock();
+
+        SeedUsers(cnn, 120, _ => 1);
+
+        using var cmd = new SqliteCommandMock(cnn)
+        {
+            CommandText = "SELECT DISTINCT Id FROM users"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain("Code: PW005");
+        cnn.LastExecutionPlan.Should().Contain("Severity: Warning");
+        cnn.LastExecutionPlan.Should().Contain("MetricName: EstimatedRowsRead");
+        cnn.LastExecutionPlan.Should().Contain("Threshold: gte:100;highGte:5000");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldEscalatePlanWarningPW005ToHigh_WhenDistinctAndCriticalRead()
+    {
+        using var cnn = new SqliteConnectionMock();
+
+        SeedUsers(cnn, 5000, _ => 1);
+
+        using var cmd = new SqliteCommandMock(cnn)
+        {
+            CommandText = "SELECT DISTINCT Id FROM users"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain("Code: PW005");
+        cnn.LastExecutionPlan.Should().Contain("Severity: High");
+        cnn.LastExecutionPlan.Should().Contain("ObservedValue: 5000");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldNotEmitPlanWarningPW005_WhenDistinctAndReadIsBelowThreshold()
+    {
+        using var cnn = new SqliteConnectionMock();
+
+        SeedUsers(cnn, 99, _ => 1);
+
+        using var cmd = new SqliteCommandMock(cnn)
+        {
+            CommandText = "SELECT DISTINCT Id FROM users"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().NotContain("Code: PW005");
+    }
     private static void SeedUsers(SqliteConnectionMock cnn, int totalRows, Func<int, int> activeSelector)
     {
         cnn.Define("users");

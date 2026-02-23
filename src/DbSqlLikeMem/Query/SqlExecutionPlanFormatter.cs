@@ -38,7 +38,10 @@ internal sealed record SqlPlanWarning(
     string Message,
     string Reason,
     string SuggestedAction,
-    SqlPlanWarningSeverity Severity);
+    SqlPlanWarningSeverity Severity,
+    string? MetricName = null,
+    string? ObservedValue = null,
+    string? Threshold = null);
 
 internal static class SqlExecutionPlanFormatter
 {
@@ -122,6 +125,15 @@ internal static class SqlExecutionPlanFormatter
             sb.AppendLine($"    {SqlExecutionPlanMessages.ReasonLabel()}: {warning.Reason}");
             sb.AppendLine($"    {SqlExecutionPlanMessages.SuggestedActionLabel()}: {warning.SuggestedAction}");
             sb.AppendLine($"    {SqlExecutionPlanMessages.SeverityLabel()}: {FormatWarningSeverity(warning.Severity)}");
+
+            if (!string.IsNullOrWhiteSpace(warning.MetricName))
+                sb.AppendLine($"    {SqlExecutionPlanMessages.MetricNameLabel()}: {warning.MetricName}");
+
+            if (!string.IsNullOrWhiteSpace(warning.ObservedValue))
+                sb.AppendLine($"    {SqlExecutionPlanMessages.ObservedValueLabel()}: {warning.ObservedValue}");
+
+            if (!string.IsNullOrWhiteSpace(warning.Threshold))
+                sb.AppendLine($"    {SqlExecutionPlanMessages.ThresholdLabel()}: {warning.Threshold}");
         }
     }
 

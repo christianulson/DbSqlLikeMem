@@ -1,5 +1,6 @@
 using DbSqlLikeMem.Interfaces;
 using System.Diagnostics;
+using System.Globalization;
 using DbSqlLikeMem.Models;
 using System.Collections.Concurrent;
 
@@ -359,7 +360,10 @@ internal abstract class AstQueryExecutorBase(
         SqlPlanRuntimeMetrics metrics)
     {
         const long HighReadThreshold = 100;
+        const long VeryHighReadThreshold = 1000;
+        const long CriticalReadThreshold = 5000;
         const double LowSelectivityThresholdPct = 60d;
+        const double VeryLowSelectivityThresholdPct = 85d;
 
         if (metrics.EstimatedRowsRead < HighReadThreshold)
             return [];
@@ -373,27 +377,100 @@ internal abstract class AstQueryExecutorBase(
                 SqlExecutionPlanMessages.WarningOrderByWithoutLimitMessage(),
                 SqlExecutionPlanMessages.WarningOrderByWithoutLimitReason(metrics.EstimatedRowsRead),
                 SqlExecutionPlanMessages.WarningOrderByWithoutLimitAction(),
-                SqlPlanWarningSeverity.High));
+                SqlPlanWarningSeverity.High,
+                "EstimatedRowsRead",
+                metrics.EstimatedRowsRead.ToString(CultureInfo.InvariantCulture),
+                $"gte:{HighReadThreshold.ToString(CultureInfo.InvariantCulture)}"));
         }
 
         if (metrics.SelectivityPct >= LowSelectivityThresholdPct)
         {
+            var severity = metrics.SelectivityPct >= VeryLowSelectivityThresholdPct
+                ? SqlPlanWarningSeverity.High
+                : SqlPlanWarningSeverity.Warning;
+
+            var message = severity == SqlPlanWarningSeverity.High
+                ? SqlExecutionPlanMessages.WarningLowSelectivityHighImpactMessage()
+                : SqlExecutionPlanMessages.WarningLowSelectivityMessage();
+
             warnings.Add(new SqlPlanWarning(
                 "PW002",
-                SqlExecutionPlanMessages.WarningLowSelectivityMessage(),
+                message,
                 SqlExecutionPlanMessages.WarningLowSelectivityReason(metrics.SelectivityPct, metrics.EstimatedRowsRead),
                 SqlExecutionPlanMessages.WarningLowSelectivityAction(),
-                SqlPlanWarningSeverity.Warning));
+                severity,
+                "SelectivityPct",
+                metrics.SelectivityPct.ToString("F2", CultureInfo.InvariantCulture),
+                $"gte:{LowSelectivityThresholdPct.ToString(CultureInfo.InvariantCulture)};highImpactGte:{VeryLowSelectivityThresholdPct.ToString(CultureInfo.InvariantCulture)}"));
         }
 
         if (HasSelectStar(query))
         {
+            var severity = metrics.EstimatedRowsRead >= CriticalReadThreshold
+                ? SqlPlanWarningSeverity.High
+                : metrics.EstimatedRowsRead >= VeryHighReadThreshold
+                    ? SqlPlanWarningSeverity.Warning
+                    : SqlPlanWarningSeverity.Info;
+
+            var message = severity switch
+            {
+                SqlPlanWarningSeverity.High => SqlExecutionPlanMessages.WarningSelectStarCriticalImpactMessage(),
+                SqlPlanWarningSeverity.Warning => SqlExecutionPlanMessages.WarningSelectStarHighImpactMessage(),
+                _ => SqlExecutionPlanMessages.WarningSelectStarMessage()
+            };
+
             warnings.Add(new SqlPlanWarning(
                 "PW003",
-                SqlExecutionPlanMessages.WarningSelectStarMessage(),
+                message,
                 SqlExecutionPlanMessages.WarningSelectStarReason(metrics.EstimatedRowsRead),
                 SqlExecutionPlanMessages.WarningSelectStarAction(),
-                SqlPlanWarningSeverity.Info));
+                severity,
+                "EstimatedRowsRead",
+                metrics.EstimatedRowsRead.ToString(CultureInfo.InvariantCulture),
+                $"gte:{HighReadThreshold.ToString(CultureInfo.InvariantCulture)};warningGte:{VeryHighReadThreshold.ToString(CultureInfo.InvariantCulture)};highGte:{CriticalReadThreshold.ToString(CultureInfo.InvariantCulture)}"));
+        }
+
+        if (query.Where is null)
+        {
+            var severity = metrics.EstimatedRowsRead >= CriticalReadThreshold
+                ? SqlPlanWarningSeverity.High
+                : SqlPlanWarningSeverity.Warning;
+
+            var message = severity == SqlPlanWarningSeverity.High
+                ? SqlExecutionPlanMessages.WarningNoWhereHighReadHighImpactMessage()
+                : SqlExecutionPlanMessages.WarningNoWhereHighReadMessage();
+
+            warnings.Add(new SqlPlanWarning(
+                "PW004",
+                message,
+                SqlExecutionPlanMessages.WarningNoWhereHighReadReason(metrics.EstimatedRowsRead),
+                SqlExecutionPlanMessages.WarningNoWhereHighReadAction(),
+                severity,
+                "EstimatedRowsRead",
+                metrics.EstimatedRowsRead.ToString(CultureInfo.InvariantCulture),
+                $"gte:{HighReadThreshold.ToString(CultureInfo.InvariantCulture)};highGte:{CriticalReadThreshold.ToString(CultureInfo.InvariantCulture)}"));
+        }
+
+
+        if (query.Distinct)
+        {
+            var severity = metrics.EstimatedRowsRead >= CriticalReadThreshold
+                ? SqlPlanWarningSeverity.High
+                : SqlPlanWarningSeverity.Warning;
+
+            var message = severity == SqlPlanWarningSeverity.High
+                ? SqlExecutionPlanMessages.WarningDistinctHighReadHighImpactMessage()
+                : SqlExecutionPlanMessages.WarningDistinctHighReadMessage();
+
+            warnings.Add(new SqlPlanWarning(
+                "PW005",
+                message,
+                SqlExecutionPlanMessages.WarningDistinctHighReadReason(metrics.EstimatedRowsRead),
+                SqlExecutionPlanMessages.WarningDistinctHighReadAction(),
+                severity,
+                "EstimatedRowsRead",
+                metrics.EstimatedRowsRead.ToString(CultureInfo.InvariantCulture),
+                $"gte:{HighReadThreshold.ToString(CultureInfo.InvariantCulture)};highGte:{CriticalReadThreshold.ToString(CultureInfo.InvariantCulture)}"));
         }
 
         return warnings;
