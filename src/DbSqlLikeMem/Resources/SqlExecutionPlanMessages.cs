@@ -43,6 +43,9 @@ internal static class SqlExecutionPlanMessages
     public static string MessageLabel() => Format(nameof(MessageLabel));
     public static string SuggestedActionLabel() => Format(nameof(SuggestedActionLabel));
     public static string SeverityLabel() => Format(nameof(SeverityLabel));
+    public static string MetricNameLabel() => Format(nameof(MetricNameLabel));
+    public static string ObservedValueLabel() => Format(nameof(ObservedValueLabel));
+    public static string ThresholdLabel() => Format(nameof(ThresholdLabel));
 
     public static string ReasonFilterAndOrder(string filters, string orders, string key)
         => Format(nameof(ReasonFilterAndOrder), filters, orders, key);
@@ -70,6 +73,9 @@ internal static class SqlExecutionPlanMessages
     public static string WarningLowSelectivityMessage()
         => Format(nameof(WarningLowSelectivityMessage));
 
+    public static string WarningLowSelectivityHighImpactMessage()
+        => Format(nameof(WarningLowSelectivityHighImpactMessage));
+
     public static string WarningLowSelectivityReason(double selectivityPct, long estimatedRowsRead)
         => Format(nameof(WarningLowSelectivityReason), selectivityPct, estimatedRowsRead);
 
@@ -79,11 +85,43 @@ internal static class SqlExecutionPlanMessages
     public static string WarningSelectStarMessage()
         => Format(nameof(WarningSelectStarMessage));
 
+    public static string WarningSelectStarHighImpactMessage()
+        => Format(nameof(WarningSelectStarHighImpactMessage));
+
+    public static string WarningSelectStarCriticalImpactMessage()
+        => Format(nameof(WarningSelectStarCriticalImpactMessage));
+
     public static string WarningSelectStarReason(long estimatedRowsRead)
         => Format(nameof(WarningSelectStarReason), estimatedRowsRead);
 
     public static string WarningSelectStarAction()
         => Format(nameof(WarningSelectStarAction));
+
+
+    public static string WarningNoWhereHighReadMessage()
+        => Format(nameof(WarningNoWhereHighReadMessage));
+
+    public static string WarningNoWhereHighReadHighImpactMessage()
+        => Format(nameof(WarningNoWhereHighReadHighImpactMessage));
+
+    public static string WarningNoWhereHighReadReason(long estimatedRowsRead)
+        => Format(nameof(WarningNoWhereHighReadReason), estimatedRowsRead);
+
+    public static string WarningNoWhereHighReadAction()
+        => Format(nameof(WarningNoWhereHighReadAction));
+
+
+    public static string WarningDistinctHighReadMessage()
+        => Format(nameof(WarningDistinctHighReadMessage));
+
+    public static string WarningDistinctHighReadHighImpactMessage()
+        => Format(nameof(WarningDistinctHighReadHighImpactMessage));
+
+    public static string WarningDistinctHighReadReason(long estimatedRowsRead)
+        => Format(nameof(WarningDistinctHighReadReason), estimatedRowsRead);
+
+    public static string WarningDistinctHighReadAction()
+        => Format(nameof(WarningDistinctHighReadAction));
 
     private static string Format(string key, params object?[] args)
     {

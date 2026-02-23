@@ -156,6 +156,30 @@
   <data name="WarningSelectStarAction" xml:space="preserve">
     <value>Projetez uniquement les colonnes nécessaires au lieu de SELECT *.</value>
   </data>
+  <data name="WarningNoWhereHighReadMessage" xml:space="preserve">
+    <value>Une requête à forte lecture sans WHERE peut déclencher un scan complet.</value>
+  </data>
+  <data name="WarningNoWhereHighReadHighImpactMessage" xml:space="preserve">
+    <value>Une requête à très forte lecture sans WHERE présente un risque critique de scan complet.</value>
+  </data>
+  <data name="WarningNoWhereHighReadReason" xml:space="preserve">
+    <value>Aucun prédicat WHERE n'a été fourni alors que EstimatedRowsRead est {0}.</value>
+  </data>
+  <data name="WarningNoWhereHighReadAction" xml:space="preserve">
+    <value>Ajoutez des prédicats WHERE sélectifs lorsque possible ou confirmez qu'un scan complet est intentionnel.</value>
+  </data>
+  <data name="WarningDistinctHighReadMessage" xml:space="preserve">
+    <value>DISTINCT sur une requête à forte lecture peut ajouter un coût élevé de déduplication.</value>
+  </data>
+  <data name="WarningDistinctHighReadHighImpactMessage" xml:space="preserve">
+    <value>DISTINCT sur une requête à très forte lecture présente un risque critique de coût de déduplication.</value>
+  </data>
+  <data name="WarningDistinctHighReadReason" xml:space="preserve">
+    <value>DISTINCT est appliqué alors que EstimatedRowsRead est de {0}.</value>
+  </data>
+  <data name="WarningDistinctHighReadAction" xml:space="preserve">
+    <value>Utilisez DISTINCT uniquement si nécessaire et vérifiez si des filtres/index peuvent réduire les lignes avant déduplication.</value>
+  </data>
   <data name="SeverityInfoValue" xml:space="preserve">
     <value>Information</value>
   </data>

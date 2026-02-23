@@ -156,6 +156,30 @@
   <data name="WarningSelectStarAction" xml:space="preserve">
     <value>Projete apenas as colunas necessárias em vez de SELECT *.</value>
   </data>
+  <data name="WarningNoWhereHighReadMessage" xml:space="preserve">
+    <value>Consulta de alta leitura sem WHERE pode causar full scan.</value>
+  </data>
+  <data name="WarningNoWhereHighReadHighImpactMessage" xml:space="preserve">
+    <value>Consulta de leitura muito alta sem WHERE tem risco crítico de full scan.</value>
+  </data>
+  <data name="WarningNoWhereHighReadReason" xml:space="preserve">
+    <value>Nenhum predicado WHERE foi informado enquanto EstimatedRowsRead é {0}.</value>
+  </data>
+  <data name="WarningNoWhereHighReadAction" xml:space="preserve">
+    <value>Adicione predicados WHERE seletivos quando possível ou confirme que o full scan é intencional.</value>
+  </data>
+  <data name="WarningDistinctHighReadMessage" xml:space="preserve">
+    <value>DISTINCT em consulta de alta leitura pode adicionar custo elevado de deduplicação.</value>
+  </data>
+  <data name="WarningDistinctHighReadHighImpactMessage" xml:space="preserve">
+    <value>DISTINCT em consulta de leitura muito alta tem risco crítico de custo de deduplicação.</value>
+  </data>
+  <data name="WarningDistinctHighReadReason" xml:space="preserve">
+    <value>DISTINCT está sendo aplicado enquanto EstimatedRowsRead é {0}.</value>
+  </data>
+  <data name="WarningDistinctHighReadAction" xml:space="preserve">
+    <value>Use DISTINCT apenas quando necessário e avalie se filtros/índices podem reduzir linhas antes da deduplicação.</value>
+  </data>
   <data name="SeverityInfoValue" xml:space="preserve">
     <value>Informacao</value>
   </data>

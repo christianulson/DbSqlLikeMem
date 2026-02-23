@@ -156,6 +156,48 @@
   <data name="WarningSelectStarAction" xml:space="preserve">
     <value>Project only required columns instead of SELECT *.</value>
   </data>
+  <data name="MetricNameLabel" xml:space="preserve">
+    <value>MetricName</value>
+  </data>
+  <data name="ObservedValueLabel" xml:space="preserve">
+    <value>ObservedValue</value>
+  </data>
+  <data name="ThresholdLabel" xml:space="preserve">
+    <value>Threshold</value>
+  </data>
+  <data name="WarningLowSelectivityHighImpactMessage" xml:space="preserve">
+    <value>Very low selectivity detected with high read volume.</value>
+  </data>
+  <data name="WarningSelectStarHighImpactMessage" xml:space="preserve">
+    <value>SELECT * on very high-read query has elevated I/O and memory risk.</value>
+  </data>
+  <data name="WarningSelectStarCriticalImpactMessage" xml:space="preserve">
+    <value>SELECT * on extremely high-read query has critical I/O and memory risk.</value>
+  </data>
+  <data name="WarningNoWhereHighReadMessage" xml:space="preserve">
+    <value>High-read query without WHERE may trigger a full scan.</value>
+  </data>
+  <data name="WarningNoWhereHighReadHighImpactMessage" xml:space="preserve">
+    <value>Very high-read query without WHERE has critical full-scan risk.</value>
+  </data>
+  <data name="WarningNoWhereHighReadReason" xml:space="preserve">
+    <value>No WHERE predicate was provided while EstimatedRowsRead is {0}.</value>
+  </data>
+  <data name="WarningNoWhereHighReadAction" xml:space="preserve">
+    <value>Add selective WHERE predicates when possible or confirm that a full scan is intended.</value>
+  </data>
+  <data name="WarningDistinctHighReadMessage" xml:space="preserve">
+    <value>DISTINCT on high-read query may add expensive deduplication cost.</value>
+  </data>
+  <data name="WarningDistinctHighReadHighImpactMessage" xml:space="preserve">
+    <value>DISTINCT on very high-read query has critical deduplication cost risk.</value>
+  </data>
+  <data name="WarningDistinctHighReadReason" xml:space="preserve">
+    <value>DISTINCT is being applied while EstimatedRowsRead is {0}.</value>
+  </data>
+  <data name="WarningDistinctHighReadAction" xml:space="preserve">
+    <value>Use DISTINCT only when necessary and evaluate if filtering/indexing can reduce rows before deduplication.</value>
+  </data>
   <data name="SeverityInfoValue" xml:space="preserve">
     <value>Info</value>
   </data>

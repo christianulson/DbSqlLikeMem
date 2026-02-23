@@ -156,6 +156,48 @@
   <data name="WarningSelectStarAction" xml:space="preserve">
     <value>Proyecte solo las columnas necesarias en lugar de SELECT *.</value>
   </data>
+  <data name="MetricNameLabel" xml:space="preserve">
+    <value>NombreMetrica</value>
+  </data>
+  <data name="ObservedValueLabel" xml:space="preserve">
+    <value>ValorObservado</value>
+  </data>
+  <data name="ThresholdLabel" xml:space="preserve">
+    <value>Umbral</value>
+  </data>
+  <data name="WarningLowSelectivityHighImpactMessage" xml:space="preserve">
+    <value>Se detectó selectividad muy baja con alto volumen de lectura.</value>
+  </data>
+  <data name="WarningSelectStarHighImpactMessage" xml:space="preserve">
+    <value>SELECT * en una consulta de lectura muy alta eleva el riesgo de I/O y memoria.</value>
+  </data>
+  <data name="WarningSelectStarCriticalImpactMessage" xml:space="preserve">
+    <value>SELECT * en una consulta de lectura extremadamente alta tiene riesgo crítico de I/O y memoria.</value>
+  </data>
+  <data name="WarningNoWhereHighReadMessage" xml:space="preserve">
+    <value>Una consulta de alta lectura sin WHERE puede provocar un escaneo completo.</value>
+  </data>
+  <data name="WarningNoWhereHighReadHighImpactMessage" xml:space="preserve">
+    <value>Una consulta de lectura muy alta sin WHERE tiene riesgo crítico de escaneo completo.</value>
+  </data>
+  <data name="WarningNoWhereHighReadReason" xml:space="preserve">
+    <value>No se proporcionó predicado WHERE mientras EstimatedRowsRead es {0}.</value>
+  </data>
+  <data name="WarningNoWhereHighReadAction" xml:space="preserve">
+    <value>Agregue predicados WHERE selectivos cuando sea posible o confirme que el escaneo completo es intencional.</value>
+  </data>
+  <data name="WarningDistinctHighReadMessage" xml:space="preserve">
+    <value>DISTINCT en una consulta de alta lectura puede agregar costo elevado de deduplicación.</value>
+  </data>
+  <data name="WarningDistinctHighReadHighImpactMessage" xml:space="preserve">
+    <value>DISTINCT en una consulta de lectura muy alta tiene riesgo crítico de costo por deduplicación.</value>
+  </data>
+  <data name="WarningDistinctHighReadReason" xml:space="preserve">
+    <value>Se está aplicando DISTINCT mientras EstimatedRowsRead es {0}.</value>
+  </data>
+  <data name="WarningDistinctHighReadAction" xml:space="preserve">
+    <value>Use DISTINCT solo cuando sea necesario y evalúe si filtros/índices pueden reducir filas antes de deduplicar.</value>
+  </data>
   <data name="SeverityInfoValue" xml:space="preserve">
     <value>Informacion</value>
   </data>
