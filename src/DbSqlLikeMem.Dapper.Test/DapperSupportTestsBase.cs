@@ -332,4 +332,140 @@ WHERE u.id = 1");
         Assert.Equal(1, count);
     }
 
+    /// <summary>
+    /// EN: Verifies Dapper transactions persist inserted rows after commit.
+    /// PT: Verifica se transações Dapper persistem linhas inseridas após commit.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "DapperContract")]
+    public void Dapper_Connection_TransactionCommit_ShouldPersistInsert()
+    {
+        using var connection = CreateOpenConnection();
+        connection.Execute("CREATE TABLE dapper_tx_commit_users (id INT PRIMARY KEY, name VARCHAR(100))");
+
+        using (var tx = connection.BeginTransaction())
+        {
+            connection.Execute(
+                "INSERT INTO dapper_tx_commit_users (id, name) VALUES (@id, @name)",
+                new { id = 1, name = "Committed" },
+                transaction: tx);
+            tx.Commit();
+        }
+
+        var persistedName = connection.ExecuteScalar<string>("SELECT name FROM dapper_tx_commit_users WHERE id = @id", new { id = 1 });
+        Assert.Equal("Committed", persistedName);
+    }
+
+    /// <summary>
+    /// EN: Verifies Dapper supports typed decimal and datetime parameters in filtering and projection.
+    /// PT: Verifica se Dapper suporta parâmetros tipados de decimal e datetime em filtros e projeções.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "DapperContract")]
+    public void Dapper_Connection_ShouldSupportTypedDecimalAndDateTimeParameters()
+    {
+        using var connection = CreateOpenConnection();
+        connection.Execute("CREATE TABLE dapper_typed_params (id INT PRIMARY KEY, amount DECIMAL(10,2), created_at DATETIME)");
+
+        var baselineDate = new DateTime(2026, 01, 15, 10, 30, 00);
+        connection.Execute(
+            "INSERT INTO dapper_typed_params (id, amount, created_at) VALUES (@id, @amount, @createdAt)",
+            new { id = 1, amount = 12.75m, createdAt = baselineDate });
+        connection.Execute(
+            "INSERT INTO dapper_typed_params (id, amount, created_at) VALUES (@id, @amount, @createdAt)",
+            new { id = 2, amount = 25.50m, createdAt = baselineDate.AddDays(1) });
+
+        var rows = connection.Query<(int id, decimal amount)>(
+            "SELECT id, amount FROM dapper_typed_params WHERE amount >= @minimumAmount AND created_at >= @minimumDate ORDER BY id",
+            new { minimumAmount = 20.00m, minimumDate = baselineDate }).ToList();
+
+        Assert.Single(rows);
+        Assert.Equal((2, 25.50m), rows[0]);
+    }
+
+    /// <summary>
+    /// EN: Verifies Dapper executes INNER JOIN with ORDER BY and preserves deterministic ordering.
+    /// PT: Verifica se Dapper executa INNER JOIN com ORDER BY e preserva ordenação determinística.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "DapperContract")]
+    public void Dapper_Connection_ShouldSupportInnerJoinWithDeterministicOrder()
+    {
+        using var connection = CreateOpenConnection();
+        connection.Execute("CREATE TABLE dapper_join_departments (id INT PRIMARY KEY, name VARCHAR(100))");
+        connection.Execute("CREATE TABLE dapper_join_users (id INT PRIMARY KEY, department_id INT, name VARCHAR(100))");
+
+        connection.Execute("INSERT INTO dapper_join_departments (id, name) VALUES (1, 'Engineering')");
+        connection.Execute("INSERT INTO dapper_join_departments (id, name) VALUES (2, 'Sales')");
+        connection.Execute("INSERT INTO dapper_join_users (id, department_id, name) VALUES (1, 1, 'Alice')");
+        connection.Execute("INSERT INTO dapper_join_users (id, department_id, name) VALUES (2, 1, 'Bob')");
+        connection.Execute("INSERT INTO dapper_join_users (id, department_id, name) VALUES (3, 2, 'Carol')");
+
+        var rows = connection.Query<(string department, string userName)>(@"SELECT
+  d.name department,
+  u.name userName
+FROM dapper_join_users u
+INNER JOIN dapper_join_departments d ON d.id = u.department_id
+ORDER BY d.name, u.name").ToList();
+
+        Assert.Equal(3, rows.Count);
+        Assert.Equal(("Engineering", "Alice"), rows[0]);
+        Assert.Equal(("Engineering", "Bob"), rows[1]);
+        Assert.Equal(("Sales", "Carol"), rows[2]);
+    }
+
+    /// <summary>
+    /// EN: Verifies Dapper handles LEFT JOIN ... IS NULL anti-join filters.
+    /// PT: Verifica se Dapper lida com filtros anti-join de LEFT JOIN ... IS NULL.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "DapperContract")]
+    public void Dapper_Connection_ShouldSupportLeftJoinIsNullFilter()
+    {
+        using var connection = CreateOpenConnection();
+        connection.Execute("CREATE TABLE dapper_left_users (id INT PRIMARY KEY, name VARCHAR(100))");
+        connection.Execute("CREATE TABLE dapper_left_orders (id INT PRIMARY KEY, user_id INT)");
+
+        connection.Execute("INSERT INTO dapper_left_users (id, name) VALUES (1, 'Alice')");
+        connection.Execute("INSERT INTO dapper_left_users (id, name) VALUES (2, 'Bob')");
+        connection.Execute("INSERT INTO dapper_left_orders (id, user_id) VALUES (10, 1)");
+
+        var userIdsWithoutOrders = connection.Query<int>(@"SELECT u.id
+FROM dapper_left_users u
+LEFT JOIN dapper_left_orders o ON o.user_id = u.id
+WHERE o.id IS NULL
+ORDER BY u.id").ToList();
+
+        Assert.Equal([2], userIdsWithoutOrders);
+    }
+
+    /// <summary>
+    /// EN: Verifies Dapper supports EXISTS subqueries combined with IN and ORDER BY filters.
+    /// PT: Verifica se Dapper suporta subqueries EXISTS combinadas com filtros IN e ORDER BY.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "DapperContract")]
+    public void Dapper_Connection_ShouldSupportExistsWithInAndOrderBy()
+    {
+        using var connection = CreateOpenConnection();
+        connection.Execute("CREATE TABLE dapper_exists_users (id INT PRIMARY KEY, name VARCHAR(100))");
+        connection.Execute("CREATE TABLE dapper_exists_orders (id INT PRIMARY KEY, user_id INT, amount INT)");
+
+        connection.Execute("INSERT INTO dapper_exists_users (id, name) VALUES (1, 'Alice')");
+        connection.Execute("INSERT INTO dapper_exists_users (id, name) VALUES (2, 'Bob')");
+        connection.Execute("INSERT INTO dapper_exists_users (id, name) VALUES (3, 'Carol')");
+        connection.Execute("INSERT INTO dapper_exists_orders (id, user_id, amount) VALUES (10, 1, 100)");
+        connection.Execute("INSERT INTO dapper_exists_orders (id, user_id, amount) VALUES (11, 3, 200)");
+
+        var rows = connection.Query<(int id, string name)>(@"SELECT u.id, u.name
+FROM dapper_exists_users u
+WHERE u.id IN (@a, @b, @c)
+  AND EXISTS (SELECT 1 FROM dapper_exists_orders o WHERE o.user_id = u.id)
+ORDER BY u.id", new { a = 1, b = 2, c = 3 }).ToList();
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal((1, "Alice"), rows[0]);
+        Assert.Equal((3, "Carol"), rows[1]);
+    }
+
 }
