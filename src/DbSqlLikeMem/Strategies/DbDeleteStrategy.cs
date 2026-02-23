@@ -5,7 +5,8 @@ internal static class DbDeleteStrategy
     private const int ParallelFkScanThreshold = 2048;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ExecuteDelete.
+    /// PT: Implementa ExecuteDelete.
     /// </summary>
     public static int ExecuteDelete(
         this DbConnectionMockBase connection,

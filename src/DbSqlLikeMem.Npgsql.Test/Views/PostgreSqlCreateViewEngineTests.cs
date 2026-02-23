@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Npgsql.Test.Views;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class PostgreSqlCreateViewEngineTests.
+/// PT: Define a classe PostgreSqlCreateViewEngineTests.
 /// </summary>
 public sealed class PostgreSqlCreateViewEngineTests : XUnitTestBase
 {
@@ -10,7 +11,8 @@ public sealed class PostgreSqlCreateViewEngineTests : XUnitTestBase
     private readonly ITableMock _orders;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests PostgreSqlCreateViewEngineTests behavior.
+    /// PT: Testa o comportamento de PostgreSqlCreateViewEngineTests.
     /// </summary>
     public PostgreSqlCreateViewEngineTests(ITestOutputHelper helper): base(helper)
     {

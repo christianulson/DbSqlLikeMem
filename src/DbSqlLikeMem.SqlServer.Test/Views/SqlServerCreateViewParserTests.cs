@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.SqlServer.Test.Views;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlServerCreateViewParserTests.
+/// PT: Define a classe SqlServerCreateViewParserTests.
 /// </summary>
 public sealed class SqlServerCreateViewParserTests(
     ITestOutputHelper helper

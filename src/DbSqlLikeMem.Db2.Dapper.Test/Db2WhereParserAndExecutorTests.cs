@@ -1,14 +1,16 @@
 ﻿namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class Db2WhereParserAndExecutorTests.
+/// PT: Define a classe Db2WhereParserAndExecutorTests.
 /// </summary>
 public sealed class Db2WhereParserAndExecutorTests : XUnitTestBase
 {
     private readonly Db2ConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests Db2WhereParserAndExecutorTests behavior.
+    /// PT: Testa o comportamento de Db2WhereParserAndExecutorTests.
     /// </summary>
     public Db2WhereParserAndExecutorTests(ITestOutputHelper helper) : base(helper)
     {

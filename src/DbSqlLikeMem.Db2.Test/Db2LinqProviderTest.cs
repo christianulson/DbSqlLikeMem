@@ -1,6 +1,7 @@
 ﻿namespace DbSqlLikeMem.Db2.Test;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class Db2LinqProviderTest.
+/// PT: Define a classe Db2LinqProviderTest.
 /// </summary>
 public sealed class Db2LinqProviderTest
 {
@@ -8,12 +9,14 @@ public sealed class Db2LinqProviderTest
     private sealed class User
     {
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Id.
+        /// PT: Obtém ou define Id.
         /// </summary>
         public int Id { get; set; }
 
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Name.
+        /// PT: Obtém ou define Name.
         /// </summary>
         public string Name { get; set; } = "";
     }

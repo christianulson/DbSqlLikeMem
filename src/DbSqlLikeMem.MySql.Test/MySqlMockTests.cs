@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class MySqlMockTests.
+/// PT: Define a classe MySqlMockTests.
 /// </summary>
 public sealed class MySqlMockTests
     : XUnitTestBase
@@ -9,7 +10,8 @@ public sealed class MySqlMockTests
     private readonly MySqlConnectionMock _connection;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests MySqlMockTests behavior.
+    /// PT: Testa o comportamento de MySqlMockTests.
     /// </summary>
     public MySqlMockTests(
         ITestOutputHelper helper

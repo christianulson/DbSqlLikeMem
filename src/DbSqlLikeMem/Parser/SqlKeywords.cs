@@ -14,7 +14,8 @@ internal static class SqlKeywords
         };
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements IsKeyword.
+    /// PT: Implementa IsKeyword.
     /// </summary>
     public static bool IsKeyword(string text) => _keywords.Contains(text);
 }

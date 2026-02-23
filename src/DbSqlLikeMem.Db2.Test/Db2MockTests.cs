@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Db2.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class Db2MockTests.
+/// PT: Define a classe Db2MockTests.
 /// </summary>
 public sealed class Db2MockTests
     : XUnitTestBase
@@ -9,7 +10,8 @@ public sealed class Db2MockTests
     private readonly Db2ConnectionMock _connection;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests Db2MockTests behavior.
+    /// PT: Testa o comportamento de Db2MockTests.
     /// </summary>
     public Db2MockTests(
         ITestOutputHelper helper

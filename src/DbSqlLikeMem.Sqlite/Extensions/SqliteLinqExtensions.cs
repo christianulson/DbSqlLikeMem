@@ -1,17 +1,20 @@
 ﻿namespace DbSqlLikeMem.Sqlite;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqliteLinqExtensions.
+/// PT: Define a classe SqliteLinqExtensions.
 /// </summary>
 public static class SqliteLinqExtensions
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Creates a queryable source for <typeparamref name="T"/> using the default table name.
+    /// PT: Cria uma fonte consultável para <typeparamref name="T"/> usando o nome de tabela padrão.
     /// </summary>
     public static IQueryable<T> AsQueryable<T>(this SqliteConnectionMock cnn)
         => cnn.AsQueryable<T>(typeof(T).Name);
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Creates a queryable source for <typeparamref name="T"/> using the informed table name.
+    /// PT: Cria uma fonte consultável para <typeparamref name="T"/> usando o nome de tabela informado.
     /// </summary>
     public static IQueryable<T> AsQueryable<T>(
         this SqliteConnectionMock cnn,

@@ -1,14 +1,16 @@
 namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlServerWhereParserAndExecutorTests.
+/// PT: Define a classe SqlServerWhereParserAndExecutorTests.
 /// </summary>
 public sealed class SqlServerWhereParserAndExecutorTests : XUnitTestBase
 {
     private readonly SqlServerConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests SqlServerWhereParserAndExecutorTests behavior.
+    /// PT: Testa o comportamento de SqlServerWhereParserAndExecutorTests.
     /// </summary>
     public SqlServerWhereParserAndExecutorTests(ITestOutputHelper helper) : base(helper)
     {

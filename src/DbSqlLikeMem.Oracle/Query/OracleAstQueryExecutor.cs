@@ -1,12 +1,14 @@
 namespace DbSqlLikeMem.Oracle;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class OracleAstQueryExecutorRegister.
+/// PT: Define a classe OracleAstQueryExecutorRegister.
 /// </summary>
 public static class OracleAstQueryExecutorRegister
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Register.
+    /// PT: Implementa Register.
     /// </summary>
     public static void Register()
     {

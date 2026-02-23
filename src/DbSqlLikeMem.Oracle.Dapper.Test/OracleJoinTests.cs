@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Defines the class OracleJoinTests.
-/// PT: Define o(a) class OracleJoinTests.
+/// PT: Define a classe OracleJoinTests.
 /// </summary>
 public sealed class OracleJoinTests : XUnitTestBase
 {

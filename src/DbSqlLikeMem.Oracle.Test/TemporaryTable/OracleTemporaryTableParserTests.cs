@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test.TemporaryTable;
 
 /// <summary>
 /// EN: Defines the class OracleTemporaryTableParserTests.
-/// PT: Define o(a) class OracleTemporaryTableParserTests.
+/// PT: Define a classe OracleTemporaryTableParserTests.
 /// </summary>
 public sealed class OracleTemporaryTableParserTests
 {
@@ -35,8 +35,8 @@ SELECT * FROM tmp_users;
     }
 
     /// <summary>
-    /// EN: Describes the behavior validated by CreateTempTableStatements.
-    /// PT: Descreve o comportamento validado por CreateTempTableStatements.
+    /// EN: Provides temporary table creation statements expected to parse in Oracle.
+    /// PT: Fornece instruções de criação de tabela temporária que devem ser analisadas em Oracle.
     /// </summary>
     public static IEnumerable<object[]> CreateTempTableStatements()
     {
@@ -79,8 +79,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// EN: Describes the behavior validated by Parse_ShouldAccept_GlobalTemporaryTable.
-    /// PT: Descreve o comportamento validado por Parse_ShouldAccept_GlobalTemporaryTable.
+    /// EN: Verifies that GLOBAL TEMPORARY TABLE syntax is accepted and mapped to global scope.
+    /// PT: Verifica se a sintaxe GLOBAL TEMPORARY TABLE é aceita e mapeada para escopo global.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]

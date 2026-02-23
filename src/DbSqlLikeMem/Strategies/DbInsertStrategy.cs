@@ -3,7 +3,8 @@ namespace DbSqlLikeMem;
 internal static class DbInsertStrategy
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ExecuteInsert.
+    /// PT: Implementa ExecuteInsert.
     /// </summary>
     public static int ExecuteInsert(
         this DbConnectionMockBase connection,

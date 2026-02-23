@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Defines the class OracleSelectAndWhereMoreCoverageTests.
-/// PT: Define o(a) class OracleSelectAndWhereMoreCoverageTests.
+/// PT: Define a classe OracleSelectAndWhereMoreCoverageTests.
 /// </summary>
 public sealed class OracleSelectAndWhereMoreCoverageTests : XUnitTestBase
 {

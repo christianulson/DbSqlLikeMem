@@ -2,12 +2,14 @@
 
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class Db2AstQueryExecutorRegister.
+/// PT: Define a classe Db2AstQueryExecutorRegister.
 /// </summary>
 public static class Db2AstQueryExecutorRegister
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Register.
+    /// PT: Implementa Register.
     /// </summary>
     public static void Register()
     {

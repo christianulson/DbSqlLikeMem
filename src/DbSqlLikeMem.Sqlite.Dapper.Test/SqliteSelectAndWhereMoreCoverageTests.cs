@@ -1,14 +1,16 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqliteSelectAndWhereMoreCoverageTests.
+/// PT: Define a classe SqliteSelectAndWhereMoreCoverageTests.
 /// </summary>
 public sealed class SqliteSelectAndWhereMoreCoverageTests : XUnitTestBase
 {
     private readonly SqliteConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests SqliteSelectAndWhereMoreCoverageTests behavior.
+    /// PT: Testa o comportamento de SqliteSelectAndWhereMoreCoverageTests.
     /// </summary>
     public SqliteSelectAndWhereMoreCoverageTests(ITestOutputHelper helper) : base(helper)
     {

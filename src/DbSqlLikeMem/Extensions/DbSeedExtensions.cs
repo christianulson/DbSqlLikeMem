@@ -1,12 +1,14 @@
 namespace DbSqlLikeMem;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class DbSeedExtensions.
+/// PT: Define a classe DbSeedExtensions.
 /// </summary>
 public static class DbSeedExtensions
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Define.
+    /// PT: Implementa Define.
     /// </summary>
     public static DbConnectionMockBase Define(
         this DbConnectionMockBase cnn,
@@ -23,7 +25,8 @@ public static class DbSeedExtensions
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements DefineTable.
+    /// PT: Implementa DefineTable.
     /// </summary>
     public static ITableMock DefineTable(
         this DbConnectionMockBase cnn,
@@ -40,7 +43,8 @@ public static class DbSeedExtensions
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements this member.
+    /// PT: Implementa este membro.
     /// </summary>
     public static DbConnectionMockBase Column<T>(
         this DbConnectionMockBase cnn,
@@ -80,7 +84,8 @@ public static class DbSeedExtensions
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements this member.
+    /// PT: Implementa este membro.
     /// </summary>
     public static ITableMock Column<T>(
         this ITableMock tb,
@@ -117,7 +122,8 @@ public static class DbSeedExtensions
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements this member.
+    /// PT: Implementa este membro.
     /// </summary>
     public static DbConnectionMockBase Seed<T>(
         this DbConnectionMockBase cnn,
@@ -145,7 +151,8 @@ public static class DbSeedExtensions
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Seed.
+    /// PT: Implementa Seed.
     /// </summary>
     public static DbConnectionMockBase Seed(
         this DbConnectionMockBase cnn,
@@ -185,7 +192,8 @@ public static class DbSeedExtensions
 
     // --------------------------- ÍNDICE -------------------------------
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Index.
+    /// PT: Implementa Index.
     /// </summary>
     public static ITableMock Index(this ITableMock tb,
         string name,

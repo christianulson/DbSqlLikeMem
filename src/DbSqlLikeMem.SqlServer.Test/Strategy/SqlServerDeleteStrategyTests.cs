@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.SqlServer.Test.Strategy;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlServerCommandDeleteTests.
+/// PT: Define a classe SqlServerCommandDeleteTests.
 /// </summary>
 public sealed class SqlServerCommandDeleteTests(
         ITestOutputHelper helper

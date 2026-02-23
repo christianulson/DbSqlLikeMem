@@ -1,12 +1,14 @@
 namespace DbSqlLikeMem;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class DbTypeParser.
+/// PT: Define a classe DbTypeParser.
 /// </summary>
 public static class DbTypeParser
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Parse.
+    /// PT: Implementa Parse.
     /// </summary>
     public static object? Parse(this DbType dbType, string? value)
     {

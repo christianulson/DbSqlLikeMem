@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test.Views;
 
 /// <summary>
 /// EN: Defines the class OracleCreateViewParserTests.
-/// PT: Define o(a) class OracleCreateViewParserTests.
+/// PT: Define a classe OracleCreateViewParserTests.
 /// </summary>
 public sealed class OracleCreateViewParserTests(
     ITestOutputHelper helper

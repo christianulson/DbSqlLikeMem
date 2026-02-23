@@ -27,12 +27,14 @@ public class MySqlCommandMock(
     public override string CommandText { get; set; } = string.Empty;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets CommandTimeout.
+    /// PT: Obtém ou define CommandTimeout.
     /// </summary>
     public override int CommandTimeout { get; set; }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets CommandType.
+    /// PT: Obtém ou define CommandType.
     /// </summary>
     public override CommandType CommandType { get; set; } = CommandType.Text;
 
@@ -160,17 +162,20 @@ public class MySqlCommandMock(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets UpdatedRowSource.
+    /// PT: Obtém ou define UpdatedRowSource.
     /// </summary>
     public override UpdateRowSource UpdatedRowSource { get; set; }
     
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets DesignTimeVisible.
+    /// PT: Obtém ou define DesignTimeVisible.
     /// </summary>
     public override bool DesignTimeVisible { get; set; }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Cancel.
+    /// PT: Implementa Cancel.
     /// </summary>
     public override void Cancel() => DbTransaction?.Rollback();
 
@@ -183,7 +188,8 @@ public class MySqlCommandMock(
         => new MySqlParameter();
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ExecuteNonQuery.
+    /// PT: Implementa ExecuteNonQuery.
     /// </summary>
     public override int ExecuteNonQuery()
     {
@@ -438,7 +444,8 @@ public class MySqlCommandMock(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ExecuteScalar.
+    /// PT: Implementa ExecuteScalar.
     /// </summary>
     public override object ExecuteScalar()
     {
@@ -451,7 +458,8 @@ public class MySqlCommandMock(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Prepare.
+    /// PT: Implementa Prepare.
     /// </summary>
     public override void Prepare() { }
 

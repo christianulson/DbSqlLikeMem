@@ -3,13 +3,13 @@ namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
 /// EN: Represents the Sql Server Data Adapter Mock type used by provider mocks.
-/// PT: Representa o tipo Sql Server adaptador de dados simulado usado pelos mocks do provedor.
+/// PT: Representa o adaptador de dados simulado do SQL Server usado pelos mocks do provedor.
 /// </summary>
 public sealed class SqlServerDataAdapterMock : DbDataAdapter
 {
     /// <summary>
-    /// EN: Executes delete command.
-    /// PT: Executa delete comando.
+    /// EN: Gets or sets the command used to delete rows during data adapter updates.
+    /// PT: Obtém ou define o comando usado para excluir linhas durante atualizações do adaptador.
     /// </summary>
     public new SqlServerCommandMock? DeleteCommand
     {
@@ -18,8 +18,8 @@ public sealed class SqlServerDataAdapterMock : DbDataAdapter
     }
 
     /// <summary>
-    /// EN: Executes insert command.
-    /// PT: Executa insert comando.
+    /// EN: Gets or sets the command used to insert rows during data adapter updates.
+    /// PT: Obtém ou define o comando usado para inserir linhas durante atualizações do adaptador.
     /// </summary>
     public new SqlServerCommandMock? InsertCommand
     {
@@ -28,8 +28,8 @@ public sealed class SqlServerDataAdapterMock : DbDataAdapter
     }
 
     /// <summary>
-    /// EN: Executes select command.
-    /// PT: Executa select comando.
+    /// EN: Gets or sets the command used to retrieve rows for this data adapter.
+    /// PT: Obtém ou define o comando usado para consultar linhas neste adaptador.
     /// </summary>
     public new SqlServerCommandMock? SelectCommand
     {
@@ -38,8 +38,8 @@ public sealed class SqlServerDataAdapterMock : DbDataAdapter
     }
 
     /// <summary>
-    /// EN: Executes update command.
-    /// PT: Executa update comando.
+    /// EN: Gets or sets the command used to update rows during data adapter updates.
+    /// PT: Obtém ou define o comando usado para atualizar linhas durante atualizações do adaptador.
     /// </summary>
     public new SqlServerCommandMock? UpdateCommand
     {

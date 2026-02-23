@@ -11,7 +11,8 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests : XUnitTestBase
     private const int SqlServerJsonFunctionsMinVersion = 2016;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests SqlServerUnionLimitAndJsonCompatibilityTests behavior.
+    /// PT: Testa o comportamento de SqlServerUnionLimitAndJsonCompatibilityTests.
     /// </summary>
     public SqlServerUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper)
     {

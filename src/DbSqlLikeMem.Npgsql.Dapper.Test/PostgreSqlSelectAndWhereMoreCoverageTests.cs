@@ -1,14 +1,16 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class PostgreSqlSelectAndWhereMoreCoverageTests.
+/// PT: Define a classe PostgreSqlSelectAndWhereMoreCoverageTests.
 /// </summary>
 public sealed class PostgreSqlSelectAndWhereMoreCoverageTests : XUnitTestBase
 {
     private readonly NpgsqlConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests PostgreSqlSelectAndWhereMoreCoverageTests behavior.
+    /// PT: Testa o comportamento de PostgreSqlSelectAndWhereMoreCoverageTests.
     /// </summary>
     public PostgreSqlSelectAndWhereMoreCoverageTests(ITestOutputHelper helper) : base(helper)
     {

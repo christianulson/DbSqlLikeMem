@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlServerTransactionTests.
+/// PT: Define a classe SqlServerTransactionTests.
 /// </summary>
 public sealed class SqlServerTransactionTests(
         ITestOutputHelper helper
@@ -9,15 +10,18 @@ public sealed class SqlServerTransactionTests(
     private sealed class User
     {
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Id.
+        /// PT: Obtém ou define Id.
         /// </summary>
         public int Id { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Name.
+        /// PT: Obtém ou define Name.
         /// </summary>
         public required string Name { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Email.
+        /// PT: Obtém ou define Email.
         /// </summary>
         public string? Email { get; set; }
     }

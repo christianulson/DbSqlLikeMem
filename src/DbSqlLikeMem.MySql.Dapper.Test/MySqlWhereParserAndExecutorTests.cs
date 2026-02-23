@@ -1,14 +1,16 @@
 namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class MySqlWhereParserAndExecutorTests.
+/// PT: Define a classe MySqlWhereParserAndExecutorTests.
 /// </summary>
 public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 {
     private readonly MySqlConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests MySqlWhereParserAndExecutorTests behavior.
+    /// PT: Testa o comportamento de MySqlWhereParserAndExecutorTests.
     /// </summary>
     public MySqlWhereParserAndExecutorTests(ITestOutputHelper helper) : base(helper)
     {

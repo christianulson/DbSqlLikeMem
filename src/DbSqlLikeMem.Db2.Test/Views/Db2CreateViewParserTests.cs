@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Db2.Test.Views;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class Db2CreateViewParserTests.
+/// PT: Define a classe Db2CreateViewParserTests.
 /// </summary>
 public sealed class Db2CreateViewParserTests(
     ITestOutputHelper helper

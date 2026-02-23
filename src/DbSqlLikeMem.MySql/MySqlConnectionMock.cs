@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.MySql;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class MySqlConnectionMock.
+/// PT: Define a classe MySqlConnectionMock.
 /// </summary>
 public sealed class MySqlConnectionMock
     : DbConnectionMockBase
@@ -12,7 +13,8 @@ public sealed class MySqlConnectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements MySqlConnectionMock.
+    /// PT: Implementa MySqlConnectionMock.
     /// </summary>
     public MySqlConnectionMock(
        MySqlDbMock? db = null,

@@ -1,14 +1,16 @@
 namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlServerJoinTests.
+/// PT: Define a classe SqlServerJoinTests.
 /// </summary>
 public sealed class SqlServerJoinTests : XUnitTestBase
 {
     private readonly SqlServerConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests SqlServerJoinTests behavior.
+    /// PT: Testa o comportamento de SqlServerJoinTests.
     /// </summary>
     public SqlServerJoinTests(ITestOutputHelper helper) : base(helper)
     {

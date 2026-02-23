@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql;
 
 /// <summary>
 /// EN: Schema mock for Npgsql databases.
-/// PT: simulado de esquema para bancos Npgsql.
+/// PT: Esquema simulado para bancos Npgsql.
 /// </summary>
 public class NpgsqlSchemaMock(
     string schemaName,

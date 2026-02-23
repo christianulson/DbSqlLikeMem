@@ -1,14 +1,16 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqliteJoinTests.
+/// PT: Define a classe SqliteJoinTests.
 /// </summary>
 public sealed class SqliteJoinTests : XUnitTestBase
 {
     private readonly SqliteConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests SqliteJoinTests behavior.
+    /// PT: Testa o comportamento de SqliteJoinTests.
     /// </summary>
     public SqliteJoinTests(ITestOutputHelper helper) : base(helper)
     {

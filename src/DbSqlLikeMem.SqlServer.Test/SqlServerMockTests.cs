@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.SqlServer.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlServerMockTests.
+/// PT: Define a classe SqlServerMockTests.
 /// </summary>
 public sealed class SqlServerMockTests
     : XUnitTestBase
@@ -9,7 +10,8 @@ public sealed class SqlServerMockTests
     private readonly SqlServerConnectionMock _connection;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests SqlServerMockTests behavior.
+    /// PT: Testa o comportamento de SqlServerMockTests.
     /// </summary>
     public SqlServerMockTests(
         ITestOutputHelper helper

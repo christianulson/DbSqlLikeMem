@@ -1,14 +1,16 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class PostgreSqlJoinTests.
+/// PT: Define a classe PostgreSqlJoinTests.
 /// </summary>
 public sealed class PostgreSqlJoinTests : XUnitTestBase
 {
     private readonly NpgsqlConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests PostgreSqlJoinTests behavior.
+    /// PT: Testa o comportamento de PostgreSqlJoinTests.
     /// </summary>
     public PostgreSqlJoinTests(ITestOutputHelper helper) : base(helper)
     {

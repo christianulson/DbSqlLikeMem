@@ -2,7 +2,7 @@
 
 /// <summary>
 /// EN: Schema mock for SQLite databases.
-/// PT: simulado de esquema para bancos SQLite.
+/// PT: Esquema simulado para bancos SQLite.
 /// </summary>
 public class SqliteSchemaMock(
     string schemaName,

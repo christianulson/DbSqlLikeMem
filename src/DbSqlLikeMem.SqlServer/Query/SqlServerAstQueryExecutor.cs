@@ -1,12 +1,14 @@
 namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlServerAstQueryExecutorRegister.
+/// PT: Define a classe SqlServerAstQueryExecutorRegister.
 /// </summary>
 public static class SqlServerAstQueryExecutorRegister
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Register.
+    /// PT: Implementa Register.
     /// </summary>
     public static void Register()
     {

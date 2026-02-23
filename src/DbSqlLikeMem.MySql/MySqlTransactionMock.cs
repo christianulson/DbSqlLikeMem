@@ -3,7 +3,7 @@ using System.Diagnostics;
 namespace DbSqlLikeMem.MySql;
 /// <summary>
 /// EN: Mock transaction for MySQL connections.
-/// PT: simulado de transação para conexões MySQL.
+/// PT: Transação simulada para conexões MySQL.
 /// </summary>
 public class MySqlTransactionMock(
         MySqlConnectionMock cnn,
@@ -19,13 +19,15 @@ public class MySqlTransactionMock(
     protected override DbConnection? DbConnection => cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets the isolation level configured for this transaction.
+    /// PT: Obtém o nível de isolamento configurado para esta transação.
     /// </summary>
     public override IsolationLevel IsolationLevel
         => isolationLevel ?? IsolationLevel.Unspecified;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Commits the current transaction.
+    /// PT: Confirma a transação atual.
     /// </summary>
     public override void Commit()
     {
@@ -37,7 +39,8 @@ public class MySqlTransactionMock(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Rolls back the current transaction.
+    /// PT: Reverte a transação atual.
     /// </summary>
     public override void Rollback()
     {

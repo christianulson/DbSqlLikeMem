@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Test.Views;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqliteCreateViewParserTests.
+/// PT: Define a classe SqliteCreateViewParserTests.
 /// </summary>
 public sealed class SqliteCreateViewParserTests(
     ITestOutputHelper helper

@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.MySql.Test.Strategy;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class MySqlCommandDeleteTests.
+/// PT: Define a classe MySqlCommandDeleteTests.
 /// </summary>
 public sealed class MySqlCommandDeleteTests(
         ITestOutputHelper helper

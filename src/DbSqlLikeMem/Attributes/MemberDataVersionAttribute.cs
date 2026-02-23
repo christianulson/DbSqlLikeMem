@@ -13,15 +13,18 @@ public abstract class MemberDataVersionAttribute
 #endif
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SpecificVersions.
+    /// PT: Obtém ou define SpecificVersions.
     /// </summary>
     public int[]? SpecificVersions { get; set; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets VersionGraterOrEqual.
+    /// PT: Obtém ou define VersionGraterOrEqual.
     /// </summary>
     public int? VersionGraterOrEqual { get; set; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets VersionLessOrEqual.
+    /// PT: Obtém ou define VersionLessOrEqual.
     /// </summary>
     public int? VersionLessOrEqual { get; set; }
 
@@ -50,7 +53,7 @@ public abstract class MemberDataVersionAttribute
         versions = [.. versions];
 
         if (!versions.Any())
-            throw new Exception("Nenhuma vers�o de MySql selecionada para o teste.");
+            throw new Exception("Nenhuma verso de MySql selecionada para o teste.");
 
 #if NET8_0_OR_GREATER
         return new ValueTask<IReadOnlyCollection<ITheoryDataRow>>(

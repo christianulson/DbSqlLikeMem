@@ -6,15 +6,18 @@ namespace DbSqlLikeMem.MySql;
 public class MySqlQueryable<T> : IOrderedQueryable<T>
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets TableName.
+    /// PT: Obtém ou define TableName.
     /// </summary>
     public string TableName { get; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets Expression.
+    /// PT: Obtém ou define Expression.
     /// </summary>
     public Expression Expression { get; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets Provider.
+    /// PT: Obtém ou define Provider.
     /// </summary>
     public IQueryProvider Provider { get; }
 
@@ -41,13 +44,15 @@ public class MySqlQueryable<T> : IOrderedQueryable<T>
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements typeof.
+    /// PT: Implementa typeof.
     /// </summary>
     public Type ElementType => typeof(T);
     IEnumerator IEnumerable.GetEnumerator()
         => Provider.Execute<IEnumerable<T>>(Expression).GetEnumerator();
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements GetEnumerator.
+    /// PT: Implementa GetEnumerator.
     /// </summary>
     public IEnumerator<T> GetEnumerator()
         => Provider.Execute<IEnumerable<T>>(Expression).GetEnumerator();

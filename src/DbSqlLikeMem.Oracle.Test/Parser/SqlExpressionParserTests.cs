@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test.Parser;
 
 /// <summary>
 /// EN: Defines the class SqlExpressionParserTests.
-/// PT: Define o(a) class SqlExpressionParserTests.
+/// PT: Define a classe SqlExpressionParserTests.
 /// </summary>
 public sealed class SqlExpressionParserTests(
     ITestOutputHelper helper
@@ -27,8 +27,8 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
-    /// EN: Describes the behavior validated by WhereExpressions_Supported.
-    /// PT: Descreve o comportamento validado por WhereExpressions_Supported.
+    /// EN: Provides WHERE expressions that should be parsed successfully by the Oracle dialect.
+    /// PT: Fornece expressões WHERE que devem ser analisadas com sucesso pelo dialeto Oracle.
     /// </summary>
     public static IEnumerable<object[]> WhereExpressions_Supported()
     {
@@ -102,8 +102,8 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
-    /// EN: Describes the behavior validated by WhereExpressions_Unsupported.
-    /// PT: Descreve o comportamento validado por WhereExpressions_Unsupported.
+    /// EN: Provides WHERE expressions that are intentionally outside the supported parser subset.
+    /// PT: Fornece expressões WHERE propositalmente fora do subconjunto suportado pelo parser.
     /// </summary>
     public static IEnumerable<object[]> WhereExpressions_Unsupported()
     {

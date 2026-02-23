@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.SqlServer.Dapper.Test.Strategy;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlServerMergeUpsertTests.
+/// PT: Define a classe SqlServerMergeUpsertTests.
 /// </summary>
 public sealed class SqlServerMergeUpsertTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
