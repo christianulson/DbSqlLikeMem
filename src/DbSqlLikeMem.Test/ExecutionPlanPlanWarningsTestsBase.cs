@@ -142,7 +142,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         while (reader.Read()) { }
 
         var thresholds = cnn.LastExecutionPlan!
-            .Split(Environment.NewLine)
+            .Split(new[] { Environment.NewLine }, StringSplitOptions.None)
             .Select(static line => line.Trim())
             .Where(static line => line.StartsWith("Threshold:", StringComparison.Ordinal))
             .Select(static line => line["Threshold:".Length..].Trim())

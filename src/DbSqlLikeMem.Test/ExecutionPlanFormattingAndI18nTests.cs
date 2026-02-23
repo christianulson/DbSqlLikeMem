@@ -12,7 +12,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
             Table = new SqlTableSource(null, "users", null, null, null, null, null)
         };
 
-        var metrics = new SqlPlanRuntimeMetrics(1, 120, 12, 10, 2.5, 4);
+        var metrics = new SqlPlanRuntimeMetrics(1, 120, 12, 10);
         var warning = new SqlPlanWarning(
             "PWX",
             "message",
@@ -24,9 +24,9 @@ public sealed class ExecutionPlanFormattingAndI18nTests
             "gte:100;highGte:5000");
 
         var plan = SqlExecutionPlanFormatter.FormatSelect(query, metrics, null, [warning]);
-        var lines = plan.Split(Environment.NewLine);
+        var lines = plan.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
 
-        var warningLines = lines.Where(l => l.Contains(':', StringComparison.Ordinal)).ToList();
+        var warningLines = lines.Where(l => l.IndexOf(':') >= 0).ToList();
         warningLines.Should().ContainInConsecutiveOrder(
             warningLines.Single(l => l.Contains("Code:", StringComparison.Ordinal)),
             warningLines.Single(l => l.Contains("Message:", StringComparison.Ordinal)),
@@ -69,10 +69,12 @@ public sealed class ExecutionPlanFormattingAndI18nTests
                 ["WarningSelectStarAction"] = ["SELECT *"]
             };
 
-            foreach (var (key, expectedTokens) in canonicalKeywordKeys)
+            foreach (var pair in canonicalKeywordKeys)
             {
+                var key = pair.Key;
+                var expectedTokens = pair.Value;
                 var value = localizedEntries[key];
-                expectedTokens.Any(value.Contains).Should().BeTrue($"{key} should preserve canonical SQL keyword tokens");
+                expectedTokens.Any(token => value.IndexOf(token, StringComparison.Ordinal) >= 0).Should().BeTrue($"{key} should preserve canonical SQL keyword tokens");
             }
         }
     }
