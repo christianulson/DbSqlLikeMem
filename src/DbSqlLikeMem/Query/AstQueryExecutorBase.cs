@@ -430,7 +430,7 @@ internal abstract class AstQueryExecutorBase(
                 $"gte:{HighReadThreshold.ToString(CultureInfo.InvariantCulture)};warningGte:{VeryHighReadThreshold.ToString(CultureInfo.InvariantCulture)};highGte:{CriticalReadThreshold.ToString(CultureInfo.InvariantCulture)}"));
         }
 
-        if (query.Where is null)
+        if (query.Where is null && !query.Distinct)
         {
             var severity = metrics.EstimatedRowsRead >= CriticalReadThreshold
                 ? SqlPlanWarningSeverity.High
