@@ -26,7 +26,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         var plan = SqlExecutionPlanFormatter.FormatSelect(query, metrics, null, [warning]);
         var lines = plan.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
 
-        var warningLines = lines.Where(l => l.Contains(':')).ToList();
+        var warningLines = lines.Where(l => l.IndexOf(':') >= 0).ToList();
         warningLines.Should().ContainInConsecutiveOrder(
             warningLines.Single(l => l.Contains("Code:", StringComparison.Ordinal)),
             warningLines.Single(l => l.Contains("Message:", StringComparison.Ordinal)),
@@ -74,7 +74,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
                 var key = pair.Key;
                 var expectedTokens = pair.Value;
                 var value = localizedEntries[key];
-                expectedTokens.Any(token => value.Contains(token)).Should().BeTrue($"{key} should preserve canonical SQL keyword tokens");
+                expectedTokens.Any(token => value.IndexOf(token, StringComparison.Ordinal) >= 0).Should().BeTrue($"{key} should preserve canonical SQL keyword tokens");
             }
         }
     }
