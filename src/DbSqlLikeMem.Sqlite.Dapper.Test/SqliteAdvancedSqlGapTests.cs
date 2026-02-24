@@ -306,6 +306,165 @@ ORDER BY id").ToList();
 
 
     /// <summary>
+    /// EN: Tests Window_Lag_Lead_WithRowsFrame_ShouldRespectPerRowBoundaries behavior.
+    /// PT: Testa o comportamento de Window_Lag_Lead_WithRowsFrame_ShouldRespectPerRowBoundaries.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_Lag_Lead_WithRowsFrame_ShouldRespectPerRowBoundaries()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       LAG(id, 1, -1) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS lag_current,
+       LEAD(id, 1, 99) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS lead_current,
+       LAG(id, 1, -1) OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS lag_sliding,
+       LEAD(id, 1, 99) OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS lead_sliding,
+       LAG(id, 1, -1) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS lag_forward,
+       LEAD(id, 1, 99) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS lead_forward
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([-1, -1, -1], [.. rows.Select(r => (int)r.lag_current)]);
+        Assert.Equal([99, 99, 99], [.. rows.Select(r => (int)r.lead_current)]);
+        Assert.Equal([-1, 1, 2], [.. rows.Select(r => (int)r.lag_sliding)]);
+        Assert.Equal([99, 99, 99], [.. rows.Select(r => (int)r.lead_sliding)]);
+        Assert.Equal([-1, -1, -1], [.. rows.Select(r => (int)r.lag_forward)]);
+        Assert.Equal([2, 3, 99], [.. rows.Select(r => (int)r.lead_forward)]);
+    }
+
+    /// <summary>
+    /// EN: Tests Window_RankingFunctions_WithRowsFrame_ShouldRespectPerRowBoundaries behavior.
+    /// PT: Testa o comportamento de Window_RankingFunctions_WithRowsFrame_ShouldRespectPerRowBoundaries.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_RankingFunctions_WithRowsFrame_ShouldRespectPerRowBoundaries()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS rank_current,
+       DENSE_RANK() OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS dense_current,
+       PERCENT_RANK() OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS pr_current,
+       CUME_DIST() OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS cd_current,
+       NTILE(2) OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS tile_current,
+       RANK() OVER (ORDER BY tenantid ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS rank_sliding,
+       DENSE_RANK() OVER (ORDER BY tenantid ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS dense_sliding,
+       PERCENT_RANK() OVER (ORDER BY tenantid ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS pr_sliding,
+       CUME_DIST() OVER (ORDER BY tenantid ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS cd_sliding,
+       NTILE(2) OVER (ORDER BY tenantid ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS tile_sliding,
+       RANK() OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS rank_forward,
+       DENSE_RANK() OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS dense_forward,
+       PERCENT_RANK() OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS pr_forward,
+       CUME_DIST() OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS cd_forward,
+       NTILE(2) OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS tile_forward
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.rank_current)]);
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.dense_current)]);
+        Assert.Equal([0d, 0d, 0d], [.. rows.Select(r => Convert.ToDouble(r.pr_current))]);
+        Assert.Equal([1d, 1d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_current))]);
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.tile_current)]);
+
+        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.rank_sliding)]);
+        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.dense_sliding)]);
+        Assert.Equal([0d, 0d, 1d], [.. rows.Select(r => Convert.ToDouble(r.pr_sliding))]);
+        Assert.Equal([1d, 1d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_sliding))]);
+        Assert.Equal([1, 2, 2], [.. rows.Select(r => (int)r.tile_sliding)]);
+
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.rank_forward)]);
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.dense_forward)]);
+        Assert.Equal([0d, 0d, 0d], [.. rows.Select(r => Convert.ToDouble(r.pr_forward))]);
+        Assert.Equal([1d, 0.5d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_forward))]);
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.tile_forward)]);
+    }
+
+
+    /// <summary>
+    /// EN: Tests Window_RankingFunctions_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame behavior.
+    /// PT: Testa o comportamento de Window_RankingFunctions_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_RankingFunctions_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY tenantid DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS rank_sliding_desc,
+       DENSE_RANK() OVER (ORDER BY tenantid DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS dense_sliding_desc,
+       PERCENT_RANK() OVER (ORDER BY tenantid DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS pr_sliding_desc,
+       CUME_DIST() OVER (ORDER BY tenantid DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS cd_sliding_desc
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([2, 1, 1], [.. rows.Select(r => (int)r.rank_sliding_desc)]);
+        Assert.Equal([2, 1, 1], [.. rows.Select(r => (int)r.dense_sliding_desc)]);
+        Assert.Equal([1d, 0d, 0d], [.. rows.Select(r => Convert.ToDouble(r.pr_sliding_desc))]);
+        Assert.Equal([1d, 1d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_sliding_desc))]);
+    }
+
+    /// <summary>
+    /// EN: Tests Window_PercentRank_CumeDist_WithRowsFrame_AndDescendingPeers_ShouldRespectFrame behavior.
+    /// PT: Testa o comportamento de Window_PercentRank_CumeDist_WithRowsFrame_AndDescendingPeers_ShouldRespectFrame.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_PercentRank_CumeDist_WithRowsFrame_AndDescendingPeers_ShouldRespectFrame()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       PERCENT_RANK() OVER (ORDER BY tenantid DESC ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS pr_desc_forward,
+       CUME_DIST() OVER (ORDER BY tenantid DESC ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS cd_desc_forward
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([0d, 0d, 0d], [.. rows.Select(r => Convert.ToDouble(r.pr_desc_forward))]);
+        Assert.Equal([1d, 1d, 0.5d], [.. rows.Select(r => Convert.ToDouble(r.cd_desc_forward))]);
+    }
+
+    /// <summary>
+    /// EN: Tests Window_LagLead_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame behavior.
+    /// PT: Testa o comportamento de Window_LagLead_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_LagLead_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       LAG(id, 1, -1) OVER (ORDER BY id DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS lag_desc_sliding,
+       LEAD(id, 1, 99) OVER (ORDER BY id DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS lead_desc_sliding,
+       LAG(id, 1, -1) OVER (ORDER BY id DESC ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS lag_desc_forward,
+       LEAD(id, 1, 99) OVER (ORDER BY id DESC ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS lead_desc_forward
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([2, 3, -1], [.. rows.Select(r => (int)r.lag_desc_sliding)]);
+        Assert.Equal([99, 99, 99], [.. rows.Select(r => (int)r.lead_desc_sliding)]);
+        Assert.Equal([-1, -1, -1], [.. rows.Select(r => (int)r.lag_desc_forward)]);
+        Assert.Equal([99, 1, 2], [.. rows.Select(r => (int)r.lead_desc_forward)]);
+    }
+
+    /// <summary>
+    /// EN: Tests Window_Ntile_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame behavior.
+    /// PT: Testa o comportamento de Window_Ntile_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_Ntile_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       NTILE(2) OVER (ORDER BY id DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS tile_desc_sliding,
+       NTILE(2) OVER (ORDER BY id DESC ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS tile_desc_forward
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([2, 2, 1], [.. rows.Select(r => (int)r.tile_desc_sliding)]);
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.tile_desc_forward)]);
+    }
+
+    /// <summary>
     /// EN: Tests Regexp_NotOperator_ShouldWork behavior.
     /// PT: Testa o comportamento de Regexp_NotOperator_ShouldWork.
     /// </summary>
