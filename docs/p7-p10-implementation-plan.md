@@ -150,3 +150,20 @@ Documento gerado por `scripts/generate_p7_p10_plan.py` para orientar implementa�
 - [x] Manter cobertura de não regressão de `IndexRecommendations` coexistindo com `PlanWarnings`.
 - [x] Validar consistência i18n: todas as chaves de `SqlExecutionPlanMessages` presentes em `resx` base + `de/es/fr/it/pt`.
 - [x] Validar preservação de tokens SQL canônicos sem tradução (`WHERE`, `ORDER BY`, `DISTINCT`, `LIMIT/TOP/FETCH`, `SELECT *`).
+
+### PlanWarnings (rodada corretiva - sem perda de cobertura)
+- [x] Preservar os testes de `ExecutionPlanTests` específicos por provider (wiring/dialeto/comportamento próprio) sem deleções massivas.
+- [x] Consolidar apenas duplicação real de PlanWarnings na base compartilhada (`ExecutionPlanPlanWarningsTestsBase`).
+- [x] Cobrir explicitamente a matriz `PW004` vs `PW005`: (a) sem `WHERE` e sem `DISTINCT`, (b) com `DISTINCT` e sem `WHERE`, (c) com `WHERE` e `DISTINCT`.
+- [x] Reforçar teste unitário/formatação para confirmar ordem fixa dos campos: `Code`, `Message`, `Reason`, `SuggestedAction`, `Severity`, `MetricName`, `ObservedValue`, `Threshold`.
+- [x] Reforçar validação de `Threshold` em padrão técnico parseável no formatter e na integração de warnings.
+- [x] Garantir por teste que `IndexRecommendations` permanece ativo quando coexistem `PlanWarnings`.
+- [x] Validar por reflexão que todas as chaves acessadas em `SqlExecutionPlanMessages` existem no `resx` base e que as culturas (`de/es/fr/it/pt`) contêm o conjunto completo.
+
+Decisões adotadas nesta rodada:
+- A deduplicação permaneceu restrita aos cenários comuns de `PlanWarnings`; cenários de índice e wiring continuaram nos arquivos de provider.
+- A heurística de baixo risco manteve supressão de `PW004` quando `DISTINCT` já explica leitura alta sem filtro, com cobertura adicional para o caso `WHERE + DISTINCT` (mantém `PW005`, não emite `PW004`).
+- O contrato textual foi reforçado com testes unitários do formatter, evitando depender apenas de integração end-to-end.
+- A matriz `PW004/PW005` recebeu verificação adicional para preservar `PW002` quando aplicável (`WHERE + DISTINCT`), reduzindo ruído sem ocultar sinal relevante.
+- Foi adicionado caso negativo explícito para `PW005` sem `DISTINCT`, evitando falso-positivo regressivo.
+- A geração de `Threshold` técnico no advisor foi centralizada em helper de baixo risco para reduzir duplicação e preservar formato estável por regra.

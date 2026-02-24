@@ -182,6 +182,109 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.CodeLabel()}: PW004");
     }
 
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldKeepPW005AndSuppressPW004_WhenWhereAndDistinct()
+    {
+        using var cnn = CreateConnection();
+        SeedUsers(cnn, 120, _ => 1);
+
+        using var cmd = CreateCommand(cnn, "SELECT DISTINCT Id FROM users WHERE Active = 1");
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.CodeLabel()}: PW005");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.CodeLabel()}: PW002");
+        cnn.LastExecutionPlan.Should().NotContain($"{SqlExecutionPlanMessages.CodeLabel()}: PW004");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldNotEmitPW005_WhenNoDistinct()
+    {
+        using var cnn = CreateConnection();
+        SeedUsers(cnn, 120, _ => 1);
+
+        using var cmd = CreateCommand(cnn, "SELECT Id FROM users");
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().NotContain($"{SqlExecutionPlanMessages.CodeLabel()}: PW005");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldEmitStableTechnicalThresholdMetadata_ForPW002()
+    {
+        using var cnn = CreateConnection();
+        SeedUsers(cnn, 120, _ => 1);
+
+        using var cmd = CreateCommand(cnn, "SELECT Id FROM users WHERE Active = 1");
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        var warningBlock = ExtractWarningBlock(cnn.LastExecutionPlan!, "PW002");
+        warningBlock.Should().Contain($"{SqlExecutionPlanMessages.MetricNameLabel()}: SelectivityPct");
+        warningBlock.Should().Contain($"{SqlExecutionPlanMessages.ThresholdLabel()}: gte:60;highImpactGte:85");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldEmitStableTechnicalThresholdMetadata_ForPW004AndPW005()
+    {
+        using var cnn = CreateConnection();
+        SeedUsers(cnn, 120, _ => 1);
+
+        using var pw004Cmd = CreateCommand(cnn, "SELECT Id FROM users");
+        using var pw004Reader = pw004Cmd.ExecuteReader();
+        while (pw004Reader.Read()) { }
+
+        var pw004Block = ExtractWarningBlock(cnn.LastExecutionPlan!, "PW004");
+        pw004Block.Should().Contain($"{SqlExecutionPlanMessages.MetricNameLabel()}: EstimatedRowsRead");
+        pw004Block.Should().Contain($"{SqlExecutionPlanMessages.ThresholdLabel()}: gte:100;highGte:5000");
+
+        using var pw005Cmd = CreateCommand(cnn, "SELECT DISTINCT Id FROM users");
+        using var pw005Reader = pw005Cmd.ExecuteReader();
+        while (pw005Reader.Read()) { }
+
+        var pw005Block = ExtractWarningBlock(cnn.LastExecutionPlan!, "PW005");
+        pw005Block.Should().Contain($"{SqlExecutionPlanMessages.MetricNameLabel()}: EstimatedRowsRead");
+        pw005Block.Should().Contain($"{SqlExecutionPlanMessages.ThresholdLabel()}: gte:100;highGte:5000");
+    }
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldKeepIndexRecommendations_WhenPlanWarningsArePresent()
+    {
+        using var cnn = CreateConnection();
+        SeedUsers(cnn, 120, _ => 1);
+
+        using var cmd = CreateCommand(cnn, "SELECT Id FROM users WHERE Active = 1 ORDER BY Id");
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.CodeLabel()}: PW001");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.CodeLabel()}: PW002");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.IndexRecommendationsLabel()}:");
+    }
+
+    private static string[] ExtractWarningBlock(string plan, string code)
+    {
+        var lines = plan
+            .Split(new[] { Environment.NewLine }, StringSplitOptions.None)
+            .Select(static line => line.Trim())
+            .ToArray();
+
+        var start = Array.FindIndex(lines, line => line == $"- {SqlExecutionPlanMessages.CodeLabel()}: {code}");
+        start.Should().BeGreaterThanOrEqualTo(0);
+
+        var end = Array.FindIndex(start + 1 < lines.Length ? lines[(start + 1)..] : [], line => line.StartsWith($"- {SqlExecutionPlanMessages.CodeLabel()}:", StringComparison.Ordinal));
+        if (end >= 0)
+            return lines[start..(start + 1 + end)];
+
+        return lines[start..];
+    }
+
     protected static void SeedUsers(DbConnectionMockBase cnn, int totalRows, Func<int, int> activeSelector)
     {
         cnn.Define("users");

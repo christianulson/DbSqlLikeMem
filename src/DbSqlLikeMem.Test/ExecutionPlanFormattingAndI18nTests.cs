@@ -1,9 +1,15 @@
 using System.Xml.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace DbSqlLikeMem.Test;
 
 public sealed class ExecutionPlanFormattingAndI18nTests
 {
+    private static readonly Regex TechnicalThresholdPattern = new(
+        @"^[a-zA-Z]+:\d+(\.\d+)?(?:;[a-zA-Z]+:\d+(\.\d+)?)*$",
+        RegexOptions.CultureInvariant);
+
     [Fact]
     public void FormatSelect_ShouldPrintPlanWarningMetadataInStableOrder()
     {
@@ -26,16 +32,24 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         var plan = SqlExecutionPlanFormatter.FormatSelect(query, metrics, null, [warning]);
         var lines = plan.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
 
-        var warningLines = lines.Where(l => l.IndexOf(':') >= 0).ToList();
-        warningLines.Should().ContainInConsecutiveOrder(
-            warningLines.Single(l => l.Contains($"{SqlExecutionPlanMessages.CodeLabel()}:", StringComparison.Ordinal)),
-            warningLines.Single(l => l.Contains($"{SqlExecutionPlanMessages.MessageLabel()}:", StringComparison.Ordinal)),
-            warningLines.Single(l => l.Contains($"{SqlExecutionPlanMessages.ReasonLabel()}:", StringComparison.Ordinal)),
-            warningLines.Single(l => l.Contains($"{SqlExecutionPlanMessages.SuggestedActionLabel()}:", StringComparison.Ordinal)),
-            warningLines.Single(l => l.Contains($"{SqlExecutionPlanMessages.SeverityLabel()}:", StringComparison.Ordinal)),
-            warningLines.Single(l => l.Contains($"{SqlExecutionPlanMessages.MetricNameLabel()}:", StringComparison.Ordinal)),
-            warningLines.Single(l => l.Contains($"{SqlExecutionPlanMessages.ObservedValueLabel()}:", StringComparison.Ordinal)),
-            warningLines.Single(l => l.Contains($"{SqlExecutionPlanMessages.ThresholdLabel()}:", StringComparison.Ordinal)));
+        var warningStart = Array.FindIndex(lines, l => l.Contains($"{SqlExecutionPlanMessages.CodeLabel()}: PWX", StringComparison.Ordinal));
+        warningStart.Should().BeGreaterThan(-1);
+
+        var warningBlock = lines
+            .Skip(warningStart)
+            .Take(8)
+            .Select(static line => line.Trim())
+            .ToArray();
+
+        warningBlock.Should().Equal(
+            $"- {SqlExecutionPlanMessages.CodeLabel()}: PWX",
+            $"{SqlExecutionPlanMessages.MessageLabel()}: message",
+            $"{SqlExecutionPlanMessages.ReasonLabel()}: reason",
+            $"{SqlExecutionPlanMessages.SuggestedActionLabel()}: action",
+            $"{SqlExecutionPlanMessages.SeverityLabel()}: {SqlExecutionPlanMessages.SeverityWarningValue()}",
+            $"{SqlExecutionPlanMessages.MetricNameLabel()}: EstimatedRowsRead",
+            $"{SqlExecutionPlanMessages.ObservedValueLabel()}: 120",
+            $"{SqlExecutionPlanMessages.ThresholdLabel()}: gte:100;highGte:5000");
     }
 
     [Fact]
@@ -45,6 +59,12 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         var baseResx = Path.Combine(basePath, "SqlExecutionPlanMessages.resx");
 
         var baseEntries = LoadResxEntries(baseResx);
+        var messageKeysUsedByCode = typeof(SqlExecutionPlanMessages)
+            .GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Select(static method => method.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        baseEntries.Keys.Should().Contain(messageKeysUsedByCode);
         var localizedFiles = new[] { "de", "es", "fr", "it", "pt" }
             .Select(c => Path.Combine(basePath, $"SqlExecutionPlanMessages.{c}.resx"));
 
@@ -77,6 +97,32 @@ public sealed class ExecutionPlanFormattingAndI18nTests
                 expectedTokens.Any(token => value.IndexOf(token, StringComparison.Ordinal) >= 0).Should().BeTrue($"{key} should preserve canonical SQL keyword tokens");
             }
         }
+    }
+
+    [Fact]
+    public void FormatSelect_ShouldKeepThresholdInTechnicalParseablePattern()
+    {
+        var query = new SqlSelectQuery([], false, [new SqlSelectItem("Id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 120, 12, 10);
+        var warnings = new[]
+        {
+            new SqlPlanWarning("PW1", "m1", "r1", "a1", SqlPlanWarningSeverity.Warning, "EstimatedRowsRead", "120", "gte:100;highGte:5000"),
+            new SqlPlanWarning("PW2", "m2", "r2", "a2", SqlPlanWarningSeverity.Warning, "SelectivityPct", "85.00", "gte:60;highImpactGte:85")
+        };
+
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query, metrics, null, warnings);
+        var thresholds = plan
+            .Split(new[] { Environment.NewLine }, StringSplitOptions.None)
+            .Where(line => line.Contains($"{SqlExecutionPlanMessages.ThresholdLabel()}:", StringComparison.Ordinal))
+            .Select(line => line[(line.IndexOf(':') + 1)..].Trim())
+            .ToList();
+
+        thresholds.Should().NotBeEmpty();
+        thresholds.Should().OnlyContain(value => TechnicalThresholdPattern.IsMatch(value));
     }
 
     private static Dictionary<string, string> LoadResxEntries(string path)
