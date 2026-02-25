@@ -1,6 +1,5 @@
 using DbSqlLikeMem.Interfaces;
 using System.Diagnostics;
-using System.Globalization;
 using DbSqlLikeMem.Models;
 using System.Collections.Concurrent;
 
@@ -370,7 +369,21 @@ internal abstract class AstQueryExecutorBase(
 
         var warnings = new List<SqlPlanWarning>();
 
-        if (query.OrderBy.Count > 0 && query.RowLimit is null)
+        static bool HasTopPrefixInProjection(SqlSelectQuery q)
+        {
+            if (Regex.IsMatch(
+                q.RawSql,
+                @"^\s*SELECT\s+(?:DISTINCT\s+)?TOP\s*(\(\s*\d+\s*\)|\d+)\b",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                return true;
+
+            return q.SelectItems.Any(i => Regex.IsMatch(
+                i.Raw,
+                @"^\s*TOP\s*(\(\s*\d+\s*\)|\d+)\b",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant));
+        }
+
+        if (query.OrderBy.Count > 0 && query.RowLimit is null && !HasTopPrefixInProjection(query))
         {
             warnings.Add(new SqlPlanWarning(
                 "PW001",
@@ -3790,6 +3803,17 @@ private void FillPercentRankOrCumeDist(
             return null;
         }
 
+        if (fn.Name.Equals("NULLIF", StringComparison.OrdinalIgnoreCase))
+        {
+            var left = EvalArg(0);
+            var right = EvalArg(1);
+
+            if (IsNullish(left) || IsNullish(right))
+                return left;
+
+            return left!.Compare(right!, Dialect) == 0 ? null : left;
+        }
+
         var jsonNumberResult = TryEvalJsonAndNumberFunctions(fn, dialect, EvalArg, out var handledJsonNumber);
         if (handledJsonNumber)
             return jsonNumberResult;
@@ -3993,6 +4017,29 @@ private void FillPercentRankOrCumeDist(
                 if (v is decimal dd) return dd;
                 if (decimal.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return dx;
                 return 0m;
+            }
+
+            if (type.Equals("JSON", StringComparison.OrdinalIgnoreCase))
+            {
+                static string? ValidateJsonOrNull(string? json)
+                {
+                    if (json is null || string.IsNullOrWhiteSpace(json))
+                        return null;
+
+                    var normalizedJson = json.Trim();
+
+                    using var _ = System.Text.Json.JsonDocument.Parse(normalizedJson);
+                    return normalizedJson;
+                }
+
+                if (v is string s)
+                    return ValidateJsonOrNull(s);
+
+                if (v is System.Text.Json.JsonElement je)
+                    return ValidateJsonOrNull(je.GetRawText());
+
+                var serialized = System.Text.Json.JsonSerializer.Serialize(v);
+                return ValidateJsonOrNull(serialized);
             }
 
             return v!.ToString();

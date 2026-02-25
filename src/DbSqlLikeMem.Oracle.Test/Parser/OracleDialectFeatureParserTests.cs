@@ -29,6 +29,11 @@ public sealed class OracleDialectFeatureParserTests
 
 
 
+    /// <summary>
+    /// EN: Verifies WITH RECURSIVE rejection includes actionable guidance for Oracle syntax.
+    /// PT: Verifica que a rejeição de WITH RECURSIVE inclui orientação acionável para sintaxe Oracle.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.WithCteMinVersion)]
@@ -55,6 +60,37 @@ public sealed class OracleDialectFeatureParserTests
         var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
 
         Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseSelect_PaginationSyntaxes_ShouldNormalizeRowLimitAst(int version)
+    {
+        var dialect = new OracleDialect(version);
+
+        if (version < OracleDialect.OffsetFetchMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                SqlQueryParser.Parse("SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY", dialect));
+            return;
+        }
+
+        var offsetFetch = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
+            dialect));
+        var fetchFirst = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id FETCH FIRST 2 ROWS ONLY",
+            dialect));
+
+        var normalizedOffsetFetch = Assert.IsType<SqlLimitOffset>(offsetFetch.RowLimit);
+        var normalizedFetchFirst = Assert.IsType<SqlLimitOffset>(fetchFirst.RowLimit);
+
+        Assert.Equal(2, normalizedOffsetFetch.Count);
+        Assert.Equal(1, normalizedOffsetFetch.Offset);
+        Assert.Equal(2, normalizedFetchFirst.Count);
+        Assert.Null(normalizedFetchFirst.Offset);
     }
 
     /// <summary>
@@ -376,6 +412,11 @@ public sealed class OracleDialectFeatureParserTests
 
 
 
+    /// <summary>
+    /// EN: Verifies DELETE without FROM returns an actionable error message.
+    /// PT: Verifica que DELETE sem FROM retorna mensagem de erro acionável.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -387,6 +428,11 @@ public sealed class OracleDialectFeatureParserTests
         Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Verifies DELETE target alias before FROM returns an actionable error message.
+    /// PT: Verifica que alias alvo de DELETE antes de FROM retorna mensagem de erro acionável.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -400,6 +446,11 @@ public sealed class OracleDialectFeatureParserTests
 
 
 
+    /// <summary>
+    /// EN: Verifies unsupported top-level statements return guidance-focused errors.
+    /// PT: Verifica que comandos de topo não suportados retornam erros com orientação.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]

@@ -48,7 +48,8 @@ public sealed class ColumnDef
             throw new InvalidOperationException("Tamanho do campo é obrigatório para o tipo String");
         if ((dbType == DbType.Currency
                 || dbType == DbType.Decimal
-                || dbType == DbType.Double)
+                // || dbType == DbType.Double
+                )
             && !decimalPlaces.HasValue)
             throw new InvalidOperationException($"DbType {dbType} é obrigatório informafar decimalPlaces");
 

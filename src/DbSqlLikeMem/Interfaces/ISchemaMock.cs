@@ -7,6 +7,12 @@ namespace DbSqlLikeMem;
 public interface ISchemaMock
 {
     /// <summary>
+    /// EN: Normalized schema name.
+    /// PT: Nome normalizado do schema.
+    /// </summary>
+    string SchemaName { get; }
+
+    /// <summary>
     /// EN: Creates a table with columns and optional initial rows.
     /// PT: Cria uma tabela com colunas e linhas iniciais opcionais.
     /// </summary>

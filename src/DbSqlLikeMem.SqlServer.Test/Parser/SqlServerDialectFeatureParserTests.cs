@@ -58,6 +58,8 @@ public sealed class SqlServerDialectFeatureParserTests
     /// <summary>
     /// EN: Ensures SQL Server OFFSET/FETCH pagination is normalized to the canonical row-limit AST node.
     /// PT: Garante que a paginação OFFSET/FETCH do SQL Server seja normalizada para o nó canônico de AST de limite de linhas.
+    /// EN: Verifies LIMIT syntax in SQL Server returns an actionable pagination hint.
+    /// PT: Verifica que sintaxe LIMIT no SQL Server retorna dica acionável de paginação.
     /// </summary>
     /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
@@ -97,6 +99,11 @@ public sealed class SqlServerDialectFeatureParserTests
 
 
 
+    /// <summary>
+    /// EN: Verifies unsupported top-level statements return guidance-focused errors.
+    /// PT: Verifica que comandos de topo não suportados retornam erros com orientação.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -291,6 +298,11 @@ public sealed class SqlServerDialectFeatureParserTests
 
 
 
+    /// <summary>
+    /// EN: Verifies WITH RECURSIVE rejection includes actionable SQL Server guidance.
+    /// PT: Verifica que a rejeição de WITH RECURSIVE inclui orientação acionável para SQL Server.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.WithCteMinVersion)]
