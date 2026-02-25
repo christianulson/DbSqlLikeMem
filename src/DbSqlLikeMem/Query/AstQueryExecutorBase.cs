@@ -370,7 +370,10 @@ internal abstract class AstQueryExecutorBase(
 
         var warnings = new List<SqlPlanWarning>();
 
-        if (query.OrderBy.Count > 0 && query.RowLimit is null)
+        static bool HasTopPrefixInProjection(SqlSelectQuery q)
+            => q.SelectItems.Any(i => Regex.IsMatch(i.Raw, @"^\s*TOP\s*(\(\s*\d+\s*\)|\d+)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant));
+
+        if (query.OrderBy.Count > 0 && query.RowLimit is null && !HasTopPrefixInProjection(query))
         {
             warnings.Add(new SqlPlanWarning(
                 "PW001",
@@ -3993,6 +3996,27 @@ private void FillPercentRankOrCumeDist(
                 if (v is decimal dd) return dd;
                 if (decimal.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return dx;
                 return 0m;
+            }
+
+            if (type.Equals("JSON", StringComparison.OrdinalIgnoreCase))
+            {
+                static string? ValidateJsonOrNull(string? json)
+                {
+                    if (string.IsNullOrWhiteSpace(json))
+                        return null;
+
+                    using var _ = System.Text.Json.JsonDocument.Parse(json);
+                    return json;
+                }
+
+                if (v is string s)
+                    return ValidateJsonOrNull(s);
+
+                if (v is System.Text.Json.JsonElement je)
+                    return ValidateJsonOrNull(je.GetRawText());
+
+                var serialized = System.Text.Json.JsonSerializer.Serialize(v);
+                return ValidateJsonOrNull(serialized);
             }
 
             return v!.ToString();
