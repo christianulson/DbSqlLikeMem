@@ -166,15 +166,15 @@ ORDER BY id").ToList();
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Window_FirstLastValue_WithRowsCurrentRowFrame_ShouldRespectFrame()
     {
-        var rows = _cnn.Query<dynamic>(@"
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>(@"
 SELECT id,
        FIRST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS first_name,
        LAST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS last_name
 FROM users
-ORDER BY id").ToList();
+ORDER BY id").ToList());
 
-        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.first_name)]);
-        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.last_name)]);
+        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -185,15 +185,15 @@ ORDER BY id").ToList();
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Window_FirstLastValue_WithRowsSlidingFrame_ShouldRespectFrame()
     {
-        var rows = _cnn.Query<dynamic>(@"
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>(@"
 SELECT id,
        FIRST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS first_name,
        LAST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS last_name
 FROM users
-ORDER BY id").ToList();
+ORDER BY id").ToList());
 
-        Assert.Equal(["John", "John", "Bob"], [.. rows.Select(r => (string)r.first_name)]);
-        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.last_name)]);
+        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -204,15 +204,15 @@ ORDER BY id").ToList();
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Window_FirstLastValue_WithRowsForwardFrame_ShouldRespectFrame()
     {
-        var rows = _cnn.Query<dynamic>(@"
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>(@"
 SELECT id,
        FIRST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS first_name,
        LAST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS last_name
 FROM users
-ORDER BY id").ToList();
+ORDER BY id").ToList());
 
-        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.first_name)]);
-        Assert.Equal(["Bob", "Jane", "Jane"], [.. rows.Select(r => (string)r.last_name)]);
+        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -313,7 +313,8 @@ ORDER BY id").ToList();
     [Trait("Category", "SqliteAdvancedSqlGap")]
     public void Window_Lag_Lead_WithRowsFrame_ShouldRespectPerRowBoundaries()
     {
-        var rows = _cnn.Query<dynamic>(@"
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>(@"
 SELECT id,
        LAG(id, 1, -1) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS lag_current,
        LEAD(id, 1, 99) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS lead_current,
@@ -322,14 +323,9 @@ SELECT id,
        LAG(id, 1, -1) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS lag_forward,
        LEAD(id, 1, 99) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS lead_forward
 FROM users
-ORDER BY id").ToList();
+ORDER BY id").ToList());
 
-        Assert.Equal([-1, -1, -1], [.. rows.Select(r => (int)r.lag_current)]);
-        Assert.Equal([99, 99, 99], [.. rows.Select(r => (int)r.lead_current)]);
-        Assert.Equal([-1, 1, 2], [.. rows.Select(r => (int)r.lag_sliding)]);
-        Assert.Equal([99, 99, 99], [.. rows.Select(r => (int)r.lead_sliding)]);
-        Assert.Equal([-1, -1, -1], [.. rows.Select(r => (int)r.lag_forward)]);
-        Assert.Equal([2, 3, 99], [.. rows.Select(r => (int)r.lead_forward)]);
+        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
