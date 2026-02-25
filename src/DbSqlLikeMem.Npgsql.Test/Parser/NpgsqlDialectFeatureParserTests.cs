@@ -104,6 +104,11 @@ RETURNING id";
         Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
     }
 
+    /// <summary>
+    /// EN: Verifies pagination syntaxes normalize to equivalent row-limit AST.
+    /// PT: Verifica que sintaxes de paginação são normalizadas para AST equivalente de limite de linhas.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
@@ -168,6 +173,11 @@ RETURNING id";
 
 
 
+    /// <summary>
+    /// EN: Verifies DELETE without FROM returns an actionable error message.
+    /// PT: Verifica que DELETE sem FROM retorna mensagem de erro acionável.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
@@ -179,6 +189,11 @@ RETURNING id";
         Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Verifies DELETE target alias before FROM returns an actionable error message.
+    /// PT: Verifica que alias alvo de DELETE antes de FROM retorna mensagem de erro acionável.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
@@ -192,6 +207,11 @@ RETURNING id";
 
 
 
+    /// <summary>
+    /// EN: Verifies unsupported top-level statements return guidance-focused errors.
+    /// PT: Verifica que comandos de topo não suportados retornam erros com orientação.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]

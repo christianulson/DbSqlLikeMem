@@ -29,6 +29,11 @@ public sealed class OracleDialectFeatureParserTests
 
 
 
+    /// <summary>
+    /// EN: Verifies WITH RECURSIVE rejection includes actionable guidance for Oracle syntax.
+    /// PT: Verifica que a rejeição de WITH RECURSIVE inclui orientação acionável para sintaxe Oracle.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.WithCteMinVersion)]
@@ -126,6 +131,11 @@ public sealed class OracleDialectFeatureParserTests
 
 
 
+    /// <summary>
+    /// EN: Verifies DELETE without FROM returns an actionable error message.
+    /// PT: Verifica que DELETE sem FROM retorna mensagem de erro acionável.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -137,6 +147,11 @@ public sealed class OracleDialectFeatureParserTests
         Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Verifies DELETE target alias before FROM returns an actionable error message.
+    /// PT: Verifica que alias alvo de DELETE antes de FROM retorna mensagem de erro acionável.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -150,6 +165,11 @@ public sealed class OracleDialectFeatureParserTests
 
 
 
+    /// <summary>
+    /// EN: Verifies unsupported top-level statements return guidance-focused errors.
+    /// PT: Verifica que comandos de topo não suportados retornam erros com orientação.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
