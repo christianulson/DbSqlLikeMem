@@ -35,8 +35,11 @@
 		<BaseOutputPath>bin\$(MSBuildProjectName)\</BaseOutputPath>
 	</PropertyGroup>
 
-	<ItemGroup Condition="'$(IsTestProject)' != 'true'">
+	<ItemGroup Condition="'$(IsTestProject)' != 'true' And ('$(TargetFramework)' == 'net6.0' Or '$(TargetFramework)' == 'netstandard2.1')">
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(IsTestProject)' != 'true' And ('$(TargetFramework)' == 'net48' Or '$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0')">
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.103" PrivateAssets="All" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -1,6 +1,5 @@
 using DbSqlLikeMem.Interfaces;
 using System.Diagnostics;
-using System.Globalization;
 using DbSqlLikeMem.Models;
 using System.Collections.Concurrent;
 
@@ -3812,7 +3811,7 @@ private void FillPercentRankOrCumeDist(
             if (IsNullish(left) || IsNullish(right))
                 return left;
 
-            return left.Compare(right, Dialect) == 0 ? null : left;
+            return left!.Compare(right!, Dialect) == 0 ? null : left;
         }
 
         var jsonNumberResult = TryEvalJsonAndNumberFunctions(fn, dialect, EvalArg, out var handledJsonNumber);
