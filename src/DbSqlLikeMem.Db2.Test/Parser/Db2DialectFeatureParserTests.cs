@@ -46,7 +46,9 @@ public sealed class Db2DialectFeatureParserTests
     {
         var sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING";
 
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
+
+        Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -81,6 +83,7 @@ public sealed class Db2DialectFeatureParserTests
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
         Assert.Contains("OPTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Use hints compatíveis", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -174,6 +177,30 @@ public sealed class Db2DialectFeatureParserTests
 
         Assert.Contains("PIVOT", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("db2", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseDelete_WithoutFrom_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("DELETE users WHERE id = 1", new Db2Dialect(version)));
+
+        Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseDelete_TargetAliasBeforeFrom_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("DELETE u FROM users u", new Db2Dialect(version)));
+
+        Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

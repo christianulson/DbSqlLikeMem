@@ -31,7 +31,15 @@ public abstract class DbMock
 
     IEnumerable<ISchemaMock> IReadOnlyDictionary<string, ISchemaMock>.Values => Values;
 
-    ISchemaMock IReadOnlyDictionary<string, ISchemaMock>.this[string key] => throw new NotImplementedException();
+    ISchemaMock IReadOnlyDictionary<string, ISchemaMock>.this[string key]
+    {
+        get
+        {
+            if (base.TryGetValue(key, out var schema) && schema != null)
+                return schema;
+            throw new KeyNotFoundException($"Schema not found: {key}");
+        }
+    }
 
     /// <summary>
     /// EN: Initializes the database with the given version and a default schema.
