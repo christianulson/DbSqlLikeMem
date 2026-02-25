@@ -57,6 +57,7 @@
 
 
 	<ItemGroup>
+	  <Compile Include="..\DbSqlLikeMem.MySql.Dapper.Test\DapperSmokeTests.cs" Link="DapperSmokeTests.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql.Dapper.Test\DapperTests.cs" Link="DapperTests.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql.Dapper.Test\DapperUserTests.cs" Link="DapperUserTests.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql.Dapper.Test\DapperUserTests2.cs" Link="DapperUserTests2.cs" />

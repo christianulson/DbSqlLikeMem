@@ -224,6 +224,7 @@ public sealed class SqliteDialectFeatureParserTests
         Assert.Contains("'['", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
     /// EN: Verifies unsupported top-level statements return guidance-focused errors.
     /// PT: Verifica que comandos de topo não suportados retornam erros com orientação.
     /// </summary>
@@ -254,7 +255,7 @@ public sealed class SqliteDialectFeatureParserTests
             "SELECT name `User Name` FROM users",
             new SqliteDialect(version)));
 
-        var item = Assert.Single(parsed.Items);
+        var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User Name", item.Alias);
     }
 
@@ -272,7 +273,7 @@ public sealed class SqliteDialectFeatureParserTests
             "SELECT name `User``Name` FROM users",
             new SqliteDialect(version)));
 
-        var item = Assert.Single(parsed.Items);
+        var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User`Name", item.Alias);
     }
 

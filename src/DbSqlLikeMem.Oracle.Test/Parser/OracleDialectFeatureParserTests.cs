@@ -62,37 +62,6 @@ public sealed class OracleDialectFeatureParserTests
         Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-
-    [Theory]
-    [Trait("Category", "Parser")]
-    [MemberDataOracleVersion]
-    public void ParseSelect_PaginationSyntaxes_ShouldNormalizeRowLimitAst(int version)
-    {
-        var dialect = new OracleDialect(version);
-
-        if (version < OracleDialect.OffsetFetchMinVersion)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                SqlQueryParser.Parse("SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY", dialect));
-            return;
-        }
-
-        var offsetFetch = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
-            "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
-            dialect));
-        var fetchFirst = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
-            "SELECT id FROM users ORDER BY id FETCH FIRST 2 ROWS ONLY",
-            dialect));
-
-        var normalizedOffsetFetch = Assert.IsType<SqlLimitOffset>(offsetFetch.RowLimit);
-        var normalizedFetchFirst = Assert.IsType<SqlLimitOffset>(fetchFirst.RowLimit);
-
-        Assert.Equal(2, normalizedOffsetFetch.Count);
-        Assert.Equal(1, normalizedOffsetFetch.Offset);
-        Assert.Equal(2, normalizedFetchFirst.Count);
-        Assert.Null(normalizedFetchFirst.Offset);
-    }
-
     /// <summary>
     /// EN: Ensures MERGE parsing follows Oracle version support and preserves target table metadata.
     /// PT: Garante que o parsing de MERGE siga o suporte por versão do Oracle e preserve metadados da tabela alvo.
@@ -201,12 +170,12 @@ public sealed class OracleDialectFeatureParserTests
     }
 
 
-        /// <summary>
+    /// <summary>
     /// EN: Ensures pagination syntaxes normalize to the same row-limit AST shape for this dialect.
     /// PT: Garante que as sintaxes de paginação sejam normalizadas para o mesmo formato de AST de limite de linhas neste dialeto.
     /// </summary>
     /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
-[Theory]
+    [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
     public void ParseSelect_PaginationSyntaxes_ShouldNormalizeRowLimitAst(int version)
@@ -321,7 +290,7 @@ public sealed class OracleDialectFeatureParserTests
             "SELECT name \"User Name\" FROM users",
             new OracleDialect(version)));
 
-        var item = Assert.Single(parsed.Items);
+        var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User Name", item.Alias);
     }
 
@@ -339,7 +308,7 @@ public sealed class OracleDialectFeatureParserTests
             "SELECT name \"User\"\"Name\" FROM users",
             new OracleDialect(version)));
 
-        var item = Assert.Single(parsed.Items);
+        var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User\"Name", item.Alias);
     }
 

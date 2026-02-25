@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.SqlServer;
 /// EN: Represents Sql Server Connection Mock.
 /// PT: Representa Sql Server conexão simulada.
 /// </summary>
-public sealed class SqlServerConnectionMock
+public class SqlServerConnectionMock
     : DbConnectionMockBase
 {
     static SqlServerConnectionMock()

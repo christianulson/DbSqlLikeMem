@@ -391,7 +391,7 @@ public sealed class MySqlDialectFeatureParserTests
             "SELECT name `User Name` FROM users",
             new MySqlDialect(version)));
 
-        var item = Assert.Single(parsed.Items);
+        var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User Name", item.Alias);
     }
 
@@ -409,7 +409,7 @@ public sealed class MySqlDialectFeatureParserTests
             "SELECT name `User``Name` FROM users",
             new MySqlDialect(version)));
 
-        var item = Assert.Single(parsed.Items);
+        var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User`Name", item.Alias);
     }
 

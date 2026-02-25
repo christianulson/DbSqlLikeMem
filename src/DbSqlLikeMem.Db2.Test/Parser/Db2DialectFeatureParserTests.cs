@@ -369,9 +369,6 @@ public sealed class Db2DialectFeatureParserTests
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
-
-
-
     /// <summary>
     /// EN: Ensures OFFSET/FETCH pagination is accepted by DB2 parser.
     /// PT: Garante que paginação OFFSET/FETCH seja aceita pelo parser DB2.
@@ -392,34 +389,6 @@ public sealed class Db2DialectFeatureParserTests
     /// PT: Garante que as sintaxes de paginação sejam normalizadas para o mesmo formato de AST de limite de linhas neste dialeto.
     /// </summary>
     /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
-[Theory]
-    [Theory]
-    [Trait("Category", "Parser")]
-    [MemberDataDb2Version]
-    public void ParseSelect_PaginationSyntaxes_ShouldNormalizeRowLimitAst(int version)
-    {
-        var dialect = new Db2Dialect(version);
-
-        var limitOffset = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
-            "SELECT id FROM users ORDER BY id LIMIT 2 OFFSET 1",
-            dialect));
-        var offsetFetch = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
-            "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
-            dialect));
-
-        var normalizedLimit = Assert.IsType<SqlLimitOffset>(limitOffset.RowLimit);
-        var normalizedFetch = Assert.IsType<SqlLimitOffset>(offsetFetch.RowLimit);
-
-        Assert.Equal(normalizedLimit, normalizedFetch);
-        Assert.Equal(2, normalizedFetch.Count);
-        Assert.Equal(1, normalizedFetch.Offset);
-    }
-
-    /// <summary>
-    /// EN: Verifies DB2 pagination syntaxes normalize to equivalent row-limit AST.
-    /// PT: Verifica que sintaxes de paginação DB2 são normalizadas para AST equivalente de limite de linhas.
-    /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
