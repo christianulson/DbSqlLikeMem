@@ -27,6 +27,19 @@ public sealed class OracleDialectFeatureParserTests
         Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
     }
 
+
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.WithCteMinVersion)]
+    public void ParseSelect_WithRecursive_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("WITH RECURSIVE cte(n) AS (SELECT 1 FROM dual) SELECT n FROM cte", new OracleDialect(version)));
+
+        Assert.Contains("WITH sem RECURSIVE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>
     /// EN: Ensures ON CONFLICT syntax is rejected for Oracle.
     /// PT: Garante que a sintaxe ON CONFLICT seja rejeitada no Oracle.
@@ -39,7 +52,9 @@ public sealed class OracleDialectFeatureParserTests
     {
         var sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING";
 
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+
+        Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -71,6 +86,7 @@ public sealed class OracleDialectFeatureParserTests
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
         Assert.Contains("OPTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Use hints compatíveis", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -106,6 +122,44 @@ public sealed class OracleDialectFeatureParserTests
         var parsed = SqlQueryParser.Parse(sql, new OracleDialect(version));
 
         Assert.IsType<SqlSelectQuery>(parsed);
+    }
+
+
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseDelete_WithoutFrom_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("DELETE users WHERE id = 1", new OracleDialect(version)));
+
+        Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseDelete_TargetAliasBeforeFrom_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("DELETE u FROM users u", new OracleDialect(version)));
+
+        Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseUnsupportedTopLevelStatement_ShouldUseActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", new OracleDialect(version)));
+
+        Assert.Contains("token inicial", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("SELECT/INSERT/UPDATE/DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

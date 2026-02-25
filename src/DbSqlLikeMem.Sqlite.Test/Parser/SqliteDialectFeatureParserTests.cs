@@ -67,6 +67,7 @@ public sealed class SqliteDialectFeatureParserTests
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
         Assert.Contains("OPTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Use hints compatíveis", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -142,6 +143,44 @@ public sealed class SqliteDialectFeatureParserTests
         Assert.Contains("sqlite", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseDelete_WithoutFrom_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("DELETE users WHERE id = 1", new SqliteDialect(version)));
+
+        Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseDelete_TargetAliasBeforeFrom_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("DELETE u FROM users u", new SqliteDialect(version)));
+
+        Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseUnsupportedTopLevelStatement_ShouldUseActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", new SqliteDialect(version)));
+
+        Assert.Contains("token inicial", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("SELECT/INSERT/UPDATE/DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>
     /// EN: Ensures runtime dialect hooks used by executor remain stable across supported versions.
     /// PT: Garante que os hooks de runtime do dialeto usados pelo executor permaneçam estáveis nas versões suportadas.
@@ -163,6 +202,20 @@ public sealed class SqliteDialectFeatureParserTests
 
         Assert.False(d.RegexInvalidPatternEvaluatesToFalse);
         Assert.True(d.SupportsTriggers);
+    }
+
+
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseMerge_UnsupportedDialect_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("MERGE INTO users u USING users s ON u.id = s.id WHEN MATCHED THEN UPDATE SET name = 'x'", new SqliteDialect(version)));
+
+        Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

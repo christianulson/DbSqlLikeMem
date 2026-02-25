@@ -464,6 +464,39 @@ public sealed class MySqlMockTests
     /// PT: Descarta os recursos do teste.
     /// </summary>
     /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+
+
+    /// <summary>
+    /// EN: Ensures DbMock implements IReadOnlyDictionary indexer for existing schemas.
+    /// PT: Garante que DbMock implemente o indexador de IReadOnlyDictionary para schemas existentes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void IReadOnlySchemaDictionary_Indexer_ShouldReturnSchema()
+    {
+        var db = new MySqlDbMock();
+        var readOnly = (IReadOnlyDictionary<string, ISchemaMock>)db;
+
+        var schema = readOnly["DefaultSchema"];
+
+        Assert.NotNull(schema);
+        Assert.Equal("DefaultSchema", schema.Name);
+    }
+
+    /// <summary>
+    /// EN: Ensures DbMock IReadOnlyDictionary indexer throws for missing schema names.
+    /// PT: Garante que o indexador IReadOnlyDictionary de DbMock lance erro para schema inexistente.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void IReadOnlySchemaDictionary_Indexer_ShouldThrowForMissingSchema()
+    {
+        var db = new MySqlDbMock();
+        var readOnly = (IReadOnlyDictionary<string, ISchemaMock>)db;
+
+        Assert.Throws<KeyNotFoundException>(() => _ = readOnly["schema_that_does_not_exist"]);
+    }
+
     protected override void Dispose(bool disposing)
     {
         _connection.Dispose();
