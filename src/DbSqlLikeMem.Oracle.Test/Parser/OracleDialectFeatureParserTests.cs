@@ -94,6 +94,256 @@ public sealed class OracleDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures MERGE parsing follows Oracle version support and preserves target table metadata.
+    /// PT: Garante que o parsing de MERGE siga o suporte por versão do Oracle e preserve metadados da tabela alvo.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseMerge_ShouldFollowOracleVersionSupport(int version)
+    {
+        const string sql = "MERGE INTO users target USING users src ON target.id = src.id WHEN MATCHED THEN UPDATE SET name = 'x'";
+
+        if (version < OracleDialect.MergeMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, new OracleDialect(version)));
+        Assert.NotNull(parsed.Table);
+        Assert.Equal("users", parsed.Table!.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("target", parsed.Table.Alias, StringComparer.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures MERGE accepts the WHEN NOT MATCHED clause form in merge-capable dialect versions.
+    /// PT: Garante que MERGE aceite a forma de cláusula WHEN NOT MATCHED em versões de dialeto com suporte.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
+    public void ParseMerge_WithWhenNotMatched_ShouldParse(int version)
+    {
+        const string sql = "MERGE INTO users target USING users src ON target.id = src.id WHEN NOT MATCHED THEN INSERT (id) VALUES (src.id)";
+
+        var query = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, new OracleDialect(version)));
+
+        Assert.Equal("users", query.Table?.Name, ignoreCase: true);
+    }
+
+    /// <summary>
+    /// EN: Ensures MERGE without USING is rejected with actionable parser guidance in Oracle dialect.
+    /// PT: Garante que MERGE sem USING seja rejeitado com orientação acionável do parser no dialeto Oracle.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
+    public void ParseMerge_WithoutUsing_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("MERGE INTO users target ON target.id = 1 WHEN MATCHED THEN UPDATE SET name = 'x'", new OracleDialect(version)));
+
+        Assert.Contains("MERGE requer cláusula USING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MERGE without ON is rejected with actionable parser guidance in Oracle dialect.
+    /// PT: Garante que MERGE sem ON seja rejeitado com orientação acionável do parser no dialeto Oracle.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
+    public void ParseMerge_WithoutOn_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("MERGE INTO users target USING users src WHEN MATCHED THEN UPDATE SET name = 'x'", new OracleDialect(version)));
+
+        Assert.Contains("MERGE requer cláusula ON", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MERGE requires ON at top-level and does not accept ON tokens nested inside USING subqueries in Oracle dialect.
+    /// PT: Garante que MERGE exija ON em nível top-level e não aceite tokens ON aninhados dentro de subqueries no USING no dialeto Oracle.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
+    public void ParseMerge_WithOnOnlyInsideUsingSubquery_ShouldProvideActionableMessage(int version)
+    {
+        const string sql = "MERGE INTO users target USING (SELECT id FROM users WHERE id IN (SELECT id FROM users WHERE id > 0)) src WHEN MATCHED THEN UPDATE SET name = 'x'";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+
+        Assert.Contains("MERGE requer cláusula ON", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MERGE without WHEN is rejected with actionable parser guidance in Oracle dialect.
+    /// PT: Garante que MERGE sem WHEN seja rejeitado com orientação acionável do parser no dialeto Oracle.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
+    public void ParseMerge_WithoutWhen_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("MERGE INTO users target USING users src ON target.id = src.id", new OracleDialect(version)));
+
+        Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+        /// <summary>
+    /// EN: Ensures pagination syntaxes normalize to the same row-limit AST shape for this dialect.
+    /// PT: Garante que as sintaxes de paginação sejam normalizadas para o mesmo formato de AST de limite de linhas neste dialeto.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+[Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseSelect_PaginationSyntaxes_ShouldNormalizeRowLimitAst(int version)
+    {
+        var dialect = new OracleDialect(version);
+
+        if (version < OracleDialect.OffsetFetchMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                SqlQueryParser.Parse("SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY", dialect));
+            return;
+        }
+
+        var offsetFetch = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
+            dialect));
+        var fetchFirst = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id FETCH FIRST 2 ROWS ONLY",
+            dialect));
+
+        var normalizedOffsetFetch = Assert.IsType<SqlLimitOffset>(offsetFetch.RowLimit);
+        var normalizedFetchFirst = Assert.IsType<SqlLimitOffset>(fetchFirst.RowLimit);
+
+        Assert.Equal(2, normalizedOffsetFetch.Count);
+        Assert.Equal(1, normalizedOffsetFetch.Offset);
+        Assert.Equal(2, normalizedFetchFirst.Count);
+        Assert.Null(normalizedFetchFirst.Offset);
+    }
+
+
+
+    /// <summary>
+    /// EN: Ensures MERGE does not accept a source alias named WHEN as a replacement for top-level WHEN clauses.
+    /// PT: Garante que MERGE não aceite um alias de origem chamado WHEN como substituto para cláusulas WHEN em nível top-level.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
+    public void ParseMerge_WithUsingAliasNamedWhen_ShouldProvideActionableMessage(int version)
+    {
+        const string sql = "MERGE INTO users target USING users when ON target.id = when.id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+
+        Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MERGE requires WHEN at top-level and does not accept WHEN tokens nested inside USING subqueries.
+    /// PT: Garante que MERGE exija WHEN em nível top-level e não aceite tokens WHEN aninhados dentro de subqueries no USING.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
+    public void ParseMerge_WithWhenOnlyInsideUsingSubquery_ShouldProvideActionableMessage(int version)
+    {
+        const string sql = "MERGE INTO users target USING (SELECT CASE WHEN id > 0 THEN id ELSE 0 END AS id FROM users) src ON target.id = src.id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+
+        Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures MERGE rejects invalid top-level WHEN forms that are not WHEN MATCHED/WHEN NOT MATCHED.
+    /// PT: Garante que MERGE rejeite formas inválidas de WHEN em nível top-level que não sejam WHEN MATCHED/WHEN NOT MATCHED.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
+    public void ParseMerge_WithInvalidTopLevelWhenForm_ShouldProvideActionableMessage(int version)
+    {
+        const string sql = "MERGE INTO users target USING users src ON target.id = src.id WHEN src.id > 0 THEN UPDATE SET name = 'x'";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
+
+        Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle rejects unsupported alias quoting style with an actionable message.
+    /// PT: Garante que o Oracle rejeite estilo de quoting de alias não suportado com mensagem acionável.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseSelect_WithBacktickQuotedAlias_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT name `User Name` FROM users", new OracleDialect(version)));
+
+        Assert.Contains("alias/identificadores", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("'`'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle accepts double-quoted aliases and preserves the normalized alias text in AST.
+    /// PT: Garante que o Oracle aceite aliases com aspas duplas e preserve o texto normalizado do alias na AST.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseSelect_WithDoubleQuotedAlias_ShouldParseAndNormalizeAlias(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT name \"User Name\" FROM users",
+            new OracleDialect(version)));
+
+        var item = Assert.Single(parsed.Items);
+        Assert.Equal("User Name", item.Alias);
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle unescapes doubled double-quotes inside quoted aliases when normalizing AST alias text.
+    /// PT: Garante que o Oracle faça unescape de aspas duplas duplicadas dentro de aliases quoted ao normalizar o texto do alias na AST.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseSelect_WithEscapedDoubleQuotedAlias_ShouldNormalizeEscapedQuote(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT name \"User\"\"Name\" FROM users",
+            new OracleDialect(version)));
+
+        var item = Assert.Single(parsed.Items);
+        Assert.Equal("User\"Name", item.Alias);
+    }
+
+    /// <summary>
     /// EN: Ensures SQL Server table hints are rejected for Oracle.
     /// PT: Garante que hints de tabela do SQL Server sejam rejeitados no Oracle.
     /// </summary>

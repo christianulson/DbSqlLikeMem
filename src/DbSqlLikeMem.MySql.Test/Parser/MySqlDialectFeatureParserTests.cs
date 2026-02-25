@@ -218,6 +218,11 @@ public sealed class MySqlDialectFeatureParserTests
     }
 
 
+    /// <summary>
+    /// EN: Ensures pagination syntaxes normalize to the same row-limit AST shape for this dialect.
+    /// PT: Garante que as sintaxes de paginação sejam normalizadas para o mesmo formato de AST de limite de linhas neste dialeto.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -352,6 +357,60 @@ public sealed class MySqlDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
         Assert.Contains("OPTION(query hints)", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("USE/IGNORE/FORCE INDEX", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures unsupported quoted aliases are rejected with actionable parser diagnostics for this dialect.
+    /// PT: Garante que aliases com quoting não suportado sejam rejeitados com diagnóstico acionável do parser para este dialeto.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithBracketQuotedAlias_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT name [User Name] FROM users", new MySqlDialect(version)));
+
+        Assert.Contains("alias/identificadores", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("'['", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL accepts backtick-quoted aliases and preserves the normalized alias text in AST.
+    /// PT: Garante que o MySQL aceite aliases com crase e preserve o texto normalizado do alias na AST.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithBacktickQuotedAlias_ShouldParseAndNormalizeAlias(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT name `User Name` FROM users",
+            new MySqlDialect(version)));
+
+        var item = Assert.Single(parsed.Items);
+        Assert.Equal("User Name", item.Alias);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL unescapes doubled backticks inside backtick-quoted aliases when normalizing AST alias text.
+    /// PT: Garante que o MySQL faça unescape de crases duplicadas dentro de aliases com crase ao normalizar o texto do alias na AST.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithEscapedBacktickQuotedAlias_ShouldNormalizeEscapedBacktick(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT name `User``Name` FROM users",
+            new MySqlDialect(version)));
+
+        var item = Assert.Single(parsed.Items);
+        Assert.Equal("User`Name", item.Alias);
     }
 
 
