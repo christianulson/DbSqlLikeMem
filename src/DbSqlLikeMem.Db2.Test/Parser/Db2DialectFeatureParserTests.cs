@@ -86,6 +86,11 @@ public sealed class Db2DialectFeatureParserTests
         Assert.Contains("Use hints compatíveis", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Verifies unsupported top-level statements return guidance-focused errors.
+    /// PT: Verifica que comandos de topo não suportados retornam erros com orientação.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -173,6 +178,11 @@ public sealed class Db2DialectFeatureParserTests
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
+    /// <summary>
+    /// EN: Verifies DB2 pagination syntaxes normalize to equivalent row-limit AST.
+    /// PT: Verifica que sintaxes de paginação DB2 são normalizadas para AST equivalente de limite de linhas.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -215,6 +225,11 @@ public sealed class Db2DialectFeatureParserTests
 
 
 
+    /// <summary>
+    /// EN: Verifies DELETE without FROM returns an actionable error message.
+    /// PT: Verifica que DELETE sem FROM retorna mensagem de erro acionável.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -226,6 +241,11 @@ public sealed class Db2DialectFeatureParserTests
         Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Verifies DELETE target alias before FROM returns an actionable error message.
+    /// PT: Verifica que alias alvo de DELETE antes de FROM retorna mensagem de erro acionável.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]

@@ -18,8 +18,10 @@ public sealed class ReadOnlyHashSetTests
     public void GetObjectData_ShouldPopulateSerializationInfo()
     {
         var set = new ReadOnlyHashSet<string>(["a", "b", "a"], StringComparer.OrdinalIgnoreCase);
+#pragma warning disable SYSLIB0050 // Formatter-based serialization is obsolete and should not be used.
         var info = new SerializationInfo(typeof(HashSet<string>), new FormatterConverter());
         var context = new StreamingContext(StreamingContextStates.All);
+#pragma warning restore SYSLIB0050 // Formatter-based serialization is obsolete and should not be used.
 
         set.GetObjectData(info, context);
 
@@ -36,6 +38,8 @@ public sealed class ReadOnlyHashSetTests
     {
         var set = new ReadOnlyHashSet<int>([1, 2, 3]);
 
+#pragma warning disable SYSLIB0050 // Formatter-based serialization is obsolete and should not be used.
         Assert.Throws<ArgumentNullException>(() => set.GetObjectData(null!, new StreamingContext(StreamingContextStates.All)));
+#pragma warning restore SYSLIB0050 // Formatter-based serialization is obsolete and should not be used.
     }
 }
