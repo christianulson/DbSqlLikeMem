@@ -4013,11 +4013,13 @@ private void FillPercentRankOrCumeDist(
             {
                 static string? ValidateJsonOrNull(string? json)
                 {
-                    if (string.IsNullOrWhiteSpace(json))
+                    if (json is null || string.IsNullOrWhiteSpace(json))
                         return null;
 
-                    using var _ = System.Text.Json.JsonDocument.Parse(json);
-                    return json;
+                    var normalizedJson = json.Trim();
+
+                    using var _ = System.Text.Json.JsonDocument.Parse(normalizedJson);
+                    return normalizedJson;
                 }
 
                 if (v is string s)

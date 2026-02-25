@@ -478,13 +478,6 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
-    /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
-    /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
-
-
-    /// <summary>
     /// EN: Ensures DbMock implements IReadOnlyDictionary indexer for existing schemas.
     /// PT: Garante que DbMock implemente o indexador de IReadOnlyDictionary para schemas existentes.
     /// </summary>
@@ -515,6 +508,11 @@ public sealed class MySqlMockTests
         Assert.Throws<KeyNotFoundException>(() => _ = readOnly["schema_that_does_not_exist"]);
     }
 
+    /// <summary>
+    /// EN: Disposes test resources.
+    /// PT: Descarta os recursos do teste.
+    /// </summary>
+    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _connection.Dispose();
