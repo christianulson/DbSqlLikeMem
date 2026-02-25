@@ -128,36 +128,6 @@ public static class DbMockConnectionFactory
         }
     }
 
-
-    private static void EnsureProviderAssembliesLoaded(string providerHint)
-    {
-        var candidates = new[]
-        {
-            "DbSqlLikeMem.Sqlite",
-            "DbSqlLikeMem.MySql",
-            "DbSqlLikeMem.SqlServer",
-            "DbSqlLikeMem.Oracle",
-            "DbSqlLikeMem.Db2",
-            "DbSqlLikeMem.Npgsql"
-        };
-
-        foreach (var assemblyName in candidates)
-        {
-            if (!assemblyName.Contains(providerHint, StringComparison.OrdinalIgnoreCase)
-                && !providerHint.Contains(assemblyName.Split('.').Last(), StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            try
-            {
-                _ = Assembly.Load(assemblyName);
-            }
-            catch
-            {
-                // Best effort: continue discovery with assemblies already loaded.
-            }
-        }
-    }
-
     private static IEnumerable<Type> SafeGetTypes(Assembly assembly)
     {
         try
@@ -206,27 +176,58 @@ public static class DbMockConnectionFactory
                 && !type.IsAbstract
                 && ContainsProviderHint(type, providerHint))
             .OrderByDescending(type => type.Name.Contains("Connection", StringComparison.OrdinalIgnoreCase))
-            .FirstOrDefault(type =>
-                type.GetConstructor([db.GetType()]) is not null
-                || type.GetConstructor([typeof(DbMock)]) is not null);
+            .FirstOrDefault(type => CanInstantiateConnectionForDb(type, db.GetType()));
 
         if (connectionType is not null)
-        {
-            var byExactCtor = connectionType.GetConstructor([db.GetType()]);
-            var byBaseCtor = connectionType.GetConstructor([typeof(DbMock)]);
-            if (byExactCtor is not null)
-            {
-                return (IDbConnection)byExactCtor.Invoke([db]);
-            }
-
-            if (byBaseCtor is not null)
-            {
-                return (IDbConnection)byBaseCtor.Invoke([db]);
-            }
-        }
+            return (IDbConnection)CreateConnectionInstanceAllowingOptionalCtor(connectionType, db);
 
         throw new InvalidOperationException(
             $"Could not resolve an IDbConnection from DbMock type '{db.GetType().FullName}' with provider hint '{providerHint}'.");
+    }
+
+
+    private static bool CanInstantiateConnectionForDb(Type connectionType, Type dbType)
+        => connectionType
+            .GetConstructors(BindingFlags.Instance | BindingFlags.Public)
+            .Any(ctor =>
+            {
+                var ps = ctor.GetParameters();
+                if (ps.Length == 0)
+                    return false;
+
+                if (!ps[0].ParameterType.IsAssignableFrom(dbType))
+                    return false;
+
+                return ps.Skip(1).All(p => p.IsOptional);
+            });
+
+    private static object CreateConnectionInstanceAllowingOptionalCtor(Type connectionType, DbMock db)
+    {
+        var ctor = connectionType
+            .GetConstructors(BindingFlags.Instance | BindingFlags.Public)
+            .OrderBy(c => c.GetParameters().Length)
+            .FirstOrDefault(c =>
+            {
+                var ps = c.GetParameters();
+                if (ps.Length == 0)
+                    return false;
+
+                if (!ps[0].ParameterType.IsAssignableFrom(db.GetType()))
+                    return false;
+
+                return ps.Skip(1).All(p => p.IsOptional);
+            });
+
+        if (ctor is null)
+            throw new InvalidOperationException($"No compatible connection constructor found for '{connectionType.FullName}'.");
+
+        var psCtor = ctor.GetParameters();
+        var args = new object?[psCtor.Length];
+        args[0] = db;
+        for (var i = 1; i < psCtor.Length; i++)
+            args[i] = Type.Missing;
+
+        return ctor.Invoke(args);
     }
 
     private static bool ContainsProviderHint(Type type, string providerHint)
