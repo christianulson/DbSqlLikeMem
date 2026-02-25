@@ -1,7 +1,15 @@
 namespace DbSqlLikeMem.Sqlite.Test;
 
+/// <summary>
+/// EN: Validates SQLite test-connection factory helpers.
+/// PT: Valida os helpers da fábrica de conexões de teste SQLite.
+/// </summary>
 public class DbMockConnectionFactoryTests
 {
+    /// <summary>
+    /// EN: Verifies CreateSqliteWithTables returns SQLite db and connection mocks.
+    /// PT: Verifica que CreateSqliteWithTables retorna mocks de banco e conexão SQLite.
+    /// </summary>
     [Fact]
     public void CreateSqliteWithTables_ShouldCreateSqliteDbAndConnection()
     {
@@ -11,6 +19,10 @@ public class DbMockConnectionFactoryTests
         connection.Should().BeOfType<SqliteConnectionMock>();
     }
 
+    /// <summary>
+    /// EN: Verifies table mapper callbacks are applied during factory creation.
+    /// PT: Verifica que callbacks de mapeamento de tabela são aplicados na criação da fábrica.
+    /// </summary>
     [Fact]
     public void CreateWithTables_ShouldApplyTableMappers()
     {

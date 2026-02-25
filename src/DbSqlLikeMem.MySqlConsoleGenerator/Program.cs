@@ -316,7 +316,7 @@ SELECT KCU.COLUMN_NAME
             var nullable = c.IsNullable ? "true" : "false";
             var ctor = $"DbType.{dbType}, {nullable}";
 
-            if (c.IsIdentity) ctor += ", true";
+            if (c.IsIdentity) ctor += ", identity: true";
             if (!string.IsNullOrEmpty(c.DefaultValue)
                 && GenerationRuleSet.IsSimpleLiteralDefault(c.DefaultValue!))
                 ctor += $", defaultValue: {GenerationRuleSet.FormatDefaultLiteral(c.DefaultValue!, dbType)}";

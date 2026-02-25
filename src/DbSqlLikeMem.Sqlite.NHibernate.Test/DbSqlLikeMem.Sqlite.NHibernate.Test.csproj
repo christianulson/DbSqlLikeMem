@@ -30,10 +30,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="coverlet.collector" Version="6.0.4" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.NHibernate.Test\DbSqlLikeMem.NHibernate.Test.csproj" />
 		<ProjectReference Include="..\DbSqlLikeMem.Sqlite.NHibernate\DbSqlLikeMem.Sqlite.NHibernate.csproj" />
 	</ItemGroup>
