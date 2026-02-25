@@ -3804,6 +3804,17 @@ private void FillPercentRankOrCumeDist(
             return null;
         }
 
+        if (fn.Name.Equals("NULLIF", StringComparison.OrdinalIgnoreCase))
+        {
+            var left = EvalArg(0);
+            var right = EvalArg(1);
+
+            if (IsNullish(left) || IsNullish(right))
+                return left;
+
+            return left.Compare(right, Dialect) == 0 ? null : left;
+        }
+
         var jsonNumberResult = TryEvalJsonAndNumberFunctions(fn, dialect, EvalArg, out var handledJsonNumber);
         if (handledJsonNumber)
             return jsonNumberResult;
