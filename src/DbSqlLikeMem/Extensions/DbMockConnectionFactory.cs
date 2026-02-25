@@ -128,6 +128,36 @@ public static class DbMockConnectionFactory
         }
     }
 
+
+    private static void EnsureProviderAssembliesLoaded(string providerHint)
+    {
+        var candidates = new[]
+        {
+            "DbSqlLikeMem.Sqlite",
+            "DbSqlLikeMem.MySql",
+            "DbSqlLikeMem.SqlServer",
+            "DbSqlLikeMem.Oracle",
+            "DbSqlLikeMem.Db2",
+            "DbSqlLikeMem.Npgsql"
+        };
+
+        foreach (var assemblyName in candidates)
+        {
+            if (!assemblyName.Contains(providerHint, StringComparison.OrdinalIgnoreCase)
+                && !providerHint.Contains(assemblyName.Split('.').Last(), StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            try
+            {
+                _ = Assembly.Load(assemblyName);
+            }
+            catch
+            {
+                // Best effort: continue discovery with assemblies already loaded.
+            }
+        }
+    }
+
     private static IEnumerable<Type> SafeGetTypes(Assembly assembly)
     {
         try

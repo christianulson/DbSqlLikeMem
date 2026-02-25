@@ -498,7 +498,7 @@ public sealed class MySqlMockTests
         var schema = readOnly["DefaultSchema"];
 
         Assert.NotNull(schema);
-        Assert.Equal("DefaultSchema", schema.Name);
+        Assert.Equal("DefaultSchema", schema.SchemaName);
     }
 
     /// <summary>
