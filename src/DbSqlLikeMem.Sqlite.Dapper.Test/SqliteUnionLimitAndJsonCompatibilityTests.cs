@@ -9,7 +9,8 @@ public sealed class SqliteUnionLimitAndJsonCompatibilityTests : XUnitTestBase
     private readonly SqliteConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests SqliteUnionLimitAndJsonCompatibilityTests behavior.
+    /// PT: Testa o comportamento de SqliteUnionLimitAndJsonCompatibilityTests.
     /// </summary>
     public SqliteUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper)
     {

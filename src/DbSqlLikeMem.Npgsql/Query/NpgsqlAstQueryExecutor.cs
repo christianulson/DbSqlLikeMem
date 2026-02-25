@@ -1,12 +1,14 @@
 namespace DbSqlLikeMem.Npgsql;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class NpgsqlAstQueryExecutorRegister.
+/// PT: Define a classe NpgsqlAstQueryExecutorRegister.
 /// </summary>
 public static class NpgsqlAstQueryExecutorRegister
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Register.
+    /// PT: Implementa Register.
     /// </summary>
     public static void Register()
     {
@@ -29,7 +31,8 @@ internal sealed class NpgsqlAstQueryExecutor(
     ) : AstQueryExecutorBase(cnn, pars, cnn.Db.Dialect)
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements MapJsonAccess.
+    /// PT: Implementa MapJsonAccess.
     /// </summary>
     protected override SqlExpr MapJsonAccess(JsonAccessExpr ja)
     {

@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class StoredProcedureExecutionTests.
+/// PT: Define a classe StoredProcedureExecutionTests.
 /// </summary>
 public sealed class StoredProcedureExecutionTests(
         ITestOutputHelper helper

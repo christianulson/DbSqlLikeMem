@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
-/// EN: Summary for SqlServerConnectionMock.
-/// PT: Resumo para SqlServerConnectionMock.
+/// EN: Represents Sql Server Connection Mock.
+/// PT: Representa Sql Server conexão simulada.
 /// </summary>
 public sealed class SqlServerConnectionMock
     : DbConnectionMockBase
@@ -13,8 +13,8 @@ public sealed class SqlServerConnectionMock
     }
 
     /// <summary>
-    /// EN: Summary for SqlServerConnectionMock.
-    /// PT: Resumo para SqlServerConnectionMock.
+    /// EN: Represents Sql Server Connection Mock.
+    /// PT: Representa Sql Server conexão simulada.
     /// </summary>
     public SqlServerConnectionMock(
        SqlServerDbMock? db = null,
@@ -25,22 +25,22 @@ public sealed class SqlServerConnectionMock
     }
 
     /// <summary>
-    /// EN: Summary for CreateTransaction.
-    /// PT: Resumo para CreateTransaction.
+    /// EN: Creates a new transaction instance.
+    /// PT: Cria uma nova instância de transaction.
     /// </summary>
     protected override DbTransaction CreateTransaction(IsolationLevel isolationLevel)
         => new SqlServerTransactionMock(this, isolationLevel);
 
     /// <summary>
-    /// EN: Summary for CreateDbCommandCore.
-    /// PT: Resumo para CreateDbCommandCore.
+    /// EN: Creates a new db command core instance.
+    /// PT: Cria uma nova instância de comando de banco principal.
     /// </summary>
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new SqlServerCommandMock(this, transaction as SqlServerTransactionMock);
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Executes new exception.
+    /// PT: Executa new exception.
     /// </summary>
     protected override bool SupportsReleaseSavepoint => false;
 

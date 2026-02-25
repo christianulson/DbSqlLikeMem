@@ -1,16 +1,16 @@
 ﻿namespace DbSqlLikeMem.MySql;
 
 /// <summary>
-/// EN: Summary for MySqlConnectorFactoryMock.
-/// PT: Resumo para MySqlConnectorFactoryMock.
+/// EN: Represents the My Sql Connector Factory Mock type used by provider mocks.
+/// PT: Representa o tipo My Sql Connector Factory simulado usado pelos mocks do provedor.
 /// </summary>
 public sealed class MySqlConnectorFactoryMock : DbProviderFactory
 {
     private static MySqlConnectorFactoryMock? Instance;
 
     /// <summary>
-    /// EN: Summary for GetInstance.
-    /// PT: Resumo para GetInstance.
+    /// EN: Returns the singleton factory instance for this provider mock.
+    /// PT: Retorna a instância única da fábrica deste simulado de provedor.
     /// </summary>
     public static MySqlConnectorFactoryMock GetInstance(MySqlDbMock? db = null)
         => Instance ??= new MySqlConnectorFactoryMock(db);
@@ -18,57 +18,57 @@ public sealed class MySqlConnectorFactoryMock : DbProviderFactory
     private readonly MySqlDbMock? Db;
 
     /// <summary>
-    /// EN: Summary for CreateCommand.
-    /// PT: Resumo para CreateCommand.
+    /// EN: Creates a new command instance.
+    /// PT: Cria uma nova instância de comando.
     /// </summary>
     public override DbCommand CreateCommand() => new MySqlCommandMock();
 
     /// <summary>
-    /// EN: Summary for CreateConnection.
-    /// PT: Resumo para CreateConnection.
+    /// EN: Creates a new connection instance.
+    /// PT: Cria uma nova instância de conexão.
     /// </summary>
     public override DbConnection CreateConnection() => new MySqlConnectionMock(Db);
 
     /// <summary>
-    /// EN: Summary for CreateConnectionStringBuilder.
-    /// PT: Resumo para CreateConnectionStringBuilder.
+    /// EN: Creates a new connection string builder instance.
+    /// PT: Cria uma nova instância de construtor de string de conexão.
     /// </summary>
     public override DbConnectionStringBuilder CreateConnectionStringBuilder() => new MySqlConnectionStringBuilder();
 
     /// <summary>
-    /// EN: Summary for CreateParameter.
-    /// PT: Resumo para CreateParameter.
+    /// EN: Creates a new parameter instance.
+    /// PT: Cria uma nova instância de parâmetro.
     /// </summary>
     public override DbParameter CreateParameter() => new MySqlParameter();
 
     /// <summary>
-    /// EN: Summary for CreateCommandBuilder.
-    /// PT: Resumo para CreateCommandBuilder.
+    /// EN: Creates a new command builder instance.
+    /// PT: Cria uma nova instância de construtor de comandos.
     /// </summary>
     public override DbCommandBuilder CreateCommandBuilder() => new MySqlCommandBuilder();
 
     /// <summary>
-    /// EN: Summary for CreateDataAdapter.
-    /// PT: Resumo para CreateDataAdapter.
+    /// EN: Creates a new data adapter instance.
+    /// PT: Cria uma nova instância de adaptador de dados.
     /// </summary>
     public override DbDataAdapter CreateDataAdapter() => new MySqlDataAdapterMock();
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets whether data source enumerator creation is supported.
+    /// PT: Obtém se a criação de enumerador de fonte de dados é suportada.
     /// </summary>
     public override bool CanCreateDataSourceEnumerator => false;
 
 #if NETCOREAPP3_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets whether command builder creation is supported.
+    /// PT: Obtém se a criação de construtor de comandos é suportada.
     /// </summary>
     public override bool CanCreateCommandBuilder => true;
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets whether data adapter creation is supported.
+    /// PT: Obtém se a criação de adaptador de dados é suportada.
     /// </summary>
     public override bool CanCreateDataAdapter => true;
 #endif
@@ -76,49 +76,49 @@ public sealed class MySqlConnectorFactoryMock : DbProviderFactory
 #pragma warning disable CA1822 // Mark members as static
 #if NET6_0_OR_GREATER
     /// <summary>
-    /// EN: Summary for CreateBatch.
-    /// PT: Resumo para CreateBatch.
+    /// EN: Creates a new batch instance.
+    /// PT: Cria uma nova instância de lote.
     /// </summary>
     public override DbBatch CreateBatch() => new MySqlBatchMock();
 #else
     /// <summary>
-    /// EN: Summary for CreateBatch.
-    /// PT: Resumo para CreateBatch.
+    /// EN: Creates a new batch instance.
+    /// PT: Cria uma nova instância de lote.
     /// </summary>
     public MySqlBatchMock CreateBatch() => new();
 #endif
 
 #if NET6_0_OR_GREATER
     /// <summary>
-    /// EN: Summary for CreateBatchCommand.
-    /// PT: Resumo para CreateBatchCommand.
+    /// EN: Creates a new batch command instance.
+    /// PT: Cria uma nova instância de comando em lote.
     /// </summary>
     public override DbBatchCommand CreateBatchCommand() => new MySqlBatchCommandMock();
 #else
     /// <summary>
-    /// EN: Summary for CreateBatchCommand.
-    /// PT: Resumo para CreateBatchCommand.
+    /// EN: Creates a new batch command instance.
+    /// PT: Cria uma nova instância de comando em lote.
     /// </summary>
     public MySqlBatchCommandMock CreateBatchCommand() => new();
 #endif
 
 #if NET6_0_OR_GREATER
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets whether batch creation is supported.
+    /// PT: Obtém se a criação de lote é suportada.
     /// </summary>
     public override bool CanCreateBatch => true;
 #else
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets whether batch creation is supported.
+    /// PT: Obtém se a criação de lote é suportada.
     /// </summary>
     public bool CanCreateBatch => true;
 #endif
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Creates a provider-specific data source mock for the supplied connection string.
+    /// PT: Cria um simulado de fonte de dados específico do provedor para a string de conexão informada.
     /// </summary>
     public
 #if NET7_0_OR_GREATER

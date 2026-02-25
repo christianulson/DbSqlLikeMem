@@ -9,7 +9,8 @@ public sealed class SqlServerSqlCompatibilityGapTests : XUnitTestBase
     private readonly SqlServerConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests SqlServerSqlCompatibilityGapTests behavior.
+    /// PT: Testa o comportamento de SqlServerSqlCompatibilityGapTests.
     /// </summary>
     public SqlServerSqlCompatibilityGapTests(ITestOutputHelper helper) : base(helper)
     {

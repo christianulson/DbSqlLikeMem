@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
 /// EN: Schema mock for SQL Server databases.
-/// PT: Mock de esquema para bancos SQL Server.
+/// PT: Esquema simulado para bancos SQL Server.
 /// </summary>
 public class SqlServerSchemaMock(
     string schemaName,
@@ -12,7 +12,7 @@ public class SqlServerSchemaMock(
 {
     /// <summary>
     /// EN: Creates a SQL Server table mock for this schema.
-    /// PT: Cria um mock de tabela SQL Server para este schema.
+    /// PT: Cria um simulado de tabela SQL Server para este schema.
     /// </summary>
     /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
     /// <param name="columns">EN: Table columns. PT: Colunas da tabela.</param>

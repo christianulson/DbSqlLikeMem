@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Db2.NHibernate.Test;
 /// Runs smoke tests for NHibernate integration using the DB2 in-memory mock provider.
 /// Executa testes de fumaça para integração do NHibernate usando o provedor simulado em memória do DB2.
 /// </summary>
-public sealed class NHibernateSmokeTests : NHibernateSupportTestsBase
+public sealed class NHibernateSmokeTests(
+    ITestOutputHelper helper
+) : NHibernateSupportTestsBase(helper)
 {
     /// <summary>
     /// Gets the NHibernate dialect class used to emulate DB2 SQL behavior.
@@ -14,7 +16,7 @@ public sealed class NHibernateSmokeTests : NHibernateSupportTestsBase
 
     /// <summary>
     /// EN: Enables pagination fallback due to mocked parser limitations for parameterized LIMIT/OFFSET.
-    /// PT: Habilita fallback de paginação devido a limitações do parser mock com LIMIT/OFFSET parametrizado.
+    /// PT: Habilita fallback de paginação devido a limitações do parser simulado com LIMIT/OFFSET parametrizado.
     /// </summary>
     protected override bool UseInMemoryPaginationFallback => true;
 

@@ -9,7 +9,8 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
     private readonly Db2ConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests Db2SqlCompatibilityGapTests behavior.
+    /// PT: Testa o comportamento de Db2SqlCompatibilityGapTests.
     /// </summary>
     public Db2SqlCompatibilityGapTests(ITestOutputHelper helper) : base(helper)
     {

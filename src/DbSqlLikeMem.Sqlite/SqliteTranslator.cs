@@ -6,8 +6,8 @@ namespace DbSqlLikeMem.Sqlite;
 
 #pragma warning disable CA1305 // Specify IFormatProvider
 /// <summary>
-/// EN: Summary for SqliteTranslator.
-/// PT: Resumo para SqliteTranslator.
+/// EN: Translates LINQ expressions into SQLite-compatible SQL statements.
+/// PT: Traduz expressões LINQ para instruções SQL compatíveis com SQLite.
 /// </summary>
 public class SqliteTranslator : ExpressionVisitor
 {
@@ -21,8 +21,8 @@ public class SqliteTranslator : ExpressionVisitor
     private int? _limit;
 
     /// <summary>
-    /// EN: Summary for Translate.
-    /// PT: Resumo para Translate.
+    /// EN: Translates a LINQ expression into SQL and parameters.
+    /// PT: Traduz uma expressão LINQ em SQL e parâmetros.
     /// </summary>
     public TranslationResult Translate(Expression expression)
     {
@@ -63,8 +63,8 @@ public class SqliteTranslator : ExpressionVisitor
 
 #pragma warning disable CS8605 // Unboxing a possibly null value.
     /// <summary>
-    /// EN: Summary for VisitMethodCall.
-    /// PT: Resumo para VisitMethodCall.
+    /// EN: Represents Visit Method Call.
+    /// PT: Representa Visit Method Call.
     /// </summary>
     protected override Expression VisitMethodCall(MethodCallExpression node)
     {
@@ -133,8 +133,8 @@ public class SqliteTranslator : ExpressionVisitor
 #pragma warning restore CS8605 // Unboxing a possibly null value.
 
     /// <summary>
-    /// EN: Summary for VisitConstant.
-    /// PT: Resumo para VisitConstant.
+    /// EN: Represents Visit Constant.
+    /// PT: Representa Visit Constant.
     /// </summary>
     protected override Expression VisitConstant(ConstantExpression node)
     {
@@ -174,8 +174,8 @@ public class SqliteTranslator : ExpressionVisitor
     }
 
     /// <summary>
-    /// EN: Summary for VisitBinary.
-    /// PT: Resumo para VisitBinary.
+    /// EN: Represents Visit Binary.
+    /// PT: Representa Visit Binary.
     /// </summary>
     protected override Expression VisitBinary(BinaryExpression node)
     {
@@ -197,8 +197,8 @@ public class SqliteTranslator : ExpressionVisitor
     }
 
     /// <summary>
-    /// EN: Summary for VisitMember.
-    /// PT: Resumo para VisitMember.
+    /// EN: Represents Visit Member.
+    /// PT: Representa Visit Member.
     /// </summary>
     protected override Expression VisitMember(MemberExpression node)
     {

@@ -1,6 +1,7 @@
 ﻿namespace DbSqlLikeMem.Db2.Test.Strategy;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class Db2InsertStrategyTests.
+/// PT: Define a classe Db2InsertStrategyTests.
 /// </summary>
 public sealed class Db2InsertStrategyTests(
         ITestOutputHelper helper

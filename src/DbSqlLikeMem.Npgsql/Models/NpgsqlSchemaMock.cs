@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql;
 
 /// <summary>
 /// EN: Schema mock for Npgsql databases.
-/// PT: Mock de esquema para bancos Npgsql.
+/// PT: Esquema simulado para bancos Npgsql.
 /// </summary>
 public class NpgsqlSchemaMock(
     string schemaName,
@@ -12,7 +12,7 @@ public class NpgsqlSchemaMock(
 {
     /// <summary>
     /// EN: Creates a PostgreSQL table mock for this schema.
-    /// PT: Cria um mock de tabela PostgreSQL para este schema.
+    /// PT: Cria um simulado de tabela PostgreSQL para este schema.
     /// </summary>
     /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
     /// <param name="columns">EN: Table columns. PT: Colunas da tabela.</param>

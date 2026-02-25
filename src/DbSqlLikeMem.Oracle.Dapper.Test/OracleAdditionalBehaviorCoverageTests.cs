@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Defines the class OracleAdditionalBehaviorCoverageTests.
-/// PT: Define o(a) class OracleAdditionalBehaviorCoverageTests.
+/// PT: Define a classe OracleAdditionalBehaviorCoverageTests.
 /// </summary>
 public sealed class OracleAdditionalBehaviorCoverageTests : XUnitTestBase
 {

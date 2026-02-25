@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Oracle.Test.Query;
 
 /// <summary>
 /// EN: Defines the class QueryExecutorExtrasTests.
-/// PT: Define o(a) class QueryExecutorExtrasTests.
+/// PT: Define a classe QueryExecutorExtrasTests.
 /// </summary>
 public sealed class QueryExecutorExtrasTests(
         ITestOutputHelper helper

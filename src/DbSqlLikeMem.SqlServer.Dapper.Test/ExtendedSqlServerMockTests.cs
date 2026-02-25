@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class ExtendedMySqlMockTests.
+/// PT: Define a classe ExtendedMySqlMockTests.
 /// </summary>
 public sealed class ExtendedMySqlMockTests(
         ITestOutputHelper helper

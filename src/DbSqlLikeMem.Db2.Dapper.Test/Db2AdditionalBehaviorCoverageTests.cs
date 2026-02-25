@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class Db2AdditionalBehaviorCoverageTests.
+/// PT: Define a classe Db2AdditionalBehaviorCoverageTests.
 /// </summary>
 public sealed class Db2AdditionalBehaviorCoverageTests : XUnitTestBase
 {
@@ -10,7 +11,8 @@ public sealed class Db2AdditionalBehaviorCoverageTests : XUnitTestBase
     private static readonly int[] paramArray = [1, 2];
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests Db2AdditionalBehaviorCoverageTests behavior.
+    /// PT: Testa o comportamento de Db2AdditionalBehaviorCoverageTests.
     /// </summary>
     public Db2AdditionalBehaviorCoverageTests(
         ITestOutputHelper helper

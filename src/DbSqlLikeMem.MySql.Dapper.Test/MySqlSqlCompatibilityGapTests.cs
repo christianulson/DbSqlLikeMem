@@ -10,7 +10,8 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
     private const int MySqlCteMinVersion = 8;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests MySqlSqlCompatibilityGapTests behavior.
+    /// PT: Testa o comportamento de MySqlSqlCompatibilityGapTests.
     /// </summary>
     public MySqlSqlCompatibilityGapTests(ITestOutputHelper helper) : base(helper)
     {
@@ -41,7 +42,75 @@ public sealed class MySqlSqlCompatibilityGapTests : XUnitTestBase
         orders.Add(new Dictionary<int, object?> { [0] = 11, [1] = 2, [2] = 200m });
         orders.Add(new Dictionary<int, object?> { [0] = 12, [1] = 2, [2] = 10m });
 
+        // agent_metrics
+        var metrics = db.AddTable("agent_metrics");
+        metrics.AddColumn("user_id", DbType.Int32, true);
+        metrics.AddColumn("goal_id", DbType.String, true);
+        metrics.AddColumn("success", DbType.Int32, false);
+        metrics.AddColumn("latency_ms", DbType.Int32, true);
+        metrics.AddColumn("estimated_cost", DbType.Decimal, true, decimalPlaces: 4);
+        metrics.AddColumn("created_at", DbType.DateTime, false);
+
+        metrics.Add(new Dictionary<int, object?> { [0] = 1, [1] = "alpha.1", [2] = 1, [3] = 100, [4] = 1.25m, [5] = new DateTime(2025, 1, 1, 12, 0, 0, DateTimeKind.Utc) });
+        metrics.Add(new Dictionary<int, object?> { [0] = 1, [1] = "alpha.1", [2] = 0, [3] = 250, [4] = 2.00m, [5] = new DateTime(2025, 1, 2, 12, 0, 0, DateTimeKind.Utc) });
+        metrics.Add(new Dictionary<int, object?> { [0] = 2, [1] = "alpha.2", [2] = 1, [3] = 120, [4] = 0.90m, [5] = new DateTime(2025, 1, 3, 12, 0, 0, DateTimeKind.Utc) });
+        metrics.Add(new Dictionary<int, object?> { [0] = 2, [1] = "beta.1", [2] = 1, [3] = 80, [4] = 0.50m, [5] = new DateTime(2025, 1, 4, 12, 0, 0, DateTimeKind.Utc) });
+
         return new MySqlConnectionMock(db);
+    }
+
+    /// <summary>
+    /// EN: Tests grouped metrics query with HAVING aliases and dynamic CASE-based ORDER BY.
+    /// PT: Testa query agregada de métricas com aliases no HAVING e ORDER BY dinâmico por CASE.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlSqlCompatibilityGap")]
+    public void AggregateMetrics_WithHavingAliasAndDynamicOrder_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(
+            @"SELECT
+  goal_id GoalId,
+  COUNT(*) total_runs,
+  COALESCE(SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END), 0) successful_runs,
+  COALESCE(AVG(latency_ms), 0) avg_latency_ms,
+  COALESCE(AVG(estimated_cost), 0) avg_estimated_cost
+FROM agent_metrics
+WHERE (@UserId IS NULL OR user_id = @UserId)
+  AND goal_id IS NOT NULL
+  AND goal_id <> ''
+  AND (@GoalIdPrefix IS NULL OR goal_id LIKE CONCAT(@GoalIdPrefix, '%'))
+  AND (@SinceUtc IS NULL OR created_at >= @SinceUtc)
+GROUP BY goal_id
+HAVING COUNT(*) >= @MinRuns
+   AND (successful_runs / NULLIF(total_runs, 0)) >= @MinSuccessRate
+   AND (@MaxAvgLatencyMs IS NULL OR COALESCE(AVG(latency_ms), 0) <= @MaxAvgLatencyMs)
+   AND (@MaxAvgEstimatedCost IS NULL OR COALESCE(AVG(estimated_cost), 0) <= @MaxAvgEstimatedCost)
+ORDER BY
+  CASE WHEN @SortBy = 'successRate' THEN successful_runs / NULLIF(total_runs,0) END DESC,
+  CASE WHEN @SortBy = 'avgLatencyMs' THEN avg_latency_ms END ASC,
+  CASE WHEN @SortBy = 'avgEstimatedCost' THEN avg_estimated_cost END ASC,
+  total_runs DESC,
+  goal_id ASC
+LIMIT @Take OFFSET @Offset;",
+            new
+            {
+                UserId = (int?)null,
+                GoalIdPrefix = "alpha",
+                SinceUtc = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                MinRuns = 1,
+                MinSuccessRate = 0.5m,
+                MaxAvgLatencyMs = 200,
+                MaxAvgEstimatedCost = (decimal?)null,
+                SortBy = "successRate",
+                Take = 10,
+                Offset = 0
+            }).ToList();
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal("alpha.2", (string)rows[0].GoalId);
+        Assert.Equal(1L, (long)rows[0].successful_runs);
+        Assert.Equal(1L, (long)rows[0].total_runs);
+        Assert.Equal("alpha.1", (string)rows[1].GoalId);
     }
 
     /// <summary>

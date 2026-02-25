@@ -10,7 +10,8 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests : XUnitTestBas
     private const int PostgreSqlJsonbMinVersion = 9;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests PostgreSqlUnionLimitAndJsonCompatibilityTests behavior.
+    /// PT: Testa o comportamento de PostgreSqlUnionLimitAndJsonCompatibilityTests.
     /// </summary>
     public PostgreSqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper)
     {

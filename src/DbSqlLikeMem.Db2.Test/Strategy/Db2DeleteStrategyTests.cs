@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Db2.Test.Strategy;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class Db2CommandDeleteTests.
+/// PT: Define a classe Db2CommandDeleteTests.
 /// </summary>
 public sealed class Db2CommandDeleteTests(
         ITestOutputHelper helper

@@ -12,8 +12,8 @@ using DbBatch = System.Data.Common.DbBatch;
 namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
-/// EN: Summary for SqlServerBatchMock.
-/// PT: Resumo para SqlServerBatchMock.
+/// EN: Represents the Sql Server Batch Mock type used by provider mocks.
+/// PT: Representa o tipo Sql Server lote simulado usado pelos mocks do provedor.
 /// </summary>
 public sealed class SqlServerBatchMock : DbBatch
 {
@@ -21,14 +21,14 @@ public sealed class SqlServerBatchMock : DbBatch
     private SqlServerTransactionMock? transaction;
 
     /// <summary>
-    /// EN: Summary for SqlServerBatchMock.
-    /// PT: Resumo para SqlServerBatchMock.
+    /// EN: Represents a provider-specific batch mock that executes commands against the in-memory database.
+    /// PT: Representa um simulado de lote específico do provedor que executa comandos no banco em memória.
     /// </summary>
     public SqlServerBatchMock() => BatchCommands = new SqlServerBatchCommandCollectionMock();
 
     /// <summary>
-    /// EN: Summary for SqlServerBatchMock.
-    /// PT: Resumo para SqlServerBatchMock.
+    /// EN: Represents a provider-specific batch mock that executes commands against the in-memory database.
+    /// PT: Representa um simulado de lote específico do provedor que executa comandos no banco em memória.
     /// </summary>
     public SqlServerBatchMock(SqlServerConnectionMock connection, SqlServerTransactionMock? transaction = null) : this()
     {
@@ -37,8 +37,8 @@ public sealed class SqlServerBatchMock : DbBatch
     }
 
     /// <summary>
-    /// EN: Summary for Connection.
-    /// PT: Resumo para Connection.
+    /// EN: Gets or sets the connection used to execute batch commands.
+    /// PT: Obtém ou define a conexão usada para executar comandos em lote.
     /// </summary>
     public new SqlServerConnectionMock? Connection
     {
@@ -47,8 +47,8 @@ public sealed class SqlServerBatchMock : DbBatch
     }
 
     /// <summary>
-    /// EN: Summary for DbConnection.
-    /// PT: Resumo para DbConnection.
+    /// EN: Gets or sets the connection used to execute batch commands.
+    /// PT: Obtém ou define a conexão usada para executar comandos em lote.
     /// </summary>
     protected override DbConnection? DbConnection
     {
@@ -57,8 +57,8 @@ public sealed class SqlServerBatchMock : DbBatch
     }
 
     /// <summary>
-    /// EN: Summary for Transaction.
-    /// PT: Resumo para Transaction.
+    /// EN: Gets or sets the transaction associated with batch execution.
+    /// PT: Obtém ou define a transação associada à execução em lote.
     /// </summary>
     public new SqlServerTransactionMock? Transaction
     {
@@ -67,8 +67,8 @@ public sealed class SqlServerBatchMock : DbBatch
     }
 
     /// <summary>
-    /// EN: Summary for DbTransaction.
-    /// PT: Resumo para DbTransaction.
+    /// EN: Gets or sets the transaction associated with batch execution.
+    /// PT: Obtém ou define a transação associada à execução em lote.
     /// </summary>
     protected override DbTransaction? DbTransaction
     {
@@ -77,32 +77,32 @@ public sealed class SqlServerBatchMock : DbBatch
     }
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets or sets the command timeout, in seconds, applied to each batch command.
+    /// PT: Obtém ou define o tempo limite do comando, em segundos, aplicado a cada comando do lote.
     /// </summary>
     public override int Timeout { get; set; }
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets the batch command collection executed by this batch.
+    /// PT: Obtém a coleção de comandos de lote executada por este lote.
     /// </summary>
     public new SqlServerBatchCommandCollectionMock BatchCommands { get; }
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets the batch command collection executed by this batch.
+    /// PT: Obtém a coleção de comandos de lote executada por este lote.
     /// </summary>
     protected override DbBatchCommandCollection DbBatchCommands => BatchCommands;
 
     /// <summary>
-    /// EN: Summary for Cancel.
-    /// PT: Resumo para Cancel.
+    /// EN: Cancels batch execution by rolling back the active transaction.
+    /// PT: Cancela a execução do lote revertendo a transação ativa.
     /// </summary>
     public override void Cancel() => Transaction?.Rollback();
 
     /// <summary>
-    /// EN: Summary for ExecuteNonQuery.
-    /// PT: Resumo para ExecuteNonQuery.
+    /// EN: Execute Non Query for the current batch state.
+    /// PT: Execute Non consulta para o estado atual do lote.
     /// </summary>
     public override int ExecuteNonQuery()
     {
@@ -129,8 +129,8 @@ public sealed class SqlServerBatchMock : DbBatch
     }
 
     /// <summary>
-    /// EN: Summary for ExecuteDbDataReader.
-    /// PT: Resumo para ExecuteDbDataReader.
+    /// EN: Execute Db Data Reader for the current batch state.
+    /// PT: Execute Db Data leitor para o estado atual do lote.
     /// </summary>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
@@ -204,8 +204,8 @@ public sealed class SqlServerBatchMock : DbBatch
     }
 
     /// <summary>
-    /// EN: Summary for ExecuteScalar.
-    /// PT: Resumo para ExecuteScalar.
+    /// EN: Execute Scalar for the current batch state.
+    /// PT: Execute Scalar para o estado atual do lote.
     /// </summary>
     public override object? ExecuteScalar()
     {
@@ -227,29 +227,29 @@ public sealed class SqlServerBatchMock : DbBatch
     }
 
     /// <summary>
-    /// EN: Summary for ExecuteNonQueryAsync.
-    /// PT: Resumo para ExecuteNonQueryAsync.
+    /// EN: Execute Non Query Async for the current batch state.
+    /// PT: Execute Non consulta Async para o estado atual do lote.
     /// </summary>
     public override System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(System.Threading.CancellationToken cancellationToken = default)
         => System.Threading.Tasks.Task.FromResult(ExecuteNonQuery());
 
     /// <summary>
-    /// EN: Summary for ExecuteDbDataReaderAsync.
-    /// PT: Resumo para ExecuteDbDataReaderAsync.
+    /// EN: Execute Db Data Reader Async for the current batch state.
+    /// PT: Execute Db Data leitor Async para o estado atual do lote.
     /// </summary>
     protected override System.Threading.Tasks.Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, System.Threading.CancellationToken cancellationToken = default)
         => System.Threading.Tasks.Task.FromResult<DbDataReader>(ExecuteDbDataReader(behavior));
 
     /// <summary>
-    /// EN: Summary for ExecuteScalarAsync.
-    /// PT: Resumo para ExecuteScalarAsync.
+    /// EN: Execute Scalar Async for the current batch state.
+    /// PT: Execute Scalar Async para o estado atual do lote.
     /// </summary>
     public override System.Threading.Tasks.Task<object?> ExecuteScalarAsync(System.Threading.CancellationToken cancellationToken = default)
         => System.Threading.Tasks.Task.FromResult(ExecuteScalar());
 
     /// <summary>
-    /// EN: Summary for PrepareAsync.
-    /// PT: Resumo para PrepareAsync.
+    /// EN: Executes prepare async.
+    /// PT: Executa prepare async.
     /// </summary>
     public override System.Threading.Tasks.Task PrepareAsync(System.Threading.CancellationToken cancellationToken = default)
     {
@@ -258,80 +258,80 @@ public sealed class SqlServerBatchMock : DbBatch
     }
 
     /// <summary>
-    /// EN: Summary for Prepare.
-    /// PT: Resumo para Prepare.
+    /// EN: Executes prepare.
+    /// PT: Executa prepare.
     /// </summary>
     public override void Prepare() { }
 
     /// <summary>
-    /// EN: Summary for CreateDbBatchCommand.
-    /// PT: Resumo para CreateDbBatchCommand.
+    /// EN: Creates a new db batch command instance.
+    /// PT: Cria uma nova instância de comando de lote do banco.
     /// </summary>
     protected override DbBatchCommand CreateDbBatchCommand() => new SqlServerBatchCommandMock();
 }
 
 /// <summary>
-/// EN: Summary for SqlServerBatchCommandMock.
-/// PT: Resumo para SqlServerBatchCommandMock.
+/// EN: Represents the Sql Server Batch Command Mock type used by provider mocks.
+/// PT: Representa o tipo Sql Server comando em lote simulado usado pelos mocks do provedor.
 /// </summary>
 public sealed class SqlServerBatchCommandMock : DbBatchCommand, ISqlServerCommandMock
 {
     private readonly SqlServerCommandMock command = new();
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Executes command text.
+    /// PT: Executa comando text.
     /// </summary>
     public override string CommandText { get; set; } = string.Empty;
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Executes command type.
+    /// PT: Executa comando type.
     /// </summary>
     public override CommandType CommandType { get; set; } = CommandType.Text;
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Executes 0.
+    /// PT: Executa 0.
     /// </summary>
     private int recordsAffected = 0;
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets records affected.
+    /// PT: Obtém records affected.
     /// </summary>
     public override int RecordsAffected => recordsAffected;
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets db parameter collection.
+    /// PT: Obtém parâmetro de banco collection.
     /// </summary>
     protected override DbParameterCollection DbParameterCollection => command.Parameters;
 }
 
 /// <summary>
-/// EN: Summary for SqlServerBatchCommandCollectionMock.
-/// PT: Resumo para SqlServerBatchCommandCollectionMock.
+/// EN: Represents the Sql Server Batch Command Collection Mock type used by provider mocks.
+/// PT: Representa o tipo Sql Server coleção de comandos de lote simulado usado pelos mocks do provedor.
 /// </summary>
 public sealed class SqlServerBatchCommandCollectionMock : DbBatchCommandCollection
 {
     internal List<SqlServerBatchCommandMock> Commands { get; } = [];
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets count.
+    /// PT: Obtém count.
     /// </summary>
     public override int Count => Commands.Count;
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets is read only.
+    /// PT: Obtém is read only.
     /// </summary>
     public override bool IsReadOnly => false;
 
     /// <summary>
-    /// EN: Summary for Add.
-    /// PT: Resumo para Add.
+    /// EN: Add operation for batch commands.
+    /// PT: Operação de add para comandos em lote.
     /// </summary>
     public override void Add(DbBatchCommand item)
     {
@@ -340,63 +340,63 @@ public sealed class SqlServerBatchCommandCollectionMock : DbBatchCommandCollecti
     }
 
     /// <summary>
-    /// EN: Summary for Clear.
-    /// PT: Resumo para Clear.
+    /// EN: Clear operation for batch commands.
+    /// PT: Operação de clear para comandos em lote.
     /// </summary>
     public override void Clear() => Commands.Clear();
 
     /// <summary>
-    /// EN: Summary for Contains.
-    /// PT: Resumo para Contains.
+    /// EN: Contains operation for batch commands.
+    /// PT: Operação de contains para comandos em lote.
     /// </summary>
     public override bool Contains(DbBatchCommand item) => Commands.Contains((SqlServerBatchCommandMock)item);
 
     /// <summary>
-    /// EN: Summary for CopyTo.
-    /// PT: Resumo para CopyTo.
+    /// EN: Copy To operation for batch commands.
+    /// PT: Operação de copy to para comandos em lote.
     /// </summary>
     public override void CopyTo(DbBatchCommand[] array, int arrayIndex)
         => Commands.Cast<DbBatchCommand>().ToArray().CopyTo(array, arrayIndex);
 
     /// <summary>
-    /// EN: Summary for GetEnumerator.
-    /// PT: Resumo para GetEnumerator.
+    /// EN: Returns enumerator.
+    /// PT: Retorna enumerador.
     /// </summary>
     public override IEnumerator<DbBatchCommand> GetEnumerator() => Commands.Cast<DbBatchCommand>().GetEnumerator();
 
     /// <summary>
-    /// EN: Summary for IndexOf.
-    /// PT: Resumo para IndexOf.
+    /// EN: Index Of operation for batch commands.
+    /// PT: Operação de index of para comandos em lote.
     /// </summary>
     public override int IndexOf(DbBatchCommand item) => Commands.IndexOf((SqlServerBatchCommandMock)item);
 
     /// <summary>
-    /// EN: Summary for Insert.
-    /// PT: Resumo para Insert.
+    /// EN: Insert operation for batch commands.
+    /// PT: Operação de insert para comandos em lote.
     /// </summary>
     public override void Insert(int index, DbBatchCommand item) => Commands.Insert(index, (SqlServerBatchCommandMock)item);
 
     /// <summary>
-    /// EN: Summary for Remove.
-    /// PT: Resumo para Remove.
+    /// EN: Remove operation for batch commands.
+    /// PT: Operação de remove para comandos em lote.
     /// </summary>
     public override bool Remove(DbBatchCommand item) => Commands.Remove((SqlServerBatchCommandMock)item);
 
     /// <summary>
-    /// EN: Summary for RemoveAt.
-    /// PT: Resumo para RemoveAt.
+    /// EN: Remove At operation for batch commands.
+    /// PT: Operação de remove at para comandos em lote.
     /// </summary>
     public override void RemoveAt(int index) => Commands.RemoveAt(index);
 
     /// <summary>
-    /// EN: Summary for GetBatchCommand.
-    /// PT: Resumo para GetBatchCommand.
+    /// EN: Returns batch command.
+    /// PT: Retorna comando em lote.
     /// </summary>
     protected override DbBatchCommand GetBatchCommand(int index) => Commands[index];
 
     /// <summary>
-    /// EN: Summary for SetBatchCommand.
-    /// PT: Resumo para SetBatchCommand.
+    /// EN: Updates batch command.
+    /// PT: Atualiza comando em lote.
     /// </summary>
     protected override void SetBatchCommand(int index, DbBatchCommand batchCommand) => Commands[index] = (SqlServerBatchCommandMock)batchCommand;
 }

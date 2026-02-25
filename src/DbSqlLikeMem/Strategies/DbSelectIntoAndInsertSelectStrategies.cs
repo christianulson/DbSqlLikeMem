@@ -3,7 +3,8 @@ namespace DbSqlLikeMem;
 internal static class DbSelectIntoAndInsertSelectStrategies
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ExecuteCreateView.
+    /// PT: Implementa ExecuteCreateView.
     /// </summary>
     public static int ExecuteCreateView(
         this DbConnectionMockBase connection,
@@ -29,7 +30,8 @@ internal static class DbSelectIntoAndInsertSelectStrategies
 
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ExecuteDropView.
+    /// PT: Implementa ExecuteDropView.
     /// </summary>
     public static int ExecuteDropView(
         this DbConnectionMockBase connection,
@@ -56,7 +58,8 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ExecuteCreateTableAsSelect.
+    /// PT: Implementa ExecuteCreateTableAsSelect.
     /// </summary>
     public static int ExecuteCreateTableAsSelect(
         this DbConnectionMockBase connection,
@@ -258,7 +261,8 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ExecuteCreateTemporaryTableAsSelect.
+    /// PT: Implementa ExecuteCreateTemporaryTableAsSelect.
     /// </summary>
     public static int ExecuteCreateTemporaryTableAsSelect(
         this DbConnectionMockBase connection,
@@ -330,7 +334,8 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ExecuteInsertSmart.
+    /// PT: Implementa ExecuteInsertSmart.
     /// </summary>
     public static int ExecuteInsertSmart(
             this DbConnectionMockBase connection,
@@ -348,7 +353,8 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ExecuteInsertSelect.
+    /// PT: Implementa ExecuteInsertSelect.
     /// </summary>
     public static int ExecuteInsertSelect(
         this DbConnectionMockBase connection,

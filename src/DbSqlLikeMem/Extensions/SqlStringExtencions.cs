@@ -3,7 +3,8 @@ namespace DbSqlLikeMem;
 internal static class SqlStringExtencions
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements NormalizeString.
+    /// PT: Implementa NormalizeString.
     /// </summary>
     public static string NormalizeString(this string str)
     {
@@ -41,7 +42,8 @@ internal static class SqlStringExtencions
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements NormalizeName.
+    /// PT: Implementa NormalizeName.
     /// </summary>
     public static string NormalizeName(this string name)
     {

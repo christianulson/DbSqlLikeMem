@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test;
 /// <summary>
 /// EN: Defines the class FluentTest.
-/// PT: Define o(a) class FluentTest.
+/// PT: Define a classe FluentTest.
 /// </summary>
 public sealed class FluentTest(
         ITestOutputHelper helper

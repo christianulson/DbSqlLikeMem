@@ -18,12 +18,14 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING";
 
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
     /// EN: Ensures WITH RECURSIVE support follows the configured MySQL version.
-    /// PT: Garante que o suporte a WITH RECURSIVE siga a versão configurada do MySQL.
+    /// PT: Garante que o suporte a with recursive siga a versão configurada do MySQL.
     /// </summary>
     /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
     [Theory]
@@ -41,6 +43,24 @@ public sealed class MySqlDialectFeatureParserTests
 
         var parsed = SqlQueryParser.Parse(sql, new MySqlDialect(version));
         Assert.IsType<SqlSelectQuery>(parsed);
+    }
+
+
+
+    /// <summary>
+    /// EN: Verifies unsupported WITH RECURSIVE versions return actionable MySQL guidance.
+    /// PT: Verifica que versões sem suporte a WITH RECURSIVE retornam orientação acionável para MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion(VersionLowerThan = MySqlDialect.WithCteMinVersion)]
+    public void ParseSelect_WithRecursive_UnsupportedVersion_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("WITH RECURSIVE cte(n) AS (SELECT 1) SELECT n FROM cte", new MySqlDialect(version)));
+
+        Assert.Contains("WITH/CTE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -197,9 +217,28 @@ public sealed class MySqlDialectFeatureParserTests
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
+
+
+    /// <summary>
+    /// EN: Verifies FETCH FIRST syntax returns actionable MySQL pagination guidance.
+    /// PT: Verifica que sintaxe FETCH FIRST retorna orientação acionável de paginação para MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_FetchFirst_ShouldProvidePaginationHint(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT id FROM users ORDER BY id FETCH FIRST 5 ROWS ONLY", new MySqlDialect(version)));
+
+        Assert.Contains("FETCH FIRST/NEXT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("LIMIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>
     /// EN: Ensures PIVOT clause is rejected when the dialect capability flag is disabled.
-    /// PT: Garante que a cláusula PIVOT seja rejeitada quando a flag de capacidade do dialeto está desabilitada.
+    /// PT: Garante que a cláusula pivot seja rejeitada quando a flag de capacidade do dialeto está desabilitada.
     /// </summary>
     /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
@@ -239,6 +278,25 @@ public sealed class MySqlDialectFeatureParserTests
     }
 
 
+
+
+    /// <summary>
+    /// EN: Verifies unsupported top-level statements return guidance-focused errors.
+    /// PT: Verifica que comandos de topo não suportados retornam erros com orientação.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUnsupportedTopLevelStatement_ShouldUseActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", new MySqlDialect(version)));
+
+        Assert.Contains("token inicial", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("SELECT/INSERT/UPDATE/DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>
     /// EN: Ensures unsupported SQL uses the standard not-supported message.
     /// PT: Garante que SQL não suportado use a mensagem padrão de não suportado.
@@ -269,7 +327,252 @@ public sealed class MySqlDialectFeatureParserTests
         var sql = "SELECT id FROM users OPTION (MAXDOP 1)";
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
-        Assert.Contains("OPTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("OPTION(query hints)", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("USE/IGNORE/FORCE INDEX", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+
+    /// <summary>
+    /// EN: Verifies MERGE in MySQL returns actionable replacement guidance.
+    /// PT: Verifica que MERGE no MySQL retorna orientação acionável de substituição.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseMerge_UnsupportedDialect_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("MERGE INTO users u USING users s ON u.id = s.id WHEN MATCHED THEN UPDATE SET name = 'x'", new MySqlDialect(version)));
+
+        Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Validates window function capability by MySQL version and function name.
+    /// PT: Valida a capacidade de funções de janela por versão do MySQL e nome da função.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void WindowFunctionCapability_ShouldRespectVersionAndKnownFunctions(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var expected = version >= MySqlDialect.WindowFunctionsMinVersion;
+        Assert.Equal(expected, dialect.SupportsWindowFunction("ROW_NUMBER"));
+        Assert.Equal(expected, dialect.SupportsWindowFunction("RANK"));
+        Assert.False(dialect.SupportsWindowFunction("PERCENTILE_CONT"));
+    }
+
+    /// <summary>
+    /// EN: Ensures parser validates window function names against MySQL dialect capabilities by version.
+    /// PT: Garante que o parser valide nomes de função de janela contra as capacidades do dialeto MySQL por versão.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_WindowFunctionName_ShouldRespectDialectCapability(int version)
+    {
+        var supported = "ROW_NUMBER() OVER (ORDER BY id)";
+        var unsupported = "PERCENTILE_CONT(0.5) OVER (ORDER BY id)";
+        var dialect = new MySqlDialect(version);
+
+        if (version < MySqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(supported, dialect));
+            return;
+        }
+
+        var expr = SqlExpressionParser.ParseScalar(supported, dialect);
+        Assert.IsType<WindowFunctionExpr>(expr);
+        Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(unsupported, dialect));
+    }
+
+
+    /// <summary>
+    /// EN: Ensures window functions that require ordering reject OVER clauses without ORDER BY.
+    /// PT: Garante que funções de janela que exigem ordenação rejeitem cláusulas OVER sem ORDER BY.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_WindowFunctionWithoutOrderBy_ShouldRespectDialectRules(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        if (version < MySqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", dialect));
+            return;
+        }
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", dialect));
+
+        Assert.Contains("requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures parser validates window function argument arity for supported functions.
+    /// PT: Garante que o parser valide a aridade dos argumentos de funções de janela suportadas.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_WindowFunctionArguments_ShouldValidateArity(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        if (version < MySqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", dialect));
+            return;
+        }
+
+        var exRowNumber = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", dialect));
+        Assert.Contains("does not accept arguments", exRowNumber.Message, StringComparison.OrdinalIgnoreCase);
+
+        var exNtile = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("NTILE() OVER (ORDER BY id)", dialect));
+        Assert.Contains("exactly 1 argument", exNtile.Message, StringComparison.OrdinalIgnoreCase);
+
+        var exLag = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("LAG(id, 1, 0, 99) OVER (ORDER BY id)", dialect));
+        Assert.Contains("between 1 and 3 arguments", exLag.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures parser validates literal semantic ranges for window function arguments.
+    /// PT: Garante que o parser valide intervalos semânticos literais para argumentos de funções de janela.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_WindowFunctionLiteralArguments_ShouldValidateSemanticRange(int version)
+    {
+        var dialect = new MySqlDialect(version);
+        if (version < MySqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", dialect));
+            return;
+        }
+
+
+        var exNtile = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", dialect));
+        Assert.Contains("positive bucket count", exNtile.Message, StringComparison.OrdinalIgnoreCase);
+
+        var exLag = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("LAG(id, -1, 0) OVER (ORDER BY id)", dialect));
+        Assert.Contains("non-negative offset", exLag.Message, StringComparison.OrdinalIgnoreCase);
+
+        var exNthValue = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("NTH_VALUE(id, 0) OVER (ORDER BY id)", dialect));
+        Assert.Contains("greater than zero", exNthValue.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ORDER BY requirement for window functions is exposed through dialect runtime hook.
+    /// PT: Garante que o requisito de ORDER BY para funções de janela seja exposto pelo hook de runtime do dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void WindowFunctionOrderByRequirementHook_ShouldRespectVersion(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var expected = version >= MySqlDialect.WindowFunctionsMinVersion;
+        Assert.Equal(expected, dialect.RequiresOrderByInWindowFunction("ROW_NUMBER"));
+        Assert.Equal(expected, dialect.RequiresOrderByInWindowFunction("LAG"));
+
+        Assert.False(dialect.RequiresOrderByInWindowFunction("COUNT"));
+    }
+
+
+    /// <summary>
+    /// EN: Ensures window function argument arity metadata is exposed through dialect hook.
+    /// PT: Garante que os metadados de aridade de argumentos de função de janela sejam expostos pelo hook do dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void WindowFunctionArgumentArityHook_ShouldRespectVersion(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        if (version < MySqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.False(dialect.TryGetWindowFunctionArgumentArity("ROW_NUMBER", out _, out _));
+            return;
+        }
+
+        Assert.True(dialect.TryGetWindowFunctionArgumentArity("ROW_NUMBER", out var rnMin, out var rnMax));
+        Assert.Equal(0, rnMin);
+        Assert.Equal(0, rnMax);
+
+        Assert.True(dialect.TryGetWindowFunctionArgumentArity("LAG", out var lagMin, out var lagMax));
+        Assert.Equal(1, lagMin);
+        Assert.Equal(3, lagMax);
+
+        Assert.False(dialect.TryGetWindowFunctionArgumentArity("COUNT", out _, out _));
+    }
+
+
+    /// <summary>
+    /// EN: Ensures ROWS window frame clauses parse when supported and RANGE remains gated.
+    /// PT: Garante que cláusulas ROWS de frame de janela sejam interpretadas quando suportadas e que RANGE continue bloqueado.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_WindowFrameClause_ShouldRespectDialectCapabilities(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        if (version < MySqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect));
+            return;
+        }
+
+        var expr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        Assert.IsType<WindowFunctionExpr>(expr);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect));
+        Assert.Contains("window frame unit", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+
+    /// <summary>
+    /// EN: Ensures invalid window frame bound ordering is rejected by parser semantic validation.
+    /// PT: Garante que ordenação inválida de limites de frame de janela seja rejeitada pela validação semântica do parser.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_WindowFrameClauseInvalidBounds_ShouldBeRejected(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        if (version < MySqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", dialect));
+            return;
+        }
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", dialect));
+
+        Assert.Contains("start bound cannot be greater", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 }

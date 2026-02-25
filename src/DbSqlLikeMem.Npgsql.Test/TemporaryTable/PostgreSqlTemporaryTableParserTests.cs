@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Npgsql.Test.TemporaryTable;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class PostgreSqlTemporaryTableParserTests.
+/// PT: Define a classe PostgreSqlTemporaryTableParserTests.
 /// </summary>
 public sealed class PostgreSqlTemporaryTableParserTests
 {
@@ -34,7 +35,8 @@ SELECT * FROM tmp_users;
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides test data for CreateTempTableStatements.
+    /// PT: Fornece dados de teste para CreateTempTableStatements.
     /// </summary>
     public static IEnumerable<object[]> CreateTempTableStatements()
     {
@@ -77,7 +79,8 @@ WHERE tenantid = 10",
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests Parse_ShouldTreat_PgTempSchema_AsTemporary behavior.
+    /// PT: Testa o comportamento de Parse_ShouldTreat_PgTempSchema_AsTemporary.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]

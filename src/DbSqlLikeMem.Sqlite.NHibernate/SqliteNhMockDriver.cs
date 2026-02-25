@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Sqlite.NHibernate;
 
 /// <summary>
 /// EN: NHibernate driver bound to DbSqlLikeMem Sqlite mock ADO.NET types.
-/// PT: Driver NHibernate ligado aos tipos ADO.NET mock Sqlite do DbSqlLikeMem.
+/// PT: Driver NHibernate ligado aos tipos ADO.NET simulado Sqlite do DbSqlLikeMem.
 /// </summary>
 public sealed class SqliteNhMockDriver : ReflectionBasedDriver
 {
     /// <summary>
     /// EN: Initializes a NHibernate mock driver for DbSqlLikeMem Sqlite provider types.
-    /// PT: Inicializa um driver mock do NHibernate para os tipos do provedor Sqlite do DbSqlLikeMem.
+    /// PT: Inicializa um driver simulado do NHibernate para os tipos do provedor Sqlite do DbSqlLikeMem.
     /// </summary>
     public SqliteNhMockDriver()
         : base(

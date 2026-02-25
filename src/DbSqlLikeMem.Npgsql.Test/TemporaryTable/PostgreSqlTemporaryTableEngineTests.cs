@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Npgsql.Test.TemporaryTable;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class PostgreSqlTemporaryTableEngineTests.
+/// PT: Define a classe PostgreSqlTemporaryTableEngineTests.
 /// </summary>
 public sealed class PostgreSqlTemporaryTableEngineTests
 {
@@ -46,7 +47,8 @@ SELECT id FROM tmp_users ORDER BY id;";
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests CreateTemporaryTable_InPgTempSchema_ShouldReturnProjectedRows behavior.
+    /// PT: Testa o comportamento de CreateTemporaryTable_InPgTempSchema_ShouldReturnProjectedRows.
     /// </summary>
     [Fact]
     [Trait("Category", "TemporaryTable")]

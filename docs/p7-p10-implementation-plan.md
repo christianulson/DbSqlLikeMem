@@ -104,3 +104,66 @@ Documento gerado por `scripts/generate_p7_p10_plan.py` para orientar implementa�
 - [ ] Smoke tests dos demais providers sem regressão.
 - [ ] Documentação de compatibilidade atualizada.
 
+
+
+## Melhorias práticas para o plano de execução (Execution Plan Advisor)
+
+### Index Advisor
+- [x] Incluir seção `IndexRecommendations` no plano para queries SELECT com alto `EstimatedRowsRead`.
+- [x] Sugerir índice composto com colunas de `WHERE/JOIN` e complementar com `ORDER BY` quando aplicável.
+- [x] Exibir `Confidence` por recomendação para facilitar priorização técnica.
+- [x] Cobrir cenários com e sem índice nos testes `ExecutionPlanTests` dos providers.
+
+### PlanWarnings (MVP)
+- [x] Incluir seção `PlanWarnings` no plano de execução para recomendações práticas ao desenvolvedor.
+- [x] Implementar alerta para `ORDER BY` sem `LIMIT/TOP/FETCH` em consultas com alto `EstimatedRowsRead`.
+- [x] Implementar alerta para baixa seletividade com `EstimatedRowsRead` alto.
+- [x] Implementar alerta opcional para `SELECT *` em leitura estimada alta.
+- [x] Exibir para cada alerta: `Code`, `Message`, `Reason`, `SuggestedAction`, `Severity`.
+- [x] Internacionalizar labels/mensagens do advisor mantendo keywords SQL canônicas (ex.: `WHERE`, `ORDER BY`, `LIMIT/TOP/FETCH`).
+- [x] Cobrir cenários positivos e negativos por regra em `ExecutionPlanTests` (MySQL, SQL Server, SQLite).
+- [x] Aplicar gate de alto volume de leitura para warnings (`EstimatedRowsRead` alto), evitando ruído em consultas pequenas.
+
+
+### PlanWarnings (etapa evolução)
+- [x] Refinar severidade por contexto: `PW002` escala para `High` em seletividade muito alta e `PW003` escala para `Warning` em leitura muito alta.
+- [x] Adicionar metadados técnicos opcionais por alerta (`MetricName`, `ObservedValue`, `Threshold`) preservando compatibilidade do contrato textual.
+- [x] Expandir testes de borda para thresholds (abaixo/igual/acima) das regras `PW001`, `PW002` e `PW003` nos 3 providers.
+- [x] Validar não regressão de `IndexRecommendations` em cenários com `PlanWarnings` simultâneos.
+- [x] Atualizar resources (base + culturas suportadas) para novas labels/mensagens mantendo keywords SQL canônicas.
+- [x] Validar borda de severidade contextual para `PW002` (`84%` => `Warning`, `85%` => `High`) nos 3 providers.
+- [x] Validar borda de severidade contextual para `PW003` (`999` => `Info`, `1000` => `Warning`) nos 3 providers.
+- [x] Garantir consistência entre severidade e texto/metadados (`Threshold`/`ObservedValue`) no output textual.
+- [x] Refinar severidade de `PW003` com faixa crítica de leitura (`>=5000` => `High`) para priorização de risco extremo.
+- [x] Padronizar `Threshold` em formato técnico estável/language-neutral (ex.: `gte:100;warningGte:1000;highGte:5000`) para evitar texto não-localizável no payload.
+- [x] Implementar `PW004` para consultas sem `WHERE` com alto `EstimatedRowsRead`, com severidade contextual (`Warning`/`High`) e metadados técnicos estáveis.
+- [x] Implementar `PW005` para `DISTINCT` em alto `EstimatedRowsRead`, com severidade contextual (`Warning`/`High`) e metadados técnicos estáveis.
+
+
+
+### PlanWarnings (rodada de manutenção e robustez de contrato)
+- [x] Extrair cenários de `PlanWarnings` para base compartilhada entre providers com wiring mínimo por provider.
+- [x] Reduzir duplicação nos testes `ExecutionPlanTests` de MySQL/SQL Server/SQLite removendo cenários duplicados de warnings.
+- [x] Adicionar testes explícitos para ordem estável do contrato textual de warning: `Code`, `Message`, `Reason`, `SuggestedAction`, `Severity`, `MetricName`, `ObservedValue`, `Threshold`.
+- [x] Adicionar validação de formato parseável para `Threshold` (`key:value;key:value`) no output de warnings.
+- [x] Revisar sobreposição `PW004` (sem `WHERE`) vs `PW005` (`DISTINCT`) e suprimir ruído redundante quando `DISTINCT` já caracteriza leitura alta sem filtro.
+- [x] Manter cobertura de não regressão de `IndexRecommendations` coexistindo com `PlanWarnings`.
+- [x] Validar consistência i18n: todas as chaves de `SqlExecutionPlanMessages` presentes em `resx` base + `de/es/fr/it/pt`.
+- [x] Validar preservação de tokens SQL canônicos sem tradução (`WHERE`, `ORDER BY`, `DISTINCT`, `LIMIT/TOP/FETCH`, `SELECT *`).
+
+### PlanWarnings (rodada corretiva - sem perda de cobertura)
+- [x] Preservar os testes de `ExecutionPlanTests` específicos por provider (wiring/dialeto/comportamento próprio) sem deleções massivas.
+- [x] Consolidar apenas duplicação real de PlanWarnings na base compartilhada (`ExecutionPlanPlanWarningsTestsBase`).
+- [x] Cobrir explicitamente a matriz `PW004` vs `PW005`: (a) sem `WHERE` e sem `DISTINCT`, (b) com `DISTINCT` e sem `WHERE`, (c) com `WHERE` e `DISTINCT`.
+- [x] Reforçar teste unitário/formatação para confirmar ordem fixa dos campos: `Code`, `Message`, `Reason`, `SuggestedAction`, `Severity`, `MetricName`, `ObservedValue`, `Threshold`.
+- [x] Reforçar validação de `Threshold` em padrão técnico parseável no formatter e na integração de warnings.
+- [x] Garantir por teste que `IndexRecommendations` permanece ativo quando coexistem `PlanWarnings`.
+- [x] Validar por reflexão que todas as chaves acessadas em `SqlExecutionPlanMessages` existem no `resx` base e que as culturas (`de/es/fr/it/pt`) contêm o conjunto completo.
+
+Decisões adotadas nesta rodada:
+- A deduplicação permaneceu restrita aos cenários comuns de `PlanWarnings`; cenários de índice e wiring continuaram nos arquivos de provider.
+- A heurística de baixo risco manteve supressão de `PW004` quando `DISTINCT` já explica leitura alta sem filtro, com cobertura adicional para o caso `WHERE + DISTINCT` (mantém `PW005`, não emite `PW004`).
+- O contrato textual foi reforçado com testes unitários do formatter, evitando depender apenas de integração end-to-end.
+- A matriz `PW004/PW005` recebeu verificação adicional para preservar `PW002` quando aplicável (`WHERE + DISTINCT`), reduzindo ruído sem ocultar sinal relevante.
+- Foi adicionado caso negativo explícito para `PW005` sem `DISTINCT`, evitando falso-positivo regressivo.
+- A geração de `Threshold` técnico no advisor foi centralizada em helper de baixo risco para reduzir duplicação e preservar formato estável por regra.

@@ -2,14 +2,15 @@ namespace DbSqlLikeMem.Npgsql;
 
 /// <summary>
 /// EN: In-memory database mock configured for Npgsql.
-/// PT: Mock de banco em memória configurado para Npgsql.
+/// PT: Banco de dados simulado em memória configurado para Npgsql.
 /// </summary>
 public class NpgsqlDbMock : DbMock
 {
     internal override SqlDialectBase Dialect { get; set; }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Initializes an in-memory PostgreSQL mock database with the requested version.
+    /// PT: Inicializa um banco PostgreSQL simulado em memória com a versão informada.
     /// </summary>
     public NpgsqlDbMock(
     int? version = null
@@ -20,7 +21,7 @@ public class NpgsqlDbMock : DbMock
 
     /// <summary>
     /// EN: Creates a PostgreSQL schema mock instance.
-    /// PT: Cria uma instância de mock de schema PostgreSQL.
+    /// PT: Cria uma instância de simulado de schema PostgreSQL.
     /// </summary>
     /// <param name="schemaName">EN: Schema name. PT: Nome do schema.</param>
     /// <param name="tables">EN: Initial tables. PT: Tabelas iniciais.</param>

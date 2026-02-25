@@ -1,14 +1,16 @@
 ﻿namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class Db2SelectAndWhereMoreCoverageTests.
+/// PT: Define a classe Db2SelectAndWhereMoreCoverageTests.
 /// </summary>
 public sealed class Db2SelectAndWhereMoreCoverageTests : XUnitTestBase
 {
     private readonly Db2ConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests Db2SelectAndWhereMoreCoverageTests behavior.
+    /// PT: Testa o comportamento de Db2SelectAndWhereMoreCoverageTests.
     /// </summary>
     public Db2SelectAndWhereMoreCoverageTests(ITestOutputHelper helper) : base(helper)
     {

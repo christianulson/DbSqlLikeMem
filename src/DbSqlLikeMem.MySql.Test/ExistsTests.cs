@@ -14,7 +14,7 @@ public sealed class ExistsTests(
 {
     /// <summary>
     /// EN: Creates the MySQL connection mock used in tests.
-    /// PT: Cria o mock de conexão MySQL usado nos testes.
+    /// PT: Cria o simulado de conexão MySQL usado nos testes.
     /// </summary>
     protected override DbConnectionMockBase CreateConnection() => new MySqlConnectionMock();
 }

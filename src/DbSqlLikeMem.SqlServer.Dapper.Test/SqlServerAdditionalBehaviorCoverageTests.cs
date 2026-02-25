@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlServerAdditionalBehaviorCoverageTests.
+/// PT: Define a classe SqlServerAdditionalBehaviorCoverageTests.
 /// </summary>
 public sealed class SqlServerAdditionalBehaviorCoverageTests : XUnitTestBase
 {
@@ -10,7 +11,8 @@ public sealed class SqlServerAdditionalBehaviorCoverageTests : XUnitTestBase
     private static readonly int[] paramArray = [1, 2];
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests SqlServerAdditionalBehaviorCoverageTests behavior.
+    /// PT: Testa o comportamento de SqlServerAdditionalBehaviorCoverageTests.
     /// </summary>
     public SqlServerAdditionalBehaviorCoverageTests(
         ITestOutputHelper helper

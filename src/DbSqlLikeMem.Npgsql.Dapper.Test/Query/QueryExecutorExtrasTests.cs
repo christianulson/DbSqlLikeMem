@@ -3,7 +3,8 @@ using System.Reflection;
 namespace DbSqlLikeMem.Npgsql.Test.Query;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class QueryExecutorExtrasTests.
+/// PT: Define a classe QueryExecutorExtrasTests.
 /// </summary>
 public sealed class QueryExecutorExtrasTests(
         ITestOutputHelper helper
@@ -143,11 +144,13 @@ public class SqlTranslatorTests
     private sealed class Foo
     {
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets X.
+        /// PT: Obtém ou define X.
         /// </summary>
         public int X { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Y.
+        /// PT: Obtém ou define Y.
         /// </summary>
         public string Y { get; set; } = string.Empty;
     }

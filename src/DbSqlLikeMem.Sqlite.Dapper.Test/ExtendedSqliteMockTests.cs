@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class ExtendedSqliteMockTests.
+/// PT: Define a classe ExtendedSqliteMockTests.
 /// </summary>
 public sealed class ExtendedSqliteMockTests(
         ITestOutputHelper helper

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test.Strategy;
 
 /// <summary>
 /// EN: Defines the class OracleUpdateStrategyCoverageTests.
-/// PT: Define o(a) class OracleUpdateStrategyCoverageTests.
+/// PT: Define a classe OracleUpdateStrategyCoverageTests.
 /// </summary>
 public sealed class OracleUpdateStrategyCoverageTests(
         ITestOutputHelper helper

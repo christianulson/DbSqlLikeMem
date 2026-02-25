@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Test.TemporaryTable;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqliteTemporaryTableEngineTests.
+/// PT: Define a classe SqliteTemporaryTableEngineTests.
 /// </summary>
 public sealed class SqliteTemporaryTableEngineTests
 {

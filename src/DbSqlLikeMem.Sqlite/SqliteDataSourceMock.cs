@@ -2,8 +2,8 @@ using DbConnection = System.Data.Common.DbConnection;
 namespace DbSqlLikeMem.Sqlite;
 
 /// <summary>
-/// EN: Summary for SqliteDataSourceMock.
-/// PT: Resumo para SqliteDataSourceMock.
+/// EN: Represents the Sqlite Data Source Mock type used by provider mocks.
+/// PT: Representa a fonte de dados simulada do SQLite usada pelos mocks do provedor.
 /// </summary>
 public sealed class SqliteDataSourceMock(SqliteDbMock? db = null)
 #if NET7_0_OR_GREATER
@@ -11,8 +11,8 @@ public sealed class SqliteDataSourceMock(SqliteDbMock? db = null)
 #endif
 {
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets the connection string exposed by this mock data source.
+    /// PT: Obtém a string de conexão exposta por esta fonte de dados simulada.
     /// </summary>
     public
 #if NET7_0_OR_GREATER
@@ -22,21 +22,21 @@ public sealed class SqliteDataSourceMock(SqliteDbMock? db = null)
 
 #if NET7_0_OR_GREATER
     /// <summary>
-    /// EN: Summary for CreateDbConnection.
-    /// PT: Resumo para CreateDbConnection.
+    /// EN: Creates a new db connection instance.
+    /// PT: Cria uma nova instância de conexão de banco de dados.
     /// </summary>
     protected override DbConnection CreateDbConnection() => new SqliteConnectionMock(db);
 #else
     /// <summary>
-    /// EN: Summary for CreateDbConnection.
-    /// PT: Resumo para CreateDbConnection.
+    /// EN: Creates a new db connection instance.
+    /// PT: Cria uma nova instância de conexão de banco de dados.
     /// </summary>
     public SqliteConnectionMock CreateDbConnection() => new SqliteConnectionMock(db);
 #endif
 
     /// <summary>
-    /// EN: Summary for CreateConnection.
-    /// PT: Resumo para CreateConnection.
+    /// EN: Creates a new connection instance.
+    /// PT: Cria uma nova instância de conexão.
     /// </summary>
     public
 #if NET7_0_OR_GREATER

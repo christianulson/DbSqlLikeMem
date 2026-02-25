@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test.Strategy;
 
 /// <summary>
 /// EN: Defines the class OracleMergeUpsertTests.
-/// PT: Define o(a) class OracleMergeUpsertTests.
+/// PT: Define a classe OracleMergeUpsertTests.
 /// </summary>
 public sealed class OracleMergeUpsertTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {

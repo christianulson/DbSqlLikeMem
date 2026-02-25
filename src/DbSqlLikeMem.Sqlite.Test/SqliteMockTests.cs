@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqliteMockTests.
+/// PT: Define a classe SqliteMockTests.
 /// </summary>
 public sealed class SqliteMockTests
     : XUnitTestBase
@@ -9,7 +10,8 @@ public sealed class SqliteMockTests
     private readonly SqliteConnectionMock _connection;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests SqliteMockTests behavior.
+    /// PT: Testa o comportamento de SqliteMockTests.
     /// </summary>
     public SqliteMockTests(
         ITestOutputHelper helper

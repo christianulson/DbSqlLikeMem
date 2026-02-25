@@ -14,13 +14,13 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
 {
     /// <summary>
     /// EN: Creates a new MySQL mock database for each scenario.
-    /// PT: Cria um novo banco mock de MySQL para cada cenário.
+    /// PT: Cria um novo banco simulado de MySQL para cada cenário.
     /// </summary>
     protected override MySqlDbMock CreateDb() => [];
 
     /// <summary>
     /// EN: Executes a non-query command using a MySQL mock connection.
-    /// PT: Executa um comando sem retorno usando uma conexão mock de MySQL.
+    /// PT: Executa um comando sem retorno usando uma conexão simulada de MySQL.
     /// </summary>
     protected override int ExecuteNonQuery(
         MySqlDbMock db,

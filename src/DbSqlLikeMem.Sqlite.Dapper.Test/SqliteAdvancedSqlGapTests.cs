@@ -10,7 +10,8 @@ public sealed class SqliteAdvancedSqlGapTests : XUnitTestBase
     private readonly SqliteConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests SqliteAdvancedSqlGapTests behavior.
+    /// PT: Testa o comportamento de SqliteAdvancedSqlGapTests.
     /// </summary>
     public SqliteAdvancedSqlGapTests(ITestOutputHelper helper) : base(helper)
     {
@@ -157,6 +158,63 @@ ORDER BY id").ToList();
         Assert.Equal(["Jane", "Jane", "Jane"], [.. rows.Select(r => (string)r.last_name)]);
     }
 
+    /// <summary>
+    /// EN: Tests Window_FirstLastValue_WithRowsCurrentRowFrame_ShouldRespectFrame behavior.
+    /// PT: Testa o comportamento de Window_FirstLastValue_WithRowsCurrentRowFrame_ShouldRespectFrame.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_FirstLastValue_WithRowsCurrentRowFrame_ShouldRespectFrame()
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>(@"
+SELECT id,
+       FIRST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS first_name,
+       LAST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS last_name
+FROM users
+ORDER BY id").ToList());
+
+        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Tests Window_FirstLastValue_WithRowsSlidingFrame_ShouldRespectFrame behavior.
+    /// PT: Testa o comportamento de Window_FirstLastValue_WithRowsSlidingFrame_ShouldRespectFrame.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_FirstLastValue_WithRowsSlidingFrame_ShouldRespectFrame()
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>(@"
+SELECT id,
+       FIRST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS first_name,
+       LAST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS last_name
+FROM users
+ORDER BY id").ToList());
+
+        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Tests Window_FirstLastValue_WithRowsForwardFrame_ShouldRespectFrame behavior.
+    /// PT: Testa o comportamento de Window_FirstLastValue_WithRowsForwardFrame_ShouldRespectFrame.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_FirstLastValue_WithRowsForwardFrame_ShouldRespectFrame()
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>(@"
+SELECT id,
+       FIRST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS first_name,
+       LAST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS last_name
+FROM users
+ORDER BY id").ToList());
+
+        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 
     /// <summary>
     /// EN: Tests Window_NthValue_ShouldWork behavior.
@@ -174,6 +232,63 @@ ORDER BY id").ToList();
 
         Assert.Equal(["Bob", "Bob", "Bob"], [.. rows.Select(r => (string)r.second_name)]);
     }
+
+    /// <summary>
+    /// EN: Tests Window_NthValue_WithRowsCurrentRowFrame_ShouldReturnNull behavior.
+    /// PT: Testa o comportamento de Window_NthValue_WithRowsCurrentRowFrame_ShouldReturnNull.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_NthValue_WithRowsCurrentRowFrame_ShouldReturnNull()
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>(@"
+SELECT id,
+       NTH_VALUE(name, 2) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS second_name
+FROM users
+ORDER BY id").ToList());
+
+        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Tests Window_NthValue_WithRowsSlidingFrame_ShouldResolvePerRow behavior.
+    /// PT: Testa o comportamento de Window_NthValue_WithRowsSlidingFrame_ShouldResolvePerRow.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_NthValue_WithRowsSlidingFrame_ShouldResolvePerRow()
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>(@"
+SELECT id,
+       NTH_VALUE(name, 2) OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS second_name
+FROM users
+ORDER BY id").ToList());
+
+        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Tests Window_NthValue_WithRowsForwardFrame_ShouldResolvePerRow behavior.
+    /// PT: Testa o comportamento de Window_NthValue_WithRowsForwardFrame_ShouldResolvePerRow.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_NthValue_WithRowsForwardFrame_ShouldResolvePerRow()
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>(@"
+SELECT id,
+       NTH_VALUE(name, 2) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS second_name
+FROM users
+ORDER BY id").ToList());
+
+        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 
 
     /// <summary>
@@ -193,6 +308,147 @@ ORDER BY id").ToList();
 
         Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.lag0)]);
         Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.lead0)]);
+    }
+
+
+    /// <summary>
+    /// EN: Tests Window_Lag_Lead_WithRowsFrame_ShouldRespectPerRowBoundaries behavior.
+    /// PT: Testa o comportamento de Window_Lag_Lead_WithRowsFrame_ShouldRespectPerRowBoundaries.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_Lag_Lead_WithRowsFrame_ShouldRespectPerRowBoundaries()
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>(@"
+SELECT id,
+       LAG(id, 1, -1) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS lag_current,
+       LEAD(id, 1, 99) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS lead_current,
+       LAG(id, 1, -1) OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS lag_sliding,
+       LEAD(id, 1, 99) OVER (ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS lead_sliding,
+       LAG(id, 1, -1) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS lag_forward,
+       LEAD(id, 1, 99) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS lead_forward
+FROM users
+ORDER BY id").ToList());
+
+        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Tests Window_RankingFunctions_WithRowsFrame_ShouldRespectPerRowBoundaries behavior.
+    /// PT: Testa o comportamento de Window_RankingFunctions_WithRowsFrame_ShouldRespectPerRowBoundaries.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_RankingFunctions_WithRowsFrame_ShouldRespectPerRowBoundaries()
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS rank_current,
+       DENSE_RANK() OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS dense_current,
+       PERCENT_RANK() OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS pr_current,
+       CUME_DIST() OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS cd_current,
+       NTILE(2) OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS tile_current,
+       RANK() OVER (ORDER BY tenantid ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS rank_sliding,
+       DENSE_RANK() OVER (ORDER BY tenantid ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS dense_sliding,
+       PERCENT_RANK() OVER (ORDER BY tenantid ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS pr_sliding,
+       CUME_DIST() OVER (ORDER BY tenantid ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS cd_sliding,
+       NTILE(2) OVER (ORDER BY tenantid ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS tile_sliding,
+       RANK() OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS rank_forward,
+       DENSE_RANK() OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS dense_forward,
+       PERCENT_RANK() OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS pr_forward,
+       CUME_DIST() OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS cd_forward,
+       NTILE(2) OVER (ORDER BY tenantid ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS tile_forward
+FROM users
+ORDER BY id").ToList());
+
+        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+
+    /// <summary>
+    /// EN: Tests Window_RankingFunctions_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame behavior.
+    /// PT: Testa o comportamento de Window_RankingFunctions_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_RankingFunctions_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame()
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY tenantid DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS rank_sliding_desc,
+       DENSE_RANK() OVER (ORDER BY tenantid DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS dense_sliding_desc,
+       PERCENT_RANK() OVER (ORDER BY tenantid DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS pr_sliding_desc,
+       CUME_DIST() OVER (ORDER BY tenantid DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS cd_sliding_desc
+FROM users
+ORDER BY id").ToList());
+
+        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Tests Window_PercentRank_CumeDist_WithRowsFrame_AndDescendingPeers_ShouldRespectFrame behavior.
+    /// PT: Testa o comportamento de Window_PercentRank_CumeDist_WithRowsFrame_AndDescendingPeers_ShouldRespectFrame.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_PercentRank_CumeDist_WithRowsFrame_AndDescendingPeers_ShouldRespectFrame()
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>(@"
+SELECT id,
+       PERCENT_RANK() OVER (ORDER BY tenantid DESC ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS pr_desc_forward,
+       CUME_DIST() OVER (ORDER BY tenantid DESC ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS cd_desc_forward
+FROM users
+ORDER BY id").ToList());
+
+        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Tests Window_LagLead_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame behavior.
+    /// PT: Testa o comportamento de Window_LagLead_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_LagLead_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame()
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>(@"
+SELECT id,
+       LAG(id, 1, -1) OVER (ORDER BY id DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS lag_desc_sliding,
+       LEAD(id, 1, 99) OVER (ORDER BY id DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS lead_desc_sliding,
+       LAG(id, 1, -1) OVER (ORDER BY id DESC ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS lag_desc_forward,
+       LEAD(id, 1, 99) OVER (ORDER BY id DESC ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS lead_desc_forward
+FROM users
+ORDER BY id").ToList());
+
+        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Tests Window_Ntile_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame behavior.
+    /// PT: Testa o comportamento de Window_Ntile_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_Ntile_WithRowsFrame_AndDescendingOrder_ShouldRespectFrame()
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            _cnn.Query<dynamic>(@"
+SELECT id,
+       NTILE(2) OVER (ORDER BY id DESC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS tile_desc_sliding,
+       NTILE(2) OVER (ORDER BY id DESC ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS tile_desc_forward
+FROM users
+ORDER BY id").ToList());
+
+        Assert.Contains("window frame clause", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 

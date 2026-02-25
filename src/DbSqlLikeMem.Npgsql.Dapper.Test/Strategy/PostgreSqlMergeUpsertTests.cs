@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Npgsql.Test.Strategy;
 
 /// <summary>
 /// EN: Covers PostgreSQL MERGE upsert behavior in dialect versions that support it.
-/// PT: Cobre o comportamento de upsert com MERGE no PostgreSQL em versões de dialeto com suporte.
+/// PT: Cobre o comportamento de upsert com merge no PostgreSQL em versões de dialeto com suporte.
 /// </summary>
 public sealed class PostgreSqlMergeUpsertTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures MERGE parsing follows PostgreSQL dialect version support.
-    /// PT: Garante que o parse de MERGE siga o suporte por versão do dialeto PostgreSQL.
+    /// PT: Garante que o parse de merge siga o suporte por versão do dialeto PostgreSQL.
     /// </summary>
     /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
     [Theory]
@@ -36,7 +36,7 @@ public sealed class PostgreSqlMergeUpsertTests(ITestOutputHelper helper) : XUnit
 
     /// <summary>
     /// EN: Ensures MERGE updates an existing row when the ON condition matches.
-    /// PT: Garante que MERGE atualize uma linha existente quando a condição ON é satisfeita.
+    /// PT: Garante que merge atualize uma linha existente quando a condição ON é satisfeita.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

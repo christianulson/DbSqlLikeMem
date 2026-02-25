@@ -11,7 +11,8 @@ internal sealed class SqlExpressionParser(
     private int _i;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ParseWhere.
+    /// PT: Implementa ParseWhere.
     /// </summary>
     public static SqlExpr ParseWhere(
         string whereSql,
@@ -27,7 +28,8 @@ internal sealed class SqlExpressionParser(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ParseScalar.
+    /// PT: Implementa ParseScalar.
     /// </summary>
     public static SqlExpr ParseScalar(string sql, ISqlDialect dialect)
     {
@@ -54,7 +56,8 @@ internal sealed class SqlExpressionParser(
 
     // Pratt: parse com binding power
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ParseExpression.
+    /// PT: Implementa ParseExpression.
     /// </summary>
     public SqlExpr ParseExpression(int minBp)
     {
@@ -365,6 +368,16 @@ internal sealed class SqlExpressionParser(
         }
 
         var pattern = ParseExpression(rbp);
+
+        // Optional ANSI/DB2 form: ... LIKE <pattern> ESCAPE <escape-char>
+        // We currently ignore explicit escape char in the AST (default LIKE escape semantics remain in evaluator),
+        // but we must consume the tokens so the predicate is not truncated.
+        if (_dialect.SupportsLikeEscapeClause && IsKeyword(Peek(), "ESCAPE"))
+        {
+            Consume(); // ESCAPE
+            _ = ParseExpression(rbp); // explicit escape expression (ignored for now)
+        }
+
         var expr = (SqlExpr)new LikeExpr(left, pattern);
         left = negate ? new UnaryExpr(SqlUnaryOp.Not, expr) : expr;
         return true;
@@ -847,8 +860,12 @@ internal sealed class SqlExpressionParser(
             // ✅ Window function: ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)
             if (IsKeywordOrIdentifierWord(Peek(), "OVER"))
             {
+                EnsureWindowFunctionSupport(call.Name);
+                EnsureWindowFunctionArguments(call.Name, call.Args);
+
                 Consume(); // OVER
                 var spec = ParseWindowSpec();
+                EnsureWindowSpecSupport(call.Name, spec);
                 expr = new WindowFunctionExpr(call.Name, call.Args, spec, call.Distinct);
                 return true;
             }
@@ -859,6 +876,138 @@ internal sealed class SqlExpressionParser(
 
         expr = ParseIdentifierChainOrColumn(name);
         return true;
+    }
+
+
+    /// <summary>
+    /// EN: Validates whether a window function name is supported by the current dialect/version.
+    /// PT: Valida se o nome da função de janela é suportado pelo dialeto/versão atual.
+    /// </summary>
+    private void EnsureWindowFunctionSupport(string functionName)
+    {
+        if (!_dialect.SupportsWindowFunctions || !_dialect.SupportsWindowFunction(functionName))
+            throw SqlUnsupported.ForDialect(_dialect, $"window functions ({functionName})");
+    }
+
+
+
+    /// <summary>
+    /// EN: Validates argument count and basic literal semantics for supported window functions.
+    /// PT: Valida a quantidade de argumentos e semântica literal básica para funções de janela suportadas.
+    /// </summary>
+    private void EnsureWindowFunctionArguments(string functionName, IReadOnlyList<SqlExpr> args)
+    {
+        var argCount = args.Count;
+        if (argCount < 0)
+            throw Error("Invalid window function argument count.", Peek());
+
+        if (!_dialect.TryGetWindowFunctionArgumentArity(functionName, out var minArgs, out var maxArgs))
+            return;
+
+        if (minArgs == maxArgs && argCount != minArgs)
+        {
+            var message = minArgs == 0
+                ? $"Window function '{functionName}' does not accept arguments."
+                : $"Window function '{functionName}' requires exactly {minArgs} argument{(minArgs == 1 ? "" : "s")}.";
+            throw Error(message, Peek());
+        }
+
+        if (argCount < minArgs || argCount > maxArgs)
+            throw Error($"Window function '{functionName}' requires between {minArgs} and {maxArgs} arguments.", Peek());
+
+        EnsureWindowFunctionArgumentLiteralRanges(functionName, args);
+    }
+
+    /// <summary>
+    /// EN: Validates literal-only value ranges for selected window function arguments.
+    /// PT: Valida intervalos de valores apenas para literais em argumentos selecionados de funções de janela.
+    /// </summary>
+    private void EnsureWindowFunctionArgumentLiteralRanges(string functionName, IReadOnlyList<SqlExpr> args)
+    {
+        if (functionName.Equals("NTILE", StringComparison.OrdinalIgnoreCase)
+            && args.Count >= 1
+            && TryReadIntegralLiteral(args[0], out var ntileBuckets)
+            && ntileBuckets <= 0)
+            throw Error("Window function 'NTILE' requires a positive bucket count.", Peek());
+
+        if ((functionName.Equals("LAG", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LEAD", StringComparison.OrdinalIgnoreCase))
+            && args.Count >= 2
+            && TryReadIntegralLiteral(args[1], out var lagLeadOffset)
+            && lagLeadOffset < 0)
+            throw Error($"Window function '{functionName}' requires a non-negative offset.", Peek());
+
+        if (functionName.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase)
+            && args.Count >= 2
+            && TryReadIntegralLiteral(args[1], out var nthIndex)
+            && nthIndex <= 0)
+            throw Error("Window function 'NTH_VALUE' requires position argument greater than zero.", Peek());
+    }
+
+    /// <summary>
+    /// EN: Attempts to read an integer literal value from an expression argument.
+    /// PT: Tenta ler um valor literal inteiro de um argumento de expressão.
+    /// </summary>
+    private static bool TryReadIntegralLiteral(SqlExpr expr, out long value)
+    {
+        value = default;
+        if (expr is not LiteralExpr { Value: not null and not DBNull and IConvertible literalValue })
+            return false;
+
+        try
+        {
+            value = Convert.ToInt64(literalValue, CultureInfo.InvariantCulture);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// EN: Validates semantic window specification requirements for each supported function.
+    /// PT: Valida os requisitos semânticos da especificação de janela para cada função suportada.
+    /// </summary>
+    private void EnsureWindowSpecSupport(string functionName, WindowSpec spec)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(spec, nameof(spec));
+
+        if (_dialect.RequiresOrderByInWindowFunction(functionName) && spec.OrderBy.Count == 0)
+            throw Error($"Window function '{functionName}' requires ORDER BY in OVER clause.", Peek());
+
+        if (spec.Frame is not null)
+            EnsureWindowFrameSemanticRange(spec.Frame);
+    }
+
+    /// <summary>
+    /// EN: Validates whether a parsed window frame has a coherent start/end ordering.
+    /// PT: Valida se um frame de janela interpretado possui ordenação coerente de início/fim.
+    /// </summary>
+    private void EnsureWindowFrameSemanticRange(WindowFrameSpec frame)
+    {
+        var startRank = GetWindowFrameBoundRank(frame.Start);
+        var endRank = GetWindowFrameBoundRank(frame.End);
+
+        if (startRank > endRank)
+            throw Error("Window frame start bound cannot be greater than end bound.", Peek());
+    }
+
+    /// <summary>
+    /// EN: Converts a window frame bound into an ordered rank for semantic comparison.
+    /// PT: Converte um limite de frame de janela em rank ordenável para comparação semântica.
+    /// </summary>
+    private static long GetWindowFrameBoundRank(WindowFrameBound bound)
+    {
+        return bound.Kind switch
+        {
+            WindowFrameBoundKind.UnboundedPreceding => long.MinValue,
+            WindowFrameBoundKind.Preceding => -bound.Offset.GetValueOrDefault(),
+            WindowFrameBoundKind.CurrentRow => 0,
+            WindowFrameBoundKind.Following => bound.Offset.GetValueOrDefault(),
+            WindowFrameBoundKind.UnboundedFollowing => long.MaxValue,
+            _ => 0
+        };
     }
 
     private CallExpr ParseCallAfterName(string name)
@@ -1050,6 +1199,7 @@ internal sealed class SqlExpressionParser(
 
         var parts = new List<SqlExpr>();
         var order = new List<WindowOrderItem>();
+        WindowFrameSpec? frame = null;
 
         // PARTITION BY ...
         if (IsKeywordOrIdentifierWord(Peek(), "PARTITION"))
@@ -1093,8 +1243,119 @@ internal sealed class SqlExpressionParser(
             }
         }
 
+        if (IsKeywordOrIdentifierWord(Peek(), "ROWS")
+            || IsKeywordOrIdentifierWord(Peek(), "RANGE")
+            || IsKeywordOrIdentifierWord(Peek(), "GROUPS"))
+        {
+            if (!_dialect.SupportsWindowFrameClause)
+                throw SqlUnsupported.ForDialect(_dialect, "window frame clause (ROWS/RANGE/GROUPS)");
+
+            frame = ParseWindowFrameClause();
+        }
+
         ExpectSymbol(")");
-        return new WindowSpec(parts, order);
+        return new WindowSpec(parts, order, frame);
+    }
+
+    /// <summary>
+    /// EN: Parses a simplified SQL window frame clause.
+    /// PT: Faz o parse de uma cláusula simplificada de frame de janela SQL.
+    /// </summary>
+    private WindowFrameSpec ParseWindowFrameClause()
+    {
+        var unit = ParseWindowFrameUnit();
+        if (unit is WindowFrameUnit.Range or WindowFrameUnit.Groups)
+            throw SqlUnsupported.ForDialect(_dialect, $"window frame unit ({unit.ToString().ToUpperInvariant()})");
+
+        WindowFrameBound start;
+        WindowFrameBound end;
+        if (IsKeywordOrIdentifierWord(Peek(), "BETWEEN"))
+        {
+            Consume(); // BETWEEN
+            start = ParseWindowFrameBound();
+            if (!IsKeywordOrIdentifierWord(Peek(), "AND"))
+                throw Error("Expected AND in window frame clause.", Peek());
+            Consume(); // AND
+            end = ParseWindowFrameBound();
+        }
+        else
+        {
+            start = ParseWindowFrameBound();
+            end = new WindowFrameBound(WindowFrameBoundKind.CurrentRow, null);
+        }
+
+        return new WindowFrameSpec(unit, start, end);
+    }
+
+    private WindowFrameUnit ParseWindowFrameUnit()
+    {
+        if (IsKeywordOrIdentifierWord(Peek(), "ROWS"))
+        {
+            Consume();
+            return WindowFrameUnit.Rows;
+        }
+
+        if (IsKeywordOrIdentifierWord(Peek(), "RANGE"))
+        {
+            Consume();
+            return WindowFrameUnit.Range;
+        }
+
+        if (IsKeywordOrIdentifierWord(Peek(), "GROUPS"))
+        {
+            Consume();
+            return WindowFrameUnit.Groups;
+        }
+
+        throw Error("Expected ROWS, RANGE or GROUPS in window frame clause.", Peek());
+    }
+
+    private WindowFrameBound ParseWindowFrameBound()
+    {
+        if (IsKeywordOrIdentifierWord(Peek(), "UNBOUNDED"))
+        {
+            Consume();
+            if (IsKeywordOrIdentifierWord(Peek(), "PRECEDING"))
+            {
+                Consume();
+                return new WindowFrameBound(WindowFrameBoundKind.UnboundedPreceding, null);
+            }
+
+            if (IsKeywordOrIdentifierWord(Peek(), "FOLLOWING"))
+            {
+                Consume();
+                return new WindowFrameBound(WindowFrameBoundKind.UnboundedFollowing, null);
+            }
+
+            throw Error("Expected PRECEDING or FOLLOWING after UNBOUNDED in window frame clause.", Peek());
+        }
+
+        if (IsKeywordOrIdentifierWord(Peek(), "CURRENT"))
+        {
+            Consume();
+            if (!IsKeywordOrIdentifierWord(Peek(), "ROW"))
+                throw Error("Expected ROW after CURRENT in window frame clause.", Peek());
+            Consume();
+            return new WindowFrameBound(WindowFrameBoundKind.CurrentRow, null);
+        }
+
+        var boundExpr = ParseExpression(0);
+        if (!TryReadIntegralLiteral(boundExpr, out var offset) || offset < 0 || offset > int.MaxValue)
+            throw Error("Expected a non-negative integer literal in window frame bound.", Peek());
+
+        if (IsKeywordOrIdentifierWord(Peek(), "PRECEDING"))
+        {
+            Consume();
+            return new WindowFrameBound(WindowFrameBoundKind.Preceding, (int)offset);
+        }
+
+        if (IsKeywordOrIdentifierWord(Peek(), "FOLLOWING"))
+        {
+            Consume();
+            return new WindowFrameBound(WindowFrameBoundKind.Following, (int)offset);
+        }
+
+        throw Error("Expected PRECEDING or FOLLOWING in window frame bound.", Peek());
     }
 
     private IReadOnlyList<SqlExpr> ParseExprListUntilOrderOrParenClose()

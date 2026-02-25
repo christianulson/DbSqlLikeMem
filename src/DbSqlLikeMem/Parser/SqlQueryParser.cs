@@ -15,7 +15,8 @@ internal sealed class SqlQueryParser
 
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements SqlQueryParser.
+    /// PT: Implementa SqlQueryParser.
     /// </summary>
     public SqlQueryParser(string sql, ISqlDialect dialect)
         : this(sql, dialect, null)
@@ -23,7 +24,8 @@ internal sealed class SqlQueryParser
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements SqlQueryParser.
+    /// PT: Implementa SqlQueryParser.
     /// </summary>
     public SqlQueryParser(string sql, ISqlDialect dialect, IDataParameterCollection? parameters)
     {
@@ -37,7 +39,8 @@ internal sealed class SqlQueryParser
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Parse.
+    /// PT: Implementa Parse.
     /// </summary>
     public static SqlQueryBase Parse(string sql, ISqlDialect dialect)
         => Parse(sql, dialect, null);
@@ -51,7 +54,7 @@ internal sealed class SqlQueryParser
         var tokens = new SqlTokenizer(sql, dialect).Tokenize();
         var first = tokens.Count > 0 ? tokens[0] : default;
         if (IsWord(first, "MERGE") && !dialect.SupportsMerge)
-            throw SqlUnsupported.ForDialect(dialect, "MERGE statement");
+            throw SqlUnsupported.ForMerge(dialect);
 
         if (parameters is not null)
         {
@@ -80,7 +83,7 @@ internal sealed class SqlQueryParser
         switch (parsed)
         {
             case SqlMergeQuery when !dialect.SupportsMerge:
-                throw SqlUnsupported.ForDialect(dialect, "MERGE statement");
+                throw SqlUnsupported.ForMerge(dialect);
             case SqlSelectQuery select:
                 EnsureSelectDialectSupport(select, dialect);
                 break;
@@ -125,12 +128,12 @@ internal sealed class SqlQueryParser
             if (fetch.Offset.HasValue)
             {
                 if (!dialect.SupportsOffsetFetch)
-                    throw SqlUnsupported.ForDialect(dialect, "OFFSET/FETCH");
+                    throw SqlUnsupported.ForPagination(dialect, "OFFSET/FETCH");
                 return;
             }
 
             if (!dialect.SupportsFetchFirst)
-                throw SqlUnsupported.ForDialect(dialect, "FETCH FIRST/NEXT");
+                throw SqlUnsupported.ForPagination(dialect, "FETCH FIRST/NEXT");
         }
     }
 
@@ -157,18 +160,19 @@ internal sealed class SqlQueryParser
             // Para MySQL, MERGE simplesmente não existe (é sintaxe inválida para o dialeto).
             // Os testes de corpus esperam ThrowInvalid aqui, não NotSupported.
             if (!dialect.SupportsMerge)
-                throw SqlUnsupported.ForDialect(dialect, "MERGE statement");
+                throw SqlUnsupported.ForMerge(dialect);
 
             result = q.ParseMerge();
         }
         else
-            throw new InvalidOperationException("SQL não suportado ou parser inválido: " + first.Text);
+            throw SqlUnsupported.ForUnknownTopLevelStatement(dialect, first.Text);
 
         return result;
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ParseMulti.
+    /// PT: Implementa ParseMulti.
     /// </summary>
     public static IEnumerable<SqlQueryBase> ParseMulti(
         string sql,
@@ -190,7 +194,8 @@ internal sealed class SqlQueryParser
 
     // Mantido para compatibilidade com lógica de Union
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Defines the class UnionChain.
+    /// PT: Define a classe UnionChain.
     /// </summary>
     public sealed record UnionChain(
         IReadOnlyList<SqlSelectQuery> Parts,
@@ -200,7 +205,8 @@ internal sealed class SqlQueryParser
     );
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ParseUnionChain.
+    /// PT: Implementa ParseUnionChain.
     /// </summary>
     public static UnionChain ParseUnionChain(string sql, ISqlDialect dialect)
     {
@@ -321,7 +327,7 @@ internal sealed class SqlQueryParser
         if (IsWord(next, "DUPLICATE"))
         {
             if (!_dialect.SupportsOnDuplicateKeyUpdate && !_dialect.AllowsParserInsertSelectUpsertSuffix)
-                throw new InvalidOperationException($"Dialeto '{_dialect.Name}' não suporta ON DUPLICATE KEY UPDATE.");
+                throw SqlUnsupported.ForOnDuplicateKeyUpdateClause(_dialect);
 
             Consume(); // ON
             ExpectWord("DUPLICATE");
@@ -336,7 +342,7 @@ internal sealed class SqlQueryParser
         if (IsWord(next, "CONFLICT"))
         {
             if (!_dialect.SupportsOnConflictClause && !_dialect.AllowsParserInsertSelectUpsertSuffix)
-                throw new InvalidOperationException($"Dialeto '{_dialect.Name}' não suporta ON CONFLICT.");
+                throw SqlUnsupported.ForOnConflictClause(_dialect);
 
             Consume(); // ON
             ExpectWord("CONFLICT");
@@ -500,14 +506,14 @@ internal sealed class SqlQueryParser
                 && Peek().Kind == SqlTokenKind.Identifier
                 && IsWord(Peek(1), "FROM");
             if (!_dialect.SupportsDeleteWithoutFrom && !_dialect.AllowsParserDeleteWithoutFromCompatibility && !allowsTargetAlias)
-                throw new InvalidOperationException($"DELETE sem FROM não suportado no dialeto '{_dialect.Name}'.");
+                throw SqlUnsupported.ForDeleteWithoutFrom(_dialect);
 
             var first = ParseTableSource(); // pode ser tabela ou alvo
 
             if (IsWord(Peek(), "FROM"))
             {
                 if (!_dialect.SupportsDeleteTargetAlias && !_dialect.AllowsParserDeleteWithoutFromCompatibility)
-                    throw new InvalidOperationException($"DELETE <alvo> FROM ... não suportado no dialeto '{_dialect.Name}'.");
+                    throw SqlUnsupported.ForDeleteTargetAliasFrom(_dialect);
 
                 // DELETE <alias> FROM <table> <alias> JOIN ...
                 Consume(); // FROM
@@ -592,7 +598,8 @@ internal sealed class SqlQueryParser
     // ------------------------------------------------------------
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ParseSelectOrUnionQuery.
+    /// PT: Implementa ParseSelectOrUnionQuery.
     /// </summary>
     private SqlQueryBase ParseSelectOrUnionQuery()
     {
@@ -1186,7 +1193,7 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "LIMIT"))
         {
             if (!_dialect.SupportsLimitOffset && !_dialect.AllowsParserLimitOffsetCompatibility)
-                throw SqlUnsupported.ForDialect(_dialect, "LIMIT");
+                throw SqlUnsupported.ForPagination(_dialect, "LIMIT");
 
             Consume();
             int a = ExpectNumberInt();
@@ -1207,9 +1214,9 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "OFFSET"))
         {
             if (!_dialect.SupportsOffsetFetch)
-                throw SqlUnsupported.ForDialect(_dialect, "OFFSET/FETCH");
+                throw SqlUnsupported.ForPagination(_dialect, "OFFSET/FETCH");
             if (_dialect.RequiresOrderByForOffsetFetch && !hasOrderBy)
-                throw new InvalidOperationException($"OFFSET/FETCH requer ORDER BY no dialeto '{_dialect.Name}'.");
+                throw SqlUnsupported.ForOffsetFetchRequiresOrderBy(_dialect);
 
             Consume();
             var offset = ExpectNumberInt();
@@ -1232,17 +1239,17 @@ internal sealed class SqlQueryParser
                 if (IsWord(Peek(), "ONLY"))
                     Consume();
 
-                return new SqlFetch(Count: count, Offset: offset);
+                return new SqlLimitOffset(Count: count, Offset: offset);
             }
 
-            return new SqlFetch(Count: int.MaxValue, Offset: offset);
+            return new SqlLimitOffset(Count: int.MaxValue, Offset: offset);
         }
 
         // Oracle/Postgres: FETCH FIRST n ROWS ONLY
         if (IsWord(Peek(), "FETCH"))
         {
             if (!_dialect.SupportsFetchFirst)
-                throw SqlUnsupported.ForDialect(_dialect, "FETCH FIRST/NEXT");
+                throw SqlUnsupported.ForPagination(_dialect, "FETCH FIRST/NEXT");
 
             Consume();
             if (IsWord(Peek(), "NEXT") || IsWord(Peek(), "FIRST"))
@@ -1256,7 +1263,7 @@ internal sealed class SqlQueryParser
             if (IsWord(Peek(), "ONLY"))
                 Consume();
 
-            return new SqlFetch(Count: count, Offset: null);
+            return new SqlLimitOffset(Count: count, Offset: null);
         }
 
         return null;
@@ -1268,7 +1275,7 @@ internal sealed class SqlQueryParser
             return;
 
         if (!_dialect.SupportsSqlServerQueryHints)
-            throw SqlUnsupported.ForDialect(_dialect, "OPTION(query hints)");
+            throw SqlUnsupported.ForOptionQueryHints(_dialect);
 
         Consume(); // OPTION
         _ = ReadBalancedParenRawTokens();
@@ -1287,7 +1294,7 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "RECURSIVE"))
         {
             if (!_dialect.SupportsWithRecursive)
-                throw SqlUnsupported.ForDialect(_dialect, "WITH RECURSIVE");
+                throw SqlUnsupported.ForWithRecursive(_dialect);
             Consume();
         }
 
@@ -2397,7 +2404,8 @@ internal sealed class SqlQueryParser
     }
     // Stub para método que verifica subquery escalar (removido para brevidade, adicione se precisar da validação estrita)
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ParseSubqueryExprOrThrow.
+    /// PT: Implementa ParseSubqueryExprOrThrow.
     /// </summary>
     public static SubqueryExpr ParseSubqueryExprOrThrow(
         string sql,

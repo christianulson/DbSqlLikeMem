@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test.Parser;
 /// <summary>
 /// EN: Defines the class SqlExprPrinterTest.
-/// PT: Define o(a) class SqlExprPrinterTest.
+/// PT: Define a classe SqlExprPrinterTest.
 /// </summary>
 public sealed class SqlExprPrinterTest(
         ITestOutputHelper helper
@@ -27,8 +27,8 @@ public sealed class SqlExprPrinterTest(
     }
 
     /// <summary>
-    /// EN: Describes the behavior validated by Expressions.
-    /// PT: Descreve o comportamento validado por Expressions.
+    /// EN: Provides expression samples used to validate SQL expression printing output.
+    /// PT: Fornece exemplos de expressões usados para validar a saída de impressão de expressões SQL.
     /// </summary>
     public static IEnumerable<object[]> Expressions()
     {

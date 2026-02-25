@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.SqlServer.Test.Strategy;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlServerInsertStrategyTests.
+/// PT: Define a classe SqlServerInsertStrategyTests.
 /// </summary>
 public sealed class SqlServerInsertStrategyTests(
         ITestOutputHelper helper

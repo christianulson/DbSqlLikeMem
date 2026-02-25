@@ -285,7 +285,8 @@ public abstract class TableMock
 
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements CreateForeignKey.
+    /// PT: Implementa CreateForeignKey.
     /// </summary>
     public ForeignDef CreateForeignKey(
         string name,
@@ -835,7 +836,8 @@ public abstract class TableMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements RemoveAt.
+    /// PT: Implementa RemoveAt.
     /// </summary>
     public Dictionary<int, object?> RemoveAt(int idx)
     {
@@ -845,7 +847,8 @@ public abstract class TableMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements UpdateRowColumn.
+    /// PT: Implementa UpdateRowColumn.
     /// </summary>
     public void UpdateRowColumn(
         int rowIdx,
@@ -893,12 +896,14 @@ public abstract class TableMock
     public abstract string? CurrentColumn { get; set; }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets Count.
+    /// PT: Obtém ou define Count.
     /// </summary>
     public int Count => _items.Count;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets an item in this collection.
+    /// PT: Obtém ou define um item desta coleção.
     /// </summary>
     public IReadOnlyDictionary<int, object?> this[int index] => _items[index];
 
@@ -954,7 +959,8 @@ public abstract class TableMock
     public abstract Exception ReferencedRow(string tbl);
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements GetEnumerator.
+    /// PT: Implementa GetEnumerator.
     /// </summary>
     public IEnumerator<IReadOnlyDictionary<int, object?>> GetEnumerator()
         => _items.GetEnumerator();

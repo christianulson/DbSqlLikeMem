@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Defines the class OracleWhereParserAndExecutorTests.
-/// PT: Define o(a) class OracleWhereParserAndExecutorTests.
+/// PT: Define a classe OracleWhereParserAndExecutorTests.
 /// </summary>
 public sealed class OracleWhereParserAndExecutorTests : XUnitTestBase
 {

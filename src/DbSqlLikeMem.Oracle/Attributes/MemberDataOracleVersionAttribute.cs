@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Oracle;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class MemberDataOracleVersionAttribute.
+/// PT: Define a classe MemberDataOracleVersionAttribute.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
 public sealed class MemberDataOracleVersionAttribute

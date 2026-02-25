@@ -2,8 +2,8 @@
 
 namespace DbSqlLikeMem.Sqlite;
 /// <summary>
-/// EN: Summary for SqliteTransactionMock.
-/// PT: Resumo para SqliteTransactionMock.
+/// EN: Represents Sqlite Transaction Mock.
+/// PT: Representa a transação simulada do SQLite.
 /// </summary>
 public class SqliteTransactionMock(
         SqliteConnectionMock cnn,
@@ -13,21 +13,21 @@ public class SqliteTransactionMock(
     private bool disposedValue;
 
     /// <summary>
-    /// EN: Summary for member.
-    /// PT: Resumo para member.
+    /// EN: Gets the database connection associated with this transaction.
+    /// PT: Obtém a conexão de banco de dados associada a esta transação.
     /// </summary>
     protected override DbConnection? DbConnection => cnn;
 
     /// <summary>
-    /// EN: Summary for IsolationLevel.
-    /// PT: Resumo para IsolationLevel.
+    /// EN: Gets the isolation level configured for this transaction.
+    /// PT: Obtém o nível de isolamento configurado para esta transação.
     /// </summary>
     public override IsolationLevel IsolationLevel
         => isolationLevel ?? IsolationLevel.Unspecified;
 
     /// <summary>
-    /// EN: Summary for Commit.
-    /// PT: Resumo para Commit.
+    /// EN: Commits the current transaction.
+    /// PT: Confirma a transação atual.
     /// </summary>
     public override void Commit()
     {
@@ -39,8 +39,8 @@ public class SqliteTransactionMock(
     }
 
     /// <summary>
-    /// EN: Summary for Rollback.
-    /// PT: Resumo para Rollback.
+    /// EN: Rolls back the current transaction.
+    /// PT: Reverte a transação atual.
     /// </summary>
     public override void Rollback()
     {
@@ -53,14 +53,14 @@ public class SqliteTransactionMock(
 
     #if NET6_0_OR_GREATER
     /// <summary>
-    /// EN: Summary for Save.
-    /// PT: Resumo para Save.
+    /// EN: Creates a transaction savepoint.
+    /// PT: Cria um ponto de salvamento da transação.
     /// </summary>
     public override void Save(string savepointName)
 #else
     /// <summary>
-    /// EN: Summary for Save.
-    /// PT: Resumo para Save.
+    /// EN: Creates a transaction savepoint.
+    /// PT: Cria um ponto de salvamento da transação.
     /// </summary>
     public void Save(string savepointName)
 #endif
@@ -71,14 +71,14 @@ public class SqliteTransactionMock(
 
     #if NET6_0_OR_GREATER
     /// <summary>
-    /// EN: Summary for Rollback.
-    /// PT: Resumo para Rollback.
+    /// EN: Rolls back the current transaction to the specified savepoint.
+    /// PT: Reverte a transação atual até o ponto de salvamento informado.
     /// </summary>
     public override void Rollback(string savepointName)
 #else
     /// <summary>
-    /// EN: Summary for Rollback.
-    /// PT: Resumo para Rollback.
+    /// EN: Rolls back the current transaction to the specified savepoint.
+    /// PT: Reverte a transação atual até o ponto de salvamento informado.
     /// </summary>
     public void Rollback(string savepointName)
 #endif
@@ -89,14 +89,14 @@ public class SqliteTransactionMock(
 
     #if NET6_0_OR_GREATER
     /// <summary>
-    /// EN: Summary for Release.
-    /// PT: Resumo para Release.
+    /// EN: Releases a previously created savepoint.
+    /// PT: Libera um ponto de salvamento criado anteriormente.
     /// </summary>
     public override void Release(string savepointName)
 #else
     /// <summary>
-    /// EN: Summary for Release.
-    /// PT: Resumo para Release.
+    /// EN: Releases a previously created savepoint.
+    /// PT: Libera um ponto de salvamento criado anteriormente.
     /// </summary>
     public void Release(string savepointName)
 #endif
@@ -106,8 +106,8 @@ public class SqliteTransactionMock(
     }
 
     /// <summary>
-    /// EN: Summary for Dispose.
-    /// PT: Resumo para Dispose.
+    /// EN: Releases resources used by this instance.
+    /// PT: Libera os recursos usados por esta instância.
     /// </summary>
     protected override void Dispose(bool disposing)
     {

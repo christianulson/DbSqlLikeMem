@@ -10,7 +10,7 @@ public abstract class ExistsTestsBase(
 {
     /// <summary>
     /// EN: Creates a provider-specific mock connection used by shared EXISTS tests.
-    /// PT: Cria uma conexão mock específica do provedor usada pelos testes compartilhados de EXISTS.
+    /// PT: Cria uma conexão simulada específica do provedor usada pelos testes compartilhados de EXISTS.
     /// </summary>
     protected abstract DbConnectionMockBase CreateConnection();
 

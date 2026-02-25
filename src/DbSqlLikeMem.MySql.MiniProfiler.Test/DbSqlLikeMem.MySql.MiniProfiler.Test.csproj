@@ -76,13 +76,6 @@
 	  <Compile Include="..\DbSqlLikeMem.MySql.Dapper.Test\StoredProcedureExecutionTests.cs" Link="StoredProcedureExecutionTests.cs" />
 	</ItemGroup>
 
-	
-
-	<ItemGroup>
-		<PackageReference Include="coverlet.collector" Version="6.0.4" />
-	</ItemGroup>
-	
-
 	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.MySql.MiniProfiler\DbSqlLikeMem.MySql.MiniProfiler.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />

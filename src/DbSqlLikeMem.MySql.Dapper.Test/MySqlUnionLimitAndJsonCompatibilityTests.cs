@@ -10,7 +10,8 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests : XUnitTestBase
     private const int MySqlJsonExtractMinVersion = 5;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests MySqlUnionLimitAndJsonCompatibilityTests behavior.
+    /// PT: Testa o comportamento de MySqlUnionLimitAndJsonCompatibilityTests.
     /// </summary>
     public MySqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper)
     {

@@ -1,14 +1,16 @@
 namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class MySqlJoinTests.
+/// PT: Define a classe MySqlJoinTests.
 /// </summary>
 public sealed class MySqlJoinTests : XUnitTestBase
 {
     private readonly MySqlConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests MySqlJoinTests behavior.
+    /// PT: Testa o comportamento de MySqlJoinTests.
     /// </summary>
     public MySqlJoinTests(ITestOutputHelper helper) : base(helper)
     {

@@ -2,12 +2,14 @@ namespace DbSqlLikeMem.MySql;
 
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class MySqlAstQueryExecutorRegister.
+/// PT: Define a classe MySqlAstQueryExecutorRegister.
 /// </summary>
 public static class MySqlAstQueryExecutorRegister
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Register.
+    /// PT: Implementa Register.
     /// </summary>
     public static void Register()
     {

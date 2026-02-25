@@ -3,8 +3,8 @@
 internal static class SqliteDbVersions
 {
     /// <summary>
-    /// EN: Summary for Versions.
-    /// PT: Resumo para Versions.
+    /// EN: Returns SQLite versions supported by this provider mock.
+    /// PT: Retorna as versões do SQLite suportadas por este mock de provedor.
     /// </summary>
     public static IEnumerable<int> Versions()
     {

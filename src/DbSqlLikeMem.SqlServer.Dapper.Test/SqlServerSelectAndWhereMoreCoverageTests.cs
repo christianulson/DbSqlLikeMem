@@ -1,14 +1,16 @@
 namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlServerSelectAndWhereMoreCoverageTests.
+/// PT: Define a classe SqlServerSelectAndWhereMoreCoverageTests.
 /// </summary>
 public sealed class SqlServerSelectAndWhereMoreCoverageTests : XUnitTestBase
 {
     private readonly SqlServerConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests SqlServerSelectAndWhereMoreCoverageTests behavior.
+    /// PT: Testa o comportamento de SqlServerSelectAndWhereMoreCoverageTests.
     /// </summary>
     public SqlServerSelectAndWhereMoreCoverageTests(ITestOutputHelper helper) : base(helper)
     {

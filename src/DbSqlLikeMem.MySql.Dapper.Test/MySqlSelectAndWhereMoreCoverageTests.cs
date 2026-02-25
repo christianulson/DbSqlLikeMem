@@ -1,14 +1,16 @@
 namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class MySqlSelectAndWhereMoreCoverageTests.
+/// PT: Define a classe MySqlSelectAndWhereMoreCoverageTests.
 /// </summary>
 public sealed class MySqlSelectAndWhereMoreCoverageTests : XUnitTestBase
 {
     private readonly MySqlConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests MySqlSelectAndWhereMoreCoverageTests behavior.
+    /// PT: Testa o comportamento de MySqlSelectAndWhereMoreCoverageTests.
     /// </summary>
     public MySqlSelectAndWhereMoreCoverageTests(ITestOutputHelper helper) : base(helper)
     {

@@ -5,7 +5,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: In-memory mock connection with table support, transactions, and simulated latency.
-/// PT: Conexão mock em memória com suporte a tabelas, transações e latência simulada.
+/// PT: Conexão simulado em memória com suporte a tabelas, transações e latência simulada.
 /// </summary>
 public abstract class DbConnectionMockBase(
     DbMock db,
@@ -92,7 +92,7 @@ public abstract class DbConnectionMockBase(
 
     /// <summary>
     /// EN: Simulated connection timeout.
-    /// PT: Tempo limite de conexão simulado.
+    /// PT: Tempo limite de conexão simulada.
     /// </summary>
     public override int ConnectionTimeout { get; } = 1;
 

@@ -3,7 +3,8 @@
 namespace DbSqlLikeMem.Db2.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlValueHelperTests.
+/// PT: Define a classe SqlValueHelperTests.
 /// </summary>
 public sealed class SqlValueHelperTests(
     ITestOutputHelper helper

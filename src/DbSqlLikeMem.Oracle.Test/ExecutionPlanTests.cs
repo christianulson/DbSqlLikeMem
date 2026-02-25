@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Execution plan coverage tests for Oracle mock commands.
-/// PT: Testes de cobertura de plano de execução para comandos mock Oracle.
+/// PT: Testes de cobertura de plano de execução para comandos simulado Oracle.
 /// </summary>
 public sealed class ExecutionPlanTests : XUnitTestBase
 {
@@ -46,13 +46,13 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
         ids.Should().Equal(1, 3);
         cnn.LastExecutionPlan.Should().NotBeNullOrWhiteSpace();
-        cnn.LastExecutionPlan.Should().Contain("QueryType: SELECT");
-        cnn.LastExecutionPlan.Should().Contain("EstimatedCost:");
-        cnn.LastExecutionPlan.Should().Contain("InputTables:");
-        cnn.LastExecutionPlan.Should().Contain("EstimatedRowsRead:");
-        cnn.LastExecutionPlan.Should().Contain("SelectivityPct:");
-        cnn.LastExecutionPlan.Should().Contain("RowsPerMs:");
-        cnn.LastExecutionPlan.Should().Contain("ActualRows: 2");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.QueryTypeLabel()}: SELECT");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.EstimatedCostLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.InputTablesLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.EstimatedRowsReadLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.SelectivityPctLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.RowsPerMsLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.ActualRowsLabel()}: 2");
 
         Console.WriteLine("[ExecutionPlan][Oracle]\n" + cnn.LastExecutionPlan);
     }

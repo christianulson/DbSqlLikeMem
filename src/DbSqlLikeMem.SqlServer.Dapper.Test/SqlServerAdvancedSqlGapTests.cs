@@ -10,7 +10,8 @@ public sealed class SqlServerAdvancedSqlGapTests : XUnitTestBase
     private readonly SqlServerConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests SqlServerAdvancedSqlGapTests behavior.
+    /// PT: Testa o comportamento de SqlServerAdvancedSqlGapTests.
     /// </summary>
     public SqlServerAdvancedSqlGapTests(ITestOutputHelper helper) : base(helper)
     {

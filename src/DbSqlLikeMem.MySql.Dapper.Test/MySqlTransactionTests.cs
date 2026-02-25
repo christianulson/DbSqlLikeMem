@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.MySql.Dapper.Test;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class MySqlTransactionTests.
+/// PT: Define a classe MySqlTransactionTests.
 /// </summary>
 public sealed class MySqlTransactionTests(
         ITestOutputHelper helper
@@ -9,15 +10,18 @@ public sealed class MySqlTransactionTests(
     private sealed class User
     {
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Id.
+        /// PT: Obtém ou define Id.
         /// </summary>
         public int Id { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Name.
+        /// PT: Obtém ou define Name.
         /// </summary>
         public required string Name { get; set; }
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Gets or sets Email.
+        /// PT: Obtém ou define Email.
         /// </summary>
         public string? Email { get; set; }
     }

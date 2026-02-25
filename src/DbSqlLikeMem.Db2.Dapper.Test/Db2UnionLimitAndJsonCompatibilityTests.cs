@@ -9,7 +9,8 @@ public sealed class Db2UnionLimitAndJsonCompatibilityTests : XUnitTestBase
     private readonly Db2ConnectionMock _cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests Db2UnionLimitAndJsonCompatibilityTests behavior.
+    /// PT: Testa o comportamento de Db2UnionLimitAndJsonCompatibilityTests.
     /// </summary>
     public Db2UnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper)
     {

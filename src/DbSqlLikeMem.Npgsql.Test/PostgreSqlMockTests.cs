@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class PostgreSqlMockTests.
+/// PT: Define a classe PostgreSqlMockTests.
 /// </summary>
 public sealed class PostgreSqlMockTests
     : XUnitTestBase
@@ -9,7 +10,8 @@ public sealed class PostgreSqlMockTests
     private readonly NpgsqlConnectionMock _connection;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests PostgreSqlMockTests behavior.
+    /// PT: Testa o comportamento de PostgreSqlMockTests.
     /// </summary>
     public PostgreSqlMockTests(
         ITestOutputHelper helper

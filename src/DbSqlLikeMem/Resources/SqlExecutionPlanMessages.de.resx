@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ExecutionPlanTitle" xml:space="preserve">
+    <value>Ausführungsplan (mock)</value>
+  </data>
+  <data name="QueryTypeLabel" xml:space="preserve">
+    <value>AbfrageTyp</value>
+  </data>
+  <data name="EstimatedCostLabel" xml:space="preserve">
+    <value>GeschaetzteKosten</value>
+  </data>
+  <data name="CtesLabel" xml:space="preserve">
+    <value>CTEs</value>
+  </data>
+  <data name="CteMaterializeLabel" xml:space="preserve">
+    <value>CTE Materialize</value>
+  </data>
+  <data name="FromLabel" xml:space="preserve">
+    <value>From</value>
+  </data>
+  <data name="JoinLabel" xml:space="preserve">
+    <value>Join</value>
+  </data>
+  <data name="FilterLabel" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="GroupByLabel" xml:space="preserve">
+    <value>GroupBy</value>
+  </data>
+  <data name="HavingLabel" xml:space="preserve">
+    <value>Having</value>
+  </data>
+  <data name="ProjectionLabel" xml:space="preserve">
+    <value>Projektion</value>
+  </data>
+  <data name="DistinctLabel" xml:space="preserve">
+    <value>Distinct</value>
+  </data>
+  <data name="SortLabel" xml:space="preserve">
+    <value>Sort</value>
+  </data>
+  <data name="LimitLabel" xml:space="preserve">
+    <value>Limit</value>
+  </data>
+  <data name="InputTablesLabel" xml:space="preserve">
+    <value>EingabeTabellen</value>
+  </data>
+  <data name="EstimatedRowsReadLabel" xml:space="preserve">
+    <value>GeschaetzteGeleseneZeilen</value>
+  </data>
+  <data name="ActualRowsLabel" xml:space="preserve">
+    <value>TatsaechlicheZeilen</value>
+  </data>
+  <data name="SelectivityPctLabel" xml:space="preserve">
+    <value>SelektivitaetPct</value>
+  </data>
+  <data name="RowsPerMsLabel" xml:space="preserve">
+    <value>ZeilenProMs</value>
+  </data>
+  <data name="ElapsedMsLabel" xml:space="preserve">
+    <value>VerstricheneMs</value>
+  </data>
+  <data name="IndexRecommendationsLabel" xml:space="preserve">
+    <value>IndexEmpfehlungen</value>
+  </data>
+  <data name="TableLabel" xml:space="preserve">
+    <value>Tabelle</value>
+  </data>
+  <data name="SuggestedIndexLabel" xml:space="preserve">
+    <value>VorgeschlagenerIndex</value>
+  </data>
+  <data name="ReasonLabel" xml:space="preserve">
+    <value>Grund</value>
+  </data>
+  <data name="ConfidenceLabel" xml:space="preserve">
+    <value>Konfidenz</value>
+  </data>
+  <data name="EstimatedRowsReadBeforeLabel" xml:space="preserve">
+    <value>GeschaetzteGeleseneZeilenVorher</value>
+  </data>
+  <data name="EstimatedRowsReadAfterLabel" xml:space="preserve">
+    <value>GeschaetzteGeleseneZeilenNachher</value>
+  </data>
+  <data name="EstimatedGainPctLabel" xml:space="preserve">
+    <value>GeschaetzterGewinnPct</value>
+  </data>
+  <data name="PartsLabel" xml:space="preserve">
+    <value>Teile</value>
+  </data>
+  <data name="PartLabel" xml:space="preserve">
+    <value>Teil</value>
+  </data>
+  <data name="CombineLabel" xml:space="preserve">
+    <value>Kombinieren</value>
+  </data>
+  <data name="ReasonFilterAndOrder" xml:space="preserve">
+    <value>WHERE/JOIN ({0}) + ORDER BY ({1}) ohne passenden Index. Vorgeschlagener Schlüssel: {2}.</value>
+  </data>
+  <data name="ReasonFilterOnly" xml:space="preserve">
+    <value>WHERE/JOIN-Prädikate ({0}) ohne passenden Index.</value>
+  </data>
+  <data name="ReasonOrderOnly" xml:space="preserve">
+    <value>ORDER BY ({0}) ohne passenden Index.</value>
+  </data>
+  <data name="PlanWarningsLabel" xml:space="preserve">
+    <value>PlanWarnungen</value>
+  </data>
+  <data name="CodeLabel" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="MessageLabel" xml:space="preserve">
+    <value>Meldung</value>
+  </data>
+  <data name="SuggestedActionLabel" xml:space="preserve">
+    <value>EmpfohleneAktion</value>
+  </data>
+  <data name="SeverityLabel" xml:space="preserve">
+    <value>Schweregrad</value>
+  </data>
+  <data name="WarningOrderByWithoutLimitMessage" xml:space="preserve">
+    <value>ORDER BY kann ohne LIMIT/TOP/FETCH teuer sein.</value>
+  </data>
+  <data name="WarningOrderByWithoutLimitReason" xml:space="preserve">
+    <value>ORDER BY sortiert geschätzt {0} Zeilen ohne LIMIT/TOP/FETCH.</value>
+  </data>
+  <data name="WarningOrderByWithoutLimitAction" xml:space="preserve">
+    <value>Verwenden Sie nach Möglichkeit LIMIT/TOP/FETCH oder erstellen/pflegen Sie einen auf ORDER BY ausgerichteten Index.</value>
+  </data>
+  <data name="WarningLowSelectivityMessage" xml:space="preserve">
+    <value>Niedrige Selektivität bei hohem Lesevolumen erkannt.</value>
+  </data>
+  <data name="WarningLowSelectivityReason" xml:space="preserve">
+    <value>Die Abfrage gab einen hohen Prozentsatz gescannter Zeilen zurück (SelectivityPct={0:F2}) bei EstimatedRowsRead={1}.</value>
+  </data>
+  <data name="WarningLowSelectivityAction" xml:space="preserve">
+    <value>Verfeinern Sie WHERE-Prädikate und prüfen Sie, ob zusätzliche selektive Prädikate oder Indizes nötig sind.</value>
+  </data>
+  <data name="WarningSelectStarMessage" xml:space="preserve">
+    <value>SELECT * bei hoher Leselast kann I/O- und Speichernutzung erhöhen.</value>
+  </data>
+  <data name="WarningSelectStarReason" xml:space="preserve">
+    <value>SELECT * wurde verwendet, während EstimatedRowsRead bei {0} liegt.</value>
+  </data>
+  <data name="WarningSelectStarAction" xml:space="preserve">
+    <value>Projizieren Sie nur benötigte Spalten statt SELECT *.</value>
+  </data>
+  <data name="MetricNameLabel" xml:space="preserve">
+    <value>Metrikname</value>
+  </data>
+  <data name="ObservedValueLabel" xml:space="preserve">
+    <value>BeobachteterWert</value>
+  </data>
+  <data name="ThresholdLabel" xml:space="preserve">
+    <value>Schwellenwert</value>
+  </data>
+  <data name="WarningLowSelectivityHighImpactMessage" xml:space="preserve">
+    <value>Sehr niedrige Selektivität bei hohem Lesevolumen erkannt.</value>
+  </data>
+  <data name="WarningSelectStarHighImpactMessage" xml:space="preserve">
+    <value>SELECT * bei sehr hoher Leselast erhöht I/O- und Speicherrisiko deutlich.</value>
+  </data>
+  <data name="WarningSelectStarCriticalImpactMessage" xml:space="preserve">
+    <value>SELECT * bei extrem hoher Leselast hat ein kritisches I/O- und Speicherrisiko.</value>
+  </data>
+  <data name="WarningNoWhereHighReadMessage" xml:space="preserve">
+    <value>Abfrage mit hoher Leselast ohne WHERE kann einen vollständigen Scan auslösen.</value>
+  </data>
+  <data name="WarningNoWhereHighReadHighImpactMessage" xml:space="preserve">
+    <value>Abfrage mit sehr hoher Leselast ohne WHERE hat kritisches Vollscan-Risiko.</value>
+  </data>
+  <data name="WarningNoWhereHighReadReason" xml:space="preserve">
+    <value>Kein WHERE-Prädikat angegeben, während EstimatedRowsRead {0} beträgt.</value>
+  </data>
+  <data name="WarningNoWhereHighReadAction" xml:space="preserve">
+    <value>Fügen Sie nach Möglichkeit selektive WHERE-Prädikate hinzu oder bestätigen Sie, dass ein Vollscan beabsichtigt ist.</value>
+  </data>
+  <data name="WarningDistinctHighReadMessage" xml:space="preserve">
+    <value>DISTINCT bei Abfrage mit hoher Leselast kann teure Deduplizierung verursachen.</value>
+  </data>
+  <data name="WarningDistinctHighReadHighImpactMessage" xml:space="preserve">
+    <value>DISTINCT bei Abfrage mit sehr hoher Leselast hat kritisches Deduplizierungsrisiko.</value>
+  </data>
+  <data name="WarningDistinctHighReadReason" xml:space="preserve">
+    <value>DISTINCT wird angewendet, während EstimatedRowsRead {0} beträgt.</value>
+  </data>
+  <data name="WarningDistinctHighReadAction" xml:space="preserve">
+    <value>Verwenden Sie DISTINCT nur wenn nötig und prüfen Sie, ob Filter/Indizes die Zeilen vor der Deduplizierung reduzieren können.</value>
+  </data>
+  <data name="SeverityInfoValue" xml:space="preserve">
+    <value>Info</value>
+  </data>
+  <data name="SeverityWarningValue" xml:space="preserve">
+    <value>Warnung</value>
+  </data>
+  <data name="SeverityHighValue" xml:space="preserve">
+    <value>Hoch</value>
+  </data>
+</root>

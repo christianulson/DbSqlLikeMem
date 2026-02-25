@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer.Test;
 
 /// <summary>
 /// EN: Runs shared stored procedure signature tests using the SQL Server mock connection.
-/// PT: Executa os testes compartilhados de assinatura de procedure usando a conexão mock de SQL Server.
+/// PT: Executa os testes compartilhados de assinatura de procedure usando a conexão simulada de SQL Server.
 /// </summary>
 /// <param name="helper">
 /// EN: xUnit output helper used by the shared base test class.
@@ -14,7 +14,7 @@ public sealed class StoredProcedureSignatureTests(
 {
     /// <summary>
     /// EN: Creates a SQL Server mock connection used by stored procedure signature tests.
-    /// PT: Cria uma conexão mock de SQL Server usada pelos testes de assinatura de procedure.
+    /// PT: Cria uma conexão simulada de SQL Server usada pelos testes de assinatura de procedure.
     /// </summary>
     protected override DbConnectionMockBase CreateConnection() => new SqlServerConnectionMock();
 }

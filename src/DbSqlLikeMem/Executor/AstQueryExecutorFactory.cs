@@ -11,7 +11,8 @@ namespace DbSqlLikeMem;
 internal static class AstQueryExecutorFactory
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements this member.
+    /// PT: Implementa este membro.
     /// </summary>
     public static Dictionary<string, Func<
         DbConnectionMockBase,
@@ -20,7 +21,8 @@ internal static class AstQueryExecutorFactory
 
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Create.
+    /// PT: Implementa Create.
     /// </summary>
     public static IAstQueryExecutor Create(
         ISqlDialect dialect,
@@ -44,7 +46,8 @@ internal static class AstQueryExecutorFactory
         private readonly string _dialectName = dialectName;
 
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Implements ExecuteSelect.
+        /// PT: Implementa ExecuteSelect.
         /// </summary>
         public TableResultMock ExecuteSelect(SqlSelectQuery q)
             => throw new NotSupportedException(
@@ -52,7 +55,8 @@ internal static class AstQueryExecutorFactory
                 "Implemente um executor e registre no AstQueryExecutorFactory.");
 
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Implements ExecuteUnion.
+        /// PT: Implementa ExecuteUnion.
         /// </summary>
         public TableResultMock ExecuteUnion(
             IReadOnlyList<SqlSelectQuery> parts,

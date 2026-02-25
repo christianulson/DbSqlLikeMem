@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Npgsql.Test.Parser;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlExpressionParserTests.
+/// PT: Define a classe SqlExpressionParserTests.
 /// </summary>
 public sealed class SqlExpressionParserTests(
     ITestOutputHelper helper
@@ -26,7 +27,8 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides test data for WhereExpressions_Supported.
+    /// PT: Fornece dados de teste para WhereExpressions_Supported.
     /// </summary>
     public static IEnumerable<object[]> WhereExpressions_Supported()
     {
@@ -100,7 +102,8 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides test data for WhereExpressions_Unsupported.
+    /// PT: Fornece dados de teste para WhereExpressions_Unsupported.
     /// </summary>
     public static IEnumerable<object[]> WhereExpressions_Unsupported()
     {

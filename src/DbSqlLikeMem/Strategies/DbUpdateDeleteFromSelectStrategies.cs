@@ -8,7 +8,8 @@ internal static class DbUpdateDeleteFromSelectStrategies
     private static readonly Regex _regexOnSql = new(@"^(?<l>[A-Za-z0-9_]+)\.(?<lc>[A-Za-z0-9_`]+)\s*=\s*(?<r>[A-Za-z0-9_]+)\.(?<rc>[A-Za-z0-9_`]+)$", RegexOptions.IgnoreCase);
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ExecuteUpdateSmart.
+    /// PT: Implementa ExecuteUpdateSmart.
     /// </summary>
     public static int ExecuteUpdateSmart(
         this DbConnectionMockBase connection,
@@ -23,7 +24,8 @@ internal static class DbUpdateDeleteFromSelectStrategies
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ExecuteDeleteSmart.
+    /// PT: Implementa ExecuteDeleteSmart.
     /// </summary>
     public static int ExecuteDeleteSmart(
         this DbConnectionMockBase connection,
@@ -38,7 +40,8 @@ internal static class DbUpdateDeleteFromSelectStrategies
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ExecuteUpdateFromSelect.
+    /// PT: Implementa ExecuteUpdateFromSelect.
     /// </summary>
     public static int ExecuteUpdateFromSelect(
         this DbConnectionMockBase connection,
@@ -211,7 +214,8 @@ internal static class DbUpdateDeleteFromSelectStrategies
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ExecuteDeleteFromSelect.
+    /// PT: Implementa ExecuteDeleteFromSelect.
     /// </summary>
     public static int ExecuteDeleteFromSelect(
         this DbConnectionMockBase connection,
@@ -305,11 +309,13 @@ internal static class DbUpdateDeleteFromSelectStrategies
     private sealed class ObjectEqualityComparer : IEqualityComparer<object>
     {
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Implements Equals.
+        /// PT: Implementa Equals.
         /// </summary>
         public new bool Equals(object? x, object? y) => object.Equals(x, y);
         /// <summary>
-        /// Auto-generated summary.
+        /// EN: Implements GetHashCode.
+        /// PT: Implementa GetHashCode.
         /// </summary>
         public int GetHashCode(object obj) => obj?.GetHashCode() ?? 0;
     }
