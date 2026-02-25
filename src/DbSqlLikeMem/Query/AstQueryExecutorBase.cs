@@ -3995,6 +3995,27 @@ private void FillPercentRankOrCumeDist(
                 return 0m;
             }
 
+            if (type.Equals("JSON", StringComparison.OrdinalIgnoreCase))
+            {
+                static string? ValidateJsonOrNull(string? json)
+                {
+                    if (string.IsNullOrWhiteSpace(json))
+                        return null;
+
+                    using var _ = System.Text.Json.JsonDocument.Parse(json);
+                    return json;
+                }
+
+                if (v is string s)
+                    return ValidateJsonOrNull(s);
+
+                if (v is System.Text.Json.JsonElement je)
+                    return ValidateJsonOrNull(je.GetRawText());
+
+                var serialized = System.Text.Json.JsonSerializer.Serialize(v);
+                return ValidateJsonOrNull(serialized);
+            }
+
             return v!.ToString();
         }
 #pragma warning disable CA1031
