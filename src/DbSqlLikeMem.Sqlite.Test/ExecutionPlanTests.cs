@@ -83,7 +83,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
-        cnn.LastExecutionPlan.Should().Contain("IndexRecommendations:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.IndexRecommendationsLabel()}:");
         cnn.LastExecutionPlan.Should().Contain("CREATE INDEX IX_users_Active_Id ON users (Active, Id);");
     }
 
@@ -115,9 +115,9 @@ public sealed class ExecutionPlanTests : XUnitTestBase
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
-        cnn.LastExecutionPlan.Should().Contain("EstimatedRowsReadBefore:");
-        cnn.LastExecutionPlan.Should().Contain("EstimatedRowsReadAfter:");
-        cnn.LastExecutionPlan.Should().Contain("EstimatedGainPct:");
+        cnn.LastExecutionPlan.Should().MatchRegex(@"(EstimatedRowsReadBefore|LinhasEstimadasLidasAntes):");
+        cnn.LastExecutionPlan.Should().MatchRegex(@"(EstimatedRowsReadAfter|LinhasEstimadasLidasDepois):");
+        cnn.LastExecutionPlan.Should().MatchRegex(@"(EstimatedGainPct|GanhoEstimadoPct):");
     }
 
 
@@ -147,7 +147,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
-        cnn.LastExecutionPlan.Should().NotContain("IndexRecommendations:");
+        cnn.LastExecutionPlan.Should().NotContain($"{SqlExecutionPlanMessages.IndexRecommendationsLabel()}:");
     }
 
     /// <summary>
@@ -177,7 +177,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
-        cnn.LastExecutionPlan.Should().NotContain("IndexRecommendations:");
+        cnn.LastExecutionPlan.Should().NotContain($"{SqlExecutionPlanMessages.IndexRecommendationsLabel()}:");
     }
 
 }

@@ -49,13 +49,14 @@ public static class DbMockConnectionFactory
 
     private static DbMock CreateDbMock(string providerHint)
     {
+        EnsureProviderAssembliesLoaded(providerHint);
+
         var allTypes = AppDomain.CurrentDomain
             .GetAssemblies()
             .SelectMany(SafeGetTypes)
             .Where(type =>
                 typeof(DbMock).IsAssignableFrom(type)
-                && !type.IsAbstract
-                && type.GetConstructor(Type.EmptyTypes) is not null)
+                && !type.IsAbstract)
             .ToArray();
 
         var preferred = allTypes
@@ -68,7 +69,63 @@ public static class DbMockConnectionFactory
                 $"No concrete DbMock implementation was found. Loaded assemblies: {AppDomain.CurrentDomain.GetAssemblies().Length}.");
         }
 
-        return (DbMock)Activator.CreateInstance(preferred)!;
+        return (DbMock)CreateInstanceAllowingOptionalCtor(preferred)!;
+    }
+
+
+    private static void EnsureProviderAssembliesLoaded(string providerHint)
+    {
+        var candidates = new[]
+        {
+            "DbSqlLikeMem.Sqlite",
+            "DbSqlLikeMem.MySql",
+            "DbSqlLikeMem.SqlServer",
+            "DbSqlLikeMem.Oracle",
+            "DbSqlLikeMem.Db2",
+            "DbSqlLikeMem.Npgsql"
+        };
+
+        foreach (var assemblyName in candidates)
+        {
+            if (!assemblyName.Contains(providerHint, StringComparison.OrdinalIgnoreCase)
+                && !providerHint.Contains(assemblyName.Split('.').Last(), StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            try
+            {
+                _ = Assembly.Load(assemblyName);
+            }
+            catch
+            {
+                // Best effort: continue discovery with assemblies already loaded.
+            }
+        }
+    }
+
+
+    private static object CreateInstanceAllowingOptionalCtor(Type type)
+    {
+        try
+        {
+            return Activator.CreateInstance(type)!;
+        }
+        catch (MissingMethodException)
+        {
+            var optionalCtor = type
+                .GetConstructors(BindingFlags.Instance | BindingFlags.Public)
+                .OrderBy(ctor => ctor.GetParameters().Length)
+                .FirstOrDefault(ctor => ctor.GetParameters().All(p => p.IsOptional));
+
+            if (optionalCtor is null)
+                throw;
+
+            var args = optionalCtor
+                .GetParameters()
+                .Select(_ => Type.Missing)
+                .ToArray();
+
+            return optionalCtor.Invoke(args);
+        }
     }
 
     private static IEnumerable<Type> SafeGetTypes(Assembly assembly)

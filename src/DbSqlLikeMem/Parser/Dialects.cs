@@ -371,7 +371,7 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// </summary>
     public virtual bool RequiresOrderByInWindowFunction(string functionName)
     {
-        if (string.IsNullOrWhiteSpace(functionName))
+        if (!SupportsWindowFunction(functionName))
             return false;
 
         return IsRowNumberWindowFunction(functionName)
