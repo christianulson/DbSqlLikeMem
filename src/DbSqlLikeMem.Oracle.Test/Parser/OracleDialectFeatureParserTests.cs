@@ -85,7 +85,7 @@ public sealed class OracleDialectFeatureParserTests
         var sql = "SELECT id FROM users OPTION (MAXDOP 1)";
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
-        Assert.Contains("OPTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("OPTION(query hints)", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Use hints compatíveis", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -102,7 +102,7 @@ public sealed class OracleDialectFeatureParserTests
         var sql = "SELECT id FROM users UNION SELECT id FROM users OPTION (MAXDOP 1)";
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
-        Assert.Contains("OPTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("OPTION(query hints)", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 

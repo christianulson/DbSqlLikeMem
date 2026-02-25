@@ -312,7 +312,7 @@ public sealed class MySqlDialectFeatureParserTests
         var sql = "SELECT id FROM users OPTION (MAXDOP 1)";
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
-        Assert.Contains("OPTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("OPTION(query hints)", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("USE/IGNORE/FORCE INDEX", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
