@@ -47,6 +47,11 @@ public sealed class MySqlDialectFeatureParserTests
 
 
 
+    /// <summary>
+    /// EN: Verifies unsupported WITH RECURSIVE versions return actionable MySQL guidance.
+    /// PT: Verifica que versões sem suporte a WITH RECURSIVE retornam orientação acionável para MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion(VersionLowerThan = MySqlDialect.WithCteMinVersion)]
@@ -214,6 +219,11 @@ public sealed class MySqlDialectFeatureParserTests
 
 
 
+    /// <summary>
+    /// EN: Verifies FETCH FIRST syntax returns actionable MySQL pagination guidance.
+    /// PT: Verifica que sintaxe FETCH FIRST retorna orientação acionável de paginação para MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -270,6 +280,11 @@ public sealed class MySqlDialectFeatureParserTests
 
 
 
+    /// <summary>
+    /// EN: Verifies unsupported top-level statements return guidance-focused errors.
+    /// PT: Verifica que comandos de topo não suportados retornam erros com orientação.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -318,6 +333,11 @@ public sealed class MySqlDialectFeatureParserTests
 
 
 
+    /// <summary>
+    /// EN: Verifies MERGE in MySQL returns actionable replacement guidance.
+    /// PT: Verifica que MERGE no MySQL retorna orientação acionável de substituição.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
