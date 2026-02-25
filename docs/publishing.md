@@ -44,6 +44,22 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
+### Como decidir a próxima versão (SemVer)
+
+Use a regra abaixo antes de publicar no NuGet:
+
+- **PATCH** (`1.4.x`): apenas correções de bug, melhorias internas e ajustes de testes/documentação sem ampliar comportamento público.
+- **MINOR** (`1.x.0`): novas features compatíveis (novas capacidades SQL, novos cenários suportados, novas integrações) sem quebrar APIs/contratos existentes.
+- **MAJOR** (`x.0.0`): qualquer breaking change em API pública, comportamento padrão incompatível ou remoção/alteração de contrato esperado.
+
+Checklist rápido para confirmar **breaking change**:
+
+1. Houve remoção/renomeação de tipos, métodos, propriedades ou parâmetros públicos?
+2. Algum comportamento padrão passou a lançar exceção onde antes era suportado?
+3. Algum fluxo compatível de versão anterior exige mudança obrigatória no código consumidor?
+
+Se todas as respostas forem **não**, prefira `PATCH` (sem feature nova) ou `MINOR` (com feature nova).
+
 Workflow responsável:
 - `.github/workflows/nuget-publish.yml`
 
