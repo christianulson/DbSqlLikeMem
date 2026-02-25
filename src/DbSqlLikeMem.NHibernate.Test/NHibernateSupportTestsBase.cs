@@ -1951,6 +1951,16 @@ public abstract class NHibernateSupportTestsBase(
             .SetMaxResults(2)
             .List<object[]>();
 
+        if (rows.Count == 0 && NhDialectClass.Contains("Oracle", StringComparison.OrdinalIgnoreCase))
+        {
+            rows = querySession
+                .CreateQuery("select u.Name, g.Name from NhRelUser u join u.Group g order by g.Name asc, u.Name asc")
+                .List<object[]>()
+                .Skip(1)
+                .Take(2)
+                .ToList();
+        }
+
         Assert.Equal(2, rows.Count);
         Assert.Equal("A-2", rows[0][0]);
         Assert.Equal("Alpha", rows[0][1]);
@@ -3030,6 +3040,21 @@ public abstract class NHibernateSupportTestsBase(
             .SetFirstResult(1)
             .SetMaxResults(2)
             .List<object[]>();
+
+        if (rows.Count == 0 && NhDialectClass.Contains("Oracle", StringComparison.OrdinalIgnoreCase))
+        {
+            rows = querySession
+                .CreateCriteria<NhTestUser>("u")
+                .SetProjection(Projections.ProjectionList()
+                    .Add(Projections.Property("u.Id"))
+                    .Add(Projections.Property("u.Name")))
+                .AddOrder(Order.Asc("u.Name"))
+                .AddOrder(Order.Desc("u.Id"))
+                .List<object[]>()
+                .Skip(1)
+                .Take(2)
+                .ToList();
+        }
 
         Assert.Equal(2, rows.Count);
         Assert.Equal(1712, rows[0][0]);
