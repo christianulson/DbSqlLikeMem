@@ -6,7 +6,7 @@
 
 - [ ] Cobrir `MERGE` por dialeto/versão (SQL Server/Oracle/DB2) com semântica mínima comum. (diagnóstico acionável de não suporte implementado; evolução semântica por dialeto ainda pendente)
 - [x] Expandir validação de `WITH RECURSIVE` por dialeto para mensagens de erro ainda mais orientadas a ação.
-- [ ] Consolidar suporte a paginação com normalização de AST (`LIMIT/OFFSET`, `OFFSET/FETCH`, `FETCH FIRST`).
+- [x] Consolidar suporte a paginação com normalização de AST (`LIMIT/OFFSET`, `OFFSET/FETCH`, `FETCH FIRST`) (normalização para `SqlLimitOffset` no parser + regressão por dialeto em suites de parser).
 - [ ] Revisar regras de quoting de identificadores por dialeto para casos de alias complexos.
 
 ## Executor e comportamento de runtime

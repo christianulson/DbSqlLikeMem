@@ -1239,10 +1239,10 @@ internal sealed class SqlQueryParser
                 if (IsWord(Peek(), "ONLY"))
                     Consume();
 
-                return new SqlFetch(Count: count, Offset: offset);
+                return new SqlLimitOffset(Count: count, Offset: offset);
             }
 
-            return new SqlFetch(Count: int.MaxValue, Offset: offset);
+            return new SqlLimitOffset(Count: int.MaxValue, Offset: offset);
         }
 
         // Oracle/Postgres: FETCH FIRST n ROWS ONLY
@@ -1263,7 +1263,7 @@ internal sealed class SqlQueryParser
             if (IsWord(Peek(), "ONLY"))
                 Consume();
 
-            return new SqlFetch(Count: count, Offset: null);
+            return new SqlLimitOffset(Count: count, Offset: null);
         }
 
         return null;

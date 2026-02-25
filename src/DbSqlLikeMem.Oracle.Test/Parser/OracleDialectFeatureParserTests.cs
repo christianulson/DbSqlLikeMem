@@ -57,6 +57,37 @@ public sealed class OracleDialectFeatureParserTests
         Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseSelect_PaginationSyntaxes_ShouldNormalizeRowLimitAst(int version)
+    {
+        var dialect = new OracleDialect(version);
+
+        if (version < OracleDialect.OffsetFetchMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                SqlQueryParser.Parse("SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY", dialect));
+            return;
+        }
+
+        var offsetFetch = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
+            dialect));
+        var fetchFirst = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id FETCH FIRST 2 ROWS ONLY",
+            dialect));
+
+        var normalizedOffsetFetch = Assert.IsType<SqlLimitOffset>(offsetFetch.RowLimit);
+        var normalizedFetchFirst = Assert.IsType<SqlLimitOffset>(fetchFirst.RowLimit);
+
+        Assert.Equal(2, normalizedOffsetFetch.Count);
+        Assert.Equal(1, normalizedOffsetFetch.Offset);
+        Assert.Equal(2, normalizedFetchFirst.Count);
+        Assert.Null(normalizedFetchFirst.Offset);
+    }
+
     /// <summary>
     /// EN: Ensures SQL Server table hints are rejected for Oracle.
     /// PT: Garante que hints de tabela do SQL Server sejam rejeitados no Oracle.
@@ -85,7 +116,7 @@ public sealed class OracleDialectFeatureParserTests
         var sql = "SELECT id FROM users OPTION (MAXDOP 1)";
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
-        Assert.Contains("OPTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("OPTION(query hints)", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Use hints compatíveis", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -102,7 +133,7 @@ public sealed class OracleDialectFeatureParserTests
         var sql = "SELECT id FROM users UNION SELECT id FROM users OPTION (MAXDOP 1)";
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new OracleDialect(version)));
-        Assert.Contains("OPTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("OPTION(query hints)", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 

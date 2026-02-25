@@ -58,6 +58,28 @@ public sealed class SqlServerDialectFeatureParserTests
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
+    public void ParseSelect_OffsetFetch_ShouldNormalizeRowLimitAst(int version)
+    {
+        if (version < SqlServerDialect.OffsetFetchMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                SqlQueryParser.Parse("SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY", new SqlServerDialect(version)));
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
+            new SqlServerDialect(version)));
+
+        var rowLimit = Assert.IsType<SqlLimitOffset>(parsed.RowLimit);
+        Assert.Equal(2, rowLimit.Count);
+        Assert.Equal(1, rowLimit.Offset);
+    }
+
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
     public void ParseSelect_Limit_ShouldProvidePaginationHint(int version)
     {
         var ex = Assert.Throws<NotSupportedException>(() =>
