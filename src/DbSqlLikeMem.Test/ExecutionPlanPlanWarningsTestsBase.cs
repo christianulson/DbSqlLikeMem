@@ -278,11 +278,20 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         var start = Array.FindIndex(lines, line => line == $"- {SqlExecutionPlanMessages.CodeLabel()}: {code}");
         start.Should().BeGreaterThanOrEqualTo(0);
 
-        var end = Array.FindIndex(start + 1 < lines.Length ? lines[(start + 1)..] : [], line => line.StartsWith($"- {SqlExecutionPlanMessages.CodeLabel()}:", StringComparison.Ordinal));
-        if (end >= 0)
-            return lines[start..(start + 1 + end)];
+        var nextCodeOffset = -1;
+        for (var i = start + 1; i < lines.Length; i++)
+        {
+            if (lines[i].StartsWith($"- {SqlExecutionPlanMessages.CodeLabel()}:", StringComparison.Ordinal))
+            {
+                nextCodeOffset = i - start;
+                break;
+            }
+        }
 
-        return lines[start..];
+        if (nextCodeOffset >= 0)
+            return lines.Skip(start).Take(nextCodeOffset).ToArray();
+
+        return lines.Skip(start).ToArray();
     }
 
     protected static void SeedUsers(DbConnectionMockBase cnn, int totalRows, Func<int, int> activeSelector)
