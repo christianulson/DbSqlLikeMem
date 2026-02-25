@@ -33,15 +33,17 @@ internal static class OracleValueHelper
         IDataParameterCollection? pars = null,
         IReadOnlyDictionary<string, ColumnDef>? colDict = null)
     {
-        // ---------- parâmetro Dapper @p -------------------------------
-        if (token.StartsWith("@"))
+        // ---------- parâmetro Dapper (@p / :p) ------------------------
+        if (token.StartsWith("@") || token.StartsWith(":"))
         {
             var name = token[1..]
                 .Replace("\r\n", string.Empty)
                 .Replace(";", string.Empty);
-            if (pars == null || !pars.Contains(name))
+
+            if (!TryGetParameterValue(pars, name, out var parameterValue))
                 throw new OracleMockException(SqlExceptionMessages.ParameterNotFound(name));
-            return ((OracleParameter)pars[name]).Value;
+
+            return parameterValue;
         }
 
         // ---------- literal NULL --------------------------------------
@@ -71,6 +73,39 @@ internal static class OracleValueHelper
 
         // ---------- tipos padrões -------------------------------------
         return ValidateColumnValue(dbType.Parse(token), colDict);
+    }
+
+    private static bool TryGetParameterValue(
+        IDataParameterCollection? pars,
+        string name,
+        out object? value)
+    {
+        value = null;
+
+        if (pars is null)
+            return false;
+
+        if (pars.Contains(name))
+        {
+            value = ((OracleParameter)pars[name]).Value;
+            return true;
+        }
+
+        var colonName = $":{name}";
+        if (pars.Contains(colonName))
+        {
+            value = ((OracleParameter)pars[colonName]).Value;
+            return true;
+        }
+
+        var atName = $"@{name}";
+        if (pars.Contains(atName))
+        {
+            value = ((OracleParameter)pars[atName]).Value;
+            return true;
+        }
+
+        return false;
     }
 
     private static bool TryParseEnumOrSet(
