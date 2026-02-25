@@ -4,14 +4,8 @@
 		<IsPackable>false</IsPackable>
 		<Description>Core domain and services for the DbSqlLikeMem Visual Studio extension prototype.</Description>
 	</PropertyGroup>
-
-	<ItemGroup>
-		<PackageReference Include="AsyncFixer" Version="2.1.0" />
-		<PackageReference Include="AsyncFriendlyStackTrace" Version="1.7.0" />
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
-		<PackageReference Include="Microsoft.CodeAnalysis.Common" Version="5.0.0" />
-	</ItemGroup>
+	
 	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-		<PackageReference Include="System.Text.Json" Version="8.0.5" />
+		<PackageReference Include="System.Text.Json" Version="8.0.6" />
 	</ItemGroup>
 </Project>

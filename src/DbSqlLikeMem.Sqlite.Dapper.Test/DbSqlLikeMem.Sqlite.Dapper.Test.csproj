@@ -40,10 +40,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="8.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\DbSqlLikeMem.Dapper.Test\DbSqlLikeMem.Dapper.Test.csproj" />
     <ProjectReference Include="..\DbSqlLikeMem.Sqlite\DbSqlLikeMem.Sqlite.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
   </ItemGroup>

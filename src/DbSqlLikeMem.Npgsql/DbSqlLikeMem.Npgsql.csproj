@@ -5,19 +5,14 @@
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net48'">
 		<PackageReference Include="Npgsql" Version="6.0.12" />
-		<PackageReference Include="System.Text.Json" Version="8.0.5" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
 		<PackageReference Include="Npgsql" Version="8.0.8" />
-		<PackageReference Include="System.Text.Json" Version="8.0.5" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
 		<PackageReference Include="Npgsql" Version="8.0.8" />
-		<PackageReference Include="System.Text.Json" Version="8.0.6" />
-		<PackageReference Include="System.Text.Encodings.Web" Version="10.0.3" />
-		<PackageReference Include="System.IO.Pipelines" Version="10.0.3" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">

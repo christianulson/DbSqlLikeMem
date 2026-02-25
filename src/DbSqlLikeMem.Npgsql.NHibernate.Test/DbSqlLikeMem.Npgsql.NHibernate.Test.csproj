@@ -29,10 +29,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="coverlet.collector" Version="8.0.0" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.NHibernate.Test\DbSqlLikeMem.NHibernate.Test.csproj" />
 		<ProjectReference Include="..\DbSqlLikeMem.Npgsql.NHibernate\DbSqlLikeMem.Npgsql.NHibernate.csproj" />
 	</ItemGroup>

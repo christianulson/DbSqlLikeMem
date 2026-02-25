@@ -31,10 +31,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="8.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\DbSqlLikeMem.EfCore.Test\DbSqlLikeMem.EfCore.Test.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
     <ProjectReference Include="..\DbSqlLikeMem.Oracle.EfCore\DbSqlLikeMem.Oracle.EfCore.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
   </ItemGroup>

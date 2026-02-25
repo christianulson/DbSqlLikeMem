@@ -30,10 +30,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="8.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\DbSqlLikeMem.LinqToDb.Test\DbSqlLikeMem.LinqToDb.Test.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
     <ProjectReference Include="..\DbSqlLikeMem.MySql.LinqToDb\DbSqlLikeMem.MySql.LinqToDb.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
   </ItemGroup>
