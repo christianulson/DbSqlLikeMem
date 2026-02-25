@@ -338,6 +338,24 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
+    /// EN: Ensures CAST to JSON accepts JSON parameter payloads and keeps JSON_EXTRACT usable.
+    /// PT: Garante que CAST para JSON aceite payload JSON em parâmetro e mantenha JSON_EXTRACT funcional.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_CastParameterAsJson_ShouldAllowJsonExtract()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT JSON_EXTRACT(CAST(@ParamsJson AS JSON), '$.a')"
+        };
+
+        command.Parameters.Add(new MySqlParameter("@ParamsJson", new { a = 123 }));
+
+        Assert.Equal(123L, Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
     /// EN: Ensures backtick alias split logic is preserved through parser and execution.
     /// PT: Garante que a lógica de alias com crase seja preservada no parser e na execução.
     /// </summary>
