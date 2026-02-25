@@ -9,6 +9,10 @@ namespace DbSqlLikeMem.Test;
 /// </summary>
 public sealed class ReadOnlyHashSetTests
 {
+    /// <summary>
+    /// EN: Verifies GetObjectData fills serialization metadata for the wrapped set.
+    /// PT: Verifica que GetObjectData preenche metadados de serialização para o conjunto encapsulado.
+    /// </summary>
     [Fact]
     [Trait("Category", "Core")]
     public void GetObjectData_ShouldPopulateSerializationInfo()
@@ -22,6 +26,10 @@ public sealed class ReadOnlyHashSetTests
         Assert.True(info.MemberCount > 0);
     }
 
+    /// <summary>
+    /// EN: Verifies GetObjectData throws ArgumentNullException when SerializationInfo is null.
+    /// PT: Verifica que GetObjectData lança ArgumentNullException quando SerializationInfo é nulo.
+    /// </summary>
     [Fact]
     [Trait("Category", "Core")]
     public void GetObjectData_ShouldThrow_WhenInfoIsNull()
