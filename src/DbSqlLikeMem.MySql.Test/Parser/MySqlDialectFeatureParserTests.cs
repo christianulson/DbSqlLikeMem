@@ -55,7 +55,7 @@ public sealed class MySqlDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse("WITH RECURSIVE cte(n) AS (SELECT 1) SELECT n FROM cte", new MySqlDialect(version)));
 
-        Assert.Contains("WITH sem RECURSIVE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("WITH/CTE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
