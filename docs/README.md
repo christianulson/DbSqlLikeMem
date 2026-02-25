@@ -13,6 +13,9 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
   - matriz por banco
   - capacidades SQL por dialeto/versão
   - sugestões de evolução do parser
+- [Plano global de evolução (TDD-first)](global-evolution-plan.md)
+  - avaliação consolidada de documentação, planos e código
+  - estratégia integrada por fases com foco em TDD
 - [Roadmap do Core (Parser/Executor)](core-parser-executor-roadmap.md)
   - melhorias priorizadas por parser/executor
   - separação de especificidades por dialeto/versão
@@ -29,9 +32,16 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
 - [Matriz SQL (feature x dialeto)](sql-compatibility-matrix.md)
   - visão resumida por recursos
   - status por provider
+  - links diretos para testes de referência
+- [Matriz SQL versionada (vCurrent/vNext)](sql-compatibility-matrix-vcurrent.md)
+  - leitura histórica por release
+  - acompanhamento de evolução planejada
 - [Checklist de known gaps](known-gaps-checklist.md)
   - backlog técnico de compatibilidade
   - acompanhamento de hardening/regressão
+- [Snapshot cross-dialect (smoke)](cross-dialect-smoke-snapshot.md)
+  - baseline de equivalência entre providers
+  - atualização via script automatizado
 - [Relatório de hardening/regressão](hardening-regression-report.md)
   - regressões corrigidas
   - próximos itens priorizados

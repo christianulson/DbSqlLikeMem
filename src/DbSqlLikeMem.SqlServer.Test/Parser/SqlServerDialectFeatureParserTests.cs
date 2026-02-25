@@ -24,7 +24,8 @@ public sealed class SqlServerDialectFeatureParserTests
             return;
         }
 
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("Adicione ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -52,6 +53,35 @@ public sealed class SqlServerDialectFeatureParserTests
         var parsed = SqlQueryParser.Parse(sql, new SqlServerDialect(version), pars);
         Assert.IsType<SqlSelectQuery>(parsed);
     }
+
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_Limit_ShouldProvidePaginationHint(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT id FROM users ORDER BY id LIMIT 5", new SqlServerDialect(version)));
+
+        Assert.Contains("LIMIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("OFFSET", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("FETCH", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUnsupportedTopLevelStatement_ShouldUseActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", new SqlServerDialect(version)));
+
+        Assert.Contains("token inicial", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("SELECT/INSERT/UPDATE/DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>
     /// EN: Ensures WITH RECURSIVE syntax is rejected.
     /// PT: Garante que a sintaxe with recursive seja rejeitada.
@@ -71,6 +101,19 @@ public sealed class SqlServerDialectFeatureParserTests
         }
 
         Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+    }
+
+
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.WithCteMinVersion)]
+    public void ParseSelect_WithRecursive_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("WITH RECURSIVE cte(n) AS (SELECT 1) SELECT n FROM cte", new SqlServerDialect(version)));
+
+        Assert.Contains("WITH sem RECURSIVE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

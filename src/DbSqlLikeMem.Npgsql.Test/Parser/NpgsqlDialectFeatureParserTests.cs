@@ -118,6 +118,7 @@ RETURNING id";
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
         Assert.Contains("OPTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Use hints compatíveis", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -137,6 +138,30 @@ RETURNING id";
 
         Assert.Contains("PIVOT", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("npgsql", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseDelete_WithoutFrom_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("DELETE users WHERE id = 1", new NpgsqlDialect(version)));
+
+        Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseDelete_TargetAliasBeforeFrom_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("DELETE u FROM users u", new NpgsqlDialect(version)));
+
+        Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

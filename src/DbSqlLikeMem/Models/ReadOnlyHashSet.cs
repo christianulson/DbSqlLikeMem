@@ -254,7 +254,8 @@ public class ReadOnlyHashSet<T> : IReadOnlyHashSet<T>
 
     public void GetObjectData(SerializationInfo info, StreamingContext context)
     {
-        throw new NotImplementedException();
+        ArgumentNullExceptionCompatible.ThrowIfNull(info, nameof(info));
+        ((ISerializable)_set).GetObjectData(info, context);
     }
 
     //

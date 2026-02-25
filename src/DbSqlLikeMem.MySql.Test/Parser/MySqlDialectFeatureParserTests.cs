@@ -18,7 +18,9 @@ public sealed class MySqlDialectFeatureParserTests
     {
         var sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING";
 
-        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -41,6 +43,19 @@ public sealed class MySqlDialectFeatureParserTests
 
         var parsed = SqlQueryParser.Parse(sql, new MySqlDialect(version));
         Assert.IsType<SqlSelectQuery>(parsed);
+    }
+
+
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion(VersionLowerThan = MySqlDialect.WithCteMinVersion)]
+    public void ParseSelect_WithRecursive_UnsupportedVersion_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("WITH RECURSIVE cte(n) AS (SELECT 1) SELECT n FROM cte", new MySqlDialect(version)));
+
+        Assert.Contains("WITH sem RECURSIVE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -197,6 +212,20 @@ public sealed class MySqlDialectFeatureParserTests
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
+
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_FetchFirst_ShouldProvidePaginationHint(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT id FROM users ORDER BY id FETCH FIRST 5 ROWS ONLY", new MySqlDialect(version)));
+
+        Assert.Contains("FETCH FIRST/NEXT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("LIMIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>
     /// EN: Ensures PIVOT clause is rejected when the dialect capability flag is disabled.
     /// PT: Garante que a cláusula pivot seja rejeitada quando a flag de capacidade do dialeto está desabilitada.
@@ -239,6 +268,20 @@ public sealed class MySqlDialectFeatureParserTests
     }
 
 
+
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUnsupportedTopLevelStatement_ShouldUseActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", new MySqlDialect(version)));
+
+        Assert.Contains("token inicial", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("SELECT/INSERT/UPDATE/DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>
     /// EN: Ensures unsupported SQL uses the standard not-supported message.
     /// PT: Garante que SQL não suportado use a mensagem padrão de não suportado.
@@ -270,6 +313,21 @@ public sealed class MySqlDialectFeatureParserTests
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
         Assert.Contains("OPTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("USE/IGNORE/FORCE INDEX", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseMerge_UnsupportedDialect_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("MERGE INTO users u USING users s ON u.id = s.id WHEN MATCHED THEN UPDATE SET name = 'x'", new MySqlDialect(version)));
+
+        Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
