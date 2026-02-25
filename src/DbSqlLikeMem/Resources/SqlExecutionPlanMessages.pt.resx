@@ -156,6 +156,24 @@
   <data name="WarningSelectStarAction" xml:space="preserve">
     <value>Projete apenas as colunas necessárias em vez de SELECT *.</value>
   </data>
+  <data name="MetricNameLabel" xml:space="preserve">
+    <value>NomeMetrica</value>
+  </data>
+  <data name="ObservedValueLabel" xml:space="preserve">
+    <value>ValorObservado</value>
+  </data>
+  <data name="ThresholdLabel" xml:space="preserve">
+    <value>Limiar</value>
+  </data>
+  <data name="WarningLowSelectivityHighImpactMessage" xml:space="preserve">
+    <value>Seletividade muito baixa detectada com alto volume de leitura.</value>
+  </data>
+  <data name="WarningSelectStarHighImpactMessage" xml:space="preserve">
+    <value>SELECT * em consulta de leitura muito alta tem risco elevado de I/O e memória.</value>
+  </data>
+  <data name="WarningSelectStarCriticalImpactMessage" xml:space="preserve">
+    <value>SELECT * em consulta de leitura extremamente alta tem risco crítico de I/O e memória.</value>
+  </data>
   <data name="WarningNoWhereHighReadMessage" xml:space="preserve">
     <value>Consulta de alta leitura sem WHERE pode causar full scan.</value>
   </data>

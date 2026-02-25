@@ -370,7 +370,10 @@ internal abstract class AstQueryExecutorBase(
 
         var warnings = new List<SqlPlanWarning>();
 
-        if (query.OrderBy.Count > 0 && query.RowLimit is null)
+        static bool HasTopPrefixInProjection(SqlSelectQuery q)
+            => q.SelectItems.Any(i => Regex.IsMatch(i.Raw, @"^\s*TOP\s*(\(\s*\d+\s*\)|\d+)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant));
+
+        if (query.OrderBy.Count > 0 && query.RowLimit is null && !HasTopPrefixInProjection(query))
         {
             warnings.Add(new SqlPlanWarning(
                 "PW001",
