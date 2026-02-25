@@ -104,6 +104,32 @@ RETURNING id";
         Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
     }
 
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseSelect_PaginationSyntaxes_ShouldNormalizeRowLimitAst(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        var limitOffset = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id LIMIT 2 OFFSET 1",
+            dialect));
+        var offsetFetch = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
+            dialect));
+        var fetchFirst = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id FETCH FIRST 2 ROWS ONLY",
+            dialect));
+
+        var normalizedLimit = Assert.IsType<SqlLimitOffset>(limitOffset.RowLimit);
+        var normalizedOffsetFetch = Assert.IsType<SqlLimitOffset>(offsetFetch.RowLimit);
+        var normalizedFetchFirst = Assert.IsType<SqlLimitOffset>(fetchFirst.RowLimit);
+
+        Assert.Equal(normalizedLimit, normalizedOffsetFetch);
+        Assert.Equal(2, normalizedFetchFirst.Count);
+        Assert.Null(normalizedFetchFirst.Offset);
+    }
+
     /// <summary>
     /// EN: Ensures SQL Server OPTION(...) query hints are rejected for Npgsql.
     /// PT: Garante que hints SQL Server OPTION(...) sejam rejeitados para Npgsql.
@@ -117,7 +143,7 @@ RETURNING id";
         var sql = "SELECT id FROM users OPTION (MAXDOP 1)";
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
-        Assert.Contains("OPTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("OPTION(query hints)", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Use hints compatíveis", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -162,6 +188,20 @@ RETURNING id";
             SqlQueryParser.Parse("DELETE u FROM users u", new NpgsqlDialect(version)));
 
         Assert.Contains("DELETE FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseUnsupportedTopLevelStatement_ShouldUseActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", new NpgsqlDialect(version)));
+
+        Assert.Contains("token inicial", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("SELECT/INSERT/UPDATE/DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

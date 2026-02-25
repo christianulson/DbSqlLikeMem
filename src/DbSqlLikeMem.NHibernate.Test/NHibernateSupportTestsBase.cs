@@ -2275,10 +2275,11 @@ public abstract class NHibernateSupportTestsBase(
             tx.Rollback();
         }
 
-        appSession.Refresh(appEntity);
+        appSession.Clear();
 
         using (var tx = appSession.BeginTransaction())
         {
+            appEntity = appSession.Get<NhVersionedUser>(37)!;
             appEntity.Name += suffix;
             appSession.Flush();
             tx.Commit();
@@ -2922,10 +2923,11 @@ public abstract class NHibernateSupportTestsBase(
             staleTx.Rollback();
         }
 
-        staleSession.Refresh(staleEntity);
+        staleSession.Clear();
 
         using (var retryTx = staleSession.BeginTransaction())
         {
+            staleEntity = staleSession.Get<NhVersionedUser>(1706)!;
             AppendMarkerIfMissing(staleEntity, "|APP");
             staleSession.Flush();
             retryTx.Commit();

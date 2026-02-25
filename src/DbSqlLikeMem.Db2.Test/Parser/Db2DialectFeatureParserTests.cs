@@ -82,8 +82,20 @@ public sealed class Db2DialectFeatureParserTests
         var sql = "SELECT id FROM users OPTION (MAXDOP 1)";
 
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
-        Assert.Contains("OPTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("OPTION(query hints)", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Use hints compatíveis", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseUnsupportedTopLevelStatement_ShouldUseActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", new Db2Dialect(version)));
+
+        Assert.Contains("token inicial", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("SELECT/INSERT/UPDATE/DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -159,6 +171,28 @@ public sealed class Db2DialectFeatureParserTests
 
         var parsed = SqlQueryParser.Parse(sql, new Db2Dialect(version));
         Assert.IsType<SqlSelectQuery>(parsed);
+    }
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseSelect_PaginationSyntaxes_ShouldNormalizeRowLimitAst(int version)
+    {
+        var dialect = new Db2Dialect(version);
+
+        var limitOffset = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id LIMIT 2 OFFSET 1",
+            dialect));
+        var offsetFetch = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
+            dialect));
+
+        var normalizedLimit = Assert.IsType<SqlLimitOffset>(limitOffset.RowLimit);
+        var normalizedFetch = Assert.IsType<SqlLimitOffset>(offsetFetch.RowLimit);
+
+        Assert.Equal(normalizedLimit, normalizedFetch);
+        Assert.Equal(2, normalizedFetch.Count);
+        Assert.Equal(1, normalizedFetch.Offset);
     }
 
     /// <summary>

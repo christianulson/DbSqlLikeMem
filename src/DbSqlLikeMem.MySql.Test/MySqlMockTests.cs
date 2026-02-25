@@ -319,19 +319,19 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
-    /// EN: Ensures TRY_CAST follows MySQL mock behavior and does not throw on non-convertible values.
-    /// PT: Garante que TRY_CAST siga o comportamento do mock MySQL e não lance exceção em valores não conversíveis.
+    /// EN: Ensures TRY_CAST follows MySQL mock behavior and returns DBNull on non-convertible values in ExecuteScalar.
+    /// PT: Garante que TRY_CAST siga o comportamento do mock MySQL e retorne DBNull no ExecuteScalar para valores não conversíveis.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
-    public void TestSelect_TryCast_ShouldReturnNullWhenConversionFails()
+    public void TestSelect_TryCast_ShouldReturnDbNullWhenConversionFails()
     {
         using var command = new MySqlCommandMock(_connection)
         {
             CommandText = "SELECT TRY_CAST('abc' AS SIGNED)"
         };
 
-        Assert.Null(command.ExecuteScalar());
+        Assert.Equal(DBNull.Value, command.ExecuteScalar());
 
         command.CommandText = "SELECT TRY_CAST('42' AS SIGNED)";
         Assert.Equal(42, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
