@@ -218,6 +218,29 @@ public sealed class MySqlDialectFeatureParserTests
     }
 
 
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_PaginationSyntaxes_ShouldNormalizeRowLimitAst(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var limitOffset = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id LIMIT 2 OFFSET 1",
+            dialect));
+        var offsetFetch = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
+            dialect));
+
+        var normalizedLimit = Assert.IsType<SqlLimitOffset>(limitOffset.RowLimit);
+        var normalizedFetch = Assert.IsType<SqlLimitOffset>(offsetFetch.RowLimit);
+
+        Assert.Equal(normalizedLimit, normalizedFetch);
+        Assert.Equal(2, normalizedFetch.Count);
+        Assert.Equal(1, normalizedFetch.Offset);
+    }
+
+
 
     /// <summary>
     /// EN: Verifies FETCH FIRST syntax returns actionable MySQL pagination guidance.
