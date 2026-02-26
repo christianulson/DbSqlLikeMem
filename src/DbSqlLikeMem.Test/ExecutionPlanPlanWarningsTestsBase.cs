@@ -357,9 +357,81 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         while (reader.Read()) { }
 
         cnn.LastExecutionPlan.Should().Contain("PlanMetadataVersion: 1");
+        cnn.LastExecutionPlan.Should().Contain("PlanCorrelationId:");
         cnn.LastExecutionPlan.Should().Contain("PlanFlags: hasWarnings:true");
         cnn.LastExecutionPlan.Should().Contain("PlanPerformanceBand:");
         cnn.LastExecutionPlan.Should().Contain("PlanRiskScore:");
+        cnn.LastExecutionPlan.Should().Contain("PlanQualityGrade:");
+        cnn.LastExecutionPlan.Should().Contain("PlanSeverityHint:");
+    }
+
+
+    /// <summary>
+    /// EN: Verifies plan delta is emitted when previous snapshot is provided to formatter.
+    /// PT: Verifica que o delta do plano é emitido quando snapshot anterior é fornecido ao formatter.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldEmitPlanDelta_WhenPreviousSnapshotIsProvided()
+    {
+        var query = new SqlSelectQuery([], false, [new SqlSelectItem("Id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var current = new SqlPlanRuntimeMetrics(1, 120, 12, 31);
+        var previous = new SqlPlanRuntimeMetrics(1, 80, 10, 20);
+        var warnings = new[] { new SqlPlanWarning("PW001", "m1", "r1", "a1", SqlPlanWarningSeverity.High) };
+        var previousWarnings = new[] { new SqlPlanWarning("PW002", "m2", "r2", "a2", SqlPlanWarningSeverity.Warning) };
+
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query, current, null, warnings, previous, previousWarnings);
+        plan.Should().Contain("PlanDelta: riskDelta:+20;elapsedMsDelta:+11");
+    }
+
+
+    /// <summary>
+    /// EN: Verifies quality grade is omitted when warnings are absent.
+    /// PT: Verifica que a nota qualitativa é omitida quando não há alertas.
+    /// </summary>
+
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldNotEmitPlanQualityGrade_WhenPlanWarningsAreAbsent()
+    {
+        using var cnn = CreateConnection();
+        SeedUsers(cnn, 50, _ => 1);
+
+        using var cmd = CreateCommand(cnn, "SELECT Id FROM users WHERE Id = 1");
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().NotContain("PlanWarnings:");
+        cnn.LastExecutionPlan.Should().NotContain("PlanQualityGrade:");
+    }
+
+
+    /// <summary>
+    /// EN: Verifies top actions are omitted when warnings and index recommendations are absent.
+    /// PT: Verifica que ações prioritárias são omitidas sem warnings e sem recomendações de índice.
+    /// </summary>
+
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldNotEmitPlanTopActions_WhenWarningsAndRecommendationsAreAbsent()
+    {
+        using var cnn = CreateConnection();
+        SeedUsers(cnn, 50, _ => 1);
+
+        using var cmd = CreateCommand(cnn, "SELECT Id FROM users WHERE Id = 1");
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().NotContain("PlanTopActions:");
+        cnn.LastExecutionPlan.Should().NotContain("PlanNoiseScore:");
+        cnn.LastExecutionPlan.Should().NotContain("PlanSeverityHint:");
+        cnn.LastExecutionPlan.Should().NotContain("PlanDelta:");
     }
 
 
@@ -382,6 +454,8 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
 
         cnn.LastExecutionPlan.Should().Contain("PlanWarningSummary:");
         cnn.LastExecutionPlan.Should().Contain("PlanWarningCounts:");
+        cnn.LastExecutionPlan.Should().Contain("PlanNoiseScore:");
+        cnn.LastExecutionPlan.Should().Contain("PlanTopActions:");
         cnn.LastExecutionPlan.Should().Contain("PW005");
     }
 
@@ -404,6 +478,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         while (reader.Read()) { }
 
         cnn.LastExecutionPlan.Should().Contain("PlanPrimaryWarning:");
+        cnn.LastExecutionPlan.Should().Contain("PlanPrimaryCauseGroup:");
     }
 
 
@@ -429,6 +504,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.IndexRecommendationsLabel()}:");
         cnn.LastExecutionPlan.Should().Contain("IndexRecommendationSummary:");
         cnn.LastExecutionPlan.Should().Contain("IndexPrimaryRecommendation:");
+        cnn.LastExecutionPlan.Should().Contain("IndexRecommendationEvidence:");
     }
 
     private static string[] ExtractWarningBlock(string plan, string code)
