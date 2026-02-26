@@ -771,7 +771,7 @@ WHERE u.id > 0";
 
         Assert.NotNull(parsed.UpdateFromSelect);
         Assert.Single(parsed.Set);
-        Assert.Contains("SELECT SUM(o.amount) FROM orders", parsed.Set[0].Value, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("SELECT SUM(o.amount) FROM orders", parsed.Set[0].ExprRaw, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("u.id > 0", parsed.WhereRaw, StringComparison.OrdinalIgnoreCase);
     }
 
