@@ -52,6 +52,167 @@ public sealed class Db2DialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures MERGE parsing follows DB2 version support and preserves target table metadata.
+    /// PT: Garante que o parsing de MERGE siga o suporte por versão do DB2 e preserve metadados da tabela alvo.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseMerge_ShouldFollowDb2VersionSupport(int version)
+    {
+        const string sql = "MERGE INTO users target USING users src ON target.id = src.id WHEN MATCHED THEN UPDATE SET name = 'x'";
+
+        if (version < Db2Dialect.MergeMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, new Db2Dialect(version)));
+        Assert.NotNull(parsed.Table);
+        Assert.Equal("users", parsed.Table!.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("target", parsed.Table.Alias, StringComparer.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures MERGE accepts the WHEN NOT MATCHED clause form in merge-capable dialect versions.
+    /// PT: Garante que MERGE aceite a forma de cláusula WHEN NOT MATCHED em versões de dialeto com suporte.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
+    public void ParseMerge_WithWhenNotMatched_ShouldParse(int version)
+    {
+        const string sql = "MERGE INTO users target USING users src ON target.id = src.id WHEN NOT MATCHED THEN INSERT (id) VALUES (src.id)";
+
+        var query = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, new Db2Dialect(version)));
+
+        Assert.Equal("users", query.Table?.Name, ignoreCase: true);
+    }
+
+    /// <summary>
+    /// EN: Ensures MERGE without USING is rejected with actionable parser guidance in DB2 dialect.
+    /// PT: Garante que MERGE sem USING seja rejeitado com orientação acionável do parser no dialeto DB2.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
+    public void ParseMerge_WithoutUsing_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("MERGE INTO users target ON target.id = 1 WHEN MATCHED THEN UPDATE SET name = 'x'", new Db2Dialect(version)));
+
+        Assert.Contains("MERGE requer cláusula USING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MERGE without ON is rejected with actionable parser guidance in DB2 dialect.
+    /// PT: Garante que MERGE sem ON seja rejeitado com orientação acionável do parser no dialeto DB2.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
+    public void ParseMerge_WithoutOn_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("MERGE INTO users target USING users src WHEN MATCHED THEN UPDATE SET name = 'x'", new Db2Dialect(version)));
+
+        Assert.Contains("MERGE requer cláusula ON", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MERGE requires ON at top-level and does not accept ON tokens nested inside USING subqueries in DB2 dialect.
+    /// PT: Garante que MERGE exija ON em nível top-level e não aceite tokens ON aninhados dentro de subqueries no USING no dialeto DB2.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
+    public void ParseMerge_WithOnOnlyInsideUsingSubquery_ShouldProvideActionableMessage(int version)
+    {
+        const string sql = "MERGE INTO users target USING (SELECT id FROM users WHERE id IN (SELECT id FROM users WHERE id > 0)) src WHEN MATCHED THEN UPDATE SET name = 'x'";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
+
+        Assert.Contains("MERGE requer cláusula ON", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MERGE without WHEN is rejected with actionable parser guidance in DB2 dialect.
+    /// PT: Garante que MERGE sem WHEN seja rejeitado com orientação acionável do parser no dialeto DB2.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
+    public void ParseMerge_WithoutWhen_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("MERGE INTO users target USING users src ON target.id = src.id", new Db2Dialect(version)));
+
+        Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+
+    /// <summary>
+    /// EN: Ensures MERGE does not accept a source alias named WHEN as a replacement for top-level WHEN clauses.
+    /// PT: Garante que MERGE não aceite um alias de origem chamado WHEN como substituto para cláusulas WHEN em nível top-level.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
+    public void ParseMerge_WithUsingAliasNamedWhen_ShouldProvideActionableMessage(int version)
+    {
+        const string sql = "MERGE INTO users target USING users when ON target.id = when.id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
+
+        Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MERGE requires WHEN at top-level and does not accept WHEN tokens nested inside USING subqueries.
+    /// PT: Garante que MERGE exija WHEN em nível top-level e não aceite tokens WHEN aninhados dentro de subqueries no USING.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
+    public void ParseMerge_WithWhenOnlyInsideUsingSubquery_ShouldProvideActionableMessage(int version)
+    {
+        const string sql = "MERGE INTO users target USING (SELECT CASE WHEN id > 0 THEN id ELSE 0 END AS id FROM users) src ON target.id = src.id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
+
+        Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures MERGE rejects invalid top-level WHEN forms that are not WHEN MATCHED/WHEN NOT MATCHED.
+    /// PT: Garante que MERGE rejeite formas inválidas de WHEN em nível top-level que não sejam WHEN MATCHED/WHEN NOT MATCHED.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
+    public void ParseMerge_WithInvalidTopLevelWhenForm_ShouldProvideActionableMessage(int version)
+    {
+        const string sql = "MERGE INTO users target USING users src ON target.id = src.id WHEN src.id > 0 THEN UPDATE SET name = 'x'";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new Db2Dialect(version)));
+
+        Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Tests ParseSelect_WithMySqlIndexHints_ShouldBeRejected behavior.
     /// PT: Testa o comportamento de ParseSelect_WithMySqlIndexHints_ShouldBeRejected.
     /// </summary>
@@ -87,10 +248,22 @@ public sealed class Db2DialectFeatureParserTests
     }
 
     /// <summary>
-    /// EN: Verifies unsupported top-level statements return guidance-focused errors.
-    /// PT: Verifica que comandos de topo não suportados retornam erros com orientação.
+    /// EN: Ensures DB2 rejects unsupported alias quoting style with an actionable message.
+    /// PT: Garante que o DB2 rejeite estilo de quoting de alias não suportado com mensagem acionável.
     /// </summary>
     /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseSelect_WithBacktickQuotedAlias_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT name `User Name` FROM users", new Db2Dialect(version)));
+
+        Assert.Contains("alias/identificadores", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("'`'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -103,6 +276,42 @@ public sealed class Db2DialectFeatureParserTests
         Assert.Contains("SELECT/INSERT/UPDATE/DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+
+    /// <summary>
+    /// EN: Ensures DB2 accepts double-quoted aliases and preserves the normalized alias text in AST.
+    /// PT: Garante que o DB2 aceite aliases com aspas duplas e preserve o texto normalizado do alias na AST.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseSelect_WithDoubleQuotedAlias_ShouldParseAndNormalizeAlias(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT name \"User Name\" FROM users",
+            new Db2Dialect(version)));
+
+        var item = Assert.Single(parsed.SelectItems);
+        Assert.Equal("User Name", item.Alias);
+    }
+
+    /// <summary>
+    /// EN: Ensures DB2 unescapes doubled double-quotes inside quoted aliases when normalizing AST alias text.
+    /// PT: Garante que o DB2 faça unescape de aspas duplas duplicadas dentro de aliases quoted ao normalizar o texto do alias na AST.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseSelect_WithEscapedDoubleQuotedAlias_ShouldNormalizeEscapedQuote(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT name \"User\"\"Name\" FROM users",
+            new Db2Dialect(version)));
+
+        var item = Assert.Single(parsed.SelectItems);
+        Assert.Equal("User\"Name", item.Alias);
+    }
 
     /// <summary>
     /// Executes this API operation.
@@ -160,9 +369,6 @@ public sealed class Db2DialectFeatureParserTests
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
-
-
-
     /// <summary>
     /// EN: Ensures OFFSET/FETCH pagination is accepted by DB2 parser.
     /// PT: Garante que paginação OFFSET/FETCH seja aceita pelo parser DB2.
@@ -178,33 +384,11 @@ public sealed class Db2DialectFeatureParserTests
         Assert.IsType<SqlSelectQuery>(parsed);
     }
 
-    [Theory]
-    [Trait("Category", "Parser")]
-    [MemberDataDb2Version]
-    public void ParseSelect_PaginationSyntaxes_ShouldNormalizeRowLimitAst(int version)
-    {
-        var dialect = new Db2Dialect(version);
-
-        var limitOffset = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
-            "SELECT id FROM users ORDER BY id LIMIT 2 OFFSET 1",
-            dialect));
-        var offsetFetch = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
-            "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
-            dialect));
-
-        var normalizedLimit = Assert.IsType<SqlLimitOffset>(limitOffset.RowLimit);
-        var normalizedFetch = Assert.IsType<SqlLimitOffset>(offsetFetch.RowLimit);
-
-        Assert.Equal(normalizedLimit, normalizedFetch);
-        Assert.Equal(2, normalizedFetch.Count);
-        Assert.Equal(1, normalizedFetch.Offset);
-    }
-
-    /// <summary>
-    /// EN: Verifies DB2 pagination syntaxes normalize to equivalent row-limit AST.
-    /// PT: Verifica que sintaxes de paginação DB2 são normalizadas para AST equivalente de limite de linhas.
+        /// <summary>
+    /// EN: Ensures pagination syntaxes normalize to the same row-limit AST shape for this dialect.
+    /// PT: Garante que as sintaxes de paginação sejam normalizadas para o mesmo formato de AST de limite de linhas neste dialeto.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]

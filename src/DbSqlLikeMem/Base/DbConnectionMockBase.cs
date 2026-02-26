@@ -595,7 +595,7 @@ public abstract class DbConnectionMockBase(
     {
         EnsureActiveTransaction();
         if (!SupportsSavepoints)
-            throw new NotSupportedException($"Operation not supported by provider: SAVEPOINT ({Db.Dialect.Name}).");
+            throw SqlUnsupported.ForDialect(Db.Dialect, "SAVEPOINT");
 
         var normalizedName = NormalizeSavepointName(savepointName);
         var snapshot = CaptureSnapshot();
@@ -609,7 +609,7 @@ public abstract class DbConnectionMockBase(
     {
         EnsureActiveTransaction();
         if (!SupportsSavepoints)
-            throw new NotSupportedException($"Operation not supported by provider: ROLLBACK TO SAVEPOINT ({Db.Dialect.Name}).");
+            throw SqlUnsupported.ForDialect(Db.Dialect, "ROLLBACK TO SAVEPOINT");
 
         var normalizedName = NormalizeSavepointName(savepointName);
         if (!_savepoints.TryGetValue(normalizedName, out var snapshot))
@@ -632,7 +632,7 @@ public abstract class DbConnectionMockBase(
     {
         EnsureActiveTransaction();
         if (!SupportsSavepoints || !SupportsReleaseSavepoint)
-            throw new NotSupportedException($"Operation not supported by provider: RELEASE SAVEPOINT ({Db.Dialect.Name}).");
+            throw SqlUnsupported.ForDialect(Db.Dialect, "RELEASE SAVEPOINT");
 
         var normalizedName = NormalizeSavepointName(savepointName);
         if (!_savepoints.Remove(normalizedName))

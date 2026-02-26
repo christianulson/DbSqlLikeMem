@@ -1,6 +1,4 @@
 using Dapper;
-using System.Data.Common;
-using System.Threading;
 
 namespace DbSqlLikeMem.Test;
 
@@ -31,10 +29,10 @@ public abstract class DapperTransactionConcurrencyTestsBase
 
         using var transaction = connection.BeginTransaction();
         connection.Execute("INSERT INTO Users (Id, Name) VALUES (1, 'John')", transaction: transaction);
-        transaction.Save("sp_users");
+        connection.CreateSavepoint("sp_users");
         connection.Execute("INSERT INTO Users (Id, Name) VALUES (2, 'Mary')", transaction: transaction);
 
-        transaction.Rollback("sp_users");
+        connection.RollbackTransaction("sp_users");
         transaction.Commit();
 
         var ids = connection.Query<int>("SELECT Id FROM Users ORDER BY Id").ToList();
@@ -64,8 +62,8 @@ public abstract class DapperTransactionConcurrencyTestsBase
         var openConnection = CreateOpenConnectionFactory(threadSafe: false);
         using var connection = openConnection();
         using var transaction = connection.BeginTransaction();
-        transaction.Save("sp_release");
-        transaction.Release("sp_release");
+        connection.CreateSavepoint("sp_release");
+        connection.ReleaseSavepoint("sp_release");
     }
 
     /// <summary>

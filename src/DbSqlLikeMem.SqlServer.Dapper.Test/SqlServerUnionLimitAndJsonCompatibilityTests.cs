@@ -131,8 +131,10 @@ SELECT id FROM t WHERE id = 1
     [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
     public void JsonFunction_ShouldThrow_WhenNotSupportedByDialect()
     {
-        Assert.Throws<NotSupportedException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             _cnn.Query<dynamic>("SELECT JSON_EXTRACT(payload, '$.a.b') AS v FROM t").ToList());
+        Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("JSON_EXTRACT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
