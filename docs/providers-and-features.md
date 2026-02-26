@@ -140,7 +140,7 @@ Decisões de compatibilidade implementadas para cobrir os cenários de relatóri
 
 ### Limitações conhecidas (próxima fase)
 
-- Window functions além de `ROW_NUMBER` (ex.: `RANK`, `DENSE_RANK`, `LAG`, frames `ROWS/RANGE`) ainda não foram implementadas.
+- Window functions além de `ROW_NUMBER` já estão cobertas no core parser/executor (ranking/distribution/value functions e frames `ROWS`/`RANGE`/`GROUPS`); eventuais diferenças remanescentes devem ser tratadas como hardening pontual por provider/versão.
 - `CAST` numérico ainda não cobre formatações locais complexas, notação científica avançada e tipos de alta precisão específicos por provedor.
 - Data/time cobre unidades comuns (`year/month/day/hour/minute/second`), mas não trata timezone explícito, calendário ISO avançado nem regras específicas de cada engine real.
 - Subquery escalar retorna sempre a primeira célula da primeira linha, sem erro para múltiplas linhas (comportamento simplificado de mock).
