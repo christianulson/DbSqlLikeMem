@@ -1,16 +1,23 @@
 using System.Xml.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using System.IO;
 
 namespace DbSqlLikeMem.Test;
 
+/// <summary>
+/// EN: Validates execution-plan warning formatting and i18n resource consistency.
+/// PT: Valida a formatação de alertas do plano de execução e a consistência de recursos de i18n.
+/// </summary>
 public sealed class ExecutionPlanFormattingAndI18nTests
 {
     private static readonly Regex TechnicalThresholdPattern = new(
         @"^[a-zA-Z]+:\d+(\.\d+)?(?:;[a-zA-Z]+:\d+(\.\d+)?)*$",
         RegexOptions.CultureInvariant);
 
+    /// <summary>
+    /// EN: Verifies warning metadata is rendered in deterministic key order.
+    /// PT: Verifica que os metadados de alerta são renderizados em ordem determinística de chaves.
+    /// </summary>
     [Fact]
     public void FormatSelect_ShouldPrintPlanWarningMetadataInStableOrder()
     {
@@ -53,6 +60,10 @@ public sealed class ExecutionPlanFormattingAndI18nTests
             $"{SqlExecutionPlanMessages.ThresholdLabel()}: gte:100;highGte:5000");
     }
 
+    /// <summary>
+    /// EN: Verifies localized execution-plan resources keep base keys and canonical SQL keywords.
+    /// PT: Verifica que recursos localizados de plano de execução mantêm chaves base e palavras-chave SQL canônicas.
+    /// </summary>
     [Fact]
     public void SqlExecutionPlanMessages_AllLocalizedResxShouldContainBaseKeys_AndKeepCanonicalSqlKeywords()
     {
@@ -104,6 +115,10 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         }
     }
 
+    /// <summary>
+    /// EN: Verifies threshold metadata stays in stable machine-parseable format.
+    /// PT: Verifica que metadados de threshold permanecem em formato estável legível por máquina.
+    /// </summary>
     [Fact]
     public void FormatSelect_ShouldKeepThresholdInTechnicalParseablePattern()
     {

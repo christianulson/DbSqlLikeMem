@@ -76,6 +76,10 @@ WHERE id = 1");
 
 
 
+    /// <summary>
+    /// EN: Verifies JSON_UNQUOTE and TO_NUMBER convert string inputs to normalized scalar values.
+    /// PT: Verifica que JSON_UNQUOTE e TO_NUMBER convertem entradas de texto em valores escalares normalizados.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerFunctionCoverage")]
     public void JsonUnquote_And_ToNumber_ShouldConvertValues()
@@ -86,6 +90,10 @@ WHERE id = 1");
         Assert.Equal(42.50m, (decimal)row.num);
     }
 
+    /// <summary>
+    /// EN: Verifies DATEADD returns the original date when an unsupported unit token is provided.
+    /// PT: Verifica que DATEADD retorna a data original quando um token de unidade não suportado é informado.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerFunctionCoverage")]
     public void DateAdd_WithUnsupportedUnit_ShouldReturnOriginalDate()

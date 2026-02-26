@@ -1,6 +1,5 @@
 using DbSqlLikeMem.Interfaces;
 using System.Diagnostics;
-using System.Globalization;
 using DbSqlLikeMem.Models;
 using System.Collections.Concurrent;
 
@@ -370,7 +369,21 @@ internal abstract class AstQueryExecutorBase(
 
         var warnings = new List<SqlPlanWarning>();
 
-        if (query.OrderBy.Count > 0 && query.RowLimit is null)
+        static bool HasTopPrefixInProjection(SqlSelectQuery q)
+        {
+            if (Regex.IsMatch(
+                q.RawSql,
+                @"^\s*SELECT\s+(?:DISTINCT\s+)?TOP\s*(\(\s*\d+\s*\)|\d+)\b",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                return true;
+
+            return q.SelectItems.Any(i => Regex.IsMatch(
+                i.Raw,
+                @"^\s*TOP\s*(\(\s*\d+\s*\)|\d+)\b",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant));
+        }
+
+        if (query.OrderBy.Count > 0 && query.RowLimit is null && !HasTopPrefixInProjection(query))
         {
             warnings.Add(new SqlPlanWarning(
                 "PW001",
@@ -2264,23 +2277,13 @@ internal abstract class AstQueryExecutorBase(
 
                 if (isNtile)
                 {
-                    var bucketCount = ResolveNtileBucketCount(w, part.Count, part[0], ctes);
-                    if (bucketCount <= 0)
-                        continue;
-
-                    long rowIndexForNtile = 0;
-                    foreach (var r in part)
-                    {
-                        rowIndexForNtile++;
-                        var tile = ((rowIndexForNtile - 1) * bucketCount) / part.Count + 1;
-                        slot.Map[r] = tile;
-                    }
+                    FillNtile(slot.Map, part, w, ctes);
                     continue;
                 }
 
                 if (isPercentRank || isCumeDist)
                 {
-                    FillPercentRankOrCumeDist(slot.Map, part, w.Spec.OrderBy, ctes, isPercentRank);
+                    FillPercentRankOrCumeDist(slot.Map, part, w.Spec.Frame, w.Spec.OrderBy, ctes, isPercentRank);
                     continue;
                 }
 
@@ -2302,37 +2305,7 @@ internal abstract class AstQueryExecutorBase(
                     continue;
                 }
 
-                object?[]? prevOrderValues = null;
-                long rank = 1;
-                long denseRank = 1;
-                long rowIndex = 0;
-
-                foreach (var r in part)
-                {
-                    rowIndex++;
-
-                    var currentOrderValues = w.Spec.OrderBy
-                        .Select(oi => Eval(oi.Expr, r, null, ctes))
-                        .ToArray();
-
-                    if (prevOrderValues is null)
-                    {
-                        slot.Map[r] = isRank ? rank : denseRank;
-                        prevOrderValues = currentOrderValues;
-                        continue;
-                    }
-
-                    var changed = !WindowOrderValuesEqual(prevOrderValues, currentOrderValues);
-
-                    if (changed)
-                    {
-                        rank = rowIndex;
-                        denseRank++;
-                        prevOrderValues = currentOrderValues;
-                    }
-
-                    slot.Map[r] = isRank ? rank : denseRank;
-                }
+                FillRankOrDenseRank(slot.Map, part, w, ctes, isRank);
             }
         }
     }
@@ -2556,8 +2529,9 @@ private void FillLagOrLead(
         {
             var targetIndex = fillLead ? i + offset : i - offset;
             var currentRow = part[i];
+            var frameRange = ResolveRowsFrameRange(windowFunctionExpr.Spec.Frame, part.Count, i);
 
-            if (targetIndex >= 0 && targetIndex < part.Count)
+            if (!frameRange.IsEmpty && targetIndex >= frameRange.StartIndex && targetIndex <= frameRange.EndIndex)
             {
                 map[currentRow] = Eval(valueExpr, part[targetIndex], null, ctes);
                 continue;
@@ -2601,6 +2575,55 @@ private int ResolveLagLeadOffset(
 
         return 1;
     }
+
+    /// <summary>
+    /// EN: Fills RANK/DENSE_RANK using per-row ROWS frame boundaries when present.
+    /// PT: Preenche RANK/DENSE_RANK usando limites de frame ROWS por linha quando presentes.
+    /// </summary>
+    private void FillRankOrDenseRank(
+        Dictionary<EvalRow, object?> map,
+        List<EvalRow> part,
+        WindowFunctionExpr windowFunctionExpr,
+        IDictionary<string, Source> ctes,
+        bool fillRank)
+    {
+        if (part.Count == 0)
+            return;
+
+        var orderValuesByRow = BuildWindowOrderValuesByRow(part, windowFunctionExpr.Spec.OrderBy, ctes);
+
+        for (var i = 0; i < part.Count; i++)
+        {
+            var frameRange = ResolveRowsFrameRange(windowFunctionExpr.Spec.Frame, part.Count, i);
+            if (frameRange.IsEmpty)
+            {
+                map[part[i]] = null;
+                continue;
+            }
+
+            var currentValues = orderValuesByRow[part[i]];
+            long rank = 1;
+            long denseRank = 1;
+            object?[]? prevValues = null;
+
+            for (var frameIndex = frameRange.StartIndex; frameIndex <= frameRange.EndIndex; frameIndex++)
+            {
+                var frameValues = orderValuesByRow[part[frameIndex]];
+                if (prevValues is not null && !WindowOrderValuesEqual(prevValues, frameValues))
+                {
+                    rank = (frameIndex - frameRange.StartIndex) + 1;
+                    denseRank++;
+                }
+
+                if (WindowOrderValuesEqual(frameValues, currentValues))
+                    break;
+
+                prevValues = frameValues;
+            }
+
+            map[part[i]] = fillRank ? rank : denseRank;
+        }
+    }
         /// <summary>
     /// EN: Computes and fills PERCENT_RANK or CUME_DIST values for the current partition.
     /// PT: Calcula e preenche valores de PERCENT_RANK ou CUME_DIST para a partição atual.
@@ -2608,6 +2631,7 @@ private int ResolveLagLeadOffset(
 private void FillPercentRankOrCumeDist(
         Dictionary<EvalRow, object?> map,
         List<EvalRow> part,
+        WindowFrameSpec? frame,
         IReadOnlyList<WindowOrderItem> orderBy,
         IDictionary<string, Source> ctes,
         bool fillPercentRank)
@@ -2615,6 +2639,90 @@ private void FillPercentRankOrCumeDist(
         if (part.Count == 0)
             return;
 
+        var orderValuesByRow = BuildWindowOrderValuesByRow(part, orderBy, ctes);
+
+        for (var rowIndex = 0; rowIndex < part.Count; rowIndex++)
+        {
+            var row = part[rowIndex];
+            var frameRange = ResolveRowsFrameRange(frame, part.Count, rowIndex);
+            if (frameRange.IsEmpty)
+            {
+                map[row] = null;
+                continue;
+            }
+
+            var frameCount = frameRange.EndIndex - frameRange.StartIndex + 1;
+            var currentValues = orderValuesByRow[row];
+            long lessThanCount = 0;
+            long peerCount = 0;
+
+            for (var frameIndex = frameRange.StartIndex; frameIndex <= frameRange.EndIndex; frameIndex++)
+            {
+                var frameValues = orderValuesByRow[part[frameIndex]];
+                if (WindowOrderValuesEqual(frameValues, currentValues))
+                {
+                    peerCount++;
+                    continue;
+                }
+
+                if (frameIndex < rowIndex)
+                    lessThanCount++;
+            }
+
+            var rankInFrame = lessThanCount + 1;
+            if (fillPercentRank)
+            {
+                map[row] = frameCount <= 1 ? 0d : ((double)(rankInFrame - 1)) / (frameCount - 1);
+            }
+            else
+            {
+                map[row] = (double)(lessThanCount + peerCount) / frameCount;
+            }
+        }
+    }
+
+    /// <summary>
+    /// EN: Fills NTILE values honoring per-row ROWS frame boundaries when present.
+    /// PT: Preenche valores de NTILE respeitando os limites de frame ROWS por linha quando presentes.
+    /// </summary>
+    private void FillNtile(
+        Dictionary<EvalRow, object?> map,
+        List<EvalRow> part,
+        WindowFunctionExpr windowFunctionExpr,
+        IDictionary<string, Source> ctes)
+    {
+        if (part.Count == 0)
+            return;
+
+        var bucketCount = ResolveNtileBucketCount(windowFunctionExpr, part.Count, part[0], ctes);
+        if (bucketCount <= 0)
+            return;
+
+        for (var rowIndex = 0; rowIndex < part.Count; rowIndex++)
+        {
+            var frameRange = ResolveRowsFrameRange(windowFunctionExpr.Spec.Frame, part.Count, rowIndex);
+            if (frameRange.IsEmpty)
+            {
+                map[part[rowIndex]] = null;
+                continue;
+            }
+
+            var frameSize = frameRange.EndIndex - frameRange.StartIndex + 1;
+            var positionInFrame = (rowIndex - frameRange.StartIndex) + 1;
+            var tile = ((positionInFrame - 1) * bucketCount) / frameSize + 1;
+            map[part[rowIndex]] = tile;
+        }
+    }
+
+    /// <summary>
+    /// EN: Builds evaluated ORDER BY values for each row in the ordered partition.
+    /// PT: Constrói os valores de ORDER BY avaliados para cada linha da partição ordenada.
+    /// </summary>
+    private Dictionary<EvalRow, object?[]> BuildWindowOrderValuesByRow(
+        List<EvalRow> part,
+        IReadOnlyList<WindowOrderItem> orderBy,
+        IDictionary<string, Source> ctes)
+    {
         var orderValuesByRow = new Dictionary<EvalRow, object?[]>(ReferenceEqualityComparer<EvalRow>.Instance);
         foreach (var row in part)
         {
@@ -2623,58 +2731,9 @@ private void FillPercentRankOrCumeDist(
                 .ToArray();
         }
 
-        var rankByRow = new Dictionary<EvalRow, long>(ReferenceEqualityComparer<EvalRow>.Instance);
-        var cumeByRow = new Dictionary<EvalRow, double>(ReferenceEqualityComparer<EvalRow>.Instance);
-
-        long rank = 1;
-        object?[]? prev = null;
-        var peerGroupStart = 0;
-
-        for (var i = 0; i < part.Count; i++)
-        {
-            var row = part[i];
-            var cur = orderValuesByRow[row];
-
-            if (prev is null)
-            {
-                peerGroupStart = i;
-                rank = 1;
-            }
-            else if (!WindowOrderValuesEqual(prev, cur))
-            {
-                rank = i + 1;
-                peerGroupStart = i;
-            }
-
-            var peerLast = i;
-            while (peerLast + 1 < part.Count && WindowOrderValuesEqual(cur, orderValuesByRow[part[peerLast + 1]]))
-                peerLast++;
-
-            var cume = (double)(peerLast + 1) / part.Count;
-            for (var k = peerGroupStart; k <= peerLast; k++)
-            {
-                var peerRow = part[k];
-                rankByRow[peerRow] = rank;
-                cumeByRow[peerRow] = cume;
-            }
-
-            i = peerLast;
-            prev = cur;
-        }
-
-        foreach (var row in part)
-        {
-            if (fillPercentRank)
-            {
-                var value = part.Count <= 1 ? 0d : ((double)(rankByRow[row] - 1)) / (part.Count - 1);
-                map[row] = value;
-            }
-            else
-            {
-                map[row] = cumeByRow[row];
-            }
-        }
+        return orderValuesByRow;
     }
+
     /// <summary>
     /// EN: Resolves the bucket count argument for NTILE from literal or evaluated expression.
     /// PT: Resolve o argumento de quantidade de buckets do NTILE a partir de literal ou expressão avaliada.
@@ -3752,6 +3811,17 @@ private void FillPercentRankOrCumeDist(
             return null;
         }
 
+        if (fn.Name.Equals("NULLIF", StringComparison.OrdinalIgnoreCase))
+        {
+            var left = EvalArg(0);
+            var right = EvalArg(1);
+
+            if (IsNullish(left) || IsNullish(right))
+                return left;
+
+            return left!.Compare(right!, Dialect) == 0 ? null : left;
+        }
+
         var jsonNumberResult = TryEvalJsonAndNumberFunctions(fn, dialect, EvalArg, out var handledJsonNumber);
         if (handledJsonNumber)
             return jsonNumberResult;
@@ -3955,6 +4025,29 @@ private void FillPercentRankOrCumeDist(
                 if (v is decimal dd) return dd;
                 if (decimal.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return dx;
                 return 0m;
+            }
+
+            if (type.Equals("JSON", StringComparison.OrdinalIgnoreCase))
+            {
+                static string? ValidateJsonOrNull(string? json)
+                {
+                    if (json is null || string.IsNullOrWhiteSpace(json))
+                        return null;
+
+                    var normalizedJson = json.Trim();
+
+                    using var _ = System.Text.Json.JsonDocument.Parse(normalizedJson);
+                    return normalizedJson;
+                }
+
+                if (v is string s)
+                    return ValidateJsonOrNull(s);
+
+                if (v is System.Text.Json.JsonElement je)
+                    return ValidateJsonOrNull(je.GetRawText());
+
+                var serialized = System.Text.Json.JsonSerializer.Serialize(v);
+                return ValidateJsonOrNull(serialized);
             }
 
             return v!.ToString();

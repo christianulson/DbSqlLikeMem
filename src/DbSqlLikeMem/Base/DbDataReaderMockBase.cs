@@ -87,7 +87,39 @@ public abstract class DbDataReaderMockBase(
     /// EN: Implements GetBytes.
     /// PT: Implementa GetBytes.
     /// </summary>
-    public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length) => throw new NotImplementedException();
+    public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length)
+    {
+        if (dataOffset < 0)
+            throw new ArgumentOutOfRangeException(nameof(dataOffset));
+        if (length < 0)
+            throw new ArgumentOutOfRangeException(nameof(length));
+
+        var source = this[ordinal] switch
+        {
+            DBNull => Array.Empty<byte>(),
+            null => Array.Empty<byte>(),
+            byte[] bytes => bytes,
+            ReadOnlyMemory<byte> memory => memory.ToArray(),
+            _ => throw new InvalidCastException($"Column {ordinal} value cannot be converted to byte[].")
+        };
+
+        if (buffer is null)
+            return source.Length;
+
+        if (bufferOffset < 0 || bufferOffset > buffer.Length)
+            throw new ArgumentOutOfRangeException(nameof(bufferOffset));
+
+        if (dataOffset >= source.Length)
+            return 0;
+
+        var available = source.Length - (int)dataOffset;
+        var toCopy = Math.Min(length, Math.Min(available, buffer.Length - bufferOffset));
+        if (toCopy <= 0)
+            return 0;
+
+        Array.Copy(source, (int)dataOffset, buffer, bufferOffset, toCopy);
+        return toCopy;
+    }
     /// <summary>
     /// EN: Gets a char value from the specified column.
     /// PT: Obtém valor char da coluna indicada.
@@ -97,14 +129,52 @@ public abstract class DbDataReaderMockBase(
     /// EN: Implements GetChars.
     /// PT: Implementa GetChars.
     /// </summary>
-    public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) => throw new NotImplementedException();
+    public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length)
+    {
+        if (dataOffset < 0)
+            throw new ArgumentOutOfRangeException(nameof(dataOffset));
+        if (length < 0)
+            throw new ArgumentOutOfRangeException(nameof(length));
+
+        var source = this[ordinal] switch
+        {
+            DBNull => string.Empty,
+            null => string.Empty,
+            string str => str,
+            char[] chars => new string(chars),
+            _ => throw new InvalidCastException($"Column {ordinal} value cannot be converted to char sequence.")
+        };
+
+        if (buffer is null)
+            return source.Length;
+
+        if (bufferOffset < 0 || bufferOffset > buffer.Length)
+            throw new ArgumentOutOfRangeException(nameof(bufferOffset));
+
+        if (dataOffset >= source.Length)
+            return 0;
+
+        var available = source.Length - (int)dataOffset;
+        var toCopy = Math.Min(length, Math.Min(available, buffer.Length - bufferOffset));
+        if (toCopy <= 0)
+            return 0;
+
+        source.CopyTo((int)dataOffset, buffer, bufferOffset, toCopy);
+        return toCopy;
+    }
     /// <summary>
     /// EN: Gets a nested data reader for the specified ordinal.
     /// PT: Obtém um data leitor aninhado para o ordinal especificado.
     /// </summary>
     /// <param name="ordinal">EN: Column ordinal. PT: Ordinal da coluna.</param>
     /// <returns>EN: Nested data reader. PT: Data reader aninhado.</returns>
-    protected override DbDataReader GetDbDataReader(int ordinal) => throw new NotImplementedException();
+    protected override DbDataReader GetDbDataReader(int ordinal)
+    {
+        var value = this[ordinal];
+        if (value is DbDataReader reader)
+            return reader;
+        throw new InvalidCastException($"Column {ordinal} value cannot be converted to DbDataReader.");
+    }
     /// <summary>
     /// EN: Gets the data type name of the column.
     /// PT: Obtém o nome do tipo de dados da coluna.
@@ -206,12 +276,12 @@ public abstract class DbDataReaderMockBase(
             return string.Empty;
 
         // trim spaces and common identifier quoting
-        name = name.Trim().Trim('`').Trim('"').Trim();
+        name = name.Trim().Trim('`').Trim('"').Trim('[').Trim(']').Trim();
 
         // if it still looks qualified, keep only the last part (MySQL typically returns unqualified)
         var dot = name.LastIndexOf('.');
         if (dot > 0 && dot + 1 < name.Length)
-            name = name[(dot + 1)..].Trim().Trim('`').Trim('"').Trim();
+            name = name[(dot + 1)..].Trim().Trim('`').Trim('"').Trim('[').Trim(']').Trim();
 
         return name;
     }
@@ -255,11 +325,14 @@ public abstract class DbDataReaderMockBase(
     public override int GetValues(object[] values)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(values, nameof(values));
-        for (int i = 0; i < FieldCount; i++)
+
+        var copied = Math.Min(values.Length, FieldCount);
+        for (int i = 0; i < copied; i++)
         {
             values[i] = this[i] ?? DBNull.Value;
         }
-        return FieldCount;
+
+        return copied;
     }
     /// <summary>
     /// EN: Indicates whether the column value is DBNull.
@@ -301,35 +374,34 @@ public abstract class DbDataReaderMockBase(
     /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
-        if (!disposedValue)
+        if (disposedValue)
         {
-            if (disposing)
-#pragma warning disable S1135 // Track uses of "TODO" tags
-            {
-                // TODO: dispose managed state (managed objects)
-            }
-#pragma warning restore S1135 // Track uses of "TODO" tags
-
-#pragma warning disable S1135 // Track uses of "TODO" tags
-// TODO: free unmanaged resources (unmanaged objects) and override finalizer
-
-#pragma warning disable S1135 // Track uses of "TODO" tags
-// TODO: set large fields to null
-            disposedValue = true;
-#pragma warning restore S1135 // Track uses of "TODO" tags
-#pragma warning restore S1135 // Track uses of "TODO" tags
+            base.Dispose(disposing);
+            return;
         }
+
+        if (disposing)
+        {
+            foreach (var resultSet in _resultSets)
+            {
+                foreach (var row in resultSet)
+                {
+                    foreach (var value in row.Values)
+                    {
+                        if (value is IDisposable disposable)
+                            disposable.Dispose();
+                    }
+                }
+            }
+
+            _resultSets.Clear();
+            _columnsDic.Clear();
+            _currentIndex = -1;
+            _currentResultSetIndex = 0;
+            _isClosed = true;
+        }
+
+        disposedValue = true;
         base.Dispose(disposing);
     }
-
-
-#pragma warning disable S1135 // Track uses of "TODO" tags
-    // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-    // ~MySqlDataReaderMock()
-
-#pragma warning disable S125 // Sections of code should not be commented out
-    // {
-    //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-    //     Dispose(disposing: false);
-    // }
 }

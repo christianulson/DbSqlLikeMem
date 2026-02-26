@@ -3,9 +3,8 @@
     <TargetFrameworks>net48;net6.0;net8.0;net10.0</TargetFrameworks>
     <Description>NHibernate integration helpers for DbSqlLikeMem Npgsql provider.</Description>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="NHibernate" Version="5.5.2" />
+    <PackageReference Include="NHibernate" Version="5.6.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -254,7 +254,10 @@ public class ReadOnlyHashSet<T> : IReadOnlyHashSet<T>
 
     public void GetObjectData(SerializationInfo info, StreamingContext context)
     {
-        throw new NotImplementedException();
+        ArgumentNullExceptionCompatible.ThrowIfNull(info, nameof(info));
+#pragma warning disable SYSLIB0050 // Formatter-based serialization is obsolete and should not be used.
+        ((ISerializable)_set).GetObjectData(info, context);
+#pragma warning restore SYSLIB0050 // Formatter-based serialization is obsolete and should not be used.
     }
 
     //

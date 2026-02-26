@@ -319,22 +319,40 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
-    /// EN: Ensures TRY_CAST follows MySQL mock behavior and does not throw on non-convertible values.
-    /// PT: Garante que TRY_CAST siga o comportamento do mock MySQL e não lance exceção em valores não conversíveis.
+    /// EN: Ensures TRY_CAST follows MySQL mock behavior and returns DBNull on non-convertible values in ExecuteScalar.
+    /// PT: Garante que TRY_CAST siga o comportamento do mock MySQL e retorne DBNull no ExecuteScalar para valores não conversíveis.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
-    public void TestSelect_TryCast_ShouldReturnNullWhenConversionFails()
+    public void TestSelect_TryCast_ShouldReturnDbNullWhenConversionFails()
     {
         using var command = new MySqlCommandMock(_connection)
         {
             CommandText = "SELECT TRY_CAST('abc' AS SIGNED)"
         };
 
-        Assert.Null(command.ExecuteScalar());
+        Assert.Equal(DBNull.Value, command.ExecuteScalar());
 
         command.CommandText = "SELECT TRY_CAST('42' AS SIGNED)";
         Assert.Equal(42, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures CAST to JSON accepts JSON parameter payloads and keeps JSON_EXTRACT usable.
+    /// PT: Garante que CAST para JSON aceite payload JSON em parâmetro e mantenha JSON_EXTRACT funcional.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_CastParameterAsJson_ShouldAllowJsonExtract()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT JSON_EXTRACT(CAST(@ParamsJson AS JSON), '$.a')"
+        };
+
+        command.Parameters.Add(new MySqlParameter("@ParamsJson", new { a = 123 }));
+
+        Assert.Equal(123L, Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -457,6 +475,37 @@ public sealed class MySqlMockTests
         Assert.True(reader.Read());
         Assert.Equal(new DateTime(2024, 5, 6), (DateTime)reader.GetValue(0));
         Assert.Equal(new DateTime(2024, 5, 7, 12, 34, 56), (DateTime)reader.GetValue(1));
+    }
+
+    /// <summary>
+    /// EN: Ensures DbMock implements IReadOnlyDictionary indexer for existing schemas.
+    /// PT: Garante que DbMock implemente o indexador de IReadOnlyDictionary para schemas existentes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void IReadOnlySchemaDictionary_Indexer_ShouldReturnSchema()
+    {
+        var db = new MySqlDbMock();
+        var readOnly = (IReadOnlyDictionary<string, ISchemaMock>)db;
+
+        var schema = readOnly["DefaultSchema"];
+
+        Assert.NotNull(schema);
+        Assert.Equal("DefaultSchema", schema.SchemaName);
+    }
+
+    /// <summary>
+    /// EN: Ensures DbMock IReadOnlyDictionary indexer throws for missing schema names.
+    /// PT: Garante que o indexador IReadOnlyDictionary de DbMock lance erro para schema inexistente.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void IReadOnlySchemaDictionary_Indexer_ShouldThrowForMissingSchema()
+    {
+        var db = new MySqlDbMock();
+        var readOnly = (IReadOnlyDictionary<string, ISchemaMock>)db;
+
+        Assert.Throws<KeyNotFoundException>(() => _ = readOnly["schema_that_does_not_exist"]);
     }
 
     /// <summary>
