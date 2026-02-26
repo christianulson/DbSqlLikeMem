@@ -371,7 +371,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         for (int i = 0; i < parts.Count; i++)
         {
             var candidate = parts[i].Trim();
-            while (candidate.StartsWith('(') && candidate.EndsWith(')'))
+            while (candidate.StartsWith("(") && candidate.EndsWith(")"))
                 candidate = candidate[1..^1].Trim();
             var onM = _regexOnSql.Match(candidate);
             if (!onM.Success)
