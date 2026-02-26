@@ -608,7 +608,7 @@ select id
     public static IEnumerable<object[]> NonSelectStatements()
     {
         yield return new object[] { "INSERT INTO `User`", "non-select or incomplete statement", SqlCaseExpectation.ThrowNotSupported };
-        yield return new object[] { "UPDATE `User`" };
+        yield return new object[] { "UPDATE `User`", "non-select or incomplete statement", SqlCaseExpectation.ThrowNotSupported };
         yield return new object[] { "delete" };
         yield return new object[] { "WITH u AS (SELECT id, name FROM users WHERE id <= 2)" };
         // TRUNCATE
