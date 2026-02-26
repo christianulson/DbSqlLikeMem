@@ -1,3 +1,5 @@
+using System.Data.Common;
+
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>

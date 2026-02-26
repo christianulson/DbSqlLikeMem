@@ -1,3 +1,5 @@
+using System.Data.Common;
+
 namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
