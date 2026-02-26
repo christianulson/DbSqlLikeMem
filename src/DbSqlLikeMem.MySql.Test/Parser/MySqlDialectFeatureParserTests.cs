@@ -624,12 +624,14 @@ public sealed class MySqlDialectFeatureParserTests
             return;
         }
 
-        var expr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
-        Assert.IsType<WindowFunctionExpr>(expr);
+        var rowsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        Assert.IsType<WindowFunctionExpr>(rowsExpr);
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect));
-        Assert.Contains("window frame unit", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var rangeExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        Assert.IsType<WindowFunctionExpr>(rangeExpr);
+
+        var groupsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW)", dialect);
+        Assert.IsType<WindowFunctionExpr>(groupsExpr);
     }
 
 
