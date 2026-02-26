@@ -22,29 +22,61 @@ internal sealed class DefaultGenerationRuleStrategy : IGenerationRuleStrategy
             "tinyint" => "Byte",
             "smallint" => "Int16",
             "mediumint" => "Int32",
-            "int" or "integer" => "Int32",
+            "int"
+            or "integer"
+                => "Int32",
             "bigint" => "Int64",
 
             "bit" => "Boolean",
 
-            "decimal" or "numeric" => "Decimal",
-            "double" => "Double",
-            "float" or "real" => "Single",
+            "decimal"
+            or "numeric"
+                => "Decimal",
+
+            "double"
+                => "Double",
+
+            "float"
+            or "real"
+                => "Single",
 
             "date" => "Date",
-            "datetime" or "timestamp" => "DateTime",
+            "datetime"
+            or "timestamp"
+                => "DateTime",
             "time" => "Time",
 
             "year" => "Int32",
 
-            "char" or "nchar" or "varchar" or "nvarchar" or "text" or "tinytext" or "mediumtext" or "longtext" or "json" or "enum" or "set"
+            "char"
+            or "nchar"
+            or "varchar"
+            or "nvarchar"
+            or "text"
+            or "tinytext"
+            or "mediumtext"
+            or "longtext"
+            or "json"
+            or "enum"
+            or "set"
                 => "String",
 
-            "binary" or "varbinary" or "blob" or "tinyblob" or "mediumblob" or "longblob" or "bytea"
+            "binary"
+            or "varbinary"
+            or "blob"
+            or "tinyblob"
+            or "mediumblob"
+            or "longblob"
+            or "bytea"
                 => "Binary",
 
-            "uniqueidentifier" or "uuid" => "Guid",
-            "bool" or "boolean" => "Boolean",
+            "uniqueidentifier"
+            or "uuid"
+                => "Guid",
+
+            "bool"
+            or "boolean"
+                => "Boolean",
 
             _ => "Object"
         };

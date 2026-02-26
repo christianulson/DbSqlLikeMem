@@ -268,7 +268,13 @@ static partial class Program
 
         foreach (var c in columns.OrderBy(c => c.Ordinal))
         {
-            var dbType = GenerationRuleSet.MapDbType(c.DataType, c.CharMaxLen, c.NumPrecision, c.ColumnName, DatabaseType);
+            var dbType = GenerationRuleSet.MapDbType(
+                c.DataType,
+                c.CharMaxLen,
+                c.NumPrecision,
+                c.ColumnName,
+                DatabaseType);
+
             var nullable = c.IsNullable ? "true" : "false";
             var ctor = $"DbType.{dbType}, {nullable}";
 

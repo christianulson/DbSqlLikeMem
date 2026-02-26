@@ -8,6 +8,7 @@ public static class GenerationRuleStrategyResolver
 {
     private static readonly IGenerationRuleStrategy Default = new DefaultGenerationRuleStrategy();
     private static readonly IGenerationRuleStrategy MySql = new MySqlGenerationRuleStrategy();
+    private static readonly IGenerationRuleStrategy Oracle = new OracleGenerationRuleStrategy();
 
     /// <summary>
     /// Executes this API operation.
@@ -17,6 +18,7 @@ public static class GenerationRuleStrategyResolver
         => Normalize(databaseType) switch
         {
             "mysql" => MySql,
+            "oracle" => Oracle,
             _ => Default
         };
 
