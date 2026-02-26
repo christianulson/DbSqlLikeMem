@@ -30,6 +30,7 @@ public abstract class DbConnectionMockBase(
     private readonly Dictionary<string, Dictionary<ITableMock, TransactionTableSnapshot>> _savepoints =
         new(StringComparer.OrdinalIgnoreCase);
     private readonly List<string> _savepointOrder = [];
+    private Dictionary<ITableMock, TransactionTableSnapshot>? _transactionBeginSnapshot;
 
     /// <summary>
     /// EN: In-memory database associated with this connection.
@@ -435,7 +436,9 @@ public abstract class DbConnectionMockBase(
         CurrentIsolationLevel = isolationLevel;
         CurrentTransaction = CreateTransaction(isolationLevel);
         ClearTransactionStateCore();
-        CreateSavepointCore("__tx_begin__");
+        _transactionBeginSnapshot = CaptureSnapshot();
+        if (SupportsSavepoints)
+            CreateSavepointCore("__tx_begin__");
         return CurrentTransaction;
     }
 
@@ -534,7 +537,8 @@ public abstract class DbConnectionMockBase(
             return;
 
         Debug.WriteLine("Transaction Rolled Back");
-        RollbackToSavepointCore("__tx_begin__");
+        if (_transactionBeginSnapshot is not null)
+            RestoreSnapshot(_transactionBeginSnapshot);
         ClearTransactionStateCore();
         CurrentTransaction = null;
         CurrentIsolationLevel = IsolationLevel.Unspecified;
@@ -685,6 +689,7 @@ public abstract class DbConnectionMockBase(
     {
         _savepoints.Clear();
         _savepointOrder.Clear();
+        _transactionBeginSnapshot = null;
     }
 
     internal void MaybeDelayOrDrop()

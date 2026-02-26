@@ -2419,9 +2419,15 @@ private void FillNthValue(
         if (frame is null)
             return new RowsFrameRange(0, partitionSize - 1, IsEmpty: false);
 
-        var startIndex = ResolveRowsFrameBoundIndex(frame.Start, rowIndex, partitionSize, isStartBound: true);
-        var endIndex = ResolveRowsFrameBoundIndex(frame.End, rowIndex, partitionSize, isStartBound: false);
+        var lastIndex = partitionSize - 1;
+        var rawStartIndex = ResolveRowsFrameBoundIndex(frame.Start, rowIndex, partitionSize, isStartBound: true);
+        var rawEndIndex = ResolveRowsFrameBoundIndex(frame.End, rowIndex, partitionSize, isStartBound: false);
 
+        if (rawStartIndex > rawEndIndex)
+            return RowsFrameRange.Empty;
+
+        var startIndex = Math.Max(rawStartIndex, 0);
+        var endIndex = Math.Min(rawEndIndex, lastIndex);
         if (startIndex > endIndex)
             return RowsFrameRange.Empty;
 
@@ -2436,8 +2442,8 @@ private void FillNthValue(
             WindowFrameBoundKind.UnboundedPreceding => 0,
             WindowFrameBoundKind.UnboundedFollowing => lastIndex,
             WindowFrameBoundKind.CurrentRow => rowIndex,
-            WindowFrameBoundKind.Preceding => (rowIndex - bound.Offset.GetValueOrDefault()).Clamp(0, lastIndex),
-            WindowFrameBoundKind.Following => (rowIndex + bound.Offset.GetValueOrDefault()).Clamp(0, lastIndex),
+            WindowFrameBoundKind.Preceding => rowIndex - bound.Offset.GetValueOrDefault(),
+            WindowFrameBoundKind.Following => rowIndex + bound.Offset.GetValueOrDefault(),
             _ => isStartBound ? 0 : lastIndex
         };
     }

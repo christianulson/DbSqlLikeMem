@@ -31,6 +31,7 @@ internal sealed class Db2Dialect : SqlDialectBase
  
     internal const int WithCteMinVersion = 8;
     internal const int MergeMinVersion = 9;
+    internal const int WindowFunctionsMinVersion = 8;
             
     /// <summary>
     /// EN: Gets or sets identifier escape style.
@@ -69,6 +70,19 @@ internal sealed class Db2Dialect : SqlDialectBase
             || functionName.Equals("ROWNUMBER", StringComparison.OrdinalIgnoreCase);
 
     
+
+    /// <summary>
+    /// EN: Indicates whether SQL window functions are supported by the configured DB2 version.
+    /// PT: Indica se funções de janela SQL são suportadas pela versão DB2 configurada.
+    /// </summary>
+    public override bool SupportsWindowFunctions => Version >= WindowFunctionsMinVersion;
+
+    /// <summary>
+    /// EN: Indicates whether SQL window frame clauses are supported by the configured DB2 version.
+    /// PT: Indica se cláusulas SQL de frame de janela são suportadas pela versão DB2 configurada.
+    /// </summary>
+    public override bool SupportsWindowFrameClause => Version >= WindowFunctionsMinVersion;
+
     /// <summary>
     /// EN: Gets whether delete target alias is supported.
     /// PT: Obtém se há suporte a delete target alias.

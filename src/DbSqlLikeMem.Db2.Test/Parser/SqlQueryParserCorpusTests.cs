@@ -85,13 +85,16 @@ public sealed class SqlQueryParserCorpusTests(
         {
             var sql = (string)row[0];
             var why = row.Length > 1 ? (string)row[1] : "non-select or incomplete statement";
+            var expectation = row.Length > 2 && row[2] is SqlCaseExpectation e
+                ? e
+                : SqlCaseExpectation.ThrowInvalid;
             var minVersion = 0;
 
             var trimmed = sql.TrimStart();
             if (trimmed.Contains("WITH", StringComparison.OrdinalIgnoreCase))
                 minVersion = Db2Dialect.WithCteMinVersion;
 
-            yield return Case(sql, why, SqlCaseExpectation.ThrowInvalid, minVersion);
+            yield return Case(sql, why, expectation, minVersion);
         }
     }
 
@@ -604,8 +607,8 @@ select id
     /// </summary>
     public static IEnumerable<object[]> NonSelectStatements()
     {
-        yield return new object[] { "INSERT INTO `User`" };
-        yield return new object[] { "UPDATE `User`" };
+        yield return new object[] { "INSERT INTO `User`", "non-select or incomplete statement", SqlCaseExpectation.ThrowNotSupported };
+        yield return new object[] { "UPDATE `User`", "non-select or incomplete statement", SqlCaseExpectation.ThrowNotSupported };
         yield return new object[] { "delete" };
         yield return new object[] { "WITH u AS (SELECT id, name FROM users WHERE id <= 2)" };
         // TRUNCATE

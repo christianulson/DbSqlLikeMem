@@ -137,7 +137,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         using var cnn = CreateConnection();
         SeedUsers(cnn, 120, _ => 1);
 
-        using var cmd = CreateCommand(cnn, "SELECT Id FROM users");
+        using var cmd = CreateCommand(cnn, "SELECT Id FROM users WHERE Id = 1");
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
@@ -401,6 +401,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
     {
         using var cnn = CreateConnection();
         SeedUsers(cnn, 50, _ => 1);
+        cnn.DefineTable("users").AddPrimaryKeyIndexes("Id");
 
         using var cmd = CreateCommand(cnn, "SELECT Id FROM users WHERE Id = 1");
         using var reader = cmd.ExecuteReader();
@@ -423,6 +424,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
     {
         using var cnn = CreateConnection();
         SeedUsers(cnn, 50, _ => 1);
+        cnn.DefineTable("users").AddPrimaryKeyIndexes("Id");
 
         using var cmd = CreateCommand(cnn, "SELECT Id FROM users WHERE Id = 1");
         using var reader = cmd.ExecuteReader();

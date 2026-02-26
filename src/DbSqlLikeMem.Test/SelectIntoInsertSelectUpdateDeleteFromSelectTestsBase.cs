@@ -39,7 +39,7 @@ WHERE u.tenantid = 10";
     /// PT: Obtém o SQL usado para excluir linhas por meio de uma estratégia de join baseada em select derivado.
     /// </summary>
     protected virtual string DeleteJoinDerivedSelectSql
-        => "DELETE FROM users WHERE id IN (SELECT id FROM users WHERE tenantid = 10)";
+        => "DELETE u FROM users u JOIN (SELECT id FROM users WHERE tenantid = 10) s ON s.id = u.id";
 
     /// <summary>
     /// EN: Indicates whether this provider should execute UPDATE/DELETE JOIN runtime paths.

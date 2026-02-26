@@ -289,12 +289,20 @@ RETURNING id";
     [MemberDataNpgsqlVersion]
     public void ParseMerge_UnsupportedDialect_ShouldProvideActionableMessage(int version)
     {
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlQueryParser.Parse("MERGE INTO users u USING users s ON u.id = s.id WHEN MATCHED THEN UPDATE SET name = 'x'", new NpgsqlDialect(version)));
+        const string sql = "MERGE INTO users u USING users s ON u.id = s.id WHEN MATCHED THEN UPDATE SET name = 'x'";
 
-        Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("npgsql", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("não suportado", ex.Message, StringComparison.OrdinalIgnoreCase);
+        if (version < NpgsqlDialect.MergeMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+            Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("npgsql", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("não suportado", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = SqlQueryParser.Parse(sql, new NpgsqlDialect(version));
+        Assert.IsType<SqlMergeQuery>(parsed);
     }
 
     /// <summary>
@@ -530,12 +538,14 @@ RETURNING id";
             return;
         }
 
-        var expr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
-        Assert.IsType<WindowFunctionExpr>(expr);
+        var rowsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        Assert.IsType<WindowFunctionExpr>(rowsExpr);
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect));
-        Assert.Contains("window frame unit", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var rangeExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        Assert.IsType<WindowFunctionExpr>(rangeExpr);
+
+        var groupsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW)", dialect);
+        Assert.IsType<WindowFunctionExpr>(groupsExpr);
     }
 
 

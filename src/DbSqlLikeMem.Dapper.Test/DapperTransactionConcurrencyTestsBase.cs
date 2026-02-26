@@ -103,13 +103,15 @@ public abstract class DapperTransactionConcurrencyTestsBase
         first.Execute("INSERT INTO tx_concurrency_state (id, value) VALUES (1, 0)");
 
         using var sync = new Barrier(2);
+        using var rollbackCompleted = new ManualResetEventSlim(false);
 
         var commitTask = Task.Run(() =>
         {
             using var tx = first.BeginTransaction();
+            sync.SignalAndWait();
+            rollbackCompleted.Wait();
             first.Execute("UPDATE tx_concurrency_state SET value = value + 10 WHERE id = 1", transaction: tx);
             first.Execute("INSERT INTO tx_concurrency_audit (id, source) VALUES (1, 'commit')", transaction: tx);
-            sync.SignalAndWait();
             tx.Commit();
         });
 
@@ -120,6 +122,7 @@ public abstract class DapperTransactionConcurrencyTestsBase
             second.Execute("INSERT INTO tx_concurrency_audit (id, source) VALUES (2, 'rollback')", transaction: tx);
             sync.SignalAndWait();
             tx.Rollback();
+            rollbackCompleted.Set();
         });
 
         Task.WaitAll(commitTask, rollbackTask);

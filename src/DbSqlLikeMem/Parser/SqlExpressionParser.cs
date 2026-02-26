@@ -1247,7 +1247,11 @@ internal sealed class SqlExpressionParser(
             || IsKeywordOrIdentifierWord(Peek(), "RANGE")
             || IsKeywordOrIdentifierWord(Peek(), "GROUPS"))
         {
-            if (!_dialect.SupportsWindowFrameClause)
+            var supportsFrameClause = _dialect.SupportsWindowFrameClause
+                || (_dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase)
+                    && _dialect.SupportsWindowFunctions);
+
+            if (!supportsFrameClause)
                 throw SqlUnsupported.ForDialect(_dialect, "window frame clause (ROWS/RANGE/GROUPS)");
 
             frame = ParseWindowFrameClause();
