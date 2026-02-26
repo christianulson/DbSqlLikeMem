@@ -58,8 +58,6 @@ public sealed class SqlServerDialectFeatureParserTests
     /// <summary>
     /// EN: Ensures SQL Server OFFSET/FETCH pagination is normalized to the canonical row-limit AST node.
     /// PT: Garante que a paginação OFFSET/FETCH do SQL Server seja normalizada para o nó canônico de AST de limite de linhas.
-    /// EN: Verifies LIMIT syntax in SQL Server returns an actionable pagination hint.
-    /// PT: Verifica que sintaxe LIMIT no SQL Server retorna dica acionável de paginação.
     /// </summary>
     /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
@@ -83,7 +81,11 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.Equal(1, rowLimit.Offset);
     }
 
-
+    /// <summary>
+    /// EN: Verifies LIMIT syntax in SQL Server returns an actionable pagination hint.
+    /// PT: Verifica que sintaxe LIMIT no SQL Server retorna dica acionável de paginação.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
