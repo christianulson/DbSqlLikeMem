@@ -380,7 +380,7 @@ internal abstract class AstQueryExecutorBase(
                 SqlPlanWarningSeverity.High,
                 "EstimatedRowsRead",
                 metrics.EstimatedRowsRead.ToString(CultureInfo.InvariantCulture),
-                $"gte:{HighReadThreshold.ToString(CultureInfo.InvariantCulture)}"));
+                BuildTechnicalThreshold(("gte", HighReadThreshold))));
         }
 
         if (metrics.SelectivityPct >= LowSelectivityThresholdPct)
@@ -401,7 +401,7 @@ internal abstract class AstQueryExecutorBase(
                 severity,
                 "SelectivityPct",
                 metrics.SelectivityPct.ToString("F2", CultureInfo.InvariantCulture),
-                $"gte:{LowSelectivityThresholdPct.ToString(CultureInfo.InvariantCulture)};highImpactGte:{VeryLowSelectivityThresholdPct.ToString(CultureInfo.InvariantCulture)}"));
+                BuildTechnicalThreshold(("gte", LowSelectivityThresholdPct), ("highImpactGte", VeryLowSelectivityThresholdPct))));
         }
 
         if (HasSelectStar(query))
@@ -427,7 +427,7 @@ internal abstract class AstQueryExecutorBase(
                 severity,
                 "EstimatedRowsRead",
                 metrics.EstimatedRowsRead.ToString(CultureInfo.InvariantCulture),
-                $"gte:{HighReadThreshold.ToString(CultureInfo.InvariantCulture)};warningGte:{VeryHighReadThreshold.ToString(CultureInfo.InvariantCulture)};highGte:{CriticalReadThreshold.ToString(CultureInfo.InvariantCulture)}"));
+                BuildTechnicalThreshold(("gte", HighReadThreshold), ("warningGte", VeryHighReadThreshold), ("highGte", CriticalReadThreshold))));
         }
 
         if (query.Where is null && !query.Distinct)
@@ -448,7 +448,7 @@ internal abstract class AstQueryExecutorBase(
                 severity,
                 "EstimatedRowsRead",
                 metrics.EstimatedRowsRead.ToString(CultureInfo.InvariantCulture),
-                $"gte:{HighReadThreshold.ToString(CultureInfo.InvariantCulture)};highGte:{CriticalReadThreshold.ToString(CultureInfo.InvariantCulture)}"));
+                BuildTechnicalThreshold(("gte", HighReadThreshold), ("highGte", CriticalReadThreshold))));
         }
 
 
@@ -470,7 +470,7 @@ internal abstract class AstQueryExecutorBase(
                 severity,
                 "EstimatedRowsRead",
                 metrics.EstimatedRowsRead.ToString(CultureInfo.InvariantCulture),
-                $"gte:{HighReadThreshold.ToString(CultureInfo.InvariantCulture)};highGte:{CriticalReadThreshold.ToString(CultureInfo.InvariantCulture)}"));
+                BuildTechnicalThreshold(("gte", HighReadThreshold), ("highGte", CriticalReadThreshold))));
         }
 
         return warnings;
@@ -478,6 +478,21 @@ internal abstract class AstQueryExecutorBase(
 
     private static bool HasSelectStar(SqlSelectQuery query)
         => query.SelectItems.Any(static item => string.Equals(item.Raw?.Trim(), "*", StringComparison.Ordinal));
+
+
+    private static string BuildTechnicalThreshold(params (string Key, IFormattable Value)[] values)
+    {
+        if (values.Length == 0)
+            return string.Empty;
+
+        return string.Join(";", values.Select(static v =>
+        {
+            if (string.IsNullOrWhiteSpace(v.Key))
+                throw new ArgumentException("Threshold key must be provided.", nameof(values));
+
+            return $"{v.Key}:{v.Value.ToString(null, CultureInfo.InvariantCulture)}";
+        }));
+    }
     private IReadOnlyList<SqlIndexRecommendation> BuildIndexRecommendations(
         SqlSelectQuery query,
         SqlPlanRuntimeMetrics metrics)
