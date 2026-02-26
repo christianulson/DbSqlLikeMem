@@ -108,7 +108,7 @@ public void Repository_Should_Return_Expected_Items_By_Filter()
 
 - `README.md` (visão geral e links).
 - `docs/getting-started.md` (instalação e setup inicial).
-- `docs/providers-and-features.md` (diferenças por provider).
+- `docs/old/providers-and-features.md` (diferenças por provider).
 - `src/DbSqlLikeMem.<Provider>/README.md` (detalhes do provider escolhido).
 
 Se a ideia for, no próximo passo eu também posso preparar um **“AI_CONTEXT.md” ultracurto** na raiz com no máximo 1 página para reduzir ainda mais o tempo de descoberta em prompts automáticos.

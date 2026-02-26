@@ -9,7 +9,7 @@ from typing import Dict, List
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEST_PATTERN = "src/*/*GapTests.cs"
-OUTPUT_PATH = REPO_ROOT / "docs" / "gap-tests-technical-backlog.md"
+OUTPUT_PATH = REPO_ROOT / "docs" / "old" / "gap-tests-technical-backlog.md"
 
 
 @dataclass(frozen=True)
