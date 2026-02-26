@@ -741,13 +741,94 @@ internal static class SqlExecutionPlanFormatter
         var cost = 10;
         cost += query.Ctes.Count * 5;
         cost += query.Joins.Count * 25;
-        if (query.Where is not null) cost += 8;
+        cost += query.Joins.Sum(static j => EstimateJoinTypeCost(j.Type));
+        cost += query.Joins.Sum(j => EstimatePredicateComplexityCost(j.On));
+        cost += EstimateSourceCost(query.Table);
+        cost += query.Joins.Sum(static j => EstimateSourceCost(j.Table));
+        if (query.Where is not null) cost += 8 + EstimatePredicateComplexityCost(query.Where);
         if (query.GroupBy.Count > 0) cost += 20;
-        if (query.Having is not null) cost += 10;
+        if (query.Having is not null) cost += 10 + EstimatePredicateComplexityCost(query.Having);
         if (query.OrderBy.Count > 0) cost += 15;
+        if (query.OrderBy.Count > 0 && query.RowLimit is null) cost += 6;
         if (query.Distinct) cost += 10;
+        cost += EstimateProjectionCost(query.SelectItems);
         if (query.RowLimit is not null) cost -= 3;
         return Math.Max(1, cost);
+    }
+
+    /// <summary>
+    /// EN: Estimates extra cost by JOIN type to represent broader row-preservation/expansion risk.
+    /// PT: Estima custo extra por tipo de JOIN para representar risco maior de preservação/expansão de linhas.
+    /// </summary>
+    private static int EstimateJoinTypeCost(SqlJoinType joinType)
+        => joinType switch
+        {
+            SqlJoinType.Inner => 0,
+            SqlJoinType.Left => 4,
+            SqlJoinType.Right => 4,
+            SqlJoinType.Cross => 10,
+            _ => 0
+        };
+
+    /// <summary>
+    /// EN: Estimates predicate complexity cost from SQL expression tree shape.
+    /// PT: Estima custo de complexidade de predicado a partir do formato da árvore de expressão SQL.
+    /// </summary>
+    private static int EstimatePredicateComplexityCost(SqlExpr expr)
+        => expr switch
+        {
+            BinaryExpr b when b.Op is SqlBinaryOp.And or SqlBinaryOp.Or
+                => 2 + EstimatePredicateComplexityCost(b.Left) + EstimatePredicateComplexityCost(b.Right),
+            BinaryExpr b => 1 + EstimatePredicateComplexityCost(b.Left) + EstimatePredicateComplexityCost(b.Right),
+            LikeExpr l => 2 + EstimatePredicateComplexityCost(l.Left) + EstimatePredicateComplexityCost(l.Pattern),
+            BetweenExpr b => 2 + EstimatePredicateComplexityCost(b.Expr) + EstimatePredicateComplexityCost(b.Low) + EstimatePredicateComplexityCost(b.High),
+            InExpr i => 2 + EstimatePredicateComplexityCost(i.Left) + i.Items.Sum(EstimatePredicateComplexityCost),
+            ExistsExpr e => 4 + EstimateSelectCost(e.Subquery.Parsed),
+            SubqueryExpr s => 4 + EstimateSelectCost(s.Parsed),
+            FunctionCallExpr f => 1 + f.Args.Sum(EstimatePredicateComplexityCost),
+            CallExpr c => 1 + c.Args.Sum(EstimatePredicateComplexityCost),
+            UnaryExpr u => EstimatePredicateComplexityCost(u.Expr),
+            IsNullExpr n => 1 + EstimatePredicateComplexityCost(n.Expr),
+            _ => 0
+        };
+
+    /// <summary>
+    /// EN: Estimates extra cost contributed by source shape (base table, derived query, or union subquery).
+    /// PT: Estima custo extra contribuído pelo formato da fonte (tabela base, consulta derivada ou subconsulta union).
+    /// </summary>
+    private static int EstimateSourceCost(SqlTableSource? source)
+    {
+        if (source is null)
+            return 0;
+
+        if (source.Derived is not null)
+            return 8 + EstimateSelectCost(source.Derived);
+
+        if (source.DerivedUnion is not null)
+            return 12 + EstimateUnionCost(source.DerivedUnion.Parts, source.DerivedUnion.AllFlags, source.DerivedUnion.OrderBy, source.DerivedUnion.RowLimit);
+
+        return 0;
+    }
+
+    /// <summary>
+    /// EN: Estimates projection-related cost using lightweight SQL-shape tokens from SELECT items.
+    /// PT: Estima custo da projeção usando tokens leves de formato SQL nos itens do SELECT.
+    /// </summary>
+    private static int EstimateProjectionCost(IReadOnlyList<SqlSelectItem> selectItems)
+    {
+        var cost = 0;
+        foreach (var item in selectItems)
+        {
+            var raw = item.Raw ?? string.Empty;
+            if (raw.IndexOf(" OVER ", StringComparison.OrdinalIgnoreCase) >= 0)
+                cost += 12;
+            if (raw.IndexOf("CASE ", StringComparison.OrdinalIgnoreCase) >= 0)
+                cost += 4;
+            if (raw.IndexOf("SELECT ", StringComparison.OrdinalIgnoreCase) >= 0)
+                cost += 10;
+        }
+
+        return cost;
     }
 
     private static int EstimateUnionCost(
