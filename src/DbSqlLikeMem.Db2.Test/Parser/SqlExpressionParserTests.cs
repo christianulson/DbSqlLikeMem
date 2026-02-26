@@ -281,8 +281,11 @@ public sealed class SqlExpressionParserTests(
     [MemberDataDb2Version]
     public void Backtick_Identifier_ShouldThrow(int version)
     {
-        Assert.ThrowsAny<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseWhere("`DeletedDtt` IS NULL", new Db2Dialect(version)));
+
+        Assert.Contains("alias/identificadores", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("'`'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
