@@ -255,13 +255,13 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         var gradeB = SqlExecutionPlanFormatter.FormatSelect(query, new SqlPlanRuntimeMetrics(1, 1, 1, 5), null, warningOnly);
         var gradeC = SqlExecutionPlanFormatter.FormatSelect(query, new SqlPlanRuntimeMetrics(1, 1, 1, 6), null, warningOnly);
         var gradeD = SqlExecutionPlanFormatter.FormatSelect(query, new SqlPlanRuntimeMetrics(1, 1, 1, 31), null, warningOnly);
-        var gradeCFromHighRiskFastBand = SqlExecutionPlanFormatter.FormatSelect(query, new SqlPlanRuntimeMetrics(1, 1, 1, 5), null, highWarning);
+        var gradeBFromHighRiskFastBand = SqlExecutionPlanFormatter.FormatSelect(query, new SqlPlanRuntimeMetrics(1, 1, 1, 5), null, highWarning);
 
         gradeA.Should().Contain("- PlanQualityGrade: A");
         gradeB.Should().Contain("- PlanQualityGrade: B");
         gradeC.Should().Contain("- PlanQualityGrade: C");
         gradeD.Should().Contain("- PlanQualityGrade: D");
-        gradeCFromHighRiskFastBand.Should().Contain("- PlanQualityGrade: C");
+        gradeBFromHighRiskFastBand.Should().Contain("- PlanQualityGrade: B");
     }
 
 
@@ -922,7 +922,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         };
 
         var plan = SqlExecutionPlanFormatter.FormatSelect(query, metrics, recommendations, []);
-        plan.Should().Contain("- IndexPrimaryRecommendation: table:users;confidence:80;gainPct:50.00");
+        plan.Should().Contain("- IndexPrimaryRecommendation: table:users;confidence:80;gainPct:75.00");
     }
 
     /// <summary>

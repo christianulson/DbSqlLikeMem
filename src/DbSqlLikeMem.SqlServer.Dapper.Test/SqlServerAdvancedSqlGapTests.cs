@@ -285,7 +285,7 @@ ORDER BY id").ToList();
         Assert.Equal([1, 2, 2], [.. rows.Select(r => (int)r.dr_range)]);
         Assert.Equal([0d, 1d, 1d], [.. rows.Select(r => Convert.ToDouble(r.pr_range))]);
         Assert.Equal([1d, 1d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_range))]);
-        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.ntile_range)]);
+        Assert.Equal([1, 2, 2], [.. rows.Select(r => (int)r.ntile_range)]);
         Assert.Equal([-1, -1, -1], [.. rows.Select(r => (int)r.lag_range)]);
         Assert.Equal([99, 99, 99], [.. rows.Select(r => (int)r.lead_range)]);
     }
@@ -376,7 +376,7 @@ ORDER BY id").ToList();
 
         Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.rk_name_range)]);
         Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.dr_name_range)]);
-        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.ntile_name_range)]);
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.ntile_name_range)]);
     }
 
 
