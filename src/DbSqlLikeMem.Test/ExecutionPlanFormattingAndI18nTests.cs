@@ -922,7 +922,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         };
 
         var plan = SqlExecutionPlanFormatter.FormatSelect(query, metrics, recommendations, []);
-        plan.Should().Contain($"- IndexPrimaryRecommendation: table:users;confidence:80;gainPct:{50:N2}");
+        plan.Should().Contain("- IndexPrimaryRecommendation: table:users;confidence:80;gainPct:75.00");
     }
 
     /// <summary>
