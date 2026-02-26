@@ -48,4 +48,20 @@ WHERE u.tenantid = 10";
         return cmd.ExecuteNonQuery();
     }
 
+    [Fact]
+    [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
+    public void DeleteUsingSyntax_ShouldThrowNotSupported_ForSqlServer()
+    {
+        var db = CreateDb();
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.Add(new Dictionary<int, object?> { { 0, 1 } });
+
+        const string sql = "DELETE FROM users u USING (SELECT 1 AS id) s WHERE s.id = u.id";
+
+        var ex = Assert.Throws<NotSupportedException>(() => ExecuteNonQuery(db, sql));
+        Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("DELETE FROM ... USING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 }
