@@ -262,6 +262,80 @@ ORDER BY id").ToList();
 
 
     /// <summary>
+    /// EN: Tests ranking and distribution window functions on size-1 ROWS frames with composite mixed-direction ORDER BY.
+    /// PT: Testa funções de ranking e distribuição em frames ROWS de tamanho 1 com ORDER BY composto e direções mistas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2AdvancedSqlGap")]
+    public void Window_RankingDistribution_WithCompositeOrder_AndCurrentRowFrame_ShouldReturnSingleRowSemantics()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY tenantid DESC, id ASC ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS rk,
+       DENSE_RANK() OVER (ORDER BY tenantid DESC, id ASC ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS dr,
+       PERCENT_RANK() OVER (ORDER BY tenantid DESC, id ASC ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS pr,
+       CUME_DIST() OVER (ORDER BY tenantid DESC, id ASC ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS cd
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.rk)]);
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.dr)]);
+
+        var pr = rows.Select(r => Convert.ToDouble(r.pr)).ToArray();
+        var cd = rows.Select(r => Convert.ToDouble(r.cd)).ToArray();
+
+        Assert.All(pr, v => Assert.True(Math.Abs(v - 0d) <= 1e-9));
+        Assert.All(cd, v => Assert.True(Math.Abs(v - 1d) <= 1e-9));
+    }
+
+
+    /// <summary>
+    /// EN: Tests LAG/LEAD defaults with composite mixed-direction ORDER BY and frame-limited visibility.
+    /// PT: Testa defaults de LAG/LEAD com ORDER BY composto e direções mistas com visibilidade limitada por frame.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2AdvancedSqlGap")]
+    public void Window_LagLead_WithCompositeOrder_AndFrameLimit_ShouldApplyDefaults()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       LAG(id, 1, -1) OVER (ORDER BY tenantid DESC, id ASC ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS lag_forward,
+       LEAD(id, 1, 99) OVER (ORDER BY tenantid DESC, id ASC ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS lead_sliding
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([-1, -1, -1], [.. rows.Select(r => (int)r.lag_forward)]);
+        Assert.Equal([99, 99, 99], [.. rows.Select(r => (int)r.lead_sliding)]);
+    }
+
+
+    /// <summary>
+    /// EN: Tests ranking/distribution and NTILE return NULL when the ROWS frame excludes the current row.
+    /// PT: Testa se ranking/distribuição e NTILE retornam NULL quando o frame ROWS exclui a linha atual.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2AdvancedSqlGap")]
+    public void Window_RankingDistribution_AndNtile_WithFrameExcludingCurrentRow_ShouldReturnNull()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY tenantid DESC, id ASC ROWS BETWEEN 1 FOLLOWING AND 1 FOLLOWING) AS rk_excluded,
+       DENSE_RANK() OVER (ORDER BY tenantid DESC, id ASC ROWS BETWEEN 1 FOLLOWING AND 1 FOLLOWING) AS dr_excluded,
+       PERCENT_RANK() OVER (ORDER BY tenantid DESC, id ASC ROWS BETWEEN 1 FOLLOWING AND 1 FOLLOWING) AS pr_excluded,
+       CUME_DIST() OVER (ORDER BY tenantid DESC, id ASC ROWS BETWEEN 1 FOLLOWING AND 1 FOLLOWING) AS cd_excluded,
+       NTILE(2) OVER (ORDER BY tenantid DESC, id ASC ROWS BETWEEN 1 FOLLOWING AND 1 FOLLOWING) AS ntile_excluded
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([null, null, null], [.. rows.Select(r => (int?)r.rk_excluded)]);
+        Assert.Equal([null, null, null], [.. rows.Select(r => (int?)r.dr_excluded)]);
+        Assert.Equal([null, null, null], [.. rows.Select(r => (double?)r.pr_excluded)]);
+        Assert.Equal([null, null, null], [.. rows.Select(r => (double?)r.cd_excluded)]);
+        Assert.Equal([null, null, null], [.. rows.Select(r => (int?)r.ntile_excluded)]);
+    }
+
+
+    /// <summary>
     /// EN: Tests CorrelatedSubquery_InSelectList_ShouldWork behavior.
     /// PT: Testa o comportamento de CorrelatedSubquery_InSelectList_ShouldWork.
     /// </summary>

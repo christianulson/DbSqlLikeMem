@@ -517,6 +517,59 @@ ORDER BY id").ToList();
 
 
     /// <summary>
+    /// EN: Tests ranking distribution functions with mixed ASC/DESC composite ORDER BY keep stable peer semantics.
+    /// PT: Testa se funções de ranking/distribuição com ORDER BY composto ASC/DESC misto mantêm semântica estável de peers.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_RankingDistribution_WithCompositeMixedOrder_ShouldKeepPeerSemantics()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY tenantid DESC, tenantid ASC) AS rk,
+       DENSE_RANK() OVER (ORDER BY tenantid DESC, tenantid ASC) AS dr,
+       PERCENT_RANK() OVER (ORDER BY tenantid DESC, tenantid ASC) AS pr,
+       CUME_DIST() OVER (ORDER BY tenantid DESC, tenantid ASC) AS cd
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([2, 2, 1], [.. rows.Select(r => (int)r.rk)]);
+        Assert.Equal([2, 2, 1], [.. rows.Select(r => (int)r.dr)]);
+
+        var pr = rows.Select(r => Convert.ToDouble(r.pr)).ToArray();
+        var cd = rows.Select(r => Convert.ToDouble(r.cd)).ToArray();
+
+        Assert.True(Math.Abs(pr[0] - 0.5d) <= 1e-9);
+        Assert.True(Math.Abs(pr[1] - 0.5d) <= 1e-9);
+        Assert.True(Math.Abs(pr[2] - 0d) <= 1e-9);
+
+        Assert.True(Math.Abs(cd[0] - 1d) <= 1e-9);
+        Assert.True(Math.Abs(cd[1] - 1d) <= 1e-9);
+        Assert.True(Math.Abs(cd[2] - (1d / 3d)) <= 1e-9);
+    }
+
+
+    /// <summary>
+    /// EN: Tests LAG/LEAD with composite ORDER BY and larger offsets apply defaults at frame boundaries.
+    /// PT: Testa se LAG/LEAD com ORDER BY composto e offsets maiores aplicam defaults nos limites do frame.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAdvancedSqlGap")]
+    public void Window_LagLead_WithCompositeOrder_AndLargeOffset_ShouldApplyDefaults()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       LAG(id, 2, -1) OVER (ORDER BY tenantid DESC, id ASC) AS lag2,
+       LEAD(id, 2, 99) OVER (ORDER BY tenantid DESC, id ASC) AS lead2
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([-1, 3, -1], [.. rows.Select(r => (int)r.lag2)]);
+        Assert.Equal([99, 99, 2], [.. rows.Select(r => (int)r.lead2)]);
+    }
+
+
+    /// <summary>
     /// EN: Tests CorrelatedSubquery_InSelectList_ShouldWork behavior.
     /// PT: Testa o comportamento de CorrelatedSubquery_InSelectList_ShouldWork.
     /// </summary>
