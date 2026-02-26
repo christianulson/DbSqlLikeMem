@@ -28,7 +28,7 @@ Para evitar duplicação de código e problemas de build:
 | Item | Progresso atual | Tendência | Resumo consolidado |
 | --- | --- | --- | --- |
 | 1) CTE avançada | **75%** | ⬆️ | Gates principais já cobrem o core e houve avanço por versão/dialeto; faltam bordas específicas de cobertura. |
-| 2) Window functions além de `ROW_NUMBER` | **100%** | ✅ | Gating por nome/versão, validação de aridade/`ORDER BY`, parser com suporte a frames `ROWS`/`RANGE`/`GROUPS` e runtime já implementado para ranking/distribution/value functions (incluindo `FIRST_VALUE`/`LAST_VALUE`/`NTH_VALUE`/`LAG`/`LEAD`/`RANK`/`DENSE_RANK`/`PERCENT_RANK`/`CUME_DIST`/`NTILE`), com hardening de limites e fail-fast para casos inválidos. Sem pendências abertas neste item no core parser/executor. |
+| 2) Window functions além de `ROW_NUMBER` | **100%** | ✅ | Gating por nome/versão, validação de aridade/`ORDER BY`, parser com suporte a frames `ROWS`/`RANGE`/`GROUPS` e runtime consolidado para ranking/distribution/value functions (incluindo `FIRST_VALUE`/`LAST_VALUE`/`NTH_VALUE`/`LAG`/`LEAD`/`RANK`/`DENSE_RANK`/`PERCENT_RANK`/`CUME_DIST`/`NTILE`), com hardening semântico para peers, ORDER BY composto em cenários válidos e mensagens fail-fast objetivas para combinações inválidas. Sem pendências abertas neste item no core parser/executor. |
 | 3) UPSERT por família de banco | **65%** | ⬆️ | `ON DUPLICATE`/`ON CONFLICT` e subset de `MERGE` avançaram; pendem harmonizações finais de semântica no executor. |
 | 4) Tipos/literais/coerção | **50%** | ⬆️ | Base central em `SqlExtensions` evoluiu, porém ainda faltam regras finas por dialeto/versão. |
 | 5) JSON cross-dialect | **68%** | ⬆️ | Runtime/cobertura evoluíram nos caminhos suportados, com fallback padronizado para não suportado. |
