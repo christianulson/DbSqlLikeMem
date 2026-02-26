@@ -82,8 +82,8 @@ public sealed class SqlServerDialectFeatureParserTests
     }
 
     /// <summary>
-    /// EN: Verifies LIMIT syntax in SQL Server returns an actionable pagination hint.
-    /// PT: Verifica que sintaxe LIMIT no SQL Server retorna dica acionável de paginação.
+    /// EN: Verifies parsing SELECT with LIMIT returns an actionable hint for SQL Server pagination syntax.
+    /// PT: Verifica que o parsing de SELECT com LIMIT retorna uma dica acionável para a sintaxe de paginação do SQL Server.
     /// </summary>
     /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
@@ -758,6 +758,11 @@ public sealed class SqlServerDialectFeatureParserTests
     }
 
 
+    /// <summary>
+    /// EN: Verifies UPDATE parsing keeps SET subquery text and WHERE boundary intact when FROM contains joins.
+    /// PT: Verifica que o parsing de UPDATE mantém o texto da subquery no SET e o limite do WHERE intacto quando o FROM contém joins.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]

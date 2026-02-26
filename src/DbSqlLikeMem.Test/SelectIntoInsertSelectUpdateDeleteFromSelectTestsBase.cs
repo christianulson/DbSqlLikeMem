@@ -34,6 +34,10 @@ JOIN (SELECT userid, SUM(amount) AS total FROM orders GROUP BY userid) s ON s.us
 SET u.total = s.total
 WHERE u.tenantid = 10";
 
+    /// <summary>
+    /// EN: Gets the SQL used to delete rows through a derived select-based join strategy.
+    /// PT: Obtém o SQL usado para excluir linhas por meio de uma estratégia de join baseada em select derivado.
+    /// </summary>
     protected virtual string DeleteJoinDerivedSelectSql
         => "DELETE FROM users WHERE id IN (SELECT id FROM users WHERE tenantid = 10)";
 

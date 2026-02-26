@@ -18,8 +18,16 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     /// </summary>
     protected override SqlServerDbMock CreateDb() => [];
 
+    /// <summary>
+    /// EN: Indicates SQL Server test runtime should execute UPDATE/DELETE scenarios that use JOIN-aware paths.
+    /// PT: Indica que o runtime de teste do SQL Server deve executar cenários de UPDATE/DELETE que usam caminhos com JOIN.
+    /// </summary>
     protected override bool SupportsUpdateDeleteJoinRuntime => true;
 
+    /// <summary>
+    /// EN: Gets SQL Server-specific SQL used to update rows from a derived select joined in FROM.
+    /// PT: Obtém o SQL específico de SQL Server usado para atualizar linhas a partir de um select derivado com join no FROM.
+    /// </summary>
     protected override string UpdateJoinDerivedSelectSql
         => @"
 UPDATE u
@@ -48,6 +56,10 @@ WHERE u.tenantid = 10";
         return cmd.ExecuteNonQuery();
     }
 
+    /// <summary>
+    /// EN: Verifies SQL Server execution rejects PostgreSQL DELETE USING syntax with a clear unsupported message.
+    /// PT: Verifica que a execução no SQL Server rejeita a sintaxe DELETE USING do PostgreSQL com mensagem clara de não suportado.
+    /// </summary>
     [Fact]
     [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
     public void DeleteUsingSyntax_ShouldThrowNotSupported_ForSqlServer()
