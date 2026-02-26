@@ -52,7 +52,7 @@ public abstract class TableMock
     public int NextIdentity { get; set; } = 1;
 
     private readonly ColumnDictionary _columns = [];
-    
+
     /// <summary>
     /// EN: Table column dictionary.
     /// PT: Dicionário de colunas da tabela.
@@ -131,7 +131,6 @@ public abstract class TableMock
         foreach (var handler in handlers)
             handler(context);
     }
-
 
     /// <summary>
     /// EN: Add new Vollumn to Table
@@ -370,11 +369,12 @@ public abstract class TableMock
     /// </summary>
     /// <typeparam name="T">EN: Item type. PT: Tipo dos itens.</typeparam>
     /// <param name="items">EN: Items to insert. PT: Itens a inserir.</param>
-    public void AddRangeItems<T>(IEnumerable<T> items)
+    public ITableMock AddRangeItems<T>(IEnumerable<T> items)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(items, nameof(items));
         foreach (var item in items)
             AddItem(item);
+        return this;
     }
 
     /// <summary>
@@ -382,11 +382,12 @@ public abstract class TableMock
     /// PT: Adiciona linhas já materializadas.
     /// </summary>
     /// <param name="items">EN: Rows to insert. PT: Linhas a inserir.</param>
-    public void AddRange(IEnumerable<Dictionary<int, object?>> items)
+    public ITableMock AddRange(IEnumerable<Dictionary<int, object?>> items)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(items, nameof(items));
         foreach (var item in items)
             Add(item);
+        return this;
     }
 
     /// <summary>
@@ -395,7 +396,7 @@ public abstract class TableMock
     /// </summary>
     /// <typeparam name="T">EN: Item type. PT: Tipo do item.</typeparam>
     /// <param name="item">EN: Item to insert. PT: Item a inserir.</param>
-    public void AddItem<T>(T item)
+    public ITableMock AddItem<T>(T item)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(item, nameof(item));
 
@@ -429,6 +430,7 @@ public abstract class TableMock
 
         // reaproveita sua lógica de unique + index update
         Add(row);
+        return this;
     }
 
     /// <summary>
@@ -436,7 +438,7 @@ public abstract class TableMock
     /// PT: Adiciona uma linha garantindo valores padrão e unicidade.
     /// </summary>
     /// <param name="value">EN: Row to insert. PT: Linha a inserir.</param>
-    public void Add(Dictionary<int, object?> value)
+    public ITableMock Add(Dictionary<int, object?> value)
     {
         ApplyDefaultValues(value);
         RefreshPersistedComputedValues(value);
@@ -445,6 +447,7 @@ public abstract class TableMock
         // Update _indexes with the new row
         int newIdx = Count - 1;
         UpdateIndexesWithRow(newIdx);
+        return this;
     }
 
     private void ApplyDefaultValues(Dictionary<int, object?> value)
@@ -518,32 +521,7 @@ public abstract class TableMock
 
     internal void EnsureUniqueOnInsert(Dictionary<int, object?> newRow)
     {
-        if (_primaryKeyIndexes.Count > 0)
-        {
-            if (TryFindPrimaryConflictByIndex(newRow, out _))
-            {
-                var dupPk = _columns
-                    .Where(_ => _primaryKeyIndexes.Contains(_.Value.Index))
-                    .Select(_ => $"{_.Key}: {(newRow.TryGetValue(_.Value.Index, out var v) ? v : null)}");
-                throw DuplicateKey(TableName, "PRIMARY", string.Join(",", dupPk));
-            }
-            var pkColumnNames = _columns.ToDictionary(_ => _.Value.Index, _ => _.Key);
-            for (int i = 0; i < Count; i++)
-            {
-                var pks = new List<string>();
-                foreach (var pkIdx in _primaryKeyIndexes)
-                {
-                    if (newRow.TryGetValue(pkIdx, out var pkVal)
-                        && this[i].TryGetValue(pkIdx, out var cur)
-                        && Equals(cur, pkVal))
-                    {
-                        pks.Add($"{pkColumnNames[pkIdx]}: {pkVal}");
-                    }
-                }
-                if (_primaryKeyIndexes.Count == pks.Count)
-                    throw DuplicateKey(TableName, "PRIMARY", string.Join(",", pks));
-            }
-        }
+        CheckUniquePrimary(newRow);
 
         foreach (var idx in _indexes.GetUnique())
         {
@@ -551,6 +529,37 @@ public abstract class TableMock
             var hits = idx.LookupMutable(key);
             if (hits?.Any() == true)
                 throw DuplicateKey(TableName, idx.Name, key);
+        }
+    }
+
+    private void CheckUniquePrimary(Dictionary<int, object?> newRow)
+    {
+        if (_primaryKeyIndexes.Count <= 0)
+            return;
+
+        if (TryFindPrimaryConflictByIndex(newRow, out _))
+        {
+            var dupPk = _columns
+                .Where(_ => _primaryKeyIndexes.Contains(_.Value.Index))
+                .Select(_ => $"{_.Key}: {(newRow.TryGetValue(_.Value.Index, out var v) ? v : null)}");
+            throw DuplicateKey(TableName, "PRIMARY", string.Join(",", dupPk));
+        }
+
+        var pkColumnNames = _columns.ToDictionary(_ => _.Value.Index, _ => _.Key);
+        for (int i = 0; i < Count; i++)
+        {
+            var pks = new List<string>();
+            foreach (var pkIdx in _primaryKeyIndexes)
+            {
+                if (newRow.TryGetValue(pkIdx, out var pkVal)
+                    && this[i].TryGetValue(pkIdx, out var cur)
+                    && Equals(cur, pkVal))
+                {
+                    pks.Add($"{pkColumnNames[pkIdx]}: {pkVal}");
+                }
+            }
+            if (_primaryKeyIndexes.Count == pks.Count)
+                throw DuplicateKey(TableName, "PRIMARY", string.Join(",", pks));
         }
     }
 
@@ -572,29 +581,8 @@ public abstract class TableMock
             return conflictByIndex;
         }
 
-        if (_primaryKeyIndexes.Count > 0)
-        {
-            var pkColumnNames = _columns.ToDictionary(_ => _.Value.Index, _ => _.Key);
-            for (int i = 0; i < Count; i++)
-            {
-                var pks = new List<string>();
-                foreach (var pkIdx in _primaryKeyIndexes)
-                {
-                    if (newRow.TryGetValue(pkIdx, out var pkVal)
-                        && this[i].TryGetValue(pkIdx, out var cur)
-                        && Equals(cur, pkVal))
-                    {
-                        pks.Add($"{pkColumnNames[pkIdx]}: {pkVal}");
-                    }
-                }
-                if (_primaryKeyIndexes.Count == pks.Count)
-                {
-                    conflictIndexName = "PRIMARY";
-                    conflictKey = string.Join(",", pks);
-                    return i;
-                }
-            }
-        }
+        if (!CheckPrimary(newRow, ref conflictIndexName, ref conflictKey, out var value))
+            return value;
 
         foreach (var idx in _indexes.GetUnique())
         {
@@ -608,6 +596,37 @@ public abstract class TableMock
             }
         }
         return null;
+    }
+
+    private bool CheckPrimary(
+        IReadOnlyDictionary<int, object?> newRow,
+        ref string? conflictIndexName,
+        ref object? conflictKey,
+        out int? value)
+    {
+        value = default;
+        if (_primaryKeyIndexes.Count > 0) return true;
+        var pkColumnNames = _columns.ToDictionary(_ => _.Value.Index, _ => _.Key);
+        for (int i = 0; i < Count; i++)
+        {
+            var pks = new List<string>();
+            foreach (var pkIdx in _primaryKeyIndexes)
+            {
+                if (newRow.TryGetValue(pkIdx, out var pkVal)
+                    && this[i].TryGetValue(pkIdx, out var cur)
+                    && Equals(cur, pkVal))
+                    pks.Add($"{pkColumnNames[pkIdx]}: {pkVal}");
+            }
+            if (_primaryKeyIndexes.Count != pks.Count)
+                continue;
+
+            conflictIndexName = "PRIMARY";
+            conflictKey = string.Join(",", pks);
+            value = i;
+            return false;
+        }
+
+        return true;
     }
 
     internal void EnsureUniqueBeforeUpdate(
@@ -686,80 +705,83 @@ public abstract class TableMock
                 return Equals(actual, exp is DBNull ? null : exp);
             }
 
-            if (cond.Op.Equals("IN", StringComparison.OrdinalIgnoreCase))
-            {
-                var rhs = cond.V.Trim();
-
-                IEnumerable<object?> candidates;
-
-                if (rhs.StartsWith("(")
-                && rhs.EndsWith(")"))
-                {
-                    var inner = rhs[1..^1].Trim();
-
-                    if (Regex.IsMatch(inner, @"^(SELECT|WITH)\b", RegexOptions.IgnoreCase))
-                    {
-                        candidates = ResolveInSubqueryCandidates(table, info, inner, pars);
-                    }
-                    else
-                    {
-                        var parts = inner.Split(',')
-                            .Select(_ => _.Trim())
-                            .ToArray();
-
-                        var tmp = new List<object?>();
-                        foreach (var part in parts)
-                        {
-                            table.CurrentColumn = cond.C;
-                            var val = table.Resolve(part, info.DbType, info.Nullable, pars, table.Columns);
-                            table.CurrentColumn = null;
-                            val = val is DBNull ? null : val;
-
-                            if (val is System.Collections.IEnumerable ie && val is not string)
-                            {
-                                foreach (var v in ie) tmp.Add(v);
-                            }
-                            else
-                            {
-                                tmp.Add(val);
-                            }
-                        }
-                        candidates = tmp;
-                    }
-                }
-                else
-                {
-                    table.CurrentColumn = cond.C;
-                    var resolved = table.Resolve(rhs, info.DbType, info.Nullable, pars, table.Columns);
-                    table.CurrentColumn = null;
-
-                    resolved = resolved is DBNull ? null : resolved;
-
-                    if (resolved is System.Collections.IEnumerable ie && resolved is not string)
-                    {
-                        var tmp = new List<object?>();
-                        foreach (var v in ie) tmp.Add(v);
-                        candidates = tmp;
-                    }
-                    else
-                    {
-                        candidates = [resolved];
-                    }
-                }
-
-                foreach (var cand in candidates)
-                {
-                    if (Equals(actual, cand))
-                        return true;
-                }
-
+            if (!cond.Op.Equals("IN", StringComparison.OrdinalIgnoreCase))
                 return false;
+
+            var rhs = cond.V.Trim();
+
+            IEnumerable<object?> candidates;
+
+            if (rhs.StartsWith("(")
+            && rhs.EndsWith(")"))
+            {
+                candidates = GetCandidatesFromSub(table, pars, cond, info, rhs);
+            }
+            else
+            {
+                candidates = GetCanditateFromTable(table, pars, cond, info, rhs);
+            }
+
+            foreach (var cand in candidates)
+            {
+                if (Equals(actual, cand))
+                    return true;
             }
 
             return false;
         });
 
-    private static IEnumerable<object?> ResolveInSubqueryCandidates(
+    private static IEnumerable<object?> GetCanditateFromTable(ITableMock table, DbParameterCollection? pars, (string C, string Op, string V) cond, ColumnDef info, string rhs)
+    {
+        table.CurrentColumn = cond.C;
+        var resolved = table.Resolve(rhs, info.DbType, info.Nullable, pars, table.Columns);
+        table.CurrentColumn = null;
+
+        resolved = resolved is DBNull ? null : resolved;
+
+        if (!(resolved is IEnumerable ie and not string))
+            return [resolved];
+
+        var tmp = new List<object?>();
+        foreach (var v in ie) tmp.Add(v);
+        return tmp;
+    }
+
+    private static List<object?> GetCandidatesFromSub(
+        ITableMock table,
+        DbParameterCollection? pars,
+        (string C, string Op, string V) cond,
+        ColumnDef info,
+        string rhs)
+    {
+        var inner = rhs[1..^1].Trim();
+
+        if (Regex.IsMatch(inner, @"^(SELECT|WITH)\b", RegexOptions.IgnoreCase))
+            return ResolveInSubqueryCandidates(table, info, inner, pars);
+
+        var parts = inner.Split(',')
+            .Select(_ => _.Trim())
+            .ToArray();
+
+        var tmp = new List<object?>();
+        foreach (var part in parts)
+        {
+            table.CurrentColumn = cond.C;
+            var val = table.Resolve(part, info.DbType, info.Nullable, pars, table.Columns);
+            table.CurrentColumn = null;
+            val = val is DBNull ? null : val;
+
+            if (val is not IEnumerable ie || val is string)
+            {
+                tmp.Add(val);
+                continue;
+            }
+            foreach (var v in ie) tmp.Add(v);
+        }
+        return tmp;
+    }
+
+    private static List<object?> ResolveInSubqueryCandidates(
         ITableMock table,
         ColumnDef targetInfo,
         string subquerySql,
@@ -786,7 +808,16 @@ public abstract class TableMock
         var sourceCol = sourceTable.GetColumn(sourceColName);
         var whereRaw = m.Groups["where"].Success ? m.Groups["where"].Value.Trim() : null;
         var whereConds = ParseWhereSimple(whereRaw);
+        return GetParsedObject(targetInfo, pars, sourceTable, sourceCol, whereConds);
+    }
 
+    private static List<object?> GetParsedObject(
+        ColumnDef targetInfo,
+        DbParameterCollection? pars,
+        ITableMock sourceTable,
+        ColumnDef sourceCol,
+        List<(string C, string Op, string V)> whereConds)
+    {
         var tmp = new List<object?>();
         foreach (var row in sourceTable)
         {
