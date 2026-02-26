@@ -4,11 +4,13 @@
 
 ## Progresso de implementação (%)
 
-- **Parser e dialetos:** 100% (4/4 itens concluídos)
-- **Executor e comportamento de runtime:** 100% (3/3 itens concluídos)
-- **Testes e regressão:** 100% (4/4 itens concluídos)
-- **Documentação:** 100% (3/3 itens concluídos)
-- **Geral do checklist:** 100% (14/14 itens concluídos)
+> Status de checklist de escopo/implementação. A confirmação efetiva de execução completa deve ser sempre feita pela suíte local/CI do momento.
+
+- **Parser e dialetos:** itens mapeados e implementados (4/4).
+- **Executor e comportamento de runtime:** itens mapeados e implementados (3/3).
+- **Testes e regressão:** itens mapeados com cobertura adicionada (4/4).
+- **Documentação:** itens mapeados e atualizados (3/3).
+- **Geral do checklist:** 14/14 itens tratados em código/documentação; validar execução no ambiente atual.
 
 ## Parser e dialetos
 

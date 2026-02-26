@@ -753,4 +753,24 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.Contains("start bound cannot be greater", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_WithSubqueryInSetAndFromJoin_ShouldKeepSetAndWhereBoundaries(int version)
+    {
+        var sql = @"UPDATE u
+SET u.total = (SELECT SUM(o.amount) FROM orders o WHERE o.userid = u.id)
+FROM users u
+JOIN (SELECT userid FROM orders GROUP BY userid) s ON s.userid = u.id
+WHERE u.id > 0";
+
+        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.NotNull(parsed.UpdateFromSelect);
+        Assert.Single(parsed.Set);
+        Assert.Contains("SELECT SUM(o.amount) FROM orders", parsed.Set[0].Value, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("u.id > 0", parsed.WhereRaw, StringComparison.OrdinalIgnoreCase);
+    }
+
 }

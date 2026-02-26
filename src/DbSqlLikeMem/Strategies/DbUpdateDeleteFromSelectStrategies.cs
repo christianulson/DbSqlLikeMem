@@ -16,13 +16,20 @@ internal static class DbUpdateDeleteFromSelectStrategies
         @"^DELETE\s+FROM\s+`?(?<table>[A-Za-z0-9_]+)`?\s+(?<a>[A-Za-z0-9_]+)\s+USING\s*\(\s*(?<sub>(SELECT|WITH)\b[\s\S]*?)\s*\)\s+(?<s>[A-Za-z0-9_]+)\s+WHERE\s+(?<where>[\s\S]*?)\s*;?\s*$",
         RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
-    private static bool SupportsUpdateJoinFromSelect(ISqlDialect dialect)
-        => dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
-            || dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
-            || dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase);
+    private static bool IsMySql(ISqlDialect dialect)
+        => dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase);
 
-    private static bool SupportsDeleteJoinFromSelect(ISqlDialect dialect)
-        => SupportsUpdateJoinFromSelect(dialect);
+    private static bool IsSqlServer(ISqlDialect dialect)
+        => dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsPostgreSql(ISqlDialect dialect)
+        => dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsUpdateFromSelectSql(string sql)
+        => _regexUpdateJoinMySql.IsMatch(sql) || _regexUpdateFromClause.IsMatch(sql);
+
+    private static bool IsDeleteFromSelectSql(string sql)
+        => _regexDelete.IsMatch(sql) || _regexDeleteUsing.IsMatch(sql);
 
     /// <summary>
     /// EN: Implements ExecuteUpdateSmart.
@@ -35,9 +42,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         ISqlDialect dialect)
     {
         // Detect UPDATE ... JOIN/UPDATE ... FROM ... JOIN (SELECT ...)
-        if (query.UpdateFromSelect != null
-            || query.RawSql.IndexOf(" FROM ", StringComparison.OrdinalIgnoreCase) >= 0
-            || query.RawSql.IndexOf(" JOIN (", StringComparison.OrdinalIgnoreCase) >= 0)
+        if (IsUpdateFromSelectSql(query.RawSql))
             return connection.ExecuteUpdateFromSelect(query, pars, dialect);
         return connection.ExecuteUpdate(query, pars);
     }
@@ -53,9 +58,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         ISqlDialect dialect)
     {
         // Detect DELETE ... JOIN / DELETE ... USING (SELECT ...)
-        if (query.DeleteFromSelect != null
-            || query.RawSql.IndexOf(" USING ", StringComparison.OrdinalIgnoreCase) >= 0
-            || query.RawSql.IndexOf(" JOIN (", StringComparison.OrdinalIgnoreCase) >= 0)
+        if (IsDeleteFromSelectSql(query.RawSql))
             return connection.ExecuteDeleteFromSelect(query, pars, dialect);
         return connection.ExecuteDelete(query, pars);
     }
@@ -84,9 +87,6 @@ internal static class DbUpdateDeleteFromSelectStrategies
         DbParameterCollection pars,
         ISqlDialect dialect)
     {
-        if (!SupportsUpdateJoinFromSelect(dialect))
-            throw SqlUnsupported.ForDialect(dialect, "UPDATE ... JOIN (subquery)");
-
         // Minimal grammar for unit tests:
         // MySQL:                 UPDATE <table> <a> JOIN (<select>) <s> ON ... SET ... [WHERE ...]
         // SQL Server/PostgreSQL: UPDATE <a> SET ... FROM <table> <a> JOIN (<select>) <s> ON ... [WHERE ...]
@@ -100,6 +100,12 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
         if (!m.Success)
             throw new InvalidOperationException("UPDATE ... JOIN inválido. Use os formatos: UPDATE <tabela> <alias> JOIN (<select>) ... SET ... ou UPDATE <alias> SET ... FROM <tabela> <alias> JOIN (<select>) ...");
+
+        if (!fromClause && !IsMySql(dialect))
+            throw SqlUnsupported.ForDialect(dialect, "UPDATE ... JOIN (subquery)");
+
+        if (fromClause && !IsSqlServer(dialect) && !IsPostgreSql(dialect))
+            throw SqlUnsupported.ForDialect(dialect, "UPDATE ... FROM ... JOIN (subquery)");
 
         var tableName = m.Groups["table"].Value.NormalizeName();
         var aAlias = fromClause ? m.Groups["a2"].Value : m.Groups["a"].Value;
@@ -265,9 +271,6 @@ internal static class DbUpdateDeleteFromSelectStrategies
         DbParameterCollection pars,
         ISqlDialect dialect)
     {
-        if (!SupportsDeleteJoinFromSelect(dialect))
-            throw SqlUnsupported.ForDialect(dialect, "DELETE ... JOIN (subquery)");
-
         // Minimal grammar for unit tests:
         // MySQL/SQL Server: DELETE a FROM <table> a JOIN (<select>) s ON s.k = a.k
         // PostgreSQL:       DELETE FROM <table> a USING (<select>) s WHERE s.k = a.k [AND ...]
@@ -280,6 +283,12 @@ internal static class DbUpdateDeleteFromSelectStrategies
         }
         if (!m.Success)
             throw new InvalidOperationException("DELETE ... JOIN inválido. Use os formatos: DELETE <alvo> FROM <tabela> <alias> JOIN (<select>) ... ON ... ou DELETE FROM <tabela> <alias> USING (<select>) ... WHERE ...");
+
+        if (!usingSyntax && !IsMySql(dialect) && !IsSqlServer(dialect))
+            throw SqlUnsupported.ForDialect(dialect, "DELETE <alvo> FROM ... JOIN (subquery)");
+
+        if (usingSyntax && !IsPostgreSql(dialect))
+            throw SqlUnsupported.ForDialect(dialect, "DELETE FROM ... USING (subquery)");
 
         var tableName = m.Groups["table"].Value.NormalizeName();
         var aAlias = usingSyntax ? m.Groups["a"].Value : m.Groups["a2"].Value;
@@ -361,7 +370,9 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
         for (int i = 0; i < parts.Count; i++)
         {
-            var candidate = parts[i];
+            var candidate = parts[i].Trim();
+            while (candidate.StartsWith('(') && candidate.EndsWith(')'))
+                candidate = candidate[1..^1].Trim();
             var onM = _regexOnSql.Match(candidate);
             if (!onM.Success)
                 continue;
