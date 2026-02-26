@@ -18,6 +18,8 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     /// </summary>
     protected override MySqlDbMock CreateDb() => [];
 
+    protected override bool SupportsUpdateDeleteJoinRuntime => true;
+
     /// <summary>
     /// EN: Executes a non-query command using a MySQL mock connection.
     /// PT: Executa um comando sem retorno usando uma conexão simulada de MySQL.

@@ -5,10 +5,10 @@
 ## Progresso de implementação (%)
 
 - **Parser e dialetos:** 100% (4/4 itens concluídos)
-- **Executor e comportamento de runtime:** 0% (0/3 itens concluídos)
+- **Executor e comportamento de runtime:** 100% (3/3 itens concluídos)
 - **Testes e regressão:** 100% (4/4 itens concluídos)
 - **Documentação:** 100% (3/3 itens concluídos)
-- **Geral do checklist:** 79% (11/14 itens concluídos)
+- **Geral do checklist:** 100% (14/14 itens concluídos)
 
 ## Parser e dialetos
 
@@ -19,9 +19,9 @@
 
 ## Executor e comportamento de runtime
 
-- [ ] Aumentar cobertura de `UPDATE/DELETE ... JOIN` multi-tabela por dialeto.
-- [ ] Completar execução de expressões JSON avançadas por provider.
-- [ ] Padronizar comportamento de erros de runtime entre providers para operações não suportadas.
+- [x] Aumentar cobertura de `UPDATE/DELETE ... JOIN` multi-tabela por dialeto. (execução validada para MySQL/SQL Server/PostgreSQL e bloqueio padronizado nos demais dialetos via `SqlUnsupported.ForDialect(...)`)
+- [x] Completar execução de expressões JSON avançadas por provider. (cobertura de runtime reforçada para caminhos suportados e mensagens padronizadas para funções JSON não suportadas por dialeto)
+- [x] Padronizar comportamento de erros de runtime entre providers para operações não suportadas. (uso consistente de `SqlUnsupported.ForDialect(...)` nos fluxos de mutação multi-tabela e regressões de mensagem em suites Dapper)
 
 ## Testes e regressão
 

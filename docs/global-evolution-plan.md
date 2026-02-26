@@ -11,7 +11,7 @@ O DbSqlLikeMem já possui uma base sólida multi-provider (6 provedores), ampla 
 ## Implementation progress snapshot (%)
 
 - **Parser/AST normalization track:** ~90% (paginação, quoting de alias complexos e semântica mínima de MERGE consolidadas; próximos itens focados em refinos finais por dialeto).
-- **Runtime alignment track:** ~35% (base estável; pendências relevantes em `UPDATE/DELETE ... JOIN`, JSON avançado e padronização final de erros).
+- **Runtime alignment track:** ~55% (JOIN multi-tabela com gate por dialeto entregue para MySQL/SQL Server/PostgreSQL e mensagens de não suporte padronizadas; próximos incrementos focam sintaxes adicionais por dialeto e semântica avançada).
 - **Cross-dialect regression track:** ~70% (expansão ampla por dialeto; suíte cruzada contínua ainda depende de execução sistemática em ambiente com `dotnet`).
 
 ## 1) Current-state assessment

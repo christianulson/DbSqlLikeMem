@@ -472,6 +472,18 @@ internal sealed class SqlQueryParser
         var assignsList = ParseAssignmentsList();
         var setList = assignsList.ConvertAll(a => (a.Column, a.ValueRaw));
 
+        // SQL Server/PostgreSQL: UPDATE <alias> SET ... FROM ... [WHERE ...]
+        if (IsWord(Peek(), "FROM"))
+        {
+            hasJoin = true;
+            Consume(); // FROM
+            if (HasTopLevelWordInRemaining("WHERE"))
+                SkipUntilTopLevelWord("WHERE");
+            else
+                while (!IsEnd(Peek()))
+                    Consume();
+        }
+
         string? whereRaw = null;
         if (IsWord(Peek(), "WHERE"))
         {
@@ -520,6 +532,17 @@ internal sealed class SqlQueryParser
             // DELETE FROM t WHERE ...
             Consume();
             table = ParseTableSource();
+
+            if (IsWord(Peek(), "USING"))
+            {
+                hasJoin = true;
+                Consume(); // USING
+                if (HasTopLevelWordInRemaining("WHERE"))
+                    SkipUntilTopLevelWord("WHERE");
+                else
+                    while (!IsEnd(Peek()))
+                        Consume();
+            }
         }
         else
         {
@@ -827,8 +850,8 @@ internal sealed class SqlQueryParser
             var col = ExpectIdentifierWithDots();
             ExpectSymbol("=");
 
-            // Lê expressão até , ou WHERE ou fim
-            var exprRaw = ReadClauseTextUntilTopLevelStop(",", "WHERE");
+            // Lê expressão até , ou WHERE/FROM/USING ou fim
+            var exprRaw = ReadClauseTextUntilTopLevelStop(",", "WHERE", "FROM", "USING");
             list.Add(new SqlAssignment(col, exprRaw));
 
             if (IsSymbol(Peek(), ","))
