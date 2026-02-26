@@ -338,6 +338,75 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         pw005Block.Should().Contain($"{SqlExecutionPlanMessages.MetricNameLabel()}: EstimatedRowsRead");
         pw005Block.Should().Contain($"{SqlExecutionPlanMessages.ThresholdLabel()}: gte:100;highGte:5000");
     }
+
+    /// <summary>
+    /// EN: Verifies aggregated plan risk score is emitted when warnings are present.
+    /// PT: Verifica que o score agregado de risco é emitido quando há alertas.
+    /// </summary>
+
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldEmitPlanRiskScore_WhenPlanWarningsArePresent()
+    {
+        using var cnn = CreateConnection();
+        SeedUsers(cnn, 120, _ => 1);
+
+        using var cmd = CreateCommand(cnn, "SELECT DISTINCT Id FROM users");
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain("PlanMetadataVersion: 1");
+        cnn.LastExecutionPlan.Should().Contain("PlanFlags: hasWarnings:true");
+        cnn.LastExecutionPlan.Should().Contain("PlanPerformanceBand:");
+        cnn.LastExecutionPlan.Should().Contain("PlanRiskScore:");
+    }
+
+
+    /// <summary>
+    /// EN: Verifies warning summary is emitted alongside plan warnings.
+    /// PT: Verifica que o resumo de warnings é emitido junto dos alertas do plano.
+    /// </summary>
+
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldEmitPlanWarningSummary_WhenPlanWarningsArePresent()
+    {
+        using var cnn = CreateConnection();
+        SeedUsers(cnn, 120, _ => 1);
+
+        using var cmd = CreateCommand(cnn, "SELECT DISTINCT Id FROM users WHERE Active = 1");
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain("PlanWarningSummary:");
+        cnn.LastExecutionPlan.Should().Contain("PlanWarningCounts:");
+        cnn.LastExecutionPlan.Should().Contain("PW005");
+    }
+
+
+    /// <summary>
+    /// EN: Verifies primary warning hint is emitted for warnings-rich plans.
+    /// PT: Verifica que a indicação de warning primário é emitida em planos com alertas.
+    /// </summary>
+
+
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldEmitPlanPrimaryWarning_WhenPlanWarningsArePresent()
+    {
+        using var cnn = CreateConnection();
+        SeedUsers(cnn, 120, _ => 1);
+
+        using var cmd = CreateCommand(cnn, "SELECT DISTINCT Id FROM users WHERE Active = 1");
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain("PlanPrimaryWarning:");
+    }
+
+
     /// <summary>
     /// EN: Verifies index recommendations are preserved when warnings are present.
     /// PT: Verifica que recomendações de índice são preservadas quando há alertas.
@@ -358,6 +427,8 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.CodeLabel()}: PW001");
         cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.CodeLabel()}: PW002");
         cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.IndexRecommendationsLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain("IndexRecommendationSummary:");
+        cnn.LastExecutionPlan.Should().Contain("IndexPrimaryRecommendation:");
     }
 
     private static string[] ExtractWarningBlock(string plan, string code)
@@ -386,108 +457,6 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helpe
         return lines.Skip(start).ToArray();
     }
 
-    [Fact]
-    [Trait("Category", "ExecutionPlan")]
-    public void ExecuteReader_ShouldKeepPW005AndSuppressPW004_WhenWhereAndDistinct()
-    {
-        using var cnn = CreateConnection();
-        SeedUsers(cnn, 120, _ => 1);
-
-        using var cmd = CreateCommand(cnn, "SELECT DISTINCT Id FROM users WHERE Active = 1");
-        using var reader = cmd.ExecuteReader();
-        while (reader.Read()) { }
-
-        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.CodeLabel()}: PW005");
-        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.CodeLabel()}: PW002");
-        cnn.LastExecutionPlan.Should().NotContain($"{SqlExecutionPlanMessages.CodeLabel()}: PW004");
-    }
-
-    [Fact]
-    [Trait("Category", "ExecutionPlan")]
-    public void ExecuteReader_ShouldNotEmitPW005_WhenNoDistinct()
-    {
-        using var cnn = CreateConnection();
-        SeedUsers(cnn, 120, _ => 1);
-
-        using var cmd = CreateCommand(cnn, "SELECT Id FROM users");
-        using var reader = cmd.ExecuteReader();
-        while (reader.Read()) { }
-
-        cnn.LastExecutionPlan.Should().NotContain($"{SqlExecutionPlanMessages.CodeLabel()}: PW005");
-    }
-
-    [Fact]
-    [Trait("Category", "ExecutionPlan")]
-    public void ExecuteReader_ShouldEmitStableTechnicalThresholdMetadata_ForPW002()
-    {
-        using var cnn = CreateConnection();
-        SeedUsers(cnn, 120, _ => 1);
-
-        using var cmd = CreateCommand(cnn, "SELECT Id FROM users WHERE Active = 1");
-        using var reader = cmd.ExecuteReader();
-        while (reader.Read()) { }
-
-        var warningBlock = ExtractWarningBlock(cnn.LastExecutionPlan!, "PW002");
-        warningBlock.Should().Contain($"{SqlExecutionPlanMessages.MetricNameLabel()}: SelectivityPct");
-        warningBlock.Should().Contain($"{SqlExecutionPlanMessages.ThresholdLabel()}: gte:60;highImpactGte:85");
-    }
-
-    [Fact]
-    [Trait("Category", "ExecutionPlan")]
-    public void ExecuteReader_ShouldEmitStableTechnicalThresholdMetadata_ForPW004AndPW005()
-    {
-        using var cnn = CreateConnection();
-        SeedUsers(cnn, 120, _ => 1);
-
-        using var pw004Cmd = CreateCommand(cnn, "SELECT Id FROM users");
-        using var pw004Reader = pw004Cmd.ExecuteReader();
-        while (pw004Reader.Read()) { }
-
-        var pw004Block = ExtractWarningBlock(cnn.LastExecutionPlan!, "PW004");
-        pw004Block.Should().Contain($"{SqlExecutionPlanMessages.MetricNameLabel()}: EstimatedRowsRead");
-        pw004Block.Should().Contain($"{SqlExecutionPlanMessages.ThresholdLabel()}: gte:100;highGte:5000");
-
-        using var pw005Cmd = CreateCommand(cnn, "SELECT DISTINCT Id FROM users");
-        using var pw005Reader = pw005Cmd.ExecuteReader();
-        while (pw005Reader.Read()) { }
-
-        var pw005Block = ExtractWarningBlock(cnn.LastExecutionPlan!, "PW005");
-        pw005Block.Should().Contain($"{SqlExecutionPlanMessages.MetricNameLabel()}: EstimatedRowsRead");
-        pw005Block.Should().Contain($"{SqlExecutionPlanMessages.ThresholdLabel()}: gte:100;highGte:5000");
-    }
-
-    [Fact]
-    [Trait("Category", "ExecutionPlan")]
-    public void ExecuteReader_ShouldKeepIndexRecommendations_WhenPlanWarningsArePresent()
-    {
-        using var cnn = CreateConnection();
-        SeedUsers(cnn, 120, _ => 1);
-
-        using var cmd = CreateCommand(cnn, "SELECT Id FROM users WHERE Active = 1 ORDER BY Id");
-        using var reader = cmd.ExecuteReader();
-        while (reader.Read()) { }
-
-        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.CodeLabel()}: PW001");
-        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.CodeLabel()}: PW002");
-        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.IndexRecommendationsLabel()}:");
-    }
-
-    private static string[] ExtractWarningBlock(string plan, string code)
-    {
-        var lines = plan
-            .Split(new[] { Environment.NewLine }, StringSplitOptions.None)
-            .Select(static line => line.Trim())
-            .ToArray();
-
-        var start = Array.FindIndex(lines, line => line == $"- {SqlExecutionPlanMessages.CodeLabel()}: {code}");
-        start.Should().BeGreaterThanOrEqualTo(0);
-
-        var end = Array.FindIndex(start + 1 < lines.Length ? lines[(start + 1)..] : [], line => line.StartsWith($"- {SqlExecutionPlanMessages.CodeLabel()}:", StringComparison.Ordinal));
-        if (end >= 0)
-            return lines[start..(start + 1 + end)];
-
-        return lines[start..];
-    }
 
     /// <summary>
     /// EN: Seeds the users table with deterministic Active values for warning scenarios.
