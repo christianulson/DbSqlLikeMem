@@ -18,6 +18,19 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     /// </summary>
     protected override NpgsqlDbMock CreateDb() => [];
 
+    protected override bool SupportsUpdateDeleteJoinRuntime => true;
+
+    protected override string UpdateJoinDerivedSelectSql
+        => @"
+UPDATE u
+SET u.total = s.total
+FROM users u
+JOIN (SELECT userid, SUM(amount) AS total FROM orders GROUP BY userid) s ON s.userid = u.id
+WHERE u.tenantid = 10";
+
+    protected override string DeleteJoinDerivedSelectSql
+        => "DELETE FROM users u USING (SELECT id FROM users WHERE tenantid = 10) s WHERE s.id = u.id";
+
     /// <summary>
     /// EN: Executes a non-query command using a PostgreSQL mock connection.
     /// PT: Executa um comando sem retorno usando uma conexão simulada de PostgreSQL.
