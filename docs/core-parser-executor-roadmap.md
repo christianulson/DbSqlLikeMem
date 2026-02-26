@@ -25,35 +25,24 @@ Para evitar duplicação de código e problemas de build:
 
 > Revalidação de progresso feita com base no estado atual de documentação técnica e suites de regressão por provider/versão (known gaps, global evolution plan e trackers dedicados).
 
-| Item | Progresso | Observações rápidas |
-| --- | --- | --- |
-| 1) CTE avançada | **70%** | Gates principais já existem; faltam cenários/versionamento mais fino em cobertura. |
-| 2) Window functions além de `ROW_NUMBER` | **100%** | Gating por nome/versão, validação de aridade/`ORDER BY`, parser com suporte de leitura para frames `ROWS`/`RANGE`/`GROUPS`, validação semântica de limites de frame (`start <= end`) e execução de frame `ROWS` para `FIRST_VALUE`/`LAST_VALUE`/`NTH_VALUE`/`LAG`/`LEAD`/`RANK`/`DENSE_RANK`/`PERCENT_RANK`/`CUME_DIST`/`NTILE` já implementadas (incluindo cenários de frame current/sliding/forward por linha, proteção para frames que excluem a linha atual em ranking/distribution/NTILE e validações com ORDER BY DESC/composite peers no runtime). Fail-fast para função desconhecida e hardening de aridade/ranges literais (`NTILE`/`LAG`/`LEAD`/`NTH_VALUE`) também entregues. Sem pendências abertas neste item no Core parser/executor (incluindo runtime para `ROWS`/`RANGE`/`GROUPS`, com `RANGE` sem offset aceitando ORDER BY não numérico/composto por semântica peer-based e validação explícita para offset com ORDER BY composto). |
-| 3) UPSERT por família de banco | **55%** | Parser com capacidades base; ainda há execução/semântica por provider a consolidar. |
-| 4) Tipos/literais/coerção | **45%** | Base central em `SqlExtensions`; falta extrair mais regras específicas por dialect/version. |
-| 5) JSON cross-dialect | **50%** | Gates e parte do parser prontos; falta ampliar cobertura de execução por provider. |
-| 6) Plano físico com custo | **15%** | Ainda não iniciado como motor dedicado; apenas evolução incremental do executor atual. |
-| 7) JOIN/subquery com heurística | **30%** | Há caminhos funcionais; faltam heurísticas/caching explícitos com meta de custo. |
-| 8) Semântica transacional por isolamento | **25%** | Suporte parcial por cenários; falta modelagem mais completa por provider/version. |
-| 9) `RETURNING`/`OUTPUT`/`RETURNING INTO` | **35%** | Capabilities e parser base; falta payload consistente no executor multi-provider. |
-| 10) Collation/null ordering | **40%** | Parte da comparação textual já centralizada; faltam regras completas de `NULLS FIRST/LAST` e collation. |
-| 1) CTE avançada | **75%** ⬆️ | Gates principais permanecem sólidos e houve avanço de cobertura por versão/dialeto, mas ainda existem bordas específicas para fechar. |
-| 2) Window functions além de `ROW_NUMBER` | **93%** ➡️ | Mantido: parser/runtime já cobrem ranking/distribution/value functions e frame `ROWS`; pendência principal segue em `RANGE/GROUPS` no runtime. |
-| 3) UPSERT por família de banco | **65%** ⬆️ | Evoluiu com consolidação de `ON DUPLICATE`/`ON CONFLICT` e `MERGE` em subset seguro; faltam harmonizações finais de semântica de execução. |
-| 4) Tipos/literais/coerção | **50%** ⬆️ | Base central continua em `SqlExtensions`; houve evolução incremental, mas ainda faltam regras finas por dialeto/versão. |
-| 5) JSON cross-dialect | **68%** ⬆️ | Evoluiu com reforço de runtime/cobertura para caminhos suportados e fallback padronizado para não suportado. |
-| 6) Plano físico com custo | **15%** ➡️ | Sem mudança estrutural: continua como backlog de maior risco e menor prioridade imediata. |
-| 7) JOIN/subquery com heurística | **40%** ⬆️ | Evoluiu em execução multi-tabela e padronização de não suportado; heurística de custo/caching explícito segue pendente. |
-| 8) Semântica transacional por isolamento | **35%** ⬆️ | Evoluiu no hardening base/confiabilidade, mas isolamento completo por provider/version ainda está em fase inicial. |
-| 9) `RETURNING`/`OUTPUT`/`RETURNING INTO` | **40%** ⬆️ | Evolução em parser/capabilities e subset por provider; payload homogêneo multi-provider no executor ainda é gap principal. |
-| 10) Collation/null ordering | **50%** ⬆️ | Avanço com gates de `NULLS FIRST/LAST` em parte dos dialetos, mantendo pendências de collation detalhada cross-provider. |
-
+| Item | Progresso atual | Tendência | Resumo consolidado |
+| --- | --- | --- | --- |
+| 1) CTE avançada | **75%** | ⬆️ | Gates principais já cobrem o core e houve avanço por versão/dialeto; faltam bordas específicas de cobertura. |
+| 2) Window functions além de `ROW_NUMBER` | **100%** | ✅ | Gating por nome/versão, validação de aridade/`ORDER BY`, parser com suporte a frames `ROWS`/`RANGE`/`GROUPS` e runtime já implementado para ranking/distribution/value functions (incluindo `FIRST_VALUE`/`LAST_VALUE`/`NTH_VALUE`/`LAG`/`LEAD`/`RANK`/`DENSE_RANK`/`PERCENT_RANK`/`CUME_DIST`/`NTILE`), com hardening de limites e fail-fast para casos inválidos. Sem pendências abertas neste item no core parser/executor. |
+| 3) UPSERT por família de banco | **65%** | ⬆️ | `ON DUPLICATE`/`ON CONFLICT` e subset de `MERGE` avançaram; pendem harmonizações finais de semântica no executor. |
+| 4) Tipos/literais/coerção | **50%** | ⬆️ | Base central em `SqlExtensions` evoluiu, porém ainda faltam regras finas por dialeto/versão. |
+| 5) JSON cross-dialect | **68%** | ⬆️ | Runtime/cobertura evoluíram nos caminhos suportados, com fallback padronizado para não suportado. |
+| 6) Plano físico com custo | **15%** | ➡️ | Sem mudança estrutural: segue como backlog de maior risco e menor prioridade imediata. |
+| 7) JOIN/subquery com heurística | **40%** | ⬆️ | Execução multi-tabela e padronização de não suportado avançaram; heurística explícita de custo/caching segue pendente. |
+| 8) Semântica transacional por isolamento | **35%** | ⬆️ | Hardening/confiabilidade avançaram; isolamento completo por provider/versão ainda está em fase inicial. |
+| 9) `RETURNING`/`OUTPUT`/`RETURNING INTO` | **40%** | ⬆️ | Parser/capabilities e subset por provider evoluíram; payload homogêneo multi-provider no executor é o principal gap. |
+| 10) Collation/null ordering | **50%** | ⬆️ | Evolução de gates para `NULLS FIRST/LAST` em parte dos dialetos; collation detalhada cross-provider ainda pendente. |
 
 ### Leitura rápida da revalidação
 
-- **Mantidos:** item 2 (window) e item 6 (plano físico com custo).
-- **Evoluíram:** itens 1, 3, 4, 5, 7, 8, 9 e 10, com maior impacto recente em JSON/runtime, UPSERT subset e confiabilidade transacional.
-- **Observação:** os percentuais seguem como referência executiva (não métrica automática); a confirmação final continua dependente da execução da suíte local/CI no corte de release.
+- **Estáveis:** item 2 (window functions concluídas no core parser/executor) e item 6 (plano físico com custo).
+- **Em evolução:** itens 1, 3, 4, 5, 7, 8, 9 e 10, com impacto recente em JSON/runtime, UPSERT subset e confiabilidade transacional.
+- **Observação:** percentuais são referência executiva (não métrica automática) e devem ser confirmados no corte de release via suíte local/CI.
 
 ## Reavaliação das propostas (válido x ajustar x adiar)
 
@@ -71,16 +60,16 @@ Para evitar duplicação de código e problemas de build:
 
 ## 2) Window functions além de `ROW_NUMBER`
 
-**Status:** ✅ **Válido com ajuste**.
+**Status:** ✅ **Concluído no Core (parser/executor)**.
 
 - Já existe `SupportsWindowFunctions` e inferência de tipo para window function no dialect.
 - Evitar engine nova nesse momento; evoluir no executor atual por passos pequenos.
 
-**Incremento seguro:**
+**Escopo entregue e manutenção recomendada:**
 
-- primeiro `RANK`/`DENSE_RANK`;
-- depois `LAG`/`LEAD`;
-- por último `ROWS/RANGE` (maior risco).
+- manter a suíte de regressão cobrindo `ROWS`/`RANGE`/`GROUPS`, `ORDER BY` composto e peers;
+- preservar fail-fast para função desconhecida e validações de aridade/ranges literais (`NTILE`/`LAG`/`LEAD`/`NTH_VALUE`);
+- tratar apenas hardening incremental, sem abrir novo eixo arquitetural para este item.
 
 ## 3) UPSERT por família de banco
 
@@ -167,7 +156,7 @@ Para evitar duplicação de código e problemas de build:
 ## Plano enxuto recomendado (sem quebrar build)
 
 1. **Parser gates + testes por versão** (CTE, paginação, JSON, hints, upsert).
-2. **Executor: completar semântica pendente por feature** (`RETURNING`, window extras, JSON subset).
+2. **Executor: completar semântica pendente por feature** (`RETURNING`, JSON subset e ajustes pontuais por provider).
 3. **Centralização de coerção/comparação** evitando duplicação por provider.
 4. **Hardening** com matriz fixa provider/versão antes de refatorações estruturais grandes.
 
@@ -182,12 +171,12 @@ Uma implementação só entra se cumprir os quatro itens:
 
 ## Backlog revisado (ordem segura)
 
-1. `RANK/DENSE_RANK` no executor AST + testes por provider/versão.
-2. Completar `ON CONFLICT ... DO UPDATE` e `excluded` sem duplicar parsing.
-3. `MERGE` com subset estável e testes de regressão por SQL Server/DB2/Oracle.
-4. `RETURNING` funcional no executor para `INSERT/UPDATE/DELETE` (PostgreSQL primeiro).
-5. Consolidar comportamento de comparação/ordenação (`TextComparison`, `NULLS FIRST/LAST`).
-6. Expandir cobertura JSON por função/operador já gateada no dialect.
+1. Completar `ON CONFLICT ... DO UPDATE` e `excluded` sem duplicar parsing.
+2. `MERGE` com subset estável e testes de regressão por SQL Server/DB2/Oracle.
+3. `RETURNING` funcional no executor para `INSERT/UPDATE/DELETE` (PostgreSQL primeiro).
+4. Consolidar comportamento de comparação/ordenação (`TextComparison`, `NULLS FIRST/LAST`).
+5. Expandir cobertura JSON por função/operador já gateada no dialect.
+6. Hardening contínuo de window functions por provider/versão (sem novo eixo arquitetural).
 
 ## Referências relacionadas
 
