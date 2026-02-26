@@ -896,8 +896,8 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         plan.Should().Contain("- PlanNoiseScore: 50");
         plan.Should().Contain("- PlanTopActions: PW001:AddSelectiveFilter;PW005:CreateDistinctCoveringIndex;IDX:CreateSuggestedIndex");
         plan.Should().Contain("- PlanPrimaryWarning: PW001:High");
-        plan.Should().Contain("- IndexRecommendationSummary: count:1;avgConfidence:80.00;maxGainPct:50.00");
-        plan.Should().Contain("- IndexPrimaryRecommendation: table:users;confidence:80;gainPct:50.00");
+        plan.Should().Contain($"- IndexRecommendationSummary: count:1;avgConfidence:{80:N2};maxGainPct:{50:N2}");
+        plan.Should().Contain($"- IndexPrimaryRecommendation: table:users;confidence:80;gainPct:{50:N2}");
     }
 
 
@@ -922,7 +922,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         };
 
         var plan = SqlExecutionPlanFormatter.FormatSelect(query, metrics, recommendations, []);
-        plan.Should().Contain("- IndexPrimaryRecommendation: table:users;confidence:80;gainPct:50.00");
+        plan.Should().Contain($"- IndexPrimaryRecommendation: table:users;confidence:80;gainPct:{50:N2}");
     }
 
     /// <summary>

@@ -167,8 +167,8 @@ WHERE u.tenantid = 10";
 
         if (!SupportsUpdateDeleteJoinRuntime)
         {
-            var ex = Assert.Throws<NotSupportedException>(() => ExecuteNonQuery(db, DeleteJoinDerivedSelectSql));
-            Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.OrdinalIgnoreCase);
+            var ex = Assert.Throws<InvalidOperationException>(() => ExecuteNonQuery(db, DeleteJoinDerivedSelectSql));
+            Assert.Contains("DELETE sem FROM não suportado no dialeto", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
