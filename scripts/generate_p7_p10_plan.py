@@ -4,7 +4,7 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DOC = ROOT / "docs" / "p7-p10-implementation-plan.md"
+DOC = ROOT / "docs" / "old" / "p7-p10-implementation-plan.md"
 
 PROVIDERS = [
     ("MySQL", "MySql"),

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Generate docs/implementation-prompts.md and ensure docs/README.md links to it."""
+"""Generate docs/old/implementation-prompts.md and ensure docs/README.md links to it."""
 
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
-PROMPTS_FILE = DOCS / "implementation-prompts.md"
+PROMPTS_FILE = DOCS / "old" / "implementation-prompts.md"
 DOCS_INDEX = DOCS / "README.md"
 
 INTRO = """# Prompts de implementação (copy/paste)
@@ -27,7 +27,7 @@ Validar e alinhar documentação, matriz de compatibilidade e versões simuladas
 
 Arquivos-alvo:
 - README.md
-- docs/providers-and-features.md
+- docs/old/providers-and-features.md
 - *DbVersions.cs de cada provider
 
 Tarefas:
@@ -123,7 +123,7 @@ Padronizar regras de comparação textual e coerção implícita, com comportame
 Escopo:
 1) Case sensitivity/collation em comparações de string.
 2) Coerção número vs string (ex.: id = '2').
-3) Regras por provider documentadas em docs/providers-and-features.md.
+3) Regras por provider documentadas em docs/old/providers-and-features.md.
 
 Referência de testes:
 - testes de Typing_ImplicitCasts_And_Collation* e Collation_CaseSensitivity* dos providers.
@@ -163,7 +163,7 @@ Checklist:
 1) Rodar testes do provider alterado.
 2) Rodar smoke tests dos demais providers.
 3) Adicionar ao menos 1 teste de regressão por bug corrigido.
-4) Atualizar docs/providers-and-features.md com a capacidade implementada.
+4) Atualizar docs/old/providers-and-features.md com a capacidade implementada.
 5) Registrar limitações conhecidas no corpo da PR.
 
 Formato da PR:
@@ -232,7 +232,7 @@ Escopo:
    - MySQL/SQLite: JSON_EXTRACT (e aliases mais usados)
    - SQL Server: JSON_VALUE / OPENJSON (subset)
 2) Fallback consistente para providers sem suporte (ex.: DB2 sem operadores JSON no momento).
-3) Documentar matriz de suporte JSON no docs/providers-and-features.md.
+3) Documentar matriz de suporte JSON no docs/old/providers-and-features.md.
 
 Referência de testes:
 - *UnionLimitAndJsonCompatibilityTests.cs
@@ -369,13 +369,13 @@ def generate_prompts_md() -> str:
 
 def ensure_docs_index_link() -> None:
     content = DOCS_INDEX.read_text(encoding="utf-8")
-    link = "- [Prompts de implementação (copy/paste)](implementation-prompts.md)"
+    link = "- [Prompts de implementação (copy/paste)](old/implementation-prompts.md)"
     if link in content:
         return
 
-    needle = "- [Provedores, versões e compatibilidade](providers-and-features.md)\n"
+    needle = "- [Provedores, versões e compatibilidade](old/providers-and-features.md)\n"
     insert_block = (
-        "- [Prompts de implementação (copy/paste)](implementation-prompts.md)\n"
+        "- [Prompts de implementação (copy/paste)](old/implementation-prompts.md)\n"
         "  - roadmap em fases\n"
         "  - prompts prontos para paralelizar implementações\n"
     )

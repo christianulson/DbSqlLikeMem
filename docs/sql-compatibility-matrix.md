@@ -29,7 +29,7 @@
 
 ## Referências
 
-- [Provedores e features](providers-and-features.md)
+- [Provedores e features](old/providers-and-features.md)
 - [Checklist de known gaps](known-gaps-checklist.md)
 - [Matriz versionada vCurrent](sql-compatibility-matrix-vcurrent.md)
 - [Matriz versionada vNext](sql-compatibility-matrix-vnext.md)

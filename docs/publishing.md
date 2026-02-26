@@ -130,5 +130,5 @@ npm run publish
 ## Links relacionados
 
 - [Começando rápido](getting-started.md)
-- [Provedores e compatibilidade](providers-and-features.md)
+- [Provedores e compatibilidade](old/providers-and-features.md)
 - [Wiki do GitHub](wiki/README.md)

@@ -23,7 +23,7 @@
   - **Advanced querying**: HQL projections (including alias maps), relationship aggregates, left-join projections preserving rows without relationships, Criteria restrictions/projections (including projection+ordering+paging), relationship ordering + deterministic paging, and HQL `join fetch` eager-initialization checks.
   - **Known limitation (mock harness)**: exact SQL-count/N+1 metrics are documented as out of scope.
 
-For full details, see the local repository documentation at `docs/providers-and-features.md`.
+For full details, see the local repository documentation at `docs/old/providers-and-features.md`.
 
 ---
 
