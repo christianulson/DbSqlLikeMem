@@ -23,7 +23,7 @@ Para evitar duplicação de código e problemas de build:
 
 ## Status de implementação (estimado)
 
-> Percentuais estimados com base no que já foi entregue no parser/executor e nos testes por provider/versão.
+> Revalidação de progresso feita com base no estado atual de documentação técnica e suites de regressão por provider/versão (known gaps, global evolution plan e trackers dedicados).
 
 | Item | Progresso | Observações rápidas |
 | --- | --- | --- |
@@ -37,6 +37,23 @@ Para evitar duplicação de código e problemas de build:
 | 8) Semântica transacional por isolamento | **25%** | Suporte parcial por cenários; falta modelagem mais completa por provider/version. |
 | 9) `RETURNING`/`OUTPUT`/`RETURNING INTO` | **35%** | Capabilities e parser base; falta payload consistente no executor multi-provider. |
 | 10) Collation/null ordering | **40%** | Parte da comparação textual já centralizada; faltam regras completas de `NULLS FIRST/LAST` e collation. |
+| 1) CTE avançada | **75%** ⬆️ | Gates principais permanecem sólidos e houve avanço de cobertura por versão/dialeto, mas ainda existem bordas específicas para fechar. |
+| 2) Window functions além de `ROW_NUMBER` | **93%** ➡️ | Mantido: parser/runtime já cobrem ranking/distribution/value functions e frame `ROWS`; pendência principal segue em `RANGE/GROUPS` no runtime. |
+| 3) UPSERT por família de banco | **65%** ⬆️ | Evoluiu com consolidação de `ON DUPLICATE`/`ON CONFLICT` e `MERGE` em subset seguro; faltam harmonizações finais de semântica de execução. |
+| 4) Tipos/literais/coerção | **50%** ⬆️ | Base central continua em `SqlExtensions`; houve evolução incremental, mas ainda faltam regras finas por dialeto/versão. |
+| 5) JSON cross-dialect | **68%** ⬆️ | Evoluiu com reforço de runtime/cobertura para caminhos suportados e fallback padronizado para não suportado. |
+| 6) Plano físico com custo | **15%** ➡️ | Sem mudança estrutural: continua como backlog de maior risco e menor prioridade imediata. |
+| 7) JOIN/subquery com heurística | **40%** ⬆️ | Evoluiu em execução multi-tabela e padronização de não suportado; heurística de custo/caching explícito segue pendente. |
+| 8) Semântica transacional por isolamento | **35%** ⬆️ | Evoluiu no hardening base/confiabilidade, mas isolamento completo por provider/version ainda está em fase inicial. |
+| 9) `RETURNING`/`OUTPUT`/`RETURNING INTO` | **40%** ⬆️ | Evolução em parser/capabilities e subset por provider; payload homogêneo multi-provider no executor ainda é gap principal. |
+| 10) Collation/null ordering | **50%** ⬆️ | Avanço com gates de `NULLS FIRST/LAST` em parte dos dialetos, mantendo pendências de collation detalhada cross-provider. |
+
+
+### Leitura rápida da revalidação
+
+- **Mantidos:** item 2 (window) e item 6 (plano físico com custo).
+- **Evoluíram:** itens 1, 3, 4, 5, 7, 8, 9 e 10, com maior impacto recente em JSON/runtime, UPSERT subset e confiabilidade transacional.
+- **Observação:** os percentuais seguem como referência executiva (não métrica automática); a confirmação final continua dependente da execução da suíte local/CI no corte de release.
 
 ## Reavaliação das propostas (válido x ajustar x adiar)
 
