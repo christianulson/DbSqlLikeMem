@@ -184,7 +184,7 @@ RETURNING id";
             "SELECT name \"User Name\" FROM users",
             new NpgsqlDialect(version)));
 
-        var item = Assert.Single(parsed.Items);
+        var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User Name", item.Alias);
     }
 
@@ -202,7 +202,7 @@ RETURNING id";
             "SELECT name \"User\"\"Name\" FROM users",
             new NpgsqlDialect(version)));
 
-        var item = Assert.Single(parsed.Items);
+        var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User\"Name", item.Alias);
     }
 

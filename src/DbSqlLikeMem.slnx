@@ -89,6 +89,7 @@
   <Project Path="DbSqlLikeMem.EfCore/DbSqlLikeMem.EfCore.csproj" />
   <Project Path="DbSqlLikeMem.LinqToDb.Test/DbSqlLikeMem.LinqToDb.Test.csproj" />
   <Project Path="DbSqlLikeMem.LinqToDb/DbSqlLikeMem.LinqToDb.csproj" />
+  <Project Path="DbSqlLikeMem.MiniProfiler.Test/DbSqlLikeMem.MiniProfiler.Test.csproj" />
   <Project Path="DbSqlLikeMem.NHibernate.Test/DbSqlLikeMem.NHibernate.Test.csproj" Id="05796138-948e-446c-bd71-89d8869f44d4" />
   <Project Path="DbSqlLikeMem.Test/DbSqlLikeMem.Test.csproj" />
   <Project Path="DbSqlLikeMem/DbSqlLikeMem.csproj" />

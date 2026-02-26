@@ -291,7 +291,7 @@ public sealed class Db2DialectFeatureParserTests
             "SELECT name \"User Name\" FROM users",
             new Db2Dialect(version)));
 
-        var item = Assert.Single(parsed.Items);
+        var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User Name", item.Alias);
     }
 
@@ -309,7 +309,7 @@ public sealed class Db2DialectFeatureParserTests
             "SELECT name \"User\"\"Name\" FROM users",
             new Db2Dialect(version)));
 
-        var item = Assert.Single(parsed.Items);
+        var item = Assert.Single(parsed.SelectItems);
         Assert.Equal("User\"Name", item.Alias);
     }
 

@@ -6,18 +6,6 @@
 		<TargetFrameworks>net48;net6.0;net8.0;net10.0</TargetFrameworks>
 	</PropertyGroup>
 
-
-	<!--<ItemGroup Condition="'$(TargetFramework)' == 'net48'">
-		<PackageReference Include="Dapper" Version="2.1.35" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-		<PackageReference Include="Dapper" Version="2.1.35" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
-		<PackageReference Include="Dapper" Version="2.1.66" />
-	</ItemGroup>-->
 	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
 		<OutputType>Exe</OutputType>
 	</PropertyGroup>
@@ -79,7 +67,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.MySql.MiniProfiler\DbSqlLikeMem.MySql.MiniProfiler.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
-		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.MiniProfiler.Test\DbSqlLikeMem.MiniProfiler.Test.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net48' Or '$(TargetFramework)' == 'netstandard2.1' Or '$(TargetFramework)' == 'net6.0'">

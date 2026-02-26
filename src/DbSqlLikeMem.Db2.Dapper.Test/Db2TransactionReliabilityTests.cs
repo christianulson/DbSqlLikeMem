@@ -1,5 +1,3 @@
-using System.Data.Common;
-
 namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>

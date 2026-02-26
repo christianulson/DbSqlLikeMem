@@ -1,6 +1,4 @@
 using Dapper;
-using System.Data.Common;
-using System.Threading;
 
 namespace DbSqlLikeMem.Test;
 
