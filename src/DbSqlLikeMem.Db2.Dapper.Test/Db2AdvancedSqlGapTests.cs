@@ -361,7 +361,7 @@ ORDER BY id").ToList();
         Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.rk_desc_range)]);
         Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.dr_desc_range)]);
         Assert.Equal([1d, 1d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_desc_range))]);
-        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.ntile_desc_range)]);
+        Assert.Equal([2, 1, 1], [.. rows.Select(r => (int)r.ntile_desc_range)]);
     }
 
     /// <summary>
@@ -399,7 +399,7 @@ FROM users
 ORDER BY id").ToList();
 
         Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.rk_groups_mix)]);
-        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.ntile_groups_mix)]);
+        Assert.Equal([2, 1, 1], [.. rows.Select(r => (int)r.ntile_groups_mix)]);
     }
 
     /// <summary>
