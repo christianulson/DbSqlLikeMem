@@ -147,7 +147,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
-        cnn.LastExecutionPlan.Should().Contain($"has{SqlExecutionPlanMessages.IndexRecommendationsLabel()}:false");
+        cnn.LastExecutionPlan.Should().Contain($"hasIndexRecommendations:false");
     }
 
     /// <summary>
@@ -177,7 +177,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
-        cnn.LastExecutionPlan.Should().Contain($"has{SqlExecutionPlanMessages.IndexRecommendationsLabel()}:false");
+        cnn.LastExecutionPlan.Should().Contain($"hasIndexRecommendations:false");
     }
 
 }

@@ -112,7 +112,7 @@ public sealed class ExecutionPlanTests(
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
-        cnn.LastExecutionPlan.Should().Contain($"has{SqlExecutionPlanMessages.IndexRecommendationsLabel()}:false");
+        cnn.LastExecutionPlan.Should().Contain($"hasIndexRecommendations:false");
     }
 
 
@@ -144,7 +144,7 @@ public sealed class ExecutionPlanTests(
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
-        cnn.LastExecutionPlan.Should().Contain($"has{SqlExecutionPlanMessages.IndexRecommendationsLabel()}:false");
+        cnn.LastExecutionPlan.Should().Contain($"hasIndexRecommendations:false");
     }
 
 
@@ -236,7 +236,7 @@ public sealed class ExecutionPlanTests(
         using var reader = cmd.ExecuteReader();
         while (reader.Read()) { }
 
-        cnn.LastExecutionPlan.Should().Contain($"has{SqlExecutionPlanMessages.IndexRecommendationsLabel()}:false");
+        cnn.LastExecutionPlan.Should().Contain($"hasIndexRecommendations:false");
     }
 
     /// <summary>
