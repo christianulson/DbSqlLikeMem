@@ -18,6 +18,12 @@ public abstract class DapperTransactionConcurrencyTestsBase
     protected abstract Func<DbConnectionMockBase> CreateOpenConnectionFactory(bool threadSafe, int? version = null);
 
     /// <summary>
+    /// EN: Indicates whether provider is expected to support RELEASE SAVEPOINT.
+    /// PT: Indica se o provedor deve suportar RELEASE SAVEPOINT.
+    /// </summary>
+    protected virtual bool SupportsReleaseSavepoint => true;
+
+    /// <summary>
     /// EN: Verifies savepoint rollback restores intermediate state.
     /// PT: Verifica se rollback de savepoint restaura estado intermediário.
     /// </summary>
@@ -63,7 +69,15 @@ public abstract class DapperTransactionConcurrencyTestsBase
         using var connection = openConnection();
         using var transaction = connection.BeginTransaction();
         connection.CreateSavepoint("sp_release");
-        connection.ReleaseSavepoint("sp_release");
+
+        if (SupportsReleaseSavepoint)
+        {
+            connection.ReleaseSavepoint("sp_release");
+            return;
+        }
+
+        var ex = Assert.Throws<NotSupportedException>(() => connection.ReleaseSavepoint("sp_release"));
+        Assert.Contains("RELEASE SAVEPOINT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
