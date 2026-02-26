@@ -167,3 +167,13 @@ Decisões adotadas nesta rodada:
 - A matriz `PW004/PW005` recebeu verificação adicional para preservar `PW002` quando aplicável (`WHERE + DISTINCT`), reduzindo ruído sem ocultar sinal relevante.
 - Foi adicionado caso negativo explícito para `PW005` sem `DISTINCT`, evitando falso-positivo regressivo.
 - A geração de `Threshold` técnico no advisor foi centralizada em helper de baixo risco para reduzir duplicação e preservar formato estável por regra.
+
+### PlanWarnings (rodada adaptativa ao novo contexto do repositório)
+- [x] Adaptar testes de i18n para descoberta dinâmica de arquivos `SqlExecutionPlanMessages.<culture>.resx`, reduzindo acoplamento a lista fixa de culturas.
+- [x] Manter validação de tokens SQL canônicos (`WHERE`, `ORDER BY`, `DISTINCT`, `LIMIT/TOP/FETCH`, `SELECT *`) para todas as culturas detectadas.
+- [x] Consolidar helper de geração de `Threshold` técnico em assinatura única com `IFormattable`, preservando `InvariantCulture` e formato parseável estável.
+- [x] Preservar cobertura existente de `PW004/PW005` e `IndexRecommendations` sem novas deleções de testes por provider.
+
+Decisões desta rodada adaptativa:
+- O teste de i18n deixa de depender de conjunto estático (`de/es/fr/it/pt`) e passa a refletir automaticamente novas culturas adicionadas no repositório.
+- A geração de threshold técnico permanece language-neutral e com ordenação explícita dos pares `key:value`, evitando regressões por formatação cultural.

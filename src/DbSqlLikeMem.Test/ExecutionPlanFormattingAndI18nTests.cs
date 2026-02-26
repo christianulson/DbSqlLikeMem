@@ -77,8 +77,12 @@ public sealed class ExecutionPlanFormattingAndI18nTests
             .ToHashSet(StringComparer.Ordinal);
 
         baseEntries.Keys.Should().Contain(messageKeysUsedByCode);
-        var localizedFiles = new[] { "de", "es", "fr", "it", "pt" }
-            .Select(c => Path.Combine(basePath, $"SqlExecutionPlanMessages.{c}.resx"));
+        var localizedFiles = Directory
+            .EnumerateFiles(basePath, "SqlExecutionPlanMessages.*.resx", SearchOption.TopDirectoryOnly)
+            .Where(path => !path.EndsWith("SqlExecutionPlanMessages.resx", StringComparison.Ordinal))
+            .ToArray();
+
+        localizedFiles.Should().NotBeEmpty("localized execution plan resources must exist");
 
         foreach (var localized in localizedFiles)
         {

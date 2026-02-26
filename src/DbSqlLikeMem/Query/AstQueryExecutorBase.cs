@@ -493,11 +493,19 @@ internal abstract class AstQueryExecutorBase(
         => query.SelectItems.Any(static item => string.Equals(item.Raw?.Trim(), "*", StringComparison.Ordinal));
 
 
-    private static string BuildTechnicalThreshold(params (string Key, long Value)[] values)
-        => string.Join(";", values.Select(v => $"{v.Key}:{v.Value.ToString(CultureInfo.InvariantCulture)}"));
+    private static string BuildTechnicalThreshold(params (string Key, IFormattable Value)[] values)
+    {
+        if (values.Length == 0)
+            return string.Empty;
 
-    private static string BuildTechnicalThreshold(params (string Key, double Value)[] values)
-        => string.Join(";", values.Select(v => $"{v.Key}:{v.Value.ToString(CultureInfo.InvariantCulture)}"));
+        return string.Join(";", values.Select(static v =>
+        {
+            if (string.IsNullOrWhiteSpace(v.Key))
+                throw new ArgumentException("Threshold key must be provided.", nameof(values));
+
+            return $"{v.Key}:{v.Value.ToString(null, CultureInfo.InvariantCulture)}";
+        }));
+    }
     private IReadOnlyList<SqlIndexRecommendation> BuildIndexRecommendations(
         SqlSelectQuery query,
         SqlPlanRuntimeMetrics metrics)
