@@ -231,7 +231,7 @@ internal static class SqlExecutionPlanFormatter
         if (closeParen <= openParen + 1)
             return "<unknown>";
 
-        return suggestedIndex[(openParen + 1)..closeParen].Replace(" ", string.Empty, StringComparison.Ordinal);
+        return suggestedIndex[(openParen + 1)..closeParen].Replace(" ", string.Empty);
     }
 
     private static void AppendPlanWarnings(
