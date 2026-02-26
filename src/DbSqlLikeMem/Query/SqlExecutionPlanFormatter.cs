@@ -196,6 +196,44 @@ internal static class SqlExecutionPlanFormatter
         sb.AppendLine($"- {SqlExecutionPlanMessages.IndexPrimaryRecommendationLabel()}: table:{primary.Table};confidence:{primary.Confidence};gainPct:{primary.EstimatedGainPct:F2}");
     }
 
+    private static void AppendIndexRecommendationEvidence(
+        StringBuilder sb,
+        IReadOnlyList<SqlIndexRecommendation>? indexRecommendations)
+    {
+        if (indexRecommendations is null || indexRecommendations.Count == 0)
+            return;
+
+        var evidence = string.Join("|", indexRecommendations
+            .OrderByDescending(static r => r.Confidence)
+            .ThenByDescending(static r => r.EstimatedGainPct)
+            .ThenBy(static r => r.Table, StringComparer.Ordinal)
+            .Select(static r => BuildIndexRecommendationEvidenceItem(r)));
+
+        sb.AppendLine($"- {SqlExecutionPlanMessages.IndexRecommendationEvidenceLabel()}: {evidence}");
+    }
+
+    private static string BuildIndexRecommendationEvidenceItem(SqlIndexRecommendation recommendation)
+    {
+        var indexCols = ExtractSuggestedIndexColumns(recommendation.SuggestedIndex);
+        return $"table:{recommendation.Table};indexCols:{indexCols};confidence:{recommendation.Confidence};gainPct:{recommendation.EstimatedGainPct:F2}";
+    }
+
+    private static string ExtractSuggestedIndexColumns(string suggestedIndex)
+    {
+        if (string.IsNullOrWhiteSpace(suggestedIndex))
+            return "<unknown>";
+
+        var openParen = suggestedIndex.IndexOf('(');
+        if (openParen < 0)
+            return "<unknown>";
+
+        var closeParen = suggestedIndex.IndexOf(')', openParen + 1);
+        if (closeParen <= openParen + 1)
+            return "<unknown>";
+
+        return suggestedIndex[(openParen + 1)..closeParen].Replace(" ", string.Empty, StringComparison.Ordinal);
+    }
+
     private static void AppendPlanWarnings(
         StringBuilder sb,
         IReadOnlyList<SqlPlanWarning>? planWarnings)
