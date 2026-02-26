@@ -103,11 +103,76 @@ internal static class SqlExecutionPlanFormatter
         sb.AppendLine($"- {SqlExecutionPlanMessages.SelectivityPctLabel()}: {metrics.SelectivityPct:F2}");
         sb.AppendLine($"- {SqlExecutionPlanMessages.RowsPerMsLabel()}: {metrics.RowsPerMs:F2}");
         sb.AppendLine($"- {SqlExecutionPlanMessages.ElapsedMsLabel()}: {metrics.ElapsedMs}");
+        sb.AppendLine("- PlanMetadataVersion: 1");
 
+        AppendPlanFlags(sb, indexRecommendations, planWarnings);
+        AppendPlanPerformanceBand(sb, metrics);
         AppendIndexRecommendations(sb, indexRecommendations);
+        AppendIndexRecommendationSummary(sb, indexRecommendations);
+        AppendIndexPrimaryRecommendation(sb, indexRecommendations);
         AppendPlanWarnings(sb, planWarnings);
+        AppendPlanRiskScore(sb, planWarnings);
+        AppendPlanWarningSummary(sb, planWarnings);
+        AppendPlanWarningCounts(sb, planWarnings);
+        AppendPrimaryWarning(sb, planWarnings);
 
         return sb.ToString().TrimEnd();
+    }
+
+
+
+
+    private static void AppendPlanPerformanceBand(
+        StringBuilder sb,
+        SqlPlanRuntimeMetrics metrics)
+    {
+        var band = metrics.ElapsedMs switch
+        {
+            <= 5 => "Fast",
+            <= 30 => "Moderate",
+            _ => "Slow"
+        };
+
+        sb.AppendLine($"- PlanPerformanceBand: {band}");
+    }
+
+    private static void AppendPlanFlags(
+        StringBuilder sb,
+        IReadOnlyList<SqlIndexRecommendation>? indexRecommendations,
+        IReadOnlyList<SqlPlanWarning>? planWarnings)
+    {
+        var hasWarnings = planWarnings is { Count: > 0 } ? "true" : "false";
+        var hasIndexRecommendations = indexRecommendations is { Count: > 0 } ? "true" : "false";
+        sb.AppendLine($"- PlanFlags: hasWarnings:{hasWarnings};hasIndexRecommendations:{hasIndexRecommendations}");
+    }
+
+    private static void AppendIndexRecommendationSummary(
+        StringBuilder sb,
+        IReadOnlyList<SqlIndexRecommendation>? indexRecommendations)
+    {
+        if (indexRecommendations is null || indexRecommendations.Count == 0)
+            return;
+
+        var avgConfidence = indexRecommendations.Average(static r => r.Confidence);
+        var maxGain = indexRecommendations.Max(static r => r.EstimatedGainPct);
+        sb.AppendLine($"- IndexRecommendationSummary: count:{indexRecommendations.Count};avgConfidence:{avgConfidence:F2};maxGainPct:{maxGain:F2}");
+    }
+
+
+    private static void AppendIndexPrimaryRecommendation(
+        StringBuilder sb,
+        IReadOnlyList<SqlIndexRecommendation>? indexRecommendations)
+    {
+        if (indexRecommendations is null || indexRecommendations.Count == 0)
+            return;
+
+        var primary = indexRecommendations
+            .OrderByDescending(static r => r.Confidence)
+            .ThenByDescending(static r => r.EstimatedGainPct)
+            .ThenBy(static r => r.Table, StringComparer.Ordinal)
+            .First();
+
+        sb.AppendLine($"- IndexPrimaryRecommendation: table:{primary.Table};confidence:{primary.Confidence};gainPct:{primary.EstimatedGainPct:F2}");
     }
 
     private static void AppendPlanWarnings(
@@ -135,6 +200,93 @@ internal static class SqlExecutionPlanFormatter
             if (!string.IsNullOrWhiteSpace(warning.Threshold))
                 sb.AppendLine($"    {SqlExecutionPlanMessages.ThresholdLabel()}: {warning.Threshold}");
         }
+    }
+
+
+    private static void AppendPlanRiskScore(
+        StringBuilder sb,
+        IReadOnlyList<SqlPlanWarning>? planWarnings)
+    {
+        if (planWarnings is null || planWarnings.Count == 0)
+            return;
+
+        var score = CalculatePlanRiskScore(planWarnings);
+        sb.AppendLine($"- PlanRiskScore: {score}");
+    }
+
+
+    private static void AppendPlanWarningSummary(
+        StringBuilder sb,
+        IReadOnlyList<SqlPlanWarning>? planWarnings)
+    {
+        if (planWarnings is null || planWarnings.Count == 0)
+            return;
+
+        var summary = string.Join(
+            ";",
+            planWarnings
+                .OrderByDescending(static w => GetSeverityWeight(w.Severity))
+                .ThenBy(static w => w.Code, StringComparer.Ordinal)
+                .Select(static w => $"{w.Code}:{w.Severity}"));
+
+        sb.AppendLine($"- PlanWarningSummary: {summary}");
+    }
+
+
+
+    private static void AppendPlanWarningCounts(
+        StringBuilder sb,
+        IReadOnlyList<SqlPlanWarning>? planWarnings)
+    {
+        if (planWarnings is null || planWarnings.Count == 0)
+            return;
+
+        var high = planWarnings.Count(static w => w.Severity == SqlPlanWarningSeverity.High);
+        var warning = planWarnings.Count(static w => w.Severity == SqlPlanWarningSeverity.Warning);
+        var info = planWarnings.Count(static w => w.Severity == SqlPlanWarningSeverity.Info);
+
+        sb.AppendLine($"- PlanWarningCounts: high:{high};warning:{warning};info:{info}");
+    }
+
+    private static void AppendPrimaryWarning(
+        StringBuilder sb,
+        IReadOnlyList<SqlPlanWarning>? planWarnings)
+    {
+        if (planWarnings is null || planWarnings.Count == 0)
+            return;
+
+        var primary = planWarnings
+            .OrderByDescending(static w => GetSeverityWeight(w.Severity))
+            .ThenBy(static w => w.Code, StringComparer.Ordinal)
+            .First();
+
+        sb.AppendLine($"- PlanPrimaryWarning: {primary.Code}:{primary.Severity}");
+    }
+
+    private static int GetSeverityWeight(SqlPlanWarningSeverity severity)
+        => severity switch
+        {
+            SqlPlanWarningSeverity.Info => 1,
+            SqlPlanWarningSeverity.Warning => 2,
+            SqlPlanWarningSeverity.High => 3,
+            _ => 0
+        };
+
+    private static int CalculatePlanRiskScore(IReadOnlyList<SqlPlanWarning> warnings)
+    {
+        var total = 0;
+        foreach (var warning in warnings)
+        {
+            total += warning.Severity switch
+            {
+                SqlPlanWarningSeverity.Info => 10,
+                SqlPlanWarningSeverity.Warning => 30,
+                SqlPlanWarningSeverity.High => 50,
+                _ => 0
+            };
+        }
+
+        return Math.Min(100, total);
     }
 
     private static string FormatWarningSeverity(SqlPlanWarningSeverity severity)

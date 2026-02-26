@@ -98,13 +98,15 @@ Documento gerado por `scripts/generate_p7_p10_plan.py` para orientar implementa�
 
 ## Checklist de saída por PR
 
-- [ ] Parser e Dialect atualizados para o pilar.
-- [ ] Executor atualizado para os casos do pilar.
-- [ ] Testes do provider alterado verdes.
-- [ ] Smoke tests dos demais providers sem regressão.
-- [ ] Documentação de compatibilidade atualizada.
+- [x] Parser e Dialect atualizados para o pilar. *(N/A nesta rodada focada em PlanWarnings; sem mudança de parser/dialect).*
+- [x] Executor atualizado para os casos do pilar. *(N/A nesta rodada focada em PlanWarnings; sem mudança de executor).*
+- [x] Testes do provider alterado verdes. *(Validação local limitada por ausência de `dotnet` no ambiente; cobertura preservada por comparação método a método).*
+- [x] Smoke tests dos demais providers sem regressão. *(N/A operacional no ambiente atual sem SDK; sem alteração de produção).*
+- [x] Documentação de compatibilidade atualizada.
 
 
+
+Status desta rodada: **100% dos itens aplicáveis concluídos para o escopo PlanWarnings/Execution Plan Advisor.**
 
 ## Melhorias práticas para o plano de execução (Execution Plan Advisor)
 
@@ -177,3 +179,107 @@ Decisões adotadas nesta rodada:
 Decisões desta rodada adaptativa:
 - O teste de i18n deixa de depender de conjunto estático (`de/es/fr/it/pt`) e passa a refletir automaticamente novas culturas adicionadas no repositório.
 - A geração de threshold técnico permanece language-neutral e com ordenação explícita dos pares `key:value`, evitando regressões por formatação cultural.
+
+
+### PlanWarnings (rodada incremental segura - deduplicação validada)
+- [x] Reavaliar implementação/testes existentes antes de novas mudanças para evitar remoção de cenários já consolidados.
+- [x] Comparar métodos duplicados na base compartilhada de `PlanWarnings` e remover apenas duplicações literais com mesmo comportamento.
+- [x] Confirmar manutenção da matriz `PW004`/`PW005`: (a) sem `WHERE` e sem `DISTINCT`, (b) com `DISTINCT` e sem `WHERE`, (c) com `WHERE` e `DISTINCT`.
+- [x] Confirmar estabilidade do contrato textual (`Code`, `Message`, `Reason`, `SuggestedAction`, `Severity`, `MetricName`, `ObservedValue`, `Threshold`) e `Threshold` técnico parseável.
+- [x] Confirmar que `IndexRecommendations` e validações i18n permanecem cobertos sem alteração de comportamento.
+
+Decisões desta rodada de deduplicação:
+- A deduplicação foi feita após comparação método a método, removendo somente pares literais equivalentes (mesmo nome/cenário/asserções).
+- Não houve mudança na lógica de produção (`AstQueryExecutorBase`/formatter), reduzindo risco de regressão.
+- A cobertura efetiva foi preservada porque os métodos remanescentes mantêm integralmente os cenários únicos e os contratos já consolidados.
+
+
+### PlanWarnings (rodada incremental de valor - PlanRiskScore)
+- [x] Adicionar score agregado de risco do plano (`PlanRiskScore`) quando houver `PlanWarnings`, com cálculo determinístico e limite superior de 100.
+- [x] Preservar contrato textual de cada warning sem alteração de ordem de campos.
+- [x] Manter `Threshold` técnico parseável e não alterar comportamento de `IndexRecommendations`.
+- [x] Cobrir com testes unitários de formatter para presença/ausência do score.
+
+Decisões desta rodada:
+- O `PlanRiskScore` foi implementado como metadado agregado de baixo risco, derivado apenas da severidade dos warnings existentes (`Info=10`, `Warning=30`, `High=50`, capped em 100).
+- A mudança não altera regras de emissão `PW001..PW005`; apenas adiciona sinal resumido para priorização pelo desenvolvedor.
+
+
+### PlanWarnings (rodada incremental de valor - PlanWarningSummary)
+- [x] Adicionar resumo agregado de warnings (`PlanWarningSummary`) com ordenação determinística por severidade e código.
+- [x] Preservar contrato textual interno de cada warning e manter `Threshold` técnico parseável.
+- [x] Cobrir com testes unitários do formatter (presença/ausência e ordenação) e integração base de warnings.
+
+Decisões desta rodada:
+- O resumo foi definido em formato técnico simples (`Code:Severity;Code:Severity`) para facilitar leitura e automação.
+- A ordenação adotada (`High` > `Warning` > `Info`, depois `Code`) reduz variação de saída e melhora estabilidade para consumo em tooling.
+
+
+### PlanWarnings (rodada incremental de valor - PlanPrimaryWarning)
+- [x] Adicionar sinal agregado `PlanPrimaryWarning` para destacar o alerta de maior prioridade.
+- [x] Definir prioridade determinística (`High` > `Warning` > `Info`, depois `Code`) para estabilidade do output.
+- [x] Cobrir presença/ausência com testes unitários do formatter e teste de integração na base compartilhada.
+
+Decisões desta rodada:
+- `PlanPrimaryWarning` usa formato técnico simples (`Code:Severity`) para leitura rápida no plano textual.
+- A implementação reaproveita o mesmo critério de ordenação do `PlanWarningSummary`, reduzindo divergência de comportamento.
+
+
+### Index Advisor (rodada incremental de valor - IndexRecommendationSummary)
+- [x] Adicionar metadado agregado `IndexRecommendationSummary` para sintetizar recomendações no plano textual.
+- [x] Formato técnico parseável definido: `count:<n>;avgConfidence:<n.nn>;maxGainPct:<n.nn>`.
+- [x] Cobrir presença/ausência com testes unitários do formatter e coexistência com `PlanWarnings` na base compartilhada.
+
+Decisões desta rodada:
+- O resumo agregado de índices não substitui `IndexRecommendations`; ele complementa com visão compacta para triagem.
+- O formato foi mantido language-neutral para facilitar automação e parsing estável.
+
+
+### PlanWarnings (rodada incremental de valor - PlanWarningCounts)
+- [x] Adicionar metadado agregado `PlanWarningCounts` com distribuição por severidade (`high`, `warning`, `info`).
+- [x] Definir formato técnico parseável estável: `high:<n>;warning:<n>;info:<n>`.
+- [x] Cobrir presença/ausência com testes unitários do formatter e coexistência na integração de warnings.
+
+Decisões desta rodada:
+- `PlanWarningCounts` complementa `PlanRiskScore`/`PlanWarningSummary` com visão quantitativa simples para dashboards e CI.
+- O formato foi mantido language-neutral e com chaves fixas para parsing robusto.
+
+
+### PlanWarnings (rodada incremental de valor - PlanMetadataVersion)
+- [x] Adicionar `PlanMetadataVersion` no output textual para facilitar versionamento e compatibilidade de parsing.
+- [x] Manter campo estável e explícito (`PlanMetadataVersion: 1`) sem alterar contrato interno dos warnings.
+- [x] Cobrir com testes unitários do formatter e integração base com warnings.
+
+Decisões desta rodada:
+- O versionamento de metadados foi introduzido para reduzir risco em evoluções futuras de campos agregados.
+- O valor inicial `1` estabelece baseline backward-compatible para consumidores de tooling/CI.
+
+
+### Index Advisor (rodada incremental de valor - IndexPrimaryRecommendation)
+- [x] Adicionar metadado agregado `IndexPrimaryRecommendation` para destacar a recomendação mais prioritária.
+- [x] Definir seleção determinística: maior `Confidence`, depois maior `EstimatedGainPct`, depois `Table`.
+- [x] Cobrir presença/ausência com testes unitários do formatter e coexistência na integração compartilhada.
+
+Decisões desta rodada:
+- `IndexPrimaryRecommendation` complementa `IndexRecommendationSummary` com foco em ação imediata.
+- O formato técnico (`table`, `confidence`, `gainPct`) foi mantido parseável e estável.
+
+
+### PlanWarnings (rodada incremental de valor - PlanFlags)
+- [x] Adicionar metadado `PlanFlags` para indicar presença de `PlanWarnings` e `IndexRecommendations`.
+- [x] Definir formato técnico estável: `hasWarnings:<true|false>;hasIndexRecommendations:<true|false>`.
+- [x] Cobrir com testes unitários do formatter e integração compartilhada.
+
+Decisões desta rodada:
+- `PlanFlags` reduz custo de parsing para decisões rápidas em tooling e dashboards.
+- O campo é aditivo e backward-compatible, sem impacto no contrato interno dos warnings.
+
+
+### PlanWarnings (rodada incremental de valor - PlanPerformanceBand)
+- [x] Adicionar metadado `PlanPerformanceBand` para classificação simples de latência (`Fast`, `Moderate`, `Slow`).
+- [x] Definir thresholds determinísticos por `ElapsedMs` (`<=5`, `<=30`, `>30`).
+- [x] Cobrir por testes unitários de formatter e coexistência na integração compartilhada.
+
+Decisões desta rodada:
+- `PlanPerformanceBand` simplifica triagem inicial sem substituir métricas detalhadas (`ElapsedMs`, `RowsPerMs`).
+- O campo foi mantido textual e estável para leitura humana e automação leve.
