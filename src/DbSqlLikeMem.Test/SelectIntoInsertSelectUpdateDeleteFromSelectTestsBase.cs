@@ -35,7 +35,7 @@ SET u.total = s.total
 WHERE u.tenantid = 10";
 
     protected virtual string DeleteJoinDerivedSelectSql
-        => "DELETE FROM users WHERE id IN (SELECT id FROM users WHERE tenantid = 10)";
+        => "DELETE u FROM users u JOIN (SELECT id FROM users WHERE tenantid = 10) s ON s.id = u.id";
 
     /// <summary>
     /// EN: Indicates whether this provider should execute UPDATE/DELETE JOIN runtime paths.
