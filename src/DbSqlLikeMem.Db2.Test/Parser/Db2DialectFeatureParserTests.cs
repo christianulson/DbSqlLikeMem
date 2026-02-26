@@ -634,14 +634,24 @@ public sealed class Db2DialectFeatureParserTests
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
-    public void ParseScalar_WindowFrameClause_ShouldBeRejectedByDialectCapability(int version)
+    public void ParseScalar_WindowFrameClause_ShouldRespectDialectCapabilities(int version)
     {
         var dialect = new Db2Dialect(version);
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect));
+        if (version < Db2Dialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect));
+            return;
+        }
 
-        Assert.Contains("window frame", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var rowsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        Assert.IsType<WindowFunctionExpr>(rowsExpr);
+
+        var rangeExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        Assert.IsType<WindowFunctionExpr>(rangeExpr);
+
+        var groupsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW)", dialect);
+        Assert.IsType<WindowFunctionExpr>(groupsExpr);
     }
 
 }

@@ -226,19 +226,19 @@ internal sealed class SqlTokenizer
                 if (ch == close)
                 {
                     // Escaped close?
-                    if (_dialect.IdentifierEscapeStyle == SqlIdentifierEscapeStyle.double_quote && close == '"' && !Eof && Peek() == '"')
+                    if (close == '"' && !Eof && Peek() == '"')
                     {
                         Read(); // consume escaped "
                         sb.Append('"');
                         continue;
                     }
-                    if (_dialect.IdentifierEscapeStyle == SqlIdentifierEscapeStyle.backtick && close == '`' && !Eof && Peek() == '`')
+                    if (close == '`' && !Eof && Peek() == '`')
                     {
                         Read(); // consume escaped `
                         sb.Append('`');
                         continue;
                     }
-                    if (_dialect.IdentifierEscapeStyle == SqlIdentifierEscapeStyle.bracket && close == ']' && !Eof && Peek() == ']')
+                    if (close == ']' && !Eof && Peek() == ']')
                     {
                         Read(); // consume escaped ]
                         sb.Append(']');
