@@ -592,10 +592,10 @@ internal static class SqlExecutionPlanFormatter
                 .Select(static w => $"{w.Code}:{w.Severity}"));
 
             var high = planWarnings!.Count(static w => w.Severity == SqlPlanWarningSeverity.High);
-            var warning = planWarnings.Count(static w => w.Severity == SqlPlanWarningSeverity.Warning);
-            var info = planWarnings.Count(static w => w.Severity == SqlPlanWarningSeverity.Info);
+            var warning = planWarnings!.Count(static w => w.Severity == SqlPlanWarningSeverity.Warning);
+            var info = planWarnings!.Count(static w => w.Severity == SqlPlanWarningSeverity.Info);
 
-            var primary = planWarnings
+            var primary = planWarnings!
                 .OrderByDescending(static w => GetSeverityWeight(w.Severity))
                 .ThenBy(static w => w.Code, StringComparer.Ordinal)
                 .First();
@@ -604,7 +604,7 @@ internal static class SqlExecutionPlanFormatter
             payload["planQualityGrade"] = CalculatePlanQualityGrade(riskScore, performanceBand);
             payload["planWarningSummary"] = warningSummary;
             payload["planWarningCounts"] = $"high:{high};warning:{warning};info:{info}";
-            payload["planNoiseScore"] = CalculatePlanNoiseScore(planWarnings);
+            payload["planNoiseScore"] = CalculatePlanNoiseScore(planWarnings!);
             payload["planTopActions"] = string.Join(";", BuildTopActions(indexRecommendations, planWarnings));
             payload["planPrimaryWarning"] = $"{primary.Code}:{primary.Severity}";
             payload["planPrimaryCauseGroup"] = MapPrimaryCauseGroup(primary.Code);
@@ -635,8 +635,8 @@ internal static class SqlExecutionPlanFormatter
         if (hasIndexRecommendations)
         {
             var avgConfidence = indexRecommendations!.Average(static r => r.Confidence);
-            var maxGain = indexRecommendations.Max(static r => r.EstimatedGainPct);
-            payload["indexRecommendationSummary"] = $"count:{indexRecommendations.Count};avgConfidence:{avgConfidence:F2};maxGainPct:{maxGain:F2}";
+            var maxGain = indexRecommendations!.Max(static r => r.EstimatedGainPct);
+            payload["indexRecommendationSummary"] = $"count:{indexRecommendations!.Count};avgConfidence:{avgConfidence:F2};maxGainPct:{maxGain:F2}";
 
             var primary = indexRecommendations
                 .OrderByDescending(static r => r.Confidence)
