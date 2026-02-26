@@ -283,3 +283,120 @@ Decisões desta rodada:
 Decisões desta rodada:
 - `PlanPerformanceBand` simplifica triagem inicial sem substituir métricas detalhadas (`ElapsedMs`, `RowsPerMs`).
 - O campo foi mantido textual e estável para leitura humana e automação leve.
+
+### PlanWarnings (rodada incremental de valor - PlanQualityGrade)
+- [x] Adicionar metadado `PlanQualityGrade` com classificação qualitativa (`A|B|C|D`) derivada de risco e performance.
+- [x] Definir thresholds determinísticos combinando `PlanRiskScore` (`<=20`, `<=50`, `<=80`, `>80`) e penalidade por `PlanPerformanceBand` (`Fast=0`, `Moderate=+1`, `Slow=+2`).
+- [x] Cobrir presença/ausência e regras de threshold com testes unitários de formatter e integração compartilhada.
+
+Decisões desta rodada:
+- `PlanQualityGrade` é aditivo e só é emitido quando há `PlanWarnings`, preservando compatibilidade com fluxos sem alertas.
+- A regra de grade reaproveita sinais já existentes (`PlanRiskScore` e `PlanPerformanceBand`), usando a própria banda calculada no formatter para evitar divergência de threshold e manter baixo risco de regressão.
+
+### PlanWarnings (rodada incremental de valor - PlanTopActions)
+- [x] Adicionar metadado `PlanTopActions` com até 3 ações prioritárias derivadas de warnings/recomendações.
+- [x] Definir formato parseável estável: `PlanTopActions: <code>:<actionKey>;...`.
+- [x] Preservar `SuggestedAction` original dos warnings sem alterações de conteúdo.
+- [x] Cobrir presença/ausência, ordenação determinística e limite máximo de 3 ações com testes unitários e integração base.
+
+Decisões desta rodada:
+- A priorização foi definida por severidade (`High` > `Warning` > `Info`) e `Code` para manter saída estável.
+- Quando não há warnings, mas há recomendações de índice, é emitida ação técnica única `IDX:CreateSuggestedIndex`.
+
+### PlanWarnings (rodada incremental de valor - PlanNoiseScore)
+- [x] Adicionar metadado `PlanNoiseScore` para quantificar redundância de warnings.
+- [x] Definir fórmula determinística baseada em duplicidade de sinal técnico (`MetricName` + `Threshold`).
+- [x] Cobrir presença/ausência e regressão da matriz `PW004/PW005` com testes unitários e integração base.
+
+Decisões desta rodada:
+- `PlanNoiseScore` usa escala percentual (`0..100`) e é emitido apenas quando há warnings.
+- A fórmula considera ruído como repetição de sinais técnicos equivalentes, mantendo o contrato textual de warnings inalterado.
+
+### PlanWarnings (rodada incremental de valor - PlanCorrelationId)
+- [x] Adicionar metadado `PlanCorrelationId` para rastreabilidade por execução de plano.
+- [x] Definir formato técnico estável (`guid` sem separadores, 32 hex lower-case).
+- [x] Cobrir presença e formato com testes unitários de formatter e integração base.
+
+Decisões desta rodada:
+- `PlanCorrelationId` é emitido para cada `FormatSelect`, garantindo identificador único de troubleshooting.
+- O campo é estritamente aditivo e não interfere no contrato textual interno dos warnings.
+
+
+### PlanWarnings (rodada incremental de valor - Suíte de contrato textual agregados)
+- [x] Adicionar teste de contrato textual estável para metadados agregados `Plan*` e `Index*Summary`.
+- [x] Cobrir presença dos principais agregados em cenário combinado de warnings + recomendações.
+- [x] Manter abordagem de baixo risco com assertivas de contrato sem alterar comportamento de runtime.
+
+Decisões desta rodada:
+- A suíte valida prefixos/linhas agregadas parseáveis e preserva liberdade para evolução interna de implementação.
+- O teste cobre convivência dos agregados recentes (`PlanQualityGrade`, `PlanTopActions`, `PlanNoiseScore`, `PlanCorrelationId`) em um único plano.
+
+
+### PlanWarnings (rodada incremental de valor - Consolidação de contrato parseável e versionamento)
+- [x] Consolidar em seção única os padrões parseáveis de todos os agregados `Plan*` e `Index*Summary`.
+- [x] Definir política semântica de versionamento para `PlanMetadataVersion` com critérios explícitos de incremento.
+- [x] Manter diretriz de compatibilidade backward-compatible e preservação de chaves canônicas já publicadas.
+
+Decisões desta rodada:
+- A consolidação foi feita em documentação de controle para reduzir ambiguidade de consumo por CI/tooling.
+- O versionamento passa a distinguir quebra de contrato (major) de adições aditivas (minor documental), mantendo o valor inicial `PlanMetadataVersion: 1` como baseline.
+
+
+### PlanWarnings (rodada incremental de valor - i18n de labels agregados)
+- [x] Externalizar labels agregados (`Plan*` e `Index*`) em `SqlExecutionPlanMessages` para consistência i18n.
+- [x] Adicionar chaves correspondentes em todos os arquivos `.resx` localizados.
+- [x] Preservar tokens técnicos/canônicos sem tradução (`PlanRiskScore`, `PlanTopActions`, etc.).
+
+Decisões desta rodada:
+- Os labels agregados permanecem canônicos para manter parsing estável multi-idioma.
+- A formatação de warnings e thresholds não foi alterada; somente os rótulos agregados passaram a usar ResourceManager.
+
+
+### PlanWarnings (rodada incremental de valor - Payload JSON opcional)
+- [x] Adicionar `FormatSelectJson` como representação estruturada opcional para metadados agregados.
+- [x] Cobrir equivalência texto vs JSON para campos comuns (`Plan*`, `Index*Summary`).
+- [x] Cobrir ausência de campos derivados de warning quando não houver warnings.
+
+Decisões desta rodada:
+- O payload JSON é opcional e não altera o output textual existente.
+- Foram mapeados apenas campos comuns e estáveis para reduzir risco de divergência entre representações.
+
+
+### PlanWarnings (rodada incremental de valor - PlanPrimaryCauseGroup)
+- [x] Adicionar metadado `PlanPrimaryCauseGroup` derivado do warning primário.
+- [x] Definir taxonomia estável por código (`PW001..PW005`) para grupo de causa.
+- [x] Cobrir presença/ausência e equivalência texto/json em testes de formatter e integração base.
+
+Decisões desta rodada:
+- O grupo de causa primária reutiliza a mesma prioridade do `PlanPrimaryWarning` para evitar divergência.
+- A taxonomia foi mantida técnica e estável (`SortWithoutLimit`, `LowSelectivityPredicate`, `WideProjection`, `ScanWithoutFilter`, `DistinctOverHighRead`).
+
+
+### Index Advisor (rodada incremental de valor - IndexRecommendationEvidence)
+- [x] Adicionar metadado `IndexRecommendationEvidence` com evidências técnicas por recomendação.
+- [x] Definir formato parseável estável: `table:<name>;indexCols:<cols>;confidence:<n>;gainPct:<n.nn>` (multi-itens separados por `|`).
+- [x] Cobrir presença/ausência e coerência básica com índice sugerido em testes de formatter e integração base.
+
+Decisões desta rodada:
+- A evidência reutiliza `SuggestedIndex` para extrair `indexCols` de forma determinística e de baixo risco.
+- O campo é aditivo e não altera `IndexRecommendations` existente; apenas amplia observabilidade para tooling/CI.
+
+
+### PlanWarnings (rodada incremental de valor - PlanDelta)
+- [x] Adicionar metadado opcional `PlanDelta` para comparar risco/latência entre execução atual e snapshot anterior.
+- [x] Definir formato parseável estável: `riskDelta:<+/-n>;elapsedMsDelta:<+/-n>`.
+- [x] Cobrir presença/ausência e cenário controlado de delta em testes de formatter e integração base.
+
+Decisões desta rodada:
+- `PlanDelta` só é emitido quando `previousMetrics` é informado, evitando ruído em execuções isoladas.
+- O cálculo usa `PlanRiskScore` atual/anterior e `ElapsedMs` para refletir regressões de risco e latência.
+
+
+### PlanWarnings (rodada incremental de valor - Hint de severidade por contexto)
+- [x] Adicionar metadado `PlanSeverityHint` com contexto (`dev`, `ci`, `prod`) e nível sugerido (`Info|Warning|High`).
+- [x] Definir defaults backward-compatible (`dev`) e permitir override sem alterar severidade interna dos warnings.
+- [x] Cobrir comportamento default e override em testes unitários e integração base.
+
+Decisões desta rodada:
+- O hint contextual é aditivo e não modifica `Severity` original dos warnings (`Info|Warning|High`).
+- O cálculo contextual ajusta apenas a recomendação agregada para priorização por ambiente.
