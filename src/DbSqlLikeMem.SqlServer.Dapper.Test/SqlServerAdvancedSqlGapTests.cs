@@ -262,6 +262,125 @@ ORDER BY id").ToList();
 
 
     /// <summary>
+    /// EN: Tests RANGE frame execution for ranking/distribution and lead-lag defaults with numeric ORDER BY.
+    /// PT: Testa execução de frame RANGE para ranking/distribuição e defaults de lead-lag com ORDER BY numérico.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_RangeFrame_ShouldWorkForRankingDistributionAndLagLead()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY id RANGE BETWEEN 1 PRECEDING AND CURRENT ROW) AS rk_range,
+       DENSE_RANK() OVER (ORDER BY id RANGE BETWEEN 1 PRECEDING AND CURRENT ROW) AS dr_range,
+       PERCENT_RANK() OVER (ORDER BY id RANGE BETWEEN 1 PRECEDING AND CURRENT ROW) AS pr_range,
+       CUME_DIST() OVER (ORDER BY id RANGE BETWEEN 1 PRECEDING AND CURRENT ROW) AS cd_range,
+       NTILE(2) OVER (ORDER BY id RANGE BETWEEN 1 PRECEDING AND CURRENT ROW) AS ntile_range,
+       LAG(id, 1, -1) OVER (ORDER BY id RANGE BETWEEN CURRENT ROW AND 1 FOLLOWING) AS lag_range,
+       LEAD(id, 1, 99) OVER (ORDER BY id RANGE BETWEEN 1 PRECEDING AND CURRENT ROW) AS lead_range
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([1, 2, 2], [.. rows.Select(r => (int)r.rk_range)]);
+        Assert.Equal([1, 2, 2], [.. rows.Select(r => (int)r.dr_range)]);
+        Assert.Equal([0d, 1d, 1d], [.. rows.Select(r => Convert.ToDouble(r.pr_range))]);
+        Assert.Equal([1d, 1d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_range))]);
+        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.ntile_range)]);
+        Assert.Equal([-1, -1, -1], [.. rows.Select(r => (int)r.lag_range)]);
+        Assert.Equal([99, 99, 99], [.. rows.Select(r => (int)r.lead_range)]);
+    }
+
+
+    /// <summary>
+    /// EN: Tests GROUPS frame execution aligns with peer-group boundaries.
+    /// PT: Testa se execução de frame GROUPS respeita os limites de grupos de peers.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_GroupsFrame_ShouldRespectPeerGroups()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY tenantid GROUPS BETWEEN CURRENT ROW AND CURRENT ROW) AS rk_groups,
+       DENSE_RANK() OVER (ORDER BY tenantid GROUPS BETWEEN CURRENT ROW AND CURRENT ROW) AS dr_groups,
+       PERCENT_RANK() OVER (ORDER BY tenantid GROUPS BETWEEN CURRENT ROW AND CURRENT ROW) AS pr_groups,
+       CUME_DIST() OVER (ORDER BY tenantid GROUPS BETWEEN CURRENT ROW AND CURRENT ROW) AS cd_groups,
+       NTILE(2) OVER (ORDER BY tenantid GROUPS BETWEEN CURRENT ROW AND CURRENT ROW) AS ntile_groups
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.rk_groups)]);
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.dr_groups)]);
+        Assert.Equal([0d, 0d, 0d], [.. rows.Select(r => Convert.ToDouble(r.pr_groups))]);
+        Assert.Equal([1d, 1d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_groups))]);
+        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.ntile_groups)]);
+    }
+
+
+    /// <summary>
+    /// EN: Tests RANGE offset with composite ORDER BY throws a clear runtime validation error.
+    /// PT: Testa se RANGE com offset e ORDER BY composto lança erro claro de validação em runtime.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_RangeOffset_WithCompositeOrder_ShouldThrowClearError()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY tenantid, id RANGE BETWEEN 1 PRECEDING AND CURRENT ROW) AS rk_bad
+FROM users
+ORDER BY id").ToList());
+
+        Assert.Contains("single ORDER BY expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Tests RANGE CURRENT ROW with composite ORDER BY works without offset-specific numeric requirement.
+    /// PT: Testa se RANGE CURRENT ROW com ORDER BY composto funciona sem exigir regra numérica específica de offset.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_RangeCurrentRow_WithCompositeOrder_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY tenantid, id RANGE BETWEEN CURRENT ROW AND CURRENT ROW) AS rk_range_current,
+       DENSE_RANK() OVER (ORDER BY tenantid, id RANGE BETWEEN CURRENT ROW AND CURRENT ROW) AS dr_range_current,
+       CUME_DIST() OVER (ORDER BY tenantid, id RANGE BETWEEN CURRENT ROW AND CURRENT ROW) AS cd_range_current
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.rk_range_current)]);
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.dr_range_current)]);
+        Assert.Equal([1d, 1d, 1d], [.. rows.Select(r => Convert.ToDouble(r.cd_range_current))]);
+    }
+
+
+    /// <summary>
+    /// EN: Tests RANGE CURRENT ROW with non-numeric ORDER BY remains valid because it is peer-based.
+    /// PT: Testa se RANGE CURRENT ROW com ORDER BY não numérico continua válido por ser baseado em peers.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_RangeCurrentRow_WithTextOrder_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY name RANGE BETWEEN CURRENT ROW AND CURRENT ROW) AS rk_name_range,
+       DENSE_RANK() OVER (ORDER BY name RANGE BETWEEN CURRENT ROW AND CURRENT ROW) AS dr_name_range,
+       NTILE(2) OVER (ORDER BY name RANGE BETWEEN CURRENT ROW AND CURRENT ROW) AS ntile_name_range
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.rk_name_range)]);
+        Assert.Equal([1, 1, 1], [.. rows.Select(r => (int)r.dr_name_range)]);
+        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.ntile_name_range)]);
+    }
+
+
+    /// <summary>
     /// EN: Tests CorrelatedSubquery_InSelectList_ShouldWork behavior.
     /// PT: Testa o comportamento de CorrelatedSubquery_InSelectList_ShouldWork.
     /// </summary>

@@ -27,6 +27,16 @@ Para evitar duplicação de código e problemas de build:
 
 | Item | Progresso | Observações rápidas |
 | --- | --- | --- |
+| 1) CTE avançada | **70%** | Gates principais já existem; faltam cenários/versionamento mais fino em cobertura. |
+| 2) Window functions além de `ROW_NUMBER` | **100%** | Gating por nome/versão, validação de aridade/`ORDER BY`, parser com suporte de leitura para frames `ROWS`/`RANGE`/`GROUPS`, validação semântica de limites de frame (`start <= end`) e execução de frame `ROWS` para `FIRST_VALUE`/`LAST_VALUE`/`NTH_VALUE`/`LAG`/`LEAD`/`RANK`/`DENSE_RANK`/`PERCENT_RANK`/`CUME_DIST`/`NTILE` já implementadas (incluindo cenários de frame current/sliding/forward por linha, proteção para frames que excluem a linha atual em ranking/distribution/NTILE e validações com ORDER BY DESC/composite peers no runtime). Fail-fast para função desconhecida e hardening de aridade/ranges literais (`NTILE`/`LAG`/`LEAD`/`NTH_VALUE`) também entregues. Sem pendências abertas neste item no Core parser/executor (incluindo runtime para `ROWS`/`RANGE`/`GROUPS`, com `RANGE` sem offset aceitando ORDER BY não numérico/composto por semântica peer-based e validação explícita para offset com ORDER BY composto). |
+| 3) UPSERT por família de banco | **55%** | Parser com capacidades base; ainda há execução/semântica por provider a consolidar. |
+| 4) Tipos/literais/coerção | **45%** | Base central em `SqlExtensions`; falta extrair mais regras específicas por dialect/version. |
+| 5) JSON cross-dialect | **50%** | Gates e parte do parser prontos; falta ampliar cobertura de execução por provider. |
+| 6) Plano físico com custo | **15%** | Ainda não iniciado como motor dedicado; apenas evolução incremental do executor atual. |
+| 7) JOIN/subquery com heurística | **30%** | Há caminhos funcionais; faltam heurísticas/caching explícitos com meta de custo. |
+| 8) Semântica transacional por isolamento | **25%** | Suporte parcial por cenários; falta modelagem mais completa por provider/version. |
+| 9) `RETURNING`/`OUTPUT`/`RETURNING INTO` | **35%** | Capabilities e parser base; falta payload consistente no executor multi-provider. |
+| 10) Collation/null ordering | **40%** | Parte da comparação textual já centralizada; faltam regras completas de `NULLS FIRST/LAST` e collation. |
 | 1) CTE avançada | **75%** ⬆️ | Gates principais permanecem sólidos e houve avanço de cobertura por versão/dialeto, mas ainda existem bordas específicas para fechar. |
 | 2) Window functions além de `ROW_NUMBER` | **93%** ➡️ | Mantido: parser/runtime já cobrem ranking/distribution/value functions e frame `ROWS`; pendência principal segue em `RANGE/GROUPS` no runtime. |
 | 3) UPSERT por família de banco | **65%** ⬆️ | Evoluiu com consolidação de `ON DUPLICATE`/`ON CONFLICT` e `MERGE` em subset seguro; faltam harmonizações finais de semântica de execução. |
