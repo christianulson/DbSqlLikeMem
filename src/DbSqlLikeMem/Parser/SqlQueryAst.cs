@@ -2,12 +2,14 @@ namespace DbSqlLikeMem;
 internal abstract record SqlQueryBase
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets RawSql.
+    /// PT: Obtém ou define RawSql.
     /// </summary>
     public string RawSql { get; init; } = "";
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets Table.
+    /// PT: Obtém ou define Table.
     /// </summary>
     public SqlTableSource? Table { get; init; }
 }
@@ -38,11 +40,13 @@ internal sealed record SqlInsertQuery : SqlQueryBase
     internal IReadOnlyList<List<SqlExpr?>> ValuesExpr { get; init; } = [];   // best-effort parsed values (aligned with ValuesRaw)
     internal bool HasOnDuplicateKeyUpdate { get; init; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements this member.
+    /// PT: Implementa este membro.
     /// </summary>
     public IReadOnlyList<(string Col, string ExprRaw)> OnDupAssigns { get; init; } = [];
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets OnDupAssignsParsed.
+    /// PT: Obtém ou define OnDupAssignsParsed.
     /// </summary>
     public IReadOnlyList<SqlAssignment> OnDupAssignsParsed { get; init; } = [];
     internal SqlSelectQuery? InsertSelect { get; init; }               // INSERT INTO t (...) SELECT ...
@@ -109,7 +113,29 @@ internal sealed record SqlTableSource(
     SqlSelectQuery? Derived,
     SqlQueryParser.UnionChain? DerivedUnion,
     string? DerivedSql,
-    SqlPivotSpec? Pivot
+    SqlPivotSpec? Pivot,
+    IReadOnlyList<SqlMySqlIndexHint>? MySqlIndexHints = null
+);
+
+internal enum SqlMySqlIndexHintKind
+{
+    Use,
+    Ignore,
+    Force
+}
+
+internal enum SqlMySqlIndexHintScope
+{
+    Any,
+    Join,
+    OrderBy,
+    GroupBy
+}
+
+internal sealed record SqlMySqlIndexHint(
+    SqlMySqlIndexHintKind Kind,
+    SqlMySqlIndexHintScope Scope,
+    IReadOnlyList<string> IndexNames
 );
 
 internal sealed record SqlPivotSpec(

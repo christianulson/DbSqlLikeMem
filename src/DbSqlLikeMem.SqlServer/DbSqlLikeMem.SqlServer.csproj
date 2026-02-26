@@ -19,11 +19,15 @@
 		<ProjectReference Include="..\DbSqlLikeMem\DbSqlLikeMem.csproj" />
 	</ItemGroup>
 	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer.Dapper.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer.NHibernate" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer.NHibernate.Test" />
 	</ItemGroup>
 	<ItemGroup>
 		<Using Include="DbSqlLikeMem.Resources" />
 		<Using Include="System.Data" />
+		<Using Include="System.Data.Common" />
 		<Using Include="System.Globalization" />
 		<Using Include="System.Text.RegularExpressions" />
 	</ItemGroup>

@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ExecutionPlanTitle" xml:space="preserve">
+    <value>Plan de Ejecución (mock)</value>
+  </data>
+  <data name="QueryTypeLabel" xml:space="preserve">
+    <value>TipoConsulta</value>
+  </data>
+  <data name="EstimatedCostLabel" xml:space="preserve">
+    <value>CostoEstimado</value>
+  </data>
+  <data name="CtesLabel" xml:space="preserve">
+    <value>CTEs</value>
+  </data>
+  <data name="CteMaterializeLabel" xml:space="preserve">
+    <value>CTE Materialize</value>
+  </data>
+  <data name="FromLabel" xml:space="preserve">
+    <value>From</value>
+  </data>
+  <data name="JoinLabel" xml:space="preserve">
+    <value>Join</value>
+  </data>
+  <data name="FilterLabel" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="GroupByLabel" xml:space="preserve">
+    <value>GroupBy</value>
+  </data>
+  <data name="HavingLabel" xml:space="preserve">
+    <value>Having</value>
+  </data>
+  <data name="ProjectionLabel" xml:space="preserve">
+    <value>Proyección</value>
+  </data>
+  <data name="DistinctLabel" xml:space="preserve">
+    <value>Distinct</value>
+  </data>
+  <data name="SortLabel" xml:space="preserve">
+    <value>Sort</value>
+  </data>
+  <data name="LimitLabel" xml:space="preserve">
+    <value>Limit</value>
+  </data>
+  <data name="InputTablesLabel" xml:space="preserve">
+    <value>TablasEntrada</value>
+  </data>
+  <data name="EstimatedRowsReadLabel" xml:space="preserve">
+    <value>FilasEstimadasLeidas</value>
+  </data>
+  <data name="ActualRowsLabel" xml:space="preserve">
+    <value>FilasReales</value>
+  </data>
+  <data name="SelectivityPctLabel" xml:space="preserve">
+    <value>SelectividadPct</value>
+  </data>
+  <data name="RowsPerMsLabel" xml:space="preserve">
+    <value>FilasPorMs</value>
+  </data>
+  <data name="ElapsedMsLabel" xml:space="preserve">
+    <value>TiempoTranscurridoMs</value>
+  </data>
+  <data name="IndexRecommendationsLabel" xml:space="preserve">
+    <value>RecomendacionesIndice</value>
+  </data>
+  <data name="TableLabel" xml:space="preserve">
+    <value>Tabla</value>
+  </data>
+  <data name="SuggestedIndexLabel" xml:space="preserve">
+    <value>IndiceSugerido</value>
+  </data>
+  <data name="ReasonLabel" xml:space="preserve">
+    <value>Motivo</value>
+  </data>
+  <data name="ConfidenceLabel" xml:space="preserve">
+    <value>Confianza</value>
+  </data>
+  <data name="EstimatedRowsReadBeforeLabel" xml:space="preserve">
+    <value>FilasEstimadasLeidasAntes</value>
+  </data>
+  <data name="EstimatedRowsReadAfterLabel" xml:space="preserve">
+    <value>FilasEstimadasLeidasDespues</value>
+  </data>
+  <data name="EstimatedGainPctLabel" xml:space="preserve">
+    <value>GananciaEstimadaPct</value>
+  </data>
+  <data name="PartsLabel" xml:space="preserve">
+    <value>Partes</value>
+  </data>
+  <data name="PartLabel" xml:space="preserve">
+    <value>Parte</value>
+  </data>
+  <data name="CombineLabel" xml:space="preserve">
+    <value>Combinar</value>
+  </data>
+  <data name="ReasonFilterAndOrder" xml:space="preserve">
+    <value>WHERE/JOIN ({0}) + ORDER BY ({1}) sin índice compatible. Clave sugerida: {2}.</value>
+  </data>
+  <data name="ReasonFilterOnly" xml:space="preserve">
+    <value>Predicados WHERE/JOIN ({0}) sin índice compatible.</value>
+  </data>
+  <data name="ReasonOrderOnly" xml:space="preserve">
+    <value>ORDER BY ({0}) sin índice compatible.</value>
+  </data>
+  <data name="PlanWarningsLabel" xml:space="preserve">
+    <value>AdvertenciasPlan</value>
+  </data>
+  <data name="CodeLabel" xml:space="preserve">
+    <value>Codigo</value>
+  </data>
+  <data name="MessageLabel" xml:space="preserve">
+    <value>Mensaje</value>
+  </data>
+  <data name="SuggestedActionLabel" xml:space="preserve">
+    <value>AccionSugerida</value>
+  </data>
+  <data name="SeverityLabel" xml:space="preserve">
+    <value>Severidad</value>
+  </data>
+  <data name="WarningOrderByWithoutLimitMessage" xml:space="preserve">
+    <value>ORDER BY puede ser costoso sin LIMIT/TOP/FETCH.</value>
+  </data>
+  <data name="WarningOrderByWithoutLimitReason" xml:space="preserve">
+    <value>ORDER BY está ordenando aproximadamente {0} filas estimadas sin LIMIT/TOP/FETCH.</value>
+  </data>
+  <data name="WarningOrderByWithoutLimitAction" xml:space="preserve">
+    <value>Use LIMIT/TOP/FETCH cuando sea posible, o cree/mantenga un índice alineado con las columnas de ORDER BY.</value>
+  </data>
+  <data name="WarningLowSelectivityMessage" xml:space="preserve">
+    <value>Se detectó baja selectividad con alto volumen de lectura.</value>
+  </data>
+  <data name="WarningLowSelectivityReason" xml:space="preserve">
+    <value>La consulta devolvió un alto porcentaje de las filas escaneadas (SelectivityPct={0:F2}) con EstimatedRowsRead={1}.</value>
+  </data>
+  <data name="WarningLowSelectivityAction" xml:space="preserve">
+    <value>Refine los predicados de WHERE y verifique si se necesitan predicados más selectivos o índices.</value>
+  </data>
+  <data name="WarningSelectStarMessage" xml:space="preserve">
+    <value>SELECT * en una consulta de alta lectura puede aumentar el I/O y el uso de memoria.</value>
+  </data>
+  <data name="WarningSelectStarReason" xml:space="preserve">
+    <value>Se utilizó SELECT * mientras EstimatedRowsRead es {0}.</value>
+  </data>
+  <data name="WarningSelectStarAction" xml:space="preserve">
+    <value>Proyecte solo las columnas necesarias en lugar de SELECT *.</value>
+  </data>
+  <data name="MetricNameLabel" xml:space="preserve">
+    <value>NombreMetrica</value>
+  </data>
+  <data name="ObservedValueLabel" xml:space="preserve">
+    <value>ValorObservado</value>
+  </data>
+  <data name="ThresholdLabel" xml:space="preserve">
+    <value>Umbral</value>
+  </data>
+  <data name="WarningLowSelectivityHighImpactMessage" xml:space="preserve">
+    <value>Se detectó selectividad muy baja con alto volumen de lectura.</value>
+  </data>
+  <data name="WarningSelectStarHighImpactMessage" xml:space="preserve">
+    <value>SELECT * en una consulta de lectura muy alta eleva el riesgo de I/O y memoria.</value>
+  </data>
+  <data name="WarningSelectStarCriticalImpactMessage" xml:space="preserve">
+    <value>SELECT * en una consulta de lectura extremadamente alta tiene riesgo crítico de I/O y memoria.</value>
+  </data>
+  <data name="WarningNoWhereHighReadMessage" xml:space="preserve">
+    <value>Una consulta de alta lectura sin WHERE puede provocar un escaneo completo.</value>
+  </data>
+  <data name="WarningNoWhereHighReadHighImpactMessage" xml:space="preserve">
+    <value>Una consulta de lectura muy alta sin WHERE tiene riesgo crítico de escaneo completo.</value>
+  </data>
+  <data name="WarningNoWhereHighReadReason" xml:space="preserve">
+    <value>No se proporcionó predicado WHERE mientras EstimatedRowsRead es {0}.</value>
+  </data>
+  <data name="WarningNoWhereHighReadAction" xml:space="preserve">
+    <value>Agregue predicados WHERE selectivos cuando sea posible o confirme que el escaneo completo es intencional.</value>
+  </data>
+  <data name="WarningDistinctHighReadMessage" xml:space="preserve">
+    <value>DISTINCT en una consulta de alta lectura puede agregar costo elevado de deduplicación.</value>
+  </data>
+  <data name="WarningDistinctHighReadHighImpactMessage" xml:space="preserve">
+    <value>DISTINCT en una consulta de lectura muy alta tiene riesgo crítico de costo por deduplicación.</value>
+  </data>
+  <data name="WarningDistinctHighReadReason" xml:space="preserve">
+    <value>Se está aplicando DISTINCT mientras EstimatedRowsRead es {0}.</value>
+  </data>
+  <data name="WarningDistinctHighReadAction" xml:space="preserve">
+    <value>Use DISTINCT solo cuando sea necesario y evalúe si filtros/índices pueden reducir filas antes de deduplicar.</value>
+  </data>
+  <data name="SeverityInfoValue" xml:space="preserve">
+    <value>Informacion</value>
+  </data>
+  <data name="SeverityWarningValue" xml:space="preserve">
+    <value>Advertencia</value>
+  </data>
+  <data name="SeverityHighValue" xml:space="preserve">
+    <value>Alta</value>
+  </data>
+  <data name="PlanMetadataVersionLabel" xml:space="preserve">
+    <value>PlanMetadataVersion</value>
+  </data>
+  <data name="PlanCorrelationIdLabel" xml:space="preserve">
+    <value>PlanCorrelationId</value>
+  </data>
+  <data name="PlanFlagsLabel" xml:space="preserve">
+    <value>PlanFlags</value>
+  </data>
+  <data name="PlanPerformanceBandLabel" xml:space="preserve">
+    <value>PlanPerformanceBand</value>
+  </data>
+  <data name="PlanRiskScoreLabel" xml:space="preserve">
+    <value>PlanRiskScore</value>
+  </data>
+  <data name="PlanQualityGradeLabel" xml:space="preserve">
+    <value>PlanQualityGrade</value>
+  </data>
+  <data name="PlanWarningSummaryLabel" xml:space="preserve">
+    <value>PlanWarningSummary</value>
+  </data>
+  <data name="PlanWarningCountsLabel" xml:space="preserve">
+    <value>PlanWarningCounts</value>
+  </data>
+  <data name="PlanNoiseScoreLabel" xml:space="preserve">
+    <value>PlanNoiseScore</value>
+  </data>
+  <data name="PlanTopActionsLabel" xml:space="preserve">
+    <value>PlanTopActions</value>
+  </data>
+  <data name="PlanPrimaryWarningLabel" xml:space="preserve">
+    <value>PlanPrimaryWarning</value>
+  </data>
+  <data name="IndexRecommendationSummaryLabel" xml:space="preserve">
+    <value>IndexRecommendationSummary</value>
+  </data>
+  <data name="IndexPrimaryRecommendationLabel" xml:space="preserve">
+    <value>IndexPrimaryRecommendation</value>
+  </data>
+  <data name="PlanPrimaryCauseGroupLabel" xml:space="preserve">
+    <value>PlanPrimaryCauseGroup</value>
+  </data>
+  <data name="IndexRecommendationEvidenceLabel" xml:space="preserve">
+    <value>IndexRecommendationEvidence</value>
+  </data>
+  <data name="PlanDeltaLabel" xml:space="preserve">
+    <value>PlanDelta</value>
+  </data>
+  <data name="PlanSeverityHintLabel" xml:space="preserve">
+    <value>PlanSeverityHint</value>
+  </data>
+</root>

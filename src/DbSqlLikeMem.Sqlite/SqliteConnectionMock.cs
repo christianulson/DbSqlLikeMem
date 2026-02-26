@@ -1,9 +1,8 @@
-﻿using System.Data.Common;
-
-namespace DbSqlLikeMem.Sqlite;
+﻿namespace DbSqlLikeMem.Sqlite;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Represents Sqlite Connection Mock.
+/// PT: Representa uma conexão simulada do Sqlite.
 /// </summary>
 public sealed class SqliteConnectionMock
     : DbConnectionMockBase
@@ -14,7 +13,8 @@ public sealed class SqliteConnectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Represents Sqlite Connection Mock.
+    /// PT: Representa uma conexão simulada do Sqlite.
     /// </summary>
     public SqliteConnectionMock(
        SqliteDbMock? db = null,
@@ -25,19 +25,16 @@ public sealed class SqliteConnectionMock
     }
 
     /// <summary>
-    /// EN: Creates a SQLite transaction mock.
-    /// PT: Cria um mock de transação SQLite.
+    /// EN: Creates a new transaction instance.
+    /// PT: Cria uma nova instância de transaction.
     /// </summary>
-    /// <returns>EN: Transaction instance. PT: Instância da transação.</returns>
     protected override DbTransaction CreateTransaction(IsolationLevel isolationLevel)
         => new SqliteTransactionMock(this, isolationLevel);
 
     /// <summary>
-    /// EN: Creates a SQLite command mock for the transaction.
-    /// PT: Cria um mock de comando SQLite para a transação.
+    /// EN: Creates a new db command core instance.
+    /// PT: Cria uma nova instância de comando de banco principal.
     /// </summary>
-    /// <param name="transaction">EN: Current transaction. PT: Transação atual.</param>
-    /// <returns>EN: Command instance. PT: Instância do comando.</returns>
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new SqliteCommandMock(this, transaction as SqliteTransactionMock);
 

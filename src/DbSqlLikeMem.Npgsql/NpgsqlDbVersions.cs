@@ -3,7 +3,8 @@ namespace DbSqlLikeMem.Npgsql;
 internal static class NpgsqlDbVersions
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Represents Versions.
+    /// PT: Retorna as versões do PostgreSQL suportadas por este mock de provedor.
     /// </summary>
     public static IEnumerable<int> Versions()
     {

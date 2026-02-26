@@ -3,21 +3,24 @@ using System.Linq.Expressions;
 
 namespace DbSqlLikeMem.Oracle;
 /// <summary>
-/// EN: IQueryable wrapper for Oracle LINQ translation.
-/// PT: Wrapper IQueryable para tradução LINQ do Oracle.
+/// EN: Represents Oracle Queryable.
+/// PT: Representa Oracle Queryable.
 /// </summary>
 public class OracleQueryable<T> : IOrderedQueryable<T>
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets table name.
+    /// PT: Obtém ou define table name.
     /// </summary>
     public string TableName { get; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets expression.
+    /// PT: Obtém ou define expression.
     /// </summary>
     public Expression Expression { get; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Executes oracle queryable.
+    /// PT: Executa oracle queryable.
     /// </summary>
     public IQueryProvider Provider { get; }
 
@@ -44,13 +47,15 @@ public class OracleQueryable<T> : IOrderedQueryable<T>
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Executes typeof.
+    /// PT: Executa typeof.
     /// </summary>
     public Type ElementType => typeof(T);
     IEnumerator IEnumerable.GetEnumerator()
         => Provider.Execute<IEnumerable<T>>(Expression).GetEnumerator();
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets enumerator.
+    /// PT: Obtém enumerador.
     /// </summary>
     public IEnumerator<T> GetEnumerator()
         => Provider.Execute<IEnumerable<T>>(Expression).GetEnumerator();

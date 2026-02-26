@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.MySql.Test.Views;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class MySqlCreateViewParserTests.
+/// PT: Define a classe MySqlCreateViewParserTests.
 /// </summary>
 public sealed class MySqlCreateViewParserTests(
     ITestOutputHelper helper

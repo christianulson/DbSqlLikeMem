@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Sqlite.Test.Strategy;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqliteUpdateStrategyCoverageTests.
+/// PT: Define a classe SqliteUpdateStrategyCoverageTests.
 /// </summary>
 public sealed class SqliteUpdateStrategyCoverageTests(
         ITestOutputHelper helper

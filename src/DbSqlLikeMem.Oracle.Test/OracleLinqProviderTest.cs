@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test;
 /// <summary>
 /// EN: Defines the class OracleLinqProviderTest.
-/// PT: Define o(a) class OracleLinqProviderTest.
+/// PT: Define a classe OracleLinqProviderTest.
 /// </summary>
 public sealed class OracleLinqProviderTest
 {

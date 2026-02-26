@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test.TemporaryTable;
 
 /// <summary>
 /// EN: Defines the class OracleTemporaryTableEngineTests.
-/// PT: Define o(a) class OracleTemporaryTableEngineTests.
+/// PT: Define a classe OracleTemporaryTableEngineTests.
 /// </summary>
 public sealed class OracleTemporaryTableEngineTests
 {

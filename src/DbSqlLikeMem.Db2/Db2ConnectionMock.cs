@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Db2;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Represents Db2 Connection Mock.
+/// PT: Representa Db2 conexão simulada.
 /// </summary>
 public sealed class Db2ConnectionMock
     : DbConnectionMockBase
@@ -15,7 +16,8 @@ public sealed class Db2ConnectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Represents Db2 Connection Mock.
+    /// PT: Representa Db2 conexão simulada.
     /// </summary>
     public Db2ConnectionMock(
        Db2DbMock? db = null,
@@ -26,19 +28,16 @@ public sealed class Db2ConnectionMock
     }
 
     /// <summary>
-    /// EN: Creates a DB2 transaction mock.
-    /// PT: Cria um mock de transação DB2.
+    /// EN: Creates a new transaction instance.
+    /// PT: Cria uma nova instância de transaction.
     /// </summary>
-    /// <returns>EN: Transaction instance. PT: Instância da transação.</returns>
     protected override DbTransaction CreateTransaction(IsolationLevel isolationLevel)
         => new Db2TransactionMock(this, isolationLevel);
 
     /// <summary>
-    /// EN: Creates a DB2 command mock for the transaction.
-    /// PT: Cria um mock de comando DB2 para a transação.
+    /// EN: Creates a new db command core instance.
+    /// PT: Cria uma nova instância de comando de banco principal.
     /// </summary>
-    /// <param name="transaction">EN: Current transaction. PT: Transação atual.</param>
-    /// <returns>EN: Command instance. PT: Instância do comando.</returns>
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new Db2CommandMock(this, transaction as Db2TransactionMock);
 

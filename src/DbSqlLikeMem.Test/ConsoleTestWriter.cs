@@ -13,7 +13,8 @@ public class ConsoleTestWriter(
     private readonly ITestOutputHelper? _helper = helper;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests WriteLine behavior.
+    /// PT: Testa o comportamento de WriteLine.
     /// </summary>
     public override void WriteLine(string? value)
     {

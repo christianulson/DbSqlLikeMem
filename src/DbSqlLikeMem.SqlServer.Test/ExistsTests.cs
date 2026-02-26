@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer.Test;
 
 /// <summary>
 /// EN: Runs shared EXISTS/NOT EXISTS tests using the SQL Server mock connection.
-/// PT: Executa os testes compartilhados de EXISTS/NOT EXISTS usando a conexão mock de SQL Server.
+/// PT: Executa os testes compartilhados de EXISTS/NOT EXISTS usando a conexão simulada de SQL Server.
 /// </summary>
 /// <param name="helper">
 /// EN: xUnit output helper used by the shared base test class.
@@ -14,7 +14,7 @@ public sealed class ExistsTests(
 {
     /// <summary>
     /// EN: Creates a SQL Server mock connection used by shared EXISTS tests.
-    /// PT: Cria uma conexão mock de SQL Server usada pelos testes compartilhados de EXISTS.
+    /// PT: Cria uma conexão simulada de SQL Server usada pelos testes compartilhados de EXISTS.
     /// </summary>
     protected override DbConnectionMockBase CreateConnection() => new SqlServerConnectionMock();
 }

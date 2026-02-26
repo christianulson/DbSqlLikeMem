@@ -14,7 +14,7 @@
 
 - [Documentation overview | Visão geral da documentação](docs/README.md)
 - [Getting started (installation and usage) | Começando rápido (instalação e uso)](docs/getting-started.md)
-- [Providers, versions, and SQL compatibility | Provedores, versões e compatibilidade SQL](docs/providers-and-features.md)
+- [Providers, versions, and SQL compatibility | Provedores, versões e compatibilidade SQL](docs/old/providers-and-features.md)
 - [AI playbook for external repository/integration tests | Playbook de IA para testes de repositório/integração](docs/ai-nuget-test-projects-playbook.md)
 - [Publishing (NuGet, VSIX, and VS Code) | Publicação (NuGet, VSIX e VS Code)](docs/publishing.md)
 - [GitHub Wiki guide | Guia para Wiki do GitHub](docs/wiki/README.md)
@@ -38,11 +38,13 @@
   **PT-BR:** Fluxo de execução amigável para testes com Dapper.
 - **EN:** Dialect/version-specific behavior.  
   **PT-BR:** Comportamento específico por dialeto/versão.
+- **EN:** Mock execution plans with runtime metrics (`EstimatedCost`, `InputTables`, `EstimatedRowsRead`, `ActualRows`, `SelectivityPct`, `RowsPerMs`, `ElapsedMs`) and per-connection history (`LastExecutionPlan`, `LastExecutionPlans`).  
+  **PT-BR:** Planos de execução mock com métricas de runtime (`EstimatedCost`, `InputTables`, `EstimatedRowsRead`, `ActualRows`, `SelectivityPct`, `RowsPerMs`, `ElapsedMs`) e histórico por conexão (`LastExecutionPlan`, `LastExecutionPlans`).
 
 **EN:** Full compatibility details are available here:  
 **PT-BR:** Os detalhes completos de compatibilidade estão aqui:
 
-- [docs/providers-and-features.md](docs/providers-and-features.md)
+- [docs/old/providers-and-features.md](docs/old/providers-and-features.md)
 
 ## Requirements | Requisitos
 
@@ -207,3 +209,9 @@ dotnet test src/DbSqlLikeMem.slnx
   **PT-BR:** Veja o passo a passo em [docs/wiki/README.md](docs/wiki/README.md).
 - **EN:** Ready-to-use wiki pages are available in [docs/wiki/pages](docs/wiki/pages).  
   **PT-BR:** Arquivos prontos para páginas de wiki estão em [docs/wiki/pages](docs/wiki/pages).
+
+## License | Licença
+
+**EN:** This project is licensed under the **MIT License**. See [LICENSE](LICENSE).
+
+**PT-BR:** Este projeto é licenciado sob a **Licença MIT**. Veja [LICENSE](LICENSE).

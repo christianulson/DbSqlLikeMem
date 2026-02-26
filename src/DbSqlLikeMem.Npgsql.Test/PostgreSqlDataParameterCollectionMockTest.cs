@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class NpgsqlDataParameterCollectionMockTest.
+/// PT: Define a classe NpgsqlDataParameterCollectionMockTest.
 /// </summary>
 public sealed class NpgsqlDataParameterCollectionMockTest(
         ITestOutputHelper helper

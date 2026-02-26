@@ -3,7 +3,8 @@ namespace DbSqlLikeMem;
 internal static class DbStoredProcedureStrategy
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ExecuteStoredProcedure.
+    /// PT: Implementa ExecuteStoredProcedure.
     /// </summary>
     public static int ExecuteStoredProcedure(
         this DbConnectionMockBase connection,
@@ -25,7 +26,8 @@ internal static class DbStoredProcedureStrategy
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements ExecuteCall.
+    /// PT: Implementa ExecuteCall.
     /// </summary>
     public static int ExecuteCall(
         this DbConnectionMockBase connection,

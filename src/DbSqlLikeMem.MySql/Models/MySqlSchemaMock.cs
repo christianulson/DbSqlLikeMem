@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql;
 
 /// <summary>
 /// EN: Schema mock for MySQL databases.
-/// PT: Mock de esquema para bancos MySQL.
+/// PT: Esquema simulado para bancos MySQL.
 /// </summary>
 public class MySqlSchemaMock(
     string schemaName,
@@ -12,7 +12,7 @@ public class MySqlSchemaMock(
 {
     /// <summary>
     /// EN: Creates a MySQL table mock for this schema.
-    /// PT: Cria um mock de tabela MySQL para este schema.
+    /// PT: Cria um simulado de tabela MySQL para este schema.
     /// </summary>
     /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
     /// <param name="columns">EN: Table columns. PT: Colunas da tabela.</param>

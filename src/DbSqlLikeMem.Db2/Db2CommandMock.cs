@@ -1,34 +1,45 @@
 namespace DbSqlLikeMem.Db2;
 
 /// <summary>
-/// EN: Mock command for DB2 connections.
-/// PT: Comando mock para conexões DB2.
+/// EN: Represents a mock database command used to execute SQL text and stored procedures in memory.
+/// PT: Representa um comando de banco de dados simulado usado para executar SQL e procedures em memória.
 /// </summary>
 public class Db2CommandMock(
-    Db2ConnectionMock? connection = null,
+    Db2ConnectionMock? connection,
     Db2TransactionMock? transaction = null
-    ) : DbCommand
+    ) : DbCommand, IDb2CommandMock
 {
+    /// <summary>
+    /// EN: Initializes a new command instance without an attached connection or transaction.
+    /// PT: Inicializa uma nova instância de comando sem conexão ou transação associada.
+    /// </summary>
+    public Db2CommandMock() : this(null, null)
+    {
+    }
+
     private bool disposedValue;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets the SQL statement or stored procedure name that will be executed by this command.
+    /// PT: Obtém ou define a instrução SQL ou o nome da procedure que será executada por este comando.
     /// </summary>
     [AllowNull]
     public override string CommandText { get; set; } = string.Empty;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets the time, in seconds, to wait for command execution before timing out.
+    /// PT: Obtém ou define o tempo, em segundos, para aguardar a execução do comando antes de expirar.
     /// </summary>
     public override int CommandTimeout { get; set; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets whether the command text is raw SQL text or a stored procedure name.
+    /// PT: Obtém ou define se o texto do comando é SQL puro ou o nome de uma procedure.
     /// </summary>
     public override CommandType CommandType { get; set; } = CommandType.Text;
 
     /// <summary>
-    /// EN: Gets or sets the associated connection.
-    /// PT: Obtém ou define a conexão associada.
+    /// EN: Gets or sets the connection associated with this command.
+    /// PT: Obtém ou define a conexão associada a este comando.
     /// </summary>
     protected override DbConnection? DbConnection
     {
@@ -39,14 +50,14 @@ public class Db2CommandMock(
     private readonly Db2DataParameterCollectionMock collectionMock = [];
 
     /// <summary>
-    /// EN: Gets the parameter collection for the command.
-    /// PT: Obtém a coleção de parâmetros do comando.
+    /// EN: Gets the parameter collection associated with this command.
+    /// PT: Obtém a coleção de parâmetros associada a este comando.
     /// </summary>
     protected override DbParameterCollection DbParameterCollection => collectionMock;
 
     /// <summary>
-    /// EN: Gets or sets the current transaction.
-    /// PT: Obtém ou define a transação atual.
+    /// EN: Gets or sets the transaction associated with this command.
+    /// PT: Obtém ou define a transação associada a este comando.
     /// </summary>
     protected override DbTransaction? DbTransaction
     {
@@ -55,33 +66,37 @@ public class Db2CommandMock(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets updated row source.
+    /// PT: Obtém ou define como os resultados do comando são aplicados ao DataRow.
     /// </summary>
     public override UpdateRowSource UpdatedRowSource { get; set; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets design time visible.
+    /// PT: Obtém ou define visível em tempo de design.
     /// </summary>
     public override bool DesignTimeVisible { get; set; }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Cancels the current command execution.
+    /// PT: Cancela a execução atual do comando.
     /// </summary>
     public override void Cancel() => DbTransaction?.Rollback();
 
     /// <summary>
-    /// EN: Creates a new DB2 parameter.
-    /// PT: Cria um novo parâmetro DB2.
+    /// EN: Creates a new db parameter instance.
+    /// PT: Cria uma nova instância de parâmetro de banco.
     /// </summary>
-    /// <returns>EN: Parameter instance. PT: Instância do parâmetro.</returns>
     protected override DbParameter CreateDbParameter()
         => new DB2Parameter();
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Executes non-query and returns affected rows.
+    /// PT: Executa non-consulta e retorna as linhas afetadas.
     /// </summary>
     public override int ExecuteNonQuery()
     {
         ArgumentNullException.ThrowIfNull(connection);
+        connection.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
         // 1. Stored Procedure (sem parse SQL)
@@ -177,13 +192,12 @@ public class Db2CommandMock(
 
     /// <summary>
     /// EN: Executes the command and returns a data reader.
-    /// PT: Executa o comando e retorna um data reader.
+    /// PT: Executa o comando e retorna um leitor de dados.
     /// </summary>
-    /// <param name="behavior">EN: Command behavior. PT: Comportamento do comando.</param>
-    /// <returns>EN: Data reader. PT: Data reader.</returns>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
         ArgumentNullException.ThrowIfNull(connection);
+        connection.ClearExecutionPlans();
         ArgumentNullException.ThrowIfNull(CommandText);
 
         if (CommandType == CommandType.StoredProcedure)
@@ -204,7 +218,7 @@ public class Db2CommandMock(
         var executor = AstQueryExecutorFactory.Create(connection.Db.Dialect, connection, Parameters);
 
         // Parse Multiplo (ex: "SELECT 1; SELECT 2;" ou "CREATE TEMPORARY TABLE ...; SELECT ...")
-        var queries = SqlQueryParser.ParseMulti(sql, connection.Db.Dialect).ToList();
+        var queries = SqlQueryParser.ParseMulti(sql, connection.Db.Dialect, Parameters).ToList();
 
         var tables = new List<TableResultMock>();
 
@@ -314,7 +328,8 @@ public class Db2CommandMock(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Executes the command and returns a scalar value.
+    /// PT: Executa o comando e retorna um valor escalar.
     /// </summary>
     public override object ExecuteScalar()
     {
@@ -327,15 +342,15 @@ public class Db2CommandMock(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Represents Prepare.
+    /// PT: Representa Prepare.
     /// </summary>
     public override void Prepare() { }
 
     /// <summary>
-    /// EN: Disposes the command and resources.
-    /// PT: Descarta o comando e os recursos.
+    /// EN: Releases resources used by this instance.
+    /// PT: Libera os recursos usados por esta instância.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         if (!disposedValue)

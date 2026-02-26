@@ -11,13 +11,13 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
 {
     /// <summary>
     /// EN: Creates a provider-specific database mock used by shared select/insert/update/delete tests.
-    /// PT: Cria um mock de banco específico do provedor usado pelos testes compartilhados de select/insert/update/delete.
+    /// PT: Cria um simulado de banco específico do provedor usado pelos testes compartilhados de select/insert/update/delete.
     /// </summary>
     protected abstract TDbMock CreateDb();
 
     /// <summary>
     /// EN: Executes a provider-specific non-query SQL command against the supplied mock database.
-    /// PT: Executa um comando SQL sem retorno específico do provedor no banco mock informado.
+    /// PT: Executa um comando SQL sem retorno específico do provedor no banco simulado informado.
     /// </summary>
     protected abstract int ExecuteNonQuery(
         TDbMock db,
@@ -27,8 +27,25 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
     /// EN: Gets the SQL used to delete rows based on a derived select expression.
     /// PT: Obtém o SQL usado para excluir linhas com base em uma expressão de subselect derivado.
     /// </summary>
+    protected virtual string UpdateJoinDerivedSelectSql
+        => @"
+UPDATE users u
+JOIN (SELECT userid, SUM(amount) AS total FROM orders GROUP BY userid) s ON s.userid = u.id
+SET u.total = s.total
+WHERE u.tenantid = 10";
+
+    /// <summary>
+    /// EN: Gets the SQL used to delete rows through a derived select-based join strategy.
+    /// PT: Obtém o SQL usado para excluir linhas por meio de uma estratégia de join baseada em select derivado.
+    /// </summary>
     protected virtual string DeleteJoinDerivedSelectSql
-        => "DELETE FROM users WHERE id IN (SELECT id FROM users WHERE tenantid = 10)";
+        => "DELETE u FROM users u JOIN (SELECT id FROM users WHERE tenantid = 10) s ON s.id = u.id";
+
+    /// <summary>
+    /// EN: Indicates whether this provider should execute UPDATE/DELETE JOIN runtime paths.
+    /// PT: Indica se este provedor deve executar fluxos de runtime de UPDATE/DELETE com JOIN.
+    /// </summary>
+    protected virtual bool SupportsUpdateDeleteJoinRuntime => false;
 
     /// <summary>
     /// EN: Tests CreateTableAsSelect_ShouldCreateNewTableWithRows behavior.
@@ -115,11 +132,14 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
         orders.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, 5m } });
         orders.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, 7m } });
 
-        const string sql = @"
-UPDATE users u
-JOIN (SELECT userid, SUM(amount) AS total FROM orders GROUP BY userid) s ON s.userid = u.id
-SET u.total = s.total
-WHERE u.tenantid = 10";
+        var sql = UpdateJoinDerivedSelectSql;
+
+        if (!SupportsUpdateDeleteJoinRuntime)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => ExecuteNonQuery(db, sql));
+            Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
 
         var updated = ExecuteNonQuery(db, sql);
 
@@ -144,6 +164,13 @@ WHERE u.tenantid = 10";
         users.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, 10 } });
         users.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, 10 } });
         users.Add(new Dictionary<int, object?> { { 0, 3 }, { 1, 20 } });
+
+        if (!SupportsUpdateDeleteJoinRuntime)
+        {
+            var ex = Assert.Throws<InvalidOperationException>(() => ExecuteNonQuery(db, DeleteJoinDerivedSelectSql));
+            Assert.Contains("DELETE sem FROM não suportado no dialeto", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
 
         var deleted = ExecuteNonQuery(db, DeleteJoinDerivedSelectSql);
 

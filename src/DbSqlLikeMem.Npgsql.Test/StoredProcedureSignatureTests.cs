@@ -14,7 +14,7 @@ public sealed class StoredProcedureSignatureTests(
 {
     /// <summary>
     /// EN: Creates the PostgreSQL connection mock used in tests.
-    /// PT: Cria o mock de conexão PostgreSQL usado nos testes.
+    /// PT: Cria o simulado de conexão PostgreSQL usado nos testes.
     /// </summary>
     protected override DbConnectionMockBase CreateConnection() => new NpgsqlConnectionMock();
 }

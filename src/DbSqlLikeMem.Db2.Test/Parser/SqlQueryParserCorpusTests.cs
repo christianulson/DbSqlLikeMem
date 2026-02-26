@@ -24,7 +24,8 @@ public enum SqlCaseExpectation
 }
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlQueryParserCorpusTests.
+/// PT: Define a classe SqlQueryParserCorpusTests.
 /// </summary>
 public sealed class SqlQueryParserCorpusTests(
     ITestOutputHelper helper
@@ -35,7 +36,8 @@ public sealed class SqlQueryParserCorpusTests(
         => [sql, why, expectation, minVersion];
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides test data for Statements.
+    /// PT: Fornece dados de teste para Statements.
     /// </summary>
     public static IEnumerable<object[]> Statements()
     {
@@ -83,13 +85,16 @@ public sealed class SqlQueryParserCorpusTests(
         {
             var sql = (string)row[0];
             var why = row.Length > 1 ? (string)row[1] : "non-select or incomplete statement";
+            var expectation = row.Length > 2 && row[2] is SqlCaseExpectation e
+                ? e
+                : SqlCaseExpectation.ThrowInvalid;
             var minVersion = 0;
 
             var trimmed = sql.TrimStart();
             if (trimmed.Contains("WITH", StringComparison.OrdinalIgnoreCase))
                 minVersion = Db2Dialect.WithCteMinVersion;
 
-            yield return Case(sql, why, SqlCaseExpectation.ThrowInvalid, minVersion);
+            yield return Case(sql, why, expectation, minVersion);
         }
     }
 
@@ -98,7 +103,8 @@ public sealed class SqlQueryParserCorpusTests(
     // Cada item: (sql, o que está validando)
     // -----------------------------------------------------------------
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides test data for SelectStatements.
+    /// PT: Fornece dados de teste para SelectStatements.
     /// </summary>
     public static IEnumerable<object[]> SelectStatements()
     {
@@ -521,7 +527,8 @@ WHERE dt.total >= 10;
     // Cada item: (sql, motivo)
     // -----------------------------------------------------------------
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides test data for InvalidSelectStatements.
+    /// PT: Fornece dados de teste para InvalidSelectStatements.
     /// </summary>
     public static IEnumerable<object[]> InvalidSelectStatements()
     {
@@ -595,12 +602,13 @@ select id
     // ❌ NÃO-SELECT (continua como você já tinha)
     // -----------------------------------------------------------------
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Provides test data for NonSelectStatements.
+    /// PT: Fornece dados de teste para NonSelectStatements.
     /// </summary>
     public static IEnumerable<object[]> NonSelectStatements()
     {
-        yield return new object[] { "INSERT INTO `User`" };
-        yield return new object[] { "UPDATE `User`" };
+        yield return new object[] { "INSERT INTO `User`", "non-select or incomplete statement", SqlCaseExpectation.ThrowNotSupported };
+        yield return new object[] { "UPDATE `User`", "non-select or incomplete statement", SqlCaseExpectation.ThrowNotSupported };
         yield return new object[] { "delete" };
         yield return new object[] { "WITH u AS (SELECT id, name FROM users WHERE id <= 2)" };
         // TRUNCATE

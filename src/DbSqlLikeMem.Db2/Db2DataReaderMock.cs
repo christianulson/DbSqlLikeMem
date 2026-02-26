@@ -2,8 +2,8 @@
 
 #pragma warning disable CA1010 // Generic interface should also be implemented
 /// <summary>
-/// EN: Mock data reader for DB2 query results.
-/// PT: Leitor de dados mock para resultados DB2.
+/// EN: Represents Db2 Data Reader Mock.
+/// PT: Representa Db2 Data leitor simulado.
 /// </summary>
 public class Db2DataReaderMock(
 #pragma warning restore CA1010 // Generic interface should also be implemented

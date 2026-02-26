@@ -4,11 +4,11 @@ using System.Text;
 
 namespace DbSqlLikeMem.Oracle;
 
-/// <summary>
-/// Visitor que converte árvore de Expression em SQL básico.
-/// Suporta .Where, .Select (projeção simples), .OrderBy/.ThenBy, .Skip, .Take e .Count.
-/// </summary>
 #pragma warning disable CA1305 // Specify IFormatProvider
+/// <summary>
+/// EN: Translates LINQ expressions into Oracle-compatible SQL statements.
+/// PT: Traduz expressões LINQ para instruções SQL compatíveis com Oracle.
+/// </summary>
 public class OracleTranslator : ExpressionVisitor
 {
     private StringBuilder _sb = new();
@@ -21,7 +21,8 @@ public class OracleTranslator : ExpressionVisitor
     private int? _limit;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Translates a LINQ expression into SQL and parameters.
+    /// PT: Traduz uma expressão LINQ em SQL e parâmetros.
     /// </summary>
     public TranslationResult Translate(Expression expression)
     {
@@ -67,11 +68,9 @@ public class OracleTranslator : ExpressionVisitor
 
 #pragma warning disable CS8605 // Unboxing a possibly null value.
     /// <summary>
-    /// EN: Translates method calls into Oracle expressions.
-    /// PT: Traduz chamadas de método em expressões Oracle.
+    /// EN: Represents Visit Method Call.
+    /// PT: Representa Visit Method Call.
     /// </summary>
-    /// <param name="node">EN: Method call expression. PT: Expressão de chamada de método.</param>
-    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitMethodCall(MethodCallExpression node)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(node, nameof(node));
@@ -139,11 +138,9 @@ public class OracleTranslator : ExpressionVisitor
 #pragma warning restore CS8605 // Unboxing a possibly null value.
 
     /// <summary>
-    /// EN: Translates constants into Oracle literals.
-    /// PT: Traduz constantes em literais Oracle.
+    /// EN: Represents Visit Constant.
+    /// PT: Representa Visit Constant.
     /// </summary>
-    /// <param name="node">EN: Constant expression. PT: Expressão constante.</param>
-    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitConstant(ConstantExpression node)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(node, nameof(node));
@@ -182,11 +179,9 @@ public class OracleTranslator : ExpressionVisitor
     }
 
     /// <summary>
-    /// EN: Translates binary expressions into Oracle syntax.
-    /// PT: Traduz expressões binárias para a sintaxe Oracle.
+    /// EN: Represents Visit Binary.
+    /// PT: Representa Visit Binary.
     /// </summary>
-    /// <param name="node">EN: Binary expression. PT: Expressão binária.</param>
-    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitBinary(BinaryExpression node)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(node, nameof(node));
@@ -207,11 +202,9 @@ public class OracleTranslator : ExpressionVisitor
     }
 
     /// <summary>
-    /// EN: Translates member access into Oracle expressions.
-    /// PT: Traduz acesso a membros em expressões Oracle.
+    /// EN: Represents Visit Member.
+    /// PT: Representa Visit Member.
     /// </summary>
-    /// <param name="node">EN: Member expression. PT: Expressão de membro.</param>
-    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
     protected override Expression VisitMember(MemberExpression node)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(node, nameof(node));

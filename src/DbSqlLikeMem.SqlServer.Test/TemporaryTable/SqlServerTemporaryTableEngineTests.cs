@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.SqlServer.Test.TemporaryTable;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlServerTemporaryTableEngineTests.
+/// PT: Define a classe SqlServerTemporaryTableEngineTests.
 /// </summary>
 public sealed class SqlServerTemporaryTableEngineTests
 {
@@ -46,7 +47,8 @@ SELECT id FROM tmp_users ORDER BY id;";
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests CreateGlobalTemporaryTable_AsSelect_ShouldBeVisibleAcrossConnections behavior.
+    /// PT: Testa o comportamento de CreateGlobalTemporaryTable_AsSelect_ShouldBeVisibleAcrossConnections.
     /// </summary>
     [Fact]
     [Trait("Category", "TemporaryTable")]

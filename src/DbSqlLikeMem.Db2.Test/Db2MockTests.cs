@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Db2.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class Db2MockTests.
+/// PT: Define a classe Db2MockTests.
 /// </summary>
 public sealed class Db2MockTests
     : XUnitTestBase
@@ -9,7 +10,8 @@ public sealed class Db2MockTests
     private readonly Db2ConnectionMock _connection;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests Db2MockTests behavior.
+    /// PT: Testa o comportamento de Db2MockTests.
     /// </summary>
     public Db2MockTests(
         ITestOutputHelper helper
@@ -86,6 +88,25 @@ public sealed class Db2MockTests
         var rowsAffected = command.ExecuteNonQuery();
         Assert.Equal(1, rowsAffected);
         Assert.Empty(_connection.GetTable("users"));
+    }
+
+    /// <summary>
+    /// EN Tests CreateTable with inline primary key behavior.
+    /// PT Testa o comportamento de CreateTable com chave primária inline.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void CreateTable_WithInlinePrimaryKey_ShouldCreateColumnAndAllowInsert()
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "CREATE TABLE users_nh (id INT PRIMARY KEY, name VARCHAR(100))";
+        cmd.ExecuteNonQuery();
+
+        cmd.CommandText = "INSERT INTO users_nh (id, name) VALUES (1, 'Alice')";
+        var rows = cmd.ExecuteNonQuery();
+
+        Assert.Equal(1, rows);
+        Assert.Equal("Alice", _connection.GetTable("users_nh")[0][1]);
     }
 
     /// <summary>

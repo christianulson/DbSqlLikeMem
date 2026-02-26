@@ -1,11 +1,11 @@
-using System.Collections;
 using System.Linq.Expressions;
 using System.Reflection;
 
 namespace DbSqlLikeMem.Npgsql;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Provides LINQ query translation and execution for the PostgreSQL mock connection.
+/// PT: Fornece tradução e execução de consultas LINQ para a conexão simulada do PostgreSQL.
 /// </summary>
 public sealed class NpgsqlQueryProvider(
     NpgsqlConnectionMock cnn
@@ -15,7 +15,8 @@ public sealed class NpgsqlQueryProvider(
     private readonly NpgsqlTranslator _translator = new();
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Creates a new query instance.
+    /// PT: Cria uma nova instância de consulta.
     /// </summary>
     public IQueryable CreateQuery(Expression expression)
     {
@@ -33,7 +34,8 @@ public sealed class NpgsqlQueryProvider(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Creates a typed query for the provided expression after null validation.
+    /// PT: Cria uma consulta tipada para a expressão informada após validação de nulo.
     /// </summary>
     public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
     {
@@ -81,44 +83,17 @@ public sealed class NpgsqlQueryProvider(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Executes the provided expression and returns the translated result.
+    /// PT: Executa a expressão informada e retorna o resultado traduzido.
     /// </summary>
     public TResult Execute<TResult>(Expression expression)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(expression, nameof(expression));
 
-        // Traduz a árvore de expressão em SQL + parâmetros
         var translation = _translator.Translate(expression);
-
         var sql = translation.Sql ?? string.Empty;
-        var paramObj = translation.Params; // anonymous object / DynamicParameters / null
 
-        // IEnumerable (mas não string)
-        if (typeof(IEnumerable).IsAssignableFrom(typeof(TResult))
-            && typeof(TResult) != typeof(string))
-        {
-            var elementType = typeof(TResult).IsGenericType
-                ? typeof(TResult).GetGenericArguments().First()
-                : typeof(object);
-
-            var def = DapperLateBinding.FindSqlMapperMethodWithOptionalTail("Query", genericArgCount: 1);
-            var mi = def.MakeGenericMethod(elementType);
-
-            var invokeArgs = DapperLateBinding.BuildInvokeArgs(mi.GetParameters(), _cnn, sql, paramObj);
-            var data = mi.Invoke(null, invokeArgs)!;
-
-            return (TResult)data;
-        }
-        else
-        {
-            var def = DapperLateBinding.FindSqlMapperMethodWithOptionalTail("QuerySingleOrDefault", genericArgCount: 1);
-            var mi = def.MakeGenericMethod(typeof(TResult));
-
-            var invokeArgs = DapperLateBinding.BuildInvokeArgs(mi.GetParameters(), _cnn, sql, paramObj);
-            var data = mi.Invoke(null, invokeArgs);
-
-            return (TResult)data!;
-        }
+        return LinqQueryExecutor.Execute<TResult>(_cnn, sql, translation.Params);
     }
 
     // Implementação não-genérica, exigida pela interface

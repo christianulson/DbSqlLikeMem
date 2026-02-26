@@ -14,17 +14,25 @@ public abstract class MemberDataByVersionAttribute(
 #endif
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SpecificVersions.
+    /// PT: Obtém ou define SpecificVersions.
     /// </summary>
     public int[]? SpecificVersions { get; set; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets VersionGraterOrEqual.
+    /// PT: Obtém ou define VersionGraterOrEqual.
     /// </summary>
-    public int? VersionGraterOrEqual { get; set; }
+    public int VersionGraterOrEqual { get; set; } = int.MinValue;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets VersionLessOrEqual.
+    /// PT: Obtém ou define VersionLessOrEqual.
     /// </summary>
-    public int? VersionLessOrEqual { get; set; }
+    public int VersionLessOrEqual { get; set; } = int.MinValue;
+    /// <summary>
+    /// EN: Gets or sets VersionLowerThan.
+    /// PT: Obtém ou define VersionLowerThan.
+    /// </summary>
+    public int VersionLowerThan { get; set; } = int.MinValue;
 
     /// <summary>
     /// DbVersions to be used in the test when SpecificVersions is null.
@@ -51,10 +59,12 @@ public abstract class MemberDataByVersionAttribute(
 
         var versions = SpecificVersions ?? Versions;
 
-        if (VersionGraterOrEqual != null)
+        if (VersionGraterOrEqual != int.MinValue)
             versions = versions.Where(_ => _ >= VersionGraterOrEqual);
-        if (VersionLessOrEqual != null)
+        if (VersionLessOrEqual != int.MinValue)
             versions = versions.Where(_ => _ <= VersionLessOrEqual);
+        if (VersionLowerThan != int.MinValue)
+            versions = versions.Where(_ => _ < VersionLowerThan);
 
         versions = [.. versions];
 

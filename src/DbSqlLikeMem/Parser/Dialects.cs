@@ -20,7 +20,8 @@ internal readonly record struct SqlQuotePair(char Begin, char End);
 internal interface ISqlDialect
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets Version.
+    /// PT: Obtém ou define Version.
     /// </summary>
     public int Version { get; }
     string Name { get; }
@@ -118,6 +119,12 @@ internal interface ISqlDialect
     bool IsIntegerCastTypeName(string typeName);
     bool SupportsDateAddFunction(string functionName);
     bool SupportsWindowFunctions { get; }
+    bool SupportsWindowFrameClause { get; }
+    bool SupportsLikeEscapeClause { get; }
+    bool IsRowNumberWindowFunction(string functionName);
+    bool SupportsWindowFunction(string functionName);
+    bool RequiresOrderByInWindowFunction(string functionName);
+    bool TryGetWindowFunctionArgumentArity(string functionName, out int minArgs, out int maxArgs);
     bool SupportsPivotClause { get; }
     DbType InferWindowFunctionDbType(WindowFunctionExpr windowFunctionExpr, Func<SqlExpr, DbType> inferArgDbType);
 }
@@ -128,7 +135,8 @@ internal abstract class SqlDialectBase : ISqlDialect
     private readonly Dictionary<string, SqlBinaryOp> _binOps;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements SqlDialectBase.
+    /// PT: Implementa SqlDialectBase.
     /// </summary>
     protected SqlDialectBase(
         string name,
@@ -153,33 +161,40 @@ internal abstract class SqlDialectBase : ISqlDialect
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets Name.
+    /// PT: Obtém ou define Name.
     /// </summary>
     public string Name { get; }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets Version.
+    /// PT: Obtém ou define Version.
     /// </summary>
     public int Version { get; }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets AllowsBacktickIdentifiers.
+    /// PT: Obtém ou define AllowsBacktickIdentifiers.
     /// </summary>
     public virtual bool AllowsBacktickIdentifiers => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets AllowsDoubleQuoteIdentifiers.
+    /// PT: Obtém ou define AllowsDoubleQuoteIdentifiers.
     /// </summary>
     public virtual bool AllowsDoubleQuoteIdentifiers => true;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets AllowsBracketIdentifiers.
+    /// PT: Obtém ou define AllowsBracketIdentifiers.
     /// </summary>
     public virtual bool AllowsBracketIdentifiers => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets IdentifierEscapeStyle.
+    /// PT: Obtém ou define IdentifierEscapeStyle.
     /// </summary>
     public virtual SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.double_quote;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements this member.
+    /// PT: Implementa este membro.
     /// </summary>
     public virtual IReadOnlyList<SqlQuotePair> IdentifierQuotes
     {
@@ -196,7 +211,8 @@ internal abstract class SqlDialectBase : ISqlDialect
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements this member.
+    /// PT: Implementa este membro.
     /// </summary>
     public virtual IReadOnlyList<SqlQuotePair> StringQuotes
     {
@@ -210,7 +226,8 @@ internal abstract class SqlDialectBase : ISqlDialect
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements TryGetIdentifierQuote.
+    /// PT: Implementa TryGetIdentifierQuote.
     /// </summary>
     public virtual bool TryGetIdentifierQuote(char begin, out SqlQuotePair pair)
     {
@@ -223,7 +240,8 @@ internal abstract class SqlDialectBase : ISqlDialect
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements TryGetStringQuote.
+    /// PT: Implementa TryGetStringQuote.
     /// </summary>
     public virtual bool TryGetStringQuote(char begin, out SqlQuotePair pair)
     {
@@ -236,7 +254,8 @@ internal abstract class SqlDialectBase : ISqlDialect
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements IsStringQuote.
+    /// PT: Implementa IsStringQuote.
     /// </summary>
     public virtual bool IsStringQuote(char ch) => ch == '\'';
 
@@ -254,12 +273,13 @@ internal abstract class SqlDialectBase : ISqlDialect
 
     /// <summary>
     /// EN: Controls LIKE case sensitivity in the mock when no explicit collation is available.
-    /// PT: Controla sensibilidade de maiúsculas/minúsculas no LIKE do mock quando não há collation explícita.
+    /// PT: Controla sensibilidade de maiúsculas/minúsculas no LIKE do simulado quando não há collation explícita.
     /// </summary>
     public virtual bool LikeIsCaseInsensitive => true;
     public virtual bool SupportsIfFunction => true;
     public virtual bool SupportsIifFunction => true;
     public virtual bool SupportsWindowFunctions => true;
+    public virtual bool SupportsWindowFrameClause => false;
     public virtual bool SupportsPivotClause => false;
     public virtual IReadOnlyCollection<string> NullSubstituteFunctionNames
         => ["IFNULL", "ISNULL", "NVL"];
@@ -316,6 +336,108 @@ internal abstract class SqlDialectBase : ISqlDialect
             || functionName.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase);
     }
 
+    public virtual bool SupportsLikeEscapeClause => true;
+
+    public virtual bool IsRowNumberWindowFunction(string functionName)
+        => functionName.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// EN: Indicates whether a specific window function name is supported by the current dialect/version.
+    /// PT: Indica se um nome específico de função de janela é suportado pelo dialeto/versão atual.
+    /// </summary>
+    public virtual bool SupportsWindowFunction(string functionName)
+    {
+        if (!SupportsWindowFunctions || string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        if (IsRowNumberWindowFunction(functionName))
+            return true;
+
+        return functionName.Equals("RANK", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("DENSE_RANK", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("NTILE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("PERCENT_RANK", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("CUME_DIST", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LAG", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LEAD", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("FIRST_VALUE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Indicates whether a specific window function requires ORDER BY inside OVER clause.
+    /// PT: Indica se uma função de janela específica exige ORDER BY dentro da cláusula OVER.
+    /// </summary>
+    public virtual bool RequiresOrderByInWindowFunction(string functionName)
+    {
+        if (!SupportsWindowFunction(functionName))
+            return false;
+
+        return IsRowNumberWindowFunction(functionName)
+            || functionName.Equals("RANK", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("DENSE_RANK", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("NTILE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("PERCENT_RANK", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("CUME_DIST", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LAG", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LEAD", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("FIRST_VALUE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Gets accepted argument arity range for a supported window function.
+    /// PT: Obtém o intervalo de aridade aceito para uma função de janela suportada.
+    /// </summary>
+    public virtual bool TryGetWindowFunctionArgumentArity(string functionName, out int minArgs, out int maxArgs)
+    {
+        minArgs = 0;
+        maxArgs = 0;
+
+        if (!SupportsWindowFunction(functionName))
+            return false;
+
+        if (IsRowNumberWindowFunction(functionName)
+            || functionName.Equals("RANK", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("DENSE_RANK", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("PERCENT_RANK", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("CUME_DIST", StringComparison.OrdinalIgnoreCase))
+        {
+            minArgs = 0;
+            maxArgs = 0;
+            return true;
+        }
+
+        if (functionName.Equals("NTILE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("FIRST_VALUE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase))
+        {
+            minArgs = 1;
+            maxArgs = 1;
+            return true;
+        }
+
+        if (functionName.Equals("LAG", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LEAD", StringComparison.OrdinalIgnoreCase))
+        {
+            minArgs = 1;
+            maxArgs = 3;
+            return true;
+        }
+
+        if (functionName.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase))
+        {
+            minArgs = 2;
+            maxArgs = 2;
+            return true;
+        }
+
+        return false;
+    }
+
     public virtual DbType InferWindowFunctionDbType(
         WindowFunctionExpr windowFunctionExpr,
         Func<SqlExpr, DbType> inferArgDbType)
@@ -323,7 +445,7 @@ internal abstract class SqlDialectBase : ISqlDialect
         ArgumentNullExceptionCompatible.ThrowIfNull(windowFunctionExpr, nameof(windowFunctionExpr));
         ArgumentNullExceptionCompatible.ThrowIfNull(inferArgDbType, nameof(inferArgDbType));
 
-        if (windowFunctionExpr.Name.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase)
+        if (IsRowNumberWindowFunction(windowFunctionExpr.Name)
             || windowFunctionExpr.Name.Equals("RANK", StringComparison.OrdinalIgnoreCase)
             || windowFunctionExpr.Name.Equals("DENSE_RANK", StringComparison.OrdinalIgnoreCase)
             || windowFunctionExpr.Name.Equals("NTILE", StringComparison.OrdinalIgnoreCase))
@@ -346,144 +468,176 @@ internal abstract class SqlDialectBase : ISqlDialect
         return DbType.Object;
     }
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets StringEscapeStyle.
+    /// PT: Obtém ou define StringEscapeStyle.
     /// </summary>
     public virtual SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.doubled_quote;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsDollarQuotedStrings.
+    /// PT: Obtém ou define SupportsDollarQuotedStrings.
     /// </summary>
     public virtual bool SupportsDollarQuotedStrings => false;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements IsParameterPrefix.
+    /// PT: Implementa IsParameterPrefix.
     /// </summary>
     public virtual bool IsParameterPrefix(char ch) => ch is '@' or ':' or '?';
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements IsKeyword.
+    /// PT: Implementa IsKeyword.
     /// </summary>
     public virtual bool IsKeyword(string text)
         => SqlKeywords.IsKeyword(text) || _keywords.Contains(text);
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets Operators.
+    /// PT: Obtém ou define Operators.
     /// </summary>
     public IReadOnlyList<string> Operators { get; }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsHashLineComment.
+    /// PT: Obtém ou define SupportsHashLineComment.
     /// </summary>
     public virtual bool SupportsHashLineComment => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsLimitOffset.
+    /// PT: Obtém ou define SupportsLimitOffset.
     /// </summary>
     public virtual bool SupportsLimitOffset => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsFetchFirst.
+    /// PT: Obtém ou define SupportsFetchFirst.
     /// </summary>
     public virtual bool SupportsFetchFirst => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsTop.
+    /// PT: Obtém ou define SupportsTop.
     /// </summary>
     public virtual bool SupportsTop => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsOnDuplicateKeyUpdate.
+    /// PT: Obtém ou define SupportsOnDuplicateKeyUpdate.
     /// </summary>
     public virtual bool SupportsOnDuplicateKeyUpdate => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsOnConflictClause.
+    /// PT: Obtém ou define SupportsOnConflictClause.
     /// </summary>
     public virtual bool SupportsOnConflictClause => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsReturning.
+    /// PT: Obtém ou define SupportsReturning.
     /// </summary>
     public virtual bool SupportsReturning => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsMerge.
+    /// PT: Obtém ou define SupportsMerge.
     /// </summary>
     public virtual bool SupportsMerge => false;
     public virtual bool SupportsTriggers => true;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsOffsetFetch.
+    /// PT: Obtém ou define SupportsOffsetFetch.
     /// </summary>
     public virtual bool SupportsOffsetFetch => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets RequiresOrderByForOffsetFetch.
+    /// PT: Obtém ou define RequiresOrderByForOffsetFetch.
     /// </summary>
     public virtual bool RequiresOrderByForOffsetFetch => false;
 
     public virtual bool SupportsOrderByNullsModifier => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsDeleteWithoutFrom.
+    /// PT: Obtém ou define SupportsDeleteWithoutFrom.
     /// </summary>
     public virtual bool SupportsDeleteWithoutFrom => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsDeleteTargetAlias.
+    /// PT: Obtém ou define SupportsDeleteTargetAlias.
     /// </summary>
     public virtual bool SupportsDeleteTargetAlias => true;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsWithCte.
+    /// PT: Obtém ou define SupportsWithCte.
     /// </summary>
     public virtual bool SupportsWithCte => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsWithRecursive.
+    /// PT: Obtém ou define SupportsWithRecursive.
     /// </summary>
     public virtual bool SupportsWithRecursive => true;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsWithMaterializedHint.
+    /// PT: Obtém ou define SupportsWithMaterializedHint.
     /// </summary>
     public virtual bool SupportsWithMaterializedHint => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsNullSafeEq.
+    /// PT: Obtém ou define SupportsNullSafeEq.
     /// </summary>
     public virtual bool SupportsNullSafeEq => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsJsonArrowOperators.
+    /// PT: Obtém ou define SupportsJsonArrowOperators.
     /// </summary>
     public virtual bool SupportsJsonArrowOperators => false;
     public virtual bool SupportsJsonExtractFunction => false;
     public virtual bool SupportsJsonValueFunction => false;
     public virtual bool SupportsOpenJsonFunction => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets AllowsParserCrossDialectQuotedIdentifiers.
+    /// PT: Obtém ou define AllowsParserCrossDialectQuotedIdentifiers.
     /// </summary>
     public virtual bool AllowsParserCrossDialectQuotedIdentifiers => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets AllowsParserCrossDialectJsonOperators.
+    /// PT: Obtém ou define AllowsParserCrossDialectJsonOperators.
     /// </summary>
     public virtual bool AllowsParserCrossDialectJsonOperators => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets AllowsParserInsertSelectUpsertSuffix.
+    /// PT: Obtém ou define AllowsParserInsertSelectUpsertSuffix.
     /// </summary>
     public virtual bool AllowsParserInsertSelectUpsertSuffix => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets AllowsParserDeleteWithoutFromCompatibility.
+    /// PT: Obtém ou define AllowsParserDeleteWithoutFromCompatibility.
     /// </summary>
     public virtual bool AllowsParserDeleteWithoutFromCompatibility => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets AllowsParserLimitOffsetCompatibility.
+    /// PT: Obtém ou define AllowsParserLimitOffsetCompatibility.
     /// </summary>
     public virtual bool AllowsParserLimitOffsetCompatibility => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsSqlServerTableHints.
+    /// PT: Obtém ou define SupportsSqlServerTableHints.
     /// </summary>
     public virtual bool SupportsSqlServerTableHints => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsSqlServerQueryHints.
+    /// PT: Obtém ou define SupportsSqlServerQueryHints.
     /// </summary>
     public virtual bool SupportsSqlServerQueryHints => false;
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SupportsMySqlIndexHints.
+    /// PT: Obtém ou define SupportsMySqlIndexHints.
     /// </summary>
     public virtual bool SupportsMySqlIndexHints => false;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets AllowsHashIdentifiers.
+    /// PT: Obtém ou define AllowsHashIdentifiers.
     /// </summary>
     public virtual bool AllowsHashIdentifiers => false;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements GetTemporaryTableScope.
+    /// PT: Implementa GetTemporaryTableScope.
     /// </summary>
     public virtual TemporaryTableScope GetTemporaryTableScope(string tableName, string? schemaName)
     {
@@ -493,7 +647,8 @@ internal abstract class SqlDialectBase : ISqlDialect
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements TryMapBinaryOperator.
+    /// PT: Implementa TryMapBinaryOperator.
     /// </summary>
     public bool TryMapBinaryOperator(string token, out SqlBinaryOp op)
         => _binOps.TryGetValue(token, out op);

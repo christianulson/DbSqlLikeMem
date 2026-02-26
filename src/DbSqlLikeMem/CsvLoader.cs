@@ -4,12 +4,14 @@ using CsvHelper.Configuration;
 namespace DbSqlLikeMem;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class CsvLoader.
+/// PT: Define a classe CsvLoader.
 /// </summary>
 public static class CsvLoader
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements LoadCsv.
+    /// PT: Implementa LoadCsv.
     /// </summary>
     public static void LoadCsv(
         this DbMock db,

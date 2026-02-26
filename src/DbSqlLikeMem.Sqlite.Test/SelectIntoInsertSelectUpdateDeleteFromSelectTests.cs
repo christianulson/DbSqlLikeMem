@@ -14,13 +14,13 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
 {
     /// <summary>
     /// EN: Creates a new SQLite mock database for each scenario.
-    /// PT: Cria um novo banco mock de SQLite para cada cenário.
+    /// PT: Cria um novo banco simulado de SQLite para cada cenário.
     /// </summary>
-    protected override SqliteDbMock CreateDb() => new();
+    protected override SqliteDbMock CreateDb() => [];
 
     /// <summary>
     /// EN: Executes a non-query command using a SQLite mock connection.
-    /// PT: Executa um comando sem retorno usando uma conexão mock de SQLite.
+    /// PT: Executa um comando sem retorno usando uma conexão simulada de SQLite.
     /// </summary>
     protected override int ExecuteNonQuery(
         SqliteDbMock db,

@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test;
 /// <summary>
 /// EN: Defines the class OracleDataParameterCollectionMockTest.
-/// PT: Define o(a) class OracleDataParameterCollectionMockTest.
+/// PT: Define a classe OracleDataParameterCollectionMockTest.
 /// </summary>
 public sealed class OracleDataParameterCollectionMockTest(
         ITestOutputHelper helper

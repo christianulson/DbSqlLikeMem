@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test.Strategy;
 
 /// <summary>
 /// EN: Defines the class OracleUpdateStrategyTests.
-/// PT: Define o(a) class OracleUpdateStrategyTests.
+/// PT: Define a classe OracleUpdateStrategyTests.
 /// </summary>
 public sealed class OracleUpdateStrategyTests(
     ITestOutputHelper helper

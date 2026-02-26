@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.MySql;
 /// <summary>
 /// EN: Mock parameter collection for MySQL commands.
-/// PT: Coleção de parâmetros mock para comandos MySQL.
+/// PT: Coleção de parâmetros simulado para comandos MySQL.
 /// </summary>
 public class MySqlDataParameterCollectionMock
     : DbParameterCollection, IList<MySqlParameter>
@@ -95,7 +95,8 @@ public class MySqlDataParameterCollectionMock
         => SetParameter(IndexOf(parameterName), value);
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets an item in this collection.
+    /// PT: Obtém ou define um item desta coleção.
     /// </summary>
     public new MySqlParameter this[int index]
     {
@@ -104,7 +105,8 @@ public class MySqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets an item in this collection.
+    /// PT: Obtém ou define um item desta coleção.
     /// </summary>
     public new MySqlParameter this[string name]
     {
@@ -113,17 +115,20 @@ public class MySqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets Count.
+    /// PT: Obtém ou define Count.
     /// </summary>
     public override int Count => Items.Count;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets SyncRoot.
+    /// PT: Obtém ou define SyncRoot.
     /// </summary>
     public override object SyncRoot => true;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Add.
+    /// PT: Implementa Add.
     /// </summary>
     public MySqlParameter Add(string parameterName, DbType dbType)
     {
@@ -137,7 +142,8 @@ public class MySqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Add.
+    /// PT: Implementa Add.
     /// </summary>
     public override int Add(object value)
     {
@@ -147,7 +153,8 @@ public class MySqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Add.
+    /// PT: Implementa Add.
     /// </summary>
     public MySqlParameter Add(MySqlParameter parameter)
     {
@@ -157,16 +164,19 @@ public class MySqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Add.
+    /// PT: Implementa Add.
     /// </summary>
     public MySqlParameter Add(string parameterName, MySqlDbType mySqlDbType) => Add(new(parameterName, mySqlDbType));
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Add.
+    /// PT: Implementa Add.
     /// </summary>
     public MySqlParameter Add(string parameterName, MySqlDbType mySqlDbType, int size) => Add(new(parameterName, mySqlDbType, size));
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements AddRange.
+    /// PT: Implementa AddRange.
     /// </summary>
     public override void AddRange(Array values)
     {
@@ -176,7 +186,8 @@ public class MySqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements AddWithValue.
+    /// PT: Implementa AddWithValue.
     /// </summary>
     public MySqlParameter AddWithValue(string parameterName, object? value)
     {
@@ -190,25 +201,29 @@ public class MySqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Contains.
+    /// PT: Implementa Contains.
     /// </summary>
     public override bool Contains(object value)
         => value is MySqlParameter parameter && Items.Contains(parameter);
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Contains.
+    /// PT: Implementa Contains.
     /// </summary>
     public override bool Contains(string value)
         => IndexOf(value) != -1;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements CopyTo.
+    /// PT: Implementa CopyTo.
     /// </summary>
     public override void CopyTo(Array array, int index)
         => ((ICollection)Items).CopyTo(array, index);
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Clear.
+    /// PT: Implementa Clear.
     /// </summary>
     public override void Clear()
     {
@@ -217,7 +232,8 @@ public class MySqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements GetEnumerator.
+    /// PT: Implementa GetEnumerator.
     /// </summary>
     public override IEnumerator GetEnumerator()
         => Items.GetEnumerator();
@@ -225,42 +241,49 @@ public class MySqlDataParameterCollectionMock
         => Items.GetEnumerator();
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements IndexOf.
+    /// PT: Implementa IndexOf.
     /// </summary>
     public override int IndexOf(object value)
         => value is MySqlParameter parameter ? Items.IndexOf(parameter) : -1;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements IndexOf.
+    /// PT: Implementa IndexOf.
     /// </summary>
     public override int IndexOf(string parameterName) => NormalizedIndexOf(parameterName);
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Insert.
+    /// PT: Implementa Insert.
     /// </summary>
     public override void Insert(int index, object? value)
         => AddParameter((MySqlParameter)(value ?? throw new ArgumentNullException(nameof(value))), index);
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Insert.
+    /// PT: Implementa Insert.
     /// </summary>
     public void Insert(int index, MySqlParameter item)
         => Items[index] = item;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Remove.
+    /// PT: Implementa Remove.
     /// </summary>
     public override void Remove(object? value)
         => RemoveAt(IndexOf(value ?? throw new ArgumentNullException(nameof(value))));
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements RemoveAt.
+    /// PT: Implementa RemoveAt.
     /// </summary>
     public override void RemoveAt(string parameterName)
     => RemoveAt(IndexOf(parameterName));
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements RemoveAt.
+    /// PT: Implementa RemoveAt.
     /// </summary>
     public override void RemoveAt(int index)
     {
@@ -278,24 +301,28 @@ public class MySqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements IndexOf.
+    /// PT: Implementa IndexOf.
     /// </summary>
     public int IndexOf(MySqlParameter item)
         => Items.IndexOf(item);
     void ICollection<MySqlParameter>.Add(MySqlParameter item)
         => AddParameter(item, Items.Count);
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Contains.
+    /// PT: Implementa Contains.
     /// </summary>
     public bool Contains(MySqlParameter item)
         => Items.Contains(item);
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements CopyTo.
+    /// PT: Implementa CopyTo.
     /// </summary>
     public void CopyTo(MySqlParameter[] array, int arrayIndex)
         => Items.CopyTo(array, arrayIndex);
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Implements Remove.
+    /// PT: Implementa Remove.
     /// </summary>
     public bool Remove(MySqlParameter item)
     {

@@ -29,6 +29,50 @@ jobs:
       - name: Pack
         run: dotnet pack src/DbSqlLikeMem.slnx -c Release -o ./artifacts
 
+      - name: Validate package repository metadata
+        shell: bash
+        run: |
+          python - <<'PYCODE'
+          import glob
+          import os
+          import zipfile
+          import xml.etree.ElementTree as ET
+
+          def get_child(parent, local_name):
+              for child in parent:
+                  tag = child.tag.split('}', 1)[-1] if '}' in child.tag else child.tag
+                  if tag == local_name:
+                      return child
+
+              return None
+
+          packages = glob.glob('./artifacts/*.nupkg')
+          packages = [p for p in packages if 'DbSqlLikeMem.VisualStudioExtension.' not in os.path.basename(p)]
+
+          if not packages:
+              raise SystemExit('::error::No publishable packages found for metadata validation.')
+
+          for package in packages:
+              with zipfile.ZipFile(package) as zf:
+                  nuspec_name = next((n for n in zf.namelist() if n.endswith('.nuspec')), None)
+                  if not nuspec_name:
+                      raise SystemExit(f'::error::{os.path.basename(package)} does not contain a .nuspec file.')
+
+                  with zf.open(nuspec_name) as nuspec:
+                      root = ET.parse(nuspec).getroot()
+
+              metadata = get_child(root, 'metadata')
+              if metadata is None:
+                  raise SystemExit(f'::error::{os.path.basename(package)} has no metadata section in nuspec.')
+
+              repository = get_child(metadata, 'repository')
+              repo_url = repository.attrib.get('url') if repository is not None else None
+              if not repo_url or 'github.com/christianulson/DbSqlLikeMem' not in repo_url:
+                  raise SystemExit(f'::error::{os.path.basename(package)} is missing expected repository URL metadata.')
+
+              print(f'Validated repository metadata: {os.path.basename(package)} -> {repo_url}')
+          PYCODE
+
       - name: Validate NuGet API key (NUGET_API_KEY)
         shell: bash
         env:
@@ -80,4 +124,28 @@ jobs:
           for package in "${publish_packages[@]}"; do
             echo "Publishing $(basename "$package") to NuGet.org"
             dotnet nuget push "$package" --api-key "$NUGET_API_KEY" --source "https://api.nuget.org/v3/index.json" --skip-duplicate
+          done
+
+      - name: Publish symbols to NuGet.org
+        shell: bash
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          shopt -s nullglob
+          symbols=(./artifacts/*.snupkg)
+
+          if [ ${#symbols[@]} -eq 0 ]; then
+            echo "No symbol packages (.snupkg) found to publish."
+            exit 0
+          fi
+
+          for symbol in "${symbols[@]}"; do
+            symbol_name="$(basename "$symbol")"
+            if [[ "$symbol_name" == DbSqlLikeMem.VisualStudioExtension.*.snupkg ]]; then
+              echo "Skipping Visual Studio extension symbol package: $symbol_name"
+              continue
+            fi
+
+            echo "Publishing symbols $symbol_name to NuGet.org"
+            dotnet nuget push "$symbol" --api-key "$NUGET_API_KEY" --source "https://api.nuget.org/v3/index.json" --skip-duplicate
           done

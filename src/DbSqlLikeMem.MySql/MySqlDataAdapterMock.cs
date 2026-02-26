@@ -48,7 +48,7 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
 
     /// <summary>
     /// EN: Mock API member implementation for compatibility with MySQL provider contracts.
-    /// PT: Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
+    /// PT: Implementação de membro da API simulado para compatibilidade com os contratos do provedor MySQL.
     /// </summary>
     [Category("Fill")]
     public new MySqlCommandMock? SelectCommand
@@ -203,7 +203,7 @@ public sealed class MySqlDataAdapterMock : DbDataAdapter, IDbDataAdapter
     /// Mock API member implementation for compatibility with MySQL provider contracts.
     /// Implementação de membro da API mock para compatibilidade com os contratos do provedor MySQL.
     /// </summary>
-    protected override void InitializeBatching() => commandBatch = new List<IDbCommand>();
+    protected override void InitializeBatching() => commandBatch = [];
 
     /// <summary>
     /// Mock API member implementation for compatibility with MySQL provider contracts.

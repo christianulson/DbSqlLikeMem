@@ -1,13 +1,10 @@
-using System.Data.Common;
-
 namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
-/// SqlServer mock connection. Hoje é um wrapper/alias do MySqlConnectionMock,
-/// reaproveitando o mesmo engine em memória. Serve para isolar o ponto de troca
-/// quando você implementar um executor/strategies específicos do SQL Server.
+/// EN: Represents Sql Server Connection Mock.
+/// PT: Representa Sql Server conexão simulada.
 /// </summary>
-public sealed class SqlServerConnectionMock
+public class SqlServerConnectionMock
     : DbConnectionMockBase
 {
     static SqlServerConnectionMock()
@@ -16,7 +13,8 @@ public sealed class SqlServerConnectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Represents Sql Server Connection Mock.
+    /// PT: Representa Sql Server conexão simulada.
     /// </summary>
     public SqlServerConnectionMock(
        SqlServerDbMock? db = null,
@@ -27,25 +25,22 @@ public sealed class SqlServerConnectionMock
     }
 
     /// <summary>
-    /// EN: Creates a SQL Server transaction mock.
-    /// PT: Cria um mock de transação SQL Server.
+    /// EN: Creates a new transaction instance.
+    /// PT: Cria uma nova instância de transaction.
     /// </summary>
-    /// <returns>EN: Transaction instance. PT: Instância da transação.</returns>
     protected override DbTransaction CreateTransaction(IsolationLevel isolationLevel)
         => new SqlServerTransactionMock(this, isolationLevel);
 
     /// <summary>
-    /// EN: Creates a SQL Server command mock for the transaction.
-    /// PT: Cria um mock de comando SQL Server para a transação.
+    /// EN: Creates a new db command core instance.
+    /// PT: Cria uma nova instância de comando de banco principal.
     /// </summary>
-    /// <param name="transaction">EN: Current transaction. PT: Transação atual.</param>
-    /// <returns>EN: Command instance. PT: Instância do comando.</returns>
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new SqlServerCommandMock(this, transaction as SqlServerTransactionMock);
 
     /// <summary>
-    /// EN: SQL Server mock does not support RELEASE SAVEPOINT syntax.
-    /// PT: O mock SQL Server não suporta sintaxe RELEASE SAVEPOINT.
+    /// EN: Executes new exception.
+    /// PT: Executa new exception.
     /// </summary>
     protected override bool SupportsReleaseSavepoint => false;
 

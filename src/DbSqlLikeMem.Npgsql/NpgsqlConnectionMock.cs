@@ -1,11 +1,8 @@
-using System.Data.Common;
-
 namespace DbSqlLikeMem.Npgsql;
 
 /// <summary>
-/// Npgsql mock connection. Hoje é um wrapper/alias do MySqlConnectionMock,
-/// reaproveitando o mesmo engine em memória. Serve para isolar o ponto de troca
-/// quando você implementar um executor/strategies específicos do PostgreSQL.
+/// EN: Represents Npgsql Connection Mock.
+/// PT: Representa uma conexão simulada do Npgsql.
 /// </summary>
 public sealed class NpgsqlConnectionMock
     : DbConnectionMockBase
@@ -16,7 +13,8 @@ public sealed class NpgsqlConnectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Represents Npgsql Connection Mock.
+    /// PT: Representa uma conexão simulada do Npgsql.
     /// </summary>
     public NpgsqlConnectionMock(
        NpgsqlDbMock? db = null,
@@ -27,19 +25,16 @@ public sealed class NpgsqlConnectionMock
     }
 
     /// <summary>
-    /// EN: Creates a PostgreSQL transaction mock.
-    /// PT: Cria um mock de transação PostgreSQL.
+    /// EN: Creates a new transaction instance.
+    /// PT: Cria uma nova instância de transaction.
     /// </summary>
-    /// <returns>EN: Transaction instance. PT: Instância da transação.</returns>
     protected override DbTransaction CreateTransaction(IsolationLevel isolationLevel)
         => new NpgsqlTransactionMock(this, isolationLevel);
 
     /// <summary>
-    /// EN: Creates a PostgreSQL command mock for the transaction.
-    /// PT: Cria um mock de comando PostgreSQL para a transação.
+    /// EN: Creates a new db command core instance.
+    /// PT: Cria uma nova instância de comando de banco principal.
     /// </summary>
-    /// <param name="transaction">EN: Current transaction. PT: Transação atual.</param>
-    /// <returns>EN: Command instance. PT: Instância do comando.</returns>
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new NpgsqlCommandMock(this, transaction as NpgsqlTransactionMock);
 

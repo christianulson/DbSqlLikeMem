@@ -1,13 +1,12 @@
 using System.Collections;
-using System.Data.Common;
 using Npgsql;
 using NpgsqlTypes;
 
 namespace DbSqlLikeMem.Npgsql;
 
 /// <summary>
-/// EN: Mock parameter collection for Npgsql commands.
-/// PT: Coleção de parâmetros mock para comandos Npgsql.
+/// EN: Represents Npgsql Data Parameter Collection Mock.
+/// PT: Representa Npgsql Data Parameter Collection simulado.
 /// </summary>
 public class NpgsqlDataParameterCollectionMock
     : DbParameterCollection, IList<NpgsqlParameter>
@@ -50,19 +49,15 @@ public class NpgsqlDataParameterCollectionMock
     };
 
     /// <summary>
-    /// EN: Gets a parameter by index.
-    /// PT: Obtém um parâmetro pelo índice.
+    /// EN: Gets parameter.
+    /// PT: Obtém parâmetro.
     /// </summary>
-    /// <param name="index">EN: Parameter index. PT: Índice do parâmetro.</param>
-    /// <returns>EN: Parameter instance. PT: Instância do parâmetro.</returns>
     protected override DbParameter GetParameter(int index) => Items[index];
 
     /// <summary>
-    /// EN: Gets a parameter by name.
-    /// PT: Obtém um parâmetro pelo nome.
+    /// EN: Gets parameter.
+    /// PT: Obtém parâmetro.
     /// </summary>
-    /// <param name="parameterName">EN: Parameter name. PT: Nome do parâmetro.</param>
-    /// <returns>EN: Parameter instance. PT: Instância do parâmetro.</returns>
     protected override DbParameter GetParameter(string parameterName)
     {
         var index = IndexOf(parameterName);
@@ -72,11 +67,9 @@ public class NpgsqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// EN: Sets a parameter by index.
-    /// PT: Define um parâmetro pelo índice.
+    /// EN: Sets parameter.
+    /// PT: Define parâmetro.
     /// </summary>
-    /// <param name="index">EN: Parameter index. PT: Índice do parâmetro.</param>
-    /// <param name="value">EN: Parameter value. PT: Valor do parâmetro.</param>
     protected override void SetParameter(int index, DbParameter value)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(value, nameof(value));
@@ -94,16 +87,15 @@ public class NpgsqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// EN: Sets a parameter by name.
-    /// PT: Define um parâmetro pelo nome.
+    /// EN: Sets parameter.
+    /// PT: Define parâmetro.
     /// </summary>
-    /// <param name="parameterName">EN: Parameter name. PT: Nome do parâmetro.</param>
-    /// <param name="value">EN: Parameter value. PT: Valor do parâmetro.</param>
     protected override void SetParameter(string parameterName, DbParameter value)
         => SetParameter(IndexOf(parameterName), value);
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Sets parameter.
+    /// PT: Define parâmetro.
     /// </summary>
     public new NpgsqlParameter this[int index]
     {
@@ -112,7 +104,8 @@ public class NpgsqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets parameter.
+    /// PT: Obtém parâmetro.
     /// </summary>
     public new NpgsqlParameter this[string name]
     {
@@ -121,17 +114,20 @@ public class NpgsqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets count.
+    /// PT: Obtém ou define count.
     /// </summary>
     public override int Count => Items.Count;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets or sets sync root.
+    /// PT: Obtém ou define sync root.
     /// </summary>
     public override object SyncRoot => true;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the add operation.
+    /// PT: Executa a operação de add.
     /// </summary>
     public NpgsqlParameter Add(string parameterName, DbType dbType)
     {
@@ -145,7 +141,8 @@ public class NpgsqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the add operation.
+    /// PT: Executa a operação de add.
     /// </summary>
     public override int Add(object value)
     {
@@ -155,7 +152,8 @@ public class NpgsqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the add operation.
+    /// PT: Executa a operação de add.
     /// </summary>
     public NpgsqlParameter Add(NpgsqlParameter parameter)
     {
@@ -165,16 +163,19 @@ public class NpgsqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the add operation.
+    /// PT: Executa a operação de add.
     /// </summary>
     public NpgsqlParameter Add(string parameterName, NpgsqlDbType NpgsqlDbType) => Add(new(parameterName, NpgsqlDbType));
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the add operation.
+    /// PT: Executa a operação de add.
     /// </summary>
     public NpgsqlParameter Add(string parameterName, NpgsqlDbType NpgsqlDbType, int size) => Add(new(parameterName, NpgsqlDbType, size));
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Represents Add Range.
+    /// PT: Representa Add Range.
     /// </summary>
     public override void AddRange(Array values)
     {
@@ -184,7 +185,8 @@ public class NpgsqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Represents Add With Value.
+    /// PT: Representa Add With Value.
     /// </summary>
     public NpgsqlParameter AddWithValue(string parameterName, object? value)
     {
@@ -198,25 +200,29 @@ public class NpgsqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the contains operation.
+    /// PT: Executa a operação de contains.
     /// </summary>
     public override bool Contains(object value)
         => value is NpgsqlParameter parameter && Items.Contains(parameter);
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the contains operation.
+    /// PT: Executa a operação de contains.
     /// </summary>
     public override bool Contains(string value)
         => IndexOf(value) != -1;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the copy to operation.
+    /// PT: Executa a operação de copy to.
     /// </summary>
     public override void CopyTo(Array array, int index)
         => ((ICollection)Items).CopyTo(array, index);
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the clear operation.
+    /// PT: Executa a operação de clear.
     /// </summary>
     public override void Clear()
     {
@@ -225,7 +231,8 @@ public class NpgsqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets enumerator.
+    /// PT: Obtém enumerador.
     /// </summary>
     public override IEnumerator GetEnumerator()
         => Items.GetEnumerator();
@@ -233,42 +240,49 @@ public class NpgsqlDataParameterCollectionMock
         => Items.GetEnumerator();
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the index of operation.
+    /// PT: Executa a operação de index of.
     /// </summary>
     public override int IndexOf(object value)
         => value is NpgsqlParameter parameter ? Items.IndexOf(parameter) : -1;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the index of operation.
+    /// PT: Executa a operação de index of.
     /// </summary>
     public override int IndexOf(string parameterName) => NormalizedIndexOf(parameterName);
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the insert operation.
+    /// PT: Executa a operação de insert.
     /// </summary>
     public override void Insert(int index, object? value)
         => AddParameter((NpgsqlParameter)(value ?? throw new ArgumentNullException(nameof(value))), index);
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the insert operation.
+    /// PT: Executa a operação de insert.
     /// </summary>
     public void Insert(int index, NpgsqlParameter item)
         => Items[index] = item;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the remove operation.
+    /// PT: Executa a operação de remove.
     /// </summary>
     public override void Remove(object? value)
         => RemoveAt(IndexOf(value ?? throw new ArgumentNullException(nameof(value))));
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the remove at operation.
+    /// PT: Executa a operação de remove at.
     /// </summary>
     public override void RemoveAt(string parameterName)
     => RemoveAt(IndexOf(parameterName));
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the remove at operation.
+    /// PT: Executa a operação de remove at.
     /// </summary>
     public override void RemoveAt(int index)
     {
@@ -287,24 +301,28 @@ public class NpgsqlDataParameterCollectionMock
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the index of operation.
+    /// PT: Executa a operação de index of.
     /// </summary>
     public int IndexOf(NpgsqlParameter item)
         => Items.IndexOf(item);
     void ICollection<NpgsqlParameter>.Add(NpgsqlParameter item)
         => AddParameter(item, Items.Count);
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the contains operation.
+    /// PT: Executa a operação de contains.
     /// </summary>
     public bool Contains(NpgsqlParameter item)
         => Items.Contains(item);
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the copy to operation.
+    /// PT: Executa a operação de copy to.
     /// </summary>
     public void CopyTo(NpgsqlParameter[] array, int arrayIndex)
         => Items.CopyTo(array, arrayIndex);
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Performs the remove operation.
+    /// PT: Executa a operação de remove.
     /// </summary>
     public bool Remove(NpgsqlParameter item)
     {

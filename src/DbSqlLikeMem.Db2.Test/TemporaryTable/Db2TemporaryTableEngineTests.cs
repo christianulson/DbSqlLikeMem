@@ -1,7 +1,8 @@
 ﻿namespace DbSqlLikeMem.Db2.Test.TemporaryTable;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class Db2TemporaryTableEngineTests.
+/// PT: Define a classe Db2TemporaryTableEngineTests.
 /// </summary>
 public sealed class Db2TemporaryTableEngineTests
 {

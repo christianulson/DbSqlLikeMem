@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Npgsql.Test.Views;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class PostgreSqlCreateViewParserTests.
+/// PT: Define a classe PostgreSqlCreateViewParserTests.
 /// </summary>
 public sealed class PostgreSqlCreateViewParserTests(
     ITestOutputHelper helper

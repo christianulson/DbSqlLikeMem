@@ -3,7 +3,8 @@
 internal static class Db2DbVersions
 {
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Returns Db2 versions supported by this provider mock.
+    /// PT: Retorna as versões do Db2 suportadas por este mock de provedor.
     /// </summary>
     public static IEnumerable<int> Versions()
     {

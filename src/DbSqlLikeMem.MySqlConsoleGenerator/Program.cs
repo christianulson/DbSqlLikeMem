@@ -17,6 +17,7 @@ static partial class Program
         string OutputPath,
         string Schema,
         string Namespace,
+        string? ClassAccessibility = null,
         List<string>? Tables = null);
 
     private sealed record ConnectionInfo(
@@ -105,6 +106,7 @@ static partial class Program
 
                     GenerateTableFile(
                         destiny.Namespace,
+                        destiny.ClassAccessibility,
                         tableName: clean,
                         columns: meta.Columns,
                         primaryKey: meta.PrimaryKey,
@@ -278,6 +280,7 @@ SELECT KCU.COLUMN_NAME
     // ---------- Geração ----------
     private static void GenerateTableFile(
         string ns,
+        string? classAccessibility,
         string tableName,
         List<ColumnMeta> columns,
         List<string> primaryKey,
@@ -293,11 +296,17 @@ SELECT KCU.COLUMN_NAME
 
         w.WriteLine($"namespace {ns};");
         w.WriteLine();
-        w.WriteLine($"public static class {className}");
+        var normalizedAccessibility = string.Equals(classAccessibility, "public", StringComparison.OrdinalIgnoreCase)
+            ? "public"
+            : "internal";
+
+        w.WriteLine($"{normalizedAccessibility} static class {className}");
         w.WriteLine("{");
-        w.WriteLine($"    public static ITableMock {methodName}(" +
-                    $"        this DbMock db)");
+        w.WriteLine($"    {normalizedAccessibility} static ITableMock {methodName}(this DbMock db)");
         w.WriteLine("    {");
+        if (normalizedAccessibility == "public")
+            w.WriteLine("        ArgumentNullException.ThrowIfNull(db);");
+
         w.WriteLine($"        var table = db.AddTable(\"{tableName}\");");
 
         // map: nome → ordinal (de fato já vem na meta)
@@ -307,7 +316,7 @@ SELECT KCU.COLUMN_NAME
             var nullable = c.IsNullable ? "true" : "false";
             var ctor = $"DbType.{dbType}, {nullable}";
 
-            if (c.IsIdentity) ctor += ", true";
+            if (c.IsIdentity) ctor += ", identity: true";
             if (!string.IsNullOrEmpty(c.DefaultValue)
                 && GenerationRuleSet.IsSimpleLiteralDefault(c.DefaultValue!))
                 ctor += $", defaultValue: {GenerationRuleSet.FormatDefaultLiteral(c.DefaultValue!, dbType)}";

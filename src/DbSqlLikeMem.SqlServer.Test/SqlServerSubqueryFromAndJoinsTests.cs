@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.SqlServer.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class SqlServerSubqueryFromAndJoinsTests.
+/// PT: Define a classe SqlServerSubqueryFromAndJoinsTests.
 /// </summary>
 public sealed class SqlServerSubqueryFromAndJoinsTests(
         ITestOutputHelper helper

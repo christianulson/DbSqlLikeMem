@@ -3,7 +3,8 @@
 namespace DbSqlLikeMem.Test;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class XUnitTestBase.
+/// PT: Define a classe XUnitTestBase.
 /// </summary>
 public abstract class XUnitTestBase : IDisposable
 {
@@ -107,7 +108,8 @@ public abstract class XUnitTestBase : IDisposable
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Tests Dispose behavior.
+    /// PT: Testa o comportamento de Dispose.
     /// </summary>
     public void Dispose()
     {

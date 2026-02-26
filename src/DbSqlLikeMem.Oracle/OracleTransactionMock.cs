@@ -1,10 +1,10 @@
-using System.Data.Common;
 using System.Diagnostics;
 
 namespace DbSqlLikeMem.Oracle;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Represents Oracle Transaction Mock.
+/// PT: Representa a transação simulada do Oracle.
 /// </summary>
 public sealed class OracleTransactionMock(
     OracleConnectionMock cnn,
@@ -14,19 +14,21 @@ public sealed class OracleTransactionMock(
     private bool disposedValue;
 
     /// <summary>
-    /// EN: Gets the connection associated with this transaction.
-    /// PT: Obtém a conexão associada a esta transação.
+    /// EN: Gets the database connection associated with this transaction.
+    /// PT: Obtém a conexão de banco de dados associada a esta transação.
     /// </summary>
     protected override DbConnection? DbConnection => cnn;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Gets the isolation level configured for this transaction.
+    /// PT: Obtém o nível de isolamento configurado para esta transação.
     /// </summary>
     public override IsolationLevel IsolationLevel
         => isolationLevel ?? IsolationLevel.Unspecified;
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Commits the current transaction.
+    /// PT: Confirma a transação atual.
     /// </summary>
     public override void Commit()
     {
@@ -38,7 +40,8 @@ public sealed class OracleTransactionMock(
     }
 
     /// <summary>
-    /// Auto-generated summary.
+    /// EN: Rolls back the current transaction.
+    /// PT: Reverte a transação atual.
     /// </summary>
     public override void Rollback()
     {
@@ -49,14 +52,17 @@ public sealed class OracleTransactionMock(
         }
     }
 
-    /// <summary>
-    /// EN: Creates a savepoint in the active transaction.
-    /// PT: Cria um savepoint na transação ativa.
-    /// </summary>
-    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
     #if NET6_0_OR_GREATER
+    /// <summary>
+    /// EN: Creates a transaction savepoint.
+    /// PT: Cria um ponto de salvamento da transação.
+    /// </summary>
     public override void Save(string savepointName)
 #else
+    /// <summary>
+    /// EN: Creates a transaction savepoint.
+    /// PT: Cria um ponto de salvamento da transação.
+    /// </summary>
     public void Save(string savepointName)
 #endif
     {
@@ -64,14 +70,17 @@ public sealed class OracleTransactionMock(
             cnn.CreateSavepoint(savepointName);
     }
 
-    /// <summary>
-    /// EN: Rolls back to a named savepoint.
-    /// PT: Executa rollback para um savepoint nomeado.
-    /// </summary>
-    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
     #if NET6_0_OR_GREATER
+    /// <summary>
+    /// EN: Rolls back the current transaction to the specified savepoint.
+    /// PT: Reverte a transação atual até o ponto de salvamento informado.
+    /// </summary>
     public override void Rollback(string savepointName)
 #else
+    /// <summary>
+    /// EN: Rolls back the current transaction to the specified savepoint.
+    /// PT: Reverte a transação atual até o ponto de salvamento informado.
+    /// </summary>
     public void Rollback(string savepointName)
 #endif
     {
@@ -79,14 +88,17 @@ public sealed class OracleTransactionMock(
             cnn.RollbackTransaction(savepointName);
     }
 
-    /// <summary>
-    /// EN: Releases a named savepoint.
-    /// PT: Libera um savepoint nomeado.
-    /// </summary>
-    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
     #if NET6_0_OR_GREATER
+    /// <summary>
+    /// EN: Releases a previously created savepoint.
+    /// PT: Libera um ponto de salvamento criado anteriormente.
+    /// </summary>
     public override void Release(string savepointName)
 #else
+    /// <summary>
+    /// EN: Releases a previously created savepoint.
+    /// PT: Libera um ponto de salvamento criado anteriormente.
+    /// </summary>
     public void Release(string savepointName)
 #endif
     {
@@ -95,10 +107,9 @@ public sealed class OracleTransactionMock(
     }
 
     /// <summary>
-    /// EN: Disposes the transaction resources.
-    /// PT: Descarta os recursos da transação.
+    /// EN: Releases resources used by this instance.
+    /// PT: Libera os recursos usados por esta instância.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         if (!disposedValue)

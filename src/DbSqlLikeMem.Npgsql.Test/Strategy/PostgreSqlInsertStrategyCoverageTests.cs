@@ -1,7 +1,8 @@
 namespace DbSqlLikeMem.Npgsql.Test.Strategy;
 
 /// <summary>
-/// Auto-generated summary.
+/// EN: Defines the class PostgreSqlInsertStrategyCoverageTests.
+/// PT: Define a classe PostgreSqlInsertStrategyCoverageTests.
 /// </summary>
 public sealed class PostgreSqlInsertStrategyCoverageTests(
         ITestOutputHelper helper
