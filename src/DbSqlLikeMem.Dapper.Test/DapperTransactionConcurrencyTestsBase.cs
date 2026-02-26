@@ -108,10 +108,10 @@ public abstract class DapperTransactionConcurrencyTestsBase
         var commitTask = Task.Run(() =>
         {
             using var tx = first.BeginTransaction();
-            first.Execute("UPDATE tx_concurrency_state SET value = value + 10 WHERE id = 1", transaction: tx);
-            first.Execute("INSERT INTO tx_concurrency_audit (id, source) VALUES (1, 'commit')", transaction: tx);
             sync.SignalAndWait();
             rollbackCompleted.Wait();
+            first.Execute("UPDATE tx_concurrency_state SET value = value + 10 WHERE id = 1", transaction: tx);
+            first.Execute("INSERT INTO tx_concurrency_audit (id, source) VALUES (1, 'commit')", transaction: tx);
             tx.Commit();
         });
 
