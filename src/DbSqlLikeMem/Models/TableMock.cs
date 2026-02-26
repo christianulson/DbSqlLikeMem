@@ -605,7 +605,7 @@ public abstract class TableMock
         out int? value)
     {
         value = default;
-        if (_primaryKeyIndexes.Count > 0) return true;
+        if (_primaryKeyIndexes.Count <= 0) return true;
         var pkColumnNames = _columns.ToDictionary(_ => _.Value.Index, _ => _.Key);
         for (int i = 0; i < Count; i++)
         {
@@ -615,7 +615,9 @@ public abstract class TableMock
                 if (newRow.TryGetValue(pkIdx, out var pkVal)
                     && this[i].TryGetValue(pkIdx, out var cur)
                     && Equals(cur, pkVal))
+                {
                     pks.Add($"{pkColumnNames[pkIdx]}: {pkVal}");
+                }
             }
             if (_primaryKeyIndexes.Count != pks.Count)
                 continue;
@@ -693,45 +695,56 @@ public abstract class TableMock
         List<(string C, string Op, string V)> conditions,
         IReadOnlyDictionary<int, object?> row)
     => conditions.All(cond =>
-        {
-            var info = table.GetColumn(cond.C);
-            var actual = info.GetGenValue != null ? info.GetGenValue(row, table) : row[info.Index];
+    {
+        var info = table.GetColumn(cond.C);
+        var actual = info.GetGenValue != null ? info.GetGenValue(row, table) : row[info.Index];
 
-            if (cond.Op.Equals("=", StringComparison.OrdinalIgnoreCase))
-            {
-                table.CurrentColumn = cond.C;
-                var exp = table.Resolve(cond.V, info.DbType, info.Nullable, pars, table.Columns);
-                table.CurrentColumn = null;
-                return Equals(actual, exp is DBNull ? null : exp);
-            }
-
-            if (!cond.Op.Equals("IN", StringComparison.OrdinalIgnoreCase))
-                return false;
-
-            var rhs = cond.V.Trim();
-
-            IEnumerable<object?> candidates;
-
-            if (rhs.StartsWith("(")
-            && rhs.EndsWith(")"))
-            {
-                candidates = GetCandidatesFromSub(table, pars, cond, info, rhs);
-            }
-            else
-            {
-                candidates = GetCanditateFromTable(table, pars, cond, info, rhs);
-            }
-
-            foreach (var cand in candidates)
-            {
-                if (Equals(actual, cand))
-                    return true;
-            }
-
+        if (IsMatchEquals(table, pars, cond, info, actual, out var value))
+            return value;
+        
+        if (!cond.Op.Equals("IN", StringComparison.OrdinalIgnoreCase))
             return false;
-        });
 
-    private static IEnumerable<object?> GetCanditateFromTable(ITableMock table, DbParameterCollection? pars, (string C, string Op, string V) cond, ColumnDef info, string rhs)
+        var rhs = cond.V.Trim();
+
+        var candidates = rhs.StartsWith("(")
+            && rhs.EndsWith(")")
+            ? GetCandidatesFromSub(table, pars, cond, info, rhs)
+            : GetCanditateFromTable(table, pars, cond, info, rhs);
+
+        foreach (var cand in candidates)
+        {
+            if (Equals(actual, cand))
+                return true;
+        }
+
+        return false;
+    });
+
+    private static bool IsMatchEquals(
+        ITableMock table,
+        DbParameterCollection? pars,
+        (string C, string Op, string V) cond,
+        ColumnDef info, object? actual,
+        out bool value)
+    {
+        value = default;
+        if (!cond.Op.Equals("=", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        table.CurrentColumn = cond.C;
+        var exp = table.Resolve(cond.V, info.DbType, info.Nullable, pars, table.Columns);
+        table.CurrentColumn = null;
+        value = Equals(actual, exp is DBNull ? null : exp);
+        return true;
+    }
+
+    private static IEnumerable<object?> GetCanditateFromTable(
+        ITableMock table,
+        DbParameterCollection? pars,
+        (string C, string Op, string V) cond,
+        ColumnDef info,
+        string rhs)
     {
         table.CurrentColumn = cond.C;
         var resolved = table.Resolve(rhs, info.DbType, info.Nullable, pars, table.Columns);
