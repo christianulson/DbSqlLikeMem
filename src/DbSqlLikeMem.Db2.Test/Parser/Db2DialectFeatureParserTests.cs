@@ -264,6 +264,11 @@ public sealed class Db2DialectFeatureParserTests
         Assert.Contains("'`'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Verifies unsupported top-level statements in DB2 return actionable parser guidance.
+    /// PT: Verifica que instruções de nível superior não suportadas no DB2 retornam orientação acionável do parser.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]

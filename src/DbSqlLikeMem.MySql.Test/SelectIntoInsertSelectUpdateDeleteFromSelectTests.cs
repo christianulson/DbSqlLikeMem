@@ -18,6 +18,10 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     /// </summary>
     protected override MySqlDbMock CreateDb() => [];
 
+    /// <summary>
+    /// EN: Indicates MySQL test runtime should execute UPDATE/DELETE scenarios with JOIN support toggled on.
+    /// PT: Indica que o runtime de teste do MySQL deve executar cenários de UPDATE/DELETE com suporte a JOIN habilitado.
+    /// </summary>
     protected override bool SupportsUpdateDeleteJoinRuntime => true;
 
     /// <summary>
@@ -40,6 +44,10 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     protected override string DeleteJoinDerivedSelectSql
         => "DELETE u FROM users u JOIN (SELECT id FROM users WHERE tenantid = 10) s ON s.id = u.id";
 
+    /// <summary>
+    /// EN: Verifies MySQL-style execution rejects UPDATE ... FROM ... JOIN syntax with an actionable unsupported message.
+    /// PT: Verifica que a execução no estilo MySQL rejeita a sintaxe UPDATE ... FROM ... JOIN com mensagem acionável de não suportado.
+    /// </summary>
     [Fact]
     [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
     public void UpdateFromJoinSyntax_ShouldThrowNotSupported_ForMySql()

@@ -746,6 +746,10 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         prodPlan.Should().Contain($"- {SqlExecutionPlanMessages.PlanSeverityHintLabel()}: context:prod;level:Warning");
     }
 
+    /// <summary>
+    /// EN: Verifies the formatted execution plan includes the current metadata version marker.
+    /// PT: Verifica que o plano de execução formatado inclui o marcador da versão atual de metadados.
+    /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitPlanMetadataVersion()
     {
