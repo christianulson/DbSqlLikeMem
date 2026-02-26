@@ -2490,8 +2490,7 @@ private void FillNthValue(
         var hasOffsetBound = frame.Start.Kind is WindowFrameBoundKind.Preceding or WindowFrameBoundKind.Following
             || frame.End.Kind is WindowFrameBoundKind.Preceding or WindowFrameBoundKind.Following;
 
-        if (hasOffsetBound && orderBy.Count != 1)
-            throw new InvalidOperationException("RANGE with PRECEDING/FOLLOWING offset currently supports a single ORDER BY expression.");
+        ValidateRangeOffsetOrderBy(orderBy, hasOffsetBound);
 
         var peerRange = ResolvePeerRange(part, rowIndex, orderValuesByRow);
 
@@ -2514,6 +2513,19 @@ private void FillNthValue(
             return RowsFrameRange.Empty;
 
         return new RowsFrameRange(startIndex, endIndex, IsEmpty: false);
+    }
+
+    /// <summary>
+    /// EN: Validates ORDER BY shape required by RANGE offset semantics.
+    /// PT: Valida o formato de ORDER BY exigido pela semântica de RANGE com offset.
+    /// </summary>
+    private static void ValidateRangeOffsetOrderBy(IReadOnlyList<WindowOrderItem> orderBy, bool hasOffsetBound)
+    {
+        if (!hasOffsetBound)
+            return;
+
+        if (orderBy.Count != 1)
+            throw new InvalidOperationException("RANGE with PRECEDING/FOLLOWING offset requires exactly one ORDER BY expression.");
     }
 
     private List<(int Start, int End)> BuildPeerGroups(List<EvalRow> part, Dictionary<EvalRow, object?[]> orderValuesByRow)
@@ -2565,8 +2577,12 @@ private void FillNthValue(
         var values = new decimal[part.Count];
         for (var i = 0; i < part.Count; i++)
         {
-            if (!TryConvertRangeOrderToDecimal(orderValuesByRow[part[i]].Length == 0 ? null : orderValuesByRow[part[i]][0], out var scalar))
-                throw new InvalidOperationException("RANGE frame requires numeric/date ORDER BY values for offset semantics.");
+            var rawOrderValue = orderValuesByRow[part[i]].Length == 0 ? null : orderValuesByRow[part[i]][0];
+            if (!TryConvertRangeOrderToDecimal(rawOrderValue, out var scalar))
+            {
+                var valueType = rawOrderValue?.GetType().Name ?? "NULL";
+                throw new InvalidOperationException($"RANGE with PRECEDING/FOLLOWING offset requires numeric/date ORDER BY values. Actual ORDER BY value type: {valueType}.");
+            }
 
             values[i] = desc ? -scalar : scalar;
         }

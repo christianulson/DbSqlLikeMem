@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Xml.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -789,6 +790,205 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         CorrelationIdPattern.IsMatch(correlationId).Should().BeTrue();
     }
 
+    /// <summary>
+    /// EN: Verifies SELECT estimated cost increases when projection includes window-function expressions.
+    /// PT: Verifica que o custo estimado de SELECT aumenta quando a projeção inclui expressões de função de janela.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithWindowProjectionComplexity()
+    {
+        var baseQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var windowQuery = new SqlSelectQuery(
+            [],
+            false,
+            [
+                new SqlSelectItem("id", null),
+                new SqlSelectItem("RANK() OVER (ORDER BY tenantid)", "rk")
+            ],
+            [],
+            null,
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 10, 3, 1);
+        var basePlan = SqlExecutionPlanFormatter.FormatSelect(baseQuery, metrics, [], []);
+        var windowPlan = SqlExecutionPlanFormatter.FormatSelect(windowQuery, metrics, [], []);
+
+        ExtractEstimatedCost(basePlan).Should().BeLessThan(ExtractEstimatedCost(windowPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies SELECT estimated cost includes source complexity for derived subqueries.
+    /// PT: Verifica que o custo estimado de SELECT inclui complexidade de fonte para subconsultas derivadas.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithDerivedSourceComplexity()
+    {
+        var simpleQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var derivedInner = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var derivedQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, null, "d", derivedInner, null, null, null)
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 10, 3, 1);
+        var simplePlan = SqlExecutionPlanFormatter.FormatSelect(simpleQuery, metrics, [], []);
+        var derivedPlan = SqlExecutionPlanFormatter.FormatSelect(derivedQuery, metrics, [], []);
+
+        ExtractEstimatedCost(simplePlan).Should().BeLessThan(ExtractEstimatedCost(derivedPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies SELECT estimated cost applies higher join-type complexity for LEFT joins versus INNER joins.
+    /// PT: Verifica que o custo estimado de SELECT aplica maior complexidade por tipo de join para LEFT em relação a INNER.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithOuterJoinTypeComplexity()
+    {
+        var innerJoinQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("u.id", null)],
+            [new SqlJoin(SqlJoinType.Inner, new SqlTableSource(null, "orders", "o", null, null, null, null), new LiteralExpr(true))],
+            null,
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", "u", null, null, null, null)
+        };
+
+        var leftJoinQuery = innerJoinQuery with
+        {
+            Joins = [new SqlJoin(SqlJoinType.Left, new SqlTableSource(null, "orders", "o", null, null, null, null), new LiteralExpr(true))]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 12, 3);
+        var innerPlan = SqlExecutionPlanFormatter.FormatSelect(innerJoinQuery, metrics, [], []);
+        var leftPlan = SqlExecutionPlanFormatter.FormatSelect(leftJoinQuery, metrics, [], []);
+
+        ExtractEstimatedCost(innerPlan).Should().BeLessThan(ExtractEstimatedCost(leftPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies ORDER BY without row-limit carries additional estimated spill/sort risk cost.
+    /// PT: Verifica que ORDER BY sem limite de linhas carrega custo adicional estimado de risco de sort/spill.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseForOrderByWithoutLimitRisk()
+    {
+        var noLimitQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [new SqlOrderByItem("id", false)], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var withLimitQuery = noLimitQuery with { RowLimit = new SqlLimitOffset(10, null) };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var noLimitPlan = SqlExecutionPlanFormatter.FormatSelect(noLimitQuery, metrics, [], []);
+        var withLimitPlan = SqlExecutionPlanFormatter.FormatSelect(withLimitQuery, metrics, [], []);
+
+        ExtractEstimatedCost(withLimitPlan).Should().BeLessThan(ExtractEstimatedCost(noLimitPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies predicate complexity contributes to estimated cost for WHERE filters.
+    /// PT: Verifica que a complexidade de predicados contribui para o custo estimado em filtros WHERE.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithWherePredicateComplexity()
+    {
+        var simpleWhere = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("id", null)],
+            [],
+            new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("id"), new LiteralExpr(1)),
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var complexWhere = simpleWhere with
+        {
+            Where = new BinaryExpr(
+                SqlBinaryOp.And,
+                new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("id"), new LiteralExpr(1)),
+                new BinaryExpr(SqlBinaryOp.Or,
+                    new LikeExpr(new IdentifierExpr("name"), new LiteralExpr("J%")),
+                    new BinaryExpr(SqlBinaryOp.GreaterOrEqual, new IdentifierExpr("tenantid"), new LiteralExpr(10))))
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var simplePlan = SqlExecutionPlanFormatter.FormatSelect(simpleWhere, metrics, [], []);
+        var complexPlan = SqlExecutionPlanFormatter.FormatSelect(complexWhere, metrics, [], []);
+
+        ExtractEstimatedCost(simplePlan).Should().BeLessThan(ExtractEstimatedCost(complexPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies join ON predicate complexity contributes to estimated cost.
+    /// PT: Verifica que a complexidade do predicado ON do join contribui para o custo estimado.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithJoinPredicateComplexity()
+    {
+        var simpleJoin = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("u.id", null)],
+            [new SqlJoin(SqlJoinType.Inner, new SqlTableSource(null, "orders", "o", null, null, null, null), new LiteralExpr(true))],
+            null,
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", "u", null, null, null, null)
+        };
+
+        var complexJoin = simpleJoin with
+        {
+            Joins =
+            [
+                new SqlJoin(
+                    SqlJoinType.Inner,
+                    new SqlTableSource(null, "orders", "o", null, null, null, null),
+                    new BinaryExpr(
+                        SqlBinaryOp.And,
+                        new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("u.id"), new IdentifierExpr("o.userid")),
+                        new BinaryExpr(SqlBinaryOp.Greater, new IdentifierExpr("o.amount"), new LiteralExpr(0))))
+            ]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var simplePlan = SqlExecutionPlanFormatter.FormatSelect(simpleJoin, metrics, [], []);
+        var complexPlan = SqlExecutionPlanFormatter.FormatSelect(complexJoin, metrics, [], []);
+
+        ExtractEstimatedCost(simplePlan).Should().BeLessThan(ExtractEstimatedCost(complexPlan));
+    }
+
 
     /// <summary>
     /// EN: Verifies optional JSON payload mirrors common aggregated metadata from text output.
@@ -1017,5 +1217,15 @@ public sealed class ExecutionPlanFormattingAndI18nTests
                 d => d.Attribute("name")!.Value,
                 d => d.Element("value")?.Value ?? string.Empty,
                 StringComparer.Ordinal);
+    }
+
+    private static int ExtractEstimatedCost(string plan)
+    {
+        var line = plan
+            .Split(new[] { Environment.NewLine }, StringSplitOptions.None)
+            .First(l => l.StartsWith($"- {SqlExecutionPlanMessages.EstimatedCostLabel()}:", StringComparison.Ordinal));
+
+        var value = line.Split([':'], 2)[1].Trim();
+        return int.Parse(value, CultureInfo.InvariantCulture);
     }
 }
