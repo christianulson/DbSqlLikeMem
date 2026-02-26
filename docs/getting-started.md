@@ -177,9 +177,9 @@ Observações:
 
 Use esta lista quando fizer alterações grandes no código:
 
-- Atualize a tabela de provedores/versões em `README.md` e `docs/providers-and-features.md`.
+- Atualize a tabela de provedores/versões em `README.md` e `docs/old/providers-and-features.md`.
 - Verifique se exemplos de `factory` cobrem todos os providers suportados.
-- Confirme se novos recursos aparecem em pelo menos um guia de uso (`docs/getting-started.md`) e um guia de referência (`docs/providers-and-features.md`).
+- Confirme se novos recursos aparecem em pelo menos um guia de uso (`docs/getting-started.md`) e um guia de referência (`docs/old/providers-and-features.md`).
 - Se houver impacto de distribuição, revise `docs/publishing.md`.
 
 ## Testes
@@ -190,6 +190,6 @@ dotnet test src/DbSqlLikeMem.slnx
 
 ## Links relacionados
 
-- [Provedores, versões e compatibilidade](providers-and-features.md)
+- [Provedores, versões e compatibilidade](old/providers-and-features.md)
 - [Publicação](publishing.md)
 - [Wiki do GitHub](wiki/README.md)

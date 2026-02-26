@@ -50,7 +50,7 @@ git push
 
 - [Local documentation](../README.md)
 - [Getting started](../getting-started.md)
-- [Providers and compatibility](../providers-and-features.md)
+- [Providers and compatibility](../old/providers-and-features.md)
 - [Publishing](../publishing.md)
 
 ---
