@@ -9,6 +9,9 @@ namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 public sealed class SqlServerTransactionReliabilityTests : DapperTransactionConcurrencyTestsBase
 {
     /// <inheritdoc />
+    protected override bool SupportsReleaseSavepoint => false;
+
+    /// <inheritdoc />
     protected override Func<DbConnectionMockBase> CreateOpenConnectionFactory(bool threadSafe, int? version = null)
     {
         var db = new SqlServerDbMock(version) { ThreadSafe = threadSafe };
