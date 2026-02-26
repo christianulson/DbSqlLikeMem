@@ -15,6 +15,10 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         @"^[a-zA-Z]+:\d+(\.\d+)?(?:;[a-zA-Z]+:\d+(\.\d+)?)*$",
         RegexOptions.CultureInvariant);
 
+    private static readonly Regex CorrelationIdPattern = new(
+        @"^[0-9a-f]{32}$",
+        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
     /// <summary>
     /// EN: Verifies warning metadata is rendered in deterministic key order.
     /// PT: Verifica que os metadados de alerta são renderizados em ordem determinística de chaves.
@@ -775,7 +779,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         var correlationId = plan
             .Split(new[] { Environment.NewLine }, StringSplitOptions.None)
             .First(line => line.StartsWith("- PlanCorrelationId:", StringComparison.Ordinal))
-            .Split(':', 2)[1]
+            .Split([':'], 2)[1]
             .Trim();
 
         CorrelationIdPattern.IsMatch(correlationId).Should().BeTrue();
