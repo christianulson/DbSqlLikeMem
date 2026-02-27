@@ -283,7 +283,7 @@ internal sealed class SqlQueryParser
                     // Vou assumir que cada item da lista interna é um valor (ex: "1", "'abc'").
                     var rowValues = SplitRawByComma(rawBlock);
                     valuesRaw.Add(rowValues);
-                    valuesExpr.Add([.. rowValues.Select(v => TryParseScalar(v))]);
+                    valuesExpr.Add([.. rowValues.Select(TryParseScalar)]);
                 }
 
                 if (IsSymbol(Peek(), ","))
@@ -1528,7 +1528,7 @@ internal sealed class SqlQueryParser
         };
     }
 
-    private SqlPivotSpec ParsePivotSpec(string raw)
+    private static SqlPivotSpec ParsePivotSpec(string raw)
     {
         var m = Regex.Match(
             raw,

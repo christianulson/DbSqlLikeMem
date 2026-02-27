@@ -415,7 +415,8 @@ internal static class DbInsertStrategy
 
         object? EvalFunction(FunctionCallExpr fn)
         {
-            if (fn.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase) && fn.Args.Count == 1)
+            if (fn.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
+                && fn.Args.Count == 1)
             {
                 var col = fn.Args[0] switch
                 {
@@ -433,7 +434,8 @@ internal static class DbInsertStrategy
 
         object? EvalCall(CallExpr call)
         {
-            if (call.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase) && call.Args.Count == 1)
+            if (call.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
+                && call.Args.Count == 1)
             {
                 var col = call.Args[0] switch
                 {
@@ -602,7 +604,8 @@ internal static class DbInsertStrategy
                 return DateTime.UtcNow;
 
             // se vier algo simples tipo VALUES(...) cair aqui por engano, tenta tratar:
-            if (name.Equals("VALUES", StringComparison.OrdinalIgnoreCase) && fn.Args.Count == 1)
+            if (name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
+                && fn.Args.Count == 1)
             {
                 var col = fn.Args[0] switch
                 {
@@ -622,7 +625,8 @@ internal static class DbInsertStrategy
             var name = call.Name;
 
             // MySQL: VALUES(col)
-            if (name.Equals("VALUES", StringComparison.OrdinalIgnoreCase) && call.Args.Count == 1)
+            if (name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
+                && call.Args.Count == 1)
             {
                 var col = call.Args[0] switch
                 {

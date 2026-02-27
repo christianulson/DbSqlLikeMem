@@ -187,8 +187,8 @@ internal abstract class AstQueryExecutorBase(
 
         sw.Stop();
 
-        var unionInputTables = parts.Sum(p => CountKnownInputTables(p));
-        var unionEstimatedRead = parts.Sum(p => EstimateRowsRead(p));
+        var unionInputTables = parts.Sum(CountKnownInputTables);
+        var unionEstimatedRead = parts.Sum(EstimateRowsRead);
         var unionMetrics = new SqlPlanRuntimeMetrics(
             InputTables: unionInputTables,
             EstimatedRowsRead: unionEstimatedRead,
@@ -354,7 +354,7 @@ internal abstract class AstQueryExecutorBase(
     }
 
 
-    private IReadOnlyList<SqlPlanWarning> BuildPlanWarnings(
+    private static IReadOnlyList<SqlPlanWarning> BuildPlanWarnings(
         SqlSelectQuery query,
         SqlPlanRuntimeMetrics metrics)
     {
@@ -699,7 +699,7 @@ internal abstract class AstQueryExecutorBase(
         return rounded;
     }
 
-    private Dictionary<string, SqlTableSource> BuildSourceMap(SqlSelectQuery query)
+    private static Dictionary<string, SqlTableSource> BuildSourceMap(SqlSelectQuery query)
     {
         var map = new Dictionary<string, SqlTableSource>(StringComparer.OrdinalIgnoreCase);
 
@@ -882,7 +882,7 @@ internal abstract class AstQueryExecutorBase(
             ActualRows: actualRows,
             ElapsedMs: elapsedMs);
 
-    private int CountKnownInputTables(SqlSelectQuery query)
+    private static int CountKnownInputTables(SqlSelectQuery query)
     {
         var count = 0;
         if (query.Table is not null && HasKnownPhysicalTable(query.Table))
@@ -908,7 +908,7 @@ internal abstract class AstQueryExecutorBase(
         return total;
     }
 
-    private bool HasKnownPhysicalTable(SqlTableSource source)
+    private static bool HasKnownPhysicalTable(SqlTableSource source)
         => source.Name is not null && source.Derived is null && source.DerivedUnion is null;
 
     private long GetKnownSourceRows(SqlTableSource? source)
@@ -2571,7 +2571,7 @@ private void FillNthValue(
         return (start, end);
     }
 
-    private decimal[] BuildRangeScalarValues(List<EvalRow> part, Dictionary<EvalRow, object?[]> orderValuesByRow, IReadOnlyList<WindowOrderItem> orderBy)
+    private static decimal[] BuildRangeScalarValues(List<EvalRow> part, Dictionary<EvalRow, object?[]> orderValuesByRow, IReadOnlyList<WindowOrderItem> orderBy)
     {
         var desc = orderBy.Count > 0 && orderBy[0].Desc;
         var values = new decimal[part.Count];
