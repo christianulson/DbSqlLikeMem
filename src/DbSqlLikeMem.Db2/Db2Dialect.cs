@@ -109,7 +109,15 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// EN: Gets or sets null substitute function names.
     /// PT: Obtém ou define null substitute function names.
     /// </summary>
-    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL"];
+        public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["COALESCE", "VALUE"];
+    public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
+        => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
+            ["CURRENT_TIME"] = SqlTemporalFunctionKind.Time,
+            ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
+            ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
+        };
 
     /// <summary>
     /// EN: Gets or sets allows parser limit offset compatibility.

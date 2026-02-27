@@ -64,6 +64,16 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.2.5 Funções SQL agregadoras e de composição de texto
 - Implementação estimada: **68%**.
+
+#### 1.2.6 Funções de data/hora cross-dialect
+- Implementação estimada: **40%**.
+- Consolidar no `dialect` o catálogo de funções temporais sem argumento (data, hora e data/hora).
+- Garantir suporte de avaliação tanto para função com parênteses quanto para tokens sem parênteses em `SELECT`, `WHERE`, `HAVING` e expressões de `INSERT/UPSERT`.
+- Cobrir equivalências por provedor (exemplos):
+  - Oracle: `SYSDATE`, `SYSTIMESTAMP`, `CURRENT_DATE`, `CURRENT_TIMESTAMP`.
+  - SQL Server: `GETDATE`, `SYSDATETIME`, `CURRENT_TIMESTAMP`.
+  - MySQL/PostgreSQL/SQLite/DB2: `NOW`, `CURRENT_DATE`, `CURRENT_TIME`, `CURRENT_TIMESTAMP` (quando aplicável ao dialeto).
+- Introduzir serviço compartilhado para avaliação temporal e reutilização no executor AST, estratégias de insert/update e helpers de valor.
 - Incluir cobertura explícita para funções de agregação textual por dialeto.
 - Priorizar equivalências entre funções para reduzir divergência em testes multi-provedor.
 - Exemplos prioritários de backlog:
