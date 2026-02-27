@@ -1,3 +1,5 @@
+using static System.Net.WebRequestMethods;
+
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 /// <summary>
@@ -21,9 +23,10 @@ public static class SqlMetadataQueryFactory
     /// Builds the metadata query that lists schema objects for the specified database type.
     /// </summary>
     /// <param name="databaseType">The target database type.</param>
+    /// <param name="filter">Filter object by Name.</param>
     /// <returns>The SQL query text.</returns>
-    public static string BuildListObjectsQuery(string databaseType)
-        => ResolveStrategy(databaseType).BuildListObjectsQuery();
+    public static string BuildListObjectsQuery(string databaseType, string? filter = null)
+        => ResolveStrategy(databaseType).BuildListObjectsQuery(filter);
 
     /// <summary>
     /// Builds the metadata query that lists columns for a specific object for the specified database type.
@@ -78,7 +81,7 @@ public static class SqlMetadataQueryFactory
 
     private interface ISqlMetadataQueryStrategy
     {
-        string BuildListObjectsQuery();
+        string BuildListObjectsQuery(string? filter);
         string BuildObjectColumnsQuery();
         string BuildPrimaryKeyQuery();
         string BuildIndexesQuery();
@@ -88,8 +91,8 @@ public static class SqlMetadataQueryFactory
 
     private sealed class MySqlMetadataQueryStrategy : ISqlMetadataQueryStrategy
     {
-        public string BuildListObjectsQuery()
-            => """
+        public string BuildListObjectsQuery(string? filter)
+            => $"""
   SELECT TABLE_SCHEMA AS `SchemaName`
        , TABLE_NAME AS ObjectName
        , CASE TABLE_TYPE 
@@ -99,11 +102,13 @@ public static class SqlMetadataQueryFactory
          END AS `ObjectType`
     FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_SCHEMA = @databaseName
+{(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND TABLE_NAME " + filter)}
    UNION ALL
   SELECT ROUTINE_SCHEMA AS `SchemaName`
        , ROUTINE_NAME AS `ObjectName`
        , 'Procedure' AS `ObjectType`
     FROM INFORMATION_SCHEMA.ROUTINES
+{(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND ROUTINE_NAME " + filter)}
    WHERE ROUTINE_SCHEMA = @databaseName
 ORDER BY SchemaName, ObjectType, ObjectName;
 """;
@@ -173,8 +178,8 @@ SELECT TRIGGER_NAME AS `TriggerName`
 
     private sealed class SqlServerMetadataQueryStrategy : ISqlMetadataQueryStrategy
     {
-        public string BuildListObjectsQuery()
-            => """
+        public string BuildListObjectsQuery(string? filter)
+            => $"""
   SELECT s.name AS [SchemaName]
        , o.name AS [ObjectName]
        , CASE o.type 
@@ -186,6 +191,7 @@ SELECT TRIGGER_NAME AS `TriggerName`
     FROM sys.objects o
     JOIN sys.schemas s ON s.schema_id = o.schema_id
    WHERE o.type IN ('U', 'V', 'P')
+{(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND o.name " + filter)}
 ORDER BY s.name
        , ObjectType
        , o.name;
@@ -273,17 +279,19 @@ ORDER BY tr.name;
 
     private sealed class PostgreSqlMetadataQueryStrategy : ISqlMetadataQueryStrategy
     {
-        public string BuildListObjectsQuery()
-            => """
+        public string BuildListObjectsQuery(string? filter)
+            => $"""
 SELECT n.nspname AS SchemaName, c.relname AS ObjectName,
        CASE c.relkind WHEN 'r' THEN 'Table' WHEN 'v' THEN 'View' ELSE c.relkind::text END AS ObjectType
 FROM pg_class c
 JOIN pg_namespace n ON n.oid = c.relnamespace
 WHERE c.relkind IN ('r','v') AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+{(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND c.relname " + filter)}
 UNION ALL
 SELECT routine_schema AS SchemaName, routine_name AS ObjectName, 'Procedure' AS ObjectType
 FROM information_schema.routines
 WHERE routine_schema NOT IN ('pg_catalog', 'information_schema')
+{(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND routine_name " + filter)}
 ORDER BY SchemaName, ObjectType, ObjectName;
 """;
 
@@ -355,12 +363,19 @@ ORDER BY t.tgname;
 
     private sealed class OracleMetadataQueryStrategy : ISqlMetadataQueryStrategy
     {
-        public string BuildListObjectsQuery()
-            => """
-SELECT OWNER AS SchemaName, OBJECT_NAME AS ObjectName,
-       CASE OBJECT_TYPE WHEN 'TABLE' THEN 'Table' WHEN 'VIEW' THEN 'View' WHEN 'PROCEDURE' THEN 'Procedure' ELSE OBJECT_TYPE END AS ObjectType
+        public string BuildListObjectsQuery(string? filter)
+            => $"""
+SELECT OWNER AS SchemaName
+     , OBJECT_NAME AS ObjectName
+     , CASE OBJECT_TYPE 
+       WHEN 'TABLE' THEN 'Table' 
+       WHEN 'VIEW' THEN 'View' 
+       WHEN 'PROCEDURE' THEN 'Procedure' 
+       ELSE OBJECT_TYPE 
+       END AS ObjectType
 FROM ALL_OBJECTS
 WHERE OBJECT_TYPE IN ('TABLE', 'VIEW', 'PROCEDURE')
+  {(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND OBJECT_NAME " + filter)}
 ORDER BY OWNER, ObjectType, OBJECT_NAME
 """;
 
@@ -420,12 +435,14 @@ ORDER BY TRIGGER_NAME
 
     private sealed class SqliteMetadataQueryStrategy : ISqlMetadataQueryStrategy
     {
-        public string BuildListObjectsQuery()
-            => """
-SELECT '' AS SchemaName, name AS ObjectName,
-       CASE type WHEN 'table' THEN 'Table' WHEN 'view' THEN 'View' ELSE type END AS ObjectType
+        public string BuildListObjectsQuery(string? filter)
+            => $"""
+SELECT '' AS SchemaName
+     , name AS ObjectName
+     , CASE type WHEN 'table' THEN 'Table' WHEN 'view' THEN 'View' ELSE type END AS ObjectType
 FROM sqlite_master
 WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%'
+{(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND name " + filter)}
 ORDER BY ObjectType, ObjectName;
 """;
 
@@ -459,16 +476,21 @@ ORDER BY cid;
 
     private sealed class Db2MetadataQueryStrategy : ISqlMetadataQueryStrategy
     {
-        public string BuildListObjectsQuery()
-            => """
-SELECT RTRIM(TABSCHEMA) AS SchemaName, RTRIM(TABNAME) AS ObjectName,
+        public string BuildListObjectsQuery(string? filter)
+            => $"""
+SELECT RTRIM(TABSCHEMA) AS SchemaName
+     , RTRIM(TABNAME) AS ObjectName,
        CASE TYPE WHEN 'T' THEN 'Table' WHEN 'V' THEN 'View' ELSE TYPE END AS ObjectType
 FROM SYSCAT.TABLES
 WHERE TYPE IN ('T','V')
+  {(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND RTRIM(TABNAME) " + filter)}
 UNION ALL
-SELECT RTRIM(ROUTINESCHEMA) AS SchemaName, RTRIM(ROUTINENAME) AS ObjectName, 'Procedure' AS ObjectType
+SELECT RTRIM(ROUTINESCHEMA) AS SchemaName
+     , RTRIM(ROUTINENAME) AS ObjectName
+     , 'Procedure' AS ObjectType
 FROM SYSCAT.ROUTINES
 WHERE ROUTINETYPE = 'P'
+  {(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND RTRIM(ROUTINENAME) " + filter)}
 ORDER BY SchemaName, ObjectType, ObjectName;
 """;
 
