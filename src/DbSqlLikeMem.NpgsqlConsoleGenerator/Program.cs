@@ -6,7 +6,7 @@ using Dapper;
 using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 using Microsoft.Extensions.Configuration;
 
-namespace TableStructureGenerator;
+namespace DbSqlLikeMem.NpgsqlConsoleGenerator;
 
 static partial class Program
 {

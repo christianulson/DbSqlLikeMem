@@ -6,7 +6,7 @@ using Dapper;
 using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
 
-namespace TableStructureGenerator;
+namespace DbSqlLikeMem.MySqlConsoleGenerator;
 
 static partial class Program
 {
@@ -18,6 +18,7 @@ static partial class Program
         string Schema,
         string Namespace,
         string? ClassAccessibility = null,
+        string? Filter = null,
         List<string>? Tables = null);
 
     private sealed record ConnectionInfo(
@@ -62,7 +63,7 @@ static partial class Program
         if (!runAll)
         {
             Console.WriteLine("Select a connection:");
-            Console.WriteLine($"0. Todas");
+            Console.WriteLine("0. Todas");
             for (int i = 0; i < connections.Count; i++)
                 Console.WriteLine($"{i + 1}. {connections[i].Name}");
 
@@ -312,7 +313,12 @@ SELECT KCU.COLUMN_NAME
         // map: nome → ordinal (de fato já vem na meta)
         foreach (var c in columns.OrderBy(c => c.Ordinal))
         {
-            var dbType = GenerationRuleSet.MapDbType(c.DataType, c.CharMaxLen, c.NumPrecision, c.ColumnName, DatabaseType);
+            var dbType = GenerationRuleSet.MapDbType(
+            	c.DataType,
+            	c.CharMaxLen,
+            	c.NumPrecision,
+            	c.ColumnName,
+            	DatabaseType);
             var nullable = c.IsNullable ? "true" : "false";
             var ctor = $"DbType.{dbType}, {nullable}";
 

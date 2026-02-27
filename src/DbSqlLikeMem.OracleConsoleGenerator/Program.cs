@@ -7,7 +7,7 @@ using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 using Microsoft.Extensions.Configuration;
 using Oracle.ManagedDataAccess.Client;
 
-namespace TableStructureGenerator;
+namespace DbSqlLikeMem.OracleConsoleGenerator;
 
 static partial class Program
 {
@@ -279,7 +279,7 @@ static partial class Program
             var nullable = c.IsNullable ? "true" : "false";
             var ctor = $"DbType.{dbType}, {nullable}";
 
-            if (c.IsIdentity) ctor += ", true";
+            if (c.IsIdentity) ctor += ", identity: true";
             if (!string.IsNullOrEmpty(c.DefaultValue)
                 && GenerationRuleSet.IsSimpleLiteralDefault(c.DefaultValue!))
                 ctor += $", defaultValue: {GenerationRuleSet.FormatDefaultLiteral(c.DefaultValue!, dbType)}";

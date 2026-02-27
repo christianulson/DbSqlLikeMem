@@ -1,5 +1,3 @@
-using System.Data;
-
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 internal sealed class OracleGenerationRuleStrategy : IGenerationRuleStrategy
