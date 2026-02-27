@@ -106,6 +106,18 @@ WHERE id = 1");
         Assert.Equal(new DateTime(2020, 1, 1), (DateTime)row.same_date);
     }
 
+
+    [Fact]
+    [Trait("Category", "SqlServerFunctionCoverage")]
+    public void TemporalFunctions_ShouldWorkInSelectAndWhere()
+    {
+        var row = _cnn.QuerySingle<dynamic>("SELECT GETDATE() AS d1, SYSDATETIME() AS d2, CURRENT_TIMESTAMP AS d3 FROM fn_data WHERE GETDATE() IS NOT NULL AND id = 1");
+
+        Assert.IsType<DateTime>((object)row.d1);
+        Assert.IsType<DateTime>((object)row.d2);
+        Assert.IsType<DateTime>((object)row.d3);
+    }
+
     /// <summary>
     /// Releases the test connection resources and then delegates disposal to the base test fixture.
     /// Libera os recursos de conexão de teste e depois delega o descarte para o fixture base de teste.

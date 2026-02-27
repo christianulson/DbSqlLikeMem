@@ -120,6 +120,15 @@ internal sealed class OracleDialect : SqlDialectBase
     /// PT: Obtém ou define null substitute function names.
     /// </summary>
     public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["NVL"];
+    public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
+        => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
+            ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
+            ["SYSDATE"] = SqlTemporalFunctionKind.DateTime,
+            ["SYSTIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
+            ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
+        };
     /// <summary>
     /// EN: Gets or sets concat returns null on null input.
     /// PT: Obtém ou define concat returns null on null input.

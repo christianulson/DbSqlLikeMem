@@ -143,7 +143,17 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// EN: Gets the null-substitution function names recognized by this dialect.
     /// PT: Obtém os nomes de funções de substituição de nulos reconhecidos por este dialeto.
     /// </summary>
-    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL"];
+        public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL"];
+    public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
+        => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
+            ["CURRENT_TIME"] = SqlTemporalFunctionKind.Time,
+            ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
+            ["NOW"] = SqlTemporalFunctionKind.DateTime,
+            ["SYSDATE"] = SqlTemporalFunctionKind.DateTime,
+            ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
+        };
 
     /// <summary>
     /// EN: Indicates whether string concatenation returns <c>NULL</c> when any operand is <c>NULL</c>.

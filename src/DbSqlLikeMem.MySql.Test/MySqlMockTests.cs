@@ -477,6 +477,31 @@ public sealed class MySqlMockTests
         Assert.Equal(new DateTime(2024, 5, 7, 12, 34, 56), (DateTime)reader.GetValue(1));
     }
 
+
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_TemporalFunctions_ShouldWorkInSelectAndWhere()
+    {
+        using var seed = new MySqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (900, 'clock', 'clock@x.com')"
+        };
+        seed.ExecuteNonQuery();
+
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT NOW(), CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP, SYSTEMDATE FROM Users WHERE NOW() IS NOT NULL LIMIT 1"
+        };
+
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.IsType<DateTime>(reader.GetValue(0));
+        Assert.IsType<DateTime>(reader.GetValue(1));
+        Assert.IsType<TimeSpan>(reader.GetValue(2));
+        Assert.IsType<DateTime>(reader.GetValue(3));
+        Assert.IsType<DateTime>(reader.GetValue(4));
+    }
+
     /// <summary>
     /// EN: Ensures DbMock implements IReadOnlyDictionary indexer for existing schemas.
     /// PT: Garante que DbMock implemente o indexador de IReadOnlyDictionary para schemas existentes.
