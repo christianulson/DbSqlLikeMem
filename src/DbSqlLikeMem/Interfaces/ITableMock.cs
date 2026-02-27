@@ -138,7 +138,7 @@ public interface ITableMock
     /// </summary>
     /// <typeparam name="T">EN: Item type. PT: Tipo dos itens.</typeparam>
     /// <param name="items">EN: Items to insert. PT: Itens a inserir.</param>
-    void AddRangeItems<T>(IEnumerable<T> items);
+    ITableMock AddRangeItems<T>(IEnumerable<T> items);
 
     /// <summary>
     /// EN: Adds a single item by converting it into a table row.
@@ -146,21 +146,21 @@ public interface ITableMock
     /// </summary>
     /// <typeparam name="T">EN: Item type. PT: Tipo do item.</typeparam>
     /// <param name="item">EN: Item to insert. PT: Item a inserir.</param>
-    void AddItem<T>(T item);
+    ITableMock AddItem<T>(T item);
 
     /// <summary>
     /// EN: Adds a set of already materialized rows.
     /// PT: Adiciona um conjunto de linhas já materializadas.
     /// </summary>
     /// <param name="items">EN: Rows to insert. PT: Linhas a inserir.</param>
-    void AddRange(IEnumerable<Dictionary<int, object?>> items);
+    ITableMock AddRange(IEnumerable<Dictionary<int, object?>> items);
 
     /// <summary>
     /// EN: Adds a specific row to the table.
     /// PT: Adiciona uma linha específica à tabela.
     /// </summary>
     /// <param name="value">EN: Row to insert. PT: Linha a inserir.</param>
-    void Add(Dictionary<int, object?> value);
+    ITableMock Add(Dictionary<int, object?> value);
 
 
     /// <summary>

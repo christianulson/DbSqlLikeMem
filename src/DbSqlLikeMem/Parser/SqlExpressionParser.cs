@@ -1247,7 +1247,11 @@ internal sealed class SqlExpressionParser(
             || IsKeywordOrIdentifierWord(Peek(), "RANGE")
             || IsKeywordOrIdentifierWord(Peek(), "GROUPS"))
         {
-            if (!_dialect.SupportsWindowFrameClause)
+            var supportsFrameClause = _dialect.SupportsWindowFrameClause
+                || (_dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase)
+                    && _dialect.SupportsWindowFunctions);
+
+            if (!supportsFrameClause)
                 throw SqlUnsupported.ForDialect(_dialect, "window frame clause (ROWS/RANGE/GROUPS)");
 
             frame = ParseWindowFrameClause();
@@ -1258,14 +1262,12 @@ internal sealed class SqlExpressionParser(
     }
 
     /// <summary>
-    /// EN: Parses a simplified SQL window frame clause.
-    /// PT: Faz o parse de uma cláusula simplificada de frame de janela SQL.
+    /// EN: Parses a SQL window frame clause (ROWS/RANGE/GROUPS).
+    /// PT: Faz o parse de uma cláusula de frame de janela SQL (ROWS/RANGE/GROUPS).
     /// </summary>
     private WindowFrameSpec ParseWindowFrameClause()
     {
         var unit = ParseWindowFrameUnit();
-        if (unit is WindowFrameUnit.Range or WindowFrameUnit.Groups)
-            throw SqlUnsupported.ForDialect(_dialect, $"window frame unit ({unit.ToString().ToUpperInvariant()})");
 
         WindowFrameBound start;
         WindowFrameBound end;

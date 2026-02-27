@@ -47,6 +47,24 @@ internal static class SqlExecutionPlanMessages
     public static string ObservedValueLabel() => Format(nameof(ObservedValueLabel));
     public static string ThresholdLabel() => Format(nameof(ThresholdLabel));
 
+    public static string PlanMetadataVersionLabel() => Format(nameof(PlanMetadataVersionLabel));
+    public static string PlanCorrelationIdLabel() => Format(nameof(PlanCorrelationIdLabel));
+    public static string PlanFlagsLabel() => Format(nameof(PlanFlagsLabel));
+    public static string PlanPerformanceBandLabel() => Format(nameof(PlanPerformanceBandLabel));
+    public static string PlanRiskScoreLabel() => Format(nameof(PlanRiskScoreLabel));
+    public static string PlanQualityGradeLabel() => Format(nameof(PlanQualityGradeLabel));
+    public static string PlanWarningSummaryLabel() => Format(nameof(PlanWarningSummaryLabel));
+    public static string PlanWarningCountsLabel() => Format(nameof(PlanWarningCountsLabel));
+    public static string PlanNoiseScoreLabel() => Format(nameof(PlanNoiseScoreLabel));
+    public static string PlanTopActionsLabel() => Format(nameof(PlanTopActionsLabel));
+    public static string PlanPrimaryWarningLabel() => Format(nameof(PlanPrimaryWarningLabel));
+    public static string PlanPrimaryCauseGroupLabel() => Format(nameof(PlanPrimaryCauseGroupLabel));
+    public static string PlanDeltaLabel() => Format(nameof(PlanDeltaLabel));
+    public static string PlanSeverityHintLabel() => Format(nameof(PlanSeverityHintLabel));
+    public static string IndexRecommendationSummaryLabel() => Format(nameof(IndexRecommendationSummaryLabel));
+    public static string IndexPrimaryRecommendationLabel() => Format(nameof(IndexPrimaryRecommendationLabel));
+    public static string IndexRecommendationEvidenceLabel() => Format(nameof(IndexRecommendationEvidenceLabel));
+
     public static string ReasonFilterAndOrder(string filters, string orders, string key)
         => Format(nameof(ReasonFilterAndOrder), filters, orders, key);
 

@@ -32,6 +32,48 @@ public sealed class SqlValueHelperTests(
     }
 
     /// <summary>
+    /// EN: Tests Resolve_ShouldReadDapperParameter_WithColonPrefix behavior.
+    /// PT: Testa o comportamento de Resolve_ShouldReadDapperParameter_WithColonPrefix.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
+    public void Resolve_ShouldReadDapperParameter_WithColonPrefix()
+    {
+        using var cnn = new OracleConnectionMock();
+        using var cmd = cnn.CreateCommand();
+
+        var p = cmd.CreateParameter();
+        p.ParameterName = "Id";
+        p.Value = 1;
+        cmd.Parameters.Add(p);
+
+        var v = OracleValueHelper.Resolve(":Id", DbType.Int32, isNullable: false, cmd.Parameters, colDict: null);
+
+        Assert.Equal(1, v);
+    }
+
+    /// <summary>
+    /// EN: Tests Resolve_ShouldReadDapperParameter_WhenCollectionStoresPrefixedName behavior.
+    /// PT: Testa o comportamento de Resolve_ShouldReadDapperParameter_WhenCollectionStoresPrefixedName.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
+    public void Resolve_ShouldReadDapperParameter_WhenCollectionStoresPrefixedName()
+    {
+        using var cnn = new OracleConnectionMock();
+        using var cmd = cnn.CreateCommand();
+
+        var p = cmd.CreateParameter();
+        p.ParameterName = ":Id";
+        p.Value = 1;
+        cmd.Parameters.Add(p);
+
+        var v = OracleValueHelper.Resolve(":Id", DbType.Int32, isNullable: false, cmd.Parameters, colDict: null);
+
+        Assert.Equal(1, v);
+    }
+
+    /// <summary>
     /// EN: Tests Resolve_ShouldThrow_WhenParameterMissing behavior.
     /// PT: Testa o comportamento de Resolve_ShouldThrow_WhenParameterMissing.
     /// </summary>

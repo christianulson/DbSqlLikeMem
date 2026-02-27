@@ -19,6 +19,12 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     protected override MySqlDbMock CreateDb() => [];
 
     /// <summary>
+    /// EN: Indicates MySQL test runtime should execute UPDATE/DELETE scenarios with JOIN support toggled on.
+    /// PT: Indica que o runtime de teste do MySQL deve executar cenários de UPDATE/DELETE com suporte a JOIN habilitado.
+    /// </summary>
+    protected override bool SupportsUpdateDeleteJoinRuntime => true;
+
+    /// <summary>
     /// EN: Executes a non-query command using a MySQL mock connection.
     /// PT: Executa um comando sem retorno usando uma conexão simulada de MySQL.
     /// </summary>
@@ -37,4 +43,34 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     /// </summary>
     protected override string DeleteJoinDerivedSelectSql
         => "DELETE u FROM users u JOIN (SELECT id FROM users WHERE tenantid = 10) s ON s.id = u.id";
+
+    /// <summary>
+    /// EN: Verifies MySQL-style execution rejects UPDATE ... FROM ... JOIN syntax with an actionable unsupported message.
+    /// PT: Verifica que a execução no estilo MySQL rejeita a sintaxe UPDATE ... FROM ... JOIN com mensagem acionável de não suportado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
+    public void UpdateFromJoinSyntax_ShouldThrowNotSupported_ForMySql()
+    {
+        var db = CreateDb();
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("total", DbType.Decimal, true, decimalPlaces: 2);
+        users.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, null } });
+
+        var orders = db.AddTable("orders");
+        orders.AddColumn("userid", DbType.Int32, false);
+        orders.AddColumn("amount", DbType.Decimal, false, decimalPlaces: 2);
+        orders.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, 10m } });
+
+        const string sql = @"
+UPDATE u
+SET u.total = s.total
+FROM users u
+JOIN (SELECT userid, SUM(amount) AS total FROM orders GROUP BY userid) s ON s.userid = u.id";
+
+        var ex = Assert.Throws<NotSupportedException>(() => ExecuteNonQuery(db, sql));
+        Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("UPDATE ... FROM ... JOIN", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
 }

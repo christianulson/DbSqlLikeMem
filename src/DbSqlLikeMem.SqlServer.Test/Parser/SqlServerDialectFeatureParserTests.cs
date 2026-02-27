@@ -56,8 +56,34 @@ public sealed class SqlServerDialectFeatureParserTests
 
 
     /// <summary>
-    /// EN: Verifies LIMIT syntax in SQL Server returns an actionable pagination hint.
-    /// PT: Verifica que sintaxe LIMIT no SQL Server retorna dica acionável de paginação.
+    /// EN: Ensures SQL Server OFFSET/FETCH pagination is normalized to the canonical row-limit AST node.
+    /// PT: Garante que a paginação OFFSET/FETCH do SQL Server seja normalizada para o nó canônico de AST de limite de linhas.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_OffsetFetch_ShouldNormalizeRowLimitAst(int version)
+    {
+        if (version < SqlServerDialect.OffsetFetchMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                SqlQueryParser.Parse("SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY", new SqlServerDialect(version)));
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
+            new SqlServerDialect(version)));
+
+        var rowLimit = Assert.IsType<SqlLimitOffset>(parsed.RowLimit);
+        Assert.Equal(2, rowLimit.Count);
+        Assert.Equal(1, rowLimit.Offset);
+    }
+
+    /// <summary>
+    /// EN: Verifies parsing SELECT with LIMIT returns an actionable hint for SQL Server pagination syntax.
+    /// PT: Verifica que o parsing de SELECT com LIMIT retorna uma dica acionável para a sintaxe de paginação do SQL Server.
     /// </summary>
     /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
@@ -90,6 +116,165 @@ public sealed class SqlServerDialectFeatureParserTests
 
         Assert.Contains("token inicial", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("SELECT/INSERT/UPDATE/DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MERGE parsing follows SQL Server version support and preserves target table metadata.
+    /// PT: Garante que o parsing de MERGE siga o suporte por versão do SQL Server e preserve metadados da tabela alvo.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseMerge_ShouldFollowSqlServerVersionSupport(int version)
+    {
+        const string sql = "MERGE INTO users target USING users src ON target.id = src.id WHEN MATCHED THEN UPDATE SET name = 'x'";
+
+        if (version < SqlServerDialect.MergeMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.NotNull(parsed.Table);
+        Assert.Equal("users", parsed.Table!.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("target", parsed.Table.Alias, StringComparer.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures MERGE accepts the WHEN NOT MATCHED clause form in merge-capable dialect versions.
+    /// PT: Garante que MERGE aceite a forma de cláusula WHEN NOT MATCHED em versões de dialeto com suporte.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
+    public void ParseMerge_WithWhenNotMatched_ShouldParse(int version)
+    {
+        const string sql = "MERGE INTO users target USING users src ON target.id = src.id WHEN NOT MATCHED THEN INSERT (id) VALUES (src.id)";
+
+        var query = Assert.IsType<SqlMergeQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Equal("users", query.Table?.Name, ignoreCase: true);
+    }
+
+    /// <summary>
+    /// EN: Ensures MERGE without USING is rejected with actionable parser guidance in SQL Server dialect.
+    /// PT: Garante que MERGE sem USING seja rejeitado com orientação acionável do parser no dialeto SQL Server.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
+    public void ParseMerge_WithoutUsing_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("MERGE INTO users target ON target.id = 1 WHEN MATCHED THEN UPDATE SET name = 'x'", new SqlServerDialect(version)));
+
+        Assert.Contains("MERGE requer cláusula USING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MERGE without ON is rejected with actionable parser guidance in SQL Server dialect.
+    /// PT: Garante que MERGE sem ON seja rejeitado com orientação acionável do parser no dialeto SQL Server.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
+    public void ParseMerge_WithoutOn_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("MERGE INTO users target USING users src WHEN MATCHED THEN UPDATE SET name = 'x'", new SqlServerDialect(version)));
+
+        Assert.Contains("MERGE requer cláusula ON", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MERGE requires ON at top-level and does not accept ON tokens nested inside USING subqueries.
+    /// PT: Garante que MERGE exija ON em nível top-level e não aceite tokens ON aninhados dentro de subqueries no USING.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
+    public void ParseMerge_WithOnOnlyInsideUsingSubquery_ShouldProvideActionableMessage(int version)
+    {
+        const string sql = "MERGE INTO users target USING (SELECT id FROM users WHERE id IN (SELECT id FROM users WHERE id > 0)) src WHEN MATCHED THEN UPDATE SET name = 'x'";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("MERGE requer cláusula ON", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MERGE without WHEN is rejected with actionable parser guidance in SQL Server dialect.
+    /// PT: Garante que MERGE sem WHEN seja rejeitado com orientação acionável do parser no dialeto SQL Server.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
+    public void ParseMerge_WithoutWhen_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("MERGE INTO users target USING users src ON target.id = src.id", new SqlServerDialect(version)));
+
+        Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MERGE does not accept a source alias named WHEN as a replacement for top-level WHEN clauses.
+    /// PT: Garante que MERGE não aceite um alias de origem chamado WHEN como substituto para cláusulas WHEN em nível top-level.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
+    public void ParseMerge_WithUsingAliasNamedWhen_ShouldProvideActionableMessage(int version)
+    {
+        const string sql = "MERGE INTO users target USING users when ON target.id = when.id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MERGE requires WHEN at top-level and does not accept WHEN tokens nested inside USING subqueries.
+    /// PT: Garante que MERGE exija WHEN em nível top-level e não aceite tokens WHEN aninhados dentro de subqueries no USING.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
+    public void ParseMerge_WithWhenOnlyInsideUsingSubquery_ShouldProvideActionableMessage(int version)
+    {
+        const string sql = "MERGE INTO users target USING (SELECT CASE WHEN id > 0 THEN id ELSE 0 END AS id FROM users) src ON target.id = src.id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures MERGE rejects invalid top-level WHEN forms that are not WHEN MATCHED/WHEN NOT MATCHED.
+    /// PT: Garante que MERGE rejeite formas inválidas de WHEN em nível top-level que não sejam WHEN MATCHED/WHEN NOT MATCHED.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
+    public void ParseMerge_WithInvalidTopLevelWhenForm_ShouldProvideActionableMessage(int version)
+    {
+        const string sql = "MERGE INTO users target USING users src ON target.id = src.id WHEN src.id > 0 THEN UPDATE SET name = 'x'";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("MERGE requer ao menos uma cláusula WHEN", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -195,6 +380,78 @@ public sealed class SqlServerDialectFeatureParserTests
         var parsed = SqlQueryParser.Parse(sql, new SqlServerDialect(version));
 
         Assert.IsType<SqlUnionQuery>(parsed);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures unsupported quoted aliases are rejected with actionable parser diagnostics for this dialect.
+    /// PT: Garante que aliases com quoting não suportado sejam rejeitados com diagnóstico acionável do parser para este dialeto.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_WithBacktickQuotedAlias_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT name `User Name` FROM users", new SqlServerDialect(version)));
+
+        Assert.Contains("alias/identificadores", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("'`'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server accepts bracket-quoted aliases and preserves the normalized alias text in AST.
+    /// PT: Garante que o SQL Server aceite aliases com colchetes e preserve o texto normalizado do alias na AST.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_WithBracketQuotedAlias_ShouldParseAndNormalizeAlias(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT name [User Name] FROM users",
+            new SqlServerDialect(version)));
+
+        var item = Assert.Single(parsed.SelectItems);
+        Assert.Equal("User Name", item.Alias);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server unescapes doubled brackets inside bracket-quoted aliases when normalizing AST alias text.
+    /// PT: Garante que o SQL Server faça unescape de colchetes duplicados dentro de aliases com colchetes ao normalizar o texto do alias na AST.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_WithEscapedBracketQuotedAlias_ShouldNormalizeEscapedBracket(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT name [User]]Name] FROM users",
+            new SqlServerDialect(version)));
+
+        var item = Assert.Single(parsed.SelectItems);
+        Assert.Equal("User]Name", item.Alias);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server unescapes doubled double-quotes inside quoted aliases when normalizing AST alias text.
+    /// PT: Garante que o SQL Server faça unescape de aspas duplas duplicadas dentro de aliases quoted ao normalizar o texto do alias na AST.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_WithEscapedDoubleQuotedAlias_ShouldNormalizeEscapedQuote(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT name \"User\"\"Name\" FROM users",
+            new SqlServerDialect(version)));
+
+        var item = Assert.Single(parsed.SelectItems);
+        Assert.Equal("User\"Name", item.Alias);
     }
 
 
@@ -449,8 +706,8 @@ public sealed class SqlServerDialectFeatureParserTests
 
 
     /// <summary>
-    /// EN: Ensures ROWS window frame clauses parse when supported and RANGE remains gated.
-    /// PT: Garante que cláusulas ROWS de frame de janela sejam interpretadas quando suportadas e que RANGE continue bloqueado.
+    /// EN: Ensures ROWS/RANGE/GROUPS window frame clauses parse when supported.
+    /// PT: Garante que cláusulas ROWS/RANGE/GROUPS de frame de janela sejam interpretadas quando suportadas.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -465,12 +722,14 @@ public sealed class SqlServerDialectFeatureParserTests
             return;
         }
 
-        var expr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
-        Assert.IsType<WindowFunctionExpr>(expr);
+        var rowsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        Assert.IsType<WindowFunctionExpr>(rowsExpr);
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect));
-        Assert.Contains("window frame unit", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var rangeExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        Assert.IsType<WindowFunctionExpr>(rangeExpr);
+
+        var groupsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW)", dialect);
+        Assert.IsType<WindowFunctionExpr>(groupsExpr);
     }
 
 
@@ -496,6 +755,31 @@ public sealed class SqlServerDialectFeatureParserTests
             SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", dialect));
 
         Assert.Contains("start bound cannot be greater", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies UPDATE parsing keeps SET subquery text and WHERE boundary intact when FROM contains joins.
+    /// PT: Verifica que o parsing de UPDATE mantém o texto da subquery no SET e o limite do WHERE intacto quando o FROM contém joins.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_WithSubqueryInSetAndFromJoin_ShouldKeepSetAndWhereBoundaries(int version)
+    {
+        var sql = @"UPDATE u
+SET u.total = (SELECT SUM(o.amount) FROM orders o WHERE o.userid = u.id)
+FROM users u
+JOIN (SELECT userid FROM orders GROUP BY userid) s ON s.userid = u.id
+WHERE u.id > 0";
+
+        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.NotNull(parsed.UpdateFromSelect);
+        Assert.Single(parsed.Set);
+        Assert.Contains("SELECT SUM(o.amount) FROM orders", parsed.Set[0].ExprRaw, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("u.id > 0", parsed.WhereRaw, StringComparison.OrdinalIgnoreCase);
     }
 
 }

@@ -1,11 +1,28 @@
+using System.Data.Common;
+
 namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
 /// EN: Validates transactional reliability additions for P11 scenarios.
 /// PT: Valida as adições de confiabilidade transacional para cenários do P11.
 /// </summary>
-public sealed class SqlServerTransactionReliabilityTests
+public sealed class SqlServerTransactionReliabilityTests : DapperTransactionConcurrencyTestsBase
 {
+    /// <inheritdoc />
+    protected override bool SupportsReleaseSavepoint => false;
+
+    /// <inheritdoc />
+    protected override Func<DbConnectionMockBase> CreateOpenConnectionFactory(bool threadSafe, int? version = null)
+    {
+        var db = new SqlServerDbMock(version) { ThreadSafe = threadSafe };
+        return () =>
+        {
+            var connection = new SqlServerConnectionMock(db);
+            connection.Open();
+            return connection;
+        };
+    }
+
     /// <summary>
     /// EN: Ensures rolling back to a savepoint restores the intermediate state.
     /// PT: Garante que rollback para savepoint restaure o estado intermediário.
@@ -13,26 +30,7 @@ public sealed class SqlServerTransactionReliabilityTests
     [Fact]
     [Trait("Category", "SqlServerTransactionReliability")]
     public void SavepointRollbackShouldRestoreIntermediateState()
-    {
-        var db = new SqlServerDbMock();
-        var table = db.AddTable("Users");
-        table.AddColumn("Id", DbType.Int32, false);
-        table.AddColumn("Name", DbType.String, false);
-
-        using var connection = new SqlServerConnectionMock(db);
-        connection.Open();
-        using var transaction = (SqlServerTransactionMock)connection.BeginTransaction();
-
-        connection.Execute("INSERT INTO Users (Id, Name) VALUES (1, 'John')", transaction: transaction);
-        transaction.Save("sp_users");
-        connection.Execute("INSERT INTO Users (Id, Name) VALUES (2, 'Mary')", transaction: transaction);
-
-        transaction.Rollback("sp_users");
-        transaction.Commit();
-
-        Assert.Single(table);
-        Assert.Equal(1, table[0][0]);
-    }
+        => AssertSavepointRollbackRestoresIntermediateState();
 
     /// <summary>
     /// EN: Ensures the simplified isolation model is deterministic and visible.
@@ -41,16 +39,7 @@ public sealed class SqlServerTransactionReliabilityTests
     [Fact]
     [Trait("Category", "SqlServerTransactionReliability")]
     public void IsolationLevelShouldBeExposedDeterministically()
-    {
-        var db = new SqlServerDbMock();
-        using var connection = new SqlServerConnectionMock(db);
-        connection.Open();
-
-        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-
-        Assert.Equal(IsolationLevel.Serializable, transaction.IsolationLevel);
-        Assert.Equal(IsolationLevel.Serializable, connection.CurrentIsolationLevel);
-    }
+        => AssertIsolationLevelExposedDeterministically();
 
     /// <summary>
     /// EN: Ensures savepoint release support follows provider compatibility rules.
@@ -59,16 +48,7 @@ public sealed class SqlServerTransactionReliabilityTests
     [Fact]
     [Trait("Category", "SqlServerTransactionReliability")]
     public void ReleaseSavepointCompatibilityShouldBeProviderSpecific()
-    {
-        var db = new SqlServerDbMock();
-        using var connection = new SqlServerConnectionMock(db);
-        connection.Open();
-
-        using var transaction = (SqlServerTransactionMock)connection.BeginTransaction();
-        transaction.Save("sp_release");
-
-        Assert.Throws<NotSupportedException>(() => transaction.Release("sp_release"));
-    }
+        => AssertReleaseSavepointCompatibilityIsProviderSpecific();
 
     /// <summary>
     /// EN: Ensures concurrent writes keep data consistent when thread safety is enabled.
@@ -77,20 +57,27 @@ public sealed class SqlServerTransactionReliabilityTests
     [Fact]
     [Trait("Category", "SqlServerTransactionReliability")]
     public void ConcurrentInsertsShouldRemainConsistentWhenThreadSafeEnabled()
-    {
-        var db = new SqlServerDbMock { ThreadSafe = true };
-        var table = db.AddTable("Users");
-        table.AddColumn("Id", DbType.Int32, false);
-        table.AddColumn("Name", DbType.String, false);
+        => AssertConcurrentInsertsRemainConsistentWhenThreadSafeEnabled();
 
-        Parallel.For(1, 41, id =>
-        {
-            using var connection = new SqlServerConnectionMock(db);
-            connection.Open();
-            connection.Execute("INSERT INTO Users (Id, Name) VALUES (@Id, @Name)", new { Id = id, Name = $"Name{id}" });
-        });
+    /// <summary>
+    /// EN: Ensures concurrent commit and rollback keep only committed writes across provider versions.
+    /// PT: Garante que commit e rollback concorrentes mantenham apenas gravações confirmadas entre versões do provedor.
+    /// </summary>
+    /// <param name="version">EN: Provider version under test. PT: Versão do provedor em teste.</param>
+    [Theory]
+    [Trait("Category", "SqlServerTransactionReliability")]
+    [MemberDataSqlServerVersion]
+    public void ConcurrentCommitAndRollback_ShouldKeepExpectedStateAcrossVersions(int version)
+        => AssertConcurrentCommitAndRollbackKeepsExpectedState(version);
 
-        Assert.Equal(40, table.Count);
-        Assert.Equal(40, table.Select(row => (int)row[0]!).Distinct().Count());
-    }
+    /// <summary>
+    /// EN: Ensures concurrent commits persist combined writes deterministically across provider versions.
+    /// PT: Garante que commits concorrentes persistam gravações combinadas de forma determinística entre versões do provedor.
+    /// </summary>
+    /// <param name="version">EN: Provider version under test. PT: Versão do provedor em teste.</param>
+    [Theory]
+    [Trait("Category", "SqlServerTransactionReliability")]
+    [MemberDataSqlServerVersion]
+    public void ConcurrentCommits_ShouldPersistCombinedWritesAcrossVersions(int version)
+        => AssertConcurrentCommitsPersistCombinedWrites(version);
 }

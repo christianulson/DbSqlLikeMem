@@ -493,11 +493,19 @@ internal abstract class AstQueryExecutorBase(
         => query.SelectItems.Any(static item => string.Equals(item.Raw?.Trim(), "*", StringComparison.Ordinal));
 
 
-    private static string BuildTechnicalThreshold(params (string Key, long Value)[] values)
-        => string.Join(";", values.Select(v => $"{v.Key}:{v.Value.ToString(CultureInfo.InvariantCulture)}"));
+    private static string BuildTechnicalThreshold(params (string Key, IFormattable Value)[] values)
+    {
+        if (values.Length == 0)
+            return string.Empty;
 
-    private static string BuildTechnicalThreshold(params (string Key, double Value)[] values)
-        => string.Join(";", values.Select(v => $"{v.Key}:{v.Value.ToString(CultureInfo.InvariantCulture)}"));
+        return string.Join(";", values.Select(static v =>
+        {
+            if (string.IsNullOrWhiteSpace(v.Key))
+                throw new ArgumentException("Threshold key must be provided.", nameof(values));
+
+            return $"{v.Key}:{v.Value.ToString(null, CultureInfo.InvariantCulture)}";
+        }));
+    }
     private IReadOnlyList<SqlIndexRecommendation> BuildIndexRecommendations(
         SqlSelectQuery query,
         SqlPlanRuntimeMetrics metrics)
@@ -2206,9 +2214,6 @@ internal abstract class AstQueryExecutorBase(
             if (Dialect?.RequiresOrderByInWindowFunction(w.Name) == true && w.Spec.OrderBy.Count == 0)
                 throw new InvalidOperationException($"Window function '{w.Name}' requires ORDER BY in OVER clause.");
 
-            if (w.Spec.Frame is not null && w.Spec.Frame.Unit != WindowFrameUnit.Rows)
-                throw new InvalidOperationException($"Window frame unit '{w.Spec.Frame.Unit}' is not implemented for runtime execution.");
-
             // Partitioning
             var partitions = new Dictionary<string, List<EvalRow>>(StringComparer.Ordinal);
 
@@ -2326,7 +2331,7 @@ private void FillFirstOrLastValue(
         var valueExpr = windowFunctionExpr.Args[0];
         for (var i = 0; i < part.Count; i++)
         {
-            var frameRange = ResolveRowsFrameRange(windowFunctionExpr.Spec.Frame, part.Count, i);
+            var frameRange = ResolveWindowFrameRange(windowFunctionExpr.Spec.Frame, part, i, windowFunctionExpr.Spec.OrderBy, ctes);
             if (frameRange.IsEmpty)
             {
                 map[part[i]] = null;
@@ -2359,7 +2364,7 @@ private void FillNthValue(
 
         for (var i = 0; i < part.Count; i++)
         {
-            var frameRange = ResolveRowsFrameRange(windowFunctionExpr.Spec.Frame, part.Count, i);
+            var frameRange = ResolveWindowFrameRange(windowFunctionExpr.Spec.Frame, part, i, windowFunctionExpr.Spec.OrderBy, ctes);
             if (frameRange.IsEmpty)
             {
                 map[part[i]] = null;
@@ -2374,6 +2379,35 @@ private void FillNthValue(
     }
 
     /// <summary>
+    /// EN: Resolves row index boundaries for ROWS/RANGE/GROUPS window frames for the current row.
+    /// PT: Resolve os limites de índice de linha para frames ROWS/RANGE/GROUPS da janela na linha atual.
+    /// </summary>
+    private RowsFrameRange ResolveWindowFrameRange(
+        WindowFrameSpec? frame,
+        List<EvalRow> part,
+        int rowIndex,
+        IReadOnlyList<WindowOrderItem> orderBy,
+        IDictionary<string, Source> ctes)
+    {
+        if (part.Count == 0)
+            return RowsFrameRange.Empty;
+
+        if (frame is null || frame.Unit == WindowFrameUnit.Rows)
+            return ResolveRowsFrameRange(frame, part.Count, rowIndex);
+
+        if (orderBy.Count == 0)
+            throw new InvalidOperationException($"Window frame unit '{frame.Unit}' requires ORDER BY in OVER clause.");
+
+        var orderValuesByRow = BuildWindowOrderValuesByRow(part, orderBy, ctes);
+        return frame.Unit switch
+        {
+            WindowFrameUnit.Groups => ResolveGroupsFrameRange(frame, part, rowIndex, orderValuesByRow),
+            WindowFrameUnit.Range => ResolveRangeFrameRange(frame, part, rowIndex, orderValuesByRow, orderBy),
+            _ => ResolveRowsFrameRange(frame, part.Count, rowIndex)
+        };
+    }
+
+    /// <summary>
     /// EN: Resolves row index boundaries for a ROWS window frame for the current row.
     /// PT: Resolve os limites de índice de linha para um frame ROWS da janela na linha atual.
     /// </summary>
@@ -2385,9 +2419,15 @@ private void FillNthValue(
         if (frame is null)
             return new RowsFrameRange(0, partitionSize - 1, IsEmpty: false);
 
-        var startIndex = ResolveRowsFrameBoundIndex(frame.Start, rowIndex, partitionSize, isStartBound: true);
-        var endIndex = ResolveRowsFrameBoundIndex(frame.End, rowIndex, partitionSize, isStartBound: false);
+        var lastIndex = partitionSize - 1;
+        var rawStartIndex = ResolveRowsFrameBoundIndex(frame.Start, rowIndex, partitionSize, isStartBound: true);
+        var rawEndIndex = ResolveRowsFrameBoundIndex(frame.End, rowIndex, partitionSize, isStartBound: false);
 
+        if (rawStartIndex > rawEndIndex)
+            return RowsFrameRange.Empty;
+
+        var startIndex = Math.Max(rawStartIndex, 0);
+        var endIndex = Math.Min(rawEndIndex, lastIndex);
         if (startIndex > endIndex)
             return RowsFrameRange.Empty;
 
@@ -2402,8 +2442,8 @@ private void FillNthValue(
             WindowFrameBoundKind.UnboundedPreceding => 0,
             WindowFrameBoundKind.UnboundedFollowing => lastIndex,
             WindowFrameBoundKind.CurrentRow => rowIndex,
-            WindowFrameBoundKind.Preceding => (rowIndex - bound.Offset.GetValueOrDefault()).Clamp(0, lastIndex),
-            WindowFrameBoundKind.Following => (rowIndex + bound.Offset.GetValueOrDefault()).Clamp(0, lastIndex),
+            WindowFrameBoundKind.Preceding => rowIndex - bound.Offset.GetValueOrDefault(),
+            WindowFrameBoundKind.Following => rowIndex + bound.Offset.GetValueOrDefault(),
             _ => isStartBound ? 0 : lastIndex
         };
     }
@@ -2411,6 +2451,224 @@ private void FillNthValue(
     private readonly record struct RowsFrameRange(int StartIndex, int EndIndex, bool IsEmpty)
     {
         public static RowsFrameRange Empty => new(0, -1, IsEmpty: true);
+    }
+
+    /// <summary>
+    /// EN: Resolves GROUPS frame bounds using peer groups derived from ORDER BY values.
+    /// PT: Resolve limites de frame GROUPS usando grupos de peers derivados dos valores de ORDER BY.
+    /// </summary>
+    private RowsFrameRange ResolveGroupsFrameRange(
+        WindowFrameSpec frame,
+        List<EvalRow> part,
+        int rowIndex,
+        Dictionary<EvalRow, object?[]> orderValuesByRow)
+    {
+        var groups = BuildPeerGroups(part, orderValuesByRow);
+        var currentGroupIndex = groups.FindIndex(g => rowIndex >= g.Start && rowIndex <= g.End);
+        if (currentGroupIndex < 0)
+            return RowsFrameRange.Empty;
+
+        var startGroup = ResolveGroupsBoundIndex(frame.Start, currentGroupIndex, groups.Count, isStartBound: true);
+        var endGroup = ResolveGroupsBoundIndex(frame.End, currentGroupIndex, groups.Count, isStartBound: false);
+        if (startGroup > endGroup)
+            return RowsFrameRange.Empty;
+
+        return new RowsFrameRange(groups[startGroup].Start, groups[endGroup].End, IsEmpty: false);
+    }
+
+    /// <summary>
+    /// EN: Resolves RANGE frame bounds for ORDER BY using peer-aware and offset-aware range semantics.
+    /// PT: Resolve limites de frame RANGE no ORDER BY com semântica de range por peers e offsets.
+    /// </summary>
+    private RowsFrameRange ResolveRangeFrameRange(
+        WindowFrameSpec frame,
+        List<EvalRow> part,
+        int rowIndex,
+        Dictionary<EvalRow, object?[]> orderValuesByRow,
+        IReadOnlyList<WindowOrderItem> orderBy)
+    {
+        var hasOffsetBound = frame.Start.Kind is WindowFrameBoundKind.Preceding or WindowFrameBoundKind.Following
+            || frame.End.Kind is WindowFrameBoundKind.Preceding or WindowFrameBoundKind.Following;
+
+        ValidateRangeOffsetOrderBy(orderBy, hasOffsetBound);
+
+        var peerRange = ResolvePeerRange(part, rowIndex, orderValuesByRow);
+
+        int startIndex;
+        int endIndex;
+        if (hasOffsetBound)
+        {
+            var scalarValues = BuildRangeScalarValues(part, orderValuesByRow, orderBy);
+            var current = scalarValues[rowIndex];
+            startIndex = ResolveRangeBoundIndex(frame.Start, scalarValues, current, peerRange, isStartBound: true);
+            endIndex = ResolveRangeBoundIndex(frame.End, scalarValues, current, peerRange, isStartBound: false);
+        }
+        else
+        {
+            startIndex = ResolveRangeBoundIndexWithoutOffsets(frame.Start, part.Count, peerRange, isStartBound: true);
+            endIndex = ResolveRangeBoundIndexWithoutOffsets(frame.End, part.Count, peerRange, isStartBound: false);
+        }
+
+        if (startIndex > endIndex)
+            return RowsFrameRange.Empty;
+
+        return new RowsFrameRange(startIndex, endIndex, IsEmpty: false);
+    }
+
+    /// <summary>
+    /// EN: Validates ORDER BY shape required by RANGE offset semantics.
+    /// PT: Valida o formato de ORDER BY exigido pela semântica de RANGE com offset.
+    /// </summary>
+    private static void ValidateRangeOffsetOrderBy(IReadOnlyList<WindowOrderItem> orderBy, bool hasOffsetBound)
+    {
+        if (!hasOffsetBound)
+            return;
+
+        if (orderBy.Count != 1)
+            throw new InvalidOperationException("RANGE with PRECEDING/FOLLOWING offset requires exactly one ORDER BY expression.");
+    }
+
+    private List<(int Start, int End)> BuildPeerGroups(List<EvalRow> part, Dictionary<EvalRow, object?[]> orderValuesByRow)
+    {
+        var groups = new List<(int Start, int End)>();
+        var start = 0;
+        for (var i = 1; i <= part.Count; i++)
+        {
+            var isBoundary = i == part.Count || !WindowOrderValuesEqual(orderValuesByRow[part[i - 1]], orderValuesByRow[part[i]]);
+            if (!isBoundary)
+                continue;
+
+            groups.Add((start, i - 1));
+            start = i;
+        }
+
+        return groups;
+    }
+
+    private static int ResolveGroupsBoundIndex(WindowFrameBound bound, int currentGroupIndex, int groupCount, bool isStartBound)
+    {
+        var last = groupCount - 1;
+        return bound.Kind switch
+        {
+            WindowFrameBoundKind.UnboundedPreceding => 0,
+            WindowFrameBoundKind.UnboundedFollowing => last,
+            WindowFrameBoundKind.CurrentRow => currentGroupIndex,
+            WindowFrameBoundKind.Preceding => (currentGroupIndex - bound.Offset.GetValueOrDefault()).Clamp(0, last),
+            WindowFrameBoundKind.Following => (currentGroupIndex + bound.Offset.GetValueOrDefault()).Clamp(0, last),
+            _ => isStartBound ? 0 : last
+        };
+    }
+
+    private (int Start, int End) ResolvePeerRange(List<EvalRow> part, int rowIndex, Dictionary<EvalRow, object?[]> orderValuesByRow)
+    {
+        var current = orderValuesByRow[part[rowIndex]];
+        var start = rowIndex;
+        while (start > 0 && WindowOrderValuesEqual(orderValuesByRow[part[start - 1]], current))
+            start--;
+        var end = rowIndex;
+        while (end < part.Count - 1 && WindowOrderValuesEqual(orderValuesByRow[part[end + 1]], current))
+            end++;
+        return (start, end);
+    }
+
+    private decimal[] BuildRangeScalarValues(List<EvalRow> part, Dictionary<EvalRow, object?[]> orderValuesByRow, IReadOnlyList<WindowOrderItem> orderBy)
+    {
+        var desc = orderBy.Count > 0 && orderBy[0].Desc;
+        var values = new decimal[part.Count];
+        for (var i = 0; i < part.Count; i++)
+        {
+            var rawOrderValue = orderValuesByRow[part[i]].Length == 0 ? null : orderValuesByRow[part[i]][0];
+            if (!TryConvertRangeOrderToDecimal(rawOrderValue, out var scalar))
+            {
+                var valueType = rawOrderValue?.GetType().Name ?? "NULL";
+                throw new InvalidOperationException($"RANGE with PRECEDING/FOLLOWING offset requires numeric/date ORDER BY values. Actual ORDER BY value type: {valueType}.");
+            }
+
+            values[i] = desc ? -scalar : scalar;
+        }
+
+        return values;
+    }
+
+    private static bool TryConvertRangeOrderToDecimal(object? value, out decimal scalar)
+    {
+        scalar = default;
+        if (value is null || value is DBNull)
+            return false;
+        try
+        {
+            scalar = value switch
+            {
+                DateTime dt => dt.Ticks,
+                DateTimeOffset dto => dto.Ticks,
+                TimeSpan ts => ts.Ticks,
+                _ => Convert.ToDecimal(value, CultureInfo.InvariantCulture)
+            };
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// EN: Resolves RANGE bounds for non-offset variants (CURRENT ROW/UNBOUNDED) using peer range only.
+    /// PT: Resolve limites de RANGE sem offset (CURRENT ROW/UNBOUNDED) usando apenas o intervalo de peers.
+    /// </summary>
+    private static int ResolveRangeBoundIndexWithoutOffsets(
+        WindowFrameBound bound,
+        int partitionSize,
+        (int Start, int End) peerRange,
+        bool isStartBound)
+    {
+        var last = partitionSize - 1;
+        return bound.Kind switch
+        {
+            WindowFrameBoundKind.UnboundedPreceding => 0,
+            WindowFrameBoundKind.UnboundedFollowing => last,
+            WindowFrameBoundKind.CurrentRow => isStartBound ? peerRange.Start : peerRange.End,
+            _ => isStartBound ? 0 : last
+        };
+    }
+
+    private static int ResolveRangeBoundIndex(
+        WindowFrameBound bound,
+        decimal[] scalarValues,
+        decimal currentScalar,
+        (int Start, int End) peerRange,
+        bool isStartBound)
+    {
+        var last = scalarValues.Length - 1;
+        return bound.Kind switch
+        {
+            WindowFrameBoundKind.UnboundedPreceding => 0,
+            WindowFrameBoundKind.UnboundedFollowing => last,
+            WindowFrameBoundKind.CurrentRow => isStartBound ? peerRange.Start : peerRange.End,
+            WindowFrameBoundKind.Preceding => isStartBound
+                ? FirstIndexGreaterOrEqual(scalarValues, currentScalar - bound.Offset.GetValueOrDefault())
+                : LastIndexLessOrEqual(scalarValues, currentScalar - bound.Offset.GetValueOrDefault()),
+            WindowFrameBoundKind.Following => isStartBound
+                ? FirstIndexGreaterOrEqual(scalarValues, currentScalar + bound.Offset.GetValueOrDefault())
+                : LastIndexLessOrEqual(scalarValues, currentScalar + bound.Offset.GetValueOrDefault()),
+            _ => isStartBound ? 0 : last
+        };
+    }
+
+    private static int FirstIndexGreaterOrEqual(decimal[] sortedValues, decimal threshold)
+    {
+        for (var i = 0; i < sortedValues.Length; i++)
+            if (sortedValues[i] >= threshold)
+                return i;
+        return sortedValues.Length;
+    }
+
+    private static int LastIndexLessOrEqual(decimal[] sortedValues, decimal threshold)
+    {
+        for (var i = sortedValues.Length - 1; i >= 0; i--)
+            if (sortedValues[i] <= threshold)
+                return i;
+        return -1;
     }
 
         private static bool TryReadIntLiteral(SqlExpr expr, out int value)
@@ -2521,7 +2779,7 @@ private void FillLagOrLead(
         {
             var targetIndex = fillLead ? i + offset : i - offset;
             var currentRow = part[i];
-            var frameRange = ResolveRowsFrameRange(windowFunctionExpr.Spec.Frame, part.Count, i);
+            var frameRange = ResolveWindowFrameRange(windowFunctionExpr.Spec.Frame, part, i, windowFunctionExpr.Spec.OrderBy, ctes);
 
             if (!frameRange.IsEmpty && targetIndex >= frameRange.StartIndex && targetIndex <= frameRange.EndIndex)
             {
@@ -2586,8 +2844,8 @@ private int ResolveLagLeadOffset(
 
         for (var i = 0; i < part.Count; i++)
         {
-            var frameRange = ResolveRowsFrameRange(windowFunctionExpr.Spec.Frame, part.Count, i);
-            if (frameRange.IsEmpty)
+            var frameRange = ResolveWindowFrameRange(windowFunctionExpr.Spec.Frame, part, i, windowFunctionExpr.Spec.OrderBy, ctes);
+            if (frameRange.IsEmpty || !RowsFrameContainsRow(frameRange, i))
             {
                 map[part[i]] = null;
                 continue;
@@ -2636,8 +2894,8 @@ private void FillPercentRankOrCumeDist(
         for (var rowIndex = 0; rowIndex < part.Count; rowIndex++)
         {
             var row = part[rowIndex];
-            var frameRange = ResolveRowsFrameRange(frame, part.Count, rowIndex);
-            if (frameRange.IsEmpty)
+            var frameRange = ResolveWindowFrameRange(frame, part, rowIndex, orderBy, ctes);
+            if (frameRange.IsEmpty || !RowsFrameContainsRow(frameRange, rowIndex))
             {
                 map[row] = null;
                 continue;
@@ -2692,8 +2950,8 @@ private void FillPercentRankOrCumeDist(
 
         for (var rowIndex = 0; rowIndex < part.Count; rowIndex++)
         {
-            var frameRange = ResolveRowsFrameRange(windowFunctionExpr.Spec.Frame, part.Count, rowIndex);
-            if (frameRange.IsEmpty)
+            var frameRange = ResolveWindowFrameRange(windowFunctionExpr.Spec.Frame, part, rowIndex, windowFunctionExpr.Spec.OrderBy, ctes);
+            if (frameRange.IsEmpty || !RowsFrameContainsRow(frameRange, rowIndex))
             {
                 map[part[rowIndex]] = null;
                 continue;
@@ -2705,6 +2963,14 @@ private void FillPercentRankOrCumeDist(
             map[part[rowIndex]] = tile;
         }
     }
+
+
+    /// <summary>
+    /// EN: Checks whether the current row index is visible inside the resolved ROWS frame.
+    /// PT: Verifica se o índice da linha atual está visível dentro do frame ROWS resolvido.
+    /// </summary>
+    private static bool RowsFrameContainsRow(RowsFrameRange frameRange, int rowIndex)
+        => rowIndex >= frameRange.StartIndex && rowIndex <= frameRange.EndIndex;
 
     /// <summary>
     /// EN: Builds evaluated ORDER BY values for each row in the ordered partition.

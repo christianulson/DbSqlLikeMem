@@ -218,6 +218,34 @@ public sealed class MySqlDialectFeatureParserTests
     }
 
 
+    /// <summary>
+    /// EN: Ensures pagination syntaxes normalize to the same row-limit AST shape for this dialect.
+    /// PT: Garante que as sintaxes de paginação sejam normalizadas para o mesmo formato de AST de limite de linhas neste dialeto.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_PaginationSyntaxes_ShouldNormalizeRowLimitAst(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var limitOffset = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id LIMIT 2 OFFSET 1",
+            dialect));
+        var offsetFetch = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY",
+            dialect));
+
+        var normalizedLimit = Assert.IsType<SqlLimitOffset>(limitOffset.RowLimit);
+        var normalizedFetch = Assert.IsType<SqlLimitOffset>(offsetFetch.RowLimit);
+
+        Assert.Equal(normalizedLimit, normalizedFetch);
+        Assert.Equal(2, normalizedFetch.Count);
+        Assert.Equal(1, normalizedFetch.Offset);
+    }
+
+
 
     /// <summary>
     /// EN: Verifies FETCH FIRST syntax returns actionable MySQL pagination guidance.
@@ -329,6 +357,60 @@ public sealed class MySqlDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
         Assert.Contains("OPTION(query hints)", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("USE/IGNORE/FORCE INDEX", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures unsupported quoted aliases are rejected with actionable parser diagnostics for this dialect.
+    /// PT: Garante que aliases com quoting não suportado sejam rejeitados com diagnóstico acionável do parser para este dialeto.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithBracketQuotedAlias_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT name [User Name] FROM users", new MySqlDialect(version)));
+
+        Assert.Contains("alias/identificadores", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("'['", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL accepts backtick-quoted aliases and preserves the normalized alias text in AST.
+    /// PT: Garante que o MySQL aceite aliases com crase e preserve o texto normalizado do alias na AST.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithBacktickQuotedAlias_ShouldParseAndNormalizeAlias(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT name `User Name` FROM users",
+            new MySqlDialect(version)));
+
+        var item = Assert.Single(parsed.SelectItems);
+        Assert.Equal("User Name", item.Alias);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL unescapes doubled backticks inside backtick-quoted aliases when normalizing AST alias text.
+    /// PT: Garante que o MySQL faça unescape de crases duplicadas dentro de aliases com crase ao normalizar o texto do alias na AST.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithEscapedBacktickQuotedAlias_ShouldNormalizeEscapedBacktick(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT name `User``Name` FROM users",
+            new MySqlDialect(version)));
+
+        var item = Assert.Single(parsed.SelectItems);
+        Assert.Equal("User`Name", item.Alias);
     }
 
 
@@ -542,12 +624,14 @@ public sealed class MySqlDialectFeatureParserTests
             return;
         }
 
-        var expr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
-        Assert.IsType<WindowFunctionExpr>(expr);
+        var rowsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        Assert.IsType<WindowFunctionExpr>(rowsExpr);
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect));
-        Assert.Contains("window frame unit", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var rangeExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        Assert.IsType<WindowFunctionExpr>(rangeExpr);
+
+        var groupsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW)", dialect);
+        Assert.IsType<WindowFunctionExpr>(groupsExpr);
     }
 
 

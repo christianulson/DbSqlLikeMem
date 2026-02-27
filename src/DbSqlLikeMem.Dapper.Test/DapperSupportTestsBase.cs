@@ -367,7 +367,7 @@ WHERE u.id = 1");
         using var connection = CreateOpenConnection();
         connection.Execute("CREATE TABLE dapper_typed_params (id INT PRIMARY KEY, amount DECIMAL(10,2), created_at DATETIME)");
 
-        var baselineDate = new DateTime(2026, 01, 15, 10, 30, 00);
+        var baselineDate = new DateTime(2026, 01, 15, 10, 30, 00, DateTimeKind.Utc);
         connection.Execute(
             "INSERT INTO dapper_typed_params (id, amount, created_at) VALUES (@id, @amount, @createdAt)",
             new { id = 1, amount = 12.75m, createdAt = baselineDate });

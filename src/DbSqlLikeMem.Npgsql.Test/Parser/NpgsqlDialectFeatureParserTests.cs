@@ -105,8 +105,8 @@ RETURNING id";
     }
 
     /// <summary>
-    /// EN: Verifies pagination syntaxes normalize to equivalent row-limit AST.
-    /// PT: Verifica que sintaxes de paginação são normalizadas para AST equivalente de limite de linhas.
+    /// EN: Ensures pagination syntaxes normalize to the same row-limit AST shape for this dialect.
+    /// PT: Garante que as sintaxes de paginação sejam normalizadas para o mesmo formato de AST de limite de linhas neste dialeto.
     /// </summary>
     /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
     [Theory]
@@ -150,6 +150,60 @@ RETURNING id";
         var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
         Assert.Contains("OPTION(query hints)", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Use hints compatíveis", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures unsupported quoted aliases are rejected with actionable parser diagnostics for this dialect.
+    /// PT: Garante que aliases com quoting não suportado sejam rejeitados com diagnóstico acionável do parser para este dialeto.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseSelect_WithBacktickQuotedAlias_ShouldProvideActionableMessage(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT name `User Name` FROM users", new NpgsqlDialect(version)));
+
+        Assert.Contains("alias/identificadores", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("'`'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures Npgsql accepts double-quoted aliases and preserves the normalized alias text in AST.
+    /// PT: Garante que o Npgsql aceite aliases com aspas duplas e preserve o texto normalizado do alias na AST.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseSelect_WithDoubleQuotedAlias_ShouldParseAndNormalizeAlias(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT name \"User Name\" FROM users",
+            new NpgsqlDialect(version)));
+
+        var item = Assert.Single(parsed.SelectItems);
+        Assert.Equal("User Name", item.Alias);
+    }
+
+    /// <summary>
+    /// EN: Ensures Npgsql unescapes doubled double-quotes inside quoted aliases when normalizing AST alias text.
+    /// PT: Garante que o Npgsql faça unescape de aspas duplas duplicadas dentro de aliases quoted ao normalizar o texto do alias na AST.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseSelect_WithEscapedDoubleQuotedAlias_ShouldNormalizeEscapedQuote(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT name \"User\"\"Name\" FROM users",
+            new NpgsqlDialect(version)));
+
+        var item = Assert.Single(parsed.SelectItems);
+        Assert.Equal("User\"Name", item.Alias);
     }
 
 
@@ -222,6 +276,33 @@ RETURNING id";
 
         Assert.Contains("token inicial", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("SELECT/INSERT/UPDATE/DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures MERGE is rejected for Npgsql dialect with an actionable not-supported message.
+    /// PT: Garante que MERGE seja rejeitado para o dialeto Npgsql com mensagem acionável de não suportado.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseMerge_UnsupportedDialect_ShouldProvideActionableMessage(int version)
+    {
+        const string sql = "MERGE INTO users u USING users s ON u.id = s.id WHEN MATCHED THEN UPDATE SET name = 'x'";
+
+        if (version < NpgsqlDialect.MergeMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+            Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("npgsql", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("não suportado", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = SqlQueryParser.Parse(sql, new NpgsqlDialect(version));
+        Assert.IsType<SqlMergeQuery>(parsed);
     }
 
     /// <summary>
@@ -457,12 +538,14 @@ RETURNING id";
             return;
         }
 
-        var expr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
-        Assert.IsType<WindowFunctionExpr>(expr);
+        var rowsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        Assert.IsType<WindowFunctionExpr>(rowsExpr);
 
-        var ex = Assert.Throws<NotSupportedException>(() =>
-            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect));
-        Assert.Contains("window frame unit", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var rangeExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect);
+        Assert.IsType<WindowFunctionExpr>(rangeExpr);
+
+        var groupsExpr = SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW)", dialect);
+        Assert.IsType<WindowFunctionExpr>(groupsExpr);
     }
 
 

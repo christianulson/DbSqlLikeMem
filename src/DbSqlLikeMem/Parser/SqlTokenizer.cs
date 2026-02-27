@@ -74,7 +74,7 @@ internal sealed class SqlTokenizer
                 && !_dialect.TryGetIdentifierQuote(ch, out _)
                 && !_dialect.IsStringQuote(ch)
                 && !_dialect.AllowsParserCrossDialectQuotedIdentifiers)
-                throw new InvalidOperationException($"Dialeto '{_dialect.Name}' não permite identificadores iniciados com '{ch}'.");
+                throw SqlUnsupported.ForDialect(_dialect, $"alias/identificadores com '{ch}'");
 
             if (IsIdentStart(ch) || IsStartOfQuotedIdentifier(ch))
             {
@@ -214,7 +214,7 @@ internal sealed class SqlTokenizer
             var open = Read();
 
             if (!TryGetIdentifierQuote(open, out var pair))
-                throw new InvalidOperationException($"Dialeto '{_dialect.Name}' não permite identificadores iniciados com '{open}'.");
+                throw SqlUnsupported.ForDialect(_dialect, $"alias/identificadores com '{open}'");
 
             char close = pair.End;
 
@@ -226,19 +226,19 @@ internal sealed class SqlTokenizer
                 if (ch == close)
                 {
                     // Escaped close?
-                    if (_dialect.IdentifierEscapeStyle == SqlIdentifierEscapeStyle.double_quote && close == '"' && !Eof && Peek() == '"')
+                    if (_dialect.AllowsDoubleQuoteIdentifiers && close == '"' && !Eof && Peek() == '"')
                     {
                         Read(); // consume escaped "
                         sb.Append('"');
                         continue;
                     }
-                    if (_dialect.IdentifierEscapeStyle == SqlIdentifierEscapeStyle.backtick && close == '`' && !Eof && Peek() == '`')
+                    if (_dialect.AllowsBacktickIdentifiers && close == '`' && !Eof && Peek() == '`')
                     {
                         Read(); // consume escaped `
                         sb.Append('`');
                         continue;
                     }
-                    if (_dialect.IdentifierEscapeStyle == SqlIdentifierEscapeStyle.bracket && close == ']' && !Eof && Peek() == ']')
+                    if (_dialect.AllowsBracketIdentifiers && close == ']' && !Eof && Peek() == ']')
                     {
                         Read(); // consume escaped ]
                         sb.Append(']');
