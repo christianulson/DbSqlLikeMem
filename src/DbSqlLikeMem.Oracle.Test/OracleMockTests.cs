@@ -185,6 +185,30 @@ public sealed class OracleMockTests
         Assert.Empty(users);
     }
 
+
+    [Fact]
+    [Trait("Category", "OracleMock")]
+    public void TemporalFunctions_ShouldWorkInSelectAndWhere()
+    {
+        using var seed = new OracleCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (10, 'Ana', 'ana@x.com')"
+        };
+        seed.ExecuteNonQuery();
+
+        using var command = new OracleCommandMock(_connection)
+        {
+            CommandText = "SELECT SYSDATE, SYSTEMDATE, CURRENT_DATE, CURRENT_TIMESTAMP FROM Users WHERE SYSDATE IS NOT NULL AND Id = 10"
+        };
+
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.IsType<DateTime>(reader.GetValue(0));
+        Assert.IsType<DateTime>(reader.GetValue(1));
+        Assert.IsType<DateTime>(reader.GetValue(2));
+        Assert.IsType<DateTime>(reader.GetValue(3));
+    }
+
     /// <summary>
     /// EN: Disposes test resources.
     /// PT: Descarta os recursos do teste.

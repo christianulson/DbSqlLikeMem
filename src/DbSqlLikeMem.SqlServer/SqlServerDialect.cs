@@ -147,7 +147,15 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// EN: Gets or sets null substitute function names.
     /// PT: Obtém ou define null substitute function names.
     /// </summary>
-    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["ISNULL"];
+        public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["ISNULL"];
+    public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
+        => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
+            ["GETDATE"] = SqlTemporalFunctionKind.DateTime,
+            ["SYSDATETIME"] = SqlTemporalFunctionKind.DateTime,
+            ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
+        };
     /// <summary>
     /// EN: Gets or sets concat returns null on null input.
     /// PT: Obtém ou define concat returns null on null input.

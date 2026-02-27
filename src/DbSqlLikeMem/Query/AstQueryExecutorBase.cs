@@ -3718,6 +3718,12 @@ private void FillPercentRankOrCumeDist(
                 return ResolveParam(p.Name);
 
             case IdentifierExpr id:
+                if (SqlTemporalFunctionEvaluator.TryEvaluateZeroArgFunction(
+                    Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para avaliação de função temporal."),
+                    id.Name,
+                    out var temporalIdentifierValue))
+                    return temporalIdentifierValue;
+
                 return ResolveIdentifier(id.Name, row);
 
             case ColumnExpr col:
@@ -4036,6 +4042,9 @@ private void FillPercentRankOrCumeDist(
             return EvalAggregate(fn, group, ctes);
 
         // Scalar functions (best-effort)
+        if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgFunction(dialect, fn.Name, out var temporalValue))
+            return temporalValue;
+
         if (fn.Name.Equals("FIND_IN_SET", StringComparison.OrdinalIgnoreCase))
         {
             var needle = EvalArg(0)?.ToString() ?? "";

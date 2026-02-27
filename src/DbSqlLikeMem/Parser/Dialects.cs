@@ -13,6 +13,13 @@ internal enum SqlIdentifierEscapeStyle { double_quote, backtick, bracket }
 
 internal readonly record struct SqlQuotePair(char Begin, char End);
 
+internal enum SqlTemporalFunctionKind
+{
+    Date,
+    Time,
+    DateTime
+}
+
 /// <summary>
 /// EN: Defines escape rules and behavior for a SQL dialect.
 /// PT: Define regras de escape e comportamento de um dialeto SQL.
@@ -112,6 +119,7 @@ internal interface ISqlDialect
     bool SupportsIfFunction { get; }
     bool SupportsIifFunction { get; }
     IReadOnlyCollection<string> NullSubstituteFunctionNames { get; }
+    IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames { get; }
     bool ConcatReturnsNullOnNullInput { get; }
     // Dialect-specific runtime semantics
     bool RegexInvalidPatternEvaluatesToFalse { get; }
@@ -283,6 +291,14 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual bool SupportsPivotClause => false;
     public virtual IReadOnlyCollection<string> NullSubstituteFunctionNames
         => ["IFNULL", "ISNULL", "NVL"];
+    public virtual IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
+        => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
+            ["CURRENT_TIME"] = SqlTemporalFunctionKind.Time,
+            ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
+            ["NOW"] = SqlTemporalFunctionKind.DateTime,
+        };
     public virtual bool ConcatReturnsNullOnNullInput => true;
     public virtual bool RegexInvalidPatternEvaluatesToFalse => false;
 
