@@ -51,6 +51,7 @@ internal sealed class DefaultGenerationRuleStrategy : IGenerationRuleStrategy
             "char"
             or "nchar"
             or "varchar"
+            or "varchar2"
             or "nvarchar"
             or "text"
             or "tinytext"
@@ -59,6 +60,7 @@ internal sealed class DefaultGenerationRuleStrategy : IGenerationRuleStrategy
             or "json"
             or "enum"
             or "set"
+            or "clob"
                 => "String",
 
             "binary"

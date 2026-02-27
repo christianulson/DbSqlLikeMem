@@ -5,6 +5,7 @@ using System.Text;
 using Dapper;
 using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 using Microsoft.Extensions.Configuration;
+using Oracle.ManagedDataAccess.Client;
 
 namespace TableStructureGenerator;
 
@@ -18,6 +19,7 @@ static partial class Program
         string Schema,
         string Namespace,
         string? ClassAccessibility = null,
+        string? Filter = null,
         List<string>? Tables = null);
 
     private sealed record ConnectionInfo(
@@ -56,6 +58,9 @@ static partial class Program
             return;
         }
 
+        foreach (var c in connections.GroupBy(_ => _.ProviderName))
+            DbProviderFactories.RegisterFactory(c.Key, OracleClientFactory.Instance);
+
         bool runAll = args.Any(a => string.Equals(a, "--all", StringComparison.OrdinalIgnoreCase));
 
         int selectedConnectionIndex = 1;
@@ -89,7 +94,7 @@ static partial class Program
             {
                 var tables = (destiny.Tables != null && destiny.Tables.Count != 0)
                     ? destiny.Tables
-                    : GetTablesInSchema(connection, destiny.Schema);
+                    : GetTablesInSchema(connection, destiny.Schema, destiny.Filter);
 
                 Console.WriteLine($"Schema: {destiny.Schema}");
 
@@ -131,9 +136,9 @@ static partial class Program
         return connection;
     }
 
-    private static List<string> GetTablesInSchema(IDbConnection cn, string schema)
+    private static List<string> GetTablesInSchema(IDbConnection cn, string schema, string? filter)
     {
-        var qObjects = SqlMetadataQueryFactory.BuildListObjectsQuery(DatabaseType);
+        var qObjects = SqlMetadataQueryFactory.BuildListObjectsQuery(DatabaseType, filter);
         var rows = cn.Query(qObjects, new { databaseName = schema })
             .Select(ToDictionary)
             .Where(r => ReadString(r, "ObjectType").Equals("Table", StringComparison.OrdinalIgnoreCase))
