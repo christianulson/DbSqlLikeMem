@@ -1,6 +1,3 @@
-using Xunit;
-using Xunit.Sdk;
-
 namespace DbSqlLikeMem;
 
 /// <inheritdoc/>

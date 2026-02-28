@@ -1,10 +1,14 @@
 namespace DbSqlLikeMem.SqlServer;
 
-internal static class SqlServerDbVersions
+/// <summary>
+/// EN: Extension for verions SqlServer versions supported by this provider mock.
+/// PT: Extesão para versões do SqlServer suportadas por este mock de provedor.
+/// </summary>
+public static class SqlServerDbVersions
 {
     /// <summary>
-    /// EN: Returns SQL Server versions supported by this provider mock.
-    /// PT: Retorna as versões do SQL Server suportadas por este mock de provedor.
+    /// EN: Returns SqlServer versions supported by this provider mock.
+    /// PT: Retorna as versões do SqlServer suportadas por este mock de provedor.
     /// </summary>
     public static IEnumerable<int> Versions()
     {

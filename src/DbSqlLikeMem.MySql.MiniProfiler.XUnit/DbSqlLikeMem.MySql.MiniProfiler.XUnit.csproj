@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>MySQL provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
+	</PropertyGroup>
+	<ItemGroup>
+	  <Compile Include="..\DbSqlLikeMem.MySql.XUnit\Attributes\MemberDataByMySqlVersionAttribute.cs" Link="Attributes\MemberDataByMySqlVersionAttribute.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql.XUnit\Attributes\MemberDataMySqlVersionAttribute.cs" Link="Attributes\MemberDataMySqlVersionAttribute.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.MySql.MiniProfiler\DbSqlLikeMem.MySql.MiniProfiler.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.XUnit\DbSqlLikeMem.XUnit.csproj" />
+	</ItemGroup>
+</Project>

@@ -1,10 +1,14 @@
 namespace DbSqlLikeMem.Oracle;
 
-internal static class OracleDbVersions
+/// <summary>
+/// EN: Extension for verions Oracle versions supported by this provider mock.
+/// PT: Extesão para versões do Oracle suportadas por este mock de provedor.
+/// </summary>
+public static class OracleDbVersions
 {
     /// <summary>
-    /// EN: Represents Versions.
-    /// PT: Representa Versions.
+    /// EN: Returns Oracle versions supported by this provider mock.
+    /// PT: Retorna as versões do Oracle suportadas por este mock de provedor.
     /// </summary>
     public static IEnumerable<int> Versions()
     {

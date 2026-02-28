@@ -3,8 +3,6 @@
 		<Description>MySQL provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
 	</PropertyGroup>
 	<ItemGroup>
-	  <Compile Include="..\DbSqlLikeMem.MySql\Attributes\MemberDataByMySqlVersionAttribute.cs" Link="Attributes\MemberDataByMySqlVersionAttribute.cs" />
-	  <Compile Include="..\DbSqlLikeMem.MySql\Attributes\MemberDataMySqlVersionAttribute.cs" Link="Attributes\MemberDataMySqlVersionAttribute.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\Extensions\MySqlExceptionFactory.cs" Link="Extensions\MySqlExceptionFactory.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\Extensions\MySqlLinqExtensions.cs" Link="Extensions\MySqlLinqExtensions.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\Extensions\MySqlValueHelper.cs" Link="Extensions\MySqlValueHelper.cs" />
@@ -52,11 +50,5 @@
 		<Using Include="System.Reflection" />
 		<Using Include="System.Text.Json" />
 		<Using Include="System.Text.RegularExpressions" />
-	</ItemGroup>
-	<ItemGroup>
-	  <Folder Include="Attributes\" />
-	  <Folder Include="Extensions\" />
-	  <Folder Include="Models\" />
-	  <Folder Include="Query\" />
 	</ItemGroup>
 </Project>

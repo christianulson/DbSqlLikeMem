@@ -1,6 +1,10 @@
 namespace DbSqlLikeMem.MySql;
 
-internal static class MySqlDbVersions
+/// <summary>
+/// EN: Extension for verions MySQL versions supported by this provider mock.
+/// PT: Extesão para versões do MySQL suportadas por este mock de provedor.
+/// </summary>
+public static class MySqlDbVersions
 {
     /// <summary>
     /// EN: Returns MySQL versions supported by this provider mock.

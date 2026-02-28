@@ -31,7 +31,7 @@ internal sealed class MySqlDialect : SqlDialectBase
         ])
     { }
 
- 
+
     internal const int WithCteMinVersion = 8;
     internal const int MergeMinVersion = int.MaxValue;
     internal const int WindowFunctionsMinVersion = 8;
@@ -143,7 +143,12 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// EN: Gets the null-substitution function names recognized by this dialect.
     /// PT: Obtém os nomes de funções de substituição de nulos reconhecidos por este dialeto.
     /// </summary>
-        public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL"];
+    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL"];
+
+    /// <summary>
+    /// EN: Gets the datetime-substitution function names recognized by this dialect.
+    /// PT: Obtém os nomes de funções de substituição de data e hora reconhecidos por este dialeto.
+    /// </summary>
     public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
         => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
         {
