@@ -15,7 +15,7 @@ public static class ServiceCollectionSqlServerDbMockExtensions
         return instance;
     });
 
-    public static IServiceCollection AddSqlServerDbMockScoped<T>(
+    public static IServiceCollection AddSqlServerDbMockScoped(
         this IServiceCollection services,
         Action<SqlServerDbMock>? acRegister = null,
         int? version = null)

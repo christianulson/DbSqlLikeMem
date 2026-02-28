@@ -15,7 +15,7 @@ public static class ServiceCollectionSqliteDbMockExtensions
         return instance;
     });
 
-    public static IServiceCollection AddSqliteDbMockScoped<T>(
+    public static IServiceCollection AddSqliteDbMockScoped(
         this IServiceCollection services,
         Action<SqliteDbMock>? acRegister = null,
         int? version = null)

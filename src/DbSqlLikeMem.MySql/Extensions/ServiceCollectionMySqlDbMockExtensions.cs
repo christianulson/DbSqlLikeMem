@@ -15,7 +15,7 @@ public static class ServiceCollectionMySqlDbMockExtensions
         return instance;
     });
 
-    public static IServiceCollection AddMySqlDbMockScoped<T>(
+    public static IServiceCollection AddMySqlDbMockScoped(
         this IServiceCollection services,
         Action<MySqlDbMock>? acRegister = null,
         int? version = null)

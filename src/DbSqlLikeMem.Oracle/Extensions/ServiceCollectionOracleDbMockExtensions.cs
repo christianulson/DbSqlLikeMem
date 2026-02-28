@@ -15,7 +15,7 @@ public static class ServiceCollectionOracleDbMockExtensions
         return instance;
     });
 
-    public static IServiceCollection AddOracleDbMockScoped<T>(
+    public static IServiceCollection AddOracleDbMockScoped(
         this IServiceCollection services,
         Action<OracleDbMock>? acRegister = null,
         int? version = null)
