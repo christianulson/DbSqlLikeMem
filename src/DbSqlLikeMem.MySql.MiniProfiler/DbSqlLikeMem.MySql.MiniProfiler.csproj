@@ -6,6 +6,7 @@
 	  <Compile Include="..\DbSqlLikeMem.MySql\Extensions\MySqlExceptionFactory.cs" Link="Extensions\MySqlExceptionFactory.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\Extensions\MySqlLinqExtensions.cs" Link="Extensions\MySqlLinqExtensions.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\Extensions\MySqlValueHelper.cs" Link="Extensions\MySqlValueHelper.cs" />
+	  <Compile Include="..\DbSqlLikeMem.MySql\Extensions\ServiceCollectionMySqlDbMockExtensions.cs" Link="Extensions\ServiceCollectionMySqlDbMockExtensions.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\IMySqlCommandMock.cs" Link="IMySqlCommandMock.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\Models\MySqlDbMock.cs" Link="Models\MySqlDbMock.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql\Models\MySqlSchemaMock.cs" Link="Models\MySqlSchemaMock.cs" />
