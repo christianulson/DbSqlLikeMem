@@ -849,6 +849,7 @@ internal static class SqlExecutionPlanFormatter
             RowExpr r => 1 + r.Items.Sum(EstimatePredicateComplexityCost),
             UnaryExpr u => 1 + EstimatePredicateComplexityCost(u.Expr),
             IsNullExpr n => 1 + EstimatePredicateComplexityCost(n.Expr),
+            RawSqlExpr r => EstimateRawPredicateTokenCost(r.Sql),
             _ => 0
         };
 
@@ -956,6 +957,27 @@ internal static class SqlExecutionPlanFormatter
         if (distinct && orderBy.Count > 0 && rowLimit is null)
             cost += 5;
 
+        return cost;
+    }
+
+    /// <summary>
+    /// EN: Estimates lightweight predicate complexity for raw SQL expressions using token counts (logical operators, subquery hints and JSON markers).
+    /// PT: Estima complexidade leve de predicado para expressões SQL raw usando contagem de tokens (operadores lógicos, hints de subconsulta e marcadores JSON).
+    /// </summary>
+    private static int EstimateRawPredicateTokenCost(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return 0;
+
+        var cost = 0;
+        cost += CountSqlKeywordOccurrences(raw, "AND");
+        cost += CountSqlKeywordOccurrences(raw, "OR");
+        cost += CountSqlKeywordOccurrences(raw, "CASE") * 2;
+        cost += CountSqlKeywordOccurrences(raw, "SELECT") * 5;
+        cost += CountSqlKeywordOccurrences(raw, "EXISTS") * 4;
+        cost += CountSqlKeywordOccurrences(raw, "IN");
+        cost += CountJsonFunctionCalls(raw) * 2;
+        cost += CountJsonOperatorTokens(raw) * 2;
         return cost;
     }
 

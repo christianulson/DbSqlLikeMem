@@ -2070,6 +2070,105 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     }
 
     /// <summary>
+    /// EN: Verifies raw WHERE predicates with JSON functions increase estimated cost over equivalent non-JSON raw predicates.
+    /// PT: Verifica que predicados WHERE raw com funções JSON aumentam o custo estimado sobre predicados raw equivalentes sem JSON.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseForRawPredicateWithJsonFunctions()
+    {
+        var nonJsonRawPredicateQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("id", null)],
+            [],
+            new RawSqlExpr("COALESCE(payload, '$.tenant') = 'acme'"),
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "events", null, null, null, null, null)
+        };
+
+        var jsonRawPredicateQuery = nonJsonRawPredicateQuery with
+        {
+            Where = new RawSqlExpr("JSON_VALUE(payload, '$.tenant') = 'acme'")
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var nonJsonPlan = SqlExecutionPlanFormatter.FormatSelect(nonJsonRawPredicateQuery, metrics, [], []);
+        var jsonPlan = SqlExecutionPlanFormatter.FormatSelect(jsonRawPredicateQuery, metrics, [], []);
+
+        ExtractEstimatedCost(nonJsonPlan).Should().BeLessThan(ExtractEstimatedCost(jsonPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies deeply nested raw WHERE predicates with mixed AND/OR plus CASE/JSON tokens increase estimated cost over flatter raw predicates.
+    /// PT: Verifica que predicados WHERE raw profundamente aninhados com AND/OR mistos e tokens CASE/JSON aumentam o custo estimado sobre predicados raw mais planos.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseForDeepNestedRawPredicateWithCaseJsonAndMixedLogicalOperators()
+    {
+        var flatterRawPredicateQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("id", null)],
+            [],
+            new RawSqlExpr("CASE WHEN tenantid > 100 THEN JSON_VALUE(payload, '$.tier') ELSE 'standard' END = 'gold' AND status = 'active'"),
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var deepNestedRawPredicateQuery = flatterRawPredicateQuery with
+        {
+            Where = new RawSqlExpr("((CASE WHEN tenantid > 100 THEN JSON_VALUE(payload, '$.tier') ELSE 'standard' END = 'gold' OR payload->>'region' = 'us') AND status = 'active') OR (SELECT MAX(userid) FROM orders) > 10")
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var flatterPlan = SqlExecutionPlanFormatter.FormatSelect(flatterRawPredicateQuery, metrics, [], []);
+        var deepPlan = SqlExecutionPlanFormatter.FormatSelect(deepNestedRawPredicateQuery, metrics, [], []);
+
+        ExtractEstimatedCost(flatterPlan).Should().BeLessThan(ExtractEstimatedCost(deepPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies raw WHERE predicates with JSON operators (->, ->>) increase estimated cost over equivalent scalar raw predicates.
+    /// PT: Verifica que predicados WHERE raw com operadores JSON (->, ->>) aumentam o custo estimado sobre predicados raw escalares equivalentes.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseForRawPredicateWithJsonOperators()
+    {
+        var scalarRawPredicateQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("id", null)],
+            [],
+            new RawSqlExpr("payload = 'x'"),
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "events", null, null, null, null, null)
+        };
+
+        var jsonOperatorRawPredicateQuery = scalarRawPredicateQuery with
+        {
+            Where = new RawSqlExpr("payload->>'tenant' = 'acme'")
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var scalarPlan = SqlExecutionPlanFormatter.FormatSelect(scalarRawPredicateQuery, metrics, [], []);
+        var jsonOperatorPlan = SqlExecutionPlanFormatter.FormatSelect(jsonOperatorRawPredicateQuery, metrics, [], []);
+
+        ExtractEstimatedCost(scalarPlan).Should().BeLessThan(ExtractEstimatedCost(jsonOperatorPlan));
+    }
+
+    /// <summary>
     /// EN: Verifies deeply nested logical predicates with mixed CASE/JSON leaves carry higher estimated cost than flatter logical shapes with equivalent leaves.
     /// PT: Verifica que predicados lógicos profundamente aninhados com folhas mistas de CASE/JSON carregam custo estimado maior que formatos lógicos mais planos com folhas equivalentes.
     /// </summary>
