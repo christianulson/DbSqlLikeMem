@@ -169,6 +169,66 @@ ORDER BY u.Id";
         GetTableHintCount(cnn, "orders").Should().BeLessThan(10);
     }
 
+    /// <summary>
+    /// EN: Tests correlated scalar subquery in projection reuses evaluation for duplicate outer rows, reducing repeated source access.
+    /// PT: Testa que subquery escalar correlacionada na projeção reutiliza avaliação para linhas externas duplicadas, reduzindo acessos repetidos à fonte.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void ScalarCorrelatedSubqueryInProjection_ShouldReuseEvaluationForDuplicateOuterRows()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        for (var i = 0; i < 80; i++)
+            cnn.Seed("users", null, [1, "Ana"]);
+
+        cnn.Seed("orders", null,
+            [10, 1, 50m],
+            [11, 1, 60m]);
+
+        const string sql = @"SELECT u.Id,
+       (SELECT MAX(o.Amount) FROM orders o WHERE o.UserId = u.Id) AS MaxAmount
+FROM users u
+ORDER BY u.Id";
+
+        var rowCount = ExecuteAndCountRows(cnn, sql);
+
+        rowCount.Should().Be(80);
+        GetTableHintCount(cnn, "orders").Should().BeLessThan(10);
+    }
+
+    /// <summary>
+    /// EN: Tests correlated scalar subquery returning NULL still reuses evaluation for duplicate outer rows.
+    /// PT: Testa que subquery escalar correlacionada com retorno NULL ainda reutiliza avaliação para linhas externas duplicadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void ScalarCorrelatedSubqueryReturningNull_ShouldReuseEvaluationForDuplicateOuterRows()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        for (var i = 0; i < 80; i++)
+            cnn.Seed("users", null, [2, "Bob"]);
+
+        cnn.Seed("orders", null,
+            [10, 1, 50m],
+            [11, 1, 60m]);
+
+        const string sql = @"SELECT u.Id,
+       (SELECT MAX(o.Amount) FROM orders o WHERE o.UserId = u.Id) AS MaxAmount
+FROM users u
+ORDER BY u.Id";
+
+        var rowCount = ExecuteAndCountRows(cnn, sql);
+
+        rowCount.Should().Be(80);
+        GetTableHintCount(cnn, "orders").Should().BeLessThan(10);
+    }
+
     private static void DefineUsersAndOrdersTables(
         DbConnectionMockBase cnn)
     {
@@ -205,4 +265,21 @@ ORDER BY u.Id";
         => cnn.Metrics.TableHints.TryGetValue(tableName, out var count)
             ? count
             : 0;
+
+    /// <summary>
+    /// EN: Executes query and returns total row count.
+    /// PT: Executa a consulta e retorna a contagem total de linhas.
+    /// </summary>
+    private static int ExecuteAndCountRows(DbConnectionMockBase cnn, string sql)
+    {
+        using var cmd = cnn.CreateCommand();
+        cmd.CommandText = sql;
+
+        using var reader = cmd.ExecuteReader();
+        var count = 0;
+        while (reader.Read())
+            count++;
+
+        return count;
+    }
 }

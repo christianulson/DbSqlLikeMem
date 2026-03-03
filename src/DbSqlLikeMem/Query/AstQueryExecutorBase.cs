@@ -29,6 +29,7 @@ internal abstract class AstQueryExecutorBase(
     private ISqlDialect? Dialect => _dialect as ISqlDialect;
     private readonly ConcurrentDictionary<string, bool> _existsSubqueryCache = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, List<object?>> _inSubqueryFirstColumnCache = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, ScalarSubqueryCacheEntry> _scalarSubqueryCache = new(StringComparer.Ordinal);
 
 
     private static readonly HashSet<string> _aggFns = new(StringComparer.OrdinalIgnoreCase)
@@ -3715,8 +3716,16 @@ private void FillPercentRankOrCumeDist(
         IDictionary<string, Source> ctes,
         EvalRow row)
     {
-        var r = ExecuteSelect(GetSingleSubqueryOrThrow(sq, "EVAL subquery"), ctes, row);
-        return r.Count > 0 && r[0].TryGetValue(0, out var v) ? v : null;
+        var cacheKey = BuildCorrelatedSubqueryCacheKey("SCALAR", sq.Sql, row);
+
+        return _scalarSubqueryCache.GetOrAdd(
+            cacheKey,
+            _ =>
+            {
+                var r = ExecuteSelect(GetSingleSubqueryOrThrow(sq, "EVAL subquery"), ctes, row);
+                var value = r.Count > 0 && r[0].TryGetValue(0, out var v) ? v : null;
+                return new ScalarSubqueryCacheEntry(value);
+            }).Value;
     }
 
     // ---------------- EXPRESSION EVAL ----------------
@@ -4084,6 +4093,7 @@ private void FillPercentRankOrCumeDist(
     {
         _existsSubqueryCache.Clear();
         _inSubqueryFirstColumnCache.Clear();
+        _scalarSubqueryCache.Clear();
     }
 
 
@@ -5376,6 +5386,8 @@ private void FillPercentRankOrCumeDist(
         public static Source FromResult(string tableName, TableResultMock result)
             => new(tableName, tableName, result);
     }
+
+    private sealed record ScalarSubqueryCacheEntry(object? Value);
 
     internal sealed record EvalRow(
         Dictionary<string, object?> Fields,
