@@ -1059,6 +1059,7 @@ internal static class SqlExecutionPlanFormatter
             cost += CountSqlKeywordOccurrences(raw, "OVER") * 12;
             cost += CountSqlKeywordOccurrences(raw, "CASE") * 4;
             cost += CountSqlKeywordOccurrences(raw, "SELECT") * 10;
+            cost += CountJsonFunctionCalls(raw) * 3;
             cost += EstimateAggregateProjectionFunctionCost(raw);
         }
 
@@ -1083,6 +1084,8 @@ internal static class SqlExecutionPlanFormatter
         cost += CountDistinctAggregateCalls(raw, "COUNT") * 2;
         cost += CountDistinctAggregateCalls(raw, "SUM") * 2;
         cost += CountDistinctAggregateCalls(raw, "AVG") * 2;
+        cost += CountDistinctAggregateCalls(raw, "MIN") * 2;
+        cost += CountDistinctAggregateCalls(raw, "MAX") * 2;
         return cost;
     }
 
