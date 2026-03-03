@@ -1015,10 +1015,8 @@ internal static class SqlExecutionPlanFormatter
         foreach (var item in selectItems)
         {
             var raw = item.Raw ?? string.Empty;
-            if (raw.IndexOf(" OVER ", StringComparison.OrdinalIgnoreCase) >= 0)
-                cost += 12;
-            if (raw.IndexOf("CASE ", StringComparison.OrdinalIgnoreCase) >= 0)
-                cost += 4;
+            cost += CountSqlKeywordOccurrences(raw, "OVER") * 12;
+            cost += CountSqlKeywordOccurrences(raw, "CASE") * 4;
             cost += CountSqlKeywordOccurrences(raw, "SELECT") * 10;
             cost += EstimateAggregateProjectionFunctionCost(raw);
         }

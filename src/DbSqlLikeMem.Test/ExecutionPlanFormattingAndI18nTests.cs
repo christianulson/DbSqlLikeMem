@@ -2155,6 +2155,78 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     }
 
     /// <summary>
+    /// EN: Verifies projection cost increases with additional DISTINCT aggregate calls in the same projection expression.
+    /// PT: Verifica que o custo de projeção aumenta com chamadas agregadas DISTINCT adicionais na mesma expressão de projeção.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithAdditionalDistinctAggregateCallsInProjection()
+    {
+        var oneDistinctAggregateQuery = new SqlSelectQuery([], false, [new SqlSelectItem("COUNT(DISTINCT tenantid)", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var twoDistinctAggregatesQuery = oneDistinctAggregateQuery with
+        {
+            SelectItems = [new SqlSelectItem("COUNT(DISTINCT tenantid) + SUM(DISTINCT amount)", null)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var oneDistinctPlan = SqlExecutionPlanFormatter.FormatSelect(oneDistinctAggregateQuery, metrics, [], []);
+        var twoDistinctPlan = SqlExecutionPlanFormatter.FormatSelect(twoDistinctAggregatesQuery, metrics, [], []);
+
+        ExtractEstimatedCost(oneDistinctPlan).Should().BeLessThan(ExtractEstimatedCost(twoDistinctPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies projection cost increases with additional CASE expressions in the same projection item.
+    /// PT: Verifica que o custo da projeção aumenta com expressões CASE adicionais no mesmo item de projeção.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithAdditionalCaseExpressionsInProjection()
+    {
+        var oneCaseProjectionQuery = new SqlSelectQuery([], false, [new SqlSelectItem("CASE WHEN tenantid > 10 THEN 1 ELSE 0 END", "c1")], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var twoCasesProjectionQuery = oneCaseProjectionQuery with
+        {
+            SelectItems = [new SqlSelectItem("CASE WHEN tenantid > 10 THEN 1 ELSE 0 END + CASE WHEN status = 'A' THEN 1 ELSE 0 END", "c2")]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var oneCasePlan = SqlExecutionPlanFormatter.FormatSelect(oneCaseProjectionQuery, metrics, [], []);
+        var twoCasesPlan = SqlExecutionPlanFormatter.FormatSelect(twoCasesProjectionQuery, metrics, [], []);
+
+        ExtractEstimatedCost(oneCasePlan).Should().BeLessThan(ExtractEstimatedCost(twoCasesPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies projection cost increases with additional OVER clauses in the same projection item.
+    /// PT: Verifica que o custo da projeção aumenta com cláusulas OVER adicionais no mesmo item de projeção.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithAdditionalOverClausesInProjection()
+    {
+        var oneOverProjectionQuery = new SqlSelectQuery([], false, [new SqlSelectItem("RANK() OVER (ORDER BY tenantid)", "rk1")], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var twoOverProjectionQuery = oneOverProjectionQuery with
+        {
+            SelectItems = [new SqlSelectItem("RANK() OVER (ORDER BY tenantid) + DENSE_RANK() OVER (ORDER BY tenantid)", "rk2")]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var oneOverPlan = SqlExecutionPlanFormatter.FormatSelect(oneOverProjectionQuery, metrics, [], []);
+        var twoOverPlan = SqlExecutionPlanFormatter.FormatSelect(twoOverProjectionQuery, metrics, [], []);
+
+        ExtractEstimatedCost(oneOverPlan).Should().BeLessThan(ExtractEstimatedCost(twoOverPlan));
+    }
+
+    /// <summary>
     /// EN: Verifies projection cost increases with additional scalar subqueries in SELECT items.
     /// PT: Verifica que o custo da projeção aumenta com subconsultas escalares adicionais nos itens do SELECT.
     /// </summary>
