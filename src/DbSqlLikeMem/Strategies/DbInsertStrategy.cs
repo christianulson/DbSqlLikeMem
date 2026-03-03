@@ -393,7 +393,7 @@ internal static class DbInsertStrategy
                 ParameterExpr p => GetParamValue(p.Name),
                 IdentifierExpr id => TryGetExcludedValueFromName(id.Name, out var excluded)
                     ? excluded
-                    : SqlTemporalFunctionEvaluator.TryEvaluateZeroArgFunction(dialect, id.Name, out var temporalIdentifierValue)
+                    : SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, id.Name, out var temporalIdentifierValue)
                         ? temporalIdentifierValue
                         : GetExistingColumnValue(id.Name.Contains('.') ? id.Name.Split('.').Last() : id.Name),
                 ColumnExpr c => string.Equals(c.Qualifier, "excluded", StringComparison.OrdinalIgnoreCase)
@@ -605,7 +605,7 @@ internal static class DbInsertStrategy
         {
             // compat: alguns parsers usam FunctionCallExpr
             var name = fn.Name;
-            if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgFunction(dialect, name, out var temporalValue))
+            if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, name, out var temporalValue))
                 return temporalValue;
 
             // se vier algo simples tipo VALUES(...) cair aqui por engano, tenta tratar:
@@ -645,7 +645,7 @@ internal static class DbInsertStrategy
                 return GetInsertedColumnValue(col!);
             }
 
-            if (call.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgFunction(dialect, name, out var temporalValue))
+            if (call.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, name, out var temporalValue))
                 return temporalValue;
 
             throw new InvalidOperationException($"CALL não suportado no ON DUPLICATE: {call.Name}");

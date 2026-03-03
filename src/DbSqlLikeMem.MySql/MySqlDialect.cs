@@ -160,6 +160,13 @@ internal sealed class MySqlDialect : SqlDialectBase
             ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
         };
 
+
+    public override IReadOnlyCollection<string> TemporalFunctionIdentifierNames
+        => ["CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP", "SYSTEMDATE"];
+
+    public override IReadOnlyCollection<string> TemporalFunctionCallNames
+        => ["NOW", "SYSDATE"];
+
     /// <summary>
     /// EN: Indicates whether string concatenation returns <c>NULL</c> when any operand is <c>NULL</c>.
     /// PT: Indica se a concatenação de strings retorna <c>NULL</c> quando qualquer operando é <c>NULL</c>.

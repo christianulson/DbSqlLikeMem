@@ -131,6 +131,10 @@ internal sealed class SqliteDialect : SqlDialectBase
             ["NOW"] = SqlTemporalFunctionKind.DateTime,
             ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
         };
+
+    public override IReadOnlyCollection<string> TemporalFunctionCallNames
+        => [];
+
     /// <summary>
     /// EN: Gets or sets concat returns null on null input.
     /// PT: Obtém ou define concat returns null on null input.

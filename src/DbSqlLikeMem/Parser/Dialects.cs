@@ -121,6 +121,8 @@ internal interface ISqlDialect
     bool SupportsIifFunction { get; }
     IReadOnlyCollection<string> NullSubstituteFunctionNames { get; }
     IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames { get; }
+    IReadOnlyCollection<string> TemporalFunctionIdentifierNames { get; }
+    IReadOnlyCollection<string> TemporalFunctionCallNames { get; }
     bool ConcatReturnsNullOnNullInput { get; }
     // Dialect-specific runtime semantics
     bool RegexInvalidPatternEvaluatesToFalse { get; }
@@ -304,6 +306,12 @@ internal abstract class SqlDialectBase : ISqlDialect
             ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
             ["NOW"] = SqlTemporalFunctionKind.DateTime,
         };
+
+    public virtual IReadOnlyCollection<string> TemporalFunctionIdentifierNames
+        => TemporalFunctionNames.Keys.ToArray();
+
+    public virtual IReadOnlyCollection<string> TemporalFunctionCallNames
+        => [];
     public virtual bool ConcatReturnsNullOnNullInput => true;
 
     public virtual bool RegexInvalidPatternEvaluatesToFalse => false;

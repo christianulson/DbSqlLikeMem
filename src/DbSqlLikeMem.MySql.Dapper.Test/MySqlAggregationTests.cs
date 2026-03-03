@@ -100,6 +100,62 @@ public sealed class MySqlAggregationTests : AggregationHavingOrdinalTestsBase<My
     }
 
 
+
+
+    /// <summary>
+    /// EN: Ensures CURRENT_TIMESTAMP token (without parentheses) works in WHERE filter and projection for MySQL.
+    /// PT: Garante que token CURRENT_TIMESTAMP (sem parênteses) funcione em filtro WHERE e projeção no MySQL.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlAggregation")]
+    public void TemporalFunction_CurrentTimestampToken_InWhere_ShouldWork()
+    {
+        var rows = Query("SELECT CURRENT_TIMESTAMP AS nowValue FROM orders WHERE CURRENT_TIMESTAMP IS NOT NULL");
+
+        Assert.NotEmpty(rows);
+        Assert.NotNull(rows[0].nowValue);
+    }
+
+
+
+    /// <summary>
+    /// EN: Ensures CURRENT_DATE and CURRENT_TIME tokens work in WHERE filter and projection.
+    /// PT: Garante que tokens CURRENT_DATE e CURRENT_TIME funcionem em filtro WHERE e projeção.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlAggregation")]
+    public void TemporalFunction_CurrentDateAndTime_InWhere_ShouldWork()
+    {
+        var rows = Query("SELECT CURRENT_DATE AS currentDate, CURRENT_TIME AS currentTime FROM orders WHERE CURRENT_DATE IS NOT NULL AND CURRENT_TIME IS NOT NULL");
+
+        Assert.NotEmpty(rows);
+        Assert.NotNull(rows[0].currentDate);
+        Assert.NotNull(rows[0].currentTime);
+    }
+
+
+
+    /// <summary>
+    /// EN: Ensures CURRENT_DATE and CURRENT_TIME tokens work in HAVING and ORDER BY grouped queries.
+    /// PT: Garante que tokens CURRENT_DATE e CURRENT_TIME funcionem em HAVING e ORDER BY com agrupamento.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlAggregation")]
+    public void TemporalFunction_CurrentDateAndTime_InHavingAndOrderBy_ShouldWork()
+    {
+        var rows = Query("""
+            SELECT userId, COUNT(*) AS total
+            FROM orders
+            GROUP BY userId
+            HAVING CURRENT_DATE IS NOT NULL
+            ORDER BY CURRENT_TIME, userId
+            """);
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(1, Convert.ToInt32(rows[0].userId));
+        Assert.Equal(2, Convert.ToInt32(rows[1].userId));
+    }
+
     /// <summary>
     /// EN: Ensures zero-arg temporal function works in INSERT values and can be read back.
     /// PT: Garante que função temporal sem argumentos funcione em valores de INSERT e possa ser lida depois.
@@ -134,6 +190,98 @@ public sealed class MySqlAggregationTests : AggregationHavingOrdinalTestsBase<My
 
         Assert.Single(rows);
         Assert.NotNull(rows[0].updated_at);
+    }
+
+    /// <summary>
+    /// EN: Ensures zero-arg temporal function works in HAVING and ORDER BY grouped queries.
+    /// PT: Garante que função temporal sem argumentos funcione em HAVING e ORDER BY com agrupamento.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlAggregation")]
+    public void TemporalFunction_InHavingAndOrderBy_ShouldWork()
+    {
+        var rows = Query("""
+            SELECT userId, COUNT(*) AS total
+            FROM orders
+            GROUP BY userId
+            HAVING CURRENT_TIMESTAMP IS NOT NULL
+            ORDER BY CURRENT_TIMESTAMP, userId
+            """);
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(1, Convert.ToInt32(rows[0].userId));
+        Assert.Equal(2, Convert.ToInt32(rows[1].userId));
+    }
+
+
+
+
+    /// <summary>
+    /// EN: Ensures NOW() call-style temporal function works in HAVING and ORDER BY grouped queries.
+    /// PT: Garante que função temporal NOW() (call-style) funcione em HAVING e ORDER BY com agrupamento.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlAggregation")]
+    public void TemporalFunction_NowCall_InHavingAndOrderBy_ShouldWork()
+    {
+        var rows = Query("""
+            SELECT userId, COUNT(*) AS total
+            FROM orders
+            GROUP BY userId
+            HAVING NOW() IS NOT NULL
+            ORDER BY NOW(), userId
+            """);
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(1, Convert.ToInt32(rows[0].userId));
+        Assert.Equal(2, Convert.ToInt32(rows[1].userId));
+    }
+
+    /// <summary>
+    /// EN: Ensures unsupported temporal function from another dialect reports a clear error message.
+    /// PT: Garante que função temporal de outro dialeto gere mensagem de erro clara.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlAggregation")]
+    public void TemporalFunction_UnsupportedFunctionFromOtherDialect_ShouldThrowClearError()
+    {
+        var ex = Assert.ThrowsAny<Exception>(() =>
+            Query("SELECT GETDATE() AS invalidNow FROM orders"));
+
+        Assert.Contains("GETDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+
+
+    /// <summary>
+    /// EN: Ensures token-only temporal function called with parentheses reports clear error.
+    /// PT: Garante que função temporal no formato token chamada com parênteses gere erro claro.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlAggregation")]
+    public void TemporalFunction_TokenCalledAsFunction_ShouldThrowClearError()
+    {
+        var ex = Assert.ThrowsAny<Exception>(() =>
+            Query("SELECT CURRENT_TIMESTAMP() AS invalidNow FROM orders"));
+
+        Assert.Contains("CURRENT_TIMESTAMP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+
+    /// <summary>
+    /// EN: Ensures call-only temporal function used without parentheses reports clear error.
+    /// PT: Garante que função temporal apenas-invocável usada sem parênteses gere erro claro.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlAggregation")]
+    public void TemporalFunction_CallOnlyIdentifierWithoutParentheses_ShouldThrowClearError()
+    {
+        var ex = Assert.ThrowsAny<Exception>(() =>
+            Query("SELECT NOW AS invalidNow FROM orders"));
+
+        Assert.Contains("NOW", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 }

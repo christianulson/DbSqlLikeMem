@@ -150,6 +150,13 @@ internal sealed class NpgsqlDialect : SqlDialectBase
             ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
         };
 
+
+    public override IReadOnlyCollection<string> TemporalFunctionIdentifierNames
+        => ["CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP", "SYSTEMDATE"];
+
+    public override IReadOnlyCollection<string> TemporalFunctionCallNames
+        => ["NOW"];
+
     /// <summary>
     /// EN: Gets or sets concat returns null on null input.
     /// PT: Obtém ou define concat returns null on null input.
