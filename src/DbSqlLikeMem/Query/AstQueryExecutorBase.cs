@@ -4101,9 +4101,14 @@ private void FillPercentRankOrCumeDist(
             .Where(kv => ContainsSqlIdentifierToken(normalizedSql, kv.Key))
             .ToList();
 
-        return unqualifiedMatches.Count > 0
-            ? unqualifiedMatches
-            : allFields;
+        if (unqualifiedMatches.Count > 0)
+            return unqualifiedMatches;
+
+        // If we cannot match any outer identifier but SQL still appears to reference outer qualifiers,
+        // keep conservative behavior and include all fields to avoid stale cross-row reuse.
+        return ContainsPotentialOuterQualifierReference(normalizedSql, allFields)
+            ? allFields
+            : [];
     }
 
     /// <summary>
@@ -4162,6 +4167,38 @@ private void FillPercentRankOrCumeDist(
         }
 
         return identifiers;
+    }
+
+    /// <summary>
+    /// EN: Detects whether SQL text appears to reference any qualifier from outer-row fields, even when full token matching failed.
+    /// PT: Detecta se o texto SQL parece referenciar algum qualificador dos campos da linha externa, mesmo quando o matching completo de token falha.
+    /// </summary>
+    private static bool ContainsPotentialOuterQualifierReference(
+        string sql,
+        IReadOnlyList<KeyValuePair<string, object?>> fields)
+    {
+        if (string.IsNullOrWhiteSpace(sql) || fields.Count == 0)
+            return false;
+
+        var qualifiers = fields
+            .Select(static kv =>
+            {
+                var dot = kv.Key.IndexOf('.');
+                return dot > 0 ? kv.Key[..dot] : null;
+            })
+            .Where(static q => !string.IsNullOrWhiteSpace(q))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var qualifier in qualifiers)
+        {
+            if (Regex.IsMatch(
+                    sql,
+                    $@"(?<![A-Za-z0-9_$]){Regex.Escape(qualifier!)}\.",
+                    RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                return true;
+        }
+
+        return false;
     }
 
     /// <summary>

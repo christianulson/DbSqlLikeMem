@@ -289,6 +289,66 @@ ORDER BY u.Id";
         GetTableHintCount(cnn, "orders").Should().BeLessThan(10);
     }
 
+    /// <summary>
+    /// EN: Tests uncorrelated EXISTS subquery is reused across outer rows and does not re-read source per row.
+    /// PT: Testa que subquery EXISTS não correlacionada é reutilizada entre linhas externas e não releitura a fonte por linha.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void Exists_UncorrelatedSubquery_ShouldReuseEvaluationAcrossOuterRows()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        for (var i = 0; i < 80; i++)
+            cnn.Seed("users", null, [i + 1, $"Name-{i}"]);
+
+        cnn.Seed("orders", null,
+            [10, 1, 50m],
+            [11, 1, 60m]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE EXISTS (SELECT 1 FROM orders o WHERE o.Amount > 0)
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().HaveCount(80);
+        GetTableHintCount(cnn, "orders").Should().BeLessThan(10);
+    }
+
+    /// <summary>
+    /// EN: Tests uncorrelated scalar subquery in projection is reused across outer rows and does not re-read source per row.
+    /// PT: Testa que subquery escalar não correlacionada na projeção é reutilizada entre linhas externas e não releitura a fonte por linha.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void ScalarUncorrelatedSubqueryInProjection_ShouldReuseEvaluationAcrossOuterRows()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        for (var i = 0; i < 80; i++)
+            cnn.Seed("users", null, [i + 1, $"Name-{i}"]);
+
+        cnn.Seed("orders", null,
+            [10, 1, 50m],
+            [11, 1, 60m]);
+
+        const string sql = @"SELECT u.Id,
+       (SELECT MAX(o.Amount) FROM orders o WHERE o.Amount > 0) AS MaxAmount
+FROM users u
+ORDER BY u.Id";
+
+        var rowCount = ExecuteAndCountRows(cnn, sql);
+
+        rowCount.Should().Be(80);
+        GetTableHintCount(cnn, "orders").Should().BeLessThan(10);
+    }
+
     private static void DefineUsersAndOrdersTables(
         DbConnectionMockBase cnn)
     {
