@@ -749,6 +749,7 @@ internal static class SqlExecutionPlanFormatter
         cost += EstimateGroupByExpressionComplexityCost(query.GroupBy);
         cost += EstimateOrderByExpressionComplexityCost(query.OrderBy);
         cost += EstimateDistinctGroupByOrderByCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.RowLimit);
+        cost += EstimateNestedOrderByCouplingCost(query.Table, query.OrderBy, query.RowLimit);
         cost += EstimateProjectionCost(query.SelectItems);
         cost -= EstimateRowLimitRelief(query.RowLimit);
         return Math.Max(1, cost);
@@ -972,6 +973,7 @@ internal static class SqlExecutionPlanFormatter
         var cost = 0;
         cost += CountSqlKeywordOccurrences(raw, "AND");
         cost += CountSqlKeywordOccurrences(raw, "OR");
+        cost += CountLogicalOperatorTransitions(raw);
         cost += CountSqlKeywordOccurrences(raw, "CASE") * 2;
         cost += CountSqlKeywordOccurrences(raw, "SELECT") * 5;
         cost += CountSqlKeywordOccurrences(raw, "EXISTS") * 4;
@@ -1036,6 +1038,7 @@ internal static class SqlExecutionPlanFormatter
         var cost = 8;
         cost += Math.Min(4, Math.Max(0, groupBy.Count - 1));
         cost += Math.Min(2, Math.Max(0, orderBy.Count - 1));
+        cost += EstimateDistinctGroupByOrderByExpressionCouplingCost(groupBy, orderBy);
 
         if (rowLimit is null)
             cost += 2;
@@ -1046,6 +1049,38 @@ internal static class SqlExecutionPlanFormatter
         }
 
         return cost;
+    }
+
+    /// <summary>
+    /// EN: Estimates extra coupling pressure for DISTINCT + GROUP BY + ORDER BY when grouping/ordering expressions are structurally complex (CASE/subquery/JSON markers).
+    /// PT: Estima pressão extra de acoplamento para DISTINCT + GROUP BY + ORDER BY quando expressões de agrupamento/ordenação são estruturalmente complexas (marcadores CASE/subquery/JSON).
+    /// </summary>
+    private static int EstimateDistinctGroupByOrderByExpressionCouplingCost(
+        IReadOnlyList<string> groupBy,
+        IReadOnlyList<SqlOrderByItem> orderBy)
+    {
+        var markers = 0;
+
+        foreach (var key in groupBy)
+        {
+            var raw = key ?? string.Empty;
+            markers += CountSqlKeywordOccurrences(raw, "CASE");
+            markers += CountSqlKeywordOccurrences(raw, "SELECT") * 2;
+            markers += CountJsonFunctionCalls(raw);
+            markers += CountJsonOperatorTokens(raw);
+        }
+
+        foreach (var item in orderBy)
+        {
+            var raw = item.Raw ?? string.Empty;
+            markers += CountSqlKeywordOccurrences(raw, "CASE");
+            markers += CountSqlKeywordOccurrences(raw, "SELECT") * 2;
+            markers += CountSqlKeywordOccurrences(raw, "OVER");
+            markers += CountJsonFunctionCalls(raw);
+            markers += CountJsonOperatorTokens(raw);
+        }
+
+        return Math.Min(8, markers);
     }
 
     /// <summary>
@@ -1320,6 +1355,137 @@ internal static class SqlExecutionPlanFormatter
             <= 1000 => 2,
             _ => 3
         };
+
+    /// <summary>
+    /// EN: Estimates additional nested sort coupling when an outer ORDER BY is applied over an already ordered derived source.
+    /// PT: Estima acoplamento adicional de sort aninhado quando um ORDER BY externo é aplicado sobre uma fonte derivada já ordenada.
+    /// </summary>
+    private static int EstimateNestedOrderByCouplingCost(
+        SqlTableSource? source,
+        IReadOnlyList<SqlOrderByItem> outerOrderBy,
+        SqlRowLimit? outerRowLimit)
+    {
+        if (source is null || outerOrderBy.Count == 0)
+            return 0;
+
+        var innerOrderByCount = GetDerivedSourceOrderByCount(source);
+        if (innerOrderByCount <= 0)
+            return 0;
+
+        var cost = 2;
+        cost += Math.Min(2, Math.Max(0, innerOrderByCount - 1));
+        cost += Math.Min(2, Math.Max(0, outerOrderBy.Count - 1));
+
+        if (outerRowLimit is null)
+            cost += 2;
+        else
+        {
+            var (_, offset) = ExtractRowLimitCountAndOffset(outerRowLimit);
+            if (offset > 0)
+                cost += 1;
+        }
+
+        return cost;
+    }
+
+    /// <summary>
+    /// EN: Gets ORDER BY key count from a derived source shape (derived SELECT or derived UNION).
+    /// PT: Obtém a quantidade de chaves ORDER BY de um formato de fonte derivada (SELECT derivado ou UNION derivado).
+    /// </summary>
+    private static int GetDerivedSourceOrderByCount(SqlTableSource source)
+    {
+        if (source.DerivedUnion is not null)
+            return source.DerivedUnion.OrderBy?.Count ?? 0;
+
+        if (source.Derived is not null)
+            return source.Derived.OrderBy.Count;
+
+        return 0;
+    }
+
+    /// <summary>
+    /// EN: Counts transitions between logical operators (AND/OR) in raw SQL text while preserving keyword boundaries.
+    /// PT: Conta transições entre operadores lógicos (AND/OR) em texto SQL raw preservando fronteiras de palavra-chave.
+    /// </summary>
+    private static int CountLogicalOperatorTransitions(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return 0;
+
+        var transitions = 0;
+        var index = 0;
+        string? previous = null;
+
+        while (TryFindNextLogicalOperator(raw, index, out var current, out var nextIndex))
+        {
+            if (previous is not null && !string.Equals(previous, current, StringComparison.Ordinal))
+                transitions++;
+
+            previous = current;
+            index = nextIndex;
+        }
+
+        return transitions;
+    }
+
+    /// <summary>
+    /// EN: Finds the next logical operator token (AND/OR) and returns the token plus the next scan index.
+    /// PT: Encontra o próximo token de operador lógico (AND/OR) e retorna o token junto com o próximo índice de varredura.
+    /// </summary>
+    private static bool TryFindNextLogicalOperator(
+        string raw,
+        int startIndex,
+        out string op,
+        out int nextIndex)
+    {
+        var andIndex = FindSqlKeywordIndex(raw, "AND", startIndex);
+        var orIndex = FindSqlKeywordIndex(raw, "OR", startIndex);
+
+        if (andIndex < 0 && orIndex < 0)
+        {
+            op = string.Empty;
+            nextIndex = raw.Length;
+            return false;
+        }
+
+        var useAnd = andIndex >= 0 && (orIndex < 0 || andIndex < orIndex);
+        if (useAnd)
+        {
+            op = "AND";
+            nextIndex = andIndex + 3;
+            return true;
+        }
+
+        op = "OR";
+        nextIndex = orIndex + 2;
+        return true;
+    }
+
+    /// <summary>
+    /// EN: Finds the next keyword token index using identifier-boundary guards starting from a specified position.
+    /// PT: Encontra o próximo índice de token de palavra-chave usando guardas de fronteira de identificador a partir de uma posição especificada.
+    /// </summary>
+    private static int FindSqlKeywordIndex(string raw, string keyword, int startIndex)
+    {
+        if (string.IsNullOrWhiteSpace(raw) || string.IsNullOrWhiteSpace(keyword) || startIndex >= raw.Length)
+            return -1;
+
+        var index = Math.Max(0, startIndex);
+        while (true)
+        {
+            index = raw.IndexOf(keyword, index, StringComparison.OrdinalIgnoreCase);
+            if (index < 0)
+                return -1;
+
+            var leftBoundaryOk = index == 0 || !IsSqlIdentifierChar(raw[index - 1]);
+            var right = index + keyword.Length;
+            var rightBoundaryOk = right >= raw.Length || !IsSqlIdentifierChar(raw[right]);
+            if (leftBoundaryOk && rightBoundaryOk)
+                return index;
+
+            index += keyword.Length;
+        }
+    }
 
     /// <summary>
     /// EN: Estimates projection-width overhead so broader SELECT lists carry additional per-item processing cost.
