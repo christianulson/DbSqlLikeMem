@@ -36,6 +36,10 @@ internal abstract class AstQueryExecutorBase(
     {
         "COUNT","SUM","MIN","MAX","AVG","GROUP_CONCAT","STRING_AGG","LISTAGG"
     };
+    private static readonly HashSet<string> _sqlAliasReservedTokens = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "SELECT","FROM","JOIN","INNER","LEFT","RIGHT","FULL","CROSS","ON","WHERE","GROUP","BY","ORDER","HAVING","LIMIT","OFFSET","UNION","ALL","AS","USING","WHEN","THEN","ELSE","END"
+    };
 
     // Dialect-aware expression parsing without hard dependency on a specific dialect type.
     // We resolve SqlExpressionParser.ParseWhere(string, <dialectType>) via reflection so the base
@@ -4271,7 +4275,8 @@ private void FillPercentRankOrCumeDist(
             previousWasSpace = false;
         }
 
-        return sb.ToString().Trim();
+        var canonicalSql = sb.ToString().Trim();
+        return NormalizeSubqueryLocalAliasesForCacheKey(canonicalSql);
     }
 
     /// <summary>
@@ -4333,6 +4338,153 @@ private void FillPercentRankOrCumeDist(
         }
 
         return sql.Length - 1;
+    }
+
+    /// <summary>
+    /// EN: Normalizes local aliases declared inside the subquery so semantically equivalent aliases generate the same cache-key SQL fragment.
+    /// PT: Normaliza aliases locais declarados dentro da subquery para que aliases semanticamente equivalentes gerem o mesmo fragmento SQL da chave de cache.
+    /// </summary>
+    private static string NormalizeSubqueryLocalAliasesForCacheKey(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            return string.Empty;
+
+        var aliasMap = ExtractSubqueryAliasMap(sql);
+        if (aliasMap.Count == 0)
+            return sql;
+
+        var normalized = sql;
+        foreach (var aliasPair in aliasMap)
+        {
+            normalized = ReplaceAliasDeclarationForCacheKey(normalized, aliasPair.Key, aliasPair.Value);
+            normalized = ReplaceAliasQualifierReferencesForCacheKey(normalized, aliasPair.Key, aliasPair.Value);
+        }
+
+        return normalized;
+    }
+
+    /// <summary>
+    /// EN: Extracts a deterministic map of local alias names declared in FROM/JOIN clauses to canonical placeholders.
+    /// PT: Extrai um mapa determinístico de nomes de aliases locais declarados em cláusulas FROM/JOIN para placeholders canônicos.
+    /// </summary>
+    private static IReadOnlyDictionary<string, string> ExtractSubqueryAliasMap(string sql)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(sql))
+            return map;
+
+        var matches = Regex.Matches(
+            sql,
+            @"\b(?:FROM|JOIN)\s+(?:[A-Z_][A-Z0-9_$]*(?:\.[A-Z_][A-Z0-9_$]*)*)\s+(?:AS\s+)?([A-Z_][A-Z0-9_$]*)\b",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        foreach (Match match in matches)
+        {
+            if (!match.Success || match.Groups.Count < 2)
+                continue;
+
+            var alias = match.Groups[1].Value;
+            if (string.IsNullOrWhiteSpace(alias) || _sqlAliasReservedTokens.Contains(alias))
+                continue;
+
+            if (!map.ContainsKey(alias))
+                map[alias] = $"T{map.Count + 1}";
+        }
+
+        return map;
+    }
+
+    /// <summary>
+    /// EN: Rewrites FROM/JOIN alias declarations to canonical placeholders for cache-key normalization.
+    /// PT: Reescreve declarações de alias em FROM/JOIN para placeholders canônicos na normalização da chave de cache.
+    /// </summary>
+    private static string ReplaceAliasDeclarationForCacheKey(
+        string sql,
+        string alias,
+        string replacementAlias)
+    {
+        if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(alias))
+            return sql;
+
+        var pattern =
+            $@"(?<![A-Z0-9_$])((?:FROM|JOIN)\s+(?:[A-Z_][A-Z0-9_$]*(?:\.[A-Z_][A-Z0-9_$]*)*)\s+(?:AS\s+)?)" +
+            $@"{Regex.Escape(alias)}(?![A-Z0-9_$])";
+
+        return Regex.Replace(
+            sql,
+            pattern,
+            m => m.Groups[1].Value + replacementAlias,
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    }
+
+    /// <summary>
+    /// EN: Rewrites alias-qualified references (alias.column) outside quoted segments to canonical placeholders for cache-key normalization.
+    /// PT: Reescreve referências qualificadas por alias (alias.coluna) fora de segmentos entre aspas para placeholders canônicos na normalização da chave de cache.
+    /// </summary>
+    private static string ReplaceAliasQualifierReferencesForCacheKey(
+        string sql,
+        string alias,
+        string replacementAlias)
+    {
+        if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(alias))
+            return sql;
+
+        var sb = new StringBuilder(sql.Length);
+
+        for (var i = 0; i < sql.Length; i++)
+        {
+            var ch = sql[i];
+            if (ch == '\'' || ch == '"' || ch == '`')
+            {
+                i = AppendQuotedSegment(sql, i, ch, sb);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                i = AppendBracketIdentifierSegment(sql, i, sb);
+                continue;
+            }
+
+            if (IsAliasQualifierReferenceAt(sql, i, alias))
+            {
+                sb.Append(replacementAlias);
+                sb.Append('.');
+                i += alias.Length;
+                continue;
+            }
+
+            sb.Append(ch);
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// EN: Checks whether the SQL text at a given index starts with an alias qualifier reference (alias followed by dot) respecting identifier boundaries.
+    /// PT: Verifica se o texto SQL em um índice inicia uma referência de qualificador por alias (alias seguido de ponto) respeitando fronteiras de identificador.
+    /// </summary>
+    private static bool IsAliasQualifierReferenceAt(
+        string sql,
+        int startIndex,
+        string alias)
+    {
+        if (startIndex < 0 || startIndex >= sql.Length || string.IsNullOrWhiteSpace(alias))
+            return false;
+
+        if (startIndex + alias.Length >= sql.Length)
+            return false;
+
+        if (startIndex > 0 && IsSqlIdentifierChar(sql[startIndex - 1]))
+            return false;
+
+        for (var i = 0; i < alias.Length; i++)
+        {
+            if (char.ToUpperInvariant(sql[startIndex + i]) != char.ToUpperInvariant(alias[i]))
+                return false;
+        }
+
+        return sql[startIndex + alias.Length] == '.';
     }
 
     /// <summary>
