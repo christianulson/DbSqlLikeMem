@@ -214,6 +214,18 @@ internal sealed class SqlQueryParser
         }
     }
 
+    /// <summary>
+    /// EN: Splits a SQL batch into top-level statements preserving dialect string/comment rules.
+    /// PT: Separa um lote SQL em statements de topo preservando regras de string/comentário do dialeto.
+    /// </summary>
+    /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
+    /// <param name="dialect">EN: Dialect used for statement boundaries. PT: Dialeto usado para limites de statement.</param>
+    /// <returns>EN: Top-level SQL statements. PT: Statements SQL de topo.</returns>
+    public static IEnumerable<string> SplitStatements(
+        string sql,
+        ISqlDialect dialect)
+        => SplitStatementsTopLevel(sql, dialect);
+
     // Mantido para compatibilidade com lógica de Union
     /// <summary>
     /// EN: Represents a normalized UNION parsing result including parts, ALL flags, final ORDER BY and row-limit tail.

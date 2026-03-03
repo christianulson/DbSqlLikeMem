@@ -163,20 +163,37 @@ public class SqlServerCommandMock(
 
         var sql = CommandText.NormalizeString();
 
-        if (sql.StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
+        var statements = SqlQueryParser
+            .SplitStatements(sql, connection!.Db.Dialect)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .ToList();
+
+        if (statements.Count == 1 && statements[0].TrimStart().StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
         {
-            connection!.ExecuteCall(sql, Parameters);
-            connection.SetLastFoundRows(0);
+            connection!.ExecuteCall(statements[0], Parameters);
+            connection!.SetLastFoundRows(0);
             return new SqlServerDataReaderMock([[]]);
         }
-
         var executor = new SqlServerAstQueryExecutor(connection!, Parameters);
-
-        var queries = SqlQueryParser.ParseMulti(sql, connection!.Db.Dialect, Parameters).ToList();
         var tables = new List<TableResultMock>();
+        var parsedStatementCount = 0;
 
-        foreach (var query in queries)
+        foreach (var statementSql in statements)
         {
+            var sqlRaw = statementSql.Trim();
+            if (string.IsNullOrWhiteSpace(sqlRaw))
+                continue;
+
+            if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
+            {
+                connection.SetLastFoundRows(transactionControlResult);
+                parsedStatementCount++;
+                continue;
+            }
+
+            var query = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect, Parameters);
+            parsedStatementCount++;
+
             switch (query)
             {
                 case SqlSelectQuery selectQ:
@@ -212,7 +229,7 @@ public class SqlServerCommandMock(
             }
         }
 
-        if (tables.Count == 0 && queries.Count > 0)
+        if (tables.Count == 0 && parsedStatementCount > 0)
             throw new InvalidOperationException(SqlExceptionMessages.ExecuteReaderWithoutSelectQuery());
         connection.Metrics.Selects += tables.Sum(t => t.Count);
 
