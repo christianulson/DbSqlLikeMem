@@ -749,7 +749,9 @@ internal static class SqlExecutionPlanFormatter
         cost += EstimateGroupByExpressionComplexityCost(query.GroupBy);
         cost += EstimateOrderByExpressionComplexityCost(query.OrderBy);
         cost += EstimateDistinctGroupByOrderByCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.RowLimit);
+        cost += EstimateDistinctGroupByOrderByJoinCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.Joins);
         cost += EstimateDistinctGroupByOrderByHavingCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.Having);
+        cost += EstimateDistinctGroupByOrderByHavingJoinCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.Having, query.Joins);
         cost += EstimateNestedOrderByCouplingCost(query.Table, query.OrderBy, query.RowLimit);
         cost += query.Joins.Sum(join => EstimateNestedOrderByCouplingCost(join.Table, query.OrderBy, query.RowLimit));
         cost += EstimateProjectionCost(query.SelectItems);
@@ -813,7 +815,9 @@ internal static class SqlExecutionPlanFormatter
         cost += EstimateGroupByExpressionComplexityCost(query.GroupBy);
         cost += EstimateOrderByExpressionComplexityCost(query.OrderBy);
         cost += EstimateDistinctGroupByOrderByCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.RowLimit);
+        cost += EstimateDistinctGroupByOrderByJoinCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.Joins);
         cost += EstimateDistinctGroupByOrderByHavingCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.Having);
+        cost += EstimateDistinctGroupByOrderByHavingJoinCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.Having, query.Joins);
         cost += EstimateNestedOrderByCouplingCost(query.Table, query.OrderBy, query.RowLimit);
         cost += query.Joins.Sum(join => EstimateNestedOrderByCouplingCost(join.Table, query.OrderBy, query.RowLimit));
         cost += EstimateProjectionCost(query.SelectItems);
@@ -1009,6 +1013,28 @@ internal static class SqlExecutionPlanFormatter
     }
 
     /// <summary>
+    /// EN: Estimates extra HAVING coupling for DISTINCT + GROUP BY + ORDER BY when joins include expansion-risk edges.
+    /// PT: Estima acoplamento extra de HAVING para DISTINCT + GROUP BY + ORDER BY quando joins incluem arestas com risco de expansão.
+    /// </summary>
+    private static int EstimateDistinctGroupByOrderByHavingJoinCouplingCost(
+        bool distinct,
+        IReadOnlyList<string> groupBy,
+        IReadOnlyList<SqlOrderByItem> orderBy,
+        SqlExpr? having,
+        IReadOnlyList<SqlJoin> joins)
+    {
+        if (!distinct || groupBy.Count == 0 || orderBy.Count == 0 || having is null || joins.Count == 0)
+            return 0;
+
+        var expansionRiskJoins = joins.Count(static j => j.Type is SqlJoinType.Left or SqlJoinType.Right or SqlJoinType.Cross);
+        if (expansionRiskJoins <= 0)
+            return 0;
+
+        var joinPredicateComplexity = joins.Sum(static j => EstimatePredicateComplexityCost(j.On));
+        return 1 + Math.Min(3, expansionRiskJoins) + Math.Min(3, joinPredicateComplexity / 2);
+    }
+
+    /// <summary>
     /// EN: Estimates extra cost for complex GROUP BY expressions (for example CASE/subquery tokens) beyond key-count cardinality.
     /// PT: Estima custo extra para expressões complexas em GROUP BY (por exemplo tokens CASE/subquery) além da cardinalidade de chaves.
     /// </summary>
@@ -1106,6 +1132,33 @@ internal static class SqlExecutionPlanFormatter
         }
 
         return Math.Min(8, markers);
+    }
+
+    /// <summary>
+    /// EN: Estimates extra DISTINCT + GROUP BY + ORDER BY coupling when joins are present, especially expansion-risk join types.
+    /// PT: Estima acoplamento extra de DISTINCT + GROUP BY + ORDER BY quando há joins, especialmente tipos de join com risco de expansão.
+    /// </summary>
+    private static int EstimateDistinctGroupByOrderByJoinCouplingCost(
+        bool distinct,
+        IReadOnlyList<string> groupBy,
+        IReadOnlyList<SqlOrderByItem> orderBy,
+        IReadOnlyList<SqlJoin> joins)
+    {
+        if (!distinct || groupBy.Count == 0 || orderBy.Count == 0 || joins.Count == 0)
+            return 0;
+
+        var expansionRiskJoins = joins.Count(static j => j.Type is SqlJoinType.Left or SqlJoinType.Right or SqlJoinType.Cross);
+        var cost = 1 + Math.Min(2, joins.Count);
+        cost += expansionRiskJoins switch
+        {
+            <= 0 => 0,
+            1 => 2,
+            _ => 2 + (expansionRiskJoins - 1)
+        };
+        var joinPredicateComplexity = joins.Sum(static j => EstimatePredicateComplexityCost(j.On));
+        cost += Math.Min(4, joinPredicateComplexity / 2);
+
+        return Math.Min(8, cost);
     }
 
     /// <summary>
@@ -1400,6 +1453,10 @@ internal static class SqlExecutionPlanFormatter
         var cost = 2;
         cost += Math.Min(2, Math.Max(0, innerOrderByCount - 1));
         cost += Math.Min(2, Math.Max(0, outerOrderBy.Count - 1));
+        cost += Math.Min(4, GetDerivedSourceOrderByExpressionComplexityCost(source));
+        cost += Math.Min(3, EstimateOrderByExpressionComplexityCost(outerOrderBy));
+        cost += EstimateNestedOrderByInnerOffsetPenalty(GetDerivedSourceOrderByOffset(source));
+        cost -= EstimateNestedOrderByInnerLimitRelief(GetDerivedSourceOrderByLimitCount(source));
 
         if (outerRowLimit is null)
             cost += 2;
@@ -1410,7 +1467,7 @@ internal static class SqlExecutionPlanFormatter
                 cost += 1;
         }
 
-        return cost;
+        return Math.Max(0, cost);
     }
 
     /// <summary>
@@ -1427,6 +1484,89 @@ internal static class SqlExecutionPlanFormatter
 
         return 0;
     }
+
+    /// <summary>
+    /// EN: Gets lightweight complexity score for ORDER BY expressions defined inside a derived source shape.
+    /// PT: Obtém score leve de complexidade para expressões ORDER BY definidas dentro de um formato de fonte derivada.
+    /// </summary>
+    private static int GetDerivedSourceOrderByExpressionComplexityCost(SqlTableSource source)
+    {
+        if (source.DerivedUnion is not null)
+            return EstimateOrderByExpressionComplexityCost(source.DerivedUnion.OrderBy ?? []);
+
+        if (source.Derived is not null)
+            return EstimateOrderByExpressionComplexityCost(source.Derived.OrderBy);
+
+        return 0;
+    }
+
+    /// <summary>
+    /// EN: Gets the inner row-limit count used by derived ORDER BY sources so tighter inner limits can reduce nested sort coupling.
+    /// PT: Obtém a contagem de limite de linhas interno usada por fontes derivadas com ORDER BY para que limites internos mais restritos reduzam o acoplamento de sort aninhado.
+    /// </summary>
+    private static int GetDerivedSourceOrderByLimitCount(SqlTableSource source)
+    {
+        if (source.DerivedUnion?.RowLimit is not null)
+        {
+            var (count, _) = ExtractRowLimitCountAndOffset(source.DerivedUnion.RowLimit);
+            return count;
+        }
+
+        if (source.Derived?.RowLimit is not null)
+        {
+            var (count, _) = ExtractRowLimitCountAndOffset(source.Derived.RowLimit);
+            return count;
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// EN: Gets the inner row-limit offset used by derived ORDER BY sources so deep inner offsets can increase nested sort coupling.
+    /// PT: Obtém o offset interno de limite de linhas usado por fontes derivadas com ORDER BY para que offsets internos profundos possam aumentar o acoplamento de sort aninhado.
+    /// </summary>
+    private static int GetDerivedSourceOrderByOffset(SqlTableSource source)
+    {
+        if (source.DerivedUnion?.RowLimit is not null)
+        {
+            var (_, offset) = ExtractRowLimitCountAndOffset(source.DerivedUnion.RowLimit);
+            return offset;
+        }
+
+        if (source.Derived?.RowLimit is not null)
+        {
+            var (_, offset) = ExtractRowLimitCountAndOffset(source.Derived.RowLimit);
+            return offset;
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// EN: Estimates relief in nested ORDER BY coupling for tighter inner limits in ordered derived sources.
+    /// PT: Estima alívio no acoplamento de ORDER BY aninhado para limites internos mais restritos em fontes derivadas ordenadas.
+    /// </summary>
+    private static int EstimateNestedOrderByInnerLimitRelief(int innerLimitCount)
+        => innerLimitCount switch
+        {
+            <= 0 => 0,
+            <= 10 => 2,
+            <= 100 => 1,
+            _ => 0
+        };
+
+    /// <summary>
+    /// EN: Estimates nested ORDER BY coupling penalty for large inner offsets in ordered derived sources.
+    /// PT: Estima penalidade de acoplamento de ORDER BY aninhado para offsets internos altos em fontes derivadas ordenadas.
+    /// </summary>
+    private static int EstimateNestedOrderByInnerOffsetPenalty(int innerOffset)
+        => innerOffset switch
+        {
+            <= 0 => 0,
+            <= 100 => 1,
+            <= 1000 => 2,
+            _ => 3
+        };
 
     /// <summary>
     /// EN: Counts transitions between logical operators (AND/OR) in raw SQL text while preserving keyword boundaries.
@@ -1672,6 +1812,7 @@ internal static class SqlExecutionPlanFormatter
                 cost += 1;
         }
 
+        cost += Math.Min(4, EstimateOrderByExpressionComplexityCost(orderBy));
         return Math.Min(10, cost);
     }
 }
