@@ -252,4 +252,141 @@ public sealed class Db2MockTests
         Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+
+
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestBatch_BeginTransactionThenRowCount_ShouldReturnZero()
+    {
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestBatch_CallThenRowCount_ShouldReturnZero()
+    {
+        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = "CALL sp_ping(); SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit()
+    {
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'After Commit' WHERE Id = 1; COMMIT; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero()
+    {
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SAVEPOINT sp1; UPDATE Users SET Name = 'Tmp' WHERE Id = 1; ROLLBACK TO SAVEPOINT sp1; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero()
+    {
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SAVEPOINT sp1; RELEASE SAVEPOINT sp1; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml()
+    {
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = "SELECT Name FROM Users ORDER BY Id FETCH FIRST 1 ROWS ONLY; UPDATE Users SET Name = 'Mixed Batch User' WHERE Id = 1; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit()
+    {
+        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = "CALL sp_ping(); UPDATE Users SET Name = 'Call Dml User' WHERE Id = 1; COMMIT; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect()
+    {
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'Last Select User' WHERE Id = 1; SELECT Name FROM Users ORDER BY Id FETCH FIRST 2 ROWS ONLY; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        var rows = 0;
+        while (reader.Read()) rows++;
+        Assert.Equal(2, rows);
+
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(2L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
 }
