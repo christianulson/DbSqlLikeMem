@@ -1067,6 +1067,52 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     }
 
     /// <summary>
+    /// EN: Verifies UNION estimated cost increases when ALL/DISTINCT operators alternate more often even with the same DISTINCT operator count.
+    /// PT: Verifica que o custo estimado de UNION aumenta quando operadores ALL/DISTINCT alternam com maior frequência mesmo com a mesma contagem de operadores DISTINCT.
+    /// </summary>
+    [Fact]
+    public void FormatUnion_EstimatedCost_ShouldIncreaseForAlternatingSetOperatorTransitionsWithSameDistinctCount()
+    {
+        var part1 = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var part2 = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var part3 = new SqlSelectQuery([], false, [new SqlSelectItem("tenantid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var part4 = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(4, 400, 40, 8);
+
+        var clusteredTransitionsPlan = SqlExecutionPlanFormatter.FormatUnion(
+            [part1, part2, part3, part4],
+            [false, false, true],
+            [],
+            null,
+            metrics);
+
+        var alternatingTransitionsPlan = SqlExecutionPlanFormatter.FormatUnion(
+            [part1, part2, part3, part4],
+            [false, true, false],
+            [],
+            null,
+            metrics);
+
+        ExtractEstimatedCost(clusteredTransitionsPlan).Should().BeLessThan(ExtractEstimatedCost(alternatingTransitionsPlan));
+    }
+
+    /// <summary>
     /// EN: Verifies UNION ORDER BY without row limit carries higher estimated cost than equivalent UNION ORDER BY with row limit.
     /// PT: Verifica que UNION com ORDER BY sem limite de linhas tem custo estimado maior do que UNION equivalente com limite.
     /// </summary>
@@ -1328,6 +1374,53 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         var simpleDistinctUplift = ExtractEstimatedCost(simpleDistinctPlan) - ExtractEstimatedCost(simpleGroupedOrderedPlan);
         var complexDistinctUplift = ExtractEstimatedCost(complexDistinctPlan) - ExtractEstimatedCost(complexGroupedOrderedPlan);
         simpleDistinctUplift.Should().BeLessThan(complexDistinctUplift);
+    }
+
+    /// <summary>
+    /// EN: Verifies HAVING adds stronger extra cost when DISTINCT + GROUP BY + ORDER BY are already present than in the equivalent non-distinct grouped/ordered shape.
+    /// PT: Verifica que HAVING adiciona custo extra mais forte quando DISTINCT + GROUP BY + ORDER BY já estão presentes do que no formato equivalente agrupado/ordenado sem DISTINCT.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseHavingCouplingForDistinctGroupByOrderByShape()
+    {
+        var groupedOrderedQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("tenantid", null), new SqlSelectItem("COUNT(*)", "cnt")],
+            [],
+            null,
+            [new SqlOrderByItem("tenantid", false)],
+            null,
+            ["tenantid"],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var groupedOrderedHavingQuery = groupedOrderedQuery with
+        {
+            Having = new BinaryExpr(SqlBinaryOp.Greater, new IdentifierExpr("COUNT(*)"), new LiteralExpr(10))
+        };
+
+        var distinctGroupedOrderedQuery = groupedOrderedQuery with
+        {
+            Distinct = true
+        };
+
+        var distinctGroupedOrderedHavingQuery = distinctGroupedOrderedQuery with
+        {
+            Having = new BinaryExpr(SqlBinaryOp.Greater, new IdentifierExpr("COUNT(*)"), new LiteralExpr(10))
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var groupedOrderedPlan = SqlExecutionPlanFormatter.FormatSelect(groupedOrderedQuery, metrics, [], []);
+        var groupedOrderedHavingPlan = SqlExecutionPlanFormatter.FormatSelect(groupedOrderedHavingQuery, metrics, [], []);
+        var distinctGroupedOrderedPlan = SqlExecutionPlanFormatter.FormatSelect(distinctGroupedOrderedQuery, metrics, [], []);
+        var distinctGroupedOrderedHavingPlan = SqlExecutionPlanFormatter.FormatSelect(distinctGroupedOrderedHavingQuery, metrics, [], []);
+
+        var nonDistinctHavingUplift = ExtractEstimatedCost(groupedOrderedHavingPlan) - ExtractEstimatedCost(groupedOrderedPlan);
+        var distinctHavingUplift = ExtractEstimatedCost(distinctGroupedOrderedHavingPlan) - ExtractEstimatedCost(distinctGroupedOrderedPlan);
+        nonDistinctHavingUplift.Should().BeLessThan(distinctHavingUplift);
     }
 
 
@@ -2240,6 +2333,39 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         var higherTransitionPlan = SqlExecutionPlanFormatter.FormatSelect(higherTransitionQuery, metrics, [], []);
 
         ExtractEstimatedCost(lowerTransitionPlan).Should().BeLessThan(ExtractEstimatedCost(higherTransitionPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies raw predicate cost increases with deeper logical nesting even when AND/OR counts and transitions remain equivalent.
+    /// PT: Verifica que o custo de predicado raw aumenta com aninhamento lógico mais profundo mesmo quando contagens e transições de AND/OR permanecem equivalentes.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseForRawPredicateWithGreaterLogicalDepthAndSameOperatorProfile()
+    {
+        var shallowerLogicalRawQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("id", null)],
+            [],
+            new RawSqlExpr("(a = 1 OR b = 2) AND (c = 3 OR d = 4)"),
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var deeperLogicalRawQuery = shallowerLogicalRawQuery with
+        {
+            Where = new RawSqlExpr("((a = 1 OR b = 2) AND c = 3) OR d = 4")
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var shallowerPlan = SqlExecutionPlanFormatter.FormatSelect(shallowerLogicalRawQuery, metrics, [], []);
+        var deeperPlan = SqlExecutionPlanFormatter.FormatSelect(deeperLogicalRawQuery, metrics, [], []);
+
+        ExtractEstimatedCost(shallowerPlan).Should().BeLessThan(ExtractEstimatedCost(deeperPlan));
     }
 
     /// <summary>
