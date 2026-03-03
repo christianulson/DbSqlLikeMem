@@ -1902,6 +1902,54 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         ExtractEstimatedCost(countPlan).Should().BeLessThan(ExtractEstimatedCost(avgPlan));
     }
 
+    /// <summary>
+    /// EN: Verifies aggregate function detection in projection is robust to optional whitespace before parentheses.
+    /// PT: Verifica que a detecção de função agregada na projeção é robusta a espaços opcionais antes dos parênteses.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldTreatAggregateProjectionWithAndWithoutWhitespaceAsEquivalent()
+    {
+        var compactAggregateQuery = new SqlSelectQuery([], false, [new SqlSelectItem("SUM(amount) + AVG(amount)", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var spacedAggregateQuery = compactAggregateQuery with
+        {
+            SelectItems = [new SqlSelectItem("SUM (amount) + AVG (amount)", null)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var compactPlan = SqlExecutionPlanFormatter.FormatSelect(compactAggregateQuery, metrics, [], []);
+        var spacedPlan = SqlExecutionPlanFormatter.FormatSelect(spacedAggregateQuery, metrics, [], []);
+
+        ExtractEstimatedCost(compactPlan).Should().Be(ExtractEstimatedCost(spacedPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies COUNT projection with optional whitespace still increases estimated cost over non-aggregate scalar projection.
+    /// PT: Verifica que projeção COUNT com espaço opcional ainda aumenta o custo estimado sobre projeção escalar não agregada.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseForCountProjectionWithWhitespace()
+    {
+        var scalarFunctionProjectionQuery = new SqlSelectQuery([], false, [new SqlSelectItem("ABS(amount)", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var countWithWhitespaceQuery = scalarFunctionProjectionQuery with
+        {
+            SelectItems = [new SqlSelectItem("COUNT (*)", null)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var scalarPlan = SqlExecutionPlanFormatter.FormatSelect(scalarFunctionProjectionQuery, metrics, [], []);
+        var countPlan = SqlExecutionPlanFormatter.FormatSelect(countWithWhitespaceQuery, metrics, [], []);
+
+        ExtractEstimatedCost(scalarPlan).Should().BeLessThan(ExtractEstimatedCost(countPlan));
+    }
+
 
     /// <summary>
     /// EN: Verifies optional JSON payload mirrors common aggregated metadata from text output.

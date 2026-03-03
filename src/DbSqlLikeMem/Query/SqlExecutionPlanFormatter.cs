@@ -1030,20 +1030,30 @@ internal static class SqlExecutionPlanFormatter
     /// </summary>
     private static int CountSqlFunctionCalls(string raw, string functionName)
     {
-        var token = functionName + "(";
         var count = 0;
         var index = 0;
 
         while (true)
         {
-            index = raw.IndexOf(token, index, StringComparison.OrdinalIgnoreCase);
+            index = raw.IndexOf(functionName, index, StringComparison.OrdinalIgnoreCase);
             if (index < 0)
                 return count;
 
-            if (index == 0 || !IsSqlIdentifierChar(raw[index - 1]))
+            var endOfName = index + functionName.Length;
+            if (index > 0 && IsSqlIdentifierChar(raw[index - 1]))
+            {
+                index = endOfName;
+                continue;
+            }
+
+            var parenPos = endOfName;
+            while (parenPos < raw.Length && char.IsWhiteSpace(raw[parenPos]))
+                parenPos++;
+
+            if (parenPos < raw.Length && raw[parenPos] == '(')
                 count++;
 
-            index += token.Length;
+            index = endOfName;
         }
     }
 
