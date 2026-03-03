@@ -4053,10 +4053,11 @@ private void FillPercentRankOrCumeDist(
     /// </summary>
     private static string BuildCorrelatedSubqueryCacheKey(string operation, string? subquerySql, EvalRow row)
     {
+        var normalizedSubquerySql = NormalizeSubquerySqlForCacheKey(subquerySql ?? string.Empty);
         var sb = new StringBuilder();
         sb.Append(operation);
         sb.Append('\u001F');
-        sb.Append(subquerySql ?? string.Empty);
+        sb.Append(normalizedSubquerySql);
         sb.Append('\u001F');
 
         var cacheFields = GetCorrelatedSubqueryCacheFields(subquerySql ?? string.Empty, row);
@@ -4209,6 +4210,130 @@ private void FillPercentRankOrCumeDist(
         => string.IsNullOrWhiteSpace(sql)
             ? string.Empty
             : Regex.Replace(sql, @"\s*\.\s*", ".", RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// EN: Canonicalizes subquery SQL text for cache-key usage by normalizing identifier spacing, keyword casing and redundant whitespace while preserving string literals.
+    /// PT: Canoniza o texto SQL da subquery para uso na chave de cache normalizando espaçamento de identificadores, casing de palavras-chave e whitespace redundante preservando literais de texto.
+    /// </summary>
+    private static string NormalizeSubquerySqlForCacheKey(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            return string.Empty;
+
+        var normalized = NormalizeSqlIdentifierSpacing(sql);
+        var sb = new StringBuilder(normalized.Length);
+        var previousWasSpace = false;
+
+        for (var i = 0; i < normalized.Length; i++)
+        {
+            var ch = normalized[i];
+
+            if (ch == '\'')
+            {
+                previousWasSpace = false;
+                i = AppendQuotedSegment(normalized, i, '\'', sb);
+                continue;
+            }
+
+            if (ch == '"')
+            {
+                previousWasSpace = false;
+                i = AppendQuotedSegment(normalized, i, '"', sb);
+                continue;
+            }
+
+            if (ch == '`')
+            {
+                previousWasSpace = false;
+                i = AppendQuotedSegment(normalized, i, '`', sb);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                previousWasSpace = false;
+                i = AppendBracketIdentifierSegment(normalized, i, sb);
+                continue;
+            }
+
+            if (char.IsWhiteSpace(ch))
+            {
+                if (!previousWasSpace)
+                {
+                    sb.Append(' ');
+                    previousWasSpace = true;
+                }
+
+                continue;
+            }
+
+            sb.Append(char.ToUpperInvariant(ch));
+            previousWasSpace = false;
+        }
+
+        return sb.ToString().Trim();
+    }
+
+    /// <summary>
+    /// EN: Appends a SQL quoted segment handling escaped quote doubles and returns the consumed end index.
+    /// PT: Anexa um segmento SQL entre aspas tratando escape por duplicidade de aspas e retorna o índice final consumido.
+    /// </summary>
+    private static int AppendQuotedSegment(
+        string sql,
+        int startIndex,
+        char quoteChar,
+        StringBuilder sb)
+    {
+        sb.Append(quoteChar);
+
+        var i = startIndex + 1;
+        while (i < sql.Length)
+        {
+            var ch = sql[i];
+            sb.Append(ch);
+
+            if (ch == quoteChar)
+            {
+                var hasEscapedQuote = i + 1 < sql.Length && sql[i + 1] == quoteChar;
+                if (hasEscapedQuote)
+                {
+                    sb.Append(sql[i + 1]);
+                    i += 2;
+                    continue;
+                }
+
+                return i;
+            }
+
+            i++;
+        }
+
+        return sql.Length - 1;
+    }
+
+    /// <summary>
+    /// EN: Appends a SQL bracket-identifier segment and returns the consumed end index.
+    /// PT: Anexa um segmento SQL de identificador entre colchetes e retorna o índice final consumido.
+    /// </summary>
+    private static int AppendBracketIdentifierSegment(
+        string sql,
+        int startIndex,
+        StringBuilder sb)
+    {
+        sb.Append('[');
+
+        var i = startIndex + 1;
+        while (i < sql.Length)
+        {
+            var ch = sql[i];
+            sb.Append(ch);
+            if (ch == ']')
+                return i;
+            i++;
+        }
+
+        return sql.Length - 1;
+    }
 
     /// <summary>
     /// EN: Normalizes scalar and tuple-like values into stable cache-key fragments for correlated subquery memoization.
