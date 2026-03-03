@@ -103,16 +103,27 @@ public class OracleCommandMock(
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
         if (CommandType == CommandType.StoredProcedure)
-            return connection!.ExecuteStoredProcedure(CommandText, Parameters);
+        {
+            var affected = connection!.ExecuteStoredProcedure(CommandText, Parameters);
+            connection.SetLastFoundRows(affected);
+            return affected;
+        }
 
         var sqlRaw = CommandText.Trim();
 
         if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
+        {
+            connection.SetLastFoundRows(transactionControlResult);
             return transactionControlResult;
+        }
 
         // Mantém atalhos existentes (CALL / CREATE TABLE AS SELECT) por compatibilidade do engine atual
         if (sqlRaw.StartsWith("call ", StringComparison.OrdinalIgnoreCase))
-            return connection!.ExecuteCall(sqlRaw, Parameters);
+        {
+            var affected = connection!.ExecuteCall(sqlRaw, Parameters);
+            connection.SetLastFoundRows(affected);
+            return affected;
+        }
 
         if (sqlRaw.StartsWith("create table", StringComparison.OrdinalIgnoreCase))
             return connection!.ExecuteCreateTableAsSelect(sqlRaw, Parameters, connection!.Db.Dialect);
@@ -145,6 +156,7 @@ public class OracleCommandMock(
         if (CommandType == CommandType.StoredProcedure)
         {
             connection!.ExecuteStoredProcedure(CommandText, Parameters);
+            connection.SetLastFoundRows(0);
             return new OracleDataReaderMock([[]]);
         }
 
@@ -153,6 +165,7 @@ public class OracleCommandMock(
         if (sql.StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
         {
             connection!.ExecuteCall(sql, Parameters);
+            connection.SetLastFoundRows(0);
             return new OracleDataReaderMock([[]]);
         }
 

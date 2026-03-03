@@ -14,10 +14,17 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         _ = pars;
         _ = dialect;
+        int affected;
         if (!connection.Db.ThreadSafe)
-            return ExecuteCreateViewImpl(connection, query);
-        lock (connection.Db.SyncRoot)
-            return ExecuteCreateViewImpl(connection, query);
+            affected = ExecuteCreateViewImpl(connection, query);
+        else
+        {
+            lock (connection.Db.SyncRoot)
+                affected = ExecuteCreateViewImpl(connection, query);
+        }
+
+        connection.SetLastFoundRows(affected);
+        return affected;
     }
 
     private static int ExecuteCreateViewImpl(
@@ -41,10 +48,17 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         _ = pars;
         _ = dialect;
+        int affected;
         if (!connection.Db.ThreadSafe)
-            return ExecuteDropViewImpl(connection, query);
-        lock (connection.Db.SyncRoot)
-            return ExecuteDropViewImpl(connection, query);
+            affected = ExecuteDropViewImpl(connection, query);
+        else
+        {
+            lock (connection.Db.SyncRoot)
+                affected = ExecuteDropViewImpl(connection, query);
+        }
+
+        connection.SetLastFoundRows(affected);
+        return affected;
     }
 
     private static int ExecuteDropViewImpl(
@@ -67,12 +81,17 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         DbParameterCollection pars,
         ISqlDialect dialect)
     {
+        int affected;
         if (!connection.Db.ThreadSafe)
-            return ExecuteCreateTableAsSelectImpl(connection, sql, pars, dialect);
-        lock (connection.Db.SyncRoot)
+            affected = ExecuteCreateTableAsSelectImpl(connection, sql, pars, dialect);
+        else
         {
-            return ExecuteCreateTableAsSelectImpl(connection, sql, pars, dialect);
+            lock (connection.Db.SyncRoot)
+                affected = ExecuteCreateTableAsSelectImpl(connection, sql, pars, dialect);
         }
+
+        connection.SetLastFoundRows(affected);
+        return affected;
     }
 
     private static int ExecuteCreateTableAsSelectImpl(
@@ -270,12 +289,17 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         DbParameterCollection pars,
         ISqlDialect dialect)
     {
+        int affected;
         if (!connection.Db.ThreadSafe)
-            return ExecuteCreateTemporaryTableAsSelectImpl(connection, query, pars, dialect);
-        lock (connection.Db.SyncRoot)
+            affected = ExecuteCreateTemporaryTableAsSelectImpl(connection, query, pars, dialect);
+        else
         {
-            return ExecuteCreateTemporaryTableAsSelectImpl(connection, query, pars, dialect);
+            lock (connection.Db.SyncRoot)
+                affected = ExecuteCreateTemporaryTableAsSelectImpl(connection, query, pars, dialect);
         }
+
+        connection.SetLastFoundRows(affected);
+        return affected;
     }
 
     private static int ExecuteCreateTemporaryTableAsSelectImpl(

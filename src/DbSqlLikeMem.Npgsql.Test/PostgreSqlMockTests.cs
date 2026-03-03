@@ -194,4 +194,72 @@ public sealed class PostgreSqlMockTests
         _connection.Dispose();
         base.Dispose(disposing);
     }
+
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void TestSelect_FoundRows_ShouldReturnLastSelectRowCount()
+    {
+        using var command = new NpgsqlCommandMock(_connection);
+        command.CommandText = """
+            INSERT INTO Users (Id, Name, Email) VALUES (101, 'Ana', NULL);
+            INSERT INTO Users (Id, Name, Email) VALUES (102, 'Bia', NULL);
+            INSERT INTO Users (Id, Name, Email) VALUES (103, 'Caio', NULL);
+            """;
+        command.ExecuteNonQuery();
+
+        command.CommandText = "SELECT Name FROM Users ORDER BY Id LIMIT 1; SELECT FOUND_ROWS();";
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal("Ana", reader.GetString(0));
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount()
+    {
+        using var command = new NpgsqlCommandMock(_connection);
+        command.CommandText = "SELECT Name FROM Users ORDER BY Id LIMIT 1; SELECT ROW_COUNT();";
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void TestSelect_SqlCalcFoundRows_ShouldThrow_NotSupported()
+    {
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "SELECT SQL_CALC_FOUND_ROWS Name FROM Users LIMIT 1"
+        };
+
+        Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+    }
+
+
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void TestUpdate_RowCountFunction_ShouldReturnAffectedRows()
+    {
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (120, 'Row Count User', NULL)"
+        };
+        command.ExecuteNonQuery();
+
+        command.CommandText = "UPDATE Users SET Name = 'Updated User' WHERE Id = 120; SELECT ROW_COUNT();";
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
 }

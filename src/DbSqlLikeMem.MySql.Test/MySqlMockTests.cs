@@ -543,4 +543,89 @@ public sealed class MySqlMockTests
         _connection.Dispose();
         base.Dispose(disposing);
     }
+
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_SqlCalcFoundRows_ShouldExposeCountInFoundRows()
+    {
+        using var command = new MySqlCommandMock(_connection);
+        command.CommandText = """
+            INSERT INTO Users (Id, Name, Email) VALUES (101, 'Ana', NULL);
+            INSERT INTO Users (Id, Name, Email) VALUES (102, 'Bia', NULL);
+            INSERT INTO Users (Id, Name, Email) VALUES (103, 'Caio', NULL);
+            """;
+        command.ExecuteNonQuery();
+
+        command.CommandText = "SELECT SQL_CALC_FOUND_ROWS Name FROM Users ORDER BY Id LIMIT 1; SELECT FOUND_ROWS();";
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal("Ana", reader.GetString(0));
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(3L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_FoundRows_WithArgument_ShouldThrow()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT FOUND_ROWS(1)"
+        };
+
+        Assert.Throws<InvalidOperationException>(() => command.ExecuteScalar());
+    }
+
+
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestInsert_FoundRows_ShouldReturnAffectedRows()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (130, 'Rows User', NULL); SELECT FOUND_ROWS();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestUpdate_RowCountFunction_ShouldReturnAffectedRows()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (140, 'Row Count User', NULL)"
+        };
+        command.ExecuteNonQuery();
+
+        command.CommandText = "UPDATE Users SET Name = 'Updated User' WHERE Id = 140; SELECT ROW_COUNT();";
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestBeginTransaction_FoundRows_ShouldReturnZero()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION"
+        };
+        command.ExecuteNonQuery();
+
+        command.CommandText = "SELECT FOUND_ROWS();";
+        Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
 }

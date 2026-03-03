@@ -195,4 +195,60 @@ public sealed class SqliteMockTests
         _connection.Dispose();
         base.Dispose(disposing);
     }
+
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void TestSelect_FoundRows_ShouldReturnLastSelectRowCount()
+    {
+        using var command = new SqliteCommandMock(_connection);
+        command.CommandText = """
+            INSERT INTO Users (Id, Name, Email) VALUES (101, 'Ana', NULL);
+            INSERT INTO Users (Id, Name, Email) VALUES (102, 'Bia', NULL);
+            INSERT INTO Users (Id, Name, Email) VALUES (103, 'Caio', NULL);
+            """;
+        command.ExecuteNonQuery();
+
+        command.CommandText = "SELECT Name FROM Users ORDER BY Id LIMIT 1; SELECT FOUND_ROWS();";
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal("Ana", reader.GetString(0));
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void TestUpdate_ChangesFunction_ShouldReturnAffectedRows()
+    {
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (150, 'Changes User', NULL)"
+        };
+        command.ExecuteNonQuery();
+
+        command.CommandText = "UPDATE Users SET Name = 'Updated User' WHERE Id = 150; SELECT CHANGES();";
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void TestBeginTransaction_ChangesFunction_ShouldReturnZero()
+    {
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION"
+        };
+        command.ExecuteNonQuery();
+
+        command.CommandText = "SELECT CHANGES();";
+        Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar()));
+    }
+
 }

@@ -57,6 +57,7 @@ public abstract class DbConnectionMockBase(
     public IReadOnlyList<string> LastExecutionPlans => _lastExecutionPlans;
 
     private readonly List<string> _lastExecutionPlans = [];
+    private long _lastFoundRows;
 
     internal void ClearExecutionPlans()
     {
@@ -72,6 +73,12 @@ public abstract class DbConnectionMockBase(
         LastExecutionPlan = executionPlan;
         _lastExecutionPlans.Add(executionPlan);
     }
+
+    internal void SetLastFoundRows(long value)
+        => _lastFoundRows = Math.Max(0, value);
+
+    internal long GetLastFoundRows()
+        => _lastFoundRows;
 
     /// <summary>
     /// EN: Simulated latency in milliseconds for each operation.
