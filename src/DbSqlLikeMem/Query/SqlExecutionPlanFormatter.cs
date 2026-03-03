@@ -798,6 +798,8 @@ internal static class SqlExecutionPlanFormatter
     {
         var cost = 2;
         cost += query.Joins.Count * 3;
+        cost += EstimateSourceCost(query.Table);
+        cost += query.Joins.Sum(static j => EstimateSourceCost(j.Table));
         if (query.Where is not null)
             cost += 2 + EstimatePredicateComplexityCost(query.Where);
 

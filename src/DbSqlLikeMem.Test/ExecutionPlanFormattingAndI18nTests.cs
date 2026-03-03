@@ -1445,6 +1445,109 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         ExtractEstimatedCost(oneCtePlan).Should().BeLessThan(ExtractEstimatedCost(twoCtesPlan));
     }
 
+    /// <summary>
+    /// EN: Verifies CTE cost accounts for source complexity when CTE body reads from a derived subquery source.
+    /// PT: Verifica que o custo de CTE considera complexidade da fonte quando o corpo da CTE lê de uma subconsulta derivada.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWhenCteBodyUsesDerivedSource()
+    {
+        var simpleCteInner = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var derivedInner = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var derivedCteInner = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, null, "d", derivedInner, null, null, null)
+        };
+
+        var baseQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var withSimpleCte = baseQuery with
+        {
+            Ctes = [new SqlCte("u", simpleCteInner)]
+        };
+
+        var withDerivedCte = baseQuery with
+        {
+            Ctes = [new SqlCte("u", derivedCteInner)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var simpleCtePlan = SqlExecutionPlanFormatter.FormatSelect(withSimpleCte, metrics, [], []);
+        var derivedCtePlan = SqlExecutionPlanFormatter.FormatSelect(withDerivedCte, metrics, [], []);
+
+        ExtractEstimatedCost(simpleCtePlan).Should().BeLessThan(ExtractEstimatedCost(derivedCtePlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies CTE cost reflects row-limit relief for derived UNION sources inside CTE body.
+    /// PT: Verifica que o custo de CTE reflete alívio por limite de linhas para fontes UNION derivadas dentro do corpo da CTE.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldDecreaseWhenCteDerivedUnionHasRowLimit()
+    {
+        var unionPart1 = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var unionPart2 = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var cteUnionNoLimit = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(
+                null,
+                null,
+                "du",
+                null,
+                new SqlQueryParser.UnionChain([unionPart1, unionPart2], [true], [new SqlOrderByItem("id", false)], null),
+                "(SELECT id FROM users UNION ALL SELECT userid FROM orders)",
+                null)
+        };
+
+        var cteUnionWithLimit = cteUnionNoLimit with
+        {
+            Table = cteUnionNoLimit.Table with
+            {
+                DerivedUnion = new SqlQueryParser.UnionChain([unionPart1, unionPart2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(10, null))
+            }
+        };
+
+        var baseQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var withNoLimitCte = baseQuery with
+        {
+            Ctes = [new SqlCte("u", cteUnionNoLimit)]
+        };
+
+        var withLimitCte = baseQuery with
+        {
+            Ctes = [new SqlCte("u", cteUnionWithLimit)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var noLimitPlan = SqlExecutionPlanFormatter.FormatSelect(withNoLimitCte, metrics, [], []);
+        var withLimitPlan = SqlExecutionPlanFormatter.FormatSelect(withLimitCte, metrics, [], []);
+
+        ExtractEstimatedCost(withLimitPlan).Should().BeLessThan(ExtractEstimatedCost(noLimitPlan));
+    }
+
 
     /// <summary>
     /// EN: Verifies tighter SELECT row limits provide larger estimated-cost relief than loose limits.
