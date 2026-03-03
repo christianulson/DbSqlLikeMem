@@ -828,7 +828,7 @@ internal static class SqlExecutionPlanFormatter
         => expr switch
         {
             BinaryExpr b when b.Op is SqlBinaryOp.And or SqlBinaryOp.Or
-                => 2 + EstimatePredicateComplexityCost(b.Left) + EstimatePredicateComplexityCost(b.Right),
+                => 2 + EstimateLogicalPredicateDepthPenalty(b) + EstimatePredicateComplexityCost(b.Left) + EstimatePredicateComplexityCost(b.Right),
             BinaryExpr b => 1 + EstimatePredicateComplexityCost(b.Left) + EstimatePredicateComplexityCost(b.Right),
             LikeExpr l => 2 + EstimatePredicateComplexityCost(l.Left) + EstimatePredicateComplexityCost(l.Pattern),
             BetweenExpr b => 2 + EstimatePredicateComplexityCost(b.Expr) + EstimatePredicateComplexityCost(b.Low) + EstimatePredicateComplexityCost(b.High),
@@ -844,6 +844,28 @@ internal static class SqlExecutionPlanFormatter
             IsNullExpr n => 1 + EstimatePredicateComplexityCost(n.Expr),
             _ => 0
         };
+
+    /// <summary>
+    /// EN: Estimates a small surcharge for deep AND/OR predicate nesting to reflect branching/evaluation complexity growth.
+    /// PT: Estima uma pequena sobretaxa para aninhamento profundo de predicados AND/OR para refletir crescimento da complexidade de ramificação/avaliação.
+    /// </summary>
+    private static int EstimateLogicalPredicateDepthPenalty(BinaryExpr expr)
+    {
+        var depth = EstimateLogicalPredicateDepth(expr);
+        return Math.Max(0, depth - 2);
+    }
+
+    /// <summary>
+    /// EN: Computes the maximum logical (AND/OR) nesting depth inside a predicate subtree.
+    /// PT: Calcula a profundidade máxima de aninhamento lógico (AND/OR) dentro de uma subárvore de predicado.
+    /// </summary>
+    private static int EstimateLogicalPredicateDepth(SqlExpr expr)
+    {
+        if (expr is not BinaryExpr b || b.Op is not (SqlBinaryOp.And or SqlBinaryOp.Or))
+            return 0;
+
+        return 1 + Math.Max(EstimateLogicalPredicateDepth(b.Left), EstimateLogicalPredicateDepth(b.Right));
+    }
 
     /// <summary>
     /// EN: Estimates CASE-expression predicate complexity based on base expression, branches and optional ELSE expression.
@@ -956,10 +978,57 @@ internal static class SqlExecutionPlanFormatter
                 cost += 4;
             if (raw.IndexOf("SELECT ", StringComparison.OrdinalIgnoreCase) >= 0)
                 cost += 10;
+            cost += EstimateAggregateProjectionFunctionCost(raw);
         }
 
         return cost;
     }
+
+    /// <summary>
+    /// EN: Estimates projection cost for aggregate function usage with lightweight per-function weights (COUNT/SUM/AVG).
+    /// PT: Estima custo de projeção para uso de funções agregadas com pesos leves por função (COUNT/SUM/AVG).
+    /// </summary>
+    private static int EstimateAggregateProjectionFunctionCost(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return 0;
+
+        var cost = 0;
+        cost += CountSqlFunctionCalls(raw, "COUNT") * 2;
+        cost += CountSqlFunctionCalls(raw, "SUM") * 3;
+        cost += CountSqlFunctionCalls(raw, "AVG") * 4;
+        return cost;
+    }
+
+    /// <summary>
+    /// EN: Counts function-call occurrences using case-insensitive token matching and an identifier-boundary guard.
+    /// PT: Conta ocorrências de chamada de função usando correspondência de token case-insensitive e guarda de fronteira de identificador.
+    /// </summary>
+    private static int CountSqlFunctionCalls(string raw, string functionName)
+    {
+        var token = functionName + "(";
+        var count = 0;
+        var index = 0;
+
+        while (true)
+        {
+            index = raw.IndexOf(token, index, StringComparison.OrdinalIgnoreCase);
+            if (index < 0)
+                return count;
+
+            if (index == 0 || !IsSqlIdentifierChar(raw[index - 1]))
+                count++;
+
+            index += token.Length;
+        }
+    }
+
+    /// <summary>
+    /// EN: Determines whether a character can be part of a SQL identifier for token-boundary checks.
+    /// PT: Determina se um caractere pode compor um identificador SQL para verificações de fronteira de token.
+    /// </summary>
+    private static bool IsSqlIdentifierChar(char c)
+        => char.IsLetterOrDigit(c) || c is '_' or '$';
 
     /// <summary>
     /// EN: Estimates projection-width overhead so broader SELECT lists carry additional per-item processing cost.

@@ -1007,9 +1007,9 @@ public sealed class ExecutionPlanFormattingAndI18nTests
             [],
             null,
             [],
-            new BinaryExpr(SqlBinaryOp.Greater, new IdentifierExpr("COUNT(*)"), new LiteralExpr(1)),
+            null,
             ["tenantid"],
-            null)
+            new BinaryExpr(SqlBinaryOp.Greater, new IdentifierExpr("COUNT(*)"), new LiteralExpr(1)))
         {
             Table = new SqlTableSource(null, "users", null, null, null, null, null)
         };
@@ -1680,6 +1680,162 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         var jsonPlan = SqlExecutionPlanFormatter.FormatSelect(jsonQuery, metrics, [], []);
 
         ExtractEstimatedCost(simplePlan).Should().BeLessThan(ExtractEstimatedCost(jsonPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies deeply nested logical predicates with mixed CASE/JSON leaves carry higher estimated cost than flatter logical shapes with equivalent leaves.
+    /// PT: Verifica que predicados lógicos profundamente aninhados com folhas mistas de CASE/JSON carregam custo estimado maior que formatos lógicos mais planos com folhas equivalentes.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseForDeepNestedLogicalPredicatesWithCaseAndJsonLeaves()
+    {
+        var casePredicate = new BinaryExpr(
+            SqlBinaryOp.Eq,
+            new CaseExpr(
+                null,
+                [
+                    new CaseWhenThen(
+                        new BinaryExpr(SqlBinaryOp.Greater, new IdentifierExpr("tenantid"), new LiteralExpr(100)),
+                        new LiteralExpr("high")),
+                    new CaseWhenThen(
+                        new BinaryExpr(SqlBinaryOp.LessOrEqual, new IdentifierExpr("tenantid"), new LiteralExpr(100)),
+                        new LiteralExpr("normal"))
+                ],
+                new LiteralExpr("normal")),
+            new LiteralExpr("high"));
+
+        var jsonPredicate = new BinaryExpr(
+            SqlBinaryOp.Eq,
+            new JsonAccessExpr(new IdentifierExpr("payload"), new LiteralExpr("$.customer.tier"), false),
+            new LiteralExpr("gold"));
+
+        var statusPredicate = new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("status"), new LiteralExpr("active"));
+        var namePredicate = new LikeExpr(new IdentifierExpr("name"), new LiteralExpr("J%"));
+
+        var flatterPredicate = new BinaryExpr(
+            SqlBinaryOp.And,
+            new BinaryExpr(SqlBinaryOp.Or, casePredicate, jsonPredicate),
+            new BinaryExpr(SqlBinaryOp.Or, statusPredicate, namePredicate));
+
+        var deepNestedPredicate = new BinaryExpr(
+            SqlBinaryOp.Or,
+            new BinaryExpr(
+                SqlBinaryOp.And,
+                new BinaryExpr(SqlBinaryOp.Or, casePredicate, jsonPredicate),
+                statusPredicate),
+            namePredicate);
+
+        var flatterQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], flatterPredicate, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var deepQuery = flatterQuery with
+        {
+            Where = deepNestedPredicate
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var flatterPlan = SqlExecutionPlanFormatter.FormatSelect(flatterQuery, metrics, [], []);
+        var deepPlan = SqlExecutionPlanFormatter.FormatSelect(deepQuery, metrics, [], []);
+
+        ExtractEstimatedCost(flatterPlan).Should().BeLessThan(ExtractEstimatedCost(deepPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies derived UNION source cost keeps monotonic behavior for ORDER BY with row-limit and large OFFSET.
+    /// PT: Verifica que o custo de fonte UNION derivada mantém comportamento monotônico para ORDER BY com limite de linhas e OFFSET alto.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldRemainMonotonicForDerivedUnionOrderByAndLimitOffset()
+    {
+        var unionPart1 = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var unionPart2 = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var noLimitSource = new SqlTableSource(
+            null,
+            null,
+            "du",
+            null,
+            new SqlQueryParser.UnionChain(
+                [unionPart1, unionPart2],
+                [true],
+                [new SqlOrderByItem("id", false)],
+                null),
+            "(SELECT id FROM users UNION ALL SELECT userid FROM orders)",
+            null);
+
+        var noOffsetSource = noLimitSource with
+        {
+            DerivedUnion = new SqlQueryParser.UnionChain(
+                [unionPart1, unionPart2],
+                [true],
+                [new SqlOrderByItem("id", false)],
+                new SqlLimitOffset(10, null))
+        };
+
+        var largeOffsetSource = noLimitSource with
+        {
+            DerivedUnion = new SqlQueryParser.UnionChain(
+                [unionPart1, unionPart2],
+                [true],
+                [new SqlOrderByItem("id", false)],
+                new SqlLimitOffset(10, 5000))
+        };
+
+        var noLimitQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = noLimitSource
+        };
+
+        var noOffsetQuery = noLimitQuery with { Table = noOffsetSource };
+        var largeOffsetQuery = noLimitQuery with { Table = largeOffsetSource };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var noLimitPlan = SqlExecutionPlanFormatter.FormatSelect(noLimitQuery, metrics, [], []);
+        var noOffsetPlan = SqlExecutionPlanFormatter.FormatSelect(noOffsetQuery, metrics, [], []);
+        var largeOffsetPlan = SqlExecutionPlanFormatter.FormatSelect(largeOffsetQuery, metrics, [], []);
+
+        ExtractEstimatedCost(noOffsetPlan).Should().BeLessThan(ExtractEstimatedCost(noLimitPlan));
+        ExtractEstimatedCost(noOffsetPlan).Should().BeLessThan(ExtractEstimatedCost(largeOffsetPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies aggregate functions in projection add estimated cost beyond equivalent non-aggregate scalar functions.
+    /// PT: Verifica que funções agregadas na projeção adicionam custo estimado além de funções escalares não agregadas equivalentes.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithAggregateFunctionsInProjection()
+    {
+        var scalarFunctionProjectionQuery = new SqlSelectQuery([], false, [new SqlSelectItem("ABS(amount)", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var countProjectionQuery = scalarFunctionProjectionQuery with
+        {
+            SelectItems = [new SqlSelectItem("COUNT(*)", null)]
+        };
+
+        var avgProjectionQuery = scalarFunctionProjectionQuery with
+        {
+            SelectItems = [new SqlSelectItem("AVG(amount)", null)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var scalarPlan = SqlExecutionPlanFormatter.FormatSelect(scalarFunctionProjectionQuery, metrics, [], []);
+        var countPlan = SqlExecutionPlanFormatter.FormatSelect(countProjectionQuery, metrics, [], []);
+        var avgPlan = SqlExecutionPlanFormatter.FormatSelect(avgProjectionQuery, metrics, [], []);
+
+        ExtractEstimatedCost(scalarPlan).Should().BeLessThan(ExtractEstimatedCost(countPlan));
+        ExtractEstimatedCost(countPlan).Should().BeLessThan(ExtractEstimatedCost(avgPlan));
     }
 
 
