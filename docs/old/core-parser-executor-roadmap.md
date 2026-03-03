@@ -32,7 +32,7 @@ Para evitar duplicação de código e problemas de build:
 | 3) UPSERT por família de banco | **65%** | ⬆️ | `ON DUPLICATE`/`ON CONFLICT` e subset de `MERGE` avançaram; pendem harmonizações finais de semântica no executor. |
 | 4) Tipos/literais/coerção | **50%** | ⬆️ | Base central em `SqlExtensions` evoluiu, porém ainda faltam regras finas por dialeto/versão. |
 | 5) JSON cross-dialect | **68%** | ⬆️ | Runtime/cobertura evoluíram nos caminhos suportados, com fallback padronizado para não suportado. |
-| 6) Plano físico com custo | **15%** | ➡️ | Sem mudança estrutural: segue como backlog de maior risco e menor prioridade imediata. |
+| 6) Plano físico com custo | **40%** | ⬆️ | Evolução incremental nas heurísticas do `ExecutionPlan` (custos por formato, cardinalidade de chaves em `GROUP BY`/`ORDER BY`, IN-list, CASE/JSON em predicados, complexidade de CTE, sensibilidade a row-limit/offset, fan-out de joins, largura/curinga de projeção e monotonicidade), sem engine física completa. |
 | 7) JOIN/subquery com heurística | **40%** | ⬆️ | Execução multi-tabela e padronização de não suportado avançaram; heurística explícita de custo/caching segue pendente. |
 | 8) Semântica transacional por isolamento | **35%** | ⬆️ | Hardening/confiabilidade avançaram; isolamento completo por provider/versão ainda está em fase inicial. |
 | 9) `RETURNING`/`OUTPUT`/`RETURNING INTO` | **40%** | ⬆️ | Parser/capabilities e subset por provider evoluíram; payload homogêneo multi-provider no executor é o principal gap. |
@@ -40,7 +40,8 @@ Para evitar duplicação de código e problemas de build:
 
 ### Leitura rápida da revalidação
 
-- **Estáveis:** item 2 (window functions concluídas no core parser/executor) e item 6 (plano físico com custo).
+- **Estáveis:** item 2 (window functions concluídas no core parser/executor).
+- **Em evolução incremental dedicada:** item 6 (plano físico com custo) avançou em heurísticas de cardinalidade, CASE/JSON em predicados, CTE, sensibilidade a row-limit/offset, fan-out de joins, largura/curinga de projeção e monotonicidade, ainda sem mudança arquitetural ampla.
 - **Em evolução:** itens 1, 3, 4, 5, 7, 8, 9 e 10, com impacto recente em JSON/runtime, UPSERT subset e confiabilidade transacional.
 - **Observação:** percentuais são referência executiva (não métrica automática) e devem ser confirmados no corte de release via suíte local/CI.
 
@@ -108,10 +109,10 @@ Para evitar duplicação de código e problemas de build:
 
 ## 6) Plano físico completo com custo
 
-**Status:** ⚠️ **Adiar** (alto risco de churn).
+**Status:** ⚠️ **Parcial incremental** (sem engine física completa).
 
-- Embora desejável, refatorar para engine física completa agora aumenta risco de regressão/build.
-- Melhor seguir com melhorias localizadas no executor atual e instrumentação incremental de plano.
+- Refatorar para engine física completa agora ainda aumenta risco de regressão/build.
+- A trilha atual prioriza heurísticas localizadas de custo no `ExecutionPlan` com cobertura de monotonicidade, mantendo baixo risco de churn.
 
 ## 7) JOIN/subquery com heurística de custo
 

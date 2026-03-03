@@ -988,6 +988,700 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         ExtractEstimatedCost(simplePlan).Should().BeLessThan(ExtractEstimatedCost(complexPlan));
     }
 
+    /// <summary>
+    /// EN: Verifies GROUP BY with HAVING carries higher estimated cost than equivalent non-aggregated query.
+    /// PT: Verifica que GROUP BY com HAVING tem custo estimado maior do que consulta equivalente sem agregação.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithGroupByAndHaving()
+    {
+        var nonAggregatedQuery = new SqlSelectQuery([], false, [new SqlSelectItem("tenantid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var aggregatedQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("tenantid", null), new SqlSelectItem("COUNT(*)", "cnt")],
+            [],
+            null,
+            [],
+            new BinaryExpr(SqlBinaryOp.Greater, new IdentifierExpr("COUNT(*)"), new LiteralExpr(1)),
+            ["tenantid"],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var nonAggregatedPlan = SqlExecutionPlanFormatter.FormatSelect(nonAggregatedQuery, metrics, [], []);
+        var aggregatedPlan = SqlExecutionPlanFormatter.FormatSelect(aggregatedQuery, metrics, [], []);
+
+        ExtractEstimatedCost(nonAggregatedPlan).Should().BeLessThan(ExtractEstimatedCost(aggregatedPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies DISTINCT with ORDER BY and no limit carries higher estimated cost than ORDER BY alone.
+    /// PT: Verifica que DISTINCT com ORDER BY sem limite tem custo estimado maior do que apenas ORDER BY.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithDistinctAndOrderByWithoutLimit()
+    {
+        var orderByOnlyQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [new SqlOrderByItem("id", false)], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var distinctOrderByQuery = orderByOnlyQuery with { Distinct = true };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var orderByOnlyPlan = SqlExecutionPlanFormatter.FormatSelect(orderByOnlyQuery, metrics, [], []);
+        var distinctOrderByPlan = SqlExecutionPlanFormatter.FormatSelect(distinctOrderByQuery, metrics, [], []);
+
+        ExtractEstimatedCost(orderByOnlyPlan).Should().BeLessThan(ExtractEstimatedCost(distinctOrderByPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies UNION DISTINCT carries higher estimated cost than equivalent UNION ALL.
+    /// PT: Verifica que UNION DISTINCT tem custo estimado maior do que UNION ALL equivalente.
+    /// </summary>
+    [Fact]
+    public void FormatUnion_EstimatedCost_ShouldIncreaseForUnionDistinctComparedToUnionAll()
+    {
+        var part1 = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var part2 = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var unionAllPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [], null, metrics);
+        var unionDistinctPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [false], [], null, metrics);
+
+        ExtractEstimatedCost(unionAllPlan).Should().BeLessThan(ExtractEstimatedCost(unionDistinctPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies UNION ORDER BY without row limit carries higher estimated cost than equivalent UNION ORDER BY with row limit.
+    /// PT: Verifica que UNION com ORDER BY sem limite de linhas tem custo estimado maior do que UNION equivalente com limite.
+    /// </summary>
+    [Fact]
+    public void FormatUnion_EstimatedCost_ShouldIncreaseForOrderByWithoutLimitRisk()
+    {
+        var part1 = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var part2 = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var noLimitPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], null, metrics);
+        var withLimitPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(10, null), metrics);
+
+        ExtractEstimatedCost(withLimitPlan).Should().BeLessThan(ExtractEstimatedCost(noLimitPlan));
+    }
+
+
+    /// <summary>
+    /// EN: Verifies EXISTS/Subquery predicates increase estimated cost compared to a simple scalar predicate.
+    /// PT: Verifica que predicados EXISTS/Subquery aumentam o custo estimado em relação a predicado escalar simples.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithExistsAndSubqueryPredicates()
+    {
+        var baseQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("id", null)],
+            [],
+            new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("id"), new LiteralExpr(1)),
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", "u", null, null, null, null)
+        };
+
+        var subquerySelect = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", "o", null, null, null, null)
+        };
+
+        var subqueryExpr = new SubqueryExpr("SELECT userid FROM orders o", subquerySelect);
+        var existsQuery = baseQuery with
+        {
+            Where = new ExistsExpr(subqueryExpr)
+        };
+
+        var scalarSubqueryQuery = baseQuery with
+        {
+            Where = new BinaryExpr(SqlBinaryOp.Greater, new IdentifierExpr("id"), subqueryExpr)
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var basePlan = SqlExecutionPlanFormatter.FormatSelect(baseQuery, metrics, [], []);
+        var existsPlan = SqlExecutionPlanFormatter.FormatSelect(existsQuery, metrics, [], []);
+        var scalarSubqueryPlan = SqlExecutionPlanFormatter.FormatSelect(scalarSubqueryQuery, metrics, [], []);
+
+        ExtractEstimatedCost(basePlan).Should().BeLessThan(ExtractEstimatedCost(existsPlan));
+        ExtractEstimatedCost(basePlan).Should().BeLessThan(ExtractEstimatedCost(scalarSubqueryPlan));
+    }
+
+
+    /// <summary>
+    /// EN: Verifies GROUP BY + HAVING coupling penalty keeps estimated cost above equivalent GROUP BY-only shape.
+    /// PT: Verifica que a penalidade de acoplamento GROUP BY + HAVING mantém custo estimado acima do formato equivalente só com GROUP BY.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWhenGroupingAndHavingAreCombined()
+    {
+        var groupByOnlyQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("tenantid", null), new SqlSelectItem("COUNT(*)", "cnt")],
+            [],
+            null,
+            [],
+            null,
+            ["tenantid"],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var groupByHavingQuery = groupByOnlyQuery with
+        {
+            Having = new BinaryExpr(SqlBinaryOp.Greater, new IdentifierExpr("COUNT(*)"), new LiteralExpr(10))
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var groupByOnlyPlan = SqlExecutionPlanFormatter.FormatSelect(groupByOnlyQuery, metrics, [], []);
+        var groupByHavingPlan = SqlExecutionPlanFormatter.FormatSelect(groupByHavingQuery, metrics, [], []);
+
+        ExtractEstimatedCost(groupByOnlyPlan).Should().BeLessThan(ExtractEstimatedCost(groupByHavingPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies DISTINCT + ORDER BY no-limit coupling penalty is reduced when a row limit is present.
+    /// PT: Verifica que a penalidade de acoplamento DISTINCT + ORDER BY sem limite é reduzida quando há limite de linhas.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldDecreaseForDistinctOrderByWhenLimitIsPresent()
+    {
+        var noLimitQuery = new SqlSelectQuery([], true, [new SqlSelectItem("id", null)], [], null, [new SqlOrderByItem("id", false)], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var withLimitQuery = noLimitQuery with { RowLimit = new SqlLimitOffset(10, null) };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var noLimitPlan = SqlExecutionPlanFormatter.FormatSelect(noLimitQuery, metrics, [], []);
+        var withLimitPlan = SqlExecutionPlanFormatter.FormatSelect(withLimitQuery, metrics, [], []);
+
+        ExtractEstimatedCost(withLimitPlan).Should().BeLessThan(ExtractEstimatedCost(noLimitPlan));
+    }
+
+
+    /// <summary>
+    /// EN: Verifies estimated cost increases with additional GROUP BY keys.
+    /// PT: Verifica que o custo estimado aumenta com chaves adicionais de GROUP BY.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithAdditionalGroupByKeys()
+    {
+        var oneKeyGroupByQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("tenantid", null), new SqlSelectItem("COUNT(*)", "cnt")],
+            [],
+            null,
+            [],
+            null,
+            ["tenantid"],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var twoKeyGroupByQuery = oneKeyGroupByQuery with
+        {
+            GroupBy = ["tenantid", "status"]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var oneKeyPlan = SqlExecutionPlanFormatter.FormatSelect(oneKeyGroupByQuery, metrics, [], []);
+        var twoKeyPlan = SqlExecutionPlanFormatter.FormatSelect(twoKeyGroupByQuery, metrics, [], []);
+
+        ExtractEstimatedCost(oneKeyPlan).Should().BeLessThan(ExtractEstimatedCost(twoKeyPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies estimated cost increases with additional ORDER BY keys.
+    /// PT: Verifica que o custo estimado aumenta com chaves adicionais de ORDER BY.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithAdditionalOrderByKeys()
+    {
+        var oneOrderByKeyQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [new SqlOrderByItem("id", false)], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var twoOrderByKeysQuery = oneOrderByKeyQuery with
+        {
+            OrderBy = [new SqlOrderByItem("id", false), new SqlOrderByItem("tenantid", false)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var oneKeyPlan = SqlExecutionPlanFormatter.FormatSelect(oneOrderByKeyQuery, metrics, [], []);
+        var twoKeyPlan = SqlExecutionPlanFormatter.FormatSelect(twoOrderByKeysQuery, metrics, [], []);
+
+        ExtractEstimatedCost(oneKeyPlan).Should().BeLessThan(ExtractEstimatedCost(twoKeyPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies UNION estimated cost increases with additional ORDER BY keys.
+    /// PT: Verifica que o custo estimado de UNION aumenta com chaves adicionais de ORDER BY.
+    /// </summary>
+    [Fact]
+    public void FormatUnion_EstimatedCost_ShouldIncreaseWithAdditionalOrderByKeys()
+    {
+        var part1 = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var part2 = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var oneKeyPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], null, metrics);
+        var twoKeyPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false), new SqlOrderByItem("userid", false)], null, metrics);
+
+        ExtractEstimatedCost(oneKeyPlan).Should().BeLessThan(ExtractEstimatedCost(twoKeyPlan));
+    }
+
+
+    /// <summary>
+    /// EN: Verifies estimated cost increases with larger IN-list cardinality in WHERE predicate.
+    /// PT: Verifica que o custo estimado aumenta com maior cardinalidade da lista IN no predicado WHERE.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithInListCardinality()
+    {
+        var shortInListQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("id", null)],
+            [],
+            new InExpr(new IdentifierExpr("id"), [new LiteralExpr(1), new LiteralExpr(2)]),
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var longInListQuery = shortInListQuery with
+        {
+            Where = new InExpr(new IdentifierExpr("id"), [new LiteralExpr(1), new LiteralExpr(2), new LiteralExpr(3), new LiteralExpr(4), new LiteralExpr(5)])
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var shortPlan = SqlExecutionPlanFormatter.FormatSelect(shortInListQuery, metrics, [], []);
+        var longPlan = SqlExecutionPlanFormatter.FormatSelect(longInListQuery, metrics, [], []);
+
+        ExtractEstimatedCost(shortPlan).Should().BeLessThan(ExtractEstimatedCost(longPlan));
+    }
+
+
+    /// <summary>
+    /// EN: Verifies estimated cost increases when query includes CTE definitions versus equivalent direct SELECT.
+    /// PT: Verifica que o custo estimado aumenta quando a consulta inclui definições CTE em relação ao SELECT direto equivalente.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithCteDefinitions()
+    {
+        var baseQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var cteInner = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var withCteQuery = baseQuery with
+        {
+            Ctes = [new SqlCte("u", cteInner)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var basePlan = SqlExecutionPlanFormatter.FormatSelect(baseQuery, metrics, [], []);
+        var withCtePlan = SqlExecutionPlanFormatter.FormatSelect(withCteQuery, metrics, [], []);
+
+        ExtractEstimatedCost(basePlan).Should().BeLessThan(ExtractEstimatedCost(withCtePlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies estimated cost increases with additional CTE declarations.
+    /// PT: Verifica que o custo estimado aumenta com declarações CTE adicionais.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithAdditionalCtes()
+    {
+        var cteInner1 = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var cteInner2 = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var oneCteQuery = new SqlSelectQuery(
+            [new SqlCte("u", cteInner1)],
+            false,
+            [new SqlSelectItem("id", null)],
+            [],
+            null,
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var twoCtesQuery = oneCteQuery with
+        {
+            Ctes = [new SqlCte("u", cteInner1), new SqlCte("o", cteInner2)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var oneCtePlan = SqlExecutionPlanFormatter.FormatSelect(oneCteQuery, metrics, [], []);
+        var twoCtesPlan = SqlExecutionPlanFormatter.FormatSelect(twoCtesQuery, metrics, [], []);
+
+        ExtractEstimatedCost(oneCtePlan).Should().BeLessThan(ExtractEstimatedCost(twoCtesPlan));
+    }
+
+
+    /// <summary>
+    /// EN: Verifies tighter SELECT row limits provide larger estimated-cost relief than loose limits.
+    /// PT: Verifica que limites de linha mais restritos em SELECT proporcionam maior alívio de custo estimado que limites largos.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldDecreaseMoreWithTighterRowLimit()
+    {
+        var baseQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [new SqlOrderByItem("id", false)], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var looseLimitQuery = baseQuery with { RowLimit = new SqlLimitOffset(1000, null) };
+        var tightLimitQuery = baseQuery with { RowLimit = new SqlLimitOffset(10, null) };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var looseLimitPlan = SqlExecutionPlanFormatter.FormatSelect(looseLimitQuery, metrics, [], []);
+        var tightLimitPlan = SqlExecutionPlanFormatter.FormatSelect(tightLimitQuery, metrics, [], []);
+
+        ExtractEstimatedCost(tightLimitPlan).Should().BeLessThan(ExtractEstimatedCost(looseLimitPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies tighter UNION row limits provide larger estimated-cost relief than loose limits.
+    /// PT: Verifica que limites de linha mais restritos em UNION proporcionam maior alívio de custo estimado que limites largos.
+    /// </summary>
+    [Fact]
+    public void FormatUnion_EstimatedCost_ShouldDecreaseMoreWithTighterRowLimit()
+    {
+        var part1 = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var part2 = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var looseLimitPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(1000, null), metrics);
+        var tightLimitPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(10, null), metrics);
+
+        ExtractEstimatedCost(tightLimitPlan).Should().BeLessThan(ExtractEstimatedCost(looseLimitPlan));
+    }
+
+
+    /// <summary>
+    /// EN: Verifies estimated cost increases with additional joins due to join-graph fan-out overhead.
+    /// PT: Verifica que o custo estimado aumenta com joins adicionais devido ao overhead de fan-out do grafo de joins.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithAdditionalJoins()
+    {
+        var oneJoinQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("u.id", null)],
+            [new SqlJoin(SqlJoinType.Inner, new SqlTableSource(null, "orders", "o", null, null, null, null), new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("u.id"), new IdentifierExpr("o.userid")))],
+            null,
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", "u", null, null, null, null)
+        };
+
+        var twoJoinsQuery = oneJoinQuery with
+        {
+            Joins =
+            [
+                new SqlJoin(SqlJoinType.Inner, new SqlTableSource(null, "orders", "o", null, null, null, null), new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("u.id"), new IdentifierExpr("o.userid"))),
+                new SqlJoin(SqlJoinType.Inner, new SqlTableSource(null, "payments", "p", null, null, null, null), new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("o.id"), new IdentifierExpr("p.orderid")))
+            ]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(3, 300, 30, 6);
+        var oneJoinPlan = SqlExecutionPlanFormatter.FormatSelect(oneJoinQuery, metrics, [], []);
+        var twoJoinsPlan = SqlExecutionPlanFormatter.FormatSelect(twoJoinsQuery, metrics, [], []);
+
+        ExtractEstimatedCost(oneJoinPlan).Should().BeLessThan(ExtractEstimatedCost(twoJoinsPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies multiple expansion-risk joins (LEFT/CROSS/RIGHT) increase estimated cost versus equivalent all-inner joins.
+    /// PT: Verifica que múltiplos joins de risco de expansão (LEFT/CROSS/RIGHT) aumentam o custo estimado em relação ao equivalente só com INNER.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithMultipleExpansionRiskJoins()
+    {
+        var allInnerQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("u.id", null)],
+            [
+                new SqlJoin(SqlJoinType.Inner, new SqlTableSource(null, "orders", "o", null, null, null, null), new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("u.id"), new IdentifierExpr("o.userid"))),
+                new SqlJoin(SqlJoinType.Inner, new SqlTableSource(null, "payments", "p", null, null, null, null), new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("o.id"), new IdentifierExpr("p.orderid")))
+            ],
+            null,
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", "u", null, null, null, null)
+        };
+
+        var expansionRiskQuery = allInnerQuery with
+        {
+            Joins =
+            [
+                new SqlJoin(SqlJoinType.Left, new SqlTableSource(null, "orders", "o", null, null, null, null), new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("u.id"), new IdentifierExpr("o.userid"))),
+                new SqlJoin(SqlJoinType.Cross, new SqlTableSource(null, "payments", "p", null, null, null, null), new LiteralExpr(true))
+            ]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(3, 300, 30, 6);
+        var allInnerPlan = SqlExecutionPlanFormatter.FormatSelect(allInnerQuery, metrics, [], []);
+        var expansionRiskPlan = SqlExecutionPlanFormatter.FormatSelect(expansionRiskQuery, metrics, [], []);
+
+        ExtractEstimatedCost(allInnerPlan).Should().BeLessThan(ExtractEstimatedCost(expansionRiskPlan));
+    }
+
+
+    /// <summary>
+    /// EN: Verifies SELECT row-limit relief is reduced when large offsets are present.
+    /// PT: Verifica que o alívio de custo por limite de linhas em SELECT é reduzido quando há offsets grandes.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWhenLargeOffsetReducesLimitRelief()
+    {
+        var noOffsetQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [new SqlOrderByItem("id", false)], new SqlLimitOffset(10, null), [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var largeOffsetQuery = noOffsetQuery with { RowLimit = new SqlLimitOffset(10, 5000) };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var noOffsetPlan = SqlExecutionPlanFormatter.FormatSelect(noOffsetQuery, metrics, [], []);
+        var largeOffsetPlan = SqlExecutionPlanFormatter.FormatSelect(largeOffsetQuery, metrics, [], []);
+
+        ExtractEstimatedCost(noOffsetPlan).Should().BeLessThan(ExtractEstimatedCost(largeOffsetPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies UNION row-limit relief is reduced when large offsets are present.
+    /// PT: Verifica que o alívio de custo por limite de linhas em UNION é reduzido quando há offsets grandes.
+    /// </summary>
+    [Fact]
+    public void FormatUnion_EstimatedCost_ShouldIncreaseWhenLargeOffsetReducesLimitRelief()
+    {
+        var part1 = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var part2 = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var noOffsetPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(10, null), metrics);
+        var largeOffsetPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], new SqlLimitOffset(10, 5000), metrics);
+
+        ExtractEstimatedCost(noOffsetPlan).Should().BeLessThan(ExtractEstimatedCost(largeOffsetPlan));
+    }
+
+
+    /// <summary>
+    /// EN: Verifies estimated cost increases with additional projected columns due to projection-width overhead.
+    /// PT: Verifica que o custo estimado aumenta com colunas projetadas adicionais devido ao overhead de largura da projeção.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithProjectionWidth()
+    {
+        var narrowProjectionQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var wideProjectionQuery = narrowProjectionQuery with
+        {
+            SelectItems = [new SqlSelectItem("id", null), new SqlSelectItem("tenantid", null), new SqlSelectItem("status", null)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var narrowPlan = SqlExecutionPlanFormatter.FormatSelect(narrowProjectionQuery, metrics, [], []);
+        var widePlan = SqlExecutionPlanFormatter.FormatSelect(wideProjectionQuery, metrics, [], []);
+
+        ExtractEstimatedCost(narrowPlan).Should().BeLessThan(ExtractEstimatedCost(widePlan));
+    }
+
+
+    /// <summary>
+    /// EN: Verifies wildcard projection carries higher estimated cost than equivalent explicit narrow projection.
+    /// PT: Verifica que projeção curinga tem custo estimado maior do que projeção explícita estreita equivalente.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithWildcardProjection()
+    {
+        var explicitProjectionQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var wildcardProjectionQuery = explicitProjectionQuery with
+        {
+            SelectItems = [new SqlSelectItem("*", null)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var explicitPlan = SqlExecutionPlanFormatter.FormatSelect(explicitProjectionQuery, metrics, [], []);
+        var wildcardPlan = SqlExecutionPlanFormatter.FormatSelect(wildcardProjectionQuery, metrics, [], []);
+
+        ExtractEstimatedCost(explicitPlan).Should().BeLessThan(ExtractEstimatedCost(wildcardPlan));
+    }
+
+
+    /// <summary>
+    /// EN: Verifies CASE expression in WHERE predicate increases estimated cost compared with simple scalar predicate.
+    /// PT: Verifica que expressão CASE no predicado WHERE aumenta o custo estimado em comparação com predicado escalar simples.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithCasePredicateComplexity()
+    {
+        var simpleQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("id", null)],
+            [],
+            new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("id"), new LiteralExpr(1)),
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var caseQuery = simpleQuery with
+        {
+            Where = new CaseExpr(
+                null,
+                [
+                    new CaseWhenThen(
+                        new BinaryExpr(SqlBinaryOp.Greater, new IdentifierExpr("tenantid"), new LiteralExpr(100)),
+                        new LiteralExpr(true)),
+                    new CaseWhenThen(
+                        new BinaryExpr(SqlBinaryOp.LessOrEqual, new IdentifierExpr("tenantid"), new LiteralExpr(100)),
+                        new LiteralExpr(false))
+                ],
+                new LiteralExpr(false))
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var simplePlan = SqlExecutionPlanFormatter.FormatSelect(simpleQuery, metrics, [], []);
+        var casePlan = SqlExecutionPlanFormatter.FormatSelect(caseQuery, metrics, [], []);
+
+        ExtractEstimatedCost(simplePlan).Should().BeLessThan(ExtractEstimatedCost(casePlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies JSON access predicates increase estimated cost compared with simple scalar predicate.
+    /// PT: Verifica que predicados com acesso JSON aumentam o custo estimado em comparação com predicado escalar simples.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithJsonAccessPredicateComplexity()
+    {
+        var simpleQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("id", null)],
+            [],
+            new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("id"), new LiteralExpr(1)),
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var jsonQuery = simpleQuery with
+        {
+            Where = new BinaryExpr(
+                SqlBinaryOp.Eq,
+                new JsonAccessExpr(new IdentifierExpr("payload"), new LiteralExpr("$.customer.id"), false),
+                new LiteralExpr("42"))
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var simplePlan = SqlExecutionPlanFormatter.FormatSelect(simpleQuery, metrics, [], []);
+        var jsonPlan = SqlExecutionPlanFormatter.FormatSelect(jsonQuery, metrics, [], []);
+
+        ExtractEstimatedCost(simplePlan).Should().BeLessThan(ExtractEstimatedCost(jsonPlan));
+    }
+
 
     /// <summary>
     /// EN: Verifies optional JSON payload mirrors common aggregated metadata from text output.
