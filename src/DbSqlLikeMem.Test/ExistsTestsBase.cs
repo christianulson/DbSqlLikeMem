@@ -229,6 +229,66 @@ ORDER BY u.Id";
         GetTableHintCount(cnn, "orders").Should().BeLessThan(10);
     }
 
+    /// <summary>
+    /// EN: Tests correlated EXISTS cache key ignores non-referenced outer columns, allowing reuse when only unrelated fields differ.
+    /// PT: Testa que a chave de cache de EXISTS correlacionado ignora colunas externas não referenciadas, permitindo reuso quando apenas campos não relacionados diferem.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void Exists_CorrelatedSubqueryCacheKey_ShouldIgnoreNonReferencedOuterColumns()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        for (var i = 0; i < 80; i++)
+            cnn.Seed("users", null, [1, $"Name-{i}"]);
+
+        cnn.Seed("orders", null,
+            [10, 1, 50m],
+            [11, 1, 60m]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE EXISTS (SELECT 1 FROM orders o WHERE o.UserId = u.Id)
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().HaveCount(80);
+        GetTableHintCount(cnn, "orders").Should().BeLessThan(10);
+    }
+
+    /// <summary>
+    /// EN: Tests correlated scalar-subquery cache key ignores non-referenced outer columns, allowing reuse when only unrelated fields differ.
+    /// PT: Testa que a chave de cache de subquery escalar correlacionada ignora colunas externas não referenciadas, permitindo reuso quando apenas campos não relacionados diferem.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void ScalarCorrelatedSubqueryCacheKey_ShouldIgnoreNonReferencedOuterColumns()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        for (var i = 0; i < 80; i++)
+            cnn.Seed("users", null, [1, $"Name-{i}"]);
+
+        cnn.Seed("orders", null,
+            [10, 1, 50m],
+            [11, 1, 60m]);
+
+        const string sql = @"SELECT u.Id,
+       (SELECT MAX(o.Amount) FROM orders o WHERE o.UserId = u.Id) AS MaxAmount
+FROM users u
+ORDER BY u.Id";
+
+        var rowCount = ExecuteAndCountRows(cnn, sql);
+
+        rowCount.Should().Be(80);
+        GetTableHintCount(cnn, "orders").Should().BeLessThan(10);
+    }
+
     private static void DefineUsersAndOrdersTables(
         DbConnectionMockBase cnn)
     {

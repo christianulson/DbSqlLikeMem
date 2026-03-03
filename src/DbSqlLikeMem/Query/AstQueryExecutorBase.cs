@@ -4051,7 +4051,7 @@ private void FillPercentRankOrCumeDist(
     /// EN: Builds a deterministic cache key for correlated subquery evaluation using operation kind, raw subquery text and normalized outer-row values.
     /// PT: Monta uma chave de cache determinística para avaliação de subquery correlacionada usando tipo de operação, texto bruto da subquery e valores normalizados da linha externa.
     /// </summary>
-    private static string BuildCorrelatedSubqueryCacheKey(string operation, string subquerySql, EvalRow row)
+    private static string BuildCorrelatedSubqueryCacheKey(string operation, string? subquerySql, EvalRow row)
     {
         var sb = new StringBuilder();
         sb.Append(operation);
@@ -4059,7 +4059,8 @@ private void FillPercentRankOrCumeDist(
         sb.Append(subquerySql ?? string.Empty);
         sb.Append('\u001F');
 
-        foreach (var kv in row.Fields.OrderBy(static kv => kv.Key, StringComparer.OrdinalIgnoreCase))
+        var cacheFields = GetCorrelatedSubqueryCacheFields(subquerySql ?? string.Empty, row);
+        foreach (var kv in cacheFields)
         {
             sb.Append(kv.Key);
             sb.Append('=');
@@ -4069,6 +4070,108 @@ private void FillPercentRankOrCumeDist(
 
         return sb.ToString();
     }
+
+    /// <summary>
+    /// EN: Selects relevant outer-row fields for correlated subquery cache keys, prioritizing identifiers explicitly referenced in subquery SQL.
+    /// PT: Seleciona campos relevantes da linha externa para chaves de cache de subquery correlacionada, priorizando identificadores explicitamente referenciados no SQL da subquery.
+    /// </summary>
+    private static IReadOnlyList<KeyValuePair<string, object?>> GetCorrelatedSubqueryCacheFields(
+        string subquerySql,
+        EvalRow row)
+    {
+        var allFields = row.Fields
+            .OrderBy(static kv => kv.Key, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (allFields.Count == 0 || string.IsNullOrWhiteSpace(subquerySql))
+            return allFields;
+
+        var normalizedSql = NormalizeSqlIdentifierSpacing(subquerySql);
+        var qualifiedIdentifiers = ExtractQualifiedSqlIdentifiers(normalizedSql);
+        var qualifiedMatches = allFields
+            .Where(static kv => kv.Key.Contains('.', StringComparison.Ordinal))
+            .Where(kv => qualifiedIdentifiers.Contains(kv.Key))
+            .ToList();
+
+        if (qualifiedMatches.Count > 0)
+            return qualifiedMatches;
+
+        var unqualifiedMatches = allFields
+            .Where(static kv => !kv.Key.Contains('.', StringComparison.Ordinal))
+            .Where(kv => ContainsSqlIdentifierToken(normalizedSql, kv.Key))
+            .ToList();
+
+        return unqualifiedMatches.Count > 0
+            ? unqualifiedMatches
+            : allFields;
+    }
+
+    /// <summary>
+    /// EN: Checks whether a candidate identifier token appears in SQL text using lightweight identifier-boundary guards.
+    /// PT: Verifica se um token identificador candidato aparece no texto SQL usando guardas leves de fronteira de identificador.
+    /// </summary>
+    private static bool ContainsSqlIdentifierToken(string sql, string token)
+    {
+        if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(token))
+            return false;
+
+        var index = 0;
+        while (true)
+        {
+            index = sql.IndexOf(token, index, StringComparison.OrdinalIgnoreCase);
+            if (index < 0)
+                return false;
+
+            var leftBoundaryOk = index == 0 || !IsSqlIdentifierChar(sql[index - 1]);
+            var right = index + token.Length;
+            var rightBoundaryOk = right >= sql.Length || !IsSqlIdentifierChar(sql[right]);
+
+            if (leftBoundaryOk && rightBoundaryOk)
+                return true;
+
+            index = right;
+        }
+    }
+
+    /// <summary>
+    /// EN: Determines whether a character can participate in SQL identifiers when evaluating token boundaries.
+    /// PT: Determina se um caractere pode participar de identificadores SQL ao avaliar fronteiras de token.
+    /// </summary>
+    private static bool IsSqlIdentifierChar(char c)
+        => char.IsLetterOrDigit(c) || c is '_' or '$';
+
+    /// <summary>
+    /// EN: Extracts qualified identifier tokens (alias.column) from SQL text using lightweight lexical boundaries.
+    /// PT: Extrai tokens de identificador qualificado (alias.coluna) do texto SQL usando fronteiras léxicas leves.
+    /// </summary>
+    private static HashSet<string> ExtractQualifiedSqlIdentifiers(string sql)
+    {
+        var identifiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(sql))
+            return identifiers;
+
+        var matches = Regex.Matches(
+            sql,
+            @"(?<![A-Za-z0-9_$])([A-Za-z_][A-Za-z0-9_$]*\.[A-Za-z_][A-Za-z0-9_$]*)(?![A-Za-z0-9_$])",
+            RegexOptions.CultureInvariant);
+
+        foreach (Match match in matches)
+        {
+            if (match.Success && match.Groups.Count > 1)
+                identifiers.Add(match.Groups[1].Value);
+        }
+
+        return identifiers;
+    }
+
+    /// <summary>
+    /// EN: Normalizes SQL text by collapsing optional whitespace around dot separators in qualified identifiers.
+    /// PT: Normaliza texto SQL colapsando espaços opcionais ao redor de separadores com ponto em identificadores qualificados.
+    /// </summary>
+    private static string NormalizeSqlIdentifierSpacing(string sql)
+        => string.IsNullOrWhiteSpace(sql)
+            ? string.Empty
+            : Regex.Replace(sql, @"\s*\.\s*", ".", RegexOptions.CultureInvariant);
 
     /// <summary>
     /// EN: Normalizes scalar and tuple-like values into stable cache-key fragments for correlated subquery memoization.
