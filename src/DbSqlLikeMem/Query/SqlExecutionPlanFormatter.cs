@@ -842,8 +842,8 @@ internal static class SqlExecutionPlanFormatter
             InExpr i => 2 + EstimatePredicateComplexityCost(i.Left) + i.Items.Sum(EstimatePredicateComplexityCost) + i.Items.Count,
             ExistsExpr e => EstimateSubqueryPredicateCost(e.Subquery),
             SubqueryExpr s => EstimateSubqueryPredicateCost(s),
-            FunctionCallExpr f => 1 + f.Args.Sum(EstimatePredicateComplexityCost),
-            CallExpr c => 1 + c.Args.Sum(EstimatePredicateComplexityCost),
+            FunctionCallExpr f => 1 + EstimateJsonPredicateFunctionPenalty(f.Name) + f.Args.Sum(EstimatePredicateComplexityCost),
+            CallExpr c => 1 + EstimateJsonPredicateFunctionPenalty(c.Name) + c.Args.Sum(EstimatePredicateComplexityCost),
             CaseExpr c => EstimateCasePredicateComplexityCost(c),
             JsonAccessExpr j => 1 + EstimatePredicateComplexityCost(j.Target) + EstimatePredicateComplexityCost(j.Path),
             RowExpr r => 1 + r.Items.Sum(EstimatePredicateComplexityCost),
@@ -972,6 +972,7 @@ internal static class SqlExecutionPlanFormatter
             cost += CountSqlKeywordOccurrences(raw, "CASE") * 2;
             cost += CountSqlKeywordOccurrences(raw, "SELECT") * 5;
             cost += CountJsonFunctionCalls(raw) * 2;
+            cost += CountJsonOperatorTokens(raw) * 2;
         }
 
         return cost;
@@ -991,6 +992,7 @@ internal static class SqlExecutionPlanFormatter
             cost += CountSqlKeywordOccurrences(raw, "SELECT") * 5;
             cost += CountSqlKeywordOccurrences(raw, "OVER") * 3;
             cost += CountJsonFunctionCalls(raw) * 2;
+            cost += CountJsonOperatorTokens(raw) * 2;
         }
 
         return cost;
@@ -1015,6 +1017,11 @@ internal static class SqlExecutionPlanFormatter
 
         if (rowLimit is null)
             cost += 2;
+        else
+        {
+            var (_, offset) = ExtractRowLimitCountAndOffset(rowLimit);
+            cost += EstimateDistinctGroupByOrderByOffsetPenalty(offset);
+        }
 
         return cost;
     }
@@ -1060,6 +1067,7 @@ internal static class SqlExecutionPlanFormatter
             cost += CountSqlKeywordOccurrences(raw, "CASE") * 4;
             cost += CountSqlKeywordOccurrences(raw, "SELECT") * 10;
             cost += CountJsonFunctionCalls(raw) * 3;
+            cost += CountJsonOperatorTokens(raw) * 3;
             cost += EstimateAggregateProjectionFunctionCost(raw);
         }
 
@@ -1221,6 +1229,75 @@ internal static class SqlExecutionPlanFormatter
         count += CountSqlFunctionCalls(raw, "JSON_EXTRACT");
         return count;
     }
+
+    /// <summary>
+    /// EN: Counts JSON path operators commonly used across SQL dialects (->, ->>, #>, #>>) in raw expression text.
+    /// PT: Conta operadores de caminho JSON comuns entre dialetos SQL (->, ->>, #>, #>>) no texto bruto da expressão.
+    /// </summary>
+    private static int CountJsonOperatorTokens(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return 0;
+
+        var count = 0;
+        var arrowDouble = CountTokenOccurrences(raw, "->>");
+        var arrowSingle = Math.Max(0, CountTokenOccurrences(raw, "->") - arrowDouble);
+        var hashDouble = CountTokenOccurrences(raw, "#>>");
+        var hashSingle = Math.Max(0, CountTokenOccurrences(raw, "#>") - hashDouble);
+        count += arrowDouble + arrowSingle + hashDouble + hashSingle;
+        return count;
+    }
+
+    /// <summary>
+    /// EN: Counts non-overlapping occurrences of an exact token in raw SQL text.
+    /// PT: Conta ocorrências não sobrepostas de um token exato no texto SQL bruto.
+    /// </summary>
+    private static int CountTokenOccurrences(string raw, string token)
+    {
+        if (string.IsNullOrEmpty(raw) || string.IsNullOrEmpty(token))
+            return 0;
+
+        var count = 0;
+        var index = 0;
+        while (true)
+        {
+            index = raw.IndexOf(token, index, StringComparison.Ordinal);
+            if (index < 0)
+                return count;
+
+            count++;
+            index += token.Length;
+        }
+    }
+
+    /// <summary>
+    /// EN: Estimates additional predicate complexity for JSON-oriented scalar function calls.
+    /// PT: Estima complexidade adicional de predicado para chamadas de funções escalares orientadas a JSON.
+    /// </summary>
+    private static int EstimateJsonPredicateFunctionPenalty(string functionName)
+    {
+        if (string.IsNullOrWhiteSpace(functionName))
+            return 0;
+
+        return functionName.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
+               || functionName.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase)
+               || functionName.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
+            ? 2
+            : 0;
+    }
+
+    /// <summary>
+    /// EN: Estimates DISTINCT + GROUP BY + ORDER BY coupling penalty induced by OFFSET even when LIMIT is present.
+    /// PT: Estima penalidade de acoplamento DISTINCT + GROUP BY + ORDER BY induzida por OFFSET mesmo quando há LIMIT.
+    /// </summary>
+    private static int EstimateDistinctGroupByOrderByOffsetPenalty(int offset)
+        => offset switch
+        {
+            <= 0 => 0,
+            <= 100 => 1,
+            <= 1000 => 2,
+            _ => 3
+        };
 
     /// <summary>
     /// EN: Estimates projection-width overhead so broader SELECT lists carry additional per-item processing cost.

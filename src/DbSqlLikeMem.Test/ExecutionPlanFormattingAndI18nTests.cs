@@ -1256,6 +1256,39 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         (noLimitCost - withLimitCost).Should().BeGreaterThanOrEqualTo(15);
     }
 
+    /// <summary>
+    /// EN: Verifies LIMIT with moderate OFFSET still adds noticeable DISTINCT + GROUP BY + ORDER BY coupling pressure compared with the same LIMIT without OFFSET.
+    /// PT: Verifica que LIMIT com OFFSET moderado ainda adiciona pressão perceptível de acoplamento DISTINCT + GROUP BY + ORDER BY em comparação ao mesmo LIMIT sem OFFSET.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseDistinctGroupByOrderByCouplingForLimitWithOffset()
+    {
+        var noOffsetQuery = new SqlSelectQuery(
+            [],
+            true,
+            [new SqlSelectItem("tenantid", null), new SqlSelectItem("COUNT(*)", "cnt")],
+            [],
+            null,
+            [new SqlOrderByItem("tenantid", false)],
+            new SqlLimitOffset(10, null),
+            ["tenantid"],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var withOffsetQuery = noOffsetQuery with
+        {
+            RowLimit = new SqlLimitOffset(10, 50)
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var noOffsetPlan = SqlExecutionPlanFormatter.FormatSelect(noOffsetQuery, metrics, [], []);
+        var withOffsetPlan = SqlExecutionPlanFormatter.FormatSelect(withOffsetQuery, metrics, [], []);
+
+        (ExtractEstimatedCost(withOffsetPlan) - ExtractEstimatedCost(noOffsetPlan)).Should().BeGreaterThanOrEqualTo(2);
+    }
+
 
     /// <summary>
     /// EN: Verifies estimated cost increases with additional GROUP BY keys.
@@ -1988,6 +2021,55 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     }
 
     /// <summary>
+    /// EN: Verifies JSON SQL functions in predicate AST (FunctionCallExpr/CallExpr) carry higher estimated cost than non-JSON functions with equivalent argument shapes.
+    /// PT: Verifica que funções SQL JSON no AST de predicado (FunctionCallExpr/CallExpr) carregam custo estimado maior que funções não-JSON com formato de argumentos equivalente.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseForJsonFunctionsInPredicateFunctionNodes()
+    {
+        var nonJsonFunctionPredicateQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("id", null)],
+            [],
+            new BinaryExpr(
+                SqlBinaryOp.Eq,
+                new FunctionCallExpr("COALESCE", [new IdentifierExpr("payload"), new LiteralExpr("$.customer.id")]),
+                new LiteralExpr("42")),
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var jsonFunctionCallPredicateQuery = nonJsonFunctionPredicateQuery with
+        {
+            Where = new BinaryExpr(
+                SqlBinaryOp.Eq,
+                new FunctionCallExpr("JSON_VALUE", [new IdentifierExpr("payload"), new LiteralExpr("$.customer.id")]),
+                new LiteralExpr("42"))
+        };
+
+        var jsonCallExprPredicateQuery = nonJsonFunctionPredicateQuery with
+        {
+            Where = new BinaryExpr(
+                SqlBinaryOp.Eq,
+                new CallExpr("JSON_EXTRACT", [new IdentifierExpr("payload"), new LiteralExpr("$.customer.id")]),
+                new LiteralExpr("42"))
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var nonJsonPlan = SqlExecutionPlanFormatter.FormatSelect(nonJsonFunctionPredicateQuery, metrics, [], []);
+        var jsonFunctionCallPlan = SqlExecutionPlanFormatter.FormatSelect(jsonFunctionCallPredicateQuery, metrics, [], []);
+        var jsonCallExprPlan = SqlExecutionPlanFormatter.FormatSelect(jsonCallExprPredicateQuery, metrics, [], []);
+
+        ExtractEstimatedCost(nonJsonPlan).Should().BeLessThan(ExtractEstimatedCost(jsonFunctionCallPlan));
+        ExtractEstimatedCost(nonJsonPlan).Should().BeLessThan(ExtractEstimatedCost(jsonCallExprPlan));
+    }
+
+    /// <summary>
     /// EN: Verifies deeply nested logical predicates with mixed CASE/JSON leaves carry higher estimated cost than flatter logical shapes with equivalent leaves.
     /// PT: Verifica que predicados lógicos profundamente aninhados com folhas mistas de CASE/JSON carregam custo estimado maior que formatos lógicos mais planos com folhas equivalentes.
     /// </summary>
@@ -2406,6 +2488,40 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         var twoJsonPlan = SqlExecutionPlanFormatter.FormatSelect(twoJsonFunctionsQuery, metrics, [], []);
 
         ExtractEstimatedCost(oneJsonPlan).Should().BeLessThan(ExtractEstimatedCost(twoJsonPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies JSON arrow operators in projection and ORDER BY expression raise estimated cost over equivalent non-JSON shapes.
+    /// PT: Verifica que operadores JSON de seta em projeção e expressão ORDER BY elevam o custo estimado sobre formatos equivalentes sem JSON.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithJsonArrowOperatorsInProjectionAndOrderBy()
+    {
+        var nonJsonQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("payload", null)],
+            [],
+            null,
+            [new SqlOrderByItem("payload", false)],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "events", null, null, null, null, null)
+        };
+
+        var jsonArrowQuery = nonJsonQuery with
+        {
+            SelectItems = [new SqlSelectItem("payload->>'tenant'", null)],
+            OrderBy = [new SqlOrderByItem("payload->>'tenant'", false)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var nonJsonPlan = SqlExecutionPlanFormatter.FormatSelect(nonJsonQuery, metrics, [], []);
+        var jsonArrowPlan = SqlExecutionPlanFormatter.FormatSelect(jsonArrowQuery, metrics, [], []);
+
+        ExtractEstimatedCost(nonJsonPlan).Should().BeLessThan(ExtractEstimatedCost(jsonArrowPlan));
     }
 
     /// <summary>
