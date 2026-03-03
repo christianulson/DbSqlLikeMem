@@ -811,8 +811,11 @@ internal static class SqlExecutionPlanFormatter
         cost += EstimateSortAndDedupCost(query.OrderBy, query.Distinct, query.RowLimit);
         cost += EstimateGroupByExpressionComplexityCost(query.GroupBy);
         cost += EstimateOrderByExpressionComplexityCost(query.OrderBy);
+        cost += EstimateDistinctGroupByOrderByCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.RowLimit);
         cost += EstimateDistinctGroupByOrderByHavingCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.Having);
+        cost += EstimateNestedOrderByCouplingCost(query.Table, query.OrderBy, query.RowLimit);
         cost += EstimateProjectionCost(query.SelectItems);
+        cost -= EstimateRowLimitRelief(query.RowLimit);
         return Math.Max(0, cost);
     }
 
@@ -1617,6 +1620,7 @@ internal static class SqlExecutionPlanFormatter
         var cost = parts.Sum(EstimateSelectCost) + 12;
         cost += allFlags.Count(flag => !flag) * 20;
         cost += EstimateUnionSetOperatorTransitionCost(allFlags);
+        cost += EstimateUnionOrderByMergeFanInCost(parts.Count, orderBy ?? [], rowLimit);
         cost += EstimateSortAndDedupCost(orderBy ?? [], false, rowLimit);
         cost += EstimateOrderByExpressionComplexityCost(orderBy ?? []);
         cost -= EstimateRowLimitRelief(rowLimit);
@@ -1640,5 +1644,32 @@ internal static class SqlExecutionPlanFormatter
         }
 
         return transitions * 3;
+    }
+
+    /// <summary>
+    /// EN: Estimates additional ORDER BY merge fan-in overhead for UNION plans with many parts.
+    /// PT: Estima overhead adicional de fan-in de merge de ORDER BY para planos UNION com muitas partes.
+    /// </summary>
+    private static int EstimateUnionOrderByMergeFanInCost(
+        int partCount,
+        IReadOnlyList<SqlOrderByItem> orderBy,
+        SqlRowLimit? rowLimit)
+    {
+        if (partCount <= 2 || orderBy.Count == 0)
+            return 0;
+
+        var cost = (partCount - 2) * 2;
+        cost += Math.Min(2, Math.Max(0, orderBy.Count - 1));
+
+        if (rowLimit is null)
+            cost += 1;
+        else
+        {
+            var (_, offset) = ExtractRowLimitCountAndOffset(rowLimit);
+            if (offset > 0)
+                cost += 1;
+        }
+
+        return Math.Min(10, cost);
     }
 }
