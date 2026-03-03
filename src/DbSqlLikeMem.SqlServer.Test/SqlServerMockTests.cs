@@ -215,4 +215,106 @@ public sealed class SqlServerMockTests
         _connection.Dispose();
         base.Dispose(disposing);
     }
+
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestSelect_FoundRows_ShouldReturnLastSelectRowCount()
+    {
+        using var command = new SqlServerCommandMock(_connection);
+        command.CommandText = """
+            INSERT INTO Users (Id, Name, Email) VALUES (101, 'Ana', NULL);
+            INSERT INTO Users (Id, Name, Email) VALUES (102, 'Bia', NULL);
+            INSERT INTO Users (Id, Name, Email) VALUES (103, 'Caio', NULL);
+            """;
+        command.ExecuteNonQuery();
+
+        command.CommandText = "SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY; SELECT FOUND_ROWS();";
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal("Ana", reader.GetString(0));
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount()
+    {
+        using var command = new SqlServerCommandMock(_connection);
+        command.CommandText = "SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY; SELECT ROWCOUNT();";
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestSelect_SystemRowCountVariable_ShouldReturnLastSelectRowCount()
+    {
+        using var command = new SqlServerCommandMock(_connection);
+        command.CommandText = "SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY; SELECT @@ROWCOUNT;";
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestUpdate_SystemRowCountVariable_ShouldReturnAffectedRows()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (120, 'Row Count User', NULL)"
+        };
+        command.ExecuteNonQuery();
+
+        command.CommandText = "UPDATE Users SET Name = 'Updated User' WHERE Id = 120; SELECT @@ROWCOUNT;";
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestCreateView_SystemRowCountVariable_ShouldReturnZero()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "CREATE VIEW vw_users_rowcount AS SELECT Id FROM Users; SELECT @@ROWCOUNT;"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestBeginTransaction_SystemRowCountVariable_ShouldReturnZero()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION"
+        };
+        command.ExecuteNonQuery();
+
+        command.CommandText = "SELECT @@ROWCOUNT";
+        Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
 }

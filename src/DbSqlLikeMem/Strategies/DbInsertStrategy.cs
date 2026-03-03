@@ -108,11 +108,15 @@ internal static class DbInsertStrategy
         connection.Metrics.Inserts += insertedCount;
         connection.Metrics.Updates += updatedCount;
 
+        int affected;
         if (string.Equals(dialect.Name, "postgresql", StringComparison.OrdinalIgnoreCase))
-            return insertedCount + updatedCount;
+            affected = insertedCount + updatedCount;
+        else
+            // MySQL retorna: 1 para insert, 2 para update em conflito
+            affected = insertedCount + (updatedCount * 2);
 
-        // MySQL retorna: 1 para insert, 2 para update em conflito
-        return insertedCount + (updatedCount * 2);
+        connection.SetLastFoundRows(affected);
+        return affected;
     }
 
     // --- Helpers de Criação de Linhas ---

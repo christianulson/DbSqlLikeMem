@@ -774,6 +774,7 @@ internal sealed class SqlQueryParser
             throw new InvalidOperationException("invalid: duplicated SELECT keyword");
         var distinct = TryParseDistinct();
         var top = TryParseTop();
+        TryParseSelectModifiers();
         var selectItems = ParseSelectItemsWithValidation();
         var table = ParseFromOrDual();
         var joins = ParseJoins(table);
@@ -824,6 +825,17 @@ internal sealed class SqlQueryParser
         {
             Table = table
         };
+    }
+
+    private void TryParseSelectModifiers()
+    {
+        while (IsWord(Peek(), "SQL_CALC_FOUND_ROWS"))
+        {
+            if (!string.Equals(_dialect.Name, "mysql", StringComparison.OrdinalIgnoreCase))
+                throw SqlUnsupported.ForDialect(_dialect, "SELECT modifier SQL_CALC_FOUND_ROWS");
+
+            Consume();
+        }
     }
 
     // ------------------------------------------------------------

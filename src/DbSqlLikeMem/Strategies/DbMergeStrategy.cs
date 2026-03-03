@@ -12,10 +12,17 @@ internal static class DbMergeStrategy
         DbParameterCollection pars,
         ISqlDialect dialect)
     {
+        int affected;
         if (!connection.Db.ThreadSafe)
-            return ExecuteMergeImpl(connection, query, pars, dialect);
-        lock (connection.Db.SyncRoot)
-            return ExecuteMergeImpl(connection, query, pars, dialect);
+            affected = ExecuteMergeImpl(connection, query, pars, dialect);
+        else
+        {
+            lock (connection.Db.SyncRoot)
+                affected = ExecuteMergeImpl(connection, query, pars, dialect);
+        }
+
+        connection.SetLastFoundRows(affected);
+        return affected;
     }
 
     private static int ExecuteMergeImpl(

@@ -56,6 +56,12 @@ internal sealed class SqlTokenizer
                 continue;
             }
 
+            if (TryReadSqlServerSystemVariable(out var systemVariable))
+            {
+                tokens.Add(systemVariable);
+                continue;
+            }
+
             if (_dialect.IsParameterPrefix(ch))
             {
                 tokens.Add(ReadParameter());
@@ -130,6 +136,28 @@ internal sealed class SqlTokenizer
 
         pair = default;
         return false;
+    }
+
+
+    private bool TryReadSqlServerSystemVariable(out SqlToken token)
+    {
+        token = default;
+
+        if (!string.Equals(_dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (Peek() != '@' || Peek(1) != '@' || !IsIdentStart(Peek(2)))
+            return false;
+
+        var startPos = _pos;
+        Read(); // @
+        Read(); // @
+
+        while (!Eof && IsIdentChar(Peek()))
+            Read();
+
+        token = new SqlToken(SqlTokenKind.Identifier, _sql[startPos.._pos], startPos);
+        return true;
     }
 
     private SqlToken ReadString()

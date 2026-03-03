@@ -42,9 +42,12 @@ internal static class DbUpdateDeleteFromSelectStrategies
         ISqlDialect dialect)
     {
         // Detect UPDATE ... JOIN/UPDATE ... FROM ... JOIN (SELECT ...)
-        if (IsUpdateFromSelectSql(query.RawSql))
-            return connection.ExecuteUpdateFromSelect(query, pars, dialect);
-        return connection.ExecuteUpdate(query, pars);
+        var affected = IsUpdateFromSelectSql(query.RawSql)
+            ? connection.ExecuteUpdateFromSelect(query, pars, dialect)
+            : connection.ExecuteUpdate(query, pars);
+
+        connection.SetLastFoundRows(affected);
+        return affected;
     }
 
     /// <summary>
@@ -58,9 +61,12 @@ internal static class DbUpdateDeleteFromSelectStrategies
         ISqlDialect dialect)
     {
         // Detect DELETE ... JOIN / DELETE ... USING (SELECT ...)
-        if (IsDeleteFromSelectSql(query.RawSql))
-            return connection.ExecuteDeleteFromSelect(query, pars, dialect);
-        return connection.ExecuteDelete(query, pars);
+        var affected = IsDeleteFromSelectSql(query.RawSql)
+            ? connection.ExecuteDeleteFromSelect(query, pars, dialect)
+            : connection.ExecuteDelete(query, pars);
+
+        connection.SetLastFoundRows(affected);
+        return affected;
     }
 
     /// <summary>
