@@ -746,6 +746,7 @@ internal static class SqlExecutionPlanFormatter
         if (query.Where is not null) cost += 8 + EstimatePredicateComplexityCost(query.Where);
         cost += EstimateAggregationCost(query.GroupBy, query.Having);
         cost += EstimateSortAndDedupCost(query.OrderBy, query.Distinct, query.RowLimit);
+        cost += EstimateDistinctGroupByOrderByCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.RowLimit);
         cost += EstimateProjectionCost(query.SelectItems);
         cost -= EstimateRowLimitRelief(query.RowLimit);
         return Math.Max(1, cost);
@@ -931,6 +932,29 @@ internal static class SqlExecutionPlanFormatter
 
         if (distinct && orderBy.Count > 0 && rowLimit is null)
             cost += 5;
+
+        return cost;
+    }
+
+    /// <summary>
+    /// EN: Estimates coupling cost for DISTINCT + GROUP BY + ORDER BY mixes because dedup, aggregation and sorting stages contend for the same row stream.
+    /// PT: Estima custo de acoplamento para combinações DISTINCT + GROUP BY + ORDER BY porque estágios de deduplicação, agregação e ordenação disputam o mesmo fluxo de linhas.
+    /// </summary>
+    private static int EstimateDistinctGroupByOrderByCouplingCost(
+        bool distinct,
+        IReadOnlyList<string> groupBy,
+        IReadOnlyList<SqlOrderByItem> orderBy,
+        SqlRowLimit? rowLimit)
+    {
+        if (!distinct || groupBy.Count == 0 || orderBy.Count == 0)
+            return 0;
+
+        var cost = 8;
+        cost += Math.Min(4, Math.Max(0, groupBy.Count - 1));
+        cost += Math.Min(2, Math.Max(0, orderBy.Count - 1));
+
+        if (rowLimit is null)
+            cost += 2;
 
         return cost;
     }

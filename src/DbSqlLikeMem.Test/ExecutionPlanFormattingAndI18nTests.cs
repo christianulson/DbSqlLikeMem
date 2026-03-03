@@ -1192,6 +1192,70 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         ExtractEstimatedCost(withLimitPlan).Should().BeLessThan(ExtractEstimatedCost(noLimitPlan));
     }
 
+    /// <summary>
+    /// EN: Verifies DISTINCT + GROUP BY + ORDER BY without row limit applies an additional coupling penalty beyond DISTINCT baseline.
+    /// PT: Verifica que DISTINCT + GROUP BY + ORDER BY sem limite de linhas aplica penalidade adicional de acoplamento além da linha de base de DISTINCT.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldApplyAdditionalPenaltyForDistinctGroupByOrderByMixWithoutLimit()
+    {
+        var groupedOrderedQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("tenantid", null), new SqlSelectItem("COUNT(*)", "cnt")],
+            [],
+            null,
+            [new SqlOrderByItem("tenantid", false)],
+            null,
+            ["tenantid"],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var distinctGroupedOrderedQuery = groupedOrderedQuery with { Distinct = true };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var groupedOrderedPlan = SqlExecutionPlanFormatter.FormatSelect(groupedOrderedQuery, metrics, [], []);
+        var distinctGroupedOrderedPlan = SqlExecutionPlanFormatter.FormatSelect(distinctGroupedOrderedQuery, metrics, [], []);
+
+        var groupedOrderedCost = ExtractEstimatedCost(groupedOrderedPlan);
+        var distinctGroupedOrderedCost = ExtractEstimatedCost(distinctGroupedOrderedPlan);
+        (distinctGroupedOrderedCost - groupedOrderedCost).Should().BeGreaterThanOrEqualTo(20);
+    }
+
+    /// <summary>
+    /// EN: Verifies row-limit reduces DISTINCT + GROUP BY + ORDER BY coupling pressure compared with the same no-limit shape.
+    /// PT: Verifica que limite de linhas reduz a pressão de acoplamento de DISTINCT + GROUP BY + ORDER BY em comparação ao mesmo formato sem limite.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldReduceDistinctGroupByOrderByCouplingWhenLimitIsPresent()
+    {
+        var noLimitQuery = new SqlSelectQuery(
+            [],
+            true,
+            [new SqlSelectItem("tenantid", null), new SqlSelectItem("COUNT(*)", "cnt")],
+            [],
+            null,
+            [new SqlOrderByItem("tenantid", false)],
+            null,
+            ["tenantid"],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var withLimitQuery = noLimitQuery with { RowLimit = new SqlLimitOffset(10, null) };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var noLimitPlan = SqlExecutionPlanFormatter.FormatSelect(noLimitQuery, metrics, [], []);
+        var withLimitPlan = SqlExecutionPlanFormatter.FormatSelect(withLimitQuery, metrics, [], []);
+
+        var noLimitCost = ExtractEstimatedCost(noLimitPlan);
+        var withLimitCost = ExtractEstimatedCost(withLimitPlan);
+        (noLimitCost - withLimitCost).Should().BeGreaterThanOrEqualTo(15);
+    }
+
 
     /// <summary>
     /// EN: Verifies estimated cost increases with additional GROUP BY keys.
