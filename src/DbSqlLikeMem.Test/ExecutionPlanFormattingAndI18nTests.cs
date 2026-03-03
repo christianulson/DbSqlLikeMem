@@ -1324,6 +1324,39 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     }
 
     /// <summary>
+    /// EN: Verifies GROUP BY JSON-expression complexity increases estimated cost.
+    /// PT: Verifica que a complexidade de expressão JSON em GROUP BY aumenta o custo estimado.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithJsonGroupByExpressions()
+    {
+        var simpleGroupByQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("tenantid", null), new SqlSelectItem("COUNT(*)", "cnt")],
+            [],
+            null,
+            [],
+            null,
+            ["tenantid"],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var jsonGroupByQuery = simpleGroupByQuery with
+        {
+            GroupBy = ["JSON_VALUE(payload, '$.tenant')"]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var simplePlan = SqlExecutionPlanFormatter.FormatSelect(simpleGroupByQuery, metrics, [], []);
+        var jsonPlan = SqlExecutionPlanFormatter.FormatSelect(jsonGroupByQuery, metrics, [], []);
+
+        ExtractEstimatedCost(simplePlan).Should().BeLessThan(ExtractEstimatedCost(jsonPlan));
+    }
+
+    /// <summary>
     /// EN: Verifies estimated cost increases with additional ORDER BY keys.
     /// PT: Verifica que o custo estimado aumenta com chaves adicionais de ORDER BY.
     /// </summary>
@@ -1369,6 +1402,30 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         var complexPlan = SqlExecutionPlanFormatter.FormatSelect(complexOrderByQuery, metrics, [], []);
 
         ExtractEstimatedCost(simplePlan).Should().BeLessThan(ExtractEstimatedCost(complexPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies ORDER BY JSON-expression complexity increases estimated cost.
+    /// PT: Verifica que a complexidade de expressão JSON em ORDER BY aumenta o custo estimado.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithJsonOrderByExpressions()
+    {
+        var simpleOrderByQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [new SqlOrderByItem("tenantid", false)], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var jsonOrderByQuery = simpleOrderByQuery with
+        {
+            OrderBy = [new SqlOrderByItem("JSON_VALUE(payload, '$.tenant')", false)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var simplePlan = SqlExecutionPlanFormatter.FormatSelect(simpleOrderByQuery, metrics, [], []);
+        var jsonPlan = SqlExecutionPlanFormatter.FormatSelect(jsonOrderByQuery, metrics, [], []);
+
+        ExtractEstimatedCost(simplePlan).Should().BeLessThan(ExtractEstimatedCost(jsonPlan));
     }
 
     /// <summary>
@@ -2209,6 +2266,61 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         var distinctPlan = SqlExecutionPlanFormatter.FormatSelect(distinctAggregateQuery, metrics, [], []);
 
         ExtractEstimatedCost(nonDistinctPlan).Should().BeLessThan(ExtractEstimatedCost(distinctPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies MIN/MAX aggregate projections carry higher estimated cost than equivalent non-aggregate scalar projection.
+    /// PT: Verifica que projeções agregadas MIN/MAX carregam custo estimado maior que projeção escalar não agregada equivalente.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseForMinMaxAggregateProjection()
+    {
+        var scalarProjectionQuery = new SqlSelectQuery([], false, [new SqlSelectItem("ABS(amount)", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var minProjectionQuery = scalarProjectionQuery with
+        {
+            SelectItems = [new SqlSelectItem("MIN(amount)", null)]
+        };
+
+        var maxProjectionQuery = scalarProjectionQuery with
+        {
+            SelectItems = [new SqlSelectItem("MAX(amount)", null)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var scalarPlan = SqlExecutionPlanFormatter.FormatSelect(scalarProjectionQuery, metrics, [], []);
+        var minPlan = SqlExecutionPlanFormatter.FormatSelect(minProjectionQuery, metrics, [], []);
+        var maxPlan = SqlExecutionPlanFormatter.FormatSelect(maxProjectionQuery, metrics, [], []);
+
+        ExtractEstimatedCost(scalarPlan).Should().BeLessThan(ExtractEstimatedCost(minPlan));
+        ExtractEstimatedCost(scalarPlan).Should().BeLessThan(ExtractEstimatedCost(maxPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies projection cost increases with additional MIN/MAX aggregate calls in the same projection expression.
+    /// PT: Verifica que o custo da projeção aumenta com chamadas agregadas MIN/MAX adicionais na mesma expressão de projeção.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithAdditionalMinMaxAggregateCallsInProjection()
+    {
+        var oneAggregateQuery = new SqlSelectQuery([], false, [new SqlSelectItem("MIN(amount)", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var twoAggregatesQuery = oneAggregateQuery with
+        {
+            SelectItems = [new SqlSelectItem("MIN(amount) + MAX(amount)", null)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var oneAggregatePlan = SqlExecutionPlanFormatter.FormatSelect(oneAggregateQuery, metrics, [], []);
+        var twoAggregatesPlan = SqlExecutionPlanFormatter.FormatSelect(twoAggregatesQuery, metrics, [], []);
+
+        ExtractEstimatedCost(oneAggregatePlan).Should().BeLessThan(ExtractEstimatedCost(twoAggregatesPlan));
     }
 
     /// <summary>

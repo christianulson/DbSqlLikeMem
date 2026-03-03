@@ -971,6 +971,7 @@ internal static class SqlExecutionPlanFormatter
             var raw = key ?? string.Empty;
             cost += CountSqlKeywordOccurrences(raw, "CASE") * 2;
             cost += CountSqlKeywordOccurrences(raw, "SELECT") * 5;
+            cost += CountJsonFunctionCalls(raw) * 2;
         }
 
         return cost;
@@ -989,6 +990,7 @@ internal static class SqlExecutionPlanFormatter
             cost += CountSqlKeywordOccurrences(raw, "CASE") * 2;
             cost += CountSqlKeywordOccurrences(raw, "SELECT") * 5;
             cost += CountSqlKeywordOccurrences(raw, "OVER") * 3;
+            cost += CountJsonFunctionCalls(raw) * 2;
         }
 
         return cost;
@@ -1076,6 +1078,8 @@ internal static class SqlExecutionPlanFormatter
         cost += CountSqlFunctionCalls(raw, "COUNT") * 2;
         cost += CountSqlFunctionCalls(raw, "SUM") * 3;
         cost += CountSqlFunctionCalls(raw, "AVG") * 4;
+        cost += CountSqlFunctionCalls(raw, "MIN") * 3;
+        cost += CountSqlFunctionCalls(raw, "MAX") * 3;
         cost += CountDistinctAggregateCalls(raw, "COUNT") * 2;
         cost += CountDistinctAggregateCalls(raw, "SUM") * 2;
         cost += CountDistinctAggregateCalls(raw, "AVG") * 2;
@@ -1197,6 +1201,22 @@ internal static class SqlExecutionPlanFormatter
 
             index += keyword.Length;
         }
+    }
+
+    /// <summary>
+    /// EN: Counts common JSON SQL function calls used across providers.
+    /// PT: Conta chamadas comuns de funções SQL de JSON usadas entre providers.
+    /// </summary>
+    private static int CountJsonFunctionCalls(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return 0;
+
+        var count = 0;
+        count += CountSqlFunctionCalls(raw, "JSON_VALUE");
+        count += CountSqlFunctionCalls(raw, "JSON_QUERY");
+        count += CountSqlFunctionCalls(raw, "JSON_EXTRACT");
+        return count;
     }
 
     /// <summary>
