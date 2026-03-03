@@ -2,6 +2,7 @@ using DbSqlLikeMem.Interfaces;
 using System.Diagnostics;
 using DbSqlLikeMem.Models;
 using System.Collections.Concurrent;
+using System.Text;
 
 namespace DbSqlLikeMem;
 
@@ -26,6 +27,8 @@ internal abstract class AstQueryExecutorBase(
     private readonly IDataParameterCollection _pars = pars ?? throw new ArgumentNullException(nameof(pars));
     private readonly object _dialect = dialect ?? throw new ArgumentNullException(nameof(dialect));
     private ISqlDialect? Dialect => _dialect as ISqlDialect;
+    private readonly ConcurrentDictionary<string, bool> _existsSubqueryCache = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, List<object?>> _inSubqueryFirstColumnCache = new(StringComparer.Ordinal);
 
 
     private static readonly HashSet<string> _aggFns = new(StringComparer.OrdinalIgnoreCase)
@@ -88,6 +91,7 @@ internal abstract class AstQueryExecutorBase(
         string? sqlContextForErrors = null)
     {
         var sw = Stopwatch.StartNew();
+        ClearSubqueryEvaluationCaches();
 
         if (parts is null || parts.Count == 0)
             throw new InvalidOperationException("UNION: nenhuma query.");
@@ -345,6 +349,7 @@ internal abstract class AstQueryExecutorBase(
     public TableResultMock ExecuteSelect(SqlSelectQuery q)
     {
         var sw = Stopwatch.StartNew();
+        ClearSubqueryEvaluationCaches();
         var result = ExecuteSelect(q, null, null);
         sw.Stop();
 
@@ -3937,13 +3942,11 @@ private void FillPercentRankOrCumeDist(
         // IN (subquery)
         if (i.Items.Count == 1 && i.Items[0] is SubqueryExpr sq)
         {
-            // ✅ passa ctes + outerRow pra suportar correlated subquery (u.Id etc.)
-            var sub = ExecuteSelect(GetSingleSubqueryOrThrow(sq, "IN"), ctes, row);
+            var subqueryValues = GetOrEvaluateInSubqueryFirstColumnValues(sq, row, ctes);
 
-            // MySQL: IN(subquery) considera a 1ª coluna retornada
-            foreach (var sr in sub)
+            // MySQL: IN(subquery) considera a 1a coluna retornada
+            foreach (var v in subqueryValues)
             {
-                var v = sr.TryGetValue(0, out var cell) ? cell : null;
                 if (leftVal.EqualsSql(v, Dialect))
                     return true;
             }
@@ -4000,8 +4003,87 @@ private void FillPercentRankOrCumeDist(
         IDictionary<string, Source> ctes)
     {
         var sq = ex.Subquery;
-        var sub = ExecuteSelect(GetSingleSubqueryOrThrow(sq, "EXISTS"), ctes, row); // ✅ AST + correlated
-        return sub.Count > 0;
+        var cacheKey = BuildCorrelatedSubqueryCacheKey("EXISTS", sq.Sql, row);
+
+        return _existsSubqueryCache.GetOrAdd(
+            cacheKey,
+            _ =>
+            {
+                var sub = ExecuteSelect(GetSingleSubqueryOrThrow(sq, "EXISTS"), ctes, row);
+                return sub.Count > 0;
+            });
+    }
+
+    /// <summary>
+    /// EN: Resolves and caches first-column values for correlated IN-subquery evaluation using outer-row-aware cache keys.
+    /// PT: Resolve e cacheia valores da primeira coluna para avaliação de IN-subquery correlacionada usando chaves de cache sensíveis à linha externa.
+    /// </summary>
+    private List<object?> GetOrEvaluateInSubqueryFirstColumnValues(
+        SubqueryExpr sq,
+        EvalRow row,
+        IDictionary<string, Source> ctes)
+    {
+        var cacheKey = BuildCorrelatedSubqueryCacheKey("IN", sq.Sql, row);
+
+        return _inSubqueryFirstColumnCache.GetOrAdd(
+            cacheKey,
+            _ =>
+            {
+                var sub = ExecuteSelect(GetSingleSubqueryOrThrow(sq, "IN"), ctes, row);
+                var values = new List<object?>(sub.Count);
+                foreach (var sr in sub)
+                    values.Add(sr.TryGetValue(0, out var cell) ? cell : null);
+
+                return values;
+            });
+    }
+
+    /// <summary>
+    /// EN: Builds a deterministic cache key for correlated subquery evaluation using operation kind, raw subquery text and normalized outer-row values.
+    /// PT: Monta uma chave de cache determinística para avaliação de subquery correlacionada usando tipo de operação, texto bruto da subquery e valores normalizados da linha externa.
+    /// </summary>
+    private static string BuildCorrelatedSubqueryCacheKey(string operation, string subquerySql, EvalRow row)
+    {
+        var sb = new StringBuilder();
+        sb.Append(operation);
+        sb.Append('\u001F');
+        sb.Append(subquerySql ?? string.Empty);
+        sb.Append('\u001F');
+
+        foreach (var kv in row.Fields.OrderBy(static kv => kv.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            sb.Append(kv.Key);
+            sb.Append('=');
+            sb.Append(NormalizeSubqueryCacheValue(kv.Value));
+            sb.Append('\u001E');
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// EN: Normalizes scalar and tuple-like values into stable cache-key fragments for correlated subquery memoization.
+    /// PT: Normaliza valores escalares e em formato tupla em fragmentos estáveis de chave de cache para memoização de subquery correlacionada.
+    /// </summary>
+    private static string NormalizeSubqueryCacheValue(object? value)
+    {
+        if (value is null || value is DBNull)
+            return "<null>";
+
+        if (value is object?[] tuple)
+            return "[" + string.Join(",", tuple.Select(NormalizeSubqueryCacheValue)) + "]";
+
+        return Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+    }
+
+    /// <summary>
+    /// EN: Clears per-query correlated subquery caches so memoized values do not leak across independent top-level executions.
+    /// PT: Limpa caches de subquery correlacionada por consulta para que valores memoizados não vazem entre execuções de topo independentes.
+    /// </summary>
+    private void ClearSubqueryEvaluationCaches()
+    {
+        _existsSubqueryCache.Clear();
+        _inSubqueryFirstColumnCache.Clear();
     }
 
 

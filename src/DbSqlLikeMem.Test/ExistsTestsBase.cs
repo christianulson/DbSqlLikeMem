@@ -109,6 +109,66 @@ ORDER BY u.Id";
         ids.Should().Equal(1);
     }
 
+    /// <summary>
+    /// EN: Tests correlated EXISTS subquery reuses evaluation for duplicate outer rows, reducing repeated source access.
+    /// PT: Testa que subquery correlacionada com EXISTS reutiliza avaliação para linhas externas duplicadas, reduzindo acessos repetidos à fonte.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void Exists_CorrelatedSubquery_ShouldReuseEvaluationForDuplicateOuterRows()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        for (var i = 0; i < 80; i++)
+            cnn.Seed("users", null, [1, "Ana"]);
+
+        cnn.Seed("orders", null,
+            [10, 1, 50m],
+            [11, 1, 60m]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE EXISTS (SELECT 1 FROM orders o WHERE o.UserId = u.Id)
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().HaveCount(80);
+        GetTableHintCount(cnn, "orders").Should().BeLessThan(10);
+    }
+
+    /// <summary>
+    /// EN: Tests correlated IN-subquery reuses evaluation for duplicate outer rows, reducing repeated source access.
+    /// PT: Testa que subquery correlacionada em IN reutiliza avaliação para linhas externas duplicadas, reduzindo acessos repetidos à fonte.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void InCorrelatedSubquery_ShouldReuseEvaluationForDuplicateOuterRows()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        for (var i = 0; i < 80; i++)
+            cnn.Seed("users", null, [1, "Ana"]);
+
+        cnn.Seed("orders", null,
+            [10, 1, 50m],
+            [11, 1, 60m]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE u.Id IN (SELECT o.UserId FROM orders o WHERE o.UserId = u.Id)
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().HaveCount(80);
+        GetTableHintCount(cnn, "orders").Should().BeLessThan(10);
+    }
+
     private static void DefineUsersAndOrdersTables(
         DbConnectionMockBase cnn)
     {
@@ -136,4 +196,13 @@ ORDER BY u.Id";
 
         return ids;
     }
+
+    /// <summary>
+    /// EN: Gets how many times a table source was touched according to connection metrics.
+    /// PT: Obtém quantas vezes uma fonte de tabela foi acessada segundo as métricas da conexão.
+    /// </summary>
+    private static int GetTableHintCount(DbConnectionMockBase cnn, string tableName)
+        => cnn.Metrics.TableHints.TryGetValue(tableName, out var count)
+            ? count
+            : 0;
 }
