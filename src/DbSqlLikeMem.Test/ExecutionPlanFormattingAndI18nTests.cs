@@ -2850,6 +2850,207 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     }
 
     /// <summary>
+    /// EN: Verifies outer ORDER BY uplift increases when a JOIN source is a derived UNION already ordered internally.
+    /// PT: Verifica que o uplift de ORDER BY externo aumenta quando uma fonte de JOIN é um UNION derivado já ordenado internamente.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseNestedOrderByCouplingForOrderedJoinedDerivedUnionSource()
+    {
+        var unionPart1 = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var unionPart2 = unionPart1 with
+        {
+            SelectItems = [new SqlSelectItem("userid", null)]
+        };
+
+        var unorderedJoinSource = new SqlTableSource(
+            null,
+            null,
+            "duj",
+            null,
+            new SqlQueryParser.UnionChain([unionPart1, unionPart2], [true], [], null),
+            "(SELECT id FROM orders UNION ALL SELECT userid FROM orders)",
+            null);
+
+        var orderedJoinSource = unorderedJoinSource with
+        {
+            DerivedUnion = new SqlQueryParser.UnionChain([unionPart1, unionPart2], [true], [new SqlOrderByItem("id", false)], null)
+        };
+
+        var baseQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("u.id", null)],
+            [new SqlJoin(SqlJoinType.Inner, unorderedJoinSource, new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("u.id"), new IdentifierExpr("duj.id")))],
+            null,
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", "u", null, null, null, null)
+        };
+
+        var unorderedJoinedNoOuterOrderBy = baseQuery;
+        var unorderedJoinedWithOuterOrderBy = baseQuery with { OrderBy = [new SqlOrderByItem("u.id", false)] };
+        var orderedJoinedNoOuterOrderBy = baseQuery with { Joins = [new SqlJoin(SqlJoinType.Inner, orderedJoinSource, new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("u.id"), new IdentifierExpr("duj.id")))] };
+        var orderedJoinedWithOuterOrderBy = orderedJoinedNoOuterOrderBy with { OrderBy = [new SqlOrderByItem("u.id", false)] };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var unorderedNoOrderPlan = SqlExecutionPlanFormatter.FormatSelect(unorderedJoinedNoOuterOrderBy, metrics, [], []);
+        var unorderedWithOrderPlan = SqlExecutionPlanFormatter.FormatSelect(unorderedJoinedWithOuterOrderBy, metrics, [], []);
+        var orderedNoOrderPlan = SqlExecutionPlanFormatter.FormatSelect(orderedJoinedNoOuterOrderBy, metrics, [], []);
+        var orderedWithOrderPlan = SqlExecutionPlanFormatter.FormatSelect(orderedJoinedWithOuterOrderBy, metrics, [], []);
+
+        var unorderedUplift = ExtractEstimatedCost(unorderedWithOrderPlan) - ExtractEstimatedCost(unorderedNoOrderPlan);
+        var orderedUplift = ExtractEstimatedCost(orderedWithOrderPlan) - ExtractEstimatedCost(orderedNoOrderPlan);
+        unorderedUplift.Should().BeLessThan(orderedUplift);
+    }
+
+    /// <summary>
+    /// EN: Verifies outer ORDER BY uplift increases when a JOIN source is a derived SELECT already ordered internally.
+    /// PT: Verifica que o uplift de ORDER BY externo aumenta quando uma fonte de JOIN é um SELECT derivado já ordenado internamente.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseNestedOrderByCouplingForOrderedJoinedDerivedSelectSource()
+    {
+        var unorderedDerivedSelect = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var orderedDerivedSelect = unorderedDerivedSelect with
+        {
+            OrderBy = [new SqlOrderByItem("id", false)]
+        };
+
+        var unorderedJoinSource = new SqlTableSource(null, null, "dsj", unorderedDerivedSelect, null, null, null);
+        var orderedJoinSource = new SqlTableSource(null, null, "dsj", orderedDerivedSelect, null, null, null);
+
+        var baseQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("u.id", null)],
+            [new SqlJoin(SqlJoinType.Inner, unorderedJoinSource, new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("u.id"), new IdentifierExpr("dsj.id")))],
+            null,
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", "u", null, null, null, null)
+        };
+
+        var unorderedJoinedNoOuterOrderBy = baseQuery;
+        var unorderedJoinedWithOuterOrderBy = baseQuery with { OrderBy = [new SqlOrderByItem("u.id", false)] };
+        var orderedJoinedNoOuterOrderBy = baseQuery with { Joins = [new SqlJoin(SqlJoinType.Inner, orderedJoinSource, new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("u.id"), new IdentifierExpr("dsj.id")))] };
+        var orderedJoinedWithOuterOrderBy = orderedJoinedNoOuterOrderBy with { OrderBy = [new SqlOrderByItem("u.id", false)] };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var unorderedNoOrderPlan = SqlExecutionPlanFormatter.FormatSelect(unorderedJoinedNoOuterOrderBy, metrics, [], []);
+        var unorderedWithOrderPlan = SqlExecutionPlanFormatter.FormatSelect(unorderedJoinedWithOuterOrderBy, metrics, [], []);
+        var orderedNoOrderPlan = SqlExecutionPlanFormatter.FormatSelect(orderedJoinedNoOuterOrderBy, metrics, [], []);
+        var orderedWithOrderPlan = SqlExecutionPlanFormatter.FormatSelect(orderedJoinedWithOuterOrderBy, metrics, [], []);
+
+        var unorderedUplift = ExtractEstimatedCost(unorderedWithOrderPlan) - ExtractEstimatedCost(unorderedNoOrderPlan);
+        var orderedUplift = ExtractEstimatedCost(orderedWithOrderPlan) - ExtractEstimatedCost(orderedNoOrderPlan);
+        unorderedUplift.Should().BeLessThan(orderedUplift);
+    }
+
+    /// <summary>
+    /// EN: Verifies nested ORDER BY coupling grows when multiple JOIN sources are internally ordered derived sources.
+    /// PT: Verifica que o acoplamento de ORDER BY aninhado cresce quando múltiplas fontes de JOIN são derivadas internamente ordenadas.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseNestedOrderByCouplingWithMultipleOrderedJoinedDerivedSources()
+    {
+        var orderedDerivedOrders = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [new SqlOrderByItem("userid", false)], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var orderedDerivedPayments = new SqlSelectQuery([], false, [new SqlSelectItem("orderid", null)], [], null, [new SqlOrderByItem("orderid", false)], null, [], null)
+        {
+            Table = new SqlTableSource(null, "payments", null, null, null, null, null)
+        };
+
+        var oneOrderedJoinSource = new SqlTableSource(null, null, "od1", orderedDerivedOrders, null, null, null);
+        var twoOrderedJoinSource = new SqlTableSource(null, null, "od2", orderedDerivedPayments, null, null, null);
+
+        var oneOrderedJoinQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("u.id", null)],
+            [new SqlJoin(SqlJoinType.Inner, oneOrderedJoinSource, new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("u.id"), new IdentifierExpr("od1.userid")))],
+            null,
+            [new SqlOrderByItem("u.id", false)],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", "u", null, null, null, null)
+        };
+
+        var twoOrderedJoinsQuery = oneOrderedJoinQuery with
+        {
+            Joins =
+            [
+                new SqlJoin(SqlJoinType.Inner, oneOrderedJoinSource, new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("u.id"), new IdentifierExpr("od1.userid"))),
+                new SqlJoin(SqlJoinType.Inner, twoOrderedJoinSource, new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("od1.userid"), new IdentifierExpr("od2.orderid")))
+            ]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(3, 300, 30, 6);
+        var oneOrderedJoinPlan = SqlExecutionPlanFormatter.FormatSelect(oneOrderedJoinQuery, metrics, [], []);
+        var twoOrderedJoinsPlan = SqlExecutionPlanFormatter.FormatSelect(twoOrderedJoinsQuery, metrics, [], []);
+
+        ExtractEstimatedCost(oneOrderedJoinPlan).Should().BeLessThan(ExtractEstimatedCost(twoOrderedJoinsPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies outer row-limit reduces nested ORDER BY coupling uplift for ordered JOIN derived sources.
+    /// PT: Verifica que limite de linhas externo reduz o uplift de acoplamento de ORDER BY aninhado para fontes derivadas ordenadas em JOIN.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldReduceNestedOrderByCouplingForOrderedJoinedDerivedSourceWhenOuterLimitIsPresent()
+    {
+        var orderedDerivedSelect = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [new SqlOrderByItem("id", false)], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var orderedJoinSource = new SqlTableSource(null, null, "dsj", orderedDerivedSelect, null, null, null);
+
+        var withoutOuterLimit = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("u.id", null)],
+            [new SqlJoin(SqlJoinType.Inner, orderedJoinSource, new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("u.id"), new IdentifierExpr("dsj.id")))],
+            null,
+            [new SqlOrderByItem("u.id", false)],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", "u", null, null, null, null)
+        };
+
+        var withOuterLimit = withoutOuterLimit with
+        {
+            RowLimit = new SqlLimitOffset(10, null)
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var noLimitPlan = SqlExecutionPlanFormatter.FormatSelect(withoutOuterLimit, metrics, [], []);
+        var withLimitPlan = SqlExecutionPlanFormatter.FormatSelect(withOuterLimit, metrics, [], []);
+
+        ExtractEstimatedCost(withLimitPlan).Should().BeLessThan(ExtractEstimatedCost(noLimitPlan));
+    }
+
+    /// <summary>
     /// EN: Verifies aggregate functions in projection add estimated cost beyond equivalent non-aggregate scalar functions.
     /// PT: Verifica que funções agregadas na projeção adicionam custo estimado além de funções escalares não agregadas equivalentes.
     /// </summary>

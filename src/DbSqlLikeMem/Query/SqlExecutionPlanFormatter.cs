@@ -751,6 +751,7 @@ internal static class SqlExecutionPlanFormatter
         cost += EstimateDistinctGroupByOrderByCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.RowLimit);
         cost += EstimateDistinctGroupByOrderByHavingCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.Having);
         cost += EstimateNestedOrderByCouplingCost(query.Table, query.OrderBy, query.RowLimit);
+        cost += query.Joins.Sum(join => EstimateNestedOrderByCouplingCost(join.Table, query.OrderBy, query.RowLimit));
         cost += EstimateProjectionCost(query.SelectItems);
         cost -= EstimateRowLimitRelief(query.RowLimit);
         return Math.Max(1, cost);
@@ -814,6 +815,7 @@ internal static class SqlExecutionPlanFormatter
         cost += EstimateDistinctGroupByOrderByCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.RowLimit);
         cost += EstimateDistinctGroupByOrderByHavingCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.Having);
         cost += EstimateNestedOrderByCouplingCost(query.Table, query.OrderBy, query.RowLimit);
+        cost += query.Joins.Sum(join => EstimateNestedOrderByCouplingCost(join.Table, query.OrderBy, query.RowLimit));
         cost += EstimateProjectionCost(query.SelectItems);
         cost -= EstimateRowLimitRelief(query.RowLimit);
         return Math.Max(0, cost);
