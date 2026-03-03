@@ -1291,6 +1291,39 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     }
 
     /// <summary>
+    /// EN: Verifies GROUP BY expression complexity increases estimated cost when grouping key uses CASE expression.
+    /// PT: Verifica que a complexidade de expressão em GROUP BY aumenta o custo estimado quando a chave de agrupamento usa expressão CASE.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithComplexGroupByExpressions()
+    {
+        var simpleGroupByQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("tenantid", null), new SqlSelectItem("COUNT(*)", "cnt")],
+            [],
+            null,
+            [],
+            null,
+            ["tenantid"],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var complexGroupByQuery = simpleGroupByQuery with
+        {
+            GroupBy = ["CASE WHEN tenantid > 10 THEN 1 ELSE 0 END"]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var simplePlan = SqlExecutionPlanFormatter.FormatSelect(simpleGroupByQuery, metrics, [], []);
+        var complexPlan = SqlExecutionPlanFormatter.FormatSelect(complexGroupByQuery, metrics, [], []);
+
+        ExtractEstimatedCost(simplePlan).Should().BeLessThan(ExtractEstimatedCost(complexPlan));
+    }
+
+    /// <summary>
     /// EN: Verifies estimated cost increases with additional ORDER BY keys.
     /// PT: Verifica que o custo estimado aumenta com chaves adicionais de ORDER BY.
     /// </summary>
@@ -1315,6 +1348,30 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     }
 
     /// <summary>
+    /// EN: Verifies ORDER BY expression complexity increases estimated cost when ordering key uses CASE expression.
+    /// PT: Verifica que a complexidade de expressão em ORDER BY aumenta o custo estimado quando a chave de ordenação usa expressão CASE.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithComplexOrderByExpressions()
+    {
+        var simpleOrderByQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [new SqlOrderByItem("tenantid", false)], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var complexOrderByQuery = simpleOrderByQuery with
+        {
+            OrderBy = [new SqlOrderByItem("CASE WHEN tenantid > 10 THEN 1 ELSE 0 END", false)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var simplePlan = SqlExecutionPlanFormatter.FormatSelect(simpleOrderByQuery, metrics, [], []);
+        var complexPlan = SqlExecutionPlanFormatter.FormatSelect(complexOrderByQuery, metrics, [], []);
+
+        ExtractEstimatedCost(simplePlan).Should().BeLessThan(ExtractEstimatedCost(complexPlan));
+    }
+
+    /// <summary>
     /// EN: Verifies UNION estimated cost increases with additional ORDER BY keys.
     /// PT: Verifica que o custo estimado de UNION aumenta com chaves adicionais de ORDER BY.
     /// </summary>
@@ -1336,6 +1393,30 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         var twoKeyPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false), new SqlOrderByItem("userid", false)], null, metrics);
 
         ExtractEstimatedCost(oneKeyPlan).Should().BeLessThan(ExtractEstimatedCost(twoKeyPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies UNION ORDER BY expression complexity increases estimated cost when ordering key uses CASE expression.
+    /// PT: Verifica que a complexidade de expressão em ORDER BY de UNION aumenta o custo estimado quando a chave usa expressão CASE.
+    /// </summary>
+    [Fact]
+    public void FormatUnion_EstimatedCost_ShouldIncreaseWithComplexOrderByExpressions()
+    {
+        var part1 = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var part2 = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var simplePlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], null, metrics);
+        var complexPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("CASE WHEN id > 10 THEN 1 ELSE 0 END", false)], null, metrics);
+
+        ExtractEstimatedCost(simplePlan).Should().BeLessThan(ExtractEstimatedCost(complexPlan));
     }
 
 

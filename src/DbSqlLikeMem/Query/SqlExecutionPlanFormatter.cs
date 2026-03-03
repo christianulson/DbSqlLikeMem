@@ -746,6 +746,8 @@ internal static class SqlExecutionPlanFormatter
         if (query.Where is not null) cost += 8 + EstimatePredicateComplexityCost(query.Where);
         cost += EstimateAggregationCost(query.GroupBy, query.Having);
         cost += EstimateSortAndDedupCost(query.OrderBy, query.Distinct, query.RowLimit);
+        cost += EstimateGroupByExpressionComplexityCost(query.GroupBy);
+        cost += EstimateOrderByExpressionComplexityCost(query.OrderBy);
         cost += EstimateDistinctGroupByOrderByCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.RowLimit);
         cost += EstimateProjectionCost(query.SelectItems);
         cost -= EstimateRowLimitRelief(query.RowLimit);
@@ -805,6 +807,8 @@ internal static class SqlExecutionPlanFormatter
 
         cost += EstimateAggregationCost(query.GroupBy, query.Having);
         cost += EstimateSortAndDedupCost(query.OrderBy, query.Distinct, query.RowLimit);
+        cost += EstimateGroupByExpressionComplexityCost(query.GroupBy);
+        cost += EstimateOrderByExpressionComplexityCost(query.OrderBy);
         cost += EstimateProjectionCost(query.SelectItems);
         return Math.Max(0, cost);
     }
@@ -951,6 +955,41 @@ internal static class SqlExecutionPlanFormatter
 
         if (distinct && orderBy.Count > 0 && rowLimit is null)
             cost += 5;
+
+        return cost;
+    }
+
+    /// <summary>
+    /// EN: Estimates extra cost for complex GROUP BY expressions (for example CASE/subquery tokens) beyond key-count cardinality.
+    /// PT: Estima custo extra para expressões complexas em GROUP BY (por exemplo tokens CASE/subquery) além da cardinalidade de chaves.
+    /// </summary>
+    private static int EstimateGroupByExpressionComplexityCost(IReadOnlyList<string> groupBy)
+    {
+        var cost = 0;
+        foreach (var key in groupBy)
+        {
+            var raw = key ?? string.Empty;
+            cost += CountSqlKeywordOccurrences(raw, "CASE") * 2;
+            cost += CountSqlKeywordOccurrences(raw, "SELECT") * 5;
+        }
+
+        return cost;
+    }
+
+    /// <summary>
+    /// EN: Estimates extra cost for complex ORDER BY expressions (for example CASE/subquery/window tokens) beyond key-count cardinality.
+    /// PT: Estima custo extra para expressões complexas em ORDER BY (por exemplo tokens CASE/subquery/window) além da cardinalidade de chaves.
+    /// </summary>
+    private static int EstimateOrderByExpressionComplexityCost(IReadOnlyList<SqlOrderByItem> orderBy)
+    {
+        var cost = 0;
+        foreach (var item in orderBy)
+        {
+            var raw = item.Raw ?? string.Empty;
+            cost += CountSqlKeywordOccurrences(raw, "CASE") * 2;
+            cost += CountSqlKeywordOccurrences(raw, "SELECT") * 5;
+            cost += CountSqlKeywordOccurrences(raw, "OVER") * 3;
+        }
 
         return cost;
     }
@@ -1239,6 +1278,7 @@ internal static class SqlExecutionPlanFormatter
         var cost = parts.Sum(EstimateSelectCost) + 12;
         cost += allFlags.Count(flag => !flag) * 20;
         cost += EstimateSortAndDedupCost(orderBy ?? [], false, rowLimit);
+        cost += EstimateOrderByExpressionComplexityCost(orderBy ?? []);
         cost -= EstimateRowLimitRelief(rowLimit);
         return Math.Max(1, cost);
     }
