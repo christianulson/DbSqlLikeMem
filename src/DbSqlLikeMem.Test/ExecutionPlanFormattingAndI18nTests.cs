@@ -1067,6 +1067,52 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     }
 
     /// <summary>
+    /// EN: Verifies UNION estimated cost increases when ALL/DISTINCT operators alternate more often even with the same DISTINCT operator count.
+    /// PT: Verifica que o custo estimado de UNION aumenta quando operadores ALL/DISTINCT alternam com maior frequência mesmo com a mesma contagem de operadores DISTINCT.
+    /// </summary>
+    [Fact]
+    public void FormatUnion_EstimatedCost_ShouldIncreaseForAlternatingSetOperatorTransitionsWithSameDistinctCount()
+    {
+        var part1 = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var part2 = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var part3 = new SqlSelectQuery([], false, [new SqlSelectItem("tenantid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var part4 = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(4, 400, 40, 8);
+
+        var clusteredTransitionsPlan = SqlExecutionPlanFormatter.FormatUnion(
+            [part1, part2, part3, part4],
+            [false, false, true],
+            [],
+            null,
+            metrics);
+
+        var alternatingTransitionsPlan = SqlExecutionPlanFormatter.FormatUnion(
+            [part1, part2, part3, part4],
+            [false, true, false],
+            [],
+            null,
+            metrics);
+
+        ExtractEstimatedCost(clusteredTransitionsPlan).Should().BeLessThan(ExtractEstimatedCost(alternatingTransitionsPlan));
+    }
+
+    /// <summary>
     /// EN: Verifies UNION ORDER BY without row limit carries higher estimated cost than equivalent UNION ORDER BY with row limit.
     /// PT: Verifica que UNION com ORDER BY sem limite de linhas tem custo estimado maior do que UNION equivalente com limite.
     /// </summary>
@@ -1190,6 +1236,46 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         var withLimitPlan = SqlExecutionPlanFormatter.FormatSelect(withLimitQuery, metrics, [], []);
 
         ExtractEstimatedCost(withLimitPlan).Should().BeLessThan(ExtractEstimatedCost(noLimitPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies UNION ORDER BY merge uplift grows with additional UNION parts (fan-in), not only with ORDER BY presence.
+    /// PT: Verifica que o uplift de merge em UNION ORDER BY cresce com partes adicionais de UNION (fan-in), e não apenas com a presença de ORDER BY.
+    /// </summary>
+    [Fact]
+    public void FormatUnion_EstimatedCost_ShouldIncreaseOrderByMergeUpliftWithAdditionalUnionParts()
+    {
+        var part1 = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var part2 = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var part3 = new SqlSelectQuery([], false, [new SqlSelectItem("tenantid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var part4 = new SqlSelectQuery([], false, [new SqlSelectItem("orderid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(4, 400, 40, 8);
+
+        var twoPartsNoOrderPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [], null, metrics);
+        var twoPartsWithOrderPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [new SqlOrderByItem("id", false)], null, metrics);
+
+        var fourPartsNoOrderPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2, part3, part4], [true, true, true], [], null, metrics);
+        var fourPartsWithOrderPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2, part3, part4], [true, true, true], [new SqlOrderByItem("id", false)], null, metrics);
+
+        var twoPartsOrderUplift = ExtractEstimatedCost(twoPartsWithOrderPlan) - ExtractEstimatedCost(twoPartsNoOrderPlan);
+        var fourPartsOrderUplift = ExtractEstimatedCost(fourPartsWithOrderPlan) - ExtractEstimatedCost(fourPartsNoOrderPlan);
+        twoPartsOrderUplift.Should().BeLessThan(fourPartsOrderUplift);
     }
 
     /// <summary>
@@ -1328,6 +1414,53 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         var simpleDistinctUplift = ExtractEstimatedCost(simpleDistinctPlan) - ExtractEstimatedCost(simpleGroupedOrderedPlan);
         var complexDistinctUplift = ExtractEstimatedCost(complexDistinctPlan) - ExtractEstimatedCost(complexGroupedOrderedPlan);
         simpleDistinctUplift.Should().BeLessThan(complexDistinctUplift);
+    }
+
+    /// <summary>
+    /// EN: Verifies HAVING adds stronger extra cost when DISTINCT + GROUP BY + ORDER BY are already present than in the equivalent non-distinct grouped/ordered shape.
+    /// PT: Verifica que HAVING adiciona custo extra mais forte quando DISTINCT + GROUP BY + ORDER BY já estão presentes do que no formato equivalente agrupado/ordenado sem DISTINCT.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseHavingCouplingForDistinctGroupByOrderByShape()
+    {
+        var groupedOrderedQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("tenantid", null), new SqlSelectItem("COUNT(*)", "cnt")],
+            [],
+            null,
+            [new SqlOrderByItem("tenantid", false)],
+            null,
+            ["tenantid"],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var groupedOrderedHavingQuery = groupedOrderedQuery with
+        {
+            Having = new BinaryExpr(SqlBinaryOp.Greater, new IdentifierExpr("COUNT(*)"), new LiteralExpr(10))
+        };
+
+        var distinctGroupedOrderedQuery = groupedOrderedQuery with
+        {
+            Distinct = true
+        };
+
+        var distinctGroupedOrderedHavingQuery = distinctGroupedOrderedQuery with
+        {
+            Having = new BinaryExpr(SqlBinaryOp.Greater, new IdentifierExpr("COUNT(*)"), new LiteralExpr(10))
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var groupedOrderedPlan = SqlExecutionPlanFormatter.FormatSelect(groupedOrderedQuery, metrics, [], []);
+        var groupedOrderedHavingPlan = SqlExecutionPlanFormatter.FormatSelect(groupedOrderedHavingQuery, metrics, [], []);
+        var distinctGroupedOrderedPlan = SqlExecutionPlanFormatter.FormatSelect(distinctGroupedOrderedQuery, metrics, [], []);
+        var distinctGroupedOrderedHavingPlan = SqlExecutionPlanFormatter.FormatSelect(distinctGroupedOrderedHavingQuery, metrics, [], []);
+
+        var nonDistinctHavingUplift = ExtractEstimatedCost(groupedOrderedHavingPlan) - ExtractEstimatedCost(groupedOrderedPlan);
+        var distinctHavingUplift = ExtractEstimatedCost(distinctGroupedOrderedHavingPlan) - ExtractEstimatedCost(distinctGroupedOrderedPlan);
+        nonDistinctHavingUplift.Should().BeLessThan(distinctHavingUplift);
     }
 
 
@@ -1758,6 +1891,207 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         var withLimitPlan = SqlExecutionPlanFormatter.FormatSelect(withLimitCte, metrics, [], []);
 
         ExtractEstimatedCost(withLimitPlan).Should().BeLessThan(ExtractEstimatedCost(noLimitPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies CTE-body row-limit relief is stronger for tighter limits than loose limits.
+    /// PT: Verifica que o alívio de limite de linhas no corpo da CTE é mais forte para limites mais restritos do que para limites largos.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldDecreaseMoreWhenCteBodyUsesTighterRowLimit()
+    {
+        var cteBodyLooseLimit = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [new SqlOrderByItem("id", false)], new SqlLimitOffset(1000, null), [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var cteBodyTightLimit = cteBodyLooseLimit with
+        {
+            RowLimit = new SqlLimitOffset(10, null)
+        };
+
+        var baseQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var withLooseLimitCte = baseQuery with
+        {
+            Ctes = [new SqlCte("u", cteBodyLooseLimit)]
+        };
+
+        var withTightLimitCte = baseQuery with
+        {
+            Ctes = [new SqlCte("u", cteBodyTightLimit)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var loosePlan = SqlExecutionPlanFormatter.FormatSelect(withLooseLimitCte, metrics, [], []);
+        var tightPlan = SqlExecutionPlanFormatter.FormatSelect(withTightLimitCte, metrics, [], []);
+
+        ExtractEstimatedCost(tightPlan).Should().BeLessThan(ExtractEstimatedCost(loosePlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies CTE-body large OFFSET reduces row-limit relief and therefore increases estimated cost compared with zero OFFSET.
+    /// PT: Verifica que OFFSET alto no corpo da CTE reduz o alívio de limite e, portanto, aumenta o custo estimado em comparação com OFFSET zero.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWhenCteBodyRowLimitUsesLargeOffset()
+    {
+        var cteBodyNoOffset = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [new SqlOrderByItem("id", false)], new SqlLimitOffset(10, null), [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var cteBodyLargeOffset = cteBodyNoOffset with
+        {
+            RowLimit = new SqlLimitOffset(10, 5000)
+        };
+
+        var baseQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var withNoOffsetCte = baseQuery with
+        {
+            Ctes = [new SqlCte("u", cteBodyNoOffset)]
+        };
+
+        var withLargeOffsetCte = baseQuery with
+        {
+            Ctes = [new SqlCte("u", cteBodyLargeOffset)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var noOffsetPlan = SqlExecutionPlanFormatter.FormatSelect(withNoOffsetCte, metrics, [], []);
+        var largeOffsetPlan = SqlExecutionPlanFormatter.FormatSelect(withLargeOffsetCte, metrics, [], []);
+
+        ExtractEstimatedCost(noOffsetPlan).Should().BeLessThan(ExtractEstimatedCost(largeOffsetPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies DISTINCT + GROUP BY + ORDER BY coupling inside CTE body grows more for complex expressions than for simple key expressions.
+    /// PT: Verifica que o acoplamento DISTINCT + GROUP BY + ORDER BY dentro do corpo da CTE cresce mais para expressões complexas do que para chaves simples.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseCteBodyDistinctGroupByOrderByCouplingForComplexExpressions()
+    {
+        var simpleCteBody = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("tenantid", null), new SqlSelectItem("COUNT(*)", "cnt")],
+            [],
+            null,
+            [new SqlOrderByItem("tenantid", false)],
+            null,
+            ["tenantid"],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var complexCteBody = simpleCteBody with
+        {
+            GroupBy = ["CASE WHEN status = 'A' THEN JSON_VALUE(payload, '$.tenant') ELSE tenantid END"],
+            OrderBy = [new SqlOrderByItem("CASE WHEN status = 'A' THEN JSON_VALUE(payload, '$.tenant') ELSE payload->>'tenant' END", false)]
+        };
+
+        var simpleCteBodyDistinct = simpleCteBody with { Distinct = true };
+        var complexCteBodyDistinct = complexCteBody with { Distinct = true };
+
+        var baseQuery = new SqlSelectQuery([], false, [new SqlSelectItem("tenantid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var withSimpleCte = baseQuery with { Ctes = [new SqlCte("u", simpleCteBody)] };
+        var withSimpleDistinctCte = baseQuery with { Ctes = [new SqlCte("u", simpleCteBodyDistinct)] };
+        var withComplexCte = baseQuery with { Ctes = [new SqlCte("u", complexCteBody)] };
+        var withComplexDistinctCte = baseQuery with { Ctes = [new SqlCte("u", complexCteBodyDistinct)] };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var simplePlan = SqlExecutionPlanFormatter.FormatSelect(withSimpleCte, metrics, [], []);
+        var simpleDistinctPlan = SqlExecutionPlanFormatter.FormatSelect(withSimpleDistinctCte, metrics, [], []);
+        var complexPlan = SqlExecutionPlanFormatter.FormatSelect(withComplexCte, metrics, [], []);
+        var complexDistinctPlan = SqlExecutionPlanFormatter.FormatSelect(withComplexDistinctCte, metrics, [], []);
+
+        var simpleDistinctUplift = ExtractEstimatedCost(simpleDistinctPlan) - ExtractEstimatedCost(simplePlan);
+        var complexDistinctUplift = ExtractEstimatedCost(complexDistinctPlan) - ExtractEstimatedCost(complexPlan);
+        simpleDistinctUplift.Should().BeLessThan(complexDistinctUplift);
+    }
+
+    /// <summary>
+    /// EN: Verifies CTE-body outer ORDER BY adds stronger cost when source is already an internally ordered derived UNION.
+    /// PT: Verifica que ORDER BY externo no corpo da CTE adiciona custo mais forte quando a fonte já é um UNION derivado ordenado internamente.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseCteBodyNestedOrderByCouplingWhenDerivedUnionIsAlreadyOrdered()
+    {
+        var unionPart1 = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var unionPart2 = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var unorderedSource = new SqlTableSource(
+            null,
+            null,
+            "du",
+            null,
+            new SqlQueryParser.UnionChain([unionPart1, unionPart2], [true], [], null),
+            "(SELECT id FROM users UNION ALL SELECT userid FROM orders)",
+            null);
+
+        var orderedSource = unorderedSource with
+        {
+            DerivedUnion = new SqlQueryParser.UnionChain([unionPart1, unionPart2], [true], [new SqlOrderByItem("id", false)], null)
+        };
+
+        var unorderedWithoutOuterOrderBy = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = unorderedSource
+        };
+
+        var unorderedWithOuterOrderBy = unorderedWithoutOuterOrderBy with
+        {
+            OrderBy = [new SqlOrderByItem("id", false)]
+        };
+
+        var orderedWithoutOuterOrderBy = unorderedWithoutOuterOrderBy with
+        {
+            Table = orderedSource
+        };
+
+        var orderedWithOuterOrderBy = orderedWithoutOuterOrderBy with
+        {
+            OrderBy = [new SqlOrderByItem("id", false)]
+        };
+
+        var baseQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var withUnorderedNoOuterOrderCte = baseQuery with { Ctes = [new SqlCte("u", unorderedWithoutOuterOrderBy)] };
+        var withUnorderedOuterOrderCte = baseQuery with { Ctes = [new SqlCte("u", unorderedWithOuterOrderBy)] };
+        var withOrderedNoOuterOrderCte = baseQuery with { Ctes = [new SqlCte("u", orderedWithoutOuterOrderBy)] };
+        var withOrderedOuterOrderCte = baseQuery with { Ctes = [new SqlCte("u", orderedWithOuterOrderBy)] };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var unorderedNoOuterOrderPlan = SqlExecutionPlanFormatter.FormatSelect(withUnorderedNoOuterOrderCte, metrics, [], []);
+        var unorderedOuterOrderPlan = SqlExecutionPlanFormatter.FormatSelect(withUnorderedOuterOrderCte, metrics, [], []);
+        var orderedNoOuterOrderPlan = SqlExecutionPlanFormatter.FormatSelect(withOrderedNoOuterOrderCte, metrics, [], []);
+        var orderedOuterOrderPlan = SqlExecutionPlanFormatter.FormatSelect(withOrderedOuterOrderCte, metrics, [], []);
+
+        var unorderedOuterOrderUplift = ExtractEstimatedCost(unorderedOuterOrderPlan) - ExtractEstimatedCost(unorderedNoOuterOrderPlan);
+        var orderedOuterOrderUplift = ExtractEstimatedCost(orderedOuterOrderPlan) - ExtractEstimatedCost(orderedNoOuterOrderPlan);
+        unorderedOuterOrderUplift.Should().BeLessThan(orderedOuterOrderUplift);
     }
 
 
@@ -2243,6 +2577,39 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     }
 
     /// <summary>
+    /// EN: Verifies raw predicate cost increases with deeper logical nesting even when AND/OR counts and transitions remain equivalent.
+    /// PT: Verifica que o custo de predicado raw aumenta com aninhamento lógico mais profundo mesmo quando contagens e transições de AND/OR permanecem equivalentes.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseForRawPredicateWithGreaterLogicalDepthAndSameOperatorProfile()
+    {
+        var shallowerLogicalRawQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("id", null)],
+            [],
+            new RawSqlExpr("(a = 1 OR b = 2) AND (c = 3 OR d = 4)"),
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var deeperLogicalRawQuery = shallowerLogicalRawQuery with
+        {
+            Where = new RawSqlExpr("((a = 1 OR b = 2) AND c = 3) OR d = 4")
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var shallowerPlan = SqlExecutionPlanFormatter.FormatSelect(shallowerLogicalRawQuery, metrics, [], []);
+        var deeperPlan = SqlExecutionPlanFormatter.FormatSelect(deeperLogicalRawQuery, metrics, [], []);
+
+        ExtractEstimatedCost(shallowerPlan).Should().BeLessThan(ExtractEstimatedCost(deeperPlan));
+    }
+
+    /// <summary>
     /// EN: Verifies deeply nested logical predicates with mixed CASE/JSON leaves carry higher estimated cost than flatter logical shapes with equivalent leaves.
     /// PT: Verifica que predicados lógicos profundamente aninhados com folhas mistas de CASE/JSON carregam custo estimado maior que formatos lógicos mais planos com folhas equivalentes.
     /// </summary>
@@ -2480,6 +2847,207 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         var unorderedOuterOrderByUplift = ExtractEstimatedCost(unorderedWithOuterOrderByPlan) - ExtractEstimatedCost(unorderedWithoutOuterOrderByPlan);
         var orderedOuterOrderByUplift = ExtractEstimatedCost(orderedWithOuterOrderByPlan) - ExtractEstimatedCost(orderedWithoutOuterOrderByPlan);
         unorderedOuterOrderByUplift.Should().BeLessThan(orderedOuterOrderByUplift);
+    }
+
+    /// <summary>
+    /// EN: Verifies outer ORDER BY uplift increases when a JOIN source is a derived UNION already ordered internally.
+    /// PT: Verifica que o uplift de ORDER BY externo aumenta quando uma fonte de JOIN é um UNION derivado já ordenado internamente.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseNestedOrderByCouplingForOrderedJoinedDerivedUnionSource()
+    {
+        var unionPart1 = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var unionPart2 = unionPart1 with
+        {
+            SelectItems = [new SqlSelectItem("userid", null)]
+        };
+
+        var unorderedJoinSource = new SqlTableSource(
+            null,
+            null,
+            "duj",
+            null,
+            new SqlQueryParser.UnionChain([unionPart1, unionPart2], [true], [], null),
+            "(SELECT id FROM orders UNION ALL SELECT userid FROM orders)",
+            null);
+
+        var orderedJoinSource = unorderedJoinSource with
+        {
+            DerivedUnion = new SqlQueryParser.UnionChain([unionPart1, unionPart2], [true], [new SqlOrderByItem("id", false)], null)
+        };
+
+        var baseQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("u.id", null)],
+            [new SqlJoin(SqlJoinType.Inner, unorderedJoinSource, new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("u.id"), new IdentifierExpr("duj.id")))],
+            null,
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", "u", null, null, null, null)
+        };
+
+        var unorderedJoinedNoOuterOrderBy = baseQuery;
+        var unorderedJoinedWithOuterOrderBy = baseQuery with { OrderBy = [new SqlOrderByItem("u.id", false)] };
+        var orderedJoinedNoOuterOrderBy = baseQuery with { Joins = [new SqlJoin(SqlJoinType.Inner, orderedJoinSource, new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("u.id"), new IdentifierExpr("duj.id")))] };
+        var orderedJoinedWithOuterOrderBy = orderedJoinedNoOuterOrderBy with { OrderBy = [new SqlOrderByItem("u.id", false)] };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var unorderedNoOrderPlan = SqlExecutionPlanFormatter.FormatSelect(unorderedJoinedNoOuterOrderBy, metrics, [], []);
+        var unorderedWithOrderPlan = SqlExecutionPlanFormatter.FormatSelect(unorderedJoinedWithOuterOrderBy, metrics, [], []);
+        var orderedNoOrderPlan = SqlExecutionPlanFormatter.FormatSelect(orderedJoinedNoOuterOrderBy, metrics, [], []);
+        var orderedWithOrderPlan = SqlExecutionPlanFormatter.FormatSelect(orderedJoinedWithOuterOrderBy, metrics, [], []);
+
+        var unorderedUplift = ExtractEstimatedCost(unorderedWithOrderPlan) - ExtractEstimatedCost(unorderedNoOrderPlan);
+        var orderedUplift = ExtractEstimatedCost(orderedWithOrderPlan) - ExtractEstimatedCost(orderedNoOrderPlan);
+        unorderedUplift.Should().BeLessThan(orderedUplift);
+    }
+
+    /// <summary>
+    /// EN: Verifies outer ORDER BY uplift increases when a JOIN source is a derived SELECT already ordered internally.
+    /// PT: Verifica que o uplift de ORDER BY externo aumenta quando uma fonte de JOIN é um SELECT derivado já ordenado internamente.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseNestedOrderByCouplingForOrderedJoinedDerivedSelectSource()
+    {
+        var unorderedDerivedSelect = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var orderedDerivedSelect = unorderedDerivedSelect with
+        {
+            OrderBy = [new SqlOrderByItem("id", false)]
+        };
+
+        var unorderedJoinSource = new SqlTableSource(null, null, "dsj", unorderedDerivedSelect, null, null, null);
+        var orderedJoinSource = new SqlTableSource(null, null, "dsj", orderedDerivedSelect, null, null, null);
+
+        var baseQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("u.id", null)],
+            [new SqlJoin(SqlJoinType.Inner, unorderedJoinSource, new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("u.id"), new IdentifierExpr("dsj.id")))],
+            null,
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", "u", null, null, null, null)
+        };
+
+        var unorderedJoinedNoOuterOrderBy = baseQuery;
+        var unorderedJoinedWithOuterOrderBy = baseQuery with { OrderBy = [new SqlOrderByItem("u.id", false)] };
+        var orderedJoinedNoOuterOrderBy = baseQuery with { Joins = [new SqlJoin(SqlJoinType.Inner, orderedJoinSource, new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("u.id"), new IdentifierExpr("dsj.id")))] };
+        var orderedJoinedWithOuterOrderBy = orderedJoinedNoOuterOrderBy with { OrderBy = [new SqlOrderByItem("u.id", false)] };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var unorderedNoOrderPlan = SqlExecutionPlanFormatter.FormatSelect(unorderedJoinedNoOuterOrderBy, metrics, [], []);
+        var unorderedWithOrderPlan = SqlExecutionPlanFormatter.FormatSelect(unorderedJoinedWithOuterOrderBy, metrics, [], []);
+        var orderedNoOrderPlan = SqlExecutionPlanFormatter.FormatSelect(orderedJoinedNoOuterOrderBy, metrics, [], []);
+        var orderedWithOrderPlan = SqlExecutionPlanFormatter.FormatSelect(orderedJoinedWithOuterOrderBy, metrics, [], []);
+
+        var unorderedUplift = ExtractEstimatedCost(unorderedWithOrderPlan) - ExtractEstimatedCost(unorderedNoOrderPlan);
+        var orderedUplift = ExtractEstimatedCost(orderedWithOrderPlan) - ExtractEstimatedCost(orderedNoOrderPlan);
+        unorderedUplift.Should().BeLessThan(orderedUplift);
+    }
+
+    /// <summary>
+    /// EN: Verifies nested ORDER BY coupling grows when multiple JOIN sources are internally ordered derived sources.
+    /// PT: Verifica que o acoplamento de ORDER BY aninhado cresce quando múltiplas fontes de JOIN são derivadas internamente ordenadas.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseNestedOrderByCouplingWithMultipleOrderedJoinedDerivedSources()
+    {
+        var orderedDerivedOrders = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [new SqlOrderByItem("userid", false)], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var orderedDerivedPayments = new SqlSelectQuery([], false, [new SqlSelectItem("orderid", null)], [], null, [new SqlOrderByItem("orderid", false)], null, [], null)
+        {
+            Table = new SqlTableSource(null, "payments", null, null, null, null, null)
+        };
+
+        var oneOrderedJoinSource = new SqlTableSource(null, null, "od1", orderedDerivedOrders, null, null, null);
+        var twoOrderedJoinSource = new SqlTableSource(null, null, "od2", orderedDerivedPayments, null, null, null);
+
+        var oneOrderedJoinQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("u.id", null)],
+            [new SqlJoin(SqlJoinType.Inner, oneOrderedJoinSource, new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("u.id"), new IdentifierExpr("od1.userid")))],
+            null,
+            [new SqlOrderByItem("u.id", false)],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", "u", null, null, null, null)
+        };
+
+        var twoOrderedJoinsQuery = oneOrderedJoinQuery with
+        {
+            Joins =
+            [
+                new SqlJoin(SqlJoinType.Inner, oneOrderedJoinSource, new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("u.id"), new IdentifierExpr("od1.userid"))),
+                new SqlJoin(SqlJoinType.Inner, twoOrderedJoinSource, new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("od1.userid"), new IdentifierExpr("od2.orderid")))
+            ]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(3, 300, 30, 6);
+        var oneOrderedJoinPlan = SqlExecutionPlanFormatter.FormatSelect(oneOrderedJoinQuery, metrics, [], []);
+        var twoOrderedJoinsPlan = SqlExecutionPlanFormatter.FormatSelect(twoOrderedJoinsQuery, metrics, [], []);
+
+        ExtractEstimatedCost(oneOrderedJoinPlan).Should().BeLessThan(ExtractEstimatedCost(twoOrderedJoinsPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies outer row-limit reduces nested ORDER BY coupling uplift for ordered JOIN derived sources.
+    /// PT: Verifica que limite de linhas externo reduz o uplift de acoplamento de ORDER BY aninhado para fontes derivadas ordenadas em JOIN.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldReduceNestedOrderByCouplingForOrderedJoinedDerivedSourceWhenOuterLimitIsPresent()
+    {
+        var orderedDerivedSelect = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [new SqlOrderByItem("id", false)], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var orderedJoinSource = new SqlTableSource(null, null, "dsj", orderedDerivedSelect, null, null, null);
+
+        var withoutOuterLimit = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("u.id", null)],
+            [new SqlJoin(SqlJoinType.Inner, orderedJoinSource, new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("u.id"), new IdentifierExpr("dsj.id")))],
+            null,
+            [new SqlOrderByItem("u.id", false)],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", "u", null, null, null, null)
+        };
+
+        var withOuterLimit = withoutOuterLimit with
+        {
+            RowLimit = new SqlLimitOffset(10, null)
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var noLimitPlan = SqlExecutionPlanFormatter.FormatSelect(withoutOuterLimit, metrics, [], []);
+        var withLimitPlan = SqlExecutionPlanFormatter.FormatSelect(withOuterLimit, metrics, [], []);
+
+        ExtractEstimatedCost(withLimitPlan).Should().BeLessThan(ExtractEstimatedCost(noLimitPlan));
     }
 
     /// <summary>

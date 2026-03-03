@@ -749,7 +749,9 @@ internal static class SqlExecutionPlanFormatter
         cost += EstimateGroupByExpressionComplexityCost(query.GroupBy);
         cost += EstimateOrderByExpressionComplexityCost(query.OrderBy);
         cost += EstimateDistinctGroupByOrderByCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.RowLimit);
+        cost += EstimateDistinctGroupByOrderByHavingCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.Having);
         cost += EstimateNestedOrderByCouplingCost(query.Table, query.OrderBy, query.RowLimit);
+        cost += query.Joins.Sum(join => EstimateNestedOrderByCouplingCost(join.Table, query.OrderBy, query.RowLimit));
         cost += EstimateProjectionCost(query.SelectItems);
         cost -= EstimateRowLimitRelief(query.RowLimit);
         return Math.Max(1, cost);
@@ -810,7 +812,12 @@ internal static class SqlExecutionPlanFormatter
         cost += EstimateSortAndDedupCost(query.OrderBy, query.Distinct, query.RowLimit);
         cost += EstimateGroupByExpressionComplexityCost(query.GroupBy);
         cost += EstimateOrderByExpressionComplexityCost(query.OrderBy);
+        cost += EstimateDistinctGroupByOrderByCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.RowLimit);
+        cost += EstimateDistinctGroupByOrderByHavingCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.Having);
+        cost += EstimateNestedOrderByCouplingCost(query.Table, query.OrderBy, query.RowLimit);
+        cost += query.Joins.Sum(join => EstimateNestedOrderByCouplingCost(join.Table, query.OrderBy, query.RowLimit));
         cost += EstimateProjectionCost(query.SelectItems);
+        cost -= EstimateRowLimitRelief(query.RowLimit);
         return Math.Max(0, cost);
     }
 
@@ -974,6 +981,7 @@ internal static class SqlExecutionPlanFormatter
         cost += CountSqlKeywordOccurrences(raw, "AND");
         cost += CountSqlKeywordOccurrences(raw, "OR");
         cost += CountLogicalOperatorTransitions(raw);
+        cost += EstimateRawLogicalNestingDepthPenalty(raw);
         cost += CountSqlKeywordOccurrences(raw, "CASE") * 2;
         cost += CountSqlKeywordOccurrences(raw, "SELECT") * 5;
         cost += CountSqlKeywordOccurrences(raw, "EXISTS") * 4;
@@ -981,6 +989,23 @@ internal static class SqlExecutionPlanFormatter
         cost += CountJsonFunctionCalls(raw) * 2;
         cost += CountJsonOperatorTokens(raw) * 2;
         return cost;
+    }
+
+    /// <summary>
+    /// EN: Estimates extra coupling when HAVING is applied on top of an already coupled DISTINCT + GROUP BY + ORDER BY shape.
+    /// PT: Estima acoplamento extra quando HAVING é aplicado sobre um formato já acoplado de DISTINCT + GROUP BY + ORDER BY.
+    /// </summary>
+    private static int EstimateDistinctGroupByOrderByHavingCouplingCost(
+        bool distinct,
+        IReadOnlyList<string> groupBy,
+        IReadOnlyList<SqlOrderByItem> orderBy,
+        SqlExpr? having)
+    {
+        if (!distinct || groupBy.Count == 0 || orderBy.Count == 0 || having is null)
+            return 0;
+
+        var havingComplexity = EstimatePredicateComplexityCost(having);
+        return 3 + Math.Min(4, Math.Max(1, havingComplexity));
     }
 
     /// <summary>
@@ -1429,6 +1454,37 @@ internal static class SqlExecutionPlanFormatter
     }
 
     /// <summary>
+    /// EN: Estimates additional raw logical penalty from parenthesis nesting depth when logical operators are present.
+    /// PT: Estima penalidade lógica raw adicional pela profundidade de aninhamento de parênteses quando há operadores lógicos.
+    /// </summary>
+    private static int EstimateRawLogicalNestingDepthPenalty(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return 0;
+
+        var logicalOperatorCount = CountSqlKeywordOccurrences(raw, "AND") + CountSqlKeywordOccurrences(raw, "OR");
+        if (logicalOperatorCount == 0)
+            return 0;
+
+        var maxDepth = 0;
+        var depth = 0;
+        foreach (var c in raw)
+        {
+            if (c == '(')
+            {
+                depth++;
+                maxDepth = Math.Max(maxDepth, depth);
+            }
+            else if (c == ')')
+            {
+                depth = Math.Max(0, depth - 1);
+            }
+        }
+
+        return Math.Max(0, maxDepth - 1);
+    }
+
+    /// <summary>
     /// EN: Finds the next logical operator token (AND/OR) and returns the token plus the next scan index.
     /// PT: Encontra o próximo token de operador lógico (AND/OR) e retorna o token junto com o próximo índice de varredura.
     /// </summary>
@@ -1565,9 +1621,57 @@ internal static class SqlExecutionPlanFormatter
     {
         var cost = parts.Sum(EstimateSelectCost) + 12;
         cost += allFlags.Count(flag => !flag) * 20;
+        cost += EstimateUnionSetOperatorTransitionCost(allFlags);
+        cost += EstimateUnionOrderByMergeFanInCost(parts.Count, orderBy ?? [], rowLimit);
         cost += EstimateSortAndDedupCost(orderBy ?? [], false, rowLimit);
         cost += EstimateOrderByExpressionComplexityCost(orderBy ?? []);
         cost -= EstimateRowLimitRelief(rowLimit);
         return Math.Max(1, cost);
+    }
+
+    /// <summary>
+    /// EN: Estimates extra UNION cost when set operators alternate between ALL and DISTINCT, increasing stage-switching overhead.
+    /// PT: Estima custo extra de UNION quando operadores de conjunto alternam entre ALL e DISTINCT, aumentando overhead de troca de estágio.
+    /// </summary>
+    private static int EstimateUnionSetOperatorTransitionCost(IReadOnlyList<bool> allFlags)
+    {
+        if (allFlags.Count <= 1)
+            return 0;
+
+        var transitions = 0;
+        for (var i = 1; i < allFlags.Count; i++)
+        {
+            if (allFlags[i] != allFlags[i - 1])
+                transitions++;
+        }
+
+        return transitions * 3;
+    }
+
+    /// <summary>
+    /// EN: Estimates additional ORDER BY merge fan-in overhead for UNION plans with many parts.
+    /// PT: Estima overhead adicional de fan-in de merge de ORDER BY para planos UNION com muitas partes.
+    /// </summary>
+    private static int EstimateUnionOrderByMergeFanInCost(
+        int partCount,
+        IReadOnlyList<SqlOrderByItem> orderBy,
+        SqlRowLimit? rowLimit)
+    {
+        if (partCount <= 2 || orderBy.Count == 0)
+            return 0;
+
+        var cost = (partCount - 2) * 2;
+        cost += Math.Min(2, Math.Max(0, orderBy.Count - 1));
+
+        if (rowLimit is null)
+            cost += 1;
+        else
+        {
+            var (_, offset) = ExtractRowLimitCountAndOffset(rowLimit);
+            if (offset > 0)
+                cost += 1;
+        }
+
+        return Math.Min(10, cost);
     }
 }
