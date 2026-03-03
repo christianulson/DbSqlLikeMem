@@ -55,7 +55,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Checklist de known gaps indica cobertura concluída para MERGE por dialeto, WITH RECURSIVE e normalização de paginação/quoting.
 
 #### 1.2.4 Governança de evolução do parser
-- Implementação estimada: **92%**.
+- Implementação estimada: **94%**.
 - Backlog guiado por gaps observados em testes reais.
 - Track global de normalização Parser/AST consolidado em ~90%, com foco atual em refinos finais por dialeto.
 - Priorização por impacto em frameworks de acesso a dados.
@@ -63,12 +63,14 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Backlog operacional segue cadência priorizada P0→P14 para reduzir dispersão de implementação entre parser/executor/docs.
 
 #### 1.2.5 Funções SQL agregadoras e de composição de texto
-- Implementação estimada: **68%**.
+- Implementação estimada: **82%**.
+- Parser agora sinaliza explicitamente `WITHIN GROUP` (ordered-set aggregates) como não suportado com mensagem acionável por dialeto.
 
 #### 1.2.6 Funções de data/hora cross-dialect
-- Implementação estimada: **40%**.
+- Implementação estimada: **58%**.
 - Consolidar no `dialect` o catálogo de funções temporais sem argumento (data, hora e data/hora).
 - Garantir suporte de avaliação tanto para função com parênteses quanto para tokens sem parênteses em `SELECT`, `WHERE`, `HAVING` e expressões de `INSERT/UPSERT`.
+- Cobertura Dapper cross-provider adicionada para funções temporais sem argumento em projeção/filtro `WHERE`, em expressões de `INSERT VALUES` e em `UPDATE ... SET` (MySQL/SQL Server/Oracle/Npgsql/SQLite/DB2).
 - Cobrir equivalências por provedor (exemplos):
   - Oracle: `SYSDATE`, `SYSTIMESTAMP`, `CURRENT_DATE`, `CURRENT_TIMESTAMP`.
   - SQL Server: `GETDATE`, `SYSDATETIME`, `CURRENT_TIMESTAMP`.
@@ -295,10 +297,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - 3, 4, 5, 8.
 
 #### 3.1.2 Recursos relevantes
-- Implementação estimada: **82%**.
+- Implementação estimada: **85%**.
 - Parser/executor para DDL/DML comuns.
 - Suporte a `INSERT ... ON DUPLICATE KEY UPDATE`.
-- Backlog de funções: ampliar cobertura de `GROUP_CONCAT` em cenários com `GROUP BY`.
+- Cobertura de `GROUP_CONCAT` ampliada com regressão para `DISTINCT` e tratamento de `NULL` em agregação textual; pendente evoluir ordenação interna da agregação.
 - P7 consolidado: UPSERT por família (`ON DUPLICATE`/`ON CONFLICT`/`MERGE subset`) e mutações avançadas com contracts por strategy tests.
 - Funções-chave do banco: `GROUP_CONCAT`, `IFNULL`, `DATE_ADD` e `JSON_EXTRACT` (subset no mock).
 
@@ -314,10 +316,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - 7, 2000, 2005, 2008, 2012, 2014, 2016, 2017, 2019, 2022.
 
 #### 3.2.2 Recursos relevantes
-- Implementação estimada: **82%**.
+- Implementação estimada: **85%**.
 - Parser/executor para DDL/DML comuns.
 - Diferenças de dialeto por versão simulada.
-- Backlog de funções: priorizar `STRING_AGG` e validar ordenação/separador em agregação.
+- Cobertura de `STRING_AGG` ampliada para `DISTINCT` e tratamento de `NULL`; ordenação interna segue no backlog, com fallback atual de não suportado explícito para `WITHIN GROUP`.
 - P8 consolidado: paginação por versão (`OFFSET/FETCH`, `TOP`) com gates explícitos de dialeto.
 - Funções-chave do banco: `STRING_AGG`, `ISNULL`, `DATEADD`, `JSON_VALUE`/`OPENJSON` (subset no mock).
 
@@ -333,10 +335,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - 7, 8, 9, 10, 11, 12, 18, 19, 21, 23.
 
 #### 3.3.2 Recursos relevantes
-- Implementação estimada: **82%**.
+- Implementação estimada: **85%**.
 - Parser/executor para DDL/DML comuns.
 - Diferenças de dialeto por versão simulada.
-- Backlog de funções: priorizar `LISTAGG` para agregação textual por grupo.
+- Cobertura de `LISTAGG` ampliada com separador customizado e comportamento padrão sem delimitador quando omitido; `WITHIN GROUP` permanece na trilha de evolução (com erro padronizado de não suportado no estado atual).
 - P8 consolidado: suporte a `FETCH FIRST/NEXT` por versão e contratos de ordenação por dialeto.
 - Funções-chave do banco: `LISTAGG`, `NVL`, `JSON_VALUE` (subset escalar) e operações de data por versão.
 
@@ -352,10 +354,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17.
 
 #### 3.4.2 Recursos relevantes
-- Implementação estimada: **82%**.
+- Implementação estimada: **85%**.
 - Parser/executor para DDL/DML comuns.
 - Diferenças de dialeto por versão simulada.
-- Backlog de funções: priorizar `STRING_AGG` com cobertura de ordenação por grupo.
+- Cobertura de `STRING_AGG` ampliada para agregação textual com `DISTINCT` e `NULL`; ordenação por grupo permanece no backlog, com fallback atual de não suportado explícito para `WITHIN GROUP`.
 - P7/P10 consolidado: `RETURNING` sintático mínimo em caminhos suportados e fluxo de procedures no contrato Dapper.
 - Funções-chave do banco: `STRING_AGG`, operadores JSON (`->`, `->>`, `#>`, `#>>`) e expressões de data por intervalo.
 
@@ -371,10 +373,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - 3.
 
 #### 3.5.2 Recursos relevantes
-- Implementação estimada: **82%**.
+- Implementação estimada: **84%**.
 - `WITH`/CTE disponível.
 - Operadores JSON `->` e `->>` disponíveis no parser do dialeto.
-- Backlog de funções: consolidar suporte a `GROUP_CONCAT` e regras de separador.
+- Cobertura de `GROUP_CONCAT` ampliada com separador customizado, `DISTINCT` e tratamento de `NULL`; ordenação interna da agregação segue como próximo passo.
 - P8 consolidado: `LIMIT/OFFSET` e ordenação com regras de compatibilidade por versão simulada.
 - Funções-chave do banco: `GROUP_CONCAT`, `IFNULL`, funções de data (`date`, `datetime`, `strftime`) e `JSON_EXTRACT` (subset).
 
@@ -395,11 +397,11 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - 8, 9, 10, 11.
 
 #### 3.6.2 Recursos relevantes
-- Implementação estimada: **82%**.
+- Implementação estimada: **84%**.
 - `WITH`/CTE disponível.
 - `MERGE` disponível (>= 9).
 - `FETCH FIRST` suportado.
-- Backlog de funções: avaliar `LISTAGG` conforme versão simulada e compatibilidade desejada.
+- Cobertura de `LISTAGG` ampliada com separador customizado, `DISTINCT` e tratamento de `NULL`; alinhamento fino por versão simulada segue em backlog.
 - P9 consolidado: fallback explícito de não suportado para JSON avançado e cobertura de `FETCH FIRST` no dialeto DB2.
 - Funções-chave do banco: `LISTAGG` (por versão), `COALESCE`, `TIMESTAMPADD` e `FETCH FIRST` no fluxo de paginação.
 
@@ -418,11 +420,11 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 ### 3.7 Estratégia multi-provedor
 
 #### 3.7.1 Matriz de cobertura
-- Implementação estimada: **90%**.
+- Implementação estimada: **95%**.
 - Executar casos críticos em todos os provedores prioritários do produto.
 - Definir perfil mínimo de compatibilidade por módulo.
-- Execução matricial por provider já iniciada em CI, com publicação de artefatos de resultado por projeto.
-- Cobertura de regressão inclui suíte cross-dialeto com snapshot para SQL comum em múltiplos providers.
+- Execução matricial por provider já iniciada em CI (`provider-test-matrix.yml`), com publicação de artefatos de resultado por projeto e etapas dedicadas de smoke e agregação cross-dialect, com publicação de snapshot por perfil em artefatos de CI.
+- Cobertura de regressão inclui suíte cross-dialeto com snapshots por perfil (smoke/aggregation), operacionalizada no script `scripts/run_cross_dialect_equivalence.sh`; atualização em lote suportada por `scripts/refresh_cross_dialect_snapshots.sh` e baseline documental semântico (`manual-placeholder`) para evitar snapshot desatualizado no repositório.
 - Matriz consolidada de providers/versões e capacidades comuns agora está refletida diretamente neste índice como fonte principal de backlog.
 
 #### 3.7.2 Priorização de gaps
@@ -479,7 +481,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 ### 4.2 Compatibilidade por dialeto (governança de gaps)
 
 #### 4.2.1 Matriz de compatibilidade SQL
-- Implementação estimada: **92%**.
+- Implementação estimada: **94%**.
 - Registro do que já está suportado por banco/versão.
 - Visão de lacunas e riscos por área funcional.
 - Matriz feature x dialeto já publicada e usada como referência de hardening/regressão.
@@ -622,15 +624,44 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Evolução de concorrência deve separar rotinas CI em smoke vs completo, com traits por categoria (isolamento, savepoint, conflito de escrita, stress).
 - Próximos ciclos incluem trilhas de observabilidade, performance, concorrência e ecossistema (.NET/ORM/tooling) já descritas no pipeline de prompts e no plano executável P7–P14.
 
-### 6.3 Política sugerida de versionamento
 
-#### 6.3.1 SemVer para consumidores
+
+### 6.3 Organização da solução e ritmo de desenvolvimento
+
+#### 6.3.1 Arquivo de solução (`.slnx`) e cobertura de projetos
+- Implementação estimada: **96%**.
+- Solução `DbSqlLikeMem.slnx` já estruturada por domínio/provedor e pronta para uso no Visual Studio 2026.
+- Validação operacional indica cobertura completa dos projetos `*.csproj` do repositório na solução.
+- Verificação automatizada já adicionada ao CI via `scripts/check_slnx_project_coverage.py` para detectar drift entre árvore `src` e conteúdo da solução.
+
+#### 6.3.2 Matriz compartilhada de testes por capability
+- Implementação estimada: **62%**.
+- Priorizar base compartilhada para cenários repetitivos cross-dialect (ex.: agregação textual, `DISTINCT`, `NULL`, ordered-set).
+- Reduzir duplicação de testes específicos por provider movendo contratos comuns para fixtures parametrizadas.
+- Facilita evolução coordenada do parser/executor sem espalhar ajustes em múltiplos projetos de teste.
+
+#### 6.3.3 Entrada única de execução (build/test)
+- Implementação estimada: **88%**.
+- Script padronizado já existe para smoke cross-provider (`run_cross_dialect_equivalence.sh`); próximo passo é consolidar trilhas adicionais (core/parser/dapper completos) e evoluir continuamente os filtros de agregação conforme expansão de contratos textuais cross-dialect.
+- Perfis de execução já explícitos no runner (`smoke`/`aggregation`) para acelerar feedback local e CI; modo `--continue-on-error` permite varredura completa com resumo de falhas por execução e snapshots com quadro-resumo por perfil; `--dry-run` permite inspecionar a matriz planejada sem execução de testes.
+- CI inclui job dedicado de validação de automações (sintaxe shell, `py_compile`, `--help`, check `.slnx` e validação estrutural dos snapshots markdown) antes da matriz de testes por provider.
+- Vincular categorias/traits para habilitar execução seletiva por domínio de regressão.
+
+#### 6.3.4 Governança do backlog de documentação
+- Implementação estimada: **66%**.
+- Separar visão arquitetural estável e status operacional de sprint para reduzir conflito de merge em percentuais.
+- Padronizar update de progresso com checklist de evidência mínima (teste, provider afetado, limitação conhecida).
+- Alinhar PR template para exigir vínculo entre mudança de código, teste e atualização de backlog.
+
+### 6.4 Política sugerida de versionamento
+
+#### 6.4.1 SemVer para consumidores
 - Implementação estimada: **84%**.
 - Incremento major para quebras comportamentais/documentadas.
 - Incremento minor para novos recursos compatíveis.
 - Incremento patch para correções sem alteração contratual.
 
-#### 6.3.2 Comunicação de mudanças
+#### 6.4.2 Comunicação de mudanças
 - Implementação estimada: **80%**.
 - Changelog orientado a impacto por provedor/dialeto.
 - Destaque para gaps fechados e limitações ainda abertas.

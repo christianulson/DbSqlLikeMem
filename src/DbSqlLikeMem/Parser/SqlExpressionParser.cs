@@ -857,6 +857,13 @@ internal sealed class SqlExpressionParser(
         {
             var call = ParseCallAfterName(name);
 
+            if (IsKeywordOrIdentifierWord(Peek(), "WITHIN"))
+            {
+                throw SqlUnsupported.ForDialect(
+                    _dialect,
+                    $"ordered-set aggregate syntax WITHIN GROUP for function '{call.Name}'");
+            }
+
             // ✅ Window function: ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)
             if (IsKeywordOrIdentifierWord(Peek(), "OVER"))
             {
