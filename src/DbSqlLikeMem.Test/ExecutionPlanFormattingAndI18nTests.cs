@@ -2106,6 +2106,54 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         ExtractEstimatedCost(scalarPlan).Should().BeLessThan(ExtractEstimatedCost(countPlan));
     }
 
+    /// <summary>
+    /// EN: Verifies DISTINCT aggregate projections carry higher estimated cost than equivalent non-distinct aggregate projections.
+    /// PT: Verifica que projeções agregadas com DISTINCT carregam custo estimado maior que projeções agregadas equivalentes sem DISTINCT.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseForDistinctAggregateProjection()
+    {
+        var nonDistinctAggregateQuery = new SqlSelectQuery([], false, [new SqlSelectItem("COUNT(tenantid)", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var distinctAggregateQuery = nonDistinctAggregateQuery with
+        {
+            SelectItems = [new SqlSelectItem("COUNT(DISTINCT tenantid)", null)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var nonDistinctPlan = SqlExecutionPlanFormatter.FormatSelect(nonDistinctAggregateQuery, metrics, [], []);
+        var distinctPlan = SqlExecutionPlanFormatter.FormatSelect(distinctAggregateQuery, metrics, [], []);
+
+        ExtractEstimatedCost(nonDistinctPlan).Should().BeLessThan(ExtractEstimatedCost(distinctPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies DISTINCT aggregate detection remains robust when optional whitespace appears after opening parenthesis.
+    /// PT: Verifica que a detecção de agregação DISTINCT permanece robusta quando há espaço opcional após parêntese de abertura.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldTreatDistinctAggregateWithAndWithoutWhitespaceAsEquivalent()
+    {
+        var compactDistinctAggregateQuery = new SqlSelectQuery([], false, [new SqlSelectItem("SUM(DISTINCT amount)", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var spacedDistinctAggregateQuery = compactDistinctAggregateQuery with
+        {
+            SelectItems = [new SqlSelectItem("SUM( DISTINCT amount)", null)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var compactPlan = SqlExecutionPlanFormatter.FormatSelect(compactDistinctAggregateQuery, metrics, [], []);
+        var spacedPlan = SqlExecutionPlanFormatter.FormatSelect(spacedDistinctAggregateQuery, metrics, [], []);
+
+        ExtractEstimatedCost(compactPlan).Should().Be(ExtractEstimatedCost(spacedPlan));
+    }
+
 
     /// <summary>
     /// EN: Verifies optional JSON payload mirrors common aggregated metadata from text output.

@@ -1040,6 +1040,9 @@ internal static class SqlExecutionPlanFormatter
         cost += CountSqlFunctionCalls(raw, "COUNT") * 2;
         cost += CountSqlFunctionCalls(raw, "SUM") * 3;
         cost += CountSqlFunctionCalls(raw, "AVG") * 4;
+        cost += CountDistinctAggregateCalls(raw, "COUNT") * 2;
+        cost += CountDistinctAggregateCalls(raw, "SUM") * 2;
+        cost += CountDistinctAggregateCalls(raw, "AVG") * 2;
         return cost;
     }
 
@@ -1071,6 +1074,54 @@ internal static class SqlExecutionPlanFormatter
 
             if (parenPos < raw.Length && raw[parenPos] == '(')
                 count++;
+
+            index = endOfName;
+        }
+    }
+
+    /// <summary>
+    /// EN: Counts aggregate calls that include DISTINCT inside function arguments, supporting optional whitespace.
+    /// PT: Conta chamadas agregadas que incluem DISTINCT nos argumentos da função, com suporte a espaços opcionais.
+    /// </summary>
+    private static int CountDistinctAggregateCalls(string raw, string functionName)
+    {
+        var count = 0;
+        var index = 0;
+
+        while (true)
+        {
+            index = raw.IndexOf(functionName, index, StringComparison.OrdinalIgnoreCase);
+            if (index < 0)
+                return count;
+
+            var endOfName = index + functionName.Length;
+            if (index > 0 && IsSqlIdentifierChar(raw[index - 1]))
+            {
+                index = endOfName;
+                continue;
+            }
+
+            var parenPos = endOfName;
+            while (parenPos < raw.Length && char.IsWhiteSpace(raw[parenPos]))
+                parenPos++;
+
+            if (parenPos >= raw.Length || raw[parenPos] != '(')
+            {
+                index = endOfName;
+                continue;
+            }
+
+            var argPos = parenPos + 1;
+            while (argPos < raw.Length && char.IsWhiteSpace(raw[argPos]))
+                argPos++;
+
+            const string distinctToken = "DISTINCT";
+            if (argPos + distinctToken.Length <= raw.Length
+                && raw.AsSpan(argPos, distinctToken.Length).Equals(distinctToken, StringComparison.OrdinalIgnoreCase)
+                && (argPos + distinctToken.Length == raw.Length || !IsSqlIdentifierChar(raw[argPos + distinctToken.Length])))
+            {
+                count++;
+            }
 
             index = endOfName;
         }
