@@ -739,21 +739,71 @@ internal static class SqlExecutionPlanFormatter
     private static int EstimateSelectCost(SqlSelectQuery query)
     {
         var cost = 10;
-        cost += query.Ctes.Count * 5;
-        cost += query.Joins.Count * 25;
-        cost += query.Joins.Sum(static j => EstimateJoinTypeCost(j.Type));
-        cost += query.Joins.Sum(j => EstimatePredicateComplexityCost(j.On));
+        cost += EstimateCteCost(query.Ctes);
+        cost += EstimateJoinGraphCost(query.Joins);
         cost += EstimateSourceCost(query.Table);
         cost += query.Joins.Sum(static j => EstimateSourceCost(j.Table));
         if (query.Where is not null) cost += 8 + EstimatePredicateComplexityCost(query.Where);
-        if (query.GroupBy.Count > 0) cost += 20;
-        if (query.Having is not null) cost += 10 + EstimatePredicateComplexityCost(query.Having);
-        if (query.OrderBy.Count > 0) cost += 15;
-        if (query.OrderBy.Count > 0 && query.RowLimit is null) cost += 6;
-        if (query.Distinct) cost += 10;
+        cost += EstimateAggregationCost(query.GroupBy, query.Having);
+        cost += EstimateSortAndDedupCost(query.OrderBy, query.Distinct, query.RowLimit);
         cost += EstimateProjectionCost(query.SelectItems);
-        if (query.RowLimit is not null) cost -= 3;
+        cost -= EstimateRowLimitRelief(query.RowLimit);
         return Math.Max(1, cost);
+    }
+
+    /// <summary>
+    /// EN: Estimates join-graph cost combining base join count, join types, predicate complexity and multi-join fan-out risk.
+    /// PT: Estima custo do grafo de joins combinando quantidade base de joins, tipos de join, complexidade de predicado e risco de fan-out em múltiplos joins.
+    /// </summary>
+    private static int EstimateJoinGraphCost(IReadOnlyList<SqlJoin> joins)
+    {
+        var cost = joins.Count * 25;
+        cost += joins.Sum(static j => EstimateJoinTypeCost(j.Type));
+        cost += joins.Sum(static j => EstimateJoinPredicateCost(j.On));
+
+        if (joins.Count > 1)
+            cost += (joins.Count - 1) * 3;
+
+        var expansionRiskJoins = joins.Count(static j => j.Type is SqlJoinType.Left or SqlJoinType.Right or SqlJoinType.Cross);
+        if (expansionRiskJoins > 1)
+            cost += (expansionRiskJoins - 1) * 4;
+
+        return cost;
+    }
+
+    /// <summary>
+    /// EN: Estimates ON-predicate complexity for joins with a small baseline evaluation overhead.
+    /// PT: Estima a complexidade do predicado ON em joins com pequena sobrecarga base de avaliação.
+    /// </summary>
+    private static int EstimateJoinPredicateCost(SqlExpr on)
+        => 1 + EstimatePredicateComplexityCost(on);
+
+    /// <summary>
+    /// EN: Estimates CTE-related overhead, combining declaration count and nested CTE query complexity.
+    /// PT: Estima overhead relacionado a CTE, combinando quantidade de declarações e complexidade das consultas CTE aninhadas.
+    /// </summary>
+    private static int EstimateCteCost(IReadOnlyList<SqlCte> ctes)
+    {
+        var cost = ctes.Count * 5;
+        cost += ctes.Sum(static cte => EstimateCteQueryCost(cte.Query));
+        return cost;
+    }
+
+    /// <summary>
+    /// EN: Estimates lightweight nested CTE query complexity to avoid over-amplifying recursive cost loops.
+    /// PT: Estima complexidade leve de consulta CTE aninhada para evitar sobre-amplificação em loops recursivos de custo.
+    /// </summary>
+    private static int EstimateCteQueryCost(SqlSelectQuery query)
+    {
+        var cost = 2;
+        cost += query.Joins.Count * 3;
+        if (query.Where is not null)
+            cost += 2 + EstimatePredicateComplexityCost(query.Where);
+
+        cost += EstimateAggregationCost(query.GroupBy, query.Having);
+        cost += EstimateSortAndDedupCost(query.OrderBy, query.Distinct, query.RowLimit);
+        cost += EstimateProjectionCost(query.SelectItems);
+        return Math.Max(0, cost);
     }
 
     /// <summary>
@@ -782,15 +832,93 @@ internal static class SqlExecutionPlanFormatter
             BinaryExpr b => 1 + EstimatePredicateComplexityCost(b.Left) + EstimatePredicateComplexityCost(b.Right),
             LikeExpr l => 2 + EstimatePredicateComplexityCost(l.Left) + EstimatePredicateComplexityCost(l.Pattern),
             BetweenExpr b => 2 + EstimatePredicateComplexityCost(b.Expr) + EstimatePredicateComplexityCost(b.Low) + EstimatePredicateComplexityCost(b.High),
-            InExpr i => 2 + EstimatePredicateComplexityCost(i.Left) + i.Items.Sum(EstimatePredicateComplexityCost),
-            ExistsExpr e => 4 + EstimateSelectCost(e.Subquery.Parsed),
-            SubqueryExpr s => 4 + EstimateSelectCost(s.Parsed),
+            InExpr i => 2 + EstimatePredicateComplexityCost(i.Left) + i.Items.Sum(EstimatePredicateComplexityCost) + i.Items.Count,
+            ExistsExpr e => EstimateSubqueryPredicateCost(e.Subquery),
+            SubqueryExpr s => EstimateSubqueryPredicateCost(s),
             FunctionCallExpr f => 1 + f.Args.Sum(EstimatePredicateComplexityCost),
             CallExpr c => 1 + c.Args.Sum(EstimatePredicateComplexityCost),
-            UnaryExpr u => EstimatePredicateComplexityCost(u.Expr),
+            CaseExpr c => EstimateCasePredicateComplexityCost(c),
+            JsonAccessExpr j => 1 + EstimatePredicateComplexityCost(j.Target) + EstimatePredicateComplexityCost(j.Path),
+            RowExpr r => 1 + r.Items.Sum(EstimatePredicateComplexityCost),
+            UnaryExpr u => 1 + EstimatePredicateComplexityCost(u.Expr),
             IsNullExpr n => 1 + EstimatePredicateComplexityCost(n.Expr),
             _ => 0
         };
+
+    /// <summary>
+    /// EN: Estimates CASE-expression predicate complexity based on base expression, branches and optional ELSE expression.
+    /// PT: Estima a complexidade de predicado com expressão CASE com base na expressão base, ramos e expressão ELSE opcional.
+    /// </summary>
+    private static int EstimateCasePredicateComplexityCost(CaseExpr c)
+    {
+        var cost = 2;
+        if (c.BaseExpr is not null)
+            cost += EstimatePredicateComplexityCost(c.BaseExpr);
+
+        cost += c.Whens.Sum(static wt => EstimatePredicateComplexityCost(wt.When) + EstimatePredicateComplexityCost(wt.Then));
+
+        if (c.ElseExpr is not null)
+            cost += EstimatePredicateComplexityCost(c.ElseExpr);
+
+        return cost;
+    }
+
+    /// <summary>
+    /// EN: Estimates extra cost for GROUP BY/HAVING aggregation stages, including an extra coupling penalty when both appear.
+    /// PT: Estima custo extra para estágios de agregação GROUP BY/HAVING, incluindo penalidade de acoplamento quando ambos aparecem.
+    /// </summary>
+    private static int EstimateAggregationCost(IReadOnlyList<string> groupBy, SqlExpr? having)
+    {
+        var cost = 0;
+        if (groupBy.Count > 0)
+        {
+            cost += 20;
+            cost += Math.Max(0, groupBy.Count - 1) * 2;
+        }
+
+        if (having is not null)
+            cost += 10 + EstimatePredicateComplexityCost(having);
+
+        if (groupBy.Count > 0 && having is not null)
+            cost += 4;
+
+        return cost;
+    }
+
+    /// <summary>
+    /// EN: Estimates combined sort/distinct cost, including no-limit sort spill risk and ORDER BY + DISTINCT coupling.
+    /// PT: Estima custo combinado de sort/distinct, incluindo risco de spill sem limite e acoplamento de ORDER BY + DISTINCT.
+    /// </summary>
+    private static int EstimateSortAndDedupCost(
+        IReadOnlyList<SqlOrderByItem> orderBy,
+        bool distinct,
+        SqlRowLimit? rowLimit)
+    {
+        var cost = 0;
+        if (orderBy.Count > 0)
+        {
+            cost += 15;
+            cost += Math.Max(0, orderBy.Count - 1) * 2;
+        }
+
+        if (orderBy.Count > 0 && rowLimit is null)
+            cost += 6;
+
+        if (distinct)
+            cost += 10;
+
+        if (distinct && orderBy.Count > 0 && rowLimit is null)
+            cost += 5;
+
+        return cost;
+    }
+
+    /// <summary>
+    /// EN: Estimates subquery predicate overhead with a baseline nesting surcharge plus nested SELECT cost.
+    /// PT: Estima overhead de predicado com subconsulta com sobretaxa base de aninhamento e custo do SELECT aninhado.
+    /// </summary>
+    private static int EstimateSubqueryPredicateCost(SubqueryExpr subquery)
+        => 4 + EstimateSelectCost(subquery.Parsed);
 
     /// <summary>
     /// EN: Estimates extra cost contributed by source shape (base table, derived query, or union subquery).
@@ -811,12 +939,14 @@ internal static class SqlExecutionPlanFormatter
     }
 
     /// <summary>
-    /// EN: Estimates projection-related cost using lightweight SQL-shape tokens from SELECT items.
-    /// PT: Estima custo da projeção usando tokens leves de formato SQL nos itens do SELECT.
+    /// EN: Estimates projection-related cost using projection width and lightweight SQL-shape tokens from SELECT items.
+    /// PT: Estima custo da projeção usando largura da projeção e tokens leves de formato SQL nos itens do SELECT.
     /// </summary>
     private static int EstimateProjectionCost(IReadOnlyList<SqlSelectItem> selectItems)
     {
-        var cost = 0;
+        var cost = EstimateProjectionWidthCost(selectItems);
+        cost += EstimateWildcardProjectionCost(selectItems);
+
         foreach (var item in selectItems)
         {
             var raw = item.Raw ?? string.Empty;
@@ -831,6 +961,76 @@ internal static class SqlExecutionPlanFormatter
         return cost;
     }
 
+    /// <summary>
+    /// EN: Estimates projection-width overhead so broader SELECT lists carry additional per-item processing cost.
+    /// PT: Estima overhead de largura da projeção para que listas SELECT maiores carreguem custo adicional por item.
+    /// </summary>
+    private static int EstimateProjectionWidthCost(IReadOnlyList<SqlSelectItem> selectItems)
+    {
+        if (selectItems.Count <= 1)
+            return 0;
+
+        return selectItems.Count - 1;
+    }
+
+
+    /// <summary>
+    /// EN: Estimates wildcard projection overhead because '*' usually expands to broader unknown column sets.
+    /// PT: Estima overhead de projeção curinga porque '*' normalmente expande para conjuntos de colunas mais amplos e desconhecidos.
+    /// </summary>
+    private static int EstimateWildcardProjectionCost(IReadOnlyList<SqlSelectItem> selectItems)
+        => selectItems.Count(static item => string.Equals(item.Raw?.Trim(), "*", StringComparison.Ordinal)) * 6;
+
+    /// <summary>
+    /// EN: Estimates cost relief from row-limit clauses, with stronger relief for tighter limits.
+    /// PT: Estima alívio de custo de cláusulas de limite de linhas, com alívio maior para limites mais restritos.
+    /// </summary>
+    private static int EstimateRowLimitRelief(SqlRowLimit? rowLimit)
+    {
+        if (rowLimit is null)
+            return 0;
+
+        var (count, offset) = ExtractRowLimitCountAndOffset(rowLimit);
+
+        var relief = count switch
+        {
+            <= 0 => 3,
+            <= 10 => 7,
+            <= 100 => 5,
+            <= 1000 => 3,
+            _ => 2
+        };
+
+        relief -= EstimateRowLimitOffsetPenalty(offset);
+        return Math.Max(0, relief);
+    }
+
+    /// <summary>
+    /// EN: Extracts logical row-limit count and offset from different SQL limit syntaxes.
+    /// PT: Extrai contagem e offset lógicos de limite de linhas de diferentes sintaxes SQL de limite.
+    /// </summary>
+    private static (int Count, int Offset) ExtractRowLimitCountAndOffset(SqlRowLimit rowLimit)
+        => rowLimit switch
+        {
+            SqlLimitOffset l => (l.Count, l.Offset ?? 0),
+            SqlTop t => (t.Count, 0),
+            SqlFetch f => (f.Count, f.Offset ?? 0),
+            _ => (0, 0)
+        };
+
+    /// <summary>
+    /// EN: Estimates penalty for high offsets because deep skips still require additional scan/sort work.
+    /// PT: Estima penalidade para offsets altos porque saltos profundos ainda exigem trabalho adicional de scan/sort.
+    /// </summary>
+    private static int EstimateRowLimitOffsetPenalty(int offset)
+        => offset switch
+        {
+            <= 0 => 0,
+            <= 100 => 1,
+            <= 1000 => 2,
+            _ => 3
+        };
+
     private static int EstimateUnionCost(
         IReadOnlyList<SqlSelectQuery> parts,
         IReadOnlyList<bool> allFlags,
@@ -839,8 +1039,8 @@ internal static class SqlExecutionPlanFormatter
     {
         var cost = parts.Sum(EstimateSelectCost) + 12;
         cost += allFlags.Count(flag => !flag) * 20;
-        if ((orderBy?.Count ?? 0) > 0) cost += 15;
-        if (rowLimit is not null) cost -= 2;
+        cost += EstimateSortAndDedupCost(orderBy ?? [], false, rowLimit);
+        cost -= EstimateRowLimitRelief(rowLimit);
         return Math.Max(1, cost);
     }
 }
