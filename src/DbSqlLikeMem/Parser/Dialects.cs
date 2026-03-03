@@ -5,6 +5,7 @@ namespace DbSqlLikeMem;
 /// PT: Estilos de escape de string suportados pelo parser.
 /// </summary>
 internal enum SqlStringEscapeStyle { backslash, doubled_quote }
+
 /// <summary>
 /// EN: Identifier escaping styles supported by the parser.
 /// PT: Estilos de escape de identificador suportados pelo parser.
@@ -173,6 +174,7 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// PT: Obtém ou define Name.
     /// </summary>
     public string Name { get; }
+
     /// <summary>
     /// EN: Gets or sets Version.
     /// PT: Obtém ou define Version.
@@ -184,16 +186,19 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// PT: Obtém ou define AllowsBacktickIdentifiers.
     /// </summary>
     public virtual bool AllowsBacktickIdentifiers => false;
+
     /// <summary>
     /// EN: Gets or sets AllowsDoubleQuoteIdentifiers.
     /// PT: Obtém ou define AllowsDoubleQuoteIdentifiers.
     /// </summary>
     public virtual bool AllowsDoubleQuoteIdentifiers => true;
+
     /// <summary>
     /// EN: Gets or sets AllowsBracketIdentifiers.
     /// PT: Obtém ou define AllowsBracketIdentifiers.
     /// </summary>
     public virtual bool AllowsBracketIdentifiers => false;
+
     /// <summary>
     /// EN: Gets or sets IdentifierEscapeStyle.
     /// PT: Obtém ou define IdentifierEscapeStyle.
@@ -300,6 +305,7 @@ internal abstract class SqlDialectBase : ISqlDialect
             ["NOW"] = SqlTemporalFunctionKind.DateTime,
         };
     public virtual bool ConcatReturnsNullOnNullInput => true;
+
     public virtual bool RegexInvalidPatternEvaluatesToFalse => false;
 
     public virtual bool AreUnionColumnTypesCompatible(DbType first, DbType second)
@@ -483,11 +489,13 @@ internal abstract class SqlDialectBase : ISqlDialect
 
         return DbType.Object;
     }
+
     /// <summary>
     /// EN: Gets or sets StringEscapeStyle.
     /// PT: Obtém ou define StringEscapeStyle.
     /// </summary>
     public virtual SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.doubled_quote;
+
     /// <summary>
     /// EN: Gets or sets SupportsDollarQuotedStrings.
     /// PT: Obtém ou define SupportsDollarQuotedStrings.
@@ -518,11 +526,13 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// PT: Obtém ou define SupportsHashLineComment.
     /// </summary>
     public virtual bool SupportsHashLineComment => false;
+
     /// <summary>
     /// EN: Gets or sets SupportsLimitOffset.
     /// PT: Obtém ou define SupportsLimitOffset.
     /// </summary>
     public virtual bool SupportsLimitOffset => false;
+
     /// <summary>
     /// EN: Gets or sets SupportsFetchFirst.
     /// PT: Obtém ou define SupportsFetchFirst.
@@ -533,32 +543,39 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// PT: Obtém ou define SupportsTop.
     /// </summary>
     public virtual bool SupportsTop => false;
+
     /// <summary>
     /// EN: Gets or sets SupportsOnDuplicateKeyUpdate.
     /// PT: Obtém ou define SupportsOnDuplicateKeyUpdate.
     /// </summary>
     public virtual bool SupportsOnDuplicateKeyUpdate => false;
+
     /// <summary>
     /// EN: Gets or sets SupportsOnConflictClause.
     /// PT: Obtém ou define SupportsOnConflictClause.
     /// </summary>
     public virtual bool SupportsOnConflictClause => false;
+
     /// <summary>
     /// EN: Gets or sets SupportsReturning.
     /// PT: Obtém ou define SupportsReturning.
     /// </summary>
     public virtual bool SupportsReturning => false;
+
     /// <summary>
     /// EN: Gets or sets SupportsMerge.
     /// PT: Obtém ou define SupportsMerge.
     /// </summary>
     public virtual bool SupportsMerge => false;
+
     public virtual bool SupportsTriggers => true;
+
     /// <summary>
     /// EN: Gets or sets SupportsOffsetFetch.
     /// PT: Obtém ou define SupportsOffsetFetch.
     /// </summary>
     public virtual bool SupportsOffsetFetch => false;
+
     /// <summary>
     /// EN: Gets or sets RequiresOrderByForOffsetFetch.
     /// PT: Obtém ou define RequiresOrderByForOffsetFetch.
@@ -566,36 +583,43 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual bool RequiresOrderByForOffsetFetch => false;
 
     public virtual bool SupportsOrderByNullsModifier => false;
+
     /// <summary>
     /// EN: Gets or sets SupportsDeleteWithoutFrom.
     /// PT: Obtém ou define SupportsDeleteWithoutFrom.
     /// </summary>
     public virtual bool SupportsDeleteWithoutFrom => false;
+
     /// <summary>
     /// EN: Gets or sets SupportsDeleteTargetAlias.
     /// PT: Obtém ou define SupportsDeleteTargetAlias.
     /// </summary>
     public virtual bool SupportsDeleteTargetAlias => true;
+
     /// <summary>
     /// EN: Gets or sets SupportsWithCte.
     /// PT: Obtém ou define SupportsWithCte.
     /// </summary>
     public virtual bool SupportsWithCte => false;
+
     /// <summary>
     /// EN: Gets or sets SupportsWithRecursive.
     /// PT: Obtém ou define SupportsWithRecursive.
     /// </summary>
     public virtual bool SupportsWithRecursive => true;
+
     /// <summary>
     /// EN: Gets or sets SupportsWithMaterializedHint.
     /// PT: Obtém ou define SupportsWithMaterializedHint.
     /// </summary>
     public virtual bool SupportsWithMaterializedHint => false;
+
     /// <summary>
     /// EN: Gets or sets SupportsNullSafeEq.
     /// PT: Obtém ou define SupportsNullSafeEq.
     /// </summary>
     public virtual bool SupportsNullSafeEq => false;
+
     /// <summary>
     /// EN: Gets or sets SupportsJsonArrowOperators.
     /// PT: Obtém ou define SupportsJsonArrowOperators.
@@ -604,41 +628,49 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual bool SupportsJsonExtractFunction => false;
     public virtual bool SupportsJsonValueFunction => false;
     public virtual bool SupportsOpenJsonFunction => false;
+
     /// <summary>
     /// EN: Gets or sets AllowsParserCrossDialectQuotedIdentifiers.
     /// PT: Obtém ou define AllowsParserCrossDialectQuotedIdentifiers.
     /// </summary>
     public virtual bool AllowsParserCrossDialectQuotedIdentifiers => false;
+
     /// <summary>
     /// EN: Gets or sets AllowsParserCrossDialectJsonOperators.
     /// PT: Obtém ou define AllowsParserCrossDialectJsonOperators.
     /// </summary>
     public virtual bool AllowsParserCrossDialectJsonOperators => false;
+
     /// <summary>
     /// EN: Gets or sets AllowsParserInsertSelectUpsertSuffix.
     /// PT: Obtém ou define AllowsParserInsertSelectUpsertSuffix.
     /// </summary>
     public virtual bool AllowsParserInsertSelectUpsertSuffix => false;
+
     /// <summary>
     /// EN: Gets or sets AllowsParserDeleteWithoutFromCompatibility.
     /// PT: Obtém ou define AllowsParserDeleteWithoutFromCompatibility.
     /// </summary>
     public virtual bool AllowsParserDeleteWithoutFromCompatibility => false;
+
     /// <summary>
     /// EN: Gets or sets AllowsParserLimitOffsetCompatibility.
     /// PT: Obtém ou define AllowsParserLimitOffsetCompatibility.
     /// </summary>
     public virtual bool AllowsParserLimitOffsetCompatibility => false;
+
     /// <summary>
     /// EN: Gets or sets SupportsSqlServerTableHints.
     /// PT: Obtém ou define SupportsSqlServerTableHints.
     /// </summary>
     public virtual bool SupportsSqlServerTableHints => false;
+
     /// <summary>
     /// EN: Gets or sets SupportsSqlServerQueryHints.
     /// PT: Obtém ou define SupportsSqlServerQueryHints.
     /// </summary>
     public virtual bool SupportsSqlServerQueryHints => false;
+
     /// <summary>
     /// EN: Gets or sets SupportsMySqlIndexHints.
     /// PT: Obtém ou define SupportsMySqlIndexHints.
