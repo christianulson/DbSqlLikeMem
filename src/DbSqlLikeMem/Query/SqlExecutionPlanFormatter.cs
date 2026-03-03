@@ -1019,8 +1019,7 @@ internal static class SqlExecutionPlanFormatter
                 cost += 12;
             if (raw.IndexOf("CASE ", StringComparison.OrdinalIgnoreCase) >= 0)
                 cost += 4;
-            if (raw.IndexOf("SELECT ", StringComparison.OrdinalIgnoreCase) >= 0)
-                cost += 10;
+            cost += CountSqlKeywordOccurrences(raw, "SELECT") * 10;
             cost += EstimateAggregateProjectionFunctionCost(raw);
         }
 
@@ -1133,6 +1132,35 @@ internal static class SqlExecutionPlanFormatter
     /// </summary>
     private static bool IsSqlIdentifierChar(char c)
         => char.IsLetterOrDigit(c) || c is '_' or '$';
+
+    /// <summary>
+    /// EN: Counts SQL keyword token occurrences using identifier-boundary guards and optional trailing whitespace.
+    /// PT: Conta ocorrências de token de palavra-chave SQL usando guardas de fronteira de identificador e whitespace opcional à direita.
+    /// </summary>
+    private static int CountSqlKeywordOccurrences(string raw, string keyword)
+    {
+        if (string.IsNullOrWhiteSpace(raw) || string.IsNullOrWhiteSpace(keyword))
+            return 0;
+
+        var count = 0;
+        var index = 0;
+
+        while (true)
+        {
+            index = raw.IndexOf(keyword, index, StringComparison.OrdinalIgnoreCase);
+            if (index < 0)
+                return count;
+
+            var leftBoundaryOk = index == 0 || !IsSqlIdentifierChar(raw[index - 1]);
+            var right = index + keyword.Length;
+            var rightBoundaryOk = right >= raw.Length || !IsSqlIdentifierChar(raw[right]);
+
+            if (leftBoundaryOk && rightBoundaryOk)
+                count++;
+
+            index += keyword.Length;
+        }
+    }
 
     /// <summary>
     /// EN: Estimates projection-width overhead so broader SELECT lists carry additional per-item processing cost.

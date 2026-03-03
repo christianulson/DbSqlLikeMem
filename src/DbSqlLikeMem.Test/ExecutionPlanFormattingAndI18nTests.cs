@@ -2154,6 +2154,39 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         ExtractEstimatedCost(compactPlan).Should().Be(ExtractEstimatedCost(spacedPlan));
     }
 
+    /// <summary>
+    /// EN: Verifies projection cost increases with additional scalar subqueries in SELECT items.
+    /// PT: Verifica que o custo da projeção aumenta com subconsultas escalares adicionais nos itens do SELECT.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseWithAdditionalProjectionSubqueries()
+    {
+        var oneSubqueryProjectionQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("(SELECT MAX(userid) FROM orders)", "maxUserId")],
+            [],
+            null,
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var twoSubqueriesProjectionQuery = oneSubqueryProjectionQuery with
+        {
+            SelectItems = [new SqlSelectItem("(SELECT MAX(userid) FROM orders) + (SELECT MIN(userid) FROM orders)", "sumUserBounds")]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var oneSubqueryPlan = SqlExecutionPlanFormatter.FormatSelect(oneSubqueryProjectionQuery, metrics, [], []);
+        var twoSubqueriesPlan = SqlExecutionPlanFormatter.FormatSelect(twoSubqueriesProjectionQuery, metrics, [], []);
+
+        ExtractEstimatedCost(oneSubqueryPlan).Should().BeLessThan(ExtractEstimatedCost(twoSubqueriesPlan));
+    }
+
 
     /// <summary>
     /// EN: Verifies optional JSON payload mirrors common aggregated metadata from text output.
