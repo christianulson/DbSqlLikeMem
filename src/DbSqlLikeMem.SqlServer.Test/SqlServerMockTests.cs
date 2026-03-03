@@ -317,4 +317,154 @@ public sealed class SqlServerMockTests
         Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture));
     }
 
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestBatch_BeginTransactionThenRowCount_ShouldReturnZero()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SELECT @@ROWCOUNT;"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestBatch_BeginSavepointThenRowCount_ShouldReturnZero()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SAVEPOINT sp1; SELECT @@ROWCOUNT;"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestBatch_CallThenRowCount_ShouldReturnZero()
+    {
+        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "CALL sp_ping(); SELECT @@ROWCOUNT;"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'After Commit' WHERE Id = 1; COMMIT; SELECT @@ROWCOUNT;"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SAVEPOINT sp1; UPDATE Users SET Name = 'Tmp' WHERE Id = 1; ROLLBACK TO SAVEPOINT sp1; SELECT @@ROWCOUNT;"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SAVEPOINT sp1; RELEASE SAVEPOINT sp1; SELECT @@ROWCOUNT;"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY; UPDATE Users SET Name = 'Mixed Batch User' WHERE Id = 1; SELECT @@ROWCOUNT;"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit()
+    {
+        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "CALL sp_ping(); UPDATE Users SET Name = 'Call Dml User' WHERE Id = 1; COMMIT; SELECT @@ROWCOUNT;"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'Last Select User' WHERE Id = 1; SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 2 ROWS ONLY; SELECT @@ROWCOUNT;"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        var rows = 0;
+        while (reader.Read()) rows++;
+        Assert.Equal(2, rows);
+
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(2L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
 }

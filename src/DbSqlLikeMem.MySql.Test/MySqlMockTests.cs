@@ -628,4 +628,154 @@ public sealed class MySqlMockTests
         Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture));
     }
 
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestBatch_BeginTransactionThenFoundRows_ShouldReturnZero()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SELECT FOUND_ROWS();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestBatch_BeginSavepointThenFoundRows_ShouldReturnZero()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SAVEPOINT sp1; SELECT FOUND_ROWS();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestBatch_CallThenFoundRows_ShouldReturnZero()
+    {
+        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "CALL sp_ping(); SELECT FOUND_ROWS();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestBatch_UpdateCommitThenFoundRows_ShouldReturnZeroAfterCommit()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'After Commit' WHERE Id = 1; COMMIT; SELECT FOUND_ROWS();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestBatch_RollbackToSavepointThenFoundRows_ShouldReturnZero()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SAVEPOINT sp1; UPDATE Users SET Name = 'Tmp' WHERE Id = 1; ROLLBACK TO SAVEPOINT sp1; SELECT FOUND_ROWS();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestBatch_ReleaseSavepointThenFoundRows_ShouldReturnZero()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SAVEPOINT sp1; RELEASE SAVEPOINT sp1; SELECT FOUND_ROWS();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestBatch_SelectThenUpdateThenFoundRows_ShouldReflectLastDml()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT Name FROM Users ORDER BY Id LIMIT 1; UPDATE Users SET Name = 'Mixed Batch User' WHERE Id = 1; SELECT FOUND_ROWS();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestBatch_CallUpdateCommitThenFoundRows_ShouldReturnZeroAfterCommit()
+    {
+        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "CALL sp_ping(); UPDATE Users SET Name = 'Call Dml User' WHERE Id = 1; COMMIT; SELECT FOUND_ROWS();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestBatch_UpdateThenSelectThenFoundRows_ShouldReflectLastSelect()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'Last Select User' WHERE Id = 1; SELECT Name FROM Users ORDER BY Id LIMIT 2; SELECT FOUND_ROWS();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        var rows = 0;
+        while (reader.Read()) rows++;
+        Assert.Equal(2, rows);
+
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(2L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
 }

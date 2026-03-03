@@ -251,4 +251,141 @@ public sealed class SqliteMockTests
         Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar()));
     }
 
+
+
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void TestBatch_BeginTransactionThenChanges_ShouldReturnZero()
+    {
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SELECT CHANGES();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void TestBatch_CallThenChanges_ShouldReturnZero()
+    {
+        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "CALL sp_ping(); SELECT CHANGES();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void TestBatch_UpdateCommitThenChanges_ShouldReturnZeroAfterCommit()
+    {
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'After Commit' WHERE Id = 1; COMMIT; SELECT CHANGES();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void TestBatch_RollbackToSavepointThenChanges_ShouldReturnZero()
+    {
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SAVEPOINT sp1; UPDATE Users SET Name = 'Tmp' WHERE Id = 1; ROLLBACK TO SAVEPOINT sp1; SELECT CHANGES();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void TestBatch_ReleaseSavepointThenChanges_ShouldReturnZero()
+    {
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SAVEPOINT sp1; RELEASE SAVEPOINT sp1; SELECT CHANGES();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void TestBatch_SelectThenUpdateThenChanges_ShouldReflectLastDml()
+    {
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "SELECT Name FROM Users ORDER BY Id LIMIT 1; UPDATE Users SET Name = 'Mixed Batch User' WHERE Id = 1; SELECT CHANGES();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void TestBatch_CallUpdateCommitThenChanges_ShouldReturnZeroAfterCommit()
+    {
+        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "CALL sp_ping(); UPDATE Users SET Name = 'Call Dml User' WHERE Id = 1; COMMIT; SELECT CHANGES();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void TestBatch_UpdateThenSelectThenChanges_ShouldReflectLastSelect()
+    {
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'Last Select User' WHERE Id = 1; SELECT Name FROM Users ORDER BY Id LIMIT 2; SELECT CHANGES();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        var rows = 0;
+        while (reader.Read()) rows++;
+        Assert.Equal(2, rows);
+
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(2L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
 }
