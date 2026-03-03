@@ -18,6 +18,9 @@ internal abstract class AstQueryExecutorBase(
     : IAstQueryExecutor
 {
     private static readonly ConcurrentDictionary<Type, Func<string, object, SqlExpr>> _parseWhereDelegateCache = new();
+    private static readonly Regex _sqlCalcFoundRowsRegex = new(
+        @"\bSQL_CALC_FOUND_ROWS\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private readonly DbConnectionMockBase _cnn = cnn ?? throw new ArgumentNullException(nameof(cnn));
     private readonly IDataParameterCollection _pars = pars ?? throw new ArgumentNullException(nameof(pars));
@@ -203,6 +206,7 @@ internal abstract class AstQueryExecutorBase(
             unionMetrics);
         result.ExecutionPlan = plan;
         _cnn.RegisterExecutionPlan(plan);
+        _cnn.SetLastFoundRows(result.Count);
 
         return result;
     }
@@ -343,6 +347,9 @@ internal abstract class AstQueryExecutorBase(
         var sw = Stopwatch.StartNew();
         var result = ExecuteSelect(q, null, null);
         sw.Stop();
+
+        if (!HasSqlCalcFoundRows(q))
+            _cnn.SetLastFoundRows(result.Count);
 
         var metrics = BuildPlanRuntimeMetrics(q, result.Count, sw.ElapsedMilliseconds);
         var indexRecommendations = BuildIndexRecommendations(q, metrics);
@@ -978,6 +985,9 @@ internal abstract class AstQueryExecutorBase(
         // 6) DISTINCT
         if (selectQuery.Distinct)
             projected = ApplyDistinct(projected, Dialect);
+
+        if (HasSqlCalcFoundRows(selectQuery))
+            _cnn.SetLastFoundRows(projected.Count);
 
         // 7) ORDER BY / LIMIT
         projected = ApplyOrderAndLimit(projected, selectQuery, ctes);
@@ -2096,6 +2106,9 @@ internal abstract class AstQueryExecutorBase(
 
         if (q.Distinct)
             res = ApplyDistinct(res, Dialect);
+
+        if (HasSqlCalcFoundRows(q))
+            _cnn.SetLastFoundRows(res.Count);
 
         // ORDER / LIMIT
         res = ApplyOrderAndLimit(res, q, ctes);
@@ -3724,6 +3737,9 @@ private void FillPercentRankOrCumeDist(
                     out var temporalIdentifierValue))
                     return temporalIdentifierValue;
 
+                if (IsSqlServerRowCountIdentifier(id.Name, Dialect))
+                    return _cnn.GetLastFoundRows();
+
                 return ResolveIdentifier(id.Name, row);
 
             case ColumnExpr col:
@@ -4052,6 +4068,14 @@ private void FillPercentRankOrCumeDist(
             var parts = hay.Split(',').Select(_=>_.Trim()).ToArray();
             var idx = Array.FindIndex(parts, p => string.Equals(p, needle, StringComparison.OrdinalIgnoreCase));
             return idx >= 0 ? idx + 1 : 0;
+        }
+
+        if (IsFoundRowsEquivalentFunction(fn.Name, dialect))
+        {
+            if (fn.Args.Count != 0)
+                throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() não aceita argumentos.");
+
+            return _cnn.GetLastFoundRows();
         }
 
         var isIf = fn.Name.Equals("IF", StringComparison.OrdinalIgnoreCase);
@@ -5476,4 +5500,35 @@ private void FillPercentRankOrCumeDist(
     //        }
     //    }
     //}
+
+
+
+    private static bool IsSqlServerRowCountIdentifier(string identifier, ISqlDialect? dialect)
+        => dialect is not null
+           && string.Equals(dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase)
+           && identifier.Equals("@@ROWCOUNT", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsFoundRowsEquivalentFunction(string functionName, ISqlDialect dialect)
+    {
+        if (string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        if (functionName.Equals("FOUND_ROWS", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return dialect.Name.ToLowerInvariant() switch
+        {
+            "mysql" => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase),
+            "sqlserver" => functionName.Equals("ROWCOUNT", StringComparison.OrdinalIgnoreCase),
+            "postgresql" => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase),
+            "oracle" => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase),
+            "db2" => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase),
+            "sqlite" => functionName.Equals("CHANGES", StringComparison.OrdinalIgnoreCase),
+            _ => false
+        };
+    }
+
+    private static bool HasSqlCalcFoundRows(SqlSelectQuery query)
+        => !string.IsNullOrWhiteSpace(query.RawSql)
+           && _sqlCalcFoundRowsRegex.IsMatch(query.RawSql);
 }

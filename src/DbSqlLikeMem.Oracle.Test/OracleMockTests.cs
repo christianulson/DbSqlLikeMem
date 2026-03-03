@@ -219,4 +219,42 @@ public sealed class OracleMockTests
         _connection.Dispose();
         base.Dispose(disposing);
     }
+
+    [Fact]
+    [Trait("Category", "OracleMock")]
+    public void TestSelect_FoundRows_ShouldReturnLastSelectRowCount()
+    {
+        using var command = new OracleCommandMock(_connection);
+        command.CommandText = """
+            INSERT INTO Users (Id, Name, Email) VALUES (101, 'Ana', NULL);
+            INSERT INTO Users (Id, Name, Email) VALUES (102, 'Bia', NULL);
+            INSERT INTO Users (Id, Name, Email) VALUES (103, 'Caio', NULL);
+            """;
+        command.ExecuteNonQuery();
+
+        command.CommandText = "SELECT Name FROM Users ORDER BY Id FETCH FIRST 1 ROWS ONLY; SELECT FOUND_ROWS();";
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal("Ana", reader.GetString(0));
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    [Fact]
+    [Trait("Category", "OracleMock")]
+    public void TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount()
+    {
+        using var command = new OracleCommandMock(_connection);
+        command.CommandText = "SELECT Name FROM Users ORDER BY Id FETCH FIRST 1 ROWS ONLY; SELECT ROW_COUNT();";
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
 }
