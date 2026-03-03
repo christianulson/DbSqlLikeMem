@@ -30,7 +30,7 @@ internal abstract class AstQueryExecutorBase(
 
     private static readonly HashSet<string> _aggFns = new(StringComparer.OrdinalIgnoreCase)
     {
-        "COUNT","SUM","MIN","MAX","AVG"
+        "COUNT","SUM","MIN","MAX","AVG","GROUP_CONCAT","STRING_AGG","LISTAGG"
     };
 
     // Dialect-aware expression parsing without hard dependency on a specific dialect type.
@@ -4752,6 +4752,12 @@ private void FillPercentRankOrCumeDist(
                 values.Min(_ => _.ToDec()),                 // decimal (consistente pro teu teste)
             "MAX" =>
                 values.Max(_ => _.ToDec()),                 // decimal
+            "GROUP_CONCAT" =>
+                EvalStringAggregate(values, fn.Args.Count > 1 && group.Rows.Count > 0 ? Eval(fn.Args[1], group.Rows[0], null, ctes) : null, ","),
+            "STRING_AGG" =>
+                EvalStringAggregate(values, fn.Args.Count > 1 && group.Rows.Count > 0 ? Eval(fn.Args[1], group.Rows[0], null, ctes) : null, ","),
+            "LISTAGG" =>
+                EvalStringAggregate(values, fn.Args.Count > 1 && group.Rows.Count > 0 ? Eval(fn.Args[1], group.Rows[0], null, ctes) : null, string.Empty),
             _ => null
         };
     }
@@ -4766,6 +4772,11 @@ private void FillPercentRankOrCumeDist(
         // COUNT(DISTINCT ...)
         if (name == "COUNT" && fn.Distinct)
             return EvalCountDistinct(fn, group, ctes);
+
+        if (name is "GROUP_CONCAT" or "STRING_AGG" or "LISTAGG")
+        {
+            return EvalStringAggregateForCallExpr(fn, group, ctes, name);
+        }
 
         // para os outros casos (sem DISTINCT), reaproveita o existente
         var shim = new FunctionCallExpr(fn.Name, fn.Args);
@@ -4817,6 +4828,47 @@ private void FillPercentRankOrCumeDist(
                 : s.ToUpperInvariant(),
             _ => v.ToString() ?? ""
         };
+    }
+
+    private static string? EvalStringAggregate(IReadOnlyList<object?> values, object? separatorObj, string defaultSeparator)
+    {
+        if (values.Count == 0)
+            return null;
+
+        var separator = separatorObj?.ToString() ?? defaultSeparator;
+        return string.Join(separator, values.Select(v => v?.ToString() ?? string.Empty));
+    }
+
+    private string? EvalStringAggregateForCallExpr(CallExpr fn, EvalGroup group, IDictionary<string, Source> ctes, string name)
+    {
+        if (fn.Args.Count == 0)
+            return null;
+
+        object? separatorObj = null;
+        if (fn.Args.Count > 1 && group.Rows.Count > 0)
+            separatorObj = Eval(fn.Args[1], group.Rows[0], null, ctes);
+
+        var values = new List<object?>();
+        var distinct = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var r in group.Rows)
+        {
+            var v = Eval(fn.Args[0], r, null, ctes);
+            if (IsNullish(v))
+                continue;
+
+            if (!fn.Distinct)
+            {
+                values.Add(v);
+                continue;
+            }
+
+            var normalized = NormalizeDistinctKey(v, Dialect);
+            if (distinct.Add(normalized))
+                values.Add(v);
+        }
+
+        var defaultSeparator = name == "LISTAGG" ? string.Empty : ",";
+        return EvalStringAggregate(values, separatorObj, defaultSeparator);
     }
 
     private bool TryEvalAggrageteCount(
@@ -4902,7 +4954,7 @@ private void FillPercentRankOrCumeDist(
     private static bool LooksLikeAggregateExpression(string exprRaw)
         => Regex.IsMatch(
             exprRaw,
-            @"\b(COUNT|SUM|MIN|MAX|AVG)\s*\(",
+            @"\b(COUNT|SUM|MIN|MAX|AVG|GROUP_CONCAT|STRING_AGG|LISTAGG)\s*\(",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     private static bool WalkHasAggregate(SqlExpr e) => e switch
@@ -4929,7 +4981,7 @@ private void FillPercentRankOrCumeDist(
 
     private static readonly HashSet<string> _aggFnsStatic = new(StringComparer.OrdinalIgnoreCase)
     {
-        "COUNT","SUM","MIN","MAX","AVG"
+        "COUNT","SUM","MIN","MAX","AVG","GROUP_CONCAT","STRING_AGG","LISTAGG"
     };
 
     // ---------------- RESOLUTION HELPERS ----------------

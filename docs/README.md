@@ -41,7 +41,19 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
   - acompanhamento de hardening/regressão
 - [Snapshot cross-dialect (smoke)](cross-dialect-smoke-snapshot.md)
   - baseline de equivalência entre providers
-  - atualização via script automatizado
+  - atualização via `scripts/refresh_cross_dialect_snapshots.sh` (ou runner direto `scripts/run_cross_dialect_equivalence.sh`)
+  - suporte a perfis de execução (`--profile smoke` para projetos core e `--profile aggregation` para projetos Dapper)
+  - opção `--continue-on-error` para executar a matriz inteira e gerar resumo de falhas
+  - opção `--dry-run` para inspeção da matriz planejada sem executar `dotnet`
+  - snapshots agora incluem quadro-resumo final (checks totais/falhas por perfil)
+  - snapshots por perfil publicados como artefatos no workflow `provider-test-matrix.yml`
+  - validação das automações em CI (`bash -n`, `py_compile`, `--help`, check de cobertura `.slnx` e formato dos snapshots via `check_cross_dialect_snapshot_format.py`)
+- [Snapshot cross-dialect (aggregation)](cross-dialect-aggregation-snapshot.md)
+  - baseline de contratos de agregação textual por provider
+  - atualização via `scripts/refresh_cross_dialect_snapshots.sh`
+- [Governança da solução .slnx](features-backlog/index.md#631-arquivo-de-solucao-slnx-e-cobertura-de-projetos)
+  - validação de cobertura de projetos com `scripts/check_slnx_project_coverage.py`
+  - prevenção de drift entre `.slnx` e árvore `src/**/*.csproj`
 - [Relatório de hardening/regressão](old/hardening-regression-report.md)
   - regressões corrigidas
   - próximos itens priorizados
