@@ -115,6 +115,46 @@ public sealed class SqlServerAggregationTests : AggregationHavingOrdinalTestsBas
     }
 
 
+
+
+    /// <summary>
+    /// EN: Ensures GETDATE and SYSDATETIME functions work in WHERE filter and projection.
+    /// PT: Garante que funções GETDATE e SYSDATETIME funcionem em filtro WHERE e projeção.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAggregation")]
+    public void TemporalFunction_GetDateAndSysDateTime_InWhere_ShouldWork()
+    {
+        var rows = Query("SELECT GETDATE() AS currentDate, SYSDATETIME() AS currentTime FROM orders WHERE GETDATE() IS NOT NULL AND SYSDATETIME() IS NOT NULL");
+
+        Assert.NotEmpty(rows);
+        Assert.NotNull(rows[0].currentDate);
+        Assert.NotNull(rows[0].currentTime);
+    }
+
+
+
+    /// <summary>
+    /// EN: Ensures GETDATE and SYSDATETIME functions work in HAVING and ORDER BY grouped queries.
+    /// PT: Garante que funções GETDATE e SYSDATETIME funcionem em HAVING e ORDER BY com agrupamento.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAggregation")]
+    public void TemporalFunction_GetDateAndSysDateTime_InHavingAndOrderBy_ShouldWork()
+    {
+        var rows = Query("""
+            SELECT userId, COUNT(*) AS total
+            FROM orders
+            GROUP BY userId
+            HAVING GETDATE() IS NOT NULL
+            ORDER BY SYSDATETIME(), userId
+            """);
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(1, Convert.ToInt32(rows[0].userId));
+        Assert.Equal(2, Convert.ToInt32(rows[1].userId));
+    }
+
     /// <summary>
     /// EN: Ensures zero-arg temporal function works in INSERT values and can be read back.
     /// PT: Garante que função temporal sem argumentos funcione em valores de INSERT e possa ser lida depois.
@@ -149,6 +189,98 @@ public sealed class SqlServerAggregationTests : AggregationHavingOrdinalTestsBas
 
         Assert.Single(rows);
         Assert.NotNull(rows[0].updated_at);
+    }
+
+    /// <summary>
+    /// EN: Ensures zero-arg temporal function works in HAVING and ORDER BY grouped queries.
+    /// PT: Garante que função temporal sem argumentos funcione em HAVING e ORDER BY com agrupamento.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAggregation")]
+    public void TemporalFunction_InHavingAndOrderBy_ShouldWork()
+    {
+        var rows = Query("""
+            SELECT userId, COUNT(*) AS total
+            FROM orders
+            GROUP BY userId
+            HAVING CURRENT_TIMESTAMP IS NOT NULL
+            ORDER BY CURRENT_TIMESTAMP, userId
+            """);
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(1, Convert.ToInt32(rows[0].userId));
+        Assert.Equal(2, Convert.ToInt32(rows[1].userId));
+    }
+
+
+
+
+    /// <summary>
+    /// EN: Ensures GETDATE()/SYSDATETIME() call-style temporal functions work in HAVING and ORDER BY grouped queries.
+    /// PT: Garante que funções temporais GETDATE()/SYSDATETIME() (call-style) funcionem em HAVING e ORDER BY com agrupamento.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAggregation")]
+    public void TemporalFunction_GetDateAndSysDateTimeCall_InHavingAndOrderBy_ShouldWork()
+    {
+        var rows = Query("""
+            SELECT userId, COUNT(*) AS total
+            FROM orders
+            GROUP BY userId
+            HAVING GETDATE() IS NOT NULL
+            ORDER BY SYSDATETIME(), userId
+            """);
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(1, Convert.ToInt32(rows[0].userId));
+        Assert.Equal(2, Convert.ToInt32(rows[1].userId));
+    }
+
+    /// <summary>
+    /// EN: Ensures unsupported temporal function from another dialect reports a clear error message.
+    /// PT: Garante que função temporal de outro dialeto gere mensagem de erro clara.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAggregation")]
+    public void TemporalFunction_UnsupportedFunctionFromOtherDialect_ShouldThrowClearError()
+    {
+        var ex = Assert.ThrowsAny<Exception>(() =>
+            Query("SELECT NOW() AS invalidNow FROM orders"));
+
+        Assert.Contains("NOW", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+
+
+    /// <summary>
+    /// EN: Ensures token-only temporal function called with parentheses reports clear error.
+    /// PT: Garante que função temporal no formato token chamada com parênteses gere erro claro.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAggregation")]
+    public void TemporalFunction_TokenCalledAsFunction_ShouldThrowClearError()
+    {
+        var ex = Assert.ThrowsAny<Exception>(() =>
+            Query("SELECT CURRENT_TIMESTAMP() AS invalidNow FROM orders"));
+
+        Assert.Contains("CURRENT_TIMESTAMP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+
+    /// <summary>
+    /// EN: Ensures call-only temporal function used without parentheses reports clear error.
+    /// PT: Garante que função temporal apenas-invocável usada sem parênteses gere erro claro.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAggregation")]
+    public void TemporalFunction_CallOnlyIdentifierWithoutParentheses_ShouldThrowClearError()
+    {
+        var ex = Assert.ThrowsAny<Exception>(() =>
+            Query("SELECT GETDATE AS invalidNow FROM orders"));
+
+        Assert.Contains("GETDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 }

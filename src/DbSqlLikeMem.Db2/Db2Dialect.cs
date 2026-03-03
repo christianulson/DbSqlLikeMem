@@ -119,6 +119,10 @@ internal sealed class Db2Dialect : SqlDialectBase
             ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
         };
 
+
+    public override IReadOnlyCollection<string> TemporalFunctionCallNames
+        => [];
+
     /// <summary>
     /// EN: Gets or sets allows parser limit offset compatibility.
     /// PT: Obtém ou define allows parser limit offset compatibility.

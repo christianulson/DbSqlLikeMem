@@ -156,6 +156,13 @@ internal sealed class SqlServerDialect : SqlDialectBase
             ["SYSDATETIME"] = SqlTemporalFunctionKind.DateTime,
             ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
         };
+
+    public override IReadOnlyCollection<string> TemporalFunctionIdentifierNames
+        => ["CURRENT_TIMESTAMP"];
+
+    public override IReadOnlyCollection<string> TemporalFunctionCallNames
+        => ["GETDATE", "SYSDATETIME"];
+
     /// <summary>
     /// EN: Gets or sets concat returns null on null input.
     /// PT: Obtém ou define concat returns null on null input.

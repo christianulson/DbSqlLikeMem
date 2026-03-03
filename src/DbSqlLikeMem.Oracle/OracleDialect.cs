@@ -129,6 +129,8 @@ internal sealed class OracleDialect : SqlDialectBase
             ["SYSTIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
             ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
         };
+
+
     /// <summary>
     /// EN: Gets or sets concat returns null on null input.
     /// PT: Obtém ou define concat returns null on null input.

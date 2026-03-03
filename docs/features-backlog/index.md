@@ -67,10 +67,17 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Parser agora sinaliza explicitamente `WITHIN GROUP` (ordered-set aggregates) como não suportado com mensagem acionável por dialeto.
 
 #### 1.2.6 Funções de data/hora cross-dialect
-- Implementação estimada: **58%**.
+- Implementação estimada: **68%**.
 - Consolidar no `dialect` o catálogo de funções temporais sem argumento (data, hora e data/hora).
 - Garantir suporte de avaliação tanto para função com parênteses quanto para tokens sem parênteses em `SELECT`, `WHERE`, `HAVING` e expressões de `INSERT/UPSERT`.
 - Cobertura Dapper cross-provider adicionada para funções temporais sem argumento em projeção/filtro `WHERE`, em expressões de `INSERT VALUES` e em `UPDATE ... SET` (MySQL/SQL Server/Oracle/Npgsql/SQLite/DB2).
+- Cobertura Dapper cross-provider expandida para `HAVING` e `ORDER BY` com função temporal sem argumento em consultas agrupadas (MySQL/SQL Server/Oracle/Npgsql/SQLite/DB2).
+- Cobertura Dapper expandida para funções temporais adicionais por dialeto em `WHERE`, `HAVING` e `ORDER BY` (ex.: `CURRENT_DATE`/`CURRENT_TIME` em MySQL/Npgsql/SQLite/DB2; `GETDATE`/`SYSDATETIME` em SQL Server; `CURRENT_DATE`/`SYSTIMESTAMP` em Oracle).
+- Cenário negativo por dialeto adicionado para função temporal de outro dialeto (ex.: `GETDATE()`/`NOW()`) com validação de erro claro por provider.
+- Catálogo temporal por dialeto agora distingue tokens sem parênteses e funções invocáveis com parênteses, com cobertura negativa para chamadas inválidas de token (`CURRENT_TIMESTAMP()`) em MySQL/Npgsql/SQL Server/SQLite/Oracle/DB2.
+- Cenário inverso (função call-only sem parênteses) validado com erro claro em SQL Server (`GETDATE`) e em MySQL/Npgsql (`NOW`).
+- Cobertura positiva adicional para `NOW()` em consulta agrupada com `HAVING`/`ORDER BY` no MySQL, reforçando semântica call-style no dialeto.
+- Cobertura positiva call-style expandida para `NOW()` no Npgsql (`WHERE` e `HAVING`/`ORDER BY`) e para `GETDATE()`/`SYSDATETIME()` em consulta agrupada no SQL Server.
 - Cobrir equivalências por provedor (exemplos):
   - Oracle: `SYSDATE`, `SYSTIMESTAMP`, `CURRENT_DATE`, `CURRENT_TIMESTAMP`.
   - SQL Server: `GETDATE`, `SYSDATETIME`, `CURRENT_TIMESTAMP`.
