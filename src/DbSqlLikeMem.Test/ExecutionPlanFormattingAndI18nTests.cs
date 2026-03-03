@@ -1289,6 +1289,47 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         (ExtractEstimatedCost(withOffsetPlan) - ExtractEstimatedCost(noOffsetPlan)).Should().BeGreaterThanOrEqualTo(2);
     }
 
+    /// <summary>
+    /// EN: Verifies DISTINCT + GROUP BY + ORDER BY coupling uplift is stronger when grouping/ordering expressions are complex (CASE/JSON markers) than for simple key expressions.
+    /// PT: Verifica que o uplift de acoplamento DISTINCT + GROUP BY + ORDER BY é mais forte quando expressões de agrupamento/ordenação são complexas (marcadores CASE/JSON) do que para chaves simples.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseDistinctGroupByOrderByCouplingForComplexExpressions()
+    {
+        var simpleGroupedOrderedQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("tenantid", null), new SqlSelectItem("COUNT(*)", "cnt")],
+            [],
+            null,
+            [new SqlOrderByItem("tenantid", false)],
+            null,
+            ["tenantid"],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var complexGroupedOrderedQuery = simpleGroupedOrderedQuery with
+        {
+            GroupBy = ["CASE WHEN status = 'A' THEN JSON_VALUE(payload, '$.tenant') ELSE tenantid END"],
+            OrderBy = [new SqlOrderByItem("CASE WHEN status = 'A' THEN JSON_VALUE(payload, '$.tenant') ELSE payload->>'tenant' END", false)]
+        };
+
+        var simpleDistinctQuery = simpleGroupedOrderedQuery with { Distinct = true };
+        var complexDistinctQuery = complexGroupedOrderedQuery with { Distinct = true };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var simpleGroupedOrderedPlan = SqlExecutionPlanFormatter.FormatSelect(simpleGroupedOrderedQuery, metrics, [], []);
+        var complexGroupedOrderedPlan = SqlExecutionPlanFormatter.FormatSelect(complexGroupedOrderedQuery, metrics, [], []);
+        var simpleDistinctPlan = SqlExecutionPlanFormatter.FormatSelect(simpleDistinctQuery, metrics, [], []);
+        var complexDistinctPlan = SqlExecutionPlanFormatter.FormatSelect(complexDistinctQuery, metrics, [], []);
+
+        var simpleDistinctUplift = ExtractEstimatedCost(simpleDistinctPlan) - ExtractEstimatedCost(simpleGroupedOrderedPlan);
+        var complexDistinctUplift = ExtractEstimatedCost(complexDistinctPlan) - ExtractEstimatedCost(complexGroupedOrderedPlan);
+        simpleDistinctUplift.Should().BeLessThan(complexDistinctUplift);
+    }
+
 
     /// <summary>
     /// EN: Verifies estimated cost increases with additional GROUP BY keys.
@@ -2169,6 +2210,39 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     }
 
     /// <summary>
+    /// EN: Verifies raw predicate cost increases when AND/OR transitions are more frequent even with the same logical operator counts.
+    /// PT: Verifica que o custo do predicado raw aumenta quando transições AND/OR são mais frequentes mesmo com a mesma contagem de operadores lógicos.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseForRawPredicateWithAdditionalLogicalOperatorTransitions()
+    {
+        var lowerTransitionQuery = new SqlSelectQuery(
+            [],
+            false,
+            [new SqlSelectItem("id", null)],
+            [],
+            new RawSqlExpr("((a = 1 AND b = 2) AND c = 3) OR d = 4"),
+            [],
+            null,
+            [],
+            null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var higherTransitionQuery = lowerTransitionQuery with
+        {
+            Where = new RawSqlExpr("(a = 1 AND (b = 2 OR c = 3)) AND d = 4")
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var lowerTransitionPlan = SqlExecutionPlanFormatter.FormatSelect(lowerTransitionQuery, metrics, [], []);
+        var higherTransitionPlan = SqlExecutionPlanFormatter.FormatSelect(higherTransitionQuery, metrics, [], []);
+
+        ExtractEstimatedCost(lowerTransitionPlan).Should().BeLessThan(ExtractEstimatedCost(higherTransitionPlan));
+    }
+
+    /// <summary>
     /// EN: Verifies deeply nested logical predicates with mixed CASE/JSON leaves carry higher estimated cost than flatter logical shapes with equivalent leaves.
     /// PT: Verifica que predicados lógicos profundamente aninhados com folhas mistas de CASE/JSON carregam custo estimado maior que formatos lógicos mais planos com folhas equivalentes.
     /// </summary>
@@ -2344,6 +2418,68 @@ public sealed class ExecutionPlanFormattingAndI18nTests
 
         ExtractEstimatedCost(noOffsetPlan).Should().BeLessThan(ExtractEstimatedCost(noLimitPlan));
         ExtractEstimatedCost(noOffsetPlan).Should().BeLessThan(ExtractEstimatedCost(largeOffsetPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies outer ORDER BY introduces stronger additional cost when source is already a derived UNION with internal ORDER BY (nested sort coupling).
+    /// PT: Verifica que ORDER BY externo introduz custo adicional mais forte quando a fonte já é um UNION derivado com ORDER BY interno (acoplamento de sort aninhado).
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseNestedOrderByCouplingWhenDerivedUnionIsAlreadyOrdered()
+    {
+        var unionPart1 = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var unionPart2 = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var unorderedDerivedUnionSource = new SqlTableSource(
+            null,
+            null,
+            "du",
+            null,
+            new SqlQueryParser.UnionChain([unionPart1, unionPart2], [true], [], null),
+            "(SELECT id FROM users UNION ALL SELECT userid FROM orders)",
+            null);
+
+        var orderedDerivedUnionSource = unorderedDerivedUnionSource with
+        {
+            DerivedUnion = new SqlQueryParser.UnionChain([unionPart1, unionPart2], [true], [new SqlOrderByItem("id", false)], null)
+        };
+
+        var unorderedWithoutOuterOrderBy = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = unorderedDerivedUnionSource
+        };
+
+        var unorderedWithOuterOrderBy = unorderedWithoutOuterOrderBy with
+        {
+            OrderBy = [new SqlOrderByItem("id", false)]
+        };
+
+        var orderedWithoutOuterOrderBy = unorderedWithoutOuterOrderBy with
+        {
+            Table = orderedDerivedUnionSource
+        };
+
+        var orderedWithOuterOrderBy = orderedWithoutOuterOrderBy with
+        {
+            OrderBy = [new SqlOrderByItem("id", false)]
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var unorderedWithoutOuterOrderByPlan = SqlExecutionPlanFormatter.FormatSelect(unorderedWithoutOuterOrderBy, metrics, [], []);
+        var unorderedWithOuterOrderByPlan = SqlExecutionPlanFormatter.FormatSelect(unorderedWithOuterOrderBy, metrics, [], []);
+        var orderedWithoutOuterOrderByPlan = SqlExecutionPlanFormatter.FormatSelect(orderedWithoutOuterOrderBy, metrics, [], []);
+        var orderedWithOuterOrderByPlan = SqlExecutionPlanFormatter.FormatSelect(orderedWithOuterOrderBy, metrics, [], []);
+
+        var unorderedOuterOrderByUplift = ExtractEstimatedCost(unorderedWithOuterOrderByPlan) - ExtractEstimatedCost(unorderedWithoutOuterOrderByPlan);
+        var orderedOuterOrderByUplift = ExtractEstimatedCost(orderedWithOuterOrderByPlan) - ExtractEstimatedCost(orderedWithoutOuterOrderByPlan);
+        unorderedOuterOrderByUplift.Should().BeLessThan(orderedOuterOrderByUplift);
     }
 
     /// <summary>
