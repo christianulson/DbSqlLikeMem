@@ -1807,6 +1807,59 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     }
 
     /// <summary>
+    /// EN: Verifies mixed logical operators (AND/OR) over equivalent CASE/JSON leaves carry higher estimated cost than homogeneous logical chains.
+    /// PT: Verifica que operadores lógicos mistos (AND/OR) sobre folhas CASE/JSON equivalentes carregam custo estimado maior que cadeias lógicas homogêneas.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_EstimatedCost_ShouldIncreaseForMixedLogicalOperatorsWithCaseAndJsonLeaves()
+    {
+        var casePredicate = new BinaryExpr(
+            SqlBinaryOp.Eq,
+            new CaseExpr(
+                null,
+                [
+                    new CaseWhenThen(
+                        new BinaryExpr(SqlBinaryOp.Greater, new IdentifierExpr("tenantid"), new LiteralExpr(100)),
+                        new LiteralExpr("high"))
+                ],
+                new LiteralExpr("normal")),
+            new LiteralExpr("high"));
+
+        var jsonPredicate = new BinaryExpr(
+            SqlBinaryOp.Eq,
+            new JsonAccessExpr(new IdentifierExpr("payload"), new LiteralExpr("$.customer.tier"), false),
+            new LiteralExpr("gold"));
+
+        var statusPredicate = new BinaryExpr(SqlBinaryOp.Eq, new IdentifierExpr("status"), new LiteralExpr("active"));
+
+        var homogeneousPredicate = new BinaryExpr(
+            SqlBinaryOp.And,
+            new BinaryExpr(SqlBinaryOp.And, casePredicate, jsonPredicate),
+            statusPredicate);
+
+        var mixedPredicate = new BinaryExpr(
+            SqlBinaryOp.Or,
+            new BinaryExpr(SqlBinaryOp.And, casePredicate, jsonPredicate),
+            statusPredicate);
+
+        var homogeneousQuery = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], homogeneousPredicate, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var mixedQuery = homogeneousQuery with
+        {
+            Where = mixedPredicate
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(1, 100, 10, 2);
+        var homogeneousPlan = SqlExecutionPlanFormatter.FormatSelect(homogeneousQuery, metrics, [], []);
+        var mixedPlan = SqlExecutionPlanFormatter.FormatSelect(mixedQuery, metrics, [], []);
+
+        ExtractEstimatedCost(homogeneousPlan).Should().BeLessThan(ExtractEstimatedCost(mixedPlan));
+    }
+
+    /// <summary>
     /// EN: Verifies derived UNION source cost keeps monotonic behavior for ORDER BY with row-limit and large OFFSET.
     /// PT: Verifica que o custo de fonte UNION derivada mantém comportamento monotônico para ORDER BY com limite de linhas e OFFSET alto.
     /// </summary>

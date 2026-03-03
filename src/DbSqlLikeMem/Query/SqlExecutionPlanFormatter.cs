@@ -829,7 +829,7 @@ internal static class SqlExecutionPlanFormatter
         => expr switch
         {
             BinaryExpr b when b.Op is SqlBinaryOp.And or SqlBinaryOp.Or
-                => 2 + EstimateLogicalPredicateDepthPenalty(b) + EstimatePredicateComplexityCost(b.Left) + EstimatePredicateComplexityCost(b.Right),
+                => 2 + EstimateLogicalPredicateDepthPenalty(b) + EstimateLogicalOperatorMixPenalty(b) + EstimatePredicateComplexityCost(b.Left) + EstimatePredicateComplexityCost(b.Right),
             BinaryExpr b => 1 + EstimatePredicateComplexityCost(b.Left) + EstimatePredicateComplexityCost(b.Right),
             LikeExpr l => 2 + EstimatePredicateComplexityCost(l.Left) + EstimatePredicateComplexityCost(l.Pattern),
             BetweenExpr b => 2 + EstimatePredicateComplexityCost(b.Expr) + EstimatePredicateComplexityCost(b.Low) + EstimatePredicateComplexityCost(b.High),
@@ -854,6 +854,23 @@ internal static class SqlExecutionPlanFormatter
     {
         var depth = EstimateLogicalPredicateDepth(expr);
         return Math.Max(0, depth - 2);
+    }
+
+    /// <summary>
+    /// EN: Estimates penalty when logical operator type switches between parent and child nodes (AND/OR transitions), increasing reasoning and branch complexity.
+    /// PT: Estima penalidade quando o tipo de operador lógico muda entre nós pai e filho (transições AND/OR), aumentando complexidade de raciocínio e ramificação.
+    /// </summary>
+    private static int EstimateLogicalOperatorMixPenalty(BinaryExpr expr)
+    {
+        var penalty = 0;
+
+        if (expr.Left is BinaryExpr left && left.Op is SqlBinaryOp.And or SqlBinaryOp.Or && left.Op != expr.Op)
+            penalty++;
+
+        if (expr.Right is BinaryExpr right && right.Op is SqlBinaryOp.And or SqlBinaryOp.Or && right.Op != expr.Op)
+            penalty++;
+
+        return penalty;
     }
 
     /// <summary>
