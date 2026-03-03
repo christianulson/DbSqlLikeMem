@@ -2523,7 +2523,6 @@ internal sealed class SqlQueryParser
         return res;
     }
 
-
     private SqlExpr? TryParseScalar(string raw)
     {
 #pragma warning disable CA1031 // Do not catch general exception types
