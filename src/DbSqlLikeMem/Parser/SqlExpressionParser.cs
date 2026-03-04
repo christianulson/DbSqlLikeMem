@@ -932,8 +932,25 @@ internal sealed class SqlExpressionParser(
             return true;
         }
 
+        EnsureTemporalCallIdentifierRequiresParentheses(name);
         expr = ParseIdentifierChainOrColumn(name);
         return true;
+    }
+
+    /// <summary>
+    /// EN: Enforces parentheses for temporal identifiers that are call-only in the active dialect.
+    /// PT: Exige parênteses para identificadores temporais que são apenas-invocáveis no dialeto ativo.
+    /// </summary>
+    /// <param name="identifier">EN: Identifier token parsed as a potential scalar expression. PT: Token identificador parseado como expressão escalar potencial.</param>
+    private void EnsureTemporalCallIdentifierRequiresParentheses(string identifier)
+    {
+        if (_dialect.TemporalFunctionIdentifierNames.Any(name => name.Equals(identifier, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        if (!_dialect.TemporalFunctionCallNames.Any(name => name.Equals(identifier, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        throw Error($"Temporal function '{identifier}' requires parentheses '{identifier}()'.", Peek());
     }
 
 

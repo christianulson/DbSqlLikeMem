@@ -677,6 +677,23 @@ public sealed class MySqlDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures call-only temporal identifier without parentheses is rejected with actionable guidance.
+    /// PT: Garante que identificador temporal apenas-invocável sem parênteses seja rejeitado com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_CallOnlyTemporalIdentifierWithoutParentheses_ShouldThrowClearError(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("NOW", dialect));
+
+        Assert.Contains("NOW", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures WITHIN GROUP ordered-set syntax remains unsupported for MySQL aggregates.
     /// PT: Garante que a sintaxe ordered-set WITHIN GROUP continue não suportada para agregações MySQL.
     /// </summary>
