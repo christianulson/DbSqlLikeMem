@@ -5656,7 +5656,8 @@ private void FillPercentRankOrCumeDist(
             return cond ? EvalArg(1) : EvalArg(2);
         }
 
-        if (dialect.NullSubstituteFunctionNames.Any(n => n.Equals(fn.Name, StringComparison.OrdinalIgnoreCase)))
+        if (!fn.Name.Equals("COALESCE", StringComparison.OrdinalIgnoreCase)
+            && dialect.NullSubstituteFunctionNames.Any(n => n.Equals(fn.Name, StringComparison.OrdinalIgnoreCase)))
         {
             var v = EvalArg(0);
             return IsNullish(v) ? EvalArg(1) : v;
