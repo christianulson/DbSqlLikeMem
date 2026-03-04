@@ -106,10 +106,12 @@ var plan = cnn.LastExecutionPlan;
 
 ## Requirements | Requisitos
 
-- **EN:** Provider libraries target .NET Framework 4.8, .NET 6.0, and .NET 8.0.  
-  **PT-BR:** As bibliotecas de provedores têm como alvo .NET Framework 4.8, .NET 6.0 e .NET 8.0.
-- **EN:** Core `DbSqlLikeMem` targets .NET Standard 2.0 plus .NET Framework 4.8, .NET 6.0, and .NET 8.0.  
-  **PT-BR:** O núcleo `DbSqlLikeMem` tem como alvo .NET Standard 2.0 mais .NET Framework 4.8, .NET 6.0 e .NET 8.0.
+- **EN:** Main provider and test projects target: **.NET Framework 4.8**, **.NET 6.0**, **.NET 8.0**, and **.NET 10.0**.  
+  **PT-BR:** Os principais projetos de provedor e teste têm como alvo: **.NET Framework 4.8**, **.NET 6.0**, **.NET 8.0** e **.NET 10.0**.
+- **EN:** Core `DbSqlLikeMem` multi-targets: **.NET Standard 2.1**, **.NET Framework 4.8**, **.NET 6.0**, **.NET 8.0**, and **.NET 10.0**.  
+  **PT-BR:** O núcleo `DbSqlLikeMem` é multi-target em: **.NET Standard 2.1**, **.NET Framework 4.8**, **.NET 6.0**, **.NET 8.0** e **.NET 10.0**.
+- **EN:** Some integration-specific modules (for example, part of DB2 stack) may target a subset (`net6.0+`).  
+  **PT-BR:** Alguns módulos específicos de integração (por exemplo, parte da stack DB2) podem ter alvo em subconjunto (`net6.0+`).
 
 ## Supported Providers | Provedores suportados
 
