@@ -288,6 +288,98 @@ ORDER BY u.Id";
     }
 
     /// <summary>
+    /// EN: Tests quantified ANY with NULL-only candidates results in UNKNOWN and filters out rows when no TRUE match exists.
+    /// PT: Testa que ANY quantificado com candidatos apenas NULL resulta em UNKNOWN e filtra linhas quando não há correspondência TRUE.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void ComparisonAnySubquery_WithOnlyNullCandidates_ShouldFilterOutAllRows()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        cnn.Seed("users", null,
+            [1, "Ana"],
+            [2, "Bob"],
+            [3, "Cid"]);
+
+        cnn.Seed("orders", null,
+            [10, null!, 50m],
+            [11, null!, 60m]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE u.Id = ANY (SELECT o.UserId FROM orders o)
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// EN: Tests quantified ALL with at least one NULL candidate and no FALSE comparison yields UNKNOWN and filters out rows.
+    /// PT: Testa que ALL quantificado com ao menos um candidato NULL e sem comparação FALSE gera UNKNOWN e filtra linhas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void ComparisonAllSubquery_WithNullCandidateAndNoFalseComparison_ShouldFilterOutRows()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        cnn.Seed("users", null,
+            [1, "Ana"],
+            [2, "Bob"]);
+
+        cnn.Seed("orders", null,
+            [10, 5, 50m],
+            [11, null!, 60m]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE u.Id < ALL (SELECT o.UserId FROM orders o)
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// EN: Tests equivalent quantified ANY correlated subqueries with and without explicit projection AS alias share the same cache entry.
+    /// PT: Testa que subqueries correlacionadas equivalentes com ANY quantificado com e sem alias AS explícito na projeção compartilham a mesma entrada de cache.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void ComparisonAnyCorrelatedSubqueries_WithAndWithoutProjectionAliasAs_ShouldShareCache()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        for (var i = 0; i < 80; i++)
+            cnn.Seed("users", null, [1, $"Name-{i}"]);
+
+        cnn.Seed("orders", null,
+            [10, 1, 50m],
+            [11, 1, 60m]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE u.Id = ANY (SELECT o.UserId FROM orders o WHERE o.UserId = u.Id)
+  AND u.Id = ANY (SELECT o.UserId AS K FROM orders o WHERE o.UserId = u.Id)
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().HaveCount(80);
+        GetTableHintCount(cnn, "orders").Should().Be(1);
+    }
+
+    /// <summary>
     /// EN: Tests correlated EXISTS subquery reuses evaluation for duplicate outer rows, reducing repeated source access.
     /// PT: Testa que subquery correlacionada com EXISTS reutiliza avaliação para linhas externas duplicadas, reduzindo acessos repetidos à fonte.
     /// </summary>

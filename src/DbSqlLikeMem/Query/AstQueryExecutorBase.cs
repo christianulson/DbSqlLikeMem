@@ -4263,7 +4263,9 @@ private void FillPercentRankOrCumeDist(
             return NormalizeExistsProjectionPayloadForCacheKey(normalizedSubquerySql);
 
         if (string.Equals(operation, "IN", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(operation, "SCALAR", StringComparison.OrdinalIgnoreCase))
+            || string.Equals(operation, "SCALAR", StringComparison.OrdinalIgnoreCase)
+            || operation.StartsWith("QANY_", StringComparison.OrdinalIgnoreCase)
+            || operation.StartsWith("QALL_", StringComparison.OrdinalIgnoreCase))
             return NormalizeSelectProjectionAliasesForCacheKey(normalizedSubquerySql);
 
         return normalizedSubquerySql;
