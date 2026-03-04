@@ -4289,7 +4289,7 @@ private void FillPercentRankOrCumeDist(
         var normalizedSql = NormalizeSqlIdentifierSpacing(subquerySql);
         var qualifiedIdentifiers = ExtractQualifiedSqlIdentifiers(normalizedSql);
         var qualifiedMatches = allFields
-            .Where(static kv => kv.Key.Contains('.', StringComparison.Ordinal))
+            .Where(static kv => kv.Key.IndexOf('.') >= 0)
             .Where(kv => qualifiedIdentifiers.Contains(kv.Key))
             .ToList();
 
@@ -4297,7 +4297,7 @@ private void FillPercentRankOrCumeDist(
             return qualifiedMatches;
 
         var unqualifiedMatches = allFields
-            .Where(static kv => !kv.Key.Contains('.', StringComparison.Ordinal))
+            .Where(static kv => kv.Key.IndexOf('.') < 0)
             .Where(kv => ContainsSqlIdentifierToken(normalizedSql, kv.Key))
             .ToList();
 
@@ -4861,9 +4861,9 @@ private void FillPercentRankOrCumeDist(
             return sql;
 
         return string.Concat(
-            sql.AsSpan(0, afterSelect),
+            sql.Substring(0, afterSelect),
             " <EXISTS_PAYLOAD> ",
-            sql.AsSpan(fromIndex));
+            sql.Substring(fromIndex));
     }
 
     /// <summary>
@@ -4888,11 +4888,11 @@ private void FillPercentRankOrCumeDist(
         var payload = sql[afterSelect..fromIndex];
         var normalizedPayload = NormalizeSelectListAliasesForCacheKey(payload);
         return string.Concat(
-            sql.AsSpan(0, afterSelect),
+            sql.Substring(0, afterSelect),
             " ",
             normalizedPayload,
             " ",
-            sql.AsSpan(fromIndex));
+            sql.Substring(fromIndex));
     }
 
     /// <summary>
@@ -5029,7 +5029,11 @@ private void FillPercentRankOrCumeDist(
         if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(keyword))
             return false;
 
-        var safeStart = Math.Clamp(startIndex, 0, sql.Length);
+        var safeStart = startIndex;
+        if (safeStart < 0)
+            safeStart = 0;
+        else if (safeStart > sql.Length)
+            safeStart = sql.Length;
         var depth = 0;
         for (var i = safeStart; i < sql.Length; i++)
         {

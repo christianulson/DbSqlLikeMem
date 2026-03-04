@@ -2656,7 +2656,7 @@ internal sealed class SqlQueryParser
             return null;
 
 #pragma warning disable CA1031 // Do not catch general exception types
-        try { return SqlExpressionParser.ParseWhere(raw, _dialect); }
+        try { return SqlExpressionParser.ParseWhere(raw!, _dialect); }
         catch { return null; }
 #pragma warning restore CA1031 // Do not catch general exception types
     }
