@@ -387,6 +387,12 @@ public sealed class PostgreSqlMockTests
     [Trait("Category", "PostgreSqlMock")]
     public void TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml()
     {
+        using var seed = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Seed User', NULL)"
+        };
+        seed.ExecuteNonQuery();
+
         using var command = new NpgsqlCommandMock(_connection)
         {
             CommandText = "SELECT Name FROM Users ORDER BY Id LIMIT 1; UPDATE Users SET Name = 'Mixed Batch User' WHERE Id = 1; SELECT ROW_COUNT();"
@@ -431,6 +437,14 @@ public sealed class PostgreSqlMockTests
     [Trait("Category", "PostgreSqlMock")]
     public void TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect()
     {
+        using var seed = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Seed User 1', NULL)"
+        };
+        seed.ExecuteNonQuery();
+        seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (2, 'Seed User 2', NULL)";
+        seed.ExecuteNonQuery();
+
         using var command = new NpgsqlCommandMock(_connection)
         {
             CommandText = "UPDATE Users SET Name = 'Last Select User' WHERE Id = 1; SELECT Name FROM Users ORDER BY Id LIMIT 2; SELECT ROW_COUNT();"
