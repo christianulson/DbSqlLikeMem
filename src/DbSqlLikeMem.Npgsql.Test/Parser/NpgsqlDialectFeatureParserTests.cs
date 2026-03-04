@@ -90,6 +90,84 @@ RETURNING id";
     }
 
     /// <summary>
+    /// EN: Ensures INSERT ... RETURNING captures projection payload in AST for PostgreSQL dialect.
+    /// PT: Garante que INSERT ... RETURNING capture o payload de projeção na AST para o dialeto PostgreSQL.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_Returning_ShouldCaptureReturningItems(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id, name AS user_name";
+
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Equal(2, parsed.Returning.Count);
+        Assert.Equal("id", parsed.Returning[0].Raw);
+        Assert.Equal("name", parsed.Returning[1].Raw);
+        Assert.Equal("user_name", parsed.Returning[1].Alias);
+    }
+
+    /// <summary>
+    /// EN: Ensures INSERT ... SELECT ... RETURNING is parsed without consuming RETURNING as SELECT tail.
+    /// PT: Garante que INSERT ... SELECT ... RETURNING seja interpretado sem consumir RETURNING como cauda do SELECT.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_SelectReturning_ShouldCaptureReturningItems(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) SELECT id, name FROM users RETURNING id";
+
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.NotNull(parsed.InsertSelect);
+        Assert.Single(parsed.Returning);
+        Assert.Equal("id", parsed.Returning[0].Raw);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE ... RETURNING keeps WHERE boundary and captures returning projection.
+    /// PT: Garante que UPDATE ... RETURNING preserve o limite do WHERE e capture a projeção de retorno.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseUpdate_Returning_ShouldCaptureReturningItems(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id, name";
+
+        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("id = 1", parsed.WhereRaw, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(2, parsed.Returning.Count);
+        Assert.Equal("id", parsed.Returning[0].Raw);
+        Assert.Equal("name", parsed.Returning[1].Raw);
+    }
+
+    /// <summary>
+    /// EN: Ensures DELETE ... RETURNING captures projection payload in AST for PostgreSQL dialect.
+    /// PT: Garante que DELETE ... RETURNING capture o payload de projeção na AST para o dialeto PostgreSQL.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseDelete_Returning_ShouldCaptureReturningItems(int version)
+    {
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING id";
+
+        var parsed = Assert.IsType<SqlDeleteQuery>(SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("id = 1", parsed.WhereRaw, StringComparison.OrdinalIgnoreCase);
+        Assert.Single(parsed.Returning);
+        Assert.Equal("id", parsed.Returning[0].Raw);
+    }
+
+    /// <summary>
     /// EN: Ensures SQL Server table hints are rejected for Npgsql.
     /// PT: Garante que hints de tabela do SQL Server sejam rejeitados para Npgsql.
     /// </summary>
@@ -628,3 +706,4 @@ RETURNING id";
     }
 
 }
+

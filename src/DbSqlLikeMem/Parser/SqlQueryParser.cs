@@ -9,7 +9,7 @@ internal sealed class SqlQueryParser
     private readonly IDataParameterCollection? _parameters;
     private int _i;
     // INSERT ... SELECT pode ter um sufixo de UPSERT após o SELECT (MySQL ON DUPLICATE..., Postgres ON CONFLICT ...)
-    private bool _allowOnDuplicateBoundary;
+    private bool _allowInsertSelectSuffixBoundary;
 
     private static readonly SqlQueryAstCache _astCache = SqlQueryAstCache.CreateFromEnvironment();
 
@@ -308,11 +308,12 @@ internal sealed class SqlQueryParser
         }
         else if (IsWord(Peek(), "SELECT") || IsWord(Peek(), "WITH"))
         {
-            _allowOnDuplicateBoundary = _dialect.SupportsOnDuplicateKeyUpdate
+            _allowInsertSelectSuffixBoundary = _dialect.SupportsOnDuplicateKeyUpdate
                 || _dialect.SupportsOnConflictClause
+                || _dialect.SupportsReturning
                 || _dialect.AllowsParserInsertSelectUpsertSuffix;
             insertSelect = ParseSelectQuery();
-            _allowOnDuplicateBoundary = false;
+            _allowInsertSelectSuffixBoundary = false;
         }
 
         // Must be VALUES(...) or SELECT...
@@ -321,6 +322,7 @@ internal sealed class SqlQueryParser
 
         // ON DUPLICATE KEY UPDATE
         var onDup = ParseOnDuplicated();
+        var returning = ParseOptionalReturningItems();
 
         return new SqlInsertQuery
         {
@@ -329,6 +331,7 @@ internal sealed class SqlQueryParser
             ValuesRaw = valuesRaw,
             ValuesExpr = valuesExpr,
             InsertSelect = insertSelect,
+            Returning = returning,
             HasOnDuplicateKeyUpdate = (onDup != null),
             OnDupAssigns = onDup?.Assignments.Select(a => (a.Column, a.ValueRaw)).ToList() ?? [],
             OnDupAssignsParsed = onDup?.Assignments.Select(a => new SqlAssignment(a.Column, a.ValueRaw, TryParseScalar(a.ValueRaw))).ToList() ?? []
@@ -408,14 +411,6 @@ internal sealed class SqlQueryParser
             {
                 Consume();
                 _ = ReadClauseTextUntilTopLevelStop("RETURNING");
-            }
-
-            // PostgreSQL permite RETURNING após INSERT ... ON CONFLICT ...
-            // Como o AST de INSERT ainda não materializa RETURNING, apenas consumimos.
-            if (IsWord(Peek(), "RETURNING"))
-            {
-                Consume();
-                _ = ReadClauseTextUntilTopLevelStop();
             }
 
             return new SqlOnDuplicateKeyUpdate(assigns);
@@ -500,8 +495,9 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "WHERE"))
         {
             Consume(); // WHERE
-            whereRaw = ReadClauseTextUntilTopLevelStop();
+            whereRaw = ReadClauseTextUntilTopLevelStop("RETURNING");
         }
+        var returning = ParseOptionalReturningItems();
 
         var setParsed = setList.ConvertAll(it => new SqlAssignment(it.Column, it.ValueRaw, TryParseScalar(it.ValueRaw)));
         SqlExpr? whereExpr = null;
@@ -520,6 +516,7 @@ internal sealed class SqlQueryParser
             SetParsed = setParsed,
             WhereRaw = whereRaw,
             Where = whereExpr,
+            Returning = returning,
             // Só o "!= null" importa para acionar a estratégia smart; o SQL bruto está em RawSql.
             UpdateFromSelect = hasJoin
                 ? new SqlSelectQuery([], false, [], [], null, [], null, [], null)
@@ -611,8 +608,9 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "WHERE"))
         {
             Consume();
-            whereRaw = ReadClauseTextUntilTopLevelStop();
+            whereRaw = ReadClauseTextUntilTopLevelStop("RETURNING");
         }
+        var returning = ParseOptionalReturningItems();
 
         SqlExpr? whereExpr = null;
         if (!string.IsNullOrWhiteSpace(whereRaw))
@@ -628,6 +626,7 @@ internal sealed class SqlQueryParser
             Table = table,
             WhereRaw = whereRaw,
             Where = whereExpr,
+            Returning = returning,
             DeleteFromSelect = hasJoin
                 ? new SqlSelectQuery([], false, [], [], null, [], null, [], null)
                 : null
@@ -1201,6 +1200,32 @@ internal sealed class SqlQueryParser
         }
 
         return new SqlTop(ExpectNumberInt());
+    }
+
+    /// <summary>
+    /// EN: Parses optional DML RETURNING clause with dialect gate and expression validation.
+    /// PT: Faz o parsing opcional da cláusula RETURNING de DML com gate de dialeto e validação de expressão.
+    /// </summary>
+    /// <returns>EN: Returning items when clause is present; otherwise empty list. PT: Itens de retorno quando a cláusula estiver presente; caso contrário, lista vazia.</returns>
+    private IReadOnlyList<SqlSelectItem> ParseOptionalReturningItems()
+    {
+        if (!IsWord(Peek(), "RETURNING"))
+            return [];
+
+        if (!_dialect.SupportsReturning)
+            throw SqlUnsupported.ForDialect(_dialect, "RETURNING");
+
+        Consume(); // RETURNING
+        var raws = ParseCommaSeparatedRawItemsUntilAny();
+        return raws.ConvertAll(raw =>
+        {
+            var (expr, alias) = SplitTrailingAsAliasTopLevel(raw, _dialect);
+            if (string.IsNullOrWhiteSpace(expr))
+                throw new InvalidOperationException("Empty RETURNING item.");
+
+            _ = SqlExpressionParser.ParseScalar(expr, _dialect);
+            return new SqlSelectItem(expr, alias);
+        });
     }
 
     private List<SqlSelectItem> ParseSelectItemsWithValidation()
@@ -2312,8 +2337,8 @@ internal sealed class SqlQueryParser
         var t = Peek();
         if (IsEnd(t) || IsWord(t, "UNION")) return;
 
-        // boundary especial: INSERT ... SELECT ... ON DUPLICATE ...
-        if (_allowOnDuplicateBoundary && IsWord(t, "ON")) return;
+        // boundary especial: INSERT ... SELECT ... ON DUPLICATE / ON CONFLICT / RETURNING
+        if (_allowInsertSelectSuffixBoundary && (IsWord(t, "ON") || IsWord(t, "RETURNING"))) return;
 
         // tolera ';' final se o split top-level não removeu
         if (IsSymbol(t, ";")) { Consume(); return; }
