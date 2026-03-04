@@ -31,6 +31,8 @@
 		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer.Dapper.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.SqlAzure" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.SqlAzure.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Test" />
 	</ItemGroup>
 	<ItemGroup>

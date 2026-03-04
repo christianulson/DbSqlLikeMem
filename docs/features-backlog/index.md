@@ -287,7 +287,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 2.3.1 Seleção dinâmica por chave
 - Implementação estimada: **90%**.
-- Escolha de provedor por string/configuração (`mysql`, `sqlserver`, `oracle`, `postgresql`, `sqlite`, `db2`).
+- Escolha de provedor por string/configuração (`mysql`, `sqlserver`, `sqlazure`/`azure-sql`, `oracle`, `postgresql`, `sqlite`, `db2`).
 - Suporte a testes parametrizados por dialeto.
 - Base para suíte cross-provider.
 
@@ -352,6 +352,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Cobertura de `STRING_AGG` ampliada para `DISTINCT`, tratamento de `NULL` e ordenação interna via `WITHIN GROUP`, incluindo cenários de erro malformado com diagnóstico acionável.
 - P8 consolidado: paginação por versão (`OFFSET/FETCH`, `TOP`) com gates explícitos de dialeto.
 - Funções-chave do banco: `STRING_AGG`, `ISNULL`, `DATEADD`, `JSON_VALUE`/`OPENJSON` (subset no mock).
+- `DbSqlLikeMem.SqlAzure` compartilha a base do dialeto SQL Server no ciclo atual, com níveis de compatibilidade 100/110/120/130/140/150/160/170.
 
 #### 3.2.3 Aplicações típicas
 - Implementação estimada: **90%**.
@@ -662,7 +663,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Implementação estimada: **96%**.
 - Solução `DbSqlLikeMem.slnx` já estruturada por domínio/provedor e pronta para uso no Visual Studio 2026.
 - Validação operacional indica cobertura completa dos projetos `*.csproj` do repositório na solução.
-- Verificação automatizada já adicionada ao CI via `scripts/check_slnx_project_coverage.py` para detectar drift entre árvore `src` e conteúdo da solução.
+- Verificação automatizada já adicionada ao CI via `scripts/check_slnx_project_coverage.py` e com alternativa local Windows em `scripts/check_slnx_project_coverage.ps1` para detectar drift entre árvore `src` e conteúdo da solução.
 
 #### 6.3.2 Matriz compartilhada de testes por capability
 - Implementação estimada: **92%**.

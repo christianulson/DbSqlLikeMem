@@ -27,6 +27,7 @@ PROVIDER_LABELS = {
     "Oracle": "Oracle",
     "PostgreSql": "PostgreSQL",
     "Sqlite": "SQLite",
+    "SqlAzure": "SQL Azure",
     "SqlServer": "SQL Server",
 }
 

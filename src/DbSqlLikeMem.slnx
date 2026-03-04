@@ -103,6 +103,13 @@
     <Project Path="DbSqlLikeMem.SqlServer.NHibernate.Test/DbSqlLikeMem.SqlServer.NHibernate.Test.csproj" />
     <Project Path="DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj" />
   </Folder>
+  <Folder Name="/SqlAzure/">
+    <Project Path="DbSqlLikeMem.SqlAzure/DbSqlLikeMem.SqlAzure.csproj" />
+    <Project Path="DbSqlLikeMem.SqlAzure.XUnit/DbSqlLikeMem.SqlAzure.XUnit.csproj" />
+  </Folder>
+  <Folder Name="/SqlAzure/Tests/">
+    <Project Path="DbSqlLikeMem.SqlAzure.Test/DbSqlLikeMem.SqlAzure.Test.csproj" />
+  </Folder>
   <Folder Name="/VisualStudioExtension/">
     <Project Path="DbSqlLikeMem.VisualStudioExtension.Core.Test/DbSqlLikeMem.VisualStudioExtension.Core.Test.csproj" />
     <Project Path="DbSqlLikeMem.VisualStudioExtension.Core/DbSqlLikeMem.VisualStudioExtension.Core.csproj" />

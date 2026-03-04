@@ -12,7 +12,7 @@ INTRO = """# Prompts de implementação (copy/paste)
 
 > Arquivo gerado por `scripts/update_implementation_prompts.py`.
 
-Prompts prontos para colar em outras janelas e implementar as próximas features de maior uso no DbSqlLikeMem, cobrindo **MySQL, SQL Server, Oracle, PostgreSQL (Npgsql), SQLite e DB2**.
+Prompts prontos para colar em outras janelas e implementar as próximas features de maior uso no DbSqlLikeMem, cobrindo **MySQL, SQL Server, SQL Azure, Oracle, PostgreSQL (Npgsql), SQLite e DB2**.
 
 > Dica: execute em ordem **P0 → P14**. Os prompts já incluem objetivo, escopo, critérios de aceite e validação.
 """
@@ -23,7 +23,7 @@ PHASES = [
         """Você está no repositório DbSqlLikeMem.
 
 Objetivo:
-Validar e alinhar documentação, matriz de compatibilidade e versões simuladas para TODOS os providers: MySQL, SQL Server, Oracle, PostgreSQL (Npgsql), SQLite e DB2.
+Validar e alinhar documentação, matriz de compatibilidade e versões simuladas para TODOS os providers: MySQL, SQL Server, SQL Azure, Oracle, PostgreSQL (Npgsql), SQLite e DB2.
 
 Arquivos-alvo:
 - README.md
@@ -62,7 +62,7 @@ Requisitos técnicos:
 - Evitar duplicação excessiva de lógica por provider.
 
 Critérios de aceite:
-- Cenários SQL Core verdes nos 6 providers.
+- Cenários SQL Core verdes nos 7 providers.
 - Sem regressões nos testes já verdes.""",
     ),
     (
@@ -79,7 +79,7 @@ Escopo:
 4) WITH (CTE) simples.
 
 Referência de testes:
-- *SqlCompatibilityGapTests.cs de MySQL, SQL Server, Oracle, PostgreSQL, SQLite e DB2.
+- *SqlCompatibilityGapTests.cs de MySQL, SQL Server, SQL Azure, Oracle, PostgreSQL, SQLite e DB2.
 
 Requisitos:
 - Preferir evolução da AST ao invés de parser ad-hoc.
@@ -195,7 +195,7 @@ Referência de testes:
 - criar novos testes para RETURNING/OUTPUT quando faltarem.
 
 Critérios de aceite:
-- Cenários de mutação mais comuns suportados nos 6 providers.
+- Cenários de mutação mais comuns suportados nos 7 providers.
 - Diferenças de sintaxe/semântica isoladas no Dialect.""",
     ),
     (

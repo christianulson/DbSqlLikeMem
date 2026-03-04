@@ -11,6 +11,8 @@ public static class SqlMetadataQueryFactory
         {
             ["mysql"] = new MySqlMetadataQueryStrategy(),
             ["sqlserver"] = new SqlServerMetadataQueryStrategy(),
+            ["sqlazure"] = new SqlServerMetadataQueryStrategy(),
+            ["azuresql"] = new SqlServerMetadataQueryStrategy(),
             ["postgresql"] = new PostgreSqlMetadataQueryStrategy(),
             ["oracle"] = new OracleMetadataQueryStrategy(),
             ["sqlite"] = new SqliteMetadataQueryStrategy(),

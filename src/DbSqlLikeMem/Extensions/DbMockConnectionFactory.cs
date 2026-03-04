@@ -6,11 +6,29 @@ namespace DbSqlLikeMem;
 /// </summary>
 public static class DbMockConnectionFactory
 {
+    private static readonly IReadOnlyDictionary<string, string> ProviderHintAliases =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["oracle"] = "Oracle",
+            ["sqlserver"] = "SqlServer",
+            ["sqlazure"] = "SqlAzure",
+            ["azuresql"] = "SqlAzure",
+            ["mysql"] = "MySql",
+            ["sqlite"] = "Sqlite",
+            ["db2"] = "Db2",
+            ["npgsql"] = "Npgsql",
+            ["postgres"] = "Npgsql",
+            ["postgresql"] = "Npgsql"
+        };
+
     public static (DbMock Db, IDbConnection Connection) CreateOracleWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("Oracle", tableMappers);
 
     public static (DbMock Db, IDbConnection Connection) CreateSqlServerWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("SqlServer", tableMappers);
+
+    public static (DbMock Db, IDbConnection Connection) CreateSqlAzureWithTables(params Action<DbMock>[] tableMappers)
+        => CreateWithTables("SqlAzure", tableMappers);
 
     public static (DbMock Db, IDbConnection Connection) CreateMySqlWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("MySql", tableMappers);
@@ -28,20 +46,21 @@ public static class DbMockConnectionFactory
     /// EN: Creates a provider-specific <see cref="DbMock"/> and resolves an <see cref="IDbConnection"/> for it.
     /// PT: Cria um <see cref="DbMock"/> específico do provedor e resolve um <see cref="IDbConnection"/> para ele.
     /// </summary>
-    /// <param name="providerHint">EN: Provider name hint like Oracle, SqlServer, MySql, Sqlite, Db2 or Npgsql. PT: Indicação do provedor como Oracle, SqlServer, MySql, Sqlite, Db2 ou Npgsql.</param>
+    /// <param name="providerHint">EN: Provider name hint like Oracle, SqlServer, SqlAzure (also sqlazure/azure-sql), MySql, Sqlite, Db2 or Npgsql. PT: Indicação do provedor como Oracle, SqlServer, SqlAzure (também sqlazure/azure-sql), MySql, Sqlite, Db2 ou Npgsql.</param>
     /// <param name="tableMappers">EN: Optional actions to configure tables/schemas on the created mock. PT: Ações opcionais para configurar tabelas/esquemas no mock criado.</param>
     public static (DbMock Db, IDbConnection Connection) CreateWithTables(
         string providerHint,
         params Action<DbMock>[] tableMappers)
     {
-        var db = CreateDbMock(providerHint);
+        var canonicalProviderHint = CanonicalizeProviderHint(providerHint);
+        var db = CreateDbMock(canonicalProviderHint);
 
         foreach (var map in tableMappers)
         {
             map(db);
         }
 
-        var connection = ResolveConnection(db, providerHint);
+        var connection = ResolveConnection(db, canonicalProviderHint);
         return (db, connection);
     }
 
@@ -78,6 +97,7 @@ public static class DbMockConnectionFactory
             "DbSqlLikeMem.Sqlite",
             "DbSqlLikeMem.MySql",
             "DbSqlLikeMem.SqlServer",
+            "DbSqlLikeMem.SqlAzure",
             "DbSqlLikeMem.Oracle",
             "DbSqlLikeMem.Db2",
             "DbSqlLikeMem.Npgsql"
@@ -236,5 +256,17 @@ public static class DbMockConnectionFactory
         return type.Name.Contains(providerHint, StringComparison.OrdinalIgnoreCase)
             || (type.Namespace?.Contains(providerHint, StringComparison.OrdinalIgnoreCase) ?? false)
             || (type.Assembly.GetName().Name?.Contains(providerHint, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    private static string CanonicalizeProviderHint(string providerHint)
+    {
+        var normalized = (providerHint ?? string.Empty)
+            .Replace("_", string.Empty)
+            .Replace("-", string.Empty)
+            .Trim();
+
+        return ProviderHintAliases.TryGetValue(normalized, out var canonical)
+            ? canonical
+            : (providerHint ?? string.Empty).Trim();
     }
 }

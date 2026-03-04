@@ -9,6 +9,7 @@ Este diretório reúne os projetos empacotáveis em NuGet para executar testes d
 - `DbSqlLikeMem` (core)
 - `DbSqlLikeMem.MySql`
 - `DbSqlLikeMem.SqlServer`
+- `DbSqlLikeMem.SqlAzure`
 - `DbSqlLikeMem.Oracle`
 - `DbSqlLikeMem.Npgsql`
 - `DbSqlLikeMem.Sqlite`

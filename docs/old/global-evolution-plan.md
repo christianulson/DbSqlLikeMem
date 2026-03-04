@@ -1,10 +1,10 @@
 # Global Evolution Plan (TDD-first)
 
 ## Executive summary (EN)
-DbSqlLikeMem already has a strong multi-provider base (6 providers), broad test surface, and an explicit roadmap for parser/executor hardening. The main opportunity is to converge existing plans into one delivery system: **capability-driven development + strict TDD + release hardening gates**. The recommended path is to prioritize SQL Core parity, then query composition, then advanced SQL and DML mutations, while continuously reducing known gaps and preserving cross-provider behavior stability.
+DbSqlLikeMem already has a strong multi-provider base (7 providers), broad test surface, and an explicit roadmap for parser/executor hardening. The main opportunity is to converge existing plans into one delivery system: **capability-driven development + strict TDD + release hardening gates**. The recommended path is to prioritize SQL Core parity, then query composition, then advanced SQL and DML mutations, while continuously reducing known gaps and preserving cross-provider behavior stability.
 
 ## Resumo executivo (PT-BR)
-O DbSqlLikeMem já possui uma base sólida multi-provider (6 provedores), ampla superfície de testes e um roadmap explícito para hardening de parser/executor. A principal oportunidade é convergir os planos existentes em um único sistema de entrega: **desenvolvimento guiado por capabilities + TDD rigoroso + gates de hardening para release**. O caminho recomendado é priorizar paridade de SQL Core, depois composição de consultas, depois SQL avançado e mutações DML, reduzindo gaps conhecidos continuamente e preservando estabilidade de comportamento entre provedores.
+O DbSqlLikeMem já possui uma base sólida multi-provider (7 provedores), ampla superfície de testes e um roadmap explícito para hardening de parser/executor. A principal oportunidade é convergir os planos existentes em um único sistema de entrega: **desenvolvimento guiado por capabilities + TDD rigoroso + gates de hardening para release**. O caminho recomendado é priorizar paridade de SQL Core, depois composição de consultas, depois SQL avançado e mutações DML, reduzindo gaps conhecidos continuamente e preservando estabilidade de comportamento entre provedores.
 
 ---
 
@@ -134,7 +134,7 @@ Definition of Done (DoD) per slice:
   - branch hardening window with mandatory smoke matrix.
 - **Ownership model:**
   - Core parser/executor owner.
-  - Provider contract owners (MySQL, SQL Server, Oracle, Npgsql, SQLite, DB2).
+  - Provider contract owners (MySQL, SQL Server, SQL Azure, Oracle, Npgsql, SQLite, DB2).
   - Documentation and release owner.
 
 KPIs:

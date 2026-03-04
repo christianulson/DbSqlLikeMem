@@ -1,8 +1,8 @@
 # DbSqlLikeMem
 
-**EN:** In-memory C# database engine for unit tests that emulates SQL dialects and ADO.NET behavior for **MySQL**, **SQL Server**, **Oracle**, **PostgreSQL (Npgsql)**, **SQLite**, and **DB2**.
+**EN:** In-memory C# database engine for unit tests that emulates SQL dialects and ADO.NET behavior for **MySQL**, **SQL Server**, **SQL Azure**, **Oracle**, **PostgreSQL (Npgsql)**, **SQLite**, and **DB2**.
 
-**PT-BR:** Mecanismo de banco de dados em memória para testes unitários em C# que emula dialetos SQL e o comportamento de ADO.NET para **MySQL**, **SQL Server**, **Oracle**, **PostgreSQL (Npgsql)**, **SQLite** e **DB2**.
+**PT-BR:** Mecanismo de banco de dados em memória para testes unitários em C# que emula dialetos SQL e o comportamento de ADO.NET para **MySQL**, **SQL Server**, **SQL Azure**, **Oracle**, **PostgreSQL (Npgsql)**, **SQLite** e **DB2**.
 
 ---
 
@@ -26,8 +26,8 @@
 
 ## Features (summary) | Funcionalidades (resumo)
 
-- **EN:** Support for 6 providers: MySQL, SQL Server, Oracle, PostgreSQL (Npgsql), SQLite, and DB2.  
-  **PT-BR:** Suporte a 6 provedores: MySQL, SQL Server, Oracle, PostgreSQL (Npgsql), SQLite e DB2.
+- **EN:** Support for 7 providers: MySQL, SQL Server, SQL Azure, Oracle, PostgreSQL (Npgsql), SQLite, and DB2.  
+  **PT-BR:** Suporte a 7 provedores: MySQL, SQL Server, SQL Azure, Oracle, PostgreSQL (Npgsql), SQLite e DB2.
 - **EN:** Provider-specific ADO.NET mocks.  
   **PT-BR:** Mocks ADO.NET específicos por provedor.
 - **EN:** SQL parser + executor for common DDL/DML operations.  
@@ -119,6 +119,7 @@ var plan = cnn.LastExecutionPlan;
 | --- | --- |
 | MySQL | `DbSqlLikeMem.MySql` |
 | SQL Server | `DbSqlLikeMem.SqlServer` |
+| SQL Azure | `DbSqlLikeMem.SqlAzure` |
 | Oracle | `DbSqlLikeMem.Oracle` |
 | PostgreSQL (Npgsql) | `DbSqlLikeMem.Npgsql` |
 | SQLite (Sqlite) | `DbSqlLikeMem.Sqlite` |
@@ -130,6 +131,7 @@ var plan = cnn.LastExecutionPlan;
 | --- | --- |
 | MySQL | 3, 4, 5, 8 |
 | SQL Server | 7, 2000, 2005, 2008, 2012, 2014, 2016, 2017, 2019, 2022 |
+| SQL Azure | 100, 110, 120, 130, 140, 150, 160, 170 |
 | Oracle | 7, 8, 9, 10, 11, 12, 18, 19, 21, 23 |
 | PostgreSQL (Npgsql) | 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 |
 | SQLite (Sqlite) | 3 |
@@ -142,6 +144,7 @@ using DbSqlLikeMem.Db2;
 using DbSqlLikeMem.MySql;
 using DbSqlLikeMem.Npgsql;
 using DbSqlLikeMem.Oracle;
+using DbSqlLikeMem.SqlAzure;
 using DbSqlLikeMem.Sqlite;
 using DbSqlLikeMem.SqlServer;
 
@@ -153,6 +156,7 @@ public static class DbSqlLikeMemFactory
         {
             "mysql" => new MySqlConnectionMock(new MySqlDbMock()),
             "sqlserver" => new SqlServerConnectionMock(new SqlServerDbMock()),
+            "sqlazure" or "azure-sql" => new SqlAzureConnectionMock(new SqlAzureDbMock()),
             "oracle" => new OracleConnectionMock(new OracleDbMock()),
             "postgres" or "postgresql" or "npgsql" => new NpgsqlConnectionMock(new NpgsqlDbMock()),
             "sqlite" => new SqliteConnectionMock(new SqliteDbMock()),
@@ -195,6 +199,7 @@ dotnet test src/DbSqlLikeMem.slnx
 
 ```bash
 dotnet test src/DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj
+dotnet test src/DbSqlLikeMem.SqlAzure.Test/DbSqlLikeMem.SqlAzure.Test.csproj
 ```
 
 ## Publishing | Publicação

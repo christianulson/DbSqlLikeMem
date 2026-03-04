@@ -4,6 +4,7 @@
 
 - MySQL
 - SQL Server
+- SQL Azure
 - Oracle
 - PostgreSQL (Npgsql)
 - SQLite
@@ -33,6 +34,7 @@ For full details, see the local repository documentation at `docs/old/providers-
 
 - MySQL
 - SQL Server
+- SQL Azure
 - Oracle
 - PostgreSQL (Npgsql)
 - SQLite
