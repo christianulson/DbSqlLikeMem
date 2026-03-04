@@ -1360,7 +1360,7 @@ internal sealed class SqlQueryParser
         if (!IsWord(Peek(), "WHERE")) return null;
         Consume();
         // "ON" here is important for INSERT ... SELECT ... WHERE ... ON DUPLICATE ...
-        var txt = ReadClauseTextUntilTopLevelStop("GROUP", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "HAVING", "ON");
+        var txt = ReadClauseTextUntilTopLevelStop("GROUP", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "HAVING", "ON", "RETURNING");
         return SqlExpressionParser.ParseWhere(txt, _dialect);
     }
 
@@ -1370,7 +1370,7 @@ internal sealed class SqlQueryParser
         if (!IsWord(Peek(), "GROUP")) return list;
         Consume();
         ExpectWord("BY");
-        list.AddRange(ParseRawItemsUntil("HAVING", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION"));
+        list.AddRange(ParseRawItemsUntil("HAVING", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "RETURNING"));
         if (list.Count == 0)
             throw new InvalidOperationException("GROUP BY sem expressões.");
         return list;
@@ -1380,7 +1380,7 @@ internal sealed class SqlQueryParser
     {
         if (!IsWord(Peek(), "HAVING")) return null;
         Consume();
-        var txt = ReadClauseTextUntilTopLevelStop("ORDER", "LIMIT", "OFFSET", "FETCH", "UNION");
+        var txt = ReadClauseTextUntilTopLevelStop("ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "RETURNING");
         return SqlExpressionParser.ParseWhere(txt, _dialect);
     }
 
@@ -1391,7 +1391,7 @@ internal sealed class SqlQueryParser
         Consume();
         ExpectWord("BY");
         // Reutiliza lógica simplificada
-        var raws = ParseCommaSeparatedRawItemsUntilAny("LIMIT", "OFFSET", "FETCH", "UNION");
+        var raws = ParseCommaSeparatedRawItemsUntilAny("LIMIT", "OFFSET", "FETCH", "UNION", "RETURNING");
         foreach (var r in raws)
         {
             var raw = r.Trim();
