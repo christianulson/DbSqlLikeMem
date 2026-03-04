@@ -697,4 +697,107 @@ public sealed class OracleDialectFeatureParserTests
         Assert.Contains("start bound cannot be greater", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Ensures Oracle parser blocks non-native ordered-set aggregate names with WITHIN GROUP.
+    /// PT: Garante que o parser Oracle bloqueie nomes não nativos de agregação ordered-set com WITHIN GROUP.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseScalar_StringAggWithinGroup_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new OracleDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed WITHIN GROUP clause fails with actionable ORDER BY message.
+    /// PT: Garante que cláusula WITHIN GROUP malformada falhe com mensagem acionável de ORDER BY.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseScalar_ListAggWithinGroupWithoutOrderBy_ShouldThrowActionableError(int version)
+    {
+        var dialect = new OracleDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures trailing commas in WITHIN GROUP ORDER BY are rejected with actionable message.
+    /// PT: Garante que vírgulas finais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseScalar_WithinGroupOrderByTrailingComma_ShouldThrowActionableError(int version)
+    {
+        var dialect = new OracleDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", dialect));
+
+        Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures empty ORDER BY lists in WITHIN GROUP are rejected with actionable message.
+    /// PT: Garante que listas ORDER BY vazias em WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseScalar_WithinGroupOrderByEmptyList_ShouldThrowActionableError(int version)
+    {
+        var dialect = new OracleDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY)", dialect));
+
+        Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures leading commas in WITHIN GROUP ORDER BY are rejected with actionable message.
+    /// PT: Garante que vírgulas iniciais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseScalar_WithinGroupOrderByLeadingComma_ShouldThrowActionableError(int version)
+    {
+        var dialect = new OracleDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", dialect));
+
+        Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures missing commas between WITHIN GROUP ORDER BY expressions are rejected with actionable message.
+    /// PT: Garante que ausência de vírgula entre expressões de ORDER BY no WITHIN GROUP seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseScalar_WithinGroupOrderByMissingCommaBetweenExpressions_ShouldThrowActionableError(int version)
+    {
+        var dialect = new OracleDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", dialect));
+
+        Assert.Contains("requires commas", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 }

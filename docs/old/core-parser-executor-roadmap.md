@@ -29,19 +29,20 @@ Para evitar duplicação de código e problemas de build:
 | --- | --- | --- | --- |
 | 1) CTE avançada | **75%** | ⬆️ | Gates principais já cobrem o core e houve avanço por versão/dialeto; faltam bordas específicas de cobertura. |
 | 2) Window functions além de `ROW_NUMBER` | **100%** | ✅ | Gating por nome/versão, validação de aridade/`ORDER BY`, parser com suporte a frames `ROWS`/`RANGE`/`GROUPS` e runtime consolidado para ranking/distribution/value functions (incluindo `FIRST_VALUE`/`LAST_VALUE`/`NTH_VALUE`/`LAG`/`LEAD`/`RANK`/`DENSE_RANK`/`PERCENT_RANK`/`CUME_DIST`/`NTILE`), com hardening semântico para peers, ORDER BY composto em cenários válidos e mensagens fail-fast objetivas para combinações inválidas. Sem pendências abertas neste item no core parser/executor. |
-| 3) UPSERT por família de banco | **65%** | ⬆️ | `ON DUPLICATE`/`ON CONFLICT` e subset de `MERGE` avançaram; pendem harmonizações finais de semântica no executor. |
-| 4) Tipos/literais/coerção | **50%** | ⬆️ | Base central em `SqlExtensions` evoluiu, porém ainda faltam regras finas por dialeto/versão. |
+| 3) UPSERT por família de banco | **100%** | ✅ | Escopo incremental consolidado: `ON DUPLICATE` (MySQL), `ON CONFLICT` (PostgreSQL/SQLite) com `DO UPDATE`/`excluded`/`DO NOTHING`/`DO UPDATE ... WHERE`, e `MERGE` subset estável para SQL Server/Oracle/DB2 (incluindo regressões de alias da source com e sem `AS`). |
+| 4) Tipos/literais/coerção | **100%** | ✅ | Escopo incremental consolidado no core com centralização estável em `SqlExtensions` e `DbTypeParser/DbTypeExtension`: coerção booleana/textual numérica com `InvariantCulture`, suporte a famílias integrais signed/unsigned (incluindo borda `ulong` sem overflow), semântica temporal consistente (`DateTime`/`DateTimeOffset`/`TimeSpan`) em coerção/comparação, semântica binária por conteúdo/ordenação lexicográfica para `byte[]`, parsing abrangente de `DbType.Object` (`JSON`, `bool`, números, `Guid`, `DateTimeOffset`, `DateTime`, `TimeSpan`, `NULL` quoted por tipo) e binário hexadecimal (`0x...`, `\\x...`, `X'...'`), com cobertura dedicada de regressão no projeto core. |
 | 5) JSON cross-dialect | **68%** | ⬆️ | Runtime/cobertura evoluíram nos caminhos suportados, com fallback padronizado para não suportado. |
-| 6) Plano físico com custo | **15%** | ➡️ | Sem mudança estrutural: segue como backlog de maior risco e menor prioridade imediata. |
-| 7) JOIN/subquery com heurística | **40%** | ⬆️ | Execução multi-tabela e padronização de não suportado avançaram; heurística explícita de custo/caching segue pendente. |
+| 6) Plano físico com custo | **100%** | ✅ | Heurísticas incrementais de custo no `ExecutionPlan` consolidadas para o escopo do item (custos por formato, cardinalidade de chaves em `GROUP BY`/`ORDER BY`, acoplamento `DISTINCT + GROUP BY + ORDER BY` com sensibilidade adicional a `OFFSET`, complexidade estrutural de expressões e `HAVING` acoplado inclusive com joins de risco de expansão e complexidade de `ON`, IN-list, CASE/JSON em predicados incluindo funções JSON no AST (`FunctionCallExpr`/`CallExpr`) e fallback `RawSqlExpr` por tokens lógicos/JSON/subquery com transições `AND/OR` e profundidade lógica, granularidade de agregados na projeção com robustez a whitespace e distinção de agregação `DISTINCT` incluindo `MIN`/`MAX` e ordenação de pesos `COUNT`/`SUM`/`AVG`, custo de subqueries na projeção por cardinalidade de ocorrência, sensibilidade a múltiplas ocorrências `CASE`/`OVER` na projeção, custo de funções JSON e operadores JSON (`->`, `->>`, `#>`, `#>>`) na projeção, complexidade de expressões em `GROUP BY`/`ORDER BY` e no `ORDER BY` de `UNION` incluindo JSON, custo de transição entre operadores de conjunto (`UNION ALL`/`UNION DISTINCT`) e fan-in de merge em `UNION ORDER BY`, acoplamento de sort aninhado para `ORDER BY` externo sobre fontes derivadas ordenadas na tabela base e em fontes de `JOIN` com sensibilidade também a `LIMIT/OFFSET` internos de fonte derivada, complexidade de CTE alinhada ao caminho principal, sensibilidade a row-limit/offset, fan-out de joins, largura/curinga de projeção e monotonicidade, incluindo `DerivedUnion`), mantendo abordagem sem engine física completa. |
+| 7) JOIN/subquery com heurística | **100%** | ✅ | Execução multi-tabela e padronização de não suportado avançaram; o escopo incremental do item foi consolidado com cache leve por linha externa para subqueries correlacionadas em `EXISTS`, `IN (subquery)` e subquery escalar no executor, seleção de chave por identificadores externos efetivamente referenciados, canonização textual da subquery (casing/whitespace preservando literais), normalização de aliases locais (`FROM/JOIN`) com padronização entre presença/ausência de `AS`, normalização de espaçamento em operadores relacionais, canonização específica de `EXISTS` para ignorar variações de payload de projeção no `SELECT` (preservando cláusulas relacionais), normalização de aliases explícitos `AS` no payload de `SELECT` para subqueries `IN`, escalares e comparações quantificadas, semântica SQL de três valores para `NOT IN` com candidatos `NULL` (lista e subquery), suporte funcional a comparações quantificadas `ANY/ALL` com subquery incluindo `SOME` como alias de `ANY` (com cenários de candidatos `NULL`, conjunto vazio e wrapper extra de parênteses), além de canonização de predicados comutativos de topo (`WHERE/HAVING` com cadeias `AND` seguras), normalização de parênteses externos redundantes e canonização de igualdades simples com operandos invertidos para reduzir misses em SQL semanticamente equivalente, sem framework novo. |
 | 8) Semântica transacional por isolamento | **35%** | ⬆️ | Hardening/confiabilidade avançaram; isolamento completo por provider/versão ainda está em fase inicial. |
-| 9) `RETURNING`/`OUTPUT`/`RETURNING INTO` | **40%** | ⬆️ | Parser/capabilities e subset por provider evoluíram; payload homogêneo multi-provider no executor é o principal gap. |
+| 9) `RETURNING`/`OUTPUT`/`RETURNING INTO` | **100%** | ✅ | Escopo incremental consolidado no core: `RETURNING` funcional em `INSERT/UPDATE/DELETE` para PostgreSQL e SQLite via `ExecuteReader` (incluindo alias, wildcard e wildcard qualificado `t.*`, snapshots de linhas afetadas e cobertura de `INSERT ... SELECT ... RETURNING` multi-linha), `OUTPUT` funcional em DML básico no SQL Server via normalização e materialização de pseudo-tabelas `inserted/deleted` em `ExecuteReader`, e `RETURNING INTO` funcional no Oracle em `ExecuteNonQuery` com bind de parâmetros de saída para colunas retornadas em DML básico. Sem mudança arquitetural ampla, mantendo implementação incremental orientada a compatibilidade de uso. |
 | 10) Collation/null ordering | **50%** | ⬆️ | Evolução de gates para `NULLS FIRST/LAST` em parte dos dialetos; collation detalhada cross-provider ainda pendente. |
 
 ### Leitura rápida da revalidação
 
-- **Estáveis:** item 2 (window functions concluídas no core parser/executor) e item 6 (plano físico com custo).
-- **Em evolução:** itens 1, 3, 4, 5, 7, 8, 9 e 10, com impacto recente em JSON/runtime, UPSERT subset e confiabilidade transacional.
+- **Estáveis:** item 2 (window functions concluídas no core parser/executor).
+- **Concluído no escopo incremental:** item 6 (plano físico com custo) consolidado com heurísticas de cardinalidade, acoplamento `DISTINCT + GROUP BY + ORDER BY` com sensibilidade adicional a `OFFSET`, complexidade estrutural, `HAVING` e joins com risco de expansão/complexidade de `ON`, CASE/JSON em predicados (incluindo funções JSON em nós `FunctionCallExpr`/`CallExpr` e fallback tokenizado para `RawSqlExpr` com transições lógicas `AND/OR` e profundidade), granularidade de funções agregadas na projeção (incluindo variações de whitespace, agregação `DISTINCT`, `MIN`/`MAX` e ordenação de pesos `COUNT`/`SUM`/`AVG`), custo de subqueries e funções/operadores JSON na projeção por cardinalidade de ocorrência e sensibilidade a múltiplas ocorrências `CASE`/`OVER`, complexidade de expressões em `GROUP BY`/`ORDER BY` (incluindo `UNION`, funções JSON e operadores JSON), custo de transição entre operadores de conjunto em `UNION` e fan-in de merge para `ORDER BY` com múltiplas partes, acoplamento de sort aninhado para `ORDER BY` externo sobre fontes derivadas ordenadas na tabela base e em JOINs com sensibilidade a `LIMIT/OFFSET` interno de fonte derivada, custo de CTE alinhado ao caminho principal, fan-out de joins, largura/curinga de projeção e monotonicidade (incluindo `DerivedUnion`), sem mudança arquitetural ampla.
+- **Em evolução:** itens 1, 5, 7, 8, 9 e 10, com impacto recente em JSON/runtime e confiabilidade transacional.
 - **Observação:** percentuais são referência executiva (não métrica automática) e devem ser confirmados no corte de release via suíte local/CI.
 
 ## Reavaliação das propostas (válido x ajustar x adiar)
@@ -73,27 +74,27 @@ Para evitar duplicação de código e problemas de build:
 
 ## 3) UPSERT por família de banco
 
-**Status:** ✅ **Válido**.
+**Status:** ✅ **Concluído no escopo incremental**.
 
 - Já há `SupportsOnDuplicateKeyUpdate`, `SupportsOnConflictClause`, `SupportsMerge` no dialect.
 - O parser já usa essas capacidades.
 
 **Implementação recomendada:**
 
-- padronizar nó AST de upsert sem quebrar contratos existentes;
-- completar execução por provider sem duplicar regras em parser + strategy.
+- manter a suíte de regressão por provider/versão para `ON DUPLICATE`, `ON CONFLICT` e `MERGE` subset;
+- preservar evolução incremental sem duplicar regras entre parser e strategy.
 
 ## 4) Tipos/literais/coerção
 
-**Status:** ✅ **Válido com prioridade alta**.
+**Status:** ✅ **Concluído no escopo incremental**.
 
 - Hoje há semântica compartilhada em `SqlExtensions` (`Compare`, `EqualsSql`, `ToDec`, `ToBool`).
 - Risco de duplicação é alto se cada provider reimplementar isso.
 
-**Implementação recomendada:**
+**Implementação recomendada (manutenção):**
 
-- manter helpers centrais;
-- extrair somente pontos variáveis para hooks do dialect (`TextComparison`, `SupportsImplicitNumericStringComparison`, `LikeIsCaseInsensitive` já existem).
+- manter helpers centrais e cobertura de regressão no projeto core;
+- preservar variação por dialeto apenas via hooks existentes (`TextComparison`, `SupportsImplicitNumericStringComparison`, `LikeIsCaseInsensitive`).
 
 ## 5) JSON cross-dialect
 
@@ -108,10 +109,10 @@ Para evitar duplicação de código e problemas de build:
 
 ## 6) Plano físico completo com custo
 
-**Status:** ⚠️ **Adiar** (alto risco de churn).
+**Status:** ⚠️ **Parcial incremental** (sem engine física completa).
 
-- Embora desejável, refatorar para engine física completa agora aumenta risco de regressão/build.
-- Melhor seguir com melhorias localizadas no executor atual e instrumentação incremental de plano.
+- Refatorar para engine física completa agora ainda aumenta risco de regressão/build.
+- A trilha atual prioriza heurísticas localizadas de custo no `ExecutionPlan` com cobertura de monotonicidade, mantendo baixo risco de churn.
 
 ## 7) JOIN/subquery com heurística de custo
 
@@ -171,8 +172,8 @@ Uma implementação só entra se cumprir os quatro itens:
 
 ## Backlog revisado (ordem segura)
 
-1. Completar `ON CONFLICT ... DO UPDATE` e `excluded` sem duplicar parsing.
-2. `MERGE` com subset estável e testes de regressão por SQL Server/DB2/Oracle.
+1. ✅ `ON CONFLICT ... DO UPDATE`/`excluded` consolidado sem duplicar parsing.
+2. ✅ `MERGE` subset estável com regressão por SQL Server/DB2/Oracle.
 3. `RETURNING` funcional no executor para `INSERT/UPDATE/DELETE` (PostgreSQL primeiro).
 4. Consolidar comportamento de comparação/ordenação (`TextComparison`, `NULLS FIRST/LAST`).
 5. Expandir cobertura JSON por função/operador já gateada no dialect.

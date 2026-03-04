@@ -573,9 +573,66 @@ internal sealed class SqlExpressionParser(
         var (lbp, rbp) = (50, 51);
         if (lbp < minBp) return false;
 
-        Consume();
+        var opToken = Consume();
+
+        if (TryParseQuantifiedComparisonRightSide(left, bop, opToken, out var quantifiedExpr))
+        {
+            left = quantifiedExpr;
+            return true;
+        }
+
         var right = ParseExpression(rbp);
         left = new BinaryExpr(bop, left, right);
+        return true;
+    }
+
+    /// <summary>
+    /// EN: Tries to parse quantified comparison right side (`ANY`/`SOME`/`ALL` with subquery) after a comparison operator.
+    /// PT: Tenta parsear o lado direito de comparação quantificada (`ANY`/`SOME`/`ALL` com subquery) após operador de comparação.
+    /// </summary>
+    private bool TryParseQuantifiedComparisonRightSide(
+        SqlExpr left,
+        SqlBinaryOp op,
+        SqlToken contextToken,
+        out SqlExpr quantifiedExpr)
+    {
+        quantifiedExpr = default!;
+
+        var qTok = Peek();
+        if (!IsKeywordOrIdentifierWord(qTok, "ANY")
+            && !IsKeywordOrIdentifierWord(qTok, "SOME")
+            && !IsKeywordOrIdentifierWord(qTok, "ALL"))
+            return false;
+
+        var quantifier = IsKeywordOrIdentifierWord(qTok, "ANY")
+                         || IsKeywordOrIdentifierWord(qTok, "SOME")
+            ? SqlQuantifier.Any
+            : SqlQuantifier.All;
+
+        Consume(); // ANY | SOME | ALL
+        ExpectSymbol("(");
+
+        var hasExtraWrapperParen = false;
+        if (IsSymbol(Peek(), "("))
+        {
+            hasExtraWrapperParen = true;
+            Consume(); // optional wrapper '('
+        }
+
+        var subSql = ReadRawUntilMatchingParen();
+
+        if (hasExtraWrapperParen)
+            ExpectSymbol(")");
+
+        ExpectSymbol(")");
+
+        var subquery = SqlQueryParser.ParseSubqueryExprOrThrow(
+            subSql,
+            contextToken,
+            $"{quantifier.ToString().ToUpperInvariant()} quantified comparison",
+            _dialect);
+
+        quantifiedExpr = new QuantifiedComparisonExpr(op, left, quantifier, subquery);
         return true;
     }
 
@@ -855,7 +912,9 @@ internal sealed class SqlExpressionParser(
         // function call: name(...)
         if (IsSymbol(Peek(), "("))
         {
+            EnsureTemporalIdentifierDoesNotAllowParentheses(name);
             var call = ParseCallAfterName(name);
+            call = ParseWithinGroupOrderByIfPresent(call);
 
             // ✅ Window function: ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)
             if (IsKeywordOrIdentifierWord(Peek(), "OVER"))
@@ -874,8 +933,38 @@ internal sealed class SqlExpressionParser(
             return true;
         }
 
+        EnsureTemporalCallIdentifierRequiresParentheses(name);
         expr = ParseIdentifierChainOrColumn(name);
         return true;
+    }
+
+    /// <summary>
+    /// EN: Prevents identifier-only temporal tokens from being called with parentheses in the active dialect.
+    /// PT: Impede que tokens temporais somente-identificador sejam chamados com parênteses no dialeto ativo.
+    /// </summary>
+    /// <param name="identifier">EN: Function/token name parsed before call syntax. PT: Nome da função/token parseado antes da sintaxe de chamada.</param>
+    private void EnsureTemporalIdentifierDoesNotAllowParentheses(string identifier)
+    {
+        if (!_dialect.TemporalFunctionIdentifierNames.Any(name => name.Equals(identifier, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        throw Error($"Temporal function token '{identifier}' must be used without parentheses.", Peek());
+    }
+
+    /// <summary>
+    /// EN: Enforces parentheses for temporal identifiers that are call-only in the active dialect.
+    /// PT: Exige parênteses para identificadores temporais que são apenas-invocáveis no dialeto ativo.
+    /// </summary>
+    /// <param name="identifier">EN: Identifier token parsed as a potential scalar expression. PT: Token identificador parseado como expressão escalar potencial.</param>
+    private void EnsureTemporalCallIdentifierRequiresParentheses(string identifier)
+    {
+        if (_dialect.TemporalFunctionIdentifierNames.Any(name => name.Equals(identifier, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        if (!_dialect.TemporalFunctionCallNames.Any(name => name.Equals(identifier, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        throw Error($"Temporal function '{identifier}' requires parentheses '{identifier}()'.", Peek());
     }
 
 
@@ -1190,6 +1279,81 @@ internal sealed class SqlExpressionParser(
 
         ExpectSymbol(")");
         return new CallExpr(name, args, distinct);
+    }
+
+    private CallExpr ParseWithinGroupOrderByIfPresent(CallExpr call)
+    {
+        if (!IsKeywordOrIdentifierWord(Peek(), "WITHIN"))
+            return call;
+
+        var normalizedName = call.Name.ToUpperInvariant();
+        if (normalizedName is not "GROUP_CONCAT" and not "STRING_AGG" and not "LISTAGG")
+        {
+            throw SqlUnsupported.ForDialect(
+                _dialect,
+                $"ordered-set aggregate syntax WITHIN GROUP for function '{call.Name}'");
+        }
+
+        if (!_dialect.SupportsWithinGroupForStringAggregates)
+            throw SqlUnsupported.ForDialect(_dialect, "ordered-set aggregate syntax WITHIN GROUP");
+
+        if (!_dialect.SupportsWithinGroupStringAggregateFunction(call.Name))
+            throw SqlUnsupported.ForDialect(_dialect, $"ordered-set aggregate syntax WITHIN GROUP for function '{call.Name}'");
+
+        Consume(); // WITHIN
+        ExpectWord("GROUP");
+        ExpectSymbol("(");
+
+        if (!IsKeywordOrIdentifierWord(Peek(), "ORDER"))
+            throw Error("WITHIN GROUP requires ORDER BY", Peek());
+        Consume();
+
+        if (!IsKeywordOrIdentifierWord(Peek(), "BY"))
+            throw Error("WITHIN GROUP requires ORDER BY", Peek());
+        Consume();
+
+        var orderBy = new List<WindowOrderItem>();
+        while (true)
+        {
+            if (IsSymbol(Peek(), ")"))
+                throw Error("WITHIN GROUP ORDER BY requires at least one expression", Peek());
+
+            if (IsSymbol(Peek(), ","))
+                throw Error("WITHIN GROUP ORDER BY has an unexpected comma before expression", Peek());
+
+            var expr = ParseExpression(0);
+
+            var desc = false;
+            if (IsKeywordOrIdentifierWord(Peek(), "DESC"))
+            {
+                Consume();
+                desc = true;
+            }
+            else if (IsKeywordOrIdentifierWord(Peek(), "ASC"))
+            {
+                Consume();
+            }
+
+            orderBy.Add(new WindowOrderItem(expr, desc));
+
+            if (IsSymbol(Peek(), ","))
+            {
+                Consume();
+
+                if (IsSymbol(Peek(), ")"))
+                    throw Error("WITHIN GROUP ORDER BY has a trailing comma without expression", Peek());
+
+                continue;
+            }
+
+            if (!IsSymbol(Peek(), ")"))
+                throw Error("WITHIN GROUP ORDER BY requires commas between expressions", Peek());
+
+            break;
+        }
+
+        ExpectSymbol(")");
+        return call with { WithinGroupOrderBy = orderBy };
     }
 
     private WindowSpec ParseWindowSpec()

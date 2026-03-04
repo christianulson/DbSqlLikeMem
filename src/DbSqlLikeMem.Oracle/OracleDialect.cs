@@ -79,6 +79,11 @@ internal sealed class OracleDialect : SqlDialectBase
     /// PT: Indica se cláusulas de frame de janela SQL são suportadas pela versão configurada.
     /// </summary>
     public override bool SupportsWindowFrameClause => Version >= WindowFunctionsMinVersion;
+
+    public override bool SupportsWithinGroupForStringAggregates => true;
+
+    public override bool SupportsWithinGroupStringAggregateFunction(string functionName)
+        => functionName.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase);
     /// <summary>
     /// EN: Gets whether order by nulls modifier is supported.
     /// PT: Obtém se há suporte a order by nulls modifier.
@@ -120,6 +125,17 @@ internal sealed class OracleDialect : SqlDialectBase
     /// PT: Obtém ou define null substitute function names.
     /// </summary>
     public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["NVL"];
+    public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
+        => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
+            ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
+            ["SYSDATE"] = SqlTemporalFunctionKind.DateTime,
+            ["SYSTIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
+            ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
+        };
+
+
     /// <summary>
     /// EN: Gets or sets concat returns null on null input.
     /// PT: Obtém ou define concat returns null on null input.

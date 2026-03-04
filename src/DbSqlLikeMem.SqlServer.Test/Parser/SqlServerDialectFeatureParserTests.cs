@@ -732,6 +732,136 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.IsType<WindowFunctionExpr>(groupsExpr);
     }
 
+    /// <summary>
+    /// EN: Ensures SQL Server parser accepts ordered-set WITHIN GROUP for STRING_AGG.
+    /// PT: Garante que o parser SQL Server aceite ordered-set WITHIN GROUP para STRING_AGG.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_StringAggWithinGroup_ShouldParse(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        var expr = SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect);
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.Equal("STRING_AGG", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.NotNull(call.WithinGroupOrderBy);
+        Assert.Single(call.WithinGroupOrderBy!);
+        Assert.True(call.WithinGroupOrderBy![0].Desc);
+
+        var multiExpr = SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC, id ASC)", dialect);
+        var multiCall = Assert.IsType<CallExpr>(multiExpr);
+        Assert.NotNull(multiCall.WithinGroupOrderBy);
+        Assert.Equal(2, multiCall.WithinGroupOrderBy!.Count);
+        Assert.True(multiCall.WithinGroupOrderBy[0].Desc);
+        Assert.False(multiCall.WithinGroupOrderBy[1].Desc);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server parser blocks non-native ordered-set aggregate names with WITHIN GROUP.
+    /// PT: Garante que o parser SQL Server bloqueie nomes não nativos de agregação ordered-set com WITHIN GROUP.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_ListAggWithinGroup_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed WITHIN GROUP clause fails with actionable ORDER BY message.
+    /// PT: Garante que cláusula WITHIN GROUP malformada falhe com mensagem acionável de ORDER BY.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_StringAggWithinGroupWithoutOrderBy_ShouldThrowActionableError(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures trailing commas in WITHIN GROUP ORDER BY are rejected with actionable message.
+    /// PT: Garante que vírgulas finais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_WithinGroupOrderByTrailingComma_ShouldThrowActionableError(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", dialect));
+
+        Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures empty ORDER BY lists in WITHIN GROUP are rejected with actionable message.
+    /// PT: Garante que listas ORDER BY vazias em WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_WithinGroupOrderByEmptyList_ShouldThrowActionableError(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY)", dialect));
+
+        Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures leading commas in WITHIN GROUP ORDER BY are rejected with actionable message.
+    /// PT: Garante que vírgulas iniciais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_WithinGroupOrderByLeadingComma_ShouldThrowActionableError(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", dialect));
+
+        Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures missing commas between WITHIN GROUP ORDER BY expressions are rejected with actionable message.
+    /// PT: Garante que ausência de vírgula entre expressões de ORDER BY no WITHIN GROUP seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_WithinGroupOrderByMissingCommaBetweenExpressions_ShouldThrowActionableError(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", dialect));
+
+        Assert.Contains("requires commas", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 
 
     /// <summary>
@@ -755,6 +885,60 @@ public sealed class SqlServerDialectFeatureParserTests
             SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", dialect));
 
         Assert.Contains("start bound cannot be greater", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL RETURNING clause is rejected for SQL Server UPDATE statements.
+    /// PT: Garante que a cláusula RETURNING do PostgreSQL seja rejeitada em UPDATE no SQL Server.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_WithReturning_ShouldBeRejected(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL RETURNING clause is rejected for SQL Server DELETE statements.
+    /// PT: Garante que a cláusula RETURNING do PostgreSQL seja rejeitada em DELETE no SQL Server.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseDelete_WithReturning_ShouldBeRejected(int version)
+    {
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING in INSERT remains blocked by SQL Server dialect gate.
+    /// PT: Garante que RETURNING malformado em INSERT continue bloqueado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithMalformedReturning_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING, id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -783,3 +967,4 @@ WHERE u.id > 0";
     }
 
 }
+

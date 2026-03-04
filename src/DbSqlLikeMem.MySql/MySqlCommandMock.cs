@@ -200,18 +200,25 @@ public class MySqlCommandMock(
         // 1. Stored Procedure (sem parse SQL)
         if (CommandType == CommandType.StoredProcedure)
         {
-            return connection!.ExecuteStoredProcedure(CommandText, Parameters);
+            var affected = connection!.ExecuteStoredProcedure(CommandText, Parameters);
+            connection.SetLastFoundRows(affected);
+            return affected;
         }
 
         var sqlRaw = CommandText.Trim();
 
         if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
+        {
+            connection.SetLastFoundRows(transactionControlResult);
             return transactionControlResult;
+        }
 
         // 2. Comandos especiais que talvez o Parser ainda não suporte nativamente (DDL, CALL)
         if (sqlRaw.StartsWith("call ", StringComparison.OrdinalIgnoreCase))
         {
-            return connection!.ExecuteCall(sqlRaw, Parameters);
+            var affected = connection!.ExecuteCall(sqlRaw, Parameters);
+            connection.SetLastFoundRows(affected);
+            return affected;
         }
 
         if (sqlRaw.StartsWith("create temporary table", StringComparison.OrdinalIgnoreCase) ||
@@ -372,30 +379,53 @@ public class MySqlCommandMock(
         if (CommandType == CommandType.StoredProcedure)
         {
             connection!.ExecuteStoredProcedure(CommandText, Parameters);
+            connection.SetLastFoundRows(0);
             return new MySqlDataReaderMock([[]]);
         }
 
         var sql = CommandText.NormalizeString();
 
         // Erro CA1847 e CA1307: Substituído por Contains com char ou StringComparison
-        if (sql.StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
+        var statements = SqlQueryParser
+            .SplitStatements(sql, connection!.Db.Dialect)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .ToList();
+
+        if (statements.Count == 1 && statements[0].TrimStart().StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
         {
-            connection!.ExecuteCall(sql, Parameters);
+            connection!.ExecuteCall(statements[0], Parameters);
+            connection!.SetLastFoundRows(0);
             return new MySqlDataReaderMock([[]]);
         }
-
         var executor = AstQueryExecutorFactory.Create(connection!.Db.Dialect, connection, Parameters);
 
-        // Correção do erro de Contains e CA1847/CA1307
-
-
-        // Parse Multiplo (ex: "SELECT 1; SELECT 2;" ou "CREATE TEMPORARY TABLE ...; SELECT ...")
+        // Parse múltiplo (ex: "SELECT 1; SELECT 2;" ou "BEGIN; SELECT FOUND_ROWS();")
         var tables = new List<TableResultMock>();
-        var hasAnyQuery = false;
+        var parsedStatementCount = 0;
 
-        foreach (var q in SqlQueryParser.ParseMulti(sql, connection.Db.Dialect, Parameters))
+        foreach (var statementSql in statements)
         {
-            hasAnyQuery = true;
+            var sqlRaw = statementSql.Trim();
+            if (string.IsNullOrWhiteSpace(sqlRaw))
+                continue;
+
+            if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
+            {
+                connection.SetLastFoundRows(transactionControlResult);
+                parsedStatementCount++;
+                continue;
+            }
+
+            if (sqlRaw.StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
+            {
+                connection.ExecuteCall(sqlRaw, Parameters);
+                connection.SetLastFoundRows(0);
+                parsedStatementCount++;
+                continue;
+            }
+
+            var q = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect, Parameters);
+            parsedStatementCount++;
 
             switch (q)
             {
@@ -435,7 +465,7 @@ public class MySqlCommandMock(
             }
         }
 
-        if (tables.Count == 0 && hasAnyQuery)
+        if (tables.Count == 0 && parsedStatementCount > 0)
             throw new InvalidOperationException(SqlExceptionMessages.ExecuteReaderWithoutSelectQuery());
 
         connection.Metrics.Selects += tables.Sum(t => t.Count);

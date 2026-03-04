@@ -31,7 +31,7 @@ internal sealed class MySqlDialect : SqlDialectBase
         ])
     { }
 
- 
+
     internal const int WithCteMinVersion = 8;
     internal const int MergeMinVersion = int.MaxValue;
     internal const int WindowFunctionsMinVersion = 8;
@@ -144,6 +144,28 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// PT: Obtém os nomes de funções de substituição de nulos reconhecidos por este dialeto.
     /// </summary>
     public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL"];
+
+    /// <summary>
+    /// EN: Gets the datetime-substitution function names recognized by this dialect.
+    /// PT: Obtém os nomes de funções de substituição de data e hora reconhecidos por este dialeto.
+    /// </summary>
+    public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
+        => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
+            ["CURRENT_TIME"] = SqlTemporalFunctionKind.Time,
+            ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
+            ["NOW"] = SqlTemporalFunctionKind.DateTime,
+            ["SYSDATE"] = SqlTemporalFunctionKind.DateTime,
+            ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
+        };
+
+
+    public override IReadOnlyCollection<string> TemporalFunctionIdentifierNames
+        => ["CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP", "SYSTEMDATE"];
+
+    public override IReadOnlyCollection<string> TemporalFunctionCallNames
+        => ["NOW", "SYSDATE"];
 
     /// <summary>
     /// EN: Indicates whether string concatenation returns <c>NULL</c> when any operand is <c>NULL</c>.

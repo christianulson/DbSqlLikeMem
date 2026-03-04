@@ -1,5 +1,3 @@
-using static System.Net.WebRequestMethods;
-
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 /// <summary>

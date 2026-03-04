@@ -659,4 +659,159 @@ public sealed class MySqlDialectFeatureParserTests
         Assert.Contains("start bound cannot be greater", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Ensures SELECT parsing with string aggregate WITHIN GROUP is blocked by MySQL dialect gate.
+    /// PT: Garante que parsing de SELECT com agregação textual WITHIN GROUP seja bloqueado pelo gate de dialeto MySQL.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_StringAggregateWithinGroup_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC) AS joined FROM orders", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures call-only temporal identifier without parentheses is rejected with actionable guidance.
+    /// PT: Garante que identificador temporal apenas-invocável sem parênteses seja rejeitado com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_CallOnlyTemporalIdentifierWithoutParentheses_ShouldThrowClearError(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("NOW", dialect));
+
+        Assert.Contains("NOW", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures token-only temporal identifier called with parentheses is rejected with actionable guidance.
+    /// PT: Garante que identificador temporal no formato token chamado com parênteses seja rejeitado com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_TokenOnlyTemporalIdentifierCalledWithParentheses_ShouldThrowClearError(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("CURRENT_DATE()", dialect));
+
+        Assert.Contains("CURRENT_DATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures WITHIN GROUP ordered-set syntax remains unsupported for MySQL aggregates.
+    /// PT: Garante que a sintaxe ordered-set WITHIN GROUP continue não suportada para agregações MySQL.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_StringAggregateWithinGroup_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed WITHIN GROUP syntax in MySQL still fails as not-supported (dialect gate precedence).
+    /// PT: Garante que sintaxe malformada de WITHIN GROUP no MySQL continue falhando como não suportada (precedência do gate de dialeto).
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_StringAggregateWithinGroupMalformed_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures malformed trailing comma in WITHIN GROUP remains blocked by dialect gate.
+    /// PT: Garante que vírgula final malformada no WITHIN GROUP continue bloqueada pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_StringAggregateWithinGroupTrailingComma_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures empty ORDER BY list in WITHIN GROUP remains blocked by dialect gate.
+    /// PT: Garante que lista ORDER BY vazia em WITHIN GROUP continue bloqueada pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_StringAggregateWithinGroupOrderByEmptyList_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures leading commas in WITHIN GROUP ORDER BY remain blocked by dialect gate.
+    /// PT: Garante que vírgulas iniciais no ORDER BY do WITHIN GROUP continuem bloqueadas pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_StringAggregateWithinGroupOrderByLeadingComma_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures missing commas in malformed WITHIN GROUP ORDER BY remain blocked by dialect gate.
+    /// PT: Garante que ausência de vírgula em ORDER BY malformado no WITHIN GROUP continue bloqueada pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_StringAggregateWithinGroupOrderByMissingCommaBetweenExpressions_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 }

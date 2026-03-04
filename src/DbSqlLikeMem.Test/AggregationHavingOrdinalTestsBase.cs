@@ -84,6 +84,286 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         Assert.Equal(2, (int)rows[0].userId);
     }
 
+
+    /// <summary>
+    /// EN: Validates grouped string aggregation with custom separator and stable ordering by user id.
+    /// PT: Valida agregação textual agrupada com separador customizado e ordenação estável por user id.
+    /// </summary>
+    /// <param name="sql">EN: Provider-specific SQL using string aggregation. PT: SQL específico do provedor usando agregação textual.</param>
+    protected void AssertStringAggregationWithCustomSeparator(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+        {
+            throw new ArgumentException("SQL cannot be null, empty, or whitespace.", nameof(sql));
+        }
+
+        var rows = Query(sql);
+        Assert.Equal(2, rows.Count);
+
+        var first = Convert.ToString(rows[0].joined) ?? string.Empty;
+        var second = Convert.ToString(rows[1].joined) ?? string.Empty;
+
+        Assert.Contains("|", first, StringComparison.Ordinal);
+        Assert.Contains("10", first, StringComparison.Ordinal);
+        Assert.Contains("30", first, StringComparison.Ordinal);
+        Assert.Contains("5", second, StringComparison.Ordinal);
+    }
+
+
+
+
+
+    /// <summary>
+    /// EN: Validates mixed projection with string aggregation and explicit NULL literal remains stable.
+    /// PT: Valida que projeção mista com agregação textual e literal NULL explícito permaneça estável.
+    /// </summary>
+    /// <param name="sql">EN: Provider-specific SQL that projects aggregation + NULL literal. PT: SQL específico do provedor que projeta agregação + literal NULL.</param>
+    protected void AssertStringAggregationWithNullProjection(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+        {
+            throw new ArgumentException("SQL cannot be null, empty, or whitespace.", nameof(sql));
+        }
+
+        var rows = Query(sql);
+        Assert.Equal(2, rows.Count);
+
+        Assert.Null(rows[0].note);
+        Assert.Null(rows[1].note);
+
+        var firstJoined = Convert.ToString(rows[0].joined) ?? string.Empty;
+        var secondJoined = Convert.ToString(rows[1].joined) ?? string.Empty;
+
+        Assert.NotEmpty(firstJoined);
+        Assert.NotEmpty(secondJoined);
+    }
+
+
+
+    /// <summary>
+    /// EN: Validates CASE expression that returns NULL in grouped projection remains consistent with string aggregation.
+    /// PT: Valida que expressão CASE retornando NULL em projeção agrupada permaneça consistente com agregação textual.
+    /// </summary>
+    /// <param name="sql">EN: Provider-specific SQL that projects aggregation + CASE NULL expression. PT: SQL específico do provedor que projeta agregação + expressão CASE NULL.</param>
+    protected void AssertStringAggregationWithCaseNullProjection(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+        {
+            throw new ArgumentException("SQL cannot be null, empty, or whitespace.", nameof(sql));
+        }
+
+        var rows = Query(sql);
+        Assert.Equal(2, rows.Count);
+
+        Assert.Null(rows[0].note);
+        Assert.Null(rows[1].note);
+
+        var firstJoined = Convert.ToString(rows[0].joined) ?? string.Empty;
+        var secondJoined = Convert.ToString(rows[1].joined) ?? string.Empty;
+
+        Assert.NotEmpty(firstJoined);
+        Assert.NotEmpty(secondJoined);
+    }
+
+
+
+    /// <summary>
+    /// EN: Validates CASE expression with mixed text/NULL branches in grouped projection stays deterministic.
+    /// PT: Valida que expressão CASE com ramos mistos texto/NULL em projeção agrupada permaneça determinística.
+    /// </summary>
+    /// <param name="sql">EN: Provider-specific SQL that projects aggregation + CASE mixed branches. PT: SQL específico do provedor com agregação + CASE de ramos mistos.</param>
+    protected void AssertStringAggregationWithCaseMixedProjection(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+        {
+            throw new ArgumentException("SQL cannot be null, empty, or whitespace.", nameof(sql));
+        }
+
+        var rows = Query(sql);
+        Assert.Equal(2, rows.Count);
+
+        Assert.Equal("ok", Convert.ToString(rows[0].note));
+        Assert.Null(rows[1].note);
+
+        var firstJoined = Convert.ToString(rows[0].joined) ?? string.Empty;
+        var secondJoined = Convert.ToString(rows[1].joined) ?? string.Empty;
+
+        Assert.NotEmpty(firstJoined);
+        Assert.NotEmpty(secondJoined);
+    }
+
+
+
+    /// <summary>
+    /// EN: Validates multi-branch CASE projection (text/text) remains stable with grouped string aggregation.
+    /// PT: Valida que projeção CASE de múltiplos ramos (texto/texto) permaneça estável com agregação textual agrupada.
+    /// </summary>
+    /// <param name="sql">EN: Provider-specific SQL with aggregation + multi-branch CASE projection. PT: SQL específico do provedor com agregação + projeção CASE de múltiplos ramos.</param>
+    protected void AssertStringAggregationWithCaseMultiBranchProjection(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+        {
+            throw new ArgumentException("SQL cannot be null, empty, or whitespace.", nameof(sql));
+        }
+
+        var rows = Query(sql);
+        Assert.Equal(2, rows.Count);
+
+        Assert.Equal("primary", Convert.ToString(rows[0].note));
+        Assert.Equal("secondary", Convert.ToString(rows[1].note));
+
+        var firstJoined = Convert.ToString(rows[0].joined) ?? string.Empty;
+        var secondJoined = Convert.ToString(rows[1].joined) ?? string.Empty;
+
+        Assert.NotEmpty(firstJoined);
+        Assert.NotEmpty(secondJoined);
+    }
+
+
+
+    /// <summary>
+    /// EN: Validates numeric CASE multi-branch projection remains stable with grouped string aggregation.
+    /// PT: Valida que projeção CASE numérica de múltiplos ramos permaneça estável com agregação textual agrupada.
+    /// </summary>
+    /// <param name="sql">EN: Provider-specific SQL with aggregation + numeric CASE multi-branch projection. PT: SQL específico do provedor com agregação + projeção CASE numérica multibranch.</param>
+    protected void AssertStringAggregationWithCaseNumericMultiBranchProjection(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+        {
+            throw new ArgumentException("SQL cannot be null, empty, or whitespace.", nameof(sql));
+        }
+
+        var rows = Query(sql);
+        Assert.Equal(2, rows.Count);
+
+        Assert.Equal(100, Convert.ToInt32(rows[0].note));
+        Assert.Equal(200, Convert.ToInt32(rows[1].note));
+
+        var firstJoined = Convert.ToString(rows[0].joined) ?? string.Empty;
+        var secondJoined = Convert.ToString(rows[1].joined) ?? string.Empty;
+
+        Assert.NotEmpty(firstJoined);
+        Assert.NotEmpty(secondJoined);
+    }
+
+    /// <summary>
+    /// EN: Validates ordered-set aggregate syntax WITHIN GROUP applies ORDER BY semantics to string aggregation.
+    /// PT: Valida que a sintaxe ordered-set WITHIN GROUP aplique semântica de ORDER BY na agregação textual.
+    /// </summary>
+    /// <param name="sql">EN: Provider-specific SQL using WITHIN GROUP. PT: SQL específico do provedor usando WITHIN GROUP.</param>
+    /// <param name="expected">EN: Expected aggregated text. PT: Texto agregado esperado.</param>
+    protected void AssertWithinGroupOrdersAggregation(string sql, string expected)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+        {
+            throw new ArgumentException("SQL cannot be null, empty, or whitespace.", nameof(sql));
+        }
+
+        var rows = Query(sql);
+        Assert.Single(rows);
+
+        var joined = Convert.ToString(rows[0].joined) ?? string.Empty;
+        Assert.Equal(expected, joined);
+    }
+
+    /// <summary>
+    /// EN: Validates ordered-set aggregate syntax WITHIN GROUP is rejected with an actionable message.
+    /// PT: Valida que a sintaxe de agregação ordered-set WITHIN GROUP seja rejeitada com mensagem acionável.
+    /// </summary>
+    /// <param name="sql">EN: Provider-specific SQL using WITHIN GROUP. PT: SQL específico do provedor usando WITHIN GROUP.</param>
+    protected void AssertWithinGroupNotSupported(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+        {
+            throw new ArgumentException("SQL cannot be null, empty, or whitespace.", nameof(sql));
+        }
+
+        SqlNotSupportedAssert.ThrowsWithFeature(() => Query(sql), "WITHIN GROUP");
+    }
+
+    /// <summary>
+    /// EN: Validates DISTINCT string aggregation ignores NULL values and preserves expected tokens.
+    /// PT: Valida que agregação textual com DISTINCT ignore valores NULL e preserve os tokens esperados.
+    /// </summary>
+    /// <param name="querySql">EN: Provider-specific aggregate query over textagg_data. PT: Query agregada específica do provedor sobre textagg_data.</param>
+    protected void AssertStringAggregationDistinctIgnoresNullValues(string querySql)
+    {
+        if (string.IsNullOrWhiteSpace(querySql))
+        {
+            throw new ArgumentException("Query SQL cannot be null, empty, or whitespace.", nameof(querySql));
+        }
+
+        ExecuteNonQuery("CREATE TABLE textagg_data (grp INT, val VARCHAR(20) NULL)");
+        ExecuteNonQuery("INSERT INTO textagg_data (grp, val) VALUES (1, 'a')");
+        ExecuteNonQuery("INSERT INTO textagg_data (grp, val) VALUES (1, NULL)");
+        ExecuteNonQuery("INSERT INTO textagg_data (grp, val) VALUES (1, 'a')");
+        ExecuteNonQuery("INSERT INTO textagg_data (grp, val) VALUES (1, 'b')");
+
+        var rows = Query(querySql);
+        Assert.Single(rows);
+
+        var joined = Convert.ToString(rows[0].joined) ?? string.Empty;
+        Assert.Contains("a", joined, StringComparison.Ordinal);
+        Assert.Contains("b", joined, StringComparison.Ordinal);
+        Assert.Contains("|", joined, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// EN: Validates WITHIN GROUP ordering with composite keys (multiple ORDER BY expressions).
+    /// PT: Valida ordenação WITHIN GROUP com chaves compostas (múltiplas expressões em ORDER BY).
+    /// </summary>
+    /// <param name="querySql">EN: Provider-specific aggregate query over textagg_order. PT: Query agregada específica do provedor sobre textagg_order.</param>
+    /// <param name="expected">EN: Expected aggregated text. PT: Texto agregado esperado.</param>
+    protected void AssertWithinGroupCompositeOrdering(string querySql, string expected)
+    {
+        if (string.IsNullOrWhiteSpace(querySql))
+            throw new ArgumentException("Query SQL cannot be null, empty, or whitespace.", nameof(querySql));
+
+        ExecuteNonQuery("CREATE TABLE textagg_order (grp INT, val VARCHAR(20) NULL, ord1 INT, ord2 INT)");
+        ExecuteNonQuery("INSERT INTO textagg_order (grp, val, ord1, ord2) VALUES (1, 'a', 1, 2)");
+        ExecuteNonQuery("INSERT INTO textagg_order (grp, val, ord1, ord2) VALUES (1, 'b', 1, 1)");
+        ExecuteNonQuery("INSERT INTO textagg_order (grp, val, ord1, ord2) VALUES (1, 'c', 2, 1)");
+
+        var rows = Query(querySql);
+        Assert.Single(rows);
+
+        var joined = Convert.ToString(rows[0].joined) ?? string.Empty;
+        Assert.Equal(expected, joined);
+    }
+
+    /// <summary>
+    /// EN: Validates DISTINCT + WITHIN GROUP ordering to ensure deduplication follows ORDER BY sequence.
+    /// PT: Valida DISTINCT + WITHIN GROUP para garantir que a deduplicação siga a sequência do ORDER BY.
+    /// </summary>
+    /// <param name="querySql">EN: Provider-specific aggregate query over textagg_distinct_order. PT: Query agregada específica do provedor sobre textagg_distinct_order.</param>
+    /// <param name="expected">EN: Expected aggregated text after ordering and distinct. PT: Texto agregado esperado após ordenação e distinct.</param>
+    protected void AssertWithinGroupDistinctOrdering(string querySql, string expected)
+    {
+        if (string.IsNullOrWhiteSpace(querySql))
+            throw new ArgumentException("Query SQL cannot be null, empty, or whitespace.", nameof(querySql));
+
+        ExecuteNonQuery("CREATE TABLE textagg_distinct_order (grp INT, val VARCHAR(20) NULL, ord1 INT, ord2 INT)");
+        ExecuteNonQuery("INSERT INTO textagg_distinct_order (grp, val, ord1, ord2) VALUES (1, 'b', 1, 1)");
+        ExecuteNonQuery("INSERT INTO textagg_distinct_order (grp, val, ord1, ord2) VALUES (1, 'a', 1, 2)");
+        ExecuteNonQuery("INSERT INTO textagg_distinct_order (grp, val, ord1, ord2) VALUES (1, 'a', 2, 1)");
+        ExecuteNonQuery("INSERT INTO textagg_distinct_order (grp, val, ord1, ord2) VALUES (1, NULL, 0, 0)");
+
+        var rows = Query(querySql);
+        Assert.Single(rows);
+
+        var joined = Convert.ToString(rows[0].joined) ?? string.Empty;
+        Assert.Equal(expected, joined);
+    }
+
+
+
+    private void ExecuteNonQuery(string sql)
+    {
+        using var command = Connection.CreateCommand();
+        command.CommandText = sql;
+        command.ExecuteNonQuery();
+    }
+
     private static void SeedOrders(TDbMock db)
     {
         var orders = db.AddTable("orders");

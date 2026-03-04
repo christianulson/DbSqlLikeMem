@@ -102,18 +102,25 @@ public class Db2CommandMock(
         // 1. Stored Procedure (sem parse SQL)
         if (CommandType == CommandType.StoredProcedure)
         {
-            return connection.ExecuteStoredProcedure(CommandText, Parameters);
+            var affected = connection.ExecuteStoredProcedure(CommandText, Parameters);
+            connection.SetLastFoundRows(affected);
+            return affected;
         }
 
         var sqlRaw = CommandText.Trim();
 
         if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
+        {
+            connection.SetLastFoundRows(transactionControlResult);
             return transactionControlResult;
+        }
 
         // 2. Comandos especiais que talvez o Parser ainda não suporte nativamente (DDL, CALL)
         if (sqlRaw.StartsWith("call ", StringComparison.OrdinalIgnoreCase))
         {
-            return connection.ExecuteCall(sqlRaw, Parameters);
+            var affected = connection.ExecuteCall(sqlRaw, Parameters);
+            connection.SetLastFoundRows(affected);
+            return affected;
         }
 
         if (sqlRaw.StartsWith("create temporary table", StringComparison.OrdinalIgnoreCase) ||
@@ -203,27 +210,54 @@ public class Db2CommandMock(
         if (CommandType == CommandType.StoredProcedure)
         {
             connection.ExecuteStoredProcedure(CommandText, Parameters);
+            connection.SetLastFoundRows(0);
             return new Db2DataReaderMock([[]]);
         }
 
         var sql = CommandText.NormalizeString();
 
         // Erro CA1847 e CA1307: Substituído por Contains com char ou StringComparison
-        if (sql.StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
+        var statements = SqlQueryParser
+            .SplitStatements(sql, connection.Db.Dialect)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .ToList();
+
+        if (statements.Count == 1 && statements[0].TrimStart().StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
         {
-            connection.ExecuteCall(sql, Parameters);
+            connection.ExecuteCall(statements[0], Parameters);
+            connection.SetLastFoundRows(0);
             return new Db2DataReaderMock([[]]);
         }
-
         var executor = AstQueryExecutorFactory.Create(connection.Db.Dialect, connection, Parameters);
 
-        // Parse Multiplo (ex: "SELECT 1; SELECT 2;" ou "CREATE TEMPORARY TABLE ...; SELECT ...")
-        var queries = SqlQueryParser.ParseMulti(sql, connection.Db.Dialect, Parameters).ToList();
-
+        // Parse múltiplo (ex: "SELECT 1; SELECT 2;" ou "BEGIN; SELECT ROW_COUNT();")
         var tables = new List<TableResultMock>();
+        var parsedStatementCount = 0;
 
-        foreach (var q in queries)
+        foreach (var statementSql in statements)
         {
+            var sqlRaw = statementSql.Trim();
+            if (string.IsNullOrWhiteSpace(sqlRaw))
+                continue;
+
+            if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
+            {
+                connection.SetLastFoundRows(transactionControlResult);
+                parsedStatementCount++;
+                continue;
+            }
+
+            if (sqlRaw.StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
+            {
+                connection.ExecuteCall(sqlRaw, Parameters);
+                connection.SetLastFoundRows(0);
+                parsedStatementCount++;
+                continue;
+            }
+
+            var q = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect, Parameters);
+            parsedStatementCount++;
+
             switch (q)
             {
                 case SqlCreateTemporaryTableQuery ct:
@@ -266,7 +300,7 @@ public class Db2CommandMock(
             }
         }
 
-        if (tables.Count == 0 && queries.Count > 0)
+        if (tables.Count == 0 && parsedStatementCount > 0)
             throw new InvalidOperationException(SqlExceptionMessages.ExecuteReaderWithoutSelectQuery());
 
         connection.Metrics.Selects += tables.Sum(t => t.Count);

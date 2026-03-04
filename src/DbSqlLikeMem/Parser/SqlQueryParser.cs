@@ -9,7 +9,7 @@ internal sealed class SqlQueryParser
     private readonly IDataParameterCollection? _parameters;
     private int _i;
     // INSERT ... SELECT pode ter um sufixo de UPSERT após o SELECT (MySQL ON DUPLICATE..., Postgres ON CONFLICT ...)
-    private bool _allowOnDuplicateBoundary;
+    private bool _allowInsertSelectSuffixBoundary;
 
     private static readonly SqlQueryAstCache _astCache = SqlQueryAstCache.CreateFromEnvironment();
 
@@ -214,6 +214,18 @@ internal sealed class SqlQueryParser
         }
     }
 
+    /// <summary>
+    /// EN: Splits a SQL batch into top-level statements preserving dialect string/comment rules.
+    /// PT: Separa um lote SQL em statements de topo preservando regras de string/comentário do dialeto.
+    /// </summary>
+    /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
+    /// <param name="dialect">EN: Dialect used for statement boundaries. PT: Dialeto usado para limites de statement.</param>
+    /// <returns>EN: Top-level SQL statements. PT: Statements SQL de topo.</returns>
+    public static IEnumerable<string> SplitStatements(
+        string sql,
+        ISqlDialect dialect)
+        => SplitStatementsTopLevel(sql, dialect);
+
     // Mantido para compatibilidade com lógica de Union
     /// <summary>
     /// EN: Represents a normalized UNION parsing result including parts, ALL flags, final ORDER BY and row-limit tail.
@@ -283,7 +295,7 @@ internal sealed class SqlQueryParser
                     // Vou assumir que cada item da lista interna é um valor (ex: "1", "'abc'").
                     var rowValues = SplitRawByComma(rawBlock);
                     valuesRaw.Add(rowValues);
-                    valuesExpr.Add([.. rowValues.Select(v => TryParseScalar(v))]);
+                    valuesExpr.Add([.. rowValues.Select(TryParseScalar)]);
                 }
 
                 if (IsSymbol(Peek(), ","))
@@ -296,11 +308,12 @@ internal sealed class SqlQueryParser
         }
         else if (IsWord(Peek(), "SELECT") || IsWord(Peek(), "WITH"))
         {
-            _allowOnDuplicateBoundary = _dialect.SupportsOnDuplicateKeyUpdate
+            _allowInsertSelectSuffixBoundary = _dialect.SupportsOnDuplicateKeyUpdate
                 || _dialect.SupportsOnConflictClause
+                || _dialect.SupportsReturning
                 || _dialect.AllowsParserInsertSelectUpsertSuffix;
             insertSelect = ParseSelectQuery();
-            _allowOnDuplicateBoundary = false;
+            _allowInsertSelectSuffixBoundary = false;
         }
 
         // Must be VALUES(...) or SELECT...
@@ -309,6 +322,7 @@ internal sealed class SqlQueryParser
 
         // ON DUPLICATE KEY UPDATE
         var onDup = ParseOnDuplicated();
+        var returning = ParseOptionalReturningItems();
 
         return new SqlInsertQuery
         {
@@ -317,9 +331,13 @@ internal sealed class SqlQueryParser
             ValuesRaw = valuesRaw,
             ValuesExpr = valuesExpr,
             InsertSelect = insertSelect,
+            Returning = returning,
             HasOnDuplicateKeyUpdate = (onDup != null),
             OnDupAssigns = onDup?.Assignments.Select(a => (a.Column, a.ValueRaw)).ToList() ?? [],
-            OnDupAssignsParsed = onDup?.Assignments.Select(a => new SqlAssignment(a.Column, a.ValueRaw, TryParseScalar(a.ValueRaw))).ToList() ?? []
+            OnDupAssignsParsed = onDup?.Assignments.Select(a => new SqlAssignment(a.Column, a.ValueRaw, TryParseScalar(a.ValueRaw))).ToList() ?? [],
+            IsOnConflictDoNothing = onDup?.IsDoNothing == true,
+            OnConflictUpdateWhereRaw = onDup?.UpdateWhereRaw,
+            OnConflictUpdateWhereExpr = TryParseWhereExpr(onDup?.UpdateWhereRaw)
         };
     }
 
@@ -383,30 +401,23 @@ internal sealed class SqlQueryParser
             if (IsWord(Peek(), "NOTHING"))
             {
                 Consume();
-                return new SqlOnDuplicateKeyUpdate([]);
+                return new SqlOnDuplicateKeyUpdate([], IsDoNothing: true);
             }
 
             ExpectWord("UPDATE");
             ExpectWord("SET");
             var assigns = ParseAssignmentsList();
+            string? updateWhereRaw = null;
 
             // PostgreSQL permite: DO UPDATE SET ... WHERE <predicate>
             // O mock atual não usa essa condição no AST, mas precisa aceitar o SQL.
             if (IsWord(Peek(), "WHERE"))
             {
                 Consume();
-                _ = ReadClauseTextUntilTopLevelStop("RETURNING");
+                updateWhereRaw = ReadClauseTextUntilTopLevelStop("RETURNING");
             }
 
-            // PostgreSQL permite RETURNING após INSERT ... ON CONFLICT ...
-            // Como o AST de INSERT ainda não materializa RETURNING, apenas consumimos.
-            if (IsWord(Peek(), "RETURNING"))
-            {
-                Consume();
-                _ = ReadClauseTextUntilTopLevelStop();
-            }
-
-            return new SqlOnDuplicateKeyUpdate(assigns);
+            return new SqlOnDuplicateKeyUpdate(assigns, UpdateWhereRaw: updateWhereRaw);
         }
 
         return null;
@@ -488,8 +499,9 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "WHERE"))
         {
             Consume(); // WHERE
-            whereRaw = ReadClauseTextUntilTopLevelStop();
+            whereRaw = ReadClauseTextUntilTopLevelStop("RETURNING");
         }
+        var returning = ParseOptionalReturningItems();
 
         var setParsed = setList.ConvertAll(it => new SqlAssignment(it.Column, it.ValueRaw, TryParseScalar(it.ValueRaw)));
         SqlExpr? whereExpr = null;
@@ -508,6 +520,7 @@ internal sealed class SqlQueryParser
             SetParsed = setParsed,
             WhereRaw = whereRaw,
             Where = whereExpr,
+            Returning = returning,
             // Só o "!= null" importa para acionar a estratégia smart; o SQL bruto está em RawSql.
             UpdateFromSelect = hasJoin
                 ? new SqlSelectQuery([], false, [], [], null, [], null, [], null)
@@ -599,8 +612,9 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "WHERE"))
         {
             Consume();
-            whereRaw = ReadClauseTextUntilTopLevelStop();
+            whereRaw = ReadClauseTextUntilTopLevelStop("RETURNING");
         }
+        var returning = ParseOptionalReturningItems();
 
         SqlExpr? whereExpr = null;
         if (!string.IsNullOrWhiteSpace(whereRaw))
@@ -616,6 +630,7 @@ internal sealed class SqlQueryParser
             Table = table,
             WhereRaw = whereRaw,
             Where = whereExpr,
+            Returning = returning,
             DeleteFromSelect = hasJoin
                 ? new SqlSelectQuery([], false, [], [], null, [], null, [], null)
                 : null
@@ -774,6 +789,7 @@ internal sealed class SqlQueryParser
             throw new InvalidOperationException("invalid: duplicated SELECT keyword");
         var distinct = TryParseDistinct();
         var top = TryParseTop();
+        TryParseSelectModifiers();
         var selectItems = ParseSelectItemsWithValidation();
         var table = ParseFromOrDual();
         var joins = ParseJoins(table);
@@ -824,6 +840,17 @@ internal sealed class SqlQueryParser
         {
             Table = table
         };
+    }
+
+    private void TryParseSelectModifiers()
+    {
+        while (IsWord(Peek(), "SQL_CALC_FOUND_ROWS"))
+        {
+            if (!string.Equals(_dialect.Name, "mysql", StringComparison.OrdinalIgnoreCase))
+                throw SqlUnsupported.ForDialect(_dialect, "SELECT modifier SQL_CALC_FOUND_ROWS");
+
+            Consume();
+        }
     }
 
     // ------------------------------------------------------------
@@ -1179,6 +1206,94 @@ internal sealed class SqlQueryParser
         return new SqlTop(ExpectNumberInt());
     }
 
+    /// <summary>
+    /// EN: Parses optional DML RETURNING clause with dialect gate and expression validation.
+    /// PT: Faz o parsing opcional da cláusula RETURNING de DML com gate de dialeto e validação de expressão.
+    /// </summary>
+    /// <returns>EN: Returning items when clause is present; otherwise empty list. PT: Itens de retorno quando a cláusula estiver presente; caso contrário, lista vazia.</returns>
+    private IReadOnlyList<SqlSelectItem> ParseOptionalReturningItems()
+    {
+        if (!IsWord(Peek(), "RETURNING"))
+            return [];
+
+        if (!_dialect.SupportsReturning)
+            throw SqlUnsupported.ForDialect(_dialect, "RETURNING");
+
+        Consume(); // RETURNING
+
+        var raws = ParseReturningItemsRaw();
+        return raws.ConvertAll(raw =>
+        {
+            var (expr, alias) = SplitTrailingAsAliasTopLevel(raw, _dialect);
+            if (string.IsNullOrWhiteSpace(expr))
+                throw new InvalidOperationException("RETURNING requires at least one expression.");
+
+            _ = SqlExpressionParser.ParseScalar(expr, _dialect);
+            return new SqlSelectItem(expr, alias);
+        });
+    }
+
+    private List<string> ParseReturningItemsRaw()
+    {
+        var items = new List<string>();
+
+        while (true)
+        {
+            if (IsEnd(Peek()) || IsSymbol(Peek(), ";"))
+            {
+                if (items.Count == 0)
+                    throw new InvalidOperationException("RETURNING requires at least one expression.");
+                break;
+            }
+
+            if (IsSymbol(Peek(), ","))
+                throw new InvalidOperationException("RETURNING has an unexpected comma before expression.");
+
+            var raw = ReadRawExpressionUntilCommaOrTerminator().Trim();
+            if (string.IsNullOrWhiteSpace(raw))
+                throw new InvalidOperationException("RETURNING requires at least one expression.");
+
+            items.Add(raw);
+
+            if (IsSymbol(Peek(), ","))
+            {
+                Consume();
+
+                if (IsEnd(Peek()) || IsSymbol(Peek(), ";"))
+                    throw new InvalidOperationException("RETURNING has a trailing comma without expression.");
+
+                continue;
+            }
+
+            break;
+        }
+
+        return items;
+    }
+
+    private string ReadRawExpressionUntilCommaOrTerminator()
+    {
+        var buf = new List<SqlToken>();
+        int depth = 0;
+
+        while (!IsEnd(Peek()))
+        {
+            var t = Peek();
+
+            if (depth == 0 && (IsSymbol(t, ",") || IsSymbol(t, ";")))
+                break;
+
+            if (IsSymbol(t, "("))
+                depth++;
+            else if (IsSymbol(t, ")"))
+                depth--;
+
+            buf.Add(Consume());
+        }
+
+        return TokensToSql(buf);
+    }
+
     private List<SqlSelectItem> ParseSelectItemsWithValidation()
     {
         var raws = ParseCommaSeparatedRawItemsUntilAny("FROM", "WHERE", "GROUP", "HAVING", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION");
@@ -1245,7 +1360,7 @@ internal sealed class SqlQueryParser
         if (!IsWord(Peek(), "WHERE")) return null;
         Consume();
         // "ON" here is important for INSERT ... SELECT ... WHERE ... ON DUPLICATE ...
-        var txt = ReadClauseTextUntilTopLevelStop("GROUP", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "HAVING", "ON");
+        var txt = ReadClauseTextUntilTopLevelStop("GROUP", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "HAVING", "ON", "RETURNING");
         return SqlExpressionParser.ParseWhere(txt, _dialect);
     }
 
@@ -1255,7 +1370,7 @@ internal sealed class SqlQueryParser
         if (!IsWord(Peek(), "GROUP")) return list;
         Consume();
         ExpectWord("BY");
-        list.AddRange(ParseRawItemsUntil("HAVING", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION"));
+        list.AddRange(ParseRawItemsUntil("HAVING", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "RETURNING"));
         if (list.Count == 0)
             throw new InvalidOperationException("GROUP BY sem expressões.");
         return list;
@@ -1265,7 +1380,7 @@ internal sealed class SqlQueryParser
     {
         if (!IsWord(Peek(), "HAVING")) return null;
         Consume();
-        var txt = ReadClauseTextUntilTopLevelStop("ORDER", "LIMIT", "OFFSET", "FETCH", "UNION");
+        var txt = ReadClauseTextUntilTopLevelStop("ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "RETURNING");
         return SqlExpressionParser.ParseWhere(txt, _dialect);
     }
 
@@ -1276,7 +1391,7 @@ internal sealed class SqlQueryParser
         Consume();
         ExpectWord("BY");
         // Reutiliza lógica simplificada
-        var raws = ParseCommaSeparatedRawItemsUntilAny("LIMIT", "OFFSET", "FETCH", "UNION");
+        var raws = ParseCommaSeparatedRawItemsUntilAny("LIMIT", "OFFSET", "FETCH", "UNION", "RETURNING");
         foreach (var r in raws)
         {
             var raw = r.Trim();
@@ -1528,7 +1643,7 @@ internal sealed class SqlQueryParser
         };
     }
 
-    private SqlPivotSpec ParsePivotSpec(string raw)
+    private static SqlPivotSpec ParsePivotSpec(string raw)
     {
         var m = Regex.Match(
             raw,
@@ -1799,7 +1914,7 @@ internal sealed class SqlQueryParser
             else if (IsSymbol(t, ")")) depth--;
 
             if (depth == 0 && IsSymbol(t, ";")) break;
-            if (depth == 0 && stopWords.Any(sw => IsWord(t, sw))) break;
+            if (depth == 0 && ShouldStopAtTopLevelToken(t, stopWords, buf)) break;
 
             if (depth == 0 && IsSymbol(t, ","))
             {
@@ -1824,10 +1939,46 @@ internal sealed class SqlQueryParser
             if (IsSymbol(t, "(")) depth++;
             else if (IsSymbol(t, ")")) depth--;
             if (depth == 0 && IsSymbol(t, ";")) break;
-            if (depth == 0 && stopWords.Any(sw => IsWord(t, sw))) break;
+            if (depth == 0 && ShouldStopAtTopLevelToken(t, stopWords, buf)) break;
             buf.Add(Consume());
         }
         return TokensToSql(buf);
+    }
+
+    /// <summary>
+    /// EN: Determines whether current top-level token should stop clause/item scanning, preserving ordered-set syntax boundaries.
+    /// PT: Determina se o token atual em nível de topo deve encerrar a varredura da cláusula/item, preservando fronteiras de sintaxe ordered-set.
+    /// </summary>
+    /// <param name="current">EN: Token currently inspected at top level. PT: Token inspecionado no nível de topo.</param>
+    /// <param name="stopWords">EN: Candidate clause stop words. PT: Palavras de parada candidatas de cláusula.</param>
+    /// <param name="buffer">EN: Tokens already buffered for current segment. PT: Tokens já acumulados para o segmento atual.</param>
+    /// <returns>EN: True when parser should stop before current token. PT: True quando o parser deve parar antes do token atual.</returns>
+    private static bool ShouldStopAtTopLevelToken(SqlToken current, IReadOnlyList<string> stopWords, IReadOnlyList<SqlToken> buffer)
+    {
+        if (!stopWords.Any(sw => IsWord(current, sw)))
+            return false;
+
+        // Keep "WITHIN GROUP (...)" inside the same SELECT expression.
+        if (IsWord(current, "GROUP") && EndsWithWord(buffer, "WITHIN"))
+            return false;
+
+        return true;
+    }
+
+    /// <summary>
+    /// EN: Checks whether buffered tokens end with a specific keyword/identifier word.
+    /// PT: Verifica se os tokens acumulados terminam com uma palavra-chave/identificador específica.
+    /// </summary>
+    /// <param name="buffer">EN: Buffered tokens. PT: Tokens acumulados.</param>
+    /// <param name="word">EN: Word to match at buffer tail. PT: Palavra para comparar no final do buffer.</param>
+    /// <returns>EN: True when tail token matches the expected word. PT: True quando o token final corresponde à palavra esperada.</returns>
+    private static bool EndsWithWord(IReadOnlyList<SqlToken> buffer, string word)
+    {
+        if (buffer.Count == 0)
+            return false;
+
+        var tail = buffer[^1];
+        return IsWord(tail, word);
     }
 
     private string TokensToSql(List<SqlToken> toks)
@@ -2288,8 +2439,8 @@ internal sealed class SqlQueryParser
         var t = Peek();
         if (IsEnd(t) || IsWord(t, "UNION")) return;
 
-        // boundary especial: INSERT ... SELECT ... ON DUPLICATE ...
-        if (_allowOnDuplicateBoundary && IsWord(t, "ON")) return;
+        // boundary especial: INSERT ... SELECT ... ON DUPLICATE / ON CONFLICT / RETURNING
+        if (_allowInsertSelectSuffixBoundary && (IsWord(t, "ON") || IsWord(t, "RETURNING"))) return;
 
         // tolera ';' final se o split top-level não removeu
         if (IsSymbol(t, ";")) { Consume(); return; }
@@ -2365,6 +2516,7 @@ internal sealed class SqlQueryParser
         "THEN"
       , "PIVOT"
       , "UNPIVOT"
+      , "RETURNING"
     };
 
     private static bool IsClauseKeywordToken(SqlToken t)
@@ -2523,11 +2675,25 @@ internal sealed class SqlQueryParser
         return res;
     }
 
-
     private SqlExpr? TryParseScalar(string raw)
     {
 #pragma warning disable CA1031 // Do not catch general exception types
         try { return SqlExpressionParser.ParseScalar(raw, _dialect); }
+        catch { return null; }
+#pragma warning restore CA1031 // Do not catch general exception types
+    }
+
+    /// <summary>
+    /// EN: Attempts to parse a predicate string into WHERE-expression AST for optional UPSERT update filtering.
+    /// PT: Tenta converter uma string de predicado em AST de WHERE para filtro opcional de update em UPSERT.
+    /// </summary>
+    private SqlExpr? TryParseWhereExpr(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return null;
+
+#pragma warning disable CA1031 // Do not catch general exception types
+        try { return SqlExpressionParser.ParseWhere(raw!, _dialect); }
         catch { return null; }
 #pragma warning restore CA1031 // Do not catch general exception types
     }

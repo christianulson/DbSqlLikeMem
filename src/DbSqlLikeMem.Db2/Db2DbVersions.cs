@@ -1,6 +1,10 @@
 ﻿namespace DbSqlLikeMem.Db2;
 
-internal static class Db2DbVersions
+/// <summary>
+/// EN: Extension for verions Db2 versions supported by this provider mock.
+/// PT: Extesão para versões do Db2 suportadas por este mock de provedor.
+/// </summary>
+public static class Db2DbVersions
 {
     /// <summary>
     /// EN: Returns Db2 versions supported by this provider mock.

@@ -1,10 +1,14 @@
 ﻿namespace DbSqlLikeMem.Sqlite;
 
-internal static class SqliteDbVersions
+/// <summary>
+/// EN: Extension for verions Sqlite versions supported by this provider mock.
+/// PT: Extesão para versões do Sqlite suportadas por este mock de provedor.
+/// </summary>
+public static class SqliteDbVersions
 {
     /// <summary>
-    /// EN: Returns SQLite versions supported by this provider mock.
-    /// PT: Retorna as versões do SQLite suportadas por este mock de provedor.
+    /// EN: Returns Sqlite versions supported by this provider mock.
+    /// PT: Retorna as versões do Sqlite suportadas por este mock de provedor.
     /// </summary>
     public static IEnumerable<int> Versions()
     {

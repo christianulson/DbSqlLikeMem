@@ -194,4 +194,418 @@ public sealed class PostgreSqlMockTests
         _connection.Dispose();
         base.Dispose(disposing);
     }
+
+    /// <summary>
+    /// EN: Tests TestSelect_FoundRows_ShouldReturnLastSelectRowCount behavior.
+    /// PT: Testa o comportamento de TestSelect_FoundRows_ShouldReturnLastSelectRowCount.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void TestSelect_FoundRows_ShouldReturnLastSelectRowCount()
+    {
+        using var command = new NpgsqlCommandMock(_connection);
+        command.CommandText = """
+            INSERT INTO Users (Id, Name, Email) VALUES (101, 'Ana', NULL);
+            INSERT INTO Users (Id, Name, Email) VALUES (102, 'Bia', NULL);
+            INSERT INTO Users (Id, Name, Email) VALUES (103, 'Caio', NULL);
+            """;
+        command.ExecuteNonQuery();
+
+        command.CommandText = "SELECT Name FROM Users ORDER BY Id LIMIT 1; SELECT FOUND_ROWS();";
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal("Ana", reader.GetString(0));
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    /// <summary>
+    /// EN: Tests TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount behavior.
+    /// PT: Testa o comportamento de TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount()
+    {
+        using var seed = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Seed User', NULL)"
+        };
+        seed.ExecuteNonQuery();
+
+        using var command = new NpgsqlCommandMock(_connection);
+        command.CommandText = "SELECT Name FROM Users ORDER BY Id LIMIT 1; SELECT ROW_COUNT();";
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+    /// <summary>
+    /// EN: Tests TestSelect_SqlCalcFoundRows_ShouldThrow_NotSupported behavior.
+    /// PT: Testa o comportamento de TestSelect_SqlCalcFoundRows_ShouldThrow_NotSupported.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void TestSelect_SqlCalcFoundRows_ShouldThrow_NotSupported()
+    {
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "SELECT SQL_CALC_FOUND_ROWS Name FROM Users LIMIT 1"
+        };
+
+        Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+    }
+
+
+    /// <summary>
+    /// EN: Tests TestUpdate_RowCountFunction_ShouldReturnAffectedRows behavior.
+    /// PT: Testa o comportamento de TestUpdate_RowCountFunction_ShouldReturnAffectedRows.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void TestUpdate_RowCountFunction_ShouldReturnAffectedRows()
+    {
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (120, 'Row Count User', NULL)"
+        };
+        command.ExecuteNonQuery();
+
+        command.CommandText = "UPDATE Users SET Name = 'Updated User' WHERE Id = 120; SELECT ROW_COUNT();";
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+
+    /// <summary>
+    /// EN: Tests TestBatch_BeginTransactionThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_BeginTransactionThenRowCount_ShouldReturnZero.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void TestBatch_BeginTransactionThenRowCount_ShouldReturnZero()
+    {
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+    /// <summary>
+    /// EN: Tests TestBatch_CallThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_CallThenRowCount_ShouldReturnZero.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void TestBatch_CallThenRowCount_ShouldReturnZero()
+    {
+        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "CALL sp_ping(); SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+    /// <summary>
+    /// EN: Tests TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit behavior.
+    /// PT: Testa o comportamento de TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit()
+    {
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'After Commit' WHERE Id = 1; COMMIT; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    /// <summary>
+    /// EN: Tests TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero()
+    {
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SAVEPOINT sp1; UPDATE Users SET Name = 'Tmp' WHERE Id = 1; ROLLBACK TO SAVEPOINT sp1; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+    /// <summary>
+    /// EN: Tests TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero()
+    {
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SAVEPOINT sp1; RELEASE SAVEPOINT sp1; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    /// <summary>
+    /// EN: Tests TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml behavior.
+    /// PT: Testa o comportamento de TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml()
+    {
+        using var seed = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Seed User', NULL)"
+        };
+        seed.ExecuteNonQuery();
+
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "SELECT Name FROM Users ORDER BY Id LIMIT 1; UPDATE Users SET Name = 'Mixed Batch User' WHERE Id = 1; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    /// <summary>
+    /// EN: Tests TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit behavior.
+    /// PT: Testa o comportamento de TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit()
+    {
+        _connection.AddProdecure("sp_ping", new ProcedureDef([], [], [], null));
+
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "CALL sp_ping(); UPDATE Users SET Name = 'Call Dml User' WHERE Id = 1; COMMIT; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    /// <summary>
+    /// EN: Tests TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect behavior.
+    /// PT: Testa o comportamento de TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect()
+    {
+        using var seed = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Seed User 1', NULL)"
+        };
+        seed.ExecuteNonQuery();
+        seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (2, 'Seed User 2', NULL)";
+        seed.ExecuteNonQuery();
+
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'Last Select User' WHERE Id = 1; SELECT Name FROM Users ORDER BY Id LIMIT 2; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        var rows = 0;
+        while (reader.Read()) rows++;
+        Assert.Equal(2, rows);
+
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(2L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+    /// <summary>
+    /// EN: Tests ExecuteReader_InsertReturning_ShouldReturnInsertedRows behavior.
+    /// PT: Testa o comportamento de ExecuteReader_InsertReturning_ShouldReturnInsertedRows.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void ExecuteReader_InsertReturning_ShouldReturnInsertedRows()
+    {
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (501, 'Returning Insert', 'insert@test.local') RETURNING Id, Name AS user_name"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(501, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("Returning Insert", reader.GetString(reader.GetOrdinal("user_name")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Tests ExecuteReader_UpdateReturning_ShouldReturnUpdatedProjection behavior.
+    /// PT: Testa o comportamento de ExecuteReader_UpdateReturning_ShouldReturnUpdatedProjection.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void ExecuteReader_UpdateReturning_ShouldReturnUpdatedProjection()
+    {
+        using var setup = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (502, 'Before Update', 'before@test.local')"
+        };
+        setup.ExecuteNonQuery();
+
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'After Update' WHERE Id = 502 RETURNING Id, Name"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(502, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("After Update", reader.GetString(reader.GetOrdinal("Name")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Tests ExecuteReader_DeleteReturning_ShouldReturnDeletedRowSnapshot behavior.
+    /// PT: Testa o comportamento de ExecuteReader_DeleteReturning_ShouldReturnDeletedRowSnapshot.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void ExecuteReader_DeleteReturning_ShouldReturnDeletedRowSnapshot()
+    {
+        using var setup = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (503, 'To Delete', 'delete@test.local')"
+        };
+        setup.ExecuteNonQuery();
+
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "DELETE FROM Users WHERE Id = 503 RETURNING Id, Name"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(503, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("To Delete", reader.GetString(reader.GetOrdinal("Name")));
+        Assert.False(reader.Read());
+        Assert.DoesNotContain(_connection.GetTable("Users"), r => Convert.ToInt32(r[0]) == 503);
+    }
+
+    /// <summary>
+    /// EN: Tests ExecuteReader_InsertSelectReturning_ShouldReturnAllInsertedRows behavior.
+    /// PT: Testa o comportamento de ExecuteReader_InsertSelectReturning_ShouldReturnAllInsertedRows.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void ExecuteReader_InsertSelectReturning_ShouldReturnAllInsertedRows()
+    {
+        using var seed = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (511, 'Seed A', 'seed-a@test.local')"
+        };
+        seed.ExecuteNonQuery();
+        seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (512, 'Seed B', 'seed-b@test.local')";
+        seed.ExecuteNonQuery();
+
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO Users (Id, Name, Email)
+                SELECT Id + 1000, Name, Email
+                FROM Users
+                WHERE Id IN (511, 512)
+                RETURNING Id
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1511, reader.GetInt32(0));
+        Assert.True(reader.Read());
+        Assert.Equal(1512, reader.GetInt32(0));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Tests ExecuteReader_UpdateReturningQualifiedWildcard_ShouldReturnAllColumns behavior.
+    /// PT: Testa o comportamento de ExecuteReader_UpdateReturningQualifiedWildcard_ShouldReturnAllColumns.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void ExecuteReader_UpdateReturningQualifiedWildcard_ShouldReturnAllColumns()
+    {
+        using var setup = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (513, 'Before', 'before513@test.local')"
+        };
+        setup.ExecuteNonQuery();
+
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'After' WHERE Id = 513 RETURNING users.*"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(513, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("After", reader.GetString(reader.GetOrdinal("Name")));
+        Assert.Equal("before513@test.local", reader.GetString(reader.GetOrdinal("Email")));
+        Assert.False(reader.Read());
+    }
+
 }
+

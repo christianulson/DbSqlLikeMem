@@ -42,20 +42,21 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Aplicação de regras específicas por dialeto e versão simulada.
 
 #### 1.2.2 Interpretação de comandos DML
-- Implementação estimada: **72%**.
+- Implementação estimada: **74%**.
 - Processamento de comandos de escrita e leitura.
 - Tradução da consulta para operações no estado em memória.
+- Hardening recente reforça parsing de DML com `RETURNING` (itens vazios, vírgula inicial e vírgula final) com mensagens acionáveis no dialeto suportado e gate explícito nos não suportados.
 - Preservação da experiência de uso próxima ao fluxo SQL tradicional.
 
 #### 1.2.3 Regras por dialeto e versão
-- Implementação estimada: **88%**.
+- Implementação estimada: **76%**.
 - Ativa/desativa construções sintáticas por provedor e versão.
 - Trata incompatibilidades históricas entre bancos diferentes.
 - Direciona comportamento esperado em testes de compatibilidade.
 - Checklist de known gaps indica cobertura concluída para MERGE por dialeto, WITH RECURSIVE e normalização de paginação/quoting.
 
 #### 1.2.4 Governança de evolução do parser
-- Implementação estimada: **92%**.
+- Implementação estimada: **94%**.
 - Backlog guiado por gaps observados em testes reais.
 - Track global de normalização Parser/AST consolidado em ~90%, com foco atual em refinos finais por dialeto.
 - Priorização por impacto em frameworks de acesso a dados.
@@ -63,7 +64,47 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Backlog operacional segue cadência priorizada P0→P14 para reduzir dispersão de implementação entre parser/executor/docs.
 
 #### 1.2.5 Funções SQL agregadoras e de composição de texto
-- Implementação estimada: **68%**.
+- Implementação estimada: **100%**.
+- Parser e AST agora suportam `WITHIN GROUP (ORDER BY ...)` para agregações textuais com gate explícito por dialeto/função.
+- Cobertura atual inclui parsing de ordenação simples e composta, validação de cláusula malformada (`WITHIN GROUP requires ORDER BY`) e cenários negativos por função não nativa no dialeto.
+- Hardening recente ampliou a validação de `ORDER BY` malformado dentro de `WITHIN GROUP` (lista vazia, vírgula inicial, vírgula final e ausência de vírgula entre expressões), com mensagens acionáveis por cenário.
+- Runtime aplica a ordenação de `WITHIN GROUP` antes da agregação, incluindo combinações com `DISTINCT` e separador customizado.
+- Trilha ordered-set para agregações textuais concluída para dialetos suportados (SQL Server, Npgsql, Oracle e DB2), com bloqueio explícito e testado para MySQL/SQLite.
+
+#### 1.2.6 Funções de data/hora cross-dialect
+- Implementação estimada: **93%**.
+- Consolidar no `dialect` o catálogo de funções temporais sem argumento (data, hora e data/hora).
+- Garantir suporte de avaliação tanto para função com parênteses quanto para tokens sem parênteses em `SELECT`, `WHERE`, `HAVING` e expressões de `INSERT/UPSERT`.
+- Cobertura Dapper cross-provider adicionada para funções temporais sem argumento em projeção/filtro `WHERE`, em expressões de `INSERT VALUES` e em `UPDATE ... SET` (MySQL/SQL Server/Oracle/Npgsql/SQLite/DB2).
+- Cobertura Dapper cross-provider expandida para `HAVING` e `ORDER BY` com função temporal sem argumento em consultas agrupadas (MySQL/SQL Server/Oracle/Npgsql/SQLite/DB2).
+- Cobertura Dapper expandida para funções temporais adicionais por dialeto em `WHERE`, `HAVING` e `ORDER BY` (ex.: `CURRENT_DATE`/`CURRENT_TIME` em MySQL/Npgsql/SQLite/DB2; `GETDATE`/`SYSDATETIME` em SQL Server; `CURRENT_DATE`/`SYSTIMESTAMP` em Oracle).
+- Cenário negativo por dialeto adicionado para função temporal de outro dialeto (ex.: `GETDATE()`/`NOW()`) com validação de erro claro por provider.
+- Catálogo temporal por dialeto agora distingue tokens sem parênteses e funções invocáveis com parênteses, com cobertura negativa para chamadas inválidas de token (`CURRENT_TIMESTAMP()`) em MySQL/Npgsql/SQL Server/SQLite/Oracle/DB2.
+- Cenário inverso (função call-only sem parênteses) validado com erro claro em SQL Server (`GETDATE`) e em MySQL/Npgsql (`NOW`).
+- Cobertura positiva adicional para `NOW()` em consulta agrupada com `HAVING`/`ORDER BY` no MySQL, reforçando semântica call-style no dialeto.
+- Cobertura positiva call-style expandida para `NOW()` no Npgsql (`WHERE` e `HAVING`/`ORDER BY`) e para `GETDATE()`/`SYSDATETIME()` em consulta agrupada no SQL Server.
+- Oracle ganhou cobertura explícita de `SYSDATE` e `SYSTIMESTAMP` em `HAVING` e `ORDER BY`, além de cenários negativos úteis para uso inválido com parênteses (`SYSDATE()`/`SYSTIMESTAMP()`).
+- DB2, SQLite, MySQL e Npgsql reforçaram contrato token-only para temporais ANSI com cenários negativos adicionais (`CURRENT_DATE()` em DB2/SQLite/MySQL/Npgsql e `CURRENT_TIME()` em DB2/SQLite).
+- Novos testes de consistência por contexto para `CURRENT_TIMESTAMP` (SELECT, WHERE, HAVING, ORDER BY, INSERT VALUES e UPDATE SET) em DB2 e SQLite, reduzindo risco de regressão cross-contexto.
+- DB2 e SQLite também passaram a validar consistência por contexto para `CURRENT_DATE` (SELECT, WHERE, HAVING, ORDER BY, INSERT VALUES e UPDATE SET), ampliando cobertura token-style além de `CURRENT_TIMESTAMP`.
+- DB2 e SQLite agora cobrem também consistência por contexto para `CURRENT_TIME` (SELECT, WHERE, HAVING, ORDER BY, INSERT VALUES e UPDATE SET), completando a tríade temporal ANSI (`CURRENT_DATE`/`CURRENT_TIME`/`CURRENT_TIMESTAMP`).
+- MySQL e Npgsql agora também possuem testes de consistência por contexto para `NOW()` (SELECT, WHERE, HAVING, ORDER BY, INSERT VALUES e UPDATE SET), alinhando cobertura call-style com DB2/SQLite no cenário token-style.
+- MySQL e Npgsql também passaram a validar consistência por contexto para `CURRENT_DATE` (SELECT, WHERE, HAVING, ORDER BY, INSERT VALUES e UPDATE SET), equilibrando cobertura entre contratos token-style e call-style nesses provedores.
+- MySQL e Npgsql agora cobrem também consistência por contexto para `CURRENT_TIME` (SELECT, WHERE, HAVING, ORDER BY, INSERT VALUES e UPDATE SET), fechando a tríade temporal ANSI junto de `CURRENT_DATE` e `CURRENT_TIMESTAMP`.
+- MySQL e Npgsql passaram a validar explicitamente consistência por contexto também para `CURRENT_TIMESTAMP` (SELECT, WHERE, HAVING, ORDER BY, INSERT VALUES e UPDATE SET), completando matriz de consistência para temporais ANSI nesses provedores.
+- SQL Server ganhou teste de consistência por contexto para `GETDATE()` (SELECT, WHERE, HAVING, ORDER BY, INSERT VALUES e UPDATE SET), reduzindo gap de semântica call-style em cenários reais de uso.
+- SQL Server também ganhou teste de consistência por contexto para `SYSDATETIME()` (SELECT, WHERE, HAVING, ORDER BY, INSERT VALUES e UPDATE SET), cobrindo a segunda função call-style principal do dialeto.
+- Oracle passou a ter teste de consistência por contexto para `SYSDATE` (SELECT, WHERE, HAVING, ORDER BY, INSERT VALUES e UPDATE SET), consolidando cobertura token-style em fluxo fim a fim.
+- Oracle também passou a ter teste de consistência por contexto para `SYSTIMESTAMP` (SELECT, WHERE, HAVING, ORDER BY, INSERT VALUES e UPDATE SET), fechando paridade de consistência entre os principais temporais token-style do dialeto.
+- Oracle agora inclui consistência por contexto para `CURRENT_DATE` e cenário negativo explícito para `CURRENT_DATE()` (token chamado como função), fortalecendo o contrato token-only no dialeto.
+- Oracle passou a validar consistência por contexto também para `CURRENT_TIMESTAMP` (SELECT, WHERE, HAVING, ORDER BY, INSERT VALUES e UPDATE SET), fechando cobertura dos principais temporais token-style do dialeto.
+- MySQL e Npgsql ganharam cenário negativo adicional para `CURRENT_TIME()` (token chamado como função), alinhando o contrato token-only com DB2/SQLite para a tríade ANSI.
+- SQL Server ganhou cenário negativo adicional para função call-only usada sem parênteses em `SYSDATETIME`, reforçando simetria com a validação já existente de `GETDATE`.
+- Cobrir equivalências por provedor (exemplos):
+  - Oracle: `SYSDATE`, `SYSTIMESTAMP`, `CURRENT_DATE`, `CURRENT_TIMESTAMP`.
+  - SQL Server: `GETDATE`, `SYSDATETIME`, `CURRENT_TIMESTAMP`.
+  - MySQL/PostgreSQL/SQLite/DB2: `NOW`, `CURRENT_DATE`, `CURRENT_TIME`, `CURRENT_TIMESTAMP` (quando aplicável ao dialeto).
+- Introduzir serviço compartilhado para avaliação temporal e reutilização no executor AST, estratégias de insert/update e helpers de valor.
 - Incluir cobertura explícita para funções de agregação textual por dialeto.
 - Priorizar equivalências entre funções para reduzir divergência em testes multi-provedor.
 - Exemplos prioritários de backlog:
@@ -79,7 +120,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 ### 1.3 Executor SQL
 
 #### 1.3.1 Pipeline de execução
-- Implementação estimada: **62%**.
+- Implementação estimada: **69%**.
 - Fluxo macro: parse → validação → execução no estado em memória → materialização de resultado.
 - Track global de alinhamento de runtime estimado em ~55%, com evolução incremental por contracts de dialeto.
 - Recalibrado por evidências de código: executor AST, estratégias de mutação por dialeto e ampla suíte `*StrategyTests`/`*GapTests` por provider.
@@ -87,7 +128,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Retorno previsível para facilitar asserts em testes.
 
 #### 1.3.2 Operações comuns suportadas
-- Implementação estimada: **82%**.
+- Implementação estimada: **86%**.
 - Fluxos DDL/DML de uso frequente em aplicações corporativas .NET.
 - Cenários com múltiplos comandos por contexto de teste.
 - Execução orientada a simulação funcional (não benchmark de banco real).
@@ -95,14 +136,30 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Known gaps concluídos reforçam UPDATE/DELETE com JOIN multi-tabela e evolução de JSON por provider com bloqueio padronizado quando não suportado.
 - Roadmap operacional cobre SQL Core, composição de consulta, SQL avançado, DML avançado e paginação por versão.
 - Plano executável P7–P14 aponta trilhas ativas para UPSERT/UPDATE/DELETE avançados (P7), paginação/ordenação (P8) e JSON por provider (P9).
+- **Fidelidade de rowcount por dialeto (FOUND_ROWS / ROW_COUNT / ROWCOUNT / @@ROWCOUNT / CHANGES): implementação estimada em 100%.**
+  - Estado atual: tracking por conexão consolidado e cobertura funcional para MySQL, SQL Server, PostgreSQL, Oracle, DB2 e SQLite.
+  - Incrementos concluídos:
+    - suporte de rowcount em batches multi-statement com controle transacional (`BEGIN`, `COMMIT`, `ROLLBACK`, `SAVEPOINT`, `ROLLBACK TO`, `RELEASE`) no `ExecuteReader`;
+    - cobertura de regressão por dialeto para cenários `BEGIN ...; SELECT <função-rowcount>` e `UPDATE ...; COMMIT; SELECT <função-rowcount>`;
+    - alinhamento de leitura por variável/função equivalente (`FOUND_ROWS()`, `ROW_COUNT()`, `ROWCOUNT()`, `@@ROWCOUNT`, `CHANGES()`);
+    - correção de batches iniciados por `CALL` para preservar execução de statements subsequentes (ex.: `CALL ...; SELECT <rowcount>`);
+    - cobertura de regressão de `CALL` + função de rowcount expandida para todos os dialetos suportados;
+    - cobertura explícita para `ROLLBACK TO SAVEPOINT` e `RELEASE SAVEPOINT` em batches com leitura posterior de rowcount equivalente (todos os dialetos suportados).
+    - cobertura de precedência em batch misto (`SELECT` seguido de `DML`) validando que a função de rowcount reflete o último statement executado.
+    - cobertura de cenários combinados `CALL + DML + COMMIT + função de rowcount` para validar reset após comando transacional final.
+    - cobertura de precedência inversa em batch (`DML` seguido de `SELECT`) validando que a função de rowcount passa a refletir o último `SELECT`.
+  - Próximos passos (manutenção contínua):
+    - monitorar regressões em novos cenários de procedure quando houver suporte a corpo multi-statement;
+    - manter suíte de rowcount por dialeto atualizada conforme expansão de parser/executor.
 
 #### 1.3.3 Resultados e consistência
-- Implementação estimada: **84%**.
+- Implementação estimada: **90%**.
 - Entrega de resultados em formatos esperados por consumidores ADO.NET.
 - Coerência entre operação executada e estado final da base simulada.
 - Comportamento determinístico para repetição do mesmo script.
 - Hardening recente reforçou previsibilidade de regressão com foco em mensagens de erro não suportado e consistência de diagnóstico.
 - Checklist operacional confirma padronização de `SqlUnsupported.ForDialect(...)` no runtime para fluxos não suportados.
+- Hardening recente também consolidou semântica ordered-set para agregações textuais com cobertura de ordenação `ASC/DESC`, ordenação composta, `DISTINCT + WITHIN GROUP` e `LISTAGG` sem separador explícito nos dialetos suportados.
 
 #### 1.3.4 Particionamento de tabelas (avaliação)
 - Implementação estimada: **8%**.
@@ -270,10 +327,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - 3, 4, 5, 8.
 
 #### 3.1.2 Recursos relevantes
-- Implementação estimada: **82%**.
+- Implementação estimada: **85%**.
 - Parser/executor para DDL/DML comuns.
 - Suporte a `INSERT ... ON DUPLICATE KEY UPDATE`.
-- Backlog de funções: ampliar cobertura de `GROUP_CONCAT` em cenários com `GROUP BY`.
+- Cobertura de `GROUP_CONCAT` ampliada com regressão para `DISTINCT` e tratamento de `NULL` em agregação textual; pendente evoluir ordenação interna da agregação.
 - P7 consolidado: UPSERT por família (`ON DUPLICATE`/`ON CONFLICT`/`MERGE subset`) e mutações avançadas com contracts por strategy tests.
 - Funções-chave do banco: `GROUP_CONCAT`, `IFNULL`, `DATE_ADD` e `JSON_EXTRACT` (subset no mock).
 
@@ -289,10 +346,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - 7, 2000, 2005, 2008, 2012, 2014, 2016, 2017, 2019, 2022.
 
 #### 3.2.2 Recursos relevantes
-- Implementação estimada: **82%**.
+- Implementação estimada: **88%**.
 - Parser/executor para DDL/DML comuns.
 - Diferenças de dialeto por versão simulada.
-- Backlog de funções: priorizar `STRING_AGG` e validar ordenação/separador em agregação.
+- Cobertura de `STRING_AGG` ampliada para `DISTINCT`, tratamento de `NULL` e ordenação interna via `WITHIN GROUP`, incluindo cenários de erro malformado com diagnóstico acionável.
 - P8 consolidado: paginação por versão (`OFFSET/FETCH`, `TOP`) com gates explícitos de dialeto.
 - Funções-chave do banco: `STRING_AGG`, `ISNULL`, `DATEADD`, `JSON_VALUE`/`OPENJSON` (subset no mock).
 
@@ -308,10 +365,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - 7, 8, 9, 10, 11, 12, 18, 19, 21, 23.
 
 #### 3.3.2 Recursos relevantes
-- Implementação estimada: **82%**.
+- Implementação estimada: **88%**.
 - Parser/executor para DDL/DML comuns.
 - Diferenças de dialeto por versão simulada.
-- Backlog de funções: priorizar `LISTAGG` para agregação textual por grupo.
+- Cobertura de `LISTAGG` ampliada com separador customizado, comportamento padrão sem delimitador quando omitido e ordenação interna via `WITHIN GROUP` (incluindo combinações com `DISTINCT`).
 - P8 consolidado: suporte a `FETCH FIRST/NEXT` por versão e contratos de ordenação por dialeto.
 - Funções-chave do banco: `LISTAGG`, `NVL`, `JSON_VALUE` (subset escalar) e operações de data por versão.
 
@@ -327,10 +384,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17.
 
 #### 3.4.2 Recursos relevantes
-- Implementação estimada: **82%**.
+- Implementação estimada: **88%**.
 - Parser/executor para DDL/DML comuns.
 - Diferenças de dialeto por versão simulada.
-- Backlog de funções: priorizar `STRING_AGG` com cobertura de ordenação por grupo.
+- Cobertura de `STRING_AGG` ampliada para agregação textual com `DISTINCT`, `NULL` e ordenação por grupo via `WITHIN GROUP`, com gate por função/dialeto e mensagens acionáveis em sintaxe malformada.
 - P7/P10 consolidado: `RETURNING` sintático mínimo em caminhos suportados e fluxo de procedures no contrato Dapper.
 - Funções-chave do banco: `STRING_AGG`, operadores JSON (`->`, `->>`, `#>`, `#>>`) e expressões de data por intervalo.
 
@@ -346,10 +403,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - 3.
 
 #### 3.5.2 Recursos relevantes
-- Implementação estimada: **82%**.
+- Implementação estimada: **84%**.
 - `WITH`/CTE disponível.
 - Operadores JSON `->` e `->>` disponíveis no parser do dialeto.
-- Backlog de funções: consolidar suporte a `GROUP_CONCAT` e regras de separador.
+- Cobertura de `GROUP_CONCAT` ampliada com separador customizado, `DISTINCT` e tratamento de `NULL`; ordenação interna da agregação segue como próximo passo.
 - P8 consolidado: `LIMIT/OFFSET` e ordenação com regras de compatibilidade por versão simulada.
 - Funções-chave do banco: `GROUP_CONCAT`, `IFNULL`, funções de data (`date`, `datetime`, `strftime`) e `JSON_EXTRACT` (subset).
 
@@ -370,11 +427,11 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - 8, 9, 10, 11.
 
 #### 3.6.2 Recursos relevantes
-- Implementação estimada: **82%**.
+- Implementação estimada: **87%**.
 - `WITH`/CTE disponível.
 - `MERGE` disponível (>= 9).
 - `FETCH FIRST` suportado.
-- Backlog de funções: avaliar `LISTAGG` conforme versão simulada e compatibilidade desejada.
+- Cobertura de `LISTAGG` ampliada com separador customizado, `DISTINCT`, tratamento de `NULL` e ordenação ordered-set via `WITHIN GROUP`, incluindo validações sintáticas malformadas.
 - P9 consolidado: fallback explícito de não suportado para JSON avançado e cobertura de `FETCH FIRST` no dialeto DB2.
 - Funções-chave do banco: `LISTAGG` (por versão), `COALESCE`, `TIMESTAMPADD` e `FETCH FIRST` no fluxo de paginação.
 
@@ -393,11 +450,11 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 ### 3.7 Estratégia multi-provedor
 
 #### 3.7.1 Matriz de cobertura
-- Implementação estimada: **90%**.
+- Implementação estimada: **95%**.
 - Executar casos críticos em todos os provedores prioritários do produto.
 - Definir perfil mínimo de compatibilidade por módulo.
-- Execução matricial por provider já iniciada em CI, com publicação de artefatos de resultado por projeto.
-- Cobertura de regressão inclui suíte cross-dialeto com snapshot para SQL comum em múltiplos providers.
+- Execução matricial por provider já iniciada em CI (`provider-test-matrix.yml`), com publicação de artefatos de resultado por projeto e etapas dedicadas de smoke e agregação cross-dialect, com publicação de snapshot por perfil em artefatos de CI.
+- Cobertura de regressão inclui suíte cross-dialeto com snapshots por perfil (smoke/aggregation), operacionalizada no script `scripts/run_cross_dialect_equivalence.sh`; atualização em lote suportada por `scripts/refresh_cross_dialect_snapshots.sh` e baseline documental semântico (`manual-placeholder`) para evitar snapshot desatualizado no repositório.
 - Matriz consolidada de providers/versões e capacidades comuns agora está refletida diretamente neste índice como fonte principal de backlog.
 
 #### 3.7.2 Priorização de gaps
@@ -454,7 +511,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 ### 4.2 Compatibilidade por dialeto (governança de gaps)
 
 #### 4.2.1 Matriz de compatibilidade SQL
-- Implementação estimada: **92%**.
+- Implementação estimada: **94%**.
 - Registro do que já está suportado por banco/versão.
 - Visão de lacunas e riscos por área funcional.
 - Matriz feature x dialeto já publicada e usada como referência de hardening/regressão.
@@ -597,15 +654,63 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Evolução de concorrência deve separar rotinas CI em smoke vs completo, com traits por categoria (isolamento, savepoint, conflito de escrita, stress).
 - Próximos ciclos incluem trilhas de observabilidade, performance, concorrência e ecossistema (.NET/ORM/tooling) já descritas no pipeline de prompts e no plano executável P7–P14.
 
-### 6.3 Política sugerida de versionamento
 
-#### 6.3.1 SemVer para consumidores
+
+### 6.3 Organização da solução e ritmo de desenvolvimento
+
+#### 6.3.1 Arquivo de solução (`.slnx`) e cobertura de projetos
+- Implementação estimada: **96%**.
+- Solução `DbSqlLikeMem.slnx` já estruturada por domínio/provedor e pronta para uso no Visual Studio 2026.
+- Validação operacional indica cobertura completa dos projetos `*.csproj` do repositório na solução.
+- Verificação automatizada já adicionada ao CI via `scripts/check_slnx_project_coverage.py` para detectar drift entre árvore `src` e conteúdo da solução.
+
+#### 6.3.2 Matriz compartilhada de testes por capability
+- Implementação estimada: **92%**.
+- Priorizar base compartilhada para cenários repetitivos cross-dialect (ex.: agregação textual, `DISTINCT`, `NULL`, ordered-set).
+- Reduzir duplicação de testes específicos por provider movendo contratos comuns para fixtures parametrizadas.
+- Facilita evolução coordenada do parser/executor sem espalhar ajustes em múltiplos projetos de teste.
+- Entregas recentes na trilha:
+  - suíte compartilhada de agregação/having/ordinal já consolidada e reutilizada por MySQL, SQL Server, Oracle, Npgsql, SQLite e DB2;
+  - normalização de nomenclatura dos testes cross-provider para reduzir variação entre cenários equivalentes;
+  - alinhamento da base de smoke para manter mesma ordem de validação entre providers e simplificar diagnóstico de regressão.
+  - camada compartilhada `SqlNotSupportedAssert` + helper base `AssertWithinGroupNotSupported(...)` adotados nos testes de agregação para padronizar validação de erro `NotSupported` com token da feature em SQL Server, Oracle, Npgsql, DB2, MySQL e SQLite.
+  - contratos compartilhados para agregação textual com separador e `DISTINCT` + `NULL` extraídos para a base comum `AggregationHavingOrdinalTestsBase` e reutilizados por MySQL/SQL Server/Oracle/Npgsql/SQLite/DB2.
+  - bloco comum de projeção mista (`agregação textual + NULL literal`) implementado na base compartilhada e validado nos seis providers Dapper principais, reduzindo risco de regressão em mapeamentos dinâmicos de resultado.
+  - cobertura compartilhada expandida para projeção `CASE ... THEN NULL` combinada com agregação textual agrupada nos seis providers, reforçando previsibilidade para cenários de relatório com colunas calculadas nulas.
+  - cobertura compartilhada ampliada para `CASE` com ramos mistos (`texto`/`NULL`) sobre agregação textual, validando estabilidade de ordem e coercão básica de saída por provider.
+  - cobertura avançou para `CASE` de múltiplos ramos (`primary`/`secondary`/`NULL`) com agregação textual e ordenação estável, reduzindo risco de divergência em relatórios agrupados cross-provider.
+  - cobertura evoluiu para `CASE` numérico multibranch (`100`/`200`/`0`) junto de agregação textual, validando estabilidade de coerção e leitura de tipos numéricos por provider.
+- Próximos incrementos da capability matrix:
+  - ampliar contratos compartilhados para cenários de ordenação dentro da agregação textual quando habilitados por dialeto;
+  - expandir bloco comum para cenários de `CASE` com literais textuais e numéricos mistos no mesmo campo (coerção implícita cross-dialect);
+  - consolidar assertions de mensagens de erro para `NotSupported` em uma camada única reutilizável.
+
+#### 6.3.3 Entrada única de execução (build/test)
+- Implementação estimada: **88%**.
+- Script padronizado já existe para smoke cross-provider (`run_cross_dialect_equivalence.sh`); próximo passo é consolidar trilhas adicionais (core/parser/dapper completos) e evoluir continuamente os filtros de agregação conforme expansão de contratos textuais cross-dialect.
+- Perfis de execução já explícitos no runner (`smoke`/`aggregation`) para acelerar feedback local e CI; modo `--continue-on-error` permite varredura completa com resumo de falhas por execução e snapshots com quadro-resumo por perfil; `--dry-run` permite inspecionar a matriz planejada sem execução de testes.
+- CI inclui job dedicado de validação de automações (sintaxe shell, `py_compile`, `--help`, check `.slnx` e validação estrutural dos snapshots markdown) antes da matriz de testes por provider.
+- Vincular categorias/traits para habilitar execução seletiva por domínio de regressão.
+
+#### 6.3.4 Governança do backlog de documentação
+- Implementação estimada: **72%**.
+- Separar visão arquitetural estável e status operacional de sprint para reduzir conflito de merge em percentuais.
+- Padronizar update de progresso com checklist de evidência mínima (teste, provider afetado, limitação conhecida).
+- Alinhar PR template para exigir vínculo entre mudança de código, teste e atualização de backlog.
+- Convenção operacional adotada para os próximos ciclos:
+  - toda atualização de percentual deve registrar evidência objetiva (arquivo de teste, comando executado e resultado);
+  - itens com escopo multi-provider devem indicar explicitamente onde houve cobertura total e onde permanece gap;
+  - quando houver apenas atualização documental, incluir seção de risco de descompasso com o código e ação de mitigação planejada.
+
+### 6.4 Política sugerida de versionamento
+
+#### 6.4.1 SemVer para consumidores
 - Implementação estimada: **84%**.
 - Incremento major para quebras comportamentais/documentadas.
 - Incremento minor para novos recursos compatíveis.
 - Incremento patch para correções sem alteração contratual.
 
-#### 6.3.2 Comunicação de mudanças
+#### 6.4.2 Comunicação de mudanças
 - Implementação estimada: **80%**.
 - Changelog orientado a impacto por provedor/dialeto.
 - Destaque para gaps fechados e limitações ainda abertas.

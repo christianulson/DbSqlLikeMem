@@ -23,6 +23,7 @@ public sealed class NpgsqlDialectFeatureParserTests
         var ins = Assert.IsType<SqlInsertQuery>(parsed);
         Assert.True(ins.HasOnDuplicateKeyUpdate);
         Assert.Empty(ins.OnDupAssigns);
+        Assert.True(ins.IsOnConflictDoNothing);
     }
 
     /// <summary>
@@ -87,6 +88,176 @@ RETURNING id";
         var ins = Assert.IsType<SqlInsertQuery>(parsed);
         Assert.True(ins.HasOnDuplicateKeyUpdate);
         Assert.Single(ins.OnDupAssigns);
+        Assert.Contains("users.id", ins.OnConflictUpdateWhereRaw, StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(ins.OnConflictUpdateWhereExpr);
+    }
+
+    /// <summary>
+    /// EN: Ensures INSERT ... RETURNING captures projection payload in AST for PostgreSQL dialect.
+    /// PT: Garante que INSERT ... RETURNING capture o payload de projeção na AST para o dialeto PostgreSQL.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_Returning_ShouldCaptureReturningItems(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id, name AS user_name";
+
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Equal(2, parsed.Returning.Count);
+        Assert.Equal("id", parsed.Returning[0].Raw);
+        Assert.Equal("name", parsed.Returning[1].Raw);
+        Assert.Equal("user_name", parsed.Returning[1].Alias);
+    }
+
+    /// <summary>
+    /// EN: Ensures INSERT ... SELECT ... RETURNING is parsed without consuming RETURNING as SELECT tail.
+    /// PT: Garante que INSERT ... SELECT ... RETURNING seja interpretado sem consumir RETURNING como cauda do SELECT.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_SelectReturning_ShouldCaptureReturningItems(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) SELECT id, name FROM users RETURNING id";
+
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.NotNull(parsed.InsertSelect);
+        Assert.Single(parsed.Returning);
+        Assert.Equal("id", parsed.Returning[0].Raw);
+    }
+
+    /// <summary>
+    /// EN: Ensures INSERT ... SELECT ... WHERE ... RETURNING preserves WHERE boundary and captures RETURNING projection.
+    /// PT: Garante que INSERT ... SELECT ... WHERE ... RETURNING preserve o limite do WHERE e capture a projeção de RETURNING.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_SelectWhereReturning_ShouldPreserveWhereBoundary(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) SELECT id, name FROM users WHERE id IN (1, 2) RETURNING id";
+
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.NotNull(parsed.InsertSelect);
+        Assert.NotNull(parsed.InsertSelect!.Where);
+        Assert.Single(parsed.Returning);
+        Assert.Equal("id", parsed.Returning[0].Raw);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE ... RETURNING keeps WHERE boundary and captures returning projection.
+    /// PT: Garante que UPDATE ... RETURNING preserve o limite do WHERE e capture a projeção de retorno.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseUpdate_Returning_ShouldCaptureReturningItems(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id, name";
+
+        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("id = 1", parsed.WhereRaw, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(2, parsed.Returning.Count);
+        Assert.Equal("id", parsed.Returning[0].Raw);
+        Assert.Equal("name", parsed.Returning[1].Raw);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE ... RETURNING with qualified wildcard preserves projection item in AST.
+    /// PT: Garante que UPDATE ... RETURNING com wildcard qualificado preserve o item de projeção na AST.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseUpdate_ReturningQualifiedWildcard_ShouldCaptureReturningItem(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING users.*";
+
+        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Single(parsed.Returning);
+        Assert.Equal("users.*", parsed.Returning[0].Raw);
+    }
+
+    /// <summary>
+    /// EN: Ensures DELETE ... RETURNING captures projection payload in AST for PostgreSQL dialect.
+    /// PT: Garante que DELETE ... RETURNING capture o payload de projeção na AST para o dialeto PostgreSQL.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseDelete_Returning_ShouldCaptureReturningItems(int version)
+    {
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING id";
+
+        var parsed = Assert.IsType<SqlDeleteQuery>(SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("id = 1", parsed.WhereRaw, StringComparison.OrdinalIgnoreCase);
+        Assert.Single(parsed.Returning);
+        Assert.Equal("id", parsed.Returning[0].Raw);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures empty RETURNING clause is rejected with actionable message.
+    /// PT: Garante que cláusula RETURNING vazia seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_EmptyReturning_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures RETURNING leading comma is rejected with actionable message.
+    /// PT: Garante que vírgula inicial no RETURNING seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseUpdate_ReturningLeadingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING, id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures RETURNING trailing comma is rejected with actionable message.
+    /// PT: Garante que vírgula final no RETURNING seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseDelete_ReturningTrailingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING id,";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -573,4 +744,128 @@ RETURNING id";
         Assert.Contains("start bound cannot be greater", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Ensures Npgsql parser accepts ordered-set WITHIN GROUP for STRING_AGG.
+    /// PT: Garante que o parser Npgsql aceite ordered-set WITHIN GROUP para STRING_AGG.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseScalar_StringAggWithinGroup_ShouldParse(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        var expr = SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect);
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.Equal("STRING_AGG", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.NotNull(call.WithinGroupOrderBy);
+        Assert.Single(call.WithinGroupOrderBy!);
+        Assert.True(call.WithinGroupOrderBy![0].Desc);
+    }
+
+    /// <summary>
+    /// EN: Ensures Npgsql parser blocks non-native ordered-set aggregate names with WITHIN GROUP.
+    /// PT: Garante que o parser Npgsql bloqueie nomes não nativos de agregação ordered-set com WITHIN GROUP.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseScalar_ListAggWithinGroup_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed WITHIN GROUP clause fails with actionable ORDER BY message.
+    /// PT: Garante que cláusula WITHIN GROUP malformada falhe com mensagem acionável de ORDER BY.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseScalar_StringAggWithinGroupWithoutOrderBy_ShouldThrowActionableError(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures trailing commas in WITHIN GROUP ORDER BY are rejected with actionable message.
+    /// PT: Garante que vírgulas finais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseScalar_WithinGroupOrderByTrailingComma_ShouldThrowActionableError(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", dialect));
+
+        Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures empty ORDER BY lists in WITHIN GROUP are rejected with actionable message.
+    /// PT: Garante que listas ORDER BY vazias em WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseScalar_WithinGroupOrderByEmptyList_ShouldThrowActionableError(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY)", dialect));
+
+        Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures leading commas in WITHIN GROUP ORDER BY are rejected with actionable message.
+    /// PT: Garante que vírgulas iniciais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseScalar_WithinGroupOrderByLeadingComma_ShouldThrowActionableError(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", dialect));
+
+        Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures missing commas between WITHIN GROUP ORDER BY expressions are rejected with actionable message.
+    /// PT: Garante que ausência de vírgula entre expressões de ORDER BY no WITHIN GROUP seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseScalar_WithinGroupOrderByMissingCommaBetweenExpressions_ShouldThrowActionableError(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", dialect));
+
+        Assert.Contains("requires commas", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 }
+

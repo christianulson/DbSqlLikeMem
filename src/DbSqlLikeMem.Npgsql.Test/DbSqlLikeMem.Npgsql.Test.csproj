@@ -44,7 +44,7 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-		<ProjectReference Include="..\DbSqlLikeMem.Npgsql\DbSqlLikeMem.Npgsql.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Npgsql.XUnit\DbSqlLikeMem.Npgsql.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 

@@ -44,7 +44,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\DbSqlLikeMem.Sqlite\DbSqlLikeMem.Sqlite.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Sqlite.XUnit\DbSqlLikeMem.Sqlite.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 

@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>MySQL provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.MySql\DbSqlLikeMem.MySql.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.XUnit\DbSqlLikeMem.XUnit.csproj" />
+	</ItemGroup>
+</Project>

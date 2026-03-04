@@ -86,6 +86,11 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsOnConflictClause => true;
     /// <summary>
+    /// EN: Gets whether RETURNING clause is supported for DML statements.
+    /// PT: Obtém se a cláusula RETURNING é suportada para comandos DML.
+    /// </summary>
+    public override bool SupportsReturning => true;
+    /// <summary>
     /// EN: Gets whether order by nulls modifier is supported.
     /// PT: Obtém se há suporte a order by nulls modifier.
     /// </summary>
@@ -121,7 +126,20 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// EN: Gets or sets null substitute function names.
     /// PT: Obtém ou define null substitute function names.
     /// </summary>
-    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL"];
+        public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL"];
+    public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
+        => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
+            ["CURRENT_TIME"] = SqlTemporalFunctionKind.Time,
+            ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
+            ["NOW"] = SqlTemporalFunctionKind.DateTime,
+            ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
+        };
+
+    public override IReadOnlyCollection<string> TemporalFunctionCallNames
+        => [];
+
     /// <summary>
     /// EN: Gets or sets concat returns null on null input.
     /// PT: Obtém ou define concat returns null on null input.

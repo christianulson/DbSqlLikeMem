@@ -83,6 +83,11 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// </summary>
     public override bool SupportsWindowFrameClause => Version >= WindowFunctionsMinVersion;
 
+    public override bool SupportsWithinGroupForStringAggregates => true;
+
+    public override bool SupportsWithinGroupStringAggregateFunction(string functionName)
+        => functionName.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>
     /// EN: Gets whether delete target alias is supported.
     /// PT: Obtém se há suporte a delete target alias.
@@ -106,10 +111,22 @@ internal sealed class Db2Dialect : SqlDialectBase
     public override bool SupportsMerge => Version >= MergeMinVersion;
     
     /// <summary>
-    /// EN: Gets or sets null substitute function names.
-    /// PT: Obtém ou define null substitute function names.
+    /// EN: Gets the null substitute function names supported by DB2 compatibility behavior.
+    /// PT: Obtém os nomes de funções de substituição de nulos suportados pelo comportamento de compatibilidade do DB2.
     /// </summary>
-    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["IFNULL"];
+    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["COALESCE", "VALUE", "IFNULL"];
+    public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
+        => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
+            ["CURRENT_TIME"] = SqlTemporalFunctionKind.Time,
+            ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
+            ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
+        };
+
+
+    public override IReadOnlyCollection<string> TemporalFunctionCallNames
+        => [];
 
     /// <summary>
     /// EN: Gets or sets allows parser limit offset compatibility.

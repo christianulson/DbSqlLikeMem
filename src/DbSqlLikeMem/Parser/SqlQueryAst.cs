@@ -38,6 +38,7 @@ internal sealed record SqlInsertQuery : SqlQueryBase
     internal IReadOnlyList<string> Columns { get; init; } = [];              // pode ser vazio (INSERT INTO t VALUES...)
     internal IReadOnlyList<List<string>> ValuesRaw { get; init; } = [];      // tokens raw por valor (ou expressão raw)
     internal IReadOnlyList<List<SqlExpr?>> ValuesExpr { get; init; } = [];   // best-effort parsed values (aligned with ValuesRaw)
+    internal IReadOnlyList<SqlSelectItem> Returning { get; init; } = [];
     internal bool HasOnDuplicateKeyUpdate { get; init; }
     /// <summary>
     /// EN: Implements this member.
@@ -49,6 +50,13 @@ internal sealed record SqlInsertQuery : SqlQueryBase
     /// PT: Obtém ou define OnDupAssignsParsed.
     /// </summary>
     public IReadOnlyList<SqlAssignment> OnDupAssignsParsed { get; init; } = [];
+    /// <summary>
+    /// EN: Gets or sets whether ON CONFLICT uses DO NOTHING semantics.
+    /// PT: Obtém ou define se ON CONFLICT usa semântica de DO NOTHING.
+    /// </summary>
+    internal bool IsOnConflictDoNothing { get; init; }
+    internal string? OnConflictUpdateWhereRaw { get; init; }
+    internal SqlExpr? OnConflictUpdateWhereExpr { get; init; }
     internal SqlSelectQuery? InsertSelect { get; init; }               // INSERT INTO t (...) SELECT ...
 }
 
@@ -56,6 +64,7 @@ internal sealed record SqlUpdateQuery : SqlQueryBase
 {
     internal List<(string Col, string ExprRaw)> Set { get; init; } = [];
     internal IReadOnlyList<SqlAssignment> SetParsed { get; init; } = [];
+    internal IReadOnlyList<SqlSelectItem> Returning { get; init; } = [];
     internal SqlExpr? Where { get; init; }
     internal string? WhereRaw { get; init; }                           // ou SqlExpr se você já tem
     internal SqlSelectQuery? UpdateFromSelect { get; init; }           // se você quiser UPDATE ... JOIN (SELECT..)
@@ -64,6 +73,7 @@ internal sealed record SqlUpdateQuery : SqlQueryBase
 internal sealed record SqlDeleteQuery : SqlQueryBase
 {
     internal string? WhereRaw { get; init; }
+    internal IReadOnlyList<SqlSelectItem> Returning { get; init; } = [];
     internal SqlExpr? Where { get; init; }
     internal SqlSelectQuery? DeleteFromSelect { get; init; }           // DELETE ... USING (SELECT..)
 }
@@ -175,7 +185,9 @@ internal sealed record SqlFetch(int Count, int? Offset) : SqlRowLimit;
 internal sealed record SqlCte(string Name, SqlSelectQuery Query);
 
 internal sealed record SqlOnDuplicateKeyUpdate(
-    IReadOnlyList<SqlAssignment> Assignments
+    IReadOnlyList<SqlAssignment> Assignments,
+    bool IsDoNothing = false,
+    string? UpdateWhereRaw = null
 );
 
 internal sealed record SqlAssignment(string Column, string ValueRaw, SqlExpr? ValueExpr = null);

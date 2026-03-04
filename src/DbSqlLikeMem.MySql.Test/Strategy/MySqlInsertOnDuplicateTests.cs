@@ -63,6 +63,33 @@ public class MySqlInsertOnDuplicateTests(
     }
 
     /// <summary>
+    /// EN: Tests Insert_OnDuplicate_ShouldReturnTwoAffectedRows_WhenConflictUpdates behavior.
+    /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldReturnTwoAffectedRows_WhenConflictUpdates.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Strategy")]
+    [MemberDataMySqlVersion]
+    public void Insert_OnDuplicate_ShouldReturnTwoAffectedRows_WhenConflictUpdates(int version)
+    {
+        var db = new MySqlDbMock(version);
+        var t = db.AddTable("users");
+        t.AddColumn("Id", DbType.Int32, false);
+        t.AddColumn("Name", DbType.String, false);
+        t.AddPrimaryKeyIndexes("id");
+        t.Add(new Dictionary<int, object?> { [0] = 1, [1] = "OLD" });
+
+        using var cnn = new MySqlConnectionMock(db);
+
+        const string sql = "INSERT INTO users (Id, Name) VALUES (1, 'NEW') ON DUPLICATE KEY UPDATE Name = VALUES(Name)";
+        var q = SqlQueryParser.Parse(sql, db.Dialect);
+        var affected = cnn.ExecuteInsert((SqlInsertQuery)q, new MySqlDataParameterCollectionMock(), db.Dialect);
+
+        Assert.Equal(2, affected);
+        Assert.Single(t);
+        Assert.Equal("NEW", t[0][1]);
+    }
+
+    /// <summary>
     /// EN: Tests Insert_OnDuplicate_ShouldUpdateExistingRow_ByUniqueIndex behavior.
     /// PT: Testa o comportamento de Insert_OnDuplicate_ShouldUpdateExistingRow_ByUniqueIndex.
     /// </summary>

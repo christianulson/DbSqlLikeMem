@@ -41,34 +41,6 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     internal const int WindowFunctionsMinVersion = 8;
 
     /// <summary>
-    /// EN: Gets or sets identifier escape style.
-    /// PT: Obtém ou define identifier escape style.
-    /// </summary>
-    public override SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.double_quote;
-
-    /// <summary>
-    /// EN: Determines whether the character is treated as a string quote delimiter.
-    /// PT: Determina se o caractere é tratado como delimitador de string.
-    /// </summary>
-    public override bool IsStringQuote(char ch) => ch == '\'';
-    /// <summary>
-    /// EN: Gets or sets string escape style.
-    /// PT: Obtém ou define string escape style.
-    /// </summary>
-    public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.doubled_quote;
-    /// <summary>
-    /// EN: Gets or sets text comparison.
-    /// PT: Obtém ou define text comparison.
-    /// </summary>
-    public override StringComparison TextComparison => StringComparison.OrdinalIgnoreCase;
-
-    /// <summary>
-    /// EN: Gets whether implicit numeric string comparison is supported.
-    /// PT: Obtém se há suporte a implicit numeric string comparison.
-    /// </summary>
-    public override bool SupportsImplicitNumericStringComparison => true;
-
-    /// <summary>
     /// EN: Gets whether dollar quoted strings is supported.
     /// PT: Obtém se há suporte a dollar quoted strings.
     /// </summary>
@@ -91,26 +63,36 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// PT: Indica se cláusulas de frame de janela SQL são suportadas pela versão configurada.
     /// </summary>
     public override bool SupportsWindowFrameClause => Version >= WindowFunctionsMinVersion;
+
+    public override bool SupportsWithinGroupForStringAggregates => true;
+
+    public override bool SupportsWithinGroupStringAggregateFunction(string functionName)
+        => functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>
     /// EN: Gets whether fetch first is supported.
     /// PT: Obtém se há suporte a fetch first.
     /// </summary>
     public override bool SupportsFetchFirst => true;
+
     /// <summary>
     /// EN: Gets whether offset fetch is supported.
     /// PT: Obtém se há suporte a offset fetch.
     /// </summary>
     public override bool SupportsOffsetFetch => true;
+
     /// <summary>
     /// EN: Gets whether order by nulls modifier is supported.
     /// PT: Obtém se há suporte a order by nulls modifier.
     /// </summary>
     public override bool SupportsOrderByNullsModifier => true;
+
     /// <summary>
     /// EN: Gets whether on conflict clause is supported.
     /// PT: Obtém se há suporte a on conflict clause.
     /// </summary>
     public override bool SupportsOnConflictClause => true;
+
     /// <summary>
     /// EN: Gets whether returning is supported.
     /// PT: Obtém se há suporte a returning.
@@ -128,21 +110,25 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// PT: Obtém se há suporte a json arrow operators.
     /// </summary>
     public override bool SupportsJsonArrowOperators => Version >= JsonbMinVersion;
+
     /// <summary>
     /// EN: Gets or sets allows parser cross dialect json operators.
     /// PT: Obtém ou define allows parser cross dialect json operators.
     /// </summary>
     public override bool AllowsParserCrossDialectJsonOperators => true;
+
     /// <summary>
     /// EN: Gets whether with cte is supported.
     /// PT: Obtém se há suporte a with cte.
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
+
     /// <summary>
     /// EN: Gets whether with recursive is supported.
     /// PT: Obtém se há suporte a with recursive.
     /// </summary>
     public override bool SupportsWithRecursive => Version >= WithCteMinVersion;
+
     /// <summary>
     /// EN: Gets whether with materialized hint is supported.
     /// PT: Obtém se há suporte a with materialized hint.
@@ -157,7 +143,25 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// EN: Gets or sets null substitute function names.
     /// PT: Obtém ou define null substitute function names.
     /// </summary>
-    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => [];
+    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["COALESCE"];
+
+    public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
+        => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
+            ["CURRENT_TIME"] = SqlTemporalFunctionKind.Time,
+            ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
+            ["NOW"] = SqlTemporalFunctionKind.DateTime,
+            ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
+        };
+
+
+    public override IReadOnlyCollection<string> TemporalFunctionIdentifierNames
+        => ["CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP", "SYSTEMDATE"];
+
+    public override IReadOnlyCollection<string> TemporalFunctionCallNames
+        => ["NOW"];
+
     /// <summary>
     /// EN: Gets or sets concat returns null on null input.
     /// PT: Obtém ou define concat returns null on null input.

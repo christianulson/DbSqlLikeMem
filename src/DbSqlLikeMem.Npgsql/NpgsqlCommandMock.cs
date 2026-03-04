@@ -105,16 +105,27 @@ public class NpgsqlCommandMock(
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
         if (CommandType == CommandType.StoredProcedure)
-            return connection!.ExecuteStoredProcedure(CommandText, Parameters);
+        {
+            var affected = connection!.ExecuteStoredProcedure(CommandText, Parameters);
+            connection.SetLastFoundRows(affected);
+            return affected;
+        }
 
         var sqlRaw = CommandText.Trim();
 
         if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
+        {
+            connection.SetLastFoundRows(transactionControlResult);
             return transactionControlResult;
+        }
 
         // Mantém atalhos existentes (CALL / CREATE TABLE AS SELECT) por compatibilidade do engine atual
         if (sqlRaw.StartsWith("call ", StringComparison.OrdinalIgnoreCase))
-            return connection!.ExecuteCall(sqlRaw, Parameters);
+        {
+            var affected = connection!.ExecuteCall(sqlRaw, Parameters);
+            connection.SetLastFoundRows(affected);
+            return affected;
+        }
 
         if (sqlRaw.StartsWith("create table", StringComparison.OrdinalIgnoreCase))
             return connection!.ExecuteCreateTableAsSelect(sqlRaw, Parameters, connection!.Db.Dialect);
@@ -148,24 +159,51 @@ public class NpgsqlCommandMock(
         if (CommandType == CommandType.StoredProcedure)
         {
             connection!.ExecuteStoredProcedure(CommandText, Parameters);
+            connection.SetLastFoundRows(0);
             return new NpgsqlDataReaderMock([[]]);
         }
 
         var sql = CommandText.NormalizeString();
 
-        if (sql.StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
+        var statements = SqlQueryParser
+            .SplitStatements(sql, connection!.Db.Dialect)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .ToList();
+
+        if (statements.Count == 1 && statements[0].TrimStart().StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
         {
-            connection!.ExecuteCall(sql, Parameters);
+            connection!.ExecuteCall(statements[0], Parameters);
+            connection!.SetLastFoundRows(0);
             return new NpgsqlDataReaderMock([[]]);
         }
-
         var executor = new NpgsqlAstQueryExecutor(connection!, Parameters);
-
-        var queries = SqlQueryParser.ParseMulti(sql, connection!.Db.Dialect, Parameters).ToList();
         var tables = new List<TableResultMock>();
+        var parsedStatementCount = 0;
 
-        foreach (var query in queries)
+        foreach (var statementSql in statements)
         {
+            var sqlRaw = statementSql.Trim();
+            if (string.IsNullOrWhiteSpace(sqlRaw))
+                continue;
+
+            if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
+            {
+                connection.SetLastFoundRows(transactionControlResult);
+                parsedStatementCount++;
+                continue;
+            }
+
+            if (sqlRaw.StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
+            {
+                connection.ExecuteCall(sqlRaw, Parameters);
+                connection.SetLastFoundRows(0);
+                parsedStatementCount++;
+                continue;
+            }
+
+            var query = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect, Parameters);
+            parsedStatementCount++;
+
             switch (query)
             {
                 case SqlSelectQuery selectQ:
@@ -176,14 +214,26 @@ public class NpgsqlCommandMock(
                     tables.Add(executor.ExecuteUnion(unionQ.Parts, unionQ.AllFlags, unionQ.OrderBy, unionQ.RowLimit, unionQ.RawSql));
                     break;
                 case SqlInsertQuery insertQ:
-                    connection.ExecuteInsert(insertQ, Parameters, connection.Db.Dialect);
+                {
+                    var returning = ExecuteInsertReturning(insertQ);
+                    if (returning is not null)
+                        tables.Add(returning);
                     break;
+                }
                 case SqlUpdateQuery updateQ:
-                    connection.ExecuteUpdateSmart(updateQ, Parameters, connection.Db.Dialect);
+                {
+                    var returning = ExecuteUpdateReturning(updateQ);
+                    if (returning is not null)
+                        tables.Add(returning);
                     break;
+                }
                 case SqlDeleteQuery deleteQ:
-                    connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect);
+                {
+                    var returning = ExecuteDeleteReturning(deleteQ);
+                    if (returning is not null)
+                        tables.Add(returning);
                     break;
+                }
                 case SqlMergeQuery mergeQ:
                     connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect);
                     break;
@@ -201,12 +251,337 @@ public class NpgsqlCommandMock(
             }
         }
 
-        if (tables.Count == 0 && queries.Count > 0)
+        if (tables.Count == 0 && parsedStatementCount > 0)
             throw new InvalidOperationException(SqlExceptionMessages.ExecuteReaderWithoutSelectQuery());
         connection.Metrics.Selects += tables.Sum(t => t.Count);
 
         return new NpgsqlDataReaderMock(tables);
     }
+
+    /// <summary>
+    /// EN: Executes INSERT and materializes RETURNING result rows when requested.
+    /// PT: Executa INSERT e materializa linhas de resultado de RETURNING quando solicitado.
+    /// </summary>
+    private TableResultMock? ExecuteInsertReturning(SqlInsertQuery query)
+    {
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
+        {
+            connection!.ExecuteInsert(query, Parameters, connection!.Db.Dialect);
+            return null;
+        }
+        if (table is null)
+            throw new InvalidOperationException("RETURNING requires a valid target table.");
+        var targetTable = table;
+
+        var hadReturning = query.Returning.Count > 0;
+        var beforeCount = targetTable.Count;
+        connection!.ExecuteInsert(query, Parameters, connection!.Db.Dialect);
+
+        if (!hadReturning)
+            return null;
+
+        var insertedRows = Math.Max(0, targetTable.Count - beforeCount);
+        var rows = new List<IReadOnlyDictionary<int, object?>>();
+        for (var i = beforeCount; i < beforeCount + insertedRows; i++)
+            rows.Add(SnapshotRow(targetTable[i]));
+
+        return BuildReturningResult(query.Returning, query.Table!, targetTable, rows);
+    }
+
+    /// <summary>
+    /// EN: Executes UPDATE and materializes RETURNING result rows when requested.
+    /// PT: Executa UPDATE e materializa linhas de resultado de RETURNING quando solicitado.
+    /// </summary>
+    private TableResultMock? ExecuteUpdateReturning(SqlUpdateQuery query)
+    {
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
+        {
+            connection!.ExecuteUpdateSmart(query, Parameters, connection!.Db.Dialect);
+            return null;
+        }
+        if (table is null)
+            throw new InvalidOperationException("RETURNING requires a valid target table.");
+        var targetTable = table;
+
+        var hadReturning = query.Returning.Count > 0;
+        List<int>? matchedIndexes = null;
+        if (hadReturning)
+            matchedIndexes = MatchRowIndexes(targetTable, query.WhereRaw, query.RawSql);
+
+        connection!.ExecuteUpdateSmart(query, Parameters, connection!.Db.Dialect);
+
+        if (!hadReturning)
+            return null;
+
+        var rows = new List<IReadOnlyDictionary<int, object?>>();
+        foreach (var index in matchedIndexes!)
+        {
+            if (index < 0 || index >= targetTable.Count)
+                continue;
+            rows.Add(SnapshotRow(targetTable[index]));
+        }
+
+        return BuildReturningResult(query.Returning, query.Table!, targetTable, rows);
+    }
+
+    /// <summary>
+    /// EN: Executes DELETE and materializes RETURNING result rows when requested.
+    /// PT: Executa DELETE e materializa linhas de resultado de RETURNING quando solicitado.
+    /// </summary>
+    private TableResultMock? ExecuteDeleteReturning(SqlDeleteQuery query)
+    {
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
+        {
+            connection!.ExecuteDeleteSmart(query, Parameters, connection!.Db.Dialect);
+            return null;
+        }
+        if (table is null)
+            throw new InvalidOperationException("RETURNING requires a valid target table.");
+        var targetTable = table;
+
+        var hadReturning = query.Returning.Count > 0;
+        List<IReadOnlyDictionary<int, object?>>? snapshotRows = null;
+        if (hadReturning)
+        {
+            var matchedIndexes = MatchRowIndexes(targetTable, query.WhereRaw, query.RawSql);
+            snapshotRows = [.. matchedIndexes.Select(i => SnapshotRow(targetTable[i]))];
+        }
+
+        connection!.ExecuteDeleteSmart(query, Parameters, connection!.Db.Dialect);
+
+        if (!hadReturning)
+            return null;
+
+        return BuildReturningResult(query.Returning, query.Table!, targetTable, snapshotRows!);
+    }
+
+    /// <summary>
+    /// EN: Builds a RETURNING result set from affected row snapshots.
+    /// PT: Monta um conjunto de resultado RETURNING a partir de snapshots de linhas afetadas.
+    /// </summary>
+    private TableResultMock BuildReturningResult(
+        IReadOnlyList<SqlSelectItem> returningItems,
+        SqlTableSource tableSource,
+        ITableMock table,
+        IReadOnlyList<IReadOnlyDictionary<int, object?>> rows)
+    {
+        var result = new TableResultMock();
+        var projections = BuildReturningProjection(returningItems, tableSource, table);
+        result.Columns = [.. projections
+            .Select((p, i) => new TableResultColMock(
+                p.TableAlias,
+                p.ColumnAlias,
+                p.ColumnName,
+                i,
+                p.DbType,
+                p.IsNullable))];
+
+        foreach (var row in rows)
+        {
+            var projected = new Dictionary<int, object?>();
+            for (var colIndex = 0; colIndex < projections.Count; colIndex++)
+                projected[colIndex] = projections[colIndex].Resolver(row);
+            result.Add(projected);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// EN: Creates projection metadata and resolvers for RETURNING items.
+    /// PT: Cria metadados de projeção e resolvedores para itens de RETURNING.
+    /// </summary>
+    private List<ReturningProjection> BuildReturningProjection(
+        IReadOnlyList<SqlSelectItem> returningItems,
+        SqlTableSource tableSource,
+        ITableMock table)
+    {
+        var projections = new List<ReturningProjection>();
+        var tableAlias = tableSource.Alias ?? tableSource.Name ?? "returning";
+
+        foreach (var item in returningItems)
+        {
+            var raw = item.Raw.Trim();
+            if (raw == "*")
+            {
+                AppendAllColumnsProjection(projections, tableAlias, table);
+                continue;
+            }
+
+            var expr = SqlExpressionParser.ParseScalar(raw, connection!.Db.Dialect);
+            switch (expr)
+            {
+                case IdentifierExpr id:
+                {
+                    var colName = NormalizeColumnReference(id.Name);
+                    var col = table.GetColumn(colName);
+                    projections.Add(new ReturningProjection(
+                        TableAlias: tableAlias,
+                        ColumnAlias: item.Alias ?? colName,
+                        ColumnName: colName,
+                        DbType: col.DbType,
+                        IsNullable: col.Nullable,
+                        Resolver: row => row.TryGetValue(col.Index, out var v) ? v : null));
+                    break;
+                }
+                case ColumnExpr colExpr when colExpr.Name == "*":
+                {
+                    AppendAllColumnsProjection(projections, tableAlias, table);
+                    break;
+                }
+                case ColumnExpr colExpr:
+                {
+                    var colName = NormalizeColumnReference(colExpr.Name);
+                    var col = table.GetColumn(colName);
+                    projections.Add(new ReturningProjection(
+                        TableAlias: tableAlias,
+                        ColumnAlias: item.Alias ?? colName,
+                        ColumnName: colName,
+                        DbType: col.DbType,
+                        IsNullable: col.Nullable,
+                        Resolver: row => row.TryGetValue(col.Index, out var v) ? v : null));
+                    break;
+                }
+                case LiteralExpr literalExpr:
+                {
+                    var value = literalExpr.Value;
+                    var dbType = value?.GetType().ConvertTypeToDbType() ?? DbType.Object;
+                    projections.Add(new ReturningProjection(
+                        TableAlias: tableAlias,
+                        ColumnAlias: item.Alias ?? raw,
+                        ColumnName: item.Alias ?? raw,
+                        DbType: dbType,
+                        IsNullable: value is null,
+                        Resolver: _ => value));
+                    break;
+                }
+                case ParameterExpr parameterExpr:
+                {
+                    var value = ResolveParameterValue(parameterExpr.Name);
+                    var dbType = value?.GetType().ConvertTypeToDbType() ?? DbType.Object;
+                    projections.Add(new ReturningProjection(
+                        TableAlias: tableAlias,
+                        ColumnAlias: item.Alias ?? parameterExpr.Name,
+                        ColumnName: item.Alias ?? parameterExpr.Name,
+                        DbType: dbType,
+                        IsNullable: value is null,
+                        Resolver: _ => value));
+                    break;
+                }
+                default:
+                    throw new NotSupportedException($"RETURNING expression not supported in executor: '{raw}'.");
+            }
+        }
+
+        return projections;
+    }
+
+    /// <summary>
+    /// EN: Appends projections for all table columns in ordinal order.
+    /// PT: Adiciona projeções para todas as colunas da tabela na ordem ordinal.
+    /// </summary>
+    private static void AppendAllColumnsProjection(
+        ICollection<ReturningProjection> projections,
+        string tableAlias,
+        ITableMock table)
+    {
+        foreach (var col in table.Columns.Values.OrderBy(c => c.Index))
+        {
+            var name = table.Columns.First(kv => kv.Value.Index == col.Index).Key;
+            projections.Add(new ReturningProjection(
+                TableAlias: tableAlias,
+                ColumnAlias: name,
+                ColumnName: name,
+                DbType: col.DbType,
+                IsNullable: col.Nullable,
+                Resolver: row => row.TryGetValue(col.Index, out var v) ? v : null));
+        }
+    }
+
+    /// <summary>
+    /// EN: Finds row indexes matched by simple WHERE conditions used by DML strategies.
+    /// PT: Encontra índices de linhas que atendem às condições simples de WHERE usadas pelas estratégias DML.
+    /// </summary>
+    private List<int> MatchRowIndexes(
+        ITableMock table,
+        string? whereRaw,
+        string rawSql)
+    {
+        var resolvedWhere = TableMock.ResolveWhereRaw(whereRaw, rawSql);
+        var conditions = TableMock.ParseWhereSimple(resolvedWhere);
+        var indexes = new List<int>();
+        for (var i = 0; i < table.Count; i++)
+        {
+            if (TableMock.IsMatchSimple(table, Parameters, conditions, table[i]))
+                indexes.Add(i);
+        }
+
+        return indexes;
+    }
+
+    /// <summary>
+    /// EN: Resolves command parameter value by SQL placeholder name.
+    /// PT: Resolve valor de parâmetro do comando pelo nome do placeholder SQL.
+    /// </summary>
+    private object? ResolveParameterValue(string rawName)
+    {
+        var normalized = rawName.Trim();
+        if (normalized.Length > 0 && (normalized[0] == '@' || normalized[0] == ':' || normalized[0] == '?'))
+            normalized = normalized[1..];
+
+        foreach (DbParameter parameter in Parameters)
+        {
+            var parameterName = parameter.ParameterName?.TrimStart('@', ':', '?') ?? string.Empty;
+            if (!parameterName.Equals(normalized, StringComparison.OrdinalIgnoreCase))
+                continue;
+            return parameter.Value is DBNull ? null : parameter.Value;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// EN: Normalizes a qualified column reference to a table-local column name.
+    /// PT: Normaliza uma referência de coluna qualificada para o nome local da coluna na tabela.
+    /// </summary>
+    private static string NormalizeColumnReference(string rawColumnName)
+    {
+        var normalized = rawColumnName.Trim();
+        var dot = normalized.LastIndexOf('.');
+        if (dot >= 0 && dot + 1 < normalized.Length)
+            normalized = normalized[(dot + 1)..];
+        return normalized.NormalizeName();
+    }
+
+    /// <summary>
+    /// EN: Creates an immutable snapshot of a row dictionary.
+    /// PT: Cria um snapshot imutável de um dicionário de linha.
+    /// </summary>
+    private static IReadOnlyDictionary<int, object?> SnapshotRow(IReadOnlyDictionary<int, object?> row)
+        => row.ToDictionary(_ => _.Key, _ => _.Value);
+
+    /// <summary>
+    /// EN: Tries to resolve the target table from an AST table source.
+    /// PT: Tenta resolver a tabela alvo a partir de uma fonte de tabela da AST.
+    /// </summary>
+    private bool TryResolveTargetTable(
+        SqlTableSource? tableSource,
+        out ITableMock? table)
+    {
+        table = null!;
+        if (tableSource is null || string.IsNullOrWhiteSpace(tableSource.Name))
+            return false;
+
+        return connection!.TryGetTable(tableSource.Name!, out table, tableSource.DbName) && table is not null;
+    }
+
+    private sealed record ReturningProjection(
+        string TableAlias,
+        string ColumnAlias,
+        string ColumnName,
+        DbType DbType,
+        bool IsNullable,
+        Func<IReadOnlyDictionary<int, object?>, object?> Resolver);
 
 
     private bool TryExecuteTransactionControlCommand(string sqlRaw, out int affectedRows)

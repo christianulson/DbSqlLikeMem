@@ -73,4 +73,36 @@ WHEN NOT MATCHED THEN
         Assert.Single(t);
         Assert.Equal("NEW", (string)t[0][1]!);
     }
+
+    /// <summary>
+    /// EN: Tests Merge_SourceAliasWithoutAs_ShouldResolveSourceColumns behavior.
+    /// PT: Testa o comportamento de Merge_SourceAliasWithoutAs_ShouldResolveSourceColumns.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void Merge_SourceAliasWithoutAs_ShouldResolveSourceColumns()
+    {
+        var db = new SqlServerDbMock();
+        var t = db.AddTable("users");
+        t.AddColumn("Id", DbType.Int32, false);
+        t.AddColumn("Name", DbType.String, false);
+        t.AddPrimaryKeyIndexes("id");
+
+        using var cnn = new SqlServerConnectionMock(db);
+        cnn.Open();
+
+        const string sql = @"
+MERGE INTO users target
+USING (SELECT 10 AS Id, 'NoAs' AS Name) s
+ON target.Id = s.Id
+WHEN NOT MATCHED THEN
+    INSERT (Id, Name) VALUES (s.Id, s.Name);";
+
+        var affected = cnn.Execute(sql);
+
+        Assert.Equal(1, affected);
+        Assert.Single(t);
+        Assert.Equal(10, (int)t[0][0]!);
+        Assert.Equal("NoAs", (string)t[0][1]!);
+    }
 }

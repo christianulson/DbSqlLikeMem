@@ -76,6 +76,11 @@ internal static class DbInsertStrategy
             }
             else
             {
+                if (query.IsOnConflictDoNothing)
+                    continue;
+                if (!ShouldApplyOnConflictUpdateWhere(query, table, conflictIdx.Value, newRow, pars, dialect))
+                    continue;
+
                 // Conflito -> Update
                 var oldSnapshot = SnapshotRow(table[conflictIdx.Value]);
                 var simulatedUpdated = table[conflictIdx.Value].ToDictionary(_ => _.Key, _ => _.Value);
@@ -108,11 +113,16 @@ internal static class DbInsertStrategy
         connection.Metrics.Inserts += insertedCount;
         connection.Metrics.Updates += updatedCount;
 
-        if (string.Equals(dialect.Name, "postgresql", StringComparison.OrdinalIgnoreCase))
-            return insertedCount + updatedCount;
+        int affected;
+        if (string.Equals(dialect.Name, "mysql", StringComparison.OrdinalIgnoreCase))
+            // MySQL retorna: 1 para insert, 2 para update em conflito.
+            affected = insertedCount + (updatedCount * 2);
+        else
+            // PostgreSQL/SQLite e demais dialetos retornam linhas efetivamente afetadas.
+            affected = insertedCount + updatedCount;
 
-        // MySQL retorna: 1 para insert, 2 para update em conflito
-        return insertedCount + (updatedCount * 2);
+        connection.SetLastFoundRows(affected);
+        return affected;
     }
 
     // --- Helpers de Criação de Linhas ---
@@ -156,7 +166,7 @@ internal static class DbInsertStrategy
                 for (int i = 0; i < valueBlock.Count; i++)
                 {
                     if (i >= targetCols.Count) break;
-                    SetColValue(table, pars, targetCols[i].Index, valueBlock[i], newRow);
+                    SetColValue(table, pars, targetCols[i].Index, valueBlock[i], newRow, dialect);
                 }
             }
             else if (colNames.Count > 0)
@@ -165,7 +175,7 @@ internal static class DbInsertStrategy
                 for (int i = 0; i < colNames.Count; i++)
                 {
                     var colInfo = ResolveInsertColumn(table, colNames[i], dialect);
-                    SetColValue(table, pars, colInfo.Index, valueBlock[i], newRow);
+                    SetColValue(table, pars, colInfo.Index, valueBlock[i], newRow, dialect);
                 }
             }
 
@@ -303,14 +313,17 @@ internal static class DbInsertStrategy
         DbParameterCollection? pars,
         int colIndex,
         string rawValue,
-        Dictionary<int, object?> row)
+        Dictionary<int, object?> row,
+        ISqlDialect dialect)
     {
         // Encontra definição da coluna para saber tipo
         var colDef = table.Columns.Values.First(c => c.Index == colIndex);
 
         // Resolve valor
         table.CurrentColumn = table.Columns.First(c => c.Value.Index == colIndex).Key;
-        var resolved = table.Resolve(rawValue, colDef.DbType, colDef.Nullable, pars, table.Columns);
+        var resolved = TryResolveTemporalValue(rawValue, dialect, out var temporalValue)
+            ? temporalValue
+            : table.Resolve(rawValue, colDef.DbType, colDef.Nullable, pars, table.Columns);
         table.CurrentColumn = null;
 
         var val = (resolved is DBNull) ? null : resolved;
@@ -318,6 +331,34 @@ internal static class DbInsertStrategy
             throw table.ColumnCannotBeNull("Idx:" + colIndex);
 
         row[colIndex] = val;
+    }
+
+    /// <summary>
+    /// EN: Tries to resolve temporal tokens/functions used as INSERT literal values for the current dialect.
+    /// PT: Tenta resolver tokens/funções temporais usados como valores literais de INSERT para o dialeto atual.
+    /// </summary>
+    /// <param name="rawValue">EN: Raw value token from INSERT VALUES list. PT: Token bruto de valor vindo da lista INSERT VALUES.</param>
+    /// <param name="dialect">EN: Active SQL dialect. PT: Dialeto SQL ativo.</param>
+    /// <param name="value">EN: Resolved temporal value when successful. PT: Valor temporal resolvido quando houver sucesso.</param>
+    /// <returns>EN: True when raw value maps to a supported temporal token/function. PT: True quando o valor bruto mapeia para token/função temporal suportada.</returns>
+    private static bool TryResolveTemporalValue(string rawValue, ISqlDialect dialect, out object? value)
+    {
+        var trimmed = rawValue.Trim();
+
+        if (SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, trimmed, out value))
+            return true;
+
+        var openParen = trimmed.IndexOf('(');
+        var closeParen = trimmed.LastIndexOf(')');
+        if (openParen <= 0 || closeParen <= openParen)
+            return false;
+
+        var functionName = trimmed[..openParen].Trim();
+        var argsRaw = trimmed[(openParen + 1)..closeParen].Trim();
+        if (argsRaw.Length > 0)
+            return false;
+
+        return SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, functionName, out value);
     }
 
     // --- Helpers de ON DUPLICATE ---
@@ -389,7 +430,9 @@ internal static class DbInsertStrategy
                 ParameterExpr p => GetParamValue(p.Name),
                 IdentifierExpr id => TryGetExcludedValueFromName(id.Name, out var excluded)
                     ? excluded
-                    : GetExistingColumnValue(id.Name.Contains('.') ? id.Name.Split('.').Last() : id.Name),
+                    : SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, id.Name, out var temporalIdentifierValue)
+                        ? temporalIdentifierValue
+                        : GetExistingColumnValue(id.Name.Contains('.') ? id.Name.Split('.').Last() : id.Name),
                 ColumnExpr c => string.Equals(c.Qualifier, "excluded", StringComparison.OrdinalIgnoreCase)
                     ? GetInsertedColumnValue(c.Name)
                     : GetExistingColumnValue(c.Name),
@@ -415,7 +458,8 @@ internal static class DbInsertStrategy
 
         object? EvalFunction(FunctionCallExpr fn)
         {
-            if (fn.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase) && fn.Args.Count == 1)
+            if (fn.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
+                && fn.Args.Count == 1)
             {
                 var col = fn.Args[0] switch
                 {
@@ -433,7 +477,8 @@ internal static class DbInsertStrategy
 
         object? EvalCall(CallExpr call)
         {
-            if (call.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase) && call.Args.Count == 1)
+            if (call.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
+                && call.Args.Count == 1)
             {
                 var col = call.Args[0] switch
                 {
@@ -597,12 +642,12 @@ internal static class DbInsertStrategy
         {
             // compat: alguns parsers usam FunctionCallExpr
             var name = fn.Name;
-            if (name.Equals("NOW", StringComparison.OrdinalIgnoreCase) ||
-                name.Equals("CURRENT_TIMESTAMP", StringComparison.OrdinalIgnoreCase))
-                return DateTime.UtcNow;
+            if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, name, out var temporalValue))
+                return temporalValue;
 
             // se vier algo simples tipo VALUES(...) cair aqui por engano, tenta tratar:
-            if (name.Equals("VALUES", StringComparison.OrdinalIgnoreCase) && fn.Args.Count == 1)
+            if (name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
+                && fn.Args.Count == 1)
             {
                 var col = fn.Args[0] switch
                 {
@@ -622,7 +667,8 @@ internal static class DbInsertStrategy
             var name = call.Name;
 
             // MySQL: VALUES(col)
-            if (name.Equals("VALUES", StringComparison.OrdinalIgnoreCase) && call.Args.Count == 1)
+            if (name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
+                && call.Args.Count == 1)
             {
                 var col = call.Args[0] switch
                 {
@@ -636,10 +682,8 @@ internal static class DbInsertStrategy
                 return GetInsertedColumnValue(col!);
             }
 
-            // NOW()
-            if ((name.Equals("NOW", StringComparison.OrdinalIgnoreCase) ||
-                 name.Equals("CURRENT_TIMESTAMP", StringComparison.OrdinalIgnoreCase)) && call.Args.Count == 0)
-                return DateTime.UtcNow;
+            if (call.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, name, out var temporalValue))
+                return temporalValue;
 
             throw new InvalidOperationException($"CALL não suportado no ON DUPLICATE: {call.Name}");
         }
@@ -657,6 +701,165 @@ internal static class DbInsertStrategy
                 colInfo.Index, 
                 Coerce(colInfo.DbType, value));
         }
+    }
+
+    /// <summary>
+    /// EN: Evaluates ON CONFLICT ... DO UPDATE WHERE predicate to decide whether the conflicting row should be updated.
+    /// PT: Avalia o predicado ON CONFLICT ... DO UPDATE WHERE para decidir se a linha em conflito deve ser atualizada.
+    /// </summary>
+    private static bool ShouldApplyOnConflictUpdateWhere(
+        SqlInsertQuery query,
+        ITableMock table,
+        int existingIndex,
+        IReadOnlyDictionary<int, object?> insertedRow,
+        DbParameterCollection? pars,
+        ISqlDialect dialect)
+    {
+        var where = query.OnConflictUpdateWhereExpr;
+        if (where is null)
+            return true;
+
+        object? GetParamValue(string rawName)
+        {
+            if (pars is null) return null;
+
+            var n = rawName.Trim();
+            if (n.Length > 0 && (n[0] == '@' || n[0] == ':' || n[0] == '?'))
+                n = n[1..];
+
+            foreach (DbParameter p in pars)
+            {
+                var pn = p.ParameterName?.TrimStart('@', ':', '?') ?? "";
+                if (string.Equals(pn, n, StringComparison.OrdinalIgnoreCase))
+                    return p.Value is DBNull ? null : p.Value;
+            }
+
+            return null;
+        }
+
+        object? GetInsertedColumnValue(string col)
+        {
+            var info = table.GetColumn(col);
+            return insertedRow.TryGetValue(info.Index, out var v) ? v : null;
+        }
+
+        object? GetExistingColumnValue(string col)
+        {
+            var info = table.GetColumn(col);
+            return table[existingIndex].TryGetValue(info.Index, out var v) ? v : null;
+        }
+
+        bool TryGetExcludedValueFromName(string rawName, out object? value)
+        {
+            value = null;
+            if (string.IsNullOrWhiteSpace(rawName))
+                return false;
+
+            var parts = rawName.Split('.').Select(_=>_.Trim()).Take(2).ToArray();
+            if (parts.Length != 2)
+                return false;
+
+            if (string.Equals(parts[0], "excluded", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(parts[0], "values", StringComparison.OrdinalIgnoreCase))
+            {
+                value = GetInsertedColumnValue(parts[1]);
+                return true;
+            }
+
+            return false;
+        }
+
+        object? EvalFunction(FunctionCallExpr fn)
+        {
+            if (fn.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
+                && fn.Args.Count == 1)
+            {
+                var col = fn.Args[0] switch
+                {
+                    IdentifierExpr id => id.Name,
+                    ColumnExpr c => c.Name,
+                    _ => null
+                };
+
+                if (!string.IsNullOrWhiteSpace(col))
+                    return GetInsertedColumnValue(col!);
+            }
+
+            if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, fn.Name, out var temporalValue))
+                return temporalValue;
+
+            throw new InvalidOperationException($"Função não suportada no ON CONFLICT WHERE: {fn.Name}()");
+        }
+
+        object? EvalCall(CallExpr call)
+        {
+            if (call.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
+                && call.Args.Count == 1)
+            {
+                var col = call.Args[0] switch
+                {
+                    IdentifierExpr id => id.Name,
+                    ColumnExpr c => c.Name,
+                    _ => null
+                };
+
+                if (string.IsNullOrWhiteSpace(col))
+                    throw new InvalidOperationException("VALUES() espera 1 coluna");
+
+                return GetInsertedColumnValue(col!);
+            }
+
+            if (call.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, call.Name, out var temporalValue))
+                return temporalValue;
+
+            throw new InvalidOperationException($"CALL não suportado no ON CONFLICT WHERE: {call.Name}");
+        }
+
+        bool CompareBinary(SqlBinaryOp op, object? left, object? right)
+        {
+            return op switch
+            {
+                SqlBinaryOp.Eq => left.EqualsSql(right, dialect),
+                SqlBinaryOp.Neq => !left.EqualsSql(right, dialect),
+                SqlBinaryOp.Greater => left is not null && right is not null && left.Compare(right, dialect) > 0,
+                SqlBinaryOp.GreaterOrEqual => left is not null && right is not null && left.Compare(right, dialect) >= 0,
+                SqlBinaryOp.Less => left is not null && right is not null && left.Compare(right, dialect) < 0,
+                SqlBinaryOp.LessOrEqual => left is not null && right is not null && left.Compare(right, dialect) <= 0,
+                _ => throw new InvalidOperationException($"Operador não suportado no ON CONFLICT WHERE: {op}")
+            };
+        }
+
+        object? Eval(SqlExpr expr)
+        {
+            return expr switch
+            {
+                LiteralExpr lit => lit.Value,
+                ParameterExpr p => GetParamValue(p.Name),
+                IdentifierExpr id => TryGetExcludedValueFromName(id.Name, out var excluded)
+                    ? excluded
+                    : SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, id.Name, out var temporalIdentifierValue)
+                        ? temporalIdentifierValue
+                        : GetExistingColumnValue(id.Name.Contains('.') ? id.Name.Split('.').Last() : id.Name),
+                ColumnExpr c => string.Equals(c.Qualifier, "excluded", StringComparison.OrdinalIgnoreCase)
+                    ? GetInsertedColumnValue(c.Name)
+                    : GetExistingColumnValue(c.Name),
+                UnaryExpr u when u.Op == SqlUnaryOp.Not => !Eval(u.Expr).ToBool(),
+                IsNullExpr n => (Eval(n.Expr) is null) ^ n.Negated,
+                BinaryExpr b when b.Op == SqlBinaryOp.Add => Eval(b.Left).ToDec() + Eval(b.Right).ToDec(),
+                BinaryExpr b when b.Op == SqlBinaryOp.Subtract => Eval(b.Left).ToDec() - Eval(b.Right).ToDec(),
+                BinaryExpr b when b.Op == SqlBinaryOp.Multiply => Eval(b.Left).ToDec() * Eval(b.Right).ToDec(),
+                BinaryExpr b when b.Op == SqlBinaryOp.Divide => Eval(b.Left).ToDec() / Eval(b.Right).ToDec(),
+                BinaryExpr b when b.Op == SqlBinaryOp.And => Eval(b.Left).ToBool() && Eval(b.Right).ToBool(),
+                BinaryExpr b when b.Op == SqlBinaryOp.Or => Eval(b.Left).ToBool() || Eval(b.Right).ToBool(),
+                BinaryExpr b => CompareBinary(b.Op, Eval(b.Left), Eval(b.Right)),
+                FunctionCallExpr fn => EvalFunction(fn),
+                CallExpr call => EvalCall(call),
+                RawSqlExpr raw => throw new InvalidOperationException($"Expressão não suportada no ON CONFLICT WHERE: {raw.Sql}"),
+                _ => throw new InvalidOperationException($"Expressão não suportada no ON CONFLICT WHERE: {expr.GetType().Name}")
+            };
+        }
+
+        return Eval(where).ToBool();
     }
 
     // --- Helpers Genéricos (Mantidos ou Levemente Adaptados) ---

@@ -25,6 +25,79 @@ public sealed class SqliteDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures INSERT ... RETURNING captures projection payload in AST for SQLite dialect.
+    /// PT: Garante que INSERT ... RETURNING capture o payload de projeção na AST para o dialeto SQLite.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseInsert_Returning_ShouldCaptureReturningItems(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id, name AS user_name";
+
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+
+        Assert.Equal(2, parsed.Returning.Count);
+        Assert.Equal("id", parsed.Returning[0].Raw);
+        Assert.Equal("name", parsed.Returning[1].Raw);
+        Assert.Equal("user_name", parsed.Returning[1].Alias);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE ... RETURNING captures projection payload in AST for SQLite dialect.
+    /// PT: Garante que UPDATE ... RETURNING capture o payload de projeção na AST para o dialeto SQLite.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseUpdate_Returning_ShouldCaptureReturningItems(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id, name";
+
+        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+
+        Assert.Contains("id = 1", parsed.WhereRaw, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(2, parsed.Returning.Count);
+        Assert.Equal("id", parsed.Returning[0].Raw);
+        Assert.Equal("name", parsed.Returning[1].Raw);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE ... RETURNING with qualified wildcard preserves projection item in AST.
+    /// PT: Garante que UPDATE ... RETURNING com wildcard qualificado preserve o item de projeção na AST.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseUpdate_ReturningQualifiedWildcard_ShouldCaptureReturningItem(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING users.*";
+
+        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+
+        Assert.Single(parsed.Returning);
+        Assert.Equal("users.*", parsed.Returning[0].Raw);
+    }
+
+    /// <summary>
+    /// EN: Ensures DELETE ... RETURNING captures projection payload in AST for SQLite dialect.
+    /// PT: Garante que DELETE ... RETURNING capture o payload de projeção na AST para o dialeto SQLite.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseDelete_Returning_ShouldCaptureReturningItems(int version)
+    {
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING id";
+
+        var parsed = Assert.IsType<SqlDeleteQuery>(SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+
+        Assert.Contains("id = 1", parsed.WhereRaw, StringComparison.OrdinalIgnoreCase);
+        Assert.Single(parsed.Returning);
+        Assert.Equal("id", parsed.Returning[0].Raw);
+    }
+
+    /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>
@@ -475,6 +548,110 @@ public sealed class SqliteDialectFeatureParserTests
             SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", dialect));
 
         Assert.Contains("window frame", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures WITHIN GROUP ordered-set syntax remains unsupported for SQLite aggregates.
+    /// PT: Garante que a sintaxe ordered-set WITHIN GROUP continue não suportada para agregações SQLite.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseScalar_StringAggregateWithinGroup_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed WITHIN GROUP syntax in SQLite still fails as not-supported (dialect gate precedence).
+    /// PT: Garante que sintaxe malformada de WITHIN GROUP no SQLite continue falhando como não suportada (precedência do gate de dialeto).
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseScalar_StringAggregateWithinGroupMalformed_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures malformed trailing comma in WITHIN GROUP remains blocked by dialect gate.
+    /// PT: Garante que vírgula final malformada no WITHIN GROUP continue bloqueada pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseScalar_StringAggregateWithinGroupTrailingComma_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures empty ORDER BY list in WITHIN GROUP remains blocked by dialect gate.
+    /// PT: Garante que lista ORDER BY vazia em WITHIN GROUP continue bloqueada pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseScalar_StringAggregateWithinGroupOrderByEmptyList_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures leading commas in WITHIN GROUP ORDER BY remain blocked by dialect gate.
+    /// PT: Garante que vírgulas iniciais no ORDER BY do WITHIN GROUP continuem bloqueadas pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseScalar_StringAggregateWithinGroupOrderByLeadingComma_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures missing commas in malformed WITHIN GROUP ORDER BY remain blocked by dialect gate.
+    /// PT: Garante que ausência de vírgula em ORDER BY malformado no WITHIN GROUP continue bloqueada pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseScalar_StringAggregateWithinGroupOrderByMissingCommaBetweenExpressions_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 }

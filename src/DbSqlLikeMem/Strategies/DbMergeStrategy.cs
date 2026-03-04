@@ -12,10 +12,17 @@ internal static class DbMergeStrategy
         DbParameterCollection pars,
         ISqlDialect dialect)
     {
+        int affected;
         if (!connection.Db.ThreadSafe)
-            return ExecuteMergeImpl(connection, query, pars, dialect);
-        lock (connection.Db.SyncRoot)
-            return ExecuteMergeImpl(connection, query, pars, dialect);
+            affected = ExecuteMergeImpl(connection, query, pars, dialect);
+        else
+        {
+            lock (connection.Db.SyncRoot)
+                affected = ExecuteMergeImpl(connection, query, pars, dialect);
+        }
+
+        connection.SetLastFoundRows(affected);
+        return affected;
     }
 
     private static int ExecuteMergeImpl(
@@ -48,7 +55,7 @@ internal static class DbMergeStrategy
         var selectSql = ExtractParenthesized(sql, sql.IndexOf('(', usingIndex));
         var srcAliasMatch = Regex.Match(
             sql,
-            @"USING\s*\(.*?\)\s+AS\s+(?<alias>[A-Za-z0-9_]+)",
+            @"USING\s*\(.*?\)\s+(?:AS\s+)?(?<alias>(?!ON\b|WHEN\b)[A-Za-z0-9_]+)",
             RegexOptions.IgnoreCase | RegexOptions.Singleline);
         var sourceAlias = srcAliasMatch.Success ? srcAliasMatch.Groups["alias"].Value : "src";
 

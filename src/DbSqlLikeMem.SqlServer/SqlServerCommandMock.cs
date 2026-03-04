@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Data.SqlClient;
+using System.Text;
+using System.Text.RegularExpressions;
 
 
 namespace DbSqlLikeMem.SqlServer;
@@ -103,16 +105,27 @@ public class SqlServerCommandMock(
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
         if (CommandType == CommandType.StoredProcedure)
-            return connection!.ExecuteStoredProcedure(CommandText, Parameters);
+        {
+            var affected = connection!.ExecuteStoredProcedure(CommandText, Parameters);
+            connection.SetLastFoundRows(affected);
+            return affected;
+        }
 
         var sqlRaw = CommandText.Trim();
 
         if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
+        {
+            connection.SetLastFoundRows(transactionControlResult);
             return transactionControlResult;
+        }
 
         // Mantém atalhos existentes (CALL / CREATE TABLE AS SELECT) por compatibilidade do engine atual
         if (sqlRaw.StartsWith("call ", StringComparison.OrdinalIgnoreCase))
-            return connection!.ExecuteCall(sqlRaw, Parameters);
+        {
+            var affected = connection!.ExecuteCall(sqlRaw, Parameters);
+            connection.SetLastFoundRows(affected);
+            return affected;
+        }
 
         if (sqlRaw.StartsWith("create table", StringComparison.OrdinalIgnoreCase))
             return connection!.ExecuteCreateTableAsSelect(sqlRaw, Parameters, connection!.Db.Dialect);
@@ -146,24 +159,59 @@ public class SqlServerCommandMock(
         if (CommandType == CommandType.StoredProcedure)
         {
             connection!.ExecuteStoredProcedure(CommandText, Parameters);
+            connection.SetLastFoundRows(0);
             return new SqlServerDataReaderMock([[]]);
         }
 
         var sql = CommandText.NormalizeString();
 
-        if (sql.StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
+        var statements = SqlQueryParser
+            .SplitStatements(sql, connection!.Db.Dialect)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .ToList();
+
+        if (statements.Count == 1 && statements[0].TrimStart().StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
         {
-            connection!.ExecuteCall(sql, Parameters);
+            connection!.ExecuteCall(statements[0], Parameters);
+            connection!.SetLastFoundRows(0);
             return new SqlServerDataReaderMock([[]]);
         }
-
         var executor = new SqlServerAstQueryExecutor(connection!, Parameters);
-
-        var queries = SqlQueryParser.ParseMulti(sql, connection!.Db.Dialect, Parameters).ToList();
         var tables = new List<TableResultMock>();
+        var parsedStatementCount = 0;
 
-        foreach (var query in queries)
+        foreach (var statementSql in statements)
         {
+            var sqlRaw = statementSql.Trim();
+            if (string.IsNullOrWhiteSpace(sqlRaw))
+                continue;
+
+            if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
+            {
+                connection.SetLastFoundRows(transactionControlResult);
+                parsedStatementCount++;
+                continue;
+            }
+
+            if (sqlRaw.StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
+            {
+                connection.ExecuteCall(sqlRaw, Parameters);
+                connection.SetLastFoundRows(0);
+                parsedStatementCount++;
+                continue;
+            }
+
+            var effectiveSql = sqlRaw;
+            SqlServerOutputClause? outputClause = null;
+            if (TryExtractOutputClause(sqlRaw, out var rewrittenSql, out var extractedOutput))
+            {
+                effectiveSql = rewrittenSql;
+                outputClause = extractedOutput;
+            }
+
+            var query = SqlQueryParser.Parse(effectiveSql, connection.Db.Dialect, Parameters);
+            parsedStatementCount++;
+
             switch (query)
             {
                 case SqlSelectQuery selectQ:
@@ -174,13 +222,34 @@ public class SqlServerCommandMock(
                     tables.Add(executor.ExecuteUnion(unionQ.Parts, unionQ.AllFlags, unionQ.OrderBy, unionQ.RowLimit, unionQ.RawSql));
                     break;
                 case SqlInsertQuery insertQ:
-                    connection.ExecuteInsert(insertQ, Parameters, connection.Db.Dialect);
+                    if (outputClause is null)
+                    {
+                        connection.ExecuteInsert(insertQ, Parameters, connection.Db.Dialect);
+                    }
+                    else
+                    {
+                        tables.Add(ExecuteInsertOutput(insertQ, outputClause));
+                    }
                     break;
                 case SqlUpdateQuery updateQ:
-                    connection.ExecuteUpdateSmart(updateQ, Parameters, connection.Db.Dialect);
+                    if (outputClause is null)
+                    {
+                        connection.ExecuteUpdateSmart(updateQ, Parameters, connection.Db.Dialect);
+                    }
+                    else
+                    {
+                        tables.Add(ExecuteUpdateOutput(updateQ, outputClause));
+                    }
                     break;
                 case SqlDeleteQuery deleteQ:
-                    connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect);
+                    if (outputClause is null)
+                    {
+                        connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect);
+                    }
+                    else
+                    {
+                        tables.Add(ExecuteDeleteOutput(deleteQ, outputClause));
+                    }
                     break;
                 case SqlCreateTemporaryTableQuery tempQ:
                     connection.ExecuteCreateTemporaryTableAsSelect(tempQ, Parameters, connection.Db.Dialect);
@@ -199,11 +268,457 @@ public class SqlServerCommandMock(
             }
         }
 
-        if (tables.Count == 0 && queries.Count > 0)
+        if (tables.Count == 0 && parsedStatementCount > 0)
             throw new InvalidOperationException(SqlExceptionMessages.ExecuteReaderWithoutSelectQuery());
         connection.Metrics.Selects += tables.Sum(t => t.Count);
 
         return new SqlServerDataReaderMock(tables);
+    }
+
+    /// <summary>
+    /// EN: Executes INSERT and materializes SQL Server OUTPUT rows when requested.
+    /// PT: Executa INSERT e materializa linhas de OUTPUT do SQL Server quando solicitado.
+    /// </summary>
+    private TableResultMock ExecuteInsertOutput(SqlInsertQuery query, SqlServerOutputClause outputClause)
+    {
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
+            throw new InvalidOperationException("OUTPUT requires a valid target table.");
+        var targetTable = table;
+
+        var beforeCount = targetTable.Count;
+        connection!.ExecuteInsert(query, Parameters, connection!.Db.Dialect);
+        var insertedRows = Math.Max(0, targetTable.Count - beforeCount);
+        var pairs = new List<(IReadOnlyDictionary<int, object?>? OldRow, IReadOnlyDictionary<int, object?>? NewRow)>();
+        for (var i = beforeCount; i < beforeCount + insertedRows; i++)
+            pairs.Add((null, SnapshotRow(targetTable[i])));
+
+        return BuildOutputResult(outputClause, query.Table!, targetTable, pairs, SqlServerOutputDefaultQualifier.Inserted);
+    }
+
+    /// <summary>
+    /// EN: Executes UPDATE and materializes SQL Server OUTPUT rows when requested.
+    /// PT: Executa UPDATE e materializa linhas de OUTPUT do SQL Server quando solicitado.
+    /// </summary>
+    private TableResultMock ExecuteUpdateOutput(SqlUpdateQuery query, SqlServerOutputClause outputClause)
+    {
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
+            throw new InvalidOperationException("OUTPUT requires a valid target table.");
+        var targetTable = table;
+
+        var matchedIndexes = MatchRowIndexes(targetTable, query.WhereRaw, query.RawSql);
+        var beforeRows = matchedIndexes.Select(i => SnapshotRow(targetTable[i])).ToList();
+        connection!.ExecuteUpdateSmart(query, Parameters, connection!.Db.Dialect);
+
+        var pairs = new List<(IReadOnlyDictionary<int, object?>? OldRow, IReadOnlyDictionary<int, object?>? NewRow)>();
+        for (var i = 0; i < matchedIndexes.Count; i++)
+        {
+            var index = matchedIndexes[i];
+            if (index < 0 || index >= targetTable.Count)
+                continue;
+            pairs.Add((beforeRows[i], SnapshotRow(targetTable[index])));
+        }
+
+        return BuildOutputResult(outputClause, query.Table!, targetTable, pairs, SqlServerOutputDefaultQualifier.Inserted);
+    }
+
+    /// <summary>
+    /// EN: Executes DELETE and materializes SQL Server OUTPUT rows when requested.
+    /// PT: Executa DELETE e materializa linhas de OUTPUT do SQL Server quando solicitado.
+    /// </summary>
+    private TableResultMock ExecuteDeleteOutput(SqlDeleteQuery query, SqlServerOutputClause outputClause)
+    {
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
+            throw new InvalidOperationException("OUTPUT requires a valid target table.");
+        var targetTable = table;
+
+        var matchedIndexes = MatchRowIndexes(targetTable, query.WhereRaw, query.RawSql);
+        var deletedRows = matchedIndexes.Select(i => SnapshotRow(targetTable[i])).ToList();
+        connection!.ExecuteDeleteSmart(query, Parameters, connection!.Db.Dialect);
+
+        var pairs = deletedRows
+            .Select(row => (OldRow: (IReadOnlyDictionary<int, object?>?)row, NewRow: (IReadOnlyDictionary<int, object?>?)null))
+            .ToList();
+
+        return BuildOutputResult(outputClause, query.Table!, targetTable, pairs, SqlServerOutputDefaultQualifier.Deleted);
+    }
+
+    /// <summary>
+    /// EN: Builds output result set from old/new row pairs.
+    /// PT: Monta o conjunto de resultado de output a partir de pares de linhas antigas/novas.
+    /// </summary>
+    private TableResultMock BuildOutputResult(
+        SqlServerOutputClause outputClause,
+        SqlTableSource tableSource,
+        ITableMock table,
+        IReadOnlyList<(IReadOnlyDictionary<int, object?>? OldRow, IReadOnlyDictionary<int, object?>? NewRow)> rowPairs,
+        SqlServerOutputDefaultQualifier defaultQualifier)
+    {
+        var result = new TableResultMock();
+        var projections = BuildOutputProjection(outputClause, tableSource, table, defaultQualifier);
+        result.Columns = projections
+            .Select((p, i) => new TableResultColMock(
+                p.TableAlias,
+                p.ColumnAlias,
+                p.ColumnName,
+                i,
+                p.DbType,
+                p.IsNullable))
+            .ToList();
+
+        foreach (var (oldRow, newRow) in rowPairs)
+        {
+            var row = new Dictionary<int, object?>();
+            for (var i = 0; i < projections.Count; i++)
+                row[i] = projections[i].Resolver(oldRow, newRow);
+            result.Add(row);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// EN: Builds projection metadata and resolvers for SQL Server OUTPUT items.
+    /// PT: Monta metadados de projeção e resolvedores para itens de OUTPUT do SQL Server.
+    /// </summary>
+    private List<SqlServerOutputProjection> BuildOutputProjection(
+        SqlServerOutputClause outputClause,
+        SqlTableSource tableSource,
+        ITableMock table,
+        SqlServerOutputDefaultQualifier defaultQualifier)
+    {
+        var projections = new List<SqlServerOutputProjection>();
+        var tableAlias = tableSource.Alias ?? tableSource.Name ?? "output";
+
+        foreach (var item in outputClause.Items)
+        {
+            if (item.IsWildcard)
+            {
+                AppendOutputWildcardProjection(projections, tableAlias, table, item.Qualifier, defaultQualifier);
+                continue;
+            }
+
+            var colName = NormalizeColumnReference(item.ColumnName);
+            var col = table.GetColumn(colName);
+            var alias = item.Alias ?? colName;
+            projections.Add(new SqlServerOutputProjection(
+                TableAlias: tableAlias,
+                ColumnAlias: alias,
+                ColumnName: colName,
+                DbType: col.DbType,
+                IsNullable: col.Nullable,
+                Resolver: (oldRow, newRow) =>
+                {
+                    var source = ResolveOutputSourceRow(item.Qualifier, defaultQualifier, oldRow, newRow);
+                    return source is not null && source.TryGetValue(col.Index, out var value) ? value : null;
+                }));
+        }
+
+        return projections;
+    }
+
+    /// <summary>
+    /// EN: Appends wildcard OUTPUT projection using requested pseudo-table source.
+    /// PT: Adiciona projeção OUTPUT wildcard usando a pseudo-tabela solicitada.
+    /// </summary>
+    private static void AppendOutputWildcardProjection(
+        ICollection<SqlServerOutputProjection> projections,
+        string tableAlias,
+        ITableMock table,
+        SqlServerOutputQualifier qualifier,
+        SqlServerOutputDefaultQualifier defaultQualifier)
+    {
+        foreach (var col in table.Columns.Values.OrderBy(c => c.Index))
+        {
+            var colName = table.Columns.First(kv => kv.Value.Index == col.Index).Key;
+            projections.Add(new SqlServerOutputProjection(
+                TableAlias: tableAlias,
+                ColumnAlias: colName,
+                ColumnName: colName,
+                DbType: col.DbType,
+                IsNullable: col.Nullable,
+                Resolver: (oldRow, newRow) =>
+                {
+                    var source = ResolveOutputSourceRow(qualifier, defaultQualifier, oldRow, newRow);
+                    return source is not null && source.TryGetValue(col.Index, out var value) ? value : null;
+                }));
+        }
+    }
+
+    /// <summary>
+    /// EN: Resolves pseudo-table source for OUTPUT item.
+    /// PT: Resolve a fonte de pseudo-tabela para item de OUTPUT.
+    /// </summary>
+    private static IReadOnlyDictionary<int, object?>? ResolveOutputSourceRow(
+        SqlServerOutputQualifier qualifier,
+        SqlServerOutputDefaultQualifier defaultQualifier,
+        IReadOnlyDictionary<int, object?>? oldRow,
+        IReadOnlyDictionary<int, object?>? newRow)
+    {
+        return qualifier switch
+        {
+            SqlServerOutputQualifier.Inserted => newRow,
+            SqlServerOutputQualifier.Deleted => oldRow,
+            _ => defaultQualifier == SqlServerOutputDefaultQualifier.Inserted ? newRow : oldRow
+        };
+    }
+
+    /// <summary>
+    /// EN: Parses SQL Server OUTPUT clause and rewrites statement without OUTPUT for AST parser.
+    /// PT: Faz parse da cláusula OUTPUT do SQL Server e reescreve o comando sem OUTPUT para o parser AST.
+    /// </summary>
+    private static bool TryExtractOutputClause(
+        string sql,
+        out string rewrittenSql,
+        out SqlServerOutputClause outputClause)
+    {
+        rewrittenSql = sql;
+        outputClause = null!;
+
+        if (TryExtractInsertOutput(sql, out rewrittenSql, out outputClause))
+            return true;
+
+        if (TryExtractUpdateOutput(sql, out rewrittenSql, out outputClause))
+            return true;
+
+        return TryExtractDeleteOutput(sql, out rewrittenSql, out outputClause);
+    }
+
+    private static bool TryExtractInsertOutput(
+        string sql,
+        out string rewrittenSql,
+        out SqlServerOutputClause outputClause)
+    {
+        rewrittenSql = sql;
+        outputClause = null!;
+        var match = Regex.Match(
+            sql,
+            @"^(?<prefix>\s*INSERT\b[\s\S]*?)\bOUTPUT\b(?<output>[\s\S]*?)\bVALUES\b(?<suffix>[\s\S]*)$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (!match.Success)
+            return false;
+
+        var outputText = match.Groups["output"].Value;
+        var items = ParseOutputItems(outputText);
+        rewrittenSql = $"{match.Groups["prefix"].Value} VALUES{match.Groups["suffix"].Value}";
+        outputClause = new SqlServerOutputClause(items);
+        return true;
+    }
+
+    private static bool TryExtractUpdateOutput(
+        string sql,
+        out string rewrittenSql,
+        out SqlServerOutputClause outputClause)
+    {
+        rewrittenSql = sql;
+        outputClause = null!;
+        var match = Regex.Match(
+            sql,
+            @"^(?<prefix>\s*UPDATE\b[\s\S]*?\bSET\b[\s\S]*?)\bOUTPUT\b(?<output>[\s\S]*?)(?<suffix>\bFROM\b[\s\S]*|\bWHERE\b[\s\S]*|$)",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (!match.Success)
+            return false;
+
+        var outputText = match.Groups["output"].Value;
+        var items = ParseOutputItems(outputText);
+        rewrittenSql = $"{match.Groups["prefix"].Value} {match.Groups["suffix"].Value}".TrimEnd();
+        outputClause = new SqlServerOutputClause(items);
+        return true;
+    }
+
+    private static bool TryExtractDeleteOutput(
+        string sql,
+        out string rewrittenSql,
+        out SqlServerOutputClause outputClause)
+    {
+        rewrittenSql = sql;
+        outputClause = null!;
+        var match = Regex.Match(
+            sql,
+            @"^(?<prefix>\s*DELETE\b[\s\S]*?\bFROM\b[\s\S]*?)\bOUTPUT\b(?<output>[\s\S]*?)(?<suffix>\bWHERE\b[\s\S]*|$)",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (!match.Success)
+            return false;
+
+        var outputText = match.Groups["output"].Value;
+        var items = ParseOutputItems(outputText);
+        rewrittenSql = $"{match.Groups["prefix"].Value} {match.Groups["suffix"].Value}".TrimEnd();
+        outputClause = new SqlServerOutputClause(items);
+        return true;
+    }
+
+    /// <summary>
+    /// EN: Parses comma-separated OUTPUT item list.
+    /// PT: Faz parse da lista de itens OUTPUT separados por vírgula.
+    /// </summary>
+    private static IReadOnlyList<SqlServerOutputItem> ParseOutputItems(string outputText)
+    {
+        var items = SplitTopLevelComma(outputText)
+            .Select(ParseOutputItem)
+            .ToList();
+        if (items.Count == 0)
+            throw new InvalidOperationException("OUTPUT clause is empty.");
+        return items;
+    }
+
+    private static SqlServerOutputItem ParseOutputItem(string rawItem)
+    {
+        var text = rawItem.Trim();
+        if (string.IsNullOrWhiteSpace(text))
+            throw new InvalidOperationException("OUTPUT item is empty.");
+
+        var aliasMatch = Regex.Match(
+            text,
+            @"^(?<expr>[\s\S]+?)(?:\s+AS\s+(?<alias>\[[^\]]+\]|[A-Za-z_][A-Za-z0-9_]*))?$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        var expr = aliasMatch.Success ? aliasMatch.Groups["expr"].Value.Trim() : text;
+        var alias = aliasMatch.Success && aliasMatch.Groups["alias"].Success
+            ? aliasMatch.Groups["alias"].Value.Trim().Trim('[', ']').NormalizeName()
+            : null;
+
+        var wildcardMatch = Regex.Match(
+            expr,
+            @"^(?<q>inserted|deleted)\.\*$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (wildcardMatch.Success)
+        {
+            var qualifier = ParseOutputQualifier(wildcardMatch.Groups["q"].Value);
+            return new SqlServerOutputItem(qualifier, "*", alias, IsWildcard: true);
+        }
+
+        var qualifiedMatch = Regex.Match(
+            expr,
+            @"^(?:(?<q>inserted|deleted)\.)?(?<c>\[[^\]]+\]|[A-Za-z_][A-Za-z0-9_]*)$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (!qualifiedMatch.Success)
+            throw new NotSupportedException($"OUTPUT expression not supported in executor: '{expr}'.");
+
+        var qual = qualifiedMatch.Groups["q"].Success
+            ? ParseOutputQualifier(qualifiedMatch.Groups["q"].Value)
+            : SqlServerOutputQualifier.Unspecified;
+        var column = qualifiedMatch.Groups["c"].Value.Trim().Trim('[', ']').NormalizeName();
+        return new SqlServerOutputItem(qual, column, alias, IsWildcard: false);
+    }
+
+    private static SqlServerOutputQualifier ParseOutputQualifier(string rawQualifier)
+        => rawQualifier.Equals("deleted", StringComparison.OrdinalIgnoreCase)
+            ? SqlServerOutputQualifier.Deleted
+            : SqlServerOutputQualifier.Inserted;
+
+    /// <summary>
+    /// EN: Splits comma-separated text honoring simple quote and parenthesis nesting.
+    /// PT: Divide texto separado por vírgula respeitando aspas simples e aninhamento de parênteses.
+    /// </summary>
+    private static List<string> SplitTopLevelComma(string text)
+    {
+        var items = new List<string>();
+        var current = new StringBuilder();
+        var depth = 0;
+        var inSingle = false;
+
+        for (var i = 0; i < text.Length; i++)
+        {
+            var ch = text[i];
+            if (ch == '\'' && (i == 0 || text[i - 1] != '\\'))
+                inSingle = !inSingle;
+
+            if (!inSingle)
+            {
+                if (ch == '(') depth++;
+                else if (ch == ')' && depth > 0) depth--;
+                else if (ch == ',' && depth == 0)
+                {
+                    items.Add(current.ToString().Trim());
+                    current.Clear();
+                    continue;
+                }
+            }
+
+            current.Append(ch);
+        }
+
+        if (current.Length > 0)
+            items.Add(current.ToString().Trim());
+
+        return items.Where(i => !string.IsNullOrWhiteSpace(i)).ToList();
+    }
+
+    /// <summary>
+    /// EN: Finds row indexes matched by simple WHERE conditions used by DML strategies.
+    /// PT: Encontra índices de linhas que atendem às condições simples de WHERE usadas pelas estratégias DML.
+    /// </summary>
+    private List<int> MatchRowIndexes(
+        ITableMock table,
+        string? whereRaw,
+        string rawSql)
+    {
+        var resolvedWhere = TableMock.ResolveWhereRaw(whereRaw, rawSql);
+        var conditions = TableMock.ParseWhereSimple(resolvedWhere);
+        var indexes = new List<int>();
+        for (var i = 0; i < table.Count; i++)
+        {
+            if (TableMock.IsMatchSimple(table, Parameters, conditions, table[i]))
+                indexes.Add(i);
+        }
+
+        return indexes;
+    }
+
+    /// <summary>
+    /// EN: Normalizes a qualified column reference to a table-local column name.
+    /// PT: Normaliza uma referência de coluna qualificada para o nome local da coluna na tabela.
+    /// </summary>
+    private static string NormalizeColumnReference(string rawColumnName)
+    {
+        var normalized = rawColumnName.Trim();
+        var dot = normalized.LastIndexOf('.');
+        if (dot >= 0 && dot + 1 < normalized.Length)
+            normalized = normalized[(dot + 1)..];
+        return normalized.NormalizeName();
+    }
+
+    /// <summary>
+    /// EN: Creates an immutable snapshot of a row dictionary.
+    /// PT: Cria um snapshot imutável de um dicionário de linha.
+    /// </summary>
+    private static IReadOnlyDictionary<int, object?> SnapshotRow(IReadOnlyDictionary<int, object?> row)
+        => row.ToDictionary(_ => _.Key, _ => _.Value);
+
+    /// <summary>
+    /// EN: Tries to resolve the target table from an AST table source.
+    /// PT: Tenta resolver a tabela alvo a partir de uma fonte de tabela da AST.
+    /// </summary>
+    private bool TryResolveTargetTable(
+        SqlTableSource? tableSource,
+        out ITableMock? table)
+    {
+        table = null!;
+        if (tableSource is null || string.IsNullOrWhiteSpace(tableSource.Name))
+            return false;
+
+        return connection!.TryGetTable(tableSource.Name!, out table, tableSource.DbName) && table is not null;
+    }
+
+    private sealed record SqlServerOutputClause(IReadOnlyList<SqlServerOutputItem> Items);
+    private sealed record SqlServerOutputItem(SqlServerOutputQualifier Qualifier, string ColumnName, string? Alias, bool IsWildcard);
+    private sealed record SqlServerOutputProjection(
+        string TableAlias,
+        string ColumnAlias,
+        string ColumnName,
+        DbType DbType,
+        bool IsNullable,
+        Func<IReadOnlyDictionary<int, object?>?, IReadOnlyDictionary<int, object?>?, object?> Resolver);
+
+    private enum SqlServerOutputQualifier
+    {
+        Unspecified = 0,
+        Inserted = 1,
+        Deleted = 2
+    }
+
+    private enum SqlServerOutputDefaultQualifier
+    {
+        Inserted = 0,
+        Deleted = 1
     }
 
 
@@ -240,7 +755,7 @@ public class SqlServerCommandMock(
 
         if (sqlRaw.StartsWith("release savepoint ", StringComparison.OrdinalIgnoreCase))
         {
-            connection!.ReleaseSavepoint(sqlRaw[18..].Trim());
+            // SQL Server does not support RELEASE SAVEPOINT. Keep compatibility behavior as a no-op.
             return true;
         }
 

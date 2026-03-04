@@ -67,4 +67,36 @@ WHEN NOT MATCHED THEN
         Assert.Single(t);
         Assert.Equal("NEW", (string)t[0][1]!);
     }
+
+    /// <summary>
+    /// EN: Ensures MERGE resolves source alias without AS for insert path.
+    /// PT: Garante que o merge resolva alias da fonte sem AS no caminho de inserção.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void Merge_SourceAliasWithoutAs_ShouldInsert_WhenNotMatched()
+    {
+        var db = new Db2DbMock(Db2Dialect.MergeMinVersion);
+        var t = db.AddTable("users");
+        t.AddColumn("Id", DbType.Int32, false);
+        t.AddColumn("Name", DbType.String, false);
+        t.AddPrimaryKeyIndexes("id");
+
+        using var cnn = new Db2ConnectionMock(db);
+        cnn.Open();
+
+        const string sql = @"
+MERGE INTO users target
+USING (SELECT 7 AS Id, 'Db2NoAs' AS Name) s
+ON target.Id = s.Id
+WHEN NOT MATCHED THEN
+    INSERT (Id, Name) VALUES (s.Id, s.Name)";
+
+        var affected = cnn.Execute(sql);
+
+        Assert.Equal(1, affected);
+        Assert.Single(t);
+        Assert.Equal(7, (int)t[0][0]!);
+        Assert.Equal("Db2NoAs", (string)t[0][1]!);
+    }
 }

@@ -58,14 +58,14 @@ internal static class DbUpdateStrategy
 
             // Valida Unique Constraints antes de aplicar
             var changedCols = setPairs.Select(sp => sp.Col).ToList();
-            ValidateUniqueBeforeUpdate(tableName, tableMock, pars, setPairs, rowIdx, row, changedCols);
+            ValidateUniqueBeforeUpdate(tableName, tableMock, pars, setPairs, rowIdx, row, changedCols, dialect);
 
             // Aplica Update
             var simulated = row.ToDictionary(_ => _.Key, _ => _.Value);
-            UpdateRowValuesInMemory(table, pars, setPairs, simulated);
+            UpdateRowValuesInMemory(table, pars, setPairs, simulated, dialect);
             tableMock.ValidateForeignKeysOnRow(new ReadOnlyDictionary<int, object?>(simulated));
             TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, SnapshotRow(new System.Collections.ObjectModel.ReadOnlyDictionary<int, object?>(simulated)));
-            UpdateRowValues(table, pars, setPairs, rowIdx, row);
+            UpdateRowValues(table, pars, setPairs, rowIdx, row, dialect);
             TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, SnapshotRow(table[rowIdx]));
 
             // Atualiza índices
@@ -86,11 +86,12 @@ internal static class DbUpdateStrategy
         (string Col, string Val)[] setPairs,
         int rowIdx,
         IReadOnlyDictionary<int, object?> row,
-        List<string> changedCols)
+        List<string> changedCols,
+        ISqlDialect dialect)
     {
         // Simula linha nova sem mutar a tabela
         var simulated = row.ToDictionary(_=>_.Key, _=>_.Value);
-        UpdateRowValuesInMemory(table, pars, setPairs, simulated); // aplica na simulação
+        UpdateRowValuesInMemory(table, pars, setPairs, simulated, dialect); // aplica na simulação
 
         table.EnsureUniqueBeforeUpdate(tableName, row, simulated, rowIdx, changedCols);
     }
@@ -100,14 +101,15 @@ internal static class DbUpdateStrategy
         DbParameterCollection? pars,
         (string Col, string Val)[] setPairs,
         int rowIdx,
-        IReadOnlyDictionary<int, object?> row)
+        IReadOnlyDictionary<int, object?> row,
+        ISqlDialect dialect)
     {
         foreach (var (Col, Val) in setPairs)
         {
             var info = table.GetColumn(Col);
             if (info.GetGenValue != null) continue; // Coluna gerada não se update
 
-            var raw = ResolveSetValue(table, pars, row, info, Col, Val);
+            var raw = ResolveSetValue(table, pars, row, info, Col, Val, dialect);
             table.UpdateRowColumn(rowIdx, info.Index, raw);
         }
     }
@@ -116,13 +118,14 @@ internal static class DbUpdateStrategy
         ITableMock table,
         DbParameterCollection? pars,
         (string Col, string Val)[] setPairs,
-        IDictionary<int, object?> row)
+        IDictionary<int, object?> row,
+        ISqlDialect dialect)
     {
         foreach (var (Col, Val) in setPairs)
         {
             var info = table.GetColumn(Col);
             if (info.GetGenValue != null) continue; // Coluna gerada não se update
-            var raw = ResolveSetValue(table, pars, new ReadOnlyDictionary<int, object?>(row), info, Col, Val);
+            var raw = ResolveSetValue(table, pars, new ReadOnlyDictionary<int, object?>(row), info, Col, Val, dialect);
             row[info.Index] = raw;
         }
     }
@@ -133,13 +136,17 @@ internal static class DbUpdateStrategy
         IReadOnlyDictionary<int, object?> row,
         ColumnDef info,
         string colName,
-        string exprRaw)
+        string exprRaw,
+        ISqlDialect dialect)
     {
         table.CurrentColumn = colName;
         try
         {
             if (TryEvalArithmeticSetValue(exprRaw, table, row, pars, info.DbType, info.Nullable, out var arith))
                 return arith;
+
+            if (TryResolveTemporalSetValue(exprRaw, dialect, out var temporalValue))
+                return temporalValue;
 
             var raw = table.Resolve(exprRaw, info.DbType, info.Nullable, pars, table.Columns);
             return raw is DBNull ? null : raw;
@@ -148,6 +155,34 @@ internal static class DbUpdateStrategy
         {
             table.CurrentColumn = null;
         }
+    }
+
+    /// <summary>
+    /// EN: Tries to resolve temporal tokens/functions used in UPDATE SET expressions for the current dialect.
+    /// PT: Tenta resolver tokens/funções temporais usados em expressões UPDATE SET para o dialeto atual.
+    /// </summary>
+    /// <param name="exprRaw">EN: Raw SET expression value. PT: Valor bruto da expressão SET.</param>
+    /// <param name="dialect">EN: Active SQL dialect. PT: Dialeto SQL ativo.</param>
+    /// <param name="value">EN: Resolved temporal value when successful. PT: Valor temporal resolvido quando houver sucesso.</param>
+    /// <returns>EN: True when expression maps to a supported temporal token/function. PT: True quando a expressão mapeia para token/função temporal suportada.</returns>
+    private static bool TryResolveTemporalSetValue(string exprRaw, ISqlDialect dialect, out object? value)
+    {
+        var trimmed = exprRaw.Trim();
+
+        if (SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, trimmed, out value))
+            return true;
+
+        var openParen = trimmed.IndexOf('(');
+        var closeParen = trimmed.LastIndexOf(')');
+        if (openParen <= 0 || closeParen <= openParen)
+            return false;
+
+        var functionName = trimmed[..openParen].Trim();
+        var argsRaw = trimmed[(openParen + 1)..closeParen].Trim();
+        if (argsRaw.Length > 0)
+            return false;
+
+        return SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, functionName, out value);
     }
 
     private static bool TryEvalArithmeticSetValue(

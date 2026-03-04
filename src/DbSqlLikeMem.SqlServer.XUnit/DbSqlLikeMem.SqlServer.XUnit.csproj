@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>SQL Server provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
+	</PropertyGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\DbSqlLikeMem.SqlServer\DbSqlLikeMem.SqlServer.csproj" />
+	  <ProjectReference Include="..\DbSqlLikeMem.XUnit\DbSqlLikeMem.XUnit.csproj" />
+	</ItemGroup>
+</Project>
