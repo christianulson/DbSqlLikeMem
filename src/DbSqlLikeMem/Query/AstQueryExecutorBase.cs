@@ -1120,11 +1120,89 @@ internal abstract class AstQueryExecutorBase(
 
         var hasAggregate = WalkHasAggregate(rewritten);
         var hasIdentifier = EnumerateIdentifiers(rewritten).Any();
-        if (hasAggregate || hasIdentifier)
+        var hasTemporalReference = WalkHasTemporalHavingReference(rewritten, Dialect!);
+        if (hasAggregate || hasIdentifier || hasTemporalReference)
             return rewritten;
 
         throw new InvalidOperationException(
             "invalid: HAVING must reference grouped columns, projected aliases, aggregates, or valid ordinals");
+    }
+
+    /// <summary>
+    /// EN: Detects whether HAVING expression references dialect temporal zero-arg tokens/functions.
+    /// PT: Detecta se a expressão HAVING referencia tokens/funções temporais zero-arg do dialeto.
+    /// </summary>
+    /// <param name="expr">EN: HAVING expression to inspect. PT: Expressão HAVING a inspecionar.</param>
+    /// <param name="dialect">EN: Active SQL dialect. PT: Dialeto SQL ativo.</param>
+    /// <returns>EN: True when expression contains temporal reference valid for HAVING semantics. PT: True quando a expressão contém referência temporal válida para semântica de HAVING.</returns>
+    private static bool WalkHasTemporalHavingReference(SqlExpr expr, ISqlDialect dialect)
+    {
+        switch (expr)
+        {
+            case IdentifierExpr id:
+                return dialect.TemporalFunctionIdentifierNames.Any(name =>
+                    name.Equals(id.Name, StringComparison.OrdinalIgnoreCase));
+
+            case FunctionCallExpr fn:
+                if (fn.Args.Count == 0 && dialect.TemporalFunctionCallNames.Any(name =>
+                        name.Equals(fn.Name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+                return fn.Args.Any(arg => WalkHasTemporalHavingReference(arg, dialect));
+
+            case CallExpr call:
+                if (call.Args.Count == 0 && dialect.TemporalFunctionCallNames.Any(name =>
+                        name.Equals(call.Name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+                return call.Args.Any(arg => WalkHasTemporalHavingReference(arg, dialect));
+
+            case BinaryExpr b:
+                return WalkHasTemporalHavingReference(b.Left, dialect)
+                    || WalkHasTemporalHavingReference(b.Right, dialect);
+
+            case UnaryExpr u:
+                return WalkHasTemporalHavingReference(u.Expr, dialect);
+
+            case IsNullExpr isn:
+                return WalkHasTemporalHavingReference(isn.Expr, dialect);
+
+            case LikeExpr like:
+                return WalkHasTemporalHavingReference(like.Left, dialect)
+                    || WalkHasTemporalHavingReference(like.Pattern, dialect);
+
+            case InExpr i:
+                if (WalkHasTemporalHavingReference(i.Left, dialect))
+                    return true;
+                return i.Items.Any(item => WalkHasTemporalHavingReference(item, dialect));
+
+            case RowExpr r:
+                return r.Items.Any(item => WalkHasTemporalHavingReference(item, dialect));
+
+            case BetweenExpr bt:
+                return WalkHasTemporalHavingReference(bt.Expr, dialect)
+                    || WalkHasTemporalHavingReference(bt.Low, dialect)
+                    || WalkHasTemporalHavingReference(bt.High, dialect);
+
+            case CaseExpr c:
+                if (c.BaseExpr is not null && WalkHasTemporalHavingReference(c.BaseExpr, dialect))
+                    return true;
+
+                foreach (var whenThen in c.Whens)
+                {
+                    if (WalkHasTemporalHavingReference(whenThen.When, dialect))
+                        return true;
+                    if (WalkHasTemporalHavingReference(whenThen.Then, dialect))
+                        return true;
+                }
+
+                return c.ElseExpr is not null && WalkHasTemporalHavingReference(c.ElseExpr, dialect);
+
+            default:
+                return false;
+        }
     }
 
     private SqlExpr RewriteHavingOrdinals(
