@@ -48,7 +48,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Preservação da experiência de uso próxima ao fluxo SQL tradicional.
 
 #### 1.2.3 Regras por dialeto e versão
-- Implementação estimada: **70%**.
+- Implementação estimada: **76%**.
 - Ativa/desativa construções sintáticas por provedor e versão.
 - Trata incompatibilidades históricas entre bancos diferentes.
 - Direciona comportamento esperado em testes de compatibilidade.
@@ -63,8 +63,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Backlog operacional segue cadência priorizada P0→P14 para reduzir dispersão de implementação entre parser/executor/docs.
 
 #### 1.2.5 Funções SQL agregadoras e de composição de texto
-- Implementação estimada: **82%**.
-- Parser agora sinaliza explicitamente `WITHIN GROUP` (ordered-set aggregates) como não suportado com mensagem acionável por dialeto.
+- Implementação estimada: **91%**.
+- Parser e AST agora suportam `WITHIN GROUP (ORDER BY ...)` para agregações textuais com gate explícito por dialeto/função.
+- Cobertura atual inclui parsing de ordenação simples e composta, validação de cláusula malformada (`WITHIN GROUP requires ORDER BY`) e cenários negativos por função não nativa no dialeto.
+- Runtime aplica a ordenação de `WITHIN GROUP` antes da agregação, incluindo combinações com `DISTINCT` e separador customizado.
 
 #### 1.2.6 Funções de data/hora cross-dialect
 - Implementação estimada: **93%**.
@@ -115,7 +117,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 ### 1.3 Executor SQL
 
 #### 1.3.1 Pipeline de execução
-- Implementação estimada: **62%**.
+- Implementação estimada: **69%**.
 - Fluxo macro: parse → validação → execução no estado em memória → materialização de resultado.
 - Track global de alinhamento de runtime estimado em ~55%, com evolução incremental por contracts de dialeto.
 - Recalibrado por evidências de código: executor AST, estratégias de mutação por dialeto e ampla suíte `*StrategyTests`/`*GapTests` por provider.
@@ -123,7 +125,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Retorno previsível para facilitar asserts em testes.
 
 #### 1.3.2 Operações comuns suportadas
-- Implementação estimada: **82%**.
+- Implementação estimada: **86%**.
 - Fluxos DDL/DML de uso frequente em aplicações corporativas .NET.
 - Cenários com múltiplos comandos por contexto de teste.
 - Execução orientada a simulação funcional (não benchmark de banco real).
@@ -148,12 +150,13 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
     - manter suíte de rowcount por dialeto atualizada conforme expansão de parser/executor.
 
 #### 1.3.3 Resultados e consistência
-- Implementação estimada: **84%**.
+- Implementação estimada: **88%**.
 - Entrega de resultados em formatos esperados por consumidores ADO.NET.
 - Coerência entre operação executada e estado final da base simulada.
 - Comportamento determinístico para repetição do mesmo script.
 - Hardening recente reforçou previsibilidade de regressão com foco em mensagens de erro não suportado e consistência de diagnóstico.
 - Checklist operacional confirma padronização de `SqlUnsupported.ForDialect(...)` no runtime para fluxos não suportados.
+- Hardening recente também consolidou semântica ordered-set para agregações textuais com cobertura de ordenação `ASC/DESC`, ordenação composta e `DISTINCT + WITHIN GROUP` nos dialetos suportados.
 
 #### 1.3.4 Particionamento de tabelas (avaliação)
 - Implementação estimada: **8%**.

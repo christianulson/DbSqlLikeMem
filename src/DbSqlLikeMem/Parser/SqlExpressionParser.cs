@@ -913,13 +913,7 @@ internal sealed class SqlExpressionParser(
         if (IsSymbol(Peek(), "("))
         {
             var call = ParseCallAfterName(name);
-
-            if (IsKeywordOrIdentifierWord(Peek(), "WITHIN"))
-            {
-                throw SqlUnsupported.ForDialect(
-                    _dialect,
-                    $"ordered-set aggregate syntax WITHIN GROUP for function '{call.Name}'");
-            }
+            call = ParseWithinGroupOrderByIfPresent(call);
 
             // ✅ Window function: ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)
             if (IsKeywordOrIdentifierWord(Peek(), "OVER"))
@@ -1254,6 +1248,65 @@ internal sealed class SqlExpressionParser(
 
         ExpectSymbol(")");
         return new CallExpr(name, args, distinct);
+    }
+
+    private CallExpr ParseWithinGroupOrderByIfPresent(CallExpr call)
+    {
+        if (!IsKeywordOrIdentifierWord(Peek(), "WITHIN"))
+            return call;
+
+        var normalizedName = call.Name.ToUpperInvariant();
+        if (normalizedName is not "GROUP_CONCAT" and not "STRING_AGG" and not "LISTAGG")
+        {
+            throw SqlUnsupported.ForDialect(
+                _dialect,
+                $"ordered-set aggregate syntax WITHIN GROUP for function '{call.Name}'");
+        }
+
+        if (!_dialect.SupportsWithinGroupForStringAggregates)
+            throw SqlUnsupported.ForDialect(_dialect, "ordered-set aggregate syntax WITHIN GROUP");
+
+        if (!_dialect.SupportsWithinGroupStringAggregateFunction(call.Name))
+            throw SqlUnsupported.ForDialect(_dialect, $"ordered-set aggregate syntax WITHIN GROUP for function '{call.Name}'");
+
+        Consume(); // WITHIN
+        ExpectWord("GROUP");
+        ExpectSymbol("(");
+
+        if (!IsKeywordOrIdentifierWord(Peek(), "ORDER"))
+            throw Error("WITHIN GROUP requires ORDER BY", Peek());
+        Consume();
+
+        if (!IsKeywordOrIdentifierWord(Peek(), "BY"))
+            throw Error("WITHIN GROUP requires ORDER BY", Peek());
+        Consume();
+
+        var orderBy = new List<WindowOrderItem>();
+        while (true)
+        {
+            var expr = ParseExpression(0);
+
+            var desc = false;
+            if (IsKeywordOrIdentifierWord(Peek(), "DESC"))
+            {
+                Consume();
+                desc = true;
+            }
+            else if (IsKeywordOrIdentifierWord(Peek(), "ASC"))
+            {
+                Consume();
+            }
+
+            orderBy.Add(new WindowOrderItem(expr, desc));
+
+            if (!IsSymbol(Peek(), ","))
+                break;
+
+            Consume();
+        }
+
+        ExpectSymbol(")");
+        return call with { WithinGroupOrderBy = orderBy };
     }
 
     private WindowSpec ParseWindowSpec()

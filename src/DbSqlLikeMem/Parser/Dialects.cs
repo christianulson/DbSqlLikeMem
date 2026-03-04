@@ -136,6 +136,8 @@ internal interface ISqlDialect
     bool SupportsWindowFunction(string functionName);
     bool RequiresOrderByInWindowFunction(string functionName);
     bool TryGetWindowFunctionArgumentArity(string functionName, out int minArgs, out int maxArgs);
+    bool SupportsWithinGroupForStringAggregates { get; }
+    bool SupportsWithinGroupStringAggregateFunction(string functionName);
     bool SupportsPivotClause { get; }
     DbType InferWindowFunctionDbType(WindowFunctionExpr windowFunctionExpr, Func<SqlExpr, DbType> inferArgDbType);
 }
@@ -367,6 +369,18 @@ internal abstract class SqlDialectBase : ISqlDialect
     }
 
     public virtual bool SupportsLikeEscapeClause => true;
+
+    public virtual bool SupportsWithinGroupForStringAggregates => false;
+
+    public virtual bool SupportsWithinGroupStringAggregateFunction(string functionName)
+    {
+        if (!SupportsWithinGroupForStringAggregates || string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        return functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase);
+    }
 
     public virtual bool IsRowNumberWindowFunction(string functionName)
         => functionName.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase);

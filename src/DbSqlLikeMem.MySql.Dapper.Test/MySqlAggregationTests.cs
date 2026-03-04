@@ -170,8 +170,8 @@ public sealed class MySqlAggregationTests : AggregationHavingOrdinalTestsBase<My
     }
 
     /// <summary>
-    /// EN: Ensures ordered-set syntax WITHIN GROUP produces actionable not-supported error.
-    /// PT: Garante que a sintaxe ordered-set WITHIN GROUP gere erro claro de não suportado.
+    /// EN: Ensures ordered-set syntax WITHIN GROUP remains blocked for MySQL string aggregation.
+    /// PT: Garante que a sintaxe ordered-set WITHIN GROUP continue bloqueada para agregação textual no MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]

@@ -172,14 +172,47 @@ public sealed class Db2AggregationTests : AggregationHavingOrdinalTestsBase<Db2D
 
 
     /// <summary>
-    /// EN: Ensures ordered-set syntax WITHIN GROUP produces actionable not-supported error.
-    /// PT: Garante que a sintaxe ordered-set WITHIN GROUP gere erro claro de não suportado.
+    /// EN: Ensures ordered-set syntax WITHIN GROUP applies ORDER BY to string aggregation output.
+    /// PT: Garante que a sintaxe ordered-set WITHIN GROUP aplique ORDER BY na saída da agregação textual.
     /// </summary>
     [Fact]
     [Trait("Category", "Aggregation")]
-    public void StringAggregation_WithinGroup_ShouldThrowNotSupported()
+    public void StringAggregation_WithinGroup_ShouldApplyOrderBy()
     {
-        AssertWithinGroupNotSupported("SELECT LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC) AS joined FROM orders");
+        AssertWithinGroupOrdersAggregation("SELECT LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC) AS joined FROM orders", "30|10|5");
+    }
+
+    /// <summary>
+    /// EN: Ensures WITHIN GROUP ascending order is applied by string aggregation.
+    /// PT: Garante que a ordenação ascendente do WITHIN GROUP seja aplicada na agregação textual.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Aggregation")]
+    public void StringAggregation_WithinGroupAscending_ShouldApplyOrderBy()
+    {
+        AssertWithinGroupOrdersAggregation("SELECT LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount ASC) AS joined FROM orders", "5|10|30");
+    }
+
+    /// <summary>
+    /// EN: Ensures WITHIN GROUP supports composite ORDER BY expressions.
+    /// PT: Garante que WITHIN GROUP suporte expressões compostas no ORDER BY.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Aggregation")]
+    public void StringAggregation_WithinGroupCompositeOrder_ShouldApplyOrderBy()
+    {
+        AssertWithinGroupCompositeOrdering("SELECT LISTAGG(val, '|') WITHIN GROUP (ORDER BY ord1 ASC, ord2 ASC) AS joined FROM textagg_order WHERE grp = 1", "b|a|c");
+    }
+
+    /// <summary>
+    /// EN: Ensures DISTINCT respects WITHIN GROUP ordering semantics.
+    /// PT: Garante que DISTINCT respeite a semântica de ordenação do WITHIN GROUP.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Aggregation")]
+    public void StringAggregation_DistinctWithinGroupCompositeOrder_ShouldApplyOrderBy()
+    {
+        AssertWithinGroupDistinctOrdering("SELECT LISTAGG(DISTINCT val, '|') WITHIN GROUP (ORDER BY ord1 ASC, ord2 ASC) AS joined FROM textagg_distinct_order WHERE grp = 1", "b|a");
     }
 
 

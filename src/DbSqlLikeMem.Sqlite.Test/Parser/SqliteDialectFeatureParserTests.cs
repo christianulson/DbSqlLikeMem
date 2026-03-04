@@ -477,4 +477,38 @@ public sealed class SqliteDialectFeatureParserTests
         Assert.Contains("window frame", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Ensures WITHIN GROUP ordered-set syntax remains unsupported for SQLite aggregates.
+    /// PT: Garante que a sintaxe ordered-set WITHIN GROUP continue não suportada para agregações SQLite.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseScalar_StringAggregateWithinGroup_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed WITHIN GROUP syntax in SQLite still fails as not-supported (dialect gate precedence).
+    /// PT: Garante que sintaxe malformada de WITHIN GROUP no SQLite continue falhando como não suportada (precedência do gate de dialeto).
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseScalar_StringAggregateWithinGroupMalformed_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 }
