@@ -557,11 +557,11 @@ public sealed class MySqlMockTests
     public void TestSelect_SqlCalcFoundRows_ShouldExposeCountInFoundRows()
     {
         using var command = new MySqlCommandMock(_connection);
-        command.CommandText = """
-            INSERT INTO Users (Id, Name, Email) VALUES (101, 'Ana', NULL);
-            INSERT INTO Users (Id, Name, Email) VALUES (102, 'Bia', NULL);
-            INSERT INTO Users (Id, Name, Email) VALUES (103, 'Caio', NULL);
-            """;
+        command.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (101, 'Ana', NULL)";
+        command.ExecuteNonQuery();
+        command.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (102, 'Bia', NULL)";
+        command.ExecuteNonQuery();
+        command.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (103, 'Caio', NULL)";
         command.ExecuteNonQuery();
 
         command.CommandText = "SELECT SQL_CALC_FOUND_ROWS Name FROM Users ORDER BY Id LIMIT 1; SELECT FOUND_ROWS();";
