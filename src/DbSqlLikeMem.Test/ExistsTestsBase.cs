@@ -1031,6 +1031,68 @@ ORDER BY u.Id";
         GetTableHintCount(cnn, "orders").Should().Be(1);
     }
 
+    /// <summary>
+    /// EN: Tests equivalent correlated EXISTS subqueries with different projection payloads share the same cache entry.
+    /// PT: Testa que subqueries EXISTS correlacionadas equivalentes com payloads de projeção diferentes compartilham a mesma entrada de cache.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void Exists_EquivalentCorrelatedSubqueriesWithDifferentProjectionPayload_ShouldShareCache()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        for (var i = 0; i < 80; i++)
+            cnn.Seed("users", null, [1, $"Name-{i}"]);
+
+        cnn.Seed("orders", null,
+            [10, 1, 50m],
+            [11, 1, 60m]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE EXISTS (SELECT 1 FROM orders o WHERE o.UserId = u.Id AND o.Amount > 0)
+  AND EXISTS (SELECT o.Amount FROM orders o WHERE o.UserId = u.Id AND o.Amount > 0)
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().HaveCount(80);
+        GetTableHintCount(cnn, "orders").Should().Be(1);
+    }
+
+    /// <summary>
+    /// EN: Tests equivalent correlated EXISTS subqueries with DISTINCT projection payload variation share the same cache entry.
+    /// PT: Testa que subqueries EXISTS correlacionadas equivalentes com variação de payload de projeção DISTINCT compartilham a mesma entrada de cache.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void Exists_EquivalentCorrelatedSubqueriesWithDistinctProjectionPayload_ShouldShareCache()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        for (var i = 0; i < 80; i++)
+            cnn.Seed("users", null, [1, $"Name-{i}"]);
+
+        cnn.Seed("orders", null,
+            [10, 1, 50m],
+            [11, 1, 60m]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE EXISTS (SELECT DISTINCT o.Amount FROM orders o WHERE o.UserId = u.Id AND o.Amount > 0)
+  AND EXISTS (SELECT 1 FROM orders o WHERE o.UserId = u.Id AND o.Amount > 0)
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().HaveCount(80);
+        GetTableHintCount(cnn, "orders").Should().Be(1);
+    }
+
     private static void DefineUsersAndOrdersTables(
         DbConnectionMockBase cnn)
     {

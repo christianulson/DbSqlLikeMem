@@ -4058,6 +4058,7 @@ private void FillPercentRankOrCumeDist(
     private static string BuildCorrelatedSubqueryCacheKey(string operation, string? subquerySql, EvalRow row)
     {
         var normalizedSubquerySql = NormalizeSubquerySqlForCacheKey(subquerySql ?? string.Empty);
+        normalizedSubquerySql = NormalizeOperationSpecificSubquerySqlForCacheKey(operation, normalizedSubquerySql);
         var sb = new StringBuilder();
         sb.Append(operation);
         sb.Append('\u001F');
@@ -4074,6 +4075,22 @@ private void FillPercentRankOrCumeDist(
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// EN: Applies operation-specific canonicalization rules for subquery SQL used in correlated cache keys.
+    /// PT: Aplica regras de canonização específicas por operação para SQL de subquery usado em chaves de cache correlacionado.
+    /// </summary>
+    private static string NormalizeOperationSpecificSubquerySqlForCacheKey(
+        string operation,
+        string normalizedSubquerySql)
+    {
+        if (string.IsNullOrWhiteSpace(normalizedSubquerySql))
+            return string.Empty;
+
+        return string.Equals(operation, "EXISTS", StringComparison.OrdinalIgnoreCase)
+            ? NormalizeExistsProjectionPayloadForCacheKey(normalizedSubquerySql)
+            : normalizedSubquerySql;
     }
 
     /// <summary>
@@ -4644,6 +4661,84 @@ private void FillPercentRankOrCumeDist(
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// EN: Canonicalizes top-level EXISTS subquery projection payload by replacing SELECT list with a fixed token while preserving relational clauses.
+    /// PT: Canoniza o payload de projeção de subquery EXISTS no nível de topo substituindo a lista do SELECT por token fixo preservando cláusulas relacionais.
+    /// </summary>
+    private static string NormalizeExistsProjectionPayloadForCacheKey(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            return string.Empty;
+
+        if (!TryFindTopLevelKeywordIndex(sql, "SELECT", 0, out var selectIndex))
+            return sql;
+
+        var afterSelect = selectIndex + "SELECT".Length;
+        if (!TryFindTopLevelKeywordIndex(sql, "FROM", afterSelect, out var fromIndex))
+            return sql;
+
+        if (fromIndex <= afterSelect)
+            return sql;
+
+        return string.Concat(
+            sql.AsSpan(0, afterSelect),
+            " <EXISTS_PAYLOAD> ",
+            sql.AsSpan(fromIndex));
+    }
+
+    /// <summary>
+    /// EN: Tries to find a top-level SQL keyword index outside quoted segments and nested parentheses, starting from a given position.
+    /// PT: Tenta localizar o índice de uma palavra-chave SQL no topo fora de segmentos entre aspas e parênteses aninhados, iniciando em uma posição informada.
+    /// </summary>
+    private static bool TryFindTopLevelKeywordIndex(
+        string sql,
+        string keyword,
+        int startIndex,
+        out int keywordIndex)
+    {
+        keywordIndex = -1;
+        if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(keyword))
+            return false;
+
+        var safeStart = Math.Clamp(startIndex, 0, sql.Length);
+        var depth = 0;
+        for (var i = safeStart; i < sql.Length; i++)
+        {
+            var ch = sql[i];
+            if (ch == '\'' || ch == '"' || ch == '`')
+            {
+                i = FindQuotedSegmentEndIndex(sql, i, ch);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                i = FindBracketSegmentEndIndex(sql, i);
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch == ')' && depth > 0)
+            {
+                depth--;
+                continue;
+            }
+
+            if (depth == 0 && MatchesKeywordTokenAt(sql, i, keyword))
+            {
+                keywordIndex = i;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
