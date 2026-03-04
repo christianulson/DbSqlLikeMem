@@ -1074,7 +1074,7 @@ internal abstract class AstQueryExecutorBase(
         return grouped.Where(g =>
         {
             var evalCtx = BuildHavingEvaluationContext(g, aliasExprs, ctes, out var evalGroup);
-            EnsureHavingIdentifiersAreBound(havingExpr, evalCtx);
+            EnsureHavingIdentifiersAreBound(havingExpr, evalCtx, Dialect!);
             return Eval(havingExpr, evalCtx, evalGroup, ctes).ToBool();
         });
     }
@@ -1274,16 +1274,29 @@ internal abstract class AstQueryExecutorBase(
         }
     }
 
-    private static void EnsureHavingIdentifiersAreBound(SqlExpr expr, EvalRow row)
+    private static void EnsureHavingIdentifiersAreBound(SqlExpr expr, EvalRow row, ISqlDialect dialect)
     {
         foreach (var name in EnumerateIdentifiers(expr))
         {
+            if (IsHavingTemporalIdentifier(name, dialect))
+                continue;
+
             if (IsIdentifierBound(row, name))
                 continue;
 
             throw new InvalidOperationException($"invalid: HAVING reference '{name}' was not found in grouped projection");
         }
     }
+
+    /// <summary>
+    /// EN: Checks whether a HAVING identifier maps to a temporal token supported as identifier by the active dialect.
+    /// PT: Verifica se um identificador no HAVING mapeia para token temporal suportado como identificador pelo dialeto ativo.
+    /// </summary>
+    /// <param name="name">EN: Identifier collected from HAVING expression. PT: Identificador coletado da expressão HAVING.</param>
+    /// <param name="dialect">EN: Active SQL dialect. PT: Dialeto SQL ativo.</param>
+    /// <returns>EN: True when identifier is a dialect temporal token allowed without projection binding. PT: True quando o identificador é token temporal do dialeto permitido sem binding de projeção.</returns>
+    private static bool IsHavingTemporalIdentifier(string name, ISqlDialect dialect)
+        => dialect.TemporalFunctionIdentifierNames.Any(token => token.Equals(name, StringComparison.OrdinalIgnoreCase));
 
     private static bool IsIdentifierBound(EvalRow row, string name)
     {

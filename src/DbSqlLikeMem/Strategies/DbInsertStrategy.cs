@@ -165,7 +165,7 @@ internal static class DbInsertStrategy
                 for (int i = 0; i < valueBlock.Count; i++)
                 {
                     if (i >= targetCols.Count) break;
-                    SetColValue(table, pars, targetCols[i].Index, valueBlock[i], newRow);
+                    SetColValue(table, pars, targetCols[i].Index, valueBlock[i], newRow, dialect);
                 }
             }
             else if (colNames.Count > 0)
@@ -174,7 +174,7 @@ internal static class DbInsertStrategy
                 for (int i = 0; i < colNames.Count; i++)
                 {
                     var colInfo = ResolveInsertColumn(table, colNames[i], dialect);
-                    SetColValue(table, pars, colInfo.Index, valueBlock[i], newRow);
+                    SetColValue(table, pars, colInfo.Index, valueBlock[i], newRow, dialect);
                 }
             }
 
@@ -312,14 +312,18 @@ internal static class DbInsertStrategy
         DbParameterCollection? pars,
         int colIndex,
         string rawValue,
-        Dictionary<int, object?> row)
+        Dictionary<int, object?> row,
+        ISqlDialect dialect)
     {
         // Encontra definição da coluna para saber tipo
         var colDef = table.Columns.Values.First(c => c.Index == colIndex);
 
         // Resolve valor
         table.CurrentColumn = table.Columns.First(c => c.Value.Index == colIndex).Key;
-        var resolved = table.Resolve(rawValue, colDef.DbType, colDef.Nullable, pars, table.Columns);
+        var trimmedValue = rawValue.Trim();
+        var resolved = SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, trimmedValue, out var temporalIdentifierValue)
+            ? temporalIdentifierValue
+            : table.Resolve(rawValue, colDef.DbType, colDef.Nullable, pars, table.Columns);
         table.CurrentColumn = null;
 
         var val = (resolved is DBNull) ? null : resolved;
