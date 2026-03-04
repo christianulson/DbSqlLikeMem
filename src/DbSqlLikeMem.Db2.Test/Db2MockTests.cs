@@ -251,6 +251,9 @@ public sealed class Db2MockTests
     public void TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount()
     {
         using var command = new Db2CommandMock(_connection);
+        command.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (201, 'RowCount Seed', NULL)";
+        command.ExecuteNonQuery();
+
         command.CommandText = "SELECT Name FROM Users ORDER BY Id FETCH FIRST 1 ROWS ONLY; SELECT ROW_COUNT();";
         using var reader = command.ExecuteReader();
 
