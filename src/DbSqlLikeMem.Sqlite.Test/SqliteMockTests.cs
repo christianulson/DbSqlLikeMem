@@ -196,6 +196,10 @@ public sealed class SqliteMockTests
         base.Dispose(disposing);
     }
 
+    /// <summary>
+    /// EN: Verifies FOUND_ROWS returns the row count from the last SELECT in the same batch.
+    /// PT: Verifica que FOUND_ROWS retorna a contagem de linhas do último SELECT no mesmo batch.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestSelect_FoundRows_ShouldReturnLastSelectRowCount()
@@ -219,6 +223,10 @@ public sealed class SqliteMockTests
     }
 
 
+    /// <summary>
+    /// EN: Verifies CHANGES returns affected rows for the last UPDATE statement.
+    /// PT: Verifica que CHANGES retorna as linhas afetadas pelo último UPDATE.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestUpdate_ChangesFunction_ShouldReturnAffectedRows()
@@ -237,6 +245,10 @@ public sealed class SqliteMockTests
     }
 
 
+    /// <summary>
+    /// EN: Verifies CHANGES returns zero immediately after beginning a transaction.
+    /// PT: Verifica que CHANGES retorna zero imediatamente após iniciar uma transação.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestBeginTransaction_ChangesFunction_ShouldReturnZero()
@@ -253,6 +265,10 @@ public sealed class SqliteMockTests
 
 
 
+    /// <summary>
+    /// EN: Verifies a BEGIN TRANSACTION followed by CHANGES returns zero in batch execution.
+    /// PT: Verifica que BEGIN TRANSACTION seguido de CHANGES retorna zero em execução em batch.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestBatch_BeginTransactionThenChanges_ShouldReturnZero()
@@ -268,6 +284,10 @@ public sealed class SqliteMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    /// <summary>
+    /// EN: Verifies CALL followed by CHANGES returns zero when no DML affected rows.
+    /// PT: Verifica que CALL seguido de CHANGES retorna zero quando nenhum DML afetou linhas.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestBatch_CallThenChanges_ShouldReturnZero()
@@ -285,6 +305,10 @@ public sealed class SqliteMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    /// <summary>
+    /// EN: Verifies CHANGES returns zero after COMMIT in a batch that previously updated rows.
+    /// PT: Verifica que CHANGES retorna zero após COMMIT em um batch que atualizou linhas anteriormente.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestBatch_UpdateCommitThenChanges_ShouldReturnZeroAfterCommit()
@@ -301,6 +325,10 @@ public sealed class SqliteMockTests
     }
 
 
+    /// <summary>
+    /// EN: Verifies CHANGES returns zero after rolling back to a savepoint in batch execution.
+    /// PT: Verifica que CHANGES retorna zero após rollback para savepoint em execução em batch.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestBatch_RollbackToSavepointThenChanges_ShouldReturnZero()
@@ -316,6 +344,10 @@ public sealed class SqliteMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    /// <summary>
+    /// EN: Verifies CHANGES returns zero after releasing a savepoint in batch execution.
+    /// PT: Verifica que CHANGES retorna zero após liberar um savepoint em execução em batch.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestBatch_ReleaseSavepointThenChanges_ShouldReturnZero()
@@ -449,7 +481,7 @@ public sealed class SqliteMockTests
         Assert.Equal(603, reader.GetInt32(reader.GetOrdinal("Id")));
         Assert.Equal("To Delete", reader.GetString(reader.GetOrdinal("Name")));
         Assert.False(reader.Read());
-        Assert.Empty(_connection.GetTable("users").Where(r => Convert.ToInt32(r[0]) == 603));
+        Assert.DoesNotContain(_connection.GetTable("users"), r => Convert.ToInt32(r[0]) == 603);
     }
 
     [Fact]

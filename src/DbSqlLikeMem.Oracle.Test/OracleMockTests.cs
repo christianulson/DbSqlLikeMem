@@ -186,6 +186,10 @@ public sealed class OracleMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TemporalFunctions_ShouldWorkInSelectAndWhere behavior.
+    /// PT: Testa o comportamento de TemporalFunctions_ShouldWorkInSelectAndWhere.
+    /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
     public void TemporalFunctions_ShouldWorkInSelectAndWhere()
@@ -220,6 +224,10 @@ public sealed class OracleMockTests
         base.Dispose(disposing);
     }
 
+    /// <summary>
+    /// EN: Tests TestSelect_FoundRows_ShouldReturnLastSelectRowCount behavior.
+    /// PT: Testa o comportamento de TestSelect_FoundRows_ShouldReturnLastSelectRowCount.
+    /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
     public void TestSelect_FoundRows_ShouldReturnLastSelectRowCount()
@@ -243,6 +251,10 @@ public sealed class OracleMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount behavior.
+    /// PT: Testa o comportamento de TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount.
+    /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
     public void TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount()
@@ -259,6 +271,10 @@ public sealed class OracleMockTests
 
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_BeginTransactionThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_BeginTransactionThenRowCount_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
     public void TestBatch_BeginTransactionThenRowCount_ShouldReturnZero()
@@ -274,6 +290,10 @@ public sealed class OracleMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_CallThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_CallThenRowCount_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
     public void TestBatch_CallThenRowCount_ShouldReturnZero()
@@ -291,6 +311,10 @@ public sealed class OracleMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit behavior.
+    /// PT: Testa o comportamento de TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit.
+    /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
     public void TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit()
@@ -307,6 +331,10 @@ public sealed class OracleMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
     public void TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero()
@@ -322,6 +350,10 @@ public sealed class OracleMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
     public void TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero()
@@ -338,6 +370,10 @@ public sealed class OracleMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml behavior.
+    /// PT: Testa o comportamento de TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml.
+    /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
     public void TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml()
@@ -356,6 +392,10 @@ public sealed class OracleMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit behavior.
+    /// PT: Testa o comportamento de TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit.
+    /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
     public void TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit()
@@ -374,6 +414,10 @@ public sealed class OracleMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect behavior.
+    /// PT: Testa o comportamento de TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect.
+    /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
     public void TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect()
@@ -394,6 +438,10 @@ public sealed class OracleMockTests
         Assert.Equal(2L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteNonQuery_InsertReturningInto_ShouldPopulateOutputParameter behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery_InsertReturningInto_ShouldPopulateOutputParameter.
+    /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
     public void ExecuteNonQuery_InsertReturningInto_ShouldPopulateOutputParameter()
@@ -403,7 +451,7 @@ public sealed class OracleMockTests
             CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (801, 'Returning Into', 'insert@test.local') RETURNING Id INTO :out_id"
         };
 
-        var outParam = new Oracle.ManagedDataAccess.Client.OracleParameter(":out_id", Oracle.ManagedDataAccess.Client.OracleDbType.Int32)
+        var outParam = new OracleParameter(":out_id", OracleDbType.Int32)
         {
             Direction = ParameterDirection.Output
         };
@@ -415,6 +463,10 @@ public sealed class OracleMockTests
         Assert.Equal(801, Convert.ToInt32(outParam.Value, CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteNonQuery_UpdateReturningInto_ShouldPopulateOutputParameter behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery_UpdateReturningInto_ShouldPopulateOutputParameter.
+    /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
     public void ExecuteNonQuery_UpdateReturningInto_ShouldPopulateOutputParameter()
@@ -430,7 +482,7 @@ public sealed class OracleMockTests
             CommandText = "UPDATE Users SET Name = 'After Update' WHERE Id = 802 RETURNING Name INTO :out_name"
         };
 
-        var outParam = new Oracle.ManagedDataAccess.Client.OracleParameter(":out_name", Oracle.ManagedDataAccess.Client.OracleDbType.Varchar2)
+        var outParam = new OracleParameter(":out_name", OracleDbType.Varchar2)
         {
             Direction = ParameterDirection.Output
         };
@@ -442,6 +494,10 @@ public sealed class OracleMockTests
         Assert.Equal("After Update", Convert.ToString(outParam.Value, CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteNonQuery_DeleteReturningInto_ShouldPopulateOutputParameter behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery_DeleteReturningInto_ShouldPopulateOutputParameter.
+    /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
     public void ExecuteNonQuery_DeleteReturningInto_ShouldPopulateOutputParameter()
@@ -457,7 +513,7 @@ public sealed class OracleMockTests
             CommandText = "DELETE FROM Users WHERE Id = 803 RETURNING Name INTO :out_name"
         };
 
-        var outParam = new Oracle.ManagedDataAccess.Client.OracleParameter(":out_name", Oracle.ManagedDataAccess.Client.OracleDbType.Varchar2)
+        var outParam = new OracleParameter(":out_name", OracleDbType.Varchar2)
         {
             Direction = ParameterDirection.Output
         };
@@ -467,7 +523,8 @@ public sealed class OracleMockTests
 
         Assert.Equal(1, affected);
         Assert.Equal("To Delete", Convert.ToString(outParam.Value, CultureInfo.InvariantCulture));
-        Assert.Empty(_connection.GetTable("Users").Where(r => Convert.ToInt32(r[0], CultureInfo.InvariantCulture) == 803));
+        Assert.DoesNotContain(_connection.GetTable("Users"), r => Convert.ToInt32(r[0], CultureInfo.InvariantCulture) == 803);
     }
 
 }
+

@@ -216,6 +216,10 @@ public sealed class SqlServerMockTests
         base.Dispose(disposing);
     }
 
+    /// <summary>
+    /// EN: Tests TestSelect_FoundRows_ShouldReturnLastSelectRowCount behavior.
+    /// PT: Testa o comportamento de TestSelect_FoundRows_ShouldReturnLastSelectRowCount.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestSelect_FoundRows_ShouldReturnLastSelectRowCount()
@@ -239,6 +243,10 @@ public sealed class SqlServerMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount behavior.
+    /// PT: Testa o comportamento de TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount()
@@ -254,6 +262,10 @@ public sealed class SqlServerMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestSelect_SystemRowCountVariable_ShouldReturnLastSelectRowCount behavior.
+    /// PT: Testa o comportamento de TestSelect_SystemRowCountVariable_ShouldReturnLastSelectRowCount.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestSelect_SystemRowCountVariable_ShouldReturnLastSelectRowCount()
@@ -269,6 +281,10 @@ public sealed class SqlServerMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestUpdate_SystemRowCountVariable_ShouldReturnAffectedRows behavior.
+    /// PT: Testa o comportamento de TestUpdate_SystemRowCountVariable_ShouldReturnAffectedRows.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestUpdate_SystemRowCountVariable_ShouldReturnAffectedRows()
@@ -287,6 +303,10 @@ public sealed class SqlServerMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestCreateView_SystemRowCountVariable_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestCreateView_SystemRowCountVariable_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestCreateView_SystemRowCountVariable_ShouldReturnZero()
@@ -303,6 +323,10 @@ public sealed class SqlServerMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBeginTransaction_SystemRowCountVariable_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBeginTransaction_SystemRowCountVariable_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBeginTransaction_SystemRowCountVariable_ShouldReturnZero()
@@ -317,6 +341,10 @@ public sealed class SqlServerMockTests
         Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_BeginTransactionThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_BeginTransactionThenRowCount_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_BeginTransactionThenRowCount_ShouldReturnZero()
@@ -332,6 +360,10 @@ public sealed class SqlServerMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_BeginSavepointThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_BeginSavepointThenRowCount_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_BeginSavepointThenRowCount_ShouldReturnZero()
@@ -347,6 +379,10 @@ public sealed class SqlServerMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_CallThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_CallThenRowCount_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_CallThenRowCount_ShouldReturnZero()
@@ -364,6 +400,10 @@ public sealed class SqlServerMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit behavior.
+    /// PT: Testa o comportamento de TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit()
@@ -380,6 +420,10 @@ public sealed class SqlServerMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero()
@@ -395,6 +439,10 @@ public sealed class SqlServerMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero()
@@ -411,6 +459,10 @@ public sealed class SqlServerMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml behavior.
+    /// PT: Testa o comportamento de TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml()
@@ -429,6 +481,10 @@ public sealed class SqlServerMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit behavior.
+    /// PT: Testa o comportamento de TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit()
@@ -447,6 +503,10 @@ public sealed class SqlServerMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect behavior.
+    /// PT: Testa o comportamento de TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect()
@@ -467,6 +527,10 @@ public sealed class SqlServerMockTests
         Assert.Equal(2L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_InsertOutput_ShouldReturnInsertedProjection behavior.
+    /// PT: Testa o comportamento de ExecuteReader_InsertOutput_ShouldReturnInsertedProjection.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void ExecuteReader_InsertOutput_ShouldReturnInsertedProjection()
@@ -484,6 +548,10 @@ public sealed class SqlServerMockTests
         Assert.False(reader.Read());
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_UpdateOutput_ShouldReturnDeletedAndInsertedValues behavior.
+    /// PT: Testa o comportamento de ExecuteReader_UpdateOutput_ShouldReturnDeletedAndInsertedValues.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void ExecuteReader_UpdateOutput_ShouldReturnDeletedAndInsertedValues()
@@ -507,6 +575,10 @@ public sealed class SqlServerMockTests
         Assert.False(reader.Read());
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_DeleteOutput_ShouldReturnDeletedSnapshot behavior.
+    /// PT: Testa o comportamento de ExecuteReader_DeleteOutput_ShouldReturnDeletedSnapshot.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void ExecuteReader_DeleteOutput_ShouldReturnDeletedSnapshot()
@@ -528,7 +600,8 @@ public sealed class SqlServerMockTests
         Assert.Equal(703, reader.GetInt32(reader.GetOrdinal("Id")));
         Assert.Equal("To Delete", reader.GetString(reader.GetOrdinal("Name")));
         Assert.False(reader.Read());
-        Assert.Empty(_connection.GetTable("Users").Where(r => Convert.ToInt32(r[0], CultureInfo.InvariantCulture) == 703));
+        Assert.DoesNotContain(_connection.GetTable("Users"), r => Convert.ToInt32(r[0], CultureInfo.InvariantCulture) == 703);
     }
 
 }
+

@@ -195,6 +195,10 @@ public sealed class PostgreSqlMockTests
         base.Dispose(disposing);
     }
 
+    /// <summary>
+    /// EN: Tests TestSelect_FoundRows_ShouldReturnLastSelectRowCount behavior.
+    /// PT: Testa o comportamento de TestSelect_FoundRows_ShouldReturnLastSelectRowCount.
+    /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
     public void TestSelect_FoundRows_ShouldReturnLastSelectRowCount()
@@ -218,6 +222,10 @@ public sealed class PostgreSqlMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount behavior.
+    /// PT: Testa o comportamento de TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount.
+    /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
     public void TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount()
@@ -232,6 +240,10 @@ public sealed class PostgreSqlMockTests
         Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    /// <summary>
+    /// EN: Tests TestSelect_SqlCalcFoundRows_ShouldThrow_NotSupported behavior.
+    /// PT: Testa o comportamento de TestSelect_SqlCalcFoundRows_ShouldThrow_NotSupported.
+    /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
     public void TestSelect_SqlCalcFoundRows_ShouldThrow_NotSupported()
@@ -245,6 +257,10 @@ public sealed class PostgreSqlMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestUpdate_RowCountFunction_ShouldReturnAffectedRows behavior.
+    /// PT: Testa o comportamento de TestUpdate_RowCountFunction_ShouldReturnAffectedRows.
+    /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
     public void TestUpdate_RowCountFunction_ShouldReturnAffectedRows()
@@ -264,6 +280,10 @@ public sealed class PostgreSqlMockTests
 
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_BeginTransactionThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_BeginTransactionThenRowCount_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
     public void TestBatch_BeginTransactionThenRowCount_ShouldReturnZero()
@@ -279,6 +299,10 @@ public sealed class PostgreSqlMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_CallThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_CallThenRowCount_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
     public void TestBatch_CallThenRowCount_ShouldReturnZero()
@@ -296,6 +320,10 @@ public sealed class PostgreSqlMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit behavior.
+    /// PT: Testa o comportamento de TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit.
+    /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
     public void TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit()
@@ -312,6 +340,10 @@ public sealed class PostgreSqlMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
     public void TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero()
@@ -327,6 +359,10 @@ public sealed class PostgreSqlMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
     public void TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero()
@@ -343,6 +379,10 @@ public sealed class PostgreSqlMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml behavior.
+    /// PT: Testa o comportamento de TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml.
+    /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
     public void TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml()
@@ -361,6 +401,10 @@ public sealed class PostgreSqlMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit behavior.
+    /// PT: Testa o comportamento de TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit.
+    /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
     public void TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit()
@@ -379,6 +423,10 @@ public sealed class PostgreSqlMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect behavior.
+    /// PT: Testa o comportamento de TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect.
+    /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
     public void TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect()
@@ -399,6 +447,10 @@ public sealed class PostgreSqlMockTests
         Assert.Equal(2L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_InsertReturning_ShouldReturnInsertedRows behavior.
+    /// PT: Testa o comportamento de ExecuteReader_InsertReturning_ShouldReturnInsertedRows.
+    /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
     public void ExecuteReader_InsertReturning_ShouldReturnInsertedRows()
@@ -416,6 +468,10 @@ public sealed class PostgreSqlMockTests
         Assert.False(reader.Read());
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_UpdateReturning_ShouldReturnUpdatedProjection behavior.
+    /// PT: Testa o comportamento de ExecuteReader_UpdateReturning_ShouldReturnUpdatedProjection.
+    /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
     public void ExecuteReader_UpdateReturning_ShouldReturnUpdatedProjection()
@@ -439,6 +495,10 @@ public sealed class PostgreSqlMockTests
         Assert.False(reader.Read());
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_DeleteReturning_ShouldReturnDeletedRowSnapshot behavior.
+    /// PT: Testa o comportamento de ExecuteReader_DeleteReturning_ShouldReturnDeletedRowSnapshot.
+    /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
     public void ExecuteReader_DeleteReturning_ShouldReturnDeletedRowSnapshot()
@@ -460,9 +520,13 @@ public sealed class PostgreSqlMockTests
         Assert.Equal(503, reader.GetInt32(reader.GetOrdinal("Id")));
         Assert.Equal("To Delete", reader.GetString(reader.GetOrdinal("Name")));
         Assert.False(reader.Read());
-        Assert.Empty(_connection.GetTable("Users").Where(r => Convert.ToInt32(r[0]) == 503));
+        Assert.DoesNotContain(_connection.GetTable("Users"), r => Convert.ToInt32(r[0]) == 503);
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_InsertSelectReturning_ShouldReturnAllInsertedRows behavior.
+    /// PT: Testa o comportamento de ExecuteReader_InsertSelectReturning_ShouldReturnAllInsertedRows.
+    /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
     public void ExecuteReader_InsertSelectReturning_ShouldReturnAllInsertedRows()
@@ -496,6 +560,10 @@ public sealed class PostgreSqlMockTests
         Assert.False(reader.Read());
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_UpdateReturningQualifiedWildcard_ShouldReturnAllColumns behavior.
+    /// PT: Testa o comportamento de ExecuteReader_UpdateReturningQualifiedWildcard_ShouldReturnAllColumns.
+    /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
     public void ExecuteReader_UpdateReturningQualifiedWildcard_ShouldReturnAllColumns()
@@ -521,3 +589,4 @@ public sealed class PostgreSqlMockTests
     }
 
 }
+
