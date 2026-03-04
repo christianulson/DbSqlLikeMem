@@ -518,11 +518,10 @@ public sealed class SqliteMockTests
     {
         using var seed = new SqliteCommandMock(_connection)
         {
-            CommandText = """
-                INSERT INTO Users (Id, Name, Email) VALUES (611, 'Seed A', 'seed-a@test.local');
-                INSERT INTO Users (Id, Name, Email) VALUES (612, 'Seed B', 'seed-b@test.local');
-                """
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (611, 'Seed A', 'seed-a@test.local')"
         };
+        seed.ExecuteNonQuery();
+        seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (612, 'Seed B', 'seed-b@test.local')";
         seed.ExecuteNonQuery();
 
         using var command = new SqliteCommandMock(_connection)
