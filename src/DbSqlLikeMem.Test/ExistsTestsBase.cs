@@ -1093,6 +1093,68 @@ ORDER BY u.Id";
         GetTableHintCount(cnn, "orders").Should().Be(1);
     }
 
+    /// <summary>
+    /// EN: Tests equivalent correlated IN subqueries with explicit AS projection aliases share the same cache entry.
+    /// PT: Testa que subqueries correlacionadas equivalentes em IN com aliases explícitos AS na projeção compartilham a mesma entrada de cache.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void In_EquivalentCorrelatedSubqueriesWithProjectionAliasAs_ShouldShareCache()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        for (var i = 0; i < 80; i++)
+            cnn.Seed("users", null, [1, $"Name-{i}"]);
+
+        cnn.Seed("orders", null,
+            [10, 1, 50m],
+            [11, 1, 60m]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE u.Id IN (SELECT o.UserId FROM orders o WHERE o.UserId = u.Id)
+  AND u.Id IN (SELECT o.UserId AS K FROM orders o WHERE o.UserId = u.Id)
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().HaveCount(80);
+        GetTableHintCount(cnn, "orders").Should().Be(1);
+    }
+
+    /// <summary>
+    /// EN: Tests equivalent correlated scalar subqueries with explicit AS projection aliases share the same cache entry.
+    /// PT: Testa que subqueries escalares correlacionadas equivalentes com aliases explícitos AS na projeção compartilham a mesma entrada de cache.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void Scalar_EquivalentCorrelatedSubqueriesWithProjectionAliasAs_ShouldShareCache()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        for (var i = 0; i < 80; i++)
+            cnn.Seed("users", null, [1, $"Name-{i}"]);
+
+        cnn.Seed("orders", null,
+            [10, 1, 50m],
+            [11, 1, 60m]);
+
+        const string sql = @"SELECT u.Id,
+       (SELECT MAX(o.Amount) FROM orders o WHERE o.UserId = u.Id) AS MaxAmountA,
+       (SELECT MAX(o.Amount) AS V FROM orders o WHERE o.UserId = u.Id) AS MaxAmountB
+FROM users u
+ORDER BY u.Id";
+
+        var rowCount = ExecuteAndCountRows(cnn, sql);
+
+        rowCount.Should().Be(80);
+        GetTableHintCount(cnn, "orders").Should().Be(1);
+    }
+
     private static void DefineUsersAndOrdersTables(
         DbConnectionMockBase cnn)
     {

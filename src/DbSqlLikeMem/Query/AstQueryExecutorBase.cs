@@ -4088,9 +4088,14 @@ private void FillPercentRankOrCumeDist(
         if (string.IsNullOrWhiteSpace(normalizedSubquerySql))
             return string.Empty;
 
-        return string.Equals(operation, "EXISTS", StringComparison.OrdinalIgnoreCase)
-            ? NormalizeExistsProjectionPayloadForCacheKey(normalizedSubquerySql)
-            : normalizedSubquerySql;
+        if (string.Equals(operation, "EXISTS", StringComparison.OrdinalIgnoreCase))
+            return NormalizeExistsProjectionPayloadForCacheKey(normalizedSubquerySql);
+
+        if (string.Equals(operation, "IN", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(operation, "SCALAR", StringComparison.OrdinalIgnoreCase))
+            return NormalizeSelectProjectionAliasesForCacheKey(normalizedSubquerySql);
+
+        return normalizedSubquerySql;
     }
 
     /// <summary>
@@ -4686,6 +4691,155 @@ private void FillPercentRankOrCumeDist(
             sql.AsSpan(0, afterSelect),
             " <EXISTS_PAYLOAD> ",
             sql.AsSpan(fromIndex));
+    }
+
+    /// <summary>
+    /// EN: Canonicalizes top-level SELECT projection aliases by removing explicit AS aliases while preserving projection expressions and relational clauses.
+    /// PT: Canoniza aliases da projeção SELECT no nível de topo removendo aliases explícitos AS e preservando expressões projetadas e cláusulas relacionais.
+    /// </summary>
+    private static string NormalizeSelectProjectionAliasesForCacheKey(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            return string.Empty;
+
+        if (!TryFindTopLevelKeywordIndex(sql, "SELECT", 0, out var selectIndex))
+            return sql;
+
+        var afterSelect = selectIndex + "SELECT".Length;
+        if (!TryFindTopLevelKeywordIndex(sql, "FROM", afterSelect, out var fromIndex))
+            return sql;
+
+        if (fromIndex <= afterSelect)
+            return sql;
+
+        var payload = sql[afterSelect..fromIndex];
+        var normalizedPayload = NormalizeSelectListAliasesForCacheKey(payload);
+        return string.Concat(
+            sql.AsSpan(0, afterSelect),
+            " ",
+            normalizedPayload,
+            " ",
+            sql.AsSpan(fromIndex));
+    }
+
+    /// <summary>
+    /// EN: Normalizes explicit AS aliases from a top-level SELECT list while preserving nested expressions.
+    /// PT: Normaliza aliases explícitos AS de uma lista SELECT de topo preservando expressões aninhadas.
+    /// </summary>
+    private static string NormalizeSelectListAliasesForCacheKey(string selectList)
+    {
+        if (string.IsNullOrWhiteSpace(selectList))
+            return string.Empty;
+
+        var segments = SplitTopLevelCommaSegments(selectList);
+        if (segments.Count == 0)
+            return selectList.Trim();
+
+        for (var i = 0; i < segments.Count; i++)
+            segments[i] = RemoveExplicitAsAliasFromSelectExpression(segments[i]);
+
+        return string.Join(", ", segments);
+    }
+
+    /// <summary>
+    /// EN: Splits text by top-level comma separators outside quoted segments and nested parentheses.
+    /// PT: Divide o texto por vírgulas de topo fora de segmentos entre aspas e parênteses aninhados.
+    /// </summary>
+    private static List<string> SplitTopLevelCommaSegments(string text)
+    {
+        var segments = new List<string>();
+        if (string.IsNullOrWhiteSpace(text))
+            return segments;
+
+        var start = 0;
+        var depth = 0;
+        for (var i = 0; i < text.Length; i++)
+        {
+            var ch = text[i];
+            if (ch == '\'' || ch == '"' || ch == '`')
+            {
+                i = FindQuotedSegmentEndIndex(text, i, ch);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                i = FindBracketSegmentEndIndex(text, i);
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch == ')' && depth > 0)
+            {
+                depth--;
+                continue;
+            }
+
+            if (depth == 0 && ch == ',')
+            {
+                var segment = text[start..i].Trim();
+                if (segment.Length > 0)
+                    segments.Add(segment);
+                start = i + 1;
+            }
+        }
+
+        var last = text[start..].Trim();
+        if (last.Length > 0)
+            segments.Add(last);
+
+        return segments;
+    }
+
+    /// <summary>
+    /// EN: Removes a trailing explicit AS alias from a SELECT expression when alias syntax is valid.
+    /// PT: Remove alias explícito AS ao final de uma expressão SELECT quando a sintaxe do alias é válida.
+    /// </summary>
+    private static string RemoveExplicitAsAliasFromSelectExpression(string expression)
+    {
+        if (string.IsNullOrWhiteSpace(expression))
+            return string.Empty;
+
+        var trimmed = expression.Trim();
+        if (!TryFindTopLevelKeywordIndex(trimmed, "AS", 0, out var asIndex))
+            return trimmed;
+
+        var beforeAs = trimmed[..asIndex].TrimEnd();
+        var aliasPart = trimmed[(asIndex + 2)..].Trim();
+        if (!IsValidExplicitAliasToken(aliasPart))
+            return trimmed;
+
+        return beforeAs;
+    }
+
+    /// <summary>
+    /// EN: Validates whether an alias token matches supported explicit alias forms (identifier or quoted identifier).
+    /// PT: Valida se um token de alias corresponde às formas suportadas de alias explícito (identificador ou identificador entre delimitadores).
+    /// </summary>
+    private static bool IsValidExplicitAliasToken(string aliasToken)
+    {
+        if (string.IsNullOrWhiteSpace(aliasToken))
+            return false;
+
+        var trimmed = aliasToken.Trim();
+        if (Regex.IsMatch(trimmed, @"^[A-Z_][A-Z0-9_$]*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            return true;
+
+        if (trimmed.Length >= 2 && trimmed[0] == '[' && trimmed[^1] == ']')
+            return true;
+
+        if (trimmed.Length >= 2 && trimmed[0] == '"' && trimmed[^1] == '"')
+            return true;
+
+        if (trimmed.Length >= 2 && trimmed[0] == '`' && trimmed[^1] == '`')
+            return true;
+
+        return false;
     }
 
     /// <summary>
