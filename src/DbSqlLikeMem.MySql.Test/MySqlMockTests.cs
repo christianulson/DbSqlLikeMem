@@ -778,6 +778,12 @@ public sealed class MySqlMockTests
     [Trait("Category", "MySqlMock")]
     public void TestBatch_SelectThenUpdateThenFoundRows_ShouldReflectLastDml()
     {
+        using var seed = new MySqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Seed User', NULL)"
+        };
+        seed.ExecuteNonQuery();
+
         using var command = new MySqlCommandMock(_connection)
         {
             CommandText = "SELECT Name FROM Users ORDER BY Id LIMIT 1; UPDATE Users SET Name = 'Mixed Batch User' WHERE Id = 1; SELECT FOUND_ROWS();"
