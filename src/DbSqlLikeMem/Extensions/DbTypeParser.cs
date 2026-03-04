@@ -43,6 +43,7 @@ public static class DbTypeParser
             DbType.DateTime2 => DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
             DbType.DateTimeOffset
                                 => DateTimeOffset.Parse(value, CultureInfo.InvariantCulture),
+            DbType.Time => TimeSpan.Parse(value, CultureInfo.InvariantCulture),
 
             DbType.Guid => Guid.Parse(value),
 
@@ -56,10 +57,13 @@ public static class DbTypeParser
 
     private static bool ParseBool(string value)
     {
+        value = value.Trim();
         return value switch
         {
             "1" or "true" or "TRUE" => true,
             "0" or "false" or "FALSE" => false,
+            "yes" or "YES" or "y" or "Y" or "on" or "ON" => true,
+            "no" or "NO" or "n" or "N" or "off" or "OFF" => false,
             _ => bool.Parse(value)
         };
     }

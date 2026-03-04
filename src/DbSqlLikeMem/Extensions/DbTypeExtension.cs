@@ -23,7 +23,8 @@ public static class DbTypeExtension
             DbType.Currency or DbType.Decimal => typeof(decimal),
             DbType.Date or DbType.DateTime
             or DbType.DateTime2
-            or DbType.DateTimeOffset => typeof(DateTime),
+            => typeof(DateTime),
+            DbType.DateTimeOffset => typeof(DateTimeOffset),
             DbType.Double => typeof(double),
             DbType.Guid => typeof(Guid),
             DbType.Int16 => typeof(short),
@@ -49,6 +50,7 @@ public static class DbTypeExtension
             _ when type == typeof(byte) => DbType.Byte,
             _ when type == typeof(decimal) => DbType.Decimal,
             _ when type == typeof(DateTime) => DbType.DateTime,
+            _ when type == typeof(DateTimeOffset) => DbType.DateTimeOffset,
             _ when type == typeof(double) => DbType.Double,
             _ when type == typeof(Guid) => DbType.Guid,
             _ when type == typeof(short) => DbType.Int16,
