@@ -2516,6 +2516,7 @@ internal sealed class SqlQueryParser
         "THEN"
       , "PIVOT"
       , "UNPIVOT"
+      , "RETURNING"
     };
 
     private static bool IsClauseKeywordToken(SqlToken t)
