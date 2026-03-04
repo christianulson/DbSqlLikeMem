@@ -478,6 +478,10 @@ public sealed class MySqlMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestSelect_TemporalFunctions_ShouldWorkInSelectAndWhere behavior.
+    /// PT: Testa o comportamento de TestSelect_TemporalFunctions_ShouldWorkInSelectAndWhere.
+    /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
     public void TestSelect_TemporalFunctions_ShouldWorkInSelectAndWhere()
@@ -544,6 +548,10 @@ public sealed class MySqlMockTests
         base.Dispose(disposing);
     }
 
+    /// <summary>
+    /// EN: Tests TestSelect_SqlCalcFoundRows_ShouldExposeCountInFoundRows behavior.
+    /// PT: Testa o comportamento de TestSelect_SqlCalcFoundRows_ShouldExposeCountInFoundRows.
+    /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
     public void TestSelect_SqlCalcFoundRows_ShouldExposeCountInFoundRows()
@@ -567,6 +575,10 @@ public sealed class MySqlMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestSelect_FoundRows_WithArgument_ShouldThrow behavior.
+    /// PT: Testa o comportamento de TestSelect_FoundRows_WithArgument_ShouldThrow.
+    /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
     public void TestSelect_FoundRows_WithArgument_ShouldThrow()
@@ -580,6 +592,10 @@ public sealed class MySqlMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestInsert_FoundRows_ShouldReturnAffectedRows behavior.
+    /// PT: Testa o comportamento de TestInsert_FoundRows_ShouldReturnAffectedRows.
+    /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
     public void TestInsert_FoundRows_ShouldReturnAffectedRows()
@@ -596,6 +612,10 @@ public sealed class MySqlMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestUpdate_RowCountFunction_ShouldReturnAffectedRows behavior.
+    /// PT: Testa o comportamento de TestUpdate_RowCountFunction_ShouldReturnAffectedRows.
+    /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
     public void TestUpdate_RowCountFunction_ShouldReturnAffectedRows()
@@ -614,6 +634,10 @@ public sealed class MySqlMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBeginTransaction_FoundRows_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBeginTransaction_FoundRows_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
     public void TestBeginTransaction_FoundRows_ShouldReturnZero()
@@ -628,6 +652,10 @@ public sealed class MySqlMockTests
         Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_BeginTransactionThenFoundRows_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_BeginTransactionThenFoundRows_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
     public void TestBatch_BeginTransactionThenFoundRows_ShouldReturnZero()
@@ -643,6 +671,10 @@ public sealed class MySqlMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_BeginSavepointThenFoundRows_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_BeginSavepointThenFoundRows_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
     public void TestBatch_BeginSavepointThenFoundRows_ShouldReturnZero()
@@ -658,6 +690,10 @@ public sealed class MySqlMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_CallThenFoundRows_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_CallThenFoundRows_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
     public void TestBatch_CallThenFoundRows_ShouldReturnZero()
@@ -675,6 +711,10 @@ public sealed class MySqlMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_UpdateCommitThenFoundRows_ShouldReturnZeroAfterCommit behavior.
+    /// PT: Testa o comportamento de TestBatch_UpdateCommitThenFoundRows_ShouldReturnZeroAfterCommit.
+    /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
     public void TestBatch_UpdateCommitThenFoundRows_ShouldReturnZeroAfterCommit()
@@ -691,6 +731,10 @@ public sealed class MySqlMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_RollbackToSavepointThenFoundRows_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_RollbackToSavepointThenFoundRows_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
     public void TestBatch_RollbackToSavepointThenFoundRows_ShouldReturnZero()
@@ -706,6 +750,10 @@ public sealed class MySqlMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_ReleaseSavepointThenFoundRows_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_ReleaseSavepointThenFoundRows_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
     public void TestBatch_ReleaseSavepointThenFoundRows_ShouldReturnZero()
@@ -722,6 +770,10 @@ public sealed class MySqlMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_SelectThenUpdateThenFoundRows_ShouldReflectLastDml behavior.
+    /// PT: Testa o comportamento de TestBatch_SelectThenUpdateThenFoundRows_ShouldReflectLastDml.
+    /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
     public void TestBatch_SelectThenUpdateThenFoundRows_ShouldReflectLastDml()
@@ -740,6 +792,10 @@ public sealed class MySqlMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_CallUpdateCommitThenFoundRows_ShouldReturnZeroAfterCommit behavior.
+    /// PT: Testa o comportamento de TestBatch_CallUpdateCommitThenFoundRows_ShouldReturnZeroAfterCommit.
+    /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
     public void TestBatch_CallUpdateCommitThenFoundRows_ShouldReturnZeroAfterCommit()
@@ -758,6 +814,10 @@ public sealed class MySqlMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_UpdateThenSelectThenFoundRows_ShouldReflectLastSelect behavior.
+    /// PT: Testa o comportamento de TestBatch_UpdateThenSelectThenFoundRows_ShouldReflectLastSelect.
+    /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
     public void TestBatch_UpdateThenSelectThenFoundRows_ShouldReflectLastSelect()
