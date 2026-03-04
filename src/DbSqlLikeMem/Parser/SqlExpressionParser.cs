@@ -611,7 +611,19 @@ internal sealed class SqlExpressionParser(
 
         Consume(); // ANY | SOME | ALL
         ExpectSymbol("(");
+
+        var hasExtraWrapperParen = false;
+        if (IsSymbol(Peek(), "("))
+        {
+            hasExtraWrapperParen = true;
+            Consume(); // optional wrapper '('
+        }
+
         var subSql = ReadRawUntilMatchingParen();
+
+        if (hasExtraWrapperParen)
+            ExpectSymbol(")");
+
         ExpectSymbol(")");
 
         var subquery = SqlQueryParser.ParseSubqueryExprOrThrow(

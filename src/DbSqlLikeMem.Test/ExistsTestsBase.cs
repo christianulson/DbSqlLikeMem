@@ -288,6 +288,68 @@ ORDER BY u.Id";
     }
 
     /// <summary>
+    /// EN: Tests quantified ANY accepts an extra parenthesis wrapper around subquery.
+    /// PT: Testa que ANY quantificado aceita um parêntese extra envolvendo a subquery.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void ComparisonAnySubquery_WithExtraParenthesisWrapper_ShouldFilterMatchingRows()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        cnn.Seed("users", null,
+            [1, "Ana"],
+            [2, "Bob"],
+            [3, "Cid"]);
+
+        cnn.Seed("orders", null,
+            [10, 2, 50m],
+            [11, 3, 60m]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE u.Id = ANY ((SELECT o.UserId FROM orders o))
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().Equal(2, 3);
+    }
+
+    /// <summary>
+    /// EN: Tests quantified ALL accepts an extra parenthesis wrapper around subquery.
+    /// PT: Testa que ALL quantificado aceita um parêntese extra envolvendo a subquery.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void ComparisonAllSubquery_WithExtraParenthesisWrapper_ShouldFilterRowsLessThanAllCandidates()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        cnn.Seed("users", null,
+            [1, "Ana"],
+            [2, "Bob"],
+            [3, "Cid"]);
+
+        cnn.Seed("orders", null,
+            [10, 2, 50m],
+            [11, 3, 60m]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE u.Id < ALL ((SELECT o.UserId FROM orders o))
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().Equal(1);
+    }
+
+    /// <summary>
     /// EN: Tests quantified ANY with NULL-only candidates results in UNKNOWN and filters out rows when no TRUE match exists.
     /// PT: Testa que ANY quantificado com candidatos apenas NULL resulta em UNKNOWN e filtra linhas quando não há correspondência TRUE.
     /// </summary>
