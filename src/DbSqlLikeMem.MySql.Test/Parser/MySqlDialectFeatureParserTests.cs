@@ -660,6 +660,23 @@ public sealed class MySqlDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures SELECT parsing with string aggregate WITHIN GROUP is blocked by MySQL dialect gate.
+    /// PT: Garante que parsing de SELECT com agregação textual WITHIN GROUP seja bloqueado pelo gate de dialeto MySQL.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_StringAggregateWithinGroup_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC) AS joined FROM orders", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures WITHIN GROUP ordered-set syntax remains unsupported for MySQL aggregates.
     /// PT: Garante que a sintaxe ordered-set WITHIN GROUP continue não suportada para agregações MySQL.
     /// </summary>

@@ -1914,7 +1914,7 @@ internal sealed class SqlQueryParser
             else if (IsSymbol(t, ")")) depth--;
 
             if (depth == 0 && IsSymbol(t, ";")) break;
-            if (depth == 0 && stopWords.Any(sw => IsWord(t, sw))) break;
+            if (depth == 0 && ShouldStopAtTopLevelToken(t, stopWords, buf)) break;
 
             if (depth == 0 && IsSymbol(t, ","))
             {
@@ -1939,10 +1939,46 @@ internal sealed class SqlQueryParser
             if (IsSymbol(t, "(")) depth++;
             else if (IsSymbol(t, ")")) depth--;
             if (depth == 0 && IsSymbol(t, ";")) break;
-            if (depth == 0 && stopWords.Any(sw => IsWord(t, sw))) break;
+            if (depth == 0 && ShouldStopAtTopLevelToken(t, stopWords, buf)) break;
             buf.Add(Consume());
         }
         return TokensToSql(buf);
+    }
+
+    /// <summary>
+    /// EN: Determines whether current top-level token should stop clause/item scanning, preserving ordered-set syntax boundaries.
+    /// PT: Determina se o token atual em nível de topo deve encerrar a varredura da cláusula/item, preservando fronteiras de sintaxe ordered-set.
+    /// </summary>
+    /// <param name="current">EN: Token currently inspected at top level. PT: Token inspecionado no nível de topo.</param>
+    /// <param name="stopWords">EN: Candidate clause stop words. PT: Palavras de parada candidatas de cláusula.</param>
+    /// <param name="buffer">EN: Tokens already buffered for current segment. PT: Tokens já acumulados para o segmento atual.</param>
+    /// <returns>EN: True when parser should stop before current token. PT: True quando o parser deve parar antes do token atual.</returns>
+    private static bool ShouldStopAtTopLevelToken(SqlToken current, IReadOnlyList<string> stopWords, IReadOnlyList<SqlToken> buffer)
+    {
+        if (!stopWords.Any(sw => IsWord(current, sw)))
+            return false;
+
+        // Keep "WITHIN GROUP (...)" inside the same SELECT expression.
+        if (IsWord(current, "GROUP") && EndsWithWord(buffer, "WITHIN"))
+            return false;
+
+        return true;
+    }
+
+    /// <summary>
+    /// EN: Checks whether buffered tokens end with a specific keyword/identifier word.
+    /// PT: Verifica se os tokens acumulados terminam com uma palavra-chave/identificador específica.
+    /// </summary>
+    /// <param name="buffer">EN: Buffered tokens. PT: Tokens acumulados.</param>
+    /// <param name="word">EN: Word to match at buffer tail. PT: Palavra para comparar no final do buffer.</param>
+    /// <returns>EN: True when tail token matches the expected word. PT: True quando o token final corresponde à palavra esperada.</returns>
+    private static bool EndsWithWord(IReadOnlyList<SqlToken> buffer, string word)
+    {
+        if (buffer.Count == 0)
+            return false;
+
+        var tail = buffer[^1];
+        return IsWord(tail, word);
     }
 
     private string TokensToSql(List<SqlToken> toks)
