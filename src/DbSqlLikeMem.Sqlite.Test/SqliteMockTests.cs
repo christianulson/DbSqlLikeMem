@@ -452,4 +452,61 @@ public sealed class SqliteMockTests
         Assert.Empty(_connection.GetTable("users").Where(r => Convert.ToInt32(r[0]) == 603));
     }
 
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteReader_InsertSelectReturning_ShouldReturnAllInsertedRows()
+    {
+        using var seed = new SqliteCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (611, 'Seed A', 'seed-a@test.local');
+                INSERT INTO Users (Id, Name, Email) VALUES (612, 'Seed B', 'seed-b@test.local');
+                """
+        };
+        seed.ExecuteNonQuery();
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO Users (Id, Name, Email)
+                SELECT Id + 1000, Name, Email
+                FROM Users
+                WHERE Id IN (611, 612)
+                RETURNING Id
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1611, reader.GetInt32(0));
+        Assert.True(reader.Read());
+        Assert.Equal(1612, reader.GetInt32(0));
+        Assert.False(reader.Read());
+    }
+
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteReader_UpdateReturningQualifiedWildcard_ShouldReturnAllColumns()
+    {
+        using var setup = new SqliteCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (613, 'Before', 'before613@test.local')"
+        };
+        setup.ExecuteNonQuery();
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'After' WHERE Id = 613 RETURNING users.*"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(613, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("After", reader.GetString(reader.GetOrdinal("Name")));
+        Assert.Equal("before613@test.local", reader.GetString(reader.GetOrdinal("Email")));
+        Assert.False(reader.Read());
+    }
+
 }

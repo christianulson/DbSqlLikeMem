@@ -63,6 +63,23 @@ public sealed class SqliteDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures UPDATE ... RETURNING with qualified wildcard preserves projection item in AST.
+    /// PT: Garante que UPDATE ... RETURNING com wildcard qualificado preserve o item de projeção na AST.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseUpdate_ReturningQualifiedWildcard_ShouldCaptureReturningItem(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING users.*";
+
+        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+
+        Assert.Single(parsed.Returning);
+        Assert.Equal("users.*", parsed.Returning[0].Raw);
+    }
+
+    /// <summary>
     /// EN: Ensures DELETE ... RETURNING captures projection payload in AST for SQLite dialect.
     /// PT: Garante que DELETE ... RETURNING capture o payload de projeção na AST para o dialeto SQLite.
     /// </summary>

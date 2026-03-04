@@ -397,17 +397,7 @@ public class NpgsqlCommandMock(
             var raw = item.Raw.Trim();
             if (raw == "*")
             {
-                foreach (var col in table.Columns.Values.OrderBy(c => c.Index))
-                {
-                    var name = table.Columns.First(kv => kv.Value.Index == col.Index).Key;
-                    projections.Add(new ReturningProjection(
-                        TableAlias: tableAlias,
-                        ColumnAlias: name,
-                        ColumnName: name,
-                        DbType: col.DbType,
-                        IsNullable: col.Nullable,
-                        Resolver: row => row.TryGetValue(col.Index, out var v) ? v : null));
-                }
+                AppendAllColumnsProjection(projections, tableAlias, table);
                 continue;
             }
 
@@ -425,6 +415,11 @@ public class NpgsqlCommandMock(
                         DbType: col.DbType,
                         IsNullable: col.Nullable,
                         Resolver: row => row.TryGetValue(col.Index, out var v) ? v : null));
+                    break;
+                }
+                case ColumnExpr colExpr when colExpr.Name == "*":
+                {
+                    AppendAllColumnsProjection(projections, tableAlias, table);
                     break;
                 }
                 case ColumnExpr colExpr:
@@ -472,6 +467,28 @@ public class NpgsqlCommandMock(
         }
 
         return projections;
+    }
+
+    /// <summary>
+    /// EN: Appends projections for all table columns in ordinal order.
+    /// PT: Adiciona projeções para todas as colunas da tabela na ordem ordinal.
+    /// </summary>
+    private static void AppendAllColumnsProjection(
+        ICollection<ReturningProjection> projections,
+        string tableAlias,
+        ITableMock table)
+    {
+        foreach (var col in table.Columns.Values.OrderBy(c => c.Index))
+        {
+            var name = table.Columns.First(kv => kv.Value.Index == col.Index).Key;
+            projections.Add(new ReturningProjection(
+                TableAlias: tableAlias,
+                ColumnAlias: name,
+                ColumnName: name,
+                DbType: col.DbType,
+                IsNullable: col.Nullable,
+                Resolver: row => row.TryGetValue(col.Index, out var v) ? v : null));
+        }
     }
 
     /// <summary>
