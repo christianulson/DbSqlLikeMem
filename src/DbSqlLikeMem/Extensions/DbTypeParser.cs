@@ -138,6 +138,8 @@ public static class DbTypeParser
             case "Y":
             case "on":
             case "ON":
+            case "t":
+            case "T":
                 parsed = true;
                 return true;
             case "0":
@@ -149,6 +151,8 @@ public static class DbTypeParser
             case "N":
             case "off":
             case "OFF":
+            case "f":
+            case "F":
                 parsed = false;
                 return true;
             default:
@@ -223,6 +227,13 @@ public static class DbTypeParser
         hex = string.Empty;
 
         if (trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+        {
+            hex = trimmed[2..];
+            return true;
+        }
+
+        // PostgreSQL bytea hex style: \xABCD
+        if (trimmed.StartsWith("\\x", StringComparison.OrdinalIgnoreCase))
         {
             hex = trimmed[2..];
             return true;

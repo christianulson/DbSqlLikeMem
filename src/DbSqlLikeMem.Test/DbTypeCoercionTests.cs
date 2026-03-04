@@ -171,6 +171,19 @@ public sealed class DbTypeCoercionTests
     }
 
     /// <summary>
+    /// EN: Ensures binary parser accepts PostgreSQL bytea hexadecimal format with \x prefix.
+    /// PT: Garante que o parser binário aceite formato hexadecimal bytea do PostgreSQL com prefixo \x.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void DbTypeParser_BinaryPostgreSqlHexLiteral_ShouldParseBytes()
+    {
+        var parsed = Assert.IsType<byte[]>(DbType.Binary.Parse("\\x0A0B0C"));
+
+        Assert.Equal([0x0A, 0x0B, 0x0C], parsed);
+    }
+
+    /// <summary>
     /// EN: Ensures object parsing infers Guid and DateTimeOffset literals for richer coercion coverage.
     /// PT: Garante que o parsing de object infira literais de Guid e DateTimeOffset para maior cobertura de coerção.
     /// </summary>
@@ -228,6 +241,23 @@ public sealed class DbTypeCoercionTests
     {
         Assert.Equal("null", DbType.String.Parse("'null'"));
         Assert.Equal("NULL", DbType.AnsiString.Parse("\"NULL\""));
+    }
+
+    /// <summary>
+    /// EN: Ensures boolean parser supports compact aliases used by some dialects.
+    /// PT: Garante que o parser booleano suporte aliases compactos usados por alguns dialetos.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Core")]
+    [InlineData("t", true)]
+    [InlineData("T", true)]
+    [InlineData("f", false)]
+    [InlineData("F", false)]
+    public void DbTypeParser_BooleanCompactAliases_ShouldParse(string literal, bool expected)
+    {
+        var parsed = DbType.Boolean.Parse(literal);
+
+        Assert.Equal(expected, Assert.IsType<bool>(parsed));
     }
 
     private enum SqlExtensionsEnumShort : short
