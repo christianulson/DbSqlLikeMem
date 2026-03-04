@@ -4276,6 +4276,7 @@ private void FillPercentRankOrCumeDist(
         }
 
         var canonicalSql = sb.ToString().Trim();
+        canonicalSql = NormalizeRelationalOperatorSpacingForCacheKey(canonicalSql);
         canonicalSql = NormalizeSubqueryLocalAliasesForCacheKey(canonicalSql);
         return NormalizeCommutativeAndClausesForCacheKey(canonicalSql);
     }
@@ -4486,6 +4487,163 @@ private void FillPercentRankOrCumeDist(
         }
 
         return sql[startIndex + alias.Length] == '.';
+    }
+
+    /// <summary>
+    /// EN: Normalizes spacing around top-level relational operators outside quoted segments so semantically equivalent operator formatting maps to the same cache-key SQL.
+    /// PT: Normaliza espaçamento ao redor de operadores relacionais no topo fora de segmentos entre aspas para que formatações equivalentes mapeiem para o mesmo SQL de chave de cache.
+    /// </summary>
+    private static string NormalizeRelationalOperatorSpacingForCacheKey(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            return string.Empty;
+
+        var sb = new StringBuilder(sql.Length + 16);
+
+        for (var i = 0; i < sql.Length; i++)
+        {
+            var ch = sql[i];
+            if (ch == '\'' || ch == '"' || ch == '`')
+            {
+                i = AppendQuotedSegment(sql, i, ch, sb);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                i = AppendBracketIdentifierSegment(sql, i, sb);
+                continue;
+            }
+
+            if (!TryReadRelationalOperator(sql, i, out var op, out var opLength))
+            {
+                sb.Append(ch);
+                continue;
+            }
+
+            TrimTrailingSpaces(sb);
+            if (sb.Length > 0)
+                sb.Append(' ');
+
+            sb.Append(op);
+            sb.Append(' ');
+            i += opLength - 1;
+        }
+
+        return CollapseWhitespaceOutsideQuotedSegments(sb.ToString()).Trim();
+    }
+
+    /// <summary>
+    /// EN: Tries to read a relational comparison operator at the current index, including two-character variants.
+    /// PT: Tenta ler um operador relacional de comparação no índice atual, incluindo variantes de dois caracteres.
+    /// </summary>
+    private static bool TryReadRelationalOperator(
+        string sql,
+        int startIndex,
+        out string op,
+        out int opLength)
+    {
+        op = string.Empty;
+        opLength = 0;
+
+        if (string.IsNullOrWhiteSpace(sql) || startIndex < 0 || startIndex >= sql.Length)
+            return false;
+
+        var ch = sql[startIndex];
+        var next = startIndex + 1 < sql.Length ? sql[startIndex + 1] : '\0';
+
+        if (ch == '<' && next == '=')
+        {
+            op = "<=";
+            opLength = 2;
+            return true;
+        }
+
+        if (ch == '>' && next == '=')
+        {
+            op = ">=";
+            opLength = 2;
+            return true;
+        }
+
+        if (ch == '<' && next == '>')
+        {
+            op = "<>";
+            opLength = 2;
+            return true;
+        }
+
+        if (ch == '!' && next == '=')
+        {
+            op = "!=";
+            opLength = 2;
+            return true;
+        }
+
+        if (ch is '=' or '<' or '>')
+        {
+            op = ch.ToString();
+            opLength = 1;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// EN: Trims trailing spaces from a StringBuilder buffer.
+    /// PT: Remove espaços à direita de um buffer StringBuilder.
+    /// </summary>
+    private static void TrimTrailingSpaces(StringBuilder sb)
+    {
+        while (sb.Length > 0 && sb[^1] == ' ')
+            sb.Length--;
+    }
+
+    /// <summary>
+    /// EN: Collapses repeated whitespace outside quoted or bracket-delimited segments while preserving inner literal content.
+    /// PT: Colapsa whitespace repetido fora de segmentos entre aspas ou delimitados por colchetes preservando o conteúdo interno de literais.
+    /// </summary>
+    private static string CollapseWhitespaceOutsideQuotedSegments(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            return string.Empty;
+
+        var sb = new StringBuilder(sql.Length);
+        var previousWasSpace = false;
+
+        for (var i = 0; i < sql.Length; i++)
+        {
+            var ch = sql[i];
+            if (ch == '\'' || ch == '"' || ch == '`')
+            {
+                previousWasSpace = false;
+                i = AppendQuotedSegment(sql, i, ch, sb);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                previousWasSpace = false;
+                i = AppendBracketIdentifierSegment(sql, i, sb);
+                continue;
+            }
+
+            if (!char.IsWhiteSpace(ch))
+            {
+                sb.Append(ch);
+                previousWasSpace = false;
+                continue;
+            }
+
+            if (previousWasSpace)
+                continue;
+
+            sb.Append(' ');
+            previousWasSpace = true;
+        }
+
+        return sb.ToString();
     }
 
     /// <summary>
