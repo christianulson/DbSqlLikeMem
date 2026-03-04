@@ -5816,6 +5816,10 @@ private void FillPercentRankOrCumeDist(
             return 0;
         }
 
+        if (fn.Args.Count == 0
+            && SqlTemporalFunctionEvaluator.IsKnownTemporalFunctionName(fn.Name))
+            throw new InvalidOperationException($"Temporal function '{fn.Name}' is not supported for dialect '{dialect.Name}'.");
+
 // Unknown scalar => null (don't explode tests)
         return null;
 
