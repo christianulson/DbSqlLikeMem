@@ -93,6 +93,319 @@ RETURNING id";
     }
 
     /// <summary>
+    /// EN: Ensures empty ON CONFLICT target list is rejected with actionable message.
+    /// PT: Garante que lista vazia no alvo de ON CONFLICT seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflict_EmptyTarget_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT () DO NOTHING";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target leading comma is rejected with actionable message.
+    /// PT: Garante que vírgula inicial no alvo de ON CONFLICT seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflict_TargetLeadingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (, id) DO NOTHING";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target trailing comma is rejected with actionable message.
+    /// PT: Garante que vírgula final no alvo de ON CONFLICT seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflict_TargetTrailingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id,) DO NOTHING";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target interrupted by semicolon is rejected with actionable message.
+    /// PT: Garante que alvo de ON CONFLICT interrompido por ponto e vírgula seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflict_TargetUnclosedBeforeSemicolon_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("not closed correctly", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE SET with empty assignment list is rejected with actionable message.
+    /// PT: Garante que ON CONFLICT DO UPDATE SET com lista vazia de atribuições seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflict_DoUpdateSetEmptyAssignments_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE SET leading comma is rejected with actionable message.
+    /// PT: Garante que vírgula inicial em ON CONFLICT DO UPDATE SET seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflict_DoUpdateSetLeadingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET , name = EXCLUDED.name";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE SET trailing comma is rejected with actionable message.
+    /// PT: Garante que vírgula final em ON CONFLICT DO UPDATE SET seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflict_DoUpdateSetTrailingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name,";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE SET assignment without expression is rejected with actionable message.
+    /// PT: Garante que atribuição sem expressão em ON CONFLICT DO UPDATE SET seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflict_DoUpdateSetAssignmentWithoutExpression_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("requires an expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE SET assignments without comma separator are rejected with actionable message.
+    /// PT: Garante que atribuições em ON CONFLICT DO UPDATE SET sem separação por vírgula sejam rejeitadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflict_DoUpdateSetMissingCommaBetweenAssignments_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name updated_at = NOW()";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("separate assignments with commas", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE SET accepts semicolon statement boundary after assignment list.
+    /// PT: Garante que ON CONFLICT DO UPDATE SET aceite fronteira de statement por ponto e vírgula após lista de atribuições.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflict_DoUpdateSetWithSemicolonBoundary_ShouldParse(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;";
+
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.True(parsed.HasOnDuplicateKeyUpdate);
+        Assert.Single(parsed.OnDupAssigns);
+        Assert.Equal("name", parsed.OnDupAssigns[0].Col);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT without DO branch is rejected with actionable message.
+    /// PT: Garante que ON CONFLICT sem ramo DO seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflict_WithoutDoBranch_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("requires DO NOTHING or DO UPDATE SET", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO with invalid continuation is rejected with actionable message.
+    /// PT: Garante que ON CONFLICT DO com continuação inválida seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflict_DoInvalidContinuation_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO SKIP";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("must be followed by NOTHING or UPDATE SET", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE without SET is rejected with actionable message.
+    /// PT: Garante que ON CONFLICT DO UPDATE sem SET seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflict_DoUpdateWithoutSet_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("requires SET assignments", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE without predicate is rejected with actionable message.
+    /// PT: Garante que WHERE no alvo de ON CONFLICT sem predicado seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflictTargetWhereWithoutPredicate_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE DO NOTHING";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("target WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE terminated only by semicolon is rejected with actionable message.
+    /// PT: Garante que WHERE no alvo de ON CONFLICT finalizado apenas por ponto e vírgula seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflictTargetWhereOnlySemicolon_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE; DO NOTHING";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("target WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT without constraint name is rejected with actionable message.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT sem nome da constraint seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflictOnConstraintWithoutName_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT DO NOTHING";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("requires a constraint name", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE WHERE without predicate is rejected with actionable message.
+    /// PT: Garante que WHERE em ON CONFLICT DO UPDATE sem predicado seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflictDoUpdateWhereWithoutPredicate_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE WHERE terminated only by semicolon is rejected with actionable message.
+    /// PT: Garante que WHERE em ON CONFLICT DO UPDATE finalizado apenas por ponto e vírgula seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflictDoUpdateWhereOnlySemicolon_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE; RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures INSERT ... RETURNING captures projection payload in AST for PostgreSQL dialect.
     /// PT: Garante que INSERT ... RETURNING capture o payload de projeção na AST para o dialeto PostgreSQL.
     /// </summary>
@@ -110,6 +423,255 @@ RETURNING id";
         Assert.Equal("id", parsed.Returning[0].Raw);
         Assert.Equal("name", parsed.Returning[1].Raw);
         Assert.Equal("user_name", parsed.Returning[1].Alias);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures INSERT with unexpected trailing token is rejected with actionable message.
+    /// PT: Garante que INSERT com token inesperado ao final seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_WithUnexpectedTrailingToken_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') EXTRA";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("Unexpected token after INSERT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES trailing comma is rejected with actionable message.
+    /// PT: Garante que vírgula final em INSERT VALUES seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_ValuesTrailingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id) VALUES (1),";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES tuples without comma separator are rejected with actionable message.
+    /// PT: Garante que tuplas em INSERT VALUES sem vírgula separadora sejam rejeitadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_ValuesTuplesWithoutCommaSeparator_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id) VALUES (1) (2)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("separate row tuples with commas", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES leading comma is rejected with actionable message.
+    /// PT: Garante que vírgula inicial em INSERT VALUES seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_ValuesLeadingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id) VALUES , (1)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures INSERT column list trailing comma is rejected with actionable message.
+    /// PT: Garante que vírgula final na lista de colunas do INSERT seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_ColumnListTrailingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id,) VALUES (1)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures INSERT empty column list is rejected with actionable message.
+    /// PT: Garante que lista de colunas vazia no INSERT seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_EmptyColumnList_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users () VALUES (1)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("at least one column", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures INSERT column list leading comma is rejected with actionable message.
+    /// PT: Garante que vírgula inicial na lista de colunas do INSERT seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_ColumnListLeadingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (,id) VALUES (1)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures INSERT column list unclosed before semicolon is rejected with actionable message.
+    /// PT: Garante que lista de colunas do INSERT não fechada antes de ponto e vírgula seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_ColumnListUnclosedBeforeSemicolon_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("not closed correctly", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES empty row tuple is rejected with actionable message.
+    /// PT: Garante que linha vazia em INSERT VALUES seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_ValuesEmptyRowTuple_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id) VALUES ()";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES rejects empty expression between commas inside tuple.
+    /// PT: Garante que INSERT VALUES rejeite expressão vazia entre vírgulas dentro da tupla.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_ValuesTupleMissingExpressionBetweenCommas_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users VALUES (1,,2)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("empty expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES rejects trailing comma inside tuple.
+    /// PT: Garante que INSERT VALUES rejeite vírgula final dentro da tupla.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_ValuesTupleTrailingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users VALUES (1,)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("empty expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES tuple with unclosed parenthesis is rejected with actionable message.
+    /// PT: Garante que tupla em INSERT VALUES com parêntese não fechado seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_ValuesTupleUnclosedParenthesis_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users VALUES (1, 2";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("not closed correctly", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES row expression count matches target column count.
+    /// PT: Garante que a quantidade de expressões em INSERT VALUES corresponda à quantidade de colunas alvo.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_ValuesColumnCountMismatch_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("column count", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("row 1", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES rows with inconsistent expression counts are rejected with actionable message.
+    /// PT: Garante que linhas de INSERT VALUES com cardinalidade inconsistente de expressões sejam rejeitadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_ValuesRowArityMismatch_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users VALUES (1, 'a'), (2)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("row 2", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("row 1", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -171,6 +733,97 @@ RETURNING id";
         Assert.Equal("name", parsed.Returning[1].Raw);
     }
 
+
+    /// <summary>
+    /// EN: Ensures UPDATE ... RETURNING without WHERE keeps SET boundary and captures RETURNING projection.
+    /// PT: Garante que UPDATE ... RETURNING sem WHERE preserve o limite do SET e capture a projeção de RETURNING.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseUpdate_ReturningWithoutWhere_ShouldCaptureReturningItems(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' RETURNING id";
+
+        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Null(parsed.WhereRaw);
+        Assert.Single(parsed.Set);
+        Assert.Equal("'b'", parsed.Set[0].ValueRaw);
+        Assert.Single(parsed.Returning);
+        Assert.Equal("id", parsed.Returning[0].Raw);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE SET trailing comma is rejected with actionable message.
+    /// PT: Garante que vírgula final em UPDATE SET seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseUpdate_SetTrailingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b', RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures UPDATE with unexpected trailing token is rejected with actionable message.
+    /// PT: Garante que UPDATE com token inesperado ao final seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseUpdate_WithUnexpectedTrailingToken_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 EXTRA";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("Unexpected token after UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures UPDATE WHERE without predicate is rejected with actionable message.
+    /// PT: Garante que UPDATE com WHERE sem predicado seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseUpdate_WhereWithoutPredicate_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE WHERE terminated only by semicolon is rejected with actionable message.
+    /// PT: Garante que UPDATE com WHERE finalizado apenas por ponto e vírgula seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseUpdate_WhereOnlySemicolon_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>
     /// EN: Ensures UPDATE ... RETURNING with qualified wildcard preserves projection item in AST.
     /// PT: Garante que UPDATE ... RETURNING com wildcard qualificado preserve o item de projeção na AST.
@@ -206,6 +859,59 @@ RETURNING id";
         Assert.Contains("id = 1", parsed.WhereRaw, StringComparison.OrdinalIgnoreCase);
         Assert.Single(parsed.Returning);
         Assert.Equal("id", parsed.Returning[0].Raw);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures DELETE with unexpected trailing token is rejected with actionable message.
+    /// PT: Garante que DELETE com token inesperado ao final seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseDelete_WithUnexpectedTrailingToken_ShouldThrowActionableError(int version)
+    {
+        const string sql = "DELETE FROM users WHERE id = 1 EXTRA";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("Unexpected token after DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures DELETE WHERE without predicate is rejected with actionable message.
+    /// PT: Garante que DELETE com WHERE sem predicado seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseDelete_WhereWithoutPredicate_ShouldThrowActionableError(int version)
+    {
+        const string sql = "DELETE FROM users WHERE";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures DELETE WHERE terminated only by semicolon is rejected with actionable message.
+    /// PT: Garante que DELETE com WHERE finalizado apenas por ponto e vírgula seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseDelete_WhereOnlySemicolon_ShouldThrowActionableError(int version)
+    {
+        const string sql = "DELETE FROM users WHERE;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -258,6 +964,43 @@ RETURNING id";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures RETURNING supports nested expressions with commas and semicolon statement boundary.
+    /// PT: Garante que RETURNING suporte expressões aninhadas com vírgulas e limite de statement por ponto e vírgula.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_ReturningNestedExpressionsWithSemicolon_ShouldCaptureItems(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING COALESCE((SELECT max(id) FROM users), 0) AS next_id, concat(name, ',x') AS decorated;";
+
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Equal(2, parsed.Returning.Count);
+        Assert.Equal("COALESCE((SELECT max(id) FROM users), 0)", parsed.Returning[0].Raw);
+        Assert.Equal("next_id", parsed.Returning[0].Alias);
+        Assert.Equal("concat(name, ',x')", parsed.Returning[1].Raw);
+        Assert.Equal("decorated", parsed.Returning[1].Alias);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING expression with unbalanced parentheses is rejected with actionable message.
+    /// PT: Garante que expressão malformada em RETURNING com parênteses desbalanceados seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseUpdate_ReturningUnbalancedParenthesis_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING (id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("unbalanced parentheses", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -868,4 +1611,3 @@ RETURNING id";
     }
 
 }
-
