@@ -1,6 +1,6 @@
 using System.Data.Common;
 
-namespace DbSqlLikeMem.Test;
+namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Shared stored procedure signature validation tests executed by provider-specific derived classes.

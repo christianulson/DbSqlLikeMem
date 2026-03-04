@@ -1,6 +1,6 @@
 using System.Data.Common;
 
-namespace DbSqlLikeMem.Test;
+namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Defines shared aggregation and HAVING ordinal scenarios across providers.

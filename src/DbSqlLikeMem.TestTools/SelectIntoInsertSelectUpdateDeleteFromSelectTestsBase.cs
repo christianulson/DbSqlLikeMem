@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.Test;
+namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Shared tests for CREATE TABLE AS SELECT, INSERT SELECT, UPDATE with derived select and DELETE from select.

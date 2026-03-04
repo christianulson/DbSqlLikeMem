@@ -33,7 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DbSqlLikeMem.Dapper.Test\DbSqlLikeMem.Dapper.Test.csproj" />
+    <ProjectReference Include="..\DbSqlLikeMem.Dapper.TestTools\DbSqlLikeMem.Dapper.TestTools.csproj" />
     <ProjectReference Include="..\DbSqlLikeMem.Db2.XUnit\DbSqlLikeMem.Db2.XUnit.csproj" />
   </ItemGroup>
 
@@ -46,7 +46,7 @@
     <Using Include="DbSqlLikeMem" />
     <Using Include="DbSqlLikeMem.Db2" />
     <Using Include="DbSqlLikeMem.Resources" />
-    <Using Include="DbSqlLikeMem.Test" />
+    <Using Include="DbSqlLikeMem.TestTools" />
     <Using Include="FluentAssertions" />
     <Using Include="IBM.Data.Db2" />
     <Using Include="System.Data" />

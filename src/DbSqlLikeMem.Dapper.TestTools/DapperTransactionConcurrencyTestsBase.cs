@@ -1,6 +1,6 @@
 using Dapper;
 
-namespace DbSqlLikeMem.Test;
+namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Defines shared transaction reliability assertions for Dapper provider tests.

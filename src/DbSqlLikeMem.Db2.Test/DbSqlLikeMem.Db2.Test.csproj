@@ -42,7 +42,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.Db2.XUnit\DbSqlLikeMem.Db2.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
-		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.TestTools\DbSqlLikeMem.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net48' Or '$(TargetFramework)' == 'netstandard2.1' Or '$(TargetFramework)' == 'net6.0'">
@@ -53,7 +53,7 @@
 		<Using Include="DbSqlLikeMem" />
 		<Using Include="DbSqlLikeMem.Db2" />
 		<Using Include="DbSqlLikeMem.Resources" />
-		<Using Include="DbSqlLikeMem.Test" />
+		<Using Include="DbSqlLikeMem.TestTools" />
 		<Using Include="FluentAssertions" />
 		<Using Include="IBM.Data.Db2" />
 		<Using Include="System.Data" />

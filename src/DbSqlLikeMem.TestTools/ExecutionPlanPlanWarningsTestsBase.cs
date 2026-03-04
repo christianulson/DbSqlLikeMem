@@ -1,7 +1,7 @@
 using System.Data.Common;
 using System.Text.RegularExpressions;
 
-namespace DbSqlLikeMem.Test;
+namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Provides reusable execution-plan warning assertions across provider-specific test suites.

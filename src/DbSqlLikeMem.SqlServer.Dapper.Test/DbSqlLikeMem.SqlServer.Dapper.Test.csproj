@@ -40,7 +40,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DbSqlLikeMem.Dapper.Test\DbSqlLikeMem.Dapper.Test.csproj" />
+    <ProjectReference Include="..\DbSqlLikeMem.Dapper.TestTools\DbSqlLikeMem.Dapper.TestTools.csproj" />
     <ProjectReference Include="..\DbSqlLikeMem.SqlServer.XUnit\DbSqlLikeMem.SqlServer.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
   </ItemGroup>
 
@@ -53,7 +53,7 @@
     <Using Include="DbSqlLikeMem" />
     <Using Include="DbSqlLikeMem.SqlServer" />
     <Using Include="DbSqlLikeMem.Resources" />
-    <Using Include="DbSqlLikeMem.Test" />
+    <Using Include="DbSqlLikeMem.TestTools" />
     <Using Include="FluentAssertions" />
     <Using Include="Microsoft.Data.SqlClient" />
     <Using Include="System.Data" />

@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.Test;
+namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Tests core binary/char/nested-reader APIs of <see cref="DbDataReaderMockBase"/>.

@@ -1,7 +1,7 @@
 using Dapper;
 using System.Data.Common;
 
-namespace DbSqlLikeMem.Test;
+namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Defines shared Dapper-oriented provider contract tests for mock connections.
