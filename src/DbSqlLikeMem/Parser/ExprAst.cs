@@ -15,6 +15,11 @@ internal sealed record IsNullExpr(SqlExpr Expr, bool Negated) : SqlExpr;  // IS 
 internal sealed record SubqueryExpr(string Sql, SqlSelectQuery Parsed) : SqlExpr;
 internal sealed record RowExpr(IReadOnlyList<SqlExpr> Items) : SqlExpr;
 internal sealed record ExistsExpr(SubqueryExpr Subquery) : SqlExpr;
+internal sealed record QuantifiedComparisonExpr(
+    SqlBinaryOp Op,
+    SqlExpr Left,
+    SqlQuantifier Quantifier,
+    SubqueryExpr Subquery) : SqlExpr;
 internal sealed record FunctionCallExpr(string Name, IReadOnlyList<SqlExpr> Args) : SqlExpr;
 internal sealed record JsonAccessExpr(SqlExpr Target, SqlExpr Path, bool Unquote) : SqlExpr;
 internal sealed record CallExpr(string Name, IReadOnlyList<SqlExpr> Args, bool Distinct = false) : SqlExpr;
@@ -48,6 +53,11 @@ internal sealed record StarExpr() : SqlExpr;
 /// PT: Operadores unários representados na AST SQL.
 /// </summary>
 internal enum SqlUnaryOp { Not }
+/// <summary>
+/// EN: Quantifiers represented for subquery comparisons.
+/// PT: Quantificadores representados para comparações com subquery.
+/// </summary>
+internal enum SqlQuantifier { Any, All }
 /// <summary>
 /// EN: Binary operators represented in the SQL AST.
 /// PT: Operadores binários representados na AST SQL.

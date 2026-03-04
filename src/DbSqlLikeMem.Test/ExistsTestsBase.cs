@@ -168,6 +168,68 @@ ORDER BY u.Id";
     }
 
     /// <summary>
+    /// EN: Tests quantified comparison with ANY subquery behaves like membership for equality.
+    /// PT: Testa que comparação quantificada com subquery ANY se comporta como pertencimento para igualdade.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void ComparisonAnySubquery_WithEquality_ShouldFilterMatchingRows()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        cnn.Seed("users", null,
+            [1, "Ana"],
+            [2, "Bob"],
+            [3, "Cid"]);
+
+        cnn.Seed("orders", null,
+            [10, 2, 50m],
+            [11, 3, 60m]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE u.Id = ANY (SELECT o.UserId FROM orders o)
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().Equal(2, 3);
+    }
+
+    /// <summary>
+    /// EN: Tests quantified comparison with ALL subquery requires predicate to hold for all returned rows.
+    /// PT: Testa que comparação quantificada com subquery ALL exige que o predicado seja verdadeiro para todas as linhas retornadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void ComparisonAllSubquery_WithLessOperator_ShouldFilterRowsLessThanAllCandidates()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        cnn.Seed("users", null,
+            [1, "Ana"],
+            [2, "Bob"],
+            [3, "Cid"]);
+
+        cnn.Seed("orders", null,
+            [10, 2, 50m],
+            [11, 3, 60m]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE u.Id < ALL (SELECT o.UserId FROM orders o)
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().Equal(1);
+    }
+
+    /// <summary>
     /// EN: Tests correlated EXISTS subquery reuses evaluation for duplicate outer rows, reducing repeated source access.
     /// PT: Testa que subquery correlacionada com EXISTS reutiliza avaliação para linhas externas duplicadas, reduzindo acessos repetidos à fonte.
     /// </summary>

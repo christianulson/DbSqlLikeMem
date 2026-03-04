@@ -3796,6 +3796,9 @@ private void FillPercentRankOrCumeDist(
             case ExistsExpr ex:
                 return EvalExists(ex, row, ctes);
 
+            case QuantifiedComparisonExpr qc:
+                return EvalQuantifiedComparison(qc, row, group, ctes);
+
 
             case CaseExpr c:
                 return EvalCase(c, row, group, ctes);
@@ -4109,6 +4112,82 @@ private void FillPercentRankOrCumeDist(
     }
 
     /// <summary>
+    /// EN: Evaluates quantified comparison expressions (`ANY`/`ALL`) against the first column of a subquery result using SQL three-valued logic semantics.
+    /// PT: Avalia expressões de comparação quantificada (`ANY`/`ALL`) contra a primeira coluna do resultado de subquery usando semântica SQL de três valores.
+    /// </summary>
+    private bool EvalQuantifiedComparison(
+        QuantifiedComparisonExpr quantified,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+    {
+        var leftVal = Eval(quantified.Left, row, group, ctes);
+        var candidates = GetOrEvaluateSubqueryFirstColumnValuesForOperation(
+            quantified.Subquery,
+            quantified.Quantifier == SqlQuantifier.Any
+                ? $"QANY_{quantified.Op}"
+                : $"QALL_{quantified.Op}",
+            row,
+            ctes);
+
+        if (quantified.Quantifier == SqlQuantifier.Any)
+        {
+            foreach (var candidate in candidates)
+            {
+                var truth = EvaluateScalarComparisonTruthValue(quantified.Op, leftVal, candidate);
+                if (truth == SqlTruthValue.True)
+                    return true;
+            }
+
+            // UNKNOWN in WHERE is filtered out (same observable result as false).
+            return false;
+        }
+
+        // ALL on empty set is true (vacuous truth).
+        if (candidates.Count == 0)
+            return true;
+
+        var hasUnknownAll = false;
+        foreach (var candidate in candidates)
+        {
+            var truth = EvaluateScalarComparisonTruthValue(quantified.Op, leftVal, candidate);
+            if (truth == SqlTruthValue.False)
+                return false;
+
+            if (truth == SqlTruthValue.Unknown)
+                hasUnknownAll = true;
+        }
+
+        // If no FALSE but at least one UNKNOWN => UNKNOWN => filtered out in WHERE.
+        return !hasUnknownAll;
+    }
+
+    /// <summary>
+    /// EN: Evaluates scalar comparison into SQL truth value (`TRUE`/`FALSE`/`UNKNOWN`) for quantified comparison semantics.
+    /// PT: Avalia comparação escalar em valor lógico SQL (`TRUE`/`FALSE`/`UNKNOWN`) para semântica de comparação quantificada.
+    /// </summary>
+    private SqlTruthValue EvaluateScalarComparisonTruthValue(
+        SqlBinaryOp op,
+        object? left,
+        object? right)
+    {
+        if (left is null || left is DBNull || right is null || right is DBNull)
+            return SqlTruthValue.Unknown;
+
+        var cmp = left.Compare(right, Dialect);
+        return op switch
+        {
+            SqlBinaryOp.Eq => cmp == 0 ? SqlTruthValue.True : SqlTruthValue.False,
+            SqlBinaryOp.Neq => cmp != 0 ? SqlTruthValue.True : SqlTruthValue.False,
+            SqlBinaryOp.Greater => cmp > 0 ? SqlTruthValue.True : SqlTruthValue.False,
+            SqlBinaryOp.GreaterOrEqual => cmp >= 0 ? SqlTruthValue.True : SqlTruthValue.False,
+            SqlBinaryOp.Less => cmp < 0 ? SqlTruthValue.True : SqlTruthValue.False,
+            SqlBinaryOp.LessOrEqual => cmp <= 0 ? SqlTruthValue.True : SqlTruthValue.False,
+            _ => throw new InvalidOperationException($"Quantified comparison op não suportado: {op}")
+        };
+    }
+
+    /// <summary>
     /// EN: Resolves and caches first-column values for correlated IN-subquery evaluation using outer-row-aware cache keys.
     /// PT: Resolve e cacheia valores da primeira coluna para avaliação de IN-subquery correlacionada usando chaves de cache sensíveis à linha externa.
     /// </summary>
@@ -4116,14 +4195,25 @@ private void FillPercentRankOrCumeDist(
         SubqueryExpr sq,
         EvalRow row,
         IDictionary<string, Source> ctes)
+        => GetOrEvaluateSubqueryFirstColumnValuesForOperation(sq, "IN", row, ctes);
+
+    /// <summary>
+    /// EN: Resolves and caches first-column values for subquery-based operations using operation-specific correlated cache keys.
+    /// PT: Resolve e cacheia valores da primeira coluna para operações baseadas em subquery usando chaves de cache correlacionado específicas por operação.
+    /// </summary>
+    private List<object?> GetOrEvaluateSubqueryFirstColumnValuesForOperation(
+        SubqueryExpr sq,
+        string operation,
+        EvalRow row,
+        IDictionary<string, Source> ctes)
     {
-        var cacheKey = BuildCorrelatedSubqueryCacheKey("IN", sq.Sql, row);
+        var cacheKey = BuildCorrelatedSubqueryCacheKey(operation, sq.Sql, row);
 
         return _inSubqueryFirstColumnCache.GetOrAdd(
             cacheKey,
             _ =>
             {
-                var sub = ExecuteSelect(GetSingleSubqueryOrThrow(sq, "IN"), ctes, row);
+                var sub = ExecuteSelect(GetSingleSubqueryOrThrow(sq, operation), ctes, row);
                 var values = new List<object?>(sub.Count);
                 foreach (var sr in sub)
                     values.Add(sr.TryGetValue(0, out var cell) ? cell : null);
@@ -6352,6 +6442,7 @@ private void FillPercentRankOrCumeDist(
         LikeExpr l => WalkHasAggregate(l.Left) || WalkHasAggregate(l.Pattern),
         InExpr i => WalkHasAggregate(i.Left) || i.Items.Any(WalkHasAggregate),
         IsNullExpr isn => WalkHasAggregate(isn.Expr),
+        QuantifiedComparisonExpr q => WalkHasAggregate(q.Left) || WalkHasAggregate(q.Subquery),
 
         // ⚠️ cuidado: isso aqui tá “agressivo”
         // EXISTS não é aggregate. Mas você provavelmente usa isso como “precisa de contexto especial”.
@@ -6680,6 +6771,7 @@ private void FillPercentRankOrCumeDist(
 
     private sealed record ScalarSubqueryCacheEntry(object? Value);
     private readonly record struct InMembershipState(bool Matched, bool HasNullCandidate);
+    private enum SqlTruthValue { True, False, Unknown }
 
     internal sealed record EvalRow(
         Dictionary<string, object?> Fields,

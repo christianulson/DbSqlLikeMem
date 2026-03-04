@@ -854,6 +854,7 @@ internal static class SqlExecutionPlanFormatter
             InExpr i => 2 + EstimatePredicateComplexityCost(i.Left) + i.Items.Sum(EstimatePredicateComplexityCost) + i.Items.Count,
             ExistsExpr e => EstimateSubqueryPredicateCost(e.Subquery),
             SubqueryExpr s => EstimateSubqueryPredicateCost(s),
+            QuantifiedComparisonExpr q => 2 + EstimatePredicateComplexityCost(q.Left) + EstimateSubqueryPredicateCost(q.Subquery),
             FunctionCallExpr f => 1 + EstimateJsonPredicateFunctionPenalty(f.Name) + f.Args.Sum(EstimatePredicateComplexityCost),
             CallExpr c => 1 + EstimateJsonPredicateFunctionPenalty(c.Name) + c.Args.Sum(EstimatePredicateComplexityCost),
             CaseExpr c => EstimateCasePredicateComplexityCost(c),
