@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.Test;
+namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Shared CsvLoader and index behavior tests executed by provider-specific derived classes.

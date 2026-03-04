@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace DbSqlLikeMem.Test;
+namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Defines the class XUnitTestBase.

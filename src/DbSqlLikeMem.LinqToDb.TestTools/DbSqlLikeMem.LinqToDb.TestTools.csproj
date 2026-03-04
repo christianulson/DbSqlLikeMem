@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
 	<PropertyGroup>
 		<IsPackable>false</IsPackable>
 		<IsTestProject>false</IsTestProject>
@@ -34,8 +33,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\DbSqlLikeMem.EfCore\DbSqlLikeMem.EfCore.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
-		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.LinqToDb\DbSqlLikeMem.LinqToDb.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.TestTools\DbSqlLikeMem.TestTools.csproj" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net48' Or '$(TargetFramework)' == 'netstandard2.1' Or '$(TargetFramework)' == 'net6.0'">
@@ -45,10 +44,9 @@
 
 	<ItemGroup>
 		<Using Include="DbSqlLikeMem" />
+		<Using Include="DbSqlLikeMem.LinqToDb" />
 		<Using Include="DbSqlLikeMem.Resources" />
-		<Using Include="DbSqlLikeMem.EfCore" />
 		<Using Include="System.Data" />
-		<Using Include="System.Data.Common" />
 		<Using Include="System.Globalization" />
 		<Using Include="Xunit" />
 	</ItemGroup>

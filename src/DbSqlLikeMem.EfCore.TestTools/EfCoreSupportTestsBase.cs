@@ -1,6 +1,6 @@
-using DbSqlLikeMem.Test;
+using DbSqlLikeMem.TestTools;
 
-namespace DbSqlLikeMem.EfCore.Test;
+namespace DbSqlLikeMem.EfCore.TestTools;
 
 /// <summary>
 /// EN: Defines shared EF Core-oriented provider contract tests for mock connections.

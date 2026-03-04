@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Text.Json;
 
-namespace DbSqlLikeMem.Test;
+namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Validates execution-plan warning formatting and i18n resource consistency.
