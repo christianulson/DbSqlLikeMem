@@ -214,6 +214,120 @@ public sealed class Db2AggregationTests : AggregationHavingOrdinalTestsBase<Db2D
         Assert.Equal(2, Convert.ToInt32(rows[1].userId));
     }
 
+    /// <summary>
+    /// EN: Ensures CURRENT_TIMESTAMP token keeps consistent behavior across SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// PT: Garante que o token CURRENT_TIMESTAMP mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Aggregation")]
+    public void TemporalFunction_CurrentTimestamp_ShouldBeConsistentAcrossContexts()
+    {
+        var projectionRows = Query("SELECT CURRENT_TIMESTAMP AS nowValue FROM orders");
+        Assert.NotEmpty(projectionRows);
+        Assert.NotNull(projectionRows[0].nowValue);
+
+        var whereRows = Query("SELECT id FROM orders WHERE CURRENT_TIMESTAMP IS NOT NULL");
+        Assert.NotEmpty(whereRows);
+
+        var groupedRows = Query("""
+            SELECT userId, COUNT(*) AS total
+            FROM orders
+            GROUP BY userId
+            HAVING CURRENT_TIMESTAMP IS NOT NULL
+            ORDER BY CURRENT_TIMESTAMP, userId
+            """);
+        Assert.Equal(2, groupedRows.Count);
+
+        Connection.Execute("CREATE TABLE temporal_ctx_insert (id INT, created_at DATETIME NULL)");
+        Connection.Execute("INSERT INTO temporal_ctx_insert (id, created_at) VALUES (1, CURRENT_TIMESTAMP)");
+        var insertedRows = Query("SELECT created_at FROM temporal_ctx_insert WHERE id = 1");
+        Assert.Single(insertedRows);
+        Assert.NotNull(insertedRows[0].created_at);
+
+        Connection.Execute("CREATE TABLE temporal_ctx_update (id INT, updated_at DATETIME NULL)");
+        Connection.Execute("INSERT INTO temporal_ctx_update (id, updated_at) VALUES (1, NULL)");
+        Connection.Execute("UPDATE temporal_ctx_update SET updated_at = CURRENT_TIMESTAMP WHERE id = 1");
+        var updatedRows = Query("SELECT updated_at FROM temporal_ctx_update WHERE id = 1");
+        Assert.Single(updatedRows);
+        Assert.NotNull(updatedRows[0].updated_at);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures CURRENT_DATE token keeps consistent behavior across SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// PT: Garante que o token CURRENT_DATE mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Aggregation")]
+    public void TemporalFunction_CurrentDate_ShouldBeConsistentAcrossContexts()
+    {
+        var projectionRows = Query("SELECT CURRENT_DATE AS nowValue FROM orders");
+        Assert.NotEmpty(projectionRows);
+        Assert.NotNull(projectionRows[0].nowValue);
+
+        var whereRows = Query("SELECT id FROM orders WHERE CURRENT_DATE IS NOT NULL");
+        Assert.NotEmpty(whereRows);
+
+        var groupedRows = Query("""
+            SELECT userId, COUNT(*) AS total
+            FROM orders
+            GROUP BY userId
+            HAVING CURRENT_DATE IS NOT NULL
+            ORDER BY CURRENT_DATE, userId
+            """);
+        Assert.Equal(2, groupedRows.Count);
+
+        Connection.Execute("CREATE TABLE temporal_ctx_insert_current_date (id INT, created_at DATE NULL)");
+        Connection.Execute("INSERT INTO temporal_ctx_insert_current_date (id, created_at) VALUES (1, CURRENT_DATE)");
+        var insertedRows = Query("SELECT created_at FROM temporal_ctx_insert_current_date WHERE id = 1");
+        Assert.Single(insertedRows);
+        Assert.NotNull(insertedRows[0].created_at);
+
+        Connection.Execute("CREATE TABLE temporal_ctx_update_current_date (id INT, updated_at DATE NULL)");
+        Connection.Execute("INSERT INTO temporal_ctx_update_current_date (id, updated_at) VALUES (1, NULL)");
+        Connection.Execute("UPDATE temporal_ctx_update_current_date SET updated_at = CURRENT_DATE WHERE id = 1");
+        var updatedRows = Query("SELECT updated_at FROM temporal_ctx_update_current_date WHERE id = 1");
+        Assert.Single(updatedRows);
+        Assert.NotNull(updatedRows[0].updated_at);
+    }
+
+    /// <summary>
+    /// EN: Ensures CURRENT_TIME token keeps consistent behavior across SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// PT: Garante que o token CURRENT_TIME mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Aggregation")]
+    public void TemporalFunction_CurrentTime_ShouldBeConsistentAcrossContexts()
+    {
+        var projectionRows = Query("SELECT CURRENT_TIME AS nowValue FROM orders");
+        Assert.NotEmpty(projectionRows);
+        Assert.NotNull(projectionRows[0].nowValue);
+
+        var whereRows = Query("SELECT id FROM orders WHERE CURRENT_TIME IS NOT NULL");
+        Assert.NotEmpty(whereRows);
+
+        var groupedRows = Query("""
+            SELECT userId, COUNT(*) AS total
+            FROM orders
+            GROUP BY userId
+            HAVING CURRENT_TIME IS NOT NULL
+            ORDER BY CURRENT_TIME, userId
+            """);
+        Assert.Equal(2, groupedRows.Count);
+
+        Connection.Execute("CREATE TABLE temporal_ctx_insert_current_time (id INT, created_at DATETIME NULL)");
+        Connection.Execute("INSERT INTO temporal_ctx_insert_current_time (id, created_at) VALUES (1, CURRENT_TIME)");
+        var insertedRows = Query("SELECT created_at FROM temporal_ctx_insert_current_time WHERE id = 1");
+        Assert.Single(insertedRows);
+        Assert.NotNull(insertedRows[0].created_at);
+
+        Connection.Execute("CREATE TABLE temporal_ctx_update_current_time (id INT, updated_at DATETIME NULL)");
+        Connection.Execute("INSERT INTO temporal_ctx_update_current_time (id, updated_at) VALUES (1, NULL)");
+        Connection.Execute("UPDATE temporal_ctx_update_current_time SET updated_at = CURRENT_TIME WHERE id = 1");
+        var updatedRows = Query("SELECT updated_at FROM temporal_ctx_update_current_time WHERE id = 1");
+        Assert.Single(updatedRows);
+        Assert.NotNull(updatedRows[0].updated_at);
+    }
 
     /// <summary>
     /// EN: Ensures unsupported temporal function from another dialect reports a clear error message.
@@ -244,6 +358,35 @@ public sealed class Db2AggregationTests : AggregationHavingOrdinalTestsBase<Db2D
             Query("SELECT CURRENT_TIMESTAMP() AS invalidNow FROM orders"));
 
         Assert.Contains("CURRENT_TIMESTAMP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures CURRENT_DATE token called with parentheses reports clear error.
+    /// PT: Garante que o token CURRENT_DATE chamado com parênteses gere erro claro.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Aggregation")]
+    public void TemporalFunction_CurrentDateTokenCalledAsFunction_ShouldThrowClearError()
+    {
+        var ex = Assert.ThrowsAny<Exception>(() =>
+            Query("SELECT CURRENT_DATE() AS invalidDate FROM orders"));
+
+        Assert.Contains("CURRENT_DATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures CURRENT_TIME token called with parentheses reports clear error.
+    /// PT: Garante que o token CURRENT_TIME chamado com parênteses gere erro claro.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Aggregation")]
+    public void TemporalFunction_CurrentTimeTokenCalledAsFunction_ShouldThrowClearError()
+    {
+        var ex = Assert.ThrowsAny<Exception>(() =>
+            Query("SELECT CURRENT_TIME() AS invalidTime FROM orders"));
+
+        Assert.Contains("CURRENT_TIME", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 }
