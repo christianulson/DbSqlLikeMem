@@ -75,6 +75,12 @@ internal static class SqlExprPrinter
             case ExistsExpr ee:
                 sb.Append($"EXISTS ({ee.Subquery.Sql})");
                 break;
+            case QuantifiedComparisonExpr qc:
+                Wrap(qc.Left, sb);
+                sb.Append(' ').Append(OpText(qc.Op)).Append(' ');
+                sb.Append(qc.Quantifier == SqlQuantifier.Any ? "ANY" : "ALL");
+                sb.Append(" (").Append(qc.Subquery.Sql).Append(')');
+                break;
             case JsonAccessExpr j:
                 Write(j.Target, sb);
                 sb.Append(j.Unquote ? " ->> " : " -> ");

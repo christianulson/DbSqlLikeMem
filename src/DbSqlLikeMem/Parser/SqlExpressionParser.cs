@@ -573,9 +573,66 @@ internal sealed class SqlExpressionParser(
         var (lbp, rbp) = (50, 51);
         if (lbp < minBp) return false;
 
-        Consume();
+        var opToken = Consume();
+
+        if (TryParseQuantifiedComparisonRightSide(left, bop, opToken, out var quantifiedExpr))
+        {
+            left = quantifiedExpr;
+            return true;
+        }
+
         var right = ParseExpression(rbp);
         left = new BinaryExpr(bop, left, right);
+        return true;
+    }
+
+    /// <summary>
+    /// EN: Tries to parse quantified comparison right side (`ANY`/`SOME`/`ALL` with subquery) after a comparison operator.
+    /// PT: Tenta parsear o lado direito de comparação quantificada (`ANY`/`SOME`/`ALL` com subquery) após operador de comparação.
+    /// </summary>
+    private bool TryParseQuantifiedComparisonRightSide(
+        SqlExpr left,
+        SqlBinaryOp op,
+        SqlToken contextToken,
+        out SqlExpr quantifiedExpr)
+    {
+        quantifiedExpr = default!;
+
+        var qTok = Peek();
+        if (!IsKeywordOrIdentifierWord(qTok, "ANY")
+            && !IsKeywordOrIdentifierWord(qTok, "SOME")
+            && !IsKeywordOrIdentifierWord(qTok, "ALL"))
+            return false;
+
+        var quantifier = IsKeywordOrIdentifierWord(qTok, "ANY")
+                         || IsKeywordOrIdentifierWord(qTok, "SOME")
+            ? SqlQuantifier.Any
+            : SqlQuantifier.All;
+
+        Consume(); // ANY | SOME | ALL
+        ExpectSymbol("(");
+
+        var hasExtraWrapperParen = false;
+        if (IsSymbol(Peek(), "("))
+        {
+            hasExtraWrapperParen = true;
+            Consume(); // optional wrapper '('
+        }
+
+        var subSql = ReadRawUntilMatchingParen();
+
+        if (hasExtraWrapperParen)
+            ExpectSymbol(")");
+
+        ExpectSymbol(")");
+
+        var subquery = SqlQueryParser.ParseSubqueryExprOrThrow(
+            subSql,
+            contextToken,
+            $"{quantifier.ToString().ToUpperInvariant()} quantified comparison",
+            _dialect);
+
+        quantifiedExpr = new QuantifiedComparisonExpr(op, left, quantifier, subquery);
         return true;
     }
 

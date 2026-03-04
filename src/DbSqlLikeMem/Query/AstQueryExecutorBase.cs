@@ -29,11 +29,16 @@ internal abstract class AstQueryExecutorBase(
     private ISqlDialect? Dialect => _dialect as ISqlDialect;
     private readonly ConcurrentDictionary<string, bool> _existsSubqueryCache = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, List<object?>> _inSubqueryFirstColumnCache = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, ScalarSubqueryCacheEntry> _scalarSubqueryCache = new(StringComparer.Ordinal);
 
 
     private static readonly HashSet<string> _aggFns = new(StringComparer.OrdinalIgnoreCase)
     {
         "COUNT","SUM","MIN","MAX","AVG","GROUP_CONCAT","STRING_AGG","LISTAGG"
+    };
+    private static readonly HashSet<string> _sqlAliasReservedTokens = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "SELECT","FROM","JOIN","INNER","LEFT","RIGHT","FULL","CROSS","ON","WHERE","GROUP","BY","ORDER","HAVING","LIMIT","OFFSET","UNION","ALL","AS","USING","WHEN","THEN","ELSE","END"
     };
 
     // Dialect-aware expression parsing without hard dependency on a specific dialect type.
@@ -3715,8 +3720,16 @@ private void FillPercentRankOrCumeDist(
         IDictionary<string, Source> ctes,
         EvalRow row)
     {
-        var r = ExecuteSelect(GetSingleSubqueryOrThrow(sq, "EVAL subquery"), ctes, row);
-        return r.Count > 0 && r[0].TryGetValue(0, out var v) ? v : null;
+        var cacheKey = BuildCorrelatedSubqueryCacheKey("SCALAR", sq.Sql, row);
+
+        return _scalarSubqueryCache.GetOrAdd(
+            cacheKey,
+            _ =>
+            {
+                var r = ExecuteSelect(GetSingleSubqueryOrThrow(sq, "EVAL subquery"), ctes, row);
+                var value = r.Count > 0 && r[0].TryGetValue(0, out var v) ? v : null;
+                return new ScalarSubqueryCacheEntry(value);
+            }).Value;
     }
 
     // ---------------- EXPRESSION EVAL ----------------
@@ -3769,6 +3782,9 @@ private void FillPercentRankOrCumeDist(
                 }
 
             case UnaryExpr u when u.Op == SqlUnaryOp.Not:
+                if (u.Expr is InExpr notInExpr)
+                    return EvalNotIn(notInExpr, row, group, ctes);
+
                 return !Eval(u.Expr, row, group, ctes).ToBool();
 
             case BinaryExpr b:
@@ -3779,6 +3795,9 @@ private void FillPercentRankOrCumeDist(
 
             case ExistsExpr ex:
                 return EvalExists(ex, row, ctes);
+
+            case QuantifiedComparisonExpr qc:
+                return EvalQuantifiedComparison(qc, row, group, ctes);
 
 
             case CaseExpr c:
@@ -3939,6 +3958,48 @@ private void FillPercentRankOrCumeDist(
         if (leftVal is null)
             return false;
 
+        var state = EvaluateInMembership(i, leftVal, row, group, ctes);
+        return state.Matched;
+    }
+
+    /// <summary>
+    /// EN: Evaluates SQL NOT IN semantics, handling NULL candidate propagation as UNKNOWN (filtered out).
+    /// PT: Avalia semântica SQL de NOT IN, tratando propagação de candidatos NULL como UNKNOWN (filtrado).
+    /// </summary>
+    private bool EvalNotIn(
+        InExpr i,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+    {
+        var leftVal = Eval(i.Left, row, group, ctes);
+        if (leftVal is null || leftVal is DBNull)
+            return false;
+
+        var state = EvaluateInMembership(i, leftVal, row, group, ctes);
+        if (state.Matched)
+            return false;
+
+        // SQL three-valued logic: x NOT IN (..., NULL, ...) => UNKNOWN when no match.
+        if (state.HasNullCandidate)
+            return false;
+
+        return true;
+    }
+
+    /// <summary>
+    /// EN: Computes IN membership state including matched candidates and NULL-candidate presence for SQL three-valued logic.
+    /// PT: Calcula estado de pertencimento de IN incluindo candidatos casados e presença de candidato NULL para lógica SQL de três valores.
+    /// </summary>
+    private InMembershipState EvaluateInMembership(
+        InExpr i,
+        object leftVal,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+    {
+        var hasNullCandidate = false;
+
         // IN (subquery)
         if (i.Items.Count == 1 && i.Items[0] is SubqueryExpr sq)
         {
@@ -3947,11 +4008,17 @@ private void FillPercentRankOrCumeDist(
             // MySQL: IN(subquery) considera a 1a coluna retornada
             foreach (var v in subqueryValues)
             {
+                if (v is null || v is DBNull)
+                {
+                    hasNullCandidate = true;
+                    continue;
+                }
+
                 if (leftVal.EqualsSql(v, Dialect))
-                    return true;
+                    return new InMembershipState(Matched: true, HasNullCandidate: hasNullCandidate);
             }
 
-            return false;
+            return new InMembershipState(Matched: false, HasNullCandidate: hasNullCandidate);
         }
 
         // IN (item1, item2, ...)
@@ -3966,17 +4033,28 @@ private void FillPercentRankOrCumeDist(
                 foreach (var item in ie)
                 {
                     var cand = item;
+                    if (cand is null || cand is DBNull)
+                    {
+                        hasNullCandidate = true;
+                        continue;
+                    }
 
                     // Row IN Row (quando o parametro é lista de tuples/rows)
                     if (leftVal is object?[] la2 && cand is object?[] ra2)
                     {
+                        if (HasNullElement(la2) || HasNullElement(ra2))
+                        {
+                            hasNullCandidate = true;
+                            continue;
+                        }
+
                         if (la2.Length == ra2.Length && !la2.Where((t, idx) => !t.EqualsSql(ra2[idx], Dialect)).Any())
-                            return true;
+                            return new InMembershipState(Matched: true, HasNullCandidate: hasNullCandidate);
                         continue;
                     }
 
                     if (leftVal.EqualsSql(cand, Dialect))
-                        return true;
+                        return new InMembershipState(Matched: true, HasNullCandidate: hasNullCandidate);
                 }
 
                 continue; // não cai no EqualsSql(v) do enumerable inteiro
@@ -3985,17 +4063,36 @@ private void FillPercentRankOrCumeDist(
             // Row IN Row (normal)
             if (leftVal is object?[] la && v is object?[] ra)
             {
+                if (HasNullElement(la) || HasNullElement(ra))
+                {
+                    hasNullCandidate = true;
+                    continue;
+                }
+
                 if (la.Length == ra.Length && !la.Where((t, idx) => !t.EqualsSql(ra[idx], Dialect)).Any())
-                    return true;
+                    return new InMembershipState(Matched: true, HasNullCandidate: hasNullCandidate);
+                continue;
+            }
+
+            if (v is null || v is DBNull)
+            {
+                hasNullCandidate = true;
                 continue;
             }
 
             if (leftVal.EqualsSql(v, Dialect))
-                return true;
+                return new InMembershipState(Matched: true, HasNullCandidate: hasNullCandidate);
         }
 
-        return false;
+        return new InMembershipState(Matched: false, HasNullCandidate: hasNullCandidate);
     }
+
+    /// <summary>
+    /// EN: Checks whether an object array contains at least one SQL NULL-like value.
+    /// PT: Verifica se um array de objetos contém ao menos um valor SQL nulo.
+    /// </summary>
+    private static bool HasNullElement(object?[] values)
+        => values.Any(static v => v is null || v is DBNull);
 
     private bool EvalExists(
         ExistsExpr ex,
@@ -4015,6 +4112,82 @@ private void FillPercentRankOrCumeDist(
     }
 
     /// <summary>
+    /// EN: Evaluates quantified comparison expressions (`ANY`/`ALL`) against the first column of a subquery result using SQL three-valued logic semantics.
+    /// PT: Avalia expressões de comparação quantificada (`ANY`/`ALL`) contra a primeira coluna do resultado de subquery usando semântica SQL de três valores.
+    /// </summary>
+    private bool EvalQuantifiedComparison(
+        QuantifiedComparisonExpr quantified,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+    {
+        var leftVal = Eval(quantified.Left, row, group, ctes);
+        var candidates = GetOrEvaluateSubqueryFirstColumnValuesForOperation(
+            quantified.Subquery,
+            quantified.Quantifier == SqlQuantifier.Any
+                ? $"QANY_{quantified.Op}"
+                : $"QALL_{quantified.Op}",
+            row,
+            ctes);
+
+        if (quantified.Quantifier == SqlQuantifier.Any)
+        {
+            foreach (var candidate in candidates)
+            {
+                var truth = EvaluateScalarComparisonTruthValue(quantified.Op, leftVal, candidate);
+                if (truth == SqlTruthValue.True)
+                    return true;
+            }
+
+            // UNKNOWN in WHERE is filtered out (same observable result as false).
+            return false;
+        }
+
+        // ALL on empty set is true (vacuous truth).
+        if (candidates.Count == 0)
+            return true;
+
+        var hasUnknownAll = false;
+        foreach (var candidate in candidates)
+        {
+            var truth = EvaluateScalarComparisonTruthValue(quantified.Op, leftVal, candidate);
+            if (truth == SqlTruthValue.False)
+                return false;
+
+            if (truth == SqlTruthValue.Unknown)
+                hasUnknownAll = true;
+        }
+
+        // If no FALSE but at least one UNKNOWN => UNKNOWN => filtered out in WHERE.
+        return !hasUnknownAll;
+    }
+
+    /// <summary>
+    /// EN: Evaluates scalar comparison into SQL truth value (`TRUE`/`FALSE`/`UNKNOWN`) for quantified comparison semantics.
+    /// PT: Avalia comparação escalar em valor lógico SQL (`TRUE`/`FALSE`/`UNKNOWN`) para semântica de comparação quantificada.
+    /// </summary>
+    private SqlTruthValue EvaluateScalarComparisonTruthValue(
+        SqlBinaryOp op,
+        object? left,
+        object? right)
+    {
+        if (left is null || left is DBNull || right is null || right is DBNull)
+            return SqlTruthValue.Unknown;
+
+        var cmp = left.Compare(right, Dialect);
+        return op switch
+        {
+            SqlBinaryOp.Eq => cmp == 0 ? SqlTruthValue.True : SqlTruthValue.False,
+            SqlBinaryOp.Neq => cmp != 0 ? SqlTruthValue.True : SqlTruthValue.False,
+            SqlBinaryOp.Greater => cmp > 0 ? SqlTruthValue.True : SqlTruthValue.False,
+            SqlBinaryOp.GreaterOrEqual => cmp >= 0 ? SqlTruthValue.True : SqlTruthValue.False,
+            SqlBinaryOp.Less => cmp < 0 ? SqlTruthValue.True : SqlTruthValue.False,
+            SqlBinaryOp.LessOrEqual => cmp <= 0 ? SqlTruthValue.True : SqlTruthValue.False,
+            _ => throw new InvalidOperationException($"Quantified comparison op não suportado: {op}")
+        };
+    }
+
+    /// <summary>
     /// EN: Resolves and caches first-column values for correlated IN-subquery evaluation using outer-row-aware cache keys.
     /// PT: Resolve e cacheia valores da primeira coluna para avaliação de IN-subquery correlacionada usando chaves de cache sensíveis à linha externa.
     /// </summary>
@@ -4022,14 +4195,25 @@ private void FillPercentRankOrCumeDist(
         SubqueryExpr sq,
         EvalRow row,
         IDictionary<string, Source> ctes)
+        => GetOrEvaluateSubqueryFirstColumnValuesForOperation(sq, "IN", row, ctes);
+
+    /// <summary>
+    /// EN: Resolves and caches first-column values for subquery-based operations using operation-specific correlated cache keys.
+    /// PT: Resolve e cacheia valores da primeira coluna para operações baseadas em subquery usando chaves de cache correlacionado específicas por operação.
+    /// </summary>
+    private List<object?> GetOrEvaluateSubqueryFirstColumnValuesForOperation(
+        SubqueryExpr sq,
+        string operation,
+        EvalRow row,
+        IDictionary<string, Source> ctes)
     {
-        var cacheKey = BuildCorrelatedSubqueryCacheKey("IN", sq.Sql, row);
+        var cacheKey = BuildCorrelatedSubqueryCacheKey(operation, sq.Sql, row);
 
         return _inSubqueryFirstColumnCache.GetOrAdd(
             cacheKey,
             _ =>
             {
-                var sub = ExecuteSelect(GetSingleSubqueryOrThrow(sq, "IN"), ctes, row);
+                var sub = ExecuteSelect(GetSingleSubqueryOrThrow(sq, operation), ctes, row);
                 var values = new List<object?>(sub.Count);
                 foreach (var sr in sub)
                     values.Add(sr.TryGetValue(0, out var cell) ? cell : null);
@@ -4042,15 +4226,18 @@ private void FillPercentRankOrCumeDist(
     /// EN: Builds a deterministic cache key for correlated subquery evaluation using operation kind, raw subquery text and normalized outer-row values.
     /// PT: Monta uma chave de cache determinística para avaliação de subquery correlacionada usando tipo de operação, texto bruto da subquery e valores normalizados da linha externa.
     /// </summary>
-    private static string BuildCorrelatedSubqueryCacheKey(string operation, string subquerySql, EvalRow row)
+    private static string BuildCorrelatedSubqueryCacheKey(string operation, string? subquerySql, EvalRow row)
     {
+        var normalizedSubquerySql = NormalizeSubquerySqlForCacheKey(subquerySql ?? string.Empty);
+        normalizedSubquerySql = NormalizeOperationSpecificSubquerySqlForCacheKey(operation, normalizedSubquerySql);
         var sb = new StringBuilder();
         sb.Append(operation);
         sb.Append('\u001F');
-        sb.Append(subquerySql ?? string.Empty);
+        sb.Append(normalizedSubquerySql);
         sb.Append('\u001F');
 
-        foreach (var kv in row.Fields.OrderBy(static kv => kv.Key, StringComparer.OrdinalIgnoreCase))
+        var cacheFields = GetCorrelatedSubqueryCacheFields(subquerySql ?? string.Empty, row);
+        foreach (var kv in cacheFields)
         {
             sb.Append(kv.Key);
             sb.Append('=');
@@ -4059,6 +4246,1211 @@ private void FillPercentRankOrCumeDist(
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// EN: Applies operation-specific canonicalization rules for subquery SQL used in correlated cache keys.
+    /// PT: Aplica regras de canonização específicas por operação para SQL de subquery usado em chaves de cache correlacionado.
+    /// </summary>
+    private static string NormalizeOperationSpecificSubquerySqlForCacheKey(
+        string operation,
+        string normalizedSubquerySql)
+    {
+        if (string.IsNullOrWhiteSpace(normalizedSubquerySql))
+            return string.Empty;
+
+        if (string.Equals(operation, "EXISTS", StringComparison.OrdinalIgnoreCase))
+            return NormalizeExistsProjectionPayloadForCacheKey(normalizedSubquerySql);
+
+        if (string.Equals(operation, "IN", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(operation, "SCALAR", StringComparison.OrdinalIgnoreCase)
+            || operation.StartsWith("QANY_", StringComparison.OrdinalIgnoreCase)
+            || operation.StartsWith("QALL_", StringComparison.OrdinalIgnoreCase))
+            return NormalizeSelectProjectionAliasesForCacheKey(normalizedSubquerySql);
+
+        return normalizedSubquerySql;
+    }
+
+    /// <summary>
+    /// EN: Selects relevant outer-row fields for correlated subquery cache keys, prioritizing identifiers explicitly referenced in subquery SQL.
+    /// PT: Seleciona campos relevantes da linha externa para chaves de cache de subquery correlacionada, priorizando identificadores explicitamente referenciados no SQL da subquery.
+    /// </summary>
+    private static IReadOnlyList<KeyValuePair<string, object?>> GetCorrelatedSubqueryCacheFields(
+        string subquerySql,
+        EvalRow row)
+    {
+        var allFields = row.Fields
+            .OrderBy(static kv => kv.Key, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (allFields.Count == 0 || string.IsNullOrWhiteSpace(subquerySql))
+            return allFields;
+
+        var normalizedSql = NormalizeSqlIdentifierSpacing(subquerySql);
+        var qualifiedIdentifiers = ExtractQualifiedSqlIdentifiers(normalizedSql);
+        var qualifiedMatches = allFields
+            .Where(static kv => kv.Key.Contains('.', StringComparison.Ordinal))
+            .Where(kv => qualifiedIdentifiers.Contains(kv.Key))
+            .ToList();
+
+        if (qualifiedMatches.Count > 0)
+            return qualifiedMatches;
+
+        var unqualifiedMatches = allFields
+            .Where(static kv => !kv.Key.Contains('.', StringComparison.Ordinal))
+            .Where(kv => ContainsSqlIdentifierToken(normalizedSql, kv.Key))
+            .ToList();
+
+        if (unqualifiedMatches.Count > 0)
+            return unqualifiedMatches;
+
+        // If we cannot match any outer identifier but SQL still appears to reference outer qualifiers,
+        // keep conservative behavior and include all fields to avoid stale cross-row reuse.
+        return ContainsPotentialOuterQualifierReference(normalizedSql, allFields)
+            ? allFields
+            : [];
+    }
+
+    /// <summary>
+    /// EN: Checks whether a candidate identifier token appears in SQL text using lightweight identifier-boundary guards.
+    /// PT: Verifica se um token identificador candidato aparece no texto SQL usando guardas leves de fronteira de identificador.
+    /// </summary>
+    private static bool ContainsSqlIdentifierToken(string sql, string token)
+    {
+        if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(token))
+            return false;
+
+        var index = 0;
+        while (true)
+        {
+            index = sql.IndexOf(token, index, StringComparison.OrdinalIgnoreCase);
+            if (index < 0)
+                return false;
+
+            var leftBoundaryOk = index == 0 || !IsSqlIdentifierChar(sql[index - 1]);
+            var right = index + token.Length;
+            var rightBoundaryOk = right >= sql.Length || !IsSqlIdentifierChar(sql[right]);
+
+            if (leftBoundaryOk && rightBoundaryOk)
+                return true;
+
+            index = right;
+        }
+    }
+
+    /// <summary>
+    /// EN: Determines whether a character can participate in SQL identifiers when evaluating token boundaries.
+    /// PT: Determina se um caractere pode participar de identificadores SQL ao avaliar fronteiras de token.
+    /// </summary>
+    private static bool IsSqlIdentifierChar(char c)
+        => char.IsLetterOrDigit(c) || c is '_' or '$';
+
+    /// <summary>
+    /// EN: Extracts qualified identifier tokens (alias.column) from SQL text using lightweight lexical boundaries.
+    /// PT: Extrai tokens de identificador qualificado (alias.coluna) do texto SQL usando fronteiras léxicas leves.
+    /// </summary>
+    private static HashSet<string> ExtractQualifiedSqlIdentifiers(string sql)
+    {
+        var identifiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(sql))
+            return identifiers;
+
+        var matches = Regex.Matches(
+            sql,
+            @"(?<![A-Za-z0-9_$])([A-Za-z_][A-Za-z0-9_$]*\.[A-Za-z_][A-Za-z0-9_$]*)(?![A-Za-z0-9_$])",
+            RegexOptions.CultureInvariant);
+
+        foreach (Match match in matches)
+        {
+            if (match.Success && match.Groups.Count > 1)
+                identifiers.Add(match.Groups[1].Value);
+        }
+
+        return identifiers;
+    }
+
+    /// <summary>
+    /// EN: Detects whether SQL text appears to reference any qualifier from outer-row fields, even when full token matching failed.
+    /// PT: Detecta se o texto SQL parece referenciar algum qualificador dos campos da linha externa, mesmo quando o matching completo de token falha.
+    /// </summary>
+    private static bool ContainsPotentialOuterQualifierReference(
+        string sql,
+        IReadOnlyList<KeyValuePair<string, object?>> fields)
+    {
+        if (string.IsNullOrWhiteSpace(sql) || fields.Count == 0)
+            return false;
+
+        var qualifiers = fields
+            .Select(static kv =>
+            {
+                var dot = kv.Key.IndexOf('.');
+                return dot > 0 ? kv.Key[..dot] : null;
+            })
+            .Where(static q => !string.IsNullOrWhiteSpace(q))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var qualifier in qualifiers)
+        {
+            if (Regex.IsMatch(
+                    sql,
+                    $@"(?<![A-Za-z0-9_$]){Regex.Escape(qualifier!)}\.",
+                    RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// EN: Normalizes SQL text by collapsing optional whitespace around dot separators in qualified identifiers.
+    /// PT: Normaliza texto SQL colapsando espaços opcionais ao redor de separadores com ponto em identificadores qualificados.
+    /// </summary>
+    private static string NormalizeSqlIdentifierSpacing(string sql)
+        => string.IsNullOrWhiteSpace(sql)
+            ? string.Empty
+            : Regex.Replace(sql, @"\s*\.\s*", ".", RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// EN: Canonicalizes subquery SQL text for cache-key usage by normalizing identifier spacing, keyword casing and redundant whitespace while preserving string literals.
+    /// PT: Canoniza o texto SQL da subquery para uso na chave de cache normalizando espaçamento de identificadores, casing de palavras-chave e whitespace redundante preservando literais de texto.
+    /// </summary>
+    private static string NormalizeSubquerySqlForCacheKey(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            return string.Empty;
+
+        var normalized = NormalizeSqlIdentifierSpacing(sql);
+        var sb = new StringBuilder(normalized.Length);
+        var previousWasSpace = false;
+
+        for (var i = 0; i < normalized.Length; i++)
+        {
+            var ch = normalized[i];
+
+            if (ch == '\'')
+            {
+                previousWasSpace = false;
+                i = AppendQuotedSegment(normalized, i, '\'', sb);
+                continue;
+            }
+
+            if (ch == '"')
+            {
+                previousWasSpace = false;
+                i = AppendQuotedSegment(normalized, i, '"', sb);
+                continue;
+            }
+
+            if (ch == '`')
+            {
+                previousWasSpace = false;
+                i = AppendQuotedSegment(normalized, i, '`', sb);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                previousWasSpace = false;
+                i = AppendBracketIdentifierSegment(normalized, i, sb);
+                continue;
+            }
+
+            if (char.IsWhiteSpace(ch))
+            {
+                if (!previousWasSpace)
+                {
+                    sb.Append(' ');
+                    previousWasSpace = true;
+                }
+
+                continue;
+            }
+
+            sb.Append(char.ToUpperInvariant(ch));
+            previousWasSpace = false;
+        }
+
+        var canonicalSql = sb.ToString().Trim();
+        canonicalSql = NormalizeRelationalOperatorSpacingForCacheKey(canonicalSql);
+        canonicalSql = NormalizeSubqueryLocalAliasesForCacheKey(canonicalSql);
+        return NormalizeCommutativeAndClausesForCacheKey(canonicalSql);
+    }
+
+    /// <summary>
+    /// EN: Appends a SQL quoted segment handling escaped quote doubles and returns the consumed end index.
+    /// PT: Anexa um segmento SQL entre aspas tratando escape por duplicidade de aspas e retorna o índice final consumido.
+    /// </summary>
+    private static int AppendQuotedSegment(
+        string sql,
+        int startIndex,
+        char quoteChar,
+        StringBuilder sb)
+    {
+        sb.Append(quoteChar);
+
+        var i = startIndex + 1;
+        while (i < sql.Length)
+        {
+            var ch = sql[i];
+            sb.Append(ch);
+
+            if (ch == quoteChar)
+            {
+                var hasEscapedQuote = i + 1 < sql.Length && sql[i + 1] == quoteChar;
+                if (hasEscapedQuote)
+                {
+                    sb.Append(sql[i + 1]);
+                    i += 2;
+                    continue;
+                }
+
+                return i;
+            }
+
+            i++;
+        }
+
+        return sql.Length - 1;
+    }
+
+    /// <summary>
+    /// EN: Appends a SQL bracket-identifier segment and returns the consumed end index.
+    /// PT: Anexa um segmento SQL de identificador entre colchetes e retorna o índice final consumido.
+    /// </summary>
+    private static int AppendBracketIdentifierSegment(
+        string sql,
+        int startIndex,
+        StringBuilder sb)
+    {
+        sb.Append('[');
+
+        var i = startIndex + 1;
+        while (i < sql.Length)
+        {
+            var ch = sql[i];
+            sb.Append(ch);
+            if (ch == ']')
+                return i;
+            i++;
+        }
+
+        return sql.Length - 1;
+    }
+
+    /// <summary>
+    /// EN: Normalizes local aliases declared inside the subquery so semantically equivalent aliases generate the same cache-key SQL fragment.
+    /// PT: Normaliza aliases locais declarados dentro da subquery para que aliases semanticamente equivalentes gerem o mesmo fragmento SQL da chave de cache.
+    /// </summary>
+    private static string NormalizeSubqueryLocalAliasesForCacheKey(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            return string.Empty;
+
+        var aliasMap = ExtractSubqueryAliasMap(sql);
+        if (aliasMap.Count == 0)
+            return sql;
+
+        var normalized = sql;
+        foreach (var aliasPair in aliasMap)
+        {
+            normalized = ReplaceAliasDeclarationForCacheKey(normalized, aliasPair.Key, aliasPair.Value);
+            normalized = ReplaceAliasQualifierReferencesForCacheKey(normalized, aliasPair.Key, aliasPair.Value);
+        }
+
+        return normalized;
+    }
+
+    /// <summary>
+    /// EN: Extracts a deterministic map of local alias names declared in FROM/JOIN clauses to canonical placeholders.
+    /// PT: Extrai um mapa determinístico de nomes de aliases locais declarados em cláusulas FROM/JOIN para placeholders canônicos.
+    /// </summary>
+    private static IReadOnlyDictionary<string, string> ExtractSubqueryAliasMap(string sql)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(sql))
+            return map;
+
+        var matches = Regex.Matches(
+            sql,
+            @"\b(?:FROM|JOIN)\s+(?:[A-Z_][A-Z0-9_$]*(?:\.[A-Z_][A-Z0-9_$]*)*)\s+(?:AS\s+)?([A-Z_][A-Z0-9_$]*)\b",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        foreach (Match match in matches)
+        {
+            if (!match.Success || match.Groups.Count < 2)
+                continue;
+
+            var alias = match.Groups[1].Value;
+            if (string.IsNullOrWhiteSpace(alias) || _sqlAliasReservedTokens.Contains(alias))
+                continue;
+
+            if (!map.ContainsKey(alias))
+                map[alias] = $"T{map.Count + 1}";
+        }
+
+        return map;
+    }
+
+    /// <summary>
+    /// EN: Rewrites FROM/JOIN alias declarations to canonical placeholders for cache-key normalization.
+    /// PT: Reescreve declarações de alias em FROM/JOIN para placeholders canônicos na normalização da chave de cache.
+    /// </summary>
+    private static string ReplaceAliasDeclarationForCacheKey(
+        string sql,
+        string alias,
+        string replacementAlias)
+    {
+        if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(alias))
+            return sql;
+
+        var pattern =
+            $@"(?<![A-Z0-9_$])(?<kw>FROM|JOIN)\s+(?<table>[A-Z_][A-Z0-9_$]*(?:\.[A-Z_][A-Z0-9_$]*)*)\s+(?:AS\s+)?" +
+            $@"{Regex.Escape(alias)}(?![A-Z0-9_$])";
+
+        return Regex.Replace(
+            sql,
+            pattern,
+            m => $"{m.Groups["kw"].Value} {m.Groups["table"].Value} {replacementAlias}",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    }
+
+    /// <summary>
+    /// EN: Rewrites alias-qualified references (alias.column) outside quoted segments to canonical placeholders for cache-key normalization.
+    /// PT: Reescreve referências qualificadas por alias (alias.coluna) fora de segmentos entre aspas para placeholders canônicos na normalização da chave de cache.
+    /// </summary>
+    private static string ReplaceAliasQualifierReferencesForCacheKey(
+        string sql,
+        string alias,
+        string replacementAlias)
+    {
+        if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(alias))
+            return sql;
+
+        var sb = new StringBuilder(sql.Length);
+
+        for (var i = 0; i < sql.Length; i++)
+        {
+            var ch = sql[i];
+            if (ch == '\'' || ch == '"' || ch == '`')
+            {
+                i = AppendQuotedSegment(sql, i, ch, sb);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                i = AppendBracketIdentifierSegment(sql, i, sb);
+                continue;
+            }
+
+            if (IsAliasQualifierReferenceAt(sql, i, alias))
+            {
+                sb.Append(replacementAlias);
+                sb.Append('.');
+                i += alias.Length;
+                continue;
+            }
+
+            sb.Append(ch);
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// EN: Checks whether the SQL text at a given index starts with an alias qualifier reference (alias followed by dot) respecting identifier boundaries.
+    /// PT: Verifica se o texto SQL em um índice inicia uma referência de qualificador por alias (alias seguido de ponto) respeitando fronteiras de identificador.
+    /// </summary>
+    private static bool IsAliasQualifierReferenceAt(
+        string sql,
+        int startIndex,
+        string alias)
+    {
+        if (startIndex < 0 || startIndex >= sql.Length || string.IsNullOrWhiteSpace(alias))
+            return false;
+
+        if (startIndex + alias.Length >= sql.Length)
+            return false;
+
+        if (startIndex > 0 && IsSqlIdentifierChar(sql[startIndex - 1]))
+            return false;
+
+        for (var i = 0; i < alias.Length; i++)
+        {
+            if (char.ToUpperInvariant(sql[startIndex + i]) != char.ToUpperInvariant(alias[i]))
+                return false;
+        }
+
+        return sql[startIndex + alias.Length] == '.';
+    }
+
+    /// <summary>
+    /// EN: Normalizes spacing around top-level relational operators outside quoted segments so semantically equivalent operator formatting maps to the same cache-key SQL.
+    /// PT: Normaliza espaçamento ao redor de operadores relacionais no topo fora de segmentos entre aspas para que formatações equivalentes mapeiem para o mesmo SQL de chave de cache.
+    /// </summary>
+    private static string NormalizeRelationalOperatorSpacingForCacheKey(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            return string.Empty;
+
+        var sb = new StringBuilder(sql.Length + 16);
+
+        for (var i = 0; i < sql.Length; i++)
+        {
+            var ch = sql[i];
+            if (ch == '\'' || ch == '"' || ch == '`')
+            {
+                i = AppendQuotedSegment(sql, i, ch, sb);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                i = AppendBracketIdentifierSegment(sql, i, sb);
+                continue;
+            }
+
+            if (!TryReadRelationalOperator(sql, i, out var op, out var opLength))
+            {
+                sb.Append(ch);
+                continue;
+            }
+
+            TrimTrailingSpaces(sb);
+            if (sb.Length > 0)
+                sb.Append(' ');
+
+            sb.Append(op);
+            sb.Append(' ');
+            i += opLength - 1;
+        }
+
+        return CollapseWhitespaceOutsideQuotedSegments(sb.ToString()).Trim();
+    }
+
+    /// <summary>
+    /// EN: Tries to read a relational comparison operator at the current index, including two-character variants.
+    /// PT: Tenta ler um operador relacional de comparação no índice atual, incluindo variantes de dois caracteres.
+    /// </summary>
+    private static bool TryReadRelationalOperator(
+        string sql,
+        int startIndex,
+        out string op,
+        out int opLength)
+    {
+        op = string.Empty;
+        opLength = 0;
+
+        if (string.IsNullOrWhiteSpace(sql) || startIndex < 0 || startIndex >= sql.Length)
+            return false;
+
+        var ch = sql[startIndex];
+        var next = startIndex + 1 < sql.Length ? sql[startIndex + 1] : '\0';
+
+        if (ch == '<' && next == '=')
+        {
+            op = "<=";
+            opLength = 2;
+            return true;
+        }
+
+        if (ch == '>' && next == '=')
+        {
+            op = ">=";
+            opLength = 2;
+            return true;
+        }
+
+        if (ch == '<' && next == '>')
+        {
+            op = "<>";
+            opLength = 2;
+            return true;
+        }
+
+        if (ch == '!' && next == '=')
+        {
+            op = "!=";
+            opLength = 2;
+            return true;
+        }
+
+        if (ch is '=' or '<' or '>')
+        {
+            op = ch.ToString();
+            opLength = 1;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// EN: Trims trailing spaces from a StringBuilder buffer.
+    /// PT: Remove espaços à direita de um buffer StringBuilder.
+    /// </summary>
+    private static void TrimTrailingSpaces(StringBuilder sb)
+    {
+        while (sb.Length > 0 && sb[^1] == ' ')
+            sb.Length--;
+    }
+
+    /// <summary>
+    /// EN: Collapses repeated whitespace outside quoted or bracket-delimited segments while preserving inner literal content.
+    /// PT: Colapsa whitespace repetido fora de segmentos entre aspas ou delimitados por colchetes preservando o conteúdo interno de literais.
+    /// </summary>
+    private static string CollapseWhitespaceOutsideQuotedSegments(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            return string.Empty;
+
+        var sb = new StringBuilder(sql.Length);
+        var previousWasSpace = false;
+
+        for (var i = 0; i < sql.Length; i++)
+        {
+            var ch = sql[i];
+            if (ch == '\'' || ch == '"' || ch == '`')
+            {
+                previousWasSpace = false;
+                i = AppendQuotedSegment(sql, i, ch, sb);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                previousWasSpace = false;
+                i = AppendBracketIdentifierSegment(sql, i, sb);
+                continue;
+            }
+
+            if (!char.IsWhiteSpace(ch))
+            {
+                sb.Append(ch);
+                previousWasSpace = false;
+                continue;
+            }
+
+            if (previousWasSpace)
+                continue;
+
+            sb.Append(' ');
+            previousWasSpace = true;
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// EN: Canonicalizes top-level EXISTS subquery projection payload by replacing SELECT list with a fixed token while preserving relational clauses.
+    /// PT: Canoniza o payload de projeção de subquery EXISTS no nível de topo substituindo a lista do SELECT por token fixo preservando cláusulas relacionais.
+    /// </summary>
+    private static string NormalizeExistsProjectionPayloadForCacheKey(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            return string.Empty;
+
+        if (!TryFindTopLevelKeywordIndex(sql, "SELECT", 0, out var selectIndex))
+            return sql;
+
+        var afterSelect = selectIndex + "SELECT".Length;
+        if (!TryFindTopLevelKeywordIndex(sql, "FROM", afterSelect, out var fromIndex))
+            return sql;
+
+        if (fromIndex <= afterSelect)
+            return sql;
+
+        return string.Concat(
+            sql.AsSpan(0, afterSelect),
+            " <EXISTS_PAYLOAD> ",
+            sql.AsSpan(fromIndex));
+    }
+
+    /// <summary>
+    /// EN: Canonicalizes top-level SELECT projection aliases by removing explicit AS aliases while preserving projection expressions and relational clauses.
+    /// PT: Canoniza aliases da projeção SELECT no nível de topo removendo aliases explícitos AS e preservando expressões projetadas e cláusulas relacionais.
+    /// </summary>
+    private static string NormalizeSelectProjectionAliasesForCacheKey(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            return string.Empty;
+
+        if (!TryFindTopLevelKeywordIndex(sql, "SELECT", 0, out var selectIndex))
+            return sql;
+
+        var afterSelect = selectIndex + "SELECT".Length;
+        if (!TryFindTopLevelKeywordIndex(sql, "FROM", afterSelect, out var fromIndex))
+            return sql;
+
+        if (fromIndex <= afterSelect)
+            return sql;
+
+        var payload = sql[afterSelect..fromIndex];
+        var normalizedPayload = NormalizeSelectListAliasesForCacheKey(payload);
+        return string.Concat(
+            sql.AsSpan(0, afterSelect),
+            " ",
+            normalizedPayload,
+            " ",
+            sql.AsSpan(fromIndex));
+    }
+
+    /// <summary>
+    /// EN: Normalizes explicit AS aliases from a top-level SELECT list while preserving nested expressions.
+    /// PT: Normaliza aliases explícitos AS de uma lista SELECT de topo preservando expressões aninhadas.
+    /// </summary>
+    private static string NormalizeSelectListAliasesForCacheKey(string selectList)
+    {
+        if (string.IsNullOrWhiteSpace(selectList))
+            return string.Empty;
+
+        var segments = SplitTopLevelCommaSegments(selectList);
+        if (segments.Count == 0)
+            return selectList.Trim();
+
+        for (var i = 0; i < segments.Count; i++)
+            segments[i] = RemoveExplicitAsAliasFromSelectExpression(segments[i]);
+
+        return string.Join(", ", segments);
+    }
+
+    /// <summary>
+    /// EN: Splits text by top-level comma separators outside quoted segments and nested parentheses.
+    /// PT: Divide o texto por vírgulas de topo fora de segmentos entre aspas e parênteses aninhados.
+    /// </summary>
+    private static List<string> SplitTopLevelCommaSegments(string text)
+    {
+        var segments = new List<string>();
+        if (string.IsNullOrWhiteSpace(text))
+            return segments;
+
+        var start = 0;
+        var depth = 0;
+        for (var i = 0; i < text.Length; i++)
+        {
+            var ch = text[i];
+            if (ch == '\'' || ch == '"' || ch == '`')
+            {
+                i = FindQuotedSegmentEndIndex(text, i, ch);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                i = FindBracketSegmentEndIndex(text, i);
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch == ')' && depth > 0)
+            {
+                depth--;
+                continue;
+            }
+
+            if (depth == 0 && ch == ',')
+            {
+                var segment = text[start..i].Trim();
+                if (segment.Length > 0)
+                    segments.Add(segment);
+                start = i + 1;
+            }
+        }
+
+        var last = text[start..].Trim();
+        if (last.Length > 0)
+            segments.Add(last);
+
+        return segments;
+    }
+
+    /// <summary>
+    /// EN: Removes a trailing explicit AS alias from a SELECT expression when alias syntax is valid.
+    /// PT: Remove alias explícito AS ao final de uma expressão SELECT quando a sintaxe do alias é válida.
+    /// </summary>
+    private static string RemoveExplicitAsAliasFromSelectExpression(string expression)
+    {
+        if (string.IsNullOrWhiteSpace(expression))
+            return string.Empty;
+
+        var trimmed = expression.Trim();
+        if (!TryFindTopLevelKeywordIndex(trimmed, "AS", 0, out var asIndex))
+            return trimmed;
+
+        var beforeAs = trimmed[..asIndex].TrimEnd();
+        var aliasPart = trimmed[(asIndex + 2)..].Trim();
+        if (!IsValidExplicitAliasToken(aliasPart))
+            return trimmed;
+
+        return beforeAs;
+    }
+
+    /// <summary>
+    /// EN: Validates whether an alias token matches supported explicit alias forms (identifier or quoted identifier).
+    /// PT: Valida se um token de alias corresponde às formas suportadas de alias explícito (identificador ou identificador entre delimitadores).
+    /// </summary>
+    private static bool IsValidExplicitAliasToken(string aliasToken)
+    {
+        if (string.IsNullOrWhiteSpace(aliasToken))
+            return false;
+
+        var trimmed = aliasToken.Trim();
+        if (Regex.IsMatch(trimmed, @"^[A-Z_][A-Z0-9_$]*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            return true;
+
+        if (trimmed.Length >= 2 && trimmed[0] == '[' && trimmed[^1] == ']')
+            return true;
+
+        if (trimmed.Length >= 2 && trimmed[0] == '"' && trimmed[^1] == '"')
+            return true;
+
+        if (trimmed.Length >= 2 && trimmed[0] == '`' && trimmed[^1] == '`')
+            return true;
+
+        return false;
+    }
+
+    /// <summary>
+    /// EN: Tries to find a top-level SQL keyword index outside quoted segments and nested parentheses, starting from a given position.
+    /// PT: Tenta localizar o índice de uma palavra-chave SQL no topo fora de segmentos entre aspas e parênteses aninhados, iniciando em uma posição informada.
+    /// </summary>
+    private static bool TryFindTopLevelKeywordIndex(
+        string sql,
+        string keyword,
+        int startIndex,
+        out int keywordIndex)
+    {
+        keywordIndex = -1;
+        if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(keyword))
+            return false;
+
+        var safeStart = Math.Clamp(startIndex, 0, sql.Length);
+        var depth = 0;
+        for (var i = safeStart; i < sql.Length; i++)
+        {
+            var ch = sql[i];
+            if (ch == '\'' || ch == '"' || ch == '`')
+            {
+                i = FindQuotedSegmentEndIndex(sql, i, ch);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                i = FindBracketSegmentEndIndex(sql, i);
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch == ')' && depth > 0)
+            {
+                depth--;
+                continue;
+            }
+
+            if (depth == 0 && MatchesKeywordTokenAt(sql, i, keyword))
+            {
+                keywordIndex = i;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// EN: Normalizes commutative top-level AND chains in WHERE/HAVING clauses so equivalent predicate orderings reuse the same cache-key SQL fragment.
+    /// PT: Normaliza cadeias comutativas de AND no topo em cláusulas WHERE/HAVING para que ordenações equivalentes de predicados reutilizem o mesmo fragmento SQL da chave de cache.
+    /// </summary>
+    private static string NormalizeCommutativeAndClausesForCacheKey(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            return string.Empty;
+
+        var wherePattern = @"\bWHERE\s+(?<predicate>.+?)(?=(?:\bGROUP\s+BY\b|\bHAVING\b|\bORDER\s+BY\b|\bLIMIT\b|\bOFFSET\b|\bUNION\b|$))";
+        var havingPattern = @"\bHAVING\s+(?<predicate>.+?)(?=(?:\bORDER\s+BY\b|\bLIMIT\b|\bOFFSET\b|\bUNION\b|$))";
+
+        var normalizedWhere = Regex.Replace(
+            sql,
+            wherePattern,
+            m => "WHERE " + NormalizeTopLevelAndPredicateForCacheKey(m.Groups["predicate"].Value),
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline);
+
+        return Regex.Replace(
+            normalizedWhere,
+            havingPattern,
+            m => "HAVING " + NormalizeTopLevelAndPredicateForCacheKey(m.Groups["predicate"].Value),
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline);
+    }
+
+    /// <summary>
+    /// EN: Canonicalizes a predicate text by sorting top-level AND segments when safe (no top-level OR and no BETWEEN token).
+    /// PT: Canoniza um texto de predicado ordenando segmentos AND de topo quando seguro (sem OR de topo e sem token BETWEEN).
+    /// </summary>
+    private static string NormalizeTopLevelAndPredicateForCacheKey(string predicate)
+    {
+        if (string.IsNullOrWhiteSpace(predicate))
+            return string.Empty;
+
+        var trimmedPredicate = TrimRedundantOuterParentheses(predicate);
+        if (ContainsTokenOutsideQuotedSegments(trimmedPredicate, "OR"))
+            return trimmedPredicate;
+
+        if (ContainsTokenOutsideQuotedSegments(trimmedPredicate, "BETWEEN"))
+            return trimmedPredicate;
+
+        var segments = SplitTopLevelAndSegments(trimmedPredicate);
+        if (segments.Count <= 1)
+            return trimmedPredicate;
+
+        segments.Sort(StringComparer.Ordinal);
+        return string.Join(" AND ", segments);
+    }
+
+    /// <summary>
+    /// EN: Splits predicate text by top-level AND operators outside quoted segments and nested parentheses.
+    /// PT: Divide o texto do predicado por operadores AND de topo fora de segmentos entre aspas e parênteses aninhados.
+    /// </summary>
+    private static List<string> SplitTopLevelAndSegments(string predicate)
+    {
+        var segments = new List<string>();
+        if (string.IsNullOrWhiteSpace(predicate))
+            return segments;
+
+        var start = 0;
+        var depth = 0;
+
+        for (var i = 0; i < predicate.Length; i++)
+        {
+            var ch = predicate[i];
+            if (ch == '\'' || ch == '"' || ch == '`')
+            {
+                i = FindQuotedSegmentEndIndex(predicate, i, ch);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                i = FindBracketSegmentEndIndex(predicate, i);
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch == ')' && depth > 0)
+            {
+                depth--;
+                continue;
+            }
+
+            if (depth == 0 && MatchesKeywordTokenAt(predicate, i, "AND"))
+            {
+                var segment = NormalizePredicateSegmentForCacheKey(predicate[start..i]);
+                if (segment.Length > 0)
+                    segments.Add(segment);
+
+                start = i + 3;
+                i += 2;
+            }
+        }
+
+        var lastSegment = NormalizePredicateSegmentForCacheKey(predicate[start..]);
+        if (lastSegment.Length > 0)
+            segments.Add(lastSegment);
+
+        return segments;
+    }
+
+    /// <summary>
+    /// EN: Normalizes an individual predicate segment by trimming redundant outer parentheses and canonicalizing simple commutative equalities.
+    /// PT: Normaliza um segmento individual de predicado removendo parênteses externos redundantes e canonizando igualdades comutativas simples.
+    /// </summary>
+    private static string NormalizePredicateSegmentForCacheKey(string segment)
+    {
+        var trimmedSegment = TrimRedundantOuterParentheses(segment);
+        if (string.IsNullOrWhiteSpace(trimmedSegment))
+            return string.Empty;
+
+        return NormalizeCommutativeEqualitySegmentForCacheKey(trimmedSegment);
+    }
+
+    /// <summary>
+    /// EN: Canonicalizes a simple top-level equality segment (`lhs = rhs`) by sorting operands lexicographically when safe.
+    /// PT: Canoniza um segmento de igualdade simples no topo (`lhs = rhs`) ordenando operandos lexicograficamente quando seguro.
+    /// </summary>
+    private static string NormalizeCommutativeEqualitySegmentForCacheKey(string segment)
+    {
+        if (string.IsNullOrWhiteSpace(segment))
+            return string.Empty;
+
+        if (!TryFindStandaloneTopLevelEqualityOperator(segment, out var equalityIndex))
+            return segment;
+
+        var left = TrimRedundantOuterParentheses(segment[..equalityIndex]);
+        var right = TrimRedundantOuterParentheses(segment[(equalityIndex + 1)..]);
+        if (left.Length == 0 || right.Length == 0)
+            return segment;
+
+        return StringComparer.Ordinal.Compare(left, right) <= 0
+            ? $"{left} = {right}"
+            : $"{right} = {left}";
+    }
+
+    /// <summary>
+    /// EN: Tries to find a single standalone top-level equality operator, excluding composite comparisons such as less-or-equal, greater-or-equal, different and double-equals.
+    /// PT: Tenta localizar um único operador de igualdade isolado no topo, excluindo comparações compostas como menor-ou-igual, maior-ou-igual, diferente e igualdade dupla.
+    /// </summary>
+    private static bool TryFindStandaloneTopLevelEqualityOperator(string segment, out int equalityIndex)
+    {
+        equalityIndex = -1;
+        if (string.IsNullOrWhiteSpace(segment))
+            return false;
+
+        var depth = 0;
+        for (var i = 0; i < segment.Length; i++)
+        {
+            var ch = segment[i];
+            if (ch == '\'' || ch == '"' || ch == '`')
+            {
+                i = FindQuotedSegmentEndIndex(segment, i, ch);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                i = FindBracketSegmentEndIndex(segment, i);
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch == ')' && depth > 0)
+            {
+                depth--;
+                continue;
+            }
+
+            if (depth != 0 || ch != '=')
+                continue;
+
+            var previous = i > 0 ? segment[i - 1] : '\0';
+            var next = i + 1 < segment.Length ? segment[i + 1] : '\0';
+
+            var isCompositeComparison = previous is '<' or '>' or '!' or '='
+                                      || next is '<' or '>' or '!' or '=';
+            if (isCompositeComparison)
+                continue;
+
+            if (equalityIndex >= 0)
+                return false;
+
+            equalityIndex = i;
+        }
+
+        return equalityIndex >= 0;
+    }
+
+    /// <summary>
+    /// EN: Removes redundant outer parentheses that wrap the full expression while preserving inner structure.
+    /// PT: Remove parênteses externos redundantes que envolvem a expressão inteira preservando a estrutura interna.
+    /// </summary>
+    private static string TrimRedundantOuterParentheses(string expression)
+    {
+        if (string.IsNullOrWhiteSpace(expression))
+            return string.Empty;
+
+        var trimmed = expression.Trim();
+        while (trimmed.Length >= 2 && trimmed[0] == '(' && trimmed[^1] == ')')
+        {
+            if (!HasSingleOuterParenthesesWrappingWholeExpression(trimmed))
+                break;
+
+            trimmed = trimmed[1..^1].Trim();
+        }
+
+        return trimmed;
+    }
+
+    /// <summary>
+    /// EN: Checks whether the first and last parentheses wrap the whole expression without closing earlier at top level.
+    /// PT: Verifica se o primeiro e o último parêntese envolvem toda a expressão sem fechar antes no nível de topo.
+    /// </summary>
+    private static bool HasSingleOuterParenthesesWrappingWholeExpression(string expression)
+    {
+        if (string.IsNullOrWhiteSpace(expression) || expression.Length < 2)
+            return false;
+
+        if (expression[0] != '(' || expression[^1] != ')')
+            return false;
+
+        var depth = 0;
+        for (var i = 0; i < expression.Length; i++)
+        {
+            var ch = expression[i];
+            if (ch == '\'' || ch == '"' || ch == '`')
+            {
+                i = FindQuotedSegmentEndIndex(expression, i, ch);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                i = FindBracketSegmentEndIndex(expression, i);
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch != ')')
+                continue;
+
+            depth--;
+            if (depth < 0)
+                return false;
+
+            if (depth == 0 && i < expression.Length - 1)
+                return false;
+        }
+
+        return depth == 0;
+    }
+
+    /// <summary>
+    /// EN: Detects whether a token appears outside quoted segments and nested parentheses.
+    /// PT: Detecta se um token aparece fora de segmentos entre aspas e parênteses aninhados.
+    /// </summary>
+    private static bool ContainsTokenOutsideQuotedSegments(string sql, string token)
+    {
+        if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(token))
+            return false;
+
+        var depth = 0;
+        for (var i = 0; i < sql.Length; i++)
+        {
+            var ch = sql[i];
+            if (ch == '\'' || ch == '"' || ch == '`')
+            {
+                i = FindQuotedSegmentEndIndex(sql, i, ch);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                i = FindBracketSegmentEndIndex(sql, i);
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch == ')' && depth > 0)
+            {
+                depth--;
+                continue;
+            }
+
+            if (depth == 0 && MatchesKeywordTokenAt(sql, i, token))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// EN: Matches a SQL keyword token at a position ensuring identifier boundaries.
+    /// PT: Compara um token de palavra-chave SQL em uma posição garantindo fronteiras de identificador.
+    /// </summary>
+    private static bool MatchesKeywordTokenAt(string sql, int startIndex, string token)
+    {
+        if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(token))
+            return false;
+
+        if (startIndex < 0 || startIndex + token.Length > sql.Length)
+            return false;
+
+        if (startIndex > 0 && IsSqlIdentifierChar(sql[startIndex - 1]))
+            return false;
+
+        var endIndex = startIndex + token.Length;
+        if (endIndex < sql.Length && IsSqlIdentifierChar(sql[endIndex]))
+            return false;
+
+        for (var i = 0; i < token.Length; i++)
+        {
+            if (char.ToUpperInvariant(sql[startIndex + i]) != char.ToUpperInvariant(token[i]))
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// EN: Finds the end index of a quoted SQL segment handling escaped doubled quote characters.
+    /// PT: Localiza o índice final de um segmento SQL entre aspas tratando escapes por duplicidade de aspas.
+    /// </summary>
+    private static int FindQuotedSegmentEndIndex(string sql, int startIndex, char quoteChar)
+    {
+        var i = startIndex + 1;
+        while (i < sql.Length)
+        {
+            if (sql[i] == quoteChar)
+            {
+                var hasEscapedQuote = i + 1 < sql.Length && sql[i + 1] == quoteChar;
+                if (hasEscapedQuote)
+                {
+                    i += 2;
+                    continue;
+                }
+
+                return i;
+            }
+
+            i++;
+        }
+
+        return sql.Length - 1;
+    }
+
+    /// <summary>
+    /// EN: Finds the end index of a bracket-delimited SQL identifier segment.
+    /// PT: Localiza o índice final de um segmento SQL de identificador delimitado por colchetes.
+    /// </summary>
+    private static int FindBracketSegmentEndIndex(string sql, int startIndex)
+    {
+        var i = startIndex + 1;
+        while (i < sql.Length)
+        {
+            if (sql[i] == ']')
+                return i;
+            i++;
+        }
+
+        return sql.Length - 1;
     }
 
     /// <summary>
@@ -4084,6 +5476,7 @@ private void FillPercentRankOrCumeDist(
     {
         _existsSubqueryCache.Clear();
         _inSubqueryFirstColumnCache.Clear();
+        _scalarSubqueryCache.Clear();
     }
 
 
@@ -5051,6 +6444,7 @@ private void FillPercentRankOrCumeDist(
         LikeExpr l => WalkHasAggregate(l.Left) || WalkHasAggregate(l.Pattern),
         InExpr i => WalkHasAggregate(i.Left) || i.Items.Any(WalkHasAggregate),
         IsNullExpr isn => WalkHasAggregate(isn.Expr),
+        QuantifiedComparisonExpr q => WalkHasAggregate(q.Left) || WalkHasAggregate(q.Subquery),
 
         // ⚠️ cuidado: isso aqui tá “agressivo”
         // EXISTS não é aggregate. Mas você provavelmente usa isso como “precisa de contexto especial”.
@@ -5376,6 +6770,10 @@ private void FillPercentRankOrCumeDist(
         public static Source FromResult(string tableName, TableResultMock result)
             => new(tableName, tableName, result);
     }
+
+    private sealed record ScalarSubqueryCacheEntry(object? Value);
+    private readonly record struct InMembershipState(bool Matched, bool HasNullCandidate);
+    private enum SqlTruthValue { True, False, Unknown }
 
     internal sealed record EvalRow(
         Dictionary<string, object?> Fields,
