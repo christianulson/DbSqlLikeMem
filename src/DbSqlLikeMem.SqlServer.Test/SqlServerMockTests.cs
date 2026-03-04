@@ -252,6 +252,12 @@ public sealed class SqlServerMockTests
     public void TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount()
     {
         using var command = new SqlServerCommandMock(_connection);
+        command.CommandText = """
+            INSERT INTO Users (Id, Name, Email) VALUES (131, 'RowCount A', NULL);
+            INSERT INTO Users (Id, Name, Email) VALUES (132, 'RowCount B', NULL);
+            """;
+        command.ExecuteNonQuery();
+
         command.CommandText = "SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY; SELECT ROWCOUNT();";
         using var reader = command.ExecuteReader();
 
@@ -271,6 +277,12 @@ public sealed class SqlServerMockTests
     public void TestSelect_SystemRowCountVariable_ShouldReturnLastSelectRowCount()
     {
         using var command = new SqlServerCommandMock(_connection);
+        command.CommandText = """
+            INSERT INTO Users (Id, Name, Email) VALUES (141, 'SysRowCount A', NULL);
+            INSERT INTO Users (Id, Name, Email) VALUES (142, 'SysRowCount B', NULL);
+            """;
+        command.ExecuteNonQuery();
+
         command.CommandText = "SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY; SELECT @@ROWCOUNT;";
         using var reader = command.ExecuteReader();
 
@@ -467,9 +479,15 @@ public sealed class SqlServerMockTests
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml()
     {
+        using var seed = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (151, 'Before Batch Update', NULL)"
+        };
+        seed.ExecuteNonQuery();
+
         using var command = new SqlServerCommandMock(_connection)
         {
-            CommandText = "SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY; UPDATE Users SET Name = 'Mixed Batch User' WHERE Id = 1; SELECT @@ROWCOUNT;"
+            CommandText = "SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY; UPDATE Users SET Name = 'Mixed Batch User' WHERE Id = 151; SELECT @@ROWCOUNT;"
         };
 
         using var reader = command.ExecuteReader();
@@ -511,9 +529,20 @@ public sealed class SqlServerMockTests
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect()
     {
+        using var seedFirst = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (161, 'Before Last Select A', NULL)"
+        };
+        seedFirst.ExecuteNonQuery();
+        using var seedSecond = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (162, 'Before Last Select B', NULL)"
+        };
+        seedSecond.ExecuteNonQuery();
+
         using var command = new SqlServerCommandMock(_connection)
         {
-            CommandText = "UPDATE Users SET Name = 'Last Select User' WHERE Id = 1; SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 2 ROWS ONLY; SELECT @@ROWCOUNT;"
+            CommandText = "UPDATE Users SET Name = 'Last Select User' WHERE Id = 161; SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 2 ROWS ONLY; SELECT @@ROWCOUNT;"
         };
 
         using var reader = command.ExecuteReader();
