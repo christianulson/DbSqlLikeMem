@@ -93,8 +93,15 @@ public static class DbTypeParser
         if (Guid.TryParse(value, out var guidValue))
             return guidValue;
 
-        if (DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeOffsetValue))
+        if (LooksLikeDateTimeOffset(value)
+            && DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeOffsetValue))
             return dateTimeOffsetValue;
+
+        if (DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeValue))
+            return dateTimeValue;
+
+        if (TimeSpan.TryParse(value, CultureInfo.InvariantCulture, out var timeSpanValue))
+            return timeSpanValue;
 
         return value;
     }
@@ -157,6 +164,27 @@ public static class DbTypeParser
         var trimmed = value.Trim();
         return (trimmed.StartsWith("{", StringComparison.Ordinal) && trimmed.EndsWith("}", StringComparison.Ordinal))
             || (trimmed.StartsWith("[", StringComparison.Ordinal) && trimmed.EndsWith("]", StringComparison.Ordinal));
+    }
+
+    private static bool LooksLikeDateTimeOffset(string value)
+    {
+        var trimmed = value.Trim();
+        if (trimmed.EndsWith("Z", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var tIndex = trimmed.IndexOf('T');
+        if (tIndex < 0)
+            tIndex = trimmed.IndexOf(' ');
+        if (tIndex < 0 || tIndex + 1 >= trimmed.Length)
+            return false;
+
+        for (var i = tIndex + 1; i < trimmed.Length; i++)
+        {
+            if (trimmed[i] is '+' or '-')
+                return true;
+        }
+
+        return false;
     }
 
     private static bool TryParseHexBinary(string value, out byte[] bytes)

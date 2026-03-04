@@ -188,6 +188,24 @@ public sealed class DbTypeCoercionTests
         Assert.Equal(DateTimeOffset.Parse(dateText, CultureInfo.InvariantCulture), Assert.IsType<DateTimeOffset>(dateParsed));
     }
 
+    /// <summary>
+    /// EN: Ensures object parsing infers DateTime and TimeSpan literals when no offset information is present.
+    /// PT: Garante que o parsing de object infira literais DateTime e TimeSpan quando não há informação de offset.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void DbTypeParser_Object_ShouldInferDateTimeAndTimeSpan()
+    {
+        const string dateText = "2024-01-02 03:04:05";
+        const string spanText = "01:30:00";
+
+        var dateParsed = DbType.Object.Parse(dateText);
+        var spanParsed = DbType.Object.Parse(spanText);
+
+        Assert.Equal(DateTime.Parse(dateText, CultureInfo.InvariantCulture), Assert.IsType<DateTime>(dateParsed));
+        Assert.Equal(TimeSpan.Parse(spanText, CultureInfo.InvariantCulture), Assert.IsType<TimeSpan>(spanParsed));
+    }
+
     private enum SqlExtensionsEnumShort : short
     {
         A = 1
