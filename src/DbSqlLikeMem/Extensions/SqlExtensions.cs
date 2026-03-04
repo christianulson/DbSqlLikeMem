@@ -102,6 +102,9 @@ internal static class SqlExtensions
 
     internal static int Compare(this object a, object b, ISqlDialect? dialect = null)
     {
+        if (a is byte[] ba && b is byte[] bb)
+            return CompareBinary(ba, bb);
+
         if (a is string sa && b is string sb)
             return string.Compare(sa, sb, dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
 
@@ -120,6 +123,9 @@ internal static class SqlExtensions
     {
         if (a is null || a is DBNull) return b is null || b is DBNull;
         if (b is null || b is DBNull) return false;
+
+        if (a is byte[] ba && b is byte[] bb)
+            return ba.AsSpan().SequenceEqual(bb);
 
         if (a is string sa && b is string sb)
             return string.Equals(sa, sb, dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
@@ -180,5 +186,22 @@ internal static class SqlExtensions
         }
 
         return decimal.TryParse(value.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out numericValue);
+    }
+
+    /// <summary>
+    /// EN: Compares two binary payloads lexicographically to provide deterministic ordering semantics.
+    /// PT: Compara dois payloads binários de forma lexicográfica para fornecer semântica determinística de ordenação.
+    /// </summary>
+    private static int CompareBinary(byte[] left, byte[] right)
+    {
+        var min = Math.Min(left.Length, right.Length);
+        for (var i = 0; i < min; i++)
+        {
+            var diff = left[i].CompareTo(right[i]);
+            if (diff != 0)
+                return diff;
+        }
+
+        return left.Length.CompareTo(right.Length);
     }
 }

@@ -115,6 +115,40 @@ public sealed class SqlExtensionsTypingTests
     }
 
     /// <summary>
+    /// EN: Ensures binary values compare by content equality instead of reference identity.
+    /// PT: Garante que valores binários comparem por igualdade de conteúdo em vez de identidade de referência.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void EqualsSql_ByteArrays_ShouldUseContentEquality()
+    {
+        var left = new byte[] { 1, 2, 3 };
+        var rightSame = new byte[] { 1, 2, 3 };
+        var rightDifferent = new byte[] { 1, 2, 4 };
+
+        Assert.True(left.EqualsSql(rightSame));
+        Assert.False(left.EqualsSql(rightDifferent));
+    }
+
+    /// <summary>
+    /// EN: Ensures binary comparison ordering is deterministic and lexicographical.
+    /// PT: Garante que a ordenação de comparação binária seja determinística e lexicográfica.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void Compare_ByteArrays_ShouldUseLexicographicalOrdering()
+    {
+        var a = new byte[] { 1, 2, 3 };
+        var b = new byte[] { 1, 2, 4 };
+        var c = new byte[] { 1, 2, 3, 0 };
+
+        Assert.True(a.Compare(b) < 0);
+        Assert.True(b.Compare(a) > 0);
+        Assert.True(a.Compare(c) < 0);
+        Assert.Equal(0, a.Compare(new byte[] { 1, 2, 3 }));
+    }
+
+    /// <summary>
     /// EN: Ensures implicit numeric coercion can be disabled by dialect policy.
     /// PT: Garante que a coerção numérica implícita possa ser desabilitada pela política do dialeto.
     /// </summary>
