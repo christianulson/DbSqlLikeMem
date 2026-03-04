@@ -587,8 +587,8 @@ internal sealed class SqlExpressionParser(
     }
 
     /// <summary>
-    /// EN: Tries to parse quantified comparison right side (`ANY`/`ALL` with subquery) after a comparison operator.
-    /// PT: Tenta parsear o lado direito de comparação quantificada (`ANY`/`ALL` com subquery) após operador de comparação.
+    /// EN: Tries to parse quantified comparison right side (`ANY`/`SOME`/`ALL` with subquery) after a comparison operator.
+    /// PT: Tenta parsear o lado direito de comparação quantificada (`ANY`/`SOME`/`ALL` com subquery) após operador de comparação.
     /// </summary>
     private bool TryParseQuantifiedComparisonRightSide(
         SqlExpr left,
@@ -599,14 +599,17 @@ internal sealed class SqlExpressionParser(
         quantifiedExpr = default!;
 
         var qTok = Peek();
-        if (!IsKeywordOrIdentifierWord(qTok, "ANY") && !IsKeywordOrIdentifierWord(qTok, "ALL"))
+        if (!IsKeywordOrIdentifierWord(qTok, "ANY")
+            && !IsKeywordOrIdentifierWord(qTok, "SOME")
+            && !IsKeywordOrIdentifierWord(qTok, "ALL"))
             return false;
 
         var quantifier = IsKeywordOrIdentifierWord(qTok, "ANY")
+                         || IsKeywordOrIdentifierWord(qTok, "SOME")
             ? SqlQuantifier.Any
             : SqlQuantifier.All;
 
-        Consume(); // ANY | ALL
+        Consume(); // ANY | SOME | ALL
         ExpectSymbol("(");
         var subSql = ReadRawUntilMatchingParen();
         ExpectSymbol(")");

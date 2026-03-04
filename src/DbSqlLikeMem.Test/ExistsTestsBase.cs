@@ -230,6 +230,64 @@ ORDER BY u.Id";
     }
 
     /// <summary>
+    /// EN: Tests quantified comparison with SOME subquery as an alias of ANY.
+    /// PT: Testa comparação quantificada com subquery SOME como alias de ANY.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void ComparisonSomeSubquery_WithEquality_ShouldBehaveLikeAny()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        cnn.Seed("users", null,
+            [1, "Ana"],
+            [2, "Bob"],
+            [3, "Cid"]);
+
+        cnn.Seed("orders", null,
+            [10, 2, 50m],
+            [11, 3, 60m]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE u.Id = SOME (SELECT o.UserId FROM orders o)
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().Equal(2, 3);
+    }
+
+    /// <summary>
+    /// EN: Tests quantified comparison with ALL over an empty subquery returns true (vacuous truth).
+    /// PT: Testa que comparação quantificada com ALL sobre subquery vazia retorna verdadeiro (verdade vacuamente).
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void ComparisonAllSubquery_WithEmptySet_ShouldReturnAllRows()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        cnn.Seed("users", null,
+            [1, "Ana"],
+            [2, "Bob"],
+            [3, "Cid"]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE u.Id > ALL (SELECT o.UserId FROM orders o)
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().Equal(1, 2, 3);
+    }
+
+    /// <summary>
     /// EN: Tests correlated EXISTS subquery reuses evaluation for duplicate outer rows, reducing repeated source access.
     /// PT: Testa que subquery correlacionada com EXISTS reutiliza avaliação para linhas externas duplicadas, reduzindo acessos repetidos à fonte.
     /// </summary>
