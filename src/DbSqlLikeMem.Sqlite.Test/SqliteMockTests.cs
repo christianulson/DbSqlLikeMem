@@ -372,6 +372,12 @@ public sealed class SqliteMockTests
     [Trait("Category", "SqliteMock")]
     public void TestBatch_SelectThenUpdateThenChanges_ShouldReflectLastDml()
     {
+        using var seed = new SqliteCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Seed User', NULL)"
+        };
+        seed.ExecuteNonQuery();
+
         using var command = new SqliteCommandMock(_connection)
         {
             CommandText = "SELECT Name FROM Users ORDER BY Id LIMIT 1; UPDATE Users SET Name = 'Mixed Batch User' WHERE Id = 1; SELECT CHANGES();"
