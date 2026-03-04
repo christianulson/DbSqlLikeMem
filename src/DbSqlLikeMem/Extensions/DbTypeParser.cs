@@ -106,6 +106,12 @@ public static class DbTypeParser
             && DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeOffsetValue))
             return dateTimeOffsetValue;
 
+        if (LooksLikeTimeOnly(value)
+            && TimeSpan.TryParse(value, CultureInfo.InvariantCulture, out var timeOnlyValue))
+        {
+            return timeOnlyValue;
+        }
+
         if (DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeValue))
             return dateTimeValue;
 
@@ -198,6 +204,27 @@ public static class DbTypeParser
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// EN: Detects pure time literals (for example <c>HH:mm:ss</c>) to avoid DateTime fallback for DbType.Object inference.
+    /// PT: Detecta literais de horário puros (por exemplo <c>HH:mm:ss</c>) para evitar fallback em DateTime na inferência de DbType.Object.
+    /// </summary>
+    /// <param name="value">EN: Raw literal value. PT: Valor literal bruto.</param>
+    /// <returns>EN: True when value resembles a time-only token without date markers. PT: True quando o valor se parece com token apenas de horário sem marcadores de data.</returns>
+    private static bool LooksLikeTimeOnly(string value)
+    {
+        var trimmed = value.Trim();
+        if (trimmed.Length == 0)
+            return false;
+
+        if (trimmed.Contains('T') || trimmed.Contains('t'))
+            return false;
+
+        if (trimmed.Contains('-') || trimmed.Contains('/'))
+            return false;
+
+        return trimmed.Contains(':');
     }
 
     private static bool TryParseHexBinary(string value, out byte[] bytes)

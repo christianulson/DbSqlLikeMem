@@ -111,10 +111,10 @@ internal sealed class Db2Dialect : SqlDialectBase
     public override bool SupportsMerge => Version >= MergeMinVersion;
     
     /// <summary>
-    /// EN: Gets or sets null substitute function names.
-    /// PT: Obtém ou define null substitute function names.
+    /// EN: Gets the null substitute function names supported by DB2 compatibility behavior.
+    /// PT: Obtém os nomes de funções de substituição de nulos suportados pelo comportamento de compatibilidade do DB2.
     /// </summary>
-        public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["COALESCE", "VALUE"];
+    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["COALESCE", "VALUE", "IFNULL"];
     public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
         => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
         {

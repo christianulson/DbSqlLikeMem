@@ -264,25 +264,28 @@ public class NpgsqlCommandMock(
     /// </summary>
     private TableResultMock? ExecuteInsertReturning(SqlInsertQuery query)
     {
-        if (!TryResolveTargetTable(query.Table, out var table))
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
         {
-            connection!.ExecuteInsert(query, Parameters, connection.Db.Dialect);
+            connection!.ExecuteInsert(query, Parameters, connection!.Db.Dialect);
             return null;
         }
+        if (table is null)
+            throw new InvalidOperationException("RETURNING requires a valid target table.");
+        var targetTable = table;
 
         var hadReturning = query.Returning.Count > 0;
-        var beforeCount = table.Count;
-        connection!.ExecuteInsert(query, Parameters, connection.Db.Dialect);
+        var beforeCount = targetTable.Count;
+        connection!.ExecuteInsert(query, Parameters, connection!.Db.Dialect);
 
         if (!hadReturning)
             return null;
 
-        var insertedRows = Math.Max(0, table.Count - beforeCount);
+        var insertedRows = Math.Max(0, targetTable.Count - beforeCount);
         var rows = new List<IReadOnlyDictionary<int, object?>>();
         for (var i = beforeCount; i < beforeCount + insertedRows; i++)
-            rows.Add(SnapshotRow(table[i]));
+            rows.Add(SnapshotRow(targetTable[i]));
 
-        return BuildReturningResult(query.Returning, query.Table!, table, rows);
+        return BuildReturningResult(query.Returning, query.Table!, targetTable, rows);
     }
 
     /// <summary>
@@ -291,18 +294,21 @@ public class NpgsqlCommandMock(
     /// </summary>
     private TableResultMock? ExecuteUpdateReturning(SqlUpdateQuery query)
     {
-        if (!TryResolveTargetTable(query.Table, out var table))
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
         {
-            connection!.ExecuteUpdateSmart(query, Parameters, connection.Db.Dialect);
+            connection!.ExecuteUpdateSmart(query, Parameters, connection!.Db.Dialect);
             return null;
         }
+        if (table is null)
+            throw new InvalidOperationException("RETURNING requires a valid target table.");
+        var targetTable = table;
 
         var hadReturning = query.Returning.Count > 0;
         List<int>? matchedIndexes = null;
         if (hadReturning)
-            matchedIndexes = MatchRowIndexes(table, query.WhereRaw, query.RawSql);
+            matchedIndexes = MatchRowIndexes(targetTable, query.WhereRaw, query.RawSql);
 
-        connection!.ExecuteUpdateSmart(query, Parameters, connection.Db.Dialect);
+        connection!.ExecuteUpdateSmart(query, Parameters, connection!.Db.Dialect);
 
         if (!hadReturning)
             return null;
@@ -310,12 +316,12 @@ public class NpgsqlCommandMock(
         var rows = new List<IReadOnlyDictionary<int, object?>>();
         foreach (var index in matchedIndexes!)
         {
-            if (index < 0 || index >= table.Count)
+            if (index < 0 || index >= targetTable.Count)
                 continue;
-            rows.Add(SnapshotRow(table[index]));
+            rows.Add(SnapshotRow(targetTable[index]));
         }
 
-        return BuildReturningResult(query.Returning, query.Table!, table, rows);
+        return BuildReturningResult(query.Returning, query.Table!, targetTable, rows);
     }
 
     /// <summary>
@@ -324,26 +330,29 @@ public class NpgsqlCommandMock(
     /// </summary>
     private TableResultMock? ExecuteDeleteReturning(SqlDeleteQuery query)
     {
-        if (!TryResolveTargetTable(query.Table, out var table))
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
         {
-            connection!.ExecuteDeleteSmart(query, Parameters, connection.Db.Dialect);
+            connection!.ExecuteDeleteSmart(query, Parameters, connection!.Db.Dialect);
             return null;
         }
+        if (table is null)
+            throw new InvalidOperationException("RETURNING requires a valid target table.");
+        var targetTable = table;
 
         var hadReturning = query.Returning.Count > 0;
         List<IReadOnlyDictionary<int, object?>>? snapshotRows = null;
         if (hadReturning)
         {
-            var matchedIndexes = MatchRowIndexes(table, query.WhereRaw, query.RawSql);
-            snapshotRows = matchedIndexes.Select(i => SnapshotRow(table[i])).Cast<IReadOnlyDictionary<int, object?>>().ToList();
+            var matchedIndexes = MatchRowIndexes(targetTable, query.WhereRaw, query.RawSql);
+            snapshotRows = [.. matchedIndexes.Select(i => SnapshotRow(targetTable[i]))];
         }
 
-        connection!.ExecuteDeleteSmart(query, Parameters, connection.Db.Dialect);
+        connection!.ExecuteDeleteSmart(query, Parameters, connection!.Db.Dialect);
 
         if (!hadReturning)
             return null;
 
-        return BuildReturningResult(query.Returning, query.Table!, table, snapshotRows!);
+        return BuildReturningResult(query.Returning, query.Table!, targetTable, snapshotRows!);
     }
 
     /// <summary>
@@ -358,16 +367,14 @@ public class NpgsqlCommandMock(
     {
         var result = new TableResultMock();
         var projections = BuildReturningProjection(returningItems, tableSource, table);
-        result.Columns = projections
+        result.Columns = [.. projections
             .Select((p, i) => new TableResultColMock(
                 p.TableAlias,
                 p.ColumnAlias,
                 p.ColumnName,
                 i,
                 p.DbType,
-                p.IsNullable))
-            .Cast<TableResultColMock>()
-            .ToList();
+                p.IsNullable))];
 
         foreach (var row in rows)
         {
@@ -559,7 +566,7 @@ public class NpgsqlCommandMock(
     /// </summary>
     private bool TryResolveTargetTable(
         SqlTableSource? tableSource,
-        out ITableMock table)
+        out ITableMock? table)
     {
         table = null!;
         if (tableSource is null || string.IsNullOrWhiteSpace(tableSource.Name))

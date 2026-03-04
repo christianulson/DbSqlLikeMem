@@ -216,6 +216,10 @@ public sealed class SqlServerMockTests
         base.Dispose(disposing);
     }
 
+    /// <summary>
+    /// EN: Tests TestSelect_FoundRows_ShouldReturnLastSelectRowCount behavior.
+    /// PT: Testa o comportamento de TestSelect_FoundRows_ShouldReturnLastSelectRowCount.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestSelect_FoundRows_ShouldReturnLastSelectRowCount()
@@ -239,10 +243,25 @@ public sealed class SqlServerMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount behavior.
+    /// PT: Testa o comportamento de TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount()
     {
+        using var seedFirst = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (131, 'RowCount A', NULL)"
+        };
+        seedFirst.ExecuteNonQuery();
+        using var seedSecond = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (132, 'RowCount B', NULL)"
+        };
+        seedSecond.ExecuteNonQuery();
+
         using var command = new SqlServerCommandMock(_connection);
         command.CommandText = "SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY; SELECT ROWCOUNT();";
         using var reader = command.ExecuteReader();
@@ -254,10 +273,25 @@ public sealed class SqlServerMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestSelect_SystemRowCountVariable_ShouldReturnLastSelectRowCount behavior.
+    /// PT: Testa o comportamento de TestSelect_SystemRowCountVariable_ShouldReturnLastSelectRowCount.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestSelect_SystemRowCountVariable_ShouldReturnLastSelectRowCount()
     {
+        using var seedFirst = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (141, 'SysRowCount A', NULL)"
+        };
+        seedFirst.ExecuteNonQuery();
+        using var seedSecond = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (142, 'SysRowCount B', NULL)"
+        };
+        seedSecond.ExecuteNonQuery();
+
         using var command = new SqlServerCommandMock(_connection);
         command.CommandText = "SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY; SELECT @@ROWCOUNT;";
         using var reader = command.ExecuteReader();
@@ -269,6 +303,10 @@ public sealed class SqlServerMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestUpdate_SystemRowCountVariable_ShouldReturnAffectedRows behavior.
+    /// PT: Testa o comportamento de TestUpdate_SystemRowCountVariable_ShouldReturnAffectedRows.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestUpdate_SystemRowCountVariable_ShouldReturnAffectedRows()
@@ -287,6 +325,10 @@ public sealed class SqlServerMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestCreateView_SystemRowCountVariable_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestCreateView_SystemRowCountVariable_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestCreateView_SystemRowCountVariable_ShouldReturnZero()
@@ -303,6 +345,10 @@ public sealed class SqlServerMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBeginTransaction_SystemRowCountVariable_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBeginTransaction_SystemRowCountVariable_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBeginTransaction_SystemRowCountVariable_ShouldReturnZero()
@@ -317,6 +363,10 @@ public sealed class SqlServerMockTests
         Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_BeginTransactionThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_BeginTransactionThenRowCount_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_BeginTransactionThenRowCount_ShouldReturnZero()
@@ -332,6 +382,10 @@ public sealed class SqlServerMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_BeginSavepointThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_BeginSavepointThenRowCount_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_BeginSavepointThenRowCount_ShouldReturnZero()
@@ -347,6 +401,10 @@ public sealed class SqlServerMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_CallThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_CallThenRowCount_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_CallThenRowCount_ShouldReturnZero()
@@ -364,6 +422,10 @@ public sealed class SqlServerMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit behavior.
+    /// PT: Testa o comportamento de TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit()
@@ -380,6 +442,10 @@ public sealed class SqlServerMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero()
@@ -395,6 +461,10 @@ public sealed class SqlServerMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero behavior.
+    /// PT: Testa o comportamento de TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero()
@@ -411,13 +481,23 @@ public sealed class SqlServerMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml behavior.
+    /// PT: Testa o comportamento de TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml()
     {
+        using var seed = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (151, 'Before Batch Update', NULL)"
+        };
+        seed.ExecuteNonQuery();
+
         using var command = new SqlServerCommandMock(_connection)
         {
-            CommandText = "SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY; UPDATE Users SET Name = 'Mixed Batch User' WHERE Id = 1; SELECT @@ROWCOUNT;"
+            CommandText = "SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY; UPDATE Users SET Name = 'Mixed Batch User' WHERE Id = 151; SELECT @@ROWCOUNT;"
         };
 
         using var reader = command.ExecuteReader();
@@ -429,6 +509,10 @@ public sealed class SqlServerMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit behavior.
+    /// PT: Testa o comportamento de TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit()
@@ -447,13 +531,28 @@ public sealed class SqlServerMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect behavior.
+    /// PT: Testa o comportamento de TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect()
     {
+        using var seedFirst = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (161, 'Before Last Select A', NULL)"
+        };
+        seedFirst.ExecuteNonQuery();
+        using var seedSecond = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (162, 'Before Last Select B', NULL)"
+        };
+        seedSecond.ExecuteNonQuery();
+
         using var command = new SqlServerCommandMock(_connection)
         {
-            CommandText = "UPDATE Users SET Name = 'Last Select User' WHERE Id = 1; SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 2 ROWS ONLY; SELECT @@ROWCOUNT;"
+            CommandText = "UPDATE Users SET Name = 'Last Select User' WHERE Id = 161; SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 2 ROWS ONLY; SELECT @@ROWCOUNT;"
         };
 
         using var reader = command.ExecuteReader();
@@ -467,6 +566,10 @@ public sealed class SqlServerMockTests
         Assert.Equal(2L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_InsertOutput_ShouldReturnInsertedProjection behavior.
+    /// PT: Testa o comportamento de ExecuteReader_InsertOutput_ShouldReturnInsertedProjection.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void ExecuteReader_InsertOutput_ShouldReturnInsertedProjection()
@@ -484,6 +587,10 @@ public sealed class SqlServerMockTests
         Assert.False(reader.Read());
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_UpdateOutput_ShouldReturnDeletedAndInsertedValues behavior.
+    /// PT: Testa o comportamento de ExecuteReader_UpdateOutput_ShouldReturnDeletedAndInsertedValues.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void ExecuteReader_UpdateOutput_ShouldReturnDeletedAndInsertedValues()
@@ -507,6 +614,10 @@ public sealed class SqlServerMockTests
         Assert.False(reader.Read());
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_DeleteOutput_ShouldReturnDeletedSnapshot behavior.
+    /// PT: Testa o comportamento de ExecuteReader_DeleteOutput_ShouldReturnDeletedSnapshot.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
     public void ExecuteReader_DeleteOutput_ShouldReturnDeletedSnapshot()
@@ -528,7 +639,8 @@ public sealed class SqlServerMockTests
         Assert.Equal(703, reader.GetInt32(reader.GetOrdinal("Id")));
         Assert.Equal("To Delete", reader.GetString(reader.GetOrdinal("Name")));
         Assert.False(reader.Read());
-        Assert.Empty(_connection.GetTable("Users").Where(r => Convert.ToInt32(r[0], CultureInfo.InvariantCulture) == 703));
+        Assert.DoesNotContain(_connection.GetTable("Users"), r => Convert.ToInt32(r[0], CultureInfo.InvariantCulture) == 703);
     }
 
 }
+

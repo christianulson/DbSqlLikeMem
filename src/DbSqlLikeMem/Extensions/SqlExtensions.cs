@@ -144,6 +144,9 @@ internal static class SqlExtensions
             && TryConvertToDecimal(a, out var da) && TryConvertToDecimal(b, out var db))
             return da == db;
 
+        if (!(dialect?.SupportsImplicitNumericStringComparison ?? true))
+            return false;
+
         return string.Equals(a.ToString(), b.ToString(), dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
     }
 

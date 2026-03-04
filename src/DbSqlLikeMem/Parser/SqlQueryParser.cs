@@ -1360,7 +1360,7 @@ internal sealed class SqlQueryParser
         if (!IsWord(Peek(), "WHERE")) return null;
         Consume();
         // "ON" here is important for INSERT ... SELECT ... WHERE ... ON DUPLICATE ...
-        var txt = ReadClauseTextUntilTopLevelStop("GROUP", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "HAVING", "ON");
+        var txt = ReadClauseTextUntilTopLevelStop("GROUP", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "HAVING", "ON", "RETURNING");
         return SqlExpressionParser.ParseWhere(txt, _dialect);
     }
 
@@ -1370,7 +1370,7 @@ internal sealed class SqlQueryParser
         if (!IsWord(Peek(), "GROUP")) return list;
         Consume();
         ExpectWord("BY");
-        list.AddRange(ParseRawItemsUntil("HAVING", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION"));
+        list.AddRange(ParseRawItemsUntil("HAVING", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "RETURNING"));
         if (list.Count == 0)
             throw new InvalidOperationException("GROUP BY sem expressões.");
         return list;
@@ -1380,7 +1380,7 @@ internal sealed class SqlQueryParser
     {
         if (!IsWord(Peek(), "HAVING")) return null;
         Consume();
-        var txt = ReadClauseTextUntilTopLevelStop("ORDER", "LIMIT", "OFFSET", "FETCH", "UNION");
+        var txt = ReadClauseTextUntilTopLevelStop("ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "RETURNING");
         return SqlExpressionParser.ParseWhere(txt, _dialect);
     }
 
@@ -1391,7 +1391,7 @@ internal sealed class SqlQueryParser
         Consume();
         ExpectWord("BY");
         // Reutiliza lógica simplificada
-        var raws = ParseCommaSeparatedRawItemsUntilAny("LIMIT", "OFFSET", "FETCH", "UNION");
+        var raws = ParseCommaSeparatedRawItemsUntilAny("LIMIT", "OFFSET", "FETCH", "UNION", "RETURNING");
         foreach (var r in raws)
         {
             var raw = r.Trim();
@@ -1914,7 +1914,7 @@ internal sealed class SqlQueryParser
             else if (IsSymbol(t, ")")) depth--;
 
             if (depth == 0 && IsSymbol(t, ";")) break;
-            if (depth == 0 && stopWords.Any(sw => IsWord(t, sw))) break;
+            if (depth == 0 && ShouldStopAtTopLevelToken(t, stopWords, buf)) break;
 
             if (depth == 0 && IsSymbol(t, ","))
             {
@@ -1939,10 +1939,46 @@ internal sealed class SqlQueryParser
             if (IsSymbol(t, "(")) depth++;
             else if (IsSymbol(t, ")")) depth--;
             if (depth == 0 && IsSymbol(t, ";")) break;
-            if (depth == 0 && stopWords.Any(sw => IsWord(t, sw))) break;
+            if (depth == 0 && ShouldStopAtTopLevelToken(t, stopWords, buf)) break;
             buf.Add(Consume());
         }
         return TokensToSql(buf);
+    }
+
+    /// <summary>
+    /// EN: Determines whether current top-level token should stop clause/item scanning, preserving ordered-set syntax boundaries.
+    /// PT: Determina se o token atual em nível de topo deve encerrar a varredura da cláusula/item, preservando fronteiras de sintaxe ordered-set.
+    /// </summary>
+    /// <param name="current">EN: Token currently inspected at top level. PT: Token inspecionado no nível de topo.</param>
+    /// <param name="stopWords">EN: Candidate clause stop words. PT: Palavras de parada candidatas de cláusula.</param>
+    /// <param name="buffer">EN: Tokens already buffered for current segment. PT: Tokens já acumulados para o segmento atual.</param>
+    /// <returns>EN: True when parser should stop before current token. PT: True quando o parser deve parar antes do token atual.</returns>
+    private static bool ShouldStopAtTopLevelToken(SqlToken current, IReadOnlyList<string> stopWords, IReadOnlyList<SqlToken> buffer)
+    {
+        if (!stopWords.Any(sw => IsWord(current, sw)))
+            return false;
+
+        // Keep "WITHIN GROUP (...)" inside the same SELECT expression.
+        if (IsWord(current, "GROUP") && EndsWithWord(buffer, "WITHIN"))
+            return false;
+
+        return true;
+    }
+
+    /// <summary>
+    /// EN: Checks whether buffered tokens end with a specific keyword/identifier word.
+    /// PT: Verifica se os tokens acumulados terminam com uma palavra-chave/identificador específica.
+    /// </summary>
+    /// <param name="buffer">EN: Buffered tokens. PT: Tokens acumulados.</param>
+    /// <param name="word">EN: Word to match at buffer tail. PT: Palavra para comparar no final do buffer.</param>
+    /// <returns>EN: True when tail token matches the expected word. PT: True quando o token final corresponde à palavra esperada.</returns>
+    private static bool EndsWithWord(IReadOnlyList<SqlToken> buffer, string word)
+    {
+        if (buffer.Count == 0)
+            return false;
+
+        var tail = buffer[^1];
+        return IsWord(tail, word);
     }
 
     private string TokensToSql(List<SqlToken> toks)
@@ -2480,6 +2516,7 @@ internal sealed class SqlQueryParser
         "THEN"
       , "PIVOT"
       , "UNPIVOT"
+      , "RETURNING"
     };
 
     private static bool IsClauseKeywordToken(SqlToken t)
@@ -2656,7 +2693,7 @@ internal sealed class SqlQueryParser
             return null;
 
 #pragma warning disable CA1031 // Do not catch general exception types
-        try { return SqlExpressionParser.ParseWhere(raw, _dialect); }
+        try { return SqlExpressionParser.ParseWhere(raw!, _dialect); }
         catch { return null; }
 #pragma warning restore CA1031 // Do not catch general exception types
     }

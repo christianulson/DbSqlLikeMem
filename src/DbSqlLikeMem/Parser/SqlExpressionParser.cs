@@ -912,6 +912,7 @@ internal sealed class SqlExpressionParser(
         // function call: name(...)
         if (IsSymbol(Peek(), "("))
         {
+            EnsureTemporalIdentifierDoesNotAllowParentheses(name);
             var call = ParseCallAfterName(name);
             call = ParseWithinGroupOrderByIfPresent(call);
 
@@ -932,8 +933,38 @@ internal sealed class SqlExpressionParser(
             return true;
         }
 
+        EnsureTemporalCallIdentifierRequiresParentheses(name);
         expr = ParseIdentifierChainOrColumn(name);
         return true;
+    }
+
+    /// <summary>
+    /// EN: Prevents identifier-only temporal tokens from being called with parentheses in the active dialect.
+    /// PT: Impede que tokens temporais somente-identificador sejam chamados com parênteses no dialeto ativo.
+    /// </summary>
+    /// <param name="identifier">EN: Function/token name parsed before call syntax. PT: Nome da função/token parseado antes da sintaxe de chamada.</param>
+    private void EnsureTemporalIdentifierDoesNotAllowParentheses(string identifier)
+    {
+        if (!_dialect.TemporalFunctionIdentifierNames.Any(name => name.Equals(identifier, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        throw Error($"Temporal function token '{identifier}' must be used without parentheses.", Peek());
+    }
+
+    /// <summary>
+    /// EN: Enforces parentheses for temporal identifiers that are call-only in the active dialect.
+    /// PT: Exige parênteses para identificadores temporais que são apenas-invocáveis no dialeto ativo.
+    /// </summary>
+    /// <param name="identifier">EN: Identifier token parsed as a potential scalar expression. PT: Token identificador parseado como expressão escalar potencial.</param>
+    private void EnsureTemporalCallIdentifierRequiresParentheses(string identifier)
+    {
+        if (_dialect.TemporalFunctionIdentifierNames.Any(name => name.Equals(identifier, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        if (!_dialect.TemporalFunctionCallNames.Any(name => name.Equals(identifier, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        throw Error($"Temporal function '{identifier}' requires parentheses '{identifier}()'.", Peek());
     }
 
 

@@ -1074,7 +1074,7 @@ internal abstract class AstQueryExecutorBase(
         return grouped.Where(g =>
         {
             var evalCtx = BuildHavingEvaluationContext(g, aliasExprs, ctes, out var evalGroup);
-            EnsureHavingIdentifiersAreBound(havingExpr, evalCtx);
+            EnsureHavingIdentifiersAreBound(havingExpr, evalCtx, Dialect!);
             return Eval(havingExpr, evalCtx, evalGroup, ctes).ToBool();
         });
     }
@@ -1120,11 +1120,89 @@ internal abstract class AstQueryExecutorBase(
 
         var hasAggregate = WalkHasAggregate(rewritten);
         var hasIdentifier = EnumerateIdentifiers(rewritten).Any();
-        if (hasAggregate || hasIdentifier)
+        var hasTemporalReference = WalkHasTemporalHavingReference(rewritten, Dialect!);
+        if (hasAggregate || hasIdentifier || hasTemporalReference)
             return rewritten;
 
         throw new InvalidOperationException(
             "invalid: HAVING must reference grouped columns, projected aliases, aggregates, or valid ordinals");
+    }
+
+    /// <summary>
+    /// EN: Detects whether HAVING expression references dialect temporal zero-arg tokens/functions.
+    /// PT: Detecta se a expressão HAVING referencia tokens/funções temporais zero-arg do dialeto.
+    /// </summary>
+    /// <param name="expr">EN: HAVING expression to inspect. PT: Expressão HAVING a inspecionar.</param>
+    /// <param name="dialect">EN: Active SQL dialect. PT: Dialeto SQL ativo.</param>
+    /// <returns>EN: True when expression contains temporal reference valid for HAVING semantics. PT: True quando a expressão contém referência temporal válida para semântica de HAVING.</returns>
+    private static bool WalkHasTemporalHavingReference(SqlExpr expr, ISqlDialect dialect)
+    {
+        switch (expr)
+        {
+            case IdentifierExpr id:
+                return dialect.TemporalFunctionIdentifierNames.Any(name =>
+                    name.Equals(id.Name, StringComparison.OrdinalIgnoreCase));
+
+            case FunctionCallExpr fn:
+                if (fn.Args.Count == 0 && dialect.TemporalFunctionCallNames.Any(name =>
+                        name.Equals(fn.Name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+                return fn.Args.Any(arg => WalkHasTemporalHavingReference(arg, dialect));
+
+            case CallExpr call:
+                if (call.Args.Count == 0 && dialect.TemporalFunctionCallNames.Any(name =>
+                        name.Equals(call.Name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+                return call.Args.Any(arg => WalkHasTemporalHavingReference(arg, dialect));
+
+            case BinaryExpr b:
+                return WalkHasTemporalHavingReference(b.Left, dialect)
+                    || WalkHasTemporalHavingReference(b.Right, dialect);
+
+            case UnaryExpr u:
+                return WalkHasTemporalHavingReference(u.Expr, dialect);
+
+            case IsNullExpr isn:
+                return WalkHasTemporalHavingReference(isn.Expr, dialect);
+
+            case LikeExpr like:
+                return WalkHasTemporalHavingReference(like.Left, dialect)
+                    || WalkHasTemporalHavingReference(like.Pattern, dialect);
+
+            case InExpr i:
+                if (WalkHasTemporalHavingReference(i.Left, dialect))
+                    return true;
+                return i.Items.Any(item => WalkHasTemporalHavingReference(item, dialect));
+
+            case RowExpr r:
+                return r.Items.Any(item => WalkHasTemporalHavingReference(item, dialect));
+
+            case BetweenExpr bt:
+                return WalkHasTemporalHavingReference(bt.Expr, dialect)
+                    || WalkHasTemporalHavingReference(bt.Low, dialect)
+                    || WalkHasTemporalHavingReference(bt.High, dialect);
+
+            case CaseExpr c:
+                if (c.BaseExpr is not null && WalkHasTemporalHavingReference(c.BaseExpr, dialect))
+                    return true;
+
+                foreach (var whenThen in c.Whens)
+                {
+                    if (WalkHasTemporalHavingReference(whenThen.When, dialect))
+                        return true;
+                    if (WalkHasTemporalHavingReference(whenThen.Then, dialect))
+                        return true;
+                }
+
+                return c.ElseExpr is not null && WalkHasTemporalHavingReference(c.ElseExpr, dialect);
+
+            default:
+                return false;
+        }
     }
 
     private SqlExpr RewriteHavingOrdinals(
@@ -1274,16 +1352,29 @@ internal abstract class AstQueryExecutorBase(
         }
     }
 
-    private static void EnsureHavingIdentifiersAreBound(SqlExpr expr, EvalRow row)
+    private static void EnsureHavingIdentifiersAreBound(SqlExpr expr, EvalRow row, ISqlDialect dialect)
     {
         foreach (var name in EnumerateIdentifiers(expr))
         {
+            if (IsHavingTemporalIdentifier(name, dialect))
+                continue;
+
             if (IsIdentifierBound(row, name))
                 continue;
 
             throw new InvalidOperationException($"invalid: HAVING reference '{name}' was not found in grouped projection");
         }
     }
+
+    /// <summary>
+    /// EN: Checks whether a HAVING identifier maps to a temporal token supported as identifier by the active dialect.
+    /// PT: Verifica se um identificador no HAVING mapeia para token temporal suportado como identificador pelo dialeto ativo.
+    /// </summary>
+    /// <param name="name">EN: Identifier collected from HAVING expression. PT: Identificador coletado da expressão HAVING.</param>
+    /// <param name="dialect">EN: Active SQL dialect. PT: Dialeto SQL ativo.</param>
+    /// <returns>EN: True when identifier is a dialect temporal token allowed without projection binding. PT: True quando o identificador é token temporal do dialeto permitido sem binding de projeção.</returns>
+    private static bool IsHavingTemporalIdentifier(string name, ISqlDialect dialect)
+        => dialect.TemporalFunctionIdentifierNames.Any(token => token.Equals(name, StringComparison.OrdinalIgnoreCase));
 
     private static bool IsIdentifierBound(EvalRow row, string name)
     {
@@ -4289,7 +4380,7 @@ private void FillPercentRankOrCumeDist(
         var normalizedSql = NormalizeSqlIdentifierSpacing(subquerySql);
         var qualifiedIdentifiers = ExtractQualifiedSqlIdentifiers(normalizedSql);
         var qualifiedMatches = allFields
-            .Where(static kv => kv.Key.Contains('.', StringComparison.Ordinal))
+            .Where(static kv => kv.Key.IndexOf('.') >= 0)
             .Where(kv => qualifiedIdentifiers.Contains(kv.Key))
             .ToList();
 
@@ -4297,7 +4388,7 @@ private void FillPercentRankOrCumeDist(
             return qualifiedMatches;
 
         var unqualifiedMatches = allFields
-            .Where(static kv => !kv.Key.Contains('.', StringComparison.Ordinal))
+            .Where(static kv => kv.Key.IndexOf('.') < 0)
             .Where(kv => ContainsSqlIdentifierToken(normalizedSql, kv.Key))
             .ToList();
 
@@ -4861,9 +4952,9 @@ private void FillPercentRankOrCumeDist(
             return sql;
 
         return string.Concat(
-            sql.AsSpan(0, afterSelect),
+            sql.Substring(0, afterSelect),
             " <EXISTS_PAYLOAD> ",
-            sql.AsSpan(fromIndex));
+            sql.Substring(fromIndex));
     }
 
     /// <summary>
@@ -4888,11 +4979,11 @@ private void FillPercentRankOrCumeDist(
         var payload = sql[afterSelect..fromIndex];
         var normalizedPayload = NormalizeSelectListAliasesForCacheKey(payload);
         return string.Concat(
-            sql.AsSpan(0, afterSelect),
+            sql.Substring(0, afterSelect),
             " ",
             normalizedPayload,
             " ",
-            sql.AsSpan(fromIndex));
+            sql.Substring(fromIndex));
     }
 
     /// <summary>
@@ -5029,7 +5120,11 @@ private void FillPercentRankOrCumeDist(
         if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(keyword))
             return false;
 
-        var safeStart = Math.Clamp(startIndex, 0, sql.Length);
+        var safeStart = startIndex;
+        if (safeStart < 0)
+            safeStart = 0;
+        else if (safeStart > sql.Length)
+            safeStart = sql.Length;
         var depth = 0;
         for (var i = safeStart; i < sql.Length; i++)
         {
@@ -5561,7 +5656,8 @@ private void FillPercentRankOrCumeDist(
             return cond ? EvalArg(1) : EvalArg(2);
         }
 
-        if (dialect.NullSubstituteFunctionNames.Any(n => n.Equals(fn.Name, StringComparison.OrdinalIgnoreCase)))
+        if (!fn.Name.Equals("COALESCE", StringComparison.OrdinalIgnoreCase)
+            && dialect.NullSubstituteFunctionNames.Any(n => n.Equals(fn.Name, StringComparison.OrdinalIgnoreCase)))
         {
             var v = EvalArg(0);
             return IsNullish(v) ? EvalArg(1) : v;
@@ -5719,6 +5815,10 @@ private void FillPercentRankOrCumeDist(
             }
             return 0;
         }
+
+        if (fn.Args.Count == 0
+            && SqlTemporalFunctionEvaluator.IsKnownTemporalFunctionName(fn.Name))
+            throw new InvalidOperationException($"Temporal function '{fn.Name}' is not supported for dialect '{dialect.Name}'.");
 
 // Unknown scalar => null (don't explode tests)
         return null;

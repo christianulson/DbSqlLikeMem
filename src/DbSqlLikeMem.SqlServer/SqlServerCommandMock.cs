@@ -193,6 +193,14 @@ public class SqlServerCommandMock(
                 continue;
             }
 
+            if (sqlRaw.StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
+            {
+                connection.ExecuteCall(sqlRaw, Parameters);
+                connection.SetLastFoundRows(0);
+                parsedStatementCount++;
+                continue;
+            }
+
             var effectiveSql = sqlRaw;
             SqlServerOutputClause? outputClause = null;
             if (TryExtractOutputClause(sqlRaw, out var rewrittenSql, out var extractedOutput))
@@ -273,17 +281,18 @@ public class SqlServerCommandMock(
     /// </summary>
     private TableResultMock ExecuteInsertOutput(SqlInsertQuery query, SqlServerOutputClause outputClause)
     {
-        if (!TryResolveTargetTable(query.Table, out var table))
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
             throw new InvalidOperationException("OUTPUT requires a valid target table.");
+        var targetTable = table;
 
-        var beforeCount = table.Count;
-        connection!.ExecuteInsert(query, Parameters, connection.Db.Dialect);
-        var insertedRows = Math.Max(0, table.Count - beforeCount);
+        var beforeCount = targetTable.Count;
+        connection!.ExecuteInsert(query, Parameters, connection!.Db.Dialect);
+        var insertedRows = Math.Max(0, targetTable.Count - beforeCount);
         var pairs = new List<(IReadOnlyDictionary<int, object?>? OldRow, IReadOnlyDictionary<int, object?>? NewRow)>();
         for (var i = beforeCount; i < beforeCount + insertedRows; i++)
-            pairs.Add((null, SnapshotRow(table[i])));
+            pairs.Add((null, SnapshotRow(targetTable[i])));
 
-        return BuildOutputResult(outputClause, query.Table!, table, pairs, SqlServerOutputDefaultQualifier.Inserted);
+        return BuildOutputResult(outputClause, query.Table!, targetTable, pairs, SqlServerOutputDefaultQualifier.Inserted);
     }
 
     /// <summary>
@@ -292,23 +301,24 @@ public class SqlServerCommandMock(
     /// </summary>
     private TableResultMock ExecuteUpdateOutput(SqlUpdateQuery query, SqlServerOutputClause outputClause)
     {
-        if (!TryResolveTargetTable(query.Table, out var table))
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
             throw new InvalidOperationException("OUTPUT requires a valid target table.");
+        var targetTable = table;
 
-        var matchedIndexes = MatchRowIndexes(table, query.WhereRaw, query.RawSql);
-        var beforeRows = matchedIndexes.Select(i => SnapshotRow(table[i])).ToList();
-        connection!.ExecuteUpdateSmart(query, Parameters, connection.Db.Dialect);
+        var matchedIndexes = MatchRowIndexes(targetTable, query.WhereRaw, query.RawSql);
+        var beforeRows = matchedIndexes.Select(i => SnapshotRow(targetTable[i])).ToList();
+        connection!.ExecuteUpdateSmart(query, Parameters, connection!.Db.Dialect);
 
         var pairs = new List<(IReadOnlyDictionary<int, object?>? OldRow, IReadOnlyDictionary<int, object?>? NewRow)>();
         for (var i = 0; i < matchedIndexes.Count; i++)
         {
             var index = matchedIndexes[i];
-            if (index < 0 || index >= table.Count)
+            if (index < 0 || index >= targetTable.Count)
                 continue;
-            pairs.Add((beforeRows[i], SnapshotRow(table[index])));
+            pairs.Add((beforeRows[i], SnapshotRow(targetTable[index])));
         }
 
-        return BuildOutputResult(outputClause, query.Table!, table, pairs, SqlServerOutputDefaultQualifier.Inserted);
+        return BuildOutputResult(outputClause, query.Table!, targetTable, pairs, SqlServerOutputDefaultQualifier.Inserted);
     }
 
     /// <summary>
@@ -317,18 +327,19 @@ public class SqlServerCommandMock(
     /// </summary>
     private TableResultMock ExecuteDeleteOutput(SqlDeleteQuery query, SqlServerOutputClause outputClause)
     {
-        if (!TryResolveTargetTable(query.Table, out var table))
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
             throw new InvalidOperationException("OUTPUT requires a valid target table.");
+        var targetTable = table;
 
-        var matchedIndexes = MatchRowIndexes(table, query.WhereRaw, query.RawSql);
-        var deletedRows = matchedIndexes.Select(i => SnapshotRow(table[i])).ToList();
-        connection!.ExecuteDeleteSmart(query, Parameters, connection.Db.Dialect);
+        var matchedIndexes = MatchRowIndexes(targetTable, query.WhereRaw, query.RawSql);
+        var deletedRows = matchedIndexes.Select(i => SnapshotRow(targetTable[i])).ToList();
+        connection!.ExecuteDeleteSmart(query, Parameters, connection!.Db.Dialect);
 
         var pairs = deletedRows
             .Select(row => (OldRow: (IReadOnlyDictionary<int, object?>?)row, NewRow: (IReadOnlyDictionary<int, object?>?)null))
             .ToList();
 
-        return BuildOutputResult(outputClause, query.Table!, table, pairs, SqlServerOutputDefaultQualifier.Deleted);
+        return BuildOutputResult(outputClause, query.Table!, targetTable, pairs, SqlServerOutputDefaultQualifier.Deleted);
     }
 
     /// <summary>
@@ -352,7 +363,6 @@ public class SqlServerCommandMock(
                 i,
                 p.DbType,
                 p.IsNullable))
-            .Cast<TableResultColMock>()
             .ToList();
 
         foreach (var (oldRow, newRow) in rowPairs)
@@ -679,7 +689,7 @@ public class SqlServerCommandMock(
     /// </summary>
     private bool TryResolveTargetTable(
         SqlTableSource? tableSource,
-        out ITableMock table)
+        out ITableMock? table)
     {
         table = null!;
         if (tableSource is null || string.IsNullOrWhiteSpace(tableSource.Name))
@@ -745,7 +755,7 @@ public class SqlServerCommandMock(
 
         if (sqlRaw.StartsWith("release savepoint ", StringComparison.OrdinalIgnoreCase))
         {
-            connection!.ReleaseSavepoint(sqlRaw[18..].Trim());
+            // SQL Server does not support RELEASE SAVEPOINT. Keep compatibility behavior as a no-op.
             return true;
         }
 

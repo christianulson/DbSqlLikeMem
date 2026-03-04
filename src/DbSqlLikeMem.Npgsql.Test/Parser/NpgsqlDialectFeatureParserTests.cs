@@ -132,6 +132,26 @@ RETURNING id";
     }
 
     /// <summary>
+    /// EN: Ensures INSERT ... SELECT ... WHERE ... RETURNING preserves WHERE boundary and captures RETURNING projection.
+    /// PT: Garante que INSERT ... SELECT ... WHERE ... RETURNING preserve o limite do WHERE e capture a projeção de RETURNING.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_SelectWhereReturning_ShouldPreserveWhereBoundary(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) SELECT id, name FROM users WHERE id IN (1, 2) RETURNING id";
+
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.NotNull(parsed.InsertSelect);
+        Assert.NotNull(parsed.InsertSelect!.Where);
+        Assert.Single(parsed.Returning);
+        Assert.Equal("id", parsed.Returning[0].Raw);
+    }
+
+    /// <summary>
     /// EN: Ensures UPDATE ... RETURNING keeps WHERE boundary and captures returning projection.
     /// PT: Garante que UPDATE ... RETURNING preserve o limite do WHERE e capture a projeção de retorno.
     /// </summary>

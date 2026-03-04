@@ -46,12 +46,72 @@
 
 - [docs/old/providers-and-features.md](docs/old/providers-and-features.md)
 
+## When to use | Quando usar
+
+- **EN:** Unit and integration tests that require SQL behavior without running a real database server.  
+  **PT-BR:** Testes unitários e de integração que exigem comportamento SQL sem executar um servidor de banco real.
+- **EN:** Fast feedback scenarios in CI/CD pipelines where deterministic setup matters.  
+  **PT-BR:** Cenários de feedback rápido em pipelines CI/CD onde setup determinístico é importante.
+- **EN:** Multi-dialect test suites where the same repository/service logic is validated against different providers.  
+  **PT-BR:** Suítes de teste multi-dialeto onde a mesma lógica de repositório/serviço é validada em provedores diferentes.
+
+## Scope and expectations | Escopo e expectativas
+
+- **EN:** This project emulates major ADO.NET and SQL behaviors for tests; it is not intended to replace production databases.  
+  **PT-BR:** Este projeto emula comportamentos principais de ADO.NET e SQL para testes; não substitui bancos de produção.
+- **EN:** SQL support is intentionally incremental and dialect-aware; unsupported constructs throw clear exceptions.  
+  **PT-BR:** O suporte SQL é incremental e sensível ao dialeto; construções não suportadas geram exceções claras.
+- **EN:** Affected-rows semantics follow dialect conventions where applicable (for example, MySQL upsert conflict updates may report `2`).  
+  **PT-BR:** A semântica de linhas afetadas segue convenções por dialeto quando aplicável (por exemplo, update em conflito no upsert MySQL pode retornar `2`).
+
+## Quick start in 60 seconds | Começo rápido em 60 segundos
+
+```csharp
+using DbSqlLikeMem.MySql;
+
+var db = new MySqlDbMock(version: 8);
+var users = db.AddTable("users");
+users.AddColumn("Id", DbType.Int32, false);
+users.AddColumn("Name", DbType.String, false);
+users.AddPrimaryKeyIndexes("id");
+
+using var cnn = new MySqlConnectionMock(db);
+cnn.Open();
+
+using var cmd = cnn.CreateCommand();
+cmd.CommandText = "INSERT INTO users (Id, Name) VALUES (1, 'Alice')";
+cmd.ExecuteNonQuery();
+
+cmd.CommandText = "SELECT Name FROM users WHERE Id = 1";
+var name = (string?)cmd.ExecuteScalar();
+// name == "Alice"
+```
+
+**EN:** For provider-specific examples (Dapper, transactions, RETURNING/OUTPUT, etc.), see: [docs/getting-started.md](docs/getting-started.md)  
+**PT-BR:** Para exemplos por provedor (Dapper, transações, RETURNING/OUTPUT etc.), veja: [docs/getting-started.md](docs/getting-started.md)
+
+## Execution plan diagnostics (quick view) | Diagnóstico de plano de execução (visão rápida)
+
+```csharp
+using var cmd = cnn.CreateCommand();
+cmd.CommandText = "SELECT Name FROM users WHERE Id = 1";
+using var reader = cmd.ExecuteReader();
+
+var plan = cnn.LastExecutionPlan;
+// plan.EstimatedCost, plan.EstimatedRowsRead, plan.ActualRows, plan.ElapsedMs, ...
+```
+
+**EN:** Use `LastExecutionPlans` when validating a sequence of statements in a single test flow.  
+**PT-BR:** Use `LastExecutionPlans` ao validar uma sequência de comandos no mesmo fluxo de teste.
+
 ## Requirements | Requisitos
 
-- **EN:** Provider libraries target .NET Framework 4.8, .NET 6.0, and .NET 8.0.  
-  **PT-BR:** As bibliotecas de provedores têm como alvo .NET Framework 4.8, .NET 6.0 e .NET 8.0.
-- **EN:** Core `DbSqlLikeMem` targets .NET Standard 2.0 plus .NET Framework 4.8, .NET 6.0, and .NET 8.0.  
-  **PT-BR:** O núcleo `DbSqlLikeMem` tem como alvo .NET Standard 2.0 mais .NET Framework 4.8, .NET 6.0 e .NET 8.0.
+- **EN:** Main provider and test projects target: **.NET Framework 4.8**, **.NET 6.0**, **.NET 8.0**, and **.NET 10.0**.  
+  **PT-BR:** Os principais projetos de provedor e teste têm como alvo: **.NET Framework 4.8**, **.NET 6.0**, **.NET 8.0** e **.NET 10.0**.
+- **EN:** Core `DbSqlLikeMem` multi-targets: **.NET Standard 2.1**, **.NET Framework 4.8**, **.NET 6.0**, **.NET 8.0**, and **.NET 10.0**.  
+  **PT-BR:** O núcleo `DbSqlLikeMem` é multi-target em: **.NET Standard 2.1**, **.NET Framework 4.8**, **.NET 6.0**, **.NET 8.0** e **.NET 10.0**.
+- **EN:** Some integration-specific modules (for example, part of DB2 stack) may target a subset (`net6.0+`).  
+  **PT-BR:** Alguns módulos específicos de integração (por exemplo, parte da stack DB2) podem ter alvo em subconjunto (`net6.0+`).
 
 ## Supported Providers | Provedores suportados
 
@@ -128,6 +188,13 @@ public static class DbSqlLikeMemFactory
 
 ```bash
 dotnet test src/DbSqlLikeMem.slnx
+```
+
+**EN:** To run one test project only:  
+**PT-BR:** Para executar apenas um projeto de teste:
+
+```bash
+dotnet test src/DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj
 ```
 
 ## Publishing | Publicação

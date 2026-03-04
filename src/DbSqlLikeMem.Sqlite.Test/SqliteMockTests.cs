@@ -196,6 +196,10 @@ public sealed class SqliteMockTests
         base.Dispose(disposing);
     }
 
+    /// <summary>
+    /// EN: Verifies FOUND_ROWS returns the row count from the last SELECT in the same batch.
+    /// PT: Verifica que FOUND_ROWS retorna a contagem de linhas do último SELECT no mesmo batch.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestSelect_FoundRows_ShouldReturnLastSelectRowCount()
@@ -219,6 +223,10 @@ public sealed class SqliteMockTests
     }
 
 
+    /// <summary>
+    /// EN: Verifies CHANGES returns affected rows for the last UPDATE statement.
+    /// PT: Verifica que CHANGES retorna as linhas afetadas pelo último UPDATE.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestUpdate_ChangesFunction_ShouldReturnAffectedRows()
@@ -237,6 +245,10 @@ public sealed class SqliteMockTests
     }
 
 
+    /// <summary>
+    /// EN: Verifies CHANGES returns zero immediately after beginning a transaction.
+    /// PT: Verifica que CHANGES retorna zero imediatamente após iniciar uma transação.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestBeginTransaction_ChangesFunction_ShouldReturnZero()
@@ -253,6 +265,10 @@ public sealed class SqliteMockTests
 
 
 
+    /// <summary>
+    /// EN: Verifies a BEGIN TRANSACTION followed by CHANGES returns zero in batch execution.
+    /// PT: Verifica que BEGIN TRANSACTION seguido de CHANGES retorna zero em execução em batch.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestBatch_BeginTransactionThenChanges_ShouldReturnZero()
@@ -268,6 +284,10 @@ public sealed class SqliteMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    /// <summary>
+    /// EN: Verifies CALL followed by CHANGES returns zero when no DML affected rows.
+    /// PT: Verifica que CALL seguido de CHANGES retorna zero quando nenhum DML afetou linhas.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestBatch_CallThenChanges_ShouldReturnZero()
@@ -285,6 +305,10 @@ public sealed class SqliteMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    /// <summary>
+    /// EN: Verifies CHANGES returns zero after COMMIT in a batch that previously updated rows.
+    /// PT: Verifica que CHANGES retorna zero após COMMIT em um batch que atualizou linhas anteriormente.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestBatch_UpdateCommitThenChanges_ShouldReturnZeroAfterCommit()
@@ -301,6 +325,10 @@ public sealed class SqliteMockTests
     }
 
 
+    /// <summary>
+    /// EN: Verifies CHANGES returns zero after rolling back to a savepoint in batch execution.
+    /// PT: Verifica que CHANGES retorna zero após rollback para savepoint em execução em batch.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestBatch_RollbackToSavepointThenChanges_ShouldReturnZero()
@@ -316,6 +344,10 @@ public sealed class SqliteMockTests
         Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    /// <summary>
+    /// EN: Verifies CHANGES returns zero after releasing a savepoint in batch execution.
+    /// PT: Verifica que CHANGES retorna zero após liberar um savepoint em execução em batch.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestBatch_ReleaseSavepointThenChanges_ShouldReturnZero()
@@ -332,10 +364,20 @@ public sealed class SqliteMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_SelectThenUpdateThenChanges_ShouldReflectLastDml behavior.
+    /// PT: Testa o comportamento de TestBatch_SelectThenUpdateThenChanges_ShouldReflectLastDml.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestBatch_SelectThenUpdateThenChanges_ShouldReflectLastDml()
     {
+        using var seed = new SqliteCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Seed User', NULL)"
+        };
+        seed.ExecuteNonQuery();
+
         using var command = new SqliteCommandMock(_connection)
         {
             CommandText = "SELECT Name FROM Users ORDER BY Id LIMIT 1; UPDATE Users SET Name = 'Mixed Batch User' WHERE Id = 1; SELECT CHANGES();"
@@ -350,6 +392,10 @@ public sealed class SqliteMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_CallUpdateCommitThenChanges_ShouldReturnZeroAfterCommit behavior.
+    /// PT: Testa o comportamento de TestBatch_CallUpdateCommitThenChanges_ShouldReturnZeroAfterCommit.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestBatch_CallUpdateCommitThenChanges_ShouldReturnZeroAfterCommit()
@@ -368,10 +414,22 @@ public sealed class SqliteMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_UpdateThenSelectThenChanges_ShouldReflectLastSelect behavior.
+    /// PT: Testa o comportamento de TestBatch_UpdateThenSelectThenChanges_ShouldReflectLastSelect.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestBatch_UpdateThenSelectThenChanges_ShouldReflectLastSelect()
     {
+        using var seed = new SqliteCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Seed User 1', NULL)"
+        };
+        seed.ExecuteNonQuery();
+        seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (2, 'Seed User 2', NULL)";
+        seed.ExecuteNonQuery();
+
         using var command = new SqliteCommandMock(_connection)
         {
             CommandText = "UPDATE Users SET Name = 'Last Select User' WHERE Id = 1; SELECT Name FROM Users ORDER BY Id LIMIT 2; SELECT CHANGES();"
@@ -388,6 +446,10 @@ public sealed class SqliteMockTests
         Assert.Equal(2L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_InsertReturning_ShouldReturnInsertedRows behavior.
+    /// PT: Testa o comportamento de ExecuteReader_InsertReturning_ShouldReturnInsertedRows.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void ExecuteReader_InsertReturning_ShouldReturnInsertedRows()
@@ -405,6 +467,10 @@ public sealed class SqliteMockTests
         Assert.False(reader.Read());
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_UpdateReturning_ShouldReturnUpdatedProjection behavior.
+    /// PT: Testa o comportamento de ExecuteReader_UpdateReturning_ShouldReturnUpdatedProjection.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void ExecuteReader_UpdateReturning_ShouldReturnUpdatedProjection()
@@ -428,6 +494,10 @@ public sealed class SqliteMockTests
         Assert.False(reader.Read());
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_DeleteReturning_ShouldReturnDeletedRowSnapshot behavior.
+    /// PT: Testa o comportamento de ExecuteReader_DeleteReturning_ShouldReturnDeletedRowSnapshot.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void ExecuteReader_DeleteReturning_ShouldReturnDeletedRowSnapshot()
@@ -449,20 +519,23 @@ public sealed class SqliteMockTests
         Assert.Equal(603, reader.GetInt32(reader.GetOrdinal("Id")));
         Assert.Equal("To Delete", reader.GetString(reader.GetOrdinal("Name")));
         Assert.False(reader.Read());
-        Assert.Empty(_connection.GetTable("users").Where(r => Convert.ToInt32(r[0]) == 603));
+        Assert.DoesNotContain(_connection.GetTable("users"), r => Convert.ToInt32(r[0]) == 603);
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_InsertSelectReturning_ShouldReturnAllInsertedRows behavior.
+    /// PT: Testa o comportamento de ExecuteReader_InsertSelectReturning_ShouldReturnAllInsertedRows.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void ExecuteReader_InsertSelectReturning_ShouldReturnAllInsertedRows()
     {
         using var seed = new SqliteCommandMock(_connection)
         {
-            CommandText = """
-                INSERT INTO Users (Id, Name, Email) VALUES (611, 'Seed A', 'seed-a@test.local');
-                INSERT INTO Users (Id, Name, Email) VALUES (612, 'Seed B', 'seed-b@test.local');
-                """
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (611, 'Seed A', 'seed-a@test.local')"
         };
+        seed.ExecuteNonQuery();
+        seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (612, 'Seed B', 'seed-b@test.local')";
         seed.ExecuteNonQuery();
 
         using var command = new SqliteCommandMock(_connection)
@@ -485,6 +558,10 @@ public sealed class SqliteMockTests
         Assert.False(reader.Read());
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_UpdateReturningQualifiedWildcard_ShouldReturnAllColumns behavior.
+    /// PT: Testa o comportamento de ExecuteReader_UpdateReturningQualifiedWildcard_ShouldReturnAllColumns.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void ExecuteReader_UpdateReturningQualifiedWildcard_ShouldReturnAllColumns()

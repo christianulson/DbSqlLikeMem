@@ -107,6 +107,10 @@ WHERE id = 1");
     }
 
 
+    /// <summary>
+    /// EN: Tests TemporalFunctions_ShouldWorkInSelectAndWhere behavior.
+    /// PT: Testa o comportamento de TemporalFunctions_ShouldWorkInSelectAndWhere.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqlServerFunctionCoverage")]
     public void TemporalFunctions_ShouldWorkInSelectAndWhere()
@@ -132,3 +136,4 @@ WHERE id = 1");
         base.Dispose(disposing);
     }
 }
+
