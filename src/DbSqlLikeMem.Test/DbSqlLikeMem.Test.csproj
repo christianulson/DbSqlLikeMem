@@ -7,6 +7,10 @@
 		<TargetFrameworks>net48;net6.0;net8.0;net10.0</TargetFrameworks>
 	</PropertyGroup>
 
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
+		<UseAppHost>true</UseAppHost>
+	</PropertyGroup>
+
 	<ItemGroup Condition="'$(TargetFramework)' == 'net48'">
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
 		<PackageReference Include="xunit" Version="2.9.3" />
