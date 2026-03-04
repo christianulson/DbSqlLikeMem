@@ -4276,7 +4276,8 @@ private void FillPercentRankOrCumeDist(
         }
 
         var canonicalSql = sb.ToString().Trim();
-        return NormalizeSubqueryLocalAliasesForCacheKey(canonicalSql);
+        canonicalSql = NormalizeSubqueryLocalAliasesForCacheKey(canonicalSql);
+        return NormalizeCommutativeAndClausesForCacheKey(canonicalSql);
     }
 
     /// <summary>
@@ -4485,6 +4486,229 @@ private void FillPercentRankOrCumeDist(
         }
 
         return sql[startIndex + alias.Length] == '.';
+    }
+
+    /// <summary>
+    /// EN: Normalizes commutative top-level AND chains in WHERE/HAVING clauses so equivalent predicate orderings reuse the same cache-key SQL fragment.
+    /// PT: Normaliza cadeias comutativas de AND no topo em cláusulas WHERE/HAVING para que ordenações equivalentes de predicados reutilizem o mesmo fragmento SQL da chave de cache.
+    /// </summary>
+    private static string NormalizeCommutativeAndClausesForCacheKey(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            return string.Empty;
+
+        var wherePattern = @"\bWHERE\s+(?<predicate>.+?)(?=(?:\bGROUP\s+BY\b|\bHAVING\b|\bORDER\s+BY\b|\bLIMIT\b|\bOFFSET\b|\bUNION\b|$))";
+        var havingPattern = @"\bHAVING\s+(?<predicate>.+?)(?=(?:\bORDER\s+BY\b|\bLIMIT\b|\bOFFSET\b|\bUNION\b|$))";
+
+        var normalizedWhere = Regex.Replace(
+            sql,
+            wherePattern,
+            m => "WHERE " + NormalizeTopLevelAndPredicateForCacheKey(m.Groups["predicate"].Value),
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline);
+
+        return Regex.Replace(
+            normalizedWhere,
+            havingPattern,
+            m => "HAVING " + NormalizeTopLevelAndPredicateForCacheKey(m.Groups["predicate"].Value),
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline);
+    }
+
+    /// <summary>
+    /// EN: Canonicalizes a predicate text by sorting top-level AND segments when safe (no top-level OR and no BETWEEN token).
+    /// PT: Canoniza um texto de predicado ordenando segmentos AND de topo quando seguro (sem OR de topo e sem token BETWEEN).
+    /// </summary>
+    private static string NormalizeTopLevelAndPredicateForCacheKey(string predicate)
+    {
+        if (string.IsNullOrWhiteSpace(predicate))
+            return string.Empty;
+
+        var trimmedPredicate = predicate.Trim();
+        if (ContainsTokenOutsideQuotedSegments(trimmedPredicate, "OR"))
+            return trimmedPredicate;
+
+        if (ContainsTokenOutsideQuotedSegments(trimmedPredicate, "BETWEEN"))
+            return trimmedPredicate;
+
+        var segments = SplitTopLevelAndSegments(trimmedPredicate);
+        if (segments.Count <= 1)
+            return trimmedPredicate;
+
+        segments.Sort(StringComparer.Ordinal);
+        return string.Join(" AND ", segments);
+    }
+
+    /// <summary>
+    /// EN: Splits predicate text by top-level AND operators outside quoted segments and nested parentheses.
+    /// PT: Divide o texto do predicado por operadores AND de topo fora de segmentos entre aspas e parênteses aninhados.
+    /// </summary>
+    private static List<string> SplitTopLevelAndSegments(string predicate)
+    {
+        var segments = new List<string>();
+        if (string.IsNullOrWhiteSpace(predicate))
+            return segments;
+
+        var start = 0;
+        var depth = 0;
+
+        for (var i = 0; i < predicate.Length; i++)
+        {
+            var ch = predicate[i];
+            if (ch == '\'' || ch == '"' || ch == '`')
+            {
+                i = FindQuotedSegmentEndIndex(predicate, i, ch);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                i = FindBracketSegmentEndIndex(predicate, i);
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch == ')' && depth > 0)
+            {
+                depth--;
+                continue;
+            }
+
+            if (depth == 0 && MatchesKeywordTokenAt(predicate, i, "AND"))
+            {
+                var segment = predicate[start..i].Trim();
+                if (segment.Length > 0)
+                    segments.Add(segment);
+
+                start = i + 3;
+                i += 2;
+            }
+        }
+
+        var lastSegment = predicate[start..].Trim();
+        if (lastSegment.Length > 0)
+            segments.Add(lastSegment);
+
+        return segments;
+    }
+
+    /// <summary>
+    /// EN: Detects whether a token appears outside quoted segments and nested parentheses.
+    /// PT: Detecta se um token aparece fora de segmentos entre aspas e parênteses aninhados.
+    /// </summary>
+    private static bool ContainsTokenOutsideQuotedSegments(string sql, string token)
+    {
+        if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(token))
+            return false;
+
+        var depth = 0;
+        for (var i = 0; i < sql.Length; i++)
+        {
+            var ch = sql[i];
+            if (ch == '\'' || ch == '"' || ch == '`')
+            {
+                i = FindQuotedSegmentEndIndex(sql, i, ch);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                i = FindBracketSegmentEndIndex(sql, i);
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch == ')' && depth > 0)
+            {
+                depth--;
+                continue;
+            }
+
+            if (depth == 0 && MatchesKeywordTokenAt(sql, i, token))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// EN: Matches a SQL keyword token at a position ensuring identifier boundaries.
+    /// PT: Compara um token de palavra-chave SQL em uma posição garantindo fronteiras de identificador.
+    /// </summary>
+    private static bool MatchesKeywordTokenAt(string sql, int startIndex, string token)
+    {
+        if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(token))
+            return false;
+
+        if (startIndex < 0 || startIndex + token.Length > sql.Length)
+            return false;
+
+        if (startIndex > 0 && IsSqlIdentifierChar(sql[startIndex - 1]))
+            return false;
+
+        var endIndex = startIndex + token.Length;
+        if (endIndex < sql.Length && IsSqlIdentifierChar(sql[endIndex]))
+            return false;
+
+        for (var i = 0; i < token.Length; i++)
+        {
+            if (char.ToUpperInvariant(sql[startIndex + i]) != char.ToUpperInvariant(token[i]))
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// EN: Finds the end index of a quoted SQL segment handling escaped doubled quote characters.
+    /// PT: Localiza o índice final de um segmento SQL entre aspas tratando escapes por duplicidade de aspas.
+    /// </summary>
+    private static int FindQuotedSegmentEndIndex(string sql, int startIndex, char quoteChar)
+    {
+        var i = startIndex + 1;
+        while (i < sql.Length)
+        {
+            if (sql[i] == quoteChar)
+            {
+                var hasEscapedQuote = i + 1 < sql.Length && sql[i + 1] == quoteChar;
+                if (hasEscapedQuote)
+                {
+                    i += 2;
+                    continue;
+                }
+
+                return i;
+            }
+
+            i++;
+        }
+
+        return sql.Length - 1;
+    }
+
+    /// <summary>
+    /// EN: Finds the end index of a bracket-delimited SQL identifier segment.
+    /// PT: Localiza o índice final de um segmento SQL de identificador delimitado por colchetes.
+    /// </summary>
+    private static int FindBracketSegmentEndIndex(string sql, int startIndex)
+    {
+        var i = startIndex + 1;
+        while (i < sql.Length)
+        {
+            if (sql[i] == ']')
+                return i;
+            i++;
+        }
+
+        return sql.Length - 1;
     }
 
     /// <summary>

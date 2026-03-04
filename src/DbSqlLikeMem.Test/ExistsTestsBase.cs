@@ -566,6 +566,99 @@ ORDER BY u.Id";
         GetTableHintCount(cnn, "orders").Should().Be(1);
     }
 
+    /// <summary>
+    /// EN: Tests equivalent correlated EXISTS subqueries with top-level AND predicates in different order share the same cache entry.
+    /// PT: Testa que subqueries EXISTS correlacionadas equivalentes com predicados AND de topo em ordem diferente compartilham a mesma entrada de cache.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void Exists_EquivalentCorrelatedSubqueriesWithAndPredicatesReordered_ShouldShareCache()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        for (var i = 0; i < 80; i++)
+            cnn.Seed("users", null, [1, $"Name-{i}"]);
+
+        cnn.Seed("orders", null,
+            [10, 1, 50m],
+            [11, 1, 60m]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE EXISTS (SELECT 1 FROM orders o WHERE o.UserId = u.Id AND o.Amount > 0)
+  AND EXISTS (SELECT 1 FROM orders o WHERE o.Amount > 0 AND o.UserId = u.Id)
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().HaveCount(80);
+        GetTableHintCount(cnn, "orders").Should().Be(1);
+    }
+
+    /// <summary>
+    /// EN: Tests equivalent correlated IN subqueries with top-level AND predicates in different order share the same cache entry.
+    /// PT: Testa que subqueries correlacionadas equivalentes em IN com predicados AND de topo em ordem diferente compartilham a mesma entrada de cache.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void In_EquivalentCorrelatedSubqueriesWithAndPredicatesReordered_ShouldShareCache()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        for (var i = 0; i < 80; i++)
+            cnn.Seed("users", null, [1, $"Name-{i}"]);
+
+        cnn.Seed("orders", null,
+            [10, 1, 50m],
+            [11, 1, 60m]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE u.Id IN (SELECT o.UserId FROM orders o WHERE o.UserId = u.Id AND o.Amount > 0)
+  AND u.Id IN (SELECT o.UserId FROM orders o WHERE o.Amount > 0 AND o.UserId = u.Id)
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().HaveCount(80);
+        GetTableHintCount(cnn, "orders").Should().Be(1);
+    }
+
+    /// <summary>
+    /// EN: Tests equivalent correlated scalar subqueries with top-level AND predicates in different order share the same cache entry.
+    /// PT: Testa que subqueries escalares correlacionadas equivalentes com predicados AND de topo em ordem diferente compartilham a mesma entrada de cache.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void Scalar_EquivalentCorrelatedSubqueriesWithAndPredicatesReordered_ShouldShareCache()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        for (var i = 0; i < 80; i++)
+            cnn.Seed("users", null, [1, $"Name-{i}"]);
+
+        cnn.Seed("orders", null,
+            [10, 1, 50m],
+            [11, 1, 60m]);
+
+        const string sql = @"SELECT u.Id,
+       (SELECT MAX(o.Amount) FROM orders o WHERE o.UserId = u.Id AND o.Amount > 0) AS MaxAmountA,
+       (SELECT MAX(o.Amount) FROM orders o WHERE o.Amount > 0 AND o.UserId = u.Id) AS MaxAmountB
+FROM users u
+ORDER BY u.Id";
+
+        var rowCount = ExecuteAndCountRows(cnn, sql);
+
+        rowCount.Should().Be(80);
+        GetTableHintCount(cnn, "orders").Should().Be(1);
+    }
+
     private static void DefineUsersAndOrdersTables(
         DbConnectionMockBase cnn)
     {
