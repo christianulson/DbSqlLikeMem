@@ -388,4 +388,68 @@ public sealed class SqliteMockTests
         Assert.Equal(2L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteReader_InsertReturning_ShouldReturnInsertedRows()
+    {
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (601, 'Returning Insert', 'insert@test.local') RETURNING Id, Name AS user_name"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(601, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("Returning Insert", reader.GetString(reader.GetOrdinal("user_name")));
+        Assert.False(reader.Read());
+    }
+
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteReader_UpdateReturning_ShouldReturnUpdatedProjection()
+    {
+        using var setup = new SqliteCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (602, 'Before Update', 'before@test.local')"
+        };
+        setup.ExecuteNonQuery();
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'After Update' WHERE Id = 602 RETURNING Id, Name"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(602, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("After Update", reader.GetString(reader.GetOrdinal("Name")));
+        Assert.False(reader.Read());
+    }
+
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteReader_DeleteReturning_ShouldReturnDeletedRowSnapshot()
+    {
+        using var setup = new SqliteCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (603, 'To Delete', 'delete@test.local')"
+        };
+        setup.ExecuteNonQuery();
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "DELETE FROM Users WHERE Id = 603 RETURNING Id, Name"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(603, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("To Delete", reader.GetString(reader.GetOrdinal("Name")));
+        Assert.False(reader.Read());
+        Assert.Empty(_connection.GetTable("users").Where(r => Convert.ToInt32(r[0]) == 603));
+    }
+
 }
