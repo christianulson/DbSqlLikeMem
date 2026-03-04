@@ -4579,7 +4579,7 @@ private void FillPercentRankOrCumeDist(
 
             if (depth == 0 && MatchesKeywordTokenAt(predicate, i, "AND"))
             {
-                var segment = TrimRedundantOuterParentheses(predicate[start..i]);
+                var segment = NormalizePredicateSegmentForCacheKey(predicate[start..i]);
                 if (segment.Length > 0)
                     segments.Add(segment);
 
@@ -4588,11 +4588,104 @@ private void FillPercentRankOrCumeDist(
             }
         }
 
-        var lastSegment = TrimRedundantOuterParentheses(predicate[start..]);
+        var lastSegment = NormalizePredicateSegmentForCacheKey(predicate[start..]);
         if (lastSegment.Length > 0)
             segments.Add(lastSegment);
 
         return segments;
+    }
+
+    /// <summary>
+    /// EN: Normalizes an individual predicate segment by trimming redundant outer parentheses and canonicalizing simple commutative equalities.
+    /// PT: Normaliza um segmento individual de predicado removendo parênteses externos redundantes e canonizando igualdades comutativas simples.
+    /// </summary>
+    private static string NormalizePredicateSegmentForCacheKey(string segment)
+    {
+        var trimmedSegment = TrimRedundantOuterParentheses(segment);
+        if (string.IsNullOrWhiteSpace(trimmedSegment))
+            return string.Empty;
+
+        return NormalizeCommutativeEqualitySegmentForCacheKey(trimmedSegment);
+    }
+
+    /// <summary>
+    /// EN: Canonicalizes a simple top-level equality segment (`lhs = rhs`) by sorting operands lexicographically when safe.
+    /// PT: Canoniza um segmento de igualdade simples no topo (`lhs = rhs`) ordenando operandos lexicograficamente quando seguro.
+    /// </summary>
+    private static string NormalizeCommutativeEqualitySegmentForCacheKey(string segment)
+    {
+        if (string.IsNullOrWhiteSpace(segment))
+            return string.Empty;
+
+        if (!TryFindStandaloneTopLevelEqualityOperator(segment, out var equalityIndex))
+            return segment;
+
+        var left = TrimRedundantOuterParentheses(segment[..equalityIndex]);
+        var right = TrimRedundantOuterParentheses(segment[(equalityIndex + 1)..]);
+        if (left.Length == 0 || right.Length == 0)
+            return segment;
+
+        return StringComparer.Ordinal.Compare(left, right) <= 0
+            ? $"{left} = {right}"
+            : $"{right} = {left}";
+    }
+
+    /// <summary>
+    /// EN: Tries to find a single standalone top-level equality operator, excluding composite comparisons such as less-or-equal, greater-or-equal, different and double-equals.
+    /// PT: Tenta localizar um único operador de igualdade isolado no topo, excluindo comparações compostas como menor-ou-igual, maior-ou-igual, diferente e igualdade dupla.
+    /// </summary>
+    private static bool TryFindStandaloneTopLevelEqualityOperator(string segment, out int equalityIndex)
+    {
+        equalityIndex = -1;
+        if (string.IsNullOrWhiteSpace(segment))
+            return false;
+
+        var depth = 0;
+        for (var i = 0; i < segment.Length; i++)
+        {
+            var ch = segment[i];
+            if (ch == '\'' || ch == '"' || ch == '`')
+            {
+                i = FindQuotedSegmentEndIndex(segment, i, ch);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                i = FindBracketSegmentEndIndex(segment, i);
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch == ')' && depth > 0)
+            {
+                depth--;
+                continue;
+            }
+
+            if (depth != 0 || ch != '=')
+                continue;
+
+            var previous = i > 0 ? segment[i - 1] : '\0';
+            var next = i + 1 < segment.Length ? segment[i + 1] : '\0';
+
+            var isCompositeComparison = previous is '<' or '>' or '!' or '='
+                                      || next is '<' or '>' or '!' or '=';
+            if (isCompositeComparison)
+                continue;
+
+            if (equalityIndex >= 0)
+                return false;
+
+            equalityIndex = i;
+        }
+
+        return equalityIndex >= 0;
     }
 
     /// <summary>
