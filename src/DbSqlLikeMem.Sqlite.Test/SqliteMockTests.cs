@@ -422,6 +422,14 @@ public sealed class SqliteMockTests
     [Trait("Category", "SqliteMock")]
     public void TestBatch_UpdateThenSelectThenChanges_ShouldReflectLastSelect()
     {
+        using var seed = new SqliteCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Seed User 1', NULL)"
+        };
+        seed.ExecuteNonQuery();
+        seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (2, 'Seed User 2', NULL)";
+        seed.ExecuteNonQuery();
+
         using var command = new SqliteCommandMock(_connection)
         {
             CommandText = "UPDATE Users SET Name = 'Last Select User' WHERE Id = 1; SELECT Name FROM Users ORDER BY Id LIMIT 2; SELECT CHANGES();"
