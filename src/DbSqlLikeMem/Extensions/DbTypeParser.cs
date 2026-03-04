@@ -20,6 +20,15 @@ public static class DbTypeParser
         // remove aspas simples comuns em SQL literals
         value = Unquote(value);
 
+        if (dbType != DbType.String
+            && dbType != DbType.AnsiString
+            && dbType != DbType.StringFixedLength
+            && dbType != DbType.AnsiStringFixedLength
+            && value.Equals("null", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
         return dbType switch
         {
             DbType.String

@@ -206,6 +206,30 @@ public sealed class DbTypeCoercionTests
         Assert.Equal(TimeSpan.Parse(spanText, CultureInfo.InvariantCulture), Assert.IsType<TimeSpan>(spanParsed));
     }
 
+    /// <summary>
+    /// EN: Ensures quoted NULL tokens are interpreted as null for object parsing.
+    /// PT: Garante que tokens NULL entre aspas sejam interpretados como null no parsing de object.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void DbTypeParser_Object_QuotedNull_ShouldReturnNull()
+    {
+        Assert.Null(DbType.Object.Parse("'null'"));
+        Assert.Null(DbType.Object.Parse("\"NULL\""));
+    }
+
+    /// <summary>
+    /// EN: Ensures quoted NULL tokens remain textual for string DbType parsing.
+    /// PT: Garante que tokens NULL entre aspas permaneçam textuais no parsing de DbType string.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void DbTypeParser_String_QuotedNull_ShouldRemainText()
+    {
+        Assert.Equal("null", DbType.String.Parse("'null'"));
+        Assert.Equal("NULL", DbType.AnsiString.Parse("\"NULL\""));
+    }
+
     private enum SqlExtensionsEnumShort : short
     {
         A = 1
