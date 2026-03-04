@@ -467,4 +467,68 @@ public sealed class SqlServerMockTests
         Assert.Equal(2L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
     }
 
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_InsertOutput_ShouldReturnInsertedProjection()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) OUTPUT inserted.Id, inserted.Name AS user_name VALUES (701, 'Output Insert', 'insert@test.local')"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(701, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("Output Insert", reader.GetString(reader.GetOrdinal("user_name")));
+        Assert.False(reader.Read());
+    }
+
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_UpdateOutput_ShouldReturnDeletedAndInsertedValues()
+    {
+        using var setup = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (702, 'Before Update', 'before@test.local')"
+        };
+        setup.ExecuteNonQuery();
+
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'After Update' OUTPUT deleted.Name AS old_name, inserted.Name AS new_name WHERE Id = 702"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal("Before Update", reader.GetString(reader.GetOrdinal("old_name")));
+        Assert.Equal("After Update", reader.GetString(reader.GetOrdinal("new_name")));
+        Assert.False(reader.Read());
+    }
+
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_DeleteOutput_ShouldReturnDeletedSnapshot()
+    {
+        using var setup = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (703, 'To Delete', 'delete@test.local')"
+        };
+        setup.ExecuteNonQuery();
+
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "DELETE FROM Users OUTPUT deleted.Id, deleted.Name WHERE Id = 703"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(703, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("To Delete", reader.GetString(reader.GetOrdinal("Name")));
+        Assert.False(reader.Read());
+        Assert.Empty(_connection.GetTable("Users").Where(r => Convert.ToInt32(r[0], CultureInfo.InvariantCulture) == 703));
+    }
+
 }
