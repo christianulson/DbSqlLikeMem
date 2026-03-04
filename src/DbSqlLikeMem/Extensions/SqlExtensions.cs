@@ -32,7 +32,10 @@ internal static class SqlExtensions
         if (v is null || v is DBNull) return false;
         if (v is bool b) return b;
 
-        if (v is byte or sbyte or short or ushort or int or uint or long or ulong)
+        if (v is byte or ushort or uint or ulong)
+            return Convert.ToUInt64(v, CultureInfo.InvariantCulture) != 0UL;
+
+        if (v is sbyte or short or int or long)
             return Convert.ToInt64(v, CultureInfo.InvariantCulture) != 0;
 
         if (v is float or double or decimal)

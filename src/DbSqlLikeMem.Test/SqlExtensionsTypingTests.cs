@@ -51,6 +51,17 @@ public sealed class SqlExtensionsTypingTests
     }
 
     /// <summary>
+    /// EN: Ensures ToBool does not overflow for ulong values above Int64.MaxValue.
+    /// PT: Garante que ToBool não estoure para valores ulong acima de Int64.MaxValue.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void ToBool_UlongAboveInt64Max_ShouldNotOverflow()
+    {
+        Assert.True(ulong.MaxValue.ToBool());
+    }
+
+    /// <summary>
     /// EN: Ensures ToDec maps boolean values to numeric SQL-like semantics.
     /// PT: Garante que ToDec mapeie valores booleanos para semântica numérica estilo SQL.
     /// </summary>
