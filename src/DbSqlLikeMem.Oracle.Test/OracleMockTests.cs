@@ -259,6 +259,12 @@ public sealed class OracleMockTests
     [Trait("Category", "OracleMock")]
     public void TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount()
     {
+        using var seed = new OracleCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Seed User', NULL)"
+        };
+        seed.ExecuteNonQuery();
+
         using var command = new OracleCommandMock(_connection);
         command.CommandText = "SELECT Name FROM Users ORDER BY Id FETCH FIRST 1 ROWS ONLY; SELECT ROW_COUNT();";
         using var reader = command.ExecuteReader();
