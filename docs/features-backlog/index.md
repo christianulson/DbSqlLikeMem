@@ -659,10 +659,25 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Verificação automatizada já adicionada ao CI via `scripts/check_slnx_project_coverage.py` para detectar drift entre árvore `src` e conteúdo da solução.
 
 #### 6.3.2 Matriz compartilhada de testes por capability
-- Implementação estimada: **62%**.
+- Implementação estimada: **92%**.
 - Priorizar base compartilhada para cenários repetitivos cross-dialect (ex.: agregação textual, `DISTINCT`, `NULL`, ordered-set).
 - Reduzir duplicação de testes específicos por provider movendo contratos comuns para fixtures parametrizadas.
 - Facilita evolução coordenada do parser/executor sem espalhar ajustes em múltiplos projetos de teste.
+- Entregas recentes na trilha:
+  - suíte compartilhada de agregação/having/ordinal já consolidada e reutilizada por MySQL, SQL Server, Oracle, Npgsql, SQLite e DB2;
+  - normalização de nomenclatura dos testes cross-provider para reduzir variação entre cenários equivalentes;
+  - alinhamento da base de smoke para manter mesma ordem de validação entre providers e simplificar diagnóstico de regressão.
+  - camada compartilhada `SqlNotSupportedAssert` + helper base `AssertWithinGroupNotSupported(...)` adotados nos testes de agregação para padronizar validação de erro `NotSupported` com token da feature em SQL Server, Oracle, Npgsql, DB2, MySQL e SQLite.
+  - contratos compartilhados para agregação textual com separador e `DISTINCT` + `NULL` extraídos para a base comum `AggregationHavingOrdinalTestsBase` e reutilizados por MySQL/SQL Server/Oracle/Npgsql/SQLite/DB2.
+  - bloco comum de projeção mista (`agregação textual + NULL literal`) implementado na base compartilhada e validado nos seis providers Dapper principais, reduzindo risco de regressão em mapeamentos dinâmicos de resultado.
+  - cobertura compartilhada expandida para projeção `CASE ... THEN NULL` combinada com agregação textual agrupada nos seis providers, reforçando previsibilidade para cenários de relatório com colunas calculadas nulas.
+  - cobertura compartilhada ampliada para `CASE` com ramos mistos (`texto`/`NULL`) sobre agregação textual, validando estabilidade de ordem e coercão básica de saída por provider.
+  - cobertura avançou para `CASE` de múltiplos ramos (`primary`/`secondary`/`NULL`) com agregação textual e ordenação estável, reduzindo risco de divergência em relatórios agrupados cross-provider.
+  - cobertura evoluiu para `CASE` numérico multibranch (`100`/`200`/`0`) junto de agregação textual, validando estabilidade de coerção e leitura de tipos numéricos por provider.
+- Próximos incrementos da capability matrix:
+  - ampliar contratos compartilhados para cenários de ordenação dentro da agregação textual quando habilitados por dialeto;
+  - expandir bloco comum para cenários de `CASE` com literais textuais e numéricos mistos no mesmo campo (coerção implícita cross-dialect);
+  - consolidar assertions de mensagens de erro para `NotSupported` em uma camada única reutilizável.
 
 #### 6.3.3 Entrada única de execução (build/test)
 - Implementação estimada: **88%**.
@@ -672,10 +687,14 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Vincular categorias/traits para habilitar execução seletiva por domínio de regressão.
 
 #### 6.3.4 Governança do backlog de documentação
-- Implementação estimada: **66%**.
+- Implementação estimada: **72%**.
 - Separar visão arquitetural estável e status operacional de sprint para reduzir conflito de merge em percentuais.
 - Padronizar update de progresso com checklist de evidência mínima (teste, provider afetado, limitação conhecida).
 - Alinhar PR template para exigir vínculo entre mudança de código, teste e atualização de backlog.
+- Convenção operacional adotada para os próximos ciclos:
+  - toda atualização de percentual deve registrar evidência objetiva (arquivo de teste, comando executado e resultado);
+  - itens com escopo multi-provider devem indicar explicitamente onde houve cobertura total e onde permanece gap;
+  - quando houver apenas atualização documental, incluir seção de risco de descompasso com o código e ação de mitigação planejada.
 
 ### 6.4 Política sugerida de versionamento
 

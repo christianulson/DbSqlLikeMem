@@ -50,16 +50,112 @@ public sealed class SqliteAggregationTests : AggregationHavingOrdinalTestsBase<S
                   ORDER BY userId
                   """;
 
-        var rows = Query(sql);
-        Assert.Equal(2, rows.Count);
+        AssertStringAggregationWithCustomSeparator(sql);
+    }
 
-        var first = Convert.ToString(rows[0].joined) ?? string.Empty;
-        var second = Convert.ToString(rows[1].joined) ?? string.Empty;
 
-        Assert.Contains("|", first);
-        Assert.Contains("10", first, StringComparison.Ordinal);
-        Assert.Contains("30", first, StringComparison.Ordinal);
-        Assert.Contains("5", second, StringComparison.Ordinal);
+    /// <summary>
+    /// EN: Ensures mixed projection with string aggregation and NULL literal works consistently.
+    /// PT: Garante que projeção mista com agregação textual e literal NULL funcione de forma consistente.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAggregation")]
+    public void StringAggregation_WithNullProjection_ShouldWork()
+    {
+        const string sql = """
+                  SELECT userId, GROUP_CONCAT(amount, '|') AS joined, NULL AS note
+                  FROM orders
+                  GROUP BY userId
+                  ORDER BY userId
+                  """;
+
+        AssertStringAggregationWithNullProjection(sql);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures CASE projection returning NULL stays stable with grouped string aggregation.
+    /// PT: Garante que projeção CASE retornando NULL permaneça estável com agregação textual agrupada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAggregation")]
+    public void StringAggregation_WithCaseNullProjection_ShouldWork()
+    {
+        const string sql = """
+                  SELECT userId, GROUP_CONCAT(amount, '|') AS joined,
+                         CASE WHEN userId > 0 THEN NULL ELSE 'unexpected' END AS note
+                  FROM orders
+                  GROUP BY userId
+                  ORDER BY userId
+                  """;
+
+        AssertStringAggregationWithCaseNullProjection(sql);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures CASE projection with mixed text/NULL branches remains stable with grouped string aggregation.
+    /// PT: Garante que projeção CASE com ramos mistos texto/NULL permaneça estável com agregação textual agrupada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAggregation")]
+    public void StringAggregation_WithCaseMixedProjection_ShouldWork()
+    {
+        const string sql = """
+                  SELECT userId, GROUP_CONCAT(amount, '|') AS joined,
+                         CASE WHEN userId = 1 THEN 'ok' ELSE NULL END AS note
+                  FROM orders
+                  GROUP BY userId
+                  ORDER BY userId
+                  """;
+
+        AssertStringAggregationWithCaseMixedProjection(sql);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures multi-branch CASE projection remains stable with grouped string aggregation.
+    /// PT: Garante que projeção CASE de múltiplos ramos permaneça estável com agregação textual agrupada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAggregation")]
+    public void StringAggregation_WithCaseMultiBranchProjection_ShouldWork()
+    {
+        const string sql = """
+                  SELECT userId, GROUP_CONCAT(amount, '|') AS joined,
+                         CASE WHEN userId = 1 THEN 'primary'
+                              WHEN userId = 2 THEN 'secondary'
+                              ELSE NULL
+                         END AS note
+                  FROM orders
+                  GROUP BY userId
+                  ORDER BY userId
+                  """;
+
+        AssertStringAggregationWithCaseMultiBranchProjection(sql);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures numeric multi-branch CASE projection remains stable with grouped string aggregation.
+    /// PT: Garante que projeção CASE numérica multibranch permaneça estável com agregação textual agrupada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAggregation")]
+    public void StringAggregation_WithCaseNumericMultiBranchProjection_ShouldWork()
+    {
+        const string sql = """
+                  SELECT userId, GROUP_CONCAT(amount, '|') AS joined,
+                         CASE WHEN userId = 1 THEN 100
+                              WHEN userId = 2 THEN 200
+                              ELSE 0
+                         END AS note
+                  FROM orders
+                  GROUP BY userId
+                  ORDER BY userId
+                  """;
+
+        AssertStringAggregationWithCaseNumericMultiBranchProjection(sql);
     }
 
 
@@ -71,19 +167,18 @@ public sealed class SqliteAggregationTests : AggregationHavingOrdinalTestsBase<S
     [Trait("Category", "SqliteAggregation")]
     public void StringAggregation_Distinct_ShouldIgnoreNullValues()
     {
-        Connection.Execute("CREATE TABLE textagg_data (grp INT, val VARCHAR(20) NULL)");
-        Connection.Execute("INSERT INTO textagg_data (grp, val) VALUES (1, 'a')");
-        Connection.Execute("INSERT INTO textagg_data (grp, val) VALUES (1, NULL)");
-        Connection.Execute("INSERT INTO textagg_data (grp, val) VALUES (1, 'a')");
-        Connection.Execute("INSERT INTO textagg_data (grp, val) VALUES (1, 'b')");
+        AssertStringAggregationDistinctIgnoresNullValues("SELECT GROUP_CONCAT(DISTINCT val, '|') AS joined FROM textagg_data WHERE grp = 1");
+    }
 
-        var rows = Query("SELECT GROUP_CONCAT(DISTINCT val, '|') AS joined FROM textagg_data WHERE grp = 1");
-        Assert.Single(rows);
-
-        var joined = Convert.ToString(rows[0].joined) ?? string.Empty;
-        Assert.Contains("a", joined, StringComparison.Ordinal);
-        Assert.Contains("b", joined, StringComparison.Ordinal);
-        Assert.Contains("|", joined, StringComparison.Ordinal);
+    /// <summary>
+    /// EN: Ensures ordered-set syntax WITHIN GROUP produces actionable not-supported error.
+    /// PT: Garante que a sintaxe ordered-set WITHIN GROUP gere erro claro de não suportado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAggregation")]
+    public void StringAggregation_WithinGroup_ShouldThrowNotSupported()
+    {
+        AssertWithinGroupNotSupported("SELECT GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC) AS joined FROM orders");
     }
 
 
