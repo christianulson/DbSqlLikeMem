@@ -334,11 +334,11 @@ public class OracleCommandMock(
         OracleReturningIntoClause clause,
         out IReadOnlyList<IReadOnlyDictionary<int, object?>> affectedRows)
     {
-        if (!TryResolveTargetTable(query.Table, out var table))
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
             throw new InvalidOperationException("RETURNING INTO requires a valid target table.");
 
         var beforeCount = table.Count;
-        var affected = connection!.ExecuteInsert(query, Parameters, connection.Db.Dialect);
+        var affected = connection!.ExecuteInsert(query, Parameters, connection!.Db.Dialect);
         var insertedRows = Math.Max(0, table.Count - beforeCount);
         affectedRows = Enumerable.Range(beforeCount, insertedRows)
             .Select(i => SnapshotRow(table[i]))
@@ -356,7 +356,7 @@ public class OracleCommandMock(
         OracleReturningIntoClause clause,
         out IReadOnlyList<IReadOnlyDictionary<int, object?>> affectedRows)
     {
-        if (!TryResolveTargetTable(query.Table, out var table))
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
             throw new InvalidOperationException("RETURNING INTO requires a valid target table.");
 
         var matchedIndexes = MatchRowIndexes(table, query.WhereRaw, query.RawSql);
@@ -378,7 +378,7 @@ public class OracleCommandMock(
         OracleReturningIntoClause clause,
         out IReadOnlyList<IReadOnlyDictionary<int, object?>> affectedRows)
     {
-        if (!TryResolveTargetTable(query.Table, out var table))
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
             throw new InvalidOperationException("RETURNING INTO requires a valid target table.");
 
         var matchedIndexes = MatchRowIndexes(table, query.WhereRaw, query.RawSql);
@@ -452,28 +452,146 @@ public class OracleCommandMock(
         rewrittenSql = sql;
         clause = null!;
 
-        var match = Regex.Match(
-            sql,
-            @"^(?<stmt>[\s\S]*?)\bRETURNING\b(?<cols>[\s\S]*?)\bINTO\b(?<pars>[\s\S]*)$",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-        if (!match.Success)
+        const string returningKeyword = "RETURNING";
+        const string intoKeyword = "INTO";
+
+        var returningIndex = FindLastTopLevelKeyword(sql, returningKeyword);
+        if (returningIndex < 0)
             return false;
 
-        var cols = SplitTopLevelComma(match.Groups["cols"].Value)
+        var intoIndex = FindFirstTopLevelKeyword(sql, intoKeyword, returningIndex + returningKeyword.Length);
+        if (intoIndex < 0)
+            return false;
+
+        var colsText = sql.Substring(returningIndex + returningKeyword.Length, intoIndex - (returningIndex + returningKeyword.Length));
+        var parsText = sql[(intoIndex + intoKeyword.Length)..];
+
+        var cols = SplitTopLevelComma(colsText)
             .Select(c => c.Trim())
             .Where(c => !string.IsNullOrWhiteSpace(c))
             .ToList();
-        var pars = SplitTopLevelComma(match.Groups["pars"].Value)
+        var pars = SplitTopLevelComma(parsText)
             .Select(p => p.Trim().TrimEnd(';'))
             .Where(p => !string.IsNullOrWhiteSpace(p))
             .ToList();
         if (cols.Count == 0 || cols.Count != pars.Count)
             throw new InvalidOperationException("RETURNING INTO must map the same number of columns and parameters.");
 
-        rewrittenSql = match.Groups["stmt"].Value.TrimEnd();
+        rewrittenSql = sql[..returningIndex].TrimEnd();
         clause = new OracleReturningIntoClause(cols, pars);
         return true;
     }
+
+    /// <summary>
+    /// EN: Finds the first top-level keyword occurrence outside quoted literals and identifiers.
+    /// PT: Encontra a primeira ocorrência de palavra-chave em nível de topo fora de literais e identificadores entre aspas.
+    /// </summary>
+    private static int FindFirstTopLevelKeyword(string text, string keyword, int startIndex)
+    {
+        var inSingle = false;
+        var inDouble = false;
+
+        for (var i = 0; i < text.Length; i++)
+        {
+            var ch = text[i];
+
+            if (i < startIndex)
+            {
+                if (ch == '\'' && !inDouble)
+                {
+                    if (inSingle && i + 1 < text.Length && text[i + 1] == '\'')
+                    {
+                        i++;
+                        continue;
+                    }
+
+                    inSingle = !inSingle;
+                }
+                else if (ch == '"' && !inSingle)
+                {
+                    if (inDouble && i + 1 < text.Length && text[i + 1] == '"')
+                    {
+                        i++;
+                        continue;
+                    }
+
+                    inDouble = !inDouble;
+                }
+
+                continue;
+            }
+
+            if (ch == '\'' && !inDouble)
+            {
+                if (inSingle && i + 1 < text.Length && text[i + 1] == '\'')
+                {
+                    i++;
+                    continue;
+                }
+
+                inSingle = !inSingle;
+                continue;
+            }
+
+            if (ch == '"' && !inSingle)
+            {
+                if (inDouble && i + 1 < text.Length && text[i + 1] == '"')
+                {
+                    i++;
+                    continue;
+                }
+
+                inDouble = !inDouble;
+                continue;
+            }
+
+            if (inSingle || inDouble)
+                continue;
+
+            if (i + keyword.Length > text.Length)
+                break;
+
+            if (!text.AsSpan(i, keyword.Length).Equals(keyword, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var before = i > 0 ? text[i - 1] : '\0';
+            var after = i + keyword.Length < text.Length ? text[i + keyword.Length] : '\0';
+            if (IsIdentifierChar(before) || IsIdentifierChar(after))
+                continue;
+
+            return i;
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// EN: Finds the last top-level keyword occurrence outside quoted literals and identifiers.
+    /// PT: Encontra a última ocorrência de palavra-chave em nível de topo fora de literais e identificadores entre aspas.
+    /// </summary>
+    private static int FindLastTopLevelKeyword(string text, string keyword)
+    {
+        var current = FindFirstTopLevelKeyword(text, keyword, 0);
+        if (current < 0)
+            return -1;
+
+        var last = current;
+        while (true)
+        {
+            current = FindFirstTopLevelKeyword(text, keyword, current + keyword.Length);
+            if (current < 0)
+                return last;
+
+            last = current;
+        }
+    }
+
+    /// <summary>
+    /// EN: Checks whether character can be part of an unquoted identifier for keyword boundary checks.
+    /// PT: Verifica se o caractere pode compor um identificador sem aspas para validação de fronteira de palavra-chave.
+    /// </summary>
+    private static bool IsIdentifierChar(char ch)
+        => ch == '_' || char.IsLetterOrDigit(ch);
 
     /// <summary>
     /// EN: Splits comma-separated text honoring simple quote and parenthesis nesting.
@@ -560,7 +678,7 @@ public class OracleCommandMock(
     /// </summary>
     private bool TryResolveTargetTable(
         SqlTableSource? tableSource,
-        out ITableMock table)
+        out ITableMock? table)
     {
         table = null!;
         if (tableSource is null || string.IsNullOrWhiteSpace(tableSource.Name))

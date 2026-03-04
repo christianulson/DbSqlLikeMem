@@ -464,6 +464,31 @@ public sealed class OracleMockTests
     }
 
     /// <summary>
+    /// EN: Ensures Oracle RETURNING INTO parsing ignores keyword-like text inside string literals.
+    /// PT: Garante que o parsing de RETURNING INTO no Oracle ignore texto semelhante a palavra-chave dentro de literais.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "OracleMock")]
+    public void ExecuteNonQuery_InsertReturningInto_WithKeywordTextInsideLiteral_ShouldPopulateOutputParameter()
+    {
+        using var command = new OracleCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (804, 'msg RETURNING INTO literal', 'insert@test.local') RETURNING Id INTO :out_id"
+        };
+
+        var outParam = new OracleParameter(":out_id", OracleDbType.Int32)
+        {
+            Direction = ParameterDirection.Output
+        };
+        command.Parameters.Add(outParam);
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Equal(804, Convert.ToInt32(outParam.Value, CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
     /// EN: Tests ExecuteNonQuery_UpdateReturningInto_ShouldPopulateOutputParameter behavior.
     /// PT: Testa o comportamento de ExecuteNonQuery_UpdateReturningInto_ShouldPopulateOutputParameter.
     /// </summary>
