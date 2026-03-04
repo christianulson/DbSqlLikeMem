@@ -4408,13 +4408,13 @@ private void FillPercentRankOrCumeDist(
             return sql;
 
         var pattern =
-            $@"(?<![A-Z0-9_$])((?:FROM|JOIN)\s+(?:[A-Z_][A-Z0-9_$]*(?:\.[A-Z_][A-Z0-9_$]*)*)\s+(?:AS\s+)?)" +
+            $@"(?<![A-Z0-9_$])(?<kw>FROM|JOIN)\s+(?<table>[A-Z_][A-Z0-9_$]*(?:\.[A-Z_][A-Z0-9_$]*)*)\s+(?:AS\s+)?" +
             $@"{Regex.Escape(alias)}(?![A-Z0-9_$])";
 
         return Regex.Replace(
             sql,
             pattern,
-            m => m.Groups[1].Value + replacementAlias,
+            m => $"{m.Groups["kw"].Value} {m.Groups["table"].Value} {replacementAlias}",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     }
 
