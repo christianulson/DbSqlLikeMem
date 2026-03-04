@@ -86,6 +86,35 @@ public sealed class SqlExtensionsTypingTests
     }
 
     /// <summary>
+    /// EN: Ensures temporal mixed types are comparable when implicit numeric coercion is enabled.
+    /// PT: Garante que tipos temporais mistos sejam comparáveis quando a coerção numérica implícita está habilitada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void Compare_DateTimeAndDateTimeOffset_WithImplicitNumericComparison_ShouldUseTicks()
+    {
+        var dateTime = new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+        var offset = new DateTimeOffset(dateTime);
+
+        Assert.Equal(0, dateTime.Compare(offset));
+    }
+
+    /// <summary>
+    /// EN: Ensures temporal mixed types use textual fallback when implicit numeric coercion is disabled.
+    /// PT: Garante que tipos temporais mistos usem fallback textual quando a coerção numérica implícita está desabilitada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void EqualsSql_DateTimeAndDateTimeOffset_WithImplicitNumericDisabled_ShouldNotUseTickCoercion()
+    {
+        var dialect = new SqlExtensionsTestDialect(supportsImplicitNumericStringComparison: false);
+        var dateTime = new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+        var offset = new DateTimeOffset(dateTime);
+
+        Assert.False(dateTime.EqualsSql(offset, dialect));
+    }
+
+    /// <summary>
     /// EN: Ensures implicit numeric coercion can be disabled by dialect policy.
     /// PT: Garante que a coerção numérica implícita possa ser desabilitada pela política do dialeto.
     /// </summary>

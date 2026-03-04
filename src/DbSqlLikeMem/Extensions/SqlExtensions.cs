@@ -140,6 +140,24 @@ internal static class SqlExtensions
     /// </summary>
     private static bool TryConvertToDecimal(object value, out decimal numericValue)
     {
+        if (value is DateTime dt)
+        {
+            numericValue = dt.Ticks;
+            return true;
+        }
+
+        if (value is DateTimeOffset dto)
+        {
+            numericValue = dto.Ticks;
+            return true;
+        }
+
+        if (value is TimeSpan ts)
+        {
+            numericValue = ts.Ticks;
+            return true;
+        }
+
         if (value is bool boolValue)
         {
             numericValue = boolValue ? 1m : 0m;
