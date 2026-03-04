@@ -1496,7 +1496,7 @@ ORDER BY u.Id";
 
         cnn.Define("orders");
         cnn.Column<int>("orders", "Id");
-        cnn.Column<int>("orders", "UserId");
+        cnn.Column<int>("orders", "UserId", nullable: true);
         cnn.Column<decimal>("orders", "Amount", decimalPlaces: 2);
     }
 
