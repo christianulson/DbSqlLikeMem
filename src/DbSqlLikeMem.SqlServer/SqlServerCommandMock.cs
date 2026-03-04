@@ -755,7 +755,7 @@ public class SqlServerCommandMock(
 
         if (sqlRaw.StartsWith("release savepoint ", StringComparison.OrdinalIgnoreCase))
         {
-            connection!.ReleaseSavepoint(sqlRaw[18..].Trim());
+            // SQL Server does not support RELEASE SAVEPOINT. Keep compatibility behavior as a no-op.
             return true;
         }
 
