@@ -54,25 +54,85 @@ public static class DbTypeParser
 
             DbType.Guid => Guid.Parse(value),
 
-            DbType.Binary => Convert.FromBase64String(value),
+            DbType.Binary => ParseBinary(value),
 
             DbType.Currency => decimal.Parse(value, CultureInfo.InvariantCulture),
+            DbType.Object => ParseObject(value),
 
             _ => throw new NotSupportedException($"DbType não suportado: {dbType}")
         };
     }
 
+    /// <summary>
+    /// EN: Parses binary literals from SQL-style hexadecimal or base64 payloads.
+    /// PT: Faz o parsing de literais binários a partir de payloads hexadecimais estilo SQL ou base64.
+    /// </summary>
+    private static byte[] ParseBinary(string value)
+    {
+        if (TryParseHexBinary(value, out var hexBytes))
+            return hexBytes;
+
+        return Convert.FromBase64String(value);
+    }
+
+    /// <summary>
+    /// EN: Parses DbType.Object with light inference for JSON, booleans and numeric literals.
+    /// PT: Faz o parsing de DbType.Object com inferência leve para literais JSON, booleanos e numéricos.
+    /// </summary>
+    private static object ParseObject(string value)
+    {
+        if (LooksLikeJson(value))
+            return System.Text.Json.JsonDocument.Parse(value);
+
+        if (TryParseBool(value, out var boolValue))
+            return boolValue;
+
+        if (decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var numericValue))
+            return numericValue;
+
+        return value;
+    }
+
     private static bool ParseBool(string value)
+        => TryParseBool(value, out var parsed)
+            ? parsed
+            : bool.Parse(value);
+
+    /// <summary>
+    /// EN: Attempts to parse textual SQL-like boolean aliases.
+    /// PT: Tenta fazer o parsing de aliases booleanos textuais estilo SQL.
+    /// </summary>
+    private static bool TryParseBool(string value, out bool parsed)
     {
         value = value.Trim();
-        return value switch
+        switch (value)
         {
-            "1" or "true" or "TRUE" => true,
-            "0" or "false" or "FALSE" => false,
-            "yes" or "YES" or "y" or "Y" or "on" or "ON" => true,
-            "no" or "NO" or "n" or "N" or "off" or "OFF" => false,
-            _ => bool.Parse(value)
-        };
+            case "1":
+            case "true":
+            case "TRUE":
+            case "yes":
+            case "YES":
+            case "y":
+            case "Y":
+            case "on":
+            case "ON":
+                parsed = true;
+                return true;
+            case "0":
+            case "false":
+            case "FALSE":
+            case "no":
+            case "NO":
+            case "n":
+            case "N":
+            case "off":
+            case "OFF":
+                parsed = false;
+                return true;
+            default:
+                parsed = false;
+                return false;
+        }
     }
 
     private static string Unquote(string value)
@@ -84,6 +144,37 @@ public static class DbTypeParser
             return value[1..^1];
         }
         return value;
+    }
+
+    private static bool LooksLikeJson(string value)
+    {
+        var trimmed = value.Trim();
+        return (trimmed.StartsWith("{", StringComparison.Ordinal) && trimmed.EndsWith("}", StringComparison.Ordinal))
+            || (trimmed.StartsWith("[", StringComparison.Ordinal) && trimmed.EndsWith("]", StringComparison.Ordinal));
+    }
+
+    private static bool TryParseHexBinary(string value, out byte[] bytes)
+    {
+        bytes = [];
+        var trimmed = value.Trim();
+        if (!trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var hex = trimmed[2..];
+        if (hex.Length == 0 || hex.Length % 2 != 0)
+            return false;
+
+        var buffer = new byte[hex.Length / 2];
+        for (var i = 0; i < hex.Length; i += 2)
+        {
+            if (!byte.TryParse(hex.Substring(i, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var part))
+                return false;
+
+            buffer[i / 2] = part;
+        }
+
+        bytes = buffer;
+        return true;
     }
 }
 

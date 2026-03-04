@@ -123,6 +123,38 @@ public sealed class DbTypeCoercionTests
         Assert.Equal(123.45m, Assert.IsType<decimal>(DbType.VarNumeric.Parse("123.45")));
     }
 
+    /// <summary>
+    /// EN: Ensures object parsing infers common scalar/JSON forms for broader literal coverage.
+    /// PT: Garante que o parsing de object infira formas comuns escalares/JSON para maior cobertura de literais.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void DbTypeParser_Object_ShouldInferCommonLiteralForms()
+    {
+        var json = DbType.Object.Parse("{\"a\":1}");
+        var boolean = DbType.Object.Parse("on");
+        var number = DbType.Object.Parse("12.5");
+        var text = DbType.Object.Parse("'hello'");
+
+        Assert.IsType<System.Text.Json.JsonDocument>(json);
+        Assert.Equal(true, Assert.IsType<bool>(boolean));
+        Assert.Equal(12.5m, Assert.IsType<decimal>(number));
+        Assert.Equal("hello", Assert.IsType<string>(text));
+    }
+
+    /// <summary>
+    /// EN: Ensures binary parser accepts hexadecimal SQL-style literals with 0x prefix.
+    /// PT: Garante que o parser binário aceite literais estilo SQL hexadecimal com prefixo 0x.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void DbTypeParser_BinaryHexLiteral_ShouldParseBytes()
+    {
+        var parsed = Assert.IsType<byte[]>(DbType.Binary.Parse("0x0A0B0C"));
+
+        Assert.Equal([0x0A, 0x0B, 0x0C], parsed);
+    }
+
     private enum SqlExtensionsEnumShort : short
     {
         A = 1
