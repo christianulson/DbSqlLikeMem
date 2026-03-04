@@ -4522,7 +4522,7 @@ private void FillPercentRankOrCumeDist(
         if (string.IsNullOrWhiteSpace(predicate))
             return string.Empty;
 
-        var trimmedPredicate = predicate.Trim();
+        var trimmedPredicate = TrimRedundantOuterParentheses(predicate);
         if (ContainsTokenOutsideQuotedSegments(trimmedPredicate, "OR"))
             return trimmedPredicate;
 
@@ -4579,7 +4579,7 @@ private void FillPercentRankOrCumeDist(
 
             if (depth == 0 && MatchesKeywordTokenAt(predicate, i, "AND"))
             {
-                var segment = predicate[start..i].Trim();
+                var segment = TrimRedundantOuterParentheses(predicate[start..i]);
                 if (segment.Length > 0)
                     segments.Add(segment);
 
@@ -4588,11 +4588,80 @@ private void FillPercentRankOrCumeDist(
             }
         }
 
-        var lastSegment = predicate[start..].Trim();
+        var lastSegment = TrimRedundantOuterParentheses(predicate[start..]);
         if (lastSegment.Length > 0)
             segments.Add(lastSegment);
 
         return segments;
+    }
+
+    /// <summary>
+    /// EN: Removes redundant outer parentheses that wrap the full expression while preserving inner structure.
+    /// PT: Remove parênteses externos redundantes que envolvem a expressão inteira preservando a estrutura interna.
+    /// </summary>
+    private static string TrimRedundantOuterParentheses(string expression)
+    {
+        if (string.IsNullOrWhiteSpace(expression))
+            return string.Empty;
+
+        var trimmed = expression.Trim();
+        while (trimmed.Length >= 2 && trimmed[0] == '(' && trimmed[^1] == ')')
+        {
+            if (!HasSingleOuterParenthesesWrappingWholeExpression(trimmed))
+                break;
+
+            trimmed = trimmed[1..^1].Trim();
+        }
+
+        return trimmed;
+    }
+
+    /// <summary>
+    /// EN: Checks whether the first and last parentheses wrap the whole expression without closing earlier at top level.
+    /// PT: Verifica se o primeiro e o último parêntese envolvem toda a expressão sem fechar antes no nível de topo.
+    /// </summary>
+    private static bool HasSingleOuterParenthesesWrappingWholeExpression(string expression)
+    {
+        if (string.IsNullOrWhiteSpace(expression) || expression.Length < 2)
+            return false;
+
+        if (expression[0] != '(' || expression[^1] != ')')
+            return false;
+
+        var depth = 0;
+        for (var i = 0; i < expression.Length; i++)
+        {
+            var ch = expression[i];
+            if (ch == '\'' || ch == '"' || ch == '`')
+            {
+                i = FindQuotedSegmentEndIndex(expression, i, ch);
+                continue;
+            }
+
+            if (ch == '[')
+            {
+                i = FindBracketSegmentEndIndex(expression, i);
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch != ')')
+                continue;
+
+            depth--;
+            if (depth < 0)
+                return false;
+
+            if (depth == 0 && i < expression.Length - 1)
+                return false;
+        }
+
+        return depth == 0;
     }
 
     /// <summary>
