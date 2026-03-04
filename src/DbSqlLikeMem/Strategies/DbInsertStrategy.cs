@@ -78,6 +78,8 @@ internal static class DbInsertStrategy
             {
                 if (query.IsOnConflictDoNothing)
                     continue;
+                if (!ShouldApplyOnConflictUpdateWhere(query, table, conflictIdx.Value, newRow, pars, dialect))
+                    continue;
 
                 // Conflito -> Update
                 var oldSnapshot = SnapshotRow(table[conflictIdx.Value]);
@@ -667,6 +669,165 @@ internal static class DbInsertStrategy
                 colInfo.Index, 
                 Coerce(colInfo.DbType, value));
         }
+    }
+
+    /// <summary>
+    /// EN: Evaluates ON CONFLICT ... DO UPDATE WHERE predicate to decide whether the conflicting row should be updated.
+    /// PT: Avalia o predicado ON CONFLICT ... DO UPDATE WHERE para decidir se a linha em conflito deve ser atualizada.
+    /// </summary>
+    private static bool ShouldApplyOnConflictUpdateWhere(
+        SqlInsertQuery query,
+        ITableMock table,
+        int existingIndex,
+        IReadOnlyDictionary<int, object?> insertedRow,
+        DbParameterCollection? pars,
+        ISqlDialect dialect)
+    {
+        var where = query.OnConflictUpdateWhereExpr;
+        if (where is null)
+            return true;
+
+        object? GetParamValue(string rawName)
+        {
+            if (pars is null) return null;
+
+            var n = rawName.Trim();
+            if (n.Length > 0 && (n[0] == '@' || n[0] == ':' || n[0] == '?'))
+                n = n[1..];
+
+            foreach (DbParameter p in pars)
+            {
+                var pn = p.ParameterName?.TrimStart('@', ':', '?') ?? "";
+                if (string.Equals(pn, n, StringComparison.OrdinalIgnoreCase))
+                    return p.Value is DBNull ? null : p.Value;
+            }
+
+            return null;
+        }
+
+        object? GetInsertedColumnValue(string col)
+        {
+            var info = table.GetColumn(col);
+            return insertedRow.TryGetValue(info.Index, out var v) ? v : null;
+        }
+
+        object? GetExistingColumnValue(string col)
+        {
+            var info = table.GetColumn(col);
+            return table[existingIndex].TryGetValue(info.Index, out var v) ? v : null;
+        }
+
+        bool TryGetExcludedValueFromName(string rawName, out object? value)
+        {
+            value = null;
+            if (string.IsNullOrWhiteSpace(rawName))
+                return false;
+
+            var parts = rawName.Split('.').Select(_=>_.Trim()).Take(2).ToArray();
+            if (parts.Length != 2)
+                return false;
+
+            if (string.Equals(parts[0], "excluded", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(parts[0], "values", StringComparison.OrdinalIgnoreCase))
+            {
+                value = GetInsertedColumnValue(parts[1]);
+                return true;
+            }
+
+            return false;
+        }
+
+        object? EvalFunction(FunctionCallExpr fn)
+        {
+            if (fn.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
+                && fn.Args.Count == 1)
+            {
+                var col = fn.Args[0] switch
+                {
+                    IdentifierExpr id => id.Name,
+                    ColumnExpr c => c.Name,
+                    _ => null
+                };
+
+                if (!string.IsNullOrWhiteSpace(col))
+                    return GetInsertedColumnValue(col!);
+            }
+
+            if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, fn.Name, out var temporalValue))
+                return temporalValue;
+
+            throw new InvalidOperationException($"Função não suportada no ON CONFLICT WHERE: {fn.Name}()");
+        }
+
+        object? EvalCall(CallExpr call)
+        {
+            if (call.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
+                && call.Args.Count == 1)
+            {
+                var col = call.Args[0] switch
+                {
+                    IdentifierExpr id => id.Name,
+                    ColumnExpr c => c.Name,
+                    _ => null
+                };
+
+                if (string.IsNullOrWhiteSpace(col))
+                    throw new InvalidOperationException("VALUES() espera 1 coluna");
+
+                return GetInsertedColumnValue(col!);
+            }
+
+            if (call.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, call.Name, out var temporalValue))
+                return temporalValue;
+
+            throw new InvalidOperationException($"CALL não suportado no ON CONFLICT WHERE: {call.Name}");
+        }
+
+        bool CompareBinary(SqlBinaryOp op, object? left, object? right)
+        {
+            return op switch
+            {
+                SqlBinaryOp.Eq => left.EqualsSql(right, dialect),
+                SqlBinaryOp.Neq => !left.EqualsSql(right, dialect),
+                SqlBinaryOp.Greater => left is not null && right is not null && left.Compare(right, dialect) > 0,
+                SqlBinaryOp.GreaterOrEqual => left is not null && right is not null && left.Compare(right, dialect) >= 0,
+                SqlBinaryOp.Less => left is not null && right is not null && left.Compare(right, dialect) < 0,
+                SqlBinaryOp.LessOrEqual => left is not null && right is not null && left.Compare(right, dialect) <= 0,
+                _ => throw new InvalidOperationException($"Operador não suportado no ON CONFLICT WHERE: {op}")
+            };
+        }
+
+        object? Eval(SqlExpr expr)
+        {
+            return expr switch
+            {
+                LiteralExpr lit => lit.Value,
+                ParameterExpr p => GetParamValue(p.Name),
+                IdentifierExpr id => TryGetExcludedValueFromName(id.Name, out var excluded)
+                    ? excluded
+                    : SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, id.Name, out var temporalIdentifierValue)
+                        ? temporalIdentifierValue
+                        : GetExistingColumnValue(id.Name.Contains('.') ? id.Name.Split('.').Last() : id.Name),
+                ColumnExpr c => string.Equals(c.Qualifier, "excluded", StringComparison.OrdinalIgnoreCase)
+                    ? GetInsertedColumnValue(c.Name)
+                    : GetExistingColumnValue(c.Name),
+                UnaryExpr u when u.Op == SqlUnaryOp.Not => !Eval(u.Expr).ToBool(),
+                IsNullExpr n => (Eval(n.Expr) is null) ^ n.Negated,
+                BinaryExpr b when b.Op == SqlBinaryOp.Add => Eval(b.Left).ToDec() + Eval(b.Right).ToDec(),
+                BinaryExpr b when b.Op == SqlBinaryOp.Subtract => Eval(b.Left).ToDec() - Eval(b.Right).ToDec(),
+                BinaryExpr b when b.Op == SqlBinaryOp.Multiply => Eval(b.Left).ToDec() * Eval(b.Right).ToDec(),
+                BinaryExpr b when b.Op == SqlBinaryOp.Divide => Eval(b.Left).ToDec() / Eval(b.Right).ToDec(),
+                BinaryExpr b when b.Op == SqlBinaryOp.And => Eval(b.Left).ToBool() && Eval(b.Right).ToBool(),
+                BinaryExpr b when b.Op == SqlBinaryOp.Or => Eval(b.Left).ToBool() || Eval(b.Right).ToBool(),
+                BinaryExpr b => CompareBinary(b.Op, Eval(b.Left), Eval(b.Right)),
+                FunctionCallExpr fn => EvalFunction(fn),
+                CallExpr call => EvalCall(call),
+                RawSqlExpr raw => throw new InvalidOperationException($"Expressão não suportada no ON CONFLICT WHERE: {raw.Sql}"),
+                _ => throw new InvalidOperationException($"Expressão não suportada no ON CONFLICT WHERE: {expr.GetType().Name}")
+            };
+        }
+
+        return Eval(where).ToBool();
     }
 
     // --- Helpers Genéricos (Mantidos ou Levemente Adaptados) ---

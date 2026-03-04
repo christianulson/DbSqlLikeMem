@@ -55,6 +55,8 @@ internal sealed record SqlInsertQuery : SqlQueryBase
     /// PT: Obtém ou define se ON CONFLICT usa semântica de DO NOTHING.
     /// </summary>
     internal bool IsOnConflictDoNothing { get; init; }
+    internal string? OnConflictUpdateWhereRaw { get; init; }
+    internal SqlExpr? OnConflictUpdateWhereExpr { get; init; }
     internal SqlSelectQuery? InsertSelect { get; init; }               // INSERT INTO t (...) SELECT ...
 }
 
@@ -184,7 +186,8 @@ internal sealed record SqlCte(string Name, SqlSelectQuery Query);
 
 internal sealed record SqlOnDuplicateKeyUpdate(
     IReadOnlyList<SqlAssignment> Assignments,
-    bool IsDoNothing = false
+    bool IsDoNothing = false,
+    string? UpdateWhereRaw = null
 );
 
 internal sealed record SqlAssignment(string Column, string ValueRaw, SqlExpr? ValueExpr = null);

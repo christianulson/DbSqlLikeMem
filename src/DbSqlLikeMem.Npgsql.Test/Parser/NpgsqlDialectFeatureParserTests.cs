@@ -88,6 +88,8 @@ RETURNING id";
         var ins = Assert.IsType<SqlInsertQuery>(parsed);
         Assert.True(ins.HasOnDuplicateKeyUpdate);
         Assert.Single(ins.OnDupAssigns);
+        Assert.Contains("users.id", ins.OnConflictUpdateWhereRaw, StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(ins.OnConflictUpdateWhereExpr);
     }
 
     /// <summary>

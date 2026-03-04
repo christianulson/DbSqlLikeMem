@@ -335,7 +335,9 @@ internal sealed class SqlQueryParser
             HasOnDuplicateKeyUpdate = (onDup != null),
             OnDupAssigns = onDup?.Assignments.Select(a => (a.Column, a.ValueRaw)).ToList() ?? [],
             OnDupAssignsParsed = onDup?.Assignments.Select(a => new SqlAssignment(a.Column, a.ValueRaw, TryParseScalar(a.ValueRaw))).ToList() ?? [],
-            IsOnConflictDoNothing = onDup?.IsDoNothing == true
+            IsOnConflictDoNothing = onDup?.IsDoNothing == true,
+            OnConflictUpdateWhereRaw = onDup?.UpdateWhereRaw,
+            OnConflictUpdateWhereExpr = TryParseWhereExpr(onDup?.UpdateWhereRaw)
         };
     }
 
@@ -405,16 +407,17 @@ internal sealed class SqlQueryParser
             ExpectWord("UPDATE");
             ExpectWord("SET");
             var assigns = ParseAssignmentsList();
+            string? updateWhereRaw = null;
 
             // PostgreSQL permite: DO UPDATE SET ... WHERE <predicate>
             // O mock atual não usa essa condição no AST, mas precisa aceitar o SQL.
             if (IsWord(Peek(), "WHERE"))
             {
                 Consume();
-                _ = ReadClauseTextUntilTopLevelStop("RETURNING");
+                updateWhereRaw = ReadClauseTextUntilTopLevelStop("RETURNING");
             }
 
-            return new SqlOnDuplicateKeyUpdate(assigns);
+            return new SqlOnDuplicateKeyUpdate(assigns, UpdateWhereRaw: updateWhereRaw);
         }
 
         return null;
@@ -2577,6 +2580,21 @@ internal sealed class SqlQueryParser
     {
 #pragma warning disable CA1031 // Do not catch general exception types
         try { return SqlExpressionParser.ParseScalar(raw, _dialect); }
+        catch { return null; }
+#pragma warning restore CA1031 // Do not catch general exception types
+    }
+
+    /// <summary>
+    /// EN: Attempts to parse a predicate string into WHERE-expression AST for optional UPSERT update filtering.
+    /// PT: Tenta converter uma string de predicado em AST de WHERE para filtro opcional de update em UPSERT.
+    /// </summary>
+    private SqlExpr? TryParseWhereExpr(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return null;
+
+#pragma warning disable CA1031 // Do not catch general exception types
+        try { return SqlExpressionParser.ParseWhere(raw, _dialect); }
         catch { return null; }
 #pragma warning restore CA1031 // Do not catch general exception types
     }
