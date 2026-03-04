@@ -12,7 +12,11 @@ internal static class SqlExtensions
             int i => i,
             long l => l,
             short s => s,
+            sbyte sb => sb,
             byte b => b,
+            ushort us => us,
+            uint ui => ui,
+            ulong ul => ul,
             double db => (decimal)db,
             float f => (decimal)f,
             DateTime dt => dt.Ticks,
@@ -28,7 +32,7 @@ internal static class SqlExtensions
         if (v is null || v is DBNull) return false;
         if (v is bool b) return b;
 
-        if (v is byte or short or int or long)
+        if (v is byte or sbyte or short or ushort or int or uint or long or ulong)
             return Convert.ToInt64(v, CultureInfo.InvariantCulture) != 0;
 
         if (v is float or double or decimal)

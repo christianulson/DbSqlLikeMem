@@ -33,6 +33,24 @@ public sealed class SqlExtensionsTypingTests
     }
 
     /// <summary>
+    /// EN: Ensures ToBool handles signed/unsigned integral families consistently.
+    /// PT: Garante que ToBool trate famílias integrais signed/unsigned de forma consistente.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void ToBool_IntegralFamilies_ShouldUseZeroAsFalse()
+    {
+        Assert.False(((sbyte)0).ToBool());
+        Assert.True(((sbyte)-1).ToBool());
+        Assert.False(((ushort)0).ToBool());
+        Assert.True(((ushort)1).ToBool());
+        Assert.False(((uint)0).ToBool());
+        Assert.True(((uint)2).ToBool());
+        Assert.False(((ulong)0).ToBool());
+        Assert.True(((ulong)3).ToBool());
+    }
+
+    /// <summary>
     /// EN: Ensures ToDec maps boolean values to numeric SQL-like semantics.
     /// PT: Garante que ToDec mapeie valores booleanos para semântica numérica estilo SQL.
     /// </summary>
@@ -42,6 +60,20 @@ public sealed class SqlExtensionsTypingTests
     {
         Assert.Equal(1m, true.ToDec());
         Assert.Equal(0m, false.ToDec());
+    }
+
+    /// <summary>
+    /// EN: Ensures ToDec handles signed/unsigned integral families without textual fallback ambiguity.
+    /// PT: Garante que ToDec trate famílias integrais signed/unsigned sem ambiguidade de fallback textual.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void ToDec_IntegralFamilies_ShouldMapDeterministically()
+    {
+        Assert.Equal(-5m, ((sbyte)-5).ToDec());
+        Assert.Equal(7m, ((ushort)7).ToDec());
+        Assert.Equal(11m, ((uint)11).ToDec());
+        Assert.Equal(13m, ((ulong)13).ToDec());
     }
 
     /// <summary>
