@@ -251,13 +251,18 @@ public sealed class SqlServerMockTests
     [Trait("Category", "SqlServerMock")]
     public void TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount()
     {
-        using var command = new SqlServerCommandMock(_connection);
-        command.CommandText = """
-            INSERT INTO Users (Id, Name, Email) VALUES (131, 'RowCount A', NULL);
-            INSERT INTO Users (Id, Name, Email) VALUES (132, 'RowCount B', NULL);
-            """;
-        command.ExecuteNonQuery();
+        using var seedFirst = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (131, 'RowCount A', NULL)"
+        };
+        seedFirst.ExecuteNonQuery();
+        using var seedSecond = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (132, 'RowCount B', NULL)"
+        };
+        seedSecond.ExecuteNonQuery();
 
+        using var command = new SqlServerCommandMock(_connection);
         command.CommandText = "SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY; SELECT ROWCOUNT();";
         using var reader = command.ExecuteReader();
 
