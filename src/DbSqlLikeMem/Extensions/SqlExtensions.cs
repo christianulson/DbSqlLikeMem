@@ -32,10 +32,23 @@ internal static class SqlExtensions
             return Convert.ToDecimal(v, CultureInfo.InvariantCulture) != 0m;
 
         var s = v.ToString();
-        if (bool.TryParse(s, out var bb)) return bb;
-        if (decimal.TryParse(s, out var d)) return d != 0m;
+        if (string.IsNullOrWhiteSpace(s)) return false;
+        s = s.Trim();
 
-        return !string.IsNullOrWhiteSpace(s);
+        if (s.Equals("yes", StringComparison.OrdinalIgnoreCase)
+            || s.Equals("y", StringComparison.OrdinalIgnoreCase)
+            || s.Equals("on", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (s.Equals("no", StringComparison.OrdinalIgnoreCase)
+            || s.Equals("n", StringComparison.OrdinalIgnoreCase)
+            || s.Equals("off", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (bool.TryParse(s, out var bb)) return bb;
+        if (decimal.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var d)) return d != 0m;
+
+        return true;
     }
 
     internal static bool Like(this string input, string pattern, ISqlDialect? dialect = null)
@@ -94,23 +107,10 @@ internal static class SqlExtensions
 
         // numeric compare if possible
         if ((dialect?.SupportsImplicitNumericStringComparison ?? true)
-            && TryDecimal(a, out var da) && TryDecimal(b, out var db))
+            && TryConvertToDecimal(a, out var da) && TryConvertToDecimal(b, out var db))
             return da.CompareTo(db);
 
         return string.Compare(a.ToString(), b.ToString(), dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
-
-        static bool TryDecimal(object o, out decimal d)
-        {
-            switch (o)
-            {
-                case decimal dd: d = dd; return true;
-                case int i: d = i; return true;
-                case long l: d = l; return true;
-                case double db: d = (decimal)db; return true;
-                default:
-                    return decimal.TryParse(o.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out d);
-            }
-        }
     }
 
     internal static bool EqualsSql(this object? a, object? b, ISqlDialect? dialect = null)
@@ -125,22 +125,39 @@ internal static class SqlExtensions
             return a.Equals(b);
 
         if ((dialect?.SupportsImplicitNumericStringComparison ?? true)
-            && TryDecimal(a, out var da) && TryDecimal(b, out var db))
+            && TryConvertToDecimal(a, out var da) && TryConvertToDecimal(b, out var db))
             return da == db;
 
         return string.Equals(a.ToString(), b.ToString(), dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase);
+    }
 
-        static bool TryDecimal(object o, out decimal d)
+    /// <summary>
+    /// EN: Attempts to coerce heterogeneous values into decimal using invariant rules for SQL-like implicit comparison.
+    /// PT: Tenta converter valores heterogêneos para decimal usando regras invariáveis para comparação implícita estilo SQL.
+    /// </summary>
+    private static bool TryConvertToDecimal(object value, out decimal numericValue)
+    {
+        if (value is bool boolValue)
         {
-            switch (o)
-            {
-                case decimal dd: d = dd; return true;
-                case int i: d = i; return true;
-                case long l: d = l; return true;
-                case double db: d = (decimal)db; return true;
-                default:
-                    return decimal.TryParse(o.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out d);
-            }
+            numericValue = boolValue ? 1m : 0m;
+            return true;
         }
+
+        if (value is IConvertible)
+        {
+#pragma warning disable CA1031 // Do not catch general exception types
+            try
+            {
+                numericValue = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+                return true;
+            }
+            catch
+            {
+                // fallback to text parsing below
+            }
+#pragma warning restore CA1031 // Do not catch general exception types
+        }
+
+        return decimal.TryParse(value.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out numericValue);
     }
 }
