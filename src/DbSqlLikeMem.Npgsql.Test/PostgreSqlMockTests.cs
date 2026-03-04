@@ -230,6 +230,12 @@ public sealed class PostgreSqlMockTests
     [Trait("Category", "PostgreSqlMock")]
     public void TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount()
     {
+        using var seed = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Seed User', NULL)"
+        };
+        seed.ExecuteNonQuery();
+
         using var command = new NpgsqlCommandMock(_connection);
         command.CommandText = "SELECT Name FROM Users ORDER BY Id LIMIT 1; SELECT ROW_COUNT();";
         using var reader = command.ExecuteReader();
