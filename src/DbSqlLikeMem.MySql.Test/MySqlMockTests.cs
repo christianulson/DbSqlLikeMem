@@ -828,6 +828,14 @@ public sealed class MySqlMockTests
     [Trait("Category", "MySqlMock")]
     public void TestBatch_UpdateThenSelectThenFoundRows_ShouldReflectLastSelect()
     {
+        using var seed = new MySqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Seed User 1', NULL)"
+        };
+        seed.ExecuteNonQuery();
+        seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (2, 'Seed User 2', NULL)";
+        seed.ExecuteNonQuery();
+
         using var command = new MySqlCommandMock(_connection)
         {
             CommandText = "UPDATE Users SET Name = 'Last Select User' WHERE Id = 1; SELECT Name FROM Users ORDER BY Id LIMIT 2; SELECT FOUND_ROWS();"
