@@ -80,6 +80,11 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsWindowFrameClause => Version >= WindowFunctionsMinVersion;
 
+    public override bool SupportsWithinGroupForStringAggregates => true;
+
+    public override bool SupportsWithinGroupStringAggregateFunction(string functionName)
+        => functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase);
+
     // OFFSET ... FETCH entrou no SQL Server 2012.
     /// <summary>
     /// EN: Gets whether offset fetch is supported.

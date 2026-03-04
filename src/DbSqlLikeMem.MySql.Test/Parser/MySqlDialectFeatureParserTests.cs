@@ -659,4 +659,38 @@ public sealed class MySqlDialectFeatureParserTests
         Assert.Contains("start bound cannot be greater", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Ensures WITHIN GROUP ordered-set syntax remains unsupported for MySQL aggregates.
+    /// PT: Garante que a sintaxe ordered-set WITHIN GROUP continue não suportada para agregações MySQL.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_StringAggregateWithinGroup_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed WITHIN GROUP syntax in MySQL still fails as not-supported (dialect gate precedence).
+    /// PT: Garante que sintaxe malformada de WITHIN GROUP no MySQL continue falhando como não suportada (precedência do gate de dialeto).
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_StringAggregateWithinGroupMalformed_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 }
