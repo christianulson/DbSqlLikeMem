@@ -236,6 +236,86 @@ public sealed class SqlServerAggregationTests : AggregationHavingOrdinalTestsBas
         Assert.Equal(2, Convert.ToInt32(rows[1].userId));
     }
 
+
+
+    /// <summary>
+    /// EN: Ensures GETDATE() call-style temporal function keeps consistent behavior across SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// PT: Garante que a função temporal GETDATE() (call-style) mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAggregation")]
+    public void TemporalFunction_GetDateCall_ShouldBeConsistentAcrossContexts()
+    {
+        var projectionRows = Query("SELECT GETDATE() AS nowValue FROM orders");
+        Assert.NotEmpty(projectionRows);
+        Assert.NotNull(projectionRows[0].nowValue);
+
+        var whereRows = Query("SELECT id FROM orders WHERE GETDATE() IS NOT NULL");
+        Assert.NotEmpty(whereRows);
+
+        var groupedRows = Query("""
+            SELECT userId, COUNT(*) AS total
+            FROM orders
+            GROUP BY userId
+            HAVING GETDATE() IS NOT NULL
+            ORDER BY GETDATE(), userId
+            """);
+        Assert.Equal(2, groupedRows.Count);
+
+        Connection.Execute("CREATE TABLE temporal_ctx_insert_getdate (id INT, created_at DATETIME NULL)");
+        Connection.Execute("INSERT INTO temporal_ctx_insert_getdate (id, created_at) VALUES (1, GETDATE())");
+        var insertedRows = Query("SELECT created_at FROM temporal_ctx_insert_getdate WHERE id = 1");
+        Assert.Single(insertedRows);
+        Assert.NotNull(insertedRows[0].created_at);
+
+        Connection.Execute("CREATE TABLE temporal_ctx_update_getdate (id INT, updated_at DATETIME NULL)");
+        Connection.Execute("INSERT INTO temporal_ctx_update_getdate (id, updated_at) VALUES (1, NULL)");
+        Connection.Execute("UPDATE temporal_ctx_update_getdate SET updated_at = GETDATE() WHERE id = 1");
+        var updatedRows = Query("SELECT updated_at FROM temporal_ctx_update_getdate WHERE id = 1");
+        Assert.Single(updatedRows);
+        Assert.NotNull(updatedRows[0].updated_at);
+    }
+
+
+
+    /// <summary>
+    /// EN: Ensures SYSDATETIME() call-style temporal function keeps consistent behavior across SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// PT: Garante que a função temporal SYSDATETIME() (call-style) mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAggregation")]
+    public void TemporalFunction_SysDateTimeCall_ShouldBeConsistentAcrossContexts()
+    {
+        var projectionRows = Query("SELECT SYSDATETIME() AS nowValue FROM orders");
+        Assert.NotEmpty(projectionRows);
+        Assert.NotNull(projectionRows[0].nowValue);
+
+        var whereRows = Query("SELECT id FROM orders WHERE SYSDATETIME() IS NOT NULL");
+        Assert.NotEmpty(whereRows);
+
+        var groupedRows = Query("""
+            SELECT userId, COUNT(*) AS total
+            FROM orders
+            GROUP BY userId
+            HAVING SYSDATETIME() IS NOT NULL
+            ORDER BY SYSDATETIME(), userId
+            """);
+        Assert.Equal(2, groupedRows.Count);
+
+        Connection.Execute("CREATE TABLE temporal_ctx_insert_sysdatetime (id INT, created_at DATETIME NULL)");
+        Connection.Execute("INSERT INTO temporal_ctx_insert_sysdatetime (id, created_at) VALUES (1, SYSDATETIME())");
+        var insertedRows = Query("SELECT created_at FROM temporal_ctx_insert_sysdatetime WHERE id = 1");
+        Assert.Single(insertedRows);
+        Assert.NotNull(insertedRows[0].created_at);
+
+        Connection.Execute("CREATE TABLE temporal_ctx_update_sysdatetime (id INT, updated_at DATETIME NULL)");
+        Connection.Execute("INSERT INTO temporal_ctx_update_sysdatetime (id, updated_at) VALUES (1, NULL)");
+        Connection.Execute("UPDATE temporal_ctx_update_sysdatetime SET updated_at = SYSDATETIME() WHERE id = 1");
+        var updatedRows = Query("SELECT updated_at FROM temporal_ctx_update_sysdatetime WHERE id = 1");
+        Assert.Single(updatedRows);
+        Assert.NotNull(updatedRows[0].updated_at);
+    }
+
     /// <summary>
     /// EN: Ensures unsupported temporal function from another dialect reports a clear error message.
     /// PT: Garante que função temporal de outro dialeto gere mensagem de erro clara.
@@ -281,6 +361,21 @@ public sealed class SqlServerAggregationTests : AggregationHavingOrdinalTestsBas
             Query("SELECT GETDATE AS invalidNow FROM orders"));
 
         Assert.Contains("GETDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures SYSDATETIME call-style temporal function used without parentheses reports clear error.
+    /// PT: Garante que a função temporal call-style SYSDATETIME usada sem parênteses gere erro claro.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAggregation")]
+    public void TemporalFunction_SysDateTimeCallOnlyIdentifierWithoutParentheses_ShouldThrowClearError()
+    {
+        var ex = Assert.ThrowsAny<Exception>(() =>
+            Query("SELECT SYSDATETIME AS invalidNow FROM orders"));
+
+        Assert.Contains("SYSDATETIME", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 }
