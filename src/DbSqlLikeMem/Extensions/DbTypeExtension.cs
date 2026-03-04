@@ -20,6 +20,7 @@ public static class DbTypeExtension
             DbType.Binary => typeof(byte[]),
             DbType.Boolean => typeof(bool),
             DbType.Byte => typeof(byte),
+            DbType.SByte => typeof(sbyte),
             DbType.Currency or DbType.Decimal => typeof(decimal),
             DbType.Date or DbType.DateTime
             or DbType.DateTime2
@@ -30,9 +31,13 @@ public static class DbTypeExtension
             DbType.Int16 => typeof(short),
             DbType.Int32 => typeof(int),
             DbType.Int64 => typeof(long),
+            DbType.UInt16 => typeof(ushort),
+            DbType.UInt32 => typeof(uint),
+            DbType.UInt64 => typeof(ulong),
             DbType.Single => typeof(float),
             DbType.Time => typeof(TimeSpan),
-            DbType.VarNumeric or DbType.Object => typeof(object),
+            DbType.VarNumeric => typeof(decimal),
+            DbType.Object => typeof(object),
             _ => throw new ArgumentException("Unsupported DbType", nameof(dbType)),
         };
 

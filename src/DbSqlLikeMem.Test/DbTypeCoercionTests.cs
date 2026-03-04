@@ -97,6 +97,32 @@ public sealed class DbTypeCoercionTests
         Assert.Equal("xyz", Assert.IsType<string>(DbType.StringFixedLength.Parse("'xyz'")));
     }
 
+    /// <summary>
+    /// EN: Ensures DbType->CLR mapping covers signed/unsigned integral families used by parser/executor coercion.
+    /// PT: Garante que o mapeamento DbType->CLR cubra famílias integrais signed/unsigned usadas pela coerção de parser/executor.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void DbTypeExtension_IntegralFamilies_ShouldMapToClrTypes()
+    {
+        Assert.Equal(typeof(sbyte), DbType.SByte.ConvertDbTypeToType());
+        Assert.Equal(typeof(ushort), DbType.UInt16.ConvertDbTypeToType());
+        Assert.Equal(typeof(uint), DbType.UInt32.ConvertDbTypeToType());
+        Assert.Equal(typeof(ulong), DbType.UInt64.ConvertDbTypeToType());
+    }
+
+    /// <summary>
+    /// EN: Ensures VarNumeric keeps numeric semantics across parser and type mapping helpers.
+    /// PT: Garante que VarNumeric mantenha semântica numérica entre parser e helpers de mapeamento de tipo.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void DbTypeExtension_AndParser_VarNumeric_ShouldRemainNumeric()
+    {
+        Assert.Equal(typeof(decimal), DbType.VarNumeric.ConvertDbTypeToType());
+        Assert.Equal(123.45m, Assert.IsType<decimal>(DbType.VarNumeric.Parse("123.45")));
+    }
+
     private enum SqlExtensionsEnumShort : short
     {
         A = 1
