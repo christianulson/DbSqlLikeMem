@@ -290,15 +290,15 @@ public class SqliteCommandMock(
     /// </summary>
     private TableResultMock? ExecuteInsertReturning(SqlInsertQuery query)
     {
-        if (!TryResolveTargetTable(query.Table, out var table))
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
         {
-            connection!.ExecuteInsert(query, Parameters, connection.Db.Dialect);
+            connection!.ExecuteInsert(query, Parameters, connection!.Db.Dialect);
             return null;
         }
 
         var hadReturning = query.Returning.Count > 0;
         var beforeCount = table.Count;
-        connection!.ExecuteInsert(query, Parameters, connection.Db.Dialect);
+        connection!.ExecuteInsert(query, Parameters, connection!.Db.Dialect);
 
         if (!hadReturning)
             return null;
@@ -317,9 +317,9 @@ public class SqliteCommandMock(
     /// </summary>
     private TableResultMock? ExecuteUpdateReturning(SqlUpdateQuery query)
     {
-        if (!TryResolveTargetTable(query.Table, out var table))
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
         {
-            connection!.ExecuteUpdateSmart(query, Parameters, connection.Db.Dialect);
+            connection!.ExecuteUpdateSmart(query, Parameters, connection!.Db.Dialect);
             return null;
         }
 
@@ -328,7 +328,7 @@ public class SqliteCommandMock(
         if (hadReturning)
             matchedIndexes = MatchRowIndexes(table, query.WhereRaw, query.RawSql);
 
-        connection!.ExecuteUpdateSmart(query, Parameters, connection.Db.Dialect);
+        connection!.ExecuteUpdateSmart(query, Parameters, connection!.Db.Dialect);
 
         if (!hadReturning)
             return null;
@@ -350,9 +350,9 @@ public class SqliteCommandMock(
     /// </summary>
     private TableResultMock? ExecuteDeleteReturning(SqlDeleteQuery query)
     {
-        if (!TryResolveTargetTable(query.Table, out var table))
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
         {
-            connection!.ExecuteDeleteSmart(query, Parameters, connection.Db.Dialect);
+            connection!.ExecuteDeleteSmart(query, Parameters, connection!.Db.Dialect);
             return null;
         }
 
@@ -361,10 +361,10 @@ public class SqliteCommandMock(
         if (hadReturning)
         {
             var matchedIndexes = MatchRowIndexes(table, query.WhereRaw, query.RawSql);
-            snapshotRows = matchedIndexes.Select(i => SnapshotRow(table[i])).Cast<IReadOnlyDictionary<int, object?>>().ToList();
+            snapshotRows = matchedIndexes.ConvertAll(i => SnapshotRow(table[i]));
         }
 
-        connection!.ExecuteDeleteSmart(query, Parameters, connection.Db.Dialect);
+        connection!.ExecuteDeleteSmart(query, Parameters, connection!.Db.Dialect);
 
         if (!hadReturning)
             return null;
@@ -384,16 +384,14 @@ public class SqliteCommandMock(
     {
         var result = new TableResultMock();
         var projections = BuildReturningProjection(returningItems, tableSource, table);
-        result.Columns = projections
+        result.Columns = [.. projections
             .Select((p, i) => new TableResultColMock(
                 p.TableAlias,
                 p.ColumnAlias,
                 p.ColumnName,
                 i,
                 p.DbType,
-                p.IsNullable))
-            .Cast<TableResultColMock>()
-            .ToList();
+                p.IsNullable))];
 
         foreach (var row in rows)
         {
@@ -585,7 +583,7 @@ public class SqliteCommandMock(
     /// </summary>
     private bool TryResolveTargetTable(
         SqlTableSource? tableSource,
-        out ITableMock table)
+        out ITableMock? table)
     {
         table = null!;
         if (tableSource is null || string.IsNullOrWhiteSpace(tableSource.Name))

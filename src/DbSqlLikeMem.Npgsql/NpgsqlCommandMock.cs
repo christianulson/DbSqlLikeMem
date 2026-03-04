@@ -264,7 +264,7 @@ public class NpgsqlCommandMock(
     /// </summary>
     private TableResultMock? ExecuteInsertReturning(SqlInsertQuery query)
     {
-        if (!TryResolveTargetTable(query.Table, out var table))
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
         {
             connection!.ExecuteInsert(query, Parameters, connection!.Db.Dialect);
             return null;
@@ -294,7 +294,7 @@ public class NpgsqlCommandMock(
     /// </summary>
     private TableResultMock? ExecuteUpdateReturning(SqlUpdateQuery query)
     {
-        if (!TryResolveTargetTable(query.Table, out var table))
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
         {
             connection!.ExecuteUpdateSmart(query, Parameters, connection!.Db.Dialect);
             return null;
@@ -330,7 +330,7 @@ public class NpgsqlCommandMock(
     /// </summary>
     private TableResultMock? ExecuteDeleteReturning(SqlDeleteQuery query)
     {
-        if (!TryResolveTargetTable(query.Table, out var table))
+        if (!TryResolveTargetTable(query.Table, out var table) || table == null)
         {
             connection!.ExecuteDeleteSmart(query, Parameters, connection!.Db.Dialect);
             return null;
@@ -367,16 +367,14 @@ public class NpgsqlCommandMock(
     {
         var result = new TableResultMock();
         var projections = BuildReturningProjection(returningItems, tableSource, table);
-        result.Columns = projections
+        result.Columns = [.. projections
             .Select((p, i) => new TableResultColMock(
                 p.TableAlias,
                 p.ColumnAlias,
                 p.ColumnName,
                 i,
                 p.DbType,
-                p.IsNullable))
-            .Cast<TableResultColMock>()
-            .ToList();
+                p.IsNullable))];
 
         foreach (var row in rows)
         {

@@ -137,7 +137,7 @@ public sealed class DbTypeCoercionTests
         var text = DbType.Object.Parse("'hello'");
 
         Assert.IsType<System.Text.Json.JsonDocument>(json);
-        Assert.Equal(true, Assert.IsType<bool>(boolean));
+        Assert.True(Assert.IsType<bool>(boolean));
         Assert.Equal(12.5m, Assert.IsType<decimal>(number));
         Assert.Equal("hello", Assert.IsType<string>(text));
     }
