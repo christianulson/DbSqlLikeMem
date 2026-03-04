@@ -42,9 +42,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Aplicação de regras específicas por dialeto e versão simulada.
 
 #### 1.2.2 Interpretação de comandos DML
-- Implementação estimada: **72%**.
+- Implementação estimada: **74%**.
 - Processamento de comandos de escrita e leitura.
 - Tradução da consulta para operações no estado em memória.
+- Hardening recente reforça parsing de DML com `RETURNING` (itens vazios, vírgula inicial e vírgula final) com mensagens acionáveis no dialeto suportado e gate explícito nos não suportados.
 - Preservação da experiência de uso próxima ao fluxo SQL tradicional.
 
 #### 1.2.3 Regras por dialeto e versão
@@ -63,10 +64,12 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Backlog operacional segue cadência priorizada P0→P14 para reduzir dispersão de implementação entre parser/executor/docs.
 
 #### 1.2.5 Funções SQL agregadoras e de composição de texto
-- Implementação estimada: **91%**.
+- Implementação estimada: **100%**.
 - Parser e AST agora suportam `WITHIN GROUP (ORDER BY ...)` para agregações textuais com gate explícito por dialeto/função.
 - Cobertura atual inclui parsing de ordenação simples e composta, validação de cláusula malformada (`WITHIN GROUP requires ORDER BY`) e cenários negativos por função não nativa no dialeto.
+- Hardening recente ampliou a validação de `ORDER BY` malformado dentro de `WITHIN GROUP` (lista vazia, vírgula inicial, vírgula final e ausência de vírgula entre expressões), com mensagens acionáveis por cenário.
 - Runtime aplica a ordenação de `WITHIN GROUP` antes da agregação, incluindo combinações com `DISTINCT` e separador customizado.
+- Trilha ordered-set para agregações textuais concluída para dialetos suportados (SQL Server, Npgsql, Oracle e DB2), com bloqueio explícito e testado para MySQL/SQLite.
 
 #### 1.2.6 Funções de data/hora cross-dialect
 - Implementação estimada: **93%**.
@@ -150,13 +153,13 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
     - manter suíte de rowcount por dialeto atualizada conforme expansão de parser/executor.
 
 #### 1.3.3 Resultados e consistência
-- Implementação estimada: **88%**.
+- Implementação estimada: **90%**.
 - Entrega de resultados em formatos esperados por consumidores ADO.NET.
 - Coerência entre operação executada e estado final da base simulada.
 - Comportamento determinístico para repetição do mesmo script.
 - Hardening recente reforçou previsibilidade de regressão com foco em mensagens de erro não suportado e consistência de diagnóstico.
 - Checklist operacional confirma padronização de `SqlUnsupported.ForDialect(...)` no runtime para fluxos não suportados.
-- Hardening recente também consolidou semântica ordered-set para agregações textuais com cobertura de ordenação `ASC/DESC`, ordenação composta e `DISTINCT + WITHIN GROUP` nos dialetos suportados.
+- Hardening recente também consolidou semântica ordered-set para agregações textuais com cobertura de ordenação `ASC/DESC`, ordenação composta, `DISTINCT + WITHIN GROUP` e `LISTAGG` sem separador explícito nos dialetos suportados.
 
 #### 1.3.4 Particionamento de tabelas (avaliação)
 - Implementação estimada: **8%**.
@@ -343,10 +346,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - 7, 2000, 2005, 2008, 2012, 2014, 2016, 2017, 2019, 2022.
 
 #### 3.2.2 Recursos relevantes
-- Implementação estimada: **85%**.
+- Implementação estimada: **88%**.
 - Parser/executor para DDL/DML comuns.
 - Diferenças de dialeto por versão simulada.
-- Cobertura de `STRING_AGG` ampliada para `DISTINCT` e tratamento de `NULL`; ordenação interna segue no backlog, com fallback atual de não suportado explícito para `WITHIN GROUP`.
+- Cobertura de `STRING_AGG` ampliada para `DISTINCT`, tratamento de `NULL` e ordenação interna via `WITHIN GROUP`, incluindo cenários de erro malformado com diagnóstico acionável.
 - P8 consolidado: paginação por versão (`OFFSET/FETCH`, `TOP`) com gates explícitos de dialeto.
 - Funções-chave do banco: `STRING_AGG`, `ISNULL`, `DATEADD`, `JSON_VALUE`/`OPENJSON` (subset no mock).
 
@@ -362,10 +365,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - 7, 8, 9, 10, 11, 12, 18, 19, 21, 23.
 
 #### 3.3.2 Recursos relevantes
-- Implementação estimada: **85%**.
+- Implementação estimada: **88%**.
 - Parser/executor para DDL/DML comuns.
 - Diferenças de dialeto por versão simulada.
-- Cobertura de `LISTAGG` ampliada com separador customizado e comportamento padrão sem delimitador quando omitido; `WITHIN GROUP` permanece na trilha de evolução (com erro padronizado de não suportado no estado atual).
+- Cobertura de `LISTAGG` ampliada com separador customizado, comportamento padrão sem delimitador quando omitido e ordenação interna via `WITHIN GROUP` (incluindo combinações com `DISTINCT`).
 - P8 consolidado: suporte a `FETCH FIRST/NEXT` por versão e contratos de ordenação por dialeto.
 - Funções-chave do banco: `LISTAGG`, `NVL`, `JSON_VALUE` (subset escalar) e operações de data por versão.
 
@@ -381,10 +384,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17.
 
 #### 3.4.2 Recursos relevantes
-- Implementação estimada: **85%**.
+- Implementação estimada: **88%**.
 - Parser/executor para DDL/DML comuns.
 - Diferenças de dialeto por versão simulada.
-- Cobertura de `STRING_AGG` ampliada para agregação textual com `DISTINCT` e `NULL`; ordenação por grupo permanece no backlog, com fallback atual de não suportado explícito para `WITHIN GROUP`.
+- Cobertura de `STRING_AGG` ampliada para agregação textual com `DISTINCT`, `NULL` e ordenação por grupo via `WITHIN GROUP`, com gate por função/dialeto e mensagens acionáveis em sintaxe malformada.
 - P7/P10 consolidado: `RETURNING` sintático mínimo em caminhos suportados e fluxo de procedures no contrato Dapper.
 - Funções-chave do banco: `STRING_AGG`, operadores JSON (`->`, `->>`, `#>`, `#>>`) e expressões de data por intervalo.
 
@@ -424,11 +427,11 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - 8, 9, 10, 11.
 
 #### 3.6.2 Recursos relevantes
-- Implementação estimada: **84%**.
+- Implementação estimada: **87%**.
 - `WITH`/CTE disponível.
 - `MERGE` disponível (>= 9).
 - `FETCH FIRST` suportado.
-- Cobertura de `LISTAGG` ampliada com separador customizado, `DISTINCT` e tratamento de `NULL`; alinhamento fino por versão simulada segue em backlog.
+- Cobertura de `LISTAGG` ampliada com separador customizado, `DISTINCT`, tratamento de `NULL` e ordenação ordered-set via `WITHIN GROUP`, incluindo validações sintáticas malformadas.
 - P9 consolidado: fallback explícito de não suportado para JSON avançado e cobertura de `FETCH FIRST` no dialeto DB2.
 - Funções-chave do banco: `LISTAGG` (por versão), `COALESCE`, `TIMESTAMPADD` e `FETCH FIRST` no fluxo de paginação.
 
