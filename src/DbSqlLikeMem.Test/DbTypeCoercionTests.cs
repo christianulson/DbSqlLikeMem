@@ -155,6 +155,39 @@ public sealed class DbTypeCoercionTests
         Assert.Equal([0x0A, 0x0B, 0x0C], parsed);
     }
 
+    /// <summary>
+    /// EN: Ensures binary parser accepts SQL quoted-hex format X'ABCD'.
+    /// PT: Garante que o parser binário aceite o formato SQL hex quoted X'ABCD'.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void DbTypeParser_BinaryQuotedHexLiteral_ShouldParseBytes()
+    {
+        var parsedUpper = Assert.IsType<byte[]>(DbType.Binary.Parse("X'0A0B0C'"));
+        var parsedLower = Assert.IsType<byte[]>(DbType.Binary.Parse("x'0A0B0C'"));
+
+        Assert.Equal([0x0A, 0x0B, 0x0C], parsedUpper);
+        Assert.Equal([0x0A, 0x0B, 0x0C], parsedLower);
+    }
+
+    /// <summary>
+    /// EN: Ensures object parsing infers Guid and DateTimeOffset literals for richer coercion coverage.
+    /// PT: Garante que o parsing de object infira literais de Guid e DateTimeOffset para maior cobertura de coerção.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void DbTypeParser_Object_ShouldInferGuidAndDateTimeOffset()
+    {
+        const string guidText = "3f2504e0-4f89-11d3-9a0c-0305e82c3301";
+        const string dateText = "2024-01-02T03:04:05+00:00";
+
+        var guidParsed = DbType.Object.Parse(guidText);
+        var dateParsed = DbType.Object.Parse(dateText);
+
+        Assert.Equal(Guid.Parse(guidText), Assert.IsType<Guid>(guidParsed));
+        Assert.Equal(DateTimeOffset.Parse(dateText, CultureInfo.InvariantCulture), Assert.IsType<DateTimeOffset>(dateParsed));
+    }
+
     private enum SqlExtensionsEnumShort : short
     {
         A = 1

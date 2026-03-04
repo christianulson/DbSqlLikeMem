@@ -90,6 +90,12 @@ public static class DbTypeParser
         if (decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var numericValue))
             return numericValue;
 
+        if (Guid.TryParse(value, out var guidValue))
+            return guidValue;
+
+        if (DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeOffsetValue))
+            return dateTimeOffsetValue;
+
         return value;
     }
 
@@ -157,10 +163,8 @@ public static class DbTypeParser
     {
         bytes = [];
         var trimmed = value.Trim();
-        if (!trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+        if (TryNormalizeHexPayload(trimmed, out var hex) == false)
             return false;
-
-        var hex = trimmed[2..];
         if (hex.Length == 0 || hex.Length % 2 != 0)
             return false;
 
@@ -175,6 +179,29 @@ public static class DbTypeParser
 
         bytes = buffer;
         return true;
+    }
+
+    private static bool TryNormalizeHexPayload(string trimmed, out string hex)
+    {
+        hex = string.Empty;
+
+        if (trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+        {
+            hex = trimmed[2..];
+            return true;
+        }
+
+        // SQL quoted hex forms: X'ABCD' / x'ABCD'
+        if (trimmed.Length >= 3
+            && (trimmed[0] == 'x' || trimmed[0] == 'X')
+            && trimmed[1] == '\''
+            && trimmed[^1] == '\'')
+        {
+            hex = trimmed[2..^1];
+            return true;
+        }
+
+        return false;
     }
 }
 
