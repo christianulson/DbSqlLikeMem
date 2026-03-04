@@ -145,9 +145,8 @@ internal static class DbUpdateStrategy
             if (TryEvalArithmeticSetValue(exprRaw, table, row, pars, info.DbType, info.Nullable, out var arith))
                 return arith;
 
-            var trimmedExpr = exprRaw.Trim();
-            if (SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, trimmedExpr, out var temporalIdentifierValue))
-                return temporalIdentifierValue;
+            if (TryResolveTemporalSetValue(exprRaw, dialect, out var temporalValue))
+                return temporalValue;
 
             var raw = table.Resolve(exprRaw, info.DbType, info.Nullable, pars, table.Columns);
             return raw is DBNull ? null : raw;
@@ -156,6 +155,34 @@ internal static class DbUpdateStrategy
         {
             table.CurrentColumn = null;
         }
+    }
+
+    /// <summary>
+    /// EN: Tries to resolve temporal tokens/functions used in UPDATE SET expressions for the current dialect.
+    /// PT: Tenta resolver tokens/funções temporais usados em expressões UPDATE SET para o dialeto atual.
+    /// </summary>
+    /// <param name="exprRaw">EN: Raw SET expression value. PT: Valor bruto da expressão SET.</param>
+    /// <param name="dialect">EN: Active SQL dialect. PT: Dialeto SQL ativo.</param>
+    /// <param name="value">EN: Resolved temporal value when successful. PT: Valor temporal resolvido quando houver sucesso.</param>
+    /// <returns>EN: True when expression maps to a supported temporal token/function. PT: True quando a expressão mapeia para token/função temporal suportada.</returns>
+    private static bool TryResolveTemporalSetValue(string exprRaw, ISqlDialect dialect, out object? value)
+    {
+        var trimmed = exprRaw.Trim();
+
+        if (SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, trimmed, out value))
+            return true;
+
+        var openParen = trimmed.IndexOf('(');
+        var closeParen = trimmed.LastIndexOf(')');
+        if (openParen <= 0 || closeParen <= openParen)
+            return false;
+
+        var functionName = trimmed[..openParen].Trim();
+        var argsRaw = trimmed[(openParen + 1)..closeParen].Trim();
+        if (argsRaw.Length > 0)
+            return false;
+
+        return SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, functionName, out value);
     }
 
     private static bool TryEvalArithmeticSetValue(

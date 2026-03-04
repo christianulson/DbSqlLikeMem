@@ -320,9 +320,8 @@ internal static class DbInsertStrategy
 
         // Resolve valor
         table.CurrentColumn = table.Columns.First(c => c.Value.Index == colIndex).Key;
-        var trimmedValue = rawValue.Trim();
-        var resolved = SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, trimmedValue, out var temporalIdentifierValue)
-            ? temporalIdentifierValue
+        var resolved = TryResolveTemporalValue(rawValue, dialect, out var temporalValue)
+            ? temporalValue
             : table.Resolve(rawValue, colDef.DbType, colDef.Nullable, pars, table.Columns);
         table.CurrentColumn = null;
 
@@ -331,6 +330,34 @@ internal static class DbInsertStrategy
             throw table.ColumnCannotBeNull("Idx:" + colIndex);
 
         row[colIndex] = val;
+    }
+
+    /// <summary>
+    /// EN: Tries to resolve temporal tokens/functions used as INSERT literal values for the current dialect.
+    /// PT: Tenta resolver tokens/funções temporais usados como valores literais de INSERT para o dialeto atual.
+    /// </summary>
+    /// <param name="rawValue">EN: Raw value token from INSERT VALUES list. PT: Token bruto de valor vindo da lista INSERT VALUES.</param>
+    /// <param name="dialect">EN: Active SQL dialect. PT: Dialeto SQL ativo.</param>
+    /// <param name="value">EN: Resolved temporal value when successful. PT: Valor temporal resolvido quando houver sucesso.</param>
+    /// <returns>EN: True when raw value maps to a supported temporal token/function. PT: True quando o valor bruto mapeia para token/função temporal suportada.</returns>
+    private static bool TryResolveTemporalValue(string rawValue, ISqlDialect dialect, out object? value)
+    {
+        var trimmed = rawValue.Trim();
+
+        if (SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, trimmed, out value))
+            return true;
+
+        var openParen = trimmed.IndexOf('(');
+        var closeParen = trimmed.LastIndexOf(')');
+        if (openParen <= 0 || closeParen <= openParen)
+            return false;
+
+        var functionName = trimmed[..openParen].Trim();
+        var argsRaw = trimmed[(openParen + 1)..closeParen].Trim();
+        if (argsRaw.Length > 0)
+            return false;
+
+        return SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, functionName, out value);
     }
 
     // --- Helpers de ON DUPLICATE ---
