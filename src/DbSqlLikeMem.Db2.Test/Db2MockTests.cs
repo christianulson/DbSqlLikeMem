@@ -369,6 +369,12 @@ public sealed class Db2MockTests
     [Trait("Category", "Db2Mock")]
     public void TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml()
     {
+        using var seed = new Db2CommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Seed User', NULL)"
+        };
+        seed.ExecuteNonQuery();
+
         using var command = new Db2CommandMock(_connection)
         {
             CommandText = "SELECT Name FROM Users ORDER BY Id FETCH FIRST 1 ROWS ONLY; UPDATE Users SET Name = 'Mixed Batch User' WHERE Id = 1; SELECT ROW_COUNT();"
