@@ -8,6 +8,7 @@ internal static class SqlExtensions
         return v switch
         {
             decimal d => d,
+            bool b => b ? 1m : 0m,
             int i => i,
             long l => l,
             short s => s,
@@ -15,6 +16,8 @@ internal static class SqlExtensions
             double db => (decimal)db,
             float f => (decimal)f,
             DateTime dt => dt.Ticks,
+            DateTimeOffset dto => dto.Ticks,
+            TimeSpan ts => ts.Ticks,
             _ when decimal.TryParse(v.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var dd) => dd,
             _ => 0m
         };

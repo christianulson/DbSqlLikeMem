@@ -33,6 +33,33 @@ public sealed class SqlExtensionsTypingTests
     }
 
     /// <summary>
+    /// EN: Ensures ToDec maps boolean values to numeric SQL-like semantics.
+    /// PT: Garante que ToDec mapeie valores booleanos para semântica numérica estilo SQL.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void ToDec_BooleanValues_ShouldMapToOneOrZero()
+    {
+        Assert.Equal(1m, true.ToDec());
+        Assert.Equal(0m, false.ToDec());
+    }
+
+    /// <summary>
+    /// EN: Ensures ToDec keeps temporal numeric comparability for DateTimeOffset and TimeSpan.
+    /// PT: Garante que ToDec mantenha comparabilidade numérica temporal para DateTimeOffset e TimeSpan.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void ToDec_TemporalValues_ShouldMapToTicks()
+    {
+        var offset = new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.FromHours(-3));
+        var span = TimeSpan.FromMinutes(90);
+
+        Assert.Equal(offset.Ticks, offset.ToDec());
+        Assert.Equal(span.Ticks, span.ToDec());
+    }
+
+    /// <summary>
     /// EN: Ensures mixed numeric/boolean values can be compared through implicit numeric coercion.
     /// PT: Garante que valores numéricos/booleanos mistos possam ser comparados via coerção numérica implícita.
     /// </summary>
