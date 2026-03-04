@@ -1220,16 +1220,78 @@ internal sealed class SqlQueryParser
             throw SqlUnsupported.ForDialect(_dialect, "RETURNING");
 
         Consume(); // RETURNING
-        var raws = ParseCommaSeparatedRawItemsUntilAny();
+
+        var raws = ParseReturningItemsRaw();
         return raws.ConvertAll(raw =>
         {
             var (expr, alias) = SplitTrailingAsAliasTopLevel(raw, _dialect);
             if (string.IsNullOrWhiteSpace(expr))
-                throw new InvalidOperationException("Empty RETURNING item.");
+                throw new InvalidOperationException("RETURNING requires at least one expression.");
 
             _ = SqlExpressionParser.ParseScalar(expr, _dialect);
             return new SqlSelectItem(expr, alias);
         });
+    }
+
+    private List<string> ParseReturningItemsRaw()
+    {
+        var items = new List<string>();
+
+        while (true)
+        {
+            if (IsEnd(Peek()) || IsSymbol(Peek(), ";"))
+            {
+                if (items.Count == 0)
+                    throw new InvalidOperationException("RETURNING requires at least one expression.");
+                break;
+            }
+
+            if (IsSymbol(Peek(), ","))
+                throw new InvalidOperationException("RETURNING has an unexpected comma before expression.");
+
+            var raw = ReadRawExpressionUntilCommaOrTerminator().Trim();
+            if (string.IsNullOrWhiteSpace(raw))
+                throw new InvalidOperationException("RETURNING requires at least one expression.");
+
+            items.Add(raw);
+
+            if (IsSymbol(Peek(), ","))
+            {
+                Consume();
+
+                if (IsEnd(Peek()) || IsSymbol(Peek(), ";"))
+                    throw new InvalidOperationException("RETURNING has a trailing comma without expression.");
+
+                continue;
+            }
+
+            break;
+        }
+
+        return items;
+    }
+
+    private string ReadRawExpressionUntilCommaOrTerminator()
+    {
+        var buf = new List<SqlToken>();
+        int depth = 0;
+
+        while (!IsEnd(Peek()))
+        {
+            var t = Peek();
+
+            if (depth == 0 && (IsSymbol(t, ",") || IsSymbol(t, ";")))
+                break;
+
+            if (IsSymbol(t, "("))
+                depth++;
+            else if (IsSymbol(t, ")"))
+                depth--;
+
+            buf.Add(Consume());
+        }
+
+        return TokensToSql(buf);
     }
 
     private List<SqlSelectItem> ParseSelectItemsWithValidation()

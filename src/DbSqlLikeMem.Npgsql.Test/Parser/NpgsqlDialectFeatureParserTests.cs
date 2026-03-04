@@ -188,6 +188,58 @@ RETURNING id";
         Assert.Equal("id", parsed.Returning[0].Raw);
     }
 
+
+    /// <summary>
+    /// EN: Ensures empty RETURNING clause is rejected with actionable message.
+    /// PT: Garante que cláusula RETURNING vazia seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_EmptyReturning_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures RETURNING leading comma is rejected with actionable message.
+    /// PT: Garante que vírgula inicial no RETURNING seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseUpdate_ReturningLeadingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING, id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures RETURNING trailing comma is rejected with actionable message.
+    /// PT: Garante que vírgula final no RETURNING seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseDelete_ReturningTrailingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING id,";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>
     /// EN: Ensures SQL Server table hints are rejected for Npgsql.
     /// PT: Garante que hints de tabela do SQL Server sejam rejeitados para Npgsql.
@@ -724,6 +776,75 @@ RETURNING id";
             SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (amount DESC)", dialect));
 
         Assert.Contains("WITHIN GROUP requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures trailing commas in WITHIN GROUP ORDER BY are rejected with actionable message.
+    /// PT: Garante que vírgulas finais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseScalar_WithinGroupOrderByTrailingComma_ShouldThrowActionableError(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", dialect));
+
+        Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures empty ORDER BY lists in WITHIN GROUP are rejected with actionable message.
+    /// PT: Garante que listas ORDER BY vazias em WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseScalar_WithinGroupOrderByEmptyList_ShouldThrowActionableError(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY)", dialect));
+
+        Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures leading commas in WITHIN GROUP ORDER BY are rejected with actionable message.
+    /// PT: Garante que vírgulas iniciais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseScalar_WithinGroupOrderByLeadingComma_ShouldThrowActionableError(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", dialect));
+
+        Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures missing commas between WITHIN GROUP ORDER BY expressions are rejected with actionable message.
+    /// PT: Garante que ausência de vírgula entre expressões de ORDER BY no WITHIN GROUP seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseScalar_WithinGroupOrderByMissingCommaBetweenExpressions_ShouldThrowActionableError(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", dialect));
+
+        Assert.Contains("requires commas", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 }
