@@ -334,7 +334,8 @@ internal sealed class SqlQueryParser
             Returning = returning,
             HasOnDuplicateKeyUpdate = (onDup != null),
             OnDupAssigns = onDup?.Assignments.Select(a => (a.Column, a.ValueRaw)).ToList() ?? [],
-            OnDupAssignsParsed = onDup?.Assignments.Select(a => new SqlAssignment(a.Column, a.ValueRaw, TryParseScalar(a.ValueRaw))).ToList() ?? []
+            OnDupAssignsParsed = onDup?.Assignments.Select(a => new SqlAssignment(a.Column, a.ValueRaw, TryParseScalar(a.ValueRaw))).ToList() ?? [],
+            IsOnConflictDoNothing = onDup?.IsDoNothing == true
         };
     }
 
@@ -398,7 +399,7 @@ internal sealed class SqlQueryParser
             if (IsWord(Peek(), "NOTHING"))
             {
                 Consume();
-                return new SqlOnDuplicateKeyUpdate([]);
+                return new SqlOnDuplicateKeyUpdate([], IsDoNothing: true);
             }
 
             ExpectWord("UPDATE");

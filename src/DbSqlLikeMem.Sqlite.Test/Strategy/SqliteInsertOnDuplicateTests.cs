@@ -159,4 +159,31 @@ INSERT INTO users (Id, Qtd) VALUES (@p0, @p1)
 
         Assert.Equal(2, t[0][1]);
     }
+
+    /// <summary>
+    /// EN: Tests Insert_OnConflict_DoNothing_ShouldNotUpdate_WhenConflict behavior.
+    /// PT: Testa o comportamento de Insert_OnConflict_DoNothing_ShouldNotUpdate_WhenConflict.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Strategy")]
+    [MemberDataSqliteVersion]
+    public void Insert_OnConflict_DoNothing_ShouldNotUpdate_WhenConflict(int version)
+    {
+        var db = new SqliteDbMock(version);
+        var t = db.AddTable("users");
+        t.AddColumn("Id", DbType.Int32, false);
+        t.AddColumn("Name", DbType.String, false);
+        t.AddPrimaryKeyIndexes("id");
+        t.Add(new Dictionary<int, object?> { [0] = 1, [1] = "OLD" });
+
+        using var cnn = new SqliteConnectionMock(db);
+
+        const string sql = "INSERT INTO users (Id, Name) VALUES (1, 'NEW') ON CONFLICT (Id) DO NOTHING";
+        var q = SqlQueryParser.Parse(sql, db.Dialect);
+        var affected = cnn.ExecuteInsert((SqlInsertQuery)q, new SqliteDataParameterCollectionMock(), db.Dialect);
+
+        Assert.Equal(0, affected);
+        Assert.Single(t);
+        Assert.Equal("OLD", t[0][1]);
+    }
 }

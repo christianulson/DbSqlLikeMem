@@ -50,6 +50,11 @@ internal sealed record SqlInsertQuery : SqlQueryBase
     /// PT: Obtém ou define OnDupAssignsParsed.
     /// </summary>
     public IReadOnlyList<SqlAssignment> OnDupAssignsParsed { get; init; } = [];
+    /// <summary>
+    /// EN: Gets or sets whether ON CONFLICT uses DO NOTHING semantics.
+    /// PT: Obtém ou define se ON CONFLICT usa semântica de DO NOTHING.
+    /// </summary>
+    internal bool IsOnConflictDoNothing { get; init; }
     internal SqlSelectQuery? InsertSelect { get; init; }               // INSERT INTO t (...) SELECT ...
 }
 
@@ -178,7 +183,8 @@ internal sealed record SqlFetch(int Count, int? Offset) : SqlRowLimit;
 internal sealed record SqlCte(string Name, SqlSelectQuery Query);
 
 internal sealed record SqlOnDuplicateKeyUpdate(
-    IReadOnlyList<SqlAssignment> Assignments
+    IReadOnlyList<SqlAssignment> Assignments,
+    bool IsDoNothing = false
 );
 
 internal sealed record SqlAssignment(string Column, string ValueRaw, SqlExpr? ValueExpr = null);

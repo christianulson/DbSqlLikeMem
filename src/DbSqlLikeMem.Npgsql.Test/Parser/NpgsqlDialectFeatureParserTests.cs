@@ -23,6 +23,7 @@ public sealed class NpgsqlDialectFeatureParserTests
         var ins = Assert.IsType<SqlInsertQuery>(parsed);
         Assert.True(ins.HasOnDuplicateKeyUpdate);
         Assert.Empty(ins.OnDupAssigns);
+        Assert.True(ins.IsOnConflictDoNothing);
     }
 
     /// <summary>

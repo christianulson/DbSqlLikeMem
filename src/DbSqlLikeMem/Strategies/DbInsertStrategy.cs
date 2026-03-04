@@ -76,6 +76,9 @@ internal static class DbInsertStrategy
             }
             else
             {
+                if (query.IsOnConflictDoNothing)
+                    continue;
+
                 // Conflito -> Update
                 var oldSnapshot = SnapshotRow(table[conflictIdx.Value]);
                 var simulatedUpdated = table[conflictIdx.Value].ToDictionary(_ => _.Key, _ => _.Value);

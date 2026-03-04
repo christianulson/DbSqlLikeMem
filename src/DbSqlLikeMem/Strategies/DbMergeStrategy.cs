@@ -55,7 +55,7 @@ internal static class DbMergeStrategy
         var selectSql = ExtractParenthesized(sql, sql.IndexOf('(', usingIndex));
         var srcAliasMatch = Regex.Match(
             sql,
-            @"USING\s*\(.*?\)\s+AS\s+(?<alias>[A-Za-z0-9_]+)",
+            @"USING\s*\(.*?\)\s+(?:AS\s+)?(?<alias>(?!ON\b|WHEN\b)[A-Za-z0-9_]+)",
             RegexOptions.IgnoreCase | RegexOptions.Singleline);
         var sourceAlias = srcAliasMatch.Success ? srcAliasMatch.Groups["alias"].Value : "src";
 
