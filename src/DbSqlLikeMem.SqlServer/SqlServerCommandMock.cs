@@ -193,6 +193,14 @@ public class SqlServerCommandMock(
                 continue;
             }
 
+            if (sqlRaw.StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
+            {
+                connection.ExecuteCall(sqlRaw, Parameters);
+                connection.SetLastFoundRows(0);
+                parsedStatementCount++;
+                continue;
+            }
+
             var effectiveSql = sqlRaw;
             SqlServerOutputClause? outputClause = null;
             if (TryExtractOutputClause(sqlRaw, out var rewrittenSql, out var extractedOutput))
