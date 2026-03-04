@@ -38,6 +38,7 @@ internal sealed record SqlInsertQuery : SqlQueryBase
     internal IReadOnlyList<string> Columns { get; init; } = [];              // pode ser vazio (INSERT INTO t VALUES...)
     internal IReadOnlyList<List<string>> ValuesRaw { get; init; } = [];      // tokens raw por valor (ou expressão raw)
     internal IReadOnlyList<List<SqlExpr?>> ValuesExpr { get; init; } = [];   // best-effort parsed values (aligned with ValuesRaw)
+    internal IReadOnlyList<SqlSelectItem> Returning { get; init; } = [];
     internal bool HasOnDuplicateKeyUpdate { get; init; }
     /// <summary>
     /// EN: Implements this member.
@@ -56,6 +57,7 @@ internal sealed record SqlUpdateQuery : SqlQueryBase
 {
     internal List<(string Col, string ExprRaw)> Set { get; init; } = [];
     internal IReadOnlyList<SqlAssignment> SetParsed { get; init; } = [];
+    internal IReadOnlyList<SqlSelectItem> Returning { get; init; } = [];
     internal SqlExpr? Where { get; init; }
     internal string? WhereRaw { get; init; }                           // ou SqlExpr se você já tem
     internal SqlSelectQuery? UpdateFromSelect { get; init; }           // se você quiser UPDATE ... JOIN (SELECT..)
@@ -64,6 +66,7 @@ internal sealed record SqlUpdateQuery : SqlQueryBase
 internal sealed record SqlDeleteQuery : SqlQueryBase
 {
     internal string? WhereRaw { get; init; }
+    internal IReadOnlyList<SqlSelectItem> Returning { get; init; } = [];
     internal SqlExpr? Where { get; init; }
     internal SqlSelectQuery? DeleteFromSelect { get; init; }           // DELETE ... USING (SELECT..)
 }
