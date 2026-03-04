@@ -22,7 +22,13 @@ public static class DbTypeParser
 
         return dbType switch
         {
-            DbType.String => value,
+            DbType.String
+            or DbType.AnsiString
+            or DbType.StringFixedLength
+            or DbType.AnsiStringFixedLength => value,
+
+            DbType.Byte => byte.Parse(value, CultureInfo.InvariantCulture),
+            DbType.SByte => sbyte.Parse(value, CultureInfo.InvariantCulture),
 
             DbType.Int16 => short.Parse(value, CultureInfo.InvariantCulture),
             DbType.Int32 => int.Parse(value, CultureInfo.InvariantCulture),
@@ -33,6 +39,7 @@ public static class DbTypeParser
             DbType.UInt64 => ulong.Parse(value, CultureInfo.InvariantCulture),
 
             DbType.Decimal => decimal.Parse(value, CultureInfo.InvariantCulture),
+            DbType.VarNumeric => decimal.Parse(value, CultureInfo.InvariantCulture),
             DbType.Double => double.Parse(value, CultureInfo.InvariantCulture),
             DbType.Single => float.Parse(value, CultureInfo.InvariantCulture),
 
