@@ -1284,6 +1284,12 @@ internal sealed class SqlExpressionParser(
         var orderBy = new List<WindowOrderItem>();
         while (true)
         {
+            if (IsSymbol(Peek(), ")"))
+                throw Error("WITHIN GROUP ORDER BY requires at least one expression", Peek());
+
+            if (IsSymbol(Peek(), ","))
+                throw Error("WITHIN GROUP ORDER BY has an unexpected comma before expression", Peek());
+
             var expr = ParseExpression(0);
 
             var desc = false;
@@ -1299,10 +1305,20 @@ internal sealed class SqlExpressionParser(
 
             orderBy.Add(new WindowOrderItem(expr, desc));
 
-            if (!IsSymbol(Peek(), ","))
-                break;
+            if (IsSymbol(Peek(), ","))
+            {
+                Consume();
 
-            Consume();
+                if (IsSymbol(Peek(), ")"))
+                    throw Error("WITHIN GROUP ORDER BY has a trailing comma without expression", Peek());
+
+                continue;
+            }
+
+            if (!IsSymbol(Peek(), ")"))
+                throw Error("WITHIN GROUP ORDER BY requires commas between expressions", Peek());
+
+            break;
         }
 
         ExpectSymbol(")");

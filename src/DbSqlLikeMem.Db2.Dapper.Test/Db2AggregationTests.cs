@@ -194,6 +194,17 @@ public sealed class Db2AggregationTests : AggregationHavingOrdinalTestsBase<Db2D
     }
 
     /// <summary>
+    /// EN: Ensures LISTAGG without explicit separator still honors WITHIN GROUP ordering.
+    /// PT: Garante que LISTAGG sem separador explícito ainda respeite a ordenação do WITHIN GROUP.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Aggregation")]
+    public void ListAgg_WithinGroupWithoutSeparator_ShouldApplyOrderBy()
+    {
+        AssertWithinGroupOrdersAggregation("SELECT LISTAGG(amount) WITHIN GROUP (ORDER BY amount DESC) AS joined FROM orders", "30105");
+    }
+
+    /// <summary>
     /// EN: Ensures WITHIN GROUP supports composite ORDER BY expressions.
     /// PT: Garante que WITHIN GROUP suporte expressões compostas no ORDER BY.
     /// </summary>
