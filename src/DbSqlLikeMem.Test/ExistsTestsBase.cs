@@ -110,6 +110,64 @@ ORDER BY u.Id";
     }
 
     /// <summary>
+    /// EN: Tests NOT IN with a subquery containing NULL follows SQL semantics (unknown -> filtered out).
+    /// PT: Testa que NOT IN com subquery contendo NULL segue semântica SQL (unknown -> filtrado).
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void NotIn_SubqueryContainingNull_ShouldFilterOutAllRows()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        cnn.Seed("users", null,
+            [1, "Ana"],
+            [2, "Bob"],
+            [3, "Cid"]);
+
+        cnn.Seed("orders", null,
+            [10, 2, 50m],
+            [11, null!, 60m]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE u.Id NOT IN (SELECT o.UserId FROM orders o)
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// EN: Tests NOT IN with an explicit NULL item follows SQL semantics (unknown -> filtered out).
+    /// PT: Testa que NOT IN com item NULL explícito segue semântica SQL (unknown -> filtrado).
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Exists")]
+    public void NotIn_ListContainingNull_ShouldFilterOutAllRows()
+    {
+        using var cnn = CreateConnection();
+
+        DefineUsersAndOrdersTables(cnn);
+
+        cnn.Seed("users", null,
+            [1, "Ana"],
+            [2, "Bob"],
+            [3, "Cid"]);
+
+        const string sql = @"SELECT u.Id
+FROM users u
+WHERE u.Id NOT IN (2, NULL)
+ORDER BY u.Id";
+
+        var ids = ExecuteAndReadIds(cnn, sql);
+
+        ids.Should().BeEmpty();
+    }
+
+    /// <summary>
     /// EN: Tests correlated EXISTS subquery reuses evaluation for duplicate outer rows, reducing repeated source access.
     /// PT: Testa que subquery correlacionada com EXISTS reutiliza avaliação para linhas externas duplicadas, reduzindo acessos repetidos à fonte.
     /// </summary>

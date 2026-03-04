@@ -3782,6 +3782,9 @@ private void FillPercentRankOrCumeDist(
                 }
 
             case UnaryExpr u when u.Op == SqlUnaryOp.Not:
+                if (u.Expr is InExpr notInExpr)
+                    return EvalNotIn(notInExpr, row, group, ctes);
+
                 return !Eval(u.Expr, row, group, ctes).ToBool();
 
             case BinaryExpr b:
@@ -3952,6 +3955,48 @@ private void FillPercentRankOrCumeDist(
         if (leftVal is null)
             return false;
 
+        var state = EvaluateInMembership(i, leftVal, row, group, ctes);
+        return state.Matched;
+    }
+
+    /// <summary>
+    /// EN: Evaluates SQL NOT IN semantics, handling NULL candidate propagation as UNKNOWN (filtered out).
+    /// PT: Avalia semântica SQL de NOT IN, tratando propagação de candidatos NULL como UNKNOWN (filtrado).
+    /// </summary>
+    private bool EvalNotIn(
+        InExpr i,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+    {
+        var leftVal = Eval(i.Left, row, group, ctes);
+        if (leftVal is null || leftVal is DBNull)
+            return false;
+
+        var state = EvaluateInMembership(i, leftVal, row, group, ctes);
+        if (state.Matched)
+            return false;
+
+        // SQL three-valued logic: x NOT IN (..., NULL, ...) => UNKNOWN when no match.
+        if (state.HasNullCandidate)
+            return false;
+
+        return true;
+    }
+
+    /// <summary>
+    /// EN: Computes IN membership state including matched candidates and NULL-candidate presence for SQL three-valued logic.
+    /// PT: Calcula estado de pertencimento de IN incluindo candidatos casados e presença de candidato NULL para lógica SQL de três valores.
+    /// </summary>
+    private InMembershipState EvaluateInMembership(
+        InExpr i,
+        object leftVal,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+    {
+        var hasNullCandidate = false;
+
         // IN (subquery)
         if (i.Items.Count == 1 && i.Items[0] is SubqueryExpr sq)
         {
@@ -3960,11 +4005,17 @@ private void FillPercentRankOrCumeDist(
             // MySQL: IN(subquery) considera a 1a coluna retornada
             foreach (var v in subqueryValues)
             {
+                if (v is null || v is DBNull)
+                {
+                    hasNullCandidate = true;
+                    continue;
+                }
+
                 if (leftVal.EqualsSql(v, Dialect))
-                    return true;
+                    return new InMembershipState(Matched: true, HasNullCandidate: hasNullCandidate);
             }
 
-            return false;
+            return new InMembershipState(Matched: false, HasNullCandidate: hasNullCandidate);
         }
 
         // IN (item1, item2, ...)
@@ -3979,17 +4030,28 @@ private void FillPercentRankOrCumeDist(
                 foreach (var item in ie)
                 {
                     var cand = item;
+                    if (cand is null || cand is DBNull)
+                    {
+                        hasNullCandidate = true;
+                        continue;
+                    }
 
                     // Row IN Row (quando o parametro é lista de tuples/rows)
                     if (leftVal is object?[] la2 && cand is object?[] ra2)
                     {
+                        if (HasNullElement(la2) || HasNullElement(ra2))
+                        {
+                            hasNullCandidate = true;
+                            continue;
+                        }
+
                         if (la2.Length == ra2.Length && !la2.Where((t, idx) => !t.EqualsSql(ra2[idx], Dialect)).Any())
-                            return true;
+                            return new InMembershipState(Matched: true, HasNullCandidate: hasNullCandidate);
                         continue;
                     }
 
                     if (leftVal.EqualsSql(cand, Dialect))
-                        return true;
+                        return new InMembershipState(Matched: true, HasNullCandidate: hasNullCandidate);
                 }
 
                 continue; // não cai no EqualsSql(v) do enumerable inteiro
@@ -3998,17 +4060,36 @@ private void FillPercentRankOrCumeDist(
             // Row IN Row (normal)
             if (leftVal is object?[] la && v is object?[] ra)
             {
+                if (HasNullElement(la) || HasNullElement(ra))
+                {
+                    hasNullCandidate = true;
+                    continue;
+                }
+
                 if (la.Length == ra.Length && !la.Where((t, idx) => !t.EqualsSql(ra[idx], Dialect)).Any())
-                    return true;
+                    return new InMembershipState(Matched: true, HasNullCandidate: hasNullCandidate);
+                continue;
+            }
+
+            if (v is null || v is DBNull)
+            {
+                hasNullCandidate = true;
                 continue;
             }
 
             if (leftVal.EqualsSql(v, Dialect))
-                return true;
+                return new InMembershipState(Matched: true, HasNullCandidate: hasNullCandidate);
         }
 
-        return false;
+        return new InMembershipState(Matched: false, HasNullCandidate: hasNullCandidate);
     }
+
+    /// <summary>
+    /// EN: Checks whether an object array contains at least one SQL NULL-like value.
+    /// PT: Verifica se um array de objetos contém ao menos um valor SQL nulo.
+    /// </summary>
+    private static bool HasNullElement(object?[] values)
+        => values.Any(static v => v is null || v is DBNull);
 
     private bool EvalExists(
         ExistsExpr ex,
@@ -6598,6 +6679,7 @@ private void FillPercentRankOrCumeDist(
     }
 
     private sealed record ScalarSubqueryCacheEntry(object? Value);
+    private readonly record struct InMembershipState(bool Matched, bool HasNullCandidate);
 
     internal sealed record EvalRow(
         Dictionary<string, object?> Fields,
