@@ -651,5 +651,59 @@ RETURNING id";
         Assert.Contains("start bound cannot be greater", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Ensures Npgsql parser accepts ordered-set WITHIN GROUP for STRING_AGG.
+    /// PT: Garante que o parser Npgsql aceite ordered-set WITHIN GROUP para STRING_AGG.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseScalar_StringAggWithinGroup_ShouldParse(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        var expr = SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect);
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.Equal("STRING_AGG", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.NotNull(call.WithinGroupOrderBy);
+        Assert.Single(call.WithinGroupOrderBy!);
+        Assert.True(call.WithinGroupOrderBy![0].Desc);
+    }
+
+    /// <summary>
+    /// EN: Ensures Npgsql parser blocks non-native ordered-set aggregate names with WITHIN GROUP.
+    /// PT: Garante que o parser Npgsql bloqueie nomes não nativos de agregação ordered-set com WITHIN GROUP.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseScalar_ListAggWithinGroup_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed WITHIN GROUP clause fails with actionable ORDER BY message.
+    /// PT: Garante que cláusula WITHIN GROUP malformada falhe com mensagem acionável de ORDER BY.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseScalar_StringAggWithinGroupWithoutOrderBy_ShouldThrowActionableError(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 }
 

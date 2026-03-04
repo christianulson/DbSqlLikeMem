@@ -697,4 +697,38 @@ public sealed class OracleDialectFeatureParserTests
         Assert.Contains("start bound cannot be greater", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Ensures Oracle parser blocks non-native ordered-set aggregate names with WITHIN GROUP.
+    /// PT: Garante que o parser Oracle bloqueie nomes não nativos de agregação ordered-set com WITHIN GROUP.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseScalar_StringAggWithinGroup_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new OracleDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed WITHIN GROUP clause fails with actionable ORDER BY message.
+    /// PT: Garante que cláusula WITHIN GROUP malformada falhe com mensagem acionável de ORDER BY.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseScalar_ListAggWithinGroupWithoutOrderBy_ShouldThrowActionableError(int version)
+    {
+        var dialect = new OracleDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 }

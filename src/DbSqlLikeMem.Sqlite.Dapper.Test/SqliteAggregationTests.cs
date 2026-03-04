@@ -171,8 +171,8 @@ public sealed class SqliteAggregationTests : AggregationHavingOrdinalTestsBase<S
     }
 
     /// <summary>
-    /// EN: Ensures ordered-set syntax WITHIN GROUP produces actionable not-supported error.
-    /// PT: Garante que a sintaxe ordered-set WITHIN GROUP gere erro claro de não suportado.
+    /// EN: Ensures ordered-set syntax WITHIN GROUP remains blocked for SQLite string aggregation.
+    /// PT: Garante que a sintaxe ordered-set WITHIN GROUP continue bloqueada para agregação textual no SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteAggregation")]

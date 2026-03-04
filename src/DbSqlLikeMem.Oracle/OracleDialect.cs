@@ -79,6 +79,11 @@ internal sealed class OracleDialect : SqlDialectBase
     /// PT: Indica se cláusulas de frame de janela SQL são suportadas pela versão configurada.
     /// </summary>
     public override bool SupportsWindowFrameClause => Version >= WindowFunctionsMinVersion;
+
+    public override bool SupportsWithinGroupForStringAggregates => true;
+
+    public override bool SupportsWithinGroupStringAggregateFunction(string functionName)
+        => functionName.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase);
     /// <summary>
     /// EN: Gets whether order by nulls modifier is supported.
     /// PT: Obtém se há suporte a order by nulls modifier.

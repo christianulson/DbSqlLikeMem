@@ -6323,9 +6323,34 @@ private void FillPercentRankOrCumeDist(
         if (fn.Args.Count > 1 && group.Rows.Count > 0)
             separatorObj = Eval(fn.Args[1], group.Rows[0], null, ctes);
 
+        IEnumerable<EvalRow> rows = group.Rows;
+        if (fn.WithinGroupOrderBy is { Count: > 0 })
+        {
+            rows = rows.OrderBy(
+                row => fn.WithinGroupOrderBy
+                    .Select(order => Eval(order.Expr, row, null, ctes))
+                    .ToArray(),
+                Comparer<object?[]>.Create((left, right) =>
+                {
+                    for (var i = 0; i < fn.WithinGroupOrderBy.Count; i++)
+                    {
+                        var cmp = CompareSql(left[i], right[i]);
+                        if (cmp == 0)
+                            continue;
+
+                        if (fn.WithinGroupOrderBy[i].Desc)
+                            cmp = -cmp;
+
+                        return cmp;
+                    }
+
+                    return 0;
+                }));
+        }
+
         var values = new List<object?>();
         var distinct = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var r in group.Rows)
+        foreach (var r in rows)
         {
             var v = Eval(fn.Args[0], r, null, ctes);
             if (IsNullish(v))

@@ -22,7 +22,11 @@ internal sealed record QuantifiedComparisonExpr(
     SubqueryExpr Subquery) : SqlExpr;
 internal sealed record FunctionCallExpr(string Name, IReadOnlyList<SqlExpr> Args) : SqlExpr;
 internal sealed record JsonAccessExpr(SqlExpr Target, SqlExpr Path, bool Unquote) : SqlExpr;
-internal sealed record CallExpr(string Name, IReadOnlyList<SqlExpr> Args, bool Distinct = false) : SqlExpr;
+internal sealed record CallExpr(
+    string Name,
+    IReadOnlyList<SqlExpr> Args,
+    bool Distinct = false,
+    IReadOnlyList<WindowOrderItem>? WithinGroupOrderBy = null) : SqlExpr;
 internal sealed record WindowFunctionExpr(string Name, IReadOnlyList<SqlExpr> Args, WindowSpec Spec, bool Distinct = false) : SqlExpr;
 internal sealed record WindowSpec(
     IReadOnlyList<SqlExpr> PartitionBy,

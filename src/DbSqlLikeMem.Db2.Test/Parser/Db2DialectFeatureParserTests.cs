@@ -659,4 +659,58 @@ public sealed class Db2DialectFeatureParserTests
         Assert.IsType<WindowFunctionExpr>(groupsExpr);
     }
 
+    /// <summary>
+    /// EN: Ensures Db2 parser accepts ordered-set WITHIN GROUP for LISTAGG.
+    /// PT: Garante que o parser Db2 aceite ordered-set WITHIN GROUP para LISTAGG.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseScalar_ListAggWithinGroup_ShouldParse(int version)
+    {
+        var dialect = new Db2Dialect(version);
+
+        var expr = SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect);
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.Equal("LISTAGG", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.NotNull(call.WithinGroupOrderBy);
+        Assert.Single(call.WithinGroupOrderBy!);
+        Assert.True(call.WithinGroupOrderBy![0].Desc);
+    }
+
+    /// <summary>
+    /// EN: Ensures Db2 parser blocks non-native ordered-set aggregate names with WITHIN GROUP.
+    /// PT: Garante que o parser Db2 bloqueie nomes não nativos de agregação ordered-set com WITHIN GROUP.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseScalar_StringAggWithinGroup_ShouldThrowNotSupported(int version)
+    {
+        var dialect = new Db2Dialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed WITHIN GROUP clause fails with actionable ORDER BY message.
+    /// PT: Garante que cláusula WITHIN GROUP malformada falhe com mensagem acionável de ORDER BY.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseScalar_ListAggWithinGroupWithoutOrderBy_ShouldThrowActionableError(int version)
+    {
+        var dialect = new Db2Dialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (amount DESC)", dialect));
+
+        Assert.Contains("WITHIN GROUP requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 }

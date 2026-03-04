@@ -247,6 +247,26 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
     }
 
     /// <summary>
+    /// EN: Validates ordered-set aggregate syntax WITHIN GROUP applies ORDER BY semantics to string aggregation.
+    /// PT: Valida que a sintaxe ordered-set WITHIN GROUP aplique semântica de ORDER BY na agregação textual.
+    /// </summary>
+    /// <param name="sql">EN: Provider-specific SQL using WITHIN GROUP. PT: SQL específico do provedor usando WITHIN GROUP.</param>
+    /// <param name="expected">EN: Expected aggregated text. PT: Texto agregado esperado.</param>
+    protected void AssertWithinGroupOrdersAggregation(string sql, string expected)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+        {
+            throw new ArgumentException("SQL cannot be null, empty, or whitespace.", nameof(sql));
+        }
+
+        var rows = Query(sql);
+        Assert.Single(rows);
+
+        var joined = Convert.ToString(rows[0].joined) ?? string.Empty;
+        Assert.Equal(expected, joined);
+    }
+
+    /// <summary>
     /// EN: Validates ordered-set aggregate syntax WITHIN GROUP is rejected with an actionable message.
     /// PT: Valida que a sintaxe de agregação ordered-set WITHIN GROUP seja rejeitada com mensagem acionável.
     /// </summary>
@@ -286,6 +306,53 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         Assert.Contains("a", joined, StringComparison.Ordinal);
         Assert.Contains("b", joined, StringComparison.Ordinal);
         Assert.Contains("|", joined, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// EN: Validates WITHIN GROUP ordering with composite keys (multiple ORDER BY expressions).
+    /// PT: Valida ordenação WITHIN GROUP com chaves compostas (múltiplas expressões em ORDER BY).
+    /// </summary>
+    /// <param name="querySql">EN: Provider-specific aggregate query over textagg_order. PT: Query agregada específica do provedor sobre textagg_order.</param>
+    /// <param name="expected">EN: Expected aggregated text. PT: Texto agregado esperado.</param>
+    protected void AssertWithinGroupCompositeOrdering(string querySql, string expected)
+    {
+        if (string.IsNullOrWhiteSpace(querySql))
+            throw new ArgumentException("Query SQL cannot be null, empty, or whitespace.", nameof(querySql));
+
+        ExecuteNonQuery("CREATE TABLE textagg_order (grp INT, val VARCHAR(20) NULL, ord1 INT, ord2 INT)");
+        ExecuteNonQuery("INSERT INTO textagg_order (grp, val, ord1, ord2) VALUES (1, 'a', 1, 2)");
+        ExecuteNonQuery("INSERT INTO textagg_order (grp, val, ord1, ord2) VALUES (1, 'b', 1, 1)");
+        ExecuteNonQuery("INSERT INTO textagg_order (grp, val, ord1, ord2) VALUES (1, 'c', 2, 1)");
+
+        var rows = Query(querySql);
+        Assert.Single(rows);
+
+        var joined = Convert.ToString(rows[0].joined) ?? string.Empty;
+        Assert.Equal(expected, joined);
+    }
+
+    /// <summary>
+    /// EN: Validates DISTINCT + WITHIN GROUP ordering to ensure deduplication follows ORDER BY sequence.
+    /// PT: Valida DISTINCT + WITHIN GROUP para garantir que a deduplicação siga a sequência do ORDER BY.
+    /// </summary>
+    /// <param name="querySql">EN: Provider-specific aggregate query over textagg_distinct_order. PT: Query agregada específica do provedor sobre textagg_distinct_order.</param>
+    /// <param name="expected">EN: Expected aggregated text after ordering and distinct. PT: Texto agregado esperado após ordenação e distinct.</param>
+    protected void AssertWithinGroupDistinctOrdering(string querySql, string expected)
+    {
+        if (string.IsNullOrWhiteSpace(querySql))
+            throw new ArgumentException("Query SQL cannot be null, empty, or whitespace.", nameof(querySql));
+
+        ExecuteNonQuery("CREATE TABLE textagg_distinct_order (grp INT, val VARCHAR(20) NULL, ord1 INT, ord2 INT)");
+        ExecuteNonQuery("INSERT INTO textagg_distinct_order (grp, val, ord1, ord2) VALUES (1, 'b', 1, 1)");
+        ExecuteNonQuery("INSERT INTO textagg_distinct_order (grp, val, ord1, ord2) VALUES (1, 'a', 1, 2)");
+        ExecuteNonQuery("INSERT INTO textagg_distinct_order (grp, val, ord1, ord2) VALUES (1, 'a', 2, 1)");
+        ExecuteNonQuery("INSERT INTO textagg_distinct_order (grp, val, ord1, ord2) VALUES (1, NULL, 0, 0)");
+
+        var rows = Query(querySql);
+        Assert.Single(rows);
+
+        var joined = Convert.ToString(rows[0].joined) ?? string.Empty;
+        Assert.Equal(expected, joined);
     }
 
 
