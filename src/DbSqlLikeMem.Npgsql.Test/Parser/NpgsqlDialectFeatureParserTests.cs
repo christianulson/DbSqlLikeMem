@@ -23,6 +23,7 @@ public sealed class NpgsqlDialectFeatureParserTests
         var ins = Assert.IsType<SqlInsertQuery>(parsed);
         Assert.True(ins.HasOnDuplicateKeyUpdate);
         Assert.Empty(ins.OnDupAssigns);
+        Assert.True(ins.IsOnConflictDoNothing);
     }
 
     /// <summary>
@@ -87,6 +88,8 @@ RETURNING id";
         var ins = Assert.IsType<SqlInsertQuery>(parsed);
         Assert.True(ins.HasOnDuplicateKeyUpdate);
         Assert.Single(ins.OnDupAssigns);
+        Assert.Contains("users.id", ins.OnConflictUpdateWhereRaw, StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(ins.OnConflictUpdateWhereExpr);
     }
 
     /// <summary>
@@ -146,6 +149,24 @@ RETURNING id";
         Assert.Equal(2, parsed.Returning.Count);
         Assert.Equal("id", parsed.Returning[0].Raw);
         Assert.Equal("name", parsed.Returning[1].Raw);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE ... RETURNING with qualified wildcard preserves projection item in AST.
+    /// PT: Garante que UPDATE ... RETURNING com wildcard qualificado preserve o item de projeção na AST.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versão do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseUpdate_ReturningQualifiedWildcard_ShouldCaptureReturningItem(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING users.*";
+
+        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Single(parsed.Returning);
+        Assert.Equal("users.*", parsed.Returning[0].Raw);
     }
 
     /// <summary>

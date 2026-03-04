@@ -86,6 +86,11 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsOnConflictClause => true;
     /// <summary>
+    /// EN: Gets whether RETURNING clause is supported for DML statements.
+    /// PT: Obtém se a cláusula RETURNING é suportada para comandos DML.
+    /// </summary>
+    public override bool SupportsReturning => true;
+    /// <summary>
     /// EN: Gets whether order by nulls modifier is supported.
     /// PT: Obtém se há suporte a order by nulls modifier.
     /// </summary>

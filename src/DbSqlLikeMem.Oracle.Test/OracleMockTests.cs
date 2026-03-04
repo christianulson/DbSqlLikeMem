@@ -394,4 +394,80 @@ public sealed class OracleMockTests
         Assert.Equal(2L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    [Fact]
+    [Trait("Category", "OracleMock")]
+    public void ExecuteNonQuery_InsertReturningInto_ShouldPopulateOutputParameter()
+    {
+        using var command = new OracleCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (801, 'Returning Into', 'insert@test.local') RETURNING Id INTO :out_id"
+        };
+
+        var outParam = new Oracle.ManagedDataAccess.Client.OracleParameter(":out_id", Oracle.ManagedDataAccess.Client.OracleDbType.Int32)
+        {
+            Direction = ParameterDirection.Output
+        };
+        command.Parameters.Add(outParam);
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Equal(801, Convert.ToInt32(outParam.Value, CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    [Trait("Category", "OracleMock")]
+    public void ExecuteNonQuery_UpdateReturningInto_ShouldPopulateOutputParameter()
+    {
+        using var setup = new OracleCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (802, 'Before Update', 'before@test.local')"
+        };
+        setup.ExecuteNonQuery();
+
+        using var command = new OracleCommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'After Update' WHERE Id = 802 RETURNING Name INTO :out_name"
+        };
+
+        var outParam = new Oracle.ManagedDataAccess.Client.OracleParameter(":out_name", Oracle.ManagedDataAccess.Client.OracleDbType.Varchar2)
+        {
+            Direction = ParameterDirection.Output
+        };
+        command.Parameters.Add(outParam);
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Equal("After Update", Convert.ToString(outParam.Value, CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    [Trait("Category", "OracleMock")]
+    public void ExecuteNonQuery_DeleteReturningInto_ShouldPopulateOutputParameter()
+    {
+        using var setup = new OracleCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (803, 'To Delete', 'delete@test.local')"
+        };
+        setup.ExecuteNonQuery();
+
+        using var command = new OracleCommandMock(_connection)
+        {
+            CommandText = "DELETE FROM Users WHERE Id = 803 RETURNING Name INTO :out_name"
+        };
+
+        var outParam = new Oracle.ManagedDataAccess.Client.OracleParameter(":out_name", Oracle.ManagedDataAccess.Client.OracleDbType.Varchar2)
+        {
+            Direction = ParameterDirection.Output
+        };
+        command.Parameters.Add(outParam);
+
+        var affected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, affected);
+        Assert.Equal("To Delete", Convert.ToString(outParam.Value, CultureInfo.InvariantCulture));
+        Assert.Empty(_connection.GetTable("Users").Where(r => Convert.ToInt32(r[0], CultureInfo.InvariantCulture) == 803));
+    }
+
 }

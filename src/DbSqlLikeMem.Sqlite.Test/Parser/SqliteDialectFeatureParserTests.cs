@@ -25,6 +25,79 @@ public sealed class SqliteDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures INSERT ... RETURNING captures projection payload in AST for SQLite dialect.
+    /// PT: Garante que INSERT ... RETURNING capture o payload de projeção na AST para o dialeto SQLite.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseInsert_Returning_ShouldCaptureReturningItems(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id, name AS user_name";
+
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+
+        Assert.Equal(2, parsed.Returning.Count);
+        Assert.Equal("id", parsed.Returning[0].Raw);
+        Assert.Equal("name", parsed.Returning[1].Raw);
+        Assert.Equal("user_name", parsed.Returning[1].Alias);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE ... RETURNING captures projection payload in AST for SQLite dialect.
+    /// PT: Garante que UPDATE ... RETURNING capture o payload de projeção na AST para o dialeto SQLite.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseUpdate_Returning_ShouldCaptureReturningItems(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id, name";
+
+        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+
+        Assert.Contains("id = 1", parsed.WhereRaw, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(2, parsed.Returning.Count);
+        Assert.Equal("id", parsed.Returning[0].Raw);
+        Assert.Equal("name", parsed.Returning[1].Raw);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE ... RETURNING with qualified wildcard preserves projection item in AST.
+    /// PT: Garante que UPDATE ... RETURNING com wildcard qualificado preserve o item de projeção na AST.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseUpdate_ReturningQualifiedWildcard_ShouldCaptureReturningItem(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING users.*";
+
+        var parsed = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+
+        Assert.Single(parsed.Returning);
+        Assert.Equal("users.*", parsed.Returning[0].Raw);
+    }
+
+    /// <summary>
+    /// EN: Ensures DELETE ... RETURNING captures projection payload in AST for SQLite dialect.
+    /// PT: Garante que DELETE ... RETURNING capture o payload de projeção na AST para o dialeto SQLite.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseDelete_Returning_ShouldCaptureReturningItems(int version)
+    {
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING id";
+
+        var parsed = Assert.IsType<SqlDeleteQuery>(SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+
+        Assert.Contains("id = 1", parsed.WhereRaw, StringComparison.OrdinalIgnoreCase);
+        Assert.Single(parsed.Returning);
+        Assert.Equal("id", parsed.Returning[0].Raw);
+    }
+
+    /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>

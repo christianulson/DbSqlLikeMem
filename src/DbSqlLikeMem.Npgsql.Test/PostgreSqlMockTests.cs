@@ -399,4 +399,125 @@ public sealed class PostgreSqlMockTests
         Assert.Equal(2L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void ExecuteReader_InsertReturning_ShouldReturnInsertedRows()
+    {
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (501, 'Returning Insert', 'insert@test.local') RETURNING Id, Name AS user_name"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(501, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("Returning Insert", reader.GetString(reader.GetOrdinal("user_name")));
+        Assert.False(reader.Read());
+    }
+
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void ExecuteReader_UpdateReturning_ShouldReturnUpdatedProjection()
+    {
+        using var setup = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (502, 'Before Update', 'before@test.local')"
+        };
+        setup.ExecuteNonQuery();
+
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'After Update' WHERE Id = 502 RETURNING Id, Name"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(502, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("After Update", reader.GetString(reader.GetOrdinal("Name")));
+        Assert.False(reader.Read());
+    }
+
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void ExecuteReader_DeleteReturning_ShouldReturnDeletedRowSnapshot()
+    {
+        using var setup = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (503, 'To Delete', 'delete@test.local')"
+        };
+        setup.ExecuteNonQuery();
+
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "DELETE FROM Users WHERE Id = 503 RETURNING Id, Name"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(503, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("To Delete", reader.GetString(reader.GetOrdinal("Name")));
+        Assert.False(reader.Read());
+        Assert.Empty(_connection.GetTable("Users").Where(r => Convert.ToInt32(r[0]) == 503));
+    }
+
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void ExecuteReader_InsertSelectReturning_ShouldReturnAllInsertedRows()
+    {
+        using var seed = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (511, 'Seed A', 'seed-a@test.local');
+                INSERT INTO Users (Id, Name, Email) VALUES (512, 'Seed B', 'seed-b@test.local');
+                """
+        };
+        seed.ExecuteNonQuery();
+
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO Users (Id, Name, Email)
+                SELECT Id + 1000, Name, Email
+                FROM Users
+                WHERE Id IN (511, 512)
+                RETURNING Id
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1511, reader.GetInt32(0));
+        Assert.True(reader.Read());
+        Assert.Equal(1512, reader.GetInt32(0));
+        Assert.False(reader.Read());
+    }
+
+    [Fact]
+    [Trait("Category", "PostgreSqlMock")]
+    public void ExecuteReader_UpdateReturningQualifiedWildcard_ShouldReturnAllColumns()
+    {
+        using var setup = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (513, 'Before', 'before513@test.local')"
+        };
+        setup.ExecuteNonQuery();
+
+        using var command = new NpgsqlCommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'After' WHERE Id = 513 RETURNING users.*"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(513, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("After", reader.GetString(reader.GetOrdinal("Name")));
+        Assert.Equal("before513@test.local", reader.GetString(reader.GetOrdinal("Email")));
+        Assert.False(reader.Read());
+    }
+
 }
