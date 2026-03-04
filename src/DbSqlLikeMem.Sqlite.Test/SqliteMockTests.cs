@@ -364,6 +364,10 @@ public sealed class SqliteMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_SelectThenUpdateThenChanges_ShouldReflectLastDml behavior.
+    /// PT: Testa o comportamento de TestBatch_SelectThenUpdateThenChanges_ShouldReflectLastDml.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestBatch_SelectThenUpdateThenChanges_ShouldReflectLastDml()
@@ -382,6 +386,10 @@ public sealed class SqliteMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_CallUpdateCommitThenChanges_ShouldReturnZeroAfterCommit behavior.
+    /// PT: Testa o comportamento de TestBatch_CallUpdateCommitThenChanges_ShouldReturnZeroAfterCommit.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestBatch_CallUpdateCommitThenChanges_ShouldReturnZeroAfterCommit()
@@ -400,6 +408,10 @@ public sealed class SqliteMockTests
     }
 
 
+    /// <summary>
+    /// EN: Tests TestBatch_UpdateThenSelectThenChanges_ShouldReflectLastSelect behavior.
+    /// PT: Testa o comportamento de TestBatch_UpdateThenSelectThenChanges_ShouldReflectLastSelect.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void TestBatch_UpdateThenSelectThenChanges_ShouldReflectLastSelect()
@@ -420,6 +432,10 @@ public sealed class SqliteMockTests
         Assert.Equal(2L, Convert.ToInt64(reader.GetValue(0)));
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_InsertReturning_ShouldReturnInsertedRows behavior.
+    /// PT: Testa o comportamento de ExecuteReader_InsertReturning_ShouldReturnInsertedRows.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void ExecuteReader_InsertReturning_ShouldReturnInsertedRows()
@@ -437,6 +453,10 @@ public sealed class SqliteMockTests
         Assert.False(reader.Read());
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_UpdateReturning_ShouldReturnUpdatedProjection behavior.
+    /// PT: Testa o comportamento de ExecuteReader_UpdateReturning_ShouldReturnUpdatedProjection.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void ExecuteReader_UpdateReturning_ShouldReturnUpdatedProjection()
@@ -460,6 +480,10 @@ public sealed class SqliteMockTests
         Assert.False(reader.Read());
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_DeleteReturning_ShouldReturnDeletedRowSnapshot behavior.
+    /// PT: Testa o comportamento de ExecuteReader_DeleteReturning_ShouldReturnDeletedRowSnapshot.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void ExecuteReader_DeleteReturning_ShouldReturnDeletedRowSnapshot()
@@ -484,6 +508,10 @@ public sealed class SqliteMockTests
         Assert.DoesNotContain(_connection.GetTable("users"), r => Convert.ToInt32(r[0]) == 603);
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_InsertSelectReturning_ShouldReturnAllInsertedRows behavior.
+    /// PT: Testa o comportamento de ExecuteReader_InsertSelectReturning_ShouldReturnAllInsertedRows.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void ExecuteReader_InsertSelectReturning_ShouldReturnAllInsertedRows()
@@ -517,6 +545,10 @@ public sealed class SqliteMockTests
         Assert.False(reader.Read());
     }
 
+    /// <summary>
+    /// EN: Tests ExecuteReader_UpdateReturningQualifiedWildcard_ShouldReturnAllColumns behavior.
+    /// PT: Testa o comportamento de ExecuteReader_UpdateReturningQualifiedWildcard_ShouldReturnAllColumns.
+    /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
     public void ExecuteReader_UpdateReturningQualifiedWildcard_ShouldReturnAllColumns()
