@@ -151,7 +151,7 @@ ORDER BY TABLE_NAME;", new { schema })];
         List<ColumnMeta> Columns,
         List<string> PrimaryKey,
         Dictionary<string, (bool Unique, List<string> Cols)> Indexes,
-        List<(string Col, string RefTable, string RefCol)> ForeignKeys);
+        Dictionary<string, (string RefTable, List<(string Col, string RefCol)> Cols)> ForeignKeys);
 
     private static TableMeta LoadTableMetadata(
         MySqlConnection cn,
@@ -252,9 +252,10 @@ SELECT INDEX_NAME
         idx.Remove("PRIMARY");
 
         // FKs
-        var fks = new List<(string Col, string RefTable, string RefCol)>();
+        var fks = new Dictionary<string, (string RefTable, List<(string Col, string RefCol)> Cols)>();
         const string qFk = @"
-SELECT KCU.COLUMN_NAME
+SELECT KCU.CONSTRAINT_NAME
+     , KCU.COLUMN_NAME
      , KCU.REFERENCED_TABLE_NAME
      , KCU.REFERENCED_COLUMN_NAME
   FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU
@@ -271,7 +272,12 @@ SELECT KCU.COLUMN_NAME
             using var rd = cmd.ExecuteReader();
             while (rd.Read())
             {
-                fks.Add((rd.GetString(0), rd.GetString(1), rd.GetString(2)));
+                if (!fks.TryGetValue(rd.GetString(0), out var tuple))
+                {
+                    tuple = (RefTable: rd.GetString(2), Cols: []);
+                    fks[rd.GetString(0)] = tuple;
+                }
+                tuple.Cols.Add((Col: rd.GetString(1), RefCol: rd.GetString(3)));
             }
         }
 
@@ -286,7 +292,7 @@ SELECT KCU.COLUMN_NAME
         List<ColumnMeta> columns,
         List<string> primaryKey,
         Dictionary<string, (bool Unique, List<string> Cols)> indexes,
-        List<(string Col, string RefTable, string RefCol)> foreignKeys,
+        Dictionary<string, (string RefTable, List<(string Col, string RefCol)> Cols)> foreignKeys,
         string outputPath)
     {
         var className = $"{GenerationRuleSet.ToPascalCase(tableName)}TableFactory";
@@ -303,7 +309,7 @@ SELECT KCU.COLUMN_NAME
 
         w.WriteLine($"{normalizedAccessibility} static class {className}");
         w.WriteLine("{");
-        w.WriteLine($"    {normalizedAccessibility} static ITableMock {methodName}(this DbMock db)");
+        w.WriteLine($"    {normalizedAccessibility} static ITableMock {methodName}(this DbMock db{(foreignKeys.Count != 0 ? ", bool addForeignKeys = true" : string.Empty)})");
         w.WriteLine("    {");
         if (normalizedAccessibility == "public")
             w.WriteLine("        ArgumentNullException.ThrowIfNull(db);");
@@ -365,10 +371,15 @@ SELECT KCU.COLUMN_NAME
         }
 
         // FKs
-        foreach (var (col, rtab, rcol) in foreignKeys)
+        if (foreignKeys.Count != 0) w.WriteLine($"        if (addForeignKeys) {{");
+        foreach (var (key, value) in foreignKeys.OrderBy(_=>_.Key))
         {
-            w.WriteLine($"        table.CreateForeignKey({GenerationRuleSet.Literal($"FK_{tableName}_{col}_{rtab}_{rcol}")}, {GenerationRuleSet.Literal(rtab)}, [({GenerationRuleSet.Literal(col)}, {GenerationRuleSet.Literal(rcol)})]);");
+            w.WriteLine($@"            table.CreateForeignKey(
+                {GenerationRuleSet.Literal(key)},
+                {GenerationRuleSet.Literal(value.RefTable)},
+                [{string.Join(",", value.Cols.Select(_=>$"({GenerationRuleSet.Literal(_.Col)}, {GenerationRuleSet.Literal(_.RefCol)})"))}]);");
         }
+        if (foreignKeys.Count != 0) w.WriteLine("        }");
 
         w.WriteLine("        return table;");
         w.WriteLine("    }");
