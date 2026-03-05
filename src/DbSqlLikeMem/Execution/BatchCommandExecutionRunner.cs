@@ -1,7 +1,4 @@
-using System.Data.Common;
 using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace DbSqlLikeMem;
 
@@ -22,7 +19,7 @@ internal static class BatchCommandExecutionRunner
             var stats = BatchReaderResultCollector.CollectAllResultSets(reader, tables);
             connection.Metrics.IncrementBatchResultTables(stats.TableCount);
             connection.Metrics.IncrementBatchRowsReturned(stats.RowCount);
-            connection.Metrics.IncrementBatchPhaseElapsedTicks(BatchMetricKeys.Phases.Reader, Stopwatch.GetElapsedTime(startedAt).Ticks);
+            connection.Metrics.IncrementBatchPhaseElapsedTicks(BatchMetricKeys.Phases.Reader, StopwatchCompatible.GetElapsedTicks(startedAt));
         }
         catch (InvalidOperationException ex) when (ex.Message == SqlExceptionMessages.ExecuteReaderWithoutSelectQuery())
         {
@@ -34,7 +31,7 @@ internal static class BatchCommandExecutionRunner
                 BatchMetricKeys.Phases.FallbackNonQuery,
                 command.ExecuteNonQuery);
         }
-        catch (global::System.OperationCanceledException)
+        catch (OperationCanceledException)
         {
             connection.Metrics.IncrementBatchPhaseCancellation(BatchMetricKeys.Phases.Reader);
             connection.Metrics.IncrementBatchCancellation();
@@ -64,7 +61,7 @@ internal static class BatchCommandExecutionRunner
             var stats = BatchReaderResultCollector.CollectAllResultSets(reader, tables);
             connection.Metrics.IncrementBatchResultTables(stats.TableCount);
             connection.Metrics.IncrementBatchRowsReturned(stats.RowCount);
-            connection.Metrics.IncrementBatchPhaseElapsedTicks(BatchMetricKeys.Phases.Reader, Stopwatch.GetElapsedTime(startedAt).Ticks);
+            connection.Metrics.IncrementBatchPhaseElapsedTicks(BatchMetricKeys.Phases.Reader, StopwatchCompatible.GetElapsedTicks(startedAt));
         }
         catch (InvalidOperationException ex) when (ex.Message == SqlExceptionMessages.ExecuteReaderWithoutSelectQuery())
         {
@@ -77,7 +74,7 @@ internal static class BatchCommandExecutionRunner
                 () => command.ExecuteNonQueryAsync(cancellationToken))
                 .ConfigureAwait(false);
         }
-        catch (global::System.OperationCanceledException)
+        catch (OperationCanceledException)
         {
             connection.Metrics.IncrementBatchPhaseCancellation(BatchMetricKeys.Phases.Reader);
             connection.Metrics.IncrementBatchCancellation();

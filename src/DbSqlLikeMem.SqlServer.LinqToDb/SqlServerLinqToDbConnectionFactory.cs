@@ -15,7 +15,7 @@ public sealed class SqlServerLinqToDbConnectionFactory : IDbSqlLikeMemLinqToDbCo
     /// </summary>
     public DbConnection CreateOpenConnection()
     {
-        var connection = new SqlServerConnectionMock(new SqlServerDbMock());
+        var connection = new SqlServerConnectionMock([]);
         connection.Open();
         return connection;
     }

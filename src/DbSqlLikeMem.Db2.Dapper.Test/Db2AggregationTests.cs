@@ -16,7 +16,7 @@ public sealed class Db2AggregationTests : AggregationHavingOrdinalTestsBase<Db2D
     }
 
     /// <inheritdoc />
-    protected override Db2DbMock CreateDb() => new();
+    protected override Db2DbMock CreateDb() => [];
 
     /// <inheritdoc />
     protected override Db2ConnectionMock CreateConnection(Db2DbMock db) => new(db);

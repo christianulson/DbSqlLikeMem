@@ -27,7 +27,7 @@ public sealed class Db2ProviderSurfaceMocksTests
     [Fact]
     public void DataSource_ShouldCreateDb2Connection()
     {
-        var source = new Db2DataSourceMock(new Db2DbMock());
+        var source = new Db2DataSourceMock([]);
 #if NET8_0_OR_GREATER
         using var connection = source.CreateConnection();
 #else

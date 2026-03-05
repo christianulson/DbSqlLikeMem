@@ -16,7 +16,7 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     /// EN: Creates a new SQL Azure mock database instance for each test.
     /// PT: Cria uma nova instância de banco simulado de SQL Azure para cada teste.
     /// </summary>
-    protected override SqlAzureDbMock CreateDb() => new();
+    protected override SqlAzureDbMock CreateDb() => [];
 
     /// <summary>
     /// EN: Indicates SQL Azure test runtime should execute UPDATE/DELETE scenarios that use JOIN-aware paths.

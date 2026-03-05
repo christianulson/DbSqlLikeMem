@@ -27,7 +27,7 @@ public sealed class SqliteProviderSurfaceMocksTests
     [Fact]
     public void DataSource_ShouldCreateSqliteConnection()
     {
-        var source = new SqliteDataSourceMock(new SqliteDbMock());
+        var source = new SqliteDataSourceMock([]);
 #if NET8_0_OR_GREATER
         using var connection = source.CreateConnection();
 #else

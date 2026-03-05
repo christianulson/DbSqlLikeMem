@@ -27,7 +27,7 @@ public sealed class SqlServerProviderSurfaceMocksTests
     [Fact]
     public void DataSource_ShouldCreateSqlServerConnection()
     {
-        var source = new SqlServerDataSourceMock(new SqlServerDbMock());
+        var source = new SqlServerDataSourceMock([]);
 #if NET8_0_OR_GREATER
         using var connection = source.CreateConnection();
 #else

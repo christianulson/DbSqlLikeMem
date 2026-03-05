@@ -2,7 +2,6 @@ using DbConnection = System.Data.Common.DbConnection;
 using DbTransaction = System.Data.Common.DbTransaction;
 using DbDataReader = System.Data.Common.DbDataReader;
 using DbParameterCollection = System.Data.Common.DbParameterCollection;
-using DbParameter = System.Data.Common.DbParameter;
 
 #if NET6_0_OR_GREATER
 using DbBatch = System.Data.Common.DbBatch;
@@ -17,14 +16,12 @@ namespace DbSqlLikeMem.Sqlite;
 /// </summary>
 public sealed class SqliteBatchMock : DbBatch
 {
-    private SqliteConnectionMock? connection;
-    private SqliteTransactionMock? transaction;
 
     /// <summary>
     /// EN: Represents a provider-specific batch mock that executes commands against the in-memory database.
     /// PT: Representa um simulado de lote específico do provedor que executa comandos no banco em memória.
     /// </summary>
-    public SqliteBatchMock() => BatchCommands = new SqliteBatchCommandCollectionMock();
+    public SqliteBatchMock() => BatchCommands = [];
 
     /// <summary>
     /// EN: Represents a provider-specific batch mock that executes commands against the in-memory database.
@@ -40,11 +37,7 @@ public sealed class SqliteBatchMock : DbBatch
     /// EN: Gets or sets the connection used to execute batch commands.
     /// PT: Obtém ou define a conexão usada para executar comandos em lote.
     /// </summary>
-    public new SqliteConnectionMock? Connection
-    {
-        get => connection;
-        set => connection = value;
-    }
+    public new SqliteConnectionMock? Connection { get; set; }
 
     /// <summary>
     /// EN: Gets or sets the connection used to execute batch commands.
@@ -52,19 +45,15 @@ public sealed class SqliteBatchMock : DbBatch
     /// </summary>
     protected override DbConnection? DbConnection
     {
-        get => connection;
-        set => connection = (SqliteConnectionMock?)value;
+        get => Connection;
+        set => Connection = (SqliteConnectionMock?)value;
     }
 
     /// <summary>
     /// EN: Gets or sets the transaction associated with batch execution.
     /// PT: Obtém ou define a transação associada à execução em lote.
     /// </summary>
-    public new SqliteTransactionMock? Transaction
-    {
-        get => transaction;
-        set => transaction = value;
-    }
+    public new SqliteTransactionMock? Transaction { get; set; }
 
     /// <summary>
     /// EN: Gets or sets the transaction associated with batch execution.
@@ -72,8 +61,8 @@ public sealed class SqliteBatchMock : DbBatch
     /// </summary>
     protected override DbTransaction? DbTransaction
     {
-        get => transaction;
-        set => transaction = (SqliteTransactionMock?)value;
+        get => Transaction;
+        set => Transaction = (SqliteTransactionMock?)value;
     }
 
     /// <summary>
@@ -133,35 +122,38 @@ public sealed class SqliteBatchMock : DbBatch
     /// PT: Execute Scalar para o estado atual do lote.
     /// </summary>
     public override object? ExecuteScalar()
-        => BatchScalarExecutionRunner.ExecuteFirstScalar(
-            Connection,
+    {
+        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        return BatchScalarExecutionRunner.ExecuteFirstScalar(
+            connection,
             BatchCommands.Commands,
             CreateExecutableCommand);
+    }
 
     /// <summary>
     /// EN: Execute Non Query Async for the current batch state.
     /// PT: Execute Non consulta Async para o estado atual do lote.
     /// </summary>
-    public override async System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(System.Threading.CancellationToken cancellationToken = default)
+    public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default)
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
-        return await BatchAsyncExecutionRunner
+        return BatchAsyncExecutionRunner
             .ExecuteNonQueryCommandsAsync(
                 connection,
                 BatchCommands.Commands,
                 CreateExecutableCommand,
                 cancellationToken)
-            .ConfigureAwait(false);
+;
     }
 
     /// <summary>
     /// EN: Execute Db Data Reader Async for the current batch state.
     /// PT: Execute Db Data leitor Async para o estado atual do lote.
     /// </summary>
-    protected override async System.Threading.Tasks.Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, System.Threading.CancellationToken cancellationToken = default)
+    protected override Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken = default)
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
-        return await BatchAsyncExecutionRunner
+        return BatchAsyncExecutionRunner
             .ExecuteReaderCommandsAsync(
                 connection,
                 BatchCommands.Commands,
@@ -169,19 +161,22 @@ public sealed class SqliteBatchMock : DbBatch
                 behavior,
                 static tables => (DbDataReader)new SqliteDataReaderMock(tables),
                 cancellationToken)
-            .ConfigureAwait(false);
+;
     }
 
     /// <summary>
     /// EN: Execute Scalar Async for the current batch state.
     /// PT: Execute Scalar Async para o estado atual do lote.
     /// </summary>
-    public override System.Threading.Tasks.Task<object?> ExecuteScalarAsync(System.Threading.CancellationToken cancellationToken = default)
-        => BatchScalarExecutionRunner.ExecuteFirstScalarAsync(
-            Connection,
+    public override Task<object?> ExecuteScalarAsync(CancellationToken cancellationToken = default)
+    {
+        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        return BatchScalarExecutionRunner.ExecuteFirstScalarAsync(
+            connection,
             BatchCommands.Commands,
             CreateExecutableCommand,
             cancellationToken);
+    }
 
     private SqliteCommandMock CreateExecutableCommand(SqliteBatchCommandMock batchCommand)
     {
@@ -197,10 +192,10 @@ public sealed class SqliteBatchMock : DbBatch
     /// EN: Executes prepare async.
     /// PT: Executa prepare async.
     /// </summary>
-    public override System.Threading.Tasks.Task PrepareAsync(System.Threading.CancellationToken cancellationToken = default)
+    public override Task PrepareAsync(CancellationToken cancellationToken = default)
     {
         Prepare();
-        return System.Threading.Tasks.Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
     /// <summary>

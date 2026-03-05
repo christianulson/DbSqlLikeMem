@@ -1,7 +1,3 @@
-using System.Collections.Generic;
-using System.Data;
-using System.Data.Common;
-
 namespace DbSqlLikeMem;
 
 internal static class BatchSyncExecutionRunner
@@ -10,7 +6,6 @@ internal static class BatchSyncExecutionRunner
         DbConnectionMockBase connection,
         IReadOnlyList<TBatchCommand> commands,
         Func<TBatchCommand, DbCommand> commandFactory)
-        where TBatchCommand : DbBatchCommand
     {
         if (commands.Count == 0)
         {
@@ -35,12 +30,11 @@ internal static class BatchSyncExecutionRunner
         IReadOnlyList<TBatchCommand> commands,
         Func<TBatchCommand, DbCommand> commandFactory,
         CommandBehavior behavior)
-        where TBatchCommand : DbBatchCommand
     {
         if (commands.Count == 0)
         {
             connection.Metrics.IncrementBatchEmptyReaderExecution();
-            return new List<TableResultMock>(0);
+            return [];
         }
 
         BatchExecutionGuards.RequireOpenConnectionState(connection);
@@ -65,7 +59,6 @@ internal static class BatchSyncExecutionRunner
         Func<TBatchCommand, DbCommand> commandFactory,
         CommandBehavior behavior,
         Func<List<TableResultMock>, TReader> readerFactory)
-        where TBatchCommand : DbBatchCommand
     {
         var tables = ExecuteReaderCommands(connection, commands, commandFactory, behavior);
         return readerFactory(tables);

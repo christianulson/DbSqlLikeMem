@@ -139,16 +139,16 @@ public sealed class MySqlBatchMock :
     /// EN: Asynchronously executes all commands and returns a data reader.
     /// PT: Executa todos os comandos de forma assíncrona e retorna um leitor de dados.
     /// </summary>
-    protected override async Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
+    protected override Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
 #else
-    private async Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
+    private Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
 #endif
     {
         //this.ResetCommandTimeout();
         //using var registration = ((ICancellableCommand)this).RegisterCancel(cancellationToken);
-        return await ExecuteReaderCoreAsync(behavior,
+        return ExecuteReaderCoreAsync(behavior,
             //AsyncIOBehavior, 
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
     }
 
     private async Task<DbDataReader> ExecuteReaderCoreAsync(CommandBehavior behavior,
@@ -376,34 +376,34 @@ public sealed class MySqlBatchMock :
         Cancel();
     }
 
-    private async Task<int> DbExecuteNonQueryAsync(CancellationToken cancellationToken)
+    private Task<int> DbExecuteNonQueryAsync(CancellationToken cancellationToken)
     {
         if (!IsValid(out var exception))
             throw exception!;
 
         cancellationToken.ThrowIfCancellationRequested();
-        return await BatchAsyncExecutionRunner
+        return BatchAsyncExecutionRunner
             .ExecuteNonQueryCommandsAsync(
                 Connection!,
                 BatchCommands.Commands,
                 CreateExecutableCommand,
                 cancellationToken)
-            .ConfigureAwait(false);
+;
     }
 
-    private async Task<object?> DbExecuteScalarAsync(CancellationToken cancellationToken)
+    private Task<object?> DbExecuteScalarAsync(CancellationToken cancellationToken)
     {
         if (!IsValid(out var exception))
             throw exception!;
 
         cancellationToken.ThrowIfCancellationRequested();
-        return await BatchScalarExecutionRunner
+        return BatchScalarExecutionRunner
             .ExecuteFirstScalarAsync(
                 Connection!,
                 BatchCommands.Commands,
                 CreateExecutableCommand,
                 cancellationToken)
-            .ConfigureAwait(false);
+;
     }
 
     private MySqlCommandMock CreateExecutableCommand(MySqlBatchCommandMock batchCommand)

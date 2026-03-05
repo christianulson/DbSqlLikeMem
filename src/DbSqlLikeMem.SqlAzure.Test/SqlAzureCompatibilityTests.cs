@@ -67,7 +67,7 @@ public sealed class SqlAzureCompatibilityTests
     [Fact]
     public void SqlAzureDataSourceMock_ShouldCreateSqlAzureConnection()
     {
-        var source = new SqlAzureDataSourceMock(new SqlAzureDbMock());
+        var source = new SqlAzureDataSourceMock([]);
 #if NET8_0_OR_GREATER
         using var connection = source.CreateConnection();
 #else

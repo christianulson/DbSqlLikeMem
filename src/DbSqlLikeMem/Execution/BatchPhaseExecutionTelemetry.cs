@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Threading.Tasks;
 
 namespace DbSqlLikeMem;
 
@@ -29,10 +28,10 @@ internal static class BatchPhaseExecutionTelemetry
         try
         {
             var result = operation();
-            connection.Metrics.IncrementBatchPhaseElapsedTicks(phase, Stopwatch.GetElapsedTime(startedAt).Ticks);
+            connection.Metrics.IncrementBatchPhaseElapsedTicks(phase, StopwatchCompatible.GetElapsedTicks(startedAt));
             return result;
         }
-        catch (global::System.OperationCanceledException)
+        catch (OperationCanceledException)
         {
             connection.Metrics.IncrementBatchPhaseCancellation(phase);
             connection.Metrics.IncrementBatchCancellation();
@@ -70,10 +69,10 @@ internal static class BatchPhaseExecutionTelemetry
         try
         {
             var result = await operationAsync().ConfigureAwait(false);
-            connection.Metrics.IncrementBatchPhaseElapsedTicks(phase, Stopwatch.GetElapsedTime(startedAt).Ticks);
+            connection.Metrics.IncrementBatchPhaseElapsedTicks(phase, StopwatchCompatible.GetElapsedTicks(startedAt));
             return result;
         }
-        catch (global::System.OperationCanceledException)
+        catch (OperationCanceledException)
         {
             connection.Metrics.IncrementBatchPhaseCancellation(phase);
             connection.Metrics.IncrementBatchCancellation();

@@ -49,7 +49,7 @@ public sealed class SqlAzureMockExceptionSurfaceTests
         var table = db.AddTable("users");
         table.AddColumn("id", DbType.Int32, false);
 
-        var ex = Assert.Throws<SqlAzureMockException>(() => table.Add(new Dictionary<int, object?>()));
+        var ex = Assert.Throws<SqlAzureMockException>(() => table.Add([]));
         ex.ErrorCode.Should().Be(1048);
     }
 
@@ -70,7 +70,7 @@ public sealed class SqlAzureMockExceptionSurfaceTests
         children.CreateForeignKey(
             "fk_children_parent",
             "parents",
-            new HashSet<(string col, string refCol)> { ("parentid", "id") });
+            [("parentid", "id")]);
 
         var ex = Assert.Throws<SqlAzureMockException>(() => children.Add(new Dictionary<int, object?> { [0] = 999 }));
         ex.ErrorCode.Should().Be(1452);
@@ -94,7 +94,7 @@ public sealed class SqlAzureMockExceptionSurfaceTests
         child.CreateForeignKey(
             "fk_children_parent",
             "parents",
-            new HashSet<(string col, string refCol)> { ("parentid", "id") });
+            [("parentid", "id")]);
         child.Add(new Dictionary<int, object?> { [0] = 42 });
 
         using var connection = new SqlAzureConnectionMock(db);

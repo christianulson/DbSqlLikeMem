@@ -13,7 +13,7 @@ public sealed class MySqlConnectorFactoryMockTests
     [Fact]
     public void CreateCoreMembers_ShouldReturnProviderMocks()
     {
-        var factory = MySqlConnectorFactoryMock.GetInstance(new MySqlDbMock());
+        var factory = MySqlConnectorFactoryMock.GetInstance([]);
 
         Assert.IsType<MySqlCommandMock>(factory.CreateCommand());
         Assert.IsType<MySqlConnectionMock>(factory.CreateConnection());
@@ -29,7 +29,7 @@ public sealed class MySqlConnectorFactoryMockTests
     [Fact]
     public void CreateBatchMembers_ShouldReturnProviderMocks()
     {
-        var factory = MySqlConnectorFactoryMock.GetInstance(new MySqlDbMock());
+        var factory = MySqlConnectorFactoryMock.GetInstance([]);
 
         Assert.True(factory.CanCreateBatch);
         Assert.IsType<MySqlBatchMock>(factory.CreateBatch());
@@ -45,7 +45,7 @@ public sealed class MySqlConnectorFactoryMockTests
     [Fact]
     public void CreateDataSource_ShouldReturnProviderDataSourceMock()
     {
-        var factory = MySqlConnectorFactoryMock.GetInstance(new MySqlDbMock());
+        var factory = MySqlConnectorFactoryMock.GetInstance([]);
 
         var dataSource = factory.CreateDataSource("Host=mock");
         Assert.IsType<MySqlDataSourceMock>(dataSource);

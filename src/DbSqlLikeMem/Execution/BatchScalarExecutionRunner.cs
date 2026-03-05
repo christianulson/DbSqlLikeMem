@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Data.Common;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace DbSqlLikeMem;
 
 internal static class BatchScalarExecutionRunner
@@ -12,7 +6,6 @@ internal static class BatchScalarExecutionRunner
         DbConnectionMockBase connection,
         IReadOnlyList<TBatchCommand> commands,
         Func<TBatchCommand, DbCommand> commandFactory)
-        where TBatchCommand : DbBatchCommand
     {
         if (commands.Count == 0)
         {
@@ -36,7 +29,6 @@ internal static class BatchScalarExecutionRunner
         IReadOnlyList<TBatchCommand> commands,
         Func<TBatchCommand, DbCommand> commandFactory,
         CancellationToken cancellationToken)
-        where TBatchCommand : DbBatchCommand
     {
         if (commands.Count == 0)
         {

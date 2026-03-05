@@ -4138,7 +4138,7 @@ private void FillPercentRankOrCumeDist(
 
             // ✅ Caso especial: IN @ids onde @ids é lista/array
             // Expande IEnumerable (mas não string) como múltiplos candidatos.
-            if (v is System.Collections.IEnumerable ie && v is not string)
+            if (v is IEnumerable ie && v is not string)
             {
                 foreach (var item in ie)
                 {

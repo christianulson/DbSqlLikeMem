@@ -46,8 +46,8 @@ public sealed class SqlServerDialectFeatureParserTests
         var sql = "SELECT id FROM users ORDER BY id OFFSET @p0 ROWS FETCH FIRST @p1 ROWS ONLY";
         var pars = new SqlServerDataParameterCollectionMock
         {
-            new Microsoft.Data.SqlClient.SqlParameter("@p0", 1),
-            new Microsoft.Data.SqlClient.SqlParameter("@p1", 2)
+            new SqlParameter("@p0", 1),
+            new SqlParameter("@p1", 2)
         };
 
         var parsed = SqlQueryParser.Parse(sql, new SqlServerDialect(version), pars);

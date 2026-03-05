@@ -16,7 +16,7 @@ public sealed class MySqlAggregationTests : AggregationHavingOrdinalTestsBase<My
     }
 
     /// <inheritdoc />
-    protected override MySqlDbMock CreateDb() => new();
+    protected override MySqlDbMock CreateDb() => [];
 
     /// <inheritdoc />
     protected override MySqlConnectionMock CreateConnection(MySqlDbMock db) => new(db);

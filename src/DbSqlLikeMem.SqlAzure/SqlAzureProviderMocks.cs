@@ -205,7 +205,7 @@ public class SqlAzureConnectionMock : SqlServerConnectionMock
     public SqlAzureConnectionMock(
        SqlAzureDbMock? db = null,
        string? defaultDatabase = null
-   ) : base(db ?? new SqlAzureDbMock(), defaultDatabase)
+   ) : base(db ?? [], defaultDatabase)
     {
         _serverVersion = $"SQL Azure {Db.Version}";
     }
@@ -466,7 +466,7 @@ public sealed class SqlAzureConnectorFactoryMock : DbProviderFactory
     /// EN: Creates a generic connection string builder for provider scenarios.
     /// PT: Cria um construtor generico de string de conexao para cenarios de provedor.
     /// </summary>
-    public override DbConnectionStringBuilder CreateConnectionStringBuilder() => new DbConnectionStringBuilder();
+    public override DbConnectionStringBuilder CreateConnectionStringBuilder() => [];
 
     /// <summary>
     /// EN: Creates a provider parameter instance compatible with SQL Azure mocks.
@@ -543,7 +543,7 @@ public sealed class SqlAzureBatchMock : DbBatch
     /// EN: Creates an empty SQL Azure batch mock with an empty command collection.
     /// PT: Cria um lote simulado do SQL Azure vazio com colecao de comandos vazia.
     /// </summary>
-    public SqlAzureBatchMock() => BatchCommands = new SqlAzureBatchCommandCollectionMock();
+    public SqlAzureBatchMock() => BatchCommands = [];
 
     /// <summary>
     /// EN: Creates a SQL Azure batch mock bound to a connection and optional transaction.
@@ -652,35 +652,38 @@ public sealed class SqlAzureBatchMock : DbBatch
     /// PT: Executa o primeiro comando do lote e retorna seu resultado escalar.
     /// </summary>
     public override object? ExecuteScalar()
-        => BatchScalarExecutionRunner.ExecuteFirstScalar(
-            Connection,
+    {
+        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        return BatchScalarExecutionRunner.ExecuteFirstScalar(
+            connection,
             BatchCommands.Commands,
             CreateExecutableCommand);
+    }
 
     /// <summary>
     /// EN: Asynchronously executes all batch commands as non-query operations.
     /// PT: Executa assincronamente todos os comandos do lote como operacoes sem consulta.
     /// </summary>
-    public override async System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(System.Threading.CancellationToken cancellationToken = default)
+    public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default)
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
-        return await BatchAsyncExecutionRunner
+        return BatchAsyncExecutionRunner
             .ExecuteNonQueryCommandsAsync(
                 connection,
                 BatchCommands.Commands,
                 CreateExecutableCommand,
                 cancellationToken)
-            .ConfigureAwait(false);
+;
     }
 
     /// <summary>
     /// EN: Asynchronously executes all batch commands and returns a combined data reader.
     /// PT: Executa assincronamente todos os comandos do lote e retorna um data reader combinado.
     /// </summary>
-    protected override async System.Threading.Tasks.Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, System.Threading.CancellationToken cancellationToken = default)
+    protected override Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken = default)
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
-        return await BatchAsyncExecutionRunner
+        return BatchAsyncExecutionRunner
             .ExecuteReaderCommandsAsync(
                 connection,
                 BatchCommands.Commands,
@@ -688,19 +691,22 @@ public sealed class SqlAzureBatchMock : DbBatch
                 behavior,
                 static tables => (DbDataReader)new SqlAzureDataReaderMock(tables),
                 cancellationToken)
-            .ConfigureAwait(false);
+;
     }
 
     /// <summary>
     /// EN: Asynchronously executes the first batch command and returns its scalar result.
     /// PT: Executa assincronamente o primeiro comando do lote e retorna seu resultado escalar.
     /// </summary>
-    public override System.Threading.Tasks.Task<object?> ExecuteScalarAsync(System.Threading.CancellationToken cancellationToken = default)
-        => BatchScalarExecutionRunner.ExecuteFirstScalarAsync(
-            Connection,
+    public override Task<object?> ExecuteScalarAsync(CancellationToken cancellationToken = default)
+    {
+        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        return BatchScalarExecutionRunner.ExecuteFirstScalarAsync(
+            connection,
             BatchCommands.Commands,
             CreateExecutableCommand,
             cancellationToken);
+    }
 
     private SqlAzureCommandMock CreateExecutableCommand(SqlAzureBatchCommandMock batchCommand)
     {
@@ -716,7 +722,7 @@ public sealed class SqlAzureBatchMock : DbBatch
     /// EN: Asynchronously prepares the batch for execution.
     /// PT: Prepara assincronamente o lote para execucao.
     /// </summary>
-    public override System.Threading.Tasks.Task PrepareAsync(System.Threading.CancellationToken cancellationToken = default)
+    public override Task PrepareAsync(CancellationToken cancellationToken = default)
     {
         Prepare();
         return System.Threading.Tasks.Task.CompletedTask;

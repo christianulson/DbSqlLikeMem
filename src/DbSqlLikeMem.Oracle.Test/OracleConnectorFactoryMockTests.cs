@@ -13,7 +13,7 @@ public sealed class OracleConnectorFactoryMockTests
     [Fact]
     public void CreateCoreMembers_ShouldReturnProviderMocks()
     {
-        var factory = OracleConnectorFactoryMock.GetInstance(new OracleDbMock());
+        var factory = OracleConnectorFactoryMock.GetInstance([]);
 
         Assert.IsType<OracleCommandMock>(factory.CreateCommand());
         Assert.IsType<OracleConnectionMock>(factory.CreateConnection());
@@ -30,7 +30,7 @@ public sealed class OracleConnectorFactoryMockTests
     [Fact]
     public void CreateBatchMembers_ShouldReturnProviderMocks()
     {
-        var factory = OracleConnectorFactoryMock.GetInstance(new OracleDbMock());
+        var factory = OracleConnectorFactoryMock.GetInstance([]);
 
         Assert.True(factory.CanCreateBatch);
         Assert.IsType<OracleBatchMock>(factory.CreateBatch());
@@ -46,7 +46,7 @@ public sealed class OracleConnectorFactoryMockTests
     [Fact]
     public void CreateDataSource_ShouldReturnProviderDataSourceMock()
     {
-        var factory = OracleConnectorFactoryMock.GetInstance(new OracleDbMock());
+        var factory = OracleConnectorFactoryMock.GetInstance([]);
 
         var dataSource = factory.CreateDataSource("Host=mock");
         Assert.IsType<OracleDataSourceMock>(dataSource);

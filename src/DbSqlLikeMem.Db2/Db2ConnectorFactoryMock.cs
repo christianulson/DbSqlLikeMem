@@ -37,7 +37,7 @@ public sealed class Db2ConnectorFactoryMock : DbProviderFactory
     /// EN: Creates a new connection string builder instance.
     /// PT: Cria uma nova instância de construtor de string de conexão.
     /// </summary>
-    public override DbConnectionStringBuilder CreateConnectionStringBuilder() => new DbConnectionStringBuilder();
+    public override DbConnectionStringBuilder CreateConnectionStringBuilder() => [];
 
     /// <summary>
     /// EN: Creates a new parameter instance.

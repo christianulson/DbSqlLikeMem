@@ -16,7 +16,7 @@ public sealed class SqlServerAggregationTests : AggregationHavingOrdinalTestsBas
     }
 
     /// <inheritdoc />
-    protected override SqlServerDbMock CreateDb() => new();
+    protected override SqlServerDbMock CreateDb() => [];
 
     /// <inheritdoc />
     protected override SqlServerConnectionMock CreateConnection(SqlServerDbMock db) => new(db);

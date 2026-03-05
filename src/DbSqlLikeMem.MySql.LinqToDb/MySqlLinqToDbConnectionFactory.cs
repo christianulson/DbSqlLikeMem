@@ -15,7 +15,7 @@ public sealed class MySqlLinqToDbConnectionFactory : IDbSqlLikeMemLinqToDbConnec
     /// </summary>
     public DbConnection CreateOpenConnection()
     {
-        var connection = new MySqlConnectionMock(new MySqlDbMock());
+        var connection = new MySqlConnectionMock([]);
         connection.Open();
         return connection;
     }

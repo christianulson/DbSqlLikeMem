@@ -1,5 +1,3 @@
-using System.Data.Common;
-
 namespace DbSqlLikeMem;
 
 internal static class BatchCommandFactory
@@ -10,7 +8,6 @@ internal static class BatchCommandFactory
         TBatchCommand batchCommand,
         int timeout)
         where TCommand : DbCommand
-        where TBatchCommand : DbBatchCommand
     {
         return Create(
             connection,
@@ -27,7 +24,6 @@ internal static class BatchCommandFactory
         int timeout,
         Action<TCommand, TBatchCommand, int> materialize)
         where TCommand : DbCommand
-        where TBatchCommand : DbBatchCommand
     {
         return BatchPhaseExecutionTelemetry.Execute(
             connection,

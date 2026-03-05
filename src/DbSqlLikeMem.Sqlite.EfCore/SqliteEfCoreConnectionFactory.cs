@@ -14,7 +14,7 @@ public sealed class SqliteEfCoreConnectionFactory : IDbSqlLikeMemEfCoreConnectio
     /// </summary>
     public DbConnection CreateOpenConnection()
     {
-        var connection = new SqliteConnectionMock(new SqliteDbMock());
+        var connection = new SqliteConnectionMock([]);
         connection.Open();
         return connection;
     }

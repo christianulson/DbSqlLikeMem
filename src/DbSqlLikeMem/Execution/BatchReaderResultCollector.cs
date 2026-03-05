@@ -1,6 +1,3 @@
-using System.Data;
-using System.Data.Common;
-
 namespace DbSqlLikeMem;
 
 internal static class BatchReaderResultCollector

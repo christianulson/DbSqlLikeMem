@@ -14,7 +14,7 @@ public sealed class OracleBatchMock : DbBatch
     /// EN: Initializes an Oracle batch mock with an empty command collection.
     /// PT: Inicializa um simulado de lote Oracle com uma coleção de comandos vazia.
     /// </summary>
-    public OracleBatchMock() => BatchCommands = new OracleBatchCommandCollectionMock();
+    public OracleBatchMock() => BatchCommands = [];
 
     /// <summary>
     /// EN: Initializes an Oracle batch mock bound to a connection and an optional transaction.
@@ -123,35 +123,38 @@ public sealed class OracleBatchMock : DbBatch
     /// PT: Executa o primeiro comando do lote e retorna seu resultado escalar.
     /// </summary>
     public override object? ExecuteScalar()
-        => BatchScalarExecutionRunner.ExecuteFirstScalar(
-            Connection,
+    {
+        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        return BatchScalarExecutionRunner.ExecuteFirstScalar(
+            connection,
             BatchCommands.Commands,
             CreateExecutableCommand);
+    }
 
     /// <summary>
     /// EN: Asynchronously executes all batch commands and returns affected rows.
     /// PT: Executa todos os comandos em lote de forma assíncrona e retorna as linhas afetadas.
     /// </summary>
-    public override async System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(System.Threading.CancellationToken cancellationToken = default)
+    public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default)
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
-        return await BatchAsyncExecutionRunner
+        return BatchAsyncExecutionRunner
             .ExecuteNonQueryCommandsAsync(
                 connection,
                 BatchCommands.Commands,
                 CreateExecutableCommand,
                 cancellationToken)
-            .ConfigureAwait(false);
+;
     }
 
     /// <summary>
     /// EN: Asynchronously executes batch commands and returns a data reader.
     /// PT: Executa os comandos em lote de forma assíncrona e retorna um leitor de dados.
     /// </summary>
-    protected override async System.Threading.Tasks.Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, System.Threading.CancellationToken cancellationToken = default)
+    protected override Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken = default)
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
-        return await BatchAsyncExecutionRunner
+        return BatchAsyncExecutionRunner
             .ExecuteReaderCommandsAsync(
                 connection,
                 BatchCommands.Commands,
@@ -159,19 +162,22 @@ public sealed class OracleBatchMock : DbBatch
                 behavior,
                 static tables => (DbDataReader)new OracleDataReaderMock(tables),
                 cancellationToken)
-            .ConfigureAwait(false);
+;
     }
 
     /// <summary>
     /// EN: Asynchronously executes the first batch command and returns its scalar result.
     /// PT: Executa o primeiro comando do lote de forma assíncrona e retorna seu resultado escalar.
     /// </summary>
-    public override System.Threading.Tasks.Task<object?> ExecuteScalarAsync(System.Threading.CancellationToken cancellationToken = default)
-        => BatchScalarExecutionRunner.ExecuteFirstScalarAsync(
-            Connection,
+    public override Task<object?> ExecuteScalarAsync(CancellationToken cancellationToken = default)
+    {
+        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        return BatchScalarExecutionRunner.ExecuteFirstScalarAsync(
+            connection,
             BatchCommands.Commands,
             CreateExecutableCommand,
             cancellationToken);
+    }
 
     private OracleCommandMock CreateExecutableCommand(OracleBatchCommandMock batchCommand)
     {
@@ -187,7 +193,7 @@ public sealed class OracleBatchMock : DbBatch
     /// EN: Completes immediately because this mock does not require server-side preparation.
     /// PT: Conclui imediatamente porque este simulado não requer preparação no servidor.
     /// </summary>
-    public override System.Threading.Tasks.Task PrepareAsync(System.Threading.CancellationToken cancellationToken = default)
+    public override Task PrepareAsync(CancellationToken cancellationToken = default)
     {
         Prepare();
         return System.Threading.Tasks.Task.CompletedTask;

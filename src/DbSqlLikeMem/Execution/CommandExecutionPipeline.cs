@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace DbSqlLikeMem;
 
 internal delegate bool TryExecutePipelineCommand(string sqlRaw, out int affectedRows);
@@ -63,7 +65,7 @@ internal sealed class CommandExecutionPipeline : ICommandExecutionPipeline
                     connection.SetLastFoundRows(affectedRows);
                     var handlerName = handler.GetType().Name;
                     connection.Metrics.IncrementNonQueryHandlerHit(handlerName);
-                    var elapsedTicks = Stopwatch.GetElapsedTime(startedAt).Ticks;
+                    var elapsedTicks = StopwatchCompatible.GetElapsedTicks(startedAt);
                     connection.Metrics.IncrementNonQueryHandlerElapsedTicks(handlerName, elapsedTicks);
                     affectedTotal += affectedRows;
                     handled = true;

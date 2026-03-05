@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Data.SqlClient;
 using System.Text;
-using System.Text.RegularExpressions;
 
 
 namespace DbSqlLikeMem.SqlServer;

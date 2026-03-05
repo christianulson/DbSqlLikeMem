@@ -27,7 +27,7 @@ public sealed class NpgsqlProviderSurfaceMocksTests
     [Fact]
     public void DataSource_ShouldCreateNpgsqlConnection()
     {
-        var source = new NpgsqlDataSourceMock(new NpgsqlDbMock());
+        var source = new NpgsqlDataSourceMock([]);
 #if NET8_0_OR_GREATER
         using var connection = source.CreateConnection();
 #else

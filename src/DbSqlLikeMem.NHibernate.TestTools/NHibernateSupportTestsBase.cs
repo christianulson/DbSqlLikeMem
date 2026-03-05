@@ -232,7 +232,7 @@ public abstract class NHibernateSupportTestsBase(
         }
         catch (global::NHibernate.Exceptions.GenericADOException) when (fallbackToInMemoryWindow)
         {
-            paged = new List<NhTestUser>();
+            paged = [];
         }
 
         if (fallbackToInMemoryWindow && paged.Count == 0)
@@ -3136,7 +3136,7 @@ internal class NhUserGroup
 
     public virtual string Name { get; set; } = string.Empty;
 
-    public virtual IList<NhRelUser> Users { get; set; } = new List<NhRelUser>();
+    public virtual IList<NhRelUser> Users { get; set; } = [];
 }
 
 internal class NhRelUser

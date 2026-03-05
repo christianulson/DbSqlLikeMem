@@ -27,7 +27,7 @@ public sealed class OracleProviderSurfaceMocksTests
     [Fact]
     public void DataSource_ShouldCreateOracleConnection()
     {
-        var source = new OracleDataSourceMock(new OracleDbMock());
+        var source = new OracleDataSourceMock([]);
 #if NET8_0_OR_GREATER
         using var connection = source.CreateConnection();
 #else

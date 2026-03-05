@@ -13,7 +13,7 @@ public sealed class SqlAzureConnectorFactoryMockTests
     [Fact]
     public void CreateCoreMembers_ShouldReturnProviderMocks()
     {
-        var factory = SqlAzureConnectorFactoryMock.GetInstance(new SqlAzureDbMock());
+        var factory = SqlAzureConnectorFactoryMock.GetInstance([]);
 
         Assert.IsType<SqlAzureCommandMock>(factory.CreateCommand());
         Assert.IsType<SqlAzureConnectionMock>(factory.CreateConnection());
@@ -30,7 +30,7 @@ public sealed class SqlAzureConnectorFactoryMockTests
     [Fact]
     public void CreateBatchMembers_ShouldReturnProviderMocks()
     {
-        var factory = SqlAzureConnectorFactoryMock.GetInstance(new SqlAzureDbMock());
+        var factory = SqlAzureConnectorFactoryMock.GetInstance([]);
 
         Assert.True(factory.CanCreateBatch);
         Assert.IsType<SqlAzureBatchMock>(factory.CreateBatch());
@@ -46,7 +46,7 @@ public sealed class SqlAzureConnectorFactoryMockTests
     [Fact]
     public void CreateDataSource_ShouldReturnProviderDataSourceMock()
     {
-        var factory = SqlAzureConnectorFactoryMock.GetInstance(new SqlAzureDbMock());
+        var factory = SqlAzureConnectorFactoryMock.GetInstance([]);
 
         var dataSource = factory.CreateDataSource("Host=mock");
         Assert.IsType<SqlAzureDataSourceMock>(dataSource);

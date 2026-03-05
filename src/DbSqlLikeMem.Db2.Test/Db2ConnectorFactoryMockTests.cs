@@ -13,7 +13,7 @@ public sealed class Db2ConnectorFactoryMockTests
     [Fact]
     public void CreateCoreMembers_ShouldReturnProviderMocks()
     {
-        var factory = Db2ConnectorFactoryMock.GetInstance(new Db2DbMock());
+        var factory = Db2ConnectorFactoryMock.GetInstance([]);
 
         Assert.IsType<Db2CommandMock>(factory.CreateCommand());
         Assert.IsType<Db2ConnectionMock>(factory.CreateConnection());
@@ -30,7 +30,7 @@ public sealed class Db2ConnectorFactoryMockTests
     [Fact]
     public void CreateBatchMembers_ShouldReturnProviderMocks()
     {
-        var factory = Db2ConnectorFactoryMock.GetInstance(new Db2DbMock());
+        var factory = Db2ConnectorFactoryMock.GetInstance([]);
 
         Assert.True(factory.CanCreateBatch);
         Assert.IsType<Db2BatchMock>(factory.CreateBatch());
@@ -46,7 +46,7 @@ public sealed class Db2ConnectorFactoryMockTests
     [Fact]
     public void CreateDataSource_ShouldReturnProviderDataSourceMock()
     {
-        var factory = Db2ConnectorFactoryMock.GetInstance(new Db2DbMock());
+        var factory = Db2ConnectorFactoryMock.GetInstance([]);
 
         var dataSource = factory.CreateDataSource("Host=mock");
         Assert.IsType<Db2DataSourceMock>(dataSource);

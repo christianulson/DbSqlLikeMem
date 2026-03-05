@@ -15,7 +15,7 @@ public sealed class SqliteLinqToDbConnectionFactory : IDbSqlLikeMemLinqToDbConne
     /// </summary>
     public DbConnection CreateOpenConnection()
     {
-        var connection = new SqliteConnectionMock(new SqliteDbMock());
+        var connection = new SqliteConnectionMock([]);
         connection.Open();
         return connection;
     }

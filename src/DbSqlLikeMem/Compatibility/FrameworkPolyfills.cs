@@ -168,4 +168,19 @@ namespace DbSqlLikeMem
             return value;
         }
     }
+
+    /// <summary>
+    /// Provides framework-compatible elapsed-ticks calculations from Stopwatch timestamps.
+    /// </summary>
+    public static class StopwatchCompatible
+    {
+        /// <summary>
+        /// Converts a start timestamp (from Stopwatch.GetTimestamp) to elapsed TimeSpan ticks.
+        /// </summary>
+        public static long GetElapsedTicks(long startTimestamp)
+        {
+            var delta = System.Diagnostics.Stopwatch.GetTimestamp() - startTimestamp;
+            return (delta * TimeSpan.TicksPerSecond) / System.Diagnostics.Stopwatch.Frequency;
+        }
+    }
 }

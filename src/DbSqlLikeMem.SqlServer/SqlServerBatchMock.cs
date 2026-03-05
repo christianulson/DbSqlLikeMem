@@ -2,7 +2,6 @@ using DbConnection = System.Data.Common.DbConnection;
 using DbTransaction = System.Data.Common.DbTransaction;
 using DbDataReader = System.Data.Common.DbDataReader;
 using DbParameterCollection = System.Data.Common.DbParameterCollection;
-using DbParameter = System.Data.Common.DbParameter;
 
 #if NET6_0_OR_GREATER
 using DbBatchCommandCollection = System.Data.Common.DbBatchCommandCollection;
@@ -24,7 +23,7 @@ public sealed class SqlServerBatchMock : DbBatch
     /// EN: Represents a provider-specific batch mock that executes commands against the in-memory database.
     /// PT: Representa um simulado de lote específico do provedor que executa comandos no banco em memória.
     /// </summary>
-    public SqlServerBatchMock() => BatchCommands = new SqlServerBatchCommandCollectionMock();
+    public SqlServerBatchMock() => BatchCommands = [];
 
     /// <summary>
     /// EN: Represents a provider-specific batch mock that executes commands against the in-memory database.
@@ -133,35 +132,38 @@ public sealed class SqlServerBatchMock : DbBatch
     /// PT: Execute Scalar para o estado atual do lote.
     /// </summary>
     public override object? ExecuteScalar()
-        => BatchScalarExecutionRunner.ExecuteFirstScalar(
-            Connection,
+    {
+        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        return BatchScalarExecutionRunner.ExecuteFirstScalar(
+            connection,
             BatchCommands.Commands,
             CreateExecutableCommand);
+    }
 
     /// <summary>
     /// EN: Execute Non Query Async for the current batch state.
     /// PT: Execute Non consulta Async para o estado atual do lote.
     /// </summary>
-    public override async System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(System.Threading.CancellationToken cancellationToken = default)
+    public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default)
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
-        return await BatchAsyncExecutionRunner
+        return BatchAsyncExecutionRunner
             .ExecuteNonQueryCommandsAsync(
                 connection,
                 BatchCommands.Commands,
                 CreateExecutableCommand,
                 cancellationToken)
-            .ConfigureAwait(false);
+;
     }
 
     /// <summary>
     /// EN: Execute Db Data Reader Async for the current batch state.
     /// PT: Execute Db Data leitor Async para o estado atual do lote.
     /// </summary>
-    protected override async System.Threading.Tasks.Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, System.Threading.CancellationToken cancellationToken = default)
+    protected override Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken = default)
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
-        return await BatchAsyncExecutionRunner
+        return BatchAsyncExecutionRunner
             .ExecuteReaderCommandsAsync(
                 connection,
                 BatchCommands.Commands,
@@ -169,19 +171,22 @@ public sealed class SqlServerBatchMock : DbBatch
                 behavior,
                 static tables => (DbDataReader)new SqlServerDataReaderMock(tables),
                 cancellationToken)
-            .ConfigureAwait(false);
+;
     }
 
     /// <summary>
     /// EN: Execute Scalar Async for the current batch state.
     /// PT: Execute Scalar Async para o estado atual do lote.
     /// </summary>
-    public override System.Threading.Tasks.Task<object?> ExecuteScalarAsync(System.Threading.CancellationToken cancellationToken = default)
-        => BatchScalarExecutionRunner.ExecuteFirstScalarAsync(
-            Connection,
+    public override Task<object?> ExecuteScalarAsync(CancellationToken cancellationToken = default)
+    {
+        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        return BatchScalarExecutionRunner.ExecuteFirstScalarAsync(
+            connection,
             BatchCommands.Commands,
             CreateExecutableCommand,
             cancellationToken);
+    }
 
     private SqlServerCommandMock CreateExecutableCommand(SqlServerBatchCommandMock batchCommand)
     {
@@ -197,7 +202,7 @@ public sealed class SqlServerBatchMock : DbBatch
     /// EN: Executes prepare async.
     /// PT: Executa prepare async.
     /// </summary>
-    public override System.Threading.Tasks.Task PrepareAsync(System.Threading.CancellationToken cancellationToken = default)
+    public override Task PrepareAsync(CancellationToken cancellationToken = default)
     {
         Prepare();
         return System.Threading.Tasks.Task.CompletedTask;

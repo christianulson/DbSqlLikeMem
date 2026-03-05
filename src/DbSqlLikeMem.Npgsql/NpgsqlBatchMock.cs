@@ -5,7 +5,6 @@ using DbBatchCommandCollection = System.Data.Common.DbBatchCommandCollection;
 using DbDataReader = System.Data.Common.DbDataReader;
 using DbBatchCommand = System.Data.Common.DbBatchCommand;
 using DbParameterCollection = System.Data.Common.DbParameterCollection;
-using DbParameter = System.Data.Common.DbParameter;
 namespace DbSqlLikeMem.Npgsql;
 
 #if NET6_0_OR_GREATER
@@ -22,7 +21,7 @@ public sealed class NpgsqlBatchMock : DbBatch
     /// EN: Initializes a PostgreSQL batch mock with an empty command collection.
     /// PT: Inicializa um simulado de lote PostgreSQL com uma coleção de comandos vazia.
     /// </summary>
-    public NpgsqlBatchMock() => BatchCommands = new NpgsqlBatchCommandCollectionMock();
+    public NpgsqlBatchMock() => BatchCommands = [];
 
     /// <summary>
     /// EN: Initializes a PostgreSQL batch mock bound to a connection and an optional transaction.
@@ -131,35 +130,38 @@ public sealed class NpgsqlBatchMock : DbBatch
     /// PT: Executa o primeiro comando do lote e retorna seu resultado escalar.
     /// </summary>
     public override object? ExecuteScalar()
-        => BatchScalarExecutionRunner.ExecuteFirstScalar(
-            Connection,
+    {
+        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        return BatchScalarExecutionRunner.ExecuteFirstScalar(
+            connection,
             BatchCommands.Commands,
             CreateExecutableCommand);
+    }
 
     /// <summary>
     /// EN: Asynchronously executes all batch commands and returns affected rows.
     /// PT: Executa todos os comandos em lote de forma assíncrona e retorna as linhas afetadas.
     /// </summary>
-    public override async System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(System.Threading.CancellationToken cancellationToken = default)
+    public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default)
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
-        return await BatchAsyncExecutionRunner
+        return BatchAsyncExecutionRunner
             .ExecuteNonQueryCommandsAsync(
                 connection,
                 BatchCommands.Commands,
                 CreateExecutableCommand,
                 cancellationToken)
-            .ConfigureAwait(false);
+;
     }
 
     /// <summary>
     /// EN: Asynchronously executes batch commands and returns a data reader.
     /// PT: Executa os comandos em lote de forma assíncrona e retorna um leitor de dados.
     /// </summary>
-    protected override async System.Threading.Tasks.Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, System.Threading.CancellationToken cancellationToken = default)
+    protected override Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken = default)
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
-        return await BatchAsyncExecutionRunner
+        return BatchAsyncExecutionRunner
             .ExecuteReaderCommandsAsync(
                 connection,
                 BatchCommands.Commands,
@@ -167,19 +169,22 @@ public sealed class NpgsqlBatchMock : DbBatch
                 behavior,
                 static tables => (DbDataReader)new NpgsqlDataReaderMock(tables),
                 cancellationToken)
-            .ConfigureAwait(false);
+;
     }
 
     /// <summary>
     /// EN: Asynchronously executes the first batch command and returns its scalar result.
     /// PT: Executa o primeiro comando do lote de forma assíncrona e retorna seu resultado escalar.
     /// </summary>
-    public override System.Threading.Tasks.Task<object?> ExecuteScalarAsync(System.Threading.CancellationToken cancellationToken = default)
-        => BatchScalarExecutionRunner.ExecuteFirstScalarAsync(
-            Connection,
+    public override Task<object?> ExecuteScalarAsync(CancellationToken cancellationToken = default)
+    {
+        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        return BatchScalarExecutionRunner.ExecuteFirstScalarAsync(
+            connection,
             BatchCommands.Commands,
             CreateExecutableCommand,
             cancellationToken);
+    }
 
     private NpgsqlCommandMock CreateExecutableCommand(NpgsqlBatchCommandMock batchCommand)
     {
@@ -195,7 +200,7 @@ public sealed class NpgsqlBatchMock : DbBatch
     /// EN: Completes immediately because this mock does not require server-side preparation.
     /// PT: Conclui imediatamente porque este simulado não requer preparação no servidor.
     /// </summary>
-    public override System.Threading.Tasks.Task PrepareAsync(System.Threading.CancellationToken cancellationToken = default)
+    public override Task PrepareAsync(CancellationToken cancellationToken = default)
     {
         Prepare();
         return System.Threading.Tasks.Task.CompletedTask;

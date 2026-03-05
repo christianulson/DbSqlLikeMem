@@ -1,7 +1,3 @@
-using System.Data.Common;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace DbSqlLikeMem;
 
 internal static class BatchNonQueryExecutionRunner
@@ -16,17 +12,16 @@ internal static class BatchNonQueryExecutionRunner
             command.ExecuteNonQuery);
     }
 
-    public static async Task<int> ExecuteCommandAsync(
+    public static Task<int> ExecuteCommandAsync(
         DbConnectionMockBase connection,
         DbCommand command,
         CancellationToken cancellationToken)
     {
         connection.Metrics.IncrementBatchNonQueryCommand();
         connection.Metrics.IncrementBatchCommandTypeHit($"{BatchMetricKeys.TypePrefixes.NonQuery}{command.CommandType}");
-        return await BatchPhaseExecutionTelemetry.ExecuteAsync(
+        return BatchPhaseExecutionTelemetry.ExecuteAsync(
             connection,
             BatchMetricKeys.Phases.NonQuery,
-            () => command.ExecuteNonQueryAsync(cancellationToken))
-            .ConfigureAwait(false);
+            () => command.ExecuteNonQueryAsync(cancellationToken));
     }
 }

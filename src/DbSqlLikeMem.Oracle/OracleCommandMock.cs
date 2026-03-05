@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Oracle.ManagedDataAccess.Client;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace DbSqlLikeMem.Oracle;
 
