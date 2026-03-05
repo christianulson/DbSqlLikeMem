@@ -30,7 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DbSqlLikeMem.LinqToDb.Test\DbSqlLikeMem.LinqToDb.Test.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+    <ProjectReference Include="..\DbSqlLikeMem.LinqToDb.TestTools\DbSqlLikeMem.LinqToDb.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
     <ProjectReference Include="..\DbSqlLikeMem.Oracle.LinqToDb\DbSqlLikeMem.Oracle.LinqToDb.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
   </ItemGroup>
 
@@ -40,7 +40,7 @@
 
   <ItemGroup>
     <Using Include="DbSqlLikeMem.LinqToDb" />
-    <Using Include="DbSqlLikeMem.LinqToDb.Test" />
+    <Using Include="DbSqlLikeMem.LinqToDb.TestTools" />
     <Using Include="DbSqlLikeMem.Oracle.LinqToDb" />
     <Using Include="Xunit" />
   </ItemGroup>

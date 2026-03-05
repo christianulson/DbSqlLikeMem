@@ -42,10 +42,32 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Aplicação de regras específicas por dialeto e versão simulada.
 
 #### 1.2.2 Interpretação de comandos DML
-- Implementação estimada: **74%**.
+- Implementação estimada: **96%**.
 - Processamento de comandos de escrita e leitura.
 - Tradução da consulta para operações no estado em memória.
 - Hardening recente reforça parsing de DML com `RETURNING` (itens vazios, vírgula inicial e vírgula final) com mensagens acionáveis no dialeto suportado e gate explícito nos não suportados.
+- Incremento desta sessão: `RETURNING` agora valida parênteses desbalanceados com mensagem acionável e mantém fronteira por `;` em projeções complexas, com cobertura adicional para gate de dialeto não suportado.
+- Incremento desta sessão: `ON CONFLICT (...)` recebeu hardening de lista de alvo (vazio, vírgula inicial e vírgula final) com mensagens acionáveis no dialeto suportado e regressão explícita de gate para dialeto não suportado.
+- Incremento desta sessão: `ON CONFLICT DO UPDATE SET` recebeu validações acionáveis para lista de atribuições malformada (vazia, vírgula inicial/final e atribuição sem expressão).
+- Incremento desta sessão: `ON CONFLICT DO UPDATE SET` passou a validar ausência de vírgula entre atribuições e a respeitar `;` como fronteira de statement após a lista.
+- Incremento desta sessão: `ON CONFLICT` ganhou validações acionáveis para ramo `DO` ausente/inválido e para `DO UPDATE` sem `SET`, com regressão de gate em dialeto não suportado.
+- Incremento desta sessão: `ON CONFLICT` passou a validar `WHERE` vazio no alvo e em `DO UPDATE`, com mensagens acionáveis em dialeto suportado e regressão de gate em não suportados.
+- Incremento desta sessão: `ON CONFLICT ON CONSTRAINT` passou a validar ausência do nome da constraint com mensagem acionável e cobertura de gate para dialeto não suportado.
+- Incremento desta sessão: `INSERT` passou a validar tokens inesperados após o statement (com tolerância a `;` final), evitando parse parcial silencioso em SQL malformado.
+- Incremento desta sessão: `UPDATE` e `DELETE` também passaram a validar tokens inesperados após o statement (com tolerância a `;` final), alinhando boundary check de DML.
+- Incremento desta sessão: `UPDATE` e `DELETE` agora rejeitam `WHERE` vazio com mensagens acionáveis (`... WHERE requires a predicate.`).
+- Incremento desta sessão: cláusulas `WHERE` de `UPDATE`/`DELETE` e de `ON CONFLICT` agora normalizam `;` terminal antes da validação, rejeitando explicitamente casos como `WHERE;` com mensagem acionável de predicado ausente.
+- Incremento desta sessão: cobertura de parser foi estendida para casos `ON CONFLICT ... WHERE;` e `ON CONFLICT DO UPDATE ... WHERE;`, garantindo erro acionável no dialeto suportado e preservando gate `NotSupported` no SQL Server.
+- Incremento desta sessão: `UPDATE SET` ganhou boundary check para `RETURNING` sem `WHERE` e validações acionáveis de lista de atribuições (vírgula final/falta de separador), evitando captura indevida de `RETURNING` como expressão.
+- Incremento desta sessão: `INSERT VALUES` ganhou validações acionáveis de lista de tuplas (linha vazia, vírgula inicial/final e separação obrigatória por vírgula), reduzindo parse parcial em sintaxe malformada.
+- Incremento desta sessão: `INSERT (colunas) VALUES (...)` passou a validar cardinalidade entre colunas alvo e expressões por linha, com mensagem acionável por linha divergente.
+- Incremento desta sessão: `INSERT VALUES` também passou a validar cardinalidade consistente entre múltiplas linhas (row arity), mesmo sem lista explícita de colunas.
+- Incremento desta sessão: `INSERT VALUES` passou a rejeitar expressão vazia dentro da tupla (ex.: `(1,,2)` e `(1,)`) com mensagem acionável.
+- Incremento desta sessão: `INSERT (col1, ...)` passou a validar lista de colunas malformada (vazia, vírgula inicial/final e separação obrigatória por vírgula) com mensagens acionáveis.
+- Incremento desta sessão: `INSERT VALUES` passou a validar fechamento de parênteses na tupla da linha, com erro acionável para tupla não encerrada.
+- Incremento desta sessão: lista de colunas em `INSERT` ganhou cobertura de vírgula inicial e fechamento ausente antes de `;`, com mensagens acionáveis consistentes.
+- Incremento desta sessão: `INSERT VALUES` passou a detectar tuplas consecutivas sem vírgula separadora (`VALUES (1) (2)`) com mensagem acionável específica.
+- Incremento desta sessão: alvo `ON CONFLICT (...)` interrompido por `;` passou a falhar com mensagem acionável de fechamento incorreto da lista.
 - Preservação da experiência de uso próxima ao fluxo SQL tradicional.
 
 #### 1.2.3 Regras por dialeto e versão

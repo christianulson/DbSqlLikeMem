@@ -104,8 +104,8 @@
     <Project Path="DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj" />
   </Folder>
   <Folder Name="/SqlAzure/">
-    <Project Path="DbSqlLikeMem.SqlAzure/DbSqlLikeMem.SqlAzure.csproj" />
     <Project Path="DbSqlLikeMem.SqlAzure.XUnit/DbSqlLikeMem.SqlAzure.XUnit.csproj" />
+    <Project Path="DbSqlLikeMem.SqlAzure/DbSqlLikeMem.SqlAzure.csproj" />
   </Folder>
   <Folder Name="/SqlAzure/Tests/">
     <Project Path="DbSqlLikeMem.SqlAzure.Test/DbSqlLikeMem.SqlAzure.Test.csproj" />
@@ -116,14 +116,14 @@
     <Project Path="DbSqlLikeMem.VisualStudioExtension.XamlHarness/DbSqlLikeMem.VisualStudioExtension.XamlHarness.csproj" />
     <Project Path="DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj" />
   </Folder>
-  <Project Path="DbSqlLikeMem.Dapper.Test/DbSqlLikeMem.Dapper.Test.csproj" Id="a4eec2b8-d080-4df9-8969-9c031dddd282" />
-  <Project Path="DbSqlLikeMem.EfCore.Test/DbSqlLikeMem.EfCore.Test.csproj" />
+  <Project Path="DbSqlLikeMem.Dapper.TestTools/DbSqlLikeMem.Dapper.TestTools.csproj" Id="a4eec2b8-d080-4df9-8969-9c031dddd282" />
+  <Project Path="DbSqlLikeMem.EfCore.TestTools/DbSqlLikeMem.EfCore.TestTools.csproj" />
   <Project Path="DbSqlLikeMem.EfCore/DbSqlLikeMem.EfCore.csproj" />
-  <Project Path="DbSqlLikeMem.LinqToDb.Test/DbSqlLikeMem.LinqToDb.Test.csproj" />
+  <Project Path="DbSqlLikeMem.LinqToDb.TestTools/DbSqlLikeMem.LinqToDb.TestTools.csproj" />
   <Project Path="DbSqlLikeMem.LinqToDb/DbSqlLikeMem.LinqToDb.csproj" />
-  <Project Path="DbSqlLikeMem.MiniProfiler.Test/DbSqlLikeMem.MiniProfiler.Test.csproj" />
-  <Project Path="DbSqlLikeMem.NHibernate.Test/DbSqlLikeMem.NHibernate.Test.csproj" Id="05796138-948e-446c-bd71-89d8869f44d4" />
-  <Project Path="DbSqlLikeMem.Test/DbSqlLikeMem.Test.csproj" />
+  <Project Path="DbSqlLikeMem.MiniProfiler.TestTools/DbSqlLikeMem.MiniProfiler.TestTools.csproj" />
+  <Project Path="DbSqlLikeMem.NHibernate.TestTools/DbSqlLikeMem.NHibernate.TestTools.csproj" Id="05796138-948e-446c-bd71-89d8869f44d4" />
+  <Project Path="DbSqlLikeMem.TestTools/DbSqlLikeMem.TestTools.csproj" />
   <Project Path="DbSqlLikeMem.XUnit/DbSqlLikeMem.XUnit.csproj" />
   <Project Path="DbSqlLikeMem/DbSqlLikeMem.csproj" />
 </Solution>

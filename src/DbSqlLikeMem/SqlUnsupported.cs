@@ -50,7 +50,7 @@ internal static class SqlUnsupported
 
 
 
-    public static InvalidOperationException ForOnConflictClause(ISqlDialect dialect)
+    public static Exception ForOnConflictClause(ISqlDialect dialect)
     {
         var hint = dialect.Name.ToLowerInvariant() switch
         {
@@ -59,10 +59,13 @@ internal static class SqlUnsupported
             _ => "Use uma sintaxe de UPSERT suportada pelo dialeto atual."
         };
 
-        return new InvalidOperationException($"Dialeto '{FormatDialectLabel(dialect)}' não suporta ON CONFLICT. {hint}");
+        var message = $"Dialeto '{FormatDialectLabel(dialect)}' não suporta ON CONFLICT. {hint}";
+        return string.Equals(dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase)
+            ? new NotSupportedException(message)
+            : new InvalidOperationException(message);
     }
 
-    public static InvalidOperationException ForOnDuplicateKeyUpdateClause(ISqlDialect dialect)
+    public static Exception ForOnDuplicateKeyUpdateClause(ISqlDialect dialect)
     {
         var hint = dialect.Name.ToLowerInvariant() switch
         {
@@ -71,7 +74,10 @@ internal static class SqlUnsupported
             _ => "Use uma sintaxe de UPSERT suportada pelo dialeto atual."
         };
 
-        return new InvalidOperationException($"Dialeto '{FormatDialectLabel(dialect)}' não suporta ON DUPLICATE KEY UPDATE. {hint}");
+        var message = $"Dialeto '{FormatDialectLabel(dialect)}' não suporta ON DUPLICATE KEY UPDATE. {hint}";
+        return string.Equals(dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase)
+            ? new NotSupportedException(message)
+            : new InvalidOperationException(message);
     }
 
     public static NotSupportedException ForOptionQueryHints(ISqlDialect dialect)

@@ -30,7 +30,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\DbSqlLikeMem.NHibernate.Test\DbSqlLikeMem.NHibernate.Test.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.NHibernate.TestTools\DbSqlLikeMem.NHibernate.TestTools.csproj" />
 		<ProjectReference Include="..\DbSqlLikeMem.Sqlite.NHibernate\DbSqlLikeMem.Sqlite.NHibernate.csproj" />
 	</ItemGroup>
 
@@ -41,8 +41,8 @@
 	<ItemGroup>
 		<Using Include="DbSqlLikeMem" />
 		<Using Include="DbSqlLikeMem.Sqlite" />
-		<Using Include="DbSqlLikeMem.NHibernate.Test" />
-		<Using Include="DbSqlLikeMem.Test" />
+		<Using Include="DbSqlLikeMem.NHibernate.TestTools" />
+		<Using Include="DbSqlLikeMem.TestTools" />
 		<Using Include="System.Data.Common" />
 		<Using Include="Xunit" />
 	</ItemGroup>

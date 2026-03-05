@@ -44,6 +44,10 @@ public class SqlServerConnectionMock
     /// </summary>
     protected override bool SupportsReleaseSavepoint => false;
 
-    internal override Exception NewException(string message, int code)
+    /// <summary>
+    /// EN: Creates the SQL Server-specific mock exception used by this connection.
+    /// PT: Cria a excecao simulada especifica do SQL Server usada por esta conexao.
+    /// </summary>
+    protected internal override Exception NewException(string message, int code)
         => new SqlServerMockException(message, code);
 }

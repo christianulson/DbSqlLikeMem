@@ -6,6 +6,10 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 /// </summary>
 public sealed class SqlAzureCompatibilityTests
 {
+    /// <summary>
+    /// EN: Provides sample SQL rows used by compatibility-level theory data composition.
+    /// PT: Fornece linhas SQL de exemplo usadas pela composicao de dados teoricos por nivel de compatibilidade.
+    /// </summary>
     public static IEnumerable<object[]> SqlSamples()
     {
         yield return ["SELECT 1"];

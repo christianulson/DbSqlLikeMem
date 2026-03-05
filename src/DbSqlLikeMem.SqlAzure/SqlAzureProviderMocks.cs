@@ -23,17 +23,57 @@ namespace DbSqlLikeMem.SqlAzure;
 /// </summary>
 public static class SqlAzureDbCompatibilityLevels
 {
+    /// <summary>
+    /// EN: Compatibility level value that emulates SQL Server 2008 behavior.
+    /// PT: Valor de nivel de compatibilidade que emula o comportamento do SQL Server 2008.
+    /// </summary>
     public const int SqlServer2008 = 100;
+    /// <summary>
+    /// EN: Compatibility level value that emulates SQL Server 2012 behavior.
+    /// PT: Valor de nivel de compatibilidade que emula o comportamento do SQL Server 2012.
+    /// </summary>
     public const int SqlServer2012 = 110;
+    /// <summary>
+    /// EN: Compatibility level value that emulates SQL Server 2014 behavior.
+    /// PT: Valor de nivel de compatibilidade que emula o comportamento do SQL Server 2014.
+    /// </summary>
     public const int SqlServer2014 = 120;
+    /// <summary>
+    /// EN: Compatibility level value that emulates SQL Server 2016 behavior.
+    /// PT: Valor de nivel de compatibilidade que emula o comportamento do SQL Server 2016.
+    /// </summary>
     public const int SqlServer2016 = 130;
+    /// <summary>
+    /// EN: Compatibility level value that emulates SQL Server 2017 behavior.
+    /// PT: Valor de nivel de compatibilidade que emula o comportamento do SQL Server 2017.
+    /// </summary>
     public const int SqlServer2017 = 140;
+    /// <summary>
+    /// EN: Compatibility level value that emulates SQL Server 2019 behavior.
+    /// PT: Valor de nivel de compatibilidade que emula o comportamento do SQL Server 2019.
+    /// </summary>
     public const int SqlServer2019 = 150;
+    /// <summary>
+    /// EN: Compatibility level value that emulates SQL Server 2022 behavior.
+    /// PT: Valor de nivel de compatibilidade que emula o comportamento do SQL Server 2022.
+    /// </summary>
     public const int SqlServer2022 = 160;
+    /// <summary>
+    /// EN: Compatibility level value that emulates SQL Server 2025 behavior.
+    /// PT: Valor de nivel de compatibilidade que emula o comportamento do SQL Server 2025.
+    /// </summary>
     public const int SqlServer2025 = 170;
 
+    /// <summary>
+    /// EN: Default compatibility level used when no explicit version is provided.
+    /// PT: Nivel de compatibilidade padrao usado quando nenhuma versao explicita e informada.
+    /// </summary>
     public const int Default = SqlServer2022;
 
+    /// <summary>
+    /// EN: Returns all SQL Azure compatibility levels supported by this mock provider.
+    /// PT: Retorna todos os niveis de compatibilidade do SQL Azure suportados por este provedor simulado.
+    /// </summary>
     public static IEnumerable<int> Versions()
     {
         yield return SqlServer2008;
@@ -53,6 +93,10 @@ public static class SqlAzureDbCompatibilityLevels
 /// </summary>
 public static class SqlAzureDbVersions
 {
+    /// <summary>
+    /// EN: Returns all SQL Azure compatibility levels exposed by this alias helper.
+    /// PT: Retorna todos os niveis de compatibilidade do SQL Azure expostos por este helper de alias.
+    /// </summary>
     public static IEnumerable<int> Versions() => SqlAzureDbCompatibilityLevels.Versions();
 }
 
@@ -62,10 +106,18 @@ public static class SqlAzureDbVersions
 /// </summary>
 public class SqlAzureDbMock : SqlServerDbMock
 {
+    /// <summary>
+    /// EN: Creates an in-memory SQL Azure database mock for the provided compatibility version.
+    /// PT: Cria um banco simulado em memoria do SQL Azure para a versao de compatibilidade informada.
+    /// </summary>
     public SqlAzureDbMock(int? version = null) : base(version ?? SqlAzureDbCompatibilityLevels.Default)
     {
     }
 
+    /// <summary>
+    /// EN: Creates a SQL Azure schema mock attached to this database.
+    /// PT: Cria um esquema simulado do SQL Azure associado a este banco.
+    /// </summary>
     protected override SchemaMock NewSchema(
         string schemaName,
         IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null)
@@ -82,6 +134,10 @@ public class SqlAzureSchemaMock(
     IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null
     ) : SqlServerSchemaMock(schemaName, db, tables)
 {
+    /// <summary>
+    /// EN: Creates a SQL Azure table mock inside this schema.
+    /// PT: Cria uma tabela simulada do SQL Azure dentro deste esquema.
+    /// </summary>
     protected override TableMock NewTable(
         string tableName,
         IEnumerable<Col> columns,
@@ -100,18 +156,38 @@ public class SqlAzureTableMock(
     IEnumerable<Dictionary<int, object?>>? rows = null
     ) : SqlServerTableMock(tableName, schema, columns, rows)
 {
+    /// <summary>
+    /// EN: Creates the SQL Azure unknown-column exception for invalid column access.
+    /// PT: Cria a excecao de coluna desconhecida do SQL Azure para acesso de coluna invalida.
+    /// </summary>
     public override Exception UnknownColumn(string columnName)
         => SqlAzureExceptionFactory.UnknownColumn(columnName);
 
+    /// <summary>
+    /// EN: Creates the SQL Azure duplicate-key exception for unique key violations.
+    /// PT: Cria a excecao de chave duplicada do SQL Azure para violacoes de chave unica.
+    /// </summary>
     public override Exception DuplicateKey(string tbl, string key, object? val)
         => SqlAzureExceptionFactory.DuplicateKey(tbl, key, val);
 
+    /// <summary>
+    /// EN: Creates the SQL Azure exception for null values in non-nullable columns.
+    /// PT: Cria a excecao do SQL Azure para valores nulos em colunas nao anulaveis.
+    /// </summary>
     public override Exception ColumnCannotBeNull(string col)
         => SqlAzureExceptionFactory.ColumnCannotBeNull(col);
 
+    /// <summary>
+    /// EN: Creates the SQL Azure foreign-key failure exception.
+    /// PT: Cria a excecao de falha de chave estrangeira do SQL Azure.
+    /// </summary>
     public override Exception ForeignKeyFails(string col, string refTbl)
         => SqlAzureExceptionFactory.ForeignKeyFails(col, refTbl);
 
+    /// <summary>
+    /// EN: Creates the SQL Azure referenced-row exception for delete/update restrictions.
+    /// PT: Cria a excecao de linha referenciada do SQL Azure para restricoes de exclusao/atualizacao.
+    /// </summary>
     public override Exception ReferencedRow(string tbl)
         => SqlAzureExceptionFactory.ReferencedRow(tbl);
 }
@@ -122,6 +198,10 @@ public class SqlAzureTableMock(
 /// </summary>
 public class SqlAzureConnectionMock : SqlServerConnectionMock
 {
+    /// <summary>
+    /// EN: Creates a SQL Azure connection mock with optional in-memory database and default database name.
+    /// PT: Cria uma conexao simulada do SQL Azure com banco em memoria opcional e nome de banco padrao.
+    /// </summary>
     public SqlAzureConnectionMock(
        SqlAzureDbMock? db = null,
        string? defaultDatabase = null
@@ -130,13 +210,25 @@ public class SqlAzureConnectionMock : SqlServerConnectionMock
         _serverVersion = $"SQL Azure {Db.Version}";
     }
 
+    /// <summary>
+    /// EN: Creates a transaction instance bound to this SQL Azure mock connection.
+    /// PT: Cria uma instancia de transacao vinculada a esta conexao simulada do SQL Azure.
+    /// </summary>
     protected override DbTransaction CreateTransaction(IsolationLevel isolationLevel)
         => new SqlServerTransactionMock(this, isolationLevel);
 
+    /// <summary>
+    /// EN: Creates the core SQL Azure command instance for this connection and optional transaction.
+    /// PT: Cria a instancia principal de comando SQL Azure para esta conexao e transacao opcional.
+    /// </summary>
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new SqlAzureCommandMock(this, transaction as SqlServerTransactionMock);
 
-    internal override Exception NewException(string message, int code)
+    /// <summary>
+    /// EN: Creates the SQL Azure-specific mock exception used by this connection.
+    /// PT: Cria a excecao simulada especifica do SQL Azure usada por esta conexao.
+    /// </summary>
+    protected internal override Exception NewException(string message, int code)
         => new SqlAzureMockException(message, code);
 }
 
@@ -151,10 +243,18 @@ public class SqlAzureCommandMock(
 {
     private readonly SqlAzureDataParameterCollectionMock collectionMock = [];
 
+    /// <summary>
+    /// EN: Creates an empty SQL Azure command mock without connection and transaction.
+    /// PT: Cria um comando simulado vazio do SQL Azure sem conexao e sem transacao.
+    /// </summary>
     public SqlAzureCommandMock() : this(null, null)
     {
     }
 
+    /// <summary>
+    /// EN: Gets the parameter collection used by this SQL Azure command mock.
+    /// PT: Obtem a colecao de parametros usada por este comando simulado do SQL Azure.
+    /// </summary>
     protected override DbParameterCollection DbParameterCollection => collectionMock;
 }
 
@@ -223,36 +323,64 @@ public class SqlAzureDataParameterCollectionMock : SqlServerDataParameterCollect
 /// </summary>
 public sealed class SqlAzureDataAdapterMock : DbDataAdapter
 {
+    /// <summary>
+    /// EN: Gets or sets the typed SQL Azure command used to delete rows.
+    /// PT: Obtem ou define o comando tipado do SQL Azure usado para excluir linhas.
+    /// </summary>
     public new SqlAzureCommandMock? DeleteCommand
     {
         get => base.DeleteCommand as SqlAzureCommandMock;
         set => base.DeleteCommand = value;
     }
 
+    /// <summary>
+    /// EN: Gets or sets the typed SQL Azure command used to insert rows.
+    /// PT: Obtem ou define o comando tipado do SQL Azure usado para inserir linhas.
+    /// </summary>
     public new SqlAzureCommandMock? InsertCommand
     {
         get => base.InsertCommand as SqlAzureCommandMock;
         set => base.InsertCommand = value;
     }
 
+    /// <summary>
+    /// EN: Gets or sets the typed SQL Azure command used to select rows.
+    /// PT: Obtem ou define o comando tipado do SQL Azure usado para selecionar linhas.
+    /// </summary>
     public new SqlAzureCommandMock? SelectCommand
     {
         get => base.SelectCommand as SqlAzureCommandMock;
         set => base.SelectCommand = value;
     }
 
+    /// <summary>
+    /// EN: Gets or sets the typed SQL Azure command used to update rows.
+    /// PT: Obtem ou define o comando tipado do SQL Azure usado para atualizar linhas.
+    /// </summary>
     public new SqlAzureCommandMock? UpdateCommand
     {
         get => base.UpdateCommand as SqlAzureCommandMock;
         set => base.UpdateCommand = value;
     }
 
+    /// <summary>
+    /// EN: Creates an empty SQL Azure data adapter mock.
+    /// PT: Cria um adaptador de dados simulado do SQL Azure vazio.
+    /// </summary>
     public SqlAzureDataAdapterMock()
     {
     }
 
+    /// <summary>
+    /// EN: Creates a SQL Azure data adapter mock using the provided select command.
+    /// PT: Cria um adaptador de dados simulado do SQL Azure usando o comando de selecao informado.
+    /// </summary>
     public SqlAzureDataAdapterMock(SqlAzureCommandMock selectCommand) => SelectCommand = selectCommand;
 
+    /// <summary>
+    /// EN: Creates a SQL Azure data adapter mock from select command text and connection.
+    /// PT: Cria um adaptador de dados simulado do SQL Azure a partir do texto de selecao e da conexao.
+    /// </summary>
     public SqlAzureDataAdapterMock(string selectCommandText, SqlAzureConnectionMock connection)
         => SelectCommand = new SqlAzureCommandMock(connection) { CommandText = selectCommandText };
 }
@@ -266,6 +394,10 @@ public sealed class SqlAzureDataSourceMock(SqlAzureDbMock? db = null)
     : DbDataSource
 #endif
 {
+    /// <summary>
+    /// EN: Gets the connection string exposed by this SQL Azure data source mock.
+    /// PT: Obtem a string de conexao exposta por esta fonte de dados simulada do SQL Azure.
+    /// </summary>
     public
 #if NET7_0_OR_GREATER
     override
@@ -273,11 +405,23 @@ public sealed class SqlAzureDataSourceMock(SqlAzureDbMock? db = null)
     string ConnectionString => string.Empty;
 
 #if NET7_0_OR_GREATER
+    /// <summary>
+    /// EN: Creates a database connection instance for this SQL Azure data source mock.
+    /// PT: Cria uma instancia de conexao de banco para esta fonte de dados simulada do SQL Azure.
+    /// </summary>
     protected override DbConnection CreateDbConnection() => new SqlAzureConnectionMock(db);
 #else
+    /// <summary>
+    /// EN: Creates a typed SQL Azure connection for this SQL Azure data source mock.
+    /// PT: Cria uma conexao tipada do SQL Azure para esta fonte de dados simulada do SQL Azure.
+    /// </summary>
     public SqlAzureConnectionMock CreateDbConnection() => new SqlAzureConnectionMock(db);
 #endif
 
+    /// <summary>
+    /// EN: Creates a typed SQL Azure connection from this data source mock.
+    /// PT: Cria uma conexao tipada do SQL Azure a partir desta fonte de dados simulada.
+    /// </summary>
     public
 #if NET7_0_OR_GREATER
     new
@@ -294,6 +438,10 @@ public sealed class SqlAzureConnectorFactoryMock : DbProviderFactory
     private static SqlAzureConnectorFactoryMock? instance;
     private readonly SqlAzureDbMock? db;
 
+    /// <summary>
+    /// EN: Gets the singleton SQL Azure provider factory mock instance.
+    /// PT: Obtem a instancia singleton da fabrica simulada do provedor SQL Azure.
+    /// </summary>
     public static SqlAzureConnectorFactoryMock GetInstance(SqlAzureDbMock? db = null)
         => instance ??= new SqlAzureConnectorFactoryMock(db);
 
@@ -302,20 +450,44 @@ public sealed class SqlAzureConnectorFactoryMock : DbProviderFactory
         this.db = db;
     }
 
+    /// <summary>
+    /// EN: Creates a SQL Azure command mock instance.
+    /// PT: Cria uma instancia de comando simulado do SQL Azure.
+    /// </summary>
     public override DbCommand CreateCommand() => new SqlAzureCommandMock();
 
+    /// <summary>
+    /// EN: Creates a SQL Azure connection mock instance.
+    /// PT: Cria uma instancia de conexao simulada do SQL Azure.
+    /// </summary>
     public override DbConnection CreateConnection() => new SqlAzureConnectionMock(db);
 
+    /// <summary>
+    /// EN: Creates a generic connection string builder for provider scenarios.
+    /// PT: Cria um construtor generico de string de conexao para cenarios de provedor.
+    /// </summary>
     public override DbConnectionStringBuilder CreateConnectionStringBuilder() => new DbConnectionStringBuilder();
 
+    /// <summary>
+    /// EN: Creates a provider parameter instance compatible with SQL Azure mocks.
+    /// PT: Cria uma instancia de parametro de provedor compativel com mocks de SQL Azure.
+    /// </summary>
     public override DbParameter CreateParameter() => new SqlParameter();
 
 #if NETCOREAPP3_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
     public override bool CanCreateDataAdapter => true;
 #endif
 
+    /// <summary>
+    /// EN: Creates a SQL Azure data adapter mock instance.
+    /// PT: Cria uma instancia de adaptador de dados simulado do SQL Azure.
+    /// </summary>
     public override DbDataAdapter CreateDataAdapter() => new SqlAzureDataAdapterMock();
 
+    /// <summary>
+    /// EN: Indicates whether this provider factory can create a data source enumerator.
+    /// PT: Indica se esta fabrica de provedor pode criar um enumerador de fontes de dados.
+    /// </summary>
     public override bool CanCreateDataSourceEnumerator => false;
 
 #if NET6_0_OR_GREATER
@@ -327,8 +499,16 @@ public sealed class SqlAzureConnectorFactoryMock : DbProviderFactory
 #endif
 
 #if NET7_0_OR_GREATER
+    /// <summary>
+    /// EN: Creates a SQL Azure data source mock for the provided connection string.
+    /// PT: Cria uma fonte de dados simulada do SQL Azure para a string de conexao informada.
+    /// </summary>
     public override DbDataSource CreateDataSource(string connectionString) => new SqlAzureDataSourceMock(db);
 #else
+    /// <summary>
+    /// EN: Creates a SQL Azure data source mock for the provided connection string.
+    /// PT: Cria uma fonte de dados simulada do SQL Azure para a string de conexao informada.
+    /// </summary>
     public SqlAzureDataSourceMock CreateDataSource(string connectionString) => new(db);
 #endif
 }

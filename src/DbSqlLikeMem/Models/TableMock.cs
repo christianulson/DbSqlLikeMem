@@ -442,6 +442,7 @@ public abstract class TableMock
     {
         ApplyDefaultValues(value);
         RefreshPersistedComputedValues(value);
+        ValidateForeignKeysOnRow(value);
         EnsureUniqueOnInsert(value);
         _items.Add(value);
         // Update _indexes with the new row

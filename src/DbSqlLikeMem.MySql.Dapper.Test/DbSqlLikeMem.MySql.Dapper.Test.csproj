@@ -40,7 +40,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\DbSqlLikeMem.Dapper.Test\DbSqlLikeMem.Dapper.Test.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.Dapper.TestTools\DbSqlLikeMem.Dapper.TestTools.csproj" />
 		<ProjectReference Include="..\DbSqlLikeMem.MySql.XUnit\DbSqlLikeMem.MySql.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 
@@ -53,7 +53,7 @@
 		<Using Include="DbSqlLikeMem" />
 		<Using Include="DbSqlLikeMem.MySql" />
 		<Using Include="DbSqlLikeMem.Resources" />
-		<Using Include="DbSqlLikeMem.Test" />
+		<Using Include="DbSqlLikeMem.TestTools" />
 		<Using Include="FluentAssertions" />
 		<Using Include="MySql.Data.MySqlClient" />
 		<Using Include="System.Data" />

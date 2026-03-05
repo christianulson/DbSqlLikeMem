@@ -111,39 +111,58 @@ public class NpgsqlCommandMock(
             return affected;
         }
 
-        var sqlRaw = CommandText.Trim();
+        var sql = CommandText.NormalizeString();
+        var statements = SqlQueryParser
+            .SplitStatements(sql, connection.Db.Dialect)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .ToList();
 
-        if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
+        var affectedTotal = 0;
+        foreach (var statementSql in statements)
         {
-            connection.SetLastFoundRows(transactionControlResult);
-            return transactionControlResult;
+            var sqlRaw = statementSql.Trim();
+            if (string.IsNullOrWhiteSpace(sqlRaw))
+                continue;
+
+            if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
+            {
+                connection.SetLastFoundRows(transactionControlResult);
+                affectedTotal += transactionControlResult;
+                continue;
+            }
+
+            // Mantém atalhos existentes (CALL / CREATE TABLE AS SELECT) por compatibilidade do engine atual
+            if (sqlRaw.StartsWith("call ", StringComparison.OrdinalIgnoreCase))
+            {
+                var affected = connection!.ExecuteCall(sqlRaw, Parameters);
+                connection.SetLastFoundRows(affected);
+                affectedTotal += affected;
+                continue;
+            }
+
+            if (sqlRaw.StartsWith("create table", StringComparison.OrdinalIgnoreCase))
+            {
+                affectedTotal += connection!.ExecuteCreateTableAsSelect(sqlRaw, Parameters, connection!.Db.Dialect);
+                continue;
+            }
+
+            var query = SqlQueryParser.Parse(sqlRaw, connection!.Db.Dialect);
+
+            affectedTotal += query switch
+            {
+                SqlInsertQuery insertQ => connection.ExecuteInsert(insertQ, Parameters, connection.Db.Dialect),
+                SqlUpdateQuery updateQ => connection.ExecuteUpdateSmart(updateQ, Parameters, connection.Db.Dialect),
+                SqlDeleteQuery deleteQ => connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect),
+                SqlMergeQuery mergeQ => connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect),
+                SqlCreateTemporaryTableQuery tempQ => connection.ExecuteCreateTemporaryTableAsSelect(tempQ, Parameters, connection.Db.Dialect),
+                SqlCreateViewQuery viewQ => connection.ExecuteCreateView(viewQ, Parameters, connection.Db.Dialect),
+                SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect),
+                SqlSelectQuery _ => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelect()),
+                _ => throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteNonQuery", query.GetType())
+            };
         }
 
-        // Mantém atalhos existentes (CALL / CREATE TABLE AS SELECT) por compatibilidade do engine atual
-        if (sqlRaw.StartsWith("call ", StringComparison.OrdinalIgnoreCase))
-        {
-            var affected = connection!.ExecuteCall(sqlRaw, Parameters);
-            connection.SetLastFoundRows(affected);
-            return affected;
-        }
-
-        if (sqlRaw.StartsWith("create table", StringComparison.OrdinalIgnoreCase))
-            return connection!.ExecuteCreateTableAsSelect(sqlRaw, Parameters, connection!.Db.Dialect);
-
-        var query = SqlQueryParser.Parse(sqlRaw, connection!.Db.Dialect);
-
-        return query switch
-        {
-            SqlInsertQuery insertQ => connection.ExecuteInsert(insertQ, Parameters, connection.Db.Dialect),
-            SqlUpdateQuery updateQ => connection.ExecuteUpdateSmart(updateQ, Parameters, connection.Db.Dialect),
-            SqlDeleteQuery deleteQ => connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect),
-            SqlMergeQuery mergeQ => connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect),
-            SqlCreateTemporaryTableQuery tempQ => connection.ExecuteCreateTemporaryTableAsSelect(tempQ, Parameters, connection.Db.Dialect),
-            SqlCreateViewQuery viewQ => connection.ExecuteCreateView(viewQ, Parameters, connection.Db.Dialect),
-            SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect),
-            SqlSelectQuery _ => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelect()),
-            _ => throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteNonQuery", query.GetType())
-        };
+        return affectedTotal;
     }
 
     /// <summary>

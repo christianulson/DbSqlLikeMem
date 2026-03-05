@@ -41,6 +41,6 @@ public sealed class Db2ConnectionMock
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new Db2CommandMock(this, transaction as Db2TransactionMock);
 
-    internal override Exception NewException(string message, int code)
+    protected internal override Exception NewException(string message, int code)
         => new Db2MockException(message, code);
 }

@@ -38,6 +38,6 @@ public sealed class SqliteConnectionMock
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new SqliteCommandMock(this, transaction as SqliteTransactionMock);
 
-    internal override Exception NewException(string message, int code)
+    protected internal override Exception NewException(string message, int code)
         => new SqliteMockException(message, code);
 }

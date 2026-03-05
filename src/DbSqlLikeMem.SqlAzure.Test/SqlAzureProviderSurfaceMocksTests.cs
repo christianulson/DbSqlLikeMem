@@ -76,6 +76,42 @@ public sealed class SqlAzureProviderSurfaceMocksTests
         Assert.IsType<SqlAzureConnectionMock>(connection);
     }
 
+    /// <summary>
+    /// EN: Ensures SQL Azure command supports multi-statement INSERT script in ExecuteNonQuery.
+    /// PT: Garante que o comando SQL Azure suporte script de INSERT multi-statement no ExecuteNonQuery.
+    /// </summary>
+    [Fact]
+    public void Command_ExecuteNonQuery_WithMultiStatementInsertScript_ShouldInsertAllRowsAndReturnTotalAffected()
+    {
+        var db = new SqlAzureDbMock();
+        db.AddTable("Users", [
+            new("Id", DbType.Int32, false),
+            new("Name", DbType.String, false),
+            new("Email", DbType.String, true)
+        ]);
+
+        using var connection = new SqlAzureConnectionMock(db);
+        connection.Open();
+
+        using var command = new SqlAzureCommandMock(connection)
+        {
+            CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (101, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (102, 'Bia', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (103, 'Caio', NULL);
+                """
+        };
+
+        var rowsAffected = command.ExecuteNonQuery();
+
+        Assert.Equal(3, rowsAffected);
+        var users = connection.GetTable("Users");
+        Assert.Equal(3, users.Count);
+        Assert.Equal("Ana", users[0][1]);
+        Assert.Equal("Bia", users[1][1]);
+        Assert.Equal("Caio", users[2][1]);
+    }
+
 #if NET6_0_OR_GREATER
     /// <summary>
     /// EN: Ensures batch execution runs all commands and returns accumulated affected rows.

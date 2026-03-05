@@ -3768,6 +3768,9 @@ private void FillPercentRankOrCumeDist(
                 offset = f.Offset;
                 take = f.Count;
                 break;
+            case SqlTop t:
+                take = t.Count;
+                break;
             default:
                 return;
         }

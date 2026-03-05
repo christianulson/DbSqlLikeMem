@@ -25,7 +25,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.Db2.NHibernate\DbSqlLikeMem.Db2.NHibernate.csproj" />
-		<ProjectReference Include="..\DbSqlLikeMem.NHibernate.Test\DbSqlLikeMem.NHibernate.Test.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.NHibernate.TestTools\DbSqlLikeMem.NHibernate.TestTools.csproj" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net48' Or '$(TargetFramework)' == 'net6.0'">
@@ -35,8 +35,8 @@
 	<ItemGroup>
 		<Using Include="DbSqlLikeMem" />
 		<Using Include="DbSqlLikeMem.Db2" />
-		<Using Include="DbSqlLikeMem.NHibernate.Test" />
-		<Using Include="DbSqlLikeMem.Test" />
+		<Using Include="DbSqlLikeMem.NHibernate.TestTools" />
+		<Using Include="DbSqlLikeMem.TestTools" />
 		<Using Include="System.Data.Common" />
 		<Using Include="Xunit" />
 	</ItemGroup>

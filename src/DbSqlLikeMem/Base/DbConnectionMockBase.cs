@@ -707,7 +707,7 @@ public abstract class DbConnectionMockBase(
             Thread.Sleep(SimulatedLatencyMs);
     }
 
-    internal abstract Exception NewException(string message, int code);
+    protected internal abstract Exception NewException(string message, int code);
 
     /// <summary>
     /// EN: Disposes the connection and associated resources.

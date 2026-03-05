@@ -19,6 +19,7 @@
 		<ProjectReference Include="..\DbSqlLikeMem\DbSqlLikeMem.csproj" />
 	</ItemGroup>
 	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.SqlAzure" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer.Dapper.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer.NHibernate" />

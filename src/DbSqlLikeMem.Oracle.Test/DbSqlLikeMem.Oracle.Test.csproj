@@ -45,7 +45,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.Oracle.XUnit\DbSqlLikeMem.Oracle.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
-		<ProjectReference Include="..\DbSqlLikeMem.Test\DbSqlLikeMem.Test.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.TestTools\DbSqlLikeMem.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net48' Or '$(TargetFramework)' == 'netstandard2.1' Or '$(TargetFramework)' == 'net6.0'">
@@ -56,7 +56,7 @@
 		<Using Include="DbSqlLikeMem" />
 		<Using Include="DbSqlLikeMem.Oracle" />
 		<Using Include="DbSqlLikeMem.Resources" />
-		<Using Include="DbSqlLikeMem.Test" />
+		<Using Include="DbSqlLikeMem.TestTools" />
 		<Using Include="FluentAssertions" />
 		<Using Include="Oracle.ManagedDataAccess.Client" />
 		<Using Include="System.Data" />

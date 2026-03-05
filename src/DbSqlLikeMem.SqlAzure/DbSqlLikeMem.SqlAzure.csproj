@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<Description>SQL Azure provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
 	</PropertyGroup>
