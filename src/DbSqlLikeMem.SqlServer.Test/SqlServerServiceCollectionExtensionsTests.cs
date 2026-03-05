@@ -17,6 +17,10 @@ public sealed class SqlServerServiceCollectionExtensionsTests
         public object? GetService(Type serviceType) => null;
     }
 
+    /// <summary>
+    /// EN: Verifies AddSqlServerDbMockTransient registers a transient factory that creates new configured SqlServerDbMock instances on each resolution.
+    /// PT: Verifica se AddSqlServerDbMockTransient registra uma factory transient que cria novas instancias configuradas de SqlServerDbMock em cada resolucao.
+    /// </summary>
     [Fact]
     public void AddSqlServerDbMockTransient_ShouldCreateNewConfiguredInstanceEachResolution()
     {

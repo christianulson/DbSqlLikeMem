@@ -6,4 +6,4 @@ namespace DbSqlLikeMem.Oracle.Dapper.Test;
 /// </summary>
 public sealed class DapperSmokeTests(
     ITestOutputHelper helper
-) : DapperSmokeTestsBase<OracleConnectionMock>(helper);
+) : DapperSmokeTestsBase<OracleConnectionMock>(helper, static () => new OracleConnectionMock());

@@ -6,13 +6,37 @@ namespace DbSqlLikeMem.TestTools;
 /// </summary>
 public abstract class DbMockConnectionFactoryContractTestsBase
 {
+    /// <summary>
+    /// EN: Gets the canonical provider hint used to resolve the provider in factory calls.
+    /// PT: Obtem a dica canonica de provedor usada para resolver o provedor nas chamadas da factory.
+    /// </summary>
     protected abstract string ProviderHint { get; }
+    /// <summary>
+    /// EN: Gets the expected DbMock runtime type for this provider contract.
+    /// PT: Obtem o tipo de runtime DbMock esperado para este contrato de provedor.
+    /// </summary>
     protected abstract Type ExpectedDbType { get; }
+    /// <summary>
+    /// EN: Gets the expected connection runtime type for this provider contract.
+    /// PT: Obtem o tipo de runtime de conexao esperado para este contrato de provedor.
+    /// </summary>
     protected abstract Type ExpectedConnectionType { get; }
+    /// <summary>
+    /// EN: Gets the provider aliases that must resolve to the same provider implementation.
+    /// PT: Obtem os aliases de provedor que devem resolver para a mesma implementacao de provedor.
+    /// </summary>
     protected abstract IReadOnlyList<string> ProviderAliases { get; }
 
+    /// <summary>
+    /// EN: Creates a DbMock and connection pair through the provider shortcut for contract validation.
+    /// PT: Cria um par DbMock e conexao pelo atalho de provedor para validacao do contrato.
+    /// </summary>
     protected abstract (DbMock Db, IDbConnection Connection) CreateViaProviderShortcut(params Action<DbMock>[] tableMappers);
 
+    /// <summary>
+    /// EN: Verifies that the provider shortcut creates the expected DbMock and connection types.
+    /// PT: Verifica se o atalho de provedor cria os tipos esperados de DbMock e conexao.
+    /// </summary>
     [Fact]
     public void CreateViaProviderShortcut_ShouldCreateExpectedDbAndConnection()
     {
@@ -22,6 +46,10 @@ public abstract class DbMockConnectionFactoryContractTestsBase
         connection.Should().BeOfType(ExpectedConnectionType);
     }
 
+    /// <summary>
+    /// EN: Verifies that CreateWithTables applies table mapper actions to the created DbMock.
+    /// PT: Verifica se CreateWithTables aplica as acoes de mapeamento de tabela ao DbMock criado.
+    /// </summary>
     [Fact]
     public void CreateWithTables_ShouldApplyTableMappers()
     {
@@ -40,6 +68,10 @@ public abstract class DbMockConnectionFactoryContractTestsBase
         db.GetTable("Users").Should().HaveCount(1);
     }
 
+    /// <summary>
+    /// EN: Verifies that successive CreateWithTables calls create isolated DbMock instances.
+    /// PT: Verifica se chamadas sucessivas de CreateWithTables criam instancias isoladas de DbMock.
+    /// </summary>
     [Fact]
     public void CreateWithTables_ShouldCreateIsolatedInstancesBetweenCalls()
     {
@@ -58,6 +90,10 @@ public abstract class DbMockConnectionFactoryContractTestsBase
         secondDb.ContainsTable("Users").Should().BeFalse();
     }
 
+    /// <summary>
+    /// EN: Verifies that provider aliases resolve to the expected DbMock and connection types.
+    /// PT: Verifica se os aliases de provedor resolvem para os tipos esperados de DbMock e conexao.
+    /// </summary>
     [Fact]
     public void CreateWithTables_ForAliases_ShouldResolveExpectedTypes()
     {

@@ -13,6 +13,14 @@ public sealed class SqliteConnectionMock
     }
 
     /// <summary>
+    /// EN: Creates a SQLite connection mock with default in-memory database settings.
+    /// PT: Cria uma conexao simulada do SQLite com configuracoes padrao de banco em memoria.
+    /// </summary>
+    public SqliteConnectionMock() : this(null, null)
+    {
+    }
+
+    /// <summary>
     /// EN: Represents Sqlite Connection Mock.
     /// PT: Representa uma conexão simulada do Sqlite.
     /// </summary>

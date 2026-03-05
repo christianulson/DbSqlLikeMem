@@ -1,86 +1,142 @@
-# Features por banco e versão
+# Features by Database and Version
 
-> Este arquivo foi mantido por compatibilidade. A versão canônica e organizada deste conteúdo está em [`docs/providers-and-features.md`](docs/providers-and-features.md).
+> Looking for Portuguese? See [Funcionalidades.md](Funcionalidades.md).
 
-## Links rápidos
+> This file is kept for compatibility and quick NuGet/GitHub navigation. The canonical and fully maintained version lives at [`docs/old/providers-and-features.md`](docs/old/providers-and-features.md).
 
-- [Matriz de provedores e versões](docs/providers-and-features.md#visão-geral)
-- [Capacidades por dialeto](docs/providers-and-features.md#particularidades-por-banco)
-- [Regras candidatas para evolução do parser](docs/providers-and-features.md#regras-candidatas-para-extrair-do-parser-para-os-dialects)
+## Quick links
 
-## Matriz de provedores e versões simuladas
+- [Portuguese version](Funcionalidades.md)
+- [Canonical provider and feature documentation](docs/old/providers-and-features.md)
+- [Getting started guide](docs/getting-started.md)
+- [Root repository overview](README.md)
 
-| Banco | Projeto | Versões simuladas |
+## Provider and simulated-version matrix
+
+| Database | Package | Simulated versions |
 | --- | --- | --- |
 | MySQL | `DbSqlLikeMem.MySql` | 3, 4, 5, 8 |
 | SQL Server | `DbSqlLikeMem.SqlServer` | 7, 2000, 2005, 2008, 2012, 2014, 2016, 2017, 2019, 2022 |
+| SQL Azure | `DbSqlLikeMem.SqlAzure` | 100, 110, 120, 130, 140, 150, 160, 170 |
 | Oracle | `DbSqlLikeMem.Oracle` | 7, 8, 9, 10, 11, 12, 18, 19, 21, 23 |
 | PostgreSQL (Npgsql) | `DbSqlLikeMem.Npgsql` | 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 |
 | SQLite | `DbSqlLikeMem.Sqlite` | 3 |
 | DB2 | `DbSqlLikeMem.Db2` | 8, 9, 10, 11 |
 
-## Funcionalidades por banco
+## Common capabilities (all providers)
+
+- Provider-specific ADO.NET mock connections/commands/transactions.
+- SQL parser and executor for common DDL/DML paths.
+- `WHERE` expressions with `AND`/`OR`, `IN`, `LIKE`, `IS NULL`, and parameters.
+- `GROUP BY`/`HAVING` with aggregate functions (`COUNT`, `SUM`, `MIN`, `MAX`, `AVG`) and alias-aware paths.
+- `CASE WHEN` in projections and grouped scenarios.
+- `CREATE VIEW` / `CREATE OR REPLACE VIEW` support.
+- `CREATE TEMPORARY TABLE` support, including `AS SELECT` variants.
+- Fluent schema definition and deterministic data seeding helpers.
+- Standardized mock collation/coercion rules for deterministic text and numeric-string comparisons.
+
+## Integration layers used in real test stacks
+
+- Dapper-compatible query/command flows.
+- EF Core integration packages with open-connection factories by provider.
+- LinqToDB integration packages with open-connection factories by provider.
+- NHibernate compatibility via `UserSuppliedConnectionProvider` and provider contract tests.
+
+## Execution-plan diagnostics and telemetry (mock)
+
+- Per-command execution plans available from `LastExecutionPlan` and `LastExecutionPlans`.
+- Core metrics include `EstimatedCost`, `InputTables`, `EstimatedRowsRead`, `ActualRows`, `SelectivityPct`, `RowsPerMs`, and `ElapsedMs`.
+- Plan output includes warning and recommendation metadata for troubleshooting in tests (for example, warning codes and index recommendations).
+
+## Analytical SQL features (implemented in parser/executor)
+
+- Window ranking/distribution functions such as `ROW_NUMBER`, `RANK`, `DENSE_RANK`, `NTILE`, `PERCENT_RANK`, and `CUME_DIST`.
+- Value window functions such as `LAG`, `LEAD`, `FIRST_VALUE`, `LAST_VALUE`, and `NTH_VALUE`.
+- Window frame clauses with `ROWS`, `RANGE`, and `GROUPS` in supported dialect paths.
+
+## Transaction and concurrency model (deterministic mock)
+
+| Provider | Savepoint | Release savepoint | Isolation levels |
+| --- | --- | --- | --- |
+| MySQL | Yes | Yes | `ReadCommitted`, `RepeatableRead`, `Serializable` |
+| SQL Server | Yes | No (explicit not-supported behavior) | `ReadCommitted`, `RepeatableRead`, `Serializable` |
+| SQL Azure | Yes | Yes | `ReadCommitted`, `RepeatableRead`, `Serializable` |
+| Oracle | Yes | Yes | `ReadCommitted`, `RepeatableRead`, `Serializable` |
+| PostgreSQL (Npgsql) | Yes | Yes | `ReadCommitted`, `RepeatableRead`, `Serializable` |
+| SQLite | Yes | Yes | `ReadCommitted`, `RepeatableRead`, `Serializable` |
+| DB2 | Yes | Yes | `ReadCommitted`, `RepeatableRead`, `Serializable` |
+
+- Savepoint operations use snapshots for consistent intermediate rollback semantics.
+- `Commit` and `Rollback` follow deterministic snapshot cleanup/restore behavior.
+- Concurrent operations are guarded by sync-root locking when `ThreadSafe = true`.
+
+## Stored procedure execution (mock contract)
+
+- `CommandType.StoredProcedure` execution with signature validation.
+- Parameter directions: `Input`, `Output`, `InputOutput`, and `ReturnValue`.
+- Required-input direction and nullability checks with clear exceptions.
+- Dapper-compatible stored-procedure execution flow.
+
+## Database-specific highlights
 
 ### MySQL
 
-- Mock de conexão/ADO.NET específico do provedor.
-- Parser e execução de SQL para DDL/DML comuns.
-- `INSERT ... ON DUPLICATE KEY UPDATE`: suportado.
+- `INSERT ... ON DUPLICATE KEY UPDATE`: supported.
+- Index hints (`USE/IGNORE/FORCE INDEX`) parsed, with supported execution semantics and validations.
 
 ### SQL Server
 
-- Mock de conexão/ADO.NET específico do provedor.
-- Parser e execução de SQL para DDL/DML comuns.
-- Diferenças de dialeto por versão suportadas pelo provider.
+- Version-aware dialect behavior in provider package.
+- `RELEASE SAVEPOINT` intentionally standardized as unsupported.
+
+### SQL Azure
+
+- Version-aware Azure SQL behavior in provider package.
+- Dedicated compatibility behavior for SQL Azure command/transaction flows.
 
 ### Oracle
 
-- Mock de conexão/ADO.NET específico do provedor.
-- Parser e execução de SQL para DDL/DML comuns.
-- Diferenças de dialeto por versão suportadas pelo provider.
+- Version-aware dialect behavior in provider package.
 
 ### PostgreSQL (Npgsql)
 
-- Mock de conexão/ADO.NET específico do provedor.
-- Parser e execução de SQL para DDL/DML comuns.
-- Diferenças de dialeto por versão suportadas pelo provider.
+- Version-aware dialect behavior in provider package.
 
 ### SQLite
 
-- Mock de conexão/ADO.NET específico do provedor.
-- Parser e execução de SQL para DDL/DML comuns.
-- `WITH`/CTE: disponível (>= 3).
-- `ON DUPLICATE KEY UPDATE`: não suportado (SQLite usa `ON CONFLICT`).
-- Operador null-safe `<=>`: não suportado.
-- Operadores JSON `->` e `->>`: suportados pelo parser do dialeto.
+- `WITH`/CTE: available (>= 3).
+- `ON DUPLICATE KEY UPDATE`: not supported (SQLite uses `ON CONFLICT`).
+- Null-safe operator `<=>`: not supported.
+- JSON operators `->` and `->>`: supported in dialect parser.
 
 ### DB2
 
-- Mock de conexão/ADO.NET específico do provedor.
-- Parser e execução de SQL para DDL/DML comuns.
-- `WITH`/CTE: disponível (>= 8).
-- `MERGE`: disponível (>= 9).
-- `FETCH FIRST`: suportado.
-- `LIMIT/OFFSET`: não suportado pelo dialeto DB2.
-- `ON DUPLICATE KEY UPDATE`: não suportado.
-- Operador null-safe `<=>`: não suportado.
-- Operadores JSON `->` e `->>`: não suportados.
+- `WITH`/CTE: available (>= 8).
+- `MERGE`: available (>= 9).
+- `FETCH FIRST`: supported.
+- `LIMIT/OFFSET`: not supported in DB2 dialect.
+- `ON DUPLICATE KEY UPDATE`: not supported.
+- Null-safe operator `<=>`: not supported.
+- JSON operators `->` and `->>`: not supported.
+- Triggers on non-temporary tables are supported via `TableMock` (before/after insert, update, delete).
+- Temporary tables (connection/global) do not execute triggers.
 
-- Triggers em tabelas não temporárias: suportadas via `TableMock` (before/after insert, update e delete).
-- Tabelas temporárias (connection/global): triggers não são executadas.
+## Extensions (VS Code and Visual Studio)
 
-## Extensões (VS Code e Visual Studio)
+The extensions support both classic test-generation and application-artifact workflows:
 
-As extensões agora suportam, além da geração tradicional para testes, fluxos separados para artefatos de aplicação:
+- Generate test classes (existing main action).
+- Generate model classes.
+- Generate repository classes.
+- Configure templates from top action buttons.
+- Consistency checks with visual status for missing/divergent/synced artifacts.
 
-- **Gerar classes de teste** (ação principal existente, com foco em classes de teste).
-- **Gerar classes de modelos** (novo).
-- **Gerar classes de repositório** (novo).
-- **Configurar templates** via botão no topo para arquivos texto com tokens.
-- **Check de consistência com status visual** para indicar ausência/divergência/sincronização dos artefatos esperados.
-
-### Tokens de template
+### Template tokens
 
 - `{{ClassName}}`, `{{ObjectName}}`, `{{Schema}}`, `{{ObjectType}}`, `{{DatabaseType}}`, `{{DatabaseName}}`.
 
-> Observação: esses recursos são voltados a gerar arquivos para uso em projetos reais do usuário (não apenas arquivos de teste).
+## Known limitations (current)
+
+- `RETURNING` / `OUTPUT` do not fully materialize returned datasets across all dialects yet.
+- `OPENJSON` currently runs in a simplified scalar subset (no full tabular projection with `WITH (...)`).
+- `NULLS FIRST/LAST` remains dialect-gated and may throw explicit not-supported errors where unavailable.

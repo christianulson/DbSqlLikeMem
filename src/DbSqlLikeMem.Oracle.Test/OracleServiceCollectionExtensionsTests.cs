@@ -16,7 +16,10 @@ public sealed class OracleServiceCollectionExtensionsTests
     {
         public object? GetService(Type serviceType) => null;
     }
-
+    /// <summary>
+    /// EN: Verifies AddOracleDbMockTransient registers a transient factory that creates new configured OracleDbMock instances on each resolution.
+    /// PT: Verifica se AddOracleDbMockTransient registra uma factory transient que cria novas instancias configuradas de OracleDbMock em cada resolucao.
+    /// </summary>
     [Fact]
     public void AddOracleDbMockTransient_ShouldCreateNewConfiguredInstanceEachResolution()
     {
@@ -45,3 +48,4 @@ public sealed class OracleServiceCollectionExtensionsTests
         second.GetTable("Users").Should().HaveCount(1);
     }
 }
+

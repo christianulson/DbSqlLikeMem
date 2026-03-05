@@ -6,4 +6,4 @@ namespace DbSqlLikeMem.Npgsql.Dapper.Test;
 /// </summary>
 public sealed class DapperSmokeTests(
     ITestOutputHelper helper
-) : DapperSmokeTestsBase<NpgsqlConnectionMock>(helper);
+) : DapperSmokeTestsBase<NpgsqlConnectionMock>(helper, static () => new NpgsqlConnectionMock());

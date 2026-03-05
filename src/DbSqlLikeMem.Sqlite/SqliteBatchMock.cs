@@ -150,7 +150,7 @@ public sealed class SqliteBatchMock : DbBatch
     /// EN: Execute Db Data Reader Async for the current batch state.
     /// PT: Execute Db Data leitor Async para o estado atual do lote.
     /// </summary>
-    protected override Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken = default)
+    protected override Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
         return BatchAsyncExecutionRunner

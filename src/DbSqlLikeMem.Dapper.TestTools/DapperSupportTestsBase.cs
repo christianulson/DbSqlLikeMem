@@ -548,13 +548,18 @@ WHERE u.id = @id",
 /// </summary>
 /// <typeparam name="TConnection">EN: Provider connection type. PT: Tipo de conexão do provedor.</typeparam>
 public abstract class DapperSmokeTestsBase<TConnection>(
-    ITestOutputHelper helper
+    ITestOutputHelper helper,
+    Func<TConnection> connectionFactory
 ) : DapperSupportTestsBase(helper)
-    where TConnection : DbConnection, new()
+    where TConnection : DbConnection
 {
+    /// <summary>
+    /// EN: Creates and opens a provider connection instance using the parameterless constructor.
+    /// PT: Cria e abre uma instancia de conexao do provedor usando o construtor sem parametros.
+    /// </summary>
     protected sealed override DbConnection CreateOpenConnection()
     {
-        var connection = new TConnection();
+        var connection = connectionFactory();
         connection.Open();
         return connection;
     }

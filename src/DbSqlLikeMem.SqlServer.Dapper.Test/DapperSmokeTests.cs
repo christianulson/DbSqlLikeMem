@@ -6,4 +6,4 @@ namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 /// </summary>
 public sealed class DapperSmokeTests(
     ITestOutputHelper helper
-) : DapperSmokeTestsBase<SqlServerConnectionMock>(helper);
+) : DapperSmokeTestsBase<SqlServerConnectionMock>(helper, static () => new SqlServerConnectionMock());

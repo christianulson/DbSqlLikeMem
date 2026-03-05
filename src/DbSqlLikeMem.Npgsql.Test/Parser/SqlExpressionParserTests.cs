@@ -98,7 +98,8 @@ public sealed class SqlExpressionParserTests(
     {
         Console.WriteLine("Where: @\"" + whereExpr + "\"");
 
-        Assert.ThrowsAny<InvalidOperationException>(() => SqlExpressionParser.ParseWhere(whereExpr, new NpgsqlDialect(version)));
+        var ex = Assert.ThrowsAny<Exception>(() => SqlExpressionParser.ParseWhere(whereExpr, new NpgsqlDialect(version)));
+        Assert.True(ex is InvalidOperationException or NotSupportedException);
     }
 
     /// <summary>

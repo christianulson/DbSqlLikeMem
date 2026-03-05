@@ -105,9 +105,9 @@ public sealed class SqlServerBatchMock : DbBatch
     /// </summary>
     public override int ExecuteNonQuery()
     {
-        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        var cnn = BatchExecutionGuards.RequireConnection(Connection);
         return BatchSyncExecutionRunner.ExecuteNonQueryCommands(
-            connection,
+            cnn,
             BatchCommands.Commands,
             CreateExecutableCommand);
     }
@@ -118,9 +118,9 @@ public sealed class SqlServerBatchMock : DbBatch
     /// </summary>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
-        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        var cnn = BatchExecutionGuards.RequireConnection(Connection);
         return BatchSyncExecutionRunner.ExecuteReaderCommands(
-            connection,
+            cnn,
             BatchCommands.Commands,
             CreateExecutableCommand,
             behavior,
@@ -133,9 +133,9 @@ public sealed class SqlServerBatchMock : DbBatch
     /// </summary>
     public override object? ExecuteScalar()
     {
-        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        var cnn = BatchExecutionGuards.RequireConnection(Connection);
         return BatchScalarExecutionRunner.ExecuteFirstScalar(
-            connection,
+            cnn,
             BatchCommands.Commands,
             CreateExecutableCommand);
     }
@@ -146,10 +146,10 @@ public sealed class SqlServerBatchMock : DbBatch
     /// </summary>
     public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default)
     {
-        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        var cnn = BatchExecutionGuards.RequireConnection(Connection);
         return BatchAsyncExecutionRunner
             .ExecuteNonQueryCommandsAsync(
-                connection,
+                cnn,
                 BatchCommands.Commands,
                 CreateExecutableCommand,
                 cancellationToken)
@@ -160,12 +160,12 @@ public sealed class SqlServerBatchMock : DbBatch
     /// EN: Execute Db Data Reader Async for the current batch state.
     /// PT: Execute Db Data leitor Async para o estado atual do lote.
     /// </summary>
-    protected override Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken = default)
+    protected override Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
     {
-        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        var cnn = BatchExecutionGuards.RequireConnection(Connection);
         return BatchAsyncExecutionRunner
             .ExecuteReaderCommandsAsync(
-                connection,
+                cnn,
                 BatchCommands.Commands,
                 CreateExecutableCommand,
                 behavior,
@@ -180,9 +180,9 @@ public sealed class SqlServerBatchMock : DbBatch
     /// </summary>
     public override Task<object?> ExecuteScalarAsync(CancellationToken cancellationToken = default)
     {
-        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        var cnn = BatchExecutionGuards.RequireConnection(Connection);
         return BatchScalarExecutionRunner.ExecuteFirstScalarAsync(
-            connection,
+            cnn,
             BatchCommands.Commands,
             CreateExecutableCommand,
             cancellationToken);
@@ -190,10 +190,10 @@ public sealed class SqlServerBatchMock : DbBatch
 
     private SqlServerCommandMock CreateExecutableCommand(SqlServerBatchCommandMock batchCommand)
     {
-        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        var cnn = BatchExecutionGuards.RequireConnection(Connection);
         return BatchCommandFactory.Create(
-            connection,
-            () => new SqlServerCommandMock(connection, Transaction),
+            cnn,
+            () => new SqlServerCommandMock(cnn, Transaction),
             batchCommand,
             Timeout);
     }

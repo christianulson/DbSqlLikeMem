@@ -17,6 +17,10 @@ public sealed class ServiceCollectionDbMockExtensionsTests
         public object? GetService(Type serviceType) => null;
     }
 
+    /// <summary>
+    /// EN: Verifies AddDbMockTransient registers a transient factory that creates new configured DbMock instances on each resolution.
+    /// PT: Verifica se AddDbMockTransient registra uma factory transient que cria novas instancias configuradas de DbMock em cada resolucao.
+    /// </summary>
     [Fact]
     public void AddDbMockTransient_ShouldCreateNewConfiguredInstanceEachResolution()
     {

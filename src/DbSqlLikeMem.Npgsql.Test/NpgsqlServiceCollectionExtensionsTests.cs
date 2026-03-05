@@ -16,7 +16,10 @@ public sealed class NpgsqlServiceCollectionExtensionsTests
     {
         public object? GetService(Type serviceType) => null;
     }
-
+    /// <summary>
+    /// EN: Verifies AddNpgsqlDbMockTransient registers a transient factory that creates new configured NpgsqlDbMock instances on each resolution.
+    /// PT: Verifica se AddNpgsqlDbMockTransient registra uma factory transient que cria novas instancias configuradas de NpgsqlDbMock em cada resolucao.
+    /// </summary>
     [Fact]
     public void AddNpgsqlDbMockTransient_ShouldCreateNewConfiguredInstanceEachResolution()
     {
@@ -45,3 +48,4 @@ public sealed class NpgsqlServiceCollectionExtensionsTests
         second.GetTable("Users").Should().HaveCount(1);
     }
 }
+

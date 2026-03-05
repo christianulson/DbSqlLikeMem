@@ -17,6 +17,10 @@ public sealed class MySqlServiceCollectionExtensionsTests
         public object? GetService(Type serviceType) => null;
     }
 
+    /// <summary>
+    /// EN: Verifies AddMySqlDbMockTransient registers a transient factory that creates new configured MySqlDbMock instances on each resolution.
+    /// PT: Verifica se AddMySqlDbMockTransient registra uma factory transient que cria novas instancias configuradas de MySqlDbMock em cada resolucao.
+    /// </summary>
     [Fact]
     public void AddMySqlDbMockTransient_ShouldCreateNewConfiguredInstanceEachResolution()
     {

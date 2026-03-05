@@ -16,7 +16,10 @@ public sealed class SqliteServiceCollectionExtensionsTests
     {
         public object? GetService(Type serviceType) => null;
     }
-
+    /// <summary>
+    /// EN: Verifies AddSqliteDbMockTransient registers a transient factory that creates new configured SqliteDbMock instances on each resolution.
+    /// PT: Verifica se AddSqliteDbMockTransient registra uma factory transient que cria novas instancias configuradas de SqliteDbMock em cada resolucao.
+    /// </summary>
     [Fact]
     public void AddSqliteDbMockTransient_ShouldCreateNewConfiguredInstanceEachResolution()
     {
@@ -45,3 +48,4 @@ public sealed class SqliteServiceCollectionExtensionsTests
         second.GetTable("Users").Should().HaveCount(1);
     }
 }
+

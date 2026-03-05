@@ -67,12 +67,27 @@ public static class DbMockConnectionFactory
         }
 
         var connection = plan.ResolveConnection(db);
+        if (!IsConnectionTypeCompatibleForProvider(connection.GetType(), canonicalProviderHint))
+        {
+            ProviderPlans.TryRemove(canonicalProviderHint, out _);
+            plan = BuildProviderResolutionPlan(canonicalProviderHint);
+            ProviderPlans[canonicalProviderHint] = plan;
+            connection = plan.ResolveConnection(db);
+
+            if (!IsConnectionTypeCompatibleForProvider(connection.GetType(), canonicalProviderHint))
+            {
+                throw new InvalidOperationException(
+                    $"Resolved connection type '{connection.GetType().FullName}' is not compatible with provider '{canonicalProviderHint}'.");
+            }
+        }
         return (db, connection);
     }
 
     private static ProviderResolutionPlan BuildProviderResolutionPlan(string providerHint)
     {
         EnsureProviderAssembliesLoaded(providerHint);
+        if (TryBuildKnownProviderResolutionPlan(providerHint, out var knownPlan))
+            return knownPlan;
 
         var allDbMockTypes = AppDomain.CurrentDomain
             .GetAssemblies()
@@ -95,6 +110,57 @@ public static class DbMockConnectionFactory
         var dbFactory = CreateDbMockFactory(preferred);
         var connectionResolver = CreateConnectionResolver(preferred, providerHint);
         return new ProviderResolutionPlan(dbFactory, connectionResolver);
+    }
+
+    private static bool TryBuildKnownProviderResolutionPlan(
+        string providerHint,
+        out ProviderResolutionPlan plan)
+    {
+        plan = default!;
+        var key = providerHint.Trim();
+        if (key.Length == 0)
+            return false;
+
+        var known = key.ToUpperInvariant() switch
+        {
+            "SQLSERVER" => ("DbSqlLikeMem.SqlServer.SqlServerDbMock, DbSqlLikeMem.SqlServer", "DbSqlLikeMem.SqlServer.SqlServerConnectionMock, DbSqlLikeMem.SqlServer"),
+            "SQLAZURE" => ("DbSqlLikeMem.SqlAzure.SqlAzureDbMock, DbSqlLikeMem.SqlAzure", "DbSqlLikeMem.SqlAzure.SqlAzureConnectionMock, DbSqlLikeMem.SqlAzure"),
+            "MYSQL" => ("DbSqlLikeMem.MySql.MySqlDbMock, DbSqlLikeMem.MySql", "DbSqlLikeMem.MySql.MySqlConnectionMock, DbSqlLikeMem.MySql"),
+            "SQLITE" => ("DbSqlLikeMem.Sqlite.SqliteDbMock, DbSqlLikeMem.Sqlite", "DbSqlLikeMem.Sqlite.SqliteConnectionMock, DbSqlLikeMem.Sqlite"),
+            "DB2" => ("DbSqlLikeMem.Db2.Db2DbMock, DbSqlLikeMem.Db2", "DbSqlLikeMem.Db2.Db2ConnectionMock, DbSqlLikeMem.Db2"),
+            "NPGSQL" => ("DbSqlLikeMem.Npgsql.NpgsqlDbMock, DbSqlLikeMem.Npgsql", "DbSqlLikeMem.Npgsql.NpgsqlConnectionMock, DbSqlLikeMem.Npgsql"),
+            "ORACLE" => ("DbSqlLikeMem.Oracle.OracleDbMock, DbSqlLikeMem.Oracle", "DbSqlLikeMem.Oracle.OracleConnectionMock, DbSqlLikeMem.Oracle"),
+            _ => default
+        };
+
+        if (string.IsNullOrWhiteSpace(known.Item1) || string.IsNullOrWhiteSpace(known.Item2))
+            return false;
+
+        var dbType = Type.GetType(known.Item1, throwOnError: false);
+        var connectionType = Type.GetType(known.Item2, throwOnError: false);
+        if (dbType is null || connectionType is null)
+            return false;
+
+        if (!typeof(DbMock).IsAssignableFrom(dbType) || !typeof(IDbConnection).IsAssignableFrom(connectionType))
+            return false;
+
+        var dbFactory = CreateDbMockFactory(dbType);
+        var ctor = GetCompatibleConnectionCtor(connectionType, dbType);
+        if (ctor is null)
+            return false;
+
+        var ctorParameters = ctor.GetParameters();
+        Func<DbMock, IDbConnection> resolver = db =>
+        {
+            var args = new object?[ctorParameters.Length];
+            args[0] = db;
+            for (var i = 1; i < ctorParameters.Length; i++)
+                args[i] = Type.Missing;
+            return (IDbConnection)ctor.Invoke(args);
+        };
+
+        plan = new ProviderResolutionPlan(dbFactory, resolver);
+        return true;
     }
 
 
@@ -215,8 +281,12 @@ public static class DbMockConnectionFactory
             .Where(type =>
                 typeof(IDbConnection).IsAssignableFrom(type)
                 && !type.IsAbstract
+                && type.IsPublic
+                && !type.IsNested
+                && !IsTestType(type)
                 && ContainsProviderHint(type, providerHint))
-            .OrderByDescending(type => type.Name.Contains("Connection", StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(type => IsPreferredProviderConnectionType(type, providerHint))
+            .ThenByDescending(type => type.Name.Contains("Connection", StringComparison.OrdinalIgnoreCase))
             .FirstOrDefault(type => CanInstantiateConnectionForDb(type, dbType));
 
         if (connectionType is null)
@@ -282,6 +352,35 @@ public static class DbMockConnectionFactory
             || (type.Namespace?.Contains(providerHint, StringComparison.OrdinalIgnoreCase) ?? false)
             || (type.Assembly.GetName().Name?.Contains(providerHint, StringComparison.OrdinalIgnoreCase) ?? false);
     }
+
+    private static bool IsPreferredProviderConnectionType(Type type, string providerHint)
+    {
+        if (string.IsNullOrWhiteSpace(providerHint))
+            return false;
+
+        var expectedName = $"{providerHint}ConnectionMock";
+        return type.Name.Equals(expectedName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsTestType(Type type)
+    {
+        var assemblyName = type.Assembly.GetName().Name ?? string.Empty;
+        if (assemblyName.Contains(".Test", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var namespaceName = type.Namespace ?? string.Empty;
+        if (namespaceName.Contains(".Test", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return false;
+    }
+
+    private static bool IsConnectionTypeCompatibleForProvider(Type type, string providerHint)
+        => !type.IsAbstract
+            && type.IsPublic
+            && !type.IsNested
+            && !IsTestType(type)
+            && ContainsProviderHint(type, providerHint);
 
     private static string CanonicalizeProviderHint(string providerHint)
     {

@@ -17,6 +17,10 @@ public sealed class Db2ServiceCollectionExtensionsTests
         public object? GetService(Type serviceType) => null;
     }
 
+    /// <summary>
+    /// EN: Verifies AddDb2DbMockTransient registers a transient factory that creates new configured Db2DbMock instances on each resolution.
+    /// PT: Verifica se AddDb2DbMockTransient registra uma factory transient que cria novas instancias configuradas de Db2DbMock em cada resolucao.
+    /// </summary>
     [Fact]
     public void AddDb2DbMockTransient_ShouldCreateNewConfiguredInstanceEachResolution()
     {

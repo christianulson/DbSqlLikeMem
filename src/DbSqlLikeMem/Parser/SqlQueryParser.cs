@@ -74,6 +74,14 @@ internal sealed class SqlQueryParser
             return uncached with { RawSql = sql };
         }
 
+        // DDL statements are cheap to parse and benefit from deterministic no-cache behavior in tests.
+        if (IsWord(first, "CREATE") || IsWord(first, "DROP"))
+        {
+            var uncached = ParseUncached(sql, dialect, null);
+            EnsureDialectSupport(uncached, dialect);
+            return uncached with { RawSql = sql };
+        }
+
         var cacheKey = SqlQueryAstCache.BuildKey(sql, dialect.Name, dialect.Version);
         if (_astCache.TryGet(cacheKey, out var cached))
         {
@@ -831,7 +839,7 @@ internal sealed class SqlQueryParser
     private SqlUpdateQuery ParseUpdate()
     {
         Consume(); // UPDATE
-        var table = ParseTableSource();
+        var table = ParseTableSource(consumeHints: false);
 
         // MySQL: UPDATE <table> [alias] JOIN (...) ... SET ...
         var hasJoin = false;
@@ -1679,6 +1687,7 @@ internal sealed class SqlQueryParser
             while (!IsEnd(Peek()) && depth > 0)
             {
                 var t = Consume();
+                var isCommaToken = t.Text == ",";
                 if (IsSymbol(t, "(")) { depth++; continue; }
                 if (IsSymbol(t, ")"))
                 {
@@ -1687,7 +1696,7 @@ internal sealed class SqlQueryParser
                     continue;
                 }
 
-                if (depth == 1 && expectColName && IsSymbol(t, ","))
+                if (depth == 1 && expectColName && isCommaToken)
                     throw new InvalidOperationException("CREATE TEMPORARY TABLE column list cannot start with a comma.");
 
                 if (depth == 1 && expectColName && t.Kind == SqlTokenKind.Identifier)
@@ -1700,13 +1709,16 @@ internal sealed class SqlQueryParser
                 if (depth == 1 && expectColName && t.Kind != SqlTokenKind.Identifier)
                     throw new InvalidOperationException($"CREATE TEMPORARY TABLE column list expects a column name, found {t.Kind} '{t.Text}'.");
 
-                if (depth == 1 && IsSymbol(t, ","))
+                if (depth == 1 && isCommaToken)
                 {
                     expectColName = true;
                     continue;
                 }
 
-                if (depth == 1 && !expectColName && t.Kind == SqlTokenKind.Identifier && IsLikelyColumnTypeToken(Peek()))
+                if (depth == 1
+                    && !expectColName
+                    && t.Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword
+                    && IsLikelyColumnTypeToken(Peek()))
                     throw new InvalidOperationException("CREATE TEMPORARY TABLE column list must separate columns with commas.");
             }
 
@@ -1889,7 +1901,29 @@ internal sealed class SqlQueryParser
         if (IsEnd(viewNameToken) || IsSymbol(viewNameToken, ";"))
             throw new InvalidOperationException("DROP VIEW requires a view name.");
 
-        var viewName = ParseTableSource(consumeHints: false);
+        var first = ExpectIdentifier();
+        string? dbName = null;
+        var viewOnlyName = first;
+        if (IsSymbol(Peek(), "."))
+        {
+            Consume();
+            dbName = viewOnlyName;
+            viewOnlyName = ExpectIdentifier();
+        }
+        var viewName = new SqlTableSource(
+            dbName,
+            viewOnlyName,
+            Alias: null,
+            Derived: null,
+            DerivedUnion: null,
+            DerivedSql: null,
+            Pivot: null,
+            MySqlIndexHints: null);
+
+        var continuation = Peek();
+        if (!IsEnd(continuation) && !IsSymbol(continuation, ";"))
+            throw new InvalidOperationException(
+                $"Unexpected token after DROP VIEW: {continuation.Kind} '{continuation.Text}'");
 
         EnsureStatementEnd("DROP VIEW");
 
@@ -1982,7 +2016,7 @@ internal sealed class SqlQueryParser
 
     private static bool IsLikelyColumnTypeToken(SqlToken token)
     {
-        if (token.Kind != SqlTokenKind.Identifier)
+        if (token.Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword))
             return false;
 
         return token.Text.ToUpperInvariant() switch

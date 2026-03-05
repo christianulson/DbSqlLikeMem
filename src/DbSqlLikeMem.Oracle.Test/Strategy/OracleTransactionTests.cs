@@ -476,7 +476,7 @@ public sealed class OracleTransactionTests(
         // Assert
         Assert.True(connection.TryGetTemporaryTable("temp_users", out var tempAfter));
         Assert.Single(tempAfter!);
-        Assert.Equal("Tmp-A", tempAfter[0][1]);
+        Assert.Equal("Tmp-A", tempAfter![0][1]);
     }
 
     /// <summary>

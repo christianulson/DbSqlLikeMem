@@ -6,4 +6,4 @@ namespace DbSqlLikeMem.MySql.Dapper.Test;
 /// </summary>
 public sealed class DapperSmokeTests(
     ITestOutputHelper helper
-) : DapperSmokeTestsBase<MySqlConnectionMock>(helper);
+) : DapperSmokeTestsBase<MySqlConnectionMock>(helper, static () => new MySqlConnectionMock());
