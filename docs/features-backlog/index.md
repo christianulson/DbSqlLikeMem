@@ -58,6 +58,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: `UPDATE` e `DELETE` agora rejeitam `WHERE` vazio com mensagens acionáveis (`... WHERE requires a predicate.`).
 - Incremento desta sessão: cláusulas `WHERE` de `UPDATE`/`DELETE` e de `ON CONFLICT` agora normalizam `;` terminal antes da validação, rejeitando explicitamente casos como `WHERE;` com mensagem acionável de predicado ausente.
 - Incremento desta sessão: cobertura de parser foi estendida para casos `ON CONFLICT ... WHERE;` e `ON CONFLICT DO UPDATE ... WHERE;`, garantindo erro acionável no dialeto suportado e preservando gate `NotSupported` no SQL Server.
+- Incremento desta sessão: cobertura de parser foi expandida para `ON CONFLICT DO UPDATE ... WHERE;` sem `RETURNING`, garantindo erro acionável no Npgsql e gate de dialeto preservado no SQL Server.
 - Incremento desta sessão: `UPDATE SET` ganhou boundary check para `RETURNING` sem `WHERE` e validações acionáveis de lista de atribuições (vírgula final/falta de separador), evitando captura indevida de `RETURNING` como expressão.
 - Incremento desta sessão: `INSERT VALUES` ganhou validações acionáveis de lista de tuplas (linha vazia, vírgula inicial/final e separação obrigatória por vírgula), reduzindo parse parcial em sintaxe malformada.
 - Incremento desta sessão: `INSERT (colunas) VALUES (...)` passou a validar cardinalidade entre colunas alvo e expressões por linha, com mensagem acionável por linha divergente.

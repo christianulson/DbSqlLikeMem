@@ -1410,6 +1410,24 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE WHERE terminated only by semicolon remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE finalizado apenas por ponto e vírgula continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoUpdateWhereOnlySemicolon_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE;";
+
+        var ex = Assert.ThrowsAny<Exception>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.True(ex is NotSupportedException or InvalidOperationException);
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT without name remains rejected by SQL Server dialect gate.

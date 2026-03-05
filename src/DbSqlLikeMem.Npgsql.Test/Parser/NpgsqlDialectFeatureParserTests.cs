@@ -406,6 +406,23 @@ RETURNING id";
     }
 
     /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE WHERE terminated only by semicolon is rejected even without RETURNING.
+    /// PT: Garante que WHERE em ON CONFLICT DO UPDATE finalizado apenas por ponto e vírgula seja rejeitado mesmo sem RETURNING.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflictDoUpdateWhereOnlySemicolonWithoutReturning_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures INSERT ... RETURNING captures projection payload in AST for PostgreSQL dialect.
     /// PT: Garante que INSERT ... RETURNING capture o payload de projeção na AST para o dialeto PostgreSQL.
     /// </summary>
