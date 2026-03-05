@@ -1,7 +1,7 @@
 # Matriz de compatibilidade SQL (feature x dialeto)
 
 > Status consolidado para os dialetos principais: **MySQL / SQL Server / SQL Azure / Oracle / Npgsql / DB2 / SQLite**.
-> 
+>
 > Legenda: ✅ suportado, ⚠️ suportado parcialmente/condicional, ❌ não suportado.
 
 ## Matriz simplificada

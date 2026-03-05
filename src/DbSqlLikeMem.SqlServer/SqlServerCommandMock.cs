@@ -111,58 +111,12 @@ public class SqlServerCommandMock(
             return affected;
         }
 
-        var sql = CommandText.NormalizeString();
-        var statements = SqlQueryParser
-            .SplitStatements(sql, connection.Db.Dialect)
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .ToList();
-
-        var affectedTotal = 0;
-        foreach (var statementSql in statements)
-        {
-            var sqlRaw = statementSql.Trim();
-            if (string.IsNullOrWhiteSpace(sqlRaw))
-                continue;
-
-            if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
-            {
-                connection.SetLastFoundRows(transactionControlResult);
-                affectedTotal += transactionControlResult;
-                continue;
-            }
-
-            // Mantém atalhos existentes (CALL / CREATE TABLE AS SELECT) por compatibilidade do engine atual
-            if (sqlRaw.StartsWith("call ", StringComparison.OrdinalIgnoreCase))
-            {
-                var affected = connection!.ExecuteCall(sqlRaw, Parameters);
-                connection.SetLastFoundRows(affected);
-                affectedTotal += affected;
-                continue;
-            }
-
-            if (sqlRaw.StartsWith("create table", StringComparison.OrdinalIgnoreCase))
-            {
-                affectedTotal += connection!.ExecuteCreateTableAsSelect(sqlRaw, Parameters, connection!.Db.Dialect);
-                continue;
-            }
-
-            var query = SqlQueryParser.Parse(sqlRaw, connection!.Db.Dialect);
-
-            affectedTotal += query switch
-            {
-                SqlInsertQuery insertQ => connection.ExecuteInsert(insertQ, Parameters, connection.Db.Dialect),
-                SqlUpdateQuery updateQ => connection.ExecuteUpdateSmart(updateQ, Parameters, connection.Db.Dialect),
-                SqlDeleteQuery deleteQ => connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect),
-                SqlCreateTemporaryTableQuery tempQ => connection.ExecuteCreateTemporaryTableAsSelect(tempQ, Parameters, connection.Db.Dialect),
-                SqlCreateViewQuery viewQ => connection.ExecuteCreateView(viewQ, Parameters, connection.Db.Dialect),
-                SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect),
-                SqlMergeQuery mergeQ => connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect),
-                SqlSelectQuery _ => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelect()),
-                _ => throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteNonQuery", query.GetType())
-            };
-        }
-
-        return affectedTotal;
+        return connection.ExecuteNonQueryWithPipeline(
+            CommandText.NormalizeString(),
+            Parameters,
+            allowMerge: true,
+            unionUsesSelectMessage: false,
+            tryExecuteTransactionControl: TryExecuteTransactionControlCommand);
     }
 
     /// <summary>
@@ -175,25 +129,16 @@ public class SqlServerCommandMock(
         connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
-        if (CommandType == CommandType.StoredProcedure)
+        if (connection.TryHandleExecuteReaderPrelude(
+            CommandType,
+            CommandText,
+            Parameters,
+            static () => new SqlServerDataReaderMock([[]]),
+            normalizeSqlInput: true,
+            out var earlyReader,
+            out var statements))
         {
-            connection!.ExecuteStoredProcedure(CommandText, Parameters);
-            connection.SetLastFoundRows(0);
-            return new SqlServerDataReaderMock([[]]);
-        }
-
-        var sql = CommandText.NormalizeString();
-
-        var statements = SqlQueryParser
-            .SplitStatements(sql, connection!.Db.Dialect)
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .ToList();
-
-        if (statements.Count == 1 && statements[0].TrimStart().StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
-        {
-            connection!.ExecuteCall(statements[0], Parameters);
-            connection!.SetLastFoundRows(0);
-            return new SqlServerDataReaderMock([[]]);
+            return earlyReader!;
         }
         var executor = new SqlServerAstQueryExecutor(connection!, Parameters);
         var tables = new List<TableResultMock>();
@@ -205,18 +150,12 @@ public class SqlServerCommandMock(
             if (string.IsNullOrWhiteSpace(sqlRaw))
                 continue;
 
-            if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
+            if (connection.TryHandleReaderControlCommand(
+                sqlRaw,
+                Parameters,
+                TryExecuteTransactionControlCommand,
+                ref parsedStatementCount))
             {
-                connection.SetLastFoundRows(transactionControlResult);
-                parsedStatementCount++;
-                continue;
-            }
-
-            if (sqlRaw.StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
-            {
-                connection.ExecuteCall(sqlRaw, Parameters);
-                connection.SetLastFoundRows(0);
-                parsedStatementCount++;
                 continue;
             }
 
@@ -231,65 +170,42 @@ public class SqlServerCommandMock(
             var query = SqlQueryParser.Parse(effectiveSql, connection.Db.Dialect, Parameters);
             parsedStatementCount++;
 
-            switch (query)
-            {
-                case SqlSelectQuery selectQ:
-                    tables.Add(executor.ExecuteSelect(selectQ));
-                    break;
-
-                case SqlUnionQuery unionQ:
-                    tables.Add(executor.ExecuteUnion(unionQ.Parts, unionQ.AllFlags, unionQ.OrderBy, unionQ.RowLimit, unionQ.RawSql));
-                    break;
-                case SqlInsertQuery insertQ:
+            connection.DispatchParsedReaderQuery(
+                query,
+                Parameters,
+                executor,
+                tables,
+                executeInsert: insertQ =>
+                {
                     if (outputClause is null)
                     {
                         connection.ExecuteInsert(insertQ, Parameters, connection.Db.Dialect);
+                        return null;
                     }
-                    else
-                    {
-                        tables.Add(ExecuteInsertOutput(insertQ, outputClause));
-                    }
-                    break;
-                case SqlUpdateQuery updateQ:
+                    return ExecuteInsertOutput(insertQ, outputClause);
+                },
+                executeUpdate: updateQ =>
+                {
                     if (outputClause is null)
                     {
                         connection.ExecuteUpdateSmart(updateQ, Parameters, connection.Db.Dialect);
+                        return null;
                     }
-                    else
-                    {
-                        tables.Add(ExecuteUpdateOutput(updateQ, outputClause));
-                    }
-                    break;
-                case SqlDeleteQuery deleteQ:
+                    return ExecuteUpdateOutput(updateQ, outputClause);
+                },
+                executeDelete: deleteQ =>
+                {
                     if (outputClause is null)
                     {
                         connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect);
+                        return null;
                     }
-                    else
-                    {
-                        tables.Add(ExecuteDeleteOutput(deleteQ, outputClause));
-                    }
-                    break;
-                case SqlCreateTemporaryTableQuery tempQ:
-                    connection.ExecuteCreateTemporaryTableAsSelect(tempQ, Parameters, connection.Db.Dialect);
-                    break;
-                case SqlCreateViewQuery viewQ:
-                    connection.ExecuteCreateView(viewQ, Parameters, connection.Db.Dialect);
-                    break;
-                case SqlDropViewQuery dropViewQ:
-                    connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect);
-                    break;
-                case SqlMergeQuery mergeQ:
-                    connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect);
-                    break;
-                default:
-                    throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteReader", query.GetType());
-            }
+                    return ExecuteDeleteOutput(deleteQ, outputClause);
+                },
+                executeMerge: mergeQ => connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect));
         }
 
-        if (tables.Count == 0 && parsedStatementCount > 0)
-            throw new InvalidOperationException(SqlExceptionMessages.ExecuteReaderWithoutSelectQuery());
-        connection.Metrics.Selects += tables.Sum(t => t.Count);
+        connection.FinalizeReaderExecution(tables, parsedStatementCount);
 
         return new SqlServerDataReaderMock(tables);
     }
@@ -743,54 +659,11 @@ public class SqlServerCommandMock(
 
     private bool TryExecuteTransactionControlCommand(string sqlRaw, out int affectedRows)
     {
-        affectedRows = 0;
-
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
-
-        if (sqlRaw.Equals("begin", StringComparison.OrdinalIgnoreCase) ||
-            sqlRaw.Equals("begin transaction", StringComparison.OrdinalIgnoreCase) ||
-            sqlRaw.Equals("start transaction", StringComparison.OrdinalIgnoreCase))
-        {
-            if (connection!.State != ConnectionState.Open)
-                connection.Open();
-
-            if (!connection.HasActiveTransaction)
-                connection.BeginTransaction();
-
-            return true;
-        }
-
-        if (sqlRaw.StartsWith("savepoint ", StringComparison.OrdinalIgnoreCase))
-        {
-            connection!.CreateSavepoint(sqlRaw[10..].Trim());
-            return true;
-        }
-
-        if (sqlRaw.StartsWith("rollback to savepoint ", StringComparison.OrdinalIgnoreCase))
-        {
-            connection!.RollbackTransaction(sqlRaw[22..].Trim());
-            return true;
-        }
-
-        if (sqlRaw.StartsWith("release savepoint ", StringComparison.OrdinalIgnoreCase))
-        {
-            // SQL Server does not support RELEASE SAVEPOINT. Keep compatibility behavior as a no-op.
-            return true;
-        }
-
-        if (sqlRaw.Equals("commit", StringComparison.OrdinalIgnoreCase))
-        {
-            connection!.CommitTransaction();
-            return true;
-        }
-
-        if (sqlRaw.Equals("rollback", StringComparison.OrdinalIgnoreCase))
-        {
-            connection!.RollbackTransaction();
-            return true;
-        }
-
-        return false;
+        return connection!.TryExecuteStandardTransactionControl(
+            sqlRaw,
+            releaseSavepointAsNoOp: true,
+            out affectedRows);
     }
 
     /// <summary>

@@ -1,12 +1,15 @@
 # Backlog Completo — Execution Plan Advisor
 
 ## Objetivo
+
 Organizar as próximas evoluções do Execution Plan Advisor em ondas incrementais, preservando:
+
 - contrato textual interno dos warnings (`Code`, `Message`, `Reason`, `SuggestedAction`, `Severity`, `MetricName`, `ObservedValue`, `Threshold`);
 - `Threshold` técnico parseável;
 - comportamento de `IndexRecommendations`.
 
 ## Estado atual (já entregue)
+
 - [x] `PlanMetadataVersion`
 - [x] `PlanFlags`
 - [x] `PlanPerformanceBand`
@@ -22,6 +25,7 @@ Organizar as próximas evoluções do Execution Plan Advisor em ondas incrementa
 ## Backlog Priorizado
 
 ### Onda 1 — Alto valor / baixo risco
+
 1. **PlanQualityGrade (A/B/C/D)**
    - Descrição: adicionar grade qualitativa derivada de `PlanRiskScore` + `PlanPerformanceBand`.
    - Valor: leitura rápida por humanos e dashboards.
@@ -47,6 +51,7 @@ Organizar as próximas evoluções do Execution Plan Advisor em ondas incrementa
      - testes de regressão com matriz `PW004/PW005`.
 
 ### Onda 2 — Automação/observabilidade
+
 4. **Payload JSON opcional do plano** ✅
    - Descrição: expor representação estruturada do plano além do texto.
    - Valor: integração robusta com CI, IDE e observabilidade.
@@ -55,7 +60,7 @@ Organizar as próximas evoluções do Execution Plan Advisor em ondas incrementa
      - propriedade/retorno opcional JSON;
      - teste de equivalência texto vs JSON para campos comuns.
 
-5. **CorrelationId por execução de plano** ✅
+2. **CorrelationId por execução de plano** ✅
    - Descrição: ID único para rastrear plano em logs/pipelines.
    - Valor: troubleshooting e auditoria.
    - Risco: baixo.
@@ -63,7 +68,7 @@ Organizar as próximas evoluções do Execution Plan Advisor em ondas incrementa
      - campo `PlanCorrelationId` estável;
      - teste de presença e formato.
 
-6. **PlanDelta (comparação entre execuções)** ✅
+3. **PlanDelta (comparação entre execuções)** ✅
    - Descrição: destacar mudança de risco/custo entre última execução e atual.
    - Valor: alerta de regressão de performance.
    - Risco: médio/alto (estado histórico).
@@ -72,6 +77,7 @@ Organizar as próximas evoluções do Execution Plan Advisor em ondas incrementa
      - testes com cenários controlados.
 
 ### Onda 3 — Inteligência de recomendação
+
 7. **IndexRecommendationEvidence** ✅
    - Descrição: evidências por recomendação (colunas de filtro, ordenação, seletividade estimada).
    - Valor: aumenta confiança do dev ao aplicar índice.
@@ -80,7 +86,7 @@ Organizar as próximas evoluções do Execution Plan Advisor em ondas incrementa
      - campo técnico parseável com chave fixa;
      - testes de coerência com query.
 
-8. **PlanPrimaryCauseGroup** ✅
+2. **PlanPrimaryCauseGroup** ✅
    - Descrição: agrupar warnings em causa primária (ex.: "ScanWithoutFilter", "SortWithoutLimit").
    - Valor: reduz complexidade cognitiva.
    - Risco: médio.
@@ -88,7 +94,7 @@ Organizar as próximas evoluções do Execution Plan Advisor em ondas incrementa
      - taxonomia estável documentada;
      - testes de mapeamento por regra.
 
-9. **Hint de severidade escalável por contexto** ✅
+3. **Hint de severidade escalável por contexto** ✅
    - Descrição: calibrar pesos/severidade por perfil de ambiente (dev/ci/prod).
    - Valor: sinal mais aderente ao contexto.
    - Risco: médio/alto.
@@ -99,12 +105,14 @@ Organizar as próximas evoluções do Execution Plan Advisor em ondas incrementa
 ---
 
 ## Itens técnicos transversais
+
 - [x] Consolidar padrões parseáveis dos novos agregados em seção única de documentação.
 - [x] Criar suíte de teste de contrato textual agregados (`Plan*`, `Index*Summary`) com snapshot estável.
 - [x] Garantir i18n dos novos labels sem traduzir tokens técnicos/canônicos SQL.
 - [x] Definir política semântica de versionamento para `PlanMetadataVersion`.
 
 ## Plano de execução recomendado
+
 1. Executar Onda 1 em PRs pequenos (1 feature por PR).
 2. Validar contratos textuais + não regressão de `IndexRecommendations` em todos os PRs.
 3. Só iniciar Onda 2 após estabilidade das métricas agregadas em CI.

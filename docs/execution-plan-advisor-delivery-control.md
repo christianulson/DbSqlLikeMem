@@ -1,9 +1,11 @@
 # Controle de Entrega — Execution Plan Advisor
 
 ## Objetivo da entrega
+
 Evoluir incrementalmente o Execution Plan Advisor para aumentar valor ao desenvolvedor sem quebra de contrato textual de `PlanWarnings` e sem regressão em `IndexRecommendations`.
 
 ## Itens da entrega (rodadas contínuas)
+
 - [x] Criar controle de entrega em documento dedicado.  
   **Progresso do item:** 100%
 - [x] Implementar `PlanRiskScore` agregado quando há warnings.  
@@ -86,6 +88,7 @@ Evoluir incrementalmente o Execution Plan Advisor para aumentar valor ao desenvo
   **Progresso do item:** 100%
 
 ## Percentual geral da entrega
+
 - **0%** — planejamento iniciado.
 - **20%** — estrutura de controle criada.
 - **45%** — `PlanRiskScore` implementado.
@@ -107,18 +110,19 @@ Evoluir incrementalmente o Execution Plan Advisor para aumentar valor ao desenvo
 - **100%** — suíte de contrato textual, i18n, payload JSON, deltas/hints contextuais, evidências e governança de contrato consolidados.
 
 ## Escopo e segurança
+
 - Sem refatoração agressiva.
 - Sem alteração da ordem do contrato textual interno de cada warning (`Code`, `Message`, `Reason`, `SuggestedAction`, `Severity`, `MetricName`, `ObservedValue`, `Threshold`).
 - `Threshold` técnico parseável preservado (`key:value;key:value`).
 - `IndexRecommendations` preservado.
 - Novos campos agregados (`PlanMetadataVersion`, `PlanCorrelationId`, `PlanFlags`, `PlanPerformanceBand`, `PlanRiskScore`, `PlanQualityGrade`, `PlanWarningSummary`, `PlanWarningCounts`, `PlanNoiseScore`, `PlanTopActions`, `PlanPrimaryWarning`, `PlanPrimaryCauseGroup`, `PlanDelta`, `PlanSeverityHint`, `IndexRecommendationSummary`, `IndexPrimaryRecommendation`, `IndexRecommendationEvidence`) adicionados de forma incremental e backward-compatible no output textual.
 
-
 ## Referência de backlog
+
 - Backlog completo de próximas evoluções: `docs/execution-plan-advisor-backlog.md`.
 
-
 ## Padrões parseáveis consolidados
+
 - `PlanMetadataVersion: <int>`
 - `PlanCorrelationId: <32hexLower>`
 - `PlanFlags: hasWarnings:<true|false>;hasIndexRecommendations:<true|false>`
@@ -134,6 +138,7 @@ Evoluir incrementalmente o Execution Plan Advisor para aumentar valor ao desenvo
 - `IndexPrimaryRecommendation: table:<name>;confidence:<n>;gainPct:<n.nn>`
 
 ## Política semântica de versionamento (`PlanMetadataVersion`)
+
 - Incrementar **major** (ex.: `1 -> 2`) quando houver quebra de parsing esperado para consumidores (remoção/renomeação de chave, mudança de formato canônico).
 - Incrementar **minor** via documentação/checklist quando houver apenas adição backward-compatible de novos agregados sem alterar formato dos existentes.
 - Não alterar retroativamente o significado de chaves canônicas já publicadas.

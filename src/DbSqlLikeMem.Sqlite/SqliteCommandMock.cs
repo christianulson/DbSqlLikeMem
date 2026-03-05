@@ -110,80 +110,12 @@ public class SqliteCommandMock(
             return affected;
         }
 
-        var sql = CommandText.NormalizeString();
-        var statements = SqlQueryParser
-            .SplitStatements(sql, connection.Db.Dialect)
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .ToList();
-
-        var affectedTotal = 0;
-        foreach (var statementSql in statements)
-        {
-            var sqlRaw = statementSql.Trim();
-            if (string.IsNullOrWhiteSpace(sqlRaw))
-                continue;
-
-            if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
-            {
-                connection.SetLastFoundRows(transactionControlResult);
-                affectedTotal += transactionControlResult;
-                continue;
-            }
-
-            // 2. Comandos especiais que talvez o Parser ainda não suporte nativamente (DDL, CALL)
-            if (sqlRaw.StartsWith("call ", StringComparison.OrdinalIgnoreCase))
-            {
-                var affected = connection!.ExecuteCall(sqlRaw, Parameters);
-                connection.SetLastFoundRows(affected);
-                affectedTotal += affected;
-                continue;
-            }
-
-            if (sqlRaw.StartsWith("create temporary table", StringComparison.OrdinalIgnoreCase) ||
-                sqlRaw.StartsWith("create temp table", StringComparison.OrdinalIgnoreCase))
-            {
-                var q = SqlQueryParser.Parse(sqlRaw, connection!.Db.Dialect);
-                if (q is not SqlCreateTemporaryTableQuery ct)
-                    throw new InvalidOperationException(SqlExceptionMessages.InvalidCreateTemporaryTableStatement());
-
-                affectedTotal += connection.ExecuteCreateTemporaryTableAsSelect(ct, Parameters, connection.Db.Dialect);
-                continue;
-            }
-
-            if (sqlRaw.StartsWith("create view", StringComparison.OrdinalIgnoreCase) ||
-                sqlRaw.StartsWith("create or replace view", StringComparison.OrdinalIgnoreCase))
-            {
-                var q = SqlQueryParser.Parse(sqlRaw, connection!.Db.Dialect);
-                if (q is not SqlCreateViewQuery cv)
-                    throw new InvalidOperationException(SqlExceptionMessages.InvalidCreateViewStatement());
-
-                affectedTotal += connection.ExecuteCreateView(cv, Parameters, connection.Db.Dialect);
-                continue;
-            }
-
-            if (sqlRaw.StartsWith("create table", StringComparison.OrdinalIgnoreCase))
-            {
-                affectedTotal += connection!.ExecuteCreateTableAsSelect(sqlRaw, Parameters, connection!.Db.Dialect);
-                continue;
-            }
-
-            // 3. Parse via AST para comandos DML (Insert, Update, Delete)
-            var query = SqlQueryParser.Parse(sqlRaw, connection!.Db.Dialect);
-
-            affectedTotal += query switch
-            {
-                SqlInsertQuery insertQ => connection.ExecuteInsert(insertQ, Parameters, connection.Db.Dialect),
-                SqlUpdateQuery updateQ => connection.ExecuteUpdateSmart(updateQ, Parameters, connection.Db.Dialect),
-                SqlDeleteQuery deleteQ => connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect),
-                SqlCreateViewQuery cv => connection.ExecuteCreateView(cv, Parameters, connection.Db.Dialect),
-                SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect),
-                SqlSelectQuery _ => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelect()),
-                SqlUnionQuery _ => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelectUnion()),
-                _ => throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteNonQuery", query.GetType())
-            };
-        }
-
-        return affectedTotal;
+        return connection.ExecuteNonQueryWithPipeline(
+            CommandText.NormalizeString(),
+            Parameters,
+            allowMerge: false,
+            unionUsesSelectMessage: true,
+            tryExecuteTransactionControl: TryExecuteTransactionControlCommand);
     }
 
     /// <summary>
@@ -196,26 +128,16 @@ public class SqliteCommandMock(
         connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
-        if (CommandType == CommandType.StoredProcedure)
+        if (connection.TryHandleExecuteReaderPrelude(
+            CommandType,
+            CommandText,
+            Parameters,
+            static () => new SqliteDataReaderMock([[]]),
+            normalizeSqlInput: true,
+            out var earlyReader,
+            out var statements))
         {
-            connection!.ExecuteStoredProcedure(CommandText, Parameters);
-            connection.SetLastFoundRows(0);
-            return new SqliteDataReaderMock([[]]);
-        }
-
-        var sql = CommandText.NormalizeString();
-
-        // Erro CA1847 e CA1307: Substituído por Contains com char ou StringComparison
-        var statements = SqlQueryParser
-            .SplitStatements(sql, connection!.Db.Dialect)
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .ToList();
-
-        if (statements.Count == 1 && statements[0].TrimStart().StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
-        {
-            connection!.ExecuteCall(statements[0], Parameters);
-            connection!.SetLastFoundRows(0);
-            return new SqliteDataReaderMock([[]]);
+            return earlyReader!;
         }
         var executor = AstQueryExecutorFactory.Create(connection!.Db.Dialect, connection, Parameters);
 
@@ -229,78 +151,29 @@ public class SqliteCommandMock(
             if (string.IsNullOrWhiteSpace(sqlRaw))
                 continue;
 
-            if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
+            if (connection.TryHandleReaderControlCommand(
+                sqlRaw,
+                Parameters,
+                TryExecuteTransactionControlCommand,
+                ref parsedStatementCount))
             {
-                connection.SetLastFoundRows(transactionControlResult);
-                parsedStatementCount++;
-                continue;
-            }
-
-            if (sqlRaw.StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
-            {
-                connection.ExecuteCall(sqlRaw, Parameters);
-                connection.SetLastFoundRows(0);
-                parsedStatementCount++;
                 continue;
             }
 
             var q = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect, Parameters);
             parsedStatementCount++;
 
-            switch (q)
-            {
-                case SqlCreateTemporaryTableQuery ct:
-                    connection.ExecuteCreateTemporaryTableAsSelect(ct, Parameters, connection.Db.Dialect);
-                    break;
-
-                case SqlCreateViewQuery cv:
-                    connection.ExecuteCreateView(cv, Parameters, connection.Db.Dialect);
-                    break;
-                case SqlDropViewQuery dropViewQ:
-                    connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect);
-                    break;
-
-                case SqlInsertQuery insertQ:
-                {
-                    var returning = ExecuteInsertReturning(insertQ);
-                    if (returning is not null)
-                        tables.Add(returning);
-                    break;
-                }
-
-                case SqlUpdateQuery updateQ:
-                {
-                    var returning = ExecuteUpdateReturning(updateQ);
-                    if (returning is not null)
-                        tables.Add(returning);
-                    break;
-                }
-
-                case SqlDeleteQuery deleteQ:
-                {
-                    var returning = ExecuteDeleteReturning(deleteQ);
-                    if (returning is not null)
-                        tables.Add(returning);
-                    break;
-                }
-
-                case SqlSelectQuery selectQ:
-                    tables.Add(executor.ExecuteSelect(selectQ));
-                    break;
-
-                case SqlUnionQuery unionQ:
-                    tables.Add(executor.ExecuteUnion(unionQ.Parts, unionQ.AllFlags, unionQ.OrderBy, unionQ.RowLimit, unionQ.RawSql));
-                    break;
-
-                default:
-                    throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteReader", q.GetType());
-            }
+            connection.DispatchParsedReaderQuery(
+                q,
+                Parameters,
+                executor,
+                tables,
+                executeInsert: ExecuteInsertReturning,
+                executeUpdate: ExecuteUpdateReturning,
+                executeDelete: ExecuteDeleteReturning);
         }
 
-        if (tables.Count == 0 && parsedStatementCount > 0)
-            throw new InvalidOperationException(SqlExceptionMessages.ExecuteReaderWithoutSelectQuery());
-
-        connection.Metrics.Selects += tables.Sum(t => t.Count);
+        connection.FinalizeReaderExecution(tables, parsedStatementCount);
 
         return new SqliteDataReaderMock(tables);
     }
@@ -624,54 +497,11 @@ public class SqliteCommandMock(
 
     private bool TryExecuteTransactionControlCommand(string sqlRaw, out int affectedRows)
     {
-        affectedRows = 0;
-
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
-
-        if (sqlRaw.Equals("begin", StringComparison.OrdinalIgnoreCase) ||
-            sqlRaw.Equals("begin transaction", StringComparison.OrdinalIgnoreCase) ||
-            sqlRaw.Equals("start transaction", StringComparison.OrdinalIgnoreCase))
-        {
-            if (connection!.State != ConnectionState.Open)
-                connection.Open();
-
-            if (!connection.HasActiveTransaction)
-                connection.BeginTransaction();
-
-            return true;
-        }
-
-        if (sqlRaw.StartsWith("savepoint ", StringComparison.OrdinalIgnoreCase))
-        {
-            connection!.CreateSavepoint(sqlRaw[10..].Trim());
-            return true;
-        }
-
-        if (sqlRaw.StartsWith("rollback to savepoint ", StringComparison.OrdinalIgnoreCase))
-        {
-            connection!.RollbackTransaction(sqlRaw[22..].Trim());
-            return true;
-        }
-
-        if (sqlRaw.StartsWith("release savepoint ", StringComparison.OrdinalIgnoreCase))
-        {
-            connection!.ReleaseSavepoint(sqlRaw[18..].Trim());
-            return true;
-        }
-
-        if (sqlRaw.Equals("commit", StringComparison.OrdinalIgnoreCase))
-        {
-            connection!.CommitTransaction();
-            return true;
-        }
-
-        if (sqlRaw.Equals("rollback", StringComparison.OrdinalIgnoreCase))
-        {
-            connection!.RollbackTransaction();
-            return true;
-        }
-
-        return false;
+        return connection!.TryExecuteStandardTransactionControl(
+            sqlRaw,
+            releaseSavepointAsNoOp: false,
+            out affectedRows);
     }
 
     /// <summary>

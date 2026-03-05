@@ -206,13 +206,15 @@ internal abstract class AstQueryExecutorBase(
             EstimatedRowsRead: unionEstimatedRead,
             ActualRows: result.Count,
             ElapsedMs: sw.ElapsedMilliseconds);
+        var runtimeContext = BuildPlanMockRuntimeContext();
 
         var plan = SqlExecutionPlanFormatter.FormatUnion(
             parts,
             allFlags,
             orderBy,
             rowLimit,
-            unionMetrics);
+            unionMetrics,
+            runtimeContext);
         result.ExecutionPlan = plan;
         _cnn.RegisterExecutionPlan(plan);
         _cnn.SetLastFoundRows(result.Count);
@@ -364,10 +366,24 @@ internal abstract class AstQueryExecutorBase(
         var metrics = BuildPlanRuntimeMetrics(q, result.Count, sw.ElapsedMilliseconds);
         var indexRecommendations = BuildIndexRecommendations(q, metrics);
         var planWarnings = BuildPlanWarnings(q, metrics);
-        var plan = SqlExecutionPlanFormatter.FormatSelect(q, metrics, indexRecommendations, planWarnings);
+        var runtimeContext = BuildPlanMockRuntimeContext();
+        var plan = SqlExecutionPlanFormatter.FormatSelect(
+            q,
+            metrics,
+            indexRecommendations,
+            planWarnings,
+            runtimeContext: runtimeContext);
         result.ExecutionPlan = plan;
         _cnn.RegisterExecutionPlan(plan);
         return result;
+    }
+
+    private SqlPlanMockRuntimeContext BuildPlanMockRuntimeContext()
+    {
+        return new SqlPlanMockRuntimeContext(
+            _cnn.SimulatedLatencyMs,
+            _cnn.DropProbability,
+            _cnn.Db.ThreadSafe);
     }
 
 

@@ -18,7 +18,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.1.1 Persistência temporária em memória
 
-- Implementação estimada: **100%**.
+- Implementação estimada: **99%**.
 - Estruturas para representar tabelas, colunas, linhas e metadados sem dependência de servidor externo.
 - Armazenamento volátil por instância de banco mock, permitindo reset completo entre testes.
 - Modelo ideal para testes unitários que exigem alta repetibilidade.
@@ -39,7 +39,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.1.2 Isolamento para testes unitários
 
-- Implementação estimada: **100%**.
+- Implementação estimada: **88%**.
 - Execução sem I/O de rede obrigatório.
 - Cenários independentes de disponibilidade de banco real.
 - Redução de flakiness em pipelines de CI.
@@ -53,7 +53,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.1.3 Estado e ciclo de vida
 
-- Implementação estimada: **100%**.
+- Implementação estimada: **90%**.
 - Estado de dados acoplado ao objeto de contexto/conexão mock.
 - Facilita setup/teardown por teste, fixture ou suíte.
 - Permite compor ambientes mínimos para validação de regra de negócio.
@@ -68,7 +68,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.2.1 Interpretação de comandos DDL
 
-- Implementação estimada: **100%**.
+- Implementação estimada: **92%**.
 - Leitura e processamento de comandos de definição de schema.
 - Suporte a operações estruturais comuns (criação e alteração de entidades).
 - Aplicação de regras específicas por dialeto e versão simulada.
@@ -460,7 +460,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.6.3 Risco: falsa percepção de performance
 
-- Implementação estimada: **53%**.
+- Implementação estimada: **57%**.
 - Reforçar que métricas do mock são diagnósticas e relativas.
 - Evitar decisões de tuning de produção baseadas apenas em execução em memória.
 - Incremento desta sessão: plano de execução textual/JSON passou a emitir `PerformanceDisclaimer` explícito informando que métricas do mock são relativas e não devem orientar benchmark/tuning de produção.
@@ -470,6 +470,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: documentação do pacote core (`src/DbSqlLikeMem/README.md`) foi reforçada com guidance explícito para não usar métricas/tempos do mock como benchmark de produção.
 - Incremento desta sessão: regressões de execution plan nos bancos principais passaram a validar não só a presença do campo de disclaimer, mas também a mensagem localizada emitida por recursos.
 - Incremento desta sessão: guia de compatibilidade (`docs/wiki/pages/Providers-and-Compatibility.md`) passou a explicitar em EN/PT-BR que métricas de execution plan no mock são diagnósticas/relativas e não substituem benchmark de produção.
+- Incremento desta sessão: execution plan textual/JSON passou a incluir `mockRuntimeContext` com `simulatedLatencyMs`, `dropProbability`, `threadSafe` e flag explícita de métricas relativas, reduzindo interpretação ambígua de `elapsed`/`rowsPerMs` como throughput real.
+- Incremento desta sessão: execution plan também passou a sinalizar `mockRuntimePerturbationActive` quando há latência/falha simulada configurada, deixando explícito que comparações diretas de tempo entre cenários estão contaminadas por perturbação artificial.
 
 ## 2) Integração ADO.NET e experiência de uso
 
@@ -497,10 +499,78 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 2.1.3 Benefícios de arquitetura
 
-- Implementação estimada: **70%**.
+- Implementação estimada: **90%**.
 - Camada de acesso mais desacoplada de banco físico.
 - Melhor separação entre teste de regra e teste de infraestrutura.
 - Menor custo de manutenção de ambientes dedicados.
+- Incremento desta sessão: pipeline ADO.NET de execução passou a suportar `DROP TABLE` via AST dedicado (`SqlDropTableQuery`) no núcleo do parser, reduzindo dependência de parsing manual por string.
+- Incremento desta sessão: estratégia compartilhada de execução (`DbSelectIntoAndInsertSelectStrategies`) ganhou caminho unificado para `DROP TABLE`, centralizando regra de negócio e reduzindo duplicação entre providers.
+- Incremento desta sessão: infraestrutura de banco/conexão recebeu operações explícitas de remoção de tabela permanente, temporária de conexão e temporária global, melhorando organização do ciclo de vida dos artefatos DDL.
+- Incremento desta sessão: command mocks de SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2 passaram a despachar `DROP TABLE` no mesmo fluxo arquitetural de comandos AST (NonQuery/DataReader), reduzindo branches especiais e melhorando previsibilidade/performance de manutenção.
+- Incremento desta sessão: `ExecuteNonQuery` dos seis providers principais foi alinhado para usar o dispatcher compartilhado `ExecuteParsedNonQuery(...)`, removendo `switch` duplicado por provider e consolidando regras de merge/union por opção de dialeto.
+- Incremento desta sessão: contrato `ICommandExecutionPipeline` e implementação base `CommandExecutionPipeline` foram introduzidos no núcleo para concentrar o fluxo template de `ExecuteNonQuery` (split de statements, tx-control, hooks especiais e dispatch AST), com adoção em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: pipeline de non-query evoluiu para cadeia explícita de handlers (`TransactionControlNonQueryCommandHandler`, `SpecialNonQueryCommandHandler` e cadeia AST dedicada) com contexto compartilhado, iniciando separação formal por responsabilidades.
+- Incremento desta sessão: cadeia AST foi decomposta em handlers especializados (`AstDmlNonQueryCommandHandler`, `AstDdlNonQueryCommandHandler`, `AstReadGuardNonQueryCommandHandler`, `AstUnsupportedNonQueryCommandHandler`) com parse compartilhado por contexto, reduzindo acoplamento e custo de evolução por tipo de comando.
+- Incremento desta sessão: handlers comuns de `CALL` e `CREATE TABLE` foram extraídos para o pipeline base (`CallNonQueryCommandHandler` e `CreateTableAsSelectNonQueryCommandHandler`), removendo duplicação entre providers e reduzindo branches específicos por comando.
+- Incremento desta sessão: pipeline passou a reutilizar cadeia padrão estática de handlers e a validar SQL uma única vez por statement antes do parse compartilhado em contexto, reduzindo overhead de execução e melhorando previsibilidade de performance.
+- Incremento desta sessão: `Sqlite`, `MySql` e `Db2` removeram atalhos DDL redundantes de `ExecuteNonQuery` (create temp/view/drop view), passando a depender do mesmo caminho AST/pipeline compartilhado dos demais providers; `SpecialCommand` ficou focado em exceções reais de dialeto (como `RETURNING INTO` no Oracle).
+- Incremento desta sessão: telemetria de pipeline foi adicionada em `DbMetrics` para `ExecuteNonQuery` (contagem de statements processados, hits por handler e parse cache hit/miss por statement), criando base objetiva para avaliar custo de pipeline e risco de falsa percepção de performance.
+- Incremento desta sessão: telemetria foi ampliada com latência acumulada por handler (`NonQueryHandlerElapsedTicks`) no caminho efetivamente tratado do pipeline, permitindo leitura objetiva de custo por estágio e fechamento do item arquitetural.
+- Incremento desta sessão: pipeline de non-query passou a telemetrar também falhas por handler (`NonQueryHandlerFailures`), exceções totais de fluxo (`NonQueryExceptions`) e statements não tratados (`NonQueryUnhandledStatements`), aumentando rastreabilidade de contrato e reduzindo diagnóstico subjetivo de gargalo/erro.
+- Incremento desta sessão: criação do runner compartilhado `ExecuteNonQueryWithPipeline(...)` no núcleo, removendo duplicação de inicialização de pipeline/opções em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: `ExecuteReader` também recebeu prelude compartilhado (`TryHandleExecuteReaderPrelude`) para stored procedure, split de statements e caso único de `CALL`, com adoção nos seis providers principais e preservação de diferenças de dialeto (ex.: normalização de SQL no MySQL).
+- Incremento desta sessão: parsing/execução de comandos transacionais comuns foi centralizado no helper `TryExecuteStandardTransactionControl(...)`, com wrappers nos seis providers e preservação de comportamento específico do SQL Server para `RELEASE SAVEPOINT` (no-op).
+- Incremento desta sessão: loop interno de `ExecuteReader` passou a delegar o tratamento comum de `tx-control` + `CALL` ao helper compartilhado `TryHandleReaderControlCommand(...)`, reduzindo duplicação estrutural em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: finalização comum de `ExecuteReader` (erro sem `SELECT` + atualização de `Metrics.Selects`) foi centralizada no helper `FinalizeReaderExecution(...)`, removendo repetição cross-provider e reduzindo risco de divergência de contrato.
+- Incremento desta sessão: telemetria compartilhada de `ExecuteReader` foi adicionada em `DbMetrics` (statements processados, controles transacionais, `CALL`, procedures, quantidade de result tables, linhas retornadas e ocorrência de `ExecuteReader` sem `SELECT`), elevando observabilidade arquitetural cross-provider sem duplicação por comando mock.
+- Incremento desta sessão: despacho AST de `ExecuteReader` foi unificado no helper compartilhado `DispatchParsedReaderQuery(...)`, removendo `switch` duplicado em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2, com preservação dos comportamentos específicos (`RETURNING`, `OUTPUT`, `MERGE` e estratégias de `UPDATE/DELETE` por dialeto).
+- Incremento desta sessão: dispatcher compartilhado de reader passou a telemetrar `ReaderQueryTypeHits` por tipo AST no `DbMetrics`, permitindo comparar distribuição real de comandos por provider sem instrumentação duplicada em cada command mock.
+- Incremento desta sessão: coleta de result sets de `DbDataReader` em batches foi unificada no helper `BatchReaderResultCollector.CollectAllResultSets(...)`, removendo duplicação de hidratação tabular em SQLite, MySQL, SQL Server, Npgsql, Oracle, Db2 e SQL Azure.
+- Incremento desta sessão: execução resiliente de comandos batch (`ExecuteReader` com fallback para `ExecuteNonQuery` em ausência de `SELECT`) foi centralizada no helper `BatchCommandExecutionRunner.ExecuteIntoTables(...)`, consolidando contrato cross-provider e reduzindo divergência de tratamento de erro em todos os bancos.
+- Incremento desta sessão: `DbMetrics` passou a expor telemetria de batch (`BatchNonQueryCommands`, `BatchReaderCommands`, `BatchReaderFallbackToNonQuery`) com instrumentação no runner compartilhado de batch e nos fluxos de `ExecuteNonQuery` de SQLite, MySQL, SQL Server, Npgsql, Oracle, Db2 e SQL Azure.
+- Incremento desta sessão: execução `ExecuteNonQuery` de batch foi consolidada no helper `BatchNonQueryExecutionRunner` (sync+async), padronizando telemetria por modo/tipo (`BatchCommandTypeHits`) e removendo duplicação de contadores/dispatch em todos os providers.
+- Incremento desta sessão: runners compartilhados de batch passaram a telemetrar tempo acumulado por fase (`BatchPhaseElapsedTicks` para `reader`, `nonquery` e `fallback-nonquery`) e o batch MySQL foi alinhado para respeitar `CommandBehavior` na execução de reader, reduzindo divergência de contrato entre providers.
+- Incremento desta sessão: materialização de `DbCommand` a partir de `DbBatchCommand` (`CommandText`, `CommandType`, `Timeout` e parâmetros) foi centralizada no helper `BatchCommandMaterializer.Apply(...)`, reduzindo duplicação estrutural em SQLite, SQL Server, Npgsql, Oracle, Db2 e SQL Azure.
+- Incremento desta sessão: execução de `ExecuteScalar` em batch foi unificada no helper `BatchScalarExecutionRunner.ExecuteFirstScalar(...)`, removendo repetição de seleção do primeiro comando e criação de comando executável em SQLite, SQL Server, Npgsql, Oracle, Db2 e SQL Azure.
+- Incremento desta sessão: telemetria de scalar em batch foi centralizada no runner compartilhado (`BatchScalarCommands`, `BatchCommandTypeHits` com prefixo `scalar:` e tempo em `BatchPhaseElapsedTicks["scalar"]`), incluindo o caminho assíncrono do MySQL via `ExecuteFirstScalarAsync(...)`.
+- Incremento desta sessão: caminhos assíncronos de batch (`ExecuteNonQueryAsync`, `ExecuteDbDataReaderAsync` e `ExecuteScalarAsync`) foram alinhados para execução realmente assíncrona com runners compartilhados e cancelamento propagado em SQLite, MySQL, SQL Server, Npgsql, Oracle, Db2 e SQL Azure, removendo wrappers `Task.FromResult` e reduzindo divergência de contrato entre bancos.
+- Incremento desta sessão: loops assíncronos repetidos de batch foram extraídos para `BatchAsyncExecutionRunner` (`ExecuteNonQueryCommandsAsync` e `ExecuteReaderCommandsAsync`) e adotados por todos os providers, reduzindo duplicação estrutural e consolidando um único template de execução cross-provider.
+- Incremento desta sessão: criação/materialização de comandos batch por provider foi encapsulada em `CreateExecutableCommand(...)` nos mocks de SQLite, SQL Server, Npgsql, Oracle, Db2 e SQL Azure, eliminando repetição em caminhos sync/async/scalar e reduzindo pontos de divergência de manutenção.
+- Incremento desta sessão: loops síncronos de batch também foram extraídos para `BatchSyncExecutionRunner` (`ExecuteNonQueryCommands` e `ExecuteReaderCommands`) e adotados em SQLite, SQL Server, Npgsql, Oracle, Db2 e SQL Azure, fechando a simetria arquitetural sync/async no núcleo.
+- Incremento desta sessão: validação de conexão obrigatória foi centralizada em `BatchExecutionGuards.RequireConnection(...)` e o wrapping de `DbDataReader` final passou a ser provido pelos runners sync/async via factory, reduzindo boilerplate repetido e padronizando contrato de erro entre providers.
+- Incremento desta sessão: criação de comandos materializados em batch foi generalizada no helper `BatchCommandFactory.Create(...)`, simplificando os factories por provider (`CreateExecutableCommand`) e removendo duplicação de wiring em SQLite, SQL Server, Npgsql, Oracle, Db2 e SQL Azure.
+- Incremento desta sessão: `MySqlBatchMock` passou a adotar `BatchCommandFactory.Create(...)` com estratégia de materialização customizável para preservar clone tipado de `MySqlParameter`, reduzindo divergência de implementação sem perder compatibilidade semântica do provider.
+- Incremento desta sessão: `BatchCommandFactory` passou a instrumentar materialização de comandos com `BatchMaterializations`, `BatchCommandTypeHits` (`materialize:*`) e latência em `BatchPhaseElapsedTicks["materialization"]`, fornecendo telemetria objetiva de overhead dessa fase em todos os providers.
+- Incremento desta sessão: coleta de resultados de reader em batch passou a retornar estatísticas (`BatchReaderCollectionStats`) e alimentar métricas de cardinalidade (`BatchResultTables`, `BatchRowsReturned`) diretamente no runner compartilhado, aumentando precisão de diagnóstico de throughput lógico entre providers.
+- Incremento desta sessão: contrato de erro para batch sem conexão foi centralizado em `SqlExceptionMessages.BatchConnectionRequired()` (com recursos EN/PT) e aplicado no guard compartilhado (`BatchExecutionGuards`) e no fluxo de validação do MySQL, reduzindo risco de divergência de mensagem entre providers.
+- Incremento desta sessão: runners/factories de batch passaram a telemetrar falhas por fase (`BatchPhaseFailures`) e exceções totais (`BatchExceptions`) nos caminhos `materialization`, `reader`, `fallback-nonquery`, `nonquery` e `scalar`, elevando capacidade de diagnóstico cross-provider sem instrumentação específica por banco.
+- Incremento desta sessão: chaves de métrica/fase de batch foram centralizadas em `BatchMetricKeys` (prefixos de tipo e fases), eliminando strings literais duplicadas nos runners/factory e reduzindo risco de drift de instrumentação entre providers.
+- Recalibração desta sessão: percentual do item foi ajustado para baixo em relação ao `100%` anterior para refletir subetapas ainda pendentes no roteiro A-E, evitando sobrestimar maturidade arquitetural.
+- Diretrizes arquiteturais para evolução contínua:
+  - `S` (Single Responsibility): separar claramente parsing, despacho de comando, execução e acesso a estado.
+  - `O` (Open/Closed): novas capacidades SQL devem entrar por extensão (novas estratégias/handlers), sem aumentar `if/switch` centrais.
+  - `L` (Liskov): contratos comuns entre providers devem manter semântica equivalente para o mesmo SQL suportado.
+  - `I` (Interface Segregation): expor interfaces menores por papel (parser, dispatcher, executor, storage ops), evitando contratos monolíticos.
+  - `D` (Dependency Inversion): alto nível (comando mock) deve depender de abstrações de despacho/execução, não de detalhes de provider.
+- DDD (onde aplicável):
+  - Tratar `DbMock`/`SchemaMock`/`TableMock` como núcleo de domínio técnico de persistência simulada.
+  - Isolar regras de lifecycle transacional e DDL em serviços de domínio técnico (`application services`) para reduzir acoplamento com infraestrutura ADO.NET.
+  - Delimitar bounded contexts em torno de `Parser`, `Execution`, `Provider Integration` e `Diagnostics`.
+- Design Patterns (GoF e correlatos) aplicáveis ao item:
+  - `Strategy`: seleção de execução por dialeto/comando sem branch excessivo.
+  - `Command`: encapsular operações SQL parseadas em objetos executáveis (AST + executor).
+  - `Factory Method/Abstract Factory`: criação de executores/dispatchers por provedor.
+  - `Template Method`: fluxo padrão de `ExecuteNonQuery/ExecuteReader` com hooks por provider.
+  - `Adapter`: compatibilização entre superfície ADO.NET/Dapper e motor interno.
+  - `Chain of Responsibility` (opcional): pipeline de handlers DDL/DML para substituir sequência fixa de `if`.
+  - `Facade`: ponto único simplificado para orchestration parser+executor+estado.
+- Roteiro de melhorias do item (`2.1.3`) para seguirmos:
+  - Etapa A - Dispatcher unificado por AST em todos os providers: **78%**.
+  - Etapa B - Extração de contrato `ICommandExecutionPipeline` com Template Method base: **76%**.
+  - Etapa C - Separação em handlers especializados (`DDL`, `DML`, `TxControl`, `ProcedureCall`): **81%**.
+  - Etapa D - Telemetria arquitetural (contagem de branches, latência por handler, cache-hit de parse): **82%**.
+  - Etapa E - Hardening cross-provider de contrato (regressões de semântica idêntica): **89%**.
+- Andamento agregado do roteiro de implantação arquitetural (A-E): **90%**.
 
 ### 2.2 Compatibilidade com Dapper
 

@@ -68,7 +68,7 @@ PostgresDialect : SqlDialect
 
 New dialects MUST follow the same structure.
 
-2. Parser MUST remain dialect-agnostic
+1. Parser MUST remain dialect-agnostic
 
 The parser should NOT contain database-specific logic.
 
@@ -82,7 +82,7 @@ Execution logic must not depend on SQL syntax.
 
 All syntax differences must be normalized before execution.
 
-4. New providers must reuse existing dialect families
+1. New providers must reuse existing dialect families
 
 Do not duplicate logic.
 
@@ -96,13 +96,13 @@ SQL Dialect Families
 
 Instead of implementing databases individually, dialects must be grouped.
 
-Family	Databases
-SQL Server	SQL Server, Azure SQL
-MySQL	MySQL, MariaDB
-PostgreSQL	PostgreSQL, DuckDB
-Oracle	Oracle
-IBM	DB2, Informix
-Firebird	Firebird
+Family Databases
+SQL Server SQL Server, Azure SQL
+MySQL MySQL, MariaDB
+PostgreSQL PostgreSQL, DuckDB
+Oracle Oracle
+IBM DB2, Informix
+Firebird Firebird
 
 Current coverage:
 
@@ -119,10 +119,10 @@ Allow the engine to automatically accept multiple SQL syntaxes without explicitl
 
 Example queries must work simultaneously:
 
-SELECT TOP 10 * FROM users
-SELECT * FROM users LIMIT 10
-SELECT * FROM users FETCH FIRST 10 ROWS
-SELECT * FROM users WHERE ROWNUM <= 10
+SELECT TOP 10 *FROM users
+SELECT* FROM users LIMIT 10
+SELECT *FROM users FETCH FIRST 10 ROWS
+SELECT* FROM users WHERE ROWNUM <= 10
 Implementation Steps
 Step 1 — Add new dialect enum
 SqlDialect.Auto
@@ -138,11 +138,11 @@ Detect SQL syntax patterns.
 
 Examples:
 
-Pattern	Dialect
-TOP	SQL Server
-LIMIT	MySQL/Postgres
-ROWNUM	Oracle
-FETCH FIRST	ANSI
+Pattern Dialect
+TOP SQL Server
+LIMIT MySQL/Postgres
+ROWNUM Oracle
+FETCH FIRST ANSI
 
 Example implementation:
 
@@ -177,8 +177,8 @@ Acceptance Criteria
 
 The following queries must produce identical results:
 
-SELECT TOP 5 * FROM table
-SELECT * FROM table LIMIT 5
+SELECT TOP 5 *FROM table
+SELECT* FROM table LIMIT 5
 SELECT * FROM table FETCH FIRST 5 ROWS
 Phase 2 — Query Plan Debugger
 Objective

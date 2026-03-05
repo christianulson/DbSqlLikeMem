@@ -51,6 +51,9 @@
   <data name="ExecuteReaderWithoutSelectQuery" xml:space="preserve">
     <value>ExecuteReader foi chamado, mas nenhuma query SELECT foi encontrada.</value>
   </data>
+  <data name="BatchConnectionRequired" xml:space="preserve">
+    <value>A conexão deve ser definida antes de executar um batch.</value>
+  </data>
   <data name="InvalidDropViewStatement" xml:space="preserve">
     <value>Instrução DROP VIEW inválida.</value>
   </data>

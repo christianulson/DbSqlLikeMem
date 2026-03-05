@@ -188,6 +188,22 @@ public abstract class DbMock
     internal void ClearGlobalTemporaryTables()
         => _globalTemporaryTables.Clear();
 
+    internal void DropGlobalTemporaryTable(
+        string tableName,
+        bool ifExists,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
+        var key = BuildTemporaryTableKey(tableName.NormalizeName(), schemaName);
+        if (_globalTemporaryTables.Remove(key))
+            return;
+
+        if (ifExists)
+            return;
+
+        throw new InvalidOperationException($"Table '{tableName.NormalizeName()}' does not exist.");
+    }
+
     /// <summary>
     /// EN: Creates and adds a table to the specified schema.
     /// PT: Cria e adiciona uma tabela ao schema indicado.
@@ -269,6 +285,21 @@ public abstract class DbMock
     {
         var sc = GetSchemaName(schemaName);
         return this[sc].Tables.Select(_ => _.Value).ToList().AsReadOnly();
+    }
+
+    internal void DropTable(
+        string tableName,
+        bool ifExists,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
+        var sc = GetSchemaName(schemaName);
+        var normalized = tableName.NormalizeName();
+        var removed = this[sc].Tables.Remove(normalized);
+        if (removed || ifExists)
+            return;
+
+        throw new InvalidOperationException($"Table '{normalized}' does not exist.");
     }
 
     /// <summary>

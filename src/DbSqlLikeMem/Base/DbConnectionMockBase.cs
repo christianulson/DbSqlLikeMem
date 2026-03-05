@@ -399,6 +399,35 @@ public abstract class DbConnectionMockBase(
             ifExists,
             schemaName ?? Database);
 
+    internal void DropTable(
+        string tableName,
+        bool ifExists,
+        bool temporary,
+        TemporaryTableScope scope,
+        string? schemaName = null)
+    {
+        var targetSchema = schemaName ?? Database;
+
+        if (scope == TemporaryTableScope.Global)
+        {
+            Db.DropGlobalTemporaryTable(tableName, ifExists, targetSchema);
+            return;
+        }
+
+        if (temporary || scope == TemporaryTableScope.Connection)
+        {
+            if (_temporaryTables.Remove(BuildTemporaryTableKey(tableName, targetSchema)))
+                return;
+
+            if (ifExists)
+                return;
+
+            throw new InvalidOperationException($"Table '{tableName.NormalizeName()}' does not exist.");
+        }
+
+        Db.DropTable(tableName, ifExists, targetSchema);
+    }
+
     #endregion
 
     #region Procedures

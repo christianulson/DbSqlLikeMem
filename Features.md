@@ -22,26 +22,31 @@
 ## Funcionalidades por banco
 
 ### MySQL
+
 - Mock de conexão/ADO.NET específico do provedor.
 - Parser e execução de SQL para DDL/DML comuns.
 - `INSERT ... ON DUPLICATE KEY UPDATE`: suportado.
 
 ### SQL Server
+
 - Mock de conexão/ADO.NET específico do provedor.
 - Parser e execução de SQL para DDL/DML comuns.
 - Diferenças de dialeto por versão suportadas pelo provider.
 
 ### Oracle
+
 - Mock de conexão/ADO.NET específico do provedor.
 - Parser e execução de SQL para DDL/DML comuns.
 - Diferenças de dialeto por versão suportadas pelo provider.
 
 ### PostgreSQL (Npgsql)
+
 - Mock de conexão/ADO.NET específico do provedor.
 - Parser e execução de SQL para DDL/DML comuns.
 - Diferenças de dialeto por versão suportadas pelo provider.
 
 ### SQLite
+
 - Mock de conexão/ADO.NET específico do provedor.
 - Parser e execução de SQL para DDL/DML comuns.
 - `WITH`/CTE: disponível (>= 3).
@@ -50,6 +55,7 @@
 - Operadores JSON `->` e `->>`: suportados pelo parser do dialeto.
 
 ### DB2
+
 - Mock de conexão/ADO.NET específico do provedor.
 - Parser e execução de SQL para DDL/DML comuns.
 - `WITH`/CTE: disponível (>= 8).
@@ -59,7 +65,6 @@
 - `ON DUPLICATE KEY UPDATE`: não suportado.
 - Operador null-safe `<=>`: não suportado.
 - Operadores JSON `->` e `->>`: não suportados.
-
 
 - Triggers em tabelas não temporárias: suportadas via `TableMock` (before/after insert, update e delete).
 - Tabelas temporárias (connection/global): triggers não são executadas.

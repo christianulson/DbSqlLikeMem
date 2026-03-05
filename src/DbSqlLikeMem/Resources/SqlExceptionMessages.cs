@@ -47,6 +47,9 @@ public static class SqlExceptionMessages
     public static string ExecuteReaderWithoutSelectQuery() =>
         Format(nameof(ExecuteReaderWithoutSelectQuery));
 
+    public static string BatchConnectionRequired() =>
+        Format(nameof(BatchConnectionRequired));
+
     public static string InvalidDropViewStatement() =>
         Format(nameof(InvalidDropViewStatement));
 
