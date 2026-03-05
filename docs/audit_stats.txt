@@ -1,0 +1,12 @@
+projects=92
+tfm_counts:
+  net10.0: 61
+  net472: 2
+  net48: 50
+  net6.0: 61
+  net8.0: 69
+  netstandard2.0: 1
+package_references=373
+project_references=143
+framework_references=0
+conditional_items=314
