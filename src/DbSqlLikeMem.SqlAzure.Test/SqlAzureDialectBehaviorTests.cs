@@ -211,4 +211,40 @@ public sealed class SqlAzureDialectBehaviorTests
         Assert.True(reader.Read());
         Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
     }
+
+    /// <summary>
+    /// EN: Ensures @@ROWCOUNT is reset to zero after BEGIN TRANSACTION in SQL Azure compatibility mode.
+    /// PT: Garante que @@ROWCOUNT seja resetado para zero após BEGIN TRANSACTION no modo de compatibilidade SQL Azure.
+    /// </summary>
+    [Fact]
+    public void Batch_BeginTransactionThenRowCount_ShouldReturnZero()
+    {
+        using var connection = CreateOpenConnection();
+        using var command = new SqlAzureCommandMock(connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SELECT @@ROWCOUNT;"
+        };
+
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures @@ROWCOUNT remains zero after SAVEPOINT/RELEASE SAVEPOINT batch statements.
+    /// PT: Garante que @@ROWCOUNT permaneça zero após instruções de lote SAVEPOINT/RELEASE SAVEPOINT.
+    /// </summary>
+    [Fact]
+    public void Batch_SavepointAndReleaseThenRowCount_ShouldReturnZero()
+    {
+        using var connection = CreateOpenConnection();
+        using var command = new SqlAzureCommandMock(connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SAVEPOINT sp1; RELEASE SAVEPOINT sp1; SELECT @@ROWCOUNT;"
+        };
+
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
 }

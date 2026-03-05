@@ -325,10 +325,10 @@ internal sealed class SqlQueryParser
             Returning = returning,
             HasOnDuplicateKeyUpdate = (onDup != null),
             OnDupAssigns = onDup?.Assignments.Select(a => (a.Column, a.ValueRaw)).ToList() ?? [],
-            OnDupAssignsParsed = onDup?.Assignments.Select(a => new SqlAssignment(a.Column, a.ValueRaw, TryParseScalar(a.ValueRaw))).ToList() ?? [],
+            OnDupAssignsParsed = onDup?.Assignments.ToList() ?? [],
             IsOnConflictDoNothing = onDup?.IsDoNothing == true,
             OnConflictUpdateWhereRaw = onDup?.UpdateWhereRaw,
-            OnConflictUpdateWhereExpr = TryParseWhereExpr(onDup?.UpdateWhereRaw)
+            OnConflictUpdateWhereExpr = onDup?.UpdateWhereExpr
         };
     }
 
@@ -362,9 +362,10 @@ internal sealed class SqlQueryParser
                 throw new InvalidOperationException("INSERT VALUES row has an empty expression between commas.");
 
             var rowValues = rowValuesRaw;
+            var rowNumber = valuesRaw.Count + 1;
 
             valuesRaw.Add(rowValues);
-            valuesExpr.Add([.. rowValues.Select(TryParseScalar)]);
+            valuesExpr.Add(ParseInsertValuesRowExpressions(rowValues, rowNumber));
 
             if (IsSymbol(Peek(), ","))
             {
@@ -458,31 +459,49 @@ internal sealed class SqlQueryParser
         }
     }
 
+    private List<SqlExpr?> ParseInsertValuesRowExpressions(IReadOnlyList<string> rowValues, int rowNumber)
+    {
+        var parsed = new List<SqlExpr?>(rowValues.Count);
+
+        for (var exprIndex = 0; exprIndex < rowValues.Count; exprIndex++)
+        {
+            var raw = rowValues[exprIndex];
+            try
+            {
+                parsed.Add(SqlExpressionParser.ParseScalar(raw, _dialect));
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new InvalidOperationException(
+                    $"INSERT VALUES row {rowNumber} expression {exprIndex + 1} is invalid.",
+                    ex);
+            }
+        }
+
+        return parsed;
+    }
+
     private SqlOnDuplicateKeyUpdate? ParseOnDuplicated()
     {
         if (!IsWord(Peek(), "ON"))
             return null;
 
         var next = Peek(1);
+        var isSqlServerDialect = string.Equals(_dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase);
+
+        // SQL Server gate must always be explicit NotSupported for PostgreSQL/MySQL-specific UPSERT syntaxes.
+        if (isSqlServerDialect && IsWord(next, "DUPLICATE"))
+            throw new NotSupportedException(SqlUnsupported.ForOnDuplicateKeyUpdateClause(_dialect).Message);
+
+        if (isSqlServerDialect && IsWord(next, "CONFLICT"))
+            throw new NotSupportedException(SqlUnsupported.ForOnConflictClause(_dialect).Message);
 
         // MySQL: ON DUPLICATE KEY UPDATE
         if (IsWord(next, "DUPLICATE"))
         {
             if (!_dialect.SupportsOnDuplicateKeyUpdate && !_dialect.AllowsParserInsertSelectUpsertSuffix)
             {
-                if (string.Equals(_dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase))
-                {
-                    var message = SqlUnsupported.ForOnDuplicateKeyUpdateClause(_dialect).Message;
-                    throw new NotSupportedException(message);
-                }
-
                 var gateException = SqlUnsupported.ForOnDuplicateKeyUpdateClause(_dialect);
-                if (string.Equals(_dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase)
-                    && gateException is not NotSupportedException)
-                {
-                    throw new NotSupportedException(gateException.Message);
-                }
-
                 throw gateException;
             }
 
@@ -491,7 +510,20 @@ internal sealed class SqlQueryParser
             ExpectWord("KEY");
             ExpectWord("UPDATE");
 
+            if (IsWord(Peek(), "WHERE"))
+                throw new InvalidOperationException("ON DUPLICATE KEY UPDATE does not support a WHERE clause.");
+
+            if (IsWord(Peek(), "FROM") || IsWord(Peek(), "USING"))
+                throw new InvalidOperationException("ON DUPLICATE KEY UPDATE does not support table-source clauses after assignments.");
+
             var assigns = ParseAssignmentsList().AsReadOnly();
+
+            if (IsWord(Peek(), "WHERE"))
+                throw new InvalidOperationException("ON DUPLICATE KEY UPDATE does not support a WHERE clause.");
+
+            if (IsWord(Peek(), "FROM") || IsWord(Peek(), "USING"))
+                throw new InvalidOperationException("ON DUPLICATE KEY UPDATE does not support table-source clauses after assignments.");
+
             return new SqlOnDuplicateKeyUpdate(assigns);
         }
 
@@ -500,19 +532,7 @@ internal sealed class SqlQueryParser
         {
             if (!_dialect.SupportsOnConflictClause && !_dialect.AllowsParserInsertSelectUpsertSuffix)
             {
-                if (string.Equals(_dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase))
-                {
-                    var message = SqlUnsupported.ForOnConflictClause(_dialect).Message;
-                    throw new NotSupportedException(message);
-                }
-
                 var gateException = SqlUnsupported.ForOnConflictClause(_dialect);
-                if (string.Equals(_dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase)
-                    && gateException is not NotSupportedException)
-                {
-                    throw new NotSupportedException(gateException.Message);
-                }
-
                 throw gateException;
             }
 
@@ -533,6 +553,12 @@ internal sealed class SqlQueryParser
             if (IsWord(Peek(), "NOTHING"))
             {
                 Consume();
+
+                var afterDoNothing = Peek();
+                if (!IsEnd(afterDoNothing) && !IsSymbol(afterDoNothing, ";") && !IsWord(afterDoNothing, "RETURNING"))
+                    throw new InvalidOperationException(
+                        $"ON CONFLICT DO NOTHING does not support additional clauses before RETURNING (found '{afterDoNothing.Text}').");
+
                 return new SqlOnDuplicateKeyUpdate([], IsDoNothing: true);
             }
 
@@ -545,20 +571,28 @@ internal sealed class SqlQueryParser
                 throw new InvalidOperationException("ON CONFLICT DO UPDATE requires SET assignments.");
 
             Consume(); // SET
+
+            if (IsWord(Peek(), "FROM") || IsWord(Peek(), "USING"))
+                throw new InvalidOperationException("ON CONFLICT DO UPDATE does not support table-source clauses after assignments.");
+
             var assigns = ParseOnConflictUpdateAssignments();
             string? updateWhereRaw = null;
+            SqlExpr? updateWhereExpr = null;
 
-            // PostgreSQL permite: DO UPDATE SET ... WHERE <predicate>
-            // O mock atual não usa essa condição no AST, mas precisa aceitar o SQL.
+            if (IsWord(Peek(), "FROM") || IsWord(Peek(), "USING"))
+                throw new InvalidOperationException("ON CONFLICT DO UPDATE does not support table-source clauses after assignments.");
+
+            // PostgreSQL permite: DO UPDATE SET ... WHERE <predicate>.
+            // O predicado é validado e materializado na AST para uso no executor.
             if (IsWord(Peek(), "WHERE"))
             {
                 Consume();
-                updateWhereRaw = NormalizeClauseText(ReadClauseTextUntilTopLevelStop("RETURNING"));
-                if (string.IsNullOrWhiteSpace(updateWhereRaw))
-                    throw new InvalidOperationException("ON CONFLICT DO UPDATE WHERE requires a predicate.");
+                (updateWhereRaw, updateWhereExpr) = ParseOnConflictWherePredicate(
+                    ReadClauseTextUntilTopLevelStop("RETURNING"),
+                    "ON CONFLICT DO UPDATE WHERE");
             }
 
-            return new SqlOnDuplicateKeyUpdate(assigns, UpdateWhereRaw: updateWhereRaw);
+            return new SqlOnDuplicateKeyUpdate(assigns, UpdateWhereRaw: updateWhereRaw, UpdateWhereExpr: updateWhereExpr);
         }
 
         return null;
@@ -581,9 +615,9 @@ internal sealed class SqlQueryParser
             if (IsWord(Peek(), "WHERE"))
             {
                 Consume();
-                var targetWhereRaw = NormalizeClauseText(ReadClauseTextUntilTopLevelStop("DO"));
-                if (string.IsNullOrWhiteSpace(targetWhereRaw))
-                    throw new InvalidOperationException("ON CONFLICT target WHERE requires a predicate.");
+                _ = ParseOnConflictWherePredicate(
+                    ReadClauseTextUntilTopLevelStop("DO"),
+                    "ON CONFLICT target WHERE");
             }
             return;
         }
@@ -597,10 +631,35 @@ internal sealed class SqlQueryParser
             if (IsWord(Peek(), "WHERE"))
             {
                 Consume();
-                var targetWhereRaw = NormalizeClauseText(ReadClauseTextUntilTopLevelStop("DO"));
-                if (string.IsNullOrWhiteSpace(targetWhereRaw))
-                    throw new InvalidOperationException("ON CONFLICT target WHERE requires a predicate.");
+                _ = ParseOnConflictWherePredicate(
+                    ReadClauseTextUntilTopLevelStop("DO"),
+                    "ON CONFLICT target WHERE");
             }
+        }
+    }
+
+    private (string Raw, SqlExpr Expr) ParseOnConflictWherePredicate(string raw, string clauseLabel)
+    {
+        var normalized = NormalizeClauseText(raw);
+        if (string.IsNullOrWhiteSpace(normalized))
+            throw new InvalidOperationException($"{clauseLabel} requires a predicate.");
+
+        try
+        {
+            var expr = SqlExpressionParser.ParseWhere(normalized, _dialect);
+            return (normalized, expr);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new InvalidOperationException($"{clauseLabel} predicate is invalid.", ex);
+        }
+        catch (NotSupportedException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"{clauseLabel} predicate is invalid.", ex);
         }
     }
 
@@ -629,7 +688,22 @@ internal sealed class SqlQueryParser
             if (string.IsNullOrWhiteSpace(raw))
                 throw new InvalidOperationException("ON CONFLICT target requires at least one expression.");
 
-            _ = SqlExpressionParser.ParseScalar(raw, _dialect);
+            try
+            {
+                _ = SqlExpressionParser.ParseScalar(raw, _dialect);
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new InvalidOperationException("ON CONFLICT target expression is invalid.", ex);
+            }
+            catch (NotSupportedException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("ON CONFLICT target expression is invalid.", ex);
+            }
             items++;
 
             if (IsSymbol(Peek(), ","))
@@ -670,7 +744,7 @@ internal sealed class SqlQueryParser
 
         while (true)
         {
-            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "RETURNING"))
+            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
             {
                 if (list.Count == 0)
                     throw new InvalidOperationException("ON CONFLICT DO UPDATE SET requires at least one assignment.");
@@ -681,34 +755,50 @@ internal sealed class SqlQueryParser
             if (IsSymbol(Peek(), ","))
                 throw new InvalidOperationException("ON CONFLICT DO UPDATE SET has an unexpected comma before assignment.");
 
-            var col = ExpectIdentifierWithDots();
-            ExpectSymbol("=");
+            if (IsWord(Peek(), "SET"))
+                throw new InvalidOperationException("ON CONFLICT DO UPDATE SET must not repeat SET keyword.");
 
-            var exprRaw = ReadClauseTextUntilTopLevelStop(",", "WHERE", "RETURNING", ";").Trim();
+            var col = ExpectIdentifierWithDots();
+            ExpectAssignmentEquals("ON CONFLICT DO UPDATE SET", col);
+
+            var exprRaw = ReadClauseTextUntilTopLevelStop(",", "WHERE", "FROM", "USING", "RETURNING", ";").Trim();
             if (string.IsNullOrWhiteSpace(exprRaw))
                 throw new InvalidOperationException($"ON CONFLICT DO UPDATE SET assignment for '{col}' requires an expression.");
 
+            SqlExpr expr;
             try
             {
-                _ = SqlExpressionParser.ParseScalar(exprRaw, _dialect);
+                expr = SqlExpressionParser.ParseScalar(exprRaw, _dialect);
             }
             catch (InvalidOperationException ex) when (IsTrailingTokenInWherePredicate(ex))
             {
                 throw new InvalidOperationException("ON CONFLICT DO UPDATE SET must separate assignments with commas.", ex);
             }
-            list.Add(new SqlAssignment(col, exprRaw));
+            catch (InvalidOperationException ex)
+            {
+                throw new InvalidOperationException($"ON CONFLICT DO UPDATE SET assignment for '{col}' has an invalid expression.", ex);
+            }
+            catch (NotSupportedException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"ON CONFLICT DO UPDATE SET assignment for '{col}' has an invalid expression.", ex);
+            }
+            list.Add(new SqlAssignment(col, exprRaw, expr));
 
             if (IsSymbol(Peek(), ","))
             {
                 Consume();
 
-                if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "RETURNING"))
+                if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
                     throw new InvalidOperationException("ON CONFLICT DO UPDATE SET has a trailing comma without assignment.");
 
                 continue;
             }
 
-            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "RETURNING"))
+            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
                 return list;
 
             throw new InvalidOperationException("ON CONFLICT DO UPDATE SET must separate assignments with commas.");
@@ -787,7 +877,7 @@ internal sealed class SqlQueryParser
         }
         var returning = ParseOptionalReturningItems();
 
-        var setParsed = setList.ConvertAll(it => new SqlAssignment(it.Column, it.ValueRaw, TryParseScalar(it.ValueRaw)));
+        var setParsed = assignsList;
         SqlExpr? whereExpr = null;
         if (!string.IsNullOrWhiteSpace(whereRaw))
         {
@@ -797,7 +887,18 @@ internal sealed class SqlQueryParser
             {
                 throw new InvalidOperationException("Unexpected token after UPDATE in WHERE clause.", ex);
             }
-            catch { whereExpr = null; }
+            catch (InvalidOperationException ex)
+            {
+                throw new InvalidOperationException("UPDATE WHERE predicate is invalid.", ex);
+            }
+            catch (NotSupportedException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("UPDATE WHERE predicate is invalid.", ex);
+            }
 #pragma warning restore CA1031 // Do not catch general exception types
         }
 
@@ -925,7 +1026,18 @@ internal sealed class SqlQueryParser
             {
                 throw new InvalidOperationException("Unexpected token after DELETE in WHERE clause.", ex);
             }
-            catch { whereExpr = null; }
+            catch (InvalidOperationException ex)
+            {
+                throw new InvalidOperationException("DELETE WHERE predicate is invalid.", ex);
+            }
+            catch (NotSupportedException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("DELETE WHERE predicate is invalid.", ex);
+            }
 #pragma warning restore CA1031 // Do not catch general exception types
         }
 
@@ -1176,6 +1288,20 @@ internal sealed class SqlQueryParser
         return sb.ToString();
     }
 
+    private void ExpectAssignmentEquals(string clauseLabel, string column)
+    {
+        try
+        {
+            ExpectSymbol("=");
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new InvalidOperationException(
+                $"{clauseLabel} assignment for '{column}' requires '=' between column and expression.",
+                ex);
+        }
+    }
+
     private List<SqlAssignment> ParseUpdateAssignmentsList()
     {
         var list = new List<SqlAssignment>();
@@ -1193,15 +1319,38 @@ internal sealed class SqlQueryParser
             if (IsSymbol(Peek(), ","))
                 throw new InvalidOperationException("UPDATE SET has an unexpected comma before assignment.");
 
+            if (IsWord(Peek(), "SET"))
+                throw new InvalidOperationException("UPDATE SET must not repeat SET keyword.");
+
             var col = ExpectIdentifierWithDots();
-            ExpectSymbol("=");
+            ExpectAssignmentEquals("UPDATE SET", col);
 
             var exprRaw = ReadClauseTextUntilTopLevelStop(",", "WHERE", "FROM", "RETURNING", ";").Trim();
             if (string.IsNullOrWhiteSpace(exprRaw))
                 throw new InvalidOperationException($"UPDATE SET assignment for '{col}' requires an expression.");
 
-            _ = SqlExpressionParser.ParseScalar(exprRaw, _dialect);
-            list.Add(new SqlAssignment(col, exprRaw));
+            SqlExpr expr;
+            try
+            {
+                expr = SqlExpressionParser.ParseScalar(exprRaw, _dialect);
+            }
+            catch (InvalidOperationException ex) when (IsTrailingTokenInWherePredicate(ex))
+            {
+                throw new InvalidOperationException("UPDATE SET must separate assignments with commas.", ex);
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new InvalidOperationException($"UPDATE SET assignment for '{col}' has an invalid expression.", ex);
+            }
+            catch (NotSupportedException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"UPDATE SET assignment for '{col}' has an invalid expression.", ex);
+            }
+            list.Add(new SqlAssignment(col, exprRaw, expr));
 
             if (IsSymbol(Peek(), ","))
             {
@@ -1223,23 +1372,67 @@ internal sealed class SqlQueryParser
     private List<SqlAssignment> ParseAssignmentsList()
     {
         var list = new List<SqlAssignment>();
-        while (!IsEnd(Peek()))
+        while (true)
         {
-            var col = ExpectIdentifierWithDots();
-            ExpectSymbol("=");
+            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
+            {
+                if (list.Count == 0)
+                    throw new InvalidOperationException("ON DUPLICATE KEY UPDATE requires at least one assignment.");
 
-            // Lê expressão até , ou WHERE/FROM/USING ou fim
-            var exprRaw = ReadClauseTextUntilTopLevelStop(",", "WHERE", "FROM", "USING");
-            list.Add(new SqlAssignment(col, exprRaw));
+                return list;
+            }
+
+            if (IsSymbol(Peek(), ","))
+                throw new InvalidOperationException("ON DUPLICATE KEY UPDATE has an unexpected comma before assignment.");
+
+            if (IsWord(Peek(), "SET"))
+                throw new InvalidOperationException("ON DUPLICATE KEY UPDATE must not include SET keyword; provide assignments directly.");
+
+            var col = ExpectIdentifierWithDots();
+            ExpectAssignmentEquals("ON DUPLICATE KEY UPDATE", col);
+
+            var exprRaw = ReadClauseTextUntilTopLevelStop(",", "WHERE", "FROM", "USING", "RETURNING", ";").Trim();
+            if (string.IsNullOrWhiteSpace(exprRaw))
+                throw new InvalidOperationException($"ON DUPLICATE KEY UPDATE assignment for '{col}' requires an expression.");
+
+            SqlExpr expr;
+            try
+            {
+                expr = SqlExpressionParser.ParseScalar(exprRaw, _dialect);
+            }
+            catch (InvalidOperationException ex) when (IsTrailingTokenInWherePredicate(ex))
+            {
+                throw new InvalidOperationException("ON DUPLICATE KEY UPDATE must separate assignments with commas.", ex);
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new InvalidOperationException($"ON DUPLICATE KEY UPDATE assignment for '{col}' has an invalid expression.", ex);
+            }
+            catch (NotSupportedException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"ON DUPLICATE KEY UPDATE assignment for '{col}' has an invalid expression.", ex);
+            }
+            list.Add(new SqlAssignment(col, exprRaw, expr));
 
             if (IsSymbol(Peek(), ","))
             {
                 Consume();
+
+                if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
+                    throw new InvalidOperationException("ON DUPLICATE KEY UPDATE has a trailing comma without assignment.");
+
                 continue;
             }
-            break;
+
+            if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
+                return list;
+
+            throw new InvalidOperationException("ON DUPLICATE KEY UPDATE must separate assignments with commas.");
         }
-        return list;
     }
 
     private static List<string> SplitRawByComma(string rawBlock)
@@ -1586,7 +1779,22 @@ internal sealed class SqlQueryParser
             if (string.IsNullOrWhiteSpace(expr))
                 throw new InvalidOperationException("RETURNING requires at least one expression.");
 
-            _ = SqlExpressionParser.ParseScalar(expr, _dialect);
+            try
+            {
+                _ = SqlExpressionParser.ParseScalar(expr, _dialect);
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new InvalidOperationException("RETURNING expression is invalid.", ex);
+            }
+            catch (NotSupportedException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("RETURNING expression is invalid.", ex);
+            }
             return new SqlSelectItem(expr, alias);
         });
     }
@@ -3097,34 +3305,11 @@ internal sealed class SqlQueryParser
         return res;
     }
 
-    private SqlExpr? TryParseScalar(string raw)
-    {
-#pragma warning disable CA1031 // Do not catch general exception types
-        try { return SqlExpressionParser.ParseScalar(raw, _dialect); }
-        catch { return null; }
-#pragma warning restore CA1031 // Do not catch general exception types
-    }
-
     private static bool IsTrailingTokenInWherePredicate(InvalidOperationException ex)
         => ex.Message.Contains("fim da expressão", StringComparison.OrdinalIgnoreCase)
            || ex.Message.Contains("end of expression", StringComparison.OrdinalIgnoreCase)
            || ex.Message.Contains("token inesperado no prefix", StringComparison.OrdinalIgnoreCase)
            || ex.Message.Contains("unexpected token in prefix", StringComparison.OrdinalIgnoreCase);
-
-    /// <summary>
-    /// EN: Attempts to parse a predicate string into WHERE-expression AST for optional UPSERT update filtering.
-    /// PT: Tenta converter uma string de predicado em AST de WHERE para filtro opcional de update em UPSERT.
-    /// </summary>
-    private SqlExpr? TryParseWhereExpr(string? raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw))
-            return null;
-
-#pragma warning disable CA1031 // Do not catch general exception types
-        try { return SqlExpressionParser.ParseWhere(raw!, _dialect); }
-        catch { return null; }
-#pragma warning restore CA1031 // Do not catch general exception types
-    }
     // Stub para método que verifica subquery escalar (removido para brevidade, adicione se precisar da validação estrita)
     /// <summary>
     /// EN: Parses a SQL fragment as subquery expression and throws when fragment is not a SELECT query.

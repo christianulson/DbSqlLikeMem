@@ -187,7 +187,8 @@ internal sealed record SqlCte(string Name, SqlSelectQuery Query);
 internal sealed record SqlOnDuplicateKeyUpdate(
     IReadOnlyList<SqlAssignment> Assignments,
     bool IsDoNothing = false,
-    string? UpdateWhereRaw = null
+    string? UpdateWhereRaw = null,
+    SqlExpr? UpdateWhereExpr = null
 );
 
 internal sealed record SqlAssignment(string Column, string ValueRaw, SqlExpr? ValueExpr = null);

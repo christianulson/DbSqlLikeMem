@@ -68,7 +68,7 @@ public static class DbSqlLikeMemFactory
         {
             "mysql" => new MySqlConnectionMock(new MySqlDbMock()),
             "sqlserver" => new SqlServerConnectionMock(new SqlServerDbMock()),
-            "sqlazure" or "azure-sql" => new SqlAzureConnectionMock(new SqlAzureDbMock()),
+            "sqlazure" or "azure-sql" or "azuresql" or "azure_sql" => new SqlAzureConnectionMock(new SqlAzureDbMock()),
             "oracle" => new OracleConnectionMock(new OracleDbMock()),
             "postgres" or "postgresql" or "npgsql" => new NpgsqlConnectionMock(new NpgsqlDbMock()),
             "sqlite" or "sqlite3" => new SqliteConnectionMock(new SqliteDbMock()),
