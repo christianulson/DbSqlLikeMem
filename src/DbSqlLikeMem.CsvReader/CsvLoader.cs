@@ -1,5 +1,6 @@
 using CsvHelper;
 using CsvHelper.Configuration;
+using System.Globalization;
 
 namespace DbSqlLikeMem;
 
@@ -24,10 +25,10 @@ public static class CsvLoader
         using var csv = new CsvReader(
             reader,
             new CsvConfiguration(CultureInfo.InvariantCulture)
-        {
-            HasHeaderRecord = true,
-            Delimiter = ",",
-        });
+            {
+                HasHeaderRecord = true,
+                Delimiter = ",",
+            });
 
         var records = csv.GetRecords<dynamic>();
         foreach (var rec in records)
@@ -40,6 +41,7 @@ public static class CsvLoader
                 var idx = tb.GetColumn(kv.Key).Index;
                 dic[idx] = kv.Value;
             }
+
             tb.Add(dic);
         }
     }

@@ -72,6 +72,36 @@ namespace System.Diagnostics.CodeAnalysis
 #endif
 
 #if NET48
+namespace System
+{
+    /// <summary>
+    /// HashCode - Compatibility
+    /// </summary>
+    public struct HashCode
+    {
+        private int _value;
+
+        /// <summary>
+        /// HashCode.Add - Compatibility
+        /// </summary>
+        public void Add<T>(T value)
+        {
+            var itemHash = value?.GetHashCode() ?? 0;
+            unchecked
+            {
+                _value = (_value * 31) + itemHash;
+            }
+        }
+
+        /// <summary>
+        /// HashCode.ToHashCode - Compatibility
+        /// </summary>
+        public int ToHashCode() => _value;
+    }
+}
+#endif
+
+#if NET48
 
 namespace System.Diagnostics.CodeAnalysis
 {

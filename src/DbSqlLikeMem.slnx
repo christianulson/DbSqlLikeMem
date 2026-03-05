@@ -125,5 +125,6 @@
   <Project Path="DbSqlLikeMem.NHibernate.TestTools/DbSqlLikeMem.NHibernate.TestTools.csproj" Id="05796138-948e-446c-bd71-89d8869f44d4" />
   <Project Path="DbSqlLikeMem.TestTools/DbSqlLikeMem.TestTools.csproj" />
   <Project Path="DbSqlLikeMem.XUnit/DbSqlLikeMem.XUnit.csproj" />
+  <Project Path="DbSqlLikeMem.CsvReader/DbSqlLikeMem.CsvReader.csproj" />
   <Project Path="DbSqlLikeMem/DbSqlLikeMem.csproj" />
 </Solution>
