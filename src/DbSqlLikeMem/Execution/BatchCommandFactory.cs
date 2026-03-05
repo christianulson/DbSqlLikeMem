@@ -1,5 +1,4 @@
 using System.Data.Common;
-using System.Diagnostics;
 
 namespace DbSqlLikeMem;
 
@@ -30,21 +29,16 @@ internal static class BatchCommandFactory
         where TCommand : DbCommand
         where TBatchCommand : DbBatchCommand
     {
-        var startedAt = Stopwatch.GetTimestamp();
-        try
-        {
-            var command = commandFactory();
-            materialize(command, batchCommand, timeout);
-            connection.Metrics.IncrementBatchMaterialization();
-            connection.Metrics.IncrementBatchCommandTypeHit($"{BatchMetricKeys.TypePrefixes.Materialize}{command.CommandType}");
-            connection.Metrics.IncrementBatchPhaseElapsedTicks(BatchMetricKeys.Phases.Materialization, Stopwatch.GetElapsedTime(startedAt).Ticks);
-            return command;
-        }
-        catch
-        {
-            connection.Metrics.IncrementBatchPhaseFailure(BatchMetricKeys.Phases.Materialization);
-            connection.Metrics.IncrementBatchException();
-            throw;
-        }
+        return BatchPhaseExecutionTelemetry.Execute(
+            connection,
+            BatchMetricKeys.Phases.Materialization,
+            () =>
+            {
+                var command = commandFactory();
+                materialize(command, batchCommand, timeout);
+                connection.Metrics.IncrementBatchMaterialization();
+                connection.Metrics.IncrementBatchCommandTypeHit($"{BatchMetricKeys.TypePrefixes.Materialize}{command.CommandType}");
+                return command;
+            });
     }
 }

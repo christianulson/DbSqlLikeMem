@@ -380,7 +380,7 @@ public class SqliteCommandMock(
                     break;
                 }
                 default:
-                    throw new NotSupportedException($"RETURNING expression not supported in executor: '{raw}'.");
+                    throw SqlUnsupported.ForDmlProjectionExpressionNotSupportedInExecutor("RETURNING", raw);
             }
         }
 

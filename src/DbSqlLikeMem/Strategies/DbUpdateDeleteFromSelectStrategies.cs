@@ -122,7 +122,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         var whereSql = m.Groups["where"].Success ? m.Groups["where"].Value.Trim() : null;
 
         if (!connection.TryGetTable(tableName, out var target, query.Table?.DbName) || target == null)
-            throw new InvalidOperationException($"Table {tableName} does not exist.");
+            throw SqlUnsupported.ForTableDoesNotExist(tableName);
 
         // Parse ON: s.k = a.k  OR a.k = s.k
         var onM = Regex.Match(onSql,
@@ -306,7 +306,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
             onSql = ExtractJoinConditionFromWhere(m.Groups["where"].Value, aAlias, sAlias, out whereSql);
 
         if (!connection.TryGetTable(tableName, out var target, query.Table?.DbName) || target == null)
-            throw new InvalidOperationException($"Table {tableName} does not exist.");
+            throw SqlUnsupported.ForTableDoesNotExist(tableName);
 
         var onM = _regexOnSql.Match(onSql);
         if (!onM.Success)

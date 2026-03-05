@@ -29,7 +29,7 @@ internal static class DbInsertStrategy
 
         var tableName = query.Table.Name!; // Nome vindo do Parser
         if (!connection.TryGetTable(tableName, out var table, query.Table.DbName) || table == null)
-            throw new InvalidOperationException($"Table {tableName} does not exist.");
+            throw SqlUnsupported.ForTableDoesNotExist(tableName);
 
         // Identifica linhas a inserir (seja via VALUES ou SELECT)
         List<Dictionary<int, object?>> newRows;

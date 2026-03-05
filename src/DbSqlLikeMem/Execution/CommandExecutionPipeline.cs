@@ -81,7 +81,7 @@ internal sealed class CommandExecutionPipeline : ICommandExecutionPipeline
             if (!handled)
             {
                 connection.Metrics.IncrementNonQueryUnhandledStatement();
-                throw new InvalidOperationException("No non-query handler could process the SQL statement.");
+                throw new InvalidOperationException(SqlExceptionMessages.NonQueryHandlerCouldNotProcessStatement());
             }
         }
 

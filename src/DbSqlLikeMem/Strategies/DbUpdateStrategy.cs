@@ -30,7 +30,7 @@ internal static class DbUpdateStrategy
         var tableName = queryTable.Name!;
         var dialect = connection.Db.Dialect;
         if (!connection.TryGetTable(tableName, out var table, queryTable.DbName) || table == null)
-            throw new InvalidOperationException($"Table {tableName} does not exist.");
+            throw SqlUnsupported.ForTableDoesNotExist(tableName);
 
         // JOIN updates ainda não suportados plenamente no Parser simples, 
         // mas se o AST viesse com UpdateFromSelect, trataríamos aqui.

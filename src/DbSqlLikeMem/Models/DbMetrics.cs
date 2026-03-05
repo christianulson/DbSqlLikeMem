@@ -171,6 +171,26 @@ public sealed class DbMetrics
     /// </summary>
     public int BatchExceptions { get; internal set; }
     /// <summary>
+    /// EN: Number of batch executions canceled via cancellation tokens or explicit cancellation flow.
+    /// PT: Quantidade de execuções batch canceladas via cancellation token ou fluxo explícito de cancelamento.
+    /// </summary>
+    public int BatchCancellations { get; internal set; }
+    /// <summary>
+    /// EN: Number of batch ExecuteNonQuery executions with no commands.
+    /// PT: Quantidade de execuções batch ExecuteNonQuery sem comandos.
+    /// </summary>
+    public int BatchEmptyNonQueryExecutions { get; internal set; }
+    /// <summary>
+    /// EN: Number of batch ExecuteReader executions with no commands.
+    /// PT: Quantidade de execuções batch ExecuteReader sem comandos.
+    /// </summary>
+    public int BatchEmptyReaderExecutions { get; internal set; }
+    /// <summary>
+    /// EN: Number of batch ExecuteScalar executions with no commands.
+    /// PT: Quantidade de execuções batch ExecuteScalar sem comandos.
+    /// </summary>
+    public int BatchEmptyScalarExecutions { get; internal set; }
+    /// <summary>
     /// EN: Number of batch command executions by mode/type (e.g., reader:text, nonquery:storedprocedure).
     /// PT: Quantidade de execuções de comando batch por modo/tipo (ex.: reader:text, nonquery:storedprocedure).
     /// </summary>
@@ -181,6 +201,12 @@ public sealed class DbMetrics
     /// PT: Quantidade de falhas agrupadas por fase do batch (materialization, reader, nonquery, scalar).
     /// </summary>
     public ConcurrentDictionary<string, int> BatchPhaseFailures { get; } =
+        new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>
+    /// EN: Number of cancellations grouped by batch phase.
+    /// PT: Quantidade de cancelamentos agrupados por fase do batch.
+    /// </summary>
+    public ConcurrentDictionary<string, int> BatchPhaseCancellations { get; } =
         new(StringComparer.OrdinalIgnoreCase);
     /// <summary>
     /// EN: Accumulated elapsed ticks by batch phase (materialization, reader, fallback-nonquery, nonquery, scalar).
@@ -272,11 +298,26 @@ public sealed class DbMetrics
     internal void IncrementBatchException()
         => BatchExceptions++;
 
+    internal void IncrementBatchCancellation()
+        => BatchCancellations++;
+
+    internal void IncrementBatchEmptyNonQueryExecution()
+        => BatchEmptyNonQueryExecutions++;
+
+    internal void IncrementBatchEmptyReaderExecution()
+        => BatchEmptyReaderExecutions++;
+
+    internal void IncrementBatchEmptyScalarExecution()
+        => BatchEmptyScalarExecutions++;
+
     internal void IncrementBatchCommandTypeHit(string key)
         => BatchCommandTypeHits.AddOrUpdate(key, 1, (_, current) => current + 1);
 
     internal void IncrementBatchPhaseFailure(string phase)
         => BatchPhaseFailures.AddOrUpdate(phase, 1, (_, current) => current + 1);
+
+    internal void IncrementBatchPhaseCancellation(string phase)
+        => BatchPhaseCancellations.AddOrUpdate(phase, 1, (_, current) => current + 1);
 
     internal void IncrementBatchPhaseElapsedTicks(string phase, long elapsedTicks)
         => BatchPhaseElapsedTicks.AddOrUpdate(phase, elapsedTicks, (_, current) => current + elapsedTicks);

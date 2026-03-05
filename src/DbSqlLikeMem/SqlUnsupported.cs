@@ -105,4 +105,34 @@ internal static class SqlUnsupported
 
     public static NotSupportedException ForCommandType(ISqlDialect dialect, string operation, Type queryType)
         => new($"SQL não suportado em {operation} para dialeto '{FormatDialectLabel(dialect)}' (v{dialect.Version}): {queryType.Name}.");
+
+    public static InvalidOperationException ForTableDoesNotExist(string tableName)
+        => new($"Table {tableName} does not exist.");
+
+    public static InvalidOperationException ForNormalizedTableDoesNotExist(string tableName)
+        => new($"Table '{tableName.NormalizeName()}' does not exist.");
+
+    public static InvalidOperationException ForSavepointNotFound(string savepointName)
+        => new($"Savepoint '{savepointName}' was not found.");
+
+    public static InvalidOperationException ForNoActiveTransactionForSavepointOperation()
+        => new("No active transaction for savepoint operation.");
+
+    public static InvalidOperationException ForDmlProjectionRequiresValidTargetTable(string projectionClause)
+        => new($"{projectionClause} requires a valid target table.");
+
+    public static NotSupportedException ForDmlProjectionExpressionNotSupportedInExecutor(string projectionClause, string expression)
+        => new($"{projectionClause} expression not supported in executor: '{expression}'.");
+
+    public static InvalidOperationException ForProjectionClauseEmpty(string projectionClause)
+        => new($"{projectionClause} clause is empty.");
+
+    public static InvalidOperationException ForProjectionItemEmpty(string projectionClause)
+        => new($"{projectionClause} item is empty.");
+
+    public static NotSupportedException ForReturningIntoOnlySupportedInExecuteNonQuery()
+        => new("RETURNING INTO is only supported for INSERT/UPDATE/DELETE in ExecuteNonQuery.");
+
+    public static InvalidOperationException ForReturningIntoColumnParameterCountMismatch()
+        => new("RETURNING INTO must map the same number of columns and parameters.");
 }

@@ -468,4 +468,94 @@ ORDER BY u.id", new { a = 1, b = 2, c = 3 }).ToList();
         Assert.Equal((3, "Carol"), rows[1]);
     }
 
+    /// <summary>
+    /// EN: Verifies Dapper QueryMultiple returns independent ordered result sets from a single command.
+    /// PT: Verifica se o Dapper QueryMultiple retorna conjuntos de resultados ordenados e independentes a partir de um único comando.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "DapperContract")]
+    public void Dapper_Connection_QueryMultiple_ShouldReturnOrderedIndependentResultSets()
+    {
+        using var connection = CreateOpenConnection();
+        connection.Execute("CREATE TABLE dapper_qm_users (id INT PRIMARY KEY, name VARCHAR(100))");
+        connection.Execute("CREATE TABLE dapper_qm_orders (id INT PRIMARY KEY, user_id INT, amount INT)");
+
+        connection.Execute("INSERT INTO dapper_qm_users (id, name) VALUES (1, 'Alice')");
+        connection.Execute("INSERT INTO dapper_qm_users (id, name) VALUES (2, 'Bob')");
+        connection.Execute("INSERT INTO dapper_qm_orders (id, user_id, amount) VALUES (10, 1, 30)");
+        connection.Execute("INSERT INTO dapper_qm_orders (id, user_id, amount) VALUES (11, 2, 15)");
+        connection.Execute("INSERT INTO dapper_qm_orders (id, user_id, amount) VALUES (12, 1, 45)");
+
+        using var multi = connection.QueryMultiple(@"
+SELECT id, name FROM dapper_qm_users ORDER BY id;
+SELECT user_id userId, amount FROM dapper_qm_orders WHERE amount >= @minAmount ORDER BY amount DESC;", new { minAmount = 20 });
+
+        var users = multi.Read<(int id, string name)>().ToList();
+        var orders = multi.Read<(int userId, int amount)>().ToList();
+
+        Assert.Equal([(1, "Alice"), (2, "Bob")], users);
+        Assert.Equal([(1, 45), (1, 30)], orders);
+    }
+
+    /// <summary>
+    /// EN: Verifies Dapper multi-mapping with splitOn composes joined values into a single aggregate object.
+    /// PT: Verifica se multi-mapping do Dapper com splitOn compõe valores de join em um único objeto agregado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "DapperContract")]
+    public void Dapper_Connection_QueryWithSplitOn_ShouldComposeAggregateFromJoin()
+    {
+        using var connection = CreateOpenConnection();
+        connection.Execute("CREATE TABLE dapper_mm_users (id INT PRIMARY KEY, name VARCHAR(100))");
+        connection.Execute("CREATE TABLE dapper_mm_user_tenants (user_id INT, tenant_id INT)");
+
+        connection.Execute("INSERT INTO dapper_mm_users (id, name) VALUES (1, 'Alice')");
+        connection.Execute("INSERT INTO dapper_mm_user_tenants (user_id, tenant_id) VALUES (1, 7)");
+
+        var row = connection.Query<DapperMultiMapUser, int, DapperMultiMapUser>(
+            @"SELECT
+  u.id Id,
+  u.name Name,
+  ut.tenant_id TenantId
+FROM dapper_mm_users u
+INNER JOIN dapper_mm_user_tenants ut ON ut.user_id = u.id
+WHERE u.id = @id",
+            static (user, tenantId) =>
+            {
+                user.Tenants.Add(tenantId);
+                return user;
+            },
+            new { id = 1 },
+            splitOn: "TenantId").Single();
+
+        Assert.Equal(1, row.Id);
+        Assert.Equal("Alice", row.Name);
+        Assert.Equal([7], row.Tenants);
+    }
+
+    private sealed class DapperMultiMapUser
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public List<int> Tenants { get; } = new();
+    }
+
+}
+
+/// <summary>
+/// EN: Provides a provider-agnostic Dapper smoke test base that opens a connection using a parameterless constructor.
+/// PT: Fornece uma base de testes smoke Dapper agnóstica de provedor que abre conexão usando construtor sem parâmetros.
+/// </summary>
+/// <typeparam name="TConnection">EN: Provider connection type. PT: Tipo de conexão do provedor.</typeparam>
+public abstract class DapperSmokeTestsBase<TConnection>(
+    ITestOutputHelper helper
+) : DapperSupportTestsBase(helper)
+    where TConnection : DbConnection, new()
+{
+    protected sealed override DbConnection CreateOpenConnection()
+    {
+        var connection = new TConnection();
+        connection.Open();
+        return connection;
+    }
 }

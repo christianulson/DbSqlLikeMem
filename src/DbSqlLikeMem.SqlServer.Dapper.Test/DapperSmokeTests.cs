@@ -1,23 +1,9 @@
-using System.Data.Common;
-
 namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
-/// EN: Provides provider-specific Dapper smoke coverage through the shared contract base.
-/// PT: Fornece cobertura smoke específica do provedor de Dapper através da base de contrato compartilhada.
+/// EN: Provides provider-specific Dapper smoke coverage through the shared generic contract base.
+/// PT: Fornece cobertura smoke específica do provedor de Dapper através da base genérica de contrato compartilhada.
 /// </summary>
 public sealed class DapperSmokeTests(
     ITestOutputHelper helper
-) : DapperSupportTestsBase(helper)
-{
-    /// <summary>
-    /// EN: Creates an opened mocked connection for the current provider.
-    /// PT: Cria uma conexão mock aberta para o provedor atual.
-    /// </summary>
-    protected override DbConnection CreateOpenConnection()
-    {
-        var connection = new SqlServerConnectionMock();
-        connection.Open();
-        return connection;
-    }
-}
+) : DapperSmokeTestsBase<SqlServerConnectionMock>(helper);

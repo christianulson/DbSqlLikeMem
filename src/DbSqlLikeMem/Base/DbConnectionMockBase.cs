@@ -422,7 +422,7 @@ public abstract class DbConnectionMockBase(
             if (ifExists)
                 return;
 
-            throw new InvalidOperationException($"Table '{tableName.NormalizeName()}' does not exist.");
+            throw SqlUnsupported.ForNormalizedTableDoesNotExist(tableName);
         }
 
         Db.DropTable(tableName, ifExists, targetSchema);
@@ -700,7 +700,7 @@ public abstract class DbConnectionMockBase(
 
         var normalizedName = NormalizeSavepointName(savepointName);
         if (!_savepoints.TryGetValue(normalizedName, out var snapshot))
-            throw new InvalidOperationException($"Savepoint '{savepointName}' was not found.");
+            throw SqlUnsupported.ForSavepointNotFound(savepointName);
 
         RestoreSnapshot(snapshot);
 
@@ -723,7 +723,7 @@ public abstract class DbConnectionMockBase(
 
         var normalizedName = NormalizeSavepointName(savepointName);
         if (!_savepoints.Remove(normalizedName))
-            throw new InvalidOperationException($"Savepoint '{savepointName}' was not found.");
+            throw SqlUnsupported.ForSavepointNotFound(savepointName);
 
         _savepointOrder.RemoveAll(name => name.Equals(normalizedName, StringComparison.OrdinalIgnoreCase));
     }
@@ -737,7 +737,7 @@ public abstract class DbConnectionMockBase(
     private void EnsureActiveTransaction()
     {
         if (CurrentTransaction == null)
-            throw new InvalidOperationException("No active transaction for savepoint operation.");
+            throw SqlUnsupported.ForNoActiveTransactionForSavepointOperation();
     }
 
     private Dictionary<ITableMock, TransactionTableSnapshot> CaptureSnapshot()

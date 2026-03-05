@@ -1,5 +1,4 @@
 using System.Data.Common;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,21 +8,12 @@ internal static class BatchNonQueryExecutionRunner
 {
     public static int ExecuteCommand(DbConnectionMockBase connection, DbCommand command)
     {
-        var startedAt = Stopwatch.GetTimestamp();
         connection.Metrics.IncrementBatchNonQueryCommand();
         connection.Metrics.IncrementBatchCommandTypeHit($"{BatchMetricKeys.TypePrefixes.NonQuery}{command.CommandType}");
-        try
-        {
-            var affectedRows = command.ExecuteNonQuery();
-            connection.Metrics.IncrementBatchPhaseElapsedTicks(BatchMetricKeys.Phases.NonQuery, Stopwatch.GetElapsedTime(startedAt).Ticks);
-            return affectedRows;
-        }
-        catch
-        {
-            connection.Metrics.IncrementBatchPhaseFailure(BatchMetricKeys.Phases.NonQuery);
-            connection.Metrics.IncrementBatchException();
-            throw;
-        }
+        return BatchPhaseExecutionTelemetry.Execute(
+            connection,
+            BatchMetricKeys.Phases.NonQuery,
+            command.ExecuteNonQuery);
     }
 
     public static async Task<int> ExecuteCommandAsync(
@@ -31,20 +21,12 @@ internal static class BatchNonQueryExecutionRunner
         DbCommand command,
         CancellationToken cancellationToken)
     {
-        var startedAt = Stopwatch.GetTimestamp();
         connection.Metrics.IncrementBatchNonQueryCommand();
         connection.Metrics.IncrementBatchCommandTypeHit($"{BatchMetricKeys.TypePrefixes.NonQuery}{command.CommandType}");
-        try
-        {
-            var affectedRows = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-            connection.Metrics.IncrementBatchPhaseElapsedTicks(BatchMetricKeys.Phases.NonQuery, Stopwatch.GetElapsedTime(startedAt).Ticks);
-            return affectedRows;
-        }
-        catch
-        {
-            connection.Metrics.IncrementBatchPhaseFailure(BatchMetricKeys.Phases.NonQuery);
-            connection.Metrics.IncrementBatchException();
-            throw;
-        }
+        return await BatchPhaseExecutionTelemetry.ExecuteAsync(
+            connection,
+            BatchMetricKeys.Phases.NonQuery,
+            () => command.ExecuteNonQueryAsync(cancellationToken))
+            .ConfigureAwait(false);
     }
 }

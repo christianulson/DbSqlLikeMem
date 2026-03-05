@@ -478,7 +478,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         var tableName = m.Groups["table"].Value.NormalizeName();
         if (!connection.TryGetTable(tableName, out var target)
             || target == null)
-            throw new InvalidOperationException($"Table {tableName} does not exist.");
+            throw SqlUnsupported.ForTableDoesNotExist(tableName);
 
         var cols = m.Groups["cols"].Value.Split(',')
             .Select(c => c.Replace("`", string.Empty).Trim())

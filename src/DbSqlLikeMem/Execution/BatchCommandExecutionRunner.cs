@@ -29,17 +29,16 @@ internal static class BatchCommandExecutionRunner
             connection.Metrics.IncrementBatchReaderFallbackToNonQuery();
             connection.Metrics.IncrementBatchNonQueryCommand();
             connection.Metrics.IncrementBatchCommandTypeHit($"{BatchMetricKeys.TypePrefixes.FallbackNonQuery}{command.CommandType}");
-            try
-            {
-                command.ExecuteNonQuery();
-                connection.Metrics.IncrementBatchPhaseElapsedTicks(BatchMetricKeys.Phases.FallbackNonQuery, Stopwatch.GetElapsedTime(startedAt).Ticks);
-            }
-            catch
-            {
-                connection.Metrics.IncrementBatchPhaseFailure(BatchMetricKeys.Phases.FallbackNonQuery);
-                connection.Metrics.IncrementBatchException();
-                throw;
-            }
+            BatchPhaseExecutionTelemetry.Execute(
+                connection,
+                BatchMetricKeys.Phases.FallbackNonQuery,
+                command.ExecuteNonQuery);
+        }
+        catch (global::System.OperationCanceledException)
+        {
+            connection.Metrics.IncrementBatchPhaseCancellation(BatchMetricKeys.Phases.Reader);
+            connection.Metrics.IncrementBatchCancellation();
+            throw;
         }
         catch
         {
@@ -72,17 +71,17 @@ internal static class BatchCommandExecutionRunner
             connection.Metrics.IncrementBatchReaderFallbackToNonQuery();
             connection.Metrics.IncrementBatchNonQueryCommand();
             connection.Metrics.IncrementBatchCommandTypeHit($"{BatchMetricKeys.TypePrefixes.FallbackNonQuery}{command.CommandType}");
-            try
-            {
-                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-                connection.Metrics.IncrementBatchPhaseElapsedTicks(BatchMetricKeys.Phases.FallbackNonQuery, Stopwatch.GetElapsedTime(startedAt).Ticks);
-            }
-            catch
-            {
-                connection.Metrics.IncrementBatchPhaseFailure(BatchMetricKeys.Phases.FallbackNonQuery);
-                connection.Metrics.IncrementBatchException();
-                throw;
-            }
+            await BatchPhaseExecutionTelemetry.ExecuteAsync(
+                connection,
+                BatchMetricKeys.Phases.FallbackNonQuery,
+                () => command.ExecuteNonQueryAsync(cancellationToken))
+                .ConfigureAwait(false);
+        }
+        catch (global::System.OperationCanceledException)
+        {
+            connection.Metrics.IncrementBatchPhaseCancellation(BatchMetricKeys.Phases.Reader);
+            connection.Metrics.IncrementBatchCancellation();
+            throw;
         }
         catch
         {

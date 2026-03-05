@@ -50,6 +50,21 @@ public static class SqlExceptionMessages
     public static string BatchConnectionRequired() =>
         Format(nameof(BatchConnectionRequired));
 
+    public static string BatchCommandsMustContainCommand() =>
+        Format(nameof(BatchCommandsMustContainCommand));
+
+    public static string BatchCommandsMustNotContainNull() =>
+        Format(nameof(BatchCommandsMustNotContainNull));
+
+    public static string BatchCommandTextRequired() =>
+        Format(nameof(BatchCommandTextRequired));
+
+    public static string BatchConnectionMustBeOpenCurrentState(object? state) =>
+        Format(nameof(BatchConnectionMustBeOpenCurrentState), state);
+
+    public static string MySqlBatchPrepareOnlyTextSupported() =>
+        Format(nameof(MySqlBatchPrepareOnlyTextSupported));
+
     public static string InvalidDropViewStatement() =>
         Format(nameof(InvalidDropViewStatement));
 
@@ -73,6 +88,18 @@ public static class SqlExceptionMessages
 
     public static string DapperRuntimeNotFound() =>
         Format(nameof(DapperRuntimeNotFound));
+
+    public static string NonQueryHandlerCouldNotProcessStatement() =>
+        Format(nameof(NonQueryHandlerCouldNotProcessStatement));
+
+    public static string ProcedureNameNotProvided() =>
+        Format(nameof(ProcedureNameNotProvided));
+
+    public static string InvalidCallStatement() =>
+        Format(nameof(InvalidCallStatement));
+
+    public static string LinqCouldNotExtractTableNameFromExpression(object? expression) =>
+        Format(nameof(LinqCouldNotExtractTableNameFromExpression), expression);
 
     private static string Format(string key, params object?[] args)
     {

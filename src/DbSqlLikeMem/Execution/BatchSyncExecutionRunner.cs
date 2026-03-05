@@ -12,6 +12,14 @@ internal static class BatchSyncExecutionRunner
         Func<TBatchCommand, DbCommand> commandFactory)
         where TBatchCommand : DbBatchCommand
     {
+        if (commands.Count == 0)
+        {
+            connection.Metrics.IncrementBatchEmptyNonQueryExecution();
+            return 0;
+        }
+
+        BatchExecutionGuards.RequireOpenConnectionState(connection);
+
         var affected = 0;
         foreach (var batchCommand in commands)
         {
@@ -29,7 +37,15 @@ internal static class BatchSyncExecutionRunner
         CommandBehavior behavior)
         where TBatchCommand : DbBatchCommand
     {
-        var tables = new List<TableResultMock>();
+        if (commands.Count == 0)
+        {
+            connection.Metrics.IncrementBatchEmptyReaderExecution();
+            return new List<TableResultMock>(0);
+        }
+
+        BatchExecutionGuards.RequireOpenConnectionState(connection);
+
+        var tables = new List<TableResultMock>(commands.Count);
         foreach (var batchCommand in commands)
         {
             using var command = commandFactory(batchCommand);

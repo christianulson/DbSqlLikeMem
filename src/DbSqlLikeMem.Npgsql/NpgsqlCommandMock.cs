@@ -190,7 +190,7 @@ public class NpgsqlCommandMock(
             return null;
         }
         if (table is null)
-            throw new InvalidOperationException("RETURNING requires a valid target table.");
+            throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable("RETURNING");
         var targetTable = table;
 
         var hadReturning = query.Returning.Count > 0;
@@ -220,7 +220,7 @@ public class NpgsqlCommandMock(
             return null;
         }
         if (table is null)
-            throw new InvalidOperationException("RETURNING requires a valid target table.");
+            throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable("RETURNING");
         var targetTable = table;
 
         var hadReturning = query.Returning.Count > 0;
@@ -256,7 +256,7 @@ public class NpgsqlCommandMock(
             return null;
         }
         if (table is null)
-            throw new InvalidOperationException("RETURNING requires a valid target table.");
+            throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable("RETURNING");
         var targetTable = table;
 
         var hadReturning = query.Returning.Count > 0;
@@ -389,7 +389,7 @@ public class NpgsqlCommandMock(
                     break;
                 }
                 default:
-                    throw new NotSupportedException($"RETURNING expression not supported in executor: '{raw}'.");
+                    throw SqlUnsupported.ForDmlProjectionExpressionNotSupportedInExecutor("RETURNING", raw);
             }
         }
 

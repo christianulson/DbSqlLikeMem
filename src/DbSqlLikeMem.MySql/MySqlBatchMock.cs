@@ -439,17 +439,8 @@ public sealed class MySqlBatchMock :
 #endif
     out Exception? exception)
     {
-        if (m_isDisposed)
-            exception = new ObjectDisposedException(GetType().Name);
-        else if (Connection is null)
-            exception = new InvalidOperationException(SqlExceptionMessages.BatchConnectionRequired());
-        else if (Connection.State is not ConnectionState.Open and not ConnectionState.Connecting)
-            exception = new InvalidOperationException($"Connection must be Open; current state is {Connection.State}");
-        //else if (!Connection.IgnoreCommandTransaction && Transaction != Connection.CurrentTransaction)
-        //    exception = new InvalidOperationException("The transaction associated with this batch is not the connection's active transaction; see https://mysqlconnector.net/trans");
-        else if (BatchCommands.Count == 0)
-            exception = new InvalidOperationException("BatchCommands must contain a command");
-        else
+        exception = ValidateBatchState(allowConnectingState: true);
+        if (exception is null)
             exception = GetExceptionForInvalidCommands();
 
         return exception is null;
@@ -457,20 +448,40 @@ public sealed class MySqlBatchMock :
 
     private bool NeedsPrepare(out Exception? exception)
     {
-        if (m_isDisposed)
-            exception = new ObjectDisposedException(GetType().Name);
-        else if (Connection is null)
-            exception = new InvalidOperationException(SqlExceptionMessages.BatchConnectionRequired());
-        else if (Connection.State != ConnectionState.Open)
-            exception = new InvalidOperationException($"Connection must be Open; current state is {Connection.State}");
-        else if (BatchCommands.Count == 0)
-            exception = new InvalidOperationException("BatchCommands must contain a command");
-        //else if (Connection.HasActiveReader)
-        //    exception = new InvalidOperationException("Cannot call Prepare when there is an open DataReader for this command; it must be closed first.");
-        else
+        exception = ValidateBatchState(allowConnectingState: false);
+        if (exception is null)
             exception = GetExceptionForInvalidCommands();
 
         return exception is null;// && !Connection!.IgnorePrepare;
+    }
+
+    private Exception? ValidateBatchState(bool allowConnectingState)
+    {
+        if (m_isDisposed)
+            return new ObjectDisposedException(GetType().Name);
+
+        if (Connection is null)
+            return new InvalidOperationException(SqlExceptionMessages.BatchConnectionRequired());
+
+        var invalidConnectionState = BatchExecutionGuards.GetInvalidConnectionStateException(Connection, allowConnectingState);
+        if (invalidConnectionState is not null)
+            return invalidConnectionState;
+
+        //if (!Connection.IgnoreCommandTransaction && Transaction != Connection.CurrentTransaction)
+        //    return new InvalidOperationException("The transaction associated with this batch is not the connection's active transaction; see https://mysqlconnector.net/trans");
+        //if (Connection.HasActiveReader)
+        //    return new InvalidOperationException("Cannot call Prepare when there is an open DataReader for this command; it must be closed first.");
+
+        try
+        {
+            BatchExecutionGuards.RequireAtLeastOneCommand(BatchCommands.Count);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ex;
+        }
+
+        return null;
     }
 
     private InvalidOperationException? GetExceptionForInvalidCommands()
@@ -478,9 +489,9 @@ public sealed class MySqlBatchMock :
         foreach (var command in BatchCommands)
         {
             if (command is null)
-                return new InvalidOperationException("BatchCommands must not contain null");
+                return new InvalidOperationException(SqlExceptionMessages.BatchCommandsMustNotContainNull());
             if (string.IsNullOrWhiteSpace(command.CommandText))
-                return new InvalidOperationException("CommandText must be specified on each batch command");
+                return new InvalidOperationException(SqlExceptionMessages.BatchCommandTextRequired());
         }
         return null;
     }
@@ -498,7 +509,7 @@ public sealed class MySqlBatchMock :
         foreach (IMySqlCommandMock batchCommand in BatchCommands)
         {
             if (batchCommand.CommandType != CommandType.Text)
-                throw new NotSupportedException("Only CommandType.Text is currently supported by MySqlBatch.Prepare");
+                throw new NotSupportedException(SqlExceptionMessages.MySqlBatchPrepareOnlyTextSupported());
             ((MySqlBatchCommandMock)batchCommand).Batch = this;
 
             // don't prepare the same SQL twice

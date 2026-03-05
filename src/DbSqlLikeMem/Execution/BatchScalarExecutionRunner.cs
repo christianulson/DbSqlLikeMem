@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,24 +15,20 @@ internal static class BatchScalarExecutionRunner
         where TBatchCommand : DbBatchCommand
     {
         if (commands.Count == 0)
+        {
+            connection.Metrics.IncrementBatchEmptyScalarExecution();
             return null;
+        }
 
-        var startedAt = Stopwatch.GetTimestamp();
+        BatchExecutionGuards.RequireOpenConnectionState(connection);
+
         connection.Metrics.IncrementBatchScalarCommand();
         using var command = commandFactory(commands[0]);
         connection.Metrics.IncrementBatchCommandTypeHit($"{BatchMetricKeys.TypePrefixes.Scalar}{command.CommandType}");
-        try
-        {
-            var result = command.ExecuteScalar();
-            connection.Metrics.IncrementBatchPhaseElapsedTicks(BatchMetricKeys.Phases.Scalar, Stopwatch.GetElapsedTime(startedAt).Ticks);
-            return result;
-        }
-        catch
-        {
-            connection.Metrics.IncrementBatchPhaseFailure(BatchMetricKeys.Phases.Scalar);
-            connection.Metrics.IncrementBatchException();
-            throw;
-        }
+        return BatchPhaseExecutionTelemetry.Execute(
+            connection,
+            BatchMetricKeys.Phases.Scalar,
+            command.ExecuteScalar);
     }
 
     public static async Task<object?> ExecuteFirstScalarAsync<TBatchCommand>(
@@ -44,23 +39,20 @@ internal static class BatchScalarExecutionRunner
         where TBatchCommand : DbBatchCommand
     {
         if (commands.Count == 0)
+        {
+            connection.Metrics.IncrementBatchEmptyScalarExecution();
             return null;
+        }
 
-        var startedAt = Stopwatch.GetTimestamp();
+        BatchExecutionGuards.RequireOpenConnectionState(connection);
+
         connection.Metrics.IncrementBatchScalarCommand();
         using var command = commandFactory(commands[0]);
         connection.Metrics.IncrementBatchCommandTypeHit($"{BatchMetricKeys.TypePrefixes.Scalar}{command.CommandType}");
-        try
-        {
-            var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-            connection.Metrics.IncrementBatchPhaseElapsedTicks(BatchMetricKeys.Phases.Scalar, Stopwatch.GetElapsedTime(startedAt).Ticks);
-            return result;
-        }
-        catch
-        {
-            connection.Metrics.IncrementBatchPhaseFailure(BatchMetricKeys.Phases.Scalar);
-            connection.Metrics.IncrementBatchException();
-            throw;
-        }
+        return await BatchPhaseExecutionTelemetry.ExecuteAsync(
+            connection,
+            BatchMetricKeys.Phases.Scalar,
+            () => command.ExecuteScalarAsync(cancellationToken))
+            .ConfigureAwait(false);
     }
 }

@@ -221,7 +221,7 @@ public class OracleCommandMock(
             SqlInsertQuery insertQuery => ExecuteInsertWithReturningInto(insertQuery, clause, out _),
             SqlUpdateQuery updateQuery => ExecuteUpdateWithReturningInto(updateQuery, clause, out _),
             SqlDeleteQuery deleteQuery => ExecuteDeleteWithReturningInto(deleteQuery, clause, out _),
-            _ => throw new NotSupportedException("RETURNING INTO is only supported for INSERT/UPDATE/DELETE in ExecuteNonQuery.")
+            _ => throw SqlUnsupported.ForReturningIntoOnlySupportedInExecuteNonQuery()
         };
 
         return affectedRows;
@@ -237,7 +237,7 @@ public class OracleCommandMock(
         out IReadOnlyList<IReadOnlyDictionary<int, object?>> affectedRows)
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
-            throw new InvalidOperationException("RETURNING INTO requires a valid target table.");
+            throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable("RETURNING INTO");
 
         var beforeCount = table.Count;
         var affected = connection!.ExecuteInsert(query, Parameters, connection!.Db.Dialect);
@@ -259,7 +259,7 @@ public class OracleCommandMock(
         out IReadOnlyList<IReadOnlyDictionary<int, object?>> affectedRows)
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
-            throw new InvalidOperationException("RETURNING INTO requires a valid target table.");
+            throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable("RETURNING INTO");
 
         var matchedIndexes = MatchRowIndexes(table, query.WhereRaw, query.RawSql);
         var affected = connection!.ExecuteUpdate(query, Parameters);
@@ -281,7 +281,7 @@ public class OracleCommandMock(
         out IReadOnlyList<IReadOnlyDictionary<int, object?>> affectedRows)
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
-            throw new InvalidOperationException("RETURNING INTO requires a valid target table.");
+            throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable("RETURNING INTO");
 
         var matchedIndexes = MatchRowIndexes(table, query.WhereRaw, query.RawSql);
         var snapshots = matchedIndexes
@@ -377,7 +377,7 @@ public class OracleCommandMock(
             .Where(p => !string.IsNullOrWhiteSpace(p))
             .ToList();
         if (cols.Count == 0 || cols.Count != pars.Count)
-            throw new InvalidOperationException("RETURNING INTO must map the same number of columns and parameters.");
+            throw SqlUnsupported.ForReturningIntoColumnParameterCountMismatch();
 
         rewrittenSql = sql[..returningIndex].TrimEnd();
         clause = new OracleReturningIntoClause(cols, pars);

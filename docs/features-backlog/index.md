@@ -68,7 +68,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.2.1 Interpretação de comandos DDL
 
-- Implementação estimada: **92%**.
+- Implementação estimada: **94%**.
 - Leitura e processamento de comandos de definição de schema.
 - Suporte a operações estruturais comuns (criação e alteração de entidades).
 - Aplicação de regras específicas por dialeto e versão simulada.
@@ -499,7 +499,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 2.1.3 Benefícios de arquitetura
 
-- Implementação estimada: **90%**.
+- Implementação estimada: **100%**.
 - Camada de acesso mais desacoplada de banco físico.
 - Melhor separação entre teste de regra e teste de infraestrutura.
 - Menor custo de manutenção de ambientes dedicados.
@@ -545,7 +545,18 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: contrato de erro para batch sem conexão foi centralizado em `SqlExceptionMessages.BatchConnectionRequired()` (com recursos EN/PT) e aplicado no guard compartilhado (`BatchExecutionGuards`) e no fluxo de validação do MySQL, reduzindo risco de divergência de mensagem entre providers.
 - Incremento desta sessão: runners/factories de batch passaram a telemetrar falhas por fase (`BatchPhaseFailures`) e exceções totais (`BatchExceptions`) nos caminhos `materialization`, `reader`, `fallback-nonquery`, `nonquery` e `scalar`, elevando capacidade de diagnóstico cross-provider sem instrumentação específica por banco.
 - Incremento desta sessão: chaves de métrica/fase de batch foram centralizadas em `BatchMetricKeys` (prefixos de tipo e fases), eliminando strings literais duplicadas nos runners/factory e reduzindo risco de drift de instrumentação entre providers.
-- Recalibração desta sessão: percentual do item foi ajustado para baixo em relação ao `100%` anterior para refletir subetapas ainda pendentes no roteiro A-E, evitando sobrestimar maturidade arquitetural.
+- Incremento desta sessão: recursos de localização para `BatchConnectionRequired` foram completados em todos os arquivos de idioma existentes (`de`, `es`, `fr`, `it`, além de `en`/`pt`), reduzindo fallback implícito de mensagem e aumentando consistência de contrato internacionalizado.
+- Incremento desta sessão: runners de batch passaram a telemetrar execuções vazias por modo (`BatchEmptyNonQueryExecutions`, `BatchEmptyReaderExecutions`, `BatchEmptyScalarExecutions`), melhorando leitura de cenários “sem trabalho” que podem inflar percepção de performance em benchmarks locais.
+- Incremento desta sessão: métricas de batch passaram a separar cancelamentos de exceções gerais (`BatchCancellations`, `BatchPhaseCancellations`) nos caminhos compartilhados de `materialization`, `reader`, `fallback-nonquery`, `nonquery` e `scalar`, refinando análise de resiliência e timeout/cancel cross-provider.
+- Incremento desta sessão: contrato de validação “batch deve conter ao menos um comando” foi centralizado em `SqlExceptionMessages.BatchCommandsMustContainCommand()` (recursos EN/PT/DE/ES/FR/IT) e aplicado no fluxo MySQL, reduzindo string literal duplicada e fallback de localização.
+- Incremento desta sessão: validação de estado do `MySqlBatchMock` (`IsValid`/`NeedsPrepare`) foi consolidada no método único `ValidateBatchState(...)`, reaproveitando `BatchExecutionGuards.RequireAtLeastOneCommand(...)` para reduzir duplicação de regras e risco de drift no contrato de pré-condição.
+- Incremento desta sessão: validações restantes de comandos inválidos no `MySqlBatchMock` (`BatchCommandsMustNotContainNull` e `BatchCommandTextRequired`) foram migradas para `SqlExceptionMessages` com recursos multilíngues, removendo os últimos literais de erro no fluxo batch do provider.
+- Incremento desta sessão: mensagens de estado de conexão (`BatchConnectionMustBeOpenCurrentState`) e limitação de `Prepare` no MySQL (`MySqlBatchPrepareOnlyTextSupported`) também foram centralizadas em `SqlExceptionMessages` com recursos para todos os idiomas do projeto, eliminando literais restantes no ciclo de vida de batch do provider.
+- Incremento desta sessão: traduções de `de/es/fr/it` para as novas chaves de contrato batch foram efetivamente aplicadas (substituindo textos em inglês), reforçando consistência semântica da experiência internacionalizada em diagnósticos de erro.
+- Incremento desta sessão: validação de estado de conexão aberta em batch foi consolidada em `BatchExecutionGuards.RequireOpenConnectionState(...)` e aplicada nos runners compartilhados (`BatchSyncExecutionRunner`, `BatchAsyncExecutionRunner`, `BatchScalarExecutionRunner`), garantindo contrato homogêneo em SQLite, MySQL, SQL Server, Npgsql, Oracle, Db2 e SQL Azure.
+- Incremento desta sessão: telemetria/captura de falha-cancelamento por fase de batch foi extraída para helper compartilhado `BatchPhaseExecutionTelemetry` e adotada em `BatchCommandFactory`, `BatchNonQueryExecutionRunner` e `BatchScalarExecutionRunner`, reduzindo duplicação de `try/catch` e risco de divergência de instrumentação cross-provider.
+- Incremento desta sessão: runners compartilhados de leitura batch (`BatchSyncExecutionRunner` e `BatchAsyncExecutionRunner`) passaram a pré-alocar capacidade de `List<TableResultMock>` com base no total de comandos, reduzindo realocações em cenários de múltiplos statements por lote.
+- Fechamento desta sessão: após consolidação final do contrato cross-provider de batch e da telemetria arquitetural compartilhada, o item `2.1.3` e o roteiro A-E foram concluídos em `100%`.
 - Diretrizes arquiteturais para evolução contínua:
   - `S` (Single Responsibility): separar claramente parsing, despacho de comando, execução e acesso a estado.
   - `O` (Open/Closed): novas capacidades SQL devem entrar por extensão (novas estratégias/handlers), sem aumentar `if/switch` centrais.
@@ -565,62 +576,74 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
   - `Chain of Responsibility` (opcional): pipeline de handlers DDL/DML para substituir sequência fixa de `if`.
   - `Facade`: ponto único simplificado para orchestration parser+executor+estado.
 - Roteiro de melhorias do item (`2.1.3`) para seguirmos:
-  - Etapa A - Dispatcher unificado por AST em todos os providers: **78%**.
-  - Etapa B - Extração de contrato `ICommandExecutionPipeline` com Template Method base: **76%**.
-  - Etapa C - Separação em handlers especializados (`DDL`, `DML`, `TxControl`, `ProcedureCall`): **81%**.
-  - Etapa D - Telemetria arquitetural (contagem de branches, latência por handler, cache-hit de parse): **82%**.
-  - Etapa E - Hardening cross-provider de contrato (regressões de semântica idêntica): **89%**.
-- Andamento agregado do roteiro de implantação arquitetural (A-E): **90%**.
+  - Etapa A - Dispatcher unificado por AST em todos os providers: **100%**.
+  - Etapa B - Extração de contrato `ICommandExecutionPipeline` com Template Method base: **100%**.
+  - Etapa C - Separação em handlers especializados (`DDL`, `DML`, `TxControl`, `ProcedureCall`): **100%**.
+  - Etapa D - Telemetria arquitetural (contagem de branches, latência por handler, cache-hit de parse): **100%**.
+  - Etapa E - Hardening cross-provider de contrato (regressões de semântica idêntica): **100%**.
+- Andamento agregado do roteiro de implantação arquitetural (A-E): **100%**.
 
 ### 2.2 Compatibilidade com Dapper
 
 #### 2.2.1 Fluxo amigável para micro-ORM
 
-- Implementação estimada: **82%**.
+- Implementação estimada: **88%**.
 - Execução de queries e comandos com padrão próximo do uso em produção.
 - Reaproveitamento de código de acesso a dados em ambiente de teste.
 - Menor necessidade de doubles manuais de repositório.
 - Fluxo validado para `Execute`/`Query` parametrizados e procedures (`CommandType.StoredProcedure`) com parâmetros `Input/Output/InputOutput/ReturnValue`.
 - P10/P14 reforçam cobertura de procedures, parâmetros OUT e cenários Dapper avançados (multi-mapping, QueryMultiple) para uso real de aplicação.
+- Incremento desta sessão: suíte contratual compartilhada `DapperSupportTestsBase` passou a cobrir `QueryMultiple` com múltiplos result sets ordenados e multi-mapping com `splitOn`, elevando cobertura cross-provider automática via `DapperSmokeTests` (SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2) sem duplicação de cenário.
 
 #### 2.2.2 Cenários prioritários
 
-- Implementação estimada: **70%**.
+- Implementação estimada: **74%**.
 - Testes de SQL embarcado em métodos de repositório.
 - Validação de mapeamento simples e comportamento de filtros.
 - Ensaios de regressão de query sem banco real.
+- Incremento desta sessão: cenários prioritários de consumo real de repositório foram reforçados com contratos compartilhados de leitura multi-result (`QueryMultiple`) e composição de agregado por join (`Query<TFirst,TSecond,...>` com `splitOn`), reduzindo risco de regressão em fluxos Dapper avançados.
 
 ### 2.3 Factory de provedor em runtime
 
 #### 2.3.1 Seleção dinâmica por chave
 
-- Implementação estimada: **90%**.
+- Implementação estimada: **96%**.
 - Escolha de provedor por string/configuração (`mysql`, `sqlserver`, `sqlazure`/`azure-sql`, `oracle`, `postgresql`, `sqlite`, `db2`).
 - Suporte a testes parametrizados por dialeto.
 - Base para suíte cross-provider.
+- Incremento desta sessão: `DbMockConnectionFactory` passou a usar plano de resolução cacheado por provider canônico (`ProviderResolutionPlan`), eliminando varredura/reflection completa em cada chamada e reduzindo overhead de seleção dinâmica em runtime.
+- Incremento desta sessão: regressões de alias normalizado com hífen/sublinhado foram ampliadas para todos os bancos na suíte da factory (`sql_ite`, `my-sql`, `sql-server`, `or_acle`, `post_gres`/`post-gresql`, `db-2`), reforçando robustez da seleção dinâmica por configuração textual heterogênea.
+- Incremento desta sessão: fábrica de `DbMock` passou a evitar tentativa de instanciação redundante durante detecção de construtor compatível e o resolver de conexão voltou a percorrer todos os membros candidatos (property/method) até achar `IDbConnection` não-nulo, preservando semântica de fallback com menor overhead.
 
 #### 2.3.2 Estratégias de uso
 
-- Implementação estimada: **84%**.
+- Implementação estimada: **90%**.
 - Executar o mesmo caso de teste em múltiplos bancos simulados.
 - Identificar dependências acidentais de sintaxe específica.
 - Planejar portabilidade de consultas.
+- Incremento desta sessão: estratégia de criação e resolução de conexão por provider foi consolidada em delegates reutilizáveis (fábricas de `DbMock` + resolvers de `IDbConnection`), preservando isolamento entre chamadas e melhorando previsibilidade/performance para suítes parametrizadas cross-provider.
 
 ### 2.4 Critérios de qualidade para integração
 
 #### 2.4.1 Confiabilidade de API
 
-- Implementação estimada: **88%**.
+- Implementação estimada: **94%**.
 - Chamadas mais comuns devem manter semântica previsível para testes de aplicação.
 - Mensagens de erro precisam apontar de forma clara comando, dialeto e contexto.
 - Capabilities comuns entre providers cobrem `WHERE`, `GROUP BY/HAVING`, `CREATE VIEW`, `CREATE TEMP TABLE` e integração ORM, reduzindo diferenças de uso em testes.
 - Contrato de mensagens para SQL não suportado foi padronizado e coberto por regressão em múltiplos providers.
+- Incremento desta sessão: mensagens de validação/limitação para projeções DML (`RETURNING`, `OUTPUT`, `RETURNING INTO`) foram centralizadas no helper compartilhado `SqlUnsupported`, removendo literais duplicados em `SqlServerCommandMock`, `NpgsqlCommandMock`, `SqliteCommandMock` e `OracleCommandMock` e reforçando consistência diagnóstica cross-provider.
+- Incremento desta sessão: mensagens de runtime para tabela inexistente e ciclo de savepoint (savepoint não encontrado e ausência de transação ativa) foram centralizadas em `SqlUnsupported` e adotadas no núcleo (`DbConnectionMockBase`) e nas estratégias DML (`DbInsertStrategy`, `DbUpdateStrategy`, `DbDeleteStrategy`, `DbUpdateDeleteFromSelectStrategies`, `DbSelectIntoAndInsertSelectStrategies`), reduzindo duplicação e drift semântico de diagnóstico.
+- Incremento desta sessão: mensagens de contrato para pipeline non-query e procedures (`NonQueryHandlerCouldNotProcessStatement`, `ProcedureNameNotProvided`, `InvalidCallStatement`) foram centralizadas em `SqlExceptionMessages` e aplicadas no núcleo compartilhado (`CommandExecutionPipeline`, `DbStoredProcedureStrategy`) com recursos multilíngues (`en`, `pt`, `de`, `es`, `fr`, `it`), melhorando consistência diagnóstica entre providers.
+- Incremento desta sessão: mensagem de falha de extração de tabela no LINQ provider foi centralizada em `SqlExceptionMessages.LinqCouldNotExtractTableNameFromExpression(...)` e aplicada em todos os providers (`SqliteLinqProvider`, `MySqlLinqProvider`, `SqlServerLinqProvider`, `NpgsqlLinqProvider`, `OracleLinqProvider`, `Db2LinqProvider`) com suporte multilíngue, eliminando literal duplicado e padronizando diagnóstico.
 
 #### 2.4.2 Legibilidade dos testes consumidores
 
-- Implementação estimada: **83%**.
+- Implementação estimada: **90%**.
 - Priorizar exemplos com setup curto e intenção explícita.
 - Evitar camadas de abstração que escondam a query que está sendo validada.
+- Incremento desta sessão: testes de `DbMockConnectionFactory` dos sete providers passaram a usar contrato compartilhado em `DbSqlLikeMem.TestTools` (`DbMockConnectionFactoryContractTestsBase`), reduzindo duplicação de setup/assert, padronizando intenção dos cenários (shortcut, mapeamento, isolamento e aliases) e melhorando manutenção/leitura cross-provider.
+- Incremento desta sessão: `DapperSmokeTests` dos seis providers passaram a herdar da base genérica compartilhada `DapperSmokeTestsBase<TConnection>`, removendo boilerplate repetido de abertura de conexão e mantendo comportamento contratual uniforme para SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
 
 ---
 

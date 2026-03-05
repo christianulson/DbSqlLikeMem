@@ -217,7 +217,7 @@ public class SqlServerCommandMock(
     private TableResultMock ExecuteInsertOutput(SqlInsertQuery query, SqlServerOutputClause outputClause)
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
-            throw new InvalidOperationException("OUTPUT requires a valid target table.");
+            throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable("OUTPUT");
         var targetTable = table;
 
         var beforeCount = targetTable.Count;
@@ -237,7 +237,7 @@ public class SqlServerCommandMock(
     private TableResultMock ExecuteUpdateOutput(SqlUpdateQuery query, SqlServerOutputClause outputClause)
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
-            throw new InvalidOperationException("OUTPUT requires a valid target table.");
+            throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable("OUTPUT");
         var targetTable = table;
 
         var matchedIndexes = MatchRowIndexes(targetTable, query.WhereRaw, query.RawSql);
@@ -263,7 +263,7 @@ public class SqlServerCommandMock(
     private TableResultMock ExecuteDeleteOutput(SqlDeleteQuery query, SqlServerOutputClause outputClause)
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
-            throw new InvalidOperationException("OUTPUT requires a valid target table.");
+            throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable("OUTPUT");
         var targetTable = table;
 
         var matchedIndexes = MatchRowIndexes(targetTable, query.WhereRaw, query.RawSql);
@@ -491,7 +491,7 @@ public class SqlServerCommandMock(
             .Select(ParseOutputItem)
             .ToList();
         if (items.Count == 0)
-            throw new InvalidOperationException("OUTPUT clause is empty.");
+            throw SqlUnsupported.ForProjectionClauseEmpty("OUTPUT");
         return items;
     }
 
@@ -499,7 +499,7 @@ public class SqlServerCommandMock(
     {
         var text = rawItem.Trim();
         if (string.IsNullOrWhiteSpace(text))
-            throw new InvalidOperationException("OUTPUT item is empty.");
+            throw SqlUnsupported.ForProjectionItemEmpty("OUTPUT");
 
         var aliasMatch = Regex.Match(
             text,
@@ -525,7 +525,7 @@ public class SqlServerCommandMock(
             @"^(?:(?<q>inserted|deleted)\.)?(?<c>\[[^\]]+\]|[A-Za-z_][A-Za-z0-9_]*)$",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         if (!qualifiedMatch.Success)
-            throw new NotSupportedException($"OUTPUT expression not supported in executor: '{expr}'.");
+            throw SqlUnsupported.ForDmlProjectionExpressionNotSupportedInExecutor("OUTPUT", expr);
 
         var qual = qualifiedMatch.Groups["q"].Success
             ? ParseOutputQualifier(qualifiedMatch.Groups["q"].Value)

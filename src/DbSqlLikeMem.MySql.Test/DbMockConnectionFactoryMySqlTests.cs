@@ -1,65 +1,12 @@
 namespace DbSqlLikeMem.MySql.Test;
 
-/// <summary>
-/// EN: Validates MySQL test-connection factory helpers.
-/// PT: Valida os helpers da fábrica de conexões de teste MySQL.
-/// </summary>
-public sealed class DbMockConnectionFactoryMySqlTests
+public sealed class DbMockConnectionFactoryMySqlTests : DbMockConnectionFactoryContractTestsBase
 {
-    [Fact]
-    public void CreateMySqlWithTables_ShouldCreateMySqlDbAndConnection()
-    {
-        var (db, connection) = DbMockConnectionFactory.CreateMySqlWithTables();
+    protected override string ProviderHint => "MySql";
+    protected override Type ExpectedDbType => typeof(MySqlDbMock);
+    protected override Type ExpectedConnectionType => typeof(MySqlConnectionMock);
+    protected override IReadOnlyList<string> ProviderAliases => ["MySql", "mysql", "my-sql", "  MYSQL  "];
 
-        db.Should().BeOfType<MySqlDbMock>();
-        connection.Should().BeOfType<MySqlConnectionMock>();
-    }
-
-    [Fact]
-    public void CreateWithTables_ForMySql_ShouldApplyTableMappers()
-    {
-        var (db, connection) = DbMockConnectionFactory.CreateWithTables(
-            "MySql",
-            it =>
-            {
-                var tb = it.AddTable("Users");
-                tb.AddColumn("Id", DbType.Int32, false);
-                tb.AddColumn("Name", DbType.String, false);
-                tb.Add(new Dictionary<int, object?> { [0] = 1, [1] = "Ana" });
-            });
-
-        db.Should().BeOfType<MySqlDbMock>();
-        connection.Should().BeOfType<MySqlConnectionMock>();
-        db.GetTable("Users").Should().HaveCount(1);
-    }
-
-    [Fact]
-    public void CreateWithTables_ForMySql_ShouldCreateIsolatedInstancesBetweenCalls()
-    {
-        var (firstDb, _) = DbMockConnectionFactory.CreateWithTables(
-            "MySql",
-            it =>
-            {
-                var tb = it.AddTable("Users");
-                tb.AddColumn("Id", DbType.Int32, false);
-                tb.Add(new Dictionary<int, object?> { [0] = 1 });
-            });
-
-        var (secondDb, _) = DbMockConnectionFactory.CreateWithTables("MySql");
-
-        firstDb.ContainsTable("Users").Should().BeTrue();
-        secondDb.ContainsTable("Users").Should().BeFalse();
-    }
-
-    [Theory]
-    [InlineData("MySql")]
-    [InlineData("mysql")]
-    [InlineData("  MYSQL  ")]
-    public void CreateWithTables_ForMySqlAliases_ShouldResolveMySqlTypes(string providerHint)
-    {
-        var (db, connection) = DbMockConnectionFactory.CreateWithTables(providerHint);
-
-        db.Should().BeOfType<MySqlDbMock>();
-        connection.Should().BeOfType<MySqlConnectionMock>();
-    }
+    protected override (DbMock Db, IDbConnection Connection) CreateViaProviderShortcut(params Action<DbMock>[] tableMappers)
+        => DbMockConnectionFactory.CreateMySqlWithTables(tableMappers);
 }

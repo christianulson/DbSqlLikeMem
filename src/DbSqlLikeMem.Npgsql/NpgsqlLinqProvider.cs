@@ -77,9 +77,7 @@ public sealed class NpgsqlQueryProvider(
                 return ExtractTableName(m.Arguments[0]);
         }
 
-        throw new InvalidOperationException(
-            $"Não foi possível extrair o nome da tabela da expressão: {expression}"
-        );
+        throw new InvalidOperationException(SqlExceptionMessages.LinqCouldNotExtractTableNameFromExpression(expression));
     }
 
     /// <summary>

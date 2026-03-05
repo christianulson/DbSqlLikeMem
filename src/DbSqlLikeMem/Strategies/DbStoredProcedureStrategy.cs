@@ -12,7 +12,7 @@ internal static class DbStoredProcedureStrategy
         DbParameterCollection parameters)
     {
         if (string.IsNullOrWhiteSpace(procedureName))
-            throw new InvalidOperationException("Procedure name not provided.");
+            throw new InvalidOperationException(SqlExceptionMessages.ProcedureNameNotProvided());
 
         procedureName = procedureName.Trim().Trim('`').NormalizeName();
 
@@ -39,7 +39,7 @@ internal static class DbStoredProcedureStrategy
             @"^CALL\s+(`?)(?<name>[A-Za-z0-9_]+)\1\s*(\((?<args>.*)\))?\s*;?\s*$",
             RegexOptions.IgnoreCase | RegexOptions.Singleline);
         if (!m.Success)
-            throw new InvalidOperationException("Invalid CALL statement.");
+            throw new InvalidOperationException(SqlExceptionMessages.InvalidCallStatement());
 
         var proc = m.Groups["name"].Value;
         // NOTE: we ignore positional arg parsing for now; validation is done against provided parameters.

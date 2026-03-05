@@ -51,6 +51,24 @@
   <data name="ExecuteReaderWithoutSelectQuery" xml:space="preserve">
     <value>ExecuteReader was called, but no SELECT query was found.</value>
   </data>
+  <data name="BatchConnectionRequired" xml:space="preserve">
+    <value>La connessione deve essere impostata prima di eseguire un batch.</value>
+  </data>
+  <data name="BatchCommandsMustContainCommand" xml:space="preserve">
+    <value>BatchCommands deve contenere un comando.</value>
+  </data>
+  <data name="BatchCommandsMustNotContainNull" xml:space="preserve">
+    <value>BatchCommands non deve contenere valori null.</value>
+  </data>
+  <data name="BatchCommandTextRequired" xml:space="preserve">
+    <value>CommandText deve essere specificato per ogni comando del batch.</value>
+  </data>
+  <data name="BatchConnectionMustBeOpenCurrentState" xml:space="preserve">
+    <value>La connessione deve essere Open; lo stato corrente è {0}</value>
+  </data>
+  <data name="MySqlBatchPrepareOnlyTextSupported" xml:space="preserve">
+    <value>Attualmente, MySqlBatch.Prepare supporta solo CommandType.Text.</value>
+  </data>
   <data name="InvalidDropViewStatement" xml:space="preserve">
     <value>Invalid DROP VIEW statement.</value>
   </data>
@@ -74,5 +92,17 @@
   </data>
   <data name="DapperRuntimeNotFound" xml:space="preserve">
     <value>Dapper was not found at runtime. Add a reference to package Dapper or Dapper.StrongName to enable LINQ execution via late binding.</value>
+  </data>
+  <data name="NonQueryHandlerCouldNotProcessStatement" xml:space="preserve">
+    <value>Nessun gestore non-query è riuscito a elaborare l'istruzione SQL.</value>
+  </data>
+  <data name="ProcedureNameNotProvided" xml:space="preserve">
+    <value>Il nome della procedura non è stato fornito.</value>
+  </data>
+  <data name="InvalidCallStatement" xml:space="preserve">
+    <value>Istruzione CALL non valida.</value>
+  </data>
+  <data name="LinqCouldNotExtractTableNameFromExpression" xml:space="preserve">
+    <value>Impossibile estrarre il nome della tabella dall'espressione: {0}</value>
   </data>
 </root>
