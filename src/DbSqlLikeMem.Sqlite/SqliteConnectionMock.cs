@@ -38,6 +38,10 @@ public sealed class SqliteConnectionMock
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new SqliteCommandMock(this, transaction as SqliteTransactionMock);
 
+    /// <summary>
+    /// EN: Creates the SQLite-specific mock exception used by this connection.
+    /// PT: Cria a excecao simulada especifica do SQLite usada por esta conexao.
+    /// </summary>
     protected internal override Exception NewException(string message, int code)
         => new SqliteMockException(message, code);
 }

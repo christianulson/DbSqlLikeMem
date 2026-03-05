@@ -345,7 +345,7 @@ internal sealed class SqlQueryParser
             }
 
             if (IsSymbol(Peek(), ","))
-                throw new InvalidOperationException("INSERT VALUES has an unexpected comma before row.");
+                throw new InvalidOperationException("INSERT VALUES has an unexpected comma before row (found ',').");
 
             if (!IsSymbol(Peek(), "("))
             {
@@ -651,7 +651,7 @@ internal sealed class SqlQueryParser
         }
     }
 
-    private static (string Raw, SqlExpr Expr) ParseOnConflictWherePredicate(string raw, string clauseLabel, Token foundToken)
+    private (string Raw, SqlExpr Expr) ParseOnConflictWherePredicate(string raw, string clauseLabel, SqlToken foundToken)
     {
         var normalized = NormalizeClauseText(raw);
         if (string.IsNullOrWhiteSpace(normalized))
@@ -1327,7 +1327,7 @@ internal sealed class SqlQueryParser
         }
     }
 
-    private static string DescribeFoundToken(Token token)
+    private static string DescribeFoundToken(SqlToken token)
         => IsEnd(token) ? "<end-of-statement>" : token.Text;
 
     private static string DescribeFoundTokenFromRaw(string raw)
@@ -1901,7 +1901,7 @@ internal sealed class SqlQueryParser
             var t = Peek();
 
             if (depth == 0 && IsSymbol(t, ";"))
-                throw new InvalidOperationException("ON CONFLICT target was not closed correctly.");
+                throw new InvalidOperationException("ON CONFLICT target was not closed correctly (found '<end-of-statement>').");
 
             if (depth == 0 && (IsSymbol(t, ",") || IsSymbol(t, ")")))
                 break;
