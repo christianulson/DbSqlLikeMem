@@ -3817,4 +3817,21 @@ WHERE u.id > 0";
         Assert.Contains("u.id > 0", parsed.WhereRaw, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Ensures SQL Server parser rejects MySQL full-text MATCH ... AGAINST syntax.
+    /// PT: Garante que o parser SQL Server rejeite sintaxe full-text MATCH ... AGAINST do MySQL.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_MatchAgainst_ShouldBeRejectedByDialectGate(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("MATCH(name) AGAINST ('john' IN BOOLEAN MODE)", dialect));
+
+        Assert.Contains("MATCH ... AGAINST", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 }

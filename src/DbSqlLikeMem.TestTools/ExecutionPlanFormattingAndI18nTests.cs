@@ -1067,6 +1067,29 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     }
 
     /// <summary>
+    /// EN: Verifies UNION text plan includes localized performance disclaimer.
+    /// PT: Verifica que o plano textual de UNION inclui disclaimer de performance localizado.
+    /// </summary>
+    [Fact]
+    public void FormatUnion_ShouldIncludePerformanceDisclaimer()
+    {
+        var part1 = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var part2 = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var plan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [], null, metrics);
+
+        plan.Should().Contain($"- {SqlExecutionPlanMessages.PerformanceDisclaimerLabel()}: {SqlExecutionPlanMessages.PerformanceDisclaimerMessage()}");
+    }
+
+    /// <summary>
     /// EN: Verifies UNION estimated cost increases when ALL/DISTINCT operators alternate more often even with the same DISTINCT operator count.
     /// PT: Verifica que o custo estimado de UNION aumenta quando operadores ALL/DISTINCT alternam com maior frequência mesmo com a mesma contagem de operadores DISTINCT.
     /// </summary>
@@ -4065,6 +4088,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
+        textPlan.Should().Contain($"- {SqlExecutionPlanMessages.PerformanceDisclaimerLabel()}: {root.GetProperty("performanceDisclaimer").GetString()}");
         textPlan.Should().Contain($"- {SqlExecutionPlanMessages.PlanMetadataVersionLabel()}: {root.GetProperty("planMetadataVersion").GetInt32()}");
         textPlan.Should().Contain($"- {SqlExecutionPlanMessages.PlanFlagsLabel()}: {root.GetProperty("planFlags").GetString()}");
         textPlan.Should().Contain($"- {SqlExecutionPlanMessages.PlanPerformanceBandLabel()}: {root.GetProperty("planPerformanceBand").GetString()}");

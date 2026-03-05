@@ -45,4 +45,23 @@ public static class ServiceCollectionNpgsqlDbMockExtensions
         acRegister?.Invoke(instance);
         return instance;
     });
+
+    /// <summary>
+    /// EN: Registers NpgsqlDbMock as a transient service.
+    /// PT: Registra NpgsqlDbMock como serviço transient.
+    /// </summary>
+    /// <param name="services">EN: Service collection to register into. PT: Coleção de serviços para registrar.</param>
+    /// <param name="acRegister">EN: Optional callback to configure the created mock. PT: Callback opcional para configurar o mock criado.</param>
+    /// <param name="version">EN: Optional dialect version for NpgsqlDbMock. PT: Versão opcional de dialeto para o NpgsqlDbMock.</param>
+    /// <returns>EN: The same service collection for chaining. PT: A mesma coleção de serviços para encadeamento.</returns>
+    public static IServiceCollection AddNpgsqlDbMockTransient(
+        this IServiceCollection services,
+        Action<NpgsqlDbMock>? acRegister = null,
+        int? version = null)
+    => services.AddTransient(_ =>
+    {
+        var instance = new NpgsqlDbMock(version);
+        acRegister?.Invoke(instance);
+        return instance;
+    });
 }

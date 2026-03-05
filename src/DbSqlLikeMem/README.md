@@ -83,6 +83,8 @@ var (db, conn) = DbMockConnectionFactory.CreateWithTables("SqlServer", d => { /*
   **PT-BR:** O suporte SQL é incremental e sensível a dialeto por meio de pacotes específicos por provedor.
 - **EN:** Unsupported SQL constructs should fail fast with clear exceptions.
   **PT-BR:** Construções SQL não suportadas devem falhar rapidamente com exceções claras.
+- **EN:** Execution-plan metrics are diagnostic and relative; do not use mock timings as production performance benchmarks.
+  **PT-BR:** As métricas de plano de execução são diagnósticas e relativas; não use tempos do mock como benchmark de performance de produção.
 
 ## Learn more | Saiba mais
 

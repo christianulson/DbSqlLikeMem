@@ -348,6 +348,22 @@ public abstract class DbConnectionMockBase(
         return tables.AsReadOnly();
     }
 
+    /// <summary>
+    /// EN: Resets all volatile in-memory state for the current connection and backing database.
+    /// PT: Reseta todo o estado volátil em memória da conexão atual e do banco associado.
+    /// </summary>
+    public void ResetAllVolatileData()
+    {
+        if (!Db.ThreadSafe)
+        {
+            ResetAllVolatileDataCore();
+            return;
+        }
+
+        lock (Db.SyncRoot)
+            ResetAllVolatileDataCore();
+    }
+
     #endregion
 
     #region View
@@ -469,7 +485,38 @@ public abstract class DbConnectionMockBase(
     /// PT: Fecha a conexão simulada.
     /// </summary>
     public override void Close()
-        => _state = ConnectionState.Closed;
+    {
+        if (!Db.ThreadSafe)
+        {
+            CloseCore();
+            return;
+        }
+
+        lock (Db.SyncRoot)
+            CloseCore();
+    }
+
+    private void CloseCore()
+    {
+        CurrentTransaction?.Dispose();
+        CurrentTransaction = null;
+        CurrentIsolationLevel = IsolationLevel.Unspecified;
+        ClearTransactionStateCore();
+
+        foreach (var table in _temporaryTables.Values)
+        {
+            while (table.Count > 0)
+                table.RemoveAt(table.Count - 1);
+
+            table.NextIdentity = 1;
+            table.RebuildAllIndexes();
+        }
+
+        _temporaryTables.Clear();
+        SetLastFoundRows(0);
+        ClearExecutionPlans();
+        _state = ConnectionState.Closed;
+    }
 
     /// <summary>
     /// EN: Creates a command associated with the current transaction.
@@ -667,7 +714,11 @@ public abstract class DbConnectionMockBase(
     private Dictionary<ITableMock, TransactionTableSnapshot> CaptureSnapshot()
     {
         var snapshot = new Dictionary<ITableMock, TransactionTableSnapshot>(TableReferenceComparer.Instance);
-        foreach (var table in Db.ListAllTablesBestEffort())
+        var allTables = Db.ListAllTablesBestEffort()
+            .Concat(_temporaryTables.Values)
+            .Distinct(TableReferenceComparer.Instance);
+
+        foreach (var table in allTables)
         {
             var rows = table.Select(row => row.ToDictionary(entry => entry.Key, entry => entry.Value)).ToList();
             snapshot[table] = new TransactionTableSnapshot(table.NextIdentity, rows);
@@ -697,6 +748,27 @@ public abstract class DbConnectionMockBase(
         _savepoints.Clear();
         _savepointOrder.Clear();
         _transactionBeginSnapshot = null;
+    }
+
+    private void ResetAllVolatileDataCore()
+    {
+        CurrentTransaction?.Dispose();
+        CurrentTransaction = null;
+        CurrentIsolationLevel = IsolationLevel.Unspecified;
+        ClearTransactionStateCore();
+
+        Db.ResetVolatileData(includeGlobalTemporaryTables: true);
+
+        foreach (var table in _temporaryTables.Values)
+        {
+            while (table.Count > 0)
+                table.RemoveAt(table.Count - 1);
+
+            table.NextIdentity = 1;
+            table.RebuildAllIndexes();
+        }
+
+        _temporaryTables.Clear();
     }
 
     internal void MaybeDelayOrDrop()

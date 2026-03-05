@@ -45,4 +45,23 @@ public static class ServiceCollectionSqlAzureDbMockExtensions
         acRegister?.Invoke(instance);
         return instance;
     });
+
+    /// <summary>
+    /// EN: Registers SqlAzureDbMock as a transient service.
+    /// PT: Registra SqlAzureDbMock como servico transient.
+    /// </summary>
+    /// <param name="services">EN: Service collection to register into. PT: Coleção de serviços para registrar.</param>
+    /// <param name="acRegister">EN: Optional callback to configure the created mock. PT: Callback opcional para configurar o mock criado.</param>
+    /// <param name="compatibilityLevel">EN: Optional SQL Azure compatibility level. PT: Nível de compatibilidade SQL Azure opcional.</param>
+    /// <returns>EN: The same service collection for chaining. PT: A mesma coleção de serviços para encadeamento.</returns>
+    public static IServiceCollection AddSqlAzureDbMockTransient(
+        this IServiceCollection services,
+        Action<SqlAzureDbMock>? acRegister = null,
+        int? compatibilityLevel = null)
+    => services.AddTransient(_ =>
+    {
+        var instance = new SqlAzureDbMock(compatibilityLevel);
+        acRegister?.Invoke(instance);
+        return instance;
+    });
 }

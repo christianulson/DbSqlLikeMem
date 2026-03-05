@@ -3248,4 +3248,85 @@ WHERE users.id = EXCLUDED.id";
         Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Ensures MySQL parser accepts MATCH(...) AGAINST(...) and maps to internal MATCH_AGAINST call form.
+    /// PT: Garante que o parser MySQL aceite MATCH(...) AGAINST(...) e mapeie para forma interna MATCH_AGAINST.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_MatchAgainst_ShouldParseAsInternalCall(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var expr = SqlExpressionParser.ParseScalar("MATCH(title, body) AGAINST ('hello world')", dialect);
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.Equal("MATCH_AGAINST", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.True(call.Args.Count >= 2);
+        Assert.IsType<RowExpr>(call.Args[0]);
+        var queryLiteral = Assert.IsType<LiteralExpr>(call.Args[1]);
+        Assert.Equal("hello world", queryLiteral.Value);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parser accepts AGAINST mode tail (for example IN BOOLEAN MODE).
+    /// PT: Garante que o parser MySQL aceite sufixo de modo no AGAINST (por exemplo IN BOOLEAN MODE).
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_MatchAgainstWithBooleanMode_ShouldParseAndCaptureMode(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var expr = SqlExpressionParser.ParseScalar("MATCH(title) AGAINST ('+mysql -oracle' IN BOOLEAN MODE)", dialect);
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.Equal("MATCH_AGAINST", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.True(call.Args.Count >= 3);
+
+        var mode = Assert.IsType<RawSqlExpr>(call.Args[2]);
+        Assert.Contains("BOOLEAN MODE", mode.Sql, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures parser accepts NATURAL LANGUAGE + QUERY EXPANSION mode in AGAINST clause.
+    /// PT: Garante que o parser aceite modo NATURAL LANGUAGE + QUERY EXPANSION na cláusula AGAINST.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_MatchAgainstWithNaturalLanguageAndQueryExpansion_ShouldParse(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var expr = SqlExpressionParser.ParseScalar(
+            "MATCH(title) AGAINST ('database indexing' IN NATURAL LANGUAGE MODE WITH QUERY EXPANSION)",
+            dialect);
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.Equal("MATCH_AGAINST", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.True(call.Args.Count >= 3);
+        var mode = Assert.IsType<RawSqlExpr>(call.Args[2]);
+        Assert.Contains("NATURAL LANGUAGE MODE WITH QUERY EXPANSION", mode.Sql, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures parser rejects unsupported AGAINST mode combinations with actionable message.
+    /// PT: Garante que o parser rejeite combinações de modo AGAINST não suportadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_MatchAgainstWithInvalidMode_ShouldThrowActionableError(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("MATCH(title) AGAINST ('john' IN BOOLEAN)", dialect));
+
+        Assert.Contains("Unsupported AGAINST mode", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 }

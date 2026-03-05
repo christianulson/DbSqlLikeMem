@@ -1486,20 +1486,90 @@ internal sealed class SqlQueryParser
 
     private static List<string> SplitRawByComma(string rawBlock)
     {
-        // Método "quick & dirty" para separar "1, 'abc', func(x)" em lista de strings, respeitando parens
-        // Usado apenas para ValuesRaw do Insert
+        // Separa "1, 'abc', func(x)" em itens, respeitando:
+        // - profundidade de parênteses
+        // - strings quoted (single/double)
+        // Isso evita quebrar JSON/texto que contém vírgula dentro da string.
         var res = new List<string>();
         if (rawBlock.Length == 0)
             return res;
 
         int depth = 0;
         int start = 0;
+        bool inSingleQuote = false;
+        bool inDoubleQuote = false;
         for (int i = 0; i < rawBlock.Length; i++)
         {
-            if (rawBlock[i] == '(') depth++;
-            else if (rawBlock[i] == ')') depth--;
+            var ch = rawBlock[i];
 
-            if (depth == 0 && rawBlock[i] == ',')
+            if (inSingleQuote)
+            {
+                // MySQL-style escape
+                if (ch == '\\' && i + 1 < rawBlock.Length)
+                {
+                    i++;
+                    continue;
+                }
+
+                // ANSI doubled quote: '' inside a single-quoted literal
+                if (ch == '\'' && i + 1 < rawBlock.Length && rawBlock[i + 1] == '\'')
+                {
+                    i++;
+                    continue;
+                }
+
+                if (ch == '\'')
+                    inSingleQuote = false;
+
+                continue;
+            }
+
+            if (inDoubleQuote)
+            {
+                if (ch == '\\' && i + 1 < rawBlock.Length)
+                {
+                    i++;
+                    continue;
+                }
+
+                if (ch == '"' && i + 1 < rawBlock.Length && rawBlock[i + 1] == '"')
+                {
+                    i++;
+                    continue;
+                }
+
+                if (ch == '"')
+                    inDoubleQuote = false;
+
+                continue;
+            }
+
+            if (ch == '\'')
+            {
+                inSingleQuote = true;
+                continue;
+            }
+
+            if (ch == '"')
+            {
+                inDoubleQuote = true;
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch == ')')
+            {
+                if (depth > 0)
+                    depth--;
+                continue;
+            }
+
+            if (depth == 0 && ch == ',')
             {
                 res.Add(rawBlock[start..i].Trim());
                 start = i + 1;
@@ -1550,6 +1620,9 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "VIEW"))
             return ParseCreateView(orReplace);
 
+        if (orReplace)
+            throw new InvalidOperationException("CREATE OR REPLACE is only supported for VIEW statements.");
+
         var isTemporary = false;
         var tempScope = TemporaryTableScope.None;
         if (IsWord(Peek(), "GLOBAL"))
@@ -1598,6 +1671,9 @@ internal sealed class SqlQueryParser
         if (IsSymbol(Peek(), "("))
         {
             Consume(); // (
+            if (IsSymbol(Peek(), ")"))
+                throw new InvalidOperationException("CREATE TEMPORARY TABLE column list requires at least one column name.");
+
             var depth = 1;
             var expectColName = true;
             while (!IsEnd(Peek()) && depth > 0)
@@ -1611,6 +1687,9 @@ internal sealed class SqlQueryParser
                     continue;
                 }
 
+                if (depth == 1 && expectColName && IsSymbol(t, ","))
+                    throw new InvalidOperationException("CREATE TEMPORARY TABLE column list cannot start with a comma.");
+
                 if (depth == 1 && expectColName && t.Kind == SqlTokenKind.Identifier)
                 {
                     colNames.Add(t.Text);
@@ -1618,12 +1697,24 @@ internal sealed class SqlQueryParser
                     continue;
                 }
 
+                if (depth == 1 && expectColName && t.Kind != SqlTokenKind.Identifier)
+                    throw new InvalidOperationException($"CREATE TEMPORARY TABLE column list expects a column name, found {t.Kind} '{t.Text}'.");
+
                 if (depth == 1 && IsSymbol(t, ","))
                 {
                     expectColName = true;
                     continue;
                 }
+
+                if (depth == 1 && !expectColName && t.Kind == SqlTokenKind.Identifier && IsLikelyColumnTypeToken(Peek()))
+                    throw new InvalidOperationException("CREATE TEMPORARY TABLE column list must separate columns with commas.");
             }
+
+            if (depth != 0)
+                throw new InvalidOperationException("CREATE TEMPORARY TABLE column list was not closed correctly.");
+
+            if (expectColName)
+                throw new InvalidOperationException("CREATE TEMPORARY TABLE column list cannot end with a comma.");
         }
 
         // CREATE TEMPORARY TABLE ... AS SELECT ...
@@ -1637,6 +1728,9 @@ internal sealed class SqlQueryParser
         var rest = new List<SqlToken>();
         while (!IsEnd(Peek()))
             rest.Add(Consume());
+
+        EnsureBodyExistsAfterAs(rest, "CREATE TEMPORARY TABLE ... AS");
+        EnsureNoUnexpectedTrailingStatementAfterBody(rest, "CREATE TEMPORARY TABLE ... AS");
 
         var selectSql = TokensToSql(rest).Trim();
         var inner = Parse(selectSql, _dialect);
@@ -1696,31 +1790,46 @@ internal sealed class SqlQueryParser
         if (IsSymbol(Peek(), "("))
         {
             Consume(); // (
-            var depth = 1;
+            if (IsSymbol(Peek(), ")"))
+                throw new InvalidOperationException("CREATE VIEW column list requires at least one column name.");
+
             var expectColName = true;
-            while (!IsEnd(Peek()) && depth > 0)
+            while (true)
             {
-                var t = Consume();
-                if (IsSymbol(t, "(")) { depth++; continue; }
+                var t = Peek();
+                if (IsEnd(t))
+                    throw new InvalidOperationException("CREATE VIEW column list was not closed correctly.");
+
                 if (IsSymbol(t, ")"))
                 {
-                    depth--;
-                    if (depth == 0) break;
-                    continue;
+                    if (expectColName)
+                        throw new InvalidOperationException("CREATE VIEW column list cannot end with a comma.");
+
+                    Consume();
+                    break;
                 }
 
-                if (depth == 1 && expectColName && t.Kind == SqlTokenKind.Identifier)
+                if (expectColName)
                 {
-                    colNames.Add(t.Text);
+                    if (IsSymbol(t, ","))
+                        throw new InvalidOperationException("CREATE VIEW column list cannot start with a comma.");
+
+                    if (t.Kind != SqlTokenKind.Identifier)
+                        throw new InvalidOperationException($"CREATE VIEW column list expects a column name, found {t.Kind} '{t.Text}'.");
+
+                    colNames.Add(Consume().Text);
                     expectColName = false;
                     continue;
                 }
 
-                if (depth == 1 && IsSymbol(t, ","))
+                if (IsSymbol(t, ","))
                 {
+                    Consume();
                     expectColName = true;
                     continue;
                 }
+
+                throw new InvalidOperationException("CREATE VIEW column list must separate columns with commas.");
             }
         }
 
@@ -1729,6 +1838,9 @@ internal sealed class SqlQueryParser
         var rest = new List<SqlToken>();
         while (!IsEnd(Peek()))
             rest.Add(Consume());
+
+        EnsureBodyExistsAfterAs(rest, "CREATE VIEW ... AS");
+        EnsureNoUnexpectedTrailingStatementAfterBody(rest, "CREATE VIEW ... AS");
 
         var selectSql = TokensToSql(rest).Trim();
         var inner = Parse(selectSql, _dialect);
@@ -1745,13 +1857,24 @@ internal sealed class SqlQueryParser
         };
     }
 
-    private SqlDropViewQuery ParseDrop()
+    private SqlQueryBase ParseDrop()
     {
         ExpectWord("DROP");
 
-        if (!IsWord(Peek(), "VIEW"))
-            throw new InvalidOperationException("Apenas DROP VIEW é suportado no mock no momento.");
+        if (IsWord(Peek(), "VIEW"))
+            return ParseDropView();
 
+        if (IsWord(Peek(), "TABLE")
+            || IsWord(Peek(), "TEMP")
+            || IsWord(Peek(), "TEMPORARY")
+            || IsWord(Peek(), "GLOBAL"))
+            return ParseDropTable();
+
+        throw new InvalidOperationException("Apenas DROP VIEW e DROP TABLE são suportados no mock no momento.");
+    }
+
+    private SqlDropViewQuery ParseDropView()
+    {
         Consume(); // VIEW
 
         var ifExists = false;
@@ -1762,12 +1885,134 @@ internal sealed class SqlQueryParser
             ifExists = true;
         }
 
+        var viewNameToken = Peek();
+        if (IsEnd(viewNameToken) || IsSymbol(viewNameToken, ";"))
+            throw new InvalidOperationException("DROP VIEW requires a view name.");
+
         var viewName = ParseTableSource(consumeHints: false);
+
+        EnsureStatementEnd("DROP VIEW");
 
         return new SqlDropViewQuery
         {
             IfExists = ifExists,
             Table = viewName
+        };
+    }
+
+    private SqlDropTableQuery ParseDropTable()
+    {
+        var isTemporary = false;
+        var tempScope = TemporaryTableScope.None;
+
+        if (IsWord(Peek(), "GLOBAL"))
+        {
+            Consume();
+            if (IsWord(Peek(), "TEMPORARY") || IsWord(Peek(), "TEMP"))
+            {
+                Consume();
+                isTemporary = true;
+                tempScope = TemporaryTableScope.Global;
+            }
+            else
+            {
+                throw new InvalidOperationException("GLOBAL deve ser seguido de TEMPORARY/TEMP em DROP TABLE.");
+            }
+        }
+
+        if (!isTemporary && (IsWord(Peek(), "TEMPORARY") || IsWord(Peek(), "TEMP")))
+        {
+            Consume();
+            isTemporary = true;
+            tempScope = TemporaryTableScope.Connection;
+        }
+
+        ExpectWord("TABLE");
+
+        var ifExists = false;
+        if (IsWord(Peek(), "IF"))
+        {
+            Consume();
+            ExpectWord("EXISTS");
+            ifExists = true;
+        }
+
+        var tableNameToken = Peek();
+        if (IsEnd(tableNameToken) || IsSymbol(tableNameToken, ";"))
+            throw new InvalidOperationException("DROP TABLE requires a table name.");
+
+        var tableName = ParseTableSource(consumeHints: false);
+
+        EnsureStatementEnd("DROP TABLE");
+
+        return new SqlDropTableQuery
+        {
+            IfExists = ifExists,
+            Temporary = isTemporary,
+            Scope = tempScope,
+            Table = tableName
+        };
+    }
+
+    private static void EnsureNoUnexpectedTrailingStatementAfterBody(
+        IReadOnlyList<SqlToken> tokens,
+        string statementName)
+    {
+        for (var i = 0; i < tokens.Count; i++)
+        {
+            if (!IsSymbol(tokens[i], ";"))
+                continue;
+
+            if (i != tokens.Count - 1)
+            {
+                var next = tokens[i + 1];
+                throw new InvalidOperationException(
+                    $"Unexpected token after {statementName} body: {next.Kind} '{next.Text}'");
+            }
+        }
+    }
+
+    private static void EnsureBodyExistsAfterAs(
+        IReadOnlyList<SqlToken> tokens,
+        string statementName)
+    {
+        if (tokens.Count == 0 || tokens.All(static t => IsSymbol(t, ";")))
+            throw new InvalidOperationException($"{statementName} requires a SELECT/WITH body.");
+    }
+
+    private static bool IsLikelyColumnTypeToken(SqlToken token)
+    {
+        if (token.Kind != SqlTokenKind.Identifier)
+            return false;
+
+        return token.Text.ToUpperInvariant() switch
+        {
+            "INT" or
+            "INTEGER" or
+            "BIGINT" or
+            "SMALLINT" or
+            "TINYINT" or
+            "DECIMAL" or
+            "NUMERIC" or
+            "FLOAT" or
+            "DOUBLE" or
+            "REAL" or
+            "VARCHAR" or
+            "CHAR" or
+            "NVARCHAR" or
+            "NCHAR" or
+            "TEXT" or
+            "DATE" or
+            "DATETIME" or
+            "TIME" or
+            "TIMESTAMP" or
+            "BOOLEAN" or
+            "BIT" or
+            "UUID" or
+            "JSON" or
+            "BLOB" or
+            "CLOB" => true,
+            _ => false
         };
     }
 

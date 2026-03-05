@@ -59,4 +59,26 @@ public sealed class DbMockConnectionFactorySqlAzureTests
         db.Should().BeOfType<SqlAzureDbMock>();
         connection.Should().BeOfType<SqlAzureConnectionMock>();
     }
+
+    /// <summary>
+    /// EN: Verifies each factory call creates isolated SQL Azure instances.
+    /// PT: Verifica que cada chamada da fábrica cria instâncias SQL Azure isoladas.
+    /// </summary>
+    [Fact]
+    public void CreateWithTables_ForSqlAzure_ShouldCreateIsolatedInstancesBetweenCalls()
+    {
+        var (firstDb, _) = DbMockConnectionFactory.CreateWithTables(
+            "SqlAzure",
+            it =>
+            {
+                var tb = it.AddTable("Users");
+                tb.AddColumn("Id", DbType.Int32, false);
+                tb.Add(new Dictionary<int, object?> { [0] = 1 });
+            });
+
+        var (secondDb, _) = DbMockConnectionFactory.CreateWithTables("SqlAzure");
+
+        firstDb.ContainsTable("Users").Should().BeTrue();
+        secondDb.ContainsTable("Users").Should().BeFalse();
+    }
 }

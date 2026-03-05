@@ -109,6 +109,13 @@ internal sealed record SqlDropViewQuery : SqlQueryBase
     internal bool IfExists { get; init; }
 }
 
+internal sealed record SqlDropTableQuery : SqlQueryBase
+{
+    internal bool IfExists { get; init; }
+    internal bool Temporary { get; init; }
+    internal TemporaryTableScope Scope { get; init; } = TemporaryTableScope.None;
+}
+
 internal sealed record SqlMergeQuery : SqlQueryBase
 {
     internal SqlTableSource? Source { get; init; } // opcional (pode deixar null por enquanto)

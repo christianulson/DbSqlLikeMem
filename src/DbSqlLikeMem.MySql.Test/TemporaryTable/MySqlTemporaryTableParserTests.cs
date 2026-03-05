@@ -93,4 +93,235 @@ WHERE `tenantid` = 10",
 
         Assert.Equal(TemporaryTableScope.Global, q.Scope);
     }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateOrReplaceTable_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateOrReplaceTable_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "TemporaryTable")]
+    [MemberDataMySqlVersion]
+    public void Parse_CreateOrReplaceTable_ShouldThrow(int version)
+    {
+        const string sql = "CREATE OR REPLACE TABLE tmp_users AS SELECT id FROM users";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateTemporaryTable_WithUnexpectedSecondStatementInBody_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithUnexpectedSecondStatementInBody_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "TemporaryTable")]
+    [MemberDataMySqlVersion]
+    public void Parse_CreateTemporaryTable_WithUnexpectedSecondStatementInBody_ShouldThrow(int version)
+    {
+        const string sql = "CREATE TEMPORARY TABLE tmp_users AS SELECT id FROM users; SELECT 1";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateTemporaryTable_WithMissingBodyAfterAs_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithMissingBodyAfterAs_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "TemporaryTable")]
+    [MemberDataMySqlVersion]
+    public void Parse_CreateTemporaryTable_WithMissingBodyAfterAs_ShouldThrow(int version)
+    {
+        const string sql = "CREATE TEMPORARY TABLE tmp_users AS ;";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateTemporaryTable_WithEmptyColumnList_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithEmptyColumnList_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "TemporaryTable")]
+    [MemberDataMySqlVersion]
+    public void Parse_CreateTemporaryTable_WithEmptyColumnList_ShouldThrow(int version)
+    {
+        const string sql = "CREATE TEMPORARY TABLE tmp_users () AS SELECT id FROM users";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateTemporaryTable_WithTrailingCommaInColumnList_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithTrailingCommaInColumnList_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "TemporaryTable")]
+    [MemberDataMySqlVersion]
+    public void Parse_CreateTemporaryTable_WithTrailingCommaInColumnList_ShouldThrow(int version)
+    {
+        const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT,) AS SELECT id FROM users";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateTemporaryTable_WithLeadingCommaInColumnList_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithLeadingCommaInColumnList_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "TemporaryTable")]
+    [MemberDataMySqlVersion]
+    public void Parse_CreateTemporaryTable_WithLeadingCommaInColumnList_ShouldThrow(int version)
+    {
+        const string sql = "CREATE TEMPORARY TABLE tmp_users (,id INT) AS SELECT id FROM users";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateTemporaryTable_WithUnclosedColumnList_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithUnclosedColumnList_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "TemporaryTable")]
+    [MemberDataMySqlVersion]
+    public void Parse_CreateTemporaryTable_WithUnclosedColumnList_ShouldThrow(int version)
+    {
+        const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT AS SELECT id FROM users";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateTemporaryTable_WithMissingCommaBetweenColumns_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithMissingCommaBetweenColumns_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "TemporaryTable")]
+    [MemberDataMySqlVersion]
+    public void Parse_CreateTemporaryTable_WithMissingCommaBetweenColumns_ShouldThrow(int version)
+    {
+        const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT name VARCHAR(50)) AS SELECT id, name FROM users";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateTemporaryTable_WithMissingCommaAfterParenthesizedType_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithMissingCommaAfterParenthesizedType_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "TemporaryTable")]
+    [MemberDataMySqlVersion]
+    public void Parse_CreateTemporaryTable_WithMissingCommaAfterParenthesizedType_ShouldThrow(int version)
+    {
+        const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT, name VARCHAR(50) age INT) AS SELECT id, name, age FROM users";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateTemporaryTable_WithDoubleCommaInColumnList_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithDoubleCommaInColumnList_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "TemporaryTable")]
+    [MemberDataMySqlVersion]
+    public void Parse_CreateTemporaryTable_WithDoubleCommaInColumnList_ShouldThrow(int version)
+    {
+        const string sql = "CREATE TEMPORARY TABLE tmp_users (id INT,,name VARCHAR(50)) AS SELECT id, name FROM users";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateTemporaryTable_WithIfExistsInsteadOfIfNotExists_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateTemporaryTable_WithIfExistsInsteadOfIfNotExists_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "TemporaryTable")]
+    [MemberDataMySqlVersion]
+    public void Parse_CreateTemporaryTable_WithIfExistsInsteadOfIfNotExists_ShouldThrow(int version)
+    {
+        const string sql = "CREATE TEMPORARY TABLE IF EXISTS tmp_users AS SELECT id FROM users";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_ShouldAccept_DropTable_IfExists behavior.
+    /// PT: Testa o comportamento de Parse_ShouldAccept_DropTable_IfExists.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "TemporaryTable")]
+    [MemberDataMySqlVersion]
+    public void Parse_ShouldAccept_DropTable_IfExists(int version)
+    {
+        var q = Assert.IsType<SqlDropTableQuery>(
+            SqlQueryParser.Parse("DROP TABLE IF EXISTS tmp_users", new MySqlDialect(version)));
+
+        Assert.True(q.IfExists);
+        Assert.NotNull(q.Table);
+        Assert.Equal("tmp_users", q.Table!.Name, ignoreCase: true);
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_ShouldAccept_DropGlobalTemporaryTable_IfExists behavior.
+    /// PT: Testa o comportamento de Parse_ShouldAccept_DropGlobalTemporaryTable_IfExists.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "TemporaryTable")]
+    [MemberDataMySqlVersion]
+    public void Parse_ShouldAccept_DropGlobalTemporaryTable_IfExists(int version)
+    {
+        var q = Assert.IsType<SqlDropTableQuery>(
+            SqlQueryParser.Parse("DROP GLOBAL TEMPORARY TABLE IF EXISTS tmp_users", new MySqlDialect(version)));
+
+        Assert.True(q.IfExists);
+        Assert.True(q.Temporary);
+        Assert.Equal(TemporaryTableScope.Global, q.Scope);
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_DropGlobalTable_WithoutTemporaryKeyword_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_DropGlobalTable_WithoutTemporaryKeyword_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "TemporaryTable")]
+    [MemberDataMySqlVersion]
+    public void Parse_DropGlobalTable_WithoutTemporaryKeyword_ShouldThrow(int version)
+    {
+        const string sql = "DROP GLOBAL TABLE IF EXISTS tmp_users";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+    }
+
+
+    /// <summary>
+    /// EN: Tests Parse_DropTable_WithoutName_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_DropTable_WithoutName_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "TemporaryTable")]
+    [MemberDataMySqlVersion]
+    public void Parse_DropTable_WithoutName_ShouldThrow(int version)
+    {
+        const string sql = "DROP TABLE IF EXISTS ;";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_DropTable_WithUnexpectedSecondStatement_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_DropTable_WithUnexpectedSecondStatement_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "TemporaryTable")]
+    [MemberDataMySqlVersion]
+    public void Parse_DropTable_WithUnexpectedSecondStatement_ShouldThrow(int version)
+    {
+        const string sql = "DROP TABLE IF EXISTS tmp_users; SELECT 1";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateGlobalTable_WithoutTemporaryKeyword_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateGlobalTable_WithoutTemporaryKeyword_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "TemporaryTable")]
+    [MemberDataMySqlVersion]
+    public void Parse_CreateGlobalTable_WithoutTemporaryKeyword_ShouldThrow(int version)
+    {
+        const string sql = "CREATE GLOBAL TABLE tmp_users AS SELECT id FROM users";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+    }
 }
+

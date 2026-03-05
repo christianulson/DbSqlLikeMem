@@ -16,6 +16,7 @@
 - Distinct UPSERT support (`ON DUPLICATE`, `ON CONFLICT`, `MERGE`)
 - Pagination by dialect (`LIMIT/OFFSET`, `OFFSET/FETCH`, `FETCH FIRST`)
 - JSON operators and functions by database
+- Execution-plan metrics are diagnostic/relative in mock mode and should not be used as production performance benchmarks.
 - NHibernate contract coverage shared across providers:
   - **Core ORM**: native SQL params, mapped entity lifecycle, transaction rollback, pagination, HQL/Criteria basics, null/typed params in `INSERT` and `WHERE`.
   - **Session/state**: Evict/Clear/Merge detached flows, detached-change protection after Evict, full detach checks with Clear, Refresh-based reload, explicit Update-vs-Merge reattach semantics (`Contains`/identity), including Update identity-conflict (`NonUniqueObjectException`) and Merge over an already managed instance, `IsDirty`, SaveOrUpdate and FlushMode contracts.
@@ -46,6 +47,7 @@ For full details, see the local repository documentation at `docs/old/providers-
 - Suporte distinto para UPSERT (`ON DUPLICATE`, `ON CONFLICT`, `MERGE`)
 - Paginação por dialeto (`LIMIT/OFFSET`, `OFFSET/FETCH`, `FETCH FIRST`)
 - Operadores e funções JSON por banco
+- Métricas de execution plan em modo mock são diagnósticas/relativas e não devem ser usadas como benchmark de performance de produção.
 - Cobertura de contrato NHibernate compartilhada entre provedores:
   - **Core ORM**: parâmetros em SQL nativo, ciclo de vida de entidade mapeada, rollback transacional, paginação, base de HQL/Criteria, parâmetros nulos/tipados em `INSERT` e filtros `WHERE`.
   - **Sessão/estado**: fluxos detached com Evict/Clear/Merge, proteção de mudanças destacadas após Evict, validação de detach completo com Clear, recarga via Refresh, semântica explícita de reattach em Update-vs-Merge (`Contains`/identidade), incluindo conflito de identidade em Update (`NonUniqueObjectException`) e Merge sobre instância já gerenciada, `IsDirty`, SaveOrUpdate e contratos de FlushMode.

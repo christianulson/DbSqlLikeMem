@@ -383,6 +383,119 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
+    /// EN: Ensures INSERT/UPSERT with CAST(@param AS JSON) stores JSON payload instead of raw CAST SQL text.
+    /// PT: Garante que INSERT/UPSERT com CAST(@param AS JSON) persista payload JSON, e não texto bruto CAST SQL.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestInsertOnDuplicate_WithCastParameterAsJson_ShouldPersistJsonPayload()
+    {
+        using var setup = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE kernel_decisions (
+                    decision_id VARCHAR(64) PRIMARY KEY,
+                    domain VARCHAR(64),
+                    ts DATETIME,
+                    severity INT,
+                    summary TEXT,
+                    action_type VARCHAR(64),
+                    params_json JSON,
+                    risk_score DECIMAL(10,4),
+                    confidence DECIMAL(10,4),
+                    status VARCHAR(32),
+                    evidence_fact_ids JSON,
+                    evidence_signal_ids JSON,
+                    hypothesis_ids JSON
+                );
+                """
+        };
+        setup.ExecuteNonQuery();
+
+        using var cmd = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO kernel_decisions
+                (decision_id, domain, ts, severity, summary, action_type, params_json, risk_score, confidence, status,
+                 evidence_fact_ids, evidence_signal_ids, hypothesis_ids)
+                VALUES
+                (@DecisionId, @Domain, @Ts, @Severity, @Summary, @ActionType, CAST(@ParamsJson AS JSON), @RiskScore, @Confidence, @Status,
+                 CAST(@EvidenceFactIds AS JSON), CAST(@EvidenceSignalIds AS JSON), CAST(@HypothesisIds AS JSON))
+                ON DUPLICATE KEY UPDATE
+                severity=VALUES(severity),
+                summary=VALUES(summary),
+                action_type=VALUES(action_type),
+                params_json=VALUES(params_json),
+                risk_score=VALUES(risk_score),
+                confidence=VALUES(confidence),
+                status=VALUES(status),
+                evidence_fact_ids=VALUES(evidence_fact_ids),
+                evidence_signal_ids=VALUES(evidence_signal_ids),
+                hypothesis_ids=VALUES(hypothesis_ids);
+                """
+        };
+
+        cmd.Parameters.Add(new MySqlParameter("@DecisionId", "d-1"));
+        cmd.Parameters.Add(new MySqlParameter("@Domain", "kernel"));
+        cmd.Parameters.Add(new MySqlParameter("@Ts", DateTime.Parse("2026-03-05T10:00:00Z", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind)));
+        cmd.Parameters.Add(new MySqlParameter("@Severity", 2));
+        cmd.Parameters.Add(new MySqlParameter("@Summary", "initial"));
+        cmd.Parameters.Add(new MySqlParameter("@ActionType", "notify"));
+        cmd.Parameters.Add(new MySqlParameter("@ParamsJson", """{"k":"v1"}"""));
+        cmd.Parameters.Add(new MySqlParameter("@RiskScore", 0.5m));
+        cmd.Parameters.Add(new MySqlParameter("@Confidence", 0.9m));
+        cmd.Parameters.Add(new MySqlParameter("@Status", "open"));
+        cmd.Parameters.Add(new MySqlParameter("@EvidenceFactIds", "[1,2]"));
+        cmd.Parameters.Add(new MySqlParameter("@EvidenceSignalIds", "[10,20]"));
+        cmd.Parameters.Add(new MySqlParameter("@HypothesisIds", "[100]"));
+
+        var affectedInsert = cmd.ExecuteNonQuery();
+        Assert.True(affectedInsert > 0);
+
+        cmd.Parameters.Clear();
+        cmd.Parameters.Add(new MySqlParameter("@DecisionId", "d-1"));
+        cmd.Parameters.Add(new MySqlParameter("@Domain", "kernel"));
+        cmd.Parameters.Add(new MySqlParameter("@Ts", DateTime.Parse("2026-03-05T10:00:00Z", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind)));
+        cmd.Parameters.Add(new MySqlParameter("@Severity", 3));
+        cmd.Parameters.Add(new MySqlParameter("@Summary", "updated"));
+        cmd.Parameters.Add(new MySqlParameter("@ActionType", "notify"));
+        cmd.Parameters.Add(new MySqlParameter("@ParamsJson", """{"k":"v2"}"""));
+        cmd.Parameters.Add(new MySqlParameter("@RiskScore", 0.6m));
+        cmd.Parameters.Add(new MySqlParameter("@Confidence", 0.95m));
+        cmd.Parameters.Add(new MySqlParameter("@Status", "open"));
+        cmd.Parameters.Add(new MySqlParameter("@EvidenceFactIds", "[1,2,3]"));
+        cmd.Parameters.Add(new MySqlParameter("@EvidenceSignalIds", "[10,20,30]"));
+        cmd.Parameters.Add(new MySqlParameter("@HypothesisIds", "[100,200]"));
+
+        var affectedUpdate = cmd.ExecuteNonQuery();
+        Assert.True(affectedUpdate > 0);
+
+        using var query = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT summary, params_json, evidence_fact_ids, evidence_signal_ids, hypothesis_ids FROM kernel_decisions WHERE decision_id = @DecisionId"
+        };
+        query.Parameters.Add(new MySqlParameter("@DecisionId", "d-1"));
+
+        using var reader = query.ExecuteReader();
+        Assert.True(reader.Read());
+
+        Assert.Equal("updated", Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture));
+
+        var paramsJson = Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture) ?? string.Empty;
+        var evidenceFactIds = Convert.ToString(reader.GetValue(2), CultureInfo.InvariantCulture) ?? string.Empty;
+        var evidenceSignalIds = Convert.ToString(reader.GetValue(3), CultureInfo.InvariantCulture) ?? string.Empty;
+        var hypothesisIds = Convert.ToString(reader.GetValue(4), CultureInfo.InvariantCulture) ?? string.Empty;
+
+        Assert.DoesNotContain("CAST(", paramsJson, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("CAST(", evidenceFactIds, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("CAST(", evidenceSignalIds, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("CAST(", hypothesisIds, StringComparison.OrdinalIgnoreCase);
+
+        Assert.Contains("\"k\":\"v2\"", paramsJson, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("1", evidenceFactIds, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures backtick alias split logic is preserved through parser and execution.
     /// PT: Garante que a lógica de alias com crase seja preservada no parser e na execução.
     /// </summary>
@@ -877,6 +990,120 @@ public sealed class MySqlMockTests
         Assert.True(reader.NextResult());
         Assert.True(reader.Read());
         Assert.Equal(2L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures boolean-mode MATCH ... AGAINST filtering honors required and prohibited terms.
+    /// PT: Garante que o filtro MATCH ... AGAINST em modo boolean respeite termos obrigatórios e proibidos.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void Select_WithMatchAgainstBooleanModeWhere_ShouldRespectRequiredAndProhibitedTerms()
+    {
+        using var seed = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (1, 'John Doe', 'john@example.com');
+                INSERT INTO Users (Id, Name, Email) VALUES (2, 'Maria Silva', 'maria@example.com');
+                INSERT INTO Users (Id, Name, Email) VALUES (3, 'John Maria', 'john-maria@example.com');
+                """
+        };
+        seed.ExecuteNonQuery();
+
+        using var cmd = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT COUNT(*) FROM Users WHERE MATCH(Name, Email) AGAINST ('+john -maria' IN BOOLEAN MODE) > 0"
+        };
+
+        var count = Convert.ToInt64(cmd.ExecuteScalar(), CultureInfo.InvariantCulture);
+        Assert.Equal(1L, count);
+    }
+
+    /// <summary>
+    /// EN: Ensures ORDER BY MATCH ... AGAINST score prioritizes most relevant row in mock scoring.
+    /// PT: Garante que ORDER BY com score de MATCH ... AGAINST priorize a linha mais relevante no scoring do mock.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void Select_OrderByMatchAgainstScoreDesc_ShouldPrioritizeMoreRelevantRow()
+    {
+        using var seed = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (1, 'John Doe', 'john@example.com');
+                INSERT INTO Users (Id, Name, Email) VALUES (2, 'John', 'john@domain.test');
+                INSERT INTO Users (Id, Name, Email) VALUES (3, 'Mary', 'mary@domain.test');
+                """
+        };
+        seed.ExecuteNonQuery();
+
+        using var cmd = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT Id FROM Users ORDER BY MATCH(Name, Email) AGAINST ('john doe' IN BOOLEAN MODE) DESC, Id ASC LIMIT 1"
+        };
+
+        var topId = Convert.ToInt32(cmd.ExecuteScalar(), CultureInfo.InvariantCulture);
+        Assert.Equal(1, topId);
+    }
+
+    /// <summary>
+    /// EN: Ensures semantic chunk lexical candidate query with MATCH ... AGAINST and parameterized LIMIT executes end-to-end.
+    /// PT: Garante que a query de candidatos léxicos com MATCH ... AGAINST e LIMIT parametrizado execute ponta a ponta.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void Select_SemanticChunksLexicalCandidates_WithMatchAgainstAndParameterizedLimit_ShouldWork()
+    {
+        using var setup = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE TABLE semantic_chunks (
+                    chunk_id INT PRIMARY KEY,
+                    doc_id INT,
+                    chunk_index INT,
+                    text VARCHAR(255),
+                    embedding_json TEXT,
+                    created_at DATETIME
+                );
+                INSERT INTO semantic_chunks (chunk_id, doc_id, chunk_index, text, embedding_json, created_at) VALUES
+                    (1, 100, 0, 'john doe article', '{"v":[0.1,0.2]}', '2026-01-01 10:00:00'),
+                    (2, 100, 1, 'john article', '{"v":[0.2,0.3]}', '2026-01-01 10:01:00'),
+                    (3, 101, 0, 'maria note', '{"v":[0.4,0.5]}', '2026-01-01 10:02:00');
+                """
+        };
+        setup.ExecuteNonQuery();
+
+        using var cmd = new MySqlCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT chunk_id, doc_id, chunk_index, text, embedding_json, created_at,
+                       MATCH(text) AGAINST (@QueryText IN NATURAL LANGUAGE MODE) AS lexical_score,
+                       'lexical' AS candidate_source
+                FROM semantic_chunks
+                WHERE MATCH(text) AGAINST (@QueryText IN NATURAL LANGUAGE MODE)
+                ORDER BY lexical_score DESC
+                LIMIT @CandidateLimit;
+                """
+        };
+        cmd.Parameters.Add(new MySqlParameter("@QueryText", "john doe"));
+        cmd.Parameters.Add(new MySqlParameter("@CandidateLimit", 2));
+
+        using var reader = cmd.ExecuteReader();
+        var rows = new List<(int ChunkId, int LexicalScore, string CandidateSource)>();
+        while (reader.Read())
+        {
+            rows.Add((
+                Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture),
+                Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture),
+                Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture) ?? string.Empty));
+        }
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(1, rows[0].ChunkId);
+        Assert.Equal(2, rows[0].LexicalScore);
+        Assert.Equal(2, rows[1].ChunkId);
+        Assert.Equal(1, rows[1].LexicalScore);
+        Assert.All(rows, row => Assert.Equal("lexical", row.CandidateSource));
     }
 
 }

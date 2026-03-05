@@ -18,33 +18,81 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.1.1 Persistência temporária em memória
 
-- Implementação estimada: **70%**.
+- Implementação estimada: **100%**.
 - Estruturas para representar tabelas, colunas, linhas e metadados sem dependência de servidor externo.
 - Armazenamento volátil por instância de banco mock, permitindo reset completo entre testes.
 - Modelo ideal para testes unitários que exigem alta repetibilidade.
+- Incremento desta sessão: snapshots transacionais passam a incluir tabelas temporárias no escopo da conexão, garantindo rollback/rollback-to-savepoint determinístico também para estado temporário em memória (com regressão automatizada).
+- Incremento desta sessão: cobertura de regressão expandida para MySQL e SQL Server com cenários dedicados de rollback e rollback-to-savepoint em tabelas temporárias de conexão.
+- Incremento desta sessão: API explícita de reset volátil em memória adicionada no banco/conexão (`ResetVolatileData` e `ResetAllVolatileData`) para facilitar setup/teardown determinístico entre testes, com regressões dedicadas em SQLite para limpeza de dados temporários/permanentes e reset de identidade.
+- Incremento desta sessão: cobertura de regressão do reset volátil expandida também para MySQL e SQL Server, garantindo paridade de comportamento entre providers principais.
+- Incremento desta sessão: cobertura de reset volátil unificada também nos testes de estratégia de Db2, Oracle e Npgsql, garantindo aplicação da melhoria em todos os bancos principais suportados.
+- Incremento desta sessão: comportamento seletivo de reset (`includeGlobalTemporaryTables`) coberto nos providers principais, garantindo preservação/limpeza determinística de tabelas temporárias globais conforme configuração.
+- Incremento desta sessão: cobertura de rollback e rollback-to-savepoint para tabelas temporárias de conexão adicionada também em Db2, Oracle e Npgsql, fechando paridade entre todos os bancos principais no escopo de persistência temporária em memória.
+- Incremento desta sessão: camada Dapper também passou a cobrir rollback e rollback-to-savepoint para tabelas temporárias de conexão em SQLite, MySQL, SQL Server, Oracle, Npgsql e Db2, mantendo paridade de comportamento entre APIs de estratégia e extensão Dapper.
+- Incremento desta sessão: camada Dapper também passou a cobrir `ResetAllVolatileData` e `ResetVolatileData(includeGlobalTemporaryTables)` em SQLite, MySQL, SQL Server, Oracle, Npgsql e Db2, consolidando reset volátil determinístico e seletivo em todos os bancos principais.
+- Incremento desta sessão: validação de `ResetVolatileData` preservando definições de tabela (schema/colunas) foi unificada em todos os bancos, tanto na camada Strategy quanto na camada Dapper, fechando paridade de contrato do reset em memória.
+- Incremento desta sessão: `ResetAllVolatileData` passou a ter regressão dedicada para limpeza de linhas em tabelas temporárias globais (com preservação de definição) em todos os bancos, nas camadas Strategy e Dapper.
+- Incremento desta sessão: `ResetAllVolatileData` passou a validar explicitamente invalidação de savepoints/estado transacional ativo em todos os bancos principais na camada Strategy, garantindo teardown determinístico sem reaproveitamento de snapshot transacional após reset.
+- Incremento desta sessão: invalidação de savepoints após `ResetAllVolatileData` também foi coberta na camada Dapper em todos os bancos principais, mantendo simetria de contrato entre superfícies de uso.
+- Incremento desta sessão: `Db.ResetVolatileData(...)` passou a ter regressão explícita de não interferência em tabelas temporárias de conexão (escopo de sessão) em todos os bancos, nas camadas Strategy e Dapper.
 
 #### 1.1.2 Isolamento para testes unitários
 
-- Implementação estimada: **70%**.
+- Implementação estimada: **100%**.
 - Execução sem I/O de rede obrigatório.
 - Cenários independentes de disponibilidade de banco real.
 - Redução de flakiness em pipelines de CI.
+- Incremento desta sessão: extensões de DI receberam registro `Transient` no núcleo e em todos os providers principais (`Sqlite`, `MySql`, `SqlServer`, `Oracle`, `Npgsql`, `Db2`, `SqlAzure`), permitindo isolamento explícito por resolução de serviço em cenários de teste.
+- Incremento desta sessão: regressão de DI adicionada para `Transient` no contrato genérico (`AddDbMockTransient<T>`) e nos providers principais, garantindo criação de nova instância por resolução com aplicação determinística de setup (`acRegister`).
+- Incremento desta sessão: cobertura da `DbMockConnectionFactory` expandida para todos os bancos principais com validação de tipo/provider, aplicação de `tableMappers` e isolamento entre chamadas consecutivas da fábrica (sem vazamento de estado).
+- Incremento desta sessão: canonicalização/aliases de provider na `DbMockConnectionFactory` passou a ter regressão dedicada em todos os bancos principais (incluindo aliases PostgreSQL), reforçando resolução determinística de tipo de mock/conexão e reduzindo flakiness por variação de input.
+- Incremento desta sessão: camada Strategy dos bancos principais passou a cobrir explicitamente exposição/reset de `CurrentIsolationLevel` (begin com nível explícito + reset para `Unspecified` em commit/rollback), reforçando isolamento transacional determinístico por conexão.
+- Incremento desta sessão: isolamento de tabelas temporárias de conexão entre múltiplas conexões simultâneas do mesmo `DbMock` passou a ter regressão dedicada em todos os bancos principais na camada Strategy, evitando vazamento de estado por escopo de sessão.
+- Incremento desta sessão: isolamento de tabelas temporárias de conexão entre múltiplas conexões também passou a ter regressão dedicada na camada Dapper em todos os bancos principais, concluindo paridade de isolamento entre superfícies de uso.
 
 #### 1.1.3 Estado e ciclo de vida
 
-- Implementação estimada: **70%**.
+- Implementação estimada: **100%**.
 - Estado de dados acoplado ao objeto de contexto/conexão mock.
 - Facilita setup/teardown por teste, fixture ou suíte.
 - Permite compor ambientes mínimos para validação de regra de negócio.
+- Incremento desta sessão: fechamento de conexão (`Close`) passou a limpar estado de sessão em memória (transação ativa, savepoints, isolamento corrente e tabelas temporárias de conexão) no core, reduzindo vazamento de estado entre ciclos de vida de conexão.
+- Incremento desta sessão: regressão de ciclo de vida adicionada nos bancos principais (SQLite, MySQL, SQL Server, Oracle, Npgsql e Db2) para validar que `Close` encerra sessão de forma determinística e bloqueia rollback para savepoint antigo sem transação ativa.
+- Incremento desta sessão: regressão adicional de ciclo de vida garante que `Close` preserve estado compartilhado do banco (tabelas permanentes e temporárias globais), limpando apenas estado da sessão da conexão que foi encerrada.
+- Incremento desta sessão: camada Dapper dos bancos principais também passou a cobrir o contrato de `Close` (limpeza de estado de sessão + preservação de estado compartilhado), garantindo paridade de ciclo de vida entre Strategy e Dapper.
+- Incremento desta sessão: camada Strategy dos bancos principais passou a cobrir explicitamente reabertura de conexão (`Close` → `Open`) com sessão limpa/reutilizável e preservação de estado compartilhado do banco, reforçando previsibilidade de ciclo de vida entre testes.
+- Incremento desta sessão: camada Dapper dos bancos principais passou a cobrir reabertura de conexão (`Close` → `Open`) com sessão limpa/reutilizável e preservação de estado compartilhado, concluindo paridade de ciclo de vida entre Strategy e Dapper.
 
 ### 1.2 Parser SQL
 
 #### 1.2.1 Interpretação de comandos DDL
 
-- Implementação estimada: **70%**.
+- Implementação estimada: **100%**.
 - Leitura e processamento de comandos de definição de schema.
 - Suporte a operações estruturais comuns (criação e alteração de entidades).
 - Aplicação de regras específicas por dialeto e versão simulada.
+- Incremento desta sessão: parser DDL passou a rejeitar explicitamente `CREATE OR REPLACE` fora de `VIEW`, evitando aceitação ambígua em `CREATE ... TABLE ...`.
+- Incremento desta sessão: `DROP VIEW` passou a validar fim de statement e rejeitar continuação inesperada (`DROP VIEW ... EXTRA`), com regressões de parser adicionadas para SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: `CREATE VIEW ... AS` e `CREATE TEMPORARY TABLE ... AS` passaram a rejeitar statement adicional após `;` no corpo (ex.: `... AS SELECT ...; SELECT ...`), reduzindo risco de parse parcial silencioso com regressões unificadas para SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: parser DDL passou a validar corpo obrigatório após `AS` em `CREATE VIEW` e `CREATE TEMPORARY TABLE`, gerando erro acionável para casos como `AS ;`/corpo vazio, com regressões unificadas em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: `DROP VIEW` passou a validar explicitamente nome obrigatório (incluindo variantes `DROP VIEW ;` e `DROP VIEW IF EXISTS ;`) com regressões unificadas em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: `CREATE VIEW` passou a endurecer validação da lista de colunas (lista vazia e vírgula final agora geram erro acionável), com regressões unificadas em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: `CREATE TEMPORARY TABLE` também passou a endurecer validação da lista de colunas (lista vazia, vírgula inicial/final e fechamento ausente), com regressões unificadas em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: cobertura de regressão foi ampliada para vírgula inicial em listas de colunas de `CREATE VIEW` e `CREATE TEMPORARY TABLE`, mantendo contrato de erro consistente em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: cobertura de regressão foi ampliada para listas de colunas não fechadas em `CREATE VIEW` e `CREATE TEMPORARY TABLE`, mantendo diagnóstico determinístico e consistente em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: `CREATE TEMPORARY TABLE` passou a rejeitar explicitamente ausência de vírgula entre definições de coluna (ex.: `id INT name VARCHAR(...)`) com regressões unificadas em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: cobertura de regressão foi ampliada para ausência de vírgula entre nomes na lista de colunas de `CREATE VIEW` (ex.: `(id name)`), mantendo contrato de erro consistente em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: cobertura de regressão foi ampliada para `DROP VIEW` seguido de segundo statement no parse unitário (`DROP VIEW ...; SELECT ...`), reforçando boundary de statement em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: cobertura de regressão de boundary de `DROP VIEW` foi estendida para a variante `IF EXISTS` seguida de segundo statement (`DROP VIEW IF EXISTS ...; SELECT ...`) em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: cobertura de regressão de `CREATE TEMPORARY TABLE` foi ampliada para ausência de vírgula após tipo com parênteses (ex.: `VARCHAR(50) age INT`), mantendo diagnóstico consistente em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: cobertura de regressão de listas de colunas foi ampliada para vírgula duplicada (`id,,name`) em `CREATE VIEW` e `CREATE TEMPORARY TABLE`, mantendo contrato de erro consistente em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: cobertura de regressão de `CREATE VIEW` foi ampliada para lista de colunas não fechada antes de `AS SELECT` (`CREATE VIEW ... (id AS SELECT ...`) em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: cobertura de regressão de `CREATE TEMPORARY TABLE` foi ampliada para variante inválida `IF EXISTS` (aceito apenas `IF NOT EXISTS`) em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: cobertura de regressão de `CREATE ... TABLE` foi ampliada para variante inválida `CREATE GLOBAL TABLE ...` sem `TEMPORARY/TEMP`, reforçando erro explícito e consistente em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: parser DDL passou a suportar `DROP TABLE` (incluindo `IF EXISTS` e variantes `TEMP/TEMPORARY/GLOBAL TEMPORARY`) com validação de nome obrigatório e boundary de statement.
+- Incremento desta sessão: cobertura de regressão de `DROP TABLE` foi adicionada de forma unificada em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2, incluindo casos válidos (`IF EXISTS`, `GLOBAL TEMPORARY`) e inválidos (`DROP TABLE IF EXISTS ;`, `DROP GLOBAL TABLE ...`, segundo statement indevido).
+- Incremento desta sessão: corpus de parser por provedor foi alinhado para remover `DROP TABLE` da lista de comandos explicitamente inválidos, refletindo o novo contrato de interpretação DDL.
 
 #### 1.2.2 Interpretação de comandos DML
 
@@ -52,6 +100,9 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Processamento de comandos de escrita e leitura.
 - Tradução da consulta para operações no estado em memória.
 - Hardening recente reforça parsing de DML com `RETURNING` (itens vazios, vírgula inicial e vírgula final) com mensagens acionáveis no dialeto suportado e gate explícito nos não suportados.
+- Incremento desta sessão: suporte a `MATCH(...) AGAINST(...)` no fluxo MySQL (parser + evaluator) com validação de modos (`IN BOOLEAN MODE`, `IN NATURAL LANGUAGE MODE`, variantes com `WITH QUERY EXPANSION`), gate explícito para dialetos não-MySQL e regressão cobrindo também query parametrizada de candidatos léxicos (`@QueryText`/`@CandidateLimit`) com `ORDER BY lexical_score DESC`.
+- Incremento desta sessão: `INSERT ... VALUES` passou a resolver corretamente `CAST(@param AS JSON)` no caminho de persistência (incluindo `ON DUPLICATE KEY UPDATE` com `VALUES(col)`), evitando gravar texto bruto iniciando por `CAST(` e mantendo payload JSON íntegro no mock MySQL.
+- Incremento desta sessão: splitter de `INSERT ... VALUES` foi endurecido para respeitar strings quoted (single/double) ao separar por vírgula, evitando quebrar literais JSON/texto com vírgulas internas e aproximando o comportamento do MySQL real.
 - Incremento desta sessão: `RETURNING` agora valida parênteses desbalanceados com mensagem acionável e mantém fronteira por `;` em projeções complexas, com cobertura adicional para gate de dialeto não suportado.
 - Incremento desta sessão: cobertura de `RETURNING` com parênteses desbalanceados foi ampliada em DML (`INSERT/UPDATE/DELETE`) para reforçar erro acionável no Npgsql e gate explícito de dialeto em MySQL/SQL Server.
 - Incremento desta sessão: `ON CONFLICT (...)` recebeu hardening de lista de alvo (vazio, vírgula inicial e vírgula final) com mensagens acionáveis no dialeto suportado e regressão explícita de gate para dialeto não suportado.
@@ -409,9 +460,16 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.6.3 Risco: falsa percepção de performance
 
-- Implementação estimada: **35%**.
+- Implementação estimada: **53%**.
 - Reforçar que métricas do mock são diagnósticas e relativas.
 - Evitar decisões de tuning de produção baseadas apenas em execução em memória.
+- Incremento desta sessão: plano de execução textual/JSON passou a emitir `PerformanceDisclaimer` explícito informando que métricas do mock são relativas e não devem orientar benchmark/tuning de produção.
+- Incremento desta sessão: regressões de execution plan foram atualizadas em todos os bancos principais (SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2) para exigir presença do disclaimer no output.
+- Incremento desta sessão: disclaimer de performance foi migrado para camada de recursos (`SqlExecutionPlanMessages` + `.resx` multilíngue), removendo texto hardcoded e mantendo alinhamento de i18n entre plano textual e payload JSON.
+- Incremento desta sessão: regressão dedicada foi adicionada no formatter para garantir que planos `UNION` também emitam o disclaimer de performance localizado, evitando lacunas entre tipos de plano textual.
+- Incremento desta sessão: documentação do pacote core (`src/DbSqlLikeMem/README.md`) foi reforçada com guidance explícito para não usar métricas/tempos do mock como benchmark de produção.
+- Incremento desta sessão: regressões de execution plan nos bancos principais passaram a validar não só a presença do campo de disclaimer, mas também a mensagem localizada emitida por recursos.
+- Incremento desta sessão: guia de compatibilidade (`docs/wiki/pages/Providers-and-Compatibility.md`) passou a explicitar em EN/PT-BR que métricas de execution plan no mock são diagnósticas/relativas e não substituem benchmark de produção.
 
 ## 2) Integração ADO.NET e experiência de uso
 

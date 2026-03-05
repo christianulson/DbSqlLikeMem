@@ -114,6 +114,7 @@ internal static class SqlExecutionPlanFormatter
         sb.AppendLine($"- {SqlExecutionPlanMessages.SelectivityPctLabel()}: {metrics.SelectivityPct:F2}");
         sb.AppendLine($"- {SqlExecutionPlanMessages.RowsPerMsLabel()}: {metrics.RowsPerMs:F2}");
         sb.AppendLine($"- {SqlExecutionPlanMessages.ElapsedMsLabel()}: {metrics.ElapsedMs}");
+        AppendPerformanceDisclaimer(sb);
         sb.AppendLine($"- {SqlExecutionPlanMessages.PlanMetadataVersionLabel()}: 1");
         AppendPlanCorrelationId(sb);
 
@@ -147,6 +148,9 @@ internal static class SqlExecutionPlanFormatter
         var correlationId = Guid.NewGuid().ToString("N");
         sb.AppendLine($"- {SqlExecutionPlanMessages.PlanCorrelationIdLabel()}: {correlationId}");
     }
+
+    private static void AppendPerformanceDisclaimer(StringBuilder sb)
+        => sb.AppendLine($"- {SqlExecutionPlanMessages.PerformanceDisclaimerLabel()}: {SqlExecutionPlanMessages.PerformanceDisclaimerMessage()}");
 
     private static void AppendPlanPerformanceBand(
         StringBuilder sb,
@@ -577,6 +581,7 @@ internal static class SqlExecutionPlanFormatter
         {
             ["queryType"] = "SELECT",
             ["estimatedCost"] = EstimateSelectCost(query),
+            ["performanceDisclaimer"] = SqlExecutionPlanMessages.PerformanceDisclaimerMessage(),
             ["planMetadataVersion"] = 1,
             ["planCorrelationId"] = Guid.NewGuid().ToString("N"),
             ["planFlags"] = $"hasWarnings:{(hasWarnings ? "true" : "false")};hasIndexRecommendations:{(hasIndexRecommendations ? "true" : "false")}",
@@ -689,6 +694,7 @@ internal static class SqlExecutionPlanFormatter
         sb.AppendLine($"- {SqlExecutionPlanMessages.SelectivityPctLabel()}: {metrics.SelectivityPct:F2}");
         sb.AppendLine($"- {SqlExecutionPlanMessages.RowsPerMsLabel()}: {metrics.RowsPerMs:F2}");
         sb.AppendLine($"- {SqlExecutionPlanMessages.ElapsedMsLabel()}: {metrics.ElapsedMs}");
+        AppendPerformanceDisclaimer(sb);
 
         return sb.ToString().TrimEnd();
     }

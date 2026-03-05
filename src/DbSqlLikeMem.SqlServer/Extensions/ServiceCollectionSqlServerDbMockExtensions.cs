@@ -45,4 +45,23 @@ public static class ServiceCollectionSqlServerDbMockExtensions
         acRegister?.Invoke(instance);
         return instance;
     });
+
+    /// <summary>
+    /// EN: Registers SqlServerDbMock as a transient service.
+    /// PT: Registra SqlServerDbMock como serviço transient.
+    /// </summary>
+    /// <param name="services">EN: Service collection to register into. PT: Coleção de serviços para registrar.</param>
+    /// <param name="acRegister">EN: Optional callback to configure the created mock. PT: Callback opcional para configurar o mock criado.</param>
+    /// <param name="version">EN: Optional dialect version for SqlServerDbMock. PT: Versão opcional de dialeto para o SqlServerDbMock.</param>
+    /// <returns>EN: The same service collection for chaining. PT: A mesma coleção de serviços para encadeamento.</returns>
+    public static IServiceCollection AddSqlServerDbMockTransient(
+        this IServiceCollection services,
+        Action<SqlServerDbMock>? acRegister = null,
+        int? version = null)
+    => services.AddTransient(_ =>
+    {
+        var instance = new SqlServerDbMock(version);
+        acRegister?.Invoke(instance);
+        return instance;
+    });
 }

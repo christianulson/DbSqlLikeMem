@@ -25,4 +25,15 @@ public static class ServiceCollectionDbMockExtensions
         acRegister?.Invoke(instance);
         return instance;
     });
+
+    public static IServiceCollection AddDbMockTransient<T>(
+        this IServiceCollection services,
+        Action<T>? acRegister = null)
+        where T : DbMock
+    => services.AddTransient(_ =>
+    {
+        var instance = Activator.CreateInstance<T>();
+        acRegister?.Invoke(instance);
+        return instance;
+    });
 }

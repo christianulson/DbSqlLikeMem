@@ -117,7 +117,6 @@ public sealed class SqlExpressionParserTests(
         yield return new object[] { "aIS NULL)" };
         yield return new object[] { "aIS NULL, b=2" };
         yield return new object[] { "id <= 2)" };
-        yield return new object[] { "MATCH(title) AGAINST('x' IN BOOLEAN MODE)" };
         yield return new object[] { "JSON_TABLE(col, '$[*]' COLUMNS(x INT PATH '$'))" };
     }
 

@@ -5643,6 +5643,48 @@ private void FillPercentRankOrCumeDist(
             return idx >= 0 ? idx + 1 : 0;
         }
 
+        if (fn.Name.Equals("MATCH_AGAINST", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count < 2)
+                return 0;
+
+            var haystack = FlattenMatchAgainstTarget(EvalArg(0));
+            var query = EvalArg(1)?.ToString() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(haystack) || string.IsNullOrWhiteSpace(query))
+                return 0;
+
+            var terms = ExtractMatchAgainstTerms(query);
+            if (terms.Count == 0)
+                return 0;
+
+            var modeSql = fn.Args.Count > 2
+                ? (fn.Args[2] is RawSqlExpr rx ? rx.Sql : EvalArg(2)?.ToString() ?? string.Empty)
+                : string.Empty;
+
+            var isBooleanMode = modeSql.IndexOf("BOOLEAN MODE", StringComparison.OrdinalIgnoreCase) >= 0;
+            var comparison = Dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase;
+            var haystackWords = ExtractMatchAgainstWords(haystack);
+
+            var score = 0;
+            foreach (var term in terms)
+            {
+                var found = ContainsMatchAgainstTerm(haystack, haystackWords, term, comparison);
+                if (isBooleanMode)
+                {
+                    if (term.Prohibited && found)
+                        return 0;
+
+                    if (term.Required && !found)
+                        return 0;
+                }
+
+                if (found && !term.Prohibited)
+                    score++;
+            }
+
+            return score;
+        }
+
         if (IsFoundRowsEquivalentFunction(fn.Name, dialect))
         {
             if (fn.Args.Count != 0)
@@ -5828,6 +5870,84 @@ private void FillPercentRankOrCumeDist(
 
         object? EvalArg(int i) => i < fn.Args.Count ? Eval(fn.Args[i], row, group, ctes) : null;
     }
+
+    private static string FlattenMatchAgainstTarget(object? value)
+    {
+        if (value is object?[] values)
+            return string.Join(" ", values.Where(v => !IsNullish(v)).Select(v => v?.ToString() ?? string.Empty));
+
+        return value?.ToString() ?? string.Empty;
+    }
+
+    private static IReadOnlyList<MatchAgainstTerm> ExtractMatchAgainstTerms(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return [];
+
+        var matches = Regex.Matches(
+            query,
+            @"(?<sign>[+\-]?)(?:""(?<phrase>[^""]+)""|(?<term>[\p{L}\p{N}_*]+))",
+            RegexOptions.CultureInvariant);
+
+        return matches
+            .Cast<Match>()
+            .Select(m =>
+            {
+                var sign = m.Groups["sign"].Value;
+                var phrase = m.Groups["phrase"].Value;
+                var token = !string.IsNullOrWhiteSpace(phrase)
+                    ? phrase
+                    : m.Groups["term"].Value;
+
+                var prefixWildcard = token.EndsWith("*", StringComparison.Ordinal);
+                if (prefixWildcard)
+                    token = token[..^1];
+
+                return new MatchAgainstTerm(
+                    token,
+                    Required: sign == "+",
+                    Prohibited: sign == "-",
+                    PrefixWildcard: prefixWildcard,
+                    IsPhrase: !string.IsNullOrWhiteSpace(phrase));
+            })
+            .Where(t => !string.IsNullOrWhiteSpace(t.Value))
+            .Distinct()
+            .ToArray();
+    }
+
+    private static IReadOnlyList<string> ExtractMatchAgainstWords(string haystack)
+    {
+        if (string.IsNullOrWhiteSpace(haystack))
+            return [];
+
+        return Regex.Matches(haystack, @"[\p{L}\p{N}_]+", RegexOptions.CultureInvariant)
+            .Cast<Match>()
+            .Select(m => m.Value)
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .ToArray();
+    }
+
+    private static bool ContainsMatchAgainstTerm(
+        string haystack,
+        IReadOnlyList<string> haystackWords,
+        MatchAgainstTerm term,
+        StringComparison comparison)
+    {
+        if (term.IsPhrase)
+            return haystack.IndexOf(term.Value, comparison) >= 0;
+
+        if (term.PrefixWildcard)
+            return haystackWords.Any(word => word.StartsWith(term.Value, comparison));
+
+        return haystackWords.Any(word => word.Equals(term.Value, comparison));
+    }
+
+    private readonly record struct MatchAgainstTerm(
+        string Value,
+        bool Required,
+        bool Prohibited,
+        bool PrefixWildcard,
+        bool IsPhrase);
 
     private object? EvalTryCast(FunctionCallExpr fn, Func<int, object?> evalArg)
     {

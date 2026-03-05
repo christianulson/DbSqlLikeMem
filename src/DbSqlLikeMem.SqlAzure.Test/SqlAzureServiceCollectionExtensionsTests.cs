@@ -74,4 +74,37 @@ public sealed class SqlAzureServiceCollectionExtensionsTests
         first.Version.Should().Be(SqlAzureDbCompatibilityLevels.SqlServer2016);
         second.Version.Should().Be(SqlAzureDbCompatibilityLevels.SqlServer2016);
     }
+
+    /// <summary>
+    /// EN: Ensures transient registration creates a new configured instance on each resolution.
+    /// PT: Garante que o registro transient crie uma nova instância configurada a cada resolução.
+    /// </summary>
+    [Fact]
+    public void AddSqlAzureDbMockTransient_ShouldCreateNewConfiguredInstanceEachResolution()
+    {
+        IServiceCollection services = new ServiceCollectionStub();
+        services.AddSqlAzureDbMockTransient(
+            acRegister: db =>
+            {
+                var table = db.AddTable("Users");
+                table.AddColumn("Id", DbType.Int32, false);
+                table.Add(new Dictionary<int, object?> { [0] = 1 });
+            },
+            compatibilityLevel: SqlAzureDbCompatibilityLevels.SqlServer2022);
+        services.Should().ContainSingle();
+
+        var descriptor = services.Single();
+        descriptor.ServiceType.Should().Be(typeof(SqlAzureDbMock));
+        descriptor.Lifetime.Should().Be(ServiceLifetime.Transient);
+        descriptor.ImplementationFactory.Should().NotBeNull();
+
+        var first = (SqlAzureDbMock)descriptor.ImplementationFactory!(new NullServiceProvider());
+        var second = (SqlAzureDbMock)descriptor.ImplementationFactory!(new NullServiceProvider());
+
+        first.Should().NotBeSameAs(second);
+        first.Version.Should().Be(SqlAzureDbCompatibilityLevels.SqlServer2022);
+        second.Version.Should().Be(SqlAzureDbCompatibilityLevels.SqlServer2022);
+        first.GetTable("Users").Should().HaveCount(1);
+        second.GetTable("Users").Should().HaveCount(1);
+    }
 }

@@ -914,6 +914,11 @@ internal sealed class SqlExpressionParser(
         {
             EnsureTemporalIdentifierDoesNotAllowParentheses(name);
             var call = ParseCallAfterName(name);
+            if (TryParseMatchAgainstInfix(call, out var matchAgainstExpr))
+            {
+                expr = matchAgainstExpr;
+                return true;
+            }
             call = ParseWithinGroupOrderByIfPresent(call);
 
             // ✅ Window function: ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)
@@ -936,6 +941,163 @@ internal sealed class SqlExpressionParser(
         EnsureTemporalCallIdentifierRequiresParentheses(name);
         expr = ParseIdentifierChainOrColumn(name);
         return true;
+    }
+
+    private bool TryParseMatchAgainstInfix(CallExpr call, out SqlExpr expr)
+    {
+        expr = default!;
+        if (!call.Name.Equals("MATCH", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (!IsKeywordOrIdentifierWord(Peek(), "AGAINST"))
+            return false;
+
+        EnsureMatchAgainstSupport();
+
+        var againstToken = Consume(); // AGAINST
+        ExpectSymbol("(");
+
+        var payloadTokens = ReadTokensUntilMatchingParen(
+            "AGAINST clause was not closed for MATCH(...).");
+        ExpectSymbol(")");
+
+        var (queryTokens, modeTokens) = SplitMatchAgainstPayload(payloadTokens);
+        if (queryTokens.Count == 0)
+            throw Error("MATCH ... AGAINST requires a search expression.", againstToken);
+
+        var queryExpr = ParseStandaloneExpression(queryTokens, againstToken, "MATCH ... AGAINST search expression");
+
+        var args = new List<SqlExpr>
+        {
+            new RowExpr(call.Args),
+            queryExpr
+        };
+
+        if (modeTokens.Count > 0)
+        {
+            var modeSql = ParseAndValidateMatchAgainstMode(modeTokens, againstToken);
+            args.Add(new RawSqlExpr(modeSql));
+        }
+
+        expr = new CallExpr("MATCH_AGAINST", args);
+        return true;
+    }
+
+    private void EnsureMatchAgainstSupport()
+    {
+        if (_dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        throw SqlUnsupported.ForDialect(_dialect, "MATCH ... AGAINST full-text predicate");
+    }
+
+    private string ParseAndValidateMatchAgainstMode(
+        IReadOnlyList<SqlToken> modeTokens,
+        SqlToken contextToken)
+    {
+        if (modeTokens.Count == 0)
+            return string.Empty;
+
+        var words = modeTokens
+            .Select(t => t.Text.ToUpperInvariant())
+            .ToArray();
+
+        if (WordsEqual(words, "IN", "BOOLEAN", "MODE")
+            || WordsEqual(words, "IN", "NATURAL", "LANGUAGE", "MODE")
+            || WordsEqual(words, "IN", "NATURAL", "LANGUAGE", "MODE", "WITH", "QUERY", "EXPANSION")
+            || WordsEqual(words, "WITH", "QUERY", "EXPANSION"))
+            return string.Join(" ", modeTokens.Select(TokenToSql)).Trim();
+
+        throw Error(
+            "Unsupported AGAINST mode. Supported forms: IN BOOLEAN MODE, IN NATURAL LANGUAGE MODE, IN NATURAL LANGUAGE MODE WITH QUERY EXPANSION, WITH QUERY EXPANSION.",
+            contextToken);
+    }
+
+    private static bool WordsEqual(IReadOnlyList<string> actual, params string[] expected)
+    {
+        if (actual.Count != expected.Length)
+            return false;
+
+        for (var i = 0; i < expected.Length; i++)
+        {
+            if (!actual[i].Equals(expected[i], StringComparison.Ordinal))
+                return false;
+        }
+
+        return true;
+    }
+
+    private static (IReadOnlyList<SqlToken> QueryTokens, IReadOnlyList<SqlToken> ModeTokens) SplitMatchAgainstPayload(
+        IReadOnlyList<SqlToken> payloadTokens)
+    {
+        if (payloadTokens.Count == 0)
+            return ([], []);
+
+        var depth = 0;
+        var splitAt = -1;
+        for (var i = 0; i < payloadTokens.Count; i++)
+        {
+            var token = payloadTokens[i];
+            if (token.Kind == SqlTokenKind.Symbol && token.Text == "(")
+            {
+                depth++;
+                continue;
+            }
+
+            if (token.Kind == SqlTokenKind.Symbol && token.Text == ")")
+            {
+                if (depth > 0)
+                    depth--;
+                continue;
+            }
+
+            if (depth != 0)
+                continue;
+
+            if (IsKeywordOrIdentifierWord(token, "IN")
+                && i + 1 < payloadTokens.Count
+                && (IsKeywordOrIdentifierWord(payloadTokens[i + 1], "BOOLEAN")
+                    || IsKeywordOrIdentifierWord(payloadTokens[i + 1], "NATURAL")
+                    || IsKeywordOrIdentifierWord(payloadTokens[i + 1], "QUERY")))
+            {
+                splitAt = i;
+                break;
+            }
+
+            if (IsKeywordOrIdentifierWord(token, "WITH")
+                && i + 1 < payloadTokens.Count
+                && IsKeywordOrIdentifierWord(payloadTokens[i + 1], "QUERY"))
+            {
+                splitAt = i;
+                break;
+            }
+        }
+
+        if (splitAt < 0)
+            return (payloadTokens, []);
+
+        return (
+            payloadTokens.Take(splitAt).ToArray(),
+            payloadTokens.Skip(splitAt).ToArray());
+    }
+
+    private SqlExpr ParseStandaloneExpression(
+        IReadOnlyList<SqlToken> tokens,
+        SqlToken contextToken,
+        string contextLabel)
+    {
+        try
+        {
+            var localTokens = tokens.Concat([SqlToken.EOF]).ToArray();
+            var parser = new SqlExpressionParser(localTokens, _dialect);
+            var parsed = parser.ParseExpression(0);
+            parser.ExpectEnd();
+            return parsed;
+        }
+        catch (Exception ex)
+        {
+            throw Error($"Invalid {contextLabel}: {ex.Message}", contextToken);
+        }
     }
 
     /// <summary>
@@ -1689,6 +1851,33 @@ internal sealed class SqlExpressionParser(
         }
 
         return string.Join(" ", parts).Trim();
+    }
+
+    private IReadOnlyList<SqlToken> ReadTokensUntilMatchingParen(string eofError)
+    {
+        var depth = 0;
+        var tokens = new List<SqlToken>();
+        while (true)
+        {
+            var t = Peek();
+            if (t.Kind == SqlTokenKind.EndOfFile)
+                throw Error(eofError, t);
+
+            if (t.Kind == SqlTokenKind.Symbol && t.Text == "(")
+                depth++;
+
+            if (t.Kind == SqlTokenKind.Symbol && t.Text == ")")
+            {
+                if (depth == 0)
+                    break;
+                depth--;
+            }
+
+            tokens.Add(t);
+            Consume();
+        }
+
+        return tokens;
     }
 
     private static string TokenToSql(SqlToken t)
