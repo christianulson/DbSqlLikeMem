@@ -839,7 +839,25 @@ internal sealed class SqlQueryParser
     private SqlUpdateQuery ParseUpdate()
     {
         Consume(); // UPDATE
-        var table = ParseTableSource(consumeHints: false);
+        var firstTablePart = ExpectIdentifier();
+        string? tableDbName = null;
+        var tableNameOnly = firstTablePart;
+        if (IsSymbol(Peek(), ".") || Peek().Text == ".")
+        {
+            Consume();
+            tableDbName = tableNameOnly;
+            tableNameOnly = ExpectIdentifier();
+        }
+
+        var table = new SqlTableSource(
+            tableDbName,
+            tableNameOnly,
+            Alias: null,
+            Derived: null,
+            DerivedUnion: null,
+            DerivedSql: null,
+            Pivot: null,
+            MySqlIndexHints: null);
 
         // MySQL: UPDATE <table> [alias] JOIN (...) ... SET ...
         var hasJoin = false;
@@ -1672,61 +1690,59 @@ internal sealed class SqlQueryParser
         if (nameTok.Kind != SqlTokenKind.Identifier)
             throw new InvalidOperationException($"Esperava nome da tabela, veio {nameTok.Kind} '{nameTok.Text}'");
 
-        var table = ParseTableSource();
+        var table = ParseTableSource(consumeHints: false);
 
         // Optional column list: (id INT, name VARCHAR(50))
         var colNames = new List<string>();
-        if (IsSymbol(Peek(), "("))
+        if (IsSymbol(Peek(), "(") || Peek().Text == "(")
         {
-            Consume(); // (
-            if (IsSymbol(Peek(), ")"))
+            var rawColumnsBlock = ReadBalancedParenRawTokens();
+            var defs = SplitRawByComma(rawColumnsBlock);
+
+            if (defs.Count == 0 || string.IsNullOrWhiteSpace(rawColumnsBlock))
                 throw new InvalidOperationException("CREATE TEMPORARY TABLE column list requires at least one column name.");
 
-            var depth = 1;
-            var expectColName = true;
-            while (!IsEnd(Peek()) && depth > 0)
-            {
-                var t = Consume();
-                var isCommaToken = t.Text == ",";
-                if (IsSymbol(t, "(")) { depth++; continue; }
-                if (IsSymbol(t, ")"))
-                {
-                    depth--;
-                    if (depth == 0) break;
-                    continue;
-                }
+            if (string.IsNullOrWhiteSpace(defs[0]))
+                throw new InvalidOperationException("CREATE TEMPORARY TABLE column list cannot start with a comma.");
 
-                if (depth == 1 && expectColName && isCommaToken)
-                    throw new InvalidOperationException("CREATE TEMPORARY TABLE column list cannot start with a comma.");
-
-                if (depth == 1 && expectColName && t.Kind == SqlTokenKind.Identifier)
-                {
-                    colNames.Add(t.Text);
-                    expectColName = false;
-                    continue;
-                }
-
-                if (depth == 1 && expectColName && t.Kind != SqlTokenKind.Identifier)
-                    throw new InvalidOperationException($"CREATE TEMPORARY TABLE column list expects a column name, found {t.Kind} '{t.Text}'.");
-
-                if (depth == 1 && isCommaToken)
-                {
-                    expectColName = true;
-                    continue;
-                }
-
-                if (depth == 1
-                    && !expectColName
-                    && t.Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword
-                    && IsLikelyColumnTypeToken(Peek()))
-                    throw new InvalidOperationException("CREATE TEMPORARY TABLE column list must separate columns with commas.");
-            }
-
-            if (depth != 0)
-                throw new InvalidOperationException("CREATE TEMPORARY TABLE column list was not closed correctly.");
-
-            if (expectColName)
+            if (string.IsNullOrWhiteSpace(defs[^1]))
                 throw new InvalidOperationException("CREATE TEMPORARY TABLE column list cannot end with a comma.");
+
+            if (defs.Any(string.IsNullOrWhiteSpace))
+                throw new InvalidOperationException("CREATE TEMPORARY TABLE column list has an empty entry between commas.");
+
+            foreach (var def in defs)
+            {
+                var defTokens = new SqlTokenizer(def, _dialect).Tokenize()
+                    .Where(t => t.Kind != SqlTokenKind.EndOfFile)
+                    .ToList();
+
+                if (defTokens.Count == 0)
+                    throw new InvalidOperationException("CREATE TEMPORARY TABLE column list requires at least one column name.");
+
+                var firstColToken = defTokens[0];
+                if (firstColToken.Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword))
+                    throw new InvalidOperationException($"CREATE TEMPORARY TABLE column list expects a column name, found {firstColToken.Kind} '{firstColToken.Text}'.");
+
+                colNames.Add(firstColToken.Text);
+
+                var depth = 0;
+                for (var i = 1; i < defTokens.Count - 1; i++)
+                {
+                    var token = defTokens[i];
+                    if (token.Text == "(") { depth++; continue; }
+                    if (token.Text == ")") { if (depth > 0) depth--; continue; }
+                    if (depth != 0) continue;
+
+                    var next = defTokens[i + 1];
+                    if (token.Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword
+                        && next.Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword
+                        && IsLikelyColumnTypeToken(next))
+                    {
+                        throw new InvalidOperationException("CREATE TEMPORARY TABLE column list must separate columns with commas.");
+                    }
+                }
+            }
         }
 
         // CREATE TEMPORARY TABLE ... AS SELECT ...
