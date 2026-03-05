@@ -132,6 +132,7 @@ public sealed class NpgsqlDialectFeatureParserTests
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -500,6 +501,7 @@ DO UPDATE SET name = EXCLUDED.name FROM users";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -520,6 +522,7 @@ DO UPDATE SET name = EXCLUDED.name USING users";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -540,6 +543,7 @@ DO UPDATE SET FROM users";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -560,6 +564,7 @@ DO UPDATE SET USING users";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -649,6 +654,7 @@ RETURNING;";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -736,6 +742,7 @@ RETURNING;";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -845,6 +852,7 @@ RETURNING;";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -866,7 +874,7 @@ FROM users";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -888,7 +896,7 @@ USING users";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("USING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -910,7 +918,7 @@ SET name = 'b'";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("SET", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -932,7 +940,7 @@ UPDATE SET name = 'b'";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'UPDATE'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -954,7 +962,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("WHERE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -976,7 +984,7 @@ EXTRA";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("EXTRA", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'EXTRA'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1072,6 +1080,7 @@ RETURNING;";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1197,6 +1206,7 @@ RETURNING;";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1334,6 +1344,7 @@ RETURNING;";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1355,7 +1366,7 @@ EXTRA";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("EXTRA", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'EXTRA'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1377,7 +1388,7 @@ FROM users";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1399,7 +1410,7 @@ USING users";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("USING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1421,7 +1432,7 @@ SET name = 'b'";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("SET", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1443,7 +1454,7 @@ UPDATE SET name = 'b'";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'UPDATE'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1465,7 +1476,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("WHERE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1483,6 +1494,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ')'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1500,6 +1512,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1517,6 +1530,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ')'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -1535,6 +1549,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("not closed correctly", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -1553,6 +1568,25 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE SET followed directly by RETURNING is rejected with actionable token context.
+    /// PT: Garante que ON CONFLICT DO UPDATE SET seguido diretamente por RETURNING seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflict_DoUpdateSetWithoutAssignmentsBeforeReturning_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1570,6 +1604,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1587,6 +1622,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1658,6 +1694,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("requires DO NOTHING or DO UPDATE SET", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1675,6 +1712,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("must be followed by NOTHING or UPDATE SET", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'SKIP'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1692,6 +1730,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1709,7 +1748,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1727,6 +1766,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1744,6 +1784,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1761,6 +1802,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'UPDATE'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1778,7 +1820,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO NOTHING does not support additional clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("EXTRA", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'EXTRA'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1796,6 +1838,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("requires SET assignments", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -1814,6 +1857,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("target WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'DO'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1831,6 +1875,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("target WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1883,6 +1928,25 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("requires a constraint name", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'DO'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT without name and at end-of-statement is rejected with actionable token context.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT sem nome no fim do statement seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflictOnConstraintWithoutNameAtEndOfStatement_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("requires a constraint name", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1900,6 +1964,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("requires DO NOTHING or DO UPDATE SET", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1917,6 +1982,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("must be followed by NOTHING or UPDATE SET", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'SKIP'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1934,6 +2000,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("requires SET assignments", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1951,6 +2018,25 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE SET followed directly by RETURNING is rejected with actionable token context.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET seguido diretamente por RETURNING seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateSetWithoutAssignmentsBeforeReturning_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1968,6 +2054,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("unexpected comma before assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1985,6 +2072,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("trailing comma without assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2019,6 +2107,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("must not repeat SET keyword", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2070,6 +2159,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("target WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'DO'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2087,6 +2177,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("target WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2138,6 +2229,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2155,6 +2247,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2172,6 +2265,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2240,6 +2334,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2257,6 +2352,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2274,6 +2370,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2291,6 +2388,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("DO UPDATE WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2359,6 +2457,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2410,6 +2509,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("RETURNING requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2427,6 +2527,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2444,6 +2545,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2461,6 +2563,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2478,6 +2581,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2512,6 +2616,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("must not repeat SET keyword", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2620,6 +2725,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2932,6 +3038,24 @@ WHERE id = 1";
     }
 
     /// <summary>
+    /// EN: Ensures UPDATE SET without assignments and followed by RETURNING is rejected with actionable token context.
+    /// PT: Garante que UPDATE SET sem atribuições e seguido por RETURNING seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseUpdate_SetWithoutAssignmentsBeforeReturning_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures UPDATE SET trailing comma is rejected with actionable message.
     /// PT: Garante que vírgula final em UPDATE SET seja rejeitada com mensagem acionável.
     /// </summary>
@@ -2946,6 +3070,25 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE SET leading comma is rejected with actionable token context.
+    /// PT: Garante que vírgula inicial em UPDATE SET seja rejeitada com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseUpdate_SetLeadingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET , name = 'b' WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("unexpected comma before assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3014,6 +3157,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("must not repeat SET keyword", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -3050,6 +3194,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3067,6 +3212,25 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE WHERE followed directly by RETURNING is rejected with actionable token context.
+    /// PT: Garante que UPDATE com WHERE seguido diretamente por RETURNING seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseUpdate_WhereWithoutPredicateBeforeReturning_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3157,6 +3321,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3174,6 +3339,25 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures DELETE WHERE followed directly by RETURNING is rejected with actionable token context.
+    /// PT: Garante que DELETE com WHERE seguido diretamente por RETURNING seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseDelete_WhereWithoutPredicateBeforeReturning_ShouldThrowActionableError(int version)
+    {
+        const string sql = "DELETE FROM users WHERE RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3209,6 +3393,25 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures RETURNING alias without expression is rejected with actionable token context.
+    /// PT: Garante que alias em RETURNING sem expressão seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseInsert_ReturningAliasWithoutExpression_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING AS user_id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'AS'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3226,6 +3429,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3243,6 +3447,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3260,6 +3465,43 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures RETURNING alias without expression in UPDATE is rejected with actionable token context.
+    /// PT: Garante que alias em RETURNING sem expressão no UPDATE seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseUpdate_ReturningAliasWithoutExpression_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING AS user_id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'AS'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures RETURNING alias without expression in DELETE is rejected with actionable token context.
+    /// PT: Garante que alias em RETURNING sem expressão no DELETE seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseDelete_ReturningAliasWithoutExpression_ShouldThrowActionableError(int version)
+    {
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING AS user_id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
+
+        Assert.Contains("requires at least one expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'AS'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3277,6 +3519,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3294,6 +3537,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3311,6 +3555,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3328,6 +3573,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3345,6 +3591,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3362,6 +3609,7 @@ WHERE id = 1";
             SqlQueryParser.Parse(sql, new NpgsqlDialect(version)));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -4094,3 +4342,4 @@ WHERE id = 1";
     }
 
 }
+

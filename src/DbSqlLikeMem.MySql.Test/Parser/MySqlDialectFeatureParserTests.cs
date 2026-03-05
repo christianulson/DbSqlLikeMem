@@ -738,6 +738,40 @@ public sealed class MySqlDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT without constraint name remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT sem nome da constraint do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintWithoutName_ShouldRespectDialectRule(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT DO NOTHING";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT without name at end-of-statement remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT sem nome no fim do statement continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintWithoutNameAtEndOfStatement_ShouldRespectDialectRule(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO with invalid continuation remains rejected for MySQL with actionable guidance.
     /// PT: Garante que ON CONFLICT ON CONSTRAINT DO com continuação inválida do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
@@ -1756,6 +1790,23 @@ WHERE users.id = EXCLUDED.id";
     }
 
     /// <summary>
+    /// EN: Ensures RETURNING alias without expression in MySQL INSERT remains blocked by dialect gate.
+    /// PT: Garante que RETURNING com alias sem expressão no INSERT do MySQL continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_WithMalformedReturningAliasWithoutExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING AS user_id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures malformed RETURNING expression in MySQL UPDATE remains blocked by dialect gate.
     /// PT: Garante que expressão malformada em RETURNING no UPDATE do MySQL continue bloqueada pelo gate de dialeto.
     /// </summary>
@@ -1824,6 +1875,23 @@ WHERE users.id = EXCLUDED.id";
     }
 
     /// <summary>
+    /// EN: Ensures RETURNING alias without expression in MySQL UPDATE remains blocked by dialect gate.
+    /// PT: Garante que RETURNING com alias sem expressão no UPDATE do MySQL continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_WithMalformedReturningAliasWithoutExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING AS user_id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures UPDATE SET assignment without equals is rejected with actionable message.
     /// PT: Garante que atribuição em UPDATE SET sem sinal de igual seja rejeitada com mensagem acionável.
     /// </summary>
@@ -1841,6 +1909,24 @@ WHERE users.id = EXCLUDED.id";
     }
 
     /// <summary>
+    /// EN: Ensures UPDATE SET without assignments and followed by WHERE is rejected with actionable token context.
+    /// PT: Garante que UPDATE SET sem atribuições e seguido por WHERE seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_SetWithoutAssignmentsBeforeWhere_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+
+        Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures UPDATE SET with repeated SET keyword is rejected with actionable message.
     /// PT: Garante que UPDATE SET com palavra-chave SET repetida seja rejeitado com mensagem acionável.
     /// </summary>
@@ -1855,6 +1941,79 @@ WHERE users.id = EXCLUDED.id";
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
         Assert.Contains("must not repeat SET keyword", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE SET leading comma is rejected with actionable token context.
+    /// PT: Garante que vírgula inicial em UPDATE SET seja rejeitada com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_SetLeadingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET , name = 'b' WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+
+        Assert.Contains("unexpected comma before assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE SET trailing comma is rejected with actionable token context.
+    /// PT: Garante que vírgula final em UPDATE SET seja rejeitada com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_SetTrailingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b', WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+
+        Assert.Contains("trailing comma without assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE WHERE without predicate is rejected with actionable token context.
+    /// PT: Garante que UPDATE com WHERE sem predicado seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_WhereWithoutPredicate_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+
+        Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE WHERE terminated only by semicolon is rejected with actionable token context.
+    /// PT: Garante que UPDATE com WHERE finalizado apenas por ponto e vírgula seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_WhereOnlySemicolon_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+
+        Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1926,6 +2085,59 @@ WHERE users.id = EXCLUDED.id";
     }
 
     /// <summary>
+    /// EN: Ensures RETURNING alias without expression in MySQL DELETE remains blocked by dialect gate.
+    /// PT: Garante que RETURNING com alias sem expressão no DELETE do MySQL continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseDelete_WithMalformedReturningAliasWithoutExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING AS user_id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures DELETE WHERE without predicate is rejected with actionable token context.
+    /// PT: Garante que DELETE com WHERE sem predicado seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseDelete_WhereWithoutPredicate_ShouldThrowActionableError(int version)
+    {
+        const string sql = "DELETE FROM users WHERE";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+
+        Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures DELETE WHERE terminated only by semicolon is rejected with actionable token context.
+    /// PT: Garante que DELETE com WHERE finalizado apenas por ponto e vírgula seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseDelete_WhereOnlySemicolon_ShouldThrowActionableError(int version)
+    {
+        const string sql = "DELETE FROM users WHERE;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+
+        Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE assignments without comma separator are rejected with actionable message.
     /// PT: Garante que atribuições em ON DUPLICATE KEY UPDATE sem separação por vírgula sejam rejeitadas com mensagem acionável.
     /// </summary>
@@ -1974,6 +2186,7 @@ WHERE users.id = EXCLUDED.id";
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
         Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1991,6 +2204,7 @@ WHERE users.id = EXCLUDED.id";
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2008,6 +2222,7 @@ WHERE users.id = EXCLUDED.id";
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2025,6 +2240,25 @@ WHERE users.id = EXCLUDED.id";
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and terminated by semicolon is rejected with actionable token context.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e finalizado por ponto e vírgula seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateWithoutAssignmentsWithSemicolon_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new MySqlDialect(version)));
+
+        Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2042,6 +2276,7 @@ WHERE users.id = EXCLUDED.id";
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
         Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2059,6 +2294,7 @@ WHERE users.id = EXCLUDED.id";
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
         Assert.Contains("does not support a WHERE clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2076,6 +2312,7 @@ WHERE users.id = EXCLUDED.id";
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2093,6 +2330,7 @@ WHERE users.id = EXCLUDED.id";
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2110,6 +2348,7 @@ WHERE users.id = EXCLUDED.id";
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
         Assert.Contains("must not include SET keyword", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2144,6 +2383,7 @@ WHERE users.id = EXCLUDED.id";
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
         Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2161,6 +2401,7 @@ WHERE users.id = EXCLUDED.id";
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
         Assert.Contains("does not support a WHERE clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2178,6 +2419,7 @@ WHERE users.id = EXCLUDED.id";
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2195,6 +2437,7 @@ WHERE users.id = EXCLUDED.id";
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
         Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

@@ -511,18 +511,22 @@ internal sealed class SqlQueryParser
             ExpectWord("UPDATE");
 
             if (IsWord(Peek(), "WHERE"))
-                throw new InvalidOperationException("ON DUPLICATE KEY UPDATE does not support a WHERE clause.");
+                throw new InvalidOperationException(
+                    $"ON DUPLICATE KEY UPDATE does not support a WHERE clause (found '{Peek().Text}').");
 
             if (IsWord(Peek(), "FROM") || IsWord(Peek(), "USING"))
-                throw new InvalidOperationException("ON DUPLICATE KEY UPDATE does not support table-source clauses after assignments.");
+                throw new InvalidOperationException(
+                    $"ON DUPLICATE KEY UPDATE does not support table-source clauses after assignments (found '{Peek().Text}').");
 
             var assigns = ParseAssignmentsList().AsReadOnly();
 
             if (IsWord(Peek(), "WHERE"))
-                throw new InvalidOperationException("ON DUPLICATE KEY UPDATE does not support a WHERE clause.");
+                throw new InvalidOperationException(
+                    $"ON DUPLICATE KEY UPDATE does not support a WHERE clause (found '{Peek().Text}').");
 
             if (IsWord(Peek(), "FROM") || IsWord(Peek(), "USING"))
-                throw new InvalidOperationException("ON DUPLICATE KEY UPDATE does not support table-source clauses after assignments.");
+                throw new InvalidOperationException(
+                    $"ON DUPLICATE KEY UPDATE does not support table-source clauses after assignments (found '{Peek().Text}').");
 
             return new SqlOnDuplicateKeyUpdate(assigns);
         }
@@ -546,7 +550,8 @@ internal sealed class SqlQueryParser
             ParsePostgreSqlOnConflictTarget();
 
             if (!IsWord(Peek(), "DO"))
-                throw new InvalidOperationException("ON CONFLICT requires DO NOTHING or DO UPDATE SET.");
+                throw new InvalidOperationException(
+                    $"ON CONFLICT requires DO NOTHING or DO UPDATE SET (found '{DescribeFoundToken(Peek())}').");
 
             Consume(); // DO
 
@@ -563,24 +568,28 @@ internal sealed class SqlQueryParser
             }
 
             if (!IsWord(Peek(), "UPDATE"))
-                throw new InvalidOperationException("ON CONFLICT DO must be followed by NOTHING or UPDATE SET.");
+                throw new InvalidOperationException(
+                    $"ON CONFLICT DO must be followed by NOTHING or UPDATE SET (found '{DescribeFoundToken(Peek())}').");
 
             Consume(); // UPDATE
 
             if (!IsWord(Peek(), "SET"))
-                throw new InvalidOperationException("ON CONFLICT DO UPDATE requires SET assignments.");
+                throw new InvalidOperationException(
+                    $"ON CONFLICT DO UPDATE requires SET assignments (found '{DescribeFoundToken(Peek())}').");
 
             Consume(); // SET
 
             if (IsWord(Peek(), "FROM") || IsWord(Peek(), "USING"))
-                throw new InvalidOperationException("ON CONFLICT DO UPDATE does not support table-source clauses after assignments.");
+                throw new InvalidOperationException(
+                    $"ON CONFLICT DO UPDATE does not support table-source clauses after assignments (found '{Peek().Text}').");
 
             var assigns = ParseOnConflictUpdateAssignments();
             string? updateWhereRaw = null;
             SqlExpr? updateWhereExpr = null;
 
             if (IsWord(Peek(), "FROM") || IsWord(Peek(), "USING"))
-                throw new InvalidOperationException("ON CONFLICT DO UPDATE does not support table-source clauses after assignments.");
+                throw new InvalidOperationException(
+                    $"ON CONFLICT DO UPDATE does not support table-source clauses after assignments (found '{Peek().Text}').");
 
             // PostgreSQL permite: DO UPDATE SET ... WHERE <predicate>.
             // O predicado é validado e materializado na AST para uso no executor.
@@ -589,7 +598,8 @@ internal sealed class SqlQueryParser
                 Consume();
                 (updateWhereRaw, updateWhereExpr) = ParseOnConflictWherePredicate(
                     ReadClauseTextUntilTopLevelStop("RETURNING"),
-                    "ON CONFLICT DO UPDATE WHERE");
+                    "ON CONFLICT DO UPDATE WHERE",
+                    Peek());
             }
 
             return new SqlOnDuplicateKeyUpdate(assigns, UpdateWhereRaw: updateWhereRaw, UpdateWhereExpr: updateWhereExpr);
@@ -608,7 +618,8 @@ internal sealed class SqlQueryParser
 
             var constraint = Peek();
             if (constraint.Kind != SqlTokenKind.Identifier || IsMissingOnConflictConstraintNameToken(constraint))
-                throw new InvalidOperationException("ON CONFLICT ON CONSTRAINT requires a constraint name.");
+                throw new InvalidOperationException(
+                    $"ON CONFLICT ON CONSTRAINT requires a constraint name (found '{DescribeFoundToken(constraint)}').");
 
             Consume(); // constraint name
 
@@ -617,7 +628,8 @@ internal sealed class SqlQueryParser
                 Consume();
                 _ = ParseOnConflictWherePredicate(
                     ReadClauseTextUntilTopLevelStop("DO"),
-                    "ON CONFLICT target WHERE");
+                    "ON CONFLICT target WHERE",
+                    Peek());
             }
             return;
         }
@@ -633,16 +645,18 @@ internal sealed class SqlQueryParser
                 Consume();
                 _ = ParseOnConflictWherePredicate(
                     ReadClauseTextUntilTopLevelStop("DO"),
-                    "ON CONFLICT target WHERE");
+                    "ON CONFLICT target WHERE",
+                    Peek());
             }
         }
     }
 
-    private (string Raw, SqlExpr Expr) ParseOnConflictWherePredicate(string raw, string clauseLabel)
+    private static (string Raw, SqlExpr Expr) ParseOnConflictWherePredicate(string raw, string clauseLabel, Token foundToken)
     {
         var normalized = NormalizeClauseText(raw);
         if (string.IsNullOrWhiteSpace(normalized))
-            throw new InvalidOperationException($"{clauseLabel} requires a predicate.");
+            throw new InvalidOperationException(
+                $"{clauseLabel} requires a predicate (found '{DescribeFoundToken(foundToken)}').");
 
         try
         {
@@ -670,19 +684,22 @@ internal sealed class SqlQueryParser
         while (true)
         {
             if (IsEnd(Peek()))
-                throw new InvalidOperationException("ON CONFLICT target was not closed correctly.");
+                throw new InvalidOperationException(
+                    $"ON CONFLICT target was not closed correctly (found '{DescribeFoundToken(Peek())}').");
 
             if (IsSymbol(Peek(), ")"))
             {
                 if (items == 0)
-                    throw new InvalidOperationException("ON CONFLICT target requires at least one expression.");
+                    throw new InvalidOperationException(
+                        $"ON CONFLICT target requires at least one expression (found '{DescribeFoundToken(Peek())}').");
 
                 Consume();
                 return;
             }
 
             if (IsSymbol(Peek(), ","))
-                throw new InvalidOperationException("ON CONFLICT target has an unexpected comma before expression.");
+                throw new InvalidOperationException(
+                    $"ON CONFLICT target has an unexpected comma before expression (found '{DescribeFoundToken(Peek())}').");
 
             var raw = ReadRawExpressionUntilCommaOrRightParen().Trim();
             if (string.IsNullOrWhiteSpace(raw))
@@ -711,13 +728,15 @@ internal sealed class SqlQueryParser
                 Consume();
 
                 if (IsSymbol(Peek(), ")"))
-                    throw new InvalidOperationException("ON CONFLICT target has a trailing comma without expression.");
+                    throw new InvalidOperationException(
+                        $"ON CONFLICT target has a trailing comma without expression (found '{DescribeFoundToken(Peek())}').");
 
                 continue;
             }
 
             if (!IsSymbol(Peek(), ")"))
-                throw new InvalidOperationException("ON CONFLICT target must separate expressions with commas.");
+                throw new InvalidOperationException(
+                    $"ON CONFLICT target must separate expressions with commas (found '{DescribeFoundToken(Peek())}').");
         }
     }
 
@@ -747,16 +766,19 @@ internal sealed class SqlQueryParser
             if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
             {
                 if (list.Count == 0)
-                    throw new InvalidOperationException("ON CONFLICT DO UPDATE SET requires at least one assignment.");
+                    throw new InvalidOperationException(
+                        $"ON CONFLICT DO UPDATE SET requires at least one assignment (found '{DescribeFoundToken(Peek())}').");
 
                 return list;
             }
 
             if (IsSymbol(Peek(), ","))
-                throw new InvalidOperationException("ON CONFLICT DO UPDATE SET has an unexpected comma before assignment.");
+                throw new InvalidOperationException(
+                    $"ON CONFLICT DO UPDATE SET has an unexpected comma before assignment (found '{DescribeFoundToken(Peek())}').");
 
             if (IsWord(Peek(), "SET"))
-                throw new InvalidOperationException("ON CONFLICT DO UPDATE SET must not repeat SET keyword.");
+                throw new InvalidOperationException(
+                    $"ON CONFLICT DO UPDATE SET must not repeat SET keyword (found '{DescribeFoundToken(Peek())}').");
 
             var col = ExpectIdentifierWithDots();
             ExpectAssignmentEquals("ON CONFLICT DO UPDATE SET", col);
@@ -793,7 +815,8 @@ internal sealed class SqlQueryParser
                 Consume();
 
                 if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
-                    throw new InvalidOperationException("ON CONFLICT DO UPDATE SET has a trailing comma without assignment.");
+                    throw new InvalidOperationException(
+                        $"ON CONFLICT DO UPDATE SET has a trailing comma without assignment (found '{DescribeFoundToken(Peek())}').");
 
                 continue;
             }
@@ -873,7 +896,8 @@ internal sealed class SqlQueryParser
             Consume(); // WHERE
             whereRaw = NormalizeClauseText(ReadClauseTextUntilTopLevelStop("RETURNING"));
             if (string.IsNullOrWhiteSpace(whereRaw))
-                throw new InvalidOperationException("UPDATE WHERE requires a predicate.");
+                throw new InvalidOperationException(
+                    $"UPDATE WHERE requires a predicate (found '{DescribeFoundToken(Peek())}').");
         }
         var returning = ParseOptionalReturningItems();
 
@@ -1013,7 +1037,8 @@ internal sealed class SqlQueryParser
             Consume();
             whereRaw = NormalizeClauseText(ReadClauseTextUntilTopLevelStop("RETURNING"));
             if (string.IsNullOrWhiteSpace(whereRaw))
-                throw new InvalidOperationException("DELETE WHERE requires a predicate.");
+                throw new InvalidOperationException(
+                    $"DELETE WHERE requires a predicate (found '{DescribeFoundToken(Peek())}').");
         }
         var returning = ParseOptionalReturningItems();
 
@@ -1302,6 +1327,22 @@ internal sealed class SqlQueryParser
         }
     }
 
+    private static string DescribeFoundToken(Token token)
+        => IsEnd(token) ? "<end-of-statement>" : token.Text;
+
+    private static string DescribeFoundTokenFromRaw(string raw)
+    {
+        var trimmed = raw.TrimStart();
+        if (string.IsNullOrWhiteSpace(trimmed))
+            return "<end-of-statement>";
+
+        var tokenEnd = 0;
+        while (tokenEnd < trimmed.Length && !char.IsWhiteSpace(trimmed[tokenEnd]))
+            tokenEnd++;
+
+        return trimmed[..tokenEnd];
+    }
+
     private List<SqlAssignment> ParseUpdateAssignmentsList()
     {
         var list = new List<SqlAssignment>();
@@ -1311,16 +1352,19 @@ internal sealed class SqlQueryParser
             if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "RETURNING"))
             {
                 if (list.Count == 0)
-                    throw new InvalidOperationException("UPDATE SET requires at least one assignment.");
+                    throw new InvalidOperationException(
+                        $"UPDATE SET requires at least one assignment (found '{DescribeFoundToken(Peek())}').");
 
                 return list;
             }
 
             if (IsSymbol(Peek(), ","))
-                throw new InvalidOperationException("UPDATE SET has an unexpected comma before assignment.");
+                throw new InvalidOperationException(
+                    $"UPDATE SET has an unexpected comma before assignment (found '{DescribeFoundToken(Peek())}').");
 
             if (IsWord(Peek(), "SET"))
-                throw new InvalidOperationException("UPDATE SET must not repeat SET keyword.");
+                throw new InvalidOperationException(
+                    $"UPDATE SET must not repeat SET keyword (found '{DescribeFoundToken(Peek())}').");
 
             var col = ExpectIdentifierWithDots();
             ExpectAssignmentEquals("UPDATE SET", col);
@@ -1357,7 +1401,8 @@ internal sealed class SqlQueryParser
                 Consume();
 
                 if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "RETURNING"))
-                    throw new InvalidOperationException("UPDATE SET has a trailing comma without assignment.");
+                    throw new InvalidOperationException(
+                        $"UPDATE SET has a trailing comma without assignment (found '{DescribeFoundToken(Peek())}').");
 
                 continue;
             }
@@ -1377,16 +1422,19 @@ internal sealed class SqlQueryParser
             if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
             {
                 if (list.Count == 0)
-                    throw new InvalidOperationException("ON DUPLICATE KEY UPDATE requires at least one assignment.");
+                    throw new InvalidOperationException(
+                        $"ON DUPLICATE KEY UPDATE requires at least one assignment (found '{DescribeFoundToken(Peek())}').");
 
                 return list;
             }
 
             if (IsSymbol(Peek(), ","))
-                throw new InvalidOperationException("ON DUPLICATE KEY UPDATE has an unexpected comma before assignment.");
+                throw new InvalidOperationException(
+                    $"ON DUPLICATE KEY UPDATE has an unexpected comma before assignment (found '{DescribeFoundToken(Peek())}').");
 
             if (IsWord(Peek(), "SET"))
-                throw new InvalidOperationException("ON DUPLICATE KEY UPDATE must not include SET keyword; provide assignments directly.");
+                throw new InvalidOperationException(
+                    $"ON DUPLICATE KEY UPDATE must not include SET keyword; provide assignments directly (found '{DescribeFoundToken(Peek())}').");
 
             var col = ExpectIdentifierWithDots();
             ExpectAssignmentEquals("ON DUPLICATE KEY UPDATE", col);
@@ -1423,7 +1471,8 @@ internal sealed class SqlQueryParser
                 Consume();
 
                 if (IsEnd(Peek()) || IsSymbol(Peek(), ";") || IsWord(Peek(), "WHERE") || IsWord(Peek(), "FROM") || IsWord(Peek(), "USING") || IsWord(Peek(), "RETURNING"))
-                    throw new InvalidOperationException("ON DUPLICATE KEY UPDATE has a trailing comma without assignment.");
+                    throw new InvalidOperationException(
+                        $"ON DUPLICATE KEY UPDATE has a trailing comma without assignment (found '{DescribeFoundToken(Peek())}').");
 
                 continue;
             }
@@ -1777,7 +1826,8 @@ internal sealed class SqlQueryParser
         {
             var (expr, alias) = SplitTrailingAsAliasTopLevel(raw, _dialect);
             if (string.IsNullOrWhiteSpace(expr))
-                throw new InvalidOperationException("RETURNING requires at least one expression.");
+                throw new InvalidOperationException(
+                    $"RETURNING requires at least one expression (found '{DescribeFoundTokenFromRaw(raw)}').");
 
             try
             {
@@ -1808,16 +1858,19 @@ internal sealed class SqlQueryParser
             if (IsEnd(Peek()) || IsSymbol(Peek(), ";"))
             {
                 if (items.Count == 0)
-                    throw new InvalidOperationException("RETURNING requires at least one expression.");
+                    throw new InvalidOperationException(
+                        $"RETURNING requires at least one expression (found '{DescribeFoundToken(Peek())}').");
                 break;
             }
 
             if (IsSymbol(Peek(), ","))
-                throw new InvalidOperationException("RETURNING has an unexpected comma before expression.");
+                throw new InvalidOperationException(
+                    $"RETURNING has an unexpected comma before expression (found '{DescribeFoundToken(Peek())}').");
 
             var raw = ReadRawExpressionUntilCommaOrTerminator().Trim();
             if (string.IsNullOrWhiteSpace(raw))
-                throw new InvalidOperationException("RETURNING requires at least one expression.");
+                throw new InvalidOperationException(
+                    $"RETURNING requires at least one expression (found '{DescribeFoundToken(Peek())}').");
 
             items.Add(raw);
 
@@ -1826,7 +1879,8 @@ internal sealed class SqlQueryParser
                 Consume();
 
                 if (IsEnd(Peek()) || IsSymbol(Peek(), ";"))
-                    throw new InvalidOperationException("RETURNING has a trailing comma without expression.");
+                    throw new InvalidOperationException(
+                        $"RETURNING has a trailing comma without expression (found '{DescribeFoundToken(Peek())}').");
 
                 continue;
             }

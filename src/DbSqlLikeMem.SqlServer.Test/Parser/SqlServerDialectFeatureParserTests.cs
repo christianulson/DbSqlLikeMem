@@ -974,6 +974,23 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Ensures RETURNING alias without expression in SQL Server UPDATE remains blocked by dialect gate.
+    /// PT: Garante que RETURNING com alias sem expressão no UPDATE do SQL Server continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_WithMalformedReturningAliasWithoutExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING AS user_id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 
     /// <summary>
     /// EN: Ensures UPDATE with unexpected trailing token is rejected with actionable message.
@@ -1008,6 +1025,7 @@ public sealed class SqlServerDialectFeatureParserTests
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1025,6 +1043,7 @@ public sealed class SqlServerDialectFeatureParserTests
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1079,6 +1098,24 @@ public sealed class SqlServerDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures UPDATE SET without assignments and terminated by semicolon is rejected with actionable token context.
+    /// PT: Garante que UPDATE SET sem atribuições e finalizado por ponto e vírgula seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_SetWithoutAssignmentsBeforeSemicolon_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures UPDATE SET with repeated SET keyword is rejected with actionable message.
     /// PT: Garante que UPDATE SET com palavra-chave SET repetida seja rejeitado com mensagem acionável.
     /// </summary>
@@ -1093,6 +1130,43 @@ public sealed class SqlServerDialectFeatureParserTests
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
         Assert.Contains("must not repeat SET keyword", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE SET leading comma is rejected with actionable token context.
+    /// PT: Garante que vírgula inicial em UPDATE SET seja rejeitada com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_SetLeadingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET , name = 'b' WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("unexpected comma before assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE SET trailing comma is rejected with actionable token context.
+    /// PT: Garante que vírgula final em UPDATE SET seja rejeitada com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_SetTrailingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b', WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("trailing comma without assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1220,6 +1294,23 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Ensures RETURNING alias without expression in SQL Server DELETE remains blocked by dialect gate.
+    /// PT: Garante que RETURNING com alias sem expressão no DELETE do SQL Server continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseDelete_WithMalformedReturningAliasWithoutExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING AS user_id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 
     /// <summary>
     /// EN: Ensures DELETE with unexpected trailing token is rejected with actionable message.
@@ -1254,6 +1345,7 @@ public sealed class SqlServerDialectFeatureParserTests
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1271,6 +1363,7 @@ public sealed class SqlServerDialectFeatureParserTests
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
 
         Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1369,6 +1462,23 @@ public sealed class SqlServerDialectFeatureParserTests
     public void ParseInsert_WithMalformedReturningUnbalancedParenthesis_ShouldBeRejectedByDialectGate(int version)
     {
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures RETURNING alias without expression in SQL Server INSERT remains blocked by dialect gate.
+    /// PT: Garante que RETURNING com alias sem expressão no INSERT do SQL Server continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithMalformedReturningAliasWithoutExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING AS user_id";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
@@ -2818,6 +2928,22 @@ WHERE users.id = EXCLUDED.id";
     public void ParseInsert_WithOnConflictOnConstraintWithoutName_ShouldBeRejectedByDialectGate(int version)
     {
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT DO NOTHING";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT without name at end-of-statement remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT sem nome no fim do statement continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintWithoutNameAtEndOfStatement_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
