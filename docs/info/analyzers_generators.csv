@@ -1,0 +1,4 @@
+Project,Condition,AnalyzerOrPackage,Version,Kind
+src/DbSqlLikeMem.Dapper.TestTools/DbSqlLikeMem.Dapper.TestTools.csproj,,FluentAssertions.Analyzers,0.34.1,PackageReference
+src/DbSqlLikeMem.MiniProfiler.TestTools/DbSqlLikeMem.MiniProfiler.TestTools.csproj,,FluentAssertions.Analyzers,0.34.1,PackageReference
+src/DbSqlLikeMem.TestTools/DbSqlLikeMem.TestTools.csproj,,FluentAssertions.Analyzers,0.34.1,PackageReference
