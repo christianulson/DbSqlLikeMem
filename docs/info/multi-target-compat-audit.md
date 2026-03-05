@@ -1,13 +1,13 @@
 # Auditoria de compatibilidade multi-target (estática)
 > Escopo: varredura de **92 projetos .csproj** + `Directory.Build.props`. Não foram encontrados `global.json`, `NuGet.config` ou `Directory.Build.targets` no repositório.
 ## 1) Inventário completo de projetos e metadados MSBuild
-- Inventário completo de TFMs/RIDs: `docs/project_tfm_inventory.csv`.
-- PackageReferences completos (incluindo Condition/Assets): `docs/package_references.csv`.
-- ProjectReferences completos: `docs/project_references.csv`.
-- FrameworkReferences: `docs/framework_references.csv` (vazio).
-- Analyzers/geradores: `docs/analyzers_generators.csv`.
-- Imports MSBuild explícitos: `docs/imports.csv` (vazio).
-- Itens condicionais por TFM: `docs/conditional_items.csv`.
+- Inventário completo de TFMs/RIDs: `docs/info/project_tfm_inventory.csv`.
+- PackageReferences completos (incluindo Condition/Assets): `docs/info/package_references.csv`.
+- ProjectReferences completos: `docs/info/project_references.csv`.
+- FrameworkReferences: `docs/info/framework_references.csv` (vazio).
+- Analyzers/geradores: `docs/info/analyzers_generators.csv`.
+- Imports MSBuild explícitos: `docs/info/imports.csv` (vazio).
+- Itens condicionais por TFM: `docs/info/conditional_items.csv`.
 
 ### Resumo rápido
 - Total de projetos: **92**.
@@ -29,7 +29,7 @@ Como a matriz completa é muito grande, a tabela completa está em CSV. Abaixo, 
 | `src/DbSqlLikeMem/DbSqlLikeMem.csproj` | `` | `- ` | 2 | 0 |
 
 ## 3) Grafo de dependências (diretas/transitivas)
-- **Diretas**: disponíveis em `docs/package_references.csv` e `docs/project_references.csv`.
+- **Diretas**: disponíveis em `docs/info/package_references.csv` e `docs/info/project_references.csv`.
 - **Transitivas resolvidas**: **não foi possível** obter neste ambiente porque o `dotnet` não está instalado (`dotnet: command not found`).
 - Para obter o grafo completo com versões resolvidas e TFM por pacote, rode localmente:
   - `dotnet restore -v minimal`
