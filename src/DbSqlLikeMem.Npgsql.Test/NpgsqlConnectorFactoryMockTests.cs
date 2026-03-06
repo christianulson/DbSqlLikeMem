@@ -22,7 +22,7 @@ public sealed class NpgsqlConnectorFactoryMockTests
         Assert.NotNull(factory.CreateParameter());
     }
 
-#if NET6_0_OR_GREATER
+#if NET8_0_OR_GREATER
     /// <summary>
     /// EN: Verifies that batch factory methods create Npgsql-specific batch mocks.
     /// PT: Verifica se os métodos de lote da fábrica criam mocks de lote específicos do Npgsql.

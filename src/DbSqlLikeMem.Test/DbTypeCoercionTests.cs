@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.TestTools;
+namespace DbSqlLikeMem.Test;
 
 /// <summary>
 /// EN: Covers DbType parsing and .NET type mapping contracts used by core coercion paths.

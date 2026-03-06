@@ -3,48 +3,17 @@
 	<PropertyGroup>
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
-		<TargetFrameworks>net48;net6.0;net8.0;net10.0</TargetFrameworks>
+		<RunSettingsFilePath>C:\Projects\DbSqlLikeMem\src\DbSqlLikeMem.Oracle.NHibernate.Test\bin\DbSqlLikeMem.Oracle.NHibernate.Test\Debug\net462\fine-code-coverage\coverage-tool-output\DbSqlLikeMem.Oracle.NHibernate.Test %28net462%29-fcc-mscodecoverage-generated.runsettings</RunSettingsFilePath>
 	</PropertyGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net48'">
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
-		<PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
-	</ItemGroup>
-	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
-		<PackageReference Include="xunit.runner.visualstudio" Version="3.0.2">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
-		<PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.NHibernate.TestTools\DbSqlLikeMem.NHibernate.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Oracle.NHibernate\DbSqlLikeMem.Oracle.NHibernate.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\DbSqlLikeMem.NHibernate.TestTools\DbSqlLikeMem.NHibernate.TestTools.csproj" />
-		<ProjectReference Include="..\DbSqlLikeMem.Oracle.NHibernate\DbSqlLikeMem.Oracle.NHibernate.csproj" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net48' Or '$(TargetFramework)' == 'net6.0'">
-		<Using Include="Xunit.Abstractions" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Using Include="DbSqlLikeMem" />
 		<Using Include="DbSqlLikeMem.Oracle" />
 		<Using Include="DbSqlLikeMem.NHibernate.TestTools" />
-		<Using Include="DbSqlLikeMem.TestTools" />
-		<Using Include="System.Data.Common" />
-		<Using Include="Xunit" />
 	</ItemGroup>
 
 </Project>

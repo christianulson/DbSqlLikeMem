@@ -1,3 +1,7 @@
+#if NET462
+using DB2Parameter = IBM.Data.DB2.iSeries.iDB2Parameter;
+#endif
+
 namespace DbSqlLikeMem.Db2;
 
 /// <summary>
@@ -45,7 +49,7 @@ public sealed class Db2ConnectorFactoryMock : DbProviderFactory
     /// </summary>
     public override DbParameter CreateParameter() => new DB2Parameter();
 
-#if NETCOREAPP3_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+#if NETCOREAPP3_0_OR_GREATER
     /// <summary>
     /// EN: Gets whether data adapter creation is supported.
     /// PT: Obtém se a criação de adaptador de dados é suportada.
@@ -98,3 +102,4 @@ public sealed class Db2ConnectorFactoryMock : DbProviderFactory
 #endif
     CreateDataSource(string connectionString) => new Db2DataSourceMock(db);
 }
+

@@ -22,7 +22,7 @@ public sealed class SqlAzureConnectorFactoryMockTests
         Assert.NotNull(factory.CreateParameter());
     }
 
-#if NET6_0_OR_GREATER
+#if NET8_0_OR_GREATER
     /// <summary>
     /// EN: Ensures batch members return SQL Azure batch mocks.
     /// PT: Garante que membros de lote retornem mocks de lote SQL Azure.

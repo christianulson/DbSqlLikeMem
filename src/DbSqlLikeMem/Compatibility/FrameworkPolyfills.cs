@@ -1,4 +1,4 @@
-﻿#if NET48 || NETSTANDARD2_1
+#if NET462 || NETSTANDARD2_0
 
 namespace System.Runtime.CompilerServices
 {
@@ -11,7 +11,7 @@ namespace System.Runtime.CompilerServices
 }
 #endif
 
-#if NET48 || NETSTANDARD2_1 || NET6_0
+#if NET462 || NETSTANDARD2_0
 
 namespace System.Runtime.CompilerServices
 {
@@ -71,7 +71,7 @@ namespace System.Diagnostics.CodeAnalysis
 }
 #endif
 
-#if NET48
+#if NET462 || NETSTANDARD2_0
 namespace System
 {
     /// <summary>
@@ -101,7 +101,7 @@ namespace System
 }
 #endif
 
-#if NET48
+#if NET462 || NETSTANDARD2_0
 
 namespace System.Diagnostics.CodeAnalysis
 {
@@ -115,7 +115,7 @@ namespace System.Diagnostics.CodeAnalysis
 }
 #endif
 
-#if NET48
+#if NET462
 
 namespace System.Diagnostics.CodeAnalysis
 {
@@ -214,3 +214,5 @@ namespace DbSqlLikeMem
         }
     }
 }
+
+

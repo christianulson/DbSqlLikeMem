@@ -22,7 +22,7 @@ public sealed class SqliteConnectorFactoryMockTests
         Assert.NotNull(factory.CreateParameter());
     }
 
-#if NET6_0_OR_GREATER
+#if NET8_0_OR_GREATER
     /// <summary>
     /// EN: Creates a new batch members_should return provider mocks instance.
     /// PT: Verifica se os membros de lote retornam mocks do provedor.

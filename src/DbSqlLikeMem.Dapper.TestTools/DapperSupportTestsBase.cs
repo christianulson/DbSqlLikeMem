@@ -1,5 +1,4 @@
 using Dapper;
-using System.Data.Common;
 
 namespace DbSqlLikeMem.TestTools;
 

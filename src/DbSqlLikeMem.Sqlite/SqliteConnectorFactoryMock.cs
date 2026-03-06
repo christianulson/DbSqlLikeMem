@@ -56,7 +56,7 @@ public sealed class SqliteConnectorFactoryMock : DbProviderFactory
     /// </summary>
     public override DbParameter CreateParameter() => new SqliteParameter();
 
-#if NETCOREAPP3_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+#if NETCOREAPP3_0_OR_GREATER
     /// <summary>
     /// EN: Gets whether data adapter creation is supported.
     /// PT: Obtém se a criação de adaptador de dados é suportada.
@@ -106,3 +106,4 @@ public sealed class SqliteConnectorFactoryMock : DbProviderFactory
     public SqliteDataSourceMock CreateDataSource(string connectionString) => new(db);
 #endif
 }
+

@@ -24,7 +24,7 @@ public sealed class Db2TransactionTests(
         using var connection = new Db2ConnectionMock(db);
         connection.Open();
         var transaction = connection.BeginTransaction();
-        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullExceptionCompatible.ThrowIfNull(transaction, nameof(transaction));
         using var command = new Db2CommandMock(
             connection,
             (Db2TransactionMock)transaction)

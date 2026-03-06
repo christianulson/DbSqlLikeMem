@@ -1,5 +1,7 @@
 namespace DbSqlLikeMem.Db2;
-
+#if NET462
+using DB2Parameter = IBM.Data.DB2.iSeries.iDB2Parameter;
+#endif
 /// <summary>
 /// EN: Represents a mock database command used to execute SQL text and stored procedures in memory.
 /// PT: Representa um comando de banco de dados simulado usado para executar SQL e procedures em memória.
@@ -95,8 +97,8 @@ public class Db2CommandMock(
     /// </summary>
     public override int ExecuteNonQuery()
     {
-        ArgumentNullException.ThrowIfNull(connection);
-        connection.ClearExecutionPlans();
+        ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
         // 1. Stored Procedure (sem parse SQL)
@@ -121,9 +123,9 @@ public class Db2CommandMock(
     /// </summary>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
-        ArgumentNullException.ThrowIfNull(connection);
-        connection.ClearExecutionPlans();
-        ArgumentNullException.ThrowIfNull(CommandText);
+        ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        connection!.ClearExecutionPlans();
+        ArgumentNullExceptionCompatible.ThrowIfNull(CommandText, nameof(CommandText));
 
         if (connection.TryHandleExecuteReaderPrelude(
             CommandType,

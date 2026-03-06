@@ -474,7 +474,7 @@ public sealed class SqlAzureConnectorFactoryMock : DbProviderFactory
     /// </summary>
     public override DbParameter CreateParameter() => new SqlParameter();
 
-#if NETCOREAPP3_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+#if NETCOREAPP3_0_OR_GREATER
     /// <summary>
     /// EN: Indicates whether this provider factory can create data adapter instances.
     /// PT: Indica se esta fabrica de provedor pode criar instancias de adaptador de dados.
@@ -856,3 +856,4 @@ public sealed class SqlAzureBatchCommandCollectionMock : DbBatchCommandCollectio
     protected override void SetBatchCommand(int index, DbBatchCommand batchCommand) => Commands[index] = (SqlAzureBatchCommandMock)batchCommand;
 }
 #endif
+

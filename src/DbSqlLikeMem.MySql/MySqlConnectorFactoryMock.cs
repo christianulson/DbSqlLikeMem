@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.MySql;
+namespace DbSqlLikeMem.MySql;
 
 /// <summary>
 /// EN: Represents the My Sql Connector Factory Mock type used by provider mocks.
@@ -59,7 +59,7 @@ public sealed class MySqlConnectorFactoryMock : DbProviderFactory
     /// </summary>
     public override bool CanCreateDataSourceEnumerator => false;
 
-#if NETCOREAPP3_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+#if NETCOREAPP3_0_OR_GREATER
     /// <summary>
     /// EN: Gets whether command builder creation is supported.
     /// PT: Obtém se a criação de construtor de comandos é suportada.
@@ -137,3 +137,4 @@ public sealed class MySqlConnectorFactoryMock : DbProviderFactory
         Db = db;
     }
 }
+

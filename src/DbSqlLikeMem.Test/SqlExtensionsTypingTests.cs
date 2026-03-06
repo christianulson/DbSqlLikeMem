@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.TestTools;
+namespace DbSqlLikeMem.Test;
 
 /// <summary>
 /// EN: Covers core coercion/comparison behaviors from SqlExtensions used by AST execution.

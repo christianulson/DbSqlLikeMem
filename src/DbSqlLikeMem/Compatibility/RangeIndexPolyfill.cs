@@ -1,4 +1,4 @@
-#if NET48
+#if NET462 || NETSTANDARD2_0
 namespace System;
 
 /// <summary>
@@ -167,3 +167,4 @@ public readonly struct Range : IEquatable<Range>
         => $"{Start}..{End}";
 }
 #endif
+

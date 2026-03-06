@@ -20,7 +20,7 @@ public sealed class Db2QueryProvider(
     /// </summary>
     public IQueryable CreateQuery(Expression expression)
     {
-        ArgumentNullException.ThrowIfNull(expression);
+        ArgumentNullExceptionCompatible.ThrowIfNull(expression, nameof(expression));
         var elementType = expression.Type.GetGenericArguments()[0];
         var tableName = ExtractTableName(expression);
         var queryType = typeof(Db2Queryable<>).MakeGenericType(elementType);
@@ -39,7 +39,7 @@ public sealed class Db2QueryProvider(
     /// </summary>
     public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
     {
-        ArgumentNullException.ThrowIfNull(expression);
+        ArgumentNullExceptionCompatible.ThrowIfNull(expression, nameof(expression));
         var tableName = ExtractTableName(expression);
         return new Db2Queryable<TElement>(this, expression, tableName);
     }
@@ -86,7 +86,7 @@ public sealed class Db2QueryProvider(
     /// </summary>
     public TResult Execute<TResult>(Expression expression)
     {
-        ArgumentNullException.ThrowIfNull(expression);
+        ArgumentNullExceptionCompatible.ThrowIfNull(expression, nameof(expression));
         var translation = _translator.Translate(expression);
         var sql = translation.Sql ?? string.Empty;
 

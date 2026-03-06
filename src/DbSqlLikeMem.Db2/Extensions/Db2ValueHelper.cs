@@ -1,5 +1,7 @@
 using System.Text.Json;
-
+#if NET462
+using DB2Parameter = IBM.Data.DB2.iSeries.iDB2Parameter;
+#endif
 namespace DbSqlLikeMem.Db2;
 
 internal static class Db2ValueHelper
@@ -32,11 +34,11 @@ internal static class Db2ValueHelper
         IReadOnlyDictionary<string, ColumnDef>? colDict = null)
     {
         // ---------- parâmetro Dapper @p -------------------------------
-        if (token.StartsWith('@'))
+        if (token.StartsWith("@"))
         {
             var name = token[1..]
-                .Replace("\r\n", string.Empty, StringComparison.Ordinal)
-                .Replace(";", string.Empty, StringComparison.Ordinal);
+                .Replace("\r\n", string.Empty)
+                .Replace(";", string.Empty);
             if (pars == null || !pars.Contains(name))
                 throw new Db2MockException(SqlExceptionMessages.ParameterNotFound(name));
             return ((DB2Parameter)pars[name]).Value;
@@ -64,7 +66,7 @@ internal static class Db2ValueHelper
             return ValidateColumnValue(value, colDict);
 
         // ---------- JSON ----------------------------------------------
-        if (dbType == DbType.Object && (token.StartsWith('{') || token.StartsWith('[')))
+        if (dbType == DbType.Object && (token.StartsWith("{") || token.StartsWith("[")))
             return ParseJson(token);
 
         // ---------- tipos padrões -------------------------------------
@@ -81,7 +83,7 @@ internal static class Db2ValueHelper
         if (colDict is null || string.IsNullOrWhiteSpace(CurrentColumn))
             return false;
 
-        if (!colDict.TryGetValue(CurrentColumn, out var cdef))
+        if (!colDict.TryGetValue(CurrentColumn!, out var cdef))
             return false;
 
         if (cdef.EnumValues is null || cdef.EnumValues.Count == 0)
@@ -90,9 +92,9 @@ internal static class Db2ValueHelper
         var raw = token.Trim();
 
         // SET
-        if (raw.Contains(',', StringComparison.Ordinal))
+        if (raw.Contains(','))
         {
-            var parts = raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var parts = raw.Split(',').Select(_=>_.Trim()).Where(_=>!string.IsNullOrWhiteSpace(_)).ToArray();
             var hs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var p in parts)
@@ -137,14 +139,14 @@ internal static class Db2ValueHelper
         if (colDict is null || string.IsNullOrWhiteSpace(CurrentColumn))
             return value;
 
-        if (!colDict.TryGetValue(CurrentColumn, out var cdef))
+        if (!colDict.TryGetValue(CurrentColumn!, out var cdef))
             return value;
 
         if (cdef.Size is int size && value is string s && s.Length > size)
-            throw new Db2MockException(SqlExceptionMessages.DataTooLongForColumn(CurrentColumn), 1406);
+            throw new Db2MockException(SqlExceptionMessages.DataTooLongForColumn(CurrentColumn!), 1406);
 
         if (cdef.DecimalPlaces is int scale && value is decimal d && GetDecimalScale(d) > scale)
-            throw new Db2MockException(SqlExceptionMessages.DataTruncatedForColumn(CurrentColumn), 1265);
+            throw new Db2MockException(SqlExceptionMessages.DataTruncatedForColumn(CurrentColumn!), 1265);
 
         return value;
     }
@@ -172,8 +174,8 @@ internal static class Db2ValueHelper
     public static bool Like(string value, string pattern)
     {
         pattern = Regex.Escape(pattern)
-            .Replace("%", ".*", StringComparison.Ordinal)
-            .Replace("_", ".", StringComparison.Ordinal);
+            .Replace("%", ".*")
+            .Replace("_", ".");
         return Regex.IsMatch(value, "^" + pattern + "$", RegexOptions.Singleline | RegexOptions.IgnoreCase);
     }
 }

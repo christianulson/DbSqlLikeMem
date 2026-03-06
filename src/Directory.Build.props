@@ -23,63 +23,28 @@
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
-		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.1;net48;net6.0;net8.0;net10.0</TargetFrameworks>
+		<TargetFrameworks>net462;netstandard2.0;net8.0</TargetFrameworks>
+		
 	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(IsTestProject)' == 'true'">
+	<PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Test')) Or $(MSBuildProjectName.EndsWith('.TestTools'))">
+		<TargetFrameworks>net462;net6.0;net8.0</TargetFrameworks>
 		<BaseIntermediateOutputPath>obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
 		<MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)</MSBuildProjectExtensionsPath>
 		<BaseOutputPath>bin\$(MSBuildProjectName)\</BaseOutputPath>
 	</PropertyGroup>
 
+	<PropertyGroup>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<TreatWarningsAsErrors Condition="'$(TargetFramework)' == 'net462'">false</TreatWarningsAsErrors>
+		<TargetFrameworkFrom>$(TargetFramework)</TargetFrameworkFrom>
+		<TargetFrameworkFrom Condition="'$(TargetFramework)' == 'net6.0'">netstandard2.0</TargetFrameworkFrom>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<None Include="..\README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
-
-	<ItemGroup Condition="'$(IsTestProject)' == 'true'">
-		<PackageReference Include="coverlet.collector" Version="8.0.0" />
-	</ItemGroup>
-		
-	<ItemGroup Condition="'$(IsTestProject)' != 'true' And ('$(TargetFramework)' == 'net6.0' Or '$(TargetFramework)' == 'netstandard2.1')">
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-	</ItemGroup>
-	<ItemGroup Condition="'$(IsTestProject)' != 'true' And ('$(TargetFramework)' == 'net48' Or '$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0')">
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.103" PrivateAssets="All" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-		<PackageReference Include="System.Collections.Immutable" Version="8.0.0" />
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" PrivateAssets="All" />
-		<PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.9.2" PrivateAssets="All" />
-		<PackageReference Include="System.Text.Json" Version="8.0.6" />
-		<PackageReference Include="System.Text.Encodings.Web" Version="8.0.0" />
-		<PackageReference Include="System.IO.Pipelines" Version="8.0.0" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(TargetFramework)' == 'net48' Or '$(TargetFramework)' == 'netstandard2.1' Or '$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
-		<PackageReference Include="System.Collections.Immutable" Version="10.0.3" />
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" PrivateAssets="All" />
-		<PackageReference Include="Microsoft.CodeAnalysis.Common" Version="5.0.0" PrivateAssets="All" />
-		<PackageReference Include="System.Text.Json" Version="10.0.3" />
-		<PackageReference Include="System.Text.Encodings.Web" Version="10.0.3" />
-		<PackageReference Include="System.IO.Pipelines" Version="10.0.3" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.3" />
-	</ItemGroup>
 	
-	<ItemGroup>
-		<PackageReference Include="AsyncFixer" Version="2.1.0" PrivateAssets="All" />
-		<PackageReference Include="AsyncFriendlyStackTrace" Version="1.7.0" PrivateAssets="All" />
-		<PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.103" PrivateAssets="All" />
-		<PackageReference Include="Roslynator.Analyzers" Version="4.15.0" PrivateAssets="All" />
-		<PackageReference Include="Roslynator.CodeAnalysis.Analyzers" Version="4.15.0" PrivateAssets="All" />
-		<PackageReference Include="Roslynator.CodeFixes" Version="4.15.0" PrivateAssets="All" />
-		<PackageReference Include="Roslynator.CSharp" Version="4.15.0" PrivateAssets="All" />
-		<PackageReference Include="Roslynator.Formatting.Analyzers" Version="4.15.0" PrivateAssets="All" />
-	</ItemGroup>
-
 </Project>

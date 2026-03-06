@@ -19,7 +19,7 @@ public sealed class SqliteTriggerStrategyTests
         table.AddColumn("id", DbType.Int32, false);
 
         var calls = 0;
-        var triggerTable = Assert.IsType<TableMock>(table, exactMatch: false);
+        var triggerTable = Assert.IsAssignableFrom<TableMock>(table);
         triggerTable.AddTrigger(TableTriggerEvent.AfterInsert, _ => calls++);
 
         using var connection = new SqliteConnectionMock(db);
@@ -44,7 +44,7 @@ public sealed class SqliteTriggerStrategyTests
         table.AddColumn("id", DbType.Int32, false);
 
         var calls = 0;
-        var triggerTable = Assert.IsType<TableMock>(table, exactMatch: false);
+        var triggerTable = Assert.IsAssignableFrom<TableMock>(table);
         triggerTable.AddTrigger(TableTriggerEvent.AfterInsert, _ => calls++);
 
         using var cmd = new SqliteCommandMock(connection) { CommandText = "INSERT INTO temp_users (id) VALUES (1)" };

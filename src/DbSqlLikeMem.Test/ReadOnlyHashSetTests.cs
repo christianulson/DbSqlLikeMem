@@ -1,7 +1,7 @@
 using DbSqlLikeMem.Models;
 using System.Runtime.Serialization;
 
-namespace DbSqlLikeMem.TestTools;
+namespace DbSqlLikeMem.Test;
 
 /// <summary>
 /// EN: Covers serialization contract behavior for <see cref="ReadOnlyHashSet{T}"/>.

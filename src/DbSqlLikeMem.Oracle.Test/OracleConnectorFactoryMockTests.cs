@@ -22,7 +22,7 @@ public sealed class OracleConnectorFactoryMockTests
         Assert.NotNull(factory.CreateParameter());
     }
 
-#if NET6_0_OR_GREATER
+#if NET8_0_OR_GREATER
     /// <summary>
     /// EN: Verifies that batch factory methods create Oracle-specific batch mocks.
     /// PT: Verifica se os métodos de lote da fábrica criam mocks de lote específicos do Oracle.

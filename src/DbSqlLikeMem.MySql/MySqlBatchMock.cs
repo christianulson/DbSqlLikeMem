@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.MySql;
+namespace DbSqlLikeMem.MySql;
 
 /// <summary>
 /// EN: Represents a MySQL batch mock that executes commands against the in-memory database.
@@ -434,7 +434,7 @@ public sealed class MySqlBatchMock :
     }
 
     private bool IsValid(
-#if !NET48
+#if NET6_0_OR_GREATER
         [NotNullWhen(false)]
 #endif
     out Exception? exception)
@@ -535,3 +535,4 @@ public sealed class MySqlBatchMock :
     private int m_timeout;
     private bool m_commandTimedOut;
 }
+

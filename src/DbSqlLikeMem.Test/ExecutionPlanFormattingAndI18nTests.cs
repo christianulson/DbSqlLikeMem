@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Text.Json;
 
-namespace DbSqlLikeMem.TestTools;
+namespace DbSqlLikeMem.Test;
 
 /// <summary>
 /// EN: Validates execution-plan warning formatting and i18n resource consistency.
@@ -72,14 +72,13 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     [Fact]
     public void SqlExecutionPlanMessages_AllLocalizedResxShouldContainBaseKeys_AndKeepCanonicalSqlKeywords()
     {
-        var basePath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "DbSqlLikeMem", "Resources");
+        var basePath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "DbSqlLikeMem", "Resources");
         var baseResx = Path.Combine(basePath, "SqlExecutionPlanMessages.resx");
 
         var baseEntries = LoadResxEntries(baseResx);
-        var messageKeysUsedByCode = typeof(SqlExecutionPlanMessages)
+        var messageKeysUsedByCode = new HashSet<string>( typeof(SqlExecutionPlanMessages)
             .GetMethods(BindingFlags.Public | BindingFlags.Static)
-            .Select(static method => method.Name)
-            .ToHashSet(StringComparer.Ordinal);
+            .Select(static method => method.Name), StringComparer.Ordinal);
 
         baseEntries.Keys.Should().Contain(messageKeysUsedByCode);
         var localizedFiles = Directory

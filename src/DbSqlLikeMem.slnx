@@ -68,7 +68,9 @@
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="../Features.md" />
+    <File Path=".runsettings" />
     <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
     <File Path="README.md" />
   </Folder>
   <Folder Name="/Sqlite/">
@@ -123,6 +125,7 @@
   <Project Path="DbSqlLikeMem.LinqToDb/DbSqlLikeMem.LinqToDb.csproj" />
   <Project Path="DbSqlLikeMem.MiniProfiler.TestTools/DbSqlLikeMem.MiniProfiler.TestTools.csproj" />
   <Project Path="DbSqlLikeMem.NHibernate.TestTools/DbSqlLikeMem.NHibernate.TestTools.csproj" Id="05796138-948e-446c-bd71-89d8869f44d4" />
+  <Project Path="DbSqlLikeMem.Test/DbSqlLikeMem.Test.csproj" />
   <Project Path="DbSqlLikeMem.TestTools/DbSqlLikeMem.TestTools.csproj" />
   <Project Path="DbSqlLikeMem.XUnit/DbSqlLikeMem.XUnit.csproj" />
   <Project Path="DbSqlLikeMem.CsvReader/DbSqlLikeMem.CsvReader.csproj" />

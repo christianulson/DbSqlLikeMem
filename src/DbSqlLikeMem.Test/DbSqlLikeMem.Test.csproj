@@ -2,12 +2,12 @@
 
 	<PropertyGroup>
 		<IsPackable>false</IsPackable>
-		<IsTestProject>false</IsTestProject>
-		<IsTestToolsProject>true</IsTestToolsProject>
+		<IsTestProject>true</IsTestProject>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.CsvReader\DbSqlLikeMem.CsvReader.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
+		<ProjectReference Include="..\DbSqlLikeMem.TestTools\DbSqlLikeMem.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 
 </Project>

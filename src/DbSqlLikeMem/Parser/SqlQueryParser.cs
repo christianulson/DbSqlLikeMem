@@ -859,12 +859,30 @@ internal sealed class SqlQueryParser
             Pivot: null,
             MySqlIndexHints: null);
 
+        if (Peek().Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword)
+        {
+            var maybeAlias = Peek();
+            if (!IsWord(maybeAlias, "SET")
+                && !IsWord(maybeAlias, "FROM")
+                && !IsWord(maybeAlias, "WHERE")
+                && !IsWord(maybeAlias, "RETURNING")
+                && !IsJoinStart(maybeAlias)
+                && !IsEnd(maybeAlias)
+                && !IsSymbol(maybeAlias, ";"))
+            {
+                table = table with { Alias = Consume().Text };
+            }
+        }
+
         // MySQL: UPDATE <table> [alias] JOIN (...) ... SET ...
         var hasJoin = false;
 
         // Se vier JOIN antes do SET, pulamos os tokens do JOIN aqui (as estratégias smart usam RawSql)
         if (IsJoinStart(Peek()))
         {
+            if (!string.Equals(_dialect.Name, "mysql", StringComparison.OrdinalIgnoreCase))
+                throw SqlUnsupported.ForDialect(_dialect, "UPDATE ... JOIN (subquery)");
+
             hasJoin = true;
             SkipUntilTopLevelWord("SET");
         }
