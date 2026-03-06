@@ -1,3 +1,5 @@
+using DbSqlLikeMem.Resources;
+
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
@@ -123,7 +125,7 @@ WHERE u.tenantid = 10";
         const string sql = "DELETE FROM users u USING (SELECT id FROM users) s WHERE u.tenantid = 10";
 
         var ex = Assert.Throws<InvalidOperationException>(() => ExecuteNonQuery(db, sql));
-        Assert.Contains("WHERE deve conter uma condição de junção", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlExceptionMessages.DeleteUsingWhereMustContainJoinEqualityCondition(), ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 }

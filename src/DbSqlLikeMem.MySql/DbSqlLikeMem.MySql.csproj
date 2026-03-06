@@ -26,6 +26,7 @@
 		<Using Include="System.Globalization" />
 		<Using Include="System.Linq.Expressions" />
 		<Using Include="System.Reflection" />
+		<Using Include="System.Text" />
 		<Using Include="System.Text.RegularExpressions" />
 	</ItemGroup>
 </Project>

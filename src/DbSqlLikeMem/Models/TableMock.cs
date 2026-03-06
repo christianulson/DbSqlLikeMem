@@ -79,7 +79,7 @@ public abstract class TableMock
         foreach (var colName in columns)
             _primaryKeyIndexes.Add(Columns[colName].Index);
         if (_primaryKeyIndexes.Count != columns.Length)
-            throw new InvalidOperationException("Colunas da PK Duplicadas");
+            throw new InvalidOperationException(Resources.SqlExceptionMessages.DuplicatePrimaryKeyColumns());
     }
 
     private readonly Dictionary<string, ForeignDef> _foreignKeys = new(StringComparer.OrdinalIgnoreCase);
@@ -231,7 +231,7 @@ public abstract class TableMock
         ArgumentNullExceptionCompatible.ThrowIfNull(keyCols, nameof(keyCols));
         name = name.NormalizeName();
         if (_indexes.ContainsKey(name))
-            throw new InvalidOperationException($"Índice '{name}' já existe.");
+            throw new InvalidOperationException(Resources.SqlExceptionMessages.IndexAlreadyExists(name));
         var idx = new IndexDef(this, name, keyCols, include, unique);
         _indexes.Add(name, idx);
         return idx;

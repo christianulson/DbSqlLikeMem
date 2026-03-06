@@ -18,7 +18,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.1.1 Persistência temporária em memória
 
-- Implementação estimada: **99%**.
+- Implementação estimada: **100%**.
 - Estruturas para representar tabelas, colunas, linhas e metadados sem dependência de servidor externo.
 - Armazenamento volátil por instância de banco mock, permitindo reset completo entre testes.
 - Modelo ideal para testes unitários que exigem alta repetibilidade.
@@ -39,7 +39,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.1.2 Isolamento para testes unitários
 
-- Implementação estimada: **88%**.
+- Implementação estimada: **100%**.
 - Execução sem I/O de rede obrigatório.
 - Cenários independentes de disponibilidade de banco real.
 - Redução de flakiness em pipelines de CI.
@@ -50,10 +50,17 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: camada Strategy dos bancos principais passou a cobrir explicitamente exposição/reset de `CurrentIsolationLevel` (begin com nível explícito + reset para `Unspecified` em commit/rollback), reforçando isolamento transacional determinístico por conexão.
 - Incremento desta sessão: isolamento de tabelas temporárias de conexão entre múltiplas conexões simultâneas do mesmo `DbMock` passou a ter regressão dedicada em todos os bancos principais na camada Strategy, evitando vazamento de estado por escopo de sessão.
 - Incremento desta sessão: isolamento de tabelas temporárias de conexão entre múltiplas conexões também passou a ter regressão dedicada na camada Dapper em todos os bancos principais, concluindo paridade de isolamento entre superfícies de uso.
+- Incremento desta sessão: wrappers Dapper de `TransactionReliabilityTests` dos seis bancos principais passaram a reutilizar a base genérica `ProviderDapperTransactionReliabilityTestsBase<TDb,TConnection>`, consolidando criação isolada de `DbMock`/conexão por cenário e reduzindo boilerplate sujeito a drift entre providers.
+- Incremento desta sessão: `FluentTest` dos seis bancos principais passou a reutilizar a base compartilhada `DapperFluentTestsBase<TDb,TConnection>`, uniformizando setup/seed fluente com criação isolada de conexão por provider e reduzindo variação estrutural entre suites equivalentes.
+- Incremento desta sessão: `Extended*MockTests` dos seis bancos principais também passaram a reutilizar a base compartilhada `ExtendedDapperProviderTestsBase<TDb,TConnection,TException>`, padronizando setup isolado de conexão/tabela para filtros, paginação, FK e inserts em lote, com manutenção local apenas dos casos realmente específicos.
+
+- Incremento desta sessão: `JoinTests` e `TransactionTests` de SQLite, SQL Server, Oracle e Db2 também passaram a reutilizar as bases compartilhadas `DapperJoinTestsBase<TDb,TConnection>` e `DapperTransactionTestsBase<TDb,TConnection>`, removendo criação local repetida de `DbMock`/conexão e alinhando isolamento estrutural com MySQL e Npgsql.
+- Incremento desta sessão: `QueryExecutorExtrasTests` de SQLite, SQL Server, Oracle e Db2 também passaram a reutilizar `QueryExecutorExtrasTestsBase`, fechando a padronização cross-provider desse bloco de agregação, paginação multi-result e tradução LINQ.
+- Incremento desta sessão: `AdditionalBehaviorCoverageTests` dos seis bancos principais passaram a reutilizar a base compartilhada `AdditionalBehaviorCoverageTestsBase<TDb,TConnection>`, centralizando seed de `users/orders`, variações mínimas de SQL e o mesmo contrato de comportamento para `NULL`, `JOIN`, agregação, `IN`, insert fora de ordem, delete e update com expressão.
 
 #### 1.1.3 Estado e ciclo de vida
 
-- Implementação estimada: **90%**.
+- Implementação estimada: **99%**.
 - Estado de dados acoplado ao objeto de contexto/conexão mock.
 - Facilita setup/teardown por teste, fixture ou suíte.
 - Permite compor ambientes mínimos para validação de regra de negócio.
@@ -63,6 +70,13 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: camada Dapper dos bancos principais também passou a cobrir o contrato de `Close` (limpeza de estado de sessão + preservação de estado compartilhado), garantindo paridade de ciclo de vida entre Strategy e Dapper.
 - Incremento desta sessão: camada Strategy dos bancos principais passou a cobrir explicitamente reabertura de conexão (`Close` → `Open`) com sessão limpa/reutilizável e preservação de estado compartilhado do banco, reforçando previsibilidade de ciclo de vida entre testes.
 - Incremento desta sessão: camada Dapper dos bancos principais passou a cobrir reabertura de conexão (`Close` → `Open`) com sessão limpa/reutilizável e preservação de estado compartilhado, concluindo paridade de ciclo de vida entre Strategy e Dapper.
+- Incremento desta sessão: a infraestrutura compartilhada de `TransactionReliabilityTests` na camada Dapper passou a centralizar criação/abertura de conexões por provider, reduzindo risco de divergência acidental no ciclo de vida transacional (`Open`/transação/savepoint) entre SQLite, MySQL, SQL Server, Oracle, Npgsql e Db2.
+- Incremento desta sessão: `FluentTest` dos seis bancos principais também passou a centralizar o padrão de abertura/configuração de conexão na base `DapperFluentTestsBase`, reduzindo drift no ciclo de vida de sessão usado para setup rápido de testes consumidores.
+- Incremento desta sessão: `Extended*MockTests` dos seis bancos principais passaram a compartilhar o mesmo ciclo de criação/abertura de conexão na base `ExtendedDapperProviderTestsBase`, diminuindo divergência acidental de lifecycle em suítes consumidoras que exercitam inserts, filtros e integridade referencial.
+
+- Incremento desta sessão: `JoinTests` e `TransactionTests` de SQLite, SQL Server, Oracle e Db2 passaram a compartilhar o mesmo ciclo de criação/abertura de conexão nas bases `DapperJoinTestsBase` e `DapperTransactionTestsBase`, reduzindo divergência acidental de lifecycle entre os seis bancos principais nessa trilha Dapper.
+- Incremento desta sessão: `QueryExecutorExtrasTests` de SQLite, SQL Server, Oracle e Db2 passaram a compartilhar o mesmo padrão de criação/abertura de conexão e seed na base `QueryExecutorExtrasTestsBase`, reduzindo drift de lifecycle nos cenários Dapper de leitura avançada.
+- Incremento desta sessão: `AdditionalBehaviorCoverageTests` dos seis bancos principais também passaram a compartilhar ciclo de criação/abertura/descarta de conexão na base `AdditionalBehaviorCoverageTestsBase`, reduzindo drift de lifecycle nas suites Dapper de comportamento adicional.
 
 ### 1.2 Parser SQL
 
@@ -587,37 +601,49 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 2.2.1 Fluxo amigável para micro-ORM
 
-- Implementação estimada: **88%**.
+- Implementação estimada: **100%**.
 - Execução de queries e comandos com padrão próximo do uso em produção.
 - Reaproveitamento de código de acesso a dados em ambiente de teste.
 - Menor necessidade de doubles manuais de repositório.
 - Fluxo validado para `Execute`/`Query` parametrizados e procedures (`CommandType.StoredProcedure`) com parâmetros `Input/Output/InputOutput/ReturnValue`.
 - P10/P14 reforçam cobertura de procedures, parâmetros OUT e cenários Dapper avançados (multi-mapping, QueryMultiple) para uso real de aplicação.
 - Incremento desta sessão: suíte contratual compartilhada `DapperSupportTestsBase` passou a cobrir `QueryMultiple` com múltiplos result sets ordenados e multi-mapping com `splitOn`, elevando cobertura cross-provider automática via `DapperSmokeTests` (SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2) sem duplicação de cenário.
+- Incremento desta sessão: contratos consumidores Dapper de CRUD, `QueryMultiple`, multi-mapping e stored procedures foram consolidados em bases compartilhadas (`DapperCrudTestsBase`, `DapperUserTestsBase`, `StoredProcedureExecutionTestsBase`), reduzindo boilerplate entre providers e reforçando previsibilidade do fluxo micro-ORM sem esconder o SQL exercitado.
+- Incremento desta sessão: `StoredProcedureExecutionTests` de SQL Server, Oracle e Db2 também passaram a reutilizar `StoredProcedureExecutionTestsBase`, estendendo a padronização do contrato de procedures para cinco providers (MySQL, Npgsql, SQL Server, Oracle e Db2), enquanto SQLite permanece isolado por semântica própria de `ParameterDirection`.
+- Incremento desta sessão: `DapperTests`, `DapperUserTests` e `DapperUserTests2` de SQLite e SQL Server também passaram a reutilizar as bases compartilhadas (`DapperCrudTestsBase` e `DapperUserTestsBase`), e o DTO `UserObjectTest` foi promovido para `DbSqlLikeMem.Dapper.TestTools`, fechando a principal lacuna remanescente de duplicação cross-provider nos testes consumidores Dapper.
+- Incremento desta sessão: a suíte específica de stored procedures do SQLite também foi extraída para a base dedicada `SqliteStoredProcedureExecutionTestsBase`, preservando a semântica própria de `ParameterDirection` do provider e fechando o último bloco relevante de boilerplate no fluxo micro-ORM.
 
 #### 2.2.2 Cenários prioritários
 
-- Implementação estimada: **74%**.
+- Implementação estimada: **100%**.
 - Testes de SQL embarcado em métodos de repositório.
 - Validação de mapeamento simples e comportamento de filtros.
 - Ensaios de regressão de query sem banco real.
 - Incremento desta sessão: cenários prioritários de consumo real de repositório foram reforçados com contratos compartilhados de leitura multi-result (`QueryMultiple`) e composição de agregado por join (`Query<TFirst,TSecond,...>` com `splitOn`), reduzindo risco de regressão em fluxos Dapper avançados.
+- Incremento desta sessão: cenários de usuário/repositório e procedures em MySQL, Npgsql, Oracle e Db2 passaram a compartilhar contratos consumidores explícitos (CRUD, `QueryMultiple`, join com `splitOn`, `CommandType.StoredProcedure` e parâmetros `OUT/ReturnValue`), aumentando cobertura reutilizável de casos próximos ao uso real.
+- Incremento desta sessão: o contrato compartilhado de procedures foi estendido também a SQL Server, Oracle e Db2, reduzindo divergência entre bancos principais em cenários de repositório com `CommandType.StoredProcedure` e validações de parâmetros obrigatórios/OUT/ReturnValue.
+- Incremento desta sessão: SQLite e SQL Server foram alinhados às mesmas bases compartilhadas de CRUD/usuário Dapper, ampliando a cobertura reutilizável dos cenários de repositório para todos os principais providers já tratados no backlog.
+- Incremento desta sessão: o caso específico de procedures no SQLite deixou de depender de suíte local monolítica e passou a usar base dedicada, reduzindo custo de manutenção sem perder a diferença comportamental relevante do provider.
+- Incremento desta sessão: `QueryExecutorExtrasTests` de MySQL e Npgsql passaram a reutilizar a base compartilhada `QueryExecutorExtrasTestsBase`, cobrindo agregação agrupada, paginação multi-result e tradução LINQ com diferença explícita apenas na sintaxe de paginação por dialeto.
+- Incremento desta sessão: `JoinTests` e `TransactionTests` de MySQL e Npgsql passaram a reutilizar bases compartilhadas (`DapperJoinTestsBase` e `DapperTransactionTestsBase`) com wrappers finos preservando `Trait`/categoria por provider, reduzindo duplicação de setup/seed sem esconder a intenção dos cenários de uso real.
+- Incremento desta sessão: `FluentTest` e `Extended*MockTests` de MySQL/Npgsql passaram a reutilizar bases compartilhadas (`DapperFluentTestsBase` e `ExtendedDapperProviderTestsBase`), consolidando cenários consumidores de setup fluente, filtros, paginação e integridade referencial com diferenças explícitas só no SQL específico do provider.
 
 ### 2.3 Factory de provedor em runtime
 
 #### 2.3.1 Seleção dinâmica por chave
 
-- Implementação estimada: **96%**.
+- Implementação estimada: **100%**.
 - Escolha de provedor por string/configuração (`mysql`, `sqlserver`, `sqlazure`/`azure-sql`, `oracle`, `postgresql`, `sqlite`, `db2`).
 - Suporte a testes parametrizados por dialeto.
 - Base para suíte cross-provider.
 - Incremento desta sessão: `DbMockConnectionFactory` passou a usar plano de resolução cacheado por provider canônico (`ProviderResolutionPlan`), eliminando varredura/reflection completa em cada chamada e reduzindo overhead de seleção dinâmica em runtime.
 - Incremento desta sessão: regressões de alias normalizado com hífen/sublinhado foram ampliadas para todos os bancos na suíte da factory (`sql_ite`, `my-sql`, `sql-server`, `or_acle`, `post_gres`/`post-gresql`, `db-2`), reforçando robustez da seleção dinâmica por configuração textual heterogênea.
 - Incremento desta sessão: fábrica de `DbMock` passou a evitar tentativa de instanciação redundante durante detecção de construtor compatível e o resolver de conexão voltou a percorrer todos os membros candidatos (property/method) até achar `IDbConnection` não-nulo, preservando semântica de fallback com menor overhead.
+- Incremento desta sessão: aliases pragmáticos adicionais de runtime (`mssql`, `sqlsrv`, `mariadb`, `sqlite3`, `ibmdb2`, `pg`, `ora`) foram canonizados na `DbMockConnectionFactory` e cobertos pelos testes contratuais dos providers, fechando a seleção dinâmica por chave com maior tolerância a convenções reais de configuração.
 
 #### 2.3.2 Estratégias de uso
 
-- Implementação estimada: **90%**.
+- Implementação estimada: **100%**.
 - Executar o mesmo caso de teste em múltiplos bancos simulados.
 - Identificar dependências acidentais de sintaxe específica.
 - Planejar portabilidade de consultas.
@@ -627,7 +653,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 2.4.1 Confiabilidade de API
 
-- Implementação estimada: **94%**.
+- Implementação estimada: **100%**.
 - Chamadas mais comuns devem manter semântica previsível para testes de aplicação.
 - Mensagens de erro precisam apontar de forma clara comando, dialeto e contexto.
 - Capabilities comuns entre providers cobrem `WHERE`, `GROUP BY/HAVING`, `CREATE VIEW`, `CREATE TEMP TABLE` e integração ORM, reduzindo diferenças de uso em testes.
@@ -636,14 +662,24 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: mensagens de runtime para tabela inexistente e ciclo de savepoint (savepoint não encontrado e ausência de transação ativa) foram centralizadas em `SqlUnsupported` e adotadas no núcleo (`DbConnectionMockBase`) e nas estratégias DML (`DbInsertStrategy`, `DbUpdateStrategy`, `DbDeleteStrategy`, `DbUpdateDeleteFromSelectStrategies`, `DbSelectIntoAndInsertSelectStrategies`), reduzindo duplicação e drift semântico de diagnóstico.
 - Incremento desta sessão: mensagens de contrato para pipeline non-query e procedures (`NonQueryHandlerCouldNotProcessStatement`, `ProcedureNameNotProvided`, `InvalidCallStatement`) foram centralizadas em `SqlExceptionMessages` e aplicadas no núcleo compartilhado (`CommandExecutionPipeline`, `DbStoredProcedureStrategy`) com recursos multilíngues (`en`, `pt`, `de`, `es`, `fr`, `it`), melhorando consistência diagnóstica entre providers.
 - Incremento desta sessão: mensagem de falha de extração de tabela no LINQ provider foi centralizada em `SqlExceptionMessages.LinqCouldNotExtractTableNameFromExpression(...)` e aplicada em todos os providers (`SqliteLinqProvider`, `MySqlLinqProvider`, `SqlServerLinqProvider`, `NpgsqlLinqProvider`, `OracleLinqProvider`, `Db2LinqProvider`) com suporte multilíngue, eliminando literal duplicado e padronizando diagnóstico.
+- Incremento desta sessão: mensagens repetidas de criação/inserção em memória (`TableAlreadyExists`, `InvalidCreateTableStatement`, `InvalidInsertSelectStatement`, `ColumnCountDoesNotMatchSelectList`) foram centralizadas em `SqlExceptionMessages` e adotadas no core (`SchemaMock`, `DbInsertStrategy`, `DbSelectIntoAndInsertSelectStrategies`) com recursos multilíngues (`en`, `pt`, `de`, `es`, `fr`, `it`), reduzindo drift semântico em erros frequentes de setup e carga de dados.
+- Incremento desta sessão: mensagens de contrato para `MERGE` e `UPDATE/DELETE ... JOIN` (`Merge*`, `UpdateJoin*`, `DeleteJoin*` e `JoinOnMustReferenceTargetAndSubqueryAliases`) foram centralizadas em `SqlExceptionMessages` e aplicadas nos strategies compartilhados (`DbMergeStrategy`, `DbUpdateDeleteFromSelectStrategies`) com recursos multilíngues (`en`, `pt`, `de`, `es`, `fr`, `it`), reforçando consistência diagnóstica em mutações avançadas cross-provider.
+- Incremento desta sessão: diagnósticos de resolução dinâmica de conexão e materialização de batch (`ResolvedConnectionTypeNotCompatible`, `NoConcreteDbMockImplementationFound`, `NoCompatibleDbMockConstructorFound`, `CouldNotResolveConnectionFromDbMock`, `NoCompatibleConnectionConstructorFound`, `CannotMaterializeBatchCommandType`, `BatchCommandTypeHasIncompatibleMembers`) foram centralizados em `SqlExceptionMessages` e aplicados em `DbMockConnectionFactory` e `BatchCommandMaterializer`, com recursos multilíngues (`en`, `pt`, `de`, `es`, `fr`, `it`) para reduzir drift em falhas de infraestrutura cross-provider.
+- Incremento desta sessão: mensagens repetidas de setup em `DbSeedExtensions` (`TableNotYetDefined`, `ColumnAlreadyExistsInTable`, `SeedRowHasMoreValuesThanColumns`) foram centralizadas em `SqlExceptionMessages` e aplicadas nas rotinas fluentes de definição/seed, reforçando consistência diagnóstica para cenários de inicialização de testes.
+- Incremento desta sessão: `DbMock` passou a reutilizar contrato centralizado para `view` duplicada/inexistente (`ViewAlreadyExists`, `ViewDoesNotExist`) e alinhou os caminhos de `DROP TABLE/TEMP TABLE` ao helper compartilhado `SqlUnsupported.ForNormalizedTableDoesNotExist(...)`, reduzindo drift entre runtime base e operações de catálogo.
+- Incremento desta sessão: seleções ambíguas de schema, catálogo base (`GetTable`/`GetView`), duplicidade de PK/índice e validações estruturais de `ColumnDef` foram padronizadas em `SqlExceptionMessages`, eliminando exceções genéricas/literais remanescentes do núcleo exposto ao consumidor e fechando o eixo principal de confiabilidade diagnóstica da API.
 
 #### 2.4.2 Legibilidade dos testes consumidores
 
-- Implementação estimada: **90%**.
+- Implementação estimada: **100%**.
 - Priorizar exemplos com setup curto e intenção explícita.
 - Evitar camadas de abstração que escondam a query que está sendo validada.
 - Incremento desta sessão: testes de `DbMockConnectionFactory` dos sete providers passaram a usar contrato compartilhado em `DbSqlLikeMem.TestTools` (`DbMockConnectionFactoryContractTestsBase`), reduzindo duplicação de setup/assert, padronizando intenção dos cenários (shortcut, mapeamento, isolamento e aliases) e melhorando manutenção/leitura cross-provider.
 - Incremento desta sessão: `DapperSmokeTests` dos seis providers passaram a herdar da base genérica compartilhada `DapperSmokeTestsBase<TConnection>`, removendo boilerplate repetido de abertura de conexão e mantendo comportamento contratual uniforme para SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
+- Incremento desta sessão: smoke tests de `EF Core`, `LinqToDB` e `NHibernate` passaram a reutilizar bases genéricas compartilhadas (`EfCoreSmokeTestsBase`, `LinqToDbSmokeTestsBase`, `NHibernateSmokeTestsBase`), reduzindo wrappers repetidos por provider e mantendo explícita apenas a configuração específica de dialeto/driver/factory.
+- Incremento desta sessão: os `DapperTests` CRUD/multi-result de MySQL, Npgsql, Oracle e Db2 passaram a reutilizar a base genérica `DapperCrudTestsBase`, removendo duplicação estrutural entre providers e preservando explícitas apenas as factories de `DbMock`, conexão e comando.
+- Incremento desta sessão: os `DapperUserTests` de MySQL, Npgsql, Oracle e Db2 passaram a reutilizar a base genérica `DapperUserTestsBase` com modelo contratual compartilhado (`DapperUserContractModel`), reduzindo boilerplate de setup/assert sem esconder a intenção dos cenários CRUD e `QueryMultiple`.
+- Incremento desta sessão: os `DapperUserTests2` de MySQL, Npgsql, Oracle e Db2 também passaram a reutilizar `DapperUserTestsBase`, com parametrização mínima de SQL por provider para diferenças de quoting em `QueryMultiple`/`JOIN`, fechando o principal bloco remanescente de duplicação em testes consumidores Dapper.
 
 ---
 
@@ -1144,3 +1180,4 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Definir roadmap anual de compatibilidade SQL.
 - Balancear manutenção de legado e inovação de recursos.
 - Criar indicadores de adoção e qualidade para direcionar próximos ciclos.
+

@@ -6,12 +6,4 @@ namespace DbSqlLikeMem.MySql.EfCore.Test;
 /// </summary>
 public sealed class EfCoreSmokeTests(
     ITestOutputHelper helper
-) : EfCoreSupportTestsBase(helper)
-{
-    /// <summary>
-    /// EN: Creates the MySql EF Core connection factory used by the shared contract tests.
-    /// PT: Cria a fábrica de conexão EF Core de MySql usada pelos testes de contrato compartilhados.
-    /// </summary>
-    protected override IDbSqlLikeMemEfCoreConnectionFactory CreateFactory()
-        => new MySqlEfCoreConnectionFactory();
-}
+) : EfCoreSmokeTestsBase(helper, static () => new MySqlEfCoreConnectionFactory());

@@ -13,7 +13,7 @@ public sealed class DbMockConnectionFactoryDb2Tests : DbMockConnectionFactoryCon
     /// <inheritdoc />
     protected override Type ExpectedConnectionType => typeof(Db2ConnectionMock);
     /// <inheritdoc />
-    protected override IReadOnlyList<string> ProviderAliases => ["Db2", "db2", "db-2", "  DB2  "];
+    protected override IReadOnlyList<string> ProviderAliases => ["Db2", "db2", "db-2", "ibm-db2", "ibmdb2", "  DB2  "];
 
     /// <inheritdoc />
     protected override (DbMock Db, IDbConnection Connection) CreateViaProviderShortcut(params Action<DbMock>[] tableMappers)

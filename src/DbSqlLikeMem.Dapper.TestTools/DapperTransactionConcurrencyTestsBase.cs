@@ -187,3 +187,37 @@ public abstract class DapperTransactionConcurrencyTestsBase
         Assert.Equal(110, finalValue);
     }
 }
+
+/// <summary>
+/// EN: Shared provider-specific implementation for Dapper transaction reliability tests.
+/// PT: Implementação compartilhada específica por provedor para testes Dapper de confiabilidade transacional.
+/// </summary>
+public abstract class ProviderDapperTransactionReliabilityTestsBase<TDb, TConnection>
+    : DapperTransactionConcurrencyTestsBase
+    where TDb : DbMock
+    where TConnection : DbConnectionMockBase
+{
+    /// <summary>
+    /// EN: Creates the provider database mock with the desired version and thread-safety mode.
+    /// PT: Cria o banco mock do provedor com a versão e o modo thread-safe desejados.
+    /// </summary>
+    protected abstract TDb CreateDb(int? version, bool threadSafe);
+
+    /// <summary>
+    /// EN: Creates the provider connection bound to the supplied database mock.
+    /// PT: Cria a conexão do provedor associada ao banco mock informado.
+    /// </summary>
+    protected abstract TConnection CreateConnection(TDb db);
+
+    /// <inheritdoc />
+    protected sealed override Func<DbConnectionMockBase> CreateOpenConnectionFactory(bool threadSafe, int? version = null)
+    {
+        var db = CreateDb(version, threadSafe);
+        return () =>
+        {
+            var connection = CreateConnection(db);
+            connection.Open();
+            return connection;
+        };
+    }
+}

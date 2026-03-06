@@ -154,7 +154,7 @@ public abstract class SchemaMock
     private void AddUnsafe(string key, ITableMock table)
     {
         if (tables.ContainsKey(key))
-            throw new InvalidOperationException($"Table '{key}' already exists.");
+            throw new InvalidOperationException(SqlExceptionMessages.TableAlreadyExists(key));
 
         tables.Add(key, table);
     }

@@ -13,7 +13,7 @@ public sealed class DbMockConnectionFactoryTests : DbMockConnectionFactoryContra
     /// <inheritdoc />
     protected override Type ExpectedConnectionType => typeof(SqliteConnectionMock);
     /// <inheritdoc />
-    protected override IReadOnlyList<string> ProviderAliases => ["Sqlite", "sqlite", "sql_ite", "  SQLITE  "];
+    protected override IReadOnlyList<string> ProviderAliases => ["Sqlite", "sqlite", "sqlite3", "sql_ite", "  SQLITE  "];
 
     /// <inheritdoc />
     protected override (DbMock Db, IDbConnection Connection) CreateViaProviderShortcut(params Action<DbMock>[] tableMappers)

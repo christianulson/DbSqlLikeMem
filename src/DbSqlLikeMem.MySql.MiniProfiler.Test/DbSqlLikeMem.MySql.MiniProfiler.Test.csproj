@@ -3,8 +3,6 @@
 	<PropertyGroup>
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
-		<RunSettingsFilePath>C:\Projects\DbSqlLikeMem\src\DbSqlLikeMem.MySql.MiniProfiler.Test\bin\DbSqlLikeMem.MySql.MiniProfiler.Test\Debug\net8.0\fine-code-coverage\coverage-tool-output\DbSqlLikeMem.MySql.MiniProfiler.Test %28net8.0%29-fcc-mscodecoverage-generated.runsettings</RunSettingsFilePath>
-		
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
@@ -16,7 +14,6 @@
 	  <Compile Include="..\DbSqlLikeMem.MySql.Dapper.Test\DapperSmokeTests.cs" Link="DapperSmokeTests.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql.Dapper.Test\DapperTests.cs" Link="DapperTests.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql.Dapper.Test\DapperUserTests.cs" Link="DapperUserTests.cs" />
-	  <Compile Include="..\DbSqlLikeMem.MySql.Dapper.Test\DapperUserTests2.cs" Link="DapperUserTests2.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql.Dapper.Test\ExtendedMySqlMockTests.cs" Link="ExtendedMySqlMockTests.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql.Dapper.Test\FluentTest.cs" Link="FluentTest.cs" />
 	  <Compile Include="..\DbSqlLikeMem.MySql.Dapper.Test\MySqlAdditionalBehaviorCoverageTests.cs" Link="MySqlAdditionalBehaviorCoverageTests.cs" />
@@ -42,6 +39,8 @@
 		<Using Include="Dapper" />
 		<Using Include="DbSqlLikeMem.MySql" />
 		<Using Include="MySqlConnector" />
+		<Using Include="System.Linq.Expressions" />
+		<Using Include="System.Reflection" />
 	</ItemGroup>
 
 </Project>

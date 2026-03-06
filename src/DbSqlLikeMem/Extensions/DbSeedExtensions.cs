@@ -61,12 +61,12 @@ public static class DbSeedExtensions
         ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
 
         if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName))
-            throw new InvalidOperationException($"Tabela '{tableName}' ainda não definida.");
+            throw new InvalidOperationException(SqlExceptionMessages.TableNotYetDefined(tableName));
         ArgumentNullExceptionCompatible.ThrowIfNull(tb, nameof(tb));
         ArgumentNullExceptionCompatible.ThrowIfNull(column, nameof(column));
 
         if (tb!.Columns.ContainsKey(column))
-            throw new InvalidOperationException($"Coluna '{column}' já existe em '{tableName}'.");
+            throw new InvalidOperationException(SqlExceptionMessages.ColumnAlreadyExistsInTable(column, tableName));
 
         var dbType = MapTypeToDbType(typeof(T));
 
@@ -103,7 +103,7 @@ public static class DbSeedExtensions
         ArgumentNullExceptionCompatible.ThrowIfNull(column, nameof(column));
 
         if (tb.Columns.ContainsKey(column))
-            throw new InvalidOperationException($"Coluna '{column}' já existe em '{tb}'.");
+            throw new InvalidOperationException(SqlExceptionMessages.ColumnAlreadyExistsInTable(column, tb.TableName));
 
         var dbType = MapTypeToDbType(typeof(T));
 
@@ -135,7 +135,7 @@ public static class DbSeedExtensions
         ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
         ArgumentNullExceptionCompatible.ThrowIfNull(rows, nameof(rows));
         if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName) || tb == null)
-            throw new InvalidOperationException($"Tabela '{tableName}' ainda não definida.");
+            throw new InvalidOperationException(SqlExceptionMessages.TableNotYetDefined(tableName));
         var props = typeof(T).GetFields();
         foreach (var r in rows)
         {
@@ -163,13 +163,14 @@ public static class DbSeedExtensions
         ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
         ArgumentNullExceptionCompatible.ThrowIfNull(rows, nameof(rows));
         if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName) || tb == null)
-            throw new InvalidOperationException($"Tabela '{tableName}' ainda não definida.");
+            throw new InvalidOperationException(SqlExceptionMessages.TableNotYetDefined(tableName));
         foreach (var arr in rows)
         {
             var dic = new Dictionary<int, object?>();
             var orderedCols = tb.Columns.Values.OrderBy(c => c.Index).ToList();
             if (arr.Length > orderedCols.Count)
-                throw new InvalidOperationException($"Seed row has {arr.Length} values, but table '{tableName}' has only {orderedCols.Count} columns.");
+                throw new InvalidOperationException(
+                    SqlExceptionMessages.SeedRowHasMoreValuesThanColumns(arr.Length, tableName, orderedCols.Count));
             for (int i = 0; i < arr.Length; i++)
                 dic[orderedCols[i].Index] = arr[i];
             tb.Add(dic);

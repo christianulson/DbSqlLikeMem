@@ -137,7 +137,8 @@ WHERE u.tenantid = 10";
         if (!SupportsUpdateDeleteJoinRuntime)
         {
             var ex = Assert.Throws<NotSupportedException>(() => ExecuteNonQuery(db, sql));
-            Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("JOIN", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -168,7 +169,8 @@ WHERE u.tenantid = 10";
         if (!SupportsUpdateDeleteJoinRuntime)
         {
             var ex = Assert.Throws<InvalidOperationException>(() => ExecuteNonQuery(db, DeleteJoinDerivedSelectSql));
-            Assert.Contains("DELETE sem FROM não suportado no dialeto", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("FROM", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 

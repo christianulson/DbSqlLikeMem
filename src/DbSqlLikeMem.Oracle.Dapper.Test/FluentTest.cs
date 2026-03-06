@@ -5,96 +5,27 @@ namespace DbSqlLikeMem.Oracle.Test;
 /// </summary>
 public sealed class FluentTest(
         ITestOutputHelper helper
-    ) : XUnitTestBase(helper)
+    ) : DapperFluentTestsBase<OracleDbMock, OracleConnectionMock>(helper)
 {
-    private static OracleConnectionMock BuildConnection()
-    {
-        var db = new OracleDbMock
-        {
-            ThreadSafe = true
-        };
-        var cnn = new OracleConnectionMock(db);
-
-        // Definição fluente da tabela
-        cnn.DefineTable("user")
-           .Column<int>("id", pk: true, identity: true)
-           .Column<string>("name")
-           .Column<string>("email", nullable: true)
-           .Column<DateTime>("created", nullable: false, identity: false);
-
-        cnn.Open();
-        return cnn;
-    }
+    /// <inheritdoc />
+    protected override OracleConnectionMock CreateConnection(OracleDbMock db)
+        => new(db);
 
     /// <summary>
-    /// EN: Tests InsertUpdateDeleteFluentScenario behavior.
-    /// PT: Testa o comportamento de InsertUpdateDeleteFluentScenario.
+    /// EN: Verifies the fluent scenario supports insert, update, and delete operations.
+    /// PT: Verifica se o cenario fluente suporta operacoes de insert, update e delete.
     /// </summary>
     [Fact]
     [Trait("Category", "FluentTest")]
-    public void InsertUpdateDeleteFluentScenario()
-    {
-        using var cnn = BuildConnection();
-
-        // ---------- INSERT ----------
-        var rows = cnn.Execute(
-            "INSERT INTO user (name, email, created) VALUES (@name, @email, @created)",
-            new { name = "Alice", email = "alice@mail.com", created = DateTime.UtcNow });
-
-        Assert.Equal(1, rows);
-        Assert.Equal(1, cnn.Metrics.Inserts);
-        Assert.Single(cnn.GetTable("user")); // 1 linha na tabela
-
-        // ---------- UPDATE ----------
-        rows = cnn.Execute(
-            "UPDATE user SET name = @name WHERE id = @id",
-            new { id = 1, name = "Alice Cooper" });
-
-        Assert.Equal(1, rows);
-        Assert.Equal(1, cnn.Metrics.Updates);
-        Assert.Equal("Alice Cooper", cnn.GetTable("user")[0][1]); // coluna 1 = name
-
-        // ---------- DELETE ----------
-        rows = cnn.Execute(
-            "DELETE FROM user WHERE id = @id",
-            new { id = 1 });
-
-        Assert.Equal(1, rows);
-        Assert.Equal(1, cnn.Metrics.Deletes);
-        Assert.Empty(cnn.GetTable("user")); // tabela vazia novamente
-
-        // ---------- Métricas finais ----------
-        Assert.Equal(1, cnn.Metrics.Inserts);
-        Assert.Equal(1, cnn.Metrics.Updates);
-        Assert.Equal(1, cnn.Metrics.Deletes);
-        Assert.True(cnn.Metrics.Elapsed > TimeSpan.Zero);
-    }
+    public void InsertUpdateDeleteFluentScenario_Test()
+        => InsertUpdateDeleteFluentScenario();
 
     /// <summary>
-    /// EN: Tests TestFluent behavior.
-    /// PT: Testa o comportamento de TestFluent.
+    /// EN: Verifies the fluent table-definition API configures schema and seed data correctly.
+    /// PT: Verifica se a API fluente de definicao de tabelas configura corretamente o schema e os dados iniciais.
     /// </summary>
     [Fact]
     [Trait("Category", "FluentTest")]
-    public void TestFluent()
-    {
-        using var cnn = new OracleConnectionMock();
-        cnn.Open();      // abre conexão
-        cnn.DefineTable("user")                               // fluent-via-connection
-           .Column<int>("id", pk: true, identity: true)
-           .Column<string>("name");
-
-        cnn.GetTable("user")                                      // fluent-via-table
-           .Column<DateTime>("created");
-
-        cnn.Seed("user", null,
-            [null, "Alice", DateTime.UtcNow],
-            [null, "Bob", DateTime.UtcNow]);
-
-        Assert.Equal(2, cnn.GetTable("user").Count);   // 2 linhas
-
-        var idIdx = cnn.GetTable("user").Columns["id"].Index;
-        Assert.Equal(0, idIdx);     // 0
-        Assert.Equal(1, cnn.GetTable("user")[0][idIdx]);             // 1 (auto-increment)
-    }
+    public void TestFluent_Test()
+        => TestFluent();
 }

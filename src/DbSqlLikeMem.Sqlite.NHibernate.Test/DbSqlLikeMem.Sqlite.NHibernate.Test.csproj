@@ -3,7 +3,6 @@
 	<PropertyGroup>
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
-		<RunSettingsFilePath>C:\Projects\DbSqlLikeMem\src\DbSqlLikeMem.Sqlite.NHibernate.Test\bin\DbSqlLikeMem.Sqlite.NHibernate.Test\Debug\net8.0\fine-code-coverage\coverage-tool-output\DbSqlLikeMem.Sqlite.NHibernate.Test %28net8.0%29-fcc-mscodecoverage-generated.runsettings</RunSettingsFilePath>
 	</PropertyGroup>
 
 	<ItemGroup>

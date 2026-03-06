@@ -1,276 +1,117 @@
 namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
-/// EN: Defines the class ExtendedMySqlMockTests.
-/// PT: Define a classe ExtendedMySqlMockTests.
+/// EN: Defines the class ExtendedOracleMockTests.
+/// PT: Define a classe ExtendedOracleMockTests.
 /// </summary>
-public sealed class ExtendedMySqlMockTests(
+public sealed class ExtendedOracleMockTests(
         ITestOutputHelper helper
-    ) : XUnitTestBase(helper)
+    ) : ExtendedDapperProviderTestsBase<OracleDbMock, OracleConnectionMock, OracleMockException>(helper)
 {
+    /// <inheritdoc />
+    protected override OracleConnectionMock CreateConnection(OracleDbMock db)
+        => new(db);
+
+    /// <inheritdoc />
+    protected override string DistinctPaginationSql
+        => "SELECT DISTINCT id FROM t ORDER BY id DESC OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
+
     /// <summary>
-    /// EN: Tests InsertAutoIncrementShouldAssignIdentityWhenNotSpecified behavior.
-    /// PT: Testa o comportamento de InsertAutoIncrementShouldAssignIdentityWhenNotSpecified.
+    /// EN: Verifies identity values are assigned automatically on inserts when no value is provided.
+    /// PT: Verifica se valores de identidade sao atribuidos automaticamente em insercoes quando nenhum valor e informado.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedOracleMock")]
-    public void InsertAutoIncrementShouldAssignIdentityWhenNotSpecified()
-    {
-        var db = new OracleDbMock();
-        var table = db.AddTable("users");
-        table.AddColumn("id", DbType.Int32, false, identity: true);
-        table.AddColumn("name", DbType.String, false);
-        using var cnn = new OracleConnectionMock(db);
-        cnn.Open();
-        var rows1 = cnn.Execute("INSERT INTO users (name) VALUES (@name)", new { name = "Alice" });
-        Assert.Equal(1, rows1);
-        Assert.Single(table);
-        Assert.Equal(1, table[0][0]);
-        Assert.Equal("Alice", table[0][1]);
-
-        var rows2 = cnn.Execute("INSERT INTO users (name) VALUES (@name)", new { name = "Bob" });
-        Assert.Equal(1, rows2);
-        Assert.Equal(2, table.Count);
-        Assert.Equal(2, table[1][0]);
-        Assert.Equal("Bob", table[1][1]);
-    }
+    public void InsertAutoIncrementShouldAssignIdentityWhenNotSpecified_Test()
+        => InsertAutoIncrementShouldAssignIdentityWhenNotSpecified();
 
     /// <summary>
-    /// EN: Tests InsertNullIntoNullableColumnShouldSucceed behavior.
-    /// PT: Testa o comportamento de InsertNullIntoNullableColumnShouldSucceed.
+    /// EN: Verifies inserts with null values succeed for nullable columns.
+    /// PT: Verifica se insercoes com valores nulos funcionam para colunas anulaveis.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedOracleMock")]
-    public void InsertNullIntoNullableColumnShouldSucceed()
-    {
-        var db = new OracleDbMock();
-        var table = db.AddTable("data");
-        table.AddColumn("id", DbType.Int32, false);
-        table.AddColumn("info", DbType.String, true);
-        using var cnn = new OracleConnectionMock(db);
-        cnn.Open();
-
-        var rows = cnn.Execute("INSERT INTO data (id, info) VALUES (@id, @info)", new { id = 1, info = (string?)null });
-        Assert.Equal(1, rows);
-        Assert.Null(table[0][1]);
-    }
+    public void InsertNullIntoNullableColumnShouldSucceed_Test()
+        => InsertNullIntoNullableColumnShouldSucceed();
 
     /// <summary>
-    /// EN: Tests InsertNullIntoNonNullableColumnShouldThrow behavior.
-    /// PT: Testa o comportamento de InsertNullIntoNonNullableColumnShouldThrow.
+    /// EN: Verifies inserts with null values throw for non-nullable columns.
+    /// PT: Verifica se insercoes com valores nulos lancam erro para colunas nao anulaveis.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedOracleMock")]
-    public void InsertNullIntoNonNullableColumnShouldThrow()
-    {
-        var db = new OracleDbMock();
-        var table = db.AddTable("data");
-        table.AddColumn("id", DbType.Int32, false);
-        table.AddColumn("info", DbType.String, false);
-        using var cnn = new OracleConnectionMock(db);
-        cnn.Open();
-
-        Assert.Throws<OracleMockException>(() =>
-            cnn.Execute("INSERT INTO data (id, info) VALUES (@id, @info)", new { id = 1, info = (string?)null }));
-    }
-
-    private static readonly string[] item = ["first", "second"];
+    public void InsertNullIntoNonNullableColumnShouldThrow_Test()
+        => InsertNullIntoNonNullableColumnShouldThrow();
 
     /// <summary>
-    /// EN: Tests CompositeIndexFilterShouldReturnCorrectRows behavior.
-    /// PT: Testa o comportamento de CompositeIndexFilterShouldReturnCorrectRows.
+    /// EN: Verifies composite-index filters return the expected matching rows.
+    /// PT: Verifica se filtros por indice composto retornam as linhas correspondentes esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedOracleMock")]
-    public void CompositeIndexFilterShouldReturnCorrectRows()
-    {
-        var db = new OracleDbMock();
-        var table = db.AddTable("t");
-        table.AddColumn("first", DbType.String, false);
-        table.AddColumn("second", DbType.String, false);
-        table.AddColumn("value", DbType.Int32, false);
-        table.Add(new Dictionary<int, object?> { { 0, "A" }, { 1, "X" }, { 2, 1 } });
-        table.Add(new Dictionary<int, object?> { { 0, "A" }, { 1, "Y" }, { 2, 2 } });
-        table.Add(new Dictionary<int, object?> { { 0, "B" }, { 1, "X" }, { 2, 3 } });
-        table.CreateIndex("ix_fs2", item, unique: false);
-
-        using var cnn = new OracleConnectionMock(db);
-        cnn.Open();
-
-        var result = cnn.Query<dynamic>("SELECT * FROM t WHERE first = @f AND second = @s", new { f = "A", s = "X" }).ToList();
-        Assert.Single(result);
-        Assert.Equal(1, (int)result[0].value);
-    }
+    public void CompositeIndexFilterShouldReturnCorrectRows_Test()
+        => CompositeIndexFilterShouldReturnCorrectRows();
 
     /// <summary>
-    /// EN: Tests LikeFilterShouldReturnMatchingRows behavior.
-    /// PT: Testa o comportamento de LikeFilterShouldReturnMatchingRows.
+    /// EN: Verifies LIKE filters return the expected rows.
+    /// PT: Verifica se filtros LIKE retornam as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedOracleMock")]
-    public void LikeFilterShouldReturnMatchingRows()
-    {
-        var db = new OracleDbMock();
-        var table = db.AddTable("t");
-        table.AddColumn("name", DbType.String, false);
-        table.Add(new Dictionary<int, object?> { { 0, "alice" } });
-        table.Add(new Dictionary<int, object?> { { 0, "bob" } });
-        using var cnn = new OracleConnectionMock(db);
-        cnn.Open();
-
-        var res = cnn.Query<dynamic>("SELECT * FROM t WHERE name LIKE 'a%'").ToList();
-        Assert.Single(res);
-        Assert.Equal("alice", res[0].name);
-    }
+    public void LikeFilterShouldReturnMatchingRows_Test()
+        => LikeFilterShouldReturnMatchingRows();
 
     /// <summary>
-    /// EN: Tests InFilterShouldReturnMatchingRows behavior.
-    /// PT: Testa o comportamento de InFilterShouldReturnMatchingRows.
+    /// EN: Verifies IN filters return the expected rows.
+    /// PT: Verifica se filtros IN retornam as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedOracleMock")]
-    public void InFilterShouldReturnMatchingRows()
-    {
-        var db = new OracleDbMock();
-        var table = db.AddTable("t");
-        table.AddColumn("id", DbType.Int32, false);
-        table.Add(new Dictionary<int, object?> { { 0, 1 } });
-        table.Add(new Dictionary<int, object?> { { 0, 2 } });
-        table.Add(new Dictionary<int, object?> { { 0, 3 } });
-        using var cnn = new OracleConnectionMock(db);
-        cnn.Open();
-
-        var res = cnn.Query<dynamic>("SELECT * FROM t WHERE id IN (1,3)").ToList();
-        var ids = res.Select(r => (int)r.id).OrderBy(_ => _).ToArray();
-        Assert.Equal([1, 3], ids);
-    }
+    public void InFilterShouldReturnMatchingRows_Test()
+        => InFilterShouldReturnMatchingRows();
 
     /// <summary>
-    /// EN: Tests OrderByLimitOffsetDistinctShouldReturnExpectedRows behavior.
-    /// PT: Testa o comportamento de OrderByLimitOffsetDistinctShouldReturnExpectedRows.
+    /// EN: Verifies distinct pagination with ordering returns the expected rows.
+    /// PT: Verifica se a paginacao com distinct e ordenacao retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedOracleMock")]
-    public void OrderByLimitOffsetDistinctShouldReturnExpectedRows()
-    {
-        var db = new OracleDbMock();
-        var table = db.AddTable("t");
-        table.AddColumn("id", DbType.Int32, false);
-        table.Add(new Dictionary<int, object?> { { 0, 2 } });
-        table.Add(new Dictionary<int, object?> { { 0, 1 } });
-        table.Add(new Dictionary<int, object?> { { 0, 2 } });
-        using var cnn = new OracleConnectionMock(db);
-        cnn.Open();
-
-        var res = cnn.Query<dynamic>("SELECT DISTINCT id FROM t ORDER BY id DESC OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY").ToList();
-        Assert.Single(res);
-        Assert.Equal(1, (int)res[0].id);
-    }
+    public void OrderByLimitOffsetDistinctShouldReturnExpectedRows_Test()
+        => OrderByLimitOffsetDistinctShouldReturnExpectedRows();
 
     /// <summary>
-    /// EN: Tests HavingFilterShouldApplyAfterAggregation behavior.
-    /// PT: Testa o comportamento de HavingFilterShouldApplyAfterAggregation.
+    /// EN: Verifies HAVING filters are applied correctly after aggregation.
+    /// PT: Verifica se filtros HAVING sao aplicados corretamente apos a agregacao.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedOracleMock")]
-    public void HavingFilterShouldApplyAfterAggregation()
-    {
-        var db = new OracleDbMock();
-        var table = db.AddTable("t");
-        table.AddColumn("grp", DbType.String, false);
-        table.AddColumn("val", DbType.Int32, false);
-        table.Add(new Dictionary<int, object?> { { 0, "a" }, { 1, 1 } });
-        table.Add(new Dictionary<int, object?> { { 0, "a" }, { 1, 2 } });
-        table.Add(new Dictionary<int, object?> { { 0, "b" }, { 1, 3 } });
-        using var cnn = new OracleConnectionMock(db);
-        cnn.Open();
-        const string sql = "SELECT grp, COUNT(val) AS C FROM t GROUP BY grp HAVING C > 1";
-
-        var result = cnn.Query<dynamic>(sql).ToList();
-        Assert.Single(result);
-        Assert.Equal("a", result[0].grp);
-        Assert.Equal(2L, result[0].C);
-    }
+    public void HavingFilterShouldApplyAfterAggregation_Test()
+        => HavingFilterShouldApplyAfterAggregation();
 
     /// <summary>
-    /// EN: Tests ForeignKeyDeleteShouldThrowOnReferencedParentDeletion behavior.
-    /// PT: Testa o comportamento de ForeignKeyDeleteShouldThrowOnReferencedParentDeletion.
+    /// EN: Verifies deleting a referenced parent row throws the expected exception.
+    /// PT: Verifica se excluir uma linha pai referenciada lanca a excecao esperada.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedOracleMock")]
-    public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletion()
-    {
-        // Parent
-        var db = new OracleDbMock();
-        var parent = db.AddTable("parent");
-        parent.AddColumn("id", DbType.Int32, false);
-        parent.Add(new Dictionary<int, object?> { { 0, 1 } });
-        parent.AddPrimaryKeyIndexes("id");
-        // Child with FK to parent
-        var child = db.AddTable("child");
-        child.AddColumn("pid", DbType.Int32, false);
-        child.AddColumn("data", DbType.String, false);
-        child.CreateForeignKey("ix_parent_id", parent.TableName, [("pid", "id")]);
-        child.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "x" } });
-
-        using var cnn = new OracleConnectionMock(db);
-        cnn.Open();
-
-        Assert.Throws<OracleMockException>(() =>
-            cnn.Execute("DELETE FROM parent WHERE id = 1"));
-    }
+    public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletion_Test()
+        => ForeignKeyDeleteShouldThrowOnReferencedParentDeletion();
 
     /// <summary>
-    /// EN: Tests ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK behavior.
-    /// PT: Testa o comportamento de ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK.
+    /// EN: Verifies deleting a referenced parent row without an explicit primary key still throws the expected exception.
+    /// PT: Verifica se excluir uma linha pai referenciada sem chave primaria explicita ainda lanca a excecao esperada.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedOracleMock")]
-    public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK()
-    {
-        // Parent
-        var db = new OracleDbMock();
-        var parent = db.AddTable("parent");
-        parent.AddColumn("id", DbType.Int32, false);
-        parent.Add(new Dictionary<int, object?> { { 0, 1 } });
-        // Child with FK to parent
-        var child = db.AddTable("child");
-        child.AddColumn("pid", DbType.Int32, false);
-        child.AddColumn("data", DbType.String, false);
-        child.CreateForeignKey("ix_parent_id", parent.TableName, [("pid", "id")]);
-        child.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "x" } });
-
-        using var cnn = new OracleConnectionMock(db);
-        cnn.Open();
-
-        Assert.Throws<OracleMockException>(() =>
-            cnn.Execute("DELETE FROM parent WHERE id = 1"));
-    }
+    public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK_Test()
+        => ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK();
 
     /// <summary>
-    /// EN: Tests MultipleParameterSetsInsertShouldInsertAllRows behavior.
-    /// PT: Testa o comportamento de MultipleParameterSetsInsertShouldInsertAllRows.
+    /// EN: Verifies Dapper inserts all rows when multiple parameter sets are supplied.
+    /// PT: Verifica se o Dapper insere todas as linhas quando multiplos conjuntos de parametros sao informados.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedOracleMock")]
-    public void MultipleParameterSetsInsertShouldInsertAllRows()
-    {
-        var db = new OracleDbMock();
-        var table = db.AddTable("users");
-        table.AddColumn("id", DbType.Int32, false);
-        table.AddColumn("name", DbType.String, false);
-        using var cnn = new OracleConnectionMock(db);
-        cnn.Open();
-
-        var data = new[]
-        {
-        new { id = 1, name = "A" },
-        new { id = 2, name = "B" }
-    };
-        var rows = cnn.Execute("INSERT INTO users (id,name) VALUES (@id,@name)", data);
-        Assert.Equal(2, rows);
-        Assert.Equal(2, table.Count);
-        Assert.Equal("A", table[0][1]);
-        Assert.Equal("B", table[1][1]);
-    }
+    public void MultipleParameterSetsInsertShouldInsertAllRows_Test()
+        => MultipleParameterSetsInsertShouldInsertAllRows();
 }

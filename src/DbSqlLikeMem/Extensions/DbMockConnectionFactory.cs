@@ -15,13 +15,22 @@ public static class DbMockConnectionFactory
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["oracle"] = "Oracle",
+            ["ora"] = "Oracle",
             ["sqlserver"] = "SqlServer",
+            ["mssql"] = "SqlServer",
+            ["sqlsrv"] = "SqlServer",
             ["sqlazure"] = "SqlAzure",
             ["azuresql"] = "SqlAzure",
+            ["azuresqldb"] = "SqlAzure",
+            ["azuresqlserver"] = "SqlAzure",
             ["mysql"] = "MySql",
+            ["mariadb"] = "MySql",
             ["sqlite"] = "Sqlite",
+            ["sqlite3"] = "Sqlite",
             ["db2"] = "Db2",
+            ["ibmdb2"] = "Db2",
             ["npgsql"] = "Npgsql",
+            ["pg"] = "Npgsql",
             ["postgres"] = "Npgsql",
             ["postgresql"] = "Npgsql"
         };
@@ -77,7 +86,9 @@ public static class DbMockConnectionFactory
             if (!IsConnectionTypeCompatibleForProvider(connection.GetType(), canonicalProviderHint))
             {
                 throw new InvalidOperationException(
-                    $"Resolved connection type '{connection.GetType().FullName}' is not compatible with provider '{canonicalProviderHint}'.");
+                    SqlExceptionMessages.ResolvedConnectionTypeNotCompatible(
+                        connection.GetType().FullName ?? connection.GetType().Name,
+                        canonicalProviderHint));
             }
         }
         return (db, connection);
@@ -104,7 +115,7 @@ public static class DbMockConnectionFactory
         if (preferred is null)
         {
             throw new InvalidOperationException(
-                $"No concrete DbMock implementation was found. Loaded assemblies: {AppDomain.CurrentDomain.GetAssemblies().Length}.");
+                SqlExceptionMessages.NoConcreteDbMockImplementationFound(AppDomain.CurrentDomain.GetAssemblies().Length));
         }
 
         var dbFactory = CreateDbMockFactory(preferred);
@@ -209,7 +220,7 @@ public static class DbMockConnectionFactory
             .FirstOrDefault(ctor => ctor.GetParameters().All(p => p.IsOptional));
 
         if (optionalCtor is null)
-            throw new MissingMethodException($"No compatible constructor was found for '{dbType.FullName}'.");
+            throw new MissingMethodException(SqlExceptionMessages.NoCompatibleDbMockConstructorFound(dbType.FullName ?? dbType.Name));
 
         var optionalCtorArgs = optionalCtor
             .GetParameters()
@@ -271,7 +282,9 @@ public static class DbMockConnectionFactory
                 }
 
                 throw new InvalidOperationException(
-                    $"Could not resolve an IDbConnection from DbMock type '{dbType.FullName}' with provider hint '{providerHint}'.");
+                    SqlExceptionMessages.CouldNotResolveConnectionFromDbMock(
+                        dbType.FullName ?? dbType.Name,
+                        providerHint));
             };
         }
 
@@ -292,11 +305,13 @@ public static class DbMockConnectionFactory
         if (connectionType is null)
         {
             return _ => throw new InvalidOperationException(
-                $"Could not resolve an IDbConnection from DbMock type '{dbType.FullName}' with provider hint '{providerHint}'.");
+                SqlExceptionMessages.CouldNotResolveConnectionFromDbMock(
+                    dbType.FullName ?? dbType.Name,
+                    providerHint));
         }
 
         var ctor = GetCompatibleConnectionCtor(connectionType, dbType)
-            ?? throw new InvalidOperationException($"No compatible connection constructor found for '{connectionType.FullName}'.");
+            ?? throw new InvalidOperationException(SqlExceptionMessages.NoCompatibleConnectionConstructorFound(connectionType.FullName ?? connectionType.Name));
         var ctorParameters = ctor.GetParameters();
 
         return db =>

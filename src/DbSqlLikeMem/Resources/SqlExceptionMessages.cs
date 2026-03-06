@@ -101,6 +101,120 @@ public static class SqlExceptionMessages
     public static string LinqCouldNotExtractTableNameFromExpression(object? expression) =>
         Format(nameof(LinqCouldNotExtractTableNameFromExpression), expression);
 
+    public static string TableAlreadyExists(string tableName) =>
+        Format(nameof(TableAlreadyExists), tableName);
+
+    public static string InvalidCreateTableStatement() =>
+        Format(nameof(InvalidCreateTableStatement));
+
+    public static string InvalidInsertSelectStatement() =>
+        Format(nameof(InvalidInsertSelectStatement));
+
+    public static string ColumnCountDoesNotMatchSelectList() =>
+        Format(nameof(ColumnCountDoesNotMatchSelectList));
+
+    public static string MergeCouldNotIdentifyTargetTable() =>
+        Format(nameof(MergeCouldNotIdentifyTargetTable));
+
+    public static string MergeUsingClauseNotFound() =>
+        Format(nameof(MergeUsingClauseNotFound));
+
+    public static string MergeSourceSelectInvalid() =>
+        Format(nameof(MergeSourceSelectInvalid));
+
+    public static string MergeOnClauseNotFound() =>
+        Format(nameof(MergeOnClauseNotFound));
+
+    public static string MergeOnConditionNotSupported() =>
+        Format(nameof(MergeOnConditionNotSupported));
+
+    public static string MergeCouldNotReadUsingSubquery() =>
+        Format(nameof(MergeCouldNotReadUsingSubquery));
+
+    public static string MergeUsingClauseUnbalancedParentheses() =>
+        Format(nameof(MergeUsingClauseUnbalancedParentheses));
+
+    public static string UpdateJoinInvalid() =>
+        Format(nameof(UpdateJoinInvalid));
+
+    public static string UpdateJoinOnlySimpleEqualityOnSupported() =>
+        Format(nameof(UpdateJoinOnlySimpleEqualityOnSupported));
+
+    public static string JoinOnMustReferenceTargetAndSubqueryAliases() =>
+        Format(nameof(JoinOnMustReferenceTargetAndSubqueryAliases));
+
+    public static string UpdateJoinOnlySingleSetAssignmentSupported() =>
+        Format(nameof(UpdateJoinOnlySingleSetAssignmentSupported));
+
+    public static string UpdateJoinSetMustAssignFromSubqueryToTargetAlias() =>
+        Format(nameof(UpdateJoinSetMustAssignFromSubqueryToTargetAlias));
+
+    public static string DeleteJoinInvalid() =>
+        Format(nameof(DeleteJoinInvalid));
+
+    public static string DeleteJoinOnlySimpleEqualityOnSupported() =>
+        Format(nameof(DeleteJoinOnlySimpleEqualityOnSupported));
+
+    public static string DeleteUsingWhereMustContainJoinEqualityCondition() =>
+        Format(nameof(DeleteUsingWhereMustContainJoinEqualityCondition));
+
+    public static string ResolvedConnectionTypeNotCompatible(string connectionType, string providerHint) =>
+        Format(nameof(ResolvedConnectionTypeNotCompatible), connectionType, providerHint);
+
+    public static string NoConcreteDbMockImplementationFound(object? assemblyCount) =>
+        Format(nameof(NoConcreteDbMockImplementationFound), assemblyCount);
+
+    public static string NoCompatibleDbMockConstructorFound(string dbType) =>
+        Format(nameof(NoCompatibleDbMockConstructorFound), dbType);
+
+    public static string CouldNotResolveConnectionFromDbMock(string dbType, string providerHint) =>
+        Format(nameof(CouldNotResolveConnectionFromDbMock), dbType, providerHint);
+
+    public static string NoCompatibleConnectionConstructorFound(string connectionType) =>
+        Format(nameof(NoCompatibleConnectionConstructorFound), connectionType);
+
+    public static string CannotMaterializeBatchCommandType(string batchCommandType) =>
+        Format(nameof(CannotMaterializeBatchCommandType), batchCommandType);
+
+    public static string BatchCommandTypeHasIncompatibleMembers(string batchCommandType) =>
+        Format(nameof(BatchCommandTypeHasIncompatibleMembers), batchCommandType);
+
+    public static string TableNotYetDefined(string tableName) =>
+        Format(nameof(TableNotYetDefined), tableName);
+
+    public static string ColumnAlreadyExistsInTable(string columnName, string tableName) =>
+        Format(nameof(ColumnAlreadyExistsInTable), columnName, tableName);
+
+    public static string SeedRowHasMoreValuesThanColumns(object? valueCount, string tableName, object? columnCount) =>
+        Format(nameof(SeedRowHasMoreValuesThanColumns), valueCount, tableName, columnCount);
+
+    public static string ViewAlreadyExists(string viewName) =>
+        Format(nameof(ViewAlreadyExists), viewName);
+
+    public static string ViewDoesNotExist(string viewName) =>
+        Format(nameof(ViewDoesNotExist), viewName);
+
+    public static string MultipleSchemasRequireExplicitName(object? schemaNames) =>
+        Format(nameof(MultipleSchemasRequireExplicitName), schemaNames);
+
+    public static string NoSchemaRegistered() =>
+        Format(nameof(NoSchemaRegistered));
+
+    public static string DuplicatePrimaryKeyColumns() =>
+        Format(nameof(DuplicatePrimaryKeyColumns));
+
+    public static string IndexAlreadyExists(string indexName) =>
+        Format(nameof(IndexAlreadyExists), indexName);
+
+    public static string StringColumnSizeRequired() =>
+        Format(nameof(StringColumnSizeRequired));
+
+    public static string DecimalPlacesRequiredForDbType(object? dbType) =>
+        Format(nameof(DecimalPlacesRequiredForDbType), dbType);
+
+    public static string DuplicateEnumItems() =>
+        Format(nameof(DuplicateEnumItems));
+
     private static string Format(string key, params object?[] args)
     {
         var template = ResourceManager.GetString(key, CultureInfo.CurrentUICulture)

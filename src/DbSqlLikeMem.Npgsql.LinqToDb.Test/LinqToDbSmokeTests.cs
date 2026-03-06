@@ -6,12 +6,4 @@ namespace DbSqlLikeMem.Npgsql.LinqToDb.Test;
 /// </summary>
 public sealed class LinqToDbSmokeTests(
     ITestOutputHelper helper
-) : LinqToDbSupportTestsBase(helper)
-{
-    /// <summary>
-    /// EN: Creates the Npgsql LinqToDB connection factory used by shared contract tests.
-    /// PT: Cria a fábrica de conexão LinqToDB de Npgsql usada pelos testes de contrato compartilhados.
-    /// </summary>
-    protected override IDbSqlLikeMemLinqToDbConnectionFactory CreateFactory()
-        => new NpgsqlLinqToDbConnectionFactory();
-}
+) : LinqToDbSmokeTestsBase(helper, static () => new NpgsqlLinqToDbConnectionFactory());

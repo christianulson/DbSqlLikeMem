@@ -3,8 +3,6 @@
 	<PropertyGroup>
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
-		<RunSettingsFilePath>C:\Projects\DbSqlLikeMem\src\DbSqlLikeMem.Sqlite.Test\bin\DbSqlLikeMem.Sqlite.Test\Debug\net6.0\fine-code-coverage\coverage-tool-output\DbSqlLikeMem.Sqlite.Test %28net6.0%29-fcc-mscodecoverage-generated.runsettings</RunSettingsFilePath>
-		
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">

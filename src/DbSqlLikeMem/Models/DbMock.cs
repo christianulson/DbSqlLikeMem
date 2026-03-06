@@ -88,9 +88,9 @@ public abstract class DbMock
         if (schemaName == null)
         {
             if (Count > 1)
-                throw new Exception($"Existe mais de um Schema ({string.Join(",", this.Keys)}), escolha um e passe como parâmetro");
+                throw new InvalidOperationException(Resources.SqlExceptionMessages.MultipleSchemasRequireExplicitName(string.Join(",", this.Keys)));
             if (Count == 0)
-                throw new Exception("Schema não existe cadastrado");
+                throw new InvalidOperationException(Resources.SqlExceptionMessages.NoSchemaRegistered());
             schemaName = this.Keys.First();
         }
         return schemaName.NormalizeName();
@@ -201,7 +201,7 @@ public abstract class DbMock
         if (ifExists)
             return;
 
-        throw new InvalidOperationException($"Table '{tableName.NormalizeName()}' does not exist.");
+        throw SqlUnsupported.ForNormalizedTableDoesNotExist(tableName);
     }
 
     /// <summary>
@@ -240,7 +240,7 @@ public abstract class DbMock
         var sc = GetSchemaName(schemaName);
         if (!this[sc].TryGetTable(tableName, out var tb)
             || tb == null)
-            throw new Exception($"Tabela não existe cadastrada {tableName}");
+            throw SqlUnsupported.ForNormalizedTableDoesNotExist(tableName);
         return tb;
     }
 
@@ -299,7 +299,7 @@ public abstract class DbMock
         if (removed || ifExists)
             return;
 
-        throw new InvalidOperationException($"Table '{normalized}' does not exist.");
+        throw SqlUnsupported.ForNormalizedTableDoesNotExist(normalized);
     }
 
     /// <summary>
@@ -349,7 +349,7 @@ public abstract class DbMock
                 return; // não cria, não dá erro
             }
 
-            throw new InvalidOperationException($"View '{name}' already exists.");
+            throw new InvalidOperationException(Resources.SqlExceptionMessages.ViewAlreadyExists(name!));
         }
 
         schema.Views[name!] = query.Select;
@@ -364,7 +364,7 @@ public abstract class DbMock
         var sc = GetSchemaName(schemaName);
         if (!this[sc].Views.TryGetValue(viewName, out var vw)
             || vw == null)
-            throw new Exception($"View não existe cadastrada {viewName}");
+            throw new InvalidOperationException(Resources.SqlExceptionMessages.ViewDoesNotExist(viewName));
         return vw;
     }
 
@@ -396,7 +396,7 @@ public abstract class DbMock
         if (ifExists)
             return;
 
-        throw new InvalidOperationException($"View '{normalized}' does not exist.");
+        throw new InvalidOperationException(Resources.SqlExceptionMessages.ViewDoesNotExist(normalized));
     }
 
     #endregion

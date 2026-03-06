@@ -14,7 +14,7 @@ public sealed class DbMockConnectionFactoryNpgsqlTests : DbMockConnectionFactory
     protected override Type ExpectedConnectionType => typeof(NpgsqlConnectionMock);
     /// <inheritdoc />
     protected override IReadOnlyList<string> ProviderAliases =>
-        ["Npgsql", "npgsql", "postgres", "postgresql", "post_gres", "post-gresql", "  POSTGRES  "];
+        ["Npgsql", "npgsql", "pg", "postgres", "postgresql", "post_gres", "post-gresql", "  POSTGRES  "];
 
     /// <inheritdoc />
     protected override (DbMock Db, IDbConnection Connection) CreateViaProviderShortcut(params Action<DbMock>[] tableMappers)

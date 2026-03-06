@@ -13,6 +13,9 @@
                 <Configuration>
                     <Format>cobertura</Format>
                     <Exclude>
+                        [*.TestTools]*
+                        [*.XUnit]*
+                        [*.MsTest]*
                         [MySqlConnector*]*
                         [StackExchange*]*
                         [Dapper*]*
@@ -29,6 +32,9 @@
                             </Include>
                             <Exclude>
                                 <ModulePath>.*Test.*</ModulePath>
+                                <ModulePath>.*TestTools.*</ModulePath>
+                                <ModulePath>.*XUnit.*</ModulePath>
+                                <ModulePath>.*MsTest.*</ModulePath>
                                 <ModulePath>fluentvalidation.*</ModulePath>
                                 <ModulePath>.*CPPUnitTestFramework.*</ModulePath>
                                 <ModulePath>.*TestAdapter.*</ModulePath>

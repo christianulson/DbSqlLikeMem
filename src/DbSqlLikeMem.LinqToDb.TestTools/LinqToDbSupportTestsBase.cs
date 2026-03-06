@@ -1,5 +1,3 @@
-using DbSqlLikeMem.TestTools;
-
 namespace DbSqlLikeMem.LinqToDb.TestTools;
 
 /// <summary>
@@ -1874,6 +1872,23 @@ ORDER BY u.id";
         Assert.Equal([4, 5, 6], p2a);
         Assert.Equal([7, 8, 9], p3a);
     }
+}
 
+/// <summary>
+/// EN: Reusable smoke test wrapper for LinqToDB provider factories.
+/// PT: Wrapper reutilizável de smoke tests para fábricas de provedor LinqToDB.
+/// </summary>
+public abstract class LinqToDbSmokeTestsBase(
+    ITestOutputHelper helper,
+    Func<IDbSqlLikeMemLinqToDbConnectionFactory> factoryFactory
+) : LinqToDbSupportTestsBase(helper)
+{
+    private readonly Func<IDbSqlLikeMemLinqToDbConnectionFactory> _factoryFactory = factoryFactory;
 
+    /// <summary>
+    /// EN: Creates the provider-specific LinqToDB connection factory used by the smoke contract.
+    /// PT: Cria a factory de conexão LinqToDB específica do provider usada pelo contrato smoke.
+    /// </summary>
+    protected override IDbSqlLikeMemLinqToDbConnectionFactory CreateFactory()
+        => _factoryFactory();
 }

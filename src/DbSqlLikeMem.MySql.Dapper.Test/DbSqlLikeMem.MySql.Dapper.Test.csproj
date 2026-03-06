@@ -1,9 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
-		<RunSettingsFilePath>C:\Projects\DbSqlLikeMem\src\DbSqlLikeMem.MySql.Dapper.Test\bin\DbSqlLikeMem.MySql.Dapper.Test\Debug\net462\fine-code-coverage\coverage-tool-output\DbSqlLikeMem.MySql.Dapper.Test %28net462%29-fcc-mscodecoverage-generated.runsettings</RunSettingsFilePath>
 	</PropertyGroup>
 
 
@@ -24,6 +23,8 @@
 		<Using Include="Dapper" />
 		<Using Include="DbSqlLikeMem.MySql" />
 		<Using Include="MySql.Data.MySqlClient" />
+		<Using Include="System.Linq.Expressions" />
+		<Using Include="System.Reflection" />
 	</ItemGroup>
 
 </Project>

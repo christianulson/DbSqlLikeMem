@@ -4,27 +4,16 @@ namespace DbSqlLikeMem.Oracle.Test;
 /// Tests that lock-in expected behavior for MySQL features that the in-memory mock already supports.
 /// Keep these green: they protect you from regressions while you implement more advanced gaps elsewhere.
 /// </summary>
-public sealed class OracleUnionLimitAndJsonCompatibilityTests : XUnitTestBase
+public sealed class OracleUnionLimitAndJsonCompatibilityTests : DapperUnionLimitAndJsonCompatibilityTestsBase<OracleDbMock, OracleConnectionMock>
 {
-    private readonly OracleConnectionMock _cnn;
-
     /// <summary>
     /// EN: Initializes a new instance of OracleUnionLimitAndJsonCompatibilityTests.
     /// PT: Inicializa uma nova instância de OracleUnionLimitAndJsonCompatibilityTests.
     /// </summary>
-    public OracleUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper)
-    {
-        var db = new OracleDbMock();
-        var t = db.AddTable("t");
-        t.AddColumn("id", DbType.Int32, false);
-        t.AddColumn("payload", DbType.String, true);
-        t.Add(new Dictionary<int, object?> { [0] = 1, [1] = "{\"a\":{\"b\":123}}" });
-        t.Add(new Dictionary<int, object?> { [0] = 2, [1] = "{\"a\":{\"b\":456}}" });
-        t.Add(new Dictionary<int, object?> { [0] = 3, [1] = null });
+    public OracleUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper) { }
 
-        _cnn = new OracleConnectionMock(db);
-        _cnn.Open();
-    }
+    /// <inheritdoc />
+    protected override OracleConnectionMock CreateConnection(OracleDbMock db) => new(db);
 
     /// <summary>
     /// EN: Tests UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates behavior.
@@ -33,23 +22,7 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests : XUnitTestBase
     [Fact]
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
     public void UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates()
-    {
-        // UNION ALL keeps duplicates
-        var all = _cnn.Query<dynamic>(@"
-SELECT id FROM t WHERE id = 1
-UNION ALL
-SELECT id FROM t WHERE id = 1
-").ToList();
-        Assert.Equal([1, 1], [.. all.Select(r => (int)r.id)]);
-
-        // UNION removes duplicates
-        var distinct = _cnn.Query<dynamic>(@"
-SELECT id FROM t WHERE id = 1
-UNION
-SELECT id FROM t WHERE id = 1
-").ToList();
-        Assert.Equal([1], [.. distinct.Select(r => (int)r.id)]);
-    }
+        => AssertUnionAllKeepsDuplicatesAndUnionRemovesThem();
 
     /// <summary>
     /// EN: Tests OffsetFetch_ShouldWork behavior.
@@ -59,8 +32,7 @@ SELECT id FROM t WHERE id = 1
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
     public void OffsetFetch_ShouldWork()
     {
-        // MySQL supports: LIMIT offset, count
-        var rows = _cnn.Query<dynamic>("SELECT id FROM t ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY").ToList();
+        var rows = Connection.Query<dynamic>("SELECT id FROM t ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY").ToList();
         Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id)]);
     }
 
@@ -72,7 +44,7 @@ SELECT id FROM t WHERE id = 1
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
     public void JsonValue_SimpleObjectPath_ShouldWork()
     {
-        var rows = _cnn.Query<dynamic>("SELECT id, JSON_VALUE(payload, '$.a.b' RETURNING NUMBER) AS v FROM t ORDER BY id").ToList();
+        var rows = Connection.Query<dynamic>("SELECT id, JSON_VALUE(payload, '$.a.b' RETURNING NUMBER) AS v FROM t ORDER BY id").ToList();
 
         // implemented as best-effort; null JSON -> null
         Assert.Equal([123m, 456m, null], [.. rows.Select(r => (object?)r.v)]);
@@ -89,7 +61,7 @@ SELECT id FROM t WHERE id = 1
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
     public void OrderBy_NullsFirst_ShouldApplyExplicitNullOrdering()
     {
-        var rows = _cnn.Query<dynamic>("SELECT id FROM t ORDER BY payload NULLS FIRST, id").ToList();
+        var rows = Connection.Query<dynamic>("SELECT id FROM t ORDER BY payload NULLS FIRST, id").ToList();
         Assert.Equal([3, 1, 2], [.. rows.Select(r => (int)r.id)]);
     }
 
@@ -103,7 +75,7 @@ SELECT id FROM t WHERE id = 1
     public void JsonFunction_ShouldThrow_WhenNotSupportedByDialect()
     {
         Assert.Throws<NotSupportedException>(() =>
-            _cnn.Query<dynamic>("SELECT JSON_EXTRACT(payload, '$.a.b') AS v FROM t").ToList());
+            Connection.Query<dynamic>("SELECT JSON_EXTRACT(payload, '$.a.b') AS v FROM t").ToList());
     }
 
     /// <summary>
@@ -113,15 +85,7 @@ SELECT id FROM t WHERE id = 1
     [Fact]
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
     public void Union_ShouldNormalizeEquivalentNumericTypes()
-    {
-        var rows = _cnn.Query<dynamic>(@"
-SELECT 1.0 AS v
-UNION
-SELECT 1 AS v
-").ToList();
-
-        Assert.Single(rows);
-    }
+        => AssertUnionNormalizesEquivalentNumericTypes();
 
     /// <summary>
     /// EN: Ensures UNION rejects incompatible column types across SELECT parts.
@@ -130,14 +94,7 @@ SELECT 1 AS v
     [Fact]
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
     public void Union_ShouldValidateIncompatibleColumnTypes()
-    {
-        Assert.Throws<InvalidOperationException>(() =>
-            _cnn.Query<dynamic>(@"
-SELECT 1 AS v
-UNION
-SELECT 'x' AS v
-").ToList());
-    }
+        => AssertUnionValidatesIncompatibleColumnTypes();
 
 
 
@@ -148,25 +105,5 @@ SELECT 'x' AS v
     [Fact]
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
     public void Union_ShouldNormalizeSchemaToFirstSelectAlias()
-    {
-        var rows = _cnn.Query<dynamic>(@"
-SELECT id AS v FROM t WHERE id IN (1, 2)
-UNION ALL
-SELECT id AS x FROM t WHERE id = 3
-ORDER BY v
-").ToList();
-
-        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.v)]);
-    }
-
-    /// <summary>
-    /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
-    /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
-    protected override void Dispose(bool disposing)
-    {
-        _cnn?.Dispose();
-        base.Dispose(disposing);
-    }
+        => AssertUnionNormalizesSchemaToFirstSelectAlias();
 }

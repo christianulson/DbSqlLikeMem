@@ -206,7 +206,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             @"^CREATE\s+TABLE\s+`?(?<name>[A-Za-z0-9_]+)`?\s*\((?<columns>.*)\)\s*;?$",
             RegexOptions.IgnoreCase | RegexOptions.Singleline);
         if (!createTableMatch.Success)
-            throw new InvalidOperationException("Invalid CREATE TABLE statement.");
+            throw new InvalidOperationException(SqlExceptionMessages.InvalidCreateTableStatement());
 
         var table = connection.AddTable(createTableMatch.Groups["name"].Value.NormalizeName());
         var primaryKeyColumns = new List<string>();
@@ -386,13 +386,13 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             if (connection.TryGetGlobalTemporaryTable(tableName!, out _, schemaName))
             {
                 if (query.IfNotExists) return 0;
-                throw new InvalidOperationException($"Table '{tableName}' already exists.");
+                throw new InvalidOperationException(SqlExceptionMessages.TableAlreadyExists(tableName!));
             }
         }
         else if (connection.TryGetTemporaryTable(tableName!, out _, schemaName))
         {
             if (query.IfNotExists) return 0;
-            throw new InvalidOperationException($"Table '{tableName}' already exists.");
+            throw new InvalidOperationException(SqlExceptionMessages.TableAlreadyExists(tableName!));
         }
 
         var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
@@ -473,7 +473,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             @"^INSERT\s+INTO\s+`?(?<table>[A-Za-z0-9_]+)`?\s*\((?<cols>[^)]*)\)\s*(?<select>(SELECT|WITH)\s+.*)$",
             RegexOptions.IgnoreCase | RegexOptions.Singleline);
         if (!m.Success)
-            throw new InvalidOperationException("Invalid INSERT ... SELECT statement.");
+            throw new InvalidOperationException(SqlExceptionMessages.InvalidInsertSelectStatement());
 
         var tableName = m.Groups["table"].Value.NormalizeName();
         if (!connection.TryGetTable(tableName, out var target)
@@ -490,7 +490,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         var res = executor.ExecuteSelect((SqlSelectQuery)q);
 
         if (cols.Count != res.Columns.Count)
-            throw new InvalidOperationException("Column count does not match SELECT list.");
+            throw new InvalidOperationException(SqlExceptionMessages.ColumnCountDoesNotMatchSelectList());
 
         int inserted = 0;
         foreach (var row in res)

@@ -286,7 +286,7 @@ internal static class DbInsertStrategy
         var colNames = query.Columns;
 
         if (colNames.Count > 0 && colNames.Count != res.Columns.Count)
-            throw new InvalidOperationException("Column count does not match SELECT list.");
+            throw new InvalidOperationException(SqlExceptionMessages.ColumnCountDoesNotMatchSelectList());
 
         foreach (var srcRow in res)
         {
