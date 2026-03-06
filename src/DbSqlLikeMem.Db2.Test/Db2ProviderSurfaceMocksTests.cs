@@ -27,7 +27,7 @@ public sealed class Db2ProviderSurfaceMocksTests
     [Fact]
     public void DataSource_ShouldCreateDb2Connection()
     {
-        var source = new Db2DataSourceMock(new Db2DbMock());
+        var source = new Db2DataSourceMock([]);
 #if NET8_0_OR_GREATER
         using var connection = source.CreateConnection();
 #else
@@ -36,7 +36,7 @@ public sealed class Db2ProviderSurfaceMocksTests
         Assert.IsType<Db2ConnectionMock>(connection);
     }
 
-#if NET6_0_OR_GREATER
+#if NET8_0_OR_GREATER
     /// <summary>
     /// EN: Ensures batch execution runs all commands and returns the accumulated affected rows.
     /// PT: Garante que a execução em lote rode todos os comandos e retorne o total acumulado de linhas afetadas.

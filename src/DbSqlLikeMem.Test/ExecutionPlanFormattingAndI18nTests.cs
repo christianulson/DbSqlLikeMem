@@ -72,14 +72,13 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     [Fact]
     public void SqlExecutionPlanMessages_AllLocalizedResxShouldContainBaseKeys_AndKeepCanonicalSqlKeywords()
     {
-        var basePath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "DbSqlLikeMem", "Resources");
+        var basePath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "DbSqlLikeMem", "Resources");
         var baseResx = Path.Combine(basePath, "SqlExecutionPlanMessages.resx");
 
         var baseEntries = LoadResxEntries(baseResx);
-        var messageKeysUsedByCode = typeof(SqlExecutionPlanMessages)
+        var messageKeysUsedByCode = new HashSet<string>( typeof(SqlExecutionPlanMessages)
             .GetMethods(BindingFlags.Public | BindingFlags.Static)
-            .Select(static method => method.Name)
-            .ToHashSet(StringComparer.Ordinal);
+            .Select(static method => method.Name), StringComparer.Ordinal);
 
         baseEntries.Keys.Should().Contain(messageKeysUsedByCode);
         var localizedFiles = Directory
@@ -1064,6 +1063,29 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         var unionDistinctPlan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [false], [], null, metrics);
 
         ExtractEstimatedCost(unionAllPlan).Should().BeLessThan(ExtractEstimatedCost(unionDistinctPlan));
+    }
+
+    /// <summary>
+    /// EN: Verifies UNION text plan includes localized performance disclaimer.
+    /// PT: Verifica que o plano textual de UNION inclui disclaimer de performance localizado.
+    /// </summary>
+    [Fact]
+    public void FormatUnion_ShouldIncludePerformanceDisclaimer()
+    {
+        var part1 = new SqlSelectQuery([], false, [new SqlSelectItem("id", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", null, null, null, null, null)
+        };
+
+        var part2 = new SqlSelectQuery([], false, [new SqlSelectItem("userid", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "orders", null, null, null, null, null)
+        };
+
+        var metrics = new SqlPlanRuntimeMetrics(2, 200, 20, 4);
+        var plan = SqlExecutionPlanFormatter.FormatUnion([part1, part2], [true], [], null, metrics);
+
+        plan.Should().Contain($"- {SqlExecutionPlanMessages.PerformanceDisclaimerLabel()}: {SqlExecutionPlanMessages.PerformanceDisclaimerMessage()}");
     }
 
     /// <summary>
@@ -4065,6 +4087,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
+        textPlan.Should().Contain($"- {SqlExecutionPlanMessages.PerformanceDisclaimerLabel()}: {root.GetProperty("performanceDisclaimer").GetString()}");
         textPlan.Should().Contain($"- {SqlExecutionPlanMessages.PlanMetadataVersionLabel()}: {root.GetProperty("planMetadataVersion").GetInt32()}");
         textPlan.Should().Contain($"- {SqlExecutionPlanMessages.PlanFlagsLabel()}: {root.GetProperty("planFlags").GetString()}");
         textPlan.Should().Contain($"- {SqlExecutionPlanMessages.PlanPerformanceBandLabel()}: {root.GetProperty("planPerformanceBand").GetString()}");

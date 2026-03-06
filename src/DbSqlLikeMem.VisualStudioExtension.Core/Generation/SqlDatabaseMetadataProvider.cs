@@ -79,9 +79,12 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
 
     private static string ResolveDatabaseNameForMetadata(ConnectionDefinition connection)
     {
-        if (!string.Equals(connection.DatabaseType, "MySql", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(connection.DatabaseType, "SqlServer", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(connection.DatabaseType, "PostgreSql", StringComparison.OrdinalIgnoreCase))
+        var databaseType = NormalizeDatabaseType(connection.DatabaseType);
+        if (!databaseType.Equals("mysql", StringComparison.Ordinal)
+            && !databaseType.Equals("sqlserver", StringComparison.Ordinal)
+            && !databaseType.Equals("sqlazure", StringComparison.Ordinal)
+            && !databaseType.Equals("azuresql", StringComparison.Ordinal)
+            && !databaseType.Equals("postgresql", StringComparison.Ordinal))
         {
             return connection.DatabaseName;
         }
@@ -101,6 +104,13 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
 
         return connection.DatabaseName;
     }
+
+    private static string NormalizeDatabaseType(string? databaseType)
+        => (databaseType ?? string.Empty)
+            .Replace("_", string.Empty)
+            .Replace("-", string.Empty)
+            .Trim()
+            .ToLowerInvariant();
 
     private static bool TryReadDatabaseName(DbConnectionStringBuilder builder, out string databaseName)
     {

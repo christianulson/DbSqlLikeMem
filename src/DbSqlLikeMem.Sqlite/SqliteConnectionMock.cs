@@ -13,6 +13,14 @@ public sealed class SqliteConnectionMock
     }
 
     /// <summary>
+    /// EN: Creates a SQLite connection mock with default in-memory database settings.
+    /// PT: Cria uma conexao simulada do SQLite com configuracoes padrao de banco em memoria.
+    /// </summary>
+    public SqliteConnectionMock() : this(null, null)
+    {
+    }
+
+    /// <summary>
     /// EN: Represents Sqlite Connection Mock.
     /// PT: Representa uma conexão simulada do Sqlite.
     /// </summary>
@@ -38,6 +46,10 @@ public sealed class SqliteConnectionMock
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new SqliteCommandMock(this, transaction as SqliteTransactionMock);
 
-    internal override Exception NewException(string message, int code)
+    /// <summary>
+    /// EN: Creates the SQLite-specific mock exception used by this connection.
+    /// PT: Cria a excecao simulada especifica do SQLite usada por esta conexao.
+    /// </summary>
+    protected internal override Exception NewException(string message, int code)
         => new SqliteMockException(message, code);
 }

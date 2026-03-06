@@ -188,6 +188,22 @@ public abstract class DbMock
     internal void ClearGlobalTemporaryTables()
         => _globalTemporaryTables.Clear();
 
+    internal void DropGlobalTemporaryTable(
+        string tableName,
+        bool ifExists,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
+        var key = BuildTemporaryTableKey(tableName.NormalizeName(), schemaName);
+        if (_globalTemporaryTables.Remove(key))
+            return;
+
+        if (ifExists)
+            return;
+
+        throw new InvalidOperationException($"Table '{tableName.NormalizeName()}' does not exist.");
+    }
+
     /// <summary>
     /// EN: Creates and adds a table to the specified schema.
     /// PT: Cria e adiciona uma tabela ao schema indicado.
@@ -269,6 +285,41 @@ public abstract class DbMock
     {
         var sc = GetSchemaName(schemaName);
         return this[sc].Tables.Select(_ => _.Value).ToList().AsReadOnly();
+    }
+
+    internal void DropTable(
+        string tableName,
+        bool ifExists,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
+        var sc = GetSchemaName(schemaName);
+        var normalized = tableName.NormalizeName();
+        var removed = this[sc].Tables.Remove(normalized);
+        if (removed || ifExists)
+            return;
+
+        throw new InvalidOperationException($"Table '{normalized}' does not exist.");
+    }
+
+    /// <summary>
+    /// EN: Resets volatile in-memory data for all tables and optionally global temporary tables.
+    /// PT: Reseta dados voláteis em memória de todas as tabelas e, opcionalmente, das tabelas temporárias globais.
+    /// </summary>
+    /// <param name="includeGlobalTemporaryTables">
+    /// EN: Includes global temporary tables in the reset.
+    /// PT: Inclui tabelas temporárias globais no reset.
+    /// </param>
+    public void ResetVolatileData(bool includeGlobalTemporaryTables = true)
+    {
+        if (!ThreadSafe)
+        {
+            ResetVolatileDataCore(includeGlobalTemporaryTables);
+            return;
+        }
+
+        lock (SyncRoot)
+            ResetVolatileDataCore(includeGlobalTemporaryTables);
     }
 
     #endregion
@@ -399,6 +450,30 @@ public abstract class DbMock
             allTables.AddRange(schema.Tables.Values);
         allTables.AddRange(_globalTemporaryTables.Values);
         return allTables;
+    }
+
+    private void ResetVolatileDataCore(bool includeGlobalTemporaryTables)
+    {
+        foreach (var schema in Values)
+        {
+            foreach (var table in schema.Tables.Values)
+                ResetTableState(table);
+        }
+
+        if (!includeGlobalTemporaryTables)
+            return;
+
+        foreach (var table in _globalTemporaryTables.Values)
+            ResetTableState(table);
+    }
+
+    private static void ResetTableState(ITableMock table)
+    {
+        while (table.Count > 0)
+            table.RemoveAt(table.Count - 1);
+
+        table.NextIdentity = 1;
+        table.RebuildAllIndexes();
     }
 
     #region Backup / Restore (best-effort)

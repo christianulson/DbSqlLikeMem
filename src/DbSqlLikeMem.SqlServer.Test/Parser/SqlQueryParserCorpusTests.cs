@@ -402,6 +402,11 @@ WHERE dt.total >= 10;
               SELECT JSON_VALUE(data, '$.on_duplicate') FROM src",
             "INSERT INTO ... SELECT with JSON path containing on_duplicate"
         };
+        yield return new object[] {
+            @"INSERT INTO t (a)
+              SELECT CASE WHEN x = 'ON DUPLICATE' THEN 1 ELSE 0 END FROM src",
+            "INSERT INTO ... SELECT containing string 'ON DUPLICATE'"
+        };
 
         yield return new object[] { "DELETE FROM Users WHERE Id = 1", "DELETE by literal id" };
         yield return new object[] { "DELETE FROM Users WHERE Id = @Id", "DELETE by parameter" };
@@ -600,11 +605,6 @@ select id
     "CREATE TABLE users (id INT)"
 };
 
-        // DROP TABLE
-        yield return new object[] {
-    "DROP TABLE users"
-};
-
         // ALTER TABLE
         yield return new object[] {
     "ALTER TABLE users ADD COLUMN age INT"
@@ -612,14 +612,8 @@ select id
 
         // CALL procedure
         yield return new object[] {
-    "CALL my_proc(1,2,3)"
+            "CALL my_proc(1,2,3)"
 };
-
-        yield return new object[] {
-            @"INSERT INTO t (a)
-              SELECT CASE WHEN x = 'ON DUPLICATE' THEN 1 ELSE 0 END FROM src",
-            "INSERT INTO ... SELECT containing string 'ON DUPLICATE'"
-        };
     }
 
     /// <summary>
@@ -698,3 +692,4 @@ select id
 #pragma warning restore CA1031 // Do not catch general exception types
     }
 }
+

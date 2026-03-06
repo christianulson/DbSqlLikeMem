@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.MySql;
+namespace DbSqlLikeMem.MySql;
 
 /// <summary>
 /// EN: Represents a MySQL batch mock that executes commands against the in-memory database.
@@ -130,7 +130,7 @@ public sealed class MySqlBatchMock :
     {
         //this.ResetCommandTimeout();
 #pragma warning disable CA2012 // OK to read .Result because the ValueTask is completed
-        return ExecuteReaderCoreAsync(behavior, CancellationToken.None).Result;
+        return ExecuteReaderCoreAsync(behavior, CancellationToken.None).GetAwaiter().GetResult();
 #pragma warning restore CA2012
     }
 
@@ -139,24 +139,24 @@ public sealed class MySqlBatchMock :
     /// EN: Asynchronously executes all commands and returns a data reader.
     /// PT: Executa todos os comandos de forma assíncrona e retorna um leitor de dados.
     /// </summary>
-    protected override async Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
+    protected override Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
 #else
-    private async Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
+    private Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
 #endif
     {
         //this.ResetCommandTimeout();
         //using var registration = ((ICancellableCommand)this).RegisterCancel(cancellationToken);
-        return await ExecuteReaderCoreAsync(behavior,
+        return ExecuteReaderCoreAsync(behavior,
             //AsyncIOBehavior, 
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
     }
 
-    private ValueTask<DbDataReader> ExecuteReaderCoreAsync(CommandBehavior behavior,
+    private async Task<DbDataReader> ExecuteReaderCoreAsync(CommandBehavior behavior,
         //IOBehavior ioBehavior, 
         CancellationToken cancellationToken)
     {
         if (!IsValid(out var exception))
-            return new ValueTask<DbDataReader>(Task.FromException<DbDataReader>(exception!));
+            throw exception!;
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -164,35 +164,15 @@ public sealed class MySqlBatchMock :
         foreach (MySqlBatchCommandMock batchCommand in BatchCommands)
             batchCommand.Batch = this;
 
-        var tables = new List<TableResultMock>();
-        foreach (var batchCommand in BatchCommands.Commands)
-        {
-            using var command = CreateExecutableCommand(batchCommand);
-
-            try
-            {
-                using var reader = command.ExecuteReader();
-                do
-                {
-                    var rows = new List<object[]>();
-                    while (reader.Read())
-                    {
-                        var row = new object[reader.FieldCount];
-                        reader.GetValues(row);
-                        rows.Add(row);
-                    }
-
-                    if (reader.FieldCount > 0)
-                        tables.Add(CreateTableResult(rows, reader));
-                } while (reader.NextResult());
-            }
-            catch (InvalidOperationException ex) when (ex.Message == SqlExceptionMessages.ExecuteReaderWithoutSelectQuery())
-            {
-                command.ExecuteNonQuery();
-            }
-        }
-
-        return new ValueTask<DbDataReader>(new MySqlDataReaderMock(tables));
+        var tables = await BatchAsyncExecutionRunner
+            .ExecuteReaderCommandsAsync(
+                Connection!,
+                BatchCommands.Commands,
+                CreateExecutableCommand,
+                behavior,
+                cancellationToken)
+            .ConfigureAwait(false);
+        return new MySqlDataReaderMock(tables);
 
         //var payloadCreator = IsPrepared ? SingleCommandPayloadCreator.Instance :
         //    ConcatenatedCommandPayloadCreator.Instance;
@@ -396,96 +376,71 @@ public sealed class MySqlBatchMock :
         Cancel();
     }
 
-    private async Task<int> DbExecuteNonQueryAsync(CancellationToken cancellationToken)
+    private Task<int> DbExecuteNonQueryAsync(CancellationToken cancellationToken)
     {
         if (!IsValid(out var exception))
             throw exception!;
 
         cancellationToken.ThrowIfCancellationRequested();
-
-        var total = 0;
-        foreach (var batchCommand in BatchCommands.Commands)
-        {
-            using var command = CreateExecutableCommand(batchCommand);
-            total += await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        return total;
+        return BatchAsyncExecutionRunner
+            .ExecuteNonQueryCommandsAsync(
+                Connection!,
+                BatchCommands.Commands,
+                CreateExecutableCommand,
+                cancellationToken)
+;
     }
 
-    private async Task<object?> DbExecuteScalarAsync(CancellationToken cancellationToken)
+    private Task<object?> DbExecuteScalarAsync(CancellationToken cancellationToken)
     {
         if (!IsValid(out var exception))
             throw exception!;
 
         cancellationToken.ThrowIfCancellationRequested();
-        if (BatchCommands.Count == 0)
-            return null;
-
-        using var command = CreateExecutableCommand(BatchCommands.Commands[0]);
-        return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+        return BatchScalarExecutionRunner
+            .ExecuteFirstScalarAsync(
+                Connection!,
+                BatchCommands.Commands,
+                CreateExecutableCommand,
+                cancellationToken)
+;
     }
 
     private MySqlCommandMock CreateExecutableCommand(MySqlBatchCommandMock batchCommand)
     {
-        var command = (MySqlCommandMock)Connection!.CreateCommand();
-        command.Transaction = Transaction;
-        command.CommandType = batchCommand.CommandType;
-        command.CommandText = batchCommand.CommandText;
-        command.CommandTimeout = Timeout;
-
-        foreach (MySqlParameter parameter in batchCommand.Parameters)
-            command.Parameters.Add(new MySqlParameter(parameter.ParameterName, parameter.MySqlDbType)
+        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        return BatchCommandFactory.Create(
+            connection,
+            () =>
             {
-                Value = parameter.Value,
+                var command = (MySqlCommandMock)connection.CreateCommand();
+                command.Transaction = Transaction;
+                return command;
+            },
+            batchCommand,
+            Timeout,
+            static (command, source, timeout) =>
+            {
+                command.CommandType = source.CommandType;
+                command.CommandText = source.CommandText;
+                command.CommandTimeout = timeout;
+
+                foreach (MySqlParameter parameter in source.Parameters)
+                    command.Parameters.Add(new MySqlParameter(parameter.ParameterName, parameter.MySqlDbType)
+                    {
+                        Value = parameter.Value,
+                    });
             });
-
-        return command;
-    }
-
-    private static TableResultMock CreateTableResult(IReadOnlyCollection<object[]> rows, IDataRecord schemaRecord)
-    {
-        var table = new TableResultMock();
-
-        for (var col = 0; col < schemaRecord.FieldCount; col++)
-        {
-            table.Columns.Add(new TableResultColMock(
-                tableAlias: string.Empty,
-                columnAlias: schemaRecord.GetName(col),
-                columnName: schemaRecord.GetName(col),
-                columIndex: col,
-                dbType: schemaRecord.GetFieldType(col).ConvertTypeToDbType(),
-                isNullable: true));
-        }
-
-        foreach (var row in rows)
-        {
-            var rowData = new Dictionary<int, object?>();
-            for (var col = 0; col < row.Length; col++)
-                rowData[col] = row[col] == DBNull.Value ? null : row[col];
-            table.Add(rowData);
-        }
-
-        return table;
     }
 
     private bool IsValid(
-#if !NET48
+#if NET6_0_OR_GREATER
         [NotNullWhen(false)]
 #endif
     out Exception? exception)
     {
-        if (m_isDisposed)
-            exception = new ObjectDisposedException(GetType().Name);
-        else if (Connection is null)
-            exception = new InvalidOperationException("Connection property must be non-null.");
-        else if (Connection.State is not ConnectionState.Open and not ConnectionState.Connecting)
-            exception = new InvalidOperationException($"Connection must be Open; current state is {Connection.State}");
-        //else if (!Connection.IgnoreCommandTransaction && Transaction != Connection.CurrentTransaction)
-        //    exception = new InvalidOperationException("The transaction associated with this batch is not the connection's active transaction; see https://mysqlconnector.net/trans");
-        else if (BatchCommands.Count == 0)
-            exception = new InvalidOperationException("BatchCommands must contain a command");
-        else
+        exception = ValidateBatchState(allowConnectingState: true);
+        if (exception is null)
             exception = GetExceptionForInvalidCommands();
 
         return exception is null;
@@ -493,20 +448,40 @@ public sealed class MySqlBatchMock :
 
     private bool NeedsPrepare(out Exception? exception)
     {
-        if (m_isDisposed)
-            exception = new ObjectDisposedException(GetType().Name);
-        else if (Connection is null)
-            exception = new InvalidOperationException("Connection property must be non-null.");
-        else if (Connection.State != ConnectionState.Open)
-            exception = new InvalidOperationException($"Connection must be Open; current state is {Connection.State}");
-        else if (BatchCommands.Count == 0)
-            exception = new InvalidOperationException("BatchCommands must contain a command");
-        //else if (Connection.HasActiveReader)
-        //    exception = new InvalidOperationException("Cannot call Prepare when there is an open DataReader for this command; it must be closed first.");
-        else
+        exception = ValidateBatchState(allowConnectingState: false);
+        if (exception is null)
             exception = GetExceptionForInvalidCommands();
 
         return exception is null;// && !Connection!.IgnorePrepare;
+    }
+
+    private Exception? ValidateBatchState(bool allowConnectingState)
+    {
+        if (m_isDisposed)
+            return new ObjectDisposedException(GetType().Name);
+
+        if (Connection is null)
+            return new InvalidOperationException(SqlExceptionMessages.BatchConnectionRequired());
+
+        var invalidConnectionState = BatchExecutionGuards.GetInvalidConnectionStateException(Connection, allowConnectingState);
+        if (invalidConnectionState is not null)
+            return invalidConnectionState;
+
+        //if (!Connection.IgnoreCommandTransaction && Transaction != Connection.CurrentTransaction)
+        //    return new InvalidOperationException("The transaction associated with this batch is not the connection's active transaction; see https://mysqlconnector.net/trans");
+        //if (Connection.HasActiveReader)
+        //    return new InvalidOperationException("Cannot call Prepare when there is an open DataReader for this command; it must be closed first.");
+
+        try
+        {
+            BatchExecutionGuards.RequireAtLeastOneCommand(BatchCommands.Count);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ex;
+        }
+
+        return null;
     }
 
     private InvalidOperationException? GetExceptionForInvalidCommands()
@@ -514,9 +489,9 @@ public sealed class MySqlBatchMock :
         foreach (var command in BatchCommands)
         {
             if (command is null)
-                return new InvalidOperationException("BatchCommands must not contain null");
+                return new InvalidOperationException(SqlExceptionMessages.BatchCommandsMustNotContainNull());
             if (string.IsNullOrWhiteSpace(command.CommandText))
-                return new InvalidOperationException("CommandText must be specified on each batch command");
+                return new InvalidOperationException(SqlExceptionMessages.BatchCommandTextRequired());
         }
         return null;
     }
@@ -534,7 +509,7 @@ public sealed class MySqlBatchMock :
         foreach (IMySqlCommandMock batchCommand in BatchCommands)
         {
             if (batchCommand.CommandType != CommandType.Text)
-                throw new NotSupportedException("Only CommandType.Text is currently supported by MySqlBatch.Prepare");
+                throw new NotSupportedException(SqlExceptionMessages.MySqlBatchPrepareOnlyTextSupported());
             ((MySqlBatchCommandMock)batchCommand).Batch = this;
 
             // don't prepare the same SQL twice
@@ -560,3 +535,4 @@ public sealed class MySqlBatchMock :
     private int m_timeout;
     private bool m_commandTimedOut;
 }
+

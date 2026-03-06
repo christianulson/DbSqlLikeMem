@@ -1,6 +1,7 @@
 # Revisão de performance da branch `work`
 
 ## Escopo da análise
+
 Esta revisão focou nos fluxos que ficaram mais sensíveis após as mudanças de `IndexDef` e `ForeignDef` (composite FK), além dos pontos quentes de execução no caminho de `SELECT`, `INSERT` e `DELETE`.
 
 ## Principais pontos com impacto potencial
@@ -15,6 +16,7 @@ Resumo objetivo do estado atual:
 Conclusão prática: **a maior perda residual não está no `Immutable` cacheado de metadados, mas sim nas cópias recorrentes para `ReadOnly` na API pública de índice**.
 
 ### 1) Validação de FK em `DELETE` faz varreduras repetidas
+
 No fluxo de exclusão, para cada linha pai a ser removida, o código percorre todas as tabelas e todas as FKs relevantes; para cada referência da FK, chama `childTable.Any(...)`. Isso gera múltiplas passadas sobre a tabela filha.
 
 - Local: `DbDeleteStrategy.ValidateForeignKeys`.
@@ -23,24 +25,28 @@ No fluxo de exclusão, para cada linha pai a ser removida, o código percorre to
 - Risco adicional: em FK composta, o `All(Any(...))` pode validar colunas em linhas diferentes (custo + semântica fraca).
 
 ## 2) Lookup de índice materializa cópias profundas em toda consulta
+
 A API de `IndexDef` retorna dicionários somente-leitura criando cópias (`ToDictionary + ReadOnlyDictionary`) em `Lookup`, `TryGetValue`, indexer e enumeração.
 
 - Local: `IndexDef.Lookup`, `IndexDef.TryGetValue`, `IndexDef.this[string]`, `IndexDef.GetEnumerator`.
 - Impacto: pressão de alocação e GC em consultas com alto volume de lookups, mesmo quando o resultado do índice é pequeno.
 
 ## 3) Acesso a metadados ainda pode pagar custo de materialização após mutações
+
 `TableMock.Columns` e `TableMock.Indexes` usam cache (`_columnsCache`/`_indexesCache`), mas ainda precisam materializar `ImmutableDictionary` na primeira leitura após invalidação.
 
 - Local: `TableMock.Columns`, `TableMock.Indexes`.
 - Impacto: menor que antes, porém pode somar custo em fluxos com muita mutação de schema/índices e leituras subsequentes.
 
 ## 4) Inserção com PK única ainda depende de varredura linear
+
 `EnsureUniqueOnInsert` percorre todas as linhas para validar PK e ainda usa `Columns.First(...)` dentro de loop.
 
 - Local: `TableMock.EnsureUniqueOnInsert`.
 - Impacto: em carga de escrita, pode virar gargalo O(n) por inserção para PK (enquanto índices únicos já têm caminho melhor).
 
 ## 5) Rebuild de índice não limpa estrutura antes de reconstruir
+
 `IndexDef.RebuildIndex()` percorre as linhas e adiciona em `_items`, mas não limpa `_items` no início.
 
 - Local: `IndexDef.RebuildIndex`.
@@ -61,7 +67,6 @@ A API de `IndexDef` retorna dicionários somente-leitura criando cópias (`ToDic
   - `DELETE` com 1 FK simples e 1 FK composta;
   - `INSERT` em tabela com PK composta e índice único.
 - Comparar alocações (`Allocated MB/op`) e tempo (`Mean`, `P95`) antes/depois das correções.
-
 
 ## Pontos candidatos a paralelismo (e status)
 

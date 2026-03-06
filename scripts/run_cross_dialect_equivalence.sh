@@ -18,6 +18,7 @@ USAGE
 smoke_projects=(
   "src/DbSqlLikeMem.MySql.Test/DbSqlLikeMem.MySql.Test.csproj"
   "src/DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj"
+  "src/DbSqlLikeMem.SqlAzure.Test/DbSqlLikeMem.SqlAzure.Test.csproj"
   "src/DbSqlLikeMem.Oracle.Test/DbSqlLikeMem.Oracle.Test.csproj"
   "src/DbSqlLikeMem.Npgsql.Test/DbSqlLikeMem.Npgsql.Test.csproj"
   "src/DbSqlLikeMem.Sqlite.Test/DbSqlLikeMem.Sqlite.Test.csproj"

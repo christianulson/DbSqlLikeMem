@@ -30,7 +30,7 @@ internal static class DbDeleteStrategy
         var dialect = connection.Db.Dialect;
         if (!connection.TryGetTable(tableName, out var table, query.Table.DbName)
             || table == null)
-            throw new InvalidOperationException($"Table {tableName} does not exist.");
+            throw SqlUnsupported.ForTableDoesNotExist(tableName);
 
         // 1. Filtrar linhas
         // Usa a mesma lógica simplificada de WHERE do UpdateStrategy.

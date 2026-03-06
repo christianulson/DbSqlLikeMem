@@ -258,4 +258,10 @@
   <data name="PlanSeverityHintLabel" xml:space="preserve">
     <value>PlanSeverityHint</value>
   </data>
+  <data name="PerformanceDisclaimerLabel" xml:space="preserve">
+    <value>AvisoDesempenho</value>
+  </data>
+  <data name="PerformanceDisclaimerMessage" xml:space="preserve">
+    <value>As metricas do mock sao diagnosticas e relativas; nao use este resultado como benchmark de performance em producao.</value>
+  </data>
 </root>

@@ -52,7 +52,7 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
   - baseline de contratos de agregação textual por provider
   - atualização via `scripts/refresh_cross_dialect_snapshots.sh`
 - [Governança da solução .slnx](features-backlog/index.md#631-arquivo-de-solucao-slnx-e-cobertura-de-projetos)
-  - validação de cobertura de projetos com `scripts/check_slnx_project_coverage.py`
+  - validação de cobertura de projetos com `scripts/check_slnx_project_coverage.py` (Linux/macOS/CI) ou `scripts/check_slnx_project_coverage.ps1` (Windows/PowerShell)
   - prevenção de drift entre `.slnx` e árvore `src/**/*.csproj`
 - [Relatório de hardening/regressão](old/hardening-regression-report.md)
   - regressões corrigidas

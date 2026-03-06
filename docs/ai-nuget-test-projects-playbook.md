@@ -7,7 +7,7 @@ Este guia é para quando o usuário tem um projeto **XPTO** e pede para a IA cri
 ## 1) Contexto mínimo que a IA precisa (cheat sheet)
 
 - O DbSqlLikeMem simula providers SQL em memória para testes.
-- Providers disponíveis: **MySQL, SQL Server, Oracle, PostgreSQL (Npgsql), SQLite, DB2**.
+- Providers disponíveis: **MySQL, SQL Server, SQL Azure, Oracle, PostgreSQL (Npgsql), SQLite, DB2**.
 - Uso típico no projeto do usuário:
   1. adicionar pacote NuGet do provider;
   2. criar `ConnectionMock` + `DbMock`;
@@ -53,6 +53,7 @@ Restrições:
 | --- | --- |
 | MySQL | `DbSqlLikeMem.MySql` |
 | SQL Server | `DbSqlLikeMem.SqlServer` |
+| SQL Azure | `DbSqlLikeMem.SqlAzure` |
 | Oracle | `DbSqlLikeMem.Oracle` |
 | PostgreSQL (Npgsql) | `DbSqlLikeMem.Npgsql` |
 | SQLite | `DbSqlLikeMem.Sqlite` |

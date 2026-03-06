@@ -29,5 +29,9 @@ public interface IReadOnlyHashSet<T> : IReadOnlyCollection<T>, IDeserializationC
 
     bool SetEquals(IEnumerable<T> other);
 
+#if NET8_0_OR_GREATER
     bool TryGetValue(T equalValue, [MaybeNullWhen(false)] out T actualValue);
+#else
+    bool TryGetValue(T equalValue, out T actualValue);
+#endif
 }

@@ -20,8 +20,8 @@ public static class Db2LinqExtensions
         this Db2ConnectionMock cnn,
         string tableName)
     {
-        ArgumentNullException.ThrowIfNull(cnn);
-        ArgumentNullException.ThrowIfNull(tableName);
+        ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
+        ArgumentNullExceptionCompatible.ThrowIfNull(tableName, nameof(tableName));
 
         var provider = new Db2QueryProvider(cnn);
         return new Db2Queryable<T>(provider, tableName);

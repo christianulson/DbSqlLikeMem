@@ -45,4 +45,23 @@ public static class ServiceCollectionMySqlDbMockExtensions
         acRegister?.Invoke(instance);
         return instance;
     });
+
+    /// <summary>
+    /// EN: Registers MySqlDbMock as a transient service.
+    /// PT: Registra MySqlDbMock como serviço transient.
+    /// </summary>
+    /// <param name="services">EN: Service collection to register into. PT: Coleção de serviços para registrar.</param>
+    /// <param name="acRegister">EN: Optional callback to configure the created mock. PT: Callback opcional para configurar o mock criado.</param>
+    /// <param name="version">EN: Optional dialect version for MySqlDbMock. PT: Versão opcional de dialeto para o MySqlDbMock.</param>
+    /// <returns>EN: The same service collection for chaining. PT: A mesma coleção de serviços para encadeamento.</returns>
+    public static IServiceCollection AddMySqlDbMockTransient(
+        this IServiceCollection services,
+        Action<MySqlDbMock>? acRegister = null,
+        int? version = null)
+    => services.AddTransient(_ =>
+    {
+        var instance = new MySqlDbMock(version);
+        acRegister?.Invoke(instance);
+        return instance;
+    });
 }

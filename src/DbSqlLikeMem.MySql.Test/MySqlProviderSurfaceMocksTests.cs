@@ -27,7 +27,7 @@ public sealed class MySqlProviderSurfaceMocksTests
     [Fact]
     public void DataSource_ShouldCreateMySqlConnection()
     {
-        var source = new MySqlDataSourceMock(new MySqlDbMock());
+        var source = new MySqlDataSourceMock([]);
 #if NET8_0_OR_GREATER
         using var connection = source.CreateConnection();
 #else

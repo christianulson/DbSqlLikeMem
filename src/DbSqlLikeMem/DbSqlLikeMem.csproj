@@ -6,11 +6,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.1" />
-		<PackageReference Include="CsvHelper" Version="33.1.0" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<InternalsVisibleTo Include="DbSqlLikeMem.Db2" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Db2.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Db2.Dapper.Test" />
@@ -31,7 +26,10 @@
 		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.SqlServer.Dapper.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.SqlAzure" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.SqlAzure.Test" />
 		<InternalsVisibleTo Include="DbSqlLikeMem.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.TestTools" />
 	</ItemGroup>
 	<ItemGroup>
 		<Using Include="DbSqlLikeMem.Resources" />

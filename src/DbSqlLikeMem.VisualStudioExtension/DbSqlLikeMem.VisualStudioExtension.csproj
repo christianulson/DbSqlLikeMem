@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net472</TargetFramework>
-    <TargetFrameworks></TargetFrameworks>
+    <TargetFrameworks>net472</TargetFrameworks>
     <UseWPF>true</UseWPF>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>

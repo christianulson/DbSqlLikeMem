@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Sqlite.Test.Parser;
+namespace DbSqlLikeMem.Sqlite.Test.Parser;
 
 
 /// <summary>
@@ -627,11 +627,6 @@ select id
     "CREATE TABLE users (id INT)"
 };
 
-        // DROP TABLE
-        yield return new object[] {
-    "DROP TABLE users"
-};
-
         // ALTER TABLE
         yield return new object[] {
     "ALTER TABLE users ADD COLUMN age INT"
@@ -720,3 +715,4 @@ select id
 #pragma warning restore CA1031 // Do not catch general exception types
     }
 }
+

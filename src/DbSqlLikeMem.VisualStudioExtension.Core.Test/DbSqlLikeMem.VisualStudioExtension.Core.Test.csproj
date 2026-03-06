@@ -2,21 +2,13 @@
 	<PropertyGroup>
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
-		<TargetFramework>net8.0</TargetFramework>
-		<TargetFrameworks></TargetFrameworks>
+		<IsExtensionProject>true</IsExtensionProject>
+		<TargetFrameworks>net8.0</TargetFrameworks>
+		<RunSettingsFilePath>C:\Projects\DbSqlLikeMem\src\DbSqlLikeMem.VisualStudioExtension.Core.Test\bin\DbSqlLikeMem.VisualStudioExtension.Core.Test\Debug\net8.0\fine-code-coverage\coverage-tool-output\DbSqlLikeMem.VisualStudioExtension.Core.Test %28net8.0%29-fcc-mscodecoverage-generated.runsettings</RunSettingsFilePath>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.VisualStudioExtension.Core\DbSqlLikeMem.VisualStudioExtension.Core.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
-		<PackageReference Include="xunit.v3" Version="3.2.2" />
-		<PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
 	</ItemGroup>
 
 	<ItemGroup>

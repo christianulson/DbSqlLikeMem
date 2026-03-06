@@ -1,7 +1,7 @@
 # Matriz de compatibilidade SQL (feature x dialeto)
 
-> Status consolidado para os dialetos principais: **MySQL / SQL Server / Oracle / Npgsql / DB2 / SQLite**.
-> 
+> Status consolidado para os dialetos principais: **MySQL / SQL Server / SQL Azure / Oracle / Npgsql / DB2 / SQLite**.
+>
 > Legenda: ✅ suportado, ⚠️ suportado parcialmente/condicional, ❌ não suportado.
 
 ## Matriz simplificada
@@ -24,6 +24,7 @@
 ## Notas rápidas
 
 - Esta matriz resume o comportamento esperado após os hardenings de parser/testes. Em caso de divergência, os testes por provider têm prioridade como fonte de verdade.
+- SQL Azure segue a mesma base de compatibilidade do dialeto SQL Server neste ciclo; use a coluna de SQL Server como baseline para SQL Azure.
 - Recursos marcados como ⚠️ indicam suporte com gate de versão do dialeto ou cobertura parcial.
 - Para evoluções planejadas, consulte também o checklist de gaps conhecidos.
 

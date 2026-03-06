@@ -16,7 +16,7 @@ public sealed class SqliteAggregationTests : AggregationHavingOrdinalTestsBase<S
     }
 
     /// <inheritdoc />
-    protected override SqliteDbMock CreateDb() => new();
+    protected override SqliteDbMock CreateDb() => [];
 
     /// <inheritdoc />
     protected override SqliteConnectionMock CreateConnection(SqliteDbMock db) => new(db);

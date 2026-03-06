@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>false</IsTestProject>
+		<IsTestToolsProject>true</IsTestToolsProject>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Include="..\DbSqlLikeMem.Dapper.TestTools\DapperSupportTestsBase.cs" Link="DapperSupportTestsBase.cs" />
+	  <Compile Include="..\DbSqlLikeMem.Dapper.TestTools\DapperTransactionConcurrencyTestsBase.cs" Link="DapperTransactionConcurrencyTestsBase.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="MiniProfiler.Providers.MySql" Version="4.5.4" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\DbSqlLikeMem.TestTools\DbSqlLikeMem.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+	</ItemGroup>
+
+</Project>

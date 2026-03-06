@@ -13,6 +13,14 @@ internal sealed record SqlPlanRuntimeMetrics(
     public double SelectivityPct => EstimatedRowsRead <= 0 ? 0d : (double)ActualRows / EstimatedRowsRead * 100d;
 }
 
+internal sealed record SqlPlanMockRuntimeContext(
+    int SimulatedLatencyMs,
+    double DropProbability,
+    bool ThreadSafe)
+{
+    public bool MetricsAreRelative => true;
+}
+
 internal sealed record SqlIndexRecommendation(
     string Table,
     string SuggestedIndex,
@@ -60,7 +68,8 @@ internal static class SqlExecutionPlanFormatter
         IReadOnlyList<SqlPlanWarning>? planWarnings = null,
         SqlPlanRuntimeMetrics? previousMetrics = null,
         IReadOnlyList<SqlPlanWarning>? previousWarnings = null,
-        SqlPlanSeverityHintContext severityHintContext = SqlPlanSeverityHintContext.Dev)
+        SqlPlanSeverityHintContext severityHintContext = SqlPlanSeverityHintContext.Dev,
+        SqlPlanMockRuntimeContext? runtimeContext = null)
     {
         var sb = new StringBuilder();
         sb.AppendLine(SqlExecutionPlanMessages.ExecutionPlanTitle());
@@ -114,6 +123,8 @@ internal static class SqlExecutionPlanFormatter
         sb.AppendLine($"- {SqlExecutionPlanMessages.SelectivityPctLabel()}: {metrics.SelectivityPct:F2}");
         sb.AppendLine($"- {SqlExecutionPlanMessages.RowsPerMsLabel()}: {metrics.RowsPerMs:F2}");
         sb.AppendLine($"- {SqlExecutionPlanMessages.ElapsedMsLabel()}: {metrics.ElapsedMs}");
+        AppendPerformanceDisclaimer(sb);
+        AppendMockRuntimeContext(sb, runtimeContext);
         sb.AppendLine($"- {SqlExecutionPlanMessages.PlanMetadataVersionLabel()}: 1");
         AppendPlanCorrelationId(sb);
 
@@ -146,6 +157,19 @@ internal static class SqlExecutionPlanFormatter
     {
         var correlationId = Guid.NewGuid().ToString("N");
         sb.AppendLine($"- {SqlExecutionPlanMessages.PlanCorrelationIdLabel()}: {correlationId}");
+    }
+
+    private static void AppendPerformanceDisclaimer(StringBuilder sb)
+        => sb.AppendLine($"- {SqlExecutionPlanMessages.PerformanceDisclaimerLabel()}: {SqlExecutionPlanMessages.PerformanceDisclaimerMessage()}");
+
+    private static void AppendMockRuntimeContext(StringBuilder sb, SqlPlanMockRuntimeContext? runtimeContext)
+    {
+        if (runtimeContext is null)
+            return;
+
+        sb.AppendLine($"- MockRuntimeContext: metricsAreRelative:true;simulatedLatencyMs:{runtimeContext.SimulatedLatencyMs};dropProbability:{runtimeContext.DropProbability:F4};threadSafe:{runtimeContext.ThreadSafe.ToString().ToLowerInvariant()}");
+        if (runtimeContext.SimulatedLatencyMs > 0 || runtimeContext.DropProbability > 0d)
+            sb.AppendLine("- MockRuntimePerturbationActive: true");
     }
 
     private static void AppendPlanPerformanceBand(
@@ -567,7 +591,8 @@ internal static class SqlExecutionPlanFormatter
         IReadOnlyList<SqlPlanWarning>? planWarnings = null,
         SqlPlanRuntimeMetrics? previousMetrics = null,
         IReadOnlyList<SqlPlanWarning>? previousWarnings = null,
-        SqlPlanSeverityHintContext severityHintContext = SqlPlanSeverityHintContext.Dev)
+        SqlPlanSeverityHintContext severityHintContext = SqlPlanSeverityHintContext.Dev,
+        SqlPlanMockRuntimeContext? runtimeContext = null)
     {
         var hasWarnings = planWarnings is { Count: > 0 };
         var hasIndexRecommendations = indexRecommendations is { Count: > 0 };
@@ -577,11 +602,22 @@ internal static class SqlExecutionPlanFormatter
         {
             ["queryType"] = "SELECT",
             ["estimatedCost"] = EstimateSelectCost(query),
+            ["performanceDisclaimer"] = SqlExecutionPlanMessages.PerformanceDisclaimerMessage(),
             ["planMetadataVersion"] = 1,
             ["planCorrelationId"] = Guid.NewGuid().ToString("N"),
             ["planFlags"] = $"hasWarnings:{(hasWarnings ? "true" : "false")};hasIndexRecommendations:{(hasIndexRecommendations ? "true" : "false")}",
             ["planPerformanceBand"] = performanceBand
         };
+
+        if (runtimeContext is not null)
+        {
+            payload["mockRuntimeContext"] = $"metricsAreRelative:true;simulatedLatencyMs:{runtimeContext.SimulatedLatencyMs};dropProbability:{runtimeContext.DropProbability:F4};threadSafe:{runtimeContext.ThreadSafe.ToString().ToLowerInvariant()}";
+            payload["mockMetricsAreRelative"] = runtimeContext.MetricsAreRelative;
+            payload["mockSimulatedLatencyMs"] = runtimeContext.SimulatedLatencyMs;
+            payload["mockDropProbability"] = runtimeContext.DropProbability;
+            payload["mockThreadSafe"] = runtimeContext.ThreadSafe;
+            payload["mockRuntimePerturbationActive"] = runtimeContext.SimulatedLatencyMs > 0 || runtimeContext.DropProbability > 0d;
+        }
 
         if (hasWarnings)
         {
@@ -660,7 +696,8 @@ internal static class SqlExecutionPlanFormatter
         IReadOnlyList<bool> allFlags,
         IReadOnlyList<SqlOrderByItem>? orderBy,
         SqlRowLimit? rowLimit,
-        SqlPlanRuntimeMetrics metrics)
+        SqlPlanRuntimeMetrics metrics,
+        SqlPlanMockRuntimeContext? runtimeContext = null)
     {
         var sb = new StringBuilder();
         sb.AppendLine(SqlExecutionPlanMessages.ExecutionPlanTitle());
@@ -689,6 +726,8 @@ internal static class SqlExecutionPlanFormatter
         sb.AppendLine($"- {SqlExecutionPlanMessages.SelectivityPctLabel()}: {metrics.SelectivityPct:F2}");
         sb.AppendLine($"- {SqlExecutionPlanMessages.RowsPerMsLabel()}: {metrics.RowsPerMs:F2}");
         sb.AppendLine($"- {SqlExecutionPlanMessages.ElapsedMsLabel()}: {metrics.ElapsedMs}");
+        AppendPerformanceDisclaimer(sb);
+        AppendMockRuntimeContext(sb, runtimeContext);
 
         return sb.ToString().TrimEnd();
     }

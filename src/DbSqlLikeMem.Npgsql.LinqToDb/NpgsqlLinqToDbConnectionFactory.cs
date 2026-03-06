@@ -15,7 +15,7 @@ public sealed class NpgsqlLinqToDbConnectionFactory : IDbSqlLikeMemLinqToDbConne
     /// </summary>
     public DbConnection CreateOpenConnection()
     {
-        var connection = new NpgsqlConnectionMock(new NpgsqlDbMock());
+        var connection = new NpgsqlConnectionMock([]);
         connection.Open();
         return connection;
     }

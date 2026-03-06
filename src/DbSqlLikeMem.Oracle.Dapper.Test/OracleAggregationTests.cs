@@ -16,7 +16,7 @@ public sealed class OracleAggregationTests : AggregationHavingOrdinalTestsBase<O
     }
 
     /// <inheritdoc />
-    protected override OracleDbMock CreateDb() => new();
+    protected override OracleDbMock CreateDb() => [];
 
     /// <inheritdoc />
     protected override OracleConnectionMock CreateConnection(OracleDbMock db) => new(db);

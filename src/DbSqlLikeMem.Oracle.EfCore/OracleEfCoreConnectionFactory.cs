@@ -14,7 +14,7 @@ public sealed class OracleEfCoreConnectionFactory : IDbSqlLikeMemEfCoreConnectio
     /// </summary>
     public DbConnection CreateOpenConnection()
     {
-        var connection = new OracleConnectionMock(new OracleDbMock());
+        var connection = new OracleConnectionMock([]);
         connection.Open();
         return connection;
     }

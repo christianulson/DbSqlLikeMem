@@ -45,6 +45,8 @@ jobs:
             project: src/DbSqlLikeMem.MySql.Test/DbSqlLikeMem.MySql.Test.csproj
           - provider: sqlserver
             project: src/DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj
+          - provider: sqlazure
+            project: src/DbSqlLikeMem.SqlAzure.Test/DbSqlLikeMem.SqlAzure.Test.csproj
           - provider: oracle
             project: src/DbSqlLikeMem.Oracle.Test/DbSqlLikeMem.Oracle.Test.csproj
           - provider: npgsql

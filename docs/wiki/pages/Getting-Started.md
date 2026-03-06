@@ -11,6 +11,8 @@
 </ItemGroup>
 ```
 
+You can switch the provider reference to `DbSqlLikeMem.SqlAzure` when validating Azure SQL compatibility.
+
 ### Build the solution
 
 ```bash
@@ -19,7 +21,7 @@ dotnet build src/DbSqlLikeMem.slnx
 
 ## Runtime provider selection
 
-Use a factory to choose `MySql`, `SqlServer`, `Oracle`, or `Npgsql` dynamically.
+Use a factory to choose `MySql`, `SqlServer`, `SqlAzure`, `Oracle`, `Npgsql`, `Sqlite`, or `Db2` dynamically.
 
 ## Tests
 
@@ -42,6 +44,8 @@ dotnet test src/DbSqlLikeMem.slnx
 </ItemGroup>
 ```
 
+Você pode trocar a referência do provider para `DbSqlLikeMem.SqlAzure` ao validar compatibilidade com Azure SQL.
+
 #### Build da solution
 
 ```bash
@@ -50,4 +54,4 @@ dotnet build src/DbSqlLikeMem.slnx
 
 ### Seleção de provider em runtime
 
-Use uma factory para escolher `MySql`, `SqlServer`, `Oracle` ou `Npgsql` dinamicamente.
+Use uma factory para escolher `MySql`, `SqlServer`, `SqlAzure`, `Oracle`, `Npgsql`, `Sqlite` ou `Db2` dinamicamente.

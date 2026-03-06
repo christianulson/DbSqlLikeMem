@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>false</IsTestProject>
+		<IsTestToolsProject>true</IsTestToolsProject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.CsvReader\DbSqlLikeMem.CsvReader.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
+	</ItemGroup>
+
+</Project>

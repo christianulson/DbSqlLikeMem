@@ -1,4 +1,4 @@
-﻿#if NET48 || NETSTANDARD2_1
+#if NET462 || NETSTANDARD2_0
 
 namespace System.Runtime.CompilerServices
 {
@@ -11,7 +11,7 @@ namespace System.Runtime.CompilerServices
 }
 #endif
 
-#if NET48 || NETSTANDARD2_1 || NET6_0
+#if NET462 || NETSTANDARD2_0
 
 namespace System.Runtime.CompilerServices
 {
@@ -71,7 +71,37 @@ namespace System.Diagnostics.CodeAnalysis
 }
 #endif
 
-#if NET48
+#if NET462 || NETSTANDARD2_0
+namespace System
+{
+    /// <summary>
+    /// HashCode - Compatibility
+    /// </summary>
+    public struct HashCode
+    {
+        private int _value;
+
+        /// <summary>
+        /// HashCode.Add - Compatibility
+        /// </summary>
+        public void Add<T>(T value)
+        {
+            var itemHash = value?.GetHashCode() ?? 0;
+            unchecked
+            {
+                _value = (_value * 31) + itemHash;
+            }
+        }
+
+        /// <summary>
+        /// HashCode.ToHashCode - Compatibility
+        /// </summary>
+        public int ToHashCode() => _value;
+    }
+}
+#endif
+
+#if NET462 || NETSTANDARD2_0
 
 namespace System.Diagnostics.CodeAnalysis
 {
@@ -85,7 +115,7 @@ namespace System.Diagnostics.CodeAnalysis
 }
 #endif
 
-#if NET48
+#if NET462
 
 namespace System.Diagnostics.CodeAnalysis
 {
@@ -168,4 +198,21 @@ namespace DbSqlLikeMem
             return value;
         }
     }
+
+    /// <summary>
+    /// Provides framework-compatible elapsed-ticks calculations from Stopwatch timestamps.
+    /// </summary>
+    public static class StopwatchCompatible
+    {
+        /// <summary>
+        /// Converts a start timestamp (from Stopwatch.GetTimestamp) to elapsed TimeSpan ticks.
+        /// </summary>
+        public static long GetElapsedTicks(long startTimestamp)
+        {
+            var delta = System.Diagnostics.Stopwatch.GetTimestamp() - startTimestamp;
+            return (delta * TimeSpan.TicksPerSecond) / System.Diagnostics.Stopwatch.Frequency;
+        }
+    }
 }
+
+

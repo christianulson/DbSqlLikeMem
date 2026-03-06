@@ -47,6 +47,8 @@ public sealed class ExecutionPlanTests(
         cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.EstimatedRowsReadLabel()}: 3");
         cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.SelectivityPctLabel()}:");
         cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.RowsPerMsLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.PerformanceDisclaimerLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain(SqlExecutionPlanMessages.PerformanceDisclaimerMessage());
         cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.ElapsedMsLabel()}:");
 
         Console.WriteLine("[ExecutionPlan]\n" + cnn.LastExecutionPlan);

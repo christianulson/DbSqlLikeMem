@@ -27,7 +27,7 @@ public sealed class SqliteProviderSurfaceMocksTests
     [Fact]
     public void DataSource_ShouldCreateSqliteConnection()
     {
-        var source = new SqliteDataSourceMock(new SqliteDbMock());
+        var source = new SqliteDataSourceMock([]);
 #if NET8_0_OR_GREATER
         using var connection = source.CreateConnection();
 #else
@@ -36,7 +36,7 @@ public sealed class SqliteProviderSurfaceMocksTests
         Assert.IsType<SqliteConnectionMock>(connection);
     }
 
-#if NET6_0_OR_GREATER
+#if NET8_0_OR_GREATER
     /// <summary>
     /// EN: Ensures batch execution runs all commands and returns the accumulated affected rows.
     /// PT: Garante que a execução em lote rode todos os comandos e retorne o total acumulado de linhas afetadas.

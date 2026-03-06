@@ -13,7 +13,7 @@ public sealed class NpgsqlConnectorFactoryMockTests
     [Fact]
     public void CreateCoreMembers_ShouldReturnProviderMocks()
     {
-        var factory = NpgsqlConnectorFactoryMock.GetInstance(new NpgsqlDbMock());
+        var factory = NpgsqlConnectorFactoryMock.GetInstance([]);
 
         Assert.IsType<NpgsqlCommandMock>(factory.CreateCommand());
         Assert.IsType<NpgsqlConnectionMock>(factory.CreateConnection());
@@ -22,7 +22,7 @@ public sealed class NpgsqlConnectorFactoryMockTests
         Assert.NotNull(factory.CreateParameter());
     }
 
-#if NET6_0_OR_GREATER
+#if NET8_0_OR_GREATER
     /// <summary>
     /// EN: Verifies that batch factory methods create Npgsql-specific batch mocks.
     /// PT: Verifica se os métodos de lote da fábrica criam mocks de lote específicos do Npgsql.
@@ -30,7 +30,7 @@ public sealed class NpgsqlConnectorFactoryMockTests
     [Fact]
     public void CreateBatchMembers_ShouldReturnProviderMocks()
     {
-        var factory = NpgsqlConnectorFactoryMock.GetInstance(new NpgsqlDbMock());
+        var factory = NpgsqlConnectorFactoryMock.GetInstance([]);
 
         Assert.True(factory.CanCreateBatch);
         Assert.IsType<NpgsqlBatchMock>(factory.CreateBatch());
@@ -46,7 +46,7 @@ public sealed class NpgsqlConnectorFactoryMockTests
     [Fact]
     public void CreateDataSource_ShouldReturnProviderDataSourceMock()
     {
-        var factory = NpgsqlConnectorFactoryMock.GetInstance(new NpgsqlDbMock());
+        var factory = NpgsqlConnectorFactoryMock.GetInstance([]);
 
         var dataSource = factory.CreateDataSource("Host=mock");
         Assert.IsType<NpgsqlDataSourceMock>(dataSource);

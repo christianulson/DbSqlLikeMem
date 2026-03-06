@@ -84,6 +84,10 @@ public sealed class SqlDatabaseMetadataProviderTests
     [Trait("Category", "SqlDatabaseMetadataProvider")]
     [InlineData("MySql")]
     [InlineData("SqlServer")]
+    [InlineData("SqlAzure")]
+    [InlineData("AzureSql")]
+    [InlineData("azure-sql")]
+    [InlineData("sql_azure")]
     [InlineData("PostgreSql")]
     [InlineData("Oracle")]
     [InlineData("Sqlite")]
@@ -96,6 +100,30 @@ public sealed class SqlDatabaseMetadataProviderTests
         Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildIndexesQuery(databaseType)));
         Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildForeignKeysQuery(databaseType)));
         Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildTriggersQuery(databaseType)));
+    }
+
+    /// <summary>
+    /// Verifies SQL Azure list query uses database name parsed from connection string.
+    /// Verifica se a consulta de listagem SQL Azure usa o nome do banco extraído da connection string.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlDatabaseMetadataProvider")]
+    public async Task ListObjectsAsync_ForSqlAzure_UsesDatabaseNameFromConnectionString()
+    {
+        var executor = new FakeSqlQueryExecutor();
+        executor.WhenContains("FROM sys.objects", []);
+
+        var provider = new SqlDatabaseMetadataProvider(executor);
+        var conn = new ConnectionDefinition(
+            "1",
+            "SqlAzure",
+            "AliasAzure",
+            "Server=tcp:localhost,1433;Initial Catalog=erp_azure;User ID=sa;Password=secret;");
+
+        _ = await provider.ListObjectsAsync(conn, TestContext.Current.CancellationToken);
+
+        Assert.True(executor.TryGetLastParametersFor("FROM sys.objects", out var parameters));
+        Assert.Equal("erp_azure", parameters!["databaseName"]?.ToString());
     }
 
     private static IReadOnlyDictionary<string, object?> Row(params (string Key, object? Value)[] items)

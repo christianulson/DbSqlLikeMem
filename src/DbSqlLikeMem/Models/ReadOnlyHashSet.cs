@@ -54,7 +54,13 @@ public class ReadOnlyHashSet<T> : IReadOnlyHashSet<T>
     //   capacity:
     //     The initial size of the System.Collections.Generic.HashSet`1
     public ReadOnlyHashSet(int capacity)
-        => _set = new HashSet<T>(capacity);
+    {
+#if NET8_0_OR_GREATER
+        _set = new HashSet<T>(capacity);
+#else
+        _set = new HashSet<T>();
+#endif
+    }
     //
     // Summary:
     //     Initializes a new instance of the System.Collections.Generic.HashSet`1 class
@@ -91,7 +97,13 @@ public class ReadOnlyHashSet<T> : IReadOnlyHashSet<T>
     //     comparing values in the set, or null (Nothing in Visual Basic) to use the default
     //     System.Collections.Generic.IEqualityComparer`1 implementation for the set type.
     public ReadOnlyHashSet(int capacity, IEqualityComparer<T> comparer)
-        => _set = new HashSet<T>(capacity, comparer);
+    {
+#if NET8_0_OR_GREATER
+        _set = new HashSet<T>(capacity, comparer);
+#else
+        _set = new HashSet<T>(comparer);
+#endif
+    }
 
     //
     // Summary:
@@ -406,8 +418,29 @@ public class ReadOnlyHashSet<T> : IReadOnlyHashSet<T>
     //
     // Returns:
     //     A value indicating whether the search was successful.
-    public bool TryGetValue(T equalValue, [MaybeNullWhen(false)] out T actualValue)
-        => _set.TryGetValue(equalValue, out actualValue);
+    public bool TryGetValue(
+        T equalValue,
+#if NET8_0_OR_GREATER
+        [MaybeNullWhen(false)]
+#endif
+        out T actualValue)
+    {
+#if NET8_0_OR_GREATER
+        return _set.TryGetValue(equalValue, out actualValue);
+#else
+        foreach (var item in _set)
+        {
+            if (_set.Comparer.Equals(item, equalValue))
+            {
+                actualValue = item;
+                return true;
+            }
+        }
+
+        actualValue = default!;
+        return false;
+#endif
+    }
 
     IEnumerator<T> IEnumerable<T>.GetEnumerator()
         => _set.GetEnumerator();

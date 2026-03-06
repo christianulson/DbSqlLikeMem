@@ -38,6 +38,10 @@ public sealed class NpgsqlConnectionMock
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new NpgsqlCommandMock(this, transaction as NpgsqlTransactionMock);
 
-    internal override Exception NewException(string message, int code)
+    /// <summary>
+    /// EN: Creates the Npgsql-specific mock exception used by this connection.
+    /// PT: Cria a excecao simulada especifica do Npgsql usada por esta conexao.
+    /// </summary>
+    protected internal override Exception NewException(string message, int code)
         => new NpgsqlMockException(message, code);
 }

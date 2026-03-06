@@ -14,7 +14,7 @@ public sealed class Db2BatchMock : DbBatch
     /// EN: Represents a provider-specific batch mock that executes commands against the in-memory database.
     /// PT: Representa um simulado de lote específico do provedor que executa comandos no banco em memória.
     /// </summary>
-    public Db2BatchMock() => BatchCommands = new Db2BatchCommandCollectionMock();
+    public Db2BatchMock() => BatchCommands = [];
 
     /// <summary>
     /// EN: Represents a provider-specific batch mock that executes commands against the in-memory database.
@@ -96,26 +96,11 @@ public sealed class Db2BatchMock : DbBatch
     /// </summary>
     public override int ExecuteNonQuery()
     {
-        if (Connection is null)
-            throw new InvalidOperationException("Connection must be set before executing a batch.");
-
-        var affected = 0;
-        foreach (var batchCommand in BatchCommands.Commands)
-        {
-            using var command = new Db2CommandMock(Connection, Transaction)
-            {
-                CommandText = batchCommand.CommandText,
-                CommandType = batchCommand.CommandType,
-                CommandTimeout = Timeout
-            };
-
-            foreach (DbParameter parameter in batchCommand.Parameters)
-                command.Parameters.Add(parameter);
-
-            affected += command.ExecuteNonQuery();
-        }
-
-        return affected;
+        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        return BatchSyncExecutionRunner.ExecuteNonQueryCommands(
+            connection,
+            BatchCommands.Commands,
+            CreateExecutableCommand);
     }
 
     /// <summary>
@@ -124,73 +109,13 @@ public sealed class Db2BatchMock : DbBatch
     /// </summary>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
-        if (Connection is null)
-            throw new InvalidOperationException("Connection must be set before executing a batch.");
-
-        var tables = new List<TableResultMock>();
-
-        foreach (var batchCommand in BatchCommands.Commands)
-        {
-            using var command = new Db2CommandMock(Connection, Transaction)
-            {
-                CommandText = batchCommand.CommandText,
-                CommandType = batchCommand.CommandType,
-                CommandTimeout = Timeout
-            };
-
-            foreach (DbParameter parameter in batchCommand.Parameters)
-                command.Parameters.Add(parameter);
-
-            try
-            {
-                using var reader = command.ExecuteReader(behavior);
-                do
-                {
-                    var rows = new List<object[]>();
-                    while (reader.Read())
-                    {
-                        var row = new object[reader.FieldCount];
-                        reader.GetValues(row);
-                        rows.Add(row);
-                    }
-
-                    if (reader.FieldCount > 0)
-                        tables.Add(CreateTableResult(rows, reader));
-                } while (reader.NextResult());
-            }
-            catch (InvalidOperationException ex) when (ex.Message == SqlExceptionMessages.ExecuteReaderWithoutSelectQuery())
-            {
-                command.ExecuteNonQuery();
-            }
-        }
-
-        return new Db2DataReaderMock(tables);
-    }
-
-    private static TableResultMock CreateTableResult(IReadOnlyCollection<object[]> rows, IDataRecord schemaRecord)
-    {
-        var table = new TableResultMock();
-
-        for (var col = 0; col < schemaRecord.FieldCount; col++)
-        {
-            table.Columns.Add(new TableResultColMock(
-                tableAlias: string.Empty,
-                columnAlias: schemaRecord.GetName(col),
-                columnName: schemaRecord.GetName(col),
-                columIndex: col,
-                dbType: schemaRecord.GetFieldType(col).ConvertTypeToDbType(),
-                isNullable: true));
-        }
-
-        foreach (var row in rows)
-        {
-            var rowData = new Dictionary<int, object?>();
-            for (var col = 0; col < row.Length; col++)
-                rowData[col] = row[col] == DBNull.Value ? null : row[col];
-            table.Add(rowData);
-        }
-
-        return table;
+        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        return BatchSyncExecutionRunner.ExecuteReaderCommands(
+            connection,
+            BatchCommands.Commands,
+            CreateExecutableCommand,
+            behavior,
+            static tables => new Db2DataReaderMock(tables));
     }
 
     /// <summary>
@@ -199,49 +124,76 @@ public sealed class Db2BatchMock : DbBatch
     /// </summary>
     public override object? ExecuteScalar()
     {
-        if (BatchCommands.Count == 0)
-            return null;
-
-        var first = BatchCommands.Commands[0];
-        using var command = new Db2CommandMock(Connection, Transaction)
-        {
-            CommandText = first.CommandText,
-            CommandType = first.CommandType,
-            CommandTimeout = Timeout
-        };
-
-        foreach (DbParameter parameter in first.Parameters)
-            command.Parameters.Add(parameter);
-
-        return command.ExecuteScalar();
+        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        return BatchScalarExecutionRunner.ExecuteFirstScalar(
+            connection,
+            BatchCommands.Commands,
+            CreateExecutableCommand);
     }
 
     /// <summary>
     /// EN: Execute Non Query Async for the current batch state.
     /// PT: Execute Non consulta Async para o estado atual do lote.
     /// </summary>
-    public override System.Threading.Tasks.Task<int> ExecuteNonQueryAsync(System.Threading.CancellationToken cancellationToken = default)
-        => System.Threading.Tasks.Task.FromResult(ExecuteNonQuery());
+    public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default)
+    {
+        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        return BatchAsyncExecutionRunner
+            .ExecuteNonQueryCommandsAsync(
+                connection,
+                BatchCommands.Commands,
+                CreateExecutableCommand,
+                cancellationToken)
+;
+    }
 
     /// <summary>
     /// EN: Execute Db Data Reader Async for the current batch state.
     /// PT: Execute Db Data leitor Async para o estado atual do lote.
     /// </summary>
-    protected override System.Threading.Tasks.Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, System.Threading.CancellationToken cancellationToken = default)
-        => System.Threading.Tasks.Task.FromResult<DbDataReader>(ExecuteDbDataReader(behavior));
+    protected override Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken = default)
+    {
+        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        return BatchAsyncExecutionRunner
+            .ExecuteReaderCommandsAsync(
+                connection,
+                BatchCommands.Commands,
+                CreateExecutableCommand,
+                behavior,
+                static tables => (DbDataReader)new Db2DataReaderMock(tables),
+                cancellationToken)
+;
+    }
 
     /// <summary>
     /// EN: Execute Scalar Async for the current batch state.
     /// PT: Execute Scalar Async para o estado atual do lote.
     /// </summary>
-    public override System.Threading.Tasks.Task<object?> ExecuteScalarAsync(System.Threading.CancellationToken cancellationToken = default)
-        => System.Threading.Tasks.Task.FromResult(ExecuteScalar());
+    public override Task<object?> ExecuteScalarAsync(CancellationToken cancellationToken = default)
+    {
+        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        return BatchScalarExecutionRunner.ExecuteFirstScalarAsync(
+            connection,
+            BatchCommands.Commands,
+            CreateExecutableCommand,
+            cancellationToken);
+    }
+
+    private Db2CommandMock CreateExecutableCommand(Db2BatchCommandMock batchCommand)
+    {
+        var connection = BatchExecutionGuards.RequireConnection(Connection);
+        return BatchCommandFactory.Create(
+            connection,
+            () => new Db2CommandMock(connection, Transaction),
+            batchCommand,
+            Timeout);
+    }
 
     /// <summary>
     /// EN: Executes prepare async.
     /// PT: Executa prepare async.
     /// </summary>
-    public override System.Threading.Tasks.Task PrepareAsync(System.Threading.CancellationToken cancellationToken = default)
+    public override Task PrepareAsync(CancellationToken cancellationToken = default)
     {
         Prepare();
         return System.Threading.Tasks.Task.CompletedTask;

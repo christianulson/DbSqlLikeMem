@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>false</IsTestProject>
+		<IsTestToolsProject>true</IsTestToolsProject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="NHibernate" Version="5.6.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.TestTools\DbSqlLikeMem.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+	</ItemGroup>
+</Project>

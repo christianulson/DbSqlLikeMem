@@ -51,6 +51,24 @@
   <data name="ExecuteReaderWithoutSelectQuery" xml:space="preserve">
     <value>ExecuteReader was called, but no SELECT query was found.</value>
   </data>
+  <data name="BatchConnectionRequired" xml:space="preserve">
+    <value>Se debe establecer la conexión antes de ejecutar un batch.</value>
+  </data>
+  <data name="BatchCommandsMustContainCommand" xml:space="preserve">
+    <value>BatchCommands debe contener un comando.</value>
+  </data>
+  <data name="BatchCommandsMustNotContainNull" xml:space="preserve">
+    <value>BatchCommands no debe contener valores nulos.</value>
+  </data>
+  <data name="BatchCommandTextRequired" xml:space="preserve">
+    <value>CommandText debe especificarse en cada comando del batch.</value>
+  </data>
+  <data name="BatchConnectionMustBeOpenCurrentState" xml:space="preserve">
+    <value>La conexión debe estar Open; el estado actual es {0}</value>
+  </data>
+  <data name="MySqlBatchPrepareOnlyTextSupported" xml:space="preserve">
+    <value>Actualmente, MySqlBatch.Prepare solo admite CommandType.Text.</value>
+  </data>
   <data name="InvalidDropViewStatement" xml:space="preserve">
     <value>Invalid DROP VIEW statement.</value>
   </data>
@@ -74,5 +92,17 @@
   </data>
   <data name="DapperRuntimeNotFound" xml:space="preserve">
     <value>Dapper was not found at runtime. Add a reference to package Dapper or Dapper.StrongName to enable LINQ execution via late binding.</value>
+  </data>
+  <data name="NonQueryHandlerCouldNotProcessStatement" xml:space="preserve">
+    <value>Ningún controlador de non-query pudo procesar la sentencia SQL.</value>
+  </data>
+  <data name="ProcedureNameNotProvided" xml:space="preserve">
+    <value>No se proporcionó el nombre del procedimiento.</value>
+  </data>
+  <data name="InvalidCallStatement" xml:space="preserve">
+    <value>Sentencia CALL inválida.</value>
+  </data>
+  <data name="LinqCouldNotExtractTableNameFromExpression" xml:space="preserve">
+    <value>No se pudo extraer el nombre de la tabla de la expresión: {0}</value>
   </data>
 </root>

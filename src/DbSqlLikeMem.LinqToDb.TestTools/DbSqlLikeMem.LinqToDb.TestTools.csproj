@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>false</IsTestProject>
+		<IsTestToolsProject>true</IsTestToolsProject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.LinqToDb\DbSqlLikeMem.LinqToDb.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
+		<ProjectReference Include="..\DbSqlLikeMem.TestTools\DbSqlLikeMem.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="DbSqlLikeMem.LinqToDb" />
+	</ItemGroup>
+
+</Project>

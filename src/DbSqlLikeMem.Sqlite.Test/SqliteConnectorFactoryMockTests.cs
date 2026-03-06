@@ -13,7 +13,7 @@ public sealed class SqliteConnectorFactoryMockTests
     [Fact]
     public void CreateCoreMembers_ShouldReturnProviderMocks()
     {
-        var factory = SqliteConnectorFactoryMock.GetInstance(new SqliteDbMock());
+        var factory = SqliteConnectorFactoryMock.GetInstance([]);
 
         Assert.IsType<SqliteCommandMock>(factory.CreateCommand());
         Assert.IsType<SqliteConnectionMock>(factory.CreateConnection());
@@ -22,7 +22,7 @@ public sealed class SqliteConnectorFactoryMockTests
         Assert.NotNull(factory.CreateParameter());
     }
 
-#if NET6_0_OR_GREATER
+#if NET8_0_OR_GREATER
     /// <summary>
     /// EN: Creates a new batch members_should return provider mocks instance.
     /// PT: Verifica se os membros de lote retornam mocks do provedor.
@@ -30,7 +30,7 @@ public sealed class SqliteConnectorFactoryMockTests
     [Fact]
     public void CreateBatchMembers_ShouldReturnProviderMocks()
     {
-        var factory = SqliteConnectorFactoryMock.GetInstance(new SqliteDbMock());
+        var factory = SqliteConnectorFactoryMock.GetInstance([]);
 
         Assert.True(factory.CanCreateBatch);
         Assert.IsType<SqliteBatchMock>(factory.CreateBatch());
@@ -46,7 +46,7 @@ public sealed class SqliteConnectorFactoryMockTests
     [Fact]
     public void CreateDataSource_ShouldReturnProviderDataSourceMock()
     {
-        var factory = SqliteConnectorFactoryMock.GetInstance(new SqliteDbMock());
+        var factory = SqliteConnectorFactoryMock.GetInstance([]);
 
         var dataSource = factory.CreateDataSource("Host=mock");
         Assert.IsType<SqliteDataSourceMock>(dataSource);

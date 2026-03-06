@@ -9,6 +9,7 @@ DOC = ROOT / "docs" / "old" / "p7-p10-implementation-plan.md"
 PROVIDERS = [
     ("MySQL", "MySql"),
     ("SQL Server", "SqlServer"),
+    ("SQL Azure", "SqlAzure"),
     ("Oracle", "Oracle"),
     ("PostgreSQL (Npgsql)", "Npgsql"),
     ("SQLite", "Sqlite"),

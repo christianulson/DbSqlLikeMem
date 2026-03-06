@@ -94,4 +94,173 @@ SELECT * FROM v_users;
         const string sql = "CREATE VIEW IF NOT EXISTS v AS SELECT 1;";
         Assert.ThrowsAny<Exception>(() => SqlQueryParser.ParseMulti(sql, new SqliteDialect(version)).ToList());
     }
+
+    /// <summary>
+    /// EN: Tests Parse_DropView_WithUnexpectedContinuation_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_DropView_WithUnexpectedContinuation_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Views")]
+    [MemberDataSqliteVersion]
+    public void Parse_DropView_WithUnexpectedContinuation_ShouldThrow(int version)
+    {
+        const string sql = "DROP VIEW v_users EXTRA";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateView_WithUnexpectedSecondStatementInBody_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateView_WithUnexpectedSecondStatementInBody_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Views")]
+    [MemberDataSqliteVersion]
+    public void Parse_CreateView_WithUnexpectedSecondStatementInBody_ShouldThrow(int version)
+    {
+        const string sql = "CREATE VIEW v_users AS SELECT id FROM users; SELECT 1";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateView_WithMissingBodyAfterAs_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateView_WithMissingBodyAfterAs_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Views")]
+    [MemberDataSqliteVersion]
+    public void Parse_CreateView_WithMissingBodyAfterAs_ShouldThrow(int version)
+    {
+        const string sql = "CREATE VIEW v_users AS ;";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_DropView_WithoutName_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_DropView_WithoutName_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Views")]
+    [MemberDataSqliteVersion]
+    public void Parse_DropView_WithoutName_ShouldThrow(int version)
+    {
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse("DROP VIEW ;", new SqliteDialect(version)));
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse("DROP VIEW IF EXISTS ;", new SqliteDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateView_WithEmptyColumnList_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateView_WithEmptyColumnList_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Views")]
+    [MemberDataSqliteVersion]
+    public void Parse_CreateView_WithEmptyColumnList_ShouldThrow(int version)
+    {
+        const string sql = "CREATE VIEW v_users () AS SELECT id FROM users";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateView_WithTrailingCommaInColumnList_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateView_WithTrailingCommaInColumnList_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Views")]
+    [MemberDataSqliteVersion]
+    public void Parse_CreateView_WithTrailingCommaInColumnList_ShouldThrow(int version)
+    {
+        const string sql = "CREATE VIEW v_users (id,) AS SELECT id FROM users";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateView_WithLeadingCommaInColumnList_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateView_WithLeadingCommaInColumnList_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Views")]
+    [MemberDataSqliteVersion]
+    public void Parse_CreateView_WithLeadingCommaInColumnList_ShouldThrow(int version)
+    {
+        const string sql = "CREATE VIEW v_users (,id) AS SELECT id FROM users";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateView_WithUnclosedColumnList_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateView_WithUnclosedColumnList_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Views")]
+    [MemberDataSqliteVersion]
+    public void Parse_CreateView_WithUnclosedColumnList_ShouldThrow(int version)
+    {
+        const string sql = "CREATE VIEW v_users (id";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateView_WithMissingCommaBetweenColumns_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateView_WithMissingCommaBetweenColumns_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Views")]
+    [MemberDataSqliteVersion]
+    public void Parse_CreateView_WithMissingCommaBetweenColumns_ShouldThrow(int version)
+    {
+        const string sql = "CREATE VIEW v_users (id name) AS SELECT id, name FROM users";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_DropView_WithUnexpectedSecondStatement_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_DropView_WithUnexpectedSecondStatement_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Views")]
+    [MemberDataSqliteVersion]
+    public void Parse_DropView_WithUnexpectedSecondStatement_ShouldThrow(int version)
+    {
+        const string sql = "DROP VIEW v_users; SELECT 1";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_DropViewIfExists_WithUnexpectedSecondStatement_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_DropViewIfExists_WithUnexpectedSecondStatement_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Views")]
+    [MemberDataSqliteVersion]
+    public void Parse_DropViewIfExists_WithUnexpectedSecondStatement_ShouldThrow(int version)
+    {
+        const string sql = "DROP VIEW IF EXISTS v_users; SELECT 1";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateView_WithDoubleCommaInColumnList_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateView_WithDoubleCommaInColumnList_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Views")]
+    [MemberDataSqliteVersion]
+    public void Parse_CreateView_WithDoubleCommaInColumnList_ShouldThrow(int version)
+    {
+        const string sql = "CREATE VIEW v_users (id,,name) AS SELECT id, name FROM users";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Tests Parse_CreateView_WithUnclosedColumnListBeforeAs_ShouldThrow behavior.
+    /// PT: Testa o comportamento de Parse_CreateView_WithUnclosedColumnListBeforeAs_ShouldThrow.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Views")]
+    [MemberDataSqliteVersion]
+    public void Parse_CreateView_WithUnclosedColumnListBeforeAs_ShouldThrow(int version)
+    {
+        const string sql = "CREATE VIEW v_users (id AS SELECT id FROM users";
+        Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, new SqliteDialect(version)));
+    }
 }

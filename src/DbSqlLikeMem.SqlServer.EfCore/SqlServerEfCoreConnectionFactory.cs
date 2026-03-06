@@ -14,7 +14,7 @@ public sealed class SqlServerEfCoreConnectionFactory : IDbSqlLikeMemEfCoreConnec
     /// </summary>
     public DbConnection CreateOpenConnection()
     {
-        var connection = new SqlServerConnectionMock(new SqlServerDbMock());
+        var connection = new SqlServerConnectionMock([]);
         connection.Open();
         return connection;
     }

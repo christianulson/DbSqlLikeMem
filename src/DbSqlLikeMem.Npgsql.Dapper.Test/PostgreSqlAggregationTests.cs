@@ -16,7 +16,7 @@ public sealed class PostgreSqlAggregationTests : AggregationHavingOrdinalTestsBa
     }
 
     /// <inheritdoc />
-    protected override NpgsqlDbMock CreateDb() => new();
+    protected override NpgsqlDbMock CreateDb() => [];
 
     /// <inheritdoc />
     protected override NpgsqlConnectionMock CreateConnection(NpgsqlDbMock db) => new(db);

@@ -1,4 +1,8 @@
-﻿namespace DbSqlLikeMem.Db2.Dapper.Test;
+﻿#if NET462
+using DB2Parameter = IBM.Data.DB2.iSeries.iDB2Parameter;
+#endif
+
+namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
 /// EN: Defines the class StoredProcedureExecutionTests.
@@ -12,7 +16,7 @@ public sealed class StoredProcedureExecutionTests(
     private static DB2Parameter P(string name, object? value, DbType dbType, ParameterDirection dir = ParameterDirection.Input)
         => new()
         {
-            ParameterName = name.StartsWith('@')
+            ParameterName = name.StartsWith("@")
                 ? name
                 : "@" + name,
             Value = value ?? DBNull.Value,

@@ -34,7 +34,7 @@ Implementação atual deste repositório:
 
 ### Via GitHub Actions (recomendado)
 
-1. Crie uma API key em https://www.nuget.org/ (Account settings → API Keys).
+1. Crie uma API key em <https://www.nuget.org/> (Account settings → API Keys).
 2. No repositório do GitHub, adicione o secret **`NUGET_API_KEY`** no Environment **`nuget-publish`**.
 3. Atualize a versão em `src/Directory.Build.props` (`Version`).
 4. Crie e envie uma tag de release:
@@ -61,6 +61,7 @@ Checklist rápido para confirmar **breaking change**:
 Se todas as respostas forem **não**, prefira `PATCH` (sem feature nova) ou `MINOR` (com feature nova).
 
 Workflow responsável:
+
 - `.github/workflows/nuget-publish.yml`
 
 Esse pipeline empacota e publica os projetos do solution no nuget.org.
@@ -87,6 +88,7 @@ done
 ## Visual Studio Extension (VSIX)
 
 Workflow preparado:
+
 - `.github/workflows/vsix-publish.yml`
 
 ### Pré-requisitos

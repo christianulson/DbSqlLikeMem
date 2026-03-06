@@ -8,7 +8,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\DbSqlLikeMem.MySql.MiniProfiler\DbSqlLikeMem.MySql.MiniProfiler.csproj" />
-		<ProjectReference Include="..\DbSqlLikeMem.XUnit\DbSqlLikeMem.XUnit.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.MySql.MiniProfiler\DbSqlLikeMem.MySql.MiniProfiler.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.XUnit\DbSqlLikeMem.XUnit.csproj"  AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 </Project>

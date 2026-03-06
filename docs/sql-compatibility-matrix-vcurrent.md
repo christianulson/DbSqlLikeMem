@@ -5,8 +5,11 @@
 Consulte a matriz principal para visão consolidada: [sql-compatibility-matrix.md](sql-compatibility-matrix.md).
 
 ## Escopo
-- Providers: MySQL, SQL Server, Oracle, Npgsql, DB2, SQLite.
+
+- Providers: MySQL, SQL Server, SQL Azure, Oracle, Npgsql, DB2, SQLite.
 - Estado: capabilities atualmente estabilizadas no branch principal.
 
 ## Observação
+
 Em caso de divergência, os testes por provider continuam sendo a fonte de verdade.
+SQL Azure segue a mesma base de compatibilidade do dialeto SQL Server neste ciclo.

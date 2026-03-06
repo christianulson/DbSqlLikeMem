@@ -30,6 +30,7 @@ Exemplos:
 
 ```bash
 dotnet add package DbSqlLikeMem.SqlServer
+dotnet add package DbSqlLikeMem.SqlAzure
 dotnet add package DbSqlLikeMem.Npgsql
 dotnet add package DbSqlLikeMem.MySql
 dotnet add package DbSqlLikeMem.Oracle
@@ -54,6 +55,7 @@ Quando o banco é escolhido em tempo de execução, use uma factory:
 using DbSqlLikeMem.MySql;
 using DbSqlLikeMem.Npgsql;
 using DbSqlLikeMem.Oracle;
+using DbSqlLikeMem.SqlAzure;
 using DbSqlLikeMem.Sqlite;
 using DbSqlLikeMem.SqlServer;
 using DbSqlLikeMem.Db2;
@@ -66,6 +68,7 @@ public static class DbSqlLikeMemFactory
         {
             "mysql" => new MySqlConnectionMock(new MySqlDbMock()),
             "sqlserver" => new SqlServerConnectionMock(new SqlServerDbMock()),
+            "sqlazure" or "azure-sql" or "azuresql" or "azure_sql" => new SqlAzureConnectionMock(new SqlAzureDbMock()),
             "oracle" => new OracleConnectionMock(new OracleDbMock()),
             "postgres" or "postgresql" or "npgsql" => new NpgsqlConnectionMock(new NpgsqlDbMock()),
             "sqlite" or "sqlite3" => new SqliteConnectionMock(new SqliteDbMock()),

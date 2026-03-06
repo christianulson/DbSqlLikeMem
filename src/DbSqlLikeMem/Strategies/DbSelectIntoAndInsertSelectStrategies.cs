@@ -3,6 +3,34 @@ namespace DbSqlLikeMem;
 internal static class DbSelectIntoAndInsertSelectStrategies
 {
     /// <summary>
+    /// EN: Dispatches parsed AST commands to ExecuteNonQuery handlers.
+    /// PT: Despacha comandos AST parseados para handlers de ExecuteNonQuery.
+    /// </summary>
+    public static int ExecuteParsedNonQuery(
+        this DbConnectionMockBase connection,
+        SqlQueryBase query,
+        DbParameterCollection pars,
+        ISqlDialect dialect,
+        bool allowMerge,
+        bool unionUsesSelectMessage)
+    {
+        return query switch
+        {
+            SqlInsertQuery insertQ => connection.ExecuteInsert(insertQ, pars, dialect),
+            SqlUpdateQuery updateQ => connection.ExecuteUpdateSmart(updateQ, pars, dialect),
+            SqlDeleteQuery deleteQ => connection.ExecuteDeleteSmart(deleteQ, pars, dialect),
+            SqlCreateTemporaryTableQuery tempQ => connection.ExecuteCreateTemporaryTableAsSelect(tempQ, pars, dialect),
+            SqlCreateViewQuery viewQ => connection.ExecuteCreateView(viewQ, pars, dialect),
+            SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, pars, dialect),
+            SqlDropTableQuery dropTableQ => connection.ExecuteDropTable(dropTableQ, pars, dialect),
+            SqlMergeQuery mergeQ when allowMerge => connection.ExecuteMerge(mergeQ, pars, dialect),
+            SqlSelectQuery _ => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelect()),
+            SqlUnionQuery _ when unionUsesSelectMessage => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelectUnion()),
+            _ => throw SqlUnsupported.ForCommandType(dialect, "ExecuteNonQuery", query.GetType())
+        };
+    }
+
+    /// <summary>
     /// EN: Implements ExecuteCreateView.
     /// PT: Implementa ExecuteCreateView.
     /// </summary>
@@ -68,6 +96,46 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         var viewName = query.Table?.Name;
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(viewName, nameof(viewName));
         connection.DropView(viewName!, query.IfExists, query.Table?.DbName);
+        return 0;
+    }
+
+    /// <summary>
+    /// EN: Implements ExecuteDropTable.
+    /// PT: Implementa ExecuteDropTable.
+    /// </summary>
+    public static int ExecuteDropTable(
+        this DbConnectionMockBase connection,
+        SqlDropTableQuery query,
+        DbParameterCollection pars,
+        ISqlDialect dialect)
+    {
+        _ = pars;
+        _ = dialect;
+        int affected;
+        if (!connection.Db.ThreadSafe)
+            affected = ExecuteDropTableImpl(connection, query);
+        else
+        {
+            lock (connection.Db.SyncRoot)
+                affected = ExecuteDropTableImpl(connection, query);
+        }
+
+        connection.SetLastFoundRows(affected);
+        return affected;
+    }
+
+    private static int ExecuteDropTableImpl(
+        DbConnectionMockBase connection,
+        SqlDropTableQuery query)
+    {
+        var tableName = query.Table?.Name;
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
+        connection.DropTable(
+            tableName!,
+            query.IfExists,
+            query.Temporary,
+            query.Scope,
+            query.Table?.DbName);
         return 0;
     }
 
@@ -410,7 +478,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         var tableName = m.Groups["table"].Value.NormalizeName();
         if (!connection.TryGetTable(tableName, out var target)
             || target == null)
-            throw new InvalidOperationException($"Table {tableName} does not exist.");
+            throw SqlUnsupported.ForTableDoesNotExist(tableName);
 
         var cols = m.Groups["cols"].Value.Split(',')
             .Select(c => c.Replace("`", string.Empty).Trim())

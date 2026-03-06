@@ -51,6 +51,33 @@ public sealed class OracleMockTests
     }
 
     /// <summary>
+    /// EN: Tests ExecuteNonQuery with multi-statement INSERT script behavior.
+    /// PT: Testa o comportamento de ExecuteNonQuery com script de INSERT multi-statement.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "OracleMock")]
+    public void ExecuteNonQuery_MultiStatementInsertScript_ShouldInsertAllRowsAndReturnTotalAffected()
+    {
+        using var command = new OracleCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (101, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (102, 'Bia', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (103, 'Caio', NULL);
+                """
+        };
+
+        var rowsAffected = command.ExecuteNonQuery();
+
+        Assert.Equal(3, rowsAffected);
+        var users = _connection.GetTable("Users");
+        Assert.Equal(3, users.Count);
+        Assert.Equal("Ana", users[0][1]);
+        Assert.Equal("Bia", users[1][1]);
+        Assert.Equal("Caio", users[2][1]);
+    }
+
+    /// <summary>
     /// EN: Tests TestUpdate behavior.
     /// PT: Testa o comportamento de TestUpdate.
     /// </summary>

@@ -348,6 +348,22 @@ public abstract class DbConnectionMockBase(
         return tables.AsReadOnly();
     }
 
+    /// <summary>
+    /// EN: Resets all volatile in-memory state for the current connection and backing database.
+    /// PT: Reseta todo o estado volátil em memória da conexão atual e do banco associado.
+    /// </summary>
+    public void ResetAllVolatileData()
+    {
+        if (!Db.ThreadSafe)
+        {
+            ResetAllVolatileDataCore();
+            return;
+        }
+
+        lock (Db.SyncRoot)
+            ResetAllVolatileDataCore();
+    }
+
     #endregion
 
     #region View
@@ -382,6 +398,35 @@ public abstract class DbConnectionMockBase(
             viewName,
             ifExists,
             schemaName ?? Database);
+
+    internal void DropTable(
+        string tableName,
+        bool ifExists,
+        bool temporary,
+        TemporaryTableScope scope,
+        string? schemaName = null)
+    {
+        var targetSchema = schemaName ?? Database;
+
+        if (scope == TemporaryTableScope.Global)
+        {
+            Db.DropGlobalTemporaryTable(tableName, ifExists, targetSchema);
+            return;
+        }
+
+        if (temporary || scope == TemporaryTableScope.Connection)
+        {
+            if (_temporaryTables.Remove(BuildTemporaryTableKey(tableName, targetSchema)))
+                return;
+
+            if (ifExists)
+                return;
+
+            throw SqlUnsupported.ForNormalizedTableDoesNotExist(tableName);
+        }
+
+        Db.DropTable(tableName, ifExists, targetSchema);
+    }
 
     #endregion
 
@@ -469,7 +514,38 @@ public abstract class DbConnectionMockBase(
     /// PT: Fecha a conexão simulada.
     /// </summary>
     public override void Close()
-        => _state = ConnectionState.Closed;
+    {
+        if (!Db.ThreadSafe)
+        {
+            CloseCore();
+            return;
+        }
+
+        lock (Db.SyncRoot)
+            CloseCore();
+    }
+
+    private void CloseCore()
+    {
+        CurrentTransaction?.Dispose();
+        CurrentTransaction = null;
+        CurrentIsolationLevel = IsolationLevel.Unspecified;
+        ClearTransactionStateCore();
+
+        foreach (var table in _temporaryTables.Values)
+        {
+            while (table.Count > 0)
+                table.RemoveAt(table.Count - 1);
+
+            table.NextIdentity = 1;
+            table.RebuildAllIndexes();
+        }
+
+        _temporaryTables.Clear();
+        SetLastFoundRows(0);
+        ClearExecutionPlans();
+        _state = ConnectionState.Closed;
+    }
 
     /// <summary>
     /// EN: Creates a command associated with the current transaction.
@@ -624,7 +700,7 @@ public abstract class DbConnectionMockBase(
 
         var normalizedName = NormalizeSavepointName(savepointName);
         if (!_savepoints.TryGetValue(normalizedName, out var snapshot))
-            throw new InvalidOperationException($"Savepoint '{savepointName}' was not found.");
+            throw SqlUnsupported.ForSavepointNotFound(savepointName);
 
         RestoreSnapshot(snapshot);
 
@@ -647,7 +723,7 @@ public abstract class DbConnectionMockBase(
 
         var normalizedName = NormalizeSavepointName(savepointName);
         if (!_savepoints.Remove(normalizedName))
-            throw new InvalidOperationException($"Savepoint '{savepointName}' was not found.");
+            throw SqlUnsupported.ForSavepointNotFound(savepointName);
 
         _savepointOrder.RemoveAll(name => name.Equals(normalizedName, StringComparison.OrdinalIgnoreCase));
     }
@@ -661,13 +737,17 @@ public abstract class DbConnectionMockBase(
     private void EnsureActiveTransaction()
     {
         if (CurrentTransaction == null)
-            throw new InvalidOperationException("No active transaction for savepoint operation.");
+            throw SqlUnsupported.ForNoActiveTransactionForSavepointOperation();
     }
 
     private Dictionary<ITableMock, TransactionTableSnapshot> CaptureSnapshot()
     {
         var snapshot = new Dictionary<ITableMock, TransactionTableSnapshot>(TableReferenceComparer.Instance);
-        foreach (var table in Db.ListAllTablesBestEffort())
+        var allTables = Db.ListAllTablesBestEffort()
+            .Concat(_temporaryTables.Values)
+            .Distinct(TableReferenceComparer.Instance);
+
+        foreach (var table in allTables)
         {
             var rows = table.Select(row => row.ToDictionary(entry => entry.Key, entry => entry.Value)).ToList();
             snapshot[table] = new TransactionTableSnapshot(table.NextIdentity, rows);
@@ -699,6 +779,27 @@ public abstract class DbConnectionMockBase(
         _transactionBeginSnapshot = null;
     }
 
+    private void ResetAllVolatileDataCore()
+    {
+        CurrentTransaction?.Dispose();
+        CurrentTransaction = null;
+        CurrentIsolationLevel = IsolationLevel.Unspecified;
+        ClearTransactionStateCore();
+
+        Db.ResetVolatileData(includeGlobalTemporaryTables: true);
+
+        foreach (var table in _temporaryTables.Values)
+        {
+            while (table.Count > 0)
+                table.RemoveAt(table.Count - 1);
+
+            table.NextIdentity = 1;
+            table.RebuildAllIndexes();
+        }
+
+        _temporaryTables.Clear();
+    }
+
     internal void MaybeDelayOrDrop()
     {
         if (DropProbability > 0 && new Random().NextDouble() < DropProbability)
@@ -707,7 +808,7 @@ public abstract class DbConnectionMockBase(
             Thread.Sleep(SimulatedLatencyMs);
     }
 
-    internal abstract Exception NewException(string message, int code);
+    protected internal abstract Exception NewException(string message, int code);
 
     /// <summary>
     /// EN: Disposes the connection and associated resources.

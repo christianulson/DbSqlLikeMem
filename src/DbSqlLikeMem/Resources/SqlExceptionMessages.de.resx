@@ -51,6 +51,24 @@
   <data name="ExecuteReaderWithoutSelectQuery" xml:space="preserve">
     <value>ExecuteReader was called, but no SELECT query was found.</value>
   </data>
+  <data name="BatchConnectionRequired" xml:space="preserve">
+    <value>Vor dem Ausführen eines Batches muss eine Verbindung festgelegt sein.</value>
+  </data>
+  <data name="BatchCommandsMustContainCommand" xml:space="preserve">
+    <value>BatchCommands muss mindestens einen Befehl enthalten.</value>
+  </data>
+  <data name="BatchCommandsMustNotContainNull" xml:space="preserve">
+    <value>BatchCommands darf keine Nullwerte enthalten.</value>
+  </data>
+  <data name="BatchCommandTextRequired" xml:space="preserve">
+    <value>CommandText muss für jeden Batch-Befehl angegeben werden.</value>
+  </data>
+  <data name="BatchConnectionMustBeOpenCurrentState" xml:space="preserve">
+    <value>Die Verbindung muss Open sein; aktueller Status ist {0}</value>
+  </data>
+  <data name="MySqlBatchPrepareOnlyTextSupported" xml:space="preserve">
+    <value>Derzeit wird von MySqlBatch.Prepare nur CommandType.Text unterstützt.</value>
+  </data>
   <data name="InvalidDropViewStatement" xml:space="preserve">
     <value>Invalid DROP VIEW statement.</value>
   </data>
@@ -74,5 +92,17 @@
   </data>
   <data name="DapperRuntimeNotFound" xml:space="preserve">
     <value>Dapper was not found at runtime. Add a reference to package Dapper or Dapper.StrongName to enable LINQ execution via late binding.</value>
+  </data>
+  <data name="NonQueryHandlerCouldNotProcessStatement" xml:space="preserve">
+    <value>Kein Non-Query-Handler konnte das SQL-Statement verarbeiten.</value>
+  </data>
+  <data name="ProcedureNameNotProvided" xml:space="preserve">
+    <value>Prozedurname wurde nicht angegeben.</value>
+  </data>
+  <data name="InvalidCallStatement" xml:space="preserve">
+    <value>Ungültige CALL-Anweisung.</value>
+  </data>
+  <data name="LinqCouldNotExtractTableNameFromExpression" xml:space="preserve">
+    <value>Der Tabellenname konnte aus dem Ausdruck nicht extrahiert werden: {0}</value>
   </data>
 </root>

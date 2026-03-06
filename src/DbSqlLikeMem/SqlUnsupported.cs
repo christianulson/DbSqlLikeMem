@@ -50,7 +50,7 @@ internal static class SqlUnsupported
 
 
 
-    public static InvalidOperationException ForOnConflictClause(ISqlDialect dialect)
+    public static Exception ForOnConflictClause(ISqlDialect dialect)
     {
         var hint = dialect.Name.ToLowerInvariant() switch
         {
@@ -59,10 +59,13 @@ internal static class SqlUnsupported
             _ => "Use uma sintaxe de UPSERT suportada pelo dialeto atual."
         };
 
-        return new InvalidOperationException($"Dialeto '{FormatDialectLabel(dialect)}' não suporta ON CONFLICT. {hint}");
+        var message = $"Dialeto '{FormatDialectLabel(dialect)}' não suporta ON CONFLICT. {hint}";
+        return string.Equals(dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase)
+            ? new NotSupportedException(message)
+            : new InvalidOperationException(message);
     }
 
-    public static InvalidOperationException ForOnDuplicateKeyUpdateClause(ISqlDialect dialect)
+    public static Exception ForOnDuplicateKeyUpdateClause(ISqlDialect dialect)
     {
         var hint = dialect.Name.ToLowerInvariant() switch
         {
@@ -71,7 +74,10 @@ internal static class SqlUnsupported
             _ => "Use uma sintaxe de UPSERT suportada pelo dialeto atual."
         };
 
-        return new InvalidOperationException($"Dialeto '{FormatDialectLabel(dialect)}' não suporta ON DUPLICATE KEY UPDATE. {hint}");
+        var message = $"Dialeto '{FormatDialectLabel(dialect)}' não suporta ON DUPLICATE KEY UPDATE. {hint}";
+        return string.Equals(dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase)
+            ? new NotSupportedException(message)
+            : new InvalidOperationException(message);
     }
 
     public static NotSupportedException ForOptionQueryHints(ISqlDialect dialect)
@@ -99,4 +105,34 @@ internal static class SqlUnsupported
 
     public static NotSupportedException ForCommandType(ISqlDialect dialect, string operation, Type queryType)
         => new($"SQL não suportado em {operation} para dialeto '{FormatDialectLabel(dialect)}' (v{dialect.Version}): {queryType.Name}.");
+
+    public static InvalidOperationException ForTableDoesNotExist(string tableName)
+        => new($"Table {tableName} does not exist.");
+
+    public static InvalidOperationException ForNormalizedTableDoesNotExist(string tableName)
+        => new($"Table '{tableName.NormalizeName()}' does not exist.");
+
+    public static InvalidOperationException ForSavepointNotFound(string savepointName)
+        => new($"Savepoint '{savepointName}' was not found.");
+
+    public static InvalidOperationException ForNoActiveTransactionForSavepointOperation()
+        => new("No active transaction for savepoint operation.");
+
+    public static InvalidOperationException ForDmlProjectionRequiresValidTargetTable(string projectionClause)
+        => new($"{projectionClause} requires a valid target table.");
+
+    public static NotSupportedException ForDmlProjectionExpressionNotSupportedInExecutor(string projectionClause, string expression)
+        => new($"{projectionClause} expression not supported in executor: '{expression}'.");
+
+    public static InvalidOperationException ForProjectionClauseEmpty(string projectionClause)
+        => new($"{projectionClause} clause is empty.");
+
+    public static InvalidOperationException ForProjectionItemEmpty(string projectionClause)
+        => new($"{projectionClause} item is empty.");
+
+    public static NotSupportedException ForReturningIntoOnlySupportedInExecuteNonQuery()
+        => new("RETURNING INTO is only supported for INSERT/UPDATE/DELETE in ExecuteNonQuery.");
+
+    public static InvalidOperationException ForReturningIntoColumnParameterCountMismatch()
+        => new("RETURNING INTO must map the same number of columns and parameters.");
 }

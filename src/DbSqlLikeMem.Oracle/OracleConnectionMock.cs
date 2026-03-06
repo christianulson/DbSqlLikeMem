@@ -41,6 +41,10 @@ public class OracleConnectionMock
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new OracleCommandMock(this, transaction as OracleTransactionMock);
 
-    internal override Exception NewException(string message, int code)
+    /// <summary>
+    /// EN: Creates the Oracle-specific mock exception used by this connection.
+    /// PT: Cria a excecao simulada especifica do Oracle usada por esta conexao.
+    /// </summary>
+    protected internal override Exception NewException(string message, int code)
         => new OracleMockException(message, code);
 }

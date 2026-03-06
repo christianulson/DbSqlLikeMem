@@ -29,7 +29,7 @@ internal static class DbInsertStrategy
 
         var tableName = query.Table.Name!; // Nome vindo do Parser
         if (!connection.TryGetTable(tableName, out var table, query.Table.DbName) || table == null)
-            throw new InvalidOperationException($"Table {tableName} does not exist.");
+            throw SqlUnsupported.ForTableDoesNotExist(tableName);
 
         // Identifica linhas a inserir (seja via VALUES ou SELECT)
         List<Dictionary<int, object?>> newRows;
@@ -136,8 +136,13 @@ internal static class DbInsertStrategy
         var rows = new List<Dictionary<int, object?>>();
         var colNames = query.Columns; // Lista de colunas do Insert
 
-        foreach (var valueBlock in query.ValuesRaw) // List<string> (tokens raw)
+        for (var rowIndex = 0; rowIndex < query.ValuesRaw.Count; rowIndex++)
         {
+            var valueBlock = query.ValuesRaw[rowIndex];
+            var parsedExprBlock = rowIndex < query.ValuesExpr.Count
+                ? query.ValuesExpr[rowIndex]
+                : null;
+
             // Validação de count
             if (colNames.Count > 0 && colNames.Count != valueBlock.Count)
                 throw new InvalidOperationException($"Column count ({colNames.Count}) does not match value count ({valueBlock.Count}).");
@@ -166,7 +171,10 @@ internal static class DbInsertStrategy
                 for (int i = 0; i < valueBlock.Count; i++)
                 {
                     if (i >= targetCols.Count) break;
-                    SetColValue(table, pars, targetCols[i].Index, valueBlock[i], newRow, dialect);
+                    var parsedExpr = parsedExprBlock is not null && i < parsedExprBlock.Count
+                        ? parsedExprBlock[i]
+                        : null;
+                    SetColValue(table, pars, targetCols[i].Index, valueBlock[i], parsedExpr, newRow, dialect);
                 }
             }
             else if (colNames.Count > 0)
@@ -175,7 +183,10 @@ internal static class DbInsertStrategy
                 for (int i = 0; i < colNames.Count; i++)
                 {
                     var colInfo = ResolveInsertColumn(table, colNames[i], dialect);
-                    SetColValue(table, pars, colInfo.Index, valueBlock[i], newRow, dialect);
+                    var parsedExpr = parsedExprBlock is not null && i < parsedExprBlock.Count
+                        ? parsedExprBlock[i]
+                        : null;
+                    SetColValue(table, pars, colInfo.Index, valueBlock[i], parsedExpr, newRow, dialect);
                 }
             }
 
@@ -313,6 +324,7 @@ internal static class DbInsertStrategy
         DbParameterCollection? pars,
         int colIndex,
         string rawValue,
+        SqlExpr? parsedExpr,
         Dictionary<int, object?> row,
         ISqlDialect dialect)
     {
@@ -321,9 +333,17 @@ internal static class DbInsertStrategy
 
         // Resolve valor
         table.CurrentColumn = table.Columns.First(c => c.Value.Index == colIndex).Key;
-        var resolved = TryResolveTemporalValue(rawValue, dialect, out var temporalValue)
-            ? temporalValue
-            : table.Resolve(rawValue, colDef.DbType, colDef.Nullable, pars, table.Columns);
+        object? resolved;
+        if (TryResolveCastAsJsonValue(parsedExpr, pars, out var castJsonValue))
+        {
+            resolved = castJsonValue;
+        }
+        else
+        {
+            resolved = TryResolveTemporalValue(rawValue, dialect, out var temporalValue)
+                ? temporalValue
+                : table.Resolve(rawValue, colDef.DbType, colDef.Nullable, pars, table.Columns);
+        }
         table.CurrentColumn = null;
 
         var val = (resolved is DBNull) ? null : resolved;
@@ -331,6 +351,100 @@ internal static class DbInsertStrategy
             throw table.ColumnCannotBeNull("Idx:" + colIndex);
 
         row[colIndex] = val;
+    }
+
+    private static bool TryResolveCastAsJsonValue(
+        SqlExpr? parsedExpr,
+        DbParameterCollection? pars,
+        out object? value)
+    {
+        value = null;
+        if (parsedExpr is not CallExpr cast
+            || !cast.Name.Equals("CAST", StringComparison.OrdinalIgnoreCase)
+            || cast.Args.Count < 2
+            || !IsJsonCastType(cast.Args[1]))
+            return false;
+
+        if (!TryResolveCastOperandValue(cast.Args[0], pars, out var operand))
+            return false;
+
+        value = NormalizeJsonCastValue(operand);
+        return true;
+    }
+
+    private static bool IsJsonCastType(SqlExpr expr)
+    {
+        if (expr is RawSqlExpr raw)
+            return raw.Sql.Trim().Equals("JSON", StringComparison.OrdinalIgnoreCase);
+
+        if (expr is LiteralExpr { Value: string s })
+            return s.Trim().Equals("JSON", StringComparison.OrdinalIgnoreCase);
+
+        return false;
+    }
+
+    private static bool TryResolveCastOperandValue(
+        SqlExpr expr,
+        DbParameterCollection? pars,
+        out object? value)
+    {
+        switch (expr)
+        {
+            case LiteralExpr lit:
+                value = lit.Value;
+                return true;
+            case ParameterExpr p:
+                return TryResolveParameterValue(pars, p.Name, out value);
+            default:
+                value = null;
+                return false;
+        }
+    }
+
+    private static bool TryResolveParameterValue(
+        DbParameterCollection? pars,
+        string parameterToken,
+        out object? value)
+    {
+        value = null;
+        if (pars is null)
+            return false;
+
+        if (parameterToken == "?")
+        {
+            if (pars.Count <= 0 || pars[0] is not IDataParameter first)
+                return false;
+
+            value = first.Value is DBNull ? null : first.Value;
+            return true;
+        }
+
+        var normalized = parameterToken.TrimStart('@', ':', '?');
+        foreach (IDataParameter p in pars)
+        {
+            var candidate = (p.ParameterName ?? string.Empty).TrimStart('@', ':', '?');
+            if (!string.Equals(candidate, normalized, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            value = p.Value is DBNull ? null : p.Value;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static object? NormalizeJsonCastValue(object? operand)
+    {
+        if (operand is null || operand is DBNull)
+            return null;
+
+        if (operand is System.Text.Json.JsonDocument || operand is System.Text.Json.JsonElement)
+            return operand;
+
+        if (operand is string)
+            return operand;
+
+        return System.Text.Json.JsonSerializer.Serialize(operand);
     }
 
     /// <summary>

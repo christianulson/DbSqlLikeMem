@@ -15,7 +15,7 @@ public sealed class OracleLinqToDbConnectionFactory : IDbSqlLikeMemLinqToDbConne
     /// </summary>
     public DbConnection CreateOpenConnection()
     {
-        var connection = new OracleConnectionMock(new OracleDbMock());
+        var connection = new OracleConnectionMock([]);
         connection.Open();
         return connection;
     }

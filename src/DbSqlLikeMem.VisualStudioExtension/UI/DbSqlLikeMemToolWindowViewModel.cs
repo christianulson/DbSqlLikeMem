@@ -1401,7 +1401,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         var qualified = QualifyTable(databaseType, schema, table);
         var whereClause = string.IsNullOrWhiteSpace(filter) ? string.Empty : $" WHERE {filter.Trim()}";
 
-        if (string.Equals(databaseType, "SqlServer", StringComparison.OrdinalIgnoreCase))
+        if (IsSqlServerFamily(databaseType))
         {
             return $"SELECT TOP {safeLimit} * FROM {qualified}{whereClause};";
         }
@@ -1495,12 +1495,23 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
     private static string QuoteIdentifier(string databaseType, string identifier)
     {
-        if (string.Equals(databaseType, "SqlServer", StringComparison.OrdinalIgnoreCase))
+        if (IsSqlServerFamily(databaseType))
         {
             return $"[{identifier.Replace("]", "]]")}]";
         }
 
         return $"\"{identifier.Replace("\"", "\"\"")}\"";
+    }
+
+    private static bool IsSqlServerFamily(string databaseType)
+    {
+        var normalized = (databaseType ?? string.Empty)
+            .Replace("_", string.Empty)
+            .Replace("-", string.Empty)
+            .Trim()
+            .ToLowerInvariant();
+
+        return normalized is "sqlserver" or "sqlazure" or "azuresql";
     }
 
     private static string FormatSqlLiteral(object value)

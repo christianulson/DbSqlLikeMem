@@ -47,8 +47,8 @@ users.AddPrimaryKeyIndexes("Id");
 
 ## Next step: choose a provider package | Próximo passo: escolha um pacote de provedor
 
-**EN:** Add at least one provider package to emulate your database dialect in tests (`DbSqlLikeMem.MySql`, `DbSqlLikeMem.SqlServer`, `DbSqlLikeMem.Oracle`, `DbSqlLikeMem.Npgsql`, `DbSqlLikeMem.Sqlite`, or `DbSqlLikeMem.Db2`).
-**PT-BR:** Adicione ao menos um pacote de provedor para simular o dialeto do seu banco nos testes (`DbSqlLikeMem.MySql`, `DbSqlLikeMem.SqlServer`, `DbSqlLikeMem.Oracle`, `DbSqlLikeMem.Npgsql`, `DbSqlLikeMem.Sqlite` ou `DbSqlLikeMem.Db2`).
+**EN:** Add at least one provider package to emulate your database dialect in tests (`DbSqlLikeMem.MySql`, `DbSqlLikeMem.SqlServer`, `DbSqlLikeMem.SqlAzure`, `DbSqlLikeMem.Oracle`, `DbSqlLikeMem.Npgsql`, `DbSqlLikeMem.Sqlite`, or `DbSqlLikeMem.Db2`).
+**PT-BR:** Adicione ao menos um pacote de provedor para simular o dialeto do seu banco nos testes (`DbSqlLikeMem.MySql`, `DbSqlLikeMem.SqlServer`, `DbSqlLikeMem.SqlAzure`, `DbSqlLikeMem.Oracle`, `DbSqlLikeMem.Npgsql`, `DbSqlLikeMem.Sqlite` ou `DbSqlLikeMem.Db2`).
 
 ## One-call test factory | Factory de uma chamada para testes
 
@@ -62,8 +62,8 @@ var (db, conn) = DbMockConnectionFactory.CreateSqliteWithTables(
         [new Dictionary<int, object?> { [0] = 1, [1] = "Ana" }]));
 ```
 
-**EN:** There are provider shortcuts as well: `CreateOracleWithTables`, `CreateSqlServerWithTables`, `CreateMySqlWithTables`, `CreateSqliteWithTables`, `CreateDb2WithTables`, and `CreateNpgsqlWithTables`.
-**PT-BR:** Também existem atalhos por banco: `CreateOracleWithTables`, `CreateSqlServerWithTables`, `CreateMySqlWithTables`, `CreateSqliteWithTables`, `CreateDb2WithTables` e `CreateNpgsqlWithTables`.
+**EN:** There are provider shortcuts as well: `CreateOracleWithTables`, `CreateSqlServerWithTables`, `CreateSqlAzureWithTables`, `CreateMySqlWithTables`, `CreateSqliteWithTables`, `CreateDb2WithTables`, and `CreateNpgsqlWithTables`.
+**PT-BR:** Também existem atalhos por banco: `CreateOracleWithTables`, `CreateSqlServerWithTables`, `CreateSqlAzureWithTables`, `CreateMySqlWithTables`, `CreateSqliteWithTables`, `CreateDb2WithTables` e `CreateNpgsqlWithTables`.
 
 **EN:** If preferred, use the generic string-based entry point:
 **PT-BR:** Se preferir, use a entrada genérica por string:
@@ -83,6 +83,8 @@ var (db, conn) = DbMockConnectionFactory.CreateWithTables("SqlServer", d => { /*
   **PT-BR:** O suporte SQL é incremental e sensível a dialeto por meio de pacotes específicos por provedor.
 - **EN:** Unsupported SQL constructs should fail fast with clear exceptions.
   **PT-BR:** Construções SQL não suportadas devem falhar rapidamente com exceções claras.
+- **EN:** Execution-plan metrics are diagnostic and relative; do not use mock timings as production performance benchmarks.
+  **PT-BR:** As métricas de plano de execução são diagnósticas e relativas; não use tempos do mock como benchmark de performance de produção.
 
 ## Learn more | Saiba mais
 

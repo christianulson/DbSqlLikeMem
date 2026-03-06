@@ -1,4 +1,8 @@
-﻿namespace DbSqlLikeMem.Db2.Test.Strategy;
+﻿#if NET462
+using DB2Parameter = IBM.Data.DB2.iSeries.iDB2Parameter;
+#endif
+
+namespace DbSqlLikeMem.Db2.Test.Strategy;
 
 /// <summary>
 /// EN: Defines the class Db2CommandDeleteTests.

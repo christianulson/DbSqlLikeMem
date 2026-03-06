@@ -3,55 +3,28 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <TargetFrameworks>net6.0;net8.0;net10.0</TargetFrameworks>
     <PlatformTarget>x64</PlatformTarget>
+    <RunSettingsFilePath>C:\Projects\DbSqlLikeMem\src\DbSqlLikeMem.Db2.Dapper.Test\bin\DbSqlLikeMem.Db2.Dapper.Test\Debug\net462\fine-code-coverage\coverage-tool-output\DbSqlLikeMem.Db2.Dapper.Test %28net462%29-fcc-mscodecoverage-generated.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
-
   <ItemGroup>
-    <ProjectReference Include="..\DbSqlLikeMem.Dapper.Test\DbSqlLikeMem.Dapper.Test.csproj" />
-    <ProjectReference Include="..\DbSqlLikeMem.Db2.XUnit\DbSqlLikeMem.Db2.XUnit.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net48' Or '$(TargetFramework)' == 'net6.0'">
-    <Using Include="Xunit.Abstractions" />
+    <ProjectReference Include="..\DbSqlLikeMem.Dapper.TestTools\DbSqlLikeMem.Dapper.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+    <ProjectReference Include="..\DbSqlLikeMem.Db2.XUnit\DbSqlLikeMem.Db2.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Dapper" />
-    <Using Include="DbSqlLikeMem" />
     <Using Include="DbSqlLikeMem.Db2" />
-    <Using Include="DbSqlLikeMem.Resources" />
-    <Using Include="DbSqlLikeMem.Test" />
-    <Using Include="FluentAssertions" />
-    <Using Include="IBM.Data.Db2" />
-    <Using Include="System.Data" />
-    <Using Include="System.Globalization" />
-    <Using Include="Xunit" />
   </ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+		<Using Include="IBM.Data.DB2.iSeries" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+		<Using Include="IBM.Data.DB2.Core" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+		<Using Include="IBM.Data.Db2" />
+	</ItemGroup>
 
 </Project>

@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Oracle.ManagedDataAccess.Client;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace DbSqlLikeMem.Oracle;
 
@@ -111,49 +110,27 @@ public class OracleCommandMock(
             return affected;
         }
 
-        var sqlRaw = CommandText.Trim();
+        return connection.ExecuteNonQueryWithPipeline(
+            CommandText.NormalizeString(),
+            Parameters,
+            allowMerge: true,
+            unionUsesSelectMessage: false,
+            tryExecuteTransactionControl: TryExecuteTransactionControlCommand,
+            tryExecuteSpecialCommand: TryExecuteNonQuerySpecialCommand);
+    }
 
-        if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
-        {
-            connection.SetLastFoundRows(transactionControlResult);
-            return transactionControlResult;
-        }
+    private bool TryExecuteNonQuerySpecialCommand(string sqlRaw, out int affectedRows)
+    {
+        affectedRows = 0;
 
-        // Mantém atalhos existentes (CALL / CREATE TABLE AS SELECT) por compatibilidade do engine atual
-        if (sqlRaw.StartsWith("call ", StringComparison.OrdinalIgnoreCase))
-        {
-            var affected = connection!.ExecuteCall(sqlRaw, Parameters);
-            connection.SetLastFoundRows(affected);
-            return affected;
-        }
-
-        if (sqlRaw.StartsWith("create table", StringComparison.OrdinalIgnoreCase))
-            return connection!.ExecuteCreateTableAsSelect(sqlRaw, Parameters, connection!.Db.Dialect);
-
-        var effectiveSql = sqlRaw;
-        OracleReturningIntoClause? returningIntoClause = null;
         if (TryExtractOracleReturningIntoClause(sqlRaw, out var rewrittenSql, out var clause))
         {
-            effectiveSql = rewrittenSql;
-            returningIntoClause = clause;
+            var query = SqlQueryParser.Parse(rewrittenSql, connection!.Db.Dialect);
+            affectedRows = ExecuteNonQueryWithReturningInto(query, clause);
+            return true;
         }
 
-        var query = SqlQueryParser.Parse(effectiveSql, connection!.Db.Dialect);
-
-        if (returningIntoClause is not null)
-            return ExecuteNonQueryWithReturningInto(query, returningIntoClause);
-
-        return query switch
-        {
-            SqlInsertQuery insertQ => connection.ExecuteInsert(insertQ, Parameters, connection.Db.Dialect),
-            SqlUpdateQuery updateQ => connection.ExecuteUpdateSmart(updateQ, Parameters, connection.Db.Dialect),
-            SqlDeleteQuery deleteQ => connection.ExecuteDeleteSmart(deleteQ, Parameters, connection.Db.Dialect),
-            SqlMergeQuery mergeQ => connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect),
-            SqlCreateViewQuery viewQ => connection.ExecuteCreateView(viewQ, Parameters, connection.Db.Dialect),
-            SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect),
-            SqlSelectQuery _ => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelect()),
-            _ => throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteNonQuery", query.GetType())
-        };
+        return false;
     }
 
     /// <summary>
@@ -166,25 +143,16 @@ public class OracleCommandMock(
         connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
 
-        if (CommandType == CommandType.StoredProcedure)
+        if (connection.TryHandleExecuteReaderPrelude(
+            CommandType,
+            CommandText,
+            Parameters,
+            static () => new OracleDataReaderMock([[]]),
+            normalizeSqlInput: true,
+            out var earlyReader,
+            out var statements))
         {
-            connection!.ExecuteStoredProcedure(CommandText, Parameters);
-            connection.SetLastFoundRows(0);
-            return new OracleDataReaderMock([[]]);
-        }
-
-        var sql = CommandText.NormalizeString();
-
-        var statements = SqlQueryParser
-            .SplitStatements(sql, connection!.Db.Dialect)
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .ToList();
-
-        if (statements.Count == 1 && statements[0].TrimStart().StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
-        {
-            connection!.ExecuteCall(statements[0], Parameters);
-            connection!.SetLastFoundRows(0);
-            return new OracleDataReaderMock([[]]);
+            return earlyReader!;
         }
         var executor = new OracleAstQueryExecutor(connection!, Parameters);
         var tables = new List<TableResultMock>();
@@ -196,114 +164,47 @@ public class OracleCommandMock(
             if (string.IsNullOrWhiteSpace(sqlRaw))
                 continue;
 
-            if (TryExecuteTransactionControlCommand(sqlRaw, out var transactionControlResult))
+            if (connection.TryHandleReaderControlCommand(
+                sqlRaw,
+                Parameters,
+                TryExecuteTransactionControlCommand,
+                ref parsedStatementCount))
             {
-                connection.SetLastFoundRows(transactionControlResult);
-                parsedStatementCount++;
-                continue;
-            }
-
-            if (sqlRaw.StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
-            {
-                connection.ExecuteCall(sqlRaw, Parameters);
-                connection.SetLastFoundRows(0);
-                parsedStatementCount++;
                 continue;
             }
 
             var query = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect, Parameters);
             parsedStatementCount++;
 
-            switch (query)
-            {
-                case SqlSelectQuery selectQ:
-                    tables.Add(executor.ExecuteSelect(selectQ));
-                    break;
-
-                case SqlUnionQuery unionQ:
-                    tables.Add(executor.ExecuteUnion(unionQ.Parts, unionQ.AllFlags, unionQ.OrderBy, unionQ.RowLimit, unionQ.RawSql));
-                    break;
-                case SqlInsertQuery insertQ:
-                    connection.ExecuteInsert(insertQ, Parameters, connection.Db.Dialect);
-                    break;
-                case SqlUpdateQuery updateQ:
+            connection.DispatchParsedReaderQuery(
+                query,
+                Parameters,
+                executor,
+                tables,
+                executeUpdate: updateQ =>
+                {
                     connection.ExecuteUpdate(updateQ, Parameters);
-                    break;
-                case SqlDeleteQuery deleteQ:
+                    return null;
+                },
+                executeDelete: deleteQ =>
+                {
                     connection.ExecuteDelete(deleteQ, Parameters);
-                    break;
-                case SqlCreateTemporaryTableQuery tempQ:
-                    connection.ExecuteCreateTemporaryTableAsSelect(tempQ, Parameters, connection.Db.Dialect);
-                    break;
-                case SqlCreateViewQuery viewQ:
-                    connection.ExecuteCreateView(viewQ, Parameters, connection.Db.Dialect);
-                    break;
-                case SqlDropViewQuery dropViewQ:
-                    connection.ExecuteDropView(dropViewQ, Parameters, connection.Db.Dialect);
-                    break;
-                default:
-                    throw SqlUnsupported.ForCommandType(connection!.Db.Dialect, "ExecuteReader", query.GetType());
-            }
+                    return null;
+                });
         }
 
-        if (tables.Count == 0 && parsedStatementCount > 0)
-            throw new InvalidOperationException(SqlExceptionMessages.ExecuteReaderWithoutSelectQuery());
-
-        connection.Metrics.Selects += tables.Sum(t => t.Count);
+        connection.FinalizeReaderExecution(tables, parsedStatementCount);
 
         return new OracleDataReaderMock(tables);
     }
 
     private bool TryExecuteTransactionControlCommand(string sqlRaw, out int affectedRows)
     {
-        affectedRows = 0;
-
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
-
-        if (sqlRaw.Equals("begin", StringComparison.OrdinalIgnoreCase) ||
-            sqlRaw.Equals("begin transaction", StringComparison.OrdinalIgnoreCase) ||
-            sqlRaw.Equals("start transaction", StringComparison.OrdinalIgnoreCase))
-        {
-            if (connection!.State != ConnectionState.Open)
-                connection.Open();
-
-            if (!connection.HasActiveTransaction)
-                connection.BeginTransaction();
-
-            return true;
-        }
-
-        if (sqlRaw.StartsWith("savepoint ", StringComparison.OrdinalIgnoreCase))
-        {
-            connection!.CreateSavepoint(sqlRaw[10..].Trim());
-            return true;
-        }
-
-        if (sqlRaw.StartsWith("rollback to savepoint ", StringComparison.OrdinalIgnoreCase))
-        {
-            connection!.RollbackTransaction(sqlRaw[22..].Trim());
-            return true;
-        }
-
-        if (sqlRaw.StartsWith("release savepoint ", StringComparison.OrdinalIgnoreCase))
-        {
-            connection!.ReleaseSavepoint(sqlRaw[18..].Trim());
-            return true;
-        }
-
-        if (sqlRaw.Equals("commit", StringComparison.OrdinalIgnoreCase))
-        {
-            connection!.CommitTransaction();
-            return true;
-        }
-
-        if (sqlRaw.Equals("rollback", StringComparison.OrdinalIgnoreCase))
-        {
-            connection!.RollbackTransaction();
-            return true;
-        }
-
-        return false;
+        return connection!.TryExecuteStandardTransactionControl(
+            sqlRaw,
+            releaseSavepointAsNoOp: false,
+            out affectedRows);
     }
 
     /// <summary>
@@ -319,7 +220,7 @@ public class OracleCommandMock(
             SqlInsertQuery insertQuery => ExecuteInsertWithReturningInto(insertQuery, clause, out _),
             SqlUpdateQuery updateQuery => ExecuteUpdateWithReturningInto(updateQuery, clause, out _),
             SqlDeleteQuery deleteQuery => ExecuteDeleteWithReturningInto(deleteQuery, clause, out _),
-            _ => throw new NotSupportedException("RETURNING INTO is only supported for INSERT/UPDATE/DELETE in ExecuteNonQuery.")
+            _ => throw SqlUnsupported.ForReturningIntoOnlySupportedInExecuteNonQuery()
         };
 
         return affectedRows;
@@ -335,7 +236,7 @@ public class OracleCommandMock(
         out IReadOnlyList<IReadOnlyDictionary<int, object?>> affectedRows)
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
-            throw new InvalidOperationException("RETURNING INTO requires a valid target table.");
+            throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable("RETURNING INTO");
 
         var beforeCount = table.Count;
         var affected = connection!.ExecuteInsert(query, Parameters, connection!.Db.Dialect);
@@ -357,7 +258,7 @@ public class OracleCommandMock(
         out IReadOnlyList<IReadOnlyDictionary<int, object?>> affectedRows)
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
-            throw new InvalidOperationException("RETURNING INTO requires a valid target table.");
+            throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable("RETURNING INTO");
 
         var matchedIndexes = MatchRowIndexes(table, query.WhereRaw, query.RawSql);
         var affected = connection!.ExecuteUpdate(query, Parameters);
@@ -379,7 +280,7 @@ public class OracleCommandMock(
         out IReadOnlyList<IReadOnlyDictionary<int, object?>> affectedRows)
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
-            throw new InvalidOperationException("RETURNING INTO requires a valid target table.");
+            throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable("RETURNING INTO");
 
         var matchedIndexes = MatchRowIndexes(table, query.WhereRaw, query.RawSql);
         var snapshots = matchedIndexes
@@ -475,7 +376,7 @@ public class OracleCommandMock(
             .Where(p => !string.IsNullOrWhiteSpace(p))
             .ToList();
         if (cols.Count == 0 || cols.Count != pars.Count)
-            throw new InvalidOperationException("RETURNING INTO must map the same number of columns and parameters.");
+            throw SqlUnsupported.ForReturningIntoColumnParameterCountMismatch();
 
         rewrittenSql = sql[..returningIndex].TrimEnd();
         clause = new OracleReturningIntoClause(cols, pars);

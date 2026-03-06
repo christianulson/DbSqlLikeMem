@@ -46,8 +46,8 @@ public sealed class SqlServerDialectFeatureParserTests
         var sql = "SELECT id FROM users ORDER BY id OFFSET @p0 ROWS FETCH FIRST @p1 ROWS ONLY";
         var pars = new SqlServerDataParameterCollectionMock
         {
-            new Microsoft.Data.SqlClient.SqlParameter("@p0", 1),
-            new Microsoft.Data.SqlClient.SqlParameter("@p1", 2)
+            new SqlParameter("@p0", 1),
+            new SqlParameter("@p1", 2)
         };
 
         var parsed = SqlQueryParser.Parse(sql, new SqlServerDialect(version), pars);
@@ -905,6 +905,287 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL RETURNING clause is rejected for SQL Server UPDATE statements even without WHERE.
+    /// PT: Garante que a cláusula RETURNING do PostgreSQL seja rejeitada em UPDATE no SQL Server mesmo sem WHERE.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_WithReturningWithoutWhere_ShouldBeRejected(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures empty RETURNING list in SQL Server UPDATE remains blocked by dialect gate.
+    /// PT: Garante que lista vazia em RETURNING no UPDATE do SQL Server continue bloqueada pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_WithEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING with leading comma in SQL Server UPDATE remains blocked by dialect gate.
+    /// PT: Garante que RETURNING malformado com vírgula inicial no UPDATE do SQL Server continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_WithMalformedReturningLeadingComma_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING, id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING with trailing comma in SQL Server UPDATE remains blocked by dialect gate.
+    /// PT: Garante que RETURNING malformado com vírgula final no UPDATE do SQL Server continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_WithMalformedReturningTrailingComma_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id,";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures RETURNING alias without expression in SQL Server UPDATE remains blocked by dialect gate.
+    /// PT: Garante que RETURNING com alias sem expressão no UPDATE do SQL Server continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_WithMalformedReturningAliasWithoutExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING AS user_id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures UPDATE with unexpected trailing token is rejected with actionable message.
+    /// PT: Garante que UPDATE com token inesperado ao final seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_WithUnexpectedTrailingToken_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 EXTRA";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("Unexpected token after UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures UPDATE WHERE without predicate is rejected with actionable message.
+    /// PT: Garante que UPDATE com WHERE sem predicado seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_WhereWithoutPredicate_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE WHERE terminated only by semicolon is rejected with actionable message.
+    /// PT: Garante que UPDATE com WHERE finalizado apenas por ponto e vírgula seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_WhereOnlySemicolon_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE SET assignments without comma separator are rejected with actionable message.
+    /// PT: Garante que atribuições em UPDATE SET sem separação por vírgula sejam rejeitadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_SetAssignmentsWithoutCommaSeparator_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' updated_at = GETDATE() WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("must separate assignments with commas", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE SET assignment with malformed expression is rejected with actionable message.
+    /// PT: Garante que atribuição em UPDATE SET com expressão malformada seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_SetInvalidAssignmentExpression_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = (GETDATE() WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("assignment for 'name' has an invalid expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE SET assignment without equals is rejected with actionable message.
+    /// PT: Garante que atribuição em UPDATE SET sem sinal de igual seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_SetAssignmentWithoutEquals_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name 'b' WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("requires '=' between column and expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE SET without assignments and terminated by semicolon is rejected with actionable token context.
+    /// PT: Garante que UPDATE SET sem atribuições e finalizado por ponto e vírgula seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_SetWithoutAssignmentsBeforeSemicolon_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE SET with repeated SET keyword is rejected with actionable message.
+    /// PT: Garante que UPDATE SET com palavra-chave SET repetida seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_SetRepeatedSetKeyword_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET SET name = 'b' WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("must not repeat SET keyword", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE SET leading comma is rejected with actionable token context.
+    /// PT: Garante que vírgula inicial em UPDATE SET seja rejeitada com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_SetLeadingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET , name = 'b' WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("unexpected comma before assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE SET trailing comma is rejected with actionable token context.
+    /// PT: Garante que vírgula final em UPDATE SET seja rejeitada com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_SetTrailingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b', WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("trailing comma without assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE WHERE with malformed predicate is rejected with actionable message.
+    /// PT: Garante que UPDATE com WHERE malformado seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_WhereInvalidPredicate_ShouldThrowActionableError(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE (id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("UPDATE WHERE predicate is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>
     /// EN: Ensures PostgreSQL RETURNING clause is rejected for SQL Server DELETE statements.
     /// PT: Garante que a cláusula RETURNING do PostgreSQL seja rejeitada em DELETE no SQL Server.
@@ -923,6 +1204,185 @@ public sealed class SqlServerDialectFeatureParserTests
         Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// EN: Ensures empty RETURNING list in SQL Server DELETE remains blocked by dialect gate.
+    /// PT: Garante que lista vazia em RETURNING no DELETE do SQL Server continue bloqueada pelo gate de dialeto.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseDelete_WithEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING with leading comma in DELETE remains blocked by SQL Server dialect gate.
+    /// PT: Garante que RETURNING malformado com vírgula inicial no DELETE continue bloqueado pelo gate de dialeto SQL Server.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseDelete_WithMalformedReturningLeadingComma_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING, id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING with trailing comma in DELETE remains blocked by SQL Server dialect gate.
+    /// PT: Garante que RETURNING malformado com vírgula final no DELETE continue bloqueado pelo gate de dialeto SQL Server.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseDelete_WithMalformedReturningTrailingComma_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING id,";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING expression in DELETE remains blocked by SQL Server dialect gate.
+    /// PT: Garante que expressão malformada em RETURNING no DELETE continue bloqueada pelo gate de dialeto SQL Server.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseDelete_WithMalformedReturningInvalidExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING id +";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING with unbalanced parentheses in DELETE remains blocked by SQL Server dialect gate.
+    /// PT: Garante que RETURNING malformado com parênteses desbalanceados no DELETE continue bloqueado pelo gate de dialeto SQL Server.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseDelete_WithMalformedReturningUnbalancedParenthesis_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures RETURNING alias without expression in SQL Server DELETE remains blocked by dialect gate.
+    /// PT: Garante que RETURNING com alias sem expressão no DELETE do SQL Server continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseDelete_WithMalformedReturningAliasWithoutExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING AS user_id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures DELETE with unexpected trailing token is rejected with actionable message.
+    /// PT: Garante que DELETE com token inesperado ao final seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseDelete_WithUnexpectedTrailingToken_ShouldThrowActionableError(int version)
+    {
+        const string sql = "DELETE FROM users WHERE id = 1 EXTRA";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("Unexpected token after DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures DELETE WHERE without predicate is rejected with actionable message.
+    /// PT: Garante que DELETE com WHERE sem predicado seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseDelete_WhereWithoutPredicate_ShouldThrowActionableError(int version)
+    {
+        const string sql = "DELETE FROM users WHERE";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures DELETE WHERE terminated only by semicolon is rejected with actionable message.
+    /// PT: Garante que DELETE com WHERE finalizado apenas por ponto e vírgula seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseDelete_WhereOnlySemicolon_ShouldThrowActionableError(int version)
+    {
+        const string sql = "DELETE FROM users WHERE;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures DELETE WHERE with malformed predicate is rejected with actionable message.
+    /// PT: Garante que DELETE com WHERE malformado seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseDelete_WhereInvalidPredicate_ShouldThrowActionableError(int version)
+    {
+        const string sql = "DELETE FROM users WHERE (id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("DELETE WHERE predicate is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
 
     /// <summary>
     /// EN: Ensures malformed RETURNING in INSERT remains blocked by SQL Server dialect gate.
@@ -934,6 +1394,2397 @@ public sealed class SqlServerDialectFeatureParserTests
     public void ParseInsert_WithMalformedReturning_ShouldBeRejectedByDialectGate(int version)
     {
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING, id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures empty RETURNING list in SQL Server INSERT remains blocked by dialect gate.
+    /// PT: Garante que lista vazia em RETURNING no INSERT do SQL Server continue bloqueada pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING with trailing comma in INSERT remains blocked by SQL Server dialect gate.
+    /// PT: Garante que RETURNING malformado com vírgula final no INSERT continue bloqueado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithMalformedReturningTrailingComma_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id,";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING expression in INSERT remains blocked by SQL Server dialect gate.
+    /// PT: Garante que expressão malformada em RETURNING no INSERT continue bloqueada pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithMalformedReturningInvalidExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id +";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING with unbalanced parentheses in INSERT remains blocked by SQL Server dialect gate.
+    /// PT: Garante que RETURNING malformado com parênteses desbalanceados no INSERT continue bloqueado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithMalformedReturningUnbalancedParenthesis_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures RETURNING alias without expression in SQL Server INSERT remains blocked by dialect gate.
+    /// PT: Garante que RETURNING com alias sem expressão no INSERT do SQL Server continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithMalformedReturningAliasWithoutExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING AS user_id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed ON DUPLICATE KEY UPDATE remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE malformado continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithMalformedOnDuplicateKeyUpdate_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name),";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with RETURNING remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnDuplicateReturningClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with malformed RETURNING expression remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com expressão malformada em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnDuplicateInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING id +";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with empty RETURNING list remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com lista vazia em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnDuplicateEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with unbalanced parentheses in RETURNING remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com parênteses desbalanceados em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnDuplicateUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with leading comma in RETURNING remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com vírgula inicial em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnDuplicateLeadingCommaReturning_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING, id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with trailing comma in RETURNING remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com vírgula final em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnDuplicateTrailingCommaReturning_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING id,";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnDuplicateWithoutAssignments_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and followed by RETURNING remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e seguido por RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnDuplicateWithoutAssignmentsReturningClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with empty RETURNING list remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com lista vazia em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnDuplicateWithoutAssignmentsEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE RETURNING;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with unbalanced RETURNING expression remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com expressão RETURNING desbalanceada continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnDuplicateWithoutAssignmentsUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with WHERE clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com cláusula WHERE continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnDuplicateWithoutAssignmentsWhereClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE WHERE id = 1";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with FROM clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com cláusula FROM continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnDuplicateWithoutAssignmentsFromClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE FROM users";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with USING clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnDuplicateWithoutAssignmentsUsingClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE USING users";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with repeated SET keyword remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com palavra-chave SET repetida continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnDuplicateRepeatedSetKeyword_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE SET name = VALUES(name)";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE assignment without equals remains rejected by SQL Server dialect gate.
+    /// PT: Garante que atribuição em ON DUPLICATE KEY UPDATE sem sinal de igual continue rejeitada pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnDuplicateAssignmentWithoutEquals_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name VALUES(name)";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE leading comma remains rejected by SQL Server dialect gate.
+    /// PT: Garante que vírgula inicial em ON DUPLICATE KEY UPDATE continue rejeitada pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnDuplicateLeadingComma_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE , name = VALUES(name)";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with WHERE clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com cláusula WHERE continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnDuplicateWhereClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) WHERE id = 1";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with table-source clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com cláusula de table-source continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnDuplicateFromClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) FROM users";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with USING clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnDuplicateUsingClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) USING users";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures INSERT with unexpected trailing token is rejected with actionable message.
+    /// PT: Garante que INSERT com token inesperado ao final seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithUnexpectedTrailingToken_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') EXTRA";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("Unexpected token after INSERT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES trailing comma is rejected with actionable message.
+    /// PT: Garante que vírgula final em INSERT VALUES seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_ValuesTrailingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id) VALUES (1),";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES tuples without comma separator are rejected with actionable message.
+    /// PT: Garante que tuplas em INSERT VALUES sem vírgula separadora sejam rejeitadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_ValuesTuplesWithoutCommaSeparator_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id) VALUES (1) (2)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("separate row tuples with commas", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES leading comma is rejected with actionable message.
+    /// PT: Garante que vírgula inicial em INSERT VALUES seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_ValuesLeadingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id) VALUES , (1)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES with malformed scalar expression is rejected with actionable message.
+    /// PT: Garante que INSERT VALUES com expressão escalar malformada seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_ValuesInvalidExpression_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1 +, 'a')";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("row 1 expression 1 is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES reports row/position for malformed expression in later rows.
+    /// PT: Garante que INSERT VALUES reporte linha/posição para expressão malformada em linhas posteriores.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_ValuesSecondRowInvalidExpression_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a'), (2 +, 'b')";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("row 2 expression 1 is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures INSERT column list trailing comma is rejected with actionable message.
+    /// PT: Garante que vírgula final na lista de colunas do INSERT seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_ColumnListTrailingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id,) VALUES (1)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures INSERT empty column list is rejected with actionable message.
+    /// PT: Garante que lista de colunas vazia no INSERT seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_EmptyColumnList_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users () VALUES (1)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("at least one column", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures INSERT column list leading comma is rejected with actionable message.
+    /// PT: Garante que vírgula inicial na lista de colunas do INSERT seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_ColumnListLeadingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (,id) VALUES (1)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures INSERT column list unclosed before semicolon is rejected with actionable message.
+    /// PT: Garante que lista de colunas do INSERT não fechada antes de ponto e vírgula seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_ColumnListUnclosedBeforeSemicolon_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("not closed correctly", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES rejects empty expression between commas inside tuple.
+    /// PT: Garante que INSERT VALUES rejeite expressão vazia entre vírgulas dentro da tupla.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_ValuesTupleMissingExpressionBetweenCommas_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users VALUES (1,,2)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("empty expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES rejects trailing comma inside tuple.
+    /// PT: Garante que INSERT VALUES rejeite vírgula final dentro da tupla.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_ValuesTupleTrailingComma_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users VALUES (1,)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("empty expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES tuple with unclosed parenthesis is rejected with actionable message.
+    /// PT: Garante que tupla em INSERT VALUES com parêntese não fechado seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_ValuesTupleUnclosedParenthesis_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users VALUES (1, 2";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("not closed correctly", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES row expression count mismatch is rejected with actionable message.
+    /// PT: Garante que divergência entre número de colunas e expressões em INSERT VALUES seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_ValuesColumnCountMismatch_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("column count", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("row 1", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES rows with inconsistent expression counts are rejected with actionable message.
+    /// PT: Garante que linhas de INSERT VALUES com cardinalidade inconsistente de expressões sejam rejeitadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_ValuesRowArityMismatch_ShouldThrowActionableError(int version)
+    {
+        const string sql = "INSERT INTO users VALUES (1, 'a'), (2)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("row 2", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("row 1", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT remains rejected by SQL Server dialect gate even when malformed.
+    /// PT: Garante que ON CONFLICT do PostgreSQL continue rejeitado pelo gate de dialeto SQL Server mesmo malformado.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithMalformedOnConflictTarget_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (, id) DO NOTHING";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target interrupted by semicolon remains rejected by SQL Server dialect gate.
+    /// PT: Garante que alvo de ON CONFLICT interrompido por ponto e vírgula continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetUnclosedBeforeSemicolon_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures malformed ON CONFLICT DO UPDATE SET remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO UPDATE SET malformado continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithMalformedOnConflictDoUpdateSet_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET , name = EXCLUDED.name";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT without DO branch remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT sem ramo DO continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictMissingDoBranch_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id)";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO NOTHING with additional clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO NOTHING com cláusula adicional continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoNothingWhereClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING WHERE id = 1";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO NOTHING with FROM clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO NOTHING com cláusula FROM continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoNothingFromClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING FROM users";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO NOTHING with USING clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO NOTHING com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoNothingUsingClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING USING users";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO NOTHING with SET clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO NOTHING com cláusula SET continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoNothingSetClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING SET name = 'b'";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO NOTHING with UPDATE clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO NOTHING com cláusula UPDATE continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoNothingUpdateClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING UPDATE SET name = 'b'";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO NOTHING RETURNING remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO NOTHING RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoNothingReturning_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE SET ... RETURNING remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO UPDATE SET ... RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoUpdateReturning_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO NOTHING RETURNING with malformed expression remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO NOTHING RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoNothingInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING id +";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO NOTHING RETURNING with unbalanced parentheses remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO NOTHING RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoNothingUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO NOTHING RETURNING with empty projection list remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO NOTHING RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoNothingEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO NOTHING with unexpected continuation token remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO NOTHING com token de continuação inesperado continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoNothingUnexpectedContinuation_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING EXTRA";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE without predicate remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT com WHERE de alvo sem predicado continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetWhereWithoutPredicate_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE DO NOTHING";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed ON CONFLICT target expression remains rejected by SQL Server dialect gate.
+    /// PT: Garante que expressão malformada no alvo de ON CONFLICT continue rejeitada pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetInvalidExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id +) DO NOTHING";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE terminated only by semicolon remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT com WHERE de alvo finalizado apenas por ponto e vírgula continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetWhereOnlySemicolon_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE; DO NOTHING";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE with malformed predicate remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT com WHERE de alvo malformado continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetWhereInvalidPredicate_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id = DO NOTHING";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE WHERE terminated only by semicolon remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE finalizado apenas por ponto e vírgula continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoUpdateWhereOnlySemicolon_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE WHERE without predicate remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE sem predicado continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoUpdateWhereWithoutPredicate_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE WHERE with malformed predicate remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE malformado continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoUpdateWhereInvalidPredicate_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE id = RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE with valid WHERE and malformed RETURNING expression remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE válido e expressão malformada em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoUpdateWhereInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING id +";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE with valid WHERE and unbalanced RETURNING expression remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE válido e expressão RETURNING desbalanceada continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoUpdateWhereUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE with valid WHERE and empty RETURNING list remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE válido e lista vazia em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoUpdateWhereEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetWhereDoNothing_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING + RETURNING remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetWhereDoNothingReturning_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING + RETURNING with malformed expression remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetWhereDoNothingInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING id +";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING + RETURNING with unbalanced parentheses remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetWhereDoNothingUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING + RETURNING with empty projection list remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetWhereDoNothingEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING with unexpected continuation token remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com token de continuação inesperado continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetWhereDoNothingUnexpectedContinuationToken_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING EXTRA";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING with FROM clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula FROM continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetWhereDoNothingWithFromClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING FROM users";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING with USING clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetWhereDoNothingWithUsingClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING USING users";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING with SET clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula SET continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetWhereDoNothingWithSetClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING SET name = 'b'";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING with UPDATE clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula UPDATE continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetWhereDoNothingWithUpdateClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING UPDATE SET name = 'b'";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING with additional WHERE clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula WHERE adicional continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetWhereDoNothingWithWhereClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING WHERE id = 1";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE + DO UPDATE WHERE + RETURNING remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetWhereUpdateWhereReturning_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT (id) WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id
+RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE + DO UPDATE WHERE + RETURNING with malformed expression remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetWhereUpdateWhereInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT (id) WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id
+RETURNING id +";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE + DO UPDATE WHERE + RETURNING with unbalanced parentheses remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetWhereUpdateWhereUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT (id) WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id
+RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE + DO UPDATE WHERE + RETURNING with empty projection list remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetWhereUpdateWhereEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT (id) WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id
+RETURNING;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT target WHERE + DO UPDATE WHERE remains rejected by SQL Server dialect gate even without RETURNING.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE continue rejeitado pelo gate de dialeto SQL Server mesmo sem RETURNING.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictTargetWhereUpdateWhereWithoutReturning_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT (id) WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE RETURNING with malformed expression remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO UPDATE RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoUpdateInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING id +";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE RETURNING with unbalanced parentheses remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO UPDATE RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoUpdateUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE RETURNING with empty projection list remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO UPDATE RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoUpdateEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE with table-source clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO UPDATE com cláusula de table-source continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoUpdateFromClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name FROM users";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE SET followed directly by FROM remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO UPDATE SET seguido diretamente por FROM continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoUpdateSetFromWithoutAssignments_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET FROM users";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE SET followed directly by USING remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO UPDATE SET seguido diretamente por USING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoUpdateSetUsingWithoutAssignments_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET USING users";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE with USING clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO UPDATE com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoUpdateUsingClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name USING users";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed ON CONFLICT DO UPDATE SET assignment expression remains rejected by SQL Server dialect gate.
+    /// PT: Garante que expressão de atribuição malformada em ON CONFLICT DO UPDATE SET continue rejeitada pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoUpdateSetInvalidAssignmentExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = (EXCLUDED.name WHERE id = 1";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE SET with repeated SET keyword remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT DO UPDATE SET com palavra-chave SET repetida continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoUpdateSetRepeatedSetKeyword_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET SET name = EXCLUDED.name";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT DO UPDATE SET assignment without equals remains rejected by SQL Server dialect gate.
+    /// PT: Garante que atribuição em ON CONFLICT DO UPDATE SET sem sinal de igual continue rejeitada pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictDoUpdateSetAssignmentWithoutEquals_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name EXCLUDED.name";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT without name remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT sem nome continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintWithoutName_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT DO NOTHING";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT without name at end-of-statement remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT sem nome no fim do statement continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintWithoutNameAtEndOfStatement_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT without DO branch remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT sem ramo DO continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintWithoutDoBranch_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO with invalid continuation remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO com continuação inválida continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoInvalidContinuation_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO SKIP";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE without SET remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE sem SET continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateWithoutSet_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE SET without assignments remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET sem atribuições continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateSetWithoutAssignments_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE SET with leading comma remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com vírgula inicial continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateSetLeadingComma_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET , name = EXCLUDED.name";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE SET with trailing comma remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com vírgula final continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateSetTrailingComma_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name,";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE SET assignments without comma separator remain rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com atribuições sem separador por vírgula continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateSetAssignmentsWithoutCommaSeparator_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name updated_at = NOW()";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE SET with repeated SET keyword remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com palavra-chave SET repetida continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateSetRepeatedSetKeyword_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET SET name = EXCLUDED.name";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE SET assignment without equals remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com atribuição sem sinal de igual continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateSetAssignmentWithoutEquals_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name EXCLUDED.name";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE SET with malformed assignment expression remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com expressão de atribuição malformada continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateSetInvalidAssignmentExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = (EXCLUDED.name";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE with FROM clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com cláusula FROM continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateWithFromClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name FROM users";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE with USING clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateWithUsingClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name USING users";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE SET followed directly by FROM remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET seguido diretamente por FROM continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateSetFromWithoutAssignments_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET FROM users";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE SET followed directly by USING remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET seguido diretamente por USING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateSetUsingWithoutAssignments_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET USING users";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateReturning_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING with malformed expression remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING id +";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING with unbalanced parentheses remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING with empty projection list remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoNothingReturning_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING with malformed expression remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoNothingInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING id +";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING with unbalanced parentheses remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoNothingUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING with empty projection list remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoNothingEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintTargetWhereDoNothing_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING + RETURNING remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintTargetWhereDoNothingReturning_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING + RETURNING with malformed expression remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintTargetWhereDoNothingInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING RETURNING id +";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING + RETURNING with unbalanced parentheses remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintTargetWhereDoNothingUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING + RETURNING with empty projection list remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintTargetWhereDoNothingEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING RETURNING;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING with FROM clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula FROM continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoNothingWithFromClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING FROM users";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING with USING clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoNothingWithUsingClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING USING users";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING with SET clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula SET continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoNothingWithSetClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING SET name = 'b'";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING with UPDATE clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula UPDATE continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoNothingWithUpdateClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING UPDATE SET name = 'b'";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING with additional WHERE clause remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula WHERE adicional continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoNothingWithWhereClause_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING WHERE id = 1";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING with unexpected continuation token remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com token de continuação inesperado continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoNothingWithUnexpectedContinuationToken_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING EXTRA";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE without predicate remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com WHERE de alvo sem predicado continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintTargetWhereWithoutPredicate_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE DO NOTHING";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE terminated only by semicolon remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com WHERE de alvo finalizado apenas por ponto e vírgula continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintTargetWhereOnlySemicolon_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE; DO NOTHING";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE with malformed predicate remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com WHERE de alvo malformado continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintTargetWhereInvalidPredicate_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id = DO NOTHING";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE malformed before DO UPDATE SET remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com WHERE malformado antes do DO UPDATE SET continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintTargetWhereInvalidPredicateBeforeDoUpdate_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id = DO UPDATE SET name = EXCLUDED.name";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO UPDATE WHERE + RETURNING remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO UPDATE WHERE + RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintTargetWhereUpdateWhereReturning_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id
+RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO UPDATE WHERE + RETURNING with malformed expression remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO UPDATE WHERE + RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintTargetWhereUpdateWhereInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id
+RETURNING id +";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO UPDATE WHERE + RETURNING with unbalanced parentheses remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO UPDATE WHERE + RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintTargetWhereUpdateWhereUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id
+RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO UPDATE WHERE + RETURNING with empty projection list remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO UPDATE WHERE + RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintTargetWhereUpdateWhereEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id
+RETURNING;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO UPDATE WHERE remains rejected by SQL Server dialect gate even without RETURNING.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO UPDATE WHERE continue rejeitado pelo gate de dialeto SQL Server mesmo sem RETURNING.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintTargetWhereUpdateWhereWithoutReturning_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE WHERE terminated only by semicolon remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE finalizado apenas por ponto e vírgula continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateWhereOnlySemicolon_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE; RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE WHERE terminated only by semicolon remains rejected by SQL Server dialect gate even without RETURNING.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE finalizado apenas por ponto e vírgula continue rejeitado pelo gate de dialeto SQL Server mesmo sem RETURNING.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateWhereOnlySemicolonWithoutReturning_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE WHERE without predicate remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE sem predicado continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateWhereWithoutPredicate_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE WHERE with malformed predicate remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE malformado continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateWhereInvalidPredicate_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE id = RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE with valid WHERE and malformed RETURNING expression remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE válido e expressão malformada em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateWhereInvalidReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING id +";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE with valid WHERE and unbalanced RETURNING expression remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE válido e expressão RETURNING desbalanceada continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateWhereUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE with valid WHERE and empty RETURNING list remains rejected by SQL Server dialect gate.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE válido e lista vazia em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseInsert_WithOnConflictOnConstraintDoUpdateWhereEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Contains("ON CONFLICT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING with unbalanced parentheses in UPDATE remains blocked by SQL Server dialect gate.
+    /// PT: Garante que RETURNING malformado com parênteses desbalanceados em UPDATE continue bloqueado pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_WithMalformedReturningUnbalancedParenthesis_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING expression in UPDATE remains blocked by SQL Server dialect gate.
+    /// PT: Garante que expressão malformada em RETURNING no UPDATE continue bloqueada pelo gate de dialeto SQL Server.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseUpdate_WithMalformedReturningInvalidExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id +";
 
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
@@ -966,5 +3817,21 @@ WHERE u.id > 0";
         Assert.Contains("u.id > 0", parsed.WhereRaw, StringComparison.OrdinalIgnoreCase);
     }
 
-}
+    /// <summary>
+    /// EN: Ensures SQL Server parser rejects MySQL full-text MATCH ... AGAINST syntax.
+    /// PT: Garante que o parser SQL Server rejeite sintaxe full-text MATCH ... AGAINST do MySQL.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_MatchAgainst_ShouldBeRejectedByDialectGate(int version)
+    {
+        var dialect = new SqlServerDialect(version);
 
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("MATCH(name) AGAINST ('john' IN BOOLEAN MODE)", dialect));
+
+        Assert.Contains("MATCH ... AGAINST", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+}

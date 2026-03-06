@@ -48,7 +48,7 @@ public sealed class SqlServerConnectorFactoryMock : DbProviderFactory
     /// EN: Creates a new connection string builder instance.
     /// PT: Cria uma nova instância de construtor de string de conexão.
     /// </summary>
-    public override DbConnectionStringBuilder CreateConnectionStringBuilder() => new DbConnectionStringBuilder();
+    public override DbConnectionStringBuilder CreateConnectionStringBuilder() => [];
 
     /// <summary>
     /// EN: Creates a new parameter instance.
@@ -56,7 +56,7 @@ public sealed class SqlServerConnectorFactoryMock : DbProviderFactory
     /// </summary>
     public override DbParameter CreateParameter() => new SqlParameter();
 
-#if NETCOREAPP3_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+#if NETCOREAPP3_0_OR_GREATER
     /// <summary>
     /// EN: Gets whether data adapter creation is supported.
     /// PT: Obtém se a criação de adaptador de dados é suportada.
@@ -106,3 +106,4 @@ public sealed class SqlServerConnectorFactoryMock : DbProviderFactory
     public SqlServerDataSourceMock CreateDataSource(string connectionString) => new(db);
 #endif
 }
+

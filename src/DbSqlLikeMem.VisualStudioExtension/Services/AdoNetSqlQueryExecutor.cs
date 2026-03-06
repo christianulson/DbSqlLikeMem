@@ -11,6 +11,8 @@ internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
         new(StringComparer.OrdinalIgnoreCase)
         {
             ["sqlserver"] = ["System.Data.SqlClient", "Microsoft.Data.SqlClient"],
+            ["sqlazure"] = ["System.Data.SqlClient", "Microsoft.Data.SqlClient"],
+            ["azuresql"] = ["System.Data.SqlClient", "Microsoft.Data.SqlClient"],
             ["postgresql"] = ["Npgsql"],
             ["mysql"] = ["MySqlConnector", "MySql.Data.MySqlClient"],
             ["oracle"] = ["Oracle.ManagedDataAccess.Client"],
@@ -22,6 +24,8 @@ internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
         new(StringComparer.OrdinalIgnoreCase)
         {
             ["sqlserver"] = ["System.Data.SqlClient.SqlClientFactory", "Microsoft.Data.SqlClient.SqlClientFactory"],
+            ["sqlazure"] = ["System.Data.SqlClient.SqlClientFactory", "Microsoft.Data.SqlClient.SqlClientFactory"],
+            ["azuresql"] = ["System.Data.SqlClient.SqlClientFactory", "Microsoft.Data.SqlClient.SqlClientFactory"],
             ["postgresql"] = ["Npgsql.NpgsqlFactory"],
             ["mysql"] = ["MySqlConnector.MySqlConnectorFactory", "MySql.Data.MySqlClient.MySqlClientFactory"],
             ["oracle"] = ["Oracle.ManagedDataAccess.Client.OracleClientFactory"],
@@ -69,7 +73,7 @@ internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
 
     internal static DbProviderFactory GetFactory(string databaseType)
     {
-        var normalizedType = databaseType.Trim().ToLowerInvariant();
+        var normalizedType = NormalizeDatabaseType(databaseType);
         if (!ProviderCandidates.TryGetValue(normalizedType, out var providerNames))
         {
             throw new NotSupportedException($"Banco não suportado para conexão real: {databaseType}");
@@ -104,6 +108,13 @@ internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
             "Instale o provider correspondente (pacote NuGet e/ou registro no machine.config)."
         );
     }
+
+    private static string NormalizeDatabaseType(string databaseType)
+        => (databaseType ?? string.Empty)
+            .Replace("_", string.Empty)
+            .Replace("-", string.Empty)
+            .Trim()
+            .ToLowerInvariant();
 
     private static DbProviderFactory? TryCreateFactoryFromType(string fullTypeName)
     {

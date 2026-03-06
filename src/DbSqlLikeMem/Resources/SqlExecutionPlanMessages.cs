@@ -61,6 +61,8 @@ internal static class SqlExecutionPlanMessages
     public static string PlanPrimaryCauseGroupLabel() => Format(nameof(PlanPrimaryCauseGroupLabel));
     public static string PlanDeltaLabel() => Format(nameof(PlanDeltaLabel));
     public static string PlanSeverityHintLabel() => Format(nameof(PlanSeverityHintLabel));
+    public static string PerformanceDisclaimerLabel() => Format(nameof(PerformanceDisclaimerLabel));
+    public static string PerformanceDisclaimerMessage() => Format(nameof(PerformanceDisclaimerMessage));
     public static string IndexRecommendationSummaryLabel() => Format(nameof(IndexRecommendationSummaryLabel));
     public static string IndexPrimaryRecommendationLabel() => Format(nameof(IndexPrimaryRecommendationLabel));
     public static string IndexRecommendationEvidenceLabel() => Format(nameof(IndexRecommendationEvidenceLabel));

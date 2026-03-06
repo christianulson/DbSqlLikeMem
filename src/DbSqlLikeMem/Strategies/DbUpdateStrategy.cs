@@ -30,7 +30,7 @@ internal static class DbUpdateStrategy
         var tableName = queryTable.Name!;
         var dialect = connection.Db.Dialect;
         if (!connection.TryGetTable(tableName, out var table, queryTable.DbName) || table == null)
-            throw new InvalidOperationException($"Table {tableName} does not exist.");
+            throw SqlUnsupported.ForTableDoesNotExist(tableName);
 
         // JOIN updates ainda não suportados plenamente no Parser simples, 
         // mas se o AST viesse com UpdateFromSelect, trataríamos aqui.
@@ -64,7 +64,7 @@ internal static class DbUpdateStrategy
             var simulated = row.ToDictionary(_ => _.Key, _ => _.Value);
             UpdateRowValuesInMemory(table, pars, setPairs, simulated, dialect);
             tableMock.ValidateForeignKeysOnRow(new ReadOnlyDictionary<int, object?>(simulated));
-            TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, SnapshotRow(new System.Collections.ObjectModel.ReadOnlyDictionary<int, object?>(simulated)));
+            TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, SnapshotRow(new ReadOnlyDictionary<int, object?>(simulated)));
             UpdateRowValues(table, pars, setPairs, rowIdx, row, dialect);
             TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, SnapshotRow(table[rowIdx]));
 

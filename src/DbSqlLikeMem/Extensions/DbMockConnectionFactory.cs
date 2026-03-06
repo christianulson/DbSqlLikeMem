@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace DbSqlLikeMem;
 
 /// <summary>
@@ -6,11 +8,32 @@ namespace DbSqlLikeMem;
 /// </summary>
 public static class DbMockConnectionFactory
 {
+    private static readonly ConcurrentDictionary<string, ProviderResolutionPlan> ProviderPlans =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    private static readonly IReadOnlyDictionary<string, string> ProviderHintAliases =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["oracle"] = "Oracle",
+            ["sqlserver"] = "SqlServer",
+            ["sqlazure"] = "SqlAzure",
+            ["azuresql"] = "SqlAzure",
+            ["mysql"] = "MySql",
+            ["sqlite"] = "Sqlite",
+            ["db2"] = "Db2",
+            ["npgsql"] = "Npgsql",
+            ["postgres"] = "Npgsql",
+            ["postgresql"] = "Npgsql"
+        };
+
     public static (DbMock Db, IDbConnection Connection) CreateOracleWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("Oracle", tableMappers);
 
     public static (DbMock Db, IDbConnection Connection) CreateSqlServerWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("SqlServer", tableMappers);
+
+    public static (DbMock Db, IDbConnection Connection) CreateSqlAzureWithTables(params Action<DbMock>[] tableMappers)
+        => CreateWithTables("SqlAzure", tableMappers);
 
     public static (DbMock Db, IDbConnection Connection) CreateMySqlWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("MySql", tableMappers);
@@ -28,38 +51,55 @@ public static class DbMockConnectionFactory
     /// EN: Creates a provider-specific <see cref="DbMock"/> and resolves an <see cref="IDbConnection"/> for it.
     /// PT: Cria um <see cref="DbMock"/> específico do provedor e resolve um <see cref="IDbConnection"/> para ele.
     /// </summary>
-    /// <param name="providerHint">EN: Provider name hint like Oracle, SqlServer, MySql, Sqlite, Db2 or Npgsql. PT: Indicação do provedor como Oracle, SqlServer, MySql, Sqlite, Db2 ou Npgsql.</param>
+    /// <param name="providerHint">EN: Provider name hint like Oracle, SqlServer, SqlAzure (also sqlazure/azure-sql), MySql, Sqlite, Db2 or Npgsql. PT: Indicação do provedor como Oracle, SqlServer, SqlAzure (também sqlazure/azure-sql), MySql, Sqlite, Db2 ou Npgsql.</param>
     /// <param name="tableMappers">EN: Optional actions to configure tables/schemas on the created mock. PT: Ações opcionais para configurar tabelas/esquemas no mock criado.</param>
     public static (DbMock Db, IDbConnection Connection) CreateWithTables(
         string providerHint,
         params Action<DbMock>[] tableMappers)
     {
-        var db = CreateDbMock(providerHint);
+        var canonicalProviderHint = CanonicalizeProviderHint(providerHint);
+        var plan = ProviderPlans.GetOrAdd(canonicalProviderHint, BuildProviderResolutionPlan);
+        var db = plan.CreateDbMock();
 
         foreach (var map in tableMappers)
         {
             map(db);
         }
 
-        var connection = ResolveConnection(db, providerHint);
+        var connection = plan.ResolveConnection(db);
+        if (!IsConnectionTypeCompatibleForProvider(connection.GetType(), canonicalProviderHint))
+        {
+            ProviderPlans.TryRemove(canonicalProviderHint, out _);
+            plan = BuildProviderResolutionPlan(canonicalProviderHint);
+            ProviderPlans[canonicalProviderHint] = plan;
+            connection = plan.ResolveConnection(db);
+
+            if (!IsConnectionTypeCompatibleForProvider(connection.GetType(), canonicalProviderHint))
+            {
+                throw new InvalidOperationException(
+                    $"Resolved connection type '{connection.GetType().FullName}' is not compatible with provider '{canonicalProviderHint}'.");
+            }
+        }
         return (db, connection);
     }
 
-    private static DbMock CreateDbMock(string providerHint)
+    private static ProviderResolutionPlan BuildProviderResolutionPlan(string providerHint)
     {
         EnsureProviderAssembliesLoaded(providerHint);
+        if (TryBuildKnownProviderResolutionPlan(providerHint, out var knownPlan))
+            return knownPlan;
 
-        var allTypes = AppDomain.CurrentDomain
+        var allDbMockTypes = AppDomain.CurrentDomain
             .GetAssemblies()
             .SelectMany(SafeGetTypes)
-            .Where(type =>
+            .Where(static type =>
                 typeof(DbMock).IsAssignableFrom(type)
                 && !type.IsAbstract)
             .ToArray();
 
-        var preferred = allTypes
+        var preferred = allDbMockTypes
             .FirstOrDefault(type => ContainsProviderHint(type, providerHint))
-            ?? allTypes.FirstOrDefault();
+            ?? allDbMockTypes.FirstOrDefault();
 
         if (preferred is null)
         {
@@ -67,7 +107,60 @@ public static class DbMockConnectionFactory
                 $"No concrete DbMock implementation was found. Loaded assemblies: {AppDomain.CurrentDomain.GetAssemblies().Length}.");
         }
 
-        return (DbMock)CreateInstanceAllowingOptionalCtor(preferred)!;
+        var dbFactory = CreateDbMockFactory(preferred);
+        var connectionResolver = CreateConnectionResolver(preferred, providerHint);
+        return new ProviderResolutionPlan(dbFactory, connectionResolver);
+    }
+
+    private static bool TryBuildKnownProviderResolutionPlan(
+        string providerHint,
+        out ProviderResolutionPlan plan)
+    {
+        plan = default!;
+        var key = providerHint.Trim();
+        if (key.Length == 0)
+            return false;
+
+        var known = key.ToUpperInvariant() switch
+        {
+            "SQLSERVER" => ("DbSqlLikeMem.SqlServer.SqlServerDbMock, DbSqlLikeMem.SqlServer", "DbSqlLikeMem.SqlServer.SqlServerConnectionMock, DbSqlLikeMem.SqlServer"),
+            "SQLAZURE" => ("DbSqlLikeMem.SqlAzure.SqlAzureDbMock, DbSqlLikeMem.SqlAzure", "DbSqlLikeMem.SqlAzure.SqlAzureConnectionMock, DbSqlLikeMem.SqlAzure"),
+            "MYSQL" => ("DbSqlLikeMem.MySql.MySqlDbMock, DbSqlLikeMem.MySql", "DbSqlLikeMem.MySql.MySqlConnectionMock, DbSqlLikeMem.MySql"),
+            "SQLITE" => ("DbSqlLikeMem.Sqlite.SqliteDbMock, DbSqlLikeMem.Sqlite", "DbSqlLikeMem.Sqlite.SqliteConnectionMock, DbSqlLikeMem.Sqlite"),
+            "DB2" => ("DbSqlLikeMem.Db2.Db2DbMock, DbSqlLikeMem.Db2", "DbSqlLikeMem.Db2.Db2ConnectionMock, DbSqlLikeMem.Db2"),
+            "NPGSQL" => ("DbSqlLikeMem.Npgsql.NpgsqlDbMock, DbSqlLikeMem.Npgsql", "DbSqlLikeMem.Npgsql.NpgsqlConnectionMock, DbSqlLikeMem.Npgsql"),
+            "ORACLE" => ("DbSqlLikeMem.Oracle.OracleDbMock, DbSqlLikeMem.Oracle", "DbSqlLikeMem.Oracle.OracleConnectionMock, DbSqlLikeMem.Oracle"),
+            _ => default
+        };
+
+        if (string.IsNullOrWhiteSpace(known.Item1) || string.IsNullOrWhiteSpace(known.Item2))
+            return false;
+
+        var dbType = Type.GetType(known.Item1, throwOnError: false);
+        var connectionType = Type.GetType(known.Item2, throwOnError: false);
+        if (dbType is null || connectionType is null)
+            return false;
+
+        if (!typeof(DbMock).IsAssignableFrom(dbType) || !typeof(IDbConnection).IsAssignableFrom(connectionType))
+            return false;
+
+        var dbFactory = CreateDbMockFactory(dbType);
+        var ctor = GetCompatibleConnectionCtor(connectionType, dbType);
+        if (ctor is null)
+            return false;
+
+        var ctorParameters = ctor.GetParameters();
+        Func<DbMock, IDbConnection> resolver = db =>
+        {
+            var args = new object?[ctorParameters.Length];
+            args[0] = db;
+            for (var i = 1; i < ctorParameters.Length; i++)
+                args[i] = Type.Missing;
+            return (IDbConnection)ctor.Invoke(args);
+        };
+
+        plan = new ProviderResolutionPlan(dbFactory, resolver);
+        return true;
     }
 
 
@@ -78,6 +171,7 @@ public static class DbMockConnectionFactory
             "DbSqlLikeMem.Sqlite",
             "DbSqlLikeMem.MySql",
             "DbSqlLikeMem.SqlServer",
+            "DbSqlLikeMem.SqlAzure",
             "DbSqlLikeMem.Oracle",
             "DbSqlLikeMem.Db2",
             "DbSqlLikeMem.Npgsql"
@@ -101,29 +195,28 @@ public static class DbMockConnectionFactory
     }
 
 
-    private static object CreateInstanceAllowingOptionalCtor(Type type)
+    private static Func<DbMock> CreateDbMockFactory(Type dbType)
     {
-        try
+        var parameterlessCtor = dbType.GetConstructor(Type.EmptyTypes);
+        if (parameterlessCtor is not null)
         {
-            return Activator.CreateInstance(type)!;
+            return () => (DbMock)parameterlessCtor.Invoke(null);
         }
-        catch (MissingMethodException)
-        {
-            var optionalCtor = type
-                .GetConstructors(BindingFlags.Instance | BindingFlags.Public)
-                .OrderBy(ctor => ctor.GetParameters().Length)
-                .FirstOrDefault(ctor => ctor.GetParameters().All(p => p.IsOptional));
 
-            if (optionalCtor is null)
-                throw;
+        var optionalCtor = dbType
+            .GetConstructors(BindingFlags.Instance | BindingFlags.Public)
+            .OrderBy(ctor => ctor.GetParameters().Length)
+            .FirstOrDefault(ctor => ctor.GetParameters().All(p => p.IsOptional));
 
-            var args = optionalCtor
-                .GetParameters()
-                .Select(_ => Type.Missing)
-                .ToArray();
+        if (optionalCtor is null)
+            throw new MissingMethodException($"No compatible constructor was found for '{dbType.FullName}'.");
 
-            return optionalCtor.Invoke(args);
-        }
+        var optionalCtorArgs = optionalCtor
+            .GetParameters()
+            .Select(_ => Type.Missing)
+            .ToArray();
+
+        return () => (DbMock)optionalCtor!.Invoke(optionalCtorArgs!);
     }
 
     private static IEnumerable<Type> SafeGetTypes(Assembly assembly)
@@ -138,32 +231,48 @@ public static class DbMockConnectionFactory
         }
     }
 
-    private static IDbConnection ResolveConnection(DbMock db, string providerHint)
+    private static Func<DbMock, IDbConnection> CreateConnectionResolver(Type dbType, string providerHint)
     {
-        if (db is IDbConnection directConnection)
+        if (typeof(IDbConnection).IsAssignableFrom(dbType))
         {
-            return directConnection;
+            return static db => (IDbConnection)db;
         }
 
-        var candidateMembers = db.GetType()
+        var candidateMembers = dbType
             .GetMembers(BindingFlags.Instance | BindingFlags.Public)
             .Where(member =>
                 member is PropertyInfo property && typeof(IDbConnection).IsAssignableFrom(property.PropertyType)
                 || member is MethodInfo method && typeof(IDbConnection).IsAssignableFrom(method.ReturnType) && method.GetParameters().Length == 0);
 
+        var accessors = new List<Func<DbMock, IDbConnection?>>();
         foreach (var member in candidateMembers)
         {
-            object? value = member switch
+            if (member is PropertyInfo property)
             {
-                PropertyInfo property => property.GetValue(db),
-                MethodInfo method => method.Invoke(db, null),
-                _ => null
-            };
-
-            if (value is IDbConnection connection)
-            {
-                return connection;
+                accessors.Add(db => property.GetValue(db) as IDbConnection);
+                continue;
             }
+
+            if (member is MethodInfo method)
+            {
+                accessors.Add(db => method.Invoke(db, null) as IDbConnection);
+            }
+        }
+
+        if (accessors.Count > 0)
+        {
+            return db =>
+            {
+                foreach (var accessor in accessors)
+                {
+                    var connection = accessor(db);
+                    if (connection is not null)
+                        return connection;
+                }
+
+                throw new InvalidOperationException(
+                    $"Could not resolve an IDbConnection from DbMock type '{dbType.FullName}' with provider hint '{providerHint}'.");
+            };
         }
 
         var connectionType = AppDomain.CurrentDomain
@@ -172,15 +281,32 @@ public static class DbMockConnectionFactory
             .Where(type =>
                 typeof(IDbConnection).IsAssignableFrom(type)
                 && !type.IsAbstract
+                && type.IsPublic
+                && !type.IsNested
+                && !IsTestType(type)
                 && ContainsProviderHint(type, providerHint))
-            .OrderByDescending(type => type.Name.Contains("Connection", StringComparison.OrdinalIgnoreCase))
-            .FirstOrDefault(type => CanInstantiateConnectionForDb(type, db.GetType()));
+            .OrderByDescending(type => IsPreferredProviderConnectionType(type, providerHint))
+            .ThenByDescending(type => type.Name.Contains("Connection", StringComparison.OrdinalIgnoreCase))
+            .FirstOrDefault(type => CanInstantiateConnectionForDb(type, dbType));
 
-        if (connectionType is not null)
-            return (IDbConnection)CreateConnectionInstanceAllowingOptionalCtor(connectionType, db);
+        if (connectionType is null)
+        {
+            return _ => throw new InvalidOperationException(
+                $"Could not resolve an IDbConnection from DbMock type '{dbType.FullName}' with provider hint '{providerHint}'.");
+        }
 
-        throw new InvalidOperationException(
-            $"Could not resolve an IDbConnection from DbMock type '{db.GetType().FullName}' with provider hint '{providerHint}'.");
+        var ctor = GetCompatibleConnectionCtor(connectionType, dbType)
+            ?? throw new InvalidOperationException($"No compatible connection constructor found for '{connectionType.FullName}'.");
+        var ctorParameters = ctor.GetParameters();
+
+        return db =>
+        {
+            var args = new object?[ctorParameters.Length];
+            args[0] = db;
+            for (var i = 1; i < ctorParameters.Length; i++)
+                args[i] = Type.Missing;
+            return (IDbConnection)ctor.Invoke(args);
+        };
     }
 
 
@@ -199,9 +325,9 @@ public static class DbMockConnectionFactory
                 return ps.Skip(1).All(p => p.IsOptional);
             });
 
-    private static object CreateConnectionInstanceAllowingOptionalCtor(Type connectionType, DbMock db)
+    private static ConstructorInfo? GetCompatibleConnectionCtor(Type connectionType, Type dbType)
     {
-        var ctor = connectionType
+        return connectionType
             .GetConstructors(BindingFlags.Instance | BindingFlags.Public)
             .OrderBy(c => c.GetParameters().Length)
             .FirstOrDefault(c =>
@@ -210,22 +336,11 @@ public static class DbMockConnectionFactory
                 if (ps.Length == 0)
                     return false;
 
-                if (!ps[0].ParameterType.IsAssignableFrom(db.GetType()))
+                if (!ps[0].ParameterType.IsAssignableFrom(dbType))
                     return false;
 
                 return ps.Skip(1).All(p => p.IsOptional);
             });
-
-        if (ctor is null)
-            throw new InvalidOperationException($"No compatible connection constructor found for '{connectionType.FullName}'.");
-
-        var psCtor = ctor.GetParameters();
-        var args = new object?[psCtor.Length];
-        args[0] = db;
-        for (var i = 1; i < psCtor.Length; i++)
-            args[i] = Type.Missing;
-
-        return ctor.Invoke(args);
     }
 
     private static bool ContainsProviderHint(Type type, string providerHint)
@@ -237,4 +352,49 @@ public static class DbMockConnectionFactory
             || (type.Namespace?.Contains(providerHint, StringComparison.OrdinalIgnoreCase) ?? false)
             || (type.Assembly.GetName().Name?.Contains(providerHint, StringComparison.OrdinalIgnoreCase) ?? false);
     }
+
+    private static bool IsPreferredProviderConnectionType(Type type, string providerHint)
+    {
+        if (string.IsNullOrWhiteSpace(providerHint))
+            return false;
+
+        var expectedName = $"{providerHint}ConnectionMock";
+        return type.Name.Equals(expectedName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsTestType(Type type)
+    {
+        var assemblyName = type.Assembly.GetName().Name ?? string.Empty;
+        if (assemblyName.Contains(".Test", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var namespaceName = type.Namespace ?? string.Empty;
+        if (namespaceName.Contains(".Test", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return false;
+    }
+
+    private static bool IsConnectionTypeCompatibleForProvider(Type type, string providerHint)
+        => !type.IsAbstract
+            && type.IsPublic
+            && !type.IsNested
+            && !IsTestType(type)
+            && ContainsProviderHint(type, providerHint);
+
+    private static string CanonicalizeProviderHint(string providerHint)
+    {
+        var normalized = (providerHint ?? string.Empty)
+            .Replace("_", string.Empty)
+            .Replace("-", string.Empty)
+            .Trim();
+
+        return ProviderHintAliases.TryGetValue(normalized, out var canonical)
+            ? canonical
+            : (providerHint ?? string.Empty).Trim();
+    }
+
+    private sealed record ProviderResolutionPlan(
+        Func<DbMock> CreateDbMock,
+        Func<DbMock, IDbConnection> ResolveConnection);
 }

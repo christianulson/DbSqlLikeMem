@@ -41,6 +41,10 @@ public sealed class Db2ConnectionMock
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new Db2CommandMock(this, transaction as Db2TransactionMock);
 
-    internal override Exception NewException(string message, int code)
+    /// <summary>
+    /// EN: Creates the DB2-specific mock exception used by this connection.
+    /// PT: Cria a excecao simulada especifica do DB2 usada por esta conexao.
+    /// </summary>
+    protected internal override Exception NewException(string message, int code)
         => new Db2MockException(message, code);
 }
