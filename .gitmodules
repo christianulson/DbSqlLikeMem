@@ -1,0 +1,3 @@
+[submodule "docs/Wiki"]
+	path = docs/Wiki
+	url = https://github.com/christianulson/DbSqlLikeMem.wiki.git
