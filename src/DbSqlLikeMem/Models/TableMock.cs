@@ -57,6 +57,21 @@ public abstract class TableMock
     /// </summary>
     public bool AllowIdentityInsert { get; set; }
 
+    /// <summary>
+    /// EN: Sets the AllowIdentityInsert property.
+    /// PT: Define a propriedade AllowIdentityInsert.
+    /// </summary>
+    /// <param name="allowIdentityInsert">
+    /// EN: Enables explicit values for identity columns when building scenarios or executing inserts.
+    /// PT: Habilita valores explícitos para colunas identity ao montar cenários ou executar inserções.
+    /// </param>
+    /// <returns></returns>
+    public ITableMock SetAllowIdentityInsert(bool allowIdentityInsert)
+    {
+        AllowIdentityInsert = allowIdentityInsert;
+        return this;
+    }
+
     private readonly ColumnDictionary _columns = [];
 
     /// <summary>
@@ -465,15 +480,15 @@ public abstract class TableMock
             if (!value.ContainsKey(col.Index))
                 value[col.Index] = null;
 
-            if (col.Identity)
+            if (!col.Identity)
             {
-                if (AllowIdentityInsert && value[col.Index] is not null)
-                    UpdateNextIdentityFromExplicitValue(value[col.Index]);
-                else
-                    value[col.Index] = NextIdentity++;
+                if (col.DefaultValue != null && value[col.Index] == null)
+                    value[col.Index] = col.DefaultValue;
             }
-            else if (col.DefaultValue != null && value[col.Index] == null)
-                value[col.Index] = col.DefaultValue;
+            else if (AllowIdentityInsert && value[col.Index] is not null)
+                UpdateNextIdentityFromExplicitValue(value[col.Index]);
+            else
+                value[col.Index] = NextIdentity++;
 
             if (col.GetGenValue != null && col.PersistComputedValue)
                 value[col.Index] = col.GetGenValue(value, this);
@@ -739,7 +754,7 @@ public abstract class TableMock
 
         if (IsMatchEquals(table, pars, cond, info, actual, out var value))
             return value;
-        
+
         if (!cond.Op.Equals("IN", StringComparison.OrdinalIgnoreCase))
             return false;
 

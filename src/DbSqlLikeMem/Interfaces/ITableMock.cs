@@ -34,6 +34,8 @@ public interface ITableMock
     /// </summary>
     bool AllowIdentityInsert { get; set; }
 
+    ITableMock SetAllowIdentityInsert(bool allowIdentityInsert);
+
     /// <summary>
     /// EN: Holds the column _indexes that compose the primary key.
     /// PT: Mantém os índices das colunas que compõem a chave primária.
@@ -167,7 +169,6 @@ public interface ITableMock
     /// </summary>
     /// <param name="value">EN: Row to insert. PT: Linha a inserir.</param>
     ITableMock Add(Dictionary<int, object?> value);
-
 
     /// <summary>
     /// Removes the element at the specified index and returns a dictionary containing the removed item.
