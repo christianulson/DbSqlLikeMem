@@ -13,6 +13,7 @@
                 <Configuration>
                     <Format>cobertura</Format>
                     <Exclude>
+                        [*.Test]*
                         [*.TestTools]*
                         [*.XUnit]*
                         [*.MsTest]*
@@ -20,91 +21,53 @@
                         [StackExchange*]*
                         [Dapper*]*
                     </Exclude>
+                    <ExcludeByFile>
+                        **/DbSqlLikeMem*.Test/**/*.cs,**/DbSqlLikeMem*.TestTools/**/*.cs,**/DbSqlLikeMem*.XUnit/**/*.cs,**/DbSqlLikeMem*.MsTest/**/*.cs
+                    </ExcludeByFile>
                 </Configuration>
             </DataCollector>
-
-            <DataCollector friendlyName="Code Coverage">
+            <DataCollector friendlyName="Code Coverage" enabled="True">
                 <Configuration>
                     <CodeCoverage>
                         <ModulePaths>
-                            <Include>
-                                <ModulePath>.*\.dll$</ModulePath>
-                            </Include>
                             <Exclude>
-                                <ModulePath>.*Test.*</ModulePath>
-                                <ModulePath>.*TestTools.*</ModulePath>
-                                <ModulePath>.*XUnit.*</ModulePath>
-                                <ModulePath>.*MsTest.*</ModulePath>
-                                <ModulePath>fluentvalidation.*</ModulePath>
-                                <ModulePath>.*CPPUnitTestFramework.*</ModulePath>
-                                <ModulePath>.*TestAdapter.*</ModulePath>
-                                <ModulePath>.*\moq.dll$</ModulePath>
-                                <ModulePath>.*Skyve.Helper.Document.Test.*</ModulePath>
-
-                                <ModulePath>.*MySqlConnector.*</ModulePath>
-                                <ModulePath>.*StackExchange.*</ModulePath>
-                                <ModulePath>.*Dapper.*</ModulePath>
+                                <ModulePath>.*\\DbSqlLikeMem\.XUnit\.dll$</ModulePath>
+                                <ModulePath>.*\\DbSqlLikeMem\.[^.]+\.Test\.dll$</ModulePath>
+                                <ModulePath>.*\\DbSqlLikeMem\..*\.Test\.dll$</ModulePath>
+                                <ModulePath>.*\\DbSqlLikeMem\..*\.TestTools\.dll$</ModulePath>
+                                <ModulePath>.*\\DbSqlLikeMem\..*\.XUnit\.dll$</ModulePath>
+                                <ModulePath>.*\\DbSqlLikeMem\..*\.MsTest\.dll$</ModulePath>
+                                <ModulePath>.*\\MySqlConnector.*</ModulePath>
+                                <ModulePath>.*\\StackExchange.*</ModulePath>
+                                <ModulePath>.*\\Dapper.*</ModulePath>
                             </Exclude>
                         </ModulePaths>
-                        <Functions>
-                            <Exclude>
-                                <Function>^Fabrikam\.UnitTest\..*</Function>
-                                <Function>^std::.*</Function>
-                                <Function>^ATL::.*</Function>
-                                <Function>.*::__GetTestMethodInfo.*</Function>
-                                <Function>^Microsoft::VisualStudio::CppCodeCoverageFramework::.*</Function>
-                                <Function>^Microsoft::VisualStudio::CppUnitTestFramework::.*</Function>
-                                <Function>.*get_.*</Function>
-                                <Function>.*set_.*</Function>
-                                <Function>.*MoveNext.*</Function>
-                                <Function>.*ValidateAVSRequestforHierarchy.*</Function>
-                                <Function>.*FetchDistinctAddress.*</Function>
-                            </Exclude>
-                        </Functions>
-                        <Attributes>
-                            <Exclude>
-                                <Attribute>^System.Diagnostics.DebuggerHiddenAttribute$</Attribute>
-                                <Attribute>^System.Diagnostics.DebuggerNonUserCodeAttribute$</Attribute>
-                                <Attribute>^System.Runtime.CompilerServices.CompilerGeneratedAttribute$</Attribute>
-                                <Attribute>^System.CodeDom.Compiler.GeneratedCodeAttribute$</Attribute>
-                                <Attribute>^System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute$</Attribute>
-                                <Attribute>^NUnit.Framework.TestFixtureAttribute$</Attribute>
-                                <Attribute>^Xunit.FactAttribute$</Attribute>
-                                <Attribute>^Microsoft.VisualStudio.TestTools.UnitTesting.TestClassAttribute$</Attribute>
-                                <Attribute>^skyve.helper.Avs.Core.Proxy$</Attribute>
-                            </Exclude>
-                        </Attributes>
                         <Sources>
                             <Exclude>
-                                <Source>.*\\atlmfc\\.*</Source>
-                                <Source>.*\\vctools\\.*</Source>
-                                <Source>.*\\public\\sdk\\.*</Source>
-                                <Source>.*\\microsoft sdks\\.*</Source>
-                                <Source>.*\\vc\\include\\.*</Source>
-                                <Source>.*\\Program.cs </Source>
-                                <Source>.*\\Startup.cs </Source>
-                                <Source>.*\\Filter\\.*</Source>
-                                <Source>.*\\RouteConfig.cs </Source>
+                                <Source>.*\\DbSqlLikeMem\.XUnit\\.*</Source>
+                                <Source>.*\\DbSqlLikeMem\..*\.Test\\.*</Source>
+                                <Source>.*\\DbSqlLikeMem\..*\.TestTools\\.*</Source>
+                                <Source>.*\\DbSqlLikeMem\..*\.XUnit\\.*</Source>
+                                <Source>.*\\DbSqlLikeMem\..*\.MsTest\\.*</Source>
                             </Exclude>
                         </Sources>
-                        <CompanyNames>
+                        <Attributes>
                             <Exclude>
-                                <CompanyName>.*microsoft.*</CompanyName>
+                                <Attribute>^System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute$</Attribute>
+                                <Attribute>^System.CodeDom.Compiler.GeneratedCodeAttribute$</Attribute>
+                                <Attribute>^System.Runtime.CompilerServices.CompilerGeneratedAttribute$</Attribute>
+                                <Attribute>^System.Diagnostics.DebuggerHiddenAttribute$</Attribute>
+                                <Attribute>^System.Diagnostics.DebuggerNonUserCodeAttribute$</Attribute>
                             </Exclude>
-                        </CompanyNames>
-                        <PublicKeyTokens>
-                            <Exclude>
-
-                            </Exclude>
-                        </PublicKeyTokens>
+                        </Attributes>
                         <UseVerifiableInstrumentation>True</UseVerifiableInstrumentation>
                         <AllowLowIntegrityProcesses>True</AllowLowIntegrityProcesses>
                         <CollectFromChildProcesses>True</CollectFromChildProcesses>
                         <CollectAspDotNet>False</CollectAspDotNet>
                     </CodeCoverage>
+                    <Format>Cobertura</Format>
                 </Configuration>
             </DataCollector>
-
         </DataCollectors>
     </DataCollectionRunSettings>
 </RunSettings>

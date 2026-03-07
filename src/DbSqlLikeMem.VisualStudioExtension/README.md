@@ -11,6 +11,7 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 
 2. **Carregamento real de objetos**
    - Botão **Atualizar objetos** para listar metadados estruturais via `SqlDatabaseMetadataProvider`.
+   - Objetos `Sequence` entram na árvore para bancos com metadata suportada (SqlServer/SqlAzure, PostgreSql, Oracle e Db2).
 
 3. **Menus de contexto na árvore**
    - **Gerar classes de teste**
@@ -31,6 +32,7 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 7. **Templates configuráveis para modelos e repositórios**
    - Botão no topo **Configurar templates** para informar arquivo de template e diretório de saída.
    - Substituição de tokens no conteúdo durante a geração.
+   - Geração também pode consumir objetos `Sequence` quando presentes na metadata carregada.
 
 8. **Checagem complementar de artefatos gerados**
    - A consistência considera também a presença de arquivos de Model e Repository, além das classes já geradas pelo fluxo principal.

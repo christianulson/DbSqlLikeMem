@@ -34,6 +34,8 @@
   **PT-BR:** Parser + executor SQL para operações DDL/DML comuns.
 - **EN:** Fluent API for schema definition and data seeding.  
   **PT-BR:** API fluente para definição de schema e seed de dados.
+- **EN:** Schema-level sequences plus optional identity override for deterministic setup and dialect-aware sequence flows.  
+  **PT-BR:** Sequences em nível de schema e sobrescrita opcional de identity para setup determinístico e fluxos de sequence sensíveis ao dialeto.
 - **EN:** Friendly execution flow for Dapper-based tests.  
   **PT-BR:** Fluxo de execução amigável para testes com Dapper.
 - **EN:** Dialect/version-specific behavior.  
@@ -89,6 +91,20 @@ var name = (string?)cmd.ExecuteScalar();
 
 **EN:** For provider-specific examples (Dapper, transactions, RETURNING/OUTPUT, etc.), see: [docs/getting-started.md](docs/getting-started.md)  
 **PT-BR:** Para exemplos por provedor (Dapper, transações, RETURNING/OUTPUT etc.), veja: [docs/getting-started.md](docs/getting-started.md)
+
+## Sequence quick reference | Referência rápida de sequence
+
+- **EN:** SQL Server: `NEXT VALUE FOR schema.seq_name`  
+  **PT-BR:** SQL Server: `NEXT VALUE FOR schema.seq_name`
+- **EN:** PostgreSQL: `nextval('schema.seq_name')`, `currval('schema.seq_name')`, `setval('schema.seq_name', value, is_called)`, `lastval()`  
+  **PT-BR:** PostgreSQL: `nextval('schema.seq_name')`, `currval('schema.seq_name')`, `setval('schema.seq_name', value, is_called)`, `lastval()`
+- **EN:** Oracle: `schema.seq_name.NEXTVAL`, `schema.seq_name.CURRVAL`  
+  **PT-BR:** Oracle: `schema.seq_name.NEXTVAL`, `schema.seq_name.CURRVAL`
+- **EN:** DB2: `NEXT VALUE FOR schema.seq_name`, `PREVIOUS VALUE FOR schema.seq_name`  
+  **PT-BR:** DB2: `NEXT VALUE FOR schema.seq_name`, `PREVIOUS VALUE FOR schema.seq_name`
+
+**EN:** See [docs/getting-started.md](docs/getting-started.md) for end-to-end examples.  
+**PT-BR:** Veja [docs/getting-started.md](docs/getting-started.md) para exemplos end-to-end.
 
 ## Execution plan diagnostics (quick view) | Diagnóstico de plano de execução (visão rápida)
 

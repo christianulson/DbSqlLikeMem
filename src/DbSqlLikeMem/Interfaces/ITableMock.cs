@@ -29,6 +29,12 @@ public interface ITableMock
     int NextIdentity { get; set; }
 
     /// <summary>
+    /// EN: Gets or sets whether explicit values can be inserted into identity columns.
+    /// PT: Obtém ou define se valores explícitos podem ser inseridos em colunas identity.
+    /// </summary>
+    bool AllowIdentityInsert { get; set; }
+
+    /// <summary>
     /// EN: Holds the column _indexes that compose the primary key.
     /// PT: Mantém os índices das colunas que compõem a chave primária.
     /// </summary>

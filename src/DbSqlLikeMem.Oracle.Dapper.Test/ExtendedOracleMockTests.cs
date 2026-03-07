@@ -26,6 +26,68 @@ public sealed class ExtendedOracleMockTests(
         => InsertAutoIncrementShouldAssignIdentityWhenNotSpecified();
 
     /// <summary>
+    /// EN: Verifies explicit identity values are respected only when identity override is enabled for the scenario.
+    /// PT: Verifica se valores explícitos de identity são respeitados apenas quando a sobrescrita de identity está habilitada no cenário.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedOracleMock")]
+    public void InsertAutoIncrementShouldRespectExplicitIdentityWhenEnabled_Test()
+        => InsertAutoIncrementShouldRespectExplicitIdentityWhenEnabled();
+
+    /// <summary>
+    /// EN: Verifies Oracle-style sequence access with NEXTVAL and CURRVAL works in scalar queries and inserts.
+    /// PT: Verifica se o acesso a sequence no estilo Oracle com NEXTVAL e CURRVAL funciona em consultas escalares e insercoes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedOracleMock")]
+    public void OracleSequenceNextValAndCurrVal_ShouldWork_Test()
+    {
+        var db = CreateDb();
+        using var connection = CreateConnection(db);
+        connection.Open();
+        connection.AddSequence("seq_orders", startValue: 10, incrementBy: 5);
+        var table = db.AddTable("orders");
+        table.AddColumn("id", DbType.Int64, false);
+
+        var first = connection.ExecuteScalar<long>("SELECT seq_orders.NEXTVAL");
+        var curr = connection.ExecuteScalar<long>("SELECT seq_orders.CURRVAL");
+        connection.Execute("INSERT INTO orders (id) VALUES (seq_orders.NEXTVAL)");
+
+        Assert.Equal(10L, first);
+        Assert.Equal(10L, curr);
+        Assert.Equal(15L, table[0][0]);
+        Assert.True(connection.TryGetSequence("seq_orders", out var sequence));
+        Assert.Equal(15, sequence!.CurrentValue);
+    }
+
+    /// <summary>
+    /// EN: Verifies schema-qualified Oracle-style sequence access resolves the registered sequence.
+    /// PT: Verifica se o acesso a sequence no estilo Oracle qualificado por schema resolve a sequence registrada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedOracleMock")]
+    public void OracleSchemaQualifiedSequence_ShouldWork_Test()
+    {
+        var db = CreateDb();
+        db.CreateSchema("sales");
+        using var connection = new OracleConnectionMock(db, "sales");
+        connection.Open();
+        connection.AddSequence("seq_orders", startValue: 100, incrementBy: 10, schemaName: "sales");
+        var table = db.AddTable("orders", schemaName: "sales");
+        table.AddColumn("id", DbType.Int64, false);
+
+        var first = connection.ExecuteScalar<long>("SELECT sales.seq_orders.NEXTVAL");
+        var curr = connection.ExecuteScalar<long>("SELECT sales.seq_orders.CURRVAL");
+        connection.Execute("INSERT INTO sales.orders (id) VALUES (sales.seq_orders.NEXTVAL)");
+
+        Assert.Equal(100L, first);
+        Assert.Equal(100L, curr);
+        Assert.Equal(110L, table[0][0]);
+        Assert.True(connection.TryGetSequence("seq_orders", out var sequence, "sales"));
+        Assert.Equal(110, sequence!.CurrentValue);
+    }
+
+    /// <summary>
     /// EN: Verifies inserts with null values succeed for nullable columns.
     /// PT: Verifica se insercoes com valores nulos funcionam para colunas anulaveis.
     /// </summary>

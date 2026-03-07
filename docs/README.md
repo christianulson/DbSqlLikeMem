@@ -8,10 +8,12 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
   - instalação
   - setup de provider
   - exemplos de uso
+  - exemplos de sequence por provider
   - checklist de revisão da documentação pós-mudanças
 - [Provedores, versões e compatibilidade](old/providers-and-features.md)
   - matriz por banco
   - capacidades SQL por dialeto/versão
+  - trilha de sequences por provider
   - sugestões de evolução do parser
 - [Plano global de evolução (TDD-first)](old/global-evolution-plan.md)
   - avaliação consolidada de documentação, planos e código

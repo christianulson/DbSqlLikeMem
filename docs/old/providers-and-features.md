@@ -25,6 +25,8 @@
 - `CREATE VIEW` / `CREATE OR REPLACE VIEW`.
 - `CREATE TEMPORARY TABLE` (incluindo variantes `AS SELECT`).
 - Definição de schema via API fluente.
+- Sequences como objetos de schema, com registro via `DbMock`/`DbConnectionMockBase` e suporte à geração por metadata nos generators compatíveis.
+- Sobrescrita opcional de colunas `identity` para montagem de cenários e inserts determinísticos, preservando o comportamento padrão quando desabilitada.
 - Seed de dados e consultas compatíveis com Dapper.
 - Compatibilidade NHibernate via `UserSuppliedConnectionProvider` com suíte de contrato por provider usando dialeto NHibernate específico por banco.
   - **Core ORM**: SQL nativo parametrizado; save/get/update/delete de entidade mapeada; rollback transacional (SQL nativo e entidade mapeada); paginação (`FirstResult`/`MaxResults`); HQL/Criteria simples; parâmetros nulos e tipados (`string`/`int`/`datetime`/`decimal`) em `INSERT`/`WHERE`.
@@ -75,6 +77,21 @@ Notas:
   - `FORCE INDEX` em escopos `FOR ORDER BY` / `FOR GROUP BY` valida existência de índices quando a query usa a cláusula correspondente (`ORDER BY` / `GROUP BY`), com fail-fast para índice inexistente.
   - Em `FOR ORDER BY` / `FOR GROUP BY`, quando o índice hint existe, o plano de acesso a linhas permanece no modo mínimo atual (sem otimização dedicada de ordenação/agrupamento).
 
+### SQL Server
+- `NEXT VALUE FOR`: suportado nos fluxos validados de `SELECT` e `INSERT`, incluindo sequences qualificadas por schema.
+- `RELEASE SAVEPOINT`: intencionalmente não suportado.
+
+### SQL Azure
+- `NEXT VALUE FOR`: segue a mesma base de compatibilidade do SQL Server no mock atual, incluindo sequences qualificadas por schema.
+- Regras de transação/savepoint continuam específicas do provider Azure SQL.
+
+### PostgreSQL (Npgsql)
+- `nextval(...)`, `currval(...)`, `setval(...)` e `lastval()`: suportados nos fluxos validados do provider, incluindo sequences qualificadas por schema.
+- `currval(...)` e `lastval()` seguem semântica local da sessão no mock, alinhada ao comportamento esperado após `nextval`/`setval`.
+
+### Oracle
+- `seq.NEXTVAL` e `seq.CURRVAL`: implementados no parser/runtime, incluindo sequences qualificadas por schema.
+
 ### SQLite
 - `WITH`/CTE: disponível (>= 3).
 - `ON DUPLICATE KEY UPDATE`: não suportado (SQLite usa `ON CONFLICT`).
@@ -85,6 +102,7 @@ Notas:
 - `WITH`/CTE: disponível (>= 8).
 - `MERGE`: disponível (>= 9).
 - `FETCH FIRST`: suportado.
+- `NEXT VALUE FOR` e `PREVIOUS VALUE FOR`: implementados no parser/runtime, incluindo sequences qualificadas por schema.
 - `LIMIT/OFFSET`: não suportado pelo dialeto DB2.
 - `ON DUPLICATE KEY UPDATE`: não suportado.
 - Operador null-safe `<=>`: não suportado.

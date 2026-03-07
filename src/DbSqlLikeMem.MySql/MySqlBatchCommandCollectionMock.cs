@@ -93,7 +93,8 @@ public class MySqlBatchCommandCollectionMock
     public void CopyTo(MySqlBatchCommandMock[] array, int arrayIndex)
 #endif
     {
-        Commands.CopyTo([.. array.Select(_ => (MySqlBatchCommandMock)_)], arrayIndex);
+        for (var i = 0; i < Commands.Count; i++)
+            array[arrayIndex + i] = Commands[i];
     }
 #if NET6_0_OR_GREATER
     /// <summary>

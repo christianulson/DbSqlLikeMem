@@ -42,6 +42,7 @@ public sealed class TreeViewBuilder
         DatabaseObjectType.Table => "Tables",
         DatabaseObjectType.View => "Views",
         DatabaseObjectType.Procedure => "Procedures",
+        DatabaseObjectType.Sequence => "Sequences",
         _ => type.ToString()
     };
 }

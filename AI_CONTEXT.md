@@ -105,6 +105,23 @@ Many provider-specific Dapper test projects mirror the same structure:
 
 When updating one provider, the same documentation approach usually applies to the others.
 
+## Test Failure Triage Rule
+
+When a test fails, agents must evaluate both possibilities before changing code:
+
+1. the test is wrong
+2. the implementation is wrong
+
+The deciding reference is the real behavior of the database/provider/version being simulated. This repository exists to validate application behavior before production, so mocks and provider-specific tests must align with the real database as closely as possible.
+
+Practical implications:
+
+- check whether the failing assertion matches the real database behavior
+- keep provider/version differences explicit instead of forcing one database behavior onto all providers
+- change the test when the mock already matches the real database
+- change the implementation when the mock diverges from the real database
+- be especially careful with SQL semantics, exceptions, error codes, localized messages, batching, sequences, identity behavior, and provider-specific LINQ or ADO.NET surface differences
+
 ## Practical Guidance For Future Agents
 
 When a new `CS1591` batch appears:

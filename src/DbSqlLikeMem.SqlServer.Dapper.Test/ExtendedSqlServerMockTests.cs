@@ -26,6 +26,86 @@ public sealed class ExtendedSqlServerMockTests(
         => InsertAutoIncrementShouldAssignIdentityWhenNotSpecified();
 
     /// <summary>
+    /// EN: Verifies explicit identity values are respected only when identity override is enabled for the scenario.
+    /// PT: Verifica se valores explícitos de identity são respeitados apenas quando a sobrescrita de identity está habilitada no cenário.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedSqlServerMock")]
+    public void InsertAutoIncrementShouldRespectExplicitIdentityWhenEnabled_Test()
+        => InsertAutoIncrementShouldRespectExplicitIdentityWhenEnabled();
+
+    /// <summary>
+    /// EN: Verifies NEXT VALUE FOR reads and advances registered schema sequences during inserts.
+    /// PT: Verifica se NEXT VALUE FOR le e avanca sequences registradas no schema durante insercoes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedSqlServerMock")]
+    public void NextValueFor_ShouldAdvanceRegisteredSequence_Test()
+    {
+        var db = CreateDb();
+        using var connection = CreateConnection(db);
+        connection.Open();
+        connection.AddSequence("seq_orders", startValue: 10, incrementBy: 5);
+        var table = db.AddTable("orders");
+        table.AddColumn("id", DbType.Int64, false);
+
+        connection.Execute("INSERT INTO orders (id) VALUES (NEXT VALUE FOR seq_orders)");
+        connection.Execute("INSERT INTO orders (id) VALUES (NEXT VALUE FOR seq_orders)");
+
+        Assert.Equal(10L, table[0][0]);
+        Assert.Equal(15L, table[1][0]);
+        Assert.True(connection.TryGetSequence("seq_orders", out var sequence));
+        Assert.Equal(15, sequence!.CurrentValue);
+    }
+
+    /// <summary>
+    /// EN: Verifies SELECT NEXT VALUE FOR advances the registered schema sequence once per scalar evaluation.
+    /// PT: Verifica se SELECT NEXT VALUE FOR avanca a sequence registrada no schema uma vez por avaliacao escalar.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedSqlServerMock")]
+    public void SelectNextValueFor_ShouldAdvanceRegisteredSequence_Test()
+    {
+        var db = CreateDb();
+        using var connection = CreateConnection(db);
+        connection.Open();
+        connection.AddSequence("seq_orders", startValue: 10, incrementBy: 5);
+
+        var first = connection.ExecuteScalar<long>("SELECT NEXT VALUE FOR seq_orders");
+        var second = connection.ExecuteScalar<long>("SELECT NEXT VALUE FOR seq_orders");
+
+        Assert.Equal(10L, first);
+        Assert.Equal(15L, second);
+        Assert.True(connection.TryGetSequence("seq_orders", out var sequence));
+        Assert.Equal(15, sequence!.CurrentValue);
+    }
+
+    /// <summary>
+    /// EN: Verifies schema-qualified sequences are resolved during scalar selects and inserts.
+    /// PT: Verifica se sequences qualificadas por schema sao resolvidas durante selects escalares e insercoes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedSqlServerMock")]
+    public void SchemaQualifiedNextValueFor_ShouldResolveRegisteredSequence_Test()
+    {
+        var db = CreateDb();
+        db.CreateSchema("sales");
+        using var connection = new SqlServerConnectionMock(db, "sales");
+        connection.Open();
+        connection.AddSequence("seq_orders", startValue: 20, incrementBy: 10, schemaName: "sales");
+        var table = db.AddTable("orders", schemaName: "sales");
+        table.AddColumn("id", DbType.Int64, false);
+
+        var scalar = connection.ExecuteScalar<long>("SELECT NEXT VALUE FOR sales.seq_orders");
+        connection.Execute("INSERT INTO sales.orders (id) VALUES (NEXT VALUE FOR sales.seq_orders)");
+
+        Assert.Equal(20L, scalar);
+        Assert.Equal(30L, table[0][0]);
+        Assert.True(connection.TryGetSequence("seq_orders", out var sequence, "sales"));
+        Assert.Equal(30, sequence!.CurrentValue);
+    }
+
+    /// <summary>
     /// EN: Verifies inserts with null values succeed for nullable columns.
     /// PT: Verifica se insercoes com valores nulos funcionam para colunas anulaveis.
     /// </summary>

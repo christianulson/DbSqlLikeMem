@@ -10,15 +10,15 @@ Extensão equivalente ao fluxo desenhado para o Visual Studio Extension Core, ad
 - TreeView por:
   - Tipo de banco
   - Database
-  - Tipo do objeto (`Table`, `View`, `Procedure`)
+  - Tipo do objeto (`Table`, `View`, `Procedure`, `Sequence`)
   - Objeto (`schema.nome`)
   - Colunas e Foreign Keys (para tabelas SQL Server)
 - Filtro por modo `Like` e `Equals`.
 - Interface gráfica (Manager) para cadastrar/editar/remover conexões e configurar mapeamentos.
-- Configuração de mapeamentos por tipo de objeto (`Table`, `View`, `Procedure`) também no menu de contexto do nó do database.
+- Configuração de mapeamentos por tipo de objeto (`Table`, `View`, `Procedure`, `Sequence`) também no menu de contexto do nó do database.
 - Geração de classes de **teste** `.cs` no workspace (ação principal), com prévia de conflitos (sobrescrita).
-- Geração de classes de **modelo** a partir de template com tokens, com prévia de conflitos (sobrescrita).
-- Geração de classes de **repositório** a partir de template com tokens, com prévia de conflitos (sobrescrita).
+- Geração de classes de **modelo** a partir de template com tokens, com prévia de conflitos (sobrescrita), incluindo objetos `Sequence` quando a metadata do provider os expõe.
+- Geração de classes de **repositório** a partir de template com tokens, com prévia de conflitos (sobrescrita), incluindo objetos `Sequence` quando a metadata do provider os expõe.
 - Configuração de templates (botão no topo da view) para modelos e repositórios.
 - Check de consistência para artefatos gerados (teste/model/repositório), com status visual por objeto na árvore.
 - Ações de geração/consistência respeitam o nó selecionado da TreeView (`Database`, `ObjectType` ou objeto individual).

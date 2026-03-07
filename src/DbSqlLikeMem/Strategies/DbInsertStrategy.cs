@@ -42,7 +42,7 @@ internal static class DbInsertStrategy
         else
         {
             // Caso: INSERT INTO ... VALUES ...
-            newRows = CreateRowsFromValues(query, table, pars, dialect);
+            newRows = CreateRowsFromValues(query, table, connection, pars, dialect);
         }
 
         int insertedCount = 0;
@@ -130,6 +130,7 @@ internal static class DbInsertStrategy
     private static List<Dictionary<int, object?>> CreateRowsFromValues(
         SqlInsertQuery query,
         ITableMock table,
+        DbConnectionMockBase connection,
         DbParameterCollection? pars,
         ISqlDialect dialect)
     {
@@ -174,7 +175,7 @@ internal static class DbInsertStrategy
                     var parsedExpr = parsedExprBlock is not null && i < parsedExprBlock.Count
                         ? parsedExprBlock[i]
                         : null;
-                    SetColValue(table, pars, targetCols[i].Index, valueBlock[i], parsedExpr, newRow, dialect);
+                    SetColValue(table, connection, pars, targetCols[i].Index, valueBlock[i], parsedExpr, newRow, dialect);
                 }
             }
             else if (colNames.Count > 0)
@@ -186,7 +187,7 @@ internal static class DbInsertStrategy
                     var parsedExpr = parsedExprBlock is not null && i < parsedExprBlock.Count
                         ? parsedExprBlock[i]
                         : null;
-                    SetColValue(table, pars, colInfo.Index, valueBlock[i], parsedExpr, newRow, dialect);
+                    SetColValue(table, connection, pars, colInfo.Index, valueBlock[i], parsedExpr, newRow, dialect);
                 }
             }
 
@@ -321,6 +322,7 @@ internal static class DbInsertStrategy
 
     private static void SetColValue(
         ITableMock table,
+        DbConnectionMockBase connection,
         DbParameterCollection? pars,
         int colIndex,
         string rawValue,
@@ -338,6 +340,10 @@ internal static class DbInsertStrategy
         {
             resolved = castJsonValue;
         }
+        else if (TryResolveParsedSpecialValue(table, connection, parsedExpr, pars, dialect, out var parsedValue))
+        {
+            resolved = parsedValue;
+        }
         else
         {
             resolved = TryResolveTemporalValue(rawValue, dialect, out var temporalValue)
@@ -351,6 +357,47 @@ internal static class DbInsertStrategy
             throw table.ColumnCannotBeNull("Idx:" + colIndex);
 
         row[colIndex] = val;
+    }
+
+    private static bool TryResolveParsedSpecialValue(
+        ITableMock table,
+        DbConnectionMockBase connection,
+        SqlExpr? parsedExpr,
+        DbParameterCollection? pars,
+        ISqlDialect dialect,
+        out object? value)
+    {
+        value = null;
+        if (parsedExpr is null)
+            return false;
+
+        object? Eval(SqlExpr expr)
+        {
+            return expr switch
+            {
+                LiteralExpr lit => lit.Value,
+                ParameterExpr p when TryResolveParameterValue(pars, p.Name, out var parameterValue) => parameterValue,
+                IdentifierExpr id when SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, id.Name, out var temporalIdentifierValue) => temporalIdentifierValue,
+                ColumnExpr c when SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, c.Name, out var temporalColumnValue) => temporalColumnValue,
+                _ => null
+            };
+        }
+
+        if (parsedExpr is CallExpr call
+            && SqlSequenceEvaluator.TryEvaluateCall(connection, call.Name, call.Args, Eval, out var callValue))
+        {
+            value = callValue;
+            return true;
+        }
+
+        if (parsedExpr is FunctionCallExpr function
+            && SqlSequenceEvaluator.TryEvaluateCall(connection, function.Name, function.Args, Eval, out var functionValue))
+        {
+            value = functionValue;
+            return true;
+        }
+
+        return false;
     }
 
     private static bool TryResolveCastAsJsonValue(
@@ -572,6 +619,9 @@ internal static class DbInsertStrategy
 
         object? EvalFunction(FunctionCallExpr fn)
         {
+            if (SqlSequenceEvaluator.TryEvaluateCall(table, fn.Name, fn.Args, Eval, out var sequenceValue))
+                return sequenceValue;
+
             if (fn.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
                 && fn.Args.Count == 1)
             {
@@ -591,6 +641,9 @@ internal static class DbInsertStrategy
 
         object? EvalCall(CallExpr call)
         {
+            if (SqlSequenceEvaluator.TryEvaluateCall(table, call.Name, call.Args, Eval, out var sequenceValue))
+                return sequenceValue;
+
             if (call.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
                 && call.Args.Count == 1)
             {
@@ -756,6 +809,9 @@ internal static class DbInsertStrategy
         {
             // compat: alguns parsers usam FunctionCallExpr
             var name = fn.Name;
+            if (SqlSequenceEvaluator.TryEvaluateCall(table, name, fn.Args, Eval, out var sequenceValue))
+                return sequenceValue;
+
             if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, name, out var temporalValue))
                 return temporalValue;
 
@@ -779,6 +835,8 @@ internal static class DbInsertStrategy
         object? EvalCall(CallExpr call)
         {
             var name = call.Name;
+            if (SqlSequenceEvaluator.TryEvaluateCall(table, name, call.Args, Eval, out var sequenceValue))
+                return sequenceValue;
 
             // MySQL: VALUES(col)
             if (name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
@@ -885,6 +943,9 @@ internal static class DbInsertStrategy
 
         object? EvalFunction(FunctionCallExpr fn)
         {
+            if (SqlSequenceEvaluator.TryEvaluateCall(table, fn.Name, fn.Args, Eval, out var sequenceValue))
+                return sequenceValue;
+
             if (fn.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
                 && fn.Args.Count == 1)
             {
@@ -907,6 +968,9 @@ internal static class DbInsertStrategy
 
         object? EvalCall(CallExpr call)
         {
+            if (SqlSequenceEvaluator.TryEvaluateCall(table, call.Name, call.Args, Eval, out var sequenceValue))
+                return sequenceValue;
+
             if (call.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
                 && call.Args.Count == 1)
             {

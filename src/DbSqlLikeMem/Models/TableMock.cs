@@ -51,6 +51,12 @@ public abstract class TableMock
     /// </summary>
     public int NextIdentity { get; set; } = 1;
 
+    /// <summary>
+    /// EN: Enables explicit values for identity columns when building scenarios or executing inserts.
+    /// PT: Habilita valores explícitos para colunas identity ao montar cenários ou executar inserções.
+    /// </summary>
+    public bool AllowIdentityInsert { get; set; }
+
     private readonly ColumnDictionary _columns = [];
 
     /// <summary>
@@ -460,7 +466,12 @@ public abstract class TableMock
                 value[col.Index] = null;
 
             if (col.Identity)
-                value[col.Index] = NextIdentity++;
+            {
+                if (AllowIdentityInsert && value[col.Index] is not null)
+                    UpdateNextIdentityFromExplicitValue(value[col.Index]);
+                else
+                    value[col.Index] = NextIdentity++;
+            }
             else if (col.DefaultValue != null && value[col.Index] == null)
                 value[col.Index] = col.DefaultValue;
 
@@ -469,6 +480,32 @@ public abstract class TableMock
 
             if (!col.Nullable && value[col.Index] == null)
                 throw ColumnCannotBeNull(it.Key);
+        }
+    }
+
+    private void UpdateNextIdentityFromExplicitValue(object? explicitValue)
+    {
+        if (explicitValue is null)
+            return;
+
+        if (!TryConvertIdentityValue(explicitValue, out var numericValue))
+            return;
+
+        if (numericValue >= NextIdentity)
+            NextIdentity = numericValue + 1;
+    }
+
+    private static bool TryConvertIdentityValue(object value, out int numericValue)
+    {
+        try
+        {
+            numericValue = Convert.ToInt32(value, System.Globalization.CultureInfo.InvariantCulture);
+            return true;
+        }
+        catch
+        {
+            numericValue = default;
+            return false;
         }
     }
 

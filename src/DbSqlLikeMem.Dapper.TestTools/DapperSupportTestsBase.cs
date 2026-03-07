@@ -2396,6 +2396,35 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
     }
 
     /// <summary>
+    /// EN: Verifies explicit identity values are accepted only when the scenario enables identity override.
+    /// PT: Verifica se valores explícitos de identity são aceitos apenas quando o cenário habilita a sobrescrita de identity.
+    /// </summary>
+    protected void InsertAutoIncrementShouldRespectExplicitIdentityWhenEnabled()
+    {
+        var db = CreateDb();
+        var table = db.AddTable("users");
+        table.AddColumn("id", DbType.Int32, false, identity: true);
+        table.AddColumn("name", DbType.String, false);
+        using var connection = OpenConnection(db);
+
+        connection.IdentityOf("users", nextIdentity: 1, allowInsertOverride: true);
+
+        var rows1 = connection.Execute("INSERT INTO users (id, name) VALUES (@id, @name)", new { id = 42, name = "Alice" });
+        Assert.Equal(1, rows1);
+        Assert.Single(table);
+        Assert.Equal(42, table[0][0]);
+        Assert.Equal("Alice", table[0][1]);
+        Assert.Equal(43, table.NextIdentity);
+
+        var rows2 = connection.Execute("INSERT INTO users (name) VALUES (@name)", new { name = "Bob" });
+        Assert.Equal(1, rows2);
+        Assert.Equal(2, table.Count);
+        Assert.Equal(43, table[1][0]);
+        Assert.Equal("Bob", table[1][1]);
+        Assert.Equal(44, table.NextIdentity);
+    }
+
+    /// <summary>
     /// EN: Verifies inserting null into a nullable column succeeds.
     /// PT: Verifica se inserir null em uma coluna anulavel funciona corretamente.
     /// </summary>

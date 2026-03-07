@@ -23,6 +23,17 @@ var conn = new Db2ConnectionMock(new Db2DbMock());
 conn.Open();
 ```
 
+## Sequence syntax
+
+Use DB2-style sequence access in the mock:
+
+```sql
+VALUES NEXT VALUE FOR sales.seq_orders;
+VALUES PREVIOUS VALUE FOR sales.seq_orders;
+```
+
+See `docs/getting-started.md` for end-to-end setup examples.
+
 ## Evolução colaborativa
 
 A comunidade é fundamental para ampliar cobertura DB2. Compartilhe scripts SQL reais, abra issues e envie PRs com testes para acelerar a evolução do pacote.

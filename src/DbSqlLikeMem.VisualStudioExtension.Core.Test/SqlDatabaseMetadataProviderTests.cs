@@ -100,6 +100,7 @@ public sealed class SqlDatabaseMetadataProviderTests
         Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildIndexesQuery(databaseType)));
         Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildForeignKeysQuery(databaseType)));
         Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildTriggersQuery(databaseType)));
+        Assert.False(string.IsNullOrWhiteSpace(SqlMetadataQueryFactory.BuildSequenceMetadataQuery(databaseType)));
     }
 
     /// <summary>
@@ -124,6 +125,35 @@ public sealed class SqlDatabaseMetadataProviderTests
 
         Assert.True(executor.TryGetLastParametersFor("FROM sys.objects", out var parameters));
         Assert.Equal("erp_azure", parameters!["databaseName"]?.ToString());
+    }
+
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlDatabaseMetadataProvider")]
+    public async Task GetObjectAsync_ForSequence_ReturnsSequenceMetadataOnly()
+    {
+        var executor = new FakeSqlQueryExecutor();
+        executor.WhenContains("FROM sys.objects", [
+            Row(("SchemaName", "dbo"), ("ObjectName", "seq_orders"), ("ObjectType", "Sequence"))
+        ]);
+        executor.WhenContains("FROM sys.sequences", [
+            Row(("StartValue", 100L), ("IncrementBy", 5L), ("CurrentValue", 115L))
+        ]);
+
+        var provider = new SqlDatabaseMetadataProvider(executor);
+        var conn = new ConnectionDefinition("1", "SqlServer", "ERP", "Server=.;Initial Catalog=erp;");
+        var reference = new DatabaseObjectReference("dbo", "seq_orders", DatabaseObjectType.Sequence);
+
+        var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(result);
+        Assert.Equal("100", result!.Properties!["StartValue"]);
+        Assert.Equal("5", result.Properties["IncrementBy"]);
+        Assert.Equal("115", result.Properties["CurrentValue"]);
+        Assert.False(result.Properties.ContainsKey("Columns"));
     }
 
     private static IReadOnlyDictionary<string, object?> Row(params (string Key, object? Value)[] items)

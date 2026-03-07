@@ -58,6 +58,9 @@ public abstract class DbConnectionMockBase(
 
     private readonly List<string> _lastExecutionPlans = [];
     private long _lastFoundRows;
+    private readonly Dictionary<string, long> _sessionSequenceValues =
+        new(StringComparer.OrdinalIgnoreCase);
+    private string? _lastSessionSequenceKey;
 
     internal void ClearExecutionPlans()
     {
@@ -467,6 +470,97 @@ public abstract class DbConnectionMockBase(
 
     #endregion
 
+    #region Sequences
+
+    /// <summary>
+    /// EN: Registers a sequence.
+    /// PT: Registra uma sequence.
+    /// </summary>
+    /// <param name="sequenceName">EN: Sequence name. PT: Nome da sequence.</param>
+    /// <param name="sequence">EN: Sequence definition. PT: Definição da sequence.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    public void AddSequence(
+        string sequenceName,
+        SequenceDef sequence,
+        string? schemaName = null)
+        => Db.AddSequence(
+            sequenceName,
+            sequence,
+            schemaName ?? Database);
+
+    /// <summary>
+    /// EN: Creates and registers a sequence.
+    /// PT: Cria e registra uma sequence.
+    /// </summary>
+    /// <param name="sequenceName">EN: Sequence name. PT: Nome da sequence.</param>
+    /// <param name="startValue">EN: First sequence value. PT: Primeiro valor da sequence.</param>
+    /// <param name="incrementBy">EN: Increment step. PT: Passo de incremento.</param>
+    /// <param name="currentValue">EN: Current value when known. PT: Valor atual quando conhecido.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: Registered sequence. PT: Sequence registrada.</returns>
+    public SequenceDef AddSequence(
+        string sequenceName,
+        long startValue = 1,
+        long incrementBy = 1,
+        long? currentValue = null,
+        string? schemaName = null)
+        => Db.AddSequence(
+            sequenceName,
+            startValue,
+            incrementBy,
+            currentValue,
+            schemaName ?? Database);
+
+    /// <summary>
+    /// EN: Tries to get a sequence.
+    /// PT: Tenta obter uma sequence.
+    /// </summary>
+    /// <param name="sequenceName">EN: Sequence name. PT: Nome da sequence.</param>
+    /// <param name="sequence">EN: Found sequence, if any. PT: Sequence encontrada, se houver.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: True if it exists. PT: True se existir.</returns>
+    public bool TryGetSequence(
+        string sequenceName,
+        out SequenceDef? sequence,
+        string? schemaName = null)
+        => Db.TryGetSequence(
+            sequenceName,
+            out sequence,
+            schemaName ?? Database);
+
+    internal void SetSessionSequenceValue(
+        string sequenceName,
+        long value,
+        string? schemaName = null)
+    {
+        var key = BuildSessionSequenceKey(sequenceName, schemaName);
+        _sessionSequenceValues[key] = value;
+        _lastSessionSequenceKey = key;
+    }
+
+    internal bool TryGetSessionSequenceValue(
+        string sequenceName,
+        out long value,
+        string? schemaName = null)
+        => _sessionSequenceValues.TryGetValue(BuildSessionSequenceKey(sequenceName, schemaName), out value);
+
+    internal bool TryGetLastSessionSequenceValue(out long value)
+    {
+        value = default;
+        return _lastSessionSequenceKey is not null
+            && _sessionSequenceValues.TryGetValue(_lastSessionSequenceKey, out value);
+    }
+
+    private string BuildSessionSequenceKey(
+        string sequenceName,
+        string? schemaName)
+    {
+        var schema = Db.GetSchemaName(schemaName ?? Database);
+        return $"{schema}:{sequenceName.NormalizeName()}";
+    }
+
+    #endregion
+
     /// <summary>
     /// EN: Begins a database transaction with the specified isolation level.
     /// PT: Inicia uma transação com o nível de isolamento especificado.
@@ -542,6 +636,8 @@ public abstract class DbConnectionMockBase(
         }
 
         _temporaryTables.Clear();
+        _sessionSequenceValues.Clear();
+        _lastSessionSequenceKey = null;
         SetLastFoundRows(0);
         ClearExecutionPlans();
         _state = ConnectionState.Closed;

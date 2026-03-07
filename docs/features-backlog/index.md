@@ -22,6 +22,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Estruturas para representar tabelas, colunas, linhas e metadados sem dependência de servidor externo.
 - Armazenamento volátil por instância de banco mock, permitindo reset completo entre testes.
 - Modelo ideal para testes unitários que exigem alta repetibilidade.
+- Incremento desta sessão: suporte funcional de `sequence` consolidado no estado em memória do core, incluindo registro por schema, resolução SQL por provider e helpers para setup determinístico de `identity`.
 - Incremento desta sessão: snapshots transacionais passam a incluir tabelas temporárias no escopo da conexão, garantindo rollback/rollback-to-savepoint determinístico também para estado temporário em memória (com regressão automatizada).
 - Incremento desta sessão: cobertura de regressão expandida para MySQL e SQL Server com cenários dedicados de rollback e rollback-to-savepoint em tabelas temporárias de conexão.
 - Incremento desta sessão: API explícita de reset volátil em memória adicionada no banco/conexão (`ResetVolatileData` e `ResetAllVolatileData`) para facilitar setup/teardown determinístico entre testes, com regressões dedicadas em SQLite para limpeza de dados temporários/permanentes e reset de identidade.
@@ -113,6 +114,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Implementação estimada: **96%**.
 - Processamento de comandos de escrita e leitura.
 - Tradução da consulta para operações no estado em memória.
+- Incremento desta sessão: parser/runtime passaram a cobrir a trilha principal de sequences por provider, incluindo `NEXT VALUE FOR` (SQL Server/DB2), `nextval/currval/setval/lastval` (Npgsql), `seq.NEXTVAL/CURRVAL` (Oracle) e variantes qualificadas por schema.
 - Hardening recente reforça parsing de DML com `RETURNING` (itens vazios, vírgula inicial e vírgula final) com mensagens acionáveis no dialeto suportado e gate explícito nos não suportados.
 - Incremento desta sessão: suporte a `MATCH(...) AGAINST(...)` no fluxo MySQL (parser + evaluator) com validação de modos (`IN BOOLEAN MODE`, `IN NATURAL LANGUAGE MODE`, variantes com `WITH QUERY EXPANSION`), gate explícito para dialetos não-MySQL e regressão cobrindo também query parametrizada de candidatos léxicos (`@QueryText`/`@CandidateLimit`) com `ORDER BY lexical_score DESC`.
 - Incremento desta sessão: `INSERT ... VALUES` passou a resolver corretamente `CAST(@param AS JSON)` no caminho de persistência (incluindo `ON DUPLICATE KEY UPDATE` com `VALUES(col)`), evitando gravar texto bruto iniciando por `CAST(` e mantendo payload JSON íntegro no mock MySQL.
@@ -1180,4 +1182,3 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Definir roadmap anual de compatibilidade SQL.
 - Balancear manutenção de legado e inovação de recursos.
 - Criar indicadores de adoção e qualidade para direcionar próximos ciclos.
-

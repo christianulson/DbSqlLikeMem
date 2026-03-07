@@ -12,6 +12,8 @@
 - **Documentação:** itens mapeados e atualizados (3/3).
 - **Geral do checklist:** 14/14 itens tratados em código/documentação; validar execução no ambiente atual.
 
+> Observação: a trilha principal de `sequence` por provider deixou de ser gap ativo neste ciclo e passou para a documentação/matriz de compatibilidade como recurso implementado.
+
 ## Parser e dialetos
 
 - [x] Cobrir `MERGE` por dialeto/versão (SQL Server/Oracle/DB2) com semântica mínima comum. (validação top-level de `USING`/`ON`/`WHEN`, incluindo regressões para `WHEN` aninhado e alias chamado `when`)

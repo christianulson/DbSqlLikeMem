@@ -3308,6 +3308,9 @@ private void FillPercentRankOrCumeDist(
         List<EvalRow> sampleRows,
         IDictionary<string, Source> ctes)
     {
+        if (IsSequenceExpression(exprAst))
+            return DbType.Int64;
+
         if (exprAst is WindowFunctionExpr w)
             return Dialect?.InferWindowFunctionDbType(w, arg => InferDbTypeFromExpression(arg, sampleRows, ctes))
                 ?? DbType.Object;
@@ -3331,6 +3334,20 @@ private void FillPercentRankOrCumeDist(
 
         return DbType.Object;
     }
+
+    private static bool IsSequenceExpression(SqlExpr exprAst)
+    {
+        return exprAst switch
+        {
+            FunctionCallExpr fn => IsSequenceFunctionName(fn.Name),
+            CallExpr call => IsSequenceFunctionName(call.Name),
+            _ => false
+        };
+    }
+
+    private static bool IsSequenceFunctionName(string? name)
+        => string.Equals(name, "NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "NEXTVAL", StringComparison.OrdinalIgnoreCase);
 
     private static bool IncludExtraColumns(
         List<EvalRow> sampleRows,
@@ -3490,6 +3507,8 @@ private void FillPercentRankOrCumeDist(
 
         // Evita pegar alias em "t2." (ex: "t2.*" já falha pelo regex acima)
         if (before.EndsWith(".")) return false;
+        if (Regex.IsMatch(before, @"\bNEXT\s+VALUE\s+FOR\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            return false;
 
         expr = before;
         alias = a;
@@ -5744,6 +5763,9 @@ private void FillPercentRankOrCumeDist(
 
             return left!.Compare(right!, Dialect) == 0 ? null : left;
         }
+
+        if (SqlSequenceEvaluator.TryEvaluateCall(_cnn, fn.Name, fn.Args, expr => Eval(expr, row, group, ctes), out var sequenceValue))
+            return sequenceValue;
 
         var jsonNumberResult = TryEvalJsonAndNumberFunctions(fn, dialect, EvalArg, out var handledJsonNumber);
         if (handledJsonNumber)

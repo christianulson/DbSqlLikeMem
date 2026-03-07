@@ -7,7 +7,7 @@ namespace DbSqlLikeMem.MySql;
 public class MySqlCommandMock(
     MySqlConnectionMock? connection,
     MySqlTransactionMock? transaction = null
-    ) : DbCommand
+    ) : DbCommand, ICloneable
 {
     /// <summary>
     /// Contructor
@@ -84,26 +84,42 @@ public class MySqlCommandMock(
     {
         if (BatchableCommandText == null)
         {
-            if (string.Compare(CommandText.Substring(0, 6), "INSERT", StringComparison.OrdinalIgnoreCase) == 0)
+            if (CommandText.Length >= 6
+                && string.Compare(CommandText[..6], "INSERT", StringComparison.OrdinalIgnoreCase) == 0)
             {
                 var tk = new SqlTokenizer(CommandText, connection!.Db.Dialect);
                 var mySqlTokenizer = tk.Tokenize();
                 //string text = Connection.driver.Property("sql_mode").ToUpperInvariant();
                 //mySqlTokenizer.AnsiQuotes = text.IndexOf("ANSI_QUOTES") != -1;
                 //mySqlTokenizer.BackslashEscapes = text.IndexOf("NO_BACKSLASH_ESCAPES") == -1;
-                var i = 0;
-                for (string text2 = mySqlTokenizer[i].Text; text2 != null; text2 = mySqlTokenizer[i].Text)
+                for (var i = 0; i < mySqlTokenizer.Count; i++)
                 {
-                    if (string.Equals(mySqlTokenizer[i].Text, "VALUES", StringComparison.OrdinalIgnoreCase)
-                        && mySqlTokenizer[i].Kind != SqlTokenKind.Symbol)
+                    var token = mySqlTokenizer[i];
+                    if (token.Kind == SqlTokenKind.EndOfFile)
+                    {
+                        break;
+                    }
+
+                    if (string.Equals(token.Text, "VALUES", StringComparison.OrdinalIgnoreCase)
+                        && token.Kind != SqlTokenKind.Symbol)
                     {
                         i++;
-                        text2 = mySqlTokenizer[i].Text;
+                        if (i >= mySqlTokenizer.Count || mySqlTokenizer[i].Kind == SqlTokenKind.EndOfFile)
+                        {
+                            break;
+                        }
+
+                        var text2 = mySqlTokenizer[i].Text;
                         int num = 1;
-                        while (text2 != null)
+                        while (i < mySqlTokenizer.Count && mySqlTokenizer[i].Kind != SqlTokenKind.EndOfFile)
                         {
                             BatchableCommandText += text2;
                             i++;
+                            if (i >= mySqlTokenizer.Count || mySqlTokenizer[i].Kind == SqlTokenKind.EndOfFile)
+                            {
+                                break;
+                            }
+
                             text2 = mySqlTokenizer[i].Text;
                             if (text2 == "(")
                             {
@@ -120,16 +136,19 @@ public class MySqlCommandMock(
                             }
                         }
 
-                        if (text2 != null)
+                        if (i < mySqlTokenizer.Count && mySqlTokenizer[i].Kind != SqlTokenKind.EndOfFile)
                         {
                             BatchableCommandText += text2;
                         }
                         i++;
-                        text2 = mySqlTokenizer[i].Text;
-                        if (text2 != null && (text2 == "," || string.Equals(text2, "ON", StringComparison.OrdinalIgnoreCase)))
+                        if (i < mySqlTokenizer.Count && mySqlTokenizer[i].Kind != SqlTokenKind.EndOfFile)
                         {
-                            BatchableCommandText = null;
-                            break;
+                            text2 = mySqlTokenizer[i].Text;
+                            if (text2 == "," || string.Equals(text2, "ON", StringComparison.OrdinalIgnoreCase))
+                            {
+                                BatchableCommandText = null;
+                                break;
+                            }
                         }
                     }
                 }
@@ -330,5 +349,31 @@ public class MySqlCommandMock(
             disposedValue = true;
         }
         base.Dispose(disposing);
+    }
+
+    object ICloneable.Clone()
+    {
+        var clone = new MySqlCommandMock(connection, transaction)
+        {
+            CommandText = CommandText,
+            CommandTimeout = CommandTimeout,
+            CommandType = CommandType,
+            UpdatedRowSource = UpdatedRowSource,
+            DesignTimeVisible = DesignTimeVisible,
+        };
+
+        foreach (DbParameter parameter in Parameters)
+        {
+            clone.Parameters.Add(new MySqlParameter(parameter.ParameterName, parameter.Value)
+            {
+                Direction = parameter.Direction,
+                SourceColumn = parameter.SourceColumn,
+                SourceVersion = parameter.SourceVersion,
+                IsNullable = parameter.IsNullable,
+                Size = parameter.Size,
+            });
+        }
+
+        return clone;
     }
 }

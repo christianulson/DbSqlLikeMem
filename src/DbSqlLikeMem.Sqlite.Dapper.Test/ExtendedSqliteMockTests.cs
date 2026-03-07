@@ -26,6 +26,15 @@ public sealed class ExtendedSqliteMockTests(
         => InsertAutoIncrementShouldAssignIdentityWhenNotSpecified();
 
     /// <summary>
+    /// EN: Verifies explicit identity values are respected only when identity override is enabled for the scenario.
+    /// PT: Verifica se valores explícitos de identity são respeitados apenas quando a sobrescrita de identity está habilitada no cenário.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedSqliteMock")]
+    public void InsertAutoIncrementShouldRespectExplicitIdentityWhenEnabled_Test()
+        => InsertAutoIncrementShouldRespectExplicitIdentityWhenEnabled();
+
+    /// <summary>
     /// EN: Verifies inserts with null values succeed for nullable columns.
     /// PT: Verifica se insercoes com valores nulos funcionam para colunas anulaveis.
     /// </summary>

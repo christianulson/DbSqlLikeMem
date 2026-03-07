@@ -3277,6 +3277,8 @@ internal sealed class SqlQueryParser
                     var lastLeft = left.TrimEnd();
                     if (operatorChars.Any(_=> lastLeft.EndsWith(_)))
                         continue;
+                    if (Regex.IsMatch(lastLeft, @"\bNEXT\s+VALUE\s+FOR\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                        continue;
 
                     // Alias must be a single identifier token (possibly quoted). Without this guard,
                     // expressions like "... ELSE 0 END" could be incorrectly split as expr="... ELSE"

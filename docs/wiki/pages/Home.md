@@ -10,6 +10,11 @@ DbSqlLikeMem is an in-memory database engine for C# unit tests focused on simula
 - [Providers and Compatibility](Providers-and-Compatibility.md)
 - [Publishing](Publishing.md)
 
+## Quick highlights
+
+- SQL Server, PostgreSQL, Oracle, and DB2 now have documented sequence syntax paths in the compatibility guide.
+- The repository getting-started guide includes practical sequence examples by provider.
+
 ## Useful repository links
 
 - [Main README](https://github.com/chrisulson/DbSqlLikeMem/blob/main/README.md)
@@ -24,3 +29,8 @@ DbSqlLikeMem is an in-memory database engine for C# unit tests focused on simula
 Bem-vindo à wiki do **DbSqlLikeMem**.
 
 DbSqlLikeMem é um engine de banco em memória para testes unitários em C#, com foco em simular dialetos SQL e comportamento ADO.NET para múltiplos provedores.
+
+## Destaques rápidos
+
+- SQL Server, PostgreSQL, Oracle e DB2 agora têm trilhas documentadas de sintaxe de sequence no guia de compatibilidade.
+- O guia de início do repositório inclui exemplos práticos de sequence por provider.

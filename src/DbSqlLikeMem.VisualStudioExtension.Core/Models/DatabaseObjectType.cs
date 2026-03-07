@@ -20,5 +20,10 @@ public enum DatabaseObjectType
     /// Stored procedure object.
     /// Objeto de procedure armazenada.
     /// </summary>
-    Procedure
+    Procedure,
+    /// <summary>
+    /// Sequence object.
+    /// Objeto de sequence.
+    /// </summary>
+    Sequence
 }

@@ -17,6 +17,12 @@ The files under `docs/wiki/pages` are prepared to be used directly as Wiki pages
 - `Providers-and-Compatibility.md`
 - `Publishing.md`
 
+Sequence-related highlights already mirrored in the wiki pages:
+
+- provider-specific sequence syntax quick reference
+- getting-started sequence examples
+- compatibility notes for SQL Server, SQL Azure, PostgreSQL, Oracle, and DB2
+
 ## How to publish to Wiki (manual)
 
 ### Option A: Copy and paste in GitHub
@@ -64,6 +70,12 @@ Este diretório prepara uma estrutura pronta para ser publicada como Wiki do rep
 1. Manter a documentação canônica no repositório (`docs/`).
 2. Espelhar as páginas principais na Wiki do GitHub para navegação rápida.
 3. Incluir links bidirecionais entre README e Wiki.
+
+Destaques de sequence já refletidos nas páginas da wiki:
+
+- referência rápida de sintaxe por provider
+- exemplos de sequence no getting started
+- notas de compatibilidade para SQL Server, SQL Azure, PostgreSQL, Oracle e DB2
 
 ## Como publicar na Wiki (manual)
 

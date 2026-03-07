@@ -9,6 +9,7 @@ Consulte a matriz principal para status consolidado e os links de testes: [sql-c
 - Fechamento de gaps de SQL Core cross-provider.
 - Evolução de composição de consultas (GROUP BY/HAVING, UNION, CTE).
 - DML avançado por dialeto com cobertura de regressão.
+- Hardening final e validação cruzada da trilha de sequences por provider/sintaxe.
 
 ## Observação
 

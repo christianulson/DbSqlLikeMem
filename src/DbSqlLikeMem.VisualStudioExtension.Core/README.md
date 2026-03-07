@@ -8,7 +8,7 @@ Projeto inicial para suportar uma extensão do Visual Studio focada em geração
 - Montagem de árvore no formato:
   - Tipo de Banco
     - Nome do Banco
-      - Tipo de Objeto (Tables, Views, Procedures)
+      - Tipo de Objeto (Tables, Views, Procedures, Sequences)
         - Lista de objetos
 - Filtro de objetos por `Equals` e `Like` (contains case-insensitive).
 - Planejador de geração que identifica ausência de mapeamento e permite bloquear geração até configurar.
@@ -18,6 +18,7 @@ Projeto inicial para suportar uma extensão do Visual Studio focada em geração
 - Serviço de validação de consistência (vermelho/amarelo/verde) comparando objeto local vs base.
 - Persistência local de conexões/configurações + exportação/importação em JSON.
 - Provedor SQL de metadados estruturais (`SqlDatabaseMetadataProvider`) com consultas por banco (MySql, SqlServer/SqlAzure, PostgreSql, Oracle, Sqlite, Db2) para listar objetos e colunas.
+- Extração de metadata de `Sequence` para os bancos suportados por essa feature (SqlServer/SqlAzure, PostgreSql, Oracle e Db2).
 - Fábrica de conteúdo estruturado (`StructuredClassContentFactory`) com metadados serializados no arquivo gerado.
 - Leitor de snapshot local (`GeneratedClassSnapshotReader`) para comparar arquivo gerado vs estrutura atual extraída do banco via `ObjectConsistencyChecker`.
 

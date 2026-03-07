@@ -191,6 +191,12 @@ public class Db2CommandMock(
     /// </summary>
     public override object ExecuteScalar()
     {
+        ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
+
+        if (TryExecuteValuesSequenceScalar(CommandText, out var specialValue))
+            return specialValue!;
+
         using var reader = ExecuteReader();
         if (reader.Read())
         {
@@ -198,6 +204,42 @@ public class Db2CommandMock(
         }
         return DBNull.Value;
     }
+
+    private bool TryExecuteValuesSequenceScalar(string sqlRaw, out object? value)
+    {
+        value = null;
+
+        var trimmed = sqlRaw.NormalizeString().Trim();
+        if (!trimmed.StartsWith("VALUES ", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var exprSql = trimmed[7..].Trim();
+        if (string.IsNullOrWhiteSpace(exprSql))
+            return false;
+
+        var expr = SqlExpressionParser.ParseScalar(exprSql, connection!.Db.Dialect);
+        if (expr is not CallExpr call)
+            return false;
+
+        return SqlSequenceEvaluator.TryEvaluateCall(
+            connection!,
+            call.Name,
+            call.Args,
+            EvaluateSequenceArgument,
+            out value);
+    }
+
+    private static object? EvaluateSequenceArgument(SqlExpr arg)
+        => arg switch
+        {
+            IdentifierExpr id => id.Name,
+            ColumnExpr column => string.IsNullOrWhiteSpace(column.Qualifier)
+                ? column.Name
+                : $"{column.Qualifier}.{column.Name}",
+            LiteralExpr lit => lit.Value,
+            RawSqlExpr raw => raw.Sql,
+            _ => throw new InvalidOperationException($"Unsupported scalar argument for DB2 sequence evaluation: {arg.GetType().Name}")
+        };
 
     /// <summary>
     /// EN: Represents Prepare.

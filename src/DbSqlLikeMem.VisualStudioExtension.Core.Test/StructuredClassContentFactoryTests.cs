@@ -112,4 +112,30 @@ public sealed class StructuredClassContentFactoryTests
         Assert.Contains("table.AddColumn(\"BitMask\", DbType.UInt64, false", content);
         Assert.Contains(", defaultValue: true", content);
     }
+
+    /// <summary>
+    /// Executes this API operation.
+    /// Executa esta operação da API.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "StructuredClassContentFactory")]
+    public void Build_ForSequence_GeneratesSequenceFactoryUsingSchemaRegistration()
+    {
+        var dbObject = new DatabaseObjectReference(
+            "dbo",
+            "seq_orders",
+            DatabaseObjectType.Sequence,
+            new Dictionary<string, string>
+            {
+                ["StartValue"] = "100",
+                ["IncrementBy"] = "5",
+                ["CurrentValue"] = "115"
+            });
+
+        var content = StructuredClassContentFactory.Build(dbObject, "Sample.Namespace");
+
+        Assert.Contains("public static SequenceDef CreateSequenceSeqOrders", content);
+        Assert.Contains("db.AddSequence(\"seq_orders\", startValue: 100L, incrementBy: 5L, currentValue: 115L, schemaName: \"dbo\")", content);
+        Assert.Contains("// DBSqlLikeMem:CurrentValue=115", content);
+    }
 }

@@ -16,6 +16,12 @@
 - Distinct UPSERT support (`ON DUPLICATE`, `ON CONFLICT`, `MERGE`)
 - Pagination by dialect (`LIMIT/OFFSET`, `OFFSET/FETCH`, `FETCH FIRST`)
 - JSON operators and functions by database
+- Sequence syntax by provider:
+  - SQL Server: `NEXT VALUE FOR schema.seq_name`
+  - SQL Azure: `NEXT VALUE FOR schema.seq_name`
+  - PostgreSQL: `nextval`, `currval`, `setval`, `lastval`
+  - Oracle: `schema.seq_name.NEXTVAL`, `schema.seq_name.CURRVAL`
+  - DB2: `NEXT VALUE FOR schema.seq_name`, `PREVIOUS VALUE FOR schema.seq_name`
 - Execution-plan metrics are diagnostic/relative in mock mode and should not be used as production performance benchmarks.
 - NHibernate contract coverage shared across providers:
   - **Core ORM**: native SQL params, mapped entity lifecycle, transaction rollback, pagination, HQL/Criteria basics, null/typed params in `INSERT` and `WHERE`.
@@ -47,6 +53,12 @@ For full details, see the local repository documentation at `docs/old/providers-
 - Suporte distinto para UPSERT (`ON DUPLICATE`, `ON CONFLICT`, `MERGE`)
 - Paginação por dialeto (`LIMIT/OFFSET`, `OFFSET/FETCH`, `FETCH FIRST`)
 - Operadores e funções JSON por banco
+- Sintaxe de sequence por provider:
+  - SQL Server: `NEXT VALUE FOR schema.seq_name`
+  - SQL Azure: `NEXT VALUE FOR schema.seq_name`
+  - PostgreSQL: `nextval`, `currval`, `setval`, `lastval`
+  - Oracle: `schema.seq_name.NEXTVAL`, `schema.seq_name.CURRVAL`
+  - DB2: `NEXT VALUE FOR schema.seq_name`, `PREVIOUS VALUE FOR schema.seq_name`
 - Métricas de execution plan em modo mock são diagnósticas/relativas e não devem ser usadas como benchmark de performance de produção.
 - Cobertura de contrato NHibernate compartilhada entre provedores:
   - **Core ORM**: parâmetros em SQL nativo, ciclo de vida de entidade mapeada, rollback transacional, paginação, base de HQL/Criteria, parâmetros nulos/tipados em `INSERT` e filtros `WHERE`.

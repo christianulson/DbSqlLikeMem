@@ -16,6 +16,9 @@ public static class StructuredClassContentFactory
     /// </summary>
     public static string Build(DatabaseObjectReference dbObject, string? @namespace = null, string? databaseType = null)
     {
+        if (dbObject.Type == DatabaseObjectType.Sequence)
+            return BuildSequence(dbObject, @namespace);
+
         var effectiveDatabaseType = string.IsNullOrWhiteSpace(databaseType) ? "MySql" : databaseType;
         var className = $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}{dbObject.Type}Factory";
         var methodName = $"Create{dbObject.Type}{GenerationRuleSet.ToPascalCase(dbObject.Name)}";
@@ -88,6 +91,37 @@ public static class StructuredClassContentFactory
         }
 
         sb.AppendLine("        return table;");
+        sb.AppendLine("    }");
+        sb.AppendLine("}");
+        return sb.ToString();
+    }
+
+    private static string BuildSequence(DatabaseObjectReference dbObject, string? @namespace)
+    {
+        var className = $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}{dbObject.Type}Factory";
+        var methodName = $"Create{dbObject.Type}{GenerationRuleSet.ToPascalCase(dbObject.Name)}";
+        var startValue = ParseNullableLong(Get(dbObject, "StartValue")) ?? 1L;
+        var incrementBy = ParseNullableLong(Get(dbObject, "IncrementBy")) ?? 1L;
+        var currentValue = ParseNullableLong(Get(dbObject, "CurrentValue"));
+
+        var sb = new StringBuilder();
+        if (!string.IsNullOrWhiteSpace(@namespace))
+        {
+            sb.AppendLine($"namespace {@namespace};");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine($"// DBSqlLikeMem:Schema={dbObject.Schema}");
+        sb.AppendLine($"// DBSqlLikeMem:Object={dbObject.Name}");
+        sb.AppendLine($"// DBSqlLikeMem:Type={dbObject.Type}");
+        sb.AppendLine($"// DBSqlLikeMem:StartValue={Get(dbObject, "StartValue")}");
+        sb.AppendLine($"// DBSqlLikeMem:IncrementBy={Get(dbObject, "IncrementBy")}");
+        sb.AppendLine($"// DBSqlLikeMem:CurrentValue={Get(dbObject, "CurrentValue")}");
+        sb.AppendLine($"public static class {className}");
+        sb.AppendLine("{");
+        sb.AppendLine($"    public static SequenceDef {methodName}(this DbMock db)");
+        sb.AppendLine("    {");
+        sb.AppendLine($"        return db.AddSequence({Literal(dbObject.Name)}, startValue: {startValue}L, incrementBy: {incrementBy}L, currentValue: {(currentValue.HasValue ? $"{currentValue.Value}L" : "null")}, schemaName: {Literal(dbObject.Schema)});");
         sb.AppendLine("    }");
         sb.AppendLine("}");
         return sb.ToString();

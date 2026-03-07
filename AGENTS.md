@@ -90,6 +90,20 @@ When touching XML docs:
 - verify nested public classes and helper contract members too
 - if a provider-specific test project mirrors another provider, reuse the same documentation pattern adapted to the provider type
 
+## Test Failure Triage
+
+When fixing a failing test:
+
+- first determine whether the defect is in the test or in the implementation
+- do not assume the production code is wrong just because a new test fails
+- do not assume the test is wrong just because the implementation currently behaves differently
+- use the behavior of the real database/provider/version being simulated as the source of truth
+- preserve provider-specific differences across `SqlServer`, `SqlAzure`, `Sqlite`, `MySql`, `Npgsql`, `Oracle`, and `Db2`
+- prefer correcting the test when the implementation already matches the real database behavior
+- prefer correcting the implementation when the test reflects the real database behavior and the mock does not
+
+This project is used to validate application behavior before production, so the mock must follow the same behavior as the real database as closely as possible.
+
 ## Current Practical Rule
 
 If the user asks to "preencher os summarys", the expected behavior is:
@@ -98,4 +112,3 @@ If the user asks to "preencher os summarys", the expected behavior is:
 - use `EN` first and `PT` second
 - explain what the member does
 - use `inheritdoc` on overrides whenever appropriate
-

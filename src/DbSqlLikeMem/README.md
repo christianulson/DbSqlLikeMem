@@ -11,6 +11,8 @@
   **PT-BR:** Parser e executor SQL para cenários comuns de teste (subconjuntos de DDL e DML).
 - **EN:** Data seeding helpers and fluent builders for setup.
   **PT-BR:** Helpers de seed e builders fluentes para setup.
+- **EN:** Schema-level sequence registration plus optional identity override helpers for deterministic scenarios.
+  **PT-BR:** Registro de sequences em nível de schema e helpers opcionais de sobrescrita de identity para cenários determinísticos.
 - **EN:** ADO.NET-friendly behavior used by provider packages.
   **PT-BR:** Comportamento compatível com ADO.NET usado pelos pacotes de provedor.
 - **EN:** Mock execution plans with lightweight runtime metrics and per-connection history.
@@ -74,6 +76,20 @@ var (db, conn) = DbMockConnectionFactory.CreateWithTables("SqlServer", d => { /*
 
 > **EN:** Tip: the factory resolves connection types via reflection, so it works best when the provider package is already referenced and loaded by your test project.
 > **PT-BR:** Dica: a factory resolve os tipos de conexão via reflexão, então funciona melhor quando o pacote de provedor já está referenciado e carregado no projeto de teste.
+
+## Sequence quick reference | Referência rápida de sequence
+
+- **EN:** SQL Server uses `NEXT VALUE FOR schema.seq_name`.
+  **PT-BR:** SQL Server usa `NEXT VALUE FOR schema.seq_name`.
+- **EN:** PostgreSQL uses `nextval`, `currval`, `setval`, and `lastval`.
+  **PT-BR:** PostgreSQL usa `nextval`, `currval`, `setval` e `lastval`.
+- **EN:** Oracle uses `schema.seq_name.NEXTVAL` and `schema.seq_name.CURRVAL`.
+  **PT-BR:** Oracle usa `schema.seq_name.NEXTVAL` e `schema.seq_name.CURRVAL`.
+- **EN:** DB2 uses `NEXT VALUE FOR schema.seq_name` and `PREVIOUS VALUE FOR schema.seq_name`.
+  **PT-BR:** DB2 usa `NEXT VALUE FOR schema.seq_name` e `PREVIOUS VALUE FOR schema.seq_name`.
+
+**EN:** See the full examples in [Getting Started](../../docs/getting-started.md).
+**PT-BR:** Veja os exemplos completos em [Getting Started](../../docs/getting-started.md).
 
 ## Scope and expectations | Escopo e expectativas
 

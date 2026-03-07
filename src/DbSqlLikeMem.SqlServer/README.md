@@ -25,6 +25,17 @@ var conn = new SqlServerConnectionMock(new SqlServerDbMock());
 conn.Open();
 ```
 
+## Sequence syntax
+
+Use SQL Server-style sequence access in the mock:
+
+```sql
+SELECT NEXT VALUE FOR sales.seq_orders;
+INSERT INTO sales.orders (id) VALUES (NEXT VALUE FOR sales.seq_orders);
+```
+
+See `docs/getting-started.md` for end-to-end setup examples.
+
 ## Contribua
 
 Ajude a ampliar compatibilidade T-SQL com cenários reais, testes e documentação. Toda contribuição conta para tornar o pacote mais útil para a comunidade .NET.

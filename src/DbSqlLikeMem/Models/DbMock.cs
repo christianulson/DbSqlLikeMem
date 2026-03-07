@@ -1,8 +1,8 @@
 ﻿namespace DbSqlLikeMem;
 
 /// <summary>
-/// EN: Base of an in-memory database with schemas, tables, and procedures.
-/// PT: Base de um banco em memória com schemas, tabelas e procedimentos.
+/// EN: Base of an in-memory database with schemas, tables, procedures, and sequences.
+/// PT: Base de um banco em memória com schemas, tabelas, procedimentos e sequences.
 /// </summary>
 public abstract class DbMock
     : Dictionary<string, SchemaMock>
@@ -439,6 +439,71 @@ public abstract class DbMock
         var sc = GetSchemaName(schemaName);
         return this[sc].Procedures.TryGetValue(procName, out pr)
             && pr != null;
+    }
+
+    #endregion
+
+    #region Sequences
+
+    /// <summary>
+    /// EN: Registers a sequence in the specified schema.
+    /// PT: Registra uma sequence no schema informado.
+    /// </summary>
+    /// <param name="sequenceName">EN: Sequence name. PT: Nome da sequence.</param>
+    /// <param name="sequence">EN: Sequence definition. PT: Definição da sequence.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    public void AddSequence(
+        string sequenceName,
+        SequenceDef sequence,
+        string? schemaName = null)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(sequenceName, nameof(sequenceName));
+        ArgumentNullExceptionCompatible.ThrowIfNull(sequence, nameof(sequence));
+        var sc = GetSchemaName(schemaName);
+        if (!this.TryGetValue(sc, out var s) || s == null)
+            CreateSchema(sc);
+        this[sc].MutableSequences[sequenceName.NormalizeName()] = sequence;
+    }
+
+    /// <summary>
+    /// EN: Creates and registers a sequence in the specified schema.
+    /// PT: Cria e registra uma sequence no schema informado.
+    /// </summary>
+    /// <param name="sequenceName">EN: Sequence name. PT: Nome da sequence.</param>
+    /// <param name="startValue">EN: First sequence value. PT: Primeiro valor da sequence.</param>
+    /// <param name="incrementBy">EN: Increment step. PT: Passo de incremento.</param>
+    /// <param name="currentValue">EN: Current value when known. PT: Valor atual quando conhecido.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: Registered sequence. PT: Sequence registrada.</returns>
+    public SequenceDef AddSequence(
+        string sequenceName,
+        long startValue = 1,
+        long incrementBy = 1,
+        long? currentValue = null,
+        string? schemaName = null)
+    {
+        var sequence = new SequenceDef(sequenceName, startValue, incrementBy, currentValue);
+        AddSequence(sequenceName, sequence, schemaName);
+        return sequence;
+    }
+
+    /// <summary>
+    /// EN: Tries to get a sequence by name.
+    /// PT: Tenta obter uma sequence pelo nome.
+    /// </summary>
+    /// <param name="sequenceName">EN: Sequence name. PT: Nome da sequence.</param>
+    /// <param name="sequence">EN: Found sequence, if any. PT: Sequence encontrada, se houver.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: True if it exists. PT: True se existir.</returns>
+    public bool TryGetSequence(
+        string sequenceName,
+        out SequenceDef? sequence,
+        string? schemaName = null)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(sequenceName, nameof(sequenceName));
+        var sc = GetSchemaName(schemaName);
+        return this[sc].MutableSequences.TryGetValue(sequenceName.NormalizeName(), out sequence)
+            && sequence != null;
     }
 
     #endregion

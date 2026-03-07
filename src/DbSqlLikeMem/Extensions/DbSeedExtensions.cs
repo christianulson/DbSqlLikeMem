@@ -43,6 +43,47 @@ public static class DbSeedExtensions
     }
 
     /// <summary>
+    /// EN: Configures the next identity value and optional explicit identity insertion for a table.
+    /// PT: Configura o próximo valor de identidade e a inserção explícita opcional de identity para uma tabela.
+    /// </summary>
+    /// <param name="cnn">EN: Target connection. PT: Conexão alvo.</param>
+    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
+    /// <param name="nextIdentity">EN: Next identity value. PT: Próximo valor de identidade.</param>
+    /// <param name="allowInsertOverride">EN: Enables explicit identity values when true. PT: Habilita valores explícitos de identity quando true.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: Same connection instance. PT: Mesma instância da conexão.</returns>
+    public static DbConnectionMockBase IdentityOf(
+        this DbConnectionMockBase cnn,
+        string tableName,
+        int nextIdentity,
+        bool allowInsertOverride = false,
+        string? schemaName = null)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
+        cnn.GetTable(tableName, schemaName).IdentityOf(nextIdentity, allowInsertOverride);
+        return cnn;
+    }
+
+    /// <summary>
+    /// EN: Configures the next identity value and optional explicit identity insertion for a table.
+    /// PT: Configura o próximo valor de identidade e a inserção explícita opcional de identity para uma tabela.
+    /// </summary>
+    /// <param name="tb">EN: Target table. PT: Tabela alvo.</param>
+    /// <param name="nextIdentity">EN: Next identity value. PT: Próximo valor de identidade.</param>
+    /// <param name="allowInsertOverride">EN: Enables explicit identity values when true. PT: Habilita valores explícitos de identity quando true.</param>
+    /// <returns>EN: Same table instance. PT: Mesma instância da tabela.</returns>
+    public static ITableMock IdentityOf(
+        this ITableMock tb,
+        int nextIdentity,
+        bool allowInsertOverride = false)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(tb, nameof(tb));
+        tb.NextIdentity = nextIdentity;
+        tb.AllowIdentityInsert = allowInsertOverride;
+        return tb;
+    }
+
+    /// <summary>
     /// EN: Implements this member.
     /// PT: Implementa este membro.
     /// </summary>

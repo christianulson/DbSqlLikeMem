@@ -23,6 +23,13 @@ dotnet build src/DbSqlLikeMem.slnx
 
 Use a factory to choose `MySql`, `SqlServer`, `SqlAzure`, `Oracle`, `Npgsql`, `Sqlite`, or `Db2` dynamically.
 
+## Sequence quick reference
+
+- SQL Server / SQL Azure: `NEXT VALUE FOR schema.seq_name`
+- PostgreSQL: `nextval`, `currval`, `setval`, `lastval`
+- Oracle: `schema.seq_name.NEXTVAL`, `schema.seq_name.CURRVAL`
+- DB2: `NEXT VALUE FOR schema.seq_name`, `PREVIOUS VALUE FOR schema.seq_name`
+
 ## Tests
 
 ```bash
@@ -55,3 +62,10 @@ dotnet build src/DbSqlLikeMem.slnx
 ### Seleção de provider em runtime
 
 Use uma factory para escolher `MySql`, `SqlServer`, `SqlAzure`, `Oracle`, `Npgsql`, `Sqlite` ou `Db2` dinamicamente.
+
+### Referência rápida de sequence
+
+- SQL Server / SQL Azure: `NEXT VALUE FOR schema.seq_name`
+- PostgreSQL: `nextval`, `currval`, `setval`, `lastval`
+- Oracle: `schema.seq_name.NEXTVAL`, `schema.seq_name.CURRVAL`
+- DB2: `NEXT VALUE FOR schema.seq_name`, `PREVIOUS VALUE FOR schema.seq_name`

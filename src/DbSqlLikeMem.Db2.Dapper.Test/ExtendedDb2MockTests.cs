@@ -26,6 +26,68 @@ public sealed class ExtendedDb2MockTests(
         => InsertAutoIncrementShouldAssignIdentityWhenNotSpecified();
 
     /// <summary>
+    /// EN: Verifies explicit identity values are respected only when identity override is enabled for the scenario.
+    /// PT: Verifica se valores explícitos de identity são respeitados apenas quando a sobrescrita de identity está habilitada no cenário.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedDb2Mock")]
+    public void InsertAutoIncrementShouldRespectExplicitIdentityWhenEnabled_Test()
+        => InsertAutoIncrementShouldRespectExplicitIdentityWhenEnabled();
+
+    /// <summary>
+    /// EN: Verifies DB2-style NEXT VALUE FOR and PREVIOUS VALUE FOR work in scalar queries and inserts.
+    /// PT: Verifica se NEXT VALUE FOR e PREVIOUS VALUE FOR no estilo DB2 funcionam em consultas escalares e insercoes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedDb2Mock")]
+    public void Db2SequenceNextAndPreviousValueFor_ShouldWork_Test()
+    {
+        var db = CreateDb();
+        using var connection = CreateConnection(db);
+        connection.Open();
+        connection.AddSequence("seq_orders", startValue: 50, incrementBy: 5);
+        var table = db.AddTable("orders");
+        table.AddColumn("id", DbType.Int64, false);
+
+        var first = connection.ExecuteScalar<long>("VALUES NEXT VALUE FOR seq_orders");
+        var previous = connection.ExecuteScalar<long>("VALUES PREVIOUS VALUE FOR seq_orders");
+        connection.Execute("INSERT INTO orders (id) VALUES (NEXT VALUE FOR seq_orders)");
+
+        Assert.Equal(50L, first);
+        Assert.Equal(50L, previous);
+        Assert.Equal(55L, table[0][0]);
+        Assert.True(connection.TryGetSequence("seq_orders", out var sequence));
+        Assert.Equal(55, sequence!.CurrentValue);
+    }
+
+    /// <summary>
+    /// EN: Verifies schema-qualified DB2 sequences resolve correctly for NEXT VALUE FOR and PREVIOUS VALUE FOR.
+    /// PT: Verifica se sequences DB2 qualificadas por schema resolvem corretamente para NEXT VALUE FOR e PREVIOUS VALUE FOR.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedDb2Mock")]
+    public void Db2SchemaQualifiedSequence_ShouldWork_Test()
+    {
+        var db = CreateDb();
+        db.CreateSchema("sales");
+        using var connection = new Db2ConnectionMock(db, "sales");
+        connection.Open();
+        connection.AddSequence("seq_orders", startValue: 200, incrementBy: 20, schemaName: "sales");
+        var table = db.AddTable("orders", schemaName: "sales");
+        table.AddColumn("id", DbType.Int64, false);
+
+        var first = connection.ExecuteScalar<long>("VALUES NEXT VALUE FOR sales.seq_orders");
+        var previous = connection.ExecuteScalar<long>("VALUES PREVIOUS VALUE FOR sales.seq_orders");
+        connection.Execute("INSERT INTO sales.orders (id) VALUES (NEXT VALUE FOR sales.seq_orders)");
+
+        Assert.Equal(200L, first);
+        Assert.Equal(200L, previous);
+        Assert.Equal(220L, table[0][0]);
+        Assert.True(connection.TryGetSequence("seq_orders", out var sequence, "sales"));
+        Assert.Equal(220, sequence!.CurrentValue);
+    }
+
+    /// <summary>
     /// EN: Verifies inserts with null values succeed for nullable columns.
     /// PT: Verifica se insercoes com valores nulos funcionam para colunas anulaveis.
     /// </summary>

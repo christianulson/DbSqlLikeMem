@@ -653,6 +653,8 @@ internal sealed class SqlExpressionParser(
         if (TryParseNumber(t, out var l3)) return l3;
         if (TryParseParameter(t, out var p)) return p;
         if (TryParseIntervalLiteral(t, out var interval)) return interval;
+        if (TryParseNextValueFor(t, out var nextValueFor)) return nextValueFor;
+        if (TryParsePreviousValueFor(t, out var previousValueFor)) return previousValueFor;
         if (TryParseIdentifierOrCall(t, out var id)) return id;
 
         throw Error($"Token inesperado no prefix: {t.Kind} '{t.Text}'", t);
@@ -782,6 +784,54 @@ internal sealed class SqlExpressionParser(
         }
 
         expr = new CallExpr("INTERVAL", [new LiteralExpr(raw)]);
+        return true;
+    }
+
+    private bool TryParseNextValueFor(SqlToken t, out SqlExpr expr)
+    {
+        expr = default!;
+
+        if (!IsKeywordOrIdentifierWord(t, "NEXT"))
+            return false;
+
+        if (!IsKeywordOrIdentifierWord(Peek(1), "VALUE")
+            || !IsKeywordOrIdentifierWord(Peek(2), "FOR"))
+            return false;
+
+        Consume(); // NEXT
+        Consume(); // VALUE
+        Consume(); // FOR
+
+        var sequenceToken = Peek();
+        if (sequenceToken.Kind is not SqlTokenKind.Identifier and not SqlTokenKind.Keyword)
+            throw Error("NEXT VALUE FOR requires a sequence name.", sequenceToken);
+
+        Consume();
+        expr = new CallExpr("NEXT_VALUE_FOR", [ParseIdentifierChainOrColumn(sequenceToken.Text)]);
+        return true;
+    }
+
+    private bool TryParsePreviousValueFor(SqlToken t, out SqlExpr expr)
+    {
+        expr = default!;
+
+        if (!IsKeywordOrIdentifierWord(t, "PREVIOUS"))
+            return false;
+
+        if (!IsKeywordOrIdentifierWord(Peek(1), "VALUE")
+            || !IsKeywordOrIdentifierWord(Peek(2), "FOR"))
+            return false;
+
+        Consume(); // PREVIOUS
+        Consume(); // VALUE
+        Consume(); // FOR
+
+        var sequenceToken = Peek();
+        if (sequenceToken.Kind is not SqlTokenKind.Identifier and not SqlTokenKind.Keyword)
+            throw Error("PREVIOUS VALUE FOR requires a sequence name.", sequenceToken);
+
+        Consume();
+        expr = new CallExpr("PREVIOUS_VALUE_FOR", [ParseIdentifierChainOrColumn(sequenceToken.Text)]);
         return true;
     }
 
@@ -1732,12 +1782,42 @@ internal sealed class SqlExpressionParser(
             parts.Add(Consume().Text);
         }
 
+        if (TryBuildSequenceDotCall(parts, out var sequenceCall))
+            return sequenceCall;
+
         return parts.Count switch
         {
             1 => new IdentifierExpr(parts[0]),                 // col
             2 => new ColumnExpr(parts[0], parts[1]),           // alias.col  OR table.col  OR alias.*
             _ => new RawSqlExpr(string.Join(".", parts))       // db.table.col (por enquanto)
         };
+    }
+
+    private static bool TryBuildSequenceDotCall(
+        IReadOnlyList<string> parts,
+        out SqlExpr expr)
+    {
+        expr = default!;
+        if (parts.Count < 2)
+            return false;
+
+        var suffix = parts[^1];
+        if (!suffix.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
+            && !suffix.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var targetParts = parts.Take(parts.Count - 1).ToArray();
+        SqlExpr target = targetParts.Length switch
+        {
+            1 => new IdentifierExpr(targetParts[0]),
+            2 => new ColumnExpr(targetParts[0], targetParts[1]),
+            _ => new RawSqlExpr(string.Join(".", targetParts))
+        };
+
+        expr = new CallExpr(suffix.ToUpperInvariant(), [target]);
+        return true;
     }
 
     #endregion
