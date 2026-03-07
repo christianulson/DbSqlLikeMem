@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validates cross-dialect snapshot markdown structure for smoke/aggregation profiles."""
+"""Validates cross-dialect snapshot markdown structure for smoke/aggregation/parser profiles."""
 
 from __future__ import annotations
 
@@ -46,11 +46,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--smoke", default="docs/cross-dialect-smoke-snapshot.md")
     parser.add_argument("--aggregation", default="docs/cross-dialect-aggregation-snapshot.md")
+    parser.add_argument("--parser", default="docs/cross-dialect-parser-snapshot.md")
     args = parser.parse_args()
 
     checks = [
         (Path(args.smoke), "smoke"),
         (Path(args.aggregation), "aggregation"),
+        (Path(args.parser), "parser"),
     ]
 
     failures = 0

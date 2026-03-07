@@ -3111,6 +3111,24 @@ WHERE users.id = EXCLUDED.id";
     }
 
     /// <summary>
+    /// EN: Ensures SELECT parsing accepts MySQL native GROUP_CONCAT ordering syntax.
+    /// PT: Garante que o parsing de SELECT aceite a sintaxe nativa de ordenacao do GROUP_CONCAT no MySQL.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_StringAggregateOrderByInsideCall_ShouldParse(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var parsed = Assert.IsType<SqlSelectQuery>(
+            SqlQueryParser.Parse("SELECT GROUP_CONCAT(amount ORDER BY amount DESC SEPARATOR '|') AS joined FROM orders", dialect));
+
+        Assert.Single(parsed.SelectItems);
+        Assert.Contains("GROUP_CONCAT", parsed.SelectItems[0].Raw, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures call-only temporal identifier without parentheses is rejected with actionable guidance.
     /// PT: Garante que identificador temporal apenas-invocável sem parênteses seja rejeitado com orientação acionável.
     /// </summary>
@@ -3142,6 +3160,66 @@ WHERE users.id = EXCLUDED.id";
             SqlExpressionParser.ParseScalar("CURRENT_DATE()", dialect));
 
         Assert.Contains("CURRENT_DATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parser accepts native ORDER BY and SEPARATOR inside GROUP_CONCAT.
+    /// PT: Garante que o parser MySQL aceite ORDER BY e SEPARATOR nativos dentro de GROUP_CONCAT.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_GroupConcatOrderByInsideCall_ShouldParse(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var expr = SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount ORDER BY amount DESC, id ASC SEPARATOR '|')", dialect);
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.Equal("GROUP_CONCAT", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(2, call.Args.Count);
+        Assert.NotNull(call.WithinGroupOrderBy);
+        Assert.Equal(2, call.WithinGroupOrderBy!.Count);
+        Assert.True(call.WithinGroupOrderBy[0].Desc);
+        Assert.False(call.WithinGroupOrderBy[1].Desc);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parser preserves DISTINCT when native ORDER BY is used inside GROUP_CONCAT.
+    /// PT: Garante que o parser MySQL preserve DISTINCT quando ORDER BY nativo e usado dentro de GROUP_CONCAT.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_GroupConcatDistinctOrderByInsideCall_ShouldParse(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var expr = SqlExpressionParser.ParseScalar("GROUP_CONCAT(DISTINCT amount ORDER BY amount DESC SEPARATOR '|')", dialect);
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.True(call.Distinct);
+        Assert.Equal(2, call.Args.Count);
+        Assert.NotNull(call.WithinGroupOrderBy);
+        Assert.Single(call.WithinGroupOrderBy!);
+        Assert.True(call.WithinGroupOrderBy[0].Desc);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed native SEPARATOR usage in GROUP_CONCAT fails with actionable message.
+    /// PT: Garante que uso nativo malformado de SEPARATOR em GROUP_CONCAT falhe com mensagem acionavel.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_GroupConcatSeparatorWithoutExpression_ShouldThrowActionableError(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount ORDER BY amount DESC SEPARATOR)", dialect));
+
+        Assert.Contains("separator keyword requires an expression", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

@@ -47,6 +47,14 @@ Assim, ao instalar um provider via nuget.org, o núcleo é instalado automaticam
 
 Dica: escolha **um provider por projeto de teste** (ou por suíte), conforme o dialeto que você precisa validar.
 
+## Compatibilidade de frameworks
+
+Os pacotes de produção seguem os alvos centrais de `src/Directory.Build.props`: `net462`, `netstandard2.0` e `net8.0`.
+
+Os projetos de teste e test-tools usam o override dedicado: `net462`, `net6.0` e `net8.0`.
+
+Se houver impacto de distribuição ou versionamento, revise também `docs/publishing.md`.
+
 ## Seleção de provider em runtime
 
 Quando o banco é escolhido em tempo de execução, use uma factory:

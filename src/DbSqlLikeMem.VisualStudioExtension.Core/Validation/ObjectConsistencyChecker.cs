@@ -10,6 +10,48 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Validation;
 public sealed class ObjectConsistencyChecker
 {
     /// <summary>
+    /// EN: Classifies the local artifact set required by the generation flow before metadata comparison.
+    /// PT: Classifica o conjunto de artefatos locais exigido pelo fluxo de geracao antes da comparacao de metadados.
+    /// </summary>
+    /// <param name="databaseObject">EN: Database object reference being checked. PT: Referencia do objeto de banco sendo verificada.</param>
+    /// <param name="localFilePath">EN: Primary generated class file path. PT: Caminho do arquivo principal da classe gerada.</param>
+    /// <param name="hasPrimaryClass">EN: Indicates whether the main generated class exists. PT: Indica se a classe gerada principal existe.</param>
+    /// <param name="hasModel">EN: Indicates whether the companion model file exists. PT: Indica se o arquivo complementar de modelo existe.</param>
+    /// <param name="hasRepository">EN: Indicates whether the companion repository file exists. PT: Indica se o arquivo complementar de repositorio existe.</param>
+    /// <param name="missingMessage">EN: Diagnostic message used when the artifact set is incomplete or missing. PT: Mensagem diagnostica usada quando o conjunto de artefatos esta incompleto ou ausente.</param>
+    public ObjectHealthResult? EvaluateLocalArtifacts(
+        DatabaseObjectReference databaseObject,
+        string localFilePath,
+        bool hasPrimaryClass,
+        bool hasModel,
+        bool hasRepository,
+        string? missingMessage = null)
+    {
+        var existingArtifacts = 0;
+        if (hasPrimaryClass)
+        {
+            existingArtifacts++;
+        }
+
+        if (hasModel)
+        {
+            existingArtifacts++;
+        }
+
+        if (hasRepository)
+        {
+            existingArtifacts++;
+        }
+
+        return existingArtifacts switch
+        {
+            3 => null,
+            0 => new ObjectHealthResult(databaseObject, localFilePath, ObjectHealthStatus.MissingLocalArtifacts, missingMessage),
+            _ => new ObjectHealthResult(databaseObject, localFilePath, ObjectHealthStatus.IncompleteLocalArtifacts, missingMessage),
+        };
+    }
+
+    /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>

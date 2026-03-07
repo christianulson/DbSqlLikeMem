@@ -30,48 +30,7 @@ jobs:
         run: dotnet pack src/DbSqlLikeMem.slnx -c Release -o ./artifacts
 
       - name: Validate package repository metadata
-        shell: bash
-        run: |
-          python - <<'PYCODE'
-          import glob
-          import os
-          import zipfile
-          import xml.etree.ElementTree as ET
-
-          def get_child(parent, local_name):
-              for child in parent:
-                  tag = child.tag.split('}', 1)[-1] if '}' in child.tag else child.tag
-                  if tag == local_name:
-                      return child
-
-              return None
-
-          packages = glob.glob('./artifacts/*.nupkg')
-          packages = [p for p in packages if 'DbSqlLikeMem.VisualStudioExtension.' not in os.path.basename(p)]
-
-          if not packages:
-              raise SystemExit('::error::No publishable packages found for metadata validation.')
-
-          for package in packages:
-              with zipfile.ZipFile(package) as zf:
-                  nuspec_name = next((n for n in zf.namelist() if n.endswith('.nuspec')), None)
-                  if not nuspec_name:
-                      raise SystemExit(f'::error::{os.path.basename(package)} does not contain a .nuspec file.')
-
-                  with zf.open(nuspec_name) as nuspec:
-                      root = ET.parse(nuspec).getroot()
-
-              metadata = get_child(root, 'metadata')
-              if metadata is None:
-                  raise SystemExit(f'::error::{os.path.basename(package)} has no metadata section in nuspec.')
-
-              repository = get_child(metadata, 'repository')
-              repo_url = repository.attrib.get('url') if repository is not None else None
-              if not repo_url or 'github.com/christianulson/DbSqlLikeMem' not in repo_url:
-                  raise SystemExit(f'::error::{os.path.basename(package)} is missing expected repository URL metadata.')
-
-              print(f'Validated repository metadata: {os.path.basename(package)} -> {repo_url}')
-          PYCODE
+        run: python scripts/check_nuget_package_metadata.py --artifacts-dir ./artifacts
 
       - name: Validate NuGet API key (NUGET_API_KEY)
         shell: bash

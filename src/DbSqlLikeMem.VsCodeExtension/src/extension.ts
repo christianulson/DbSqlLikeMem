@@ -3,6 +3,18 @@ import * as path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import * as vscode from 'vscode';
+import {
+  buildTemplateClassFilePath,
+  buildTestClassFilePath,
+  buildTestClassName,
+  generateTestClassTemplate
+} from './generation-support';
+import {
+  getTemplateBaselineProfile,
+  getTemplateBaselineProfiles,
+  resolveTemplateSettingsDefaults
+} from './template-baselines';
+import { findUnsupportedTemplateTokens } from './template-token-catalog';
 
 type DatabaseObjectType = 'Table' | 'View' | 'Procedure';
 type FilterMode = 'Equals' | 'Like';
@@ -635,12 +647,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return;
       }
 
+      const namespace = await vscode.window.showInputBox({
+        prompt: vscode.l10n.t('Namespace (optional)'),
+        value: currentByType.get('Table')?.namespace ?? currentByType.get('View')?.namespace ?? currentByType.get('Procedure')?.namespace ?? ''
+      });
+      if (namespace === undefined) {
+        return;
+      }
+
       const mapping: ConnectionMappingConfiguration = {
         connectionId: connection.id,
         mappings: [
-          { objectType: 'Table', targetFolder: tableFolder, fileSuffix: tableSuffix },
-          { objectType: 'View', targetFolder: viewFolder, fileSuffix: viewSuffix },
-          { objectType: 'Procedure', targetFolder: procedureFolder, fileSuffix: procedureSuffix }
+          { objectType: 'Table', targetFolder: tableFolder, fileSuffix: tableSuffix, namespace: namespace || undefined },
+          { objectType: 'View', targetFolder: viewFolder, fileSuffix: viewSuffix, namespace: namespace || undefined },
+          { objectType: 'Procedure', targetFolder: procedureFolder, fileSuffix: procedureSuffix, namespace: namespace || undefined }
         ]
       };
 
@@ -650,9 +670,36 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       vscode.window.showInformationMessage(vscode.l10n.t('Mappings saved for {0}.', connection.name));
     }),
     vscode.commands.registerCommand('dbSqlLikeMem.configureTemplates', async () => {
+      const defaultSettings = resolveTemplateSettingsDefaults(state.templateSettings);
+      const baselineSelection = await vscode.window.showQuickPick(
+        [
+          ...getTemplateBaselineProfiles().map((profile) => ({
+            label: profile.label,
+            description: profile.description,
+            profileId: profile.id
+          })),
+          {
+            label: vscode.l10n.t('Keep current/custom values'),
+            description: vscode.l10n.t('Preserves the current template paths and folders as the prompt baseline.'),
+            profileId: 'custom'
+          }
+        ],
+        {
+          placeHolder: vscode.l10n.t('Choose a baseline profile for the template prompts')
+        }
+      );
+      if (!baselineSelection) {
+        return;
+      }
+
+      const selectedBaseline = baselineSelection.profileId === 'custom'
+        ? undefined
+        : getTemplateBaselineProfile(baselineSelection.profileId);
+      const promptDefaults = selectedBaseline ?? defaultSettings;
+
       const modelTemplatePath = await vscode.window.showInputBox({
         prompt: vscode.l10n.t('Model template (workspace-relative path)'),
-        value: state.templateSettings.modelTemplatePath || 'templates/model.template.txt'
+        value: promptDefaults.modelTemplatePath
       });
       if (modelTemplatePath === undefined) {
         return;
@@ -660,7 +707,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
       const repositoryTemplatePath = await vscode.window.showInputBox({
         prompt: vscode.l10n.t('Repository template (workspace-relative path)'),
-        value: state.templateSettings.repositoryTemplatePath || 'templates/repository.template.txt'
+        value: promptDefaults.repositoryTemplatePath
       });
       if (repositoryTemplatePath === undefined) {
         return;
@@ -668,7 +715,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
       const modelTargetFolder = await vscode.window.showInputBox({
         prompt: vscode.l10n.t('Target folder for model classes'),
-        value: state.templateSettings.modelTargetFolder
+        value: promptDefaults.modelTargetFolder
       });
       if (!modelTargetFolder) {
         return;
@@ -676,10 +723,33 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
       const repositoryTargetFolder = await vscode.window.showInputBox({
         prompt: vscode.l10n.t('Target folder for repository classes'),
-        value: state.templateSettings.repositoryTargetFolder
+        value: promptDefaults.repositoryTargetFolder
       });
       if (!repositoryTargetFolder) {
         return;
+      }
+
+      const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      if (workspaceFolder) {
+        for (const templatePath of [modelTemplatePath.trim(), repositoryTemplatePath.trim()]) {
+          if (!templatePath) {
+            continue;
+          }
+
+          const templateFullPath = path.join(workspaceFolder, templatePath);
+          try {
+            const templateText = await fs.readFile(templateFullPath, 'utf8');
+            const unsupportedTokens = findUnsupportedTemplateTokens(templateText);
+            if (unsupportedTokens.length > 0) {
+              vscode.window.showWarningMessage(
+                vscode.l10n.t('Template {0} uses unsupported tokens: {1}.', templatePath, unsupportedTokens.join(', '))
+              );
+              return;
+            }
+          } catch {
+            // Keep current behavior: allow saving paths that do not exist yet.
+          }
+        }
       }
 
       state.templateSettings = {
@@ -718,14 +788,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           continue;
         }
 
-        const className = sanitizeClassName(objectRef.name + objectMapping.fileSuffix);
-        const targetDir = path.join(workspaceFolder, objectMapping.targetFolder);
-        const targetFile = path.join(targetDir, `${className}.cs`);
+        const className = buildTestClassName(objectRef, objectMapping);
+        const targetFile = buildTestClassFilePath(workspaceFolder, objectRef, objectMapping);
         plans.push({
           objectRef,
           targetFile,
           namespace: objectMapping.namespace,
-          content: generateClassTemplate(className, objectRef, objectMapping.namespace)
+          content: generateTestClassTemplate(className, objectRef, objectMapping.namespace)
         });
       }
 
@@ -761,17 +830,31 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       const objects = await getScopedObjects(connection, item, metadataProvider, state.filterText, state.filterMode);
       const missing: string[] = [];
       const checks: Record<string, GenerationCheckStatus> = {};
+      const mapping = state.mappingConfigurations.find((x) => x.connectionId === connection.id);
 
       for (const objectRef of objects) {
-        const modelExpected = sanitizeClassName(`${objectRef.name}Model.cs`);
-        const repositoryExpected = sanitizeClassName(`${objectRef.name}Repository.cs`);
-        const modelFound = await findFileCaseInsensitive(workspaceFolder, modelExpected);
-        const repositoryFound = await findFileCaseInsensitive(workspaceFolder, repositoryExpected);
+        const testMapping = mapping?.mappings.find((x) => x.objectType === objectRef.objectType);
+        const testFound = testMapping
+          ? await fileExists(buildTestClassFilePath(workspaceFolder, objectRef, testMapping))
+          : false;
+        const modelFound = await fileExists(
+          buildTemplateClassFilePath(
+            workspaceFolder,
+            objectRef,
+            'model',
+            state.templateSettings.modelTargetFolder));
+        const repositoryFound = await fileExists(
+          buildTemplateClassFilePath(
+            workspaceFolder,
+            objectRef,
+            'repository',
+            state.templateSettings.repositoryTargetFolder));
 
         const key = buildObjectKey(connection.id, objectRef);
-        checks[key] = modelFound && repositoryFound ? 'ok' : (modelFound || repositoryFound ? 'partial' : 'missing');
+        const foundCount = [testFound, modelFound, repositoryFound].filter(Boolean).length;
+        checks[key] = foundCount === 3 ? 'ok' : (foundCount > 0 ? 'partial' : 'missing');
 
-        if (!modelFound || !repositoryFound) {
+        if (!testFound || !modelFound || !repositoryFound) {
           missing.push(`${objectRef.objectType}: ${objectRef.schema}.${objectRef.name}`);
         }
       }
@@ -1047,7 +1130,15 @@ async function generateTemplateBasedFiles(
   if (templateRelativePath.trim()) {
     const templateFullPath = path.join(workspaceFolder, templateRelativePath);
     try {
-      templateText = await fs.readFile(templateFullPath, 'utf8');
+      const loadedTemplateText = await fs.readFile(templateFullPath, 'utf8');
+      const unsupportedTokens = findUnsupportedTemplateTokens(loadedTemplateText);
+      if (unsupportedTokens.length > 0) {
+        vscode.window.showWarningMessage(
+          vscode.l10n.t('Template {0} uses unsupported tokens: {1}. Using default template.', templateRelativePath, unsupportedTokens.join(', '))
+        );
+      } else {
+        templateText = loadedTemplateText;
+      }
     } catch {
       vscode.window.showWarningMessage(vscode.l10n.t('Template not found: {0}. Using default template.', templateRelativePath));
     }
@@ -1057,9 +1148,8 @@ async function generateTemplateBasedFiles(
   for (const objectRef of objects) {
     const objectMapping = mapping?.mappings.find((x) => x.objectType === objectRef.objectType);
     const namespaceValue = objectMapping?.namespace ?? '';
-    const className = sanitizeClassName(`${objectRef.name}${suffix}`);
-    const targetDir = path.join(workspaceFolder, targetFolder);
-    const targetFile = path.join(targetDir, `${className}.cs`);
+    const targetFile = buildTemplateClassFilePath(workspaceFolder, objectRef, kind, targetFolder);
+    const className = path.basename(targetFile, '.cs');
 
     const content = templateText
       .split('{{ClassName}}').join(className)
@@ -1121,38 +1211,6 @@ async function fileExists(filePath: string): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-function sanitizeClassName(value: string): string {
-  return value.replace(/[^a-zA-Z0-9_]/g, '_');
-}
-
-function generateClassTemplate(className: string, objectRef: DatabaseObjectReference, namespace?: string): string {
-  const body = `// Auto-generated test class by DbSqlLikeMem VS Code extension\n` +
-    `// Source: ${objectRef.objectType} ${objectRef.schema}.${objectRef.name}\n` +
-    `using Xunit;\n\n` +
-    `public class ${className}\n` +
-    `{\n` +
-    `    [Fact]\n` +
-    `    public void Should_validate_${sanitizeClassName(objectRef.name)}()\n` +
-    `    {\n` +
-    `        // TODO: implementar cenário de teste\n` +
-    `    }\n` +
-    `}\n`;
-
-  if (!namespace?.trim()) {
-    return body;
-  }
-
-  return `namespace ${namespace.trim()}\n{\n${indentMultiline(body, 1)}}\n`;
-}
-
-function indentMultiline(value: string, level: number): string {
-  const indent = '    '.repeat(level);
-  return value
-    .split('\n')
-    .map((line) => line ? `${indent}${line}` : line)
-    .join('\n');
 }
 
 async function pickConnection(connections: ConnectionDefinition[]): Promise<ConnectionDefinition | undefined> {
@@ -1423,23 +1481,3 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-async function findFileCaseInsensitive(root: string, fileName: string): Promise<boolean> {
-  const entries = await fs.readdir(root, { withFileTypes: true });
-
-  for (const entry of entries) {
-    const fullPath = path.join(root, entry.name);
-
-    if (entry.isFile() && entry.name.toLowerCase() === fileName.toLowerCase()) {
-      return true;
-    }
-
-    if (entry.isDirectory()) {
-      const found = await findFileCaseInsensitive(fullPath, fileName);
-      if (found) {
-        return true;
-      }
-    }
-  }
-
-  return false;
-}

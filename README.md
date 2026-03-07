@@ -122,12 +122,12 @@ var plan = cnn.LastExecutionPlan;
 
 ## Requirements | Requisitos
 
-- **EN:** Main provider and test projects target: **.NET Framework 4.8**, **.NET 6.0**, **.NET 8.0**, and **.NET 10.0**.  
-  **PT-BR:** Os principais projetos de provedor e teste têm como alvo: **.NET Framework 4.8**, **.NET 6.0**, **.NET 8.0** e **.NET 10.0**.
-- **EN:** Core `DbSqlLikeMem` multi-targets: **.NET Standard 2.1**, **.NET Framework 4.8**, **.NET 6.0**, **.NET 8.0**, and **.NET 10.0**.  
-  **PT-BR:** O núcleo `DbSqlLikeMem` é multi-target em: **.NET Standard 2.1**, **.NET Framework 4.8**, **.NET 6.0**, **.NET 8.0** e **.NET 10.0**.
-- **EN:** Some integration-specific modules (for example, part of DB2 stack) may target a subset (`net6.0+`).  
-  **PT-BR:** Alguns módulos específicos de integração (por exemplo, parte da stack DB2) podem ter alvo em subconjunto (`net6.0+`).
+- **EN:** Production core and provider packages follow the central targets in `src/Directory.Build.props`: **`net462`**, **`netstandard2.0`**, and **`net8.0`**.  
+  **PT-BR:** Os pacotes de produção do núcleo e dos provedores seguem os alvos centrais de `src/Directory.Build.props`: **`net462`**, **`netstandard2.0`** e **`net8.0`**.
+- **EN:** Test and test-tools projects use the dedicated override target set: **`net462`**, **`net6.0`**, and **`net8.0`**.  
+  **PT-BR:** Os projetos de teste e test-tools usam o conjunto de alvos do override dedicado: **`net462`**, **`net6.0`** e **`net8.0`**.
+- **EN:** Some tooling or integration-specific projects may use narrower target sets (for example, extension/tooling projects outside the main NuGet package flow).  
+  **PT-BR:** Alguns projetos específicos de tooling ou integração podem usar conjuntos de alvo mais estreitos (por exemplo, extensões e ferramentas fora do fluxo principal de pacotes NuGet).
 
 ## Supported Providers | Provedores suportados
 

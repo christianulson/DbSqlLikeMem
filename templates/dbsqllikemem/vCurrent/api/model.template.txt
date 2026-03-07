@@ -1,0 +1,7 @@
+// DbSqlLikeMem template baseline: vCurrent/api/model
+// Source: {{DatabaseType}}/{{DatabaseName}} -> {{Schema}}.{{ObjectName}} ({{ObjectType}})
+// Optional namespace: {{Namespace}}
+public partial class {{ClassName}}
+{
+    // Map columns from {{Schema}}.{{ObjectName}} here.
+}

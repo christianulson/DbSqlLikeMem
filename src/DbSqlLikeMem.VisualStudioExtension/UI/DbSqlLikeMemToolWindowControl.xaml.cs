@@ -229,11 +229,11 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         }
 
         var defaults = viewModel.GetMappingDefaults();
-        var dialog = new MappingDialog(defaults.FileNamePattern, defaults.OutputDirectory) { Owner = System.Windows.Window.GetWindow(this) };
+        var dialog = new MappingDialog(defaults.FileNamePattern, defaults.OutputDirectory, defaults.Namespace) { Owner = System.Windows.Window.GetWindow(this) };
 
         if (dialog.ShowDialog() == true)
         {
-            viewModel.ApplyDefaultMapping(dialog.FileNamePattern, dialog.OutputDirectory);
+            viewModel.ApplyDefaultMapping(dialog.FileNamePattern, dialog.OutputDirectory, dialog.Namespace);
         }
     }
 

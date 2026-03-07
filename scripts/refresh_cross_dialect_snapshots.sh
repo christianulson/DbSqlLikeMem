@@ -3,11 +3,12 @@ set -euo pipefail
 
 usage() {
   cat <<USAGE
-Usage: bash scripts/refresh_cross_dialect_snapshots.sh [--smoke-output <path>] [--aggregation-output <path>] [--continue-on-error] [--dry-run]
+Usage: bash scripts/refresh_cross_dialect_snapshots.sh [--smoke-output <path>] [--aggregation-output <path>] [--parser-output <path>] [--continue-on-error] [--dry-run]
 
 Defaults:
   --smoke-output       docs/cross-dialect-smoke-snapshot.md
   --aggregation-output docs/cross-dialect-aggregation-snapshot.md
+  --parser-output      docs/cross-dialect-parser-snapshot.md
 
 Options:
   --continue-on-error  Propagates full-matrix execution mode to each profile runner.
@@ -17,6 +18,7 @@ USAGE
 
 smoke_output="docs/cross-dialect-smoke-snapshot.md"
 aggregation_output="docs/cross-dialect-aggregation-snapshot.md"
+parser_output="docs/cross-dialect-parser-snapshot.md"
 continue_on_error="false"
 dry_run="false"
 
@@ -29,6 +31,10 @@ while [[ $# -gt 0 ]]; do
     --aggregation-output)
       shift
       aggregation_output="${1:-}"
+      ;;
+    --parser-output)
+      shift
+      parser_output="${1:-}"
       ;;
     --continue-on-error)
       continue_on_error="true"
@@ -49,7 +55,7 @@ while [[ $# -gt 0 ]]; do
   shift || true
 done
 
-mkdir -p "$(dirname "$smoke_output")" "$(dirname "$aggregation_output")"
+mkdir -p "$(dirname "$smoke_output")" "$(dirname "$aggregation_output")" "$(dirname "$parser_output")"
 
 runner_extra_args=()
 if [[ "$dry_run" == "true" ]]; then
@@ -64,5 +70,8 @@ bash scripts/run_cross_dialect_equivalence.sh --profile smoke --snapshot-file "$
 
 echo "Refreshing aggregation snapshot -> ${aggregation_output}"
 bash scripts/run_cross_dialect_equivalence.sh --profile aggregation --snapshot-file "$aggregation_output" "${runner_extra_args[@]}"
+
+echo "Refreshing parser snapshot -> ${parser_output}"
+bash scripts/run_cross_dialect_equivalence.sh --profile parser --snapshot-file "$parser_output" "${runner_extra_args[@]}"
 
 echo "Snapshots refreshed successfully."

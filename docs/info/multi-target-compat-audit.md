@@ -1,4 +1,5 @@
 # Auditoria de compatibilidade multi-target (estática)
+> Status: artefato histórico gerado antes do realinhamento central de targets. Para TFMs e versão vigentes, use `src/Directory.Build.props`, `README.md` e `docs/getting-started.md` como fonte de verdade.
 > Escopo: varredura de **92 projetos .csproj** + `Directory.Build.props`. Não foram encontrados `global.json`, `NuGet.config` ou `Directory.Build.targets` no repositório.
 ## 1) Inventário completo de projetos e metadados MSBuild
 - Inventário completo de TFMs/RIDs: `docs/info/project_tfm_inventory.csv`.

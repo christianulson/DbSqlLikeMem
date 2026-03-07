@@ -208,4 +208,14 @@ internal sealed class MySqlDialect : SqlDialectBase
     public override bool SupportsDateAddFunction(string functionName)
         => functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)
         || functionName.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase);
+
+    public override bool SupportsAggregateOrderByForStringAggregates => true;
+
+    public override bool SupportsAggregateOrderByStringAggregateFunction(string functionName)
+        => functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase);
+
+    public override bool SupportsAggregateSeparatorKeywordForStringAggregates => true;
+
+    public override bool SupportsAggregateSeparatorKeywordStringAggregateFunction(string functionName)
+        => functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase);
 }

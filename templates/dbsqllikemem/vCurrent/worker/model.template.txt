@@ -1,0 +1,7 @@
+// DbSqlLikeMem template baseline: vCurrent/worker/model
+// Source: {{DatabaseType}}/{{DatabaseName}} -> {{Schema}}.{{ObjectName}} ({{ObjectType}})
+// Optional namespace: {{Namespace}}
+public partial class {{ClassName}}
+{
+    public string SourceObject => "{{Schema}}.{{ObjectName}}";
+}

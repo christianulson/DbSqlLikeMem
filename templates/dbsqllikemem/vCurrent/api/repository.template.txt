@@ -1,0 +1,15 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+
+// DbSqlLikeMem template baseline: vCurrent/api/repository
+// Source: {{DatabaseType}}/{{DatabaseName}} -> {{Schema}}.{{ObjectName}} ({{ObjectType}})
+// Optional namespace: {{Namespace}}
+public partial class {{ClassName}}
+{
+    public Task<IReadOnlyCollection<object>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException("Implement repository access for {{Schema}}.{{ObjectName}}.");
+    }
+}

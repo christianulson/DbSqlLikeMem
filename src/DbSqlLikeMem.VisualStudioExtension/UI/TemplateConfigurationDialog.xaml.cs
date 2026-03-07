@@ -1,5 +1,6 @@
 using System.IO;
 using System.Windows;
+using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 
 using UiResources = DbSqlLikeMem.VisualStudioExtension.Properties.Resources;
@@ -15,6 +16,8 @@ public partial class TemplateConfigurationDialog : Window
     public TemplateConfigurationDialog(TemplateConfiguration current)
     {
         InitializeComponent();
+        TemplateBaselineProfileComboBox.ItemsSource = TemplateBaselineCatalog.GetProfiles().OrderBy(profile => profile.DisplayName).ToArray();
+        TemplateBaselineProfileComboBox.SelectedValue = "api";
         ModelTemplatePathTextBox.Text = current.ModelTemplatePath;
         RepositoryTemplatePathTextBox.Text = current.RepositoryTemplatePath;
         ModelOutputDirectoryTextBox.Text = current.ModelOutputDirectory;
@@ -41,6 +44,30 @@ public partial class TemplateConfigurationDialog : Window
     /// Obtém o diretório de saída para classes de repositório geradas.
     /// </summary>
     public string RepositoryOutputDirectory { get; private set; } = "Generated/Repositories";
+
+    private void OnApplyBaselineClick(object sender, RoutedEventArgs e)
+    {
+        if (TemplateBaselineProfileComboBox.SelectedItem is not TemplateBaselineProfile profile)
+        {
+            MessageBox.Show(this, "Select a template baseline profile before applying it.", UiResources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var repositoryRoot = TemplateBaselineCatalog.FindRepositoryRoot(Directory.GetCurrentDirectory())
+            ?? TemplateBaselineCatalog.FindRepositoryRoot(AppContext.BaseDirectory);
+
+        if (repositoryRoot is null)
+        {
+            MessageBox.Show(this, "Could not locate templates/dbsqllikemem from the current environment.", UiResources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var configuration = TemplateBaselineCatalog.CreateTemplateConfiguration(repositoryRoot, profile.Id);
+        ModelTemplatePathTextBox.Text = configuration.ModelTemplatePath;
+        RepositoryTemplatePathTextBox.Text = configuration.RepositoryTemplatePath;
+        ModelOutputDirectoryTextBox.Text = configuration.ModelOutputDirectory;
+        RepositoryOutputDirectoryTextBox.Text = configuration.RepositoryOutputDirectory;
+    }
 
     private void OnSaveClick(object sender, RoutedEventArgs e)
     {
@@ -83,6 +110,18 @@ public partial class TemplateConfigurationDialog : Window
         if (!File.Exists(fullPath))
         {
             MessageBox.Show(this, string.Format(UiResources.TemplateNotFound, fullPath), UiResources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+
+        var unsupportedTokens = TemplateTokenCatalog.FindUnsupportedTokens(File.ReadAllText(fullPath));
+        if (unsupportedTokens.Count > 0)
+        {
+            MessageBox.Show(
+                this,
+                $"Unsupported template tokens: {string.Join(", ", unsupportedTokens)}",
+                UiResources.ValidationTitle,
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
             return false;
         }
 

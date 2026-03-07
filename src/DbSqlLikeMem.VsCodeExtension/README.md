@@ -16,11 +16,13 @@ Extensão equivalente ao fluxo desenhado para o Visual Studio Extension Core, ad
 - Filtro por modo `Like` e `Equals`.
 - Interface gráfica (Manager) para cadastrar/editar/remover conexões e configurar mapeamentos.
 - Configuração de mapeamentos por tipo de objeto (`Table`, `View`, `Procedure`, `Sequence`) também no menu de contexto do nó do database.
-- Geração de classes de **teste** `.cs` no workspace (ação principal), com prévia de conflitos (sobrescrita).
+- Geração de classes de **teste** `.cs` no workspace (ação principal), com prévia de conflitos (sobrescrita) e scaffold inicial explícito (`[Fact(Skip = ...)]`, metadados de origem e blocos Arrange/Act/Assert).
 - Geração de classes de **modelo** a partir de template com tokens, com prévia de conflitos (sobrescrita), incluindo objetos `Sequence` quando a metadata do provider os expõe.
 - Geração de classes de **repositório** a partir de template com tokens, com prévia de conflitos (sobrescrita), incluindo objetos `Sequence` quando a metadata do provider os expõe.
 - Configuração de templates (botão no topo da view) para modelos e repositórios.
-- Check de consistência para artefatos gerados (teste/model/repositório), com status visual por objeto na árvore.
+- Configuração de templates com baseline versionada do repositório (`templates/dbsqllikemem/vCurrent`) e perfis iniciais `API`/`Worker-Batch`.
+- Templates customizados agora também são validados contra o contrato de tokens suportados antes de entrar no fluxo de geração.
+- Check de consistência para artefatos gerados (teste/model/repositório), com status visual por objeto na árvore e validação do trio completo por objeto.
 - Ações de geração/consistência respeitam o nó selecionado da TreeView (`Database`, `ObjectType` ou objeto individual).
 - Menus de contexto de geração/consistência disponíveis em todos os níveis relevantes da árvore (tipo de banco, database, tipo de objeto, objeto e detalhes como colunas/FKs).
 - Exportação/importação do estado em JSON.
@@ -48,6 +50,7 @@ Extensão equivalente ao fluxo desenhado para o Visual Studio Extension Core, ad
 cd src/DbSqlLikeMem.VsCodeExtension
 npm install
 npm run compile
+npm test
 ```
 
 Depois:
@@ -62,9 +65,9 @@ O projeto já foi ajustado para empacotar/publicar via `@vscode/vsce`.
 
 ### 1) Pré-requisitos
 
-1. Definir dados reais no `package.json`:
+1. Confirmar os dados finais no `package.json`:
    - `publisher`
-   - `repository.url`, `bugs.url`, `homepage`
+   - URLs de repositório/bugs/homepage, se houver mudança de origem do projeto
 2. Criar o publisher no Visual Studio Marketplace.
 3. Gerar um PAT com permissão de publicação no Marketplace.
 
@@ -91,6 +94,8 @@ npm run publish
 ### 4) Publicar via GitHub Actions
 
 Workflow disponível: `.github/workflows/vscode-extension-publish.yml`.
+
+Fonte da versão publicada: `src/DbSqlLikeMem.VsCodeExtension/package.json`.
 
 Configuração necessária no repositório:
 
@@ -141,7 +146,10 @@ public class {{ClassName}}
 ## Fluxo recomendado
 
 1. Configure conexões e mapeamentos.
+   - O fluxo rápido **Configure Mappings** também aceita `namespace` opcional reaproveitado na geração das classes.
 2. Use **Configure Templates** para informar os arquivos `.txt` e pastas de saída de Model/Repository.
+   - O comando agora oferece baseline pronta do repositório em `templates/dbsqllikemem/vCurrent/api` e `templates/dbsqllikemem/vCurrent/worker`, além da opção de manter valores customizados.
+   - Se um template existente usar placeholders fora do contrato suportado, a extensão bloqueia a configuração ou faz fallback para o template padrão na geração.
 3. Use o menu de contexto do database para gerar:
    - classes de teste (ação existente),
    - classes de modelo,

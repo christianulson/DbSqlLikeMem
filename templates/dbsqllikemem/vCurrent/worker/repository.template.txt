@@ -1,0 +1,14 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+
+// DbSqlLikeMem template baseline: vCurrent/worker/repository
+// Source: {{DatabaseType}}/{{DatabaseName}} -> {{Schema}}.{{ObjectName}} ({{ObjectType}})
+// Optional namespace: {{Namespace}}
+public partial class {{ClassName}}
+{
+    public Task ExecuteAsync(CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException("Implement worker/batch flow for {{Schema}}.{{ObjectName}}.");
+    }
+}

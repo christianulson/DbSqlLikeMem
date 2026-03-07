@@ -551,6 +551,82 @@ public sealed class SqliteDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures SQLite parser accepts native ORDER BY inside GROUP_CONCAT.
+    /// PT: Garante que o parser SQLite aceite ORDER BY nativo dentro de GROUP_CONCAT.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseScalar_GroupConcatOrderByInsideCall_ShouldParse(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        var expr = SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|' ORDER BY amount DESC, id ASC)", dialect);
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.Equal("GROUP_CONCAT", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.NotNull(call.WithinGroupOrderBy);
+        Assert.Equal(2, call.WithinGroupOrderBy!.Count);
+        Assert.True(call.WithinGroupOrderBy[0].Desc);
+        Assert.False(call.WithinGroupOrderBy[1].Desc);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQLite parser preserves DISTINCT when native ORDER BY is used inside GROUP_CONCAT.
+    /// PT: Garante que o parser SQLite preserve DISTINCT quando ORDER BY nativo e usado dentro de GROUP_CONCAT.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseScalar_GroupConcatDistinctOrderByInsideCall_ShouldParse(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        var expr = SqlExpressionParser.ParseScalar("GROUP_CONCAT(DISTINCT amount ORDER BY amount DESC)", dialect);
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.True(call.Distinct);
+        Assert.NotNull(call.WithinGroupOrderBy);
+        Assert.Single(call.WithinGroupOrderBy!);
+        Assert.True(call.WithinGroupOrderBy[0].Desc);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed native aggregate ORDER BY in SQLite fails with actionable message.
+    /// PT: Garante que ORDER BY nativo malformado em agregacao SQLite falhe com mensagem acionavel.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseScalar_GroupConcatOrderByInsideCallTrailingComma_ShouldThrowActionableError(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|' ORDER BY amount DESC,)", dialect));
+
+        Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SELECT parsing accepts SQLite native GROUP_CONCAT ordering syntax.
+    /// PT: Garante que o parsing de SELECT aceite a sintaxe nativa de ordenacao do GROUP_CONCAT no SQLite.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseSelect_GroupConcatOrderByInsideCall_ShouldParse(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        var parsed = Assert.IsType<SqlSelectQuery>(
+            SqlQueryParser.Parse("SELECT GROUP_CONCAT(amount, '|' ORDER BY amount DESC) AS joined FROM orders", dialect));
+
+        Assert.Single(parsed.SelectItems);
+        Assert.Contains("GROUP_CONCAT", parsed.SelectItems[0].Raw, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures WITHIN GROUP ordered-set syntax remains unsupported for SQLite aggregates.
     /// PT: Garante que a sintaxe ordered-set WITHIN GROUP continue não suportada para agregações SQLite.
     /// </summary>

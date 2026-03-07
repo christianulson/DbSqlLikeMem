@@ -10,11 +10,20 @@ public sealed record ObjectTypeMapping
     /// Initializes a new object type mapping.
     /// Inicializa um novo mapeamento de tipo de objeto.
     /// </summary>
-    public ObjectTypeMapping(DatabaseObjectType objectType, string outputDirectory, string fileNamePattern = "{NamePascal}{Type}Factory.cs")
+    /// <param name="objectType">Database object type. Tipo do objeto de banco.</param>
+    /// <param name="outputDirectory">Output directory for generated files. Diretório de saída para arquivos gerados.</param>
+    /// <param name="fileNamePattern">File name pattern used during generation. Padrão de nome de arquivo usado durante a geração.</param>
+    /// <param name="namespace">Optional namespace injected into generated templates/content. Namespace opcional injetado nos templates/conteúdo gerados.</param>
+    public ObjectTypeMapping(
+        DatabaseObjectType objectType,
+        string outputDirectory,
+        string fileNamePattern = "{NamePascal}{Type}Factory.cs",
+        string? @namespace = null)
     {
         ObjectType = objectType;
         OutputDirectory = outputDirectory;
         FileNamePattern = fileNamePattern;
+        Namespace = @namespace;
     }
 
     /// <summary>
@@ -34,4 +43,10 @@ public sealed record ObjectTypeMapping
     /// Obtém o padrão de nome de arquivo.
     /// </summary>
     public string FileNamePattern { get; }
+
+    /// <summary>
+    /// Gets the optional namespace associated with this mapping.
+    /// Obtém o namespace opcional associado a este mapeamento.
+    /// </summary>
+    public string? Namespace { get; }
 }

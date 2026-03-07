@@ -7,14 +7,15 @@ namespace DbSqlLikeMem.VisualStudioExtension.UI;
 public partial class MappingDialog : Window
 {
     /// <summary>
-    /// Initializes a dialog to configure file naming and output directory mappings.
-    /// Inicializa uma janela para configurar o padrão de nomes e diretórios de saída.
+    /// Initializes a dialog to configure file naming, output directory, and optional namespace mappings.
+    /// Inicializa uma janela para configurar padrão de nomes, diretório de saída e namespace opcional dos mapeamentos.
     /// </summary>
-    public MappingDialog(string fileNamePattern, string outputDirectory)
+    public MappingDialog(string fileNamePattern, string outputDirectory, string? @namespace = null)
     {
         InitializeComponent();
         FilePatternTextBox.Text = fileNamePattern;
         OutputDirectoryTextBox.Text = outputDirectory;
+        NamespaceTextBox.Text = @namespace ?? string.Empty;
     }
 
     /// <summary>
@@ -29,10 +30,17 @@ public partial class MappingDialog : Window
     /// </summary>
     public string OutputDirectory { get; private set; } = "Generated";
 
+    /// <summary>
+    /// Gets the optional namespace applied to generated content.
+    /// Obtém o namespace opcional aplicado ao conteúdo gerado.
+    /// </summary>
+    public string Namespace { get; private set; } = string.Empty;
+
     private void OnSaveClick(object sender, RoutedEventArgs e)
     {
         FileNamePattern = FilePatternTextBox.Text.Trim();
         OutputDirectory = OutputDirectoryTextBox.Text.Trim();
+        Namespace = NamespaceTextBox.Text.Trim();
 
         if (string.IsNullOrWhiteSpace(FileNamePattern) || string.IsNullOrWhiteSpace(OutputDirectory))
         {

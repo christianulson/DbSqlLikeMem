@@ -252,16 +252,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
     /// <param name="expected">EN: Expected aggregated text. PT: Texto agregado esperado.</param>
     protected void AssertWithinGroupOrdersAggregation(string sql, string expected)
     {
-        if (string.IsNullOrWhiteSpace(sql))
-        {
-            throw new ArgumentException("SQL cannot be null, empty, or whitespace.", nameof(sql));
-        }
-
-        var rows = Query(sql);
-        Assert.Single(rows);
-
-        var joined = Convert.ToString(rows[0].joined) ?? string.Empty;
-        Assert.Equal(expected, joined);
+        AssertStringAggregationWithInternalOrder(sql, expected);
     }
 
     /// <summary>
@@ -336,6 +327,35 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
     /// <param name="querySql">EN: Provider-specific aggregate query over textagg_distinct_order. PT: Query agregada específica do provedor sobre textagg_distinct_order.</param>
     /// <param name="expected">EN: Expected aggregated text after ordering and distinct. PT: Texto agregado esperado após ordenação e distinct.</param>
     protected void AssertWithinGroupDistinctOrdering(string querySql, string expected)
+    {
+        AssertStringAggregationDistinctWithInternalOrder(querySql, expected);
+    }
+
+    /// <summary>
+    /// EN: Validates provider-native internal ordering in string aggregation output.
+    /// PT: Valida ordenação interna nativa do provedor na saída da agregação textual.
+    /// </summary>
+    /// <param name="sql">EN: Provider-specific SQL with internal aggregate ordering. PT: SQL específico do provedor com ordenação interna na agregação.</param>
+    /// <param name="expected">EN: Expected aggregated text. PT: Texto agregado esperado.</param>
+    protected void AssertStringAggregationWithInternalOrder(string sql, string expected)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            throw new ArgumentException("SQL cannot be null, empty, or whitespace.", nameof(sql));
+
+        var rows = Query(sql);
+        Assert.Single(rows);
+
+        var joined = Convert.ToString(rows[0].joined) ?? string.Empty;
+        Assert.Equal(expected, joined);
+    }
+
+    /// <summary>
+    /// EN: Validates DISTINCT string aggregation with provider-native internal ordering.
+    /// PT: Valida agregação textual com DISTINCT usando ordenação interna nativa do provedor.
+    /// </summary>
+    /// <param name="querySql">EN: Provider-specific aggregate query over textagg_distinct_order. PT: Query agregada específica do provedor sobre textagg_distinct_order.</param>
+    /// <param name="expected">EN: Expected aggregated text after ordering and distinct. PT: Texto agregado esperado após ordenação e distinct.</param>
+    protected void AssertStringAggregationDistinctWithInternalOrder(string querySql, string expected)
     {
         if (string.IsNullOrWhiteSpace(querySql))
             throw new ArgumentException("Query SQL cannot be null, empty, or whitespace.", nameof(querySql));

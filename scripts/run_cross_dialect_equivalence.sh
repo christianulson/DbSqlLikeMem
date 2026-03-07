@@ -3,11 +3,12 @@ set -euo pipefail
 
 usage() {
   cat <<USAGE
-Usage: bash scripts/run_cross_dialect_equivalence.sh [--profile smoke|aggregation] [--snapshot-file <path>] [--continue-on-error] [--dry-run]
+Usage: bash scripts/run_cross_dialect_equivalence.sh [--profile smoke|aggregation|parser] [--snapshot-file <path>] [--continue-on-error] [--dry-run]
 
 Profiles:
   smoke        Runs provider core test projects with foundational cross-dialect filters.
   aggregation  Runs provider Dapper test projects with aggregation-focused filters.
+  parser       Runs provider parser-focused suites where dedicated parser projects exist.
 
 Options:
   --continue-on-error  Runs full matrix and reports summary before exiting with failure when any check fails.
@@ -34,6 +35,16 @@ aggregation_projects=(
   "src/DbSqlLikeMem.Db2.Dapper.Test/DbSqlLikeMem.Db2.Dapper.Test.csproj"
 )
 
+parser_projects=(
+  "src/DbSqlLikeMem.MySql.Test/DbSqlLikeMem.MySql.Test.csproj"
+  "src/DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj"
+  "src/DbSqlLikeMem.SqlAzure.Test/DbSqlLikeMem.SqlAzure.Test.csproj"
+  "src/DbSqlLikeMem.Oracle.Test/DbSqlLikeMem.Oracle.Test.csproj"
+  "src/DbSqlLikeMem.Npgsql.Test/DbSqlLikeMem.Npgsql.Test.csproj"
+  "src/DbSqlLikeMem.Sqlite.Test/DbSqlLikeMem.Sqlite.Test.csproj"
+  "src/DbSqlLikeMem.Db2.Test/DbSqlLikeMem.Db2.Test.csproj"
+)
+
 smoke_filters=(
   "ExistsTests"
   "SubqueryFromAndJoinsTests"
@@ -44,6 +55,10 @@ aggregation_filters=(
   "AggregationTests"
   "StringAggregation_"
   "WithinGroup_ShouldThrowNotSupported"
+)
+
+parser_filters=(
+  "Category=Parser"
 )
 
 profile="smoke"
@@ -89,8 +104,12 @@ case "$profile" in
     projects=("${aggregation_projects[@]}")
     filters=("${aggregation_filters[@]}")
     ;;
+  parser)
+    projects=("${parser_projects[@]}")
+    filters=("${parser_filters[@]}")
+    ;;
   *)
-    echo "Invalid --profile value: ${profile}. Use: smoke | aggregation" >&2
+    echo "Invalid --profile value: ${profile}. Use: smoke | aggregation | parser" >&2
     usage >&2
     exit 2
     ;;
@@ -149,13 +168,18 @@ for project in "${projects[@]}"; do
     echo "==> ${project} :: ${filter_name}"
 
     status="PASS"
+    test_filter="${filter_name}"
+    if [[ "$filter_name" != *=* ]]; then
+      test_filter="FullyQualifiedName~.${filter_name}"
+    fi
+
     if [[ "$restore_status" == "PASS" ]]; then
       if ! dotnet test "${project}" \
         --framework net8.0 \
         --configuration Release \
         --no-restore \
         --verbosity minimal \
-        --filter "FullyQualifiedName~.${filter_name}"; then
+        --filter "${test_filter}"; then
         status="FAIL"
       fi
     else

@@ -170,6 +170,32 @@ public sealed class MySqlAggregationTests : AggregationHavingOrdinalTestsBase<My
     }
 
     /// <summary>
+    /// EN: Ensures MySQL native ORDER BY and SEPARATOR inside GROUP_CONCAT control aggregation order.
+    /// PT: Garante que ORDER BY e SEPARATOR nativos dentro de GROUP_CONCAT no MySQL controlem a ordem da agregacao.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlAggregation")]
+    public void StringAggregation_OrderByInsideCall_ShouldWork()
+    {
+        AssertStringAggregationWithInternalOrder(
+            "SELECT GROUP_CONCAT(amount ORDER BY amount DESC SEPARATOR '|') AS joined FROM orders",
+            "30|10|5");
+    }
+
+    /// <summary>
+    /// EN: Ensures DISTINCT respects MySQL native ORDER BY and SEPARATOR inside GROUP_CONCAT.
+    /// PT: Garante que DISTINCT respeite ORDER BY e SEPARATOR nativos dentro de GROUP_CONCAT no MySQL.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlAggregation")]
+    public void StringAggregation_DistinctOrderByInsideCall_ShouldWork()
+    {
+        AssertStringAggregationDistinctWithInternalOrder(
+            "SELECT GROUP_CONCAT(DISTINCT val ORDER BY ord1 ASC, ord2 ASC SEPARATOR '|') AS joined FROM textagg_distinct_order WHERE grp = 1",
+            "b|a");
+    }
+
+    /// <summary>
     /// EN: Ensures ordered-set syntax WITHIN GROUP remains blocked for MySQL string aggregation.
     /// PT: Garante que a sintaxe ordered-set WITHIN GROUP continue bloqueada para agregação textual no MySQL.
     /// </summary>

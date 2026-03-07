@@ -1489,8 +1489,70 @@ internal sealed class SqlExpressionParser(
             }
         }
 
+        var aggregateOrderBy = ParseAggregateOrderByInsideCallIfPresent(name);
+        ParseAggregateSeparatorKeywordIfPresent(name, args);
+
         ExpectSymbol(")");
-        return new CallExpr(name, args, distinct);
+        return new CallExpr(name, args, distinct, aggregateOrderBy);
+    }
+
+    private IReadOnlyList<WindowOrderItem>? ParseAggregateOrderByInsideCallIfPresent(string functionName)
+    {
+        if (!IsKeywordOrIdentifierWord(Peek(), "ORDER"))
+            return null;
+
+        var normalizedName = functionName.ToUpperInvariant();
+        if (normalizedName is not "GROUP_CONCAT" and not "STRING_AGG" and not "LISTAGG")
+            throw SqlUnsupported.ForDialect(_dialect, $"aggregate ORDER BY for function '{functionName}'");
+
+        if (!_dialect.SupportsAggregateOrderByForStringAggregates)
+            throw SqlUnsupported.ForDialect(_dialect, "aggregate ORDER BY");
+
+        if (!_dialect.SupportsAggregateOrderByStringAggregateFunction(functionName))
+            throw SqlUnsupported.ForDialect(_dialect, $"aggregate ORDER BY for function '{functionName}'");
+
+        Consume(); // ORDER
+        if (!IsKeywordOrIdentifierWord(Peek(), "BY"))
+            throw Error("aggregate ORDER BY requires BY", Peek());
+        Consume();
+
+        return ParseStringAggregateOrderByItems("aggregate ORDER BY");
+    }
+
+    private void ParseAggregateSeparatorKeywordIfPresent(string functionName, List<SqlExpr> args)
+    {
+        if (!IsKeywordOrIdentifierWord(Peek(), "SEPARATOR"))
+            return;
+
+        var normalizedName = functionName.ToUpperInvariant();
+        if (normalizedName is not "GROUP_CONCAT" and not "STRING_AGG" and not "LISTAGG")
+            throw SqlUnsupported.ForDialect(_dialect, $"aggregate separator keyword for function '{functionName}'");
+
+        if (!_dialect.SupportsAggregateSeparatorKeywordForStringAggregates)
+            throw SqlUnsupported.ForDialect(_dialect, "aggregate separator keyword");
+
+        if (!_dialect.SupportsAggregateSeparatorKeywordStringAggregateFunction(functionName))
+            throw SqlUnsupported.ForDialect(_dialect, $"aggregate separator keyword for function '{functionName}'");
+
+        Consume(); // SEPARATOR
+
+        if (IsSymbol(Peek(), ")"))
+            throw Error("aggregate separator keyword requires an expression", Peek());
+
+        var separatorExpr = ParseExpression(0);
+        if (args.Count == 0)
+        {
+            args.Add(separatorExpr);
+            return;
+        }
+
+        if (args.Count == 1)
+        {
+            args.Add(separatorExpr);
+            return;
+        }
+
+        args[1] = separatorExpr;
     }
 
     private CallExpr ParseWithinGroupOrderByIfPresent(CallExpr call)
@@ -1524,14 +1586,22 @@ internal sealed class SqlExpressionParser(
             throw Error("WITHIN GROUP requires ORDER BY", Peek());
         Consume();
 
+        var orderBy = ParseStringAggregateOrderByItems("WITHIN GROUP ORDER BY");
+
+        ExpectSymbol(")");
+        return call with { WithinGroupOrderBy = orderBy };
+    }
+
+    private List<WindowOrderItem> ParseStringAggregateOrderByItems(string context)
+    {
         var orderBy = new List<WindowOrderItem>();
         while (true)
         {
             if (IsSymbol(Peek(), ")"))
-                throw Error("WITHIN GROUP ORDER BY requires at least one expression", Peek());
+                throw Error($"{context} requires at least one expression", Peek());
 
             if (IsSymbol(Peek(), ","))
-                throw Error("WITHIN GROUP ORDER BY has an unexpected comma before expression", Peek());
+                throw Error($"{context} has an unexpected comma before expression", Peek());
 
             var expr = ParseExpression(0);
 
@@ -1553,19 +1623,18 @@ internal sealed class SqlExpressionParser(
                 Consume();
 
                 if (IsSymbol(Peek(), ")"))
-                    throw Error("WITHIN GROUP ORDER BY has a trailing comma without expression", Peek());
+                    throw Error($"{context} has a trailing comma without expression", Peek());
 
                 continue;
             }
 
             if (!IsSymbol(Peek(), ")"))
-                throw Error("WITHIN GROUP ORDER BY requires commas between expressions", Peek());
+                throw Error($"{context} requires commas between expressions", Peek());
 
             break;
         }
 
-        ExpectSymbol(")");
-        return call with { WithinGroupOrderBy = orderBy };
+        return orderBy;
     }
 
     private WindowSpec ParseWindowSpec()

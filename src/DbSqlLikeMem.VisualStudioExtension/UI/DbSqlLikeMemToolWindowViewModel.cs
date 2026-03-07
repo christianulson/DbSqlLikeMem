@@ -256,12 +256,12 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     /// Applies default mapping values to all configured connections.
     /// Aplica valores padrão de mapeamento para todas as conexões configuradas.
     /// </summary>
-    public void ApplyDefaultMapping(string fileNamePattern, string outputDirectory)
+    public void ApplyDefaultMapping(string fileNamePattern, string outputDirectory, string? @namespace = null)
     {
         for (var i = 0; i < mappings.Count; i++)
         {
             var current = mappings[i];
-            mappings[i] = new ConnectionMappingConfiguration(current.ConnectionId, CreateDefaultMappings(outputDirectory, fileNamePattern));
+            mappings[i] = new ConnectionMappingConfiguration(current.ConnectionId, CreateDefaultMappings(outputDirectory, fileNamePattern, @namespace));
         }
 
         SaveState();
@@ -272,10 +272,13 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     /// Gets the current default mapping values used by the mapping dialog.
     /// Obtém os valores padrão de mapeamento usados pela janela de mapeamento.
     /// </summary>
-    public (string FileNamePattern, string OutputDirectory) GetMappingDefaults()
+    public (string FileNamePattern, string OutputDirectory, string Namespace) GetMappingDefaults()
     {
         var firstMapping = mappings.FirstOrDefault()?.Mappings.Values.FirstOrDefault();
-        return (firstMapping?.FileNamePattern ?? "{NamePascal}{Type}Factory.cs", firstMapping?.OutputDirectory ?? "Generated");
+        return (
+            firstMapping?.FileNamePattern ?? "{NamePascal}{Type}Factory.cs",
+            firstMapping?.OutputDirectory ?? "Generated",
+            firstMapping?.Namespace ?? string.Empty);
     }
 
     /// <summary>
@@ -616,7 +619,15 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
             var generator = new ClassGenerator();
             var request = new GenerationRequest(connection, selectedObjects);
-            var generated = await generator.GenerateAsync(request, mapping, o => StructuredClassContentFactory.Build(o, "Generated", connection.DatabaseType), token);
+            var generated = await generator.GenerateAsync(
+                request,
+                mapping,
+                o =>
+                {
+                    mapping.Mappings.TryGetValue(o.Type, out var objectMapping);
+                    return StructuredClassContentFactory.Build(o, objectMapping?.Namespace ?? "Generated", connection.DatabaseType);
+                },
+                token);
             SetStatusMessage(string.Format(Resources.TestClassGenerationCompletedCount, generated.Count));
             return generated;
         }
@@ -659,12 +670,11 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             objectsByConnection[connection.Id] = await EnrichTableObjectsAsync(connection, objects, CancellationToken.None);
         }
 
-        return objectsByConnection[connection.Id]
+        return [.. objectsByConnection[connection.Id]
             .Where(x => x.Type == DatabaseObjectType.Table)
             .OrderBy(x => x.Schema, StringComparer.OrdinalIgnoreCase)
             .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(x => new ScenarioTableOption(x.Schema, x.Name))
-            .ToArray();
+            .Select(x => new ScenarioTableOption(x.Schema, x.Name))];
     }
 
     /// <summary>
@@ -746,7 +756,12 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         return outputPath;
     }
 
-    private async Task<IReadOnlyCollection<string>> GenerateFromTemplateForNodeAsync(ExplorerNode node, string templatePath, string outputDirectory, string suffix, string fallbackTemplate)
+    private async Task<IReadOnlyCollection<string>> GenerateFromTemplateForNodeAsync(
+        ExplorerNode node,
+        string templatePath,
+        string outputDirectory,
+        string suffix,
+        string fallbackTemplate)
     {
         if (!TryBeginOperation($"Gerando classes de {suffix.ToLowerInvariant()}..."))
         {
@@ -786,16 +801,13 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             var normalizedOutputDirectory = NormalizePath(outputDirectory);
             Directory.CreateDirectory(normalizedOutputDirectory);
             var generatedFiles = new List<string>(selectedObjects.Length);
-
+            var mapping = mappings.FirstOrDefault(m => m.ConnectionId == connection.Id);
             foreach (var dbObject in selectedObjects)
             {
                 var className = $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}{suffix}";
-                var content = ReplaceIgnoreCase(template, "{{ClassName}}", className);
-                content = ReplaceIgnoreCase(content, "{{ObjectName}}", dbObject.Name);
-                content = ReplaceIgnoreCase(content, "{{Schema}}", dbObject.Schema);
-                content = ReplaceIgnoreCase(content, "{{ObjectType}}", dbObject.Type.ToString());
-                content = ReplaceIgnoreCase(content, "{{DatabaseType}}", connection.DatabaseType);
-                content = ReplaceIgnoreCase(content, "{{DatabaseName}}", connection.DatabaseName);
+                ObjectTypeMapping? objectMapping = null;
+                mapping?.Mappings.TryGetValue(dbObject.Type, out objectMapping);
+                var content = TemplateContentRenderer.Render(template, className, dbObject, connection, objectMapping?.Namespace);
 
                 var filePath = Path.Combine(normalizedOutputDirectory, $"{className}.cs");
                 await Task.Run(() => File.WriteAllText(filePath, content), token);
@@ -857,18 +869,23 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                     return;
                 }
 
-                var filePath = Path.Combine((string)objectMapping.OutputDirectory, ResolveFileName((string)objectMapping.FileNamePattern, connection, dbObject));
+                var filePath = Path.Combine((string)objectMapping.OutputDirectory, ResolveFileName((string)objectMapping.FileNamePattern, connection, dbObject, objectMapping.Namespace));
                 var modelPath = Path.Combine(NormalizePath(templateConfiguration.ModelOutputDirectory), $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}Model.cs");
                 var repositoryPath = Path.Combine(NormalizePath(templateConfiguration.RepositoryOutputDirectory), $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}Repository.cs");
 
+                var hasPrimaryClass = File.Exists(filePath);
                 var hasModel = File.Exists(modelPath);
                 var hasRepository = File.Exists(repositoryPath);
-                if (!File.Exists(filePath) || !hasModel || !hasRepository)
+                var artifactStatus = checker.EvaluateLocalArtifacts(
+                    dbObject,
+                    filePath,
+                    hasPrimaryClass,
+                    hasModel,
+                    hasRepository,
+                    Resources.MissingGeneratedFiles);
+                if (artifactStatus is not null)
                 {
-                    var status = !hasModel && !hasRepository
-                        ? ObjectHealthStatus.MissingLocalArtifacts
-                        : ObjectHealthStatus.DifferentFromDatabase;
-                    updates.Add((BuildObjectKey(connection.Id, dbObject), new ObjectHealthResult(dbObject, filePath, status, Resources.MissingGeneratedFiles)));
+                    updates.Add((BuildObjectKey(connection.Id, dbObject), artifactStatus));
                     return;
                 }
 
@@ -893,12 +910,15 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         }
     }
 
-    private static IReadOnlyDictionary<DatabaseObjectType, ObjectTypeMapping> CreateDefaultMappings(string outputDirectory, string fileNamePattern)
+    private static IReadOnlyDictionary<DatabaseObjectType, ObjectTypeMapping> CreateDefaultMappings(
+        string outputDirectory,
+        string fileNamePattern,
+        string? @namespace = null)
     {
         return ((DatabaseObjectType[])Enum.GetValues(typeof(DatabaseObjectType)))
             .ToDictionary(
                 t => t,
-                t => new ObjectTypeMapping(t, outputDirectory, fileNamePattern));
+                t => new ObjectTypeMapping(t, outputDirectory, fileNamePattern, @namespace));
     }
 
     private void LoadState()
@@ -1624,7 +1644,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                 continue;
             }
 
-            var path = Path.Combine(objectMapping.OutputDirectory, ResolveFileName(objectMapping.FileNamePattern, connection, obj));
+            var path = Path.Combine(objectMapping.OutputDirectory, ResolveFileName(objectMapping.FileNamePattern, connection, obj, objectMapping.Namespace));
             if (File.Exists(path))
             {
                 yield return path;
@@ -1632,7 +1652,11 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         }
     }
 
-    private static string ResolveFileName(string fileNamePattern, ConnectionDefinition connection, DatabaseObjectReference dbObject)
+    private static string ResolveFileName(
+        string fileNamePattern,
+        ConnectionDefinition connection,
+        DatabaseObjectReference dbObject,
+        string? @namespace = null)
     {
         var safePattern = string.IsNullOrWhiteSpace(fileNamePattern)
             ? "{NamePascal}{Type}Factory.cs"
@@ -1646,7 +1670,8 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         resolved = ReplaceIgnoreCase(resolved, "{Type}", typeName);
         resolved = ReplaceIgnoreCase(resolved, "{Schema}", dbObject.Schema);
         resolved = ReplaceIgnoreCase(resolved, "{DatabaseType}", connection.DatabaseType);
-        return ReplaceIgnoreCase(resolved, "{DatabaseName}", connection.DatabaseName);
+        resolved = ReplaceIgnoreCase(resolved, "{DatabaseName}", connection.DatabaseName);
+        return ReplaceIgnoreCase(resolved, "{Namespace}", @namespace ?? string.Empty);
     }
 
 

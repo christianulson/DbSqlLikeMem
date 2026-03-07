@@ -177,4 +177,9 @@ internal sealed class SqliteDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsDateAddFunction(string functionName)
         => functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase);
+
+    public override bool SupportsAggregateOrderByForStringAggregates => true;
+
+    public override bool SupportsAggregateOrderByStringAggregateFunction(string functionName)
+        => functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase);
 }

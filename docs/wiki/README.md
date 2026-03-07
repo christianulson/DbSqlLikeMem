@@ -17,6 +17,12 @@ The files under `docs/wiki/pages` are prepared to be used directly as Wiki pages
 - `Providers-and-Compatibility.md`
 - `Publishing.md`
 
+Publishing coverage already mirrored in the wiki pages:
+
+- workflow/secret/tag guidance for NuGet, VSIX, and VS Code
+- version source by artifact (`src/Directory.Build.props`, `source.extension.vsixmanifest`, `package.json`)
+- release-readiness audit entry point via `scripts/check_release_readiness.py`
+
 Sequence-related highlights already mirrored in the wiki pages:
 
 - provider-specific sequence syntax quick reference
@@ -76,6 +82,7 @@ Destaques de sequence já refletidos nas páginas da wiki:
 - referência rápida de sintaxe por provider
 - exemplos de sequence no getting started
 - notas de compatibilidade para SQL Server, SQL Azure, PostgreSQL, Oracle e DB2
+- guia de publicação com fonte da versão e prefixo de tag por artefato
 
 ## Como publicar na Wiki (manual)
 

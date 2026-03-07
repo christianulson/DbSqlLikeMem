@@ -23,7 +23,7 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
    - Pré-visualização de arquivos já existentes (sobrescrita) antes de gerar.
 
 5. **Indicadores visuais de consistência**
-   - Nó de objeto com marcador de status: 🟢 sincronizado, 🟡 divergente, 🔴 ausente.
+   - Nó de objeto com marcador de status: 🟢 sincronizado, 🟡 divergente ou trio local incompleto, 🔴 ausente.
 
 6. **Hardening básico**
    - Mensagens de status operacionais na UI.
@@ -31,11 +31,17 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 
 7. **Templates configuráveis para modelos e repositórios**
    - Botão no topo **Configurar templates** para informar arquivo de template e diretório de saída.
-   - Substituição de tokens no conteúdo durante a geração.
+   - Baselines versionadas do repositório ficam disponíveis em `templates/dbsqllikemem/vCurrent`, com perfis iniciais `api` e `worker` para reaproveitamento manual na configuração.
+   - O diálogo da VSIX agora também consegue aplicar diretamente esses perfis quando localiza `templates/dbsqllikemem` a partir do ambiente atual.
+   - Templates customizados agora são validados contra o contrato de tokens suportados antes de serem salvos.
+   - O mapeamento padrão por tipo de objeto também aceita `namespace` opcional reaproveitado na geração.
+   - Substituição de tokens no conteúdo durante a geração, incluindo `{{Namespace}}` quando configurado no mapeamento.
+   - O mesmo `namespace` também pode entrar no padrão de nome de arquivo via `{Namespace}`.
    - Geração também pode consumir objetos `Sequence` quando presentes na metadata carregada.
 
 8. **Checagem complementar de artefatos gerados**
    - A consistência considera também a presença de arquivos de Model e Repository, além das classes já geradas pelo fluxo principal.
+   - Quando apenas parte do trio local existe, a VSIX agora sinaliza estado intermediário em vez de misturar esse caso com divergência pura de metadados.
 
 9. **Importação e exportação de configurações**
    - Botões no topo para **Importar configurações** e **Exportar configurações** em JSON.
@@ -43,7 +49,19 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 
 ## Compatibilidade VSIX
 
-- Compatível com Visual Studio **2019, 2022 e linha futura (incluindo 2026)** (`[16.0,19.0)`) nas edições Community/Professional/Enterprise.
+- Compatível com Visual Studio **2022 e linha futura (incluindo 2026)** (`[17.0,19.0)`) nas edições Community/Professional/Enterprise.
+
+## Publicação da VSIX
+
+- Workflow: `.github/workflows/vsix-publish.yml`
+- Secret: `VS_MARKETPLACE_TOKEN`
+- Tag automática: `vsix-v*`
+- Fonte da versão publicada: `src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest`
+- Manifesto operacional: `eng/visualstudio/PublishManifest.json`
+- Auditoria base: `python scripts/check_release_readiness.py`
+- Auditoria estrita no publish: `python scripts/check_release_readiness.py --strict-marketplace-placeholders`
+
+Antes do publish final, confirme o `publisher` do marketplace no manifesto operacional.
 
 
 ## Qualidade e performance
@@ -63,10 +81,13 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 - `{{ObjectType}}`
 - `{{DatabaseType}}`
 - `{{DatabaseName}}`
+- `{{Namespace}}`
 
 Exemplo:
 
 ```txt
+namespace {{Namespace}};
+
 // {{DatabaseType}} - {{DatabaseName}}
 // {{Schema}}.{{ObjectName}}
 public class {{ClassName}}

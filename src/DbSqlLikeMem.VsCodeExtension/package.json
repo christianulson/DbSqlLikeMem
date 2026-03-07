@@ -7,12 +7,12 @@
   "license": "SEE LICENSE IN ../../README.md",
   "repository": {
     "type": "git",
-    "url": "https://github.com/SEU_USUARIO/DbSqlLikeMem.git"
+    "url": "https://github.com/christianulson/DbSqlLikeMem.git"
   },
   "bugs": {
-    "url": "https://github.com/SEU_USUARIO/DbSqlLikeMem/issues"
+    "url": "https://github.com/christianulson/DbSqlLikeMem/issues"
   },
-  "homepage": "https://github.com/SEU_USUARIO/DbSqlLikeMem#readme",
+  "homepage": "https://github.com/christianulson/DbSqlLikeMem#readme",
   "icon": "resources/icon.png",
   "galleryBanner": {
     "color": "#1f2937",
@@ -337,6 +337,7 @@
     "watch": "tsc -watch -p ./",
     "vscode:prepublish": "npm run generate:icon && npm run compile",
     "lint": "tsc -p ./ --noEmit",
+    "test": "node --test tests/*.test.js",
     "package": "npm run generate:icon && npx @vscode/vsce package",
     "publish": "npm run generate:icon && npx @vscode/vsce publish",
     "generate:icon": "node ./scripts/generate-icon.js"

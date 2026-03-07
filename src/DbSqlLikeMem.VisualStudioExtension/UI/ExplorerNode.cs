@@ -160,7 +160,7 @@ public sealed class ExplorerNode
     public string StatusGlyph => HealthStatus switch
     {
         ObjectHealthStatus.Synchronized => "🟢",
-        ObjectHealthStatus.DifferentFromDatabase => "🟡",
+        ObjectHealthStatus.DifferentFromDatabase or ObjectHealthStatus.IncompleteLocalArtifacts => "🟡",
         ObjectHealthStatus.MissingInDatabase or ObjectHealthStatus.MissingLocalArtifacts => "🔴",
         _ => string.Empty
     };

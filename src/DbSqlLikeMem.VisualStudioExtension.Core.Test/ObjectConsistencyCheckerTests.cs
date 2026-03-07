@@ -49,6 +49,56 @@ public class ObjectConsistencyCheckerTests
         Assert.Equal(ObjectHealthStatus.DifferentFromDatabase, result.Status);
     }
 
+    /// <summary>
+    /// EN: Ensures missing local artifacts are classified as missing when none of the expected files exist.
+    /// PT: Garante que artefatos locais ausentes sejam classificados como ausentes quando nenhum dos arquivos esperados existe.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ObjectConsistencyChecker")]
+    public void EvaluateLocalArtifacts_WhenNothingExists_ReturnsMissingLocalArtifacts()
+    {
+        var checker = new ObjectConsistencyChecker();
+        var reference = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table);
+
+        var result = checker.EvaluateLocalArtifacts(reference, "c:/classes/OrdersTests.cs", false, false, false, "missing");
+
+        Assert.NotNull(result);
+        Assert.Equal(ObjectHealthStatus.MissingLocalArtifacts, result!.Status);
+    }
+
+    /// <summary>
+    /// EN: Ensures partially generated local artifacts are classified separately from metadata divergence.
+    /// PT: Garante que artefatos locais gerados parcialmente sejam classificados separadamente da divergencia de metadados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ObjectConsistencyChecker")]
+    public void EvaluateLocalArtifacts_WhenOnlyPartOfTheTrioExists_ReturnsIncompleteLocalArtifacts()
+    {
+        var checker = new ObjectConsistencyChecker();
+        var reference = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table);
+
+        var result = checker.EvaluateLocalArtifacts(reference, "c:/classes/OrdersTests.cs", true, false, true, "partial");
+
+        Assert.NotNull(result);
+        Assert.Equal(ObjectHealthStatus.IncompleteLocalArtifacts, result!.Status);
+    }
+
+    /// <summary>
+    /// EN: Ensures metadata comparison continues only after the expected local artifact trio exists.
+    /// PT: Garante que a comparacao de metadados continue apenas depois que o trio esperado de artefatos locais existir.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ObjectConsistencyChecker")]
+    public void EvaluateLocalArtifacts_WhenAllExpectedFilesExist_ReturnsNull()
+    {
+        var checker = new ObjectConsistencyChecker();
+        var reference = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table);
+
+        var result = checker.EvaluateLocalArtifacts(reference, "c:/classes/OrdersTests.cs", true, true, true, "ok");
+
+        Assert.Null(result);
+    }
+
     private sealed class FakeMetadataProvider(DatabaseObjectReference? dbObject) : IDatabaseMetadataProvider
     {
         /// <summary>

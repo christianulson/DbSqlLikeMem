@@ -61,7 +61,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.1.3 Estado e ciclo de vida
 
-- Implementação estimada: **99%**.
+- Implementação estimada: **100%**.
 - Estado de dados acoplado ao objeto de contexto/conexão mock.
 - Facilita setup/teardown por teste, fixture ou suíte.
 - Permite compor ambientes mínimos para validação de regra de negócio.
@@ -78,6 +78,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: `JoinTests` e `TransactionTests` de SQLite, SQL Server, Oracle e Db2 passaram a compartilhar o mesmo ciclo de criação/abertura de conexão nas bases `DapperJoinTestsBase` e `DapperTransactionTestsBase`, reduzindo divergência acidental de lifecycle entre os seis bancos principais nessa trilha Dapper.
 - Incremento desta sessão: `QueryExecutorExtrasTests` de SQLite, SQL Server, Oracle e Db2 passaram a compartilhar o mesmo padrão de criação/abertura de conexão e seed na base `QueryExecutorExtrasTestsBase`, reduzindo drift de lifecycle nos cenários Dapper de leitura avançada.
 - Incremento desta sessão: `AdditionalBehaviorCoverageTests` dos seis bancos principais também passaram a compartilhar ciclo de criação/abertura/descarta de conexão na base `AdditionalBehaviorCoverageTestsBase`, reduzindo drift de lifecycle nas suites Dapper de comportamento adicional.
+- Incremento desta sessão: `SqlAzure` ganhou suíte dedicada de estratégia para transação/ciclo de vida (`commit`, `rollback`, isolamento explícito, `Close`/`Open`, savepoint e invalidação após `ResetAllVolatileData`), fechando a malha explícita de lifecycle transacional também no provider Azure.
 
 ### 1.2 Parser SQL
 
@@ -294,7 +295,9 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Cobertura atual inclui parsing de ordenação simples e composta, validação de cláusula malformada (`WITHIN GROUP requires ORDER BY`) e cenários negativos por função não nativa no dialeto.
 - Hardening recente ampliou a validação de `ORDER BY` malformado dentro de `WITHIN GROUP` (lista vazia, vírgula inicial, vírgula final e ausência de vírgula entre expressões), com mensagens acionáveis por cenário.
 - Runtime aplica a ordenação de `WITHIN GROUP` antes da agregação, incluindo combinações com `DISTINCT` e separador customizado.
-- Trilha ordered-set para agregações textuais concluída para dialetos suportados (SQL Server, Npgsql, Oracle e DB2), com bloqueio explícito e testado para MySQL/SQLite.
+- Incremento desta sessão: parser/runtime passaram a aceitar a sintaxe nativa do SQLite para ordenação interna em `GROUP_CONCAT(... ORDER BY ...)`, reutilizando a mesma trilha lógica de ordenação da agregação textual e cobrindo também `DISTINCT` + erro acionável para vírgula final malformada.
+- Incremento desta sessão: parser/runtime passaram a aceitar a sintaxe nativa do MySQL para `GROUP_CONCAT(expr ORDER BY ... SEPARATOR ...)`, reaproveitando a mesma trilha de ordenação da agregação textual, com cobertura para `DISTINCT` e erro acionável quando `SEPARATOR` não recebe expressão.
+- Trilha ordered-set para agregações textuais concluída para dialetos suportados (SQL Server, Npgsql, Oracle e DB2), com bloqueio explícito e testado para MySQL e manutenção do `WITHIN GROUP` como não suportado no SQLite, onde o equivalente nativo `GROUP_CONCAT(... ORDER BY ...)` agora está coberto.
 
 #### 1.2.6 Funções de data/hora cross-dialect
 
@@ -702,10 +705,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 3.1.2 Recursos relevantes
 
-- Implementação estimada: **85%**.
+- Implementação estimada: **89%**.
 - Parser/executor para DDL/DML comuns.
 - Suporte a `INSERT ... ON DUPLICATE KEY UPDATE`.
-- Cobertura de `GROUP_CONCAT` ampliada com regressão para `DISTINCT` e tratamento de `NULL` em agregação textual; pendente evoluir ordenação interna da agregação.
+- Cobertura de `GROUP_CONCAT` ampliada com regressão para `DISTINCT`, tratamento de `NULL` e ordenação interna pela sintaxe nativa `ORDER BY ... SEPARATOR ...` dentro da função.
 - P7 consolidado: UPSERT por família (`ON DUPLICATE`/`ON CONFLICT`/`MERGE subset`) e mutações avançadas com contracts por strategy tests.
 - Funções-chave do banco: `GROUP_CONCAT`, `IFNULL`, `DATE_ADD` e `JSON_EXTRACT` (subset no mock).
 
@@ -724,13 +727,15 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 3.2.2 Recursos relevantes
 
-- Implementação estimada: **88%**.
+- Implementação estimada: **91%**.
 - Parser/executor para DDL/DML comuns.
 - Diferenças de dialeto por versão simulada.
 - Cobertura de `STRING_AGG` ampliada para `DISTINCT`, tratamento de `NULL` e ordenação interna via `WITHIN GROUP`, incluindo cenários de erro malformado com diagnóstico acionável.
 - P8 consolidado: paginação por versão (`OFFSET/FETCH`, `TOP`) com gates explícitos de dialeto.
 - Funções-chave do banco: `STRING_AGG`, `ISNULL`, `DATEADD`, `JSON_VALUE`/`OPENJSON` (subset no mock).
-- `DbSqlLikeMem.SqlAzure` compartilha a base do dialeto SQL Server no ciclo atual, com níveis de compatibilidade 100/110/120/130/140/150/160/170.
+- `DbSqlLikeMem.SqlAzure` compartilha a base do dialeto SQL Server no ciclo atual, com níveis de compatibilidade 100/110/120/130/140/150/160/170 agora mapeados explicitamente para a semântica correspondente de parser por versão (`2008`..`2025`).
+- Incremento desta sessão: a suíte dedicada de parser do `SqlAzure` também passou a cobrir `STRING_AGG ... WITHIN GROUP` (positivo, `SELECT` completo e cláusula malformada), reforçando que o caminho shared do SQL Server ficou corretamente projetado para níveis de compatibilidade Azure.
+- Incremento desta sessão: a camada Strategy do `SqlAzure` agora também possui regressões explícitas para semântica transacional herdada do SQL Server (`commit`, `rollback`, isolamento, savepoint e limpeza de sessão), reduzindo risco de drift comportamental no provider Azure.
 
 #### 3.2.3 Aplicações típicas
 
@@ -791,10 +796,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 3.5.2 Recursos relevantes
 
-- Implementação estimada: **84%**.
+- Implementação estimada: **88%**.
 - `WITH`/CTE disponível.
 - Operadores JSON `->` e `->>` disponíveis no parser do dialeto.
-- Cobertura de `GROUP_CONCAT` ampliada com separador customizado, `DISTINCT` e tratamento de `NULL`; ordenação interna da agregação segue como próximo passo.
+- Cobertura de `GROUP_CONCAT` ampliada com separador customizado, `DISTINCT`, tratamento de `NULL` e ordenação interna via sintaxe nativa `ORDER BY` dentro da função; `WITHIN GROUP` permanece explicitamente bloqueado no dialeto.
 - P8 consolidado: `LIMIT/OFFSET` e ordenação com regras de compatibilidade por versão simulada.
 - Funções-chave do banco: `GROUP_CONCAT`, `IFNULL`, funções de data (`date`, `datetime`, `strftime`) e `JSON_EXTRACT` (subset).
 
@@ -845,11 +850,12 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 3.7.1 Matriz de cobertura
 
-- Implementação estimada: **95%**.
+- Implementação estimada: **96%**.
 - Executar casos críticos em todos os provedores prioritários do produto.
 - Definir perfil mínimo de compatibilidade por módulo.
 - Execução matricial por provider já iniciada em CI (`provider-test-matrix.yml`), com publicação de artefatos de resultado por projeto e etapas dedicadas de smoke e agregação cross-dialect, com publicação de snapshot por perfil em artefatos de CI.
-- Cobertura de regressão inclui suíte cross-dialeto com snapshots por perfil (smoke/aggregation), operacionalizada no script `scripts/run_cross_dialect_equivalence.sh`; atualização em lote suportada por `scripts/refresh_cross_dialect_snapshots.sh` e baseline documental semântico (`manual-placeholder`) para evitar snapshot desatualizado no repositório.
+- Cobertura de regressão inclui suíte cross-dialeto com snapshots por perfil (smoke/aggregation/parser), operacionalizada no script `scripts/run_cross_dialect_equivalence.sh`; atualização em lote suportada por `scripts/refresh_cross_dialect_snapshots.sh` e baseline documental semântico (`manual-placeholder`) para evitar snapshot desatualizado no repositório.
+- O profile `parser` agora inclui também `SqlAzure`, fechando a matriz principal de providers SQL suportados nessa trilha sem precisar duplicar runtime do dialeto.
 - Matriz consolidada de providers/versões e capacidades comuns agora está refletida diretamente neste índice como fonte principal de backlog.
 
 #### 3.7.2 Priorização de gaps
@@ -893,11 +899,12 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 4.1.1 Tabelas não temporárias
 
-- Implementação estimada: **88%**.
+- Implementação estimada: **89%**.
 - Suporte a triggers em `TableMock`.
 - Percentual revisado com base em validações por dialeto (`SupportsTriggers`) e suites dedicadas por provider.
 - Eventos: before/after insert, update e delete.
 - Permite simular regras reativas de domínio persistido.
+- Incremento desta sessão: `SqlAzure` ganhou suíte dedicada de estratégia para triggers em tabelas não temporárias e temporárias, fechando o gap remanescente do provider que compartilha pipeline com SQL Server mas ainda não tinha regressão explícita.
 
 #### 4.1.2 Tabelas temporárias
 
@@ -931,12 +938,14 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 4.2.3 Critérios de aceitação
 
-- Implementação estimada: **96%**.
+- Implementação estimada: **98%**.
 - Cada novo recurso deve incluir cenário positivo e negativo.
 - O modelo TDD-first já está amplamente adotado: Red → Green → Refactor → Harden → Document em cada fatia de feature.
 - Deve existir evidência de não regressão em dialetos correlatos.
 - Para concorrência transacional, o aceite inclui ausência de flaky, cobertura por versão (`MemberData*Version`) e preservação de suites de transaction reliability.
-- Regressões de mensagens `NotSupportedException` no parser já estão cobertas para MySQL/SQL Server/Oracle/Npgsql/DB2/SQLite.
+- Regressões de mensagens `NotSupportedException` no parser já estão cobertas para MySQL/SQL Server/SqlAzure/Oracle/Npgsql/DB2/SQLite.
+- Incremento desta sessão: a suíte dedicada de parser do `SqlAzure` passou a registrar também cenários positivos e negativos do contrato compartilhado (`OFFSET/FETCH`, `JSON_VALUE`, `STRING_AGG ... WITHIN GROUP`), fechando o provider na malha de aceite cross-dialect.
+- Incremento desta sessão: o `SqlAzure` passou a ter também suíte dedicada de estratégia para o contrato transacional compartilhado (`Close`/`Open`, savepoint, `ResetAllVolatileData` e isolamento), ampliando o aceite explícito fora da trilha apenas de parser.
 - Cada fatia de entrega deve apresentar critérios de aceite, validação e escopo explícito no padrão dos prompts de implementação.
 
 ### 4.3 Observabilidade de comportamento em testes
@@ -963,33 +972,40 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 5.1.1 Geração de classes de teste
 
-- Implementação estimada: **88%**.
+- Implementação estimada: **93%**.
 - Fluxo principal para acelerar criação de testes automatizados.
 - Apoia padronização da base de testes.
+- Incremento desta sessão: a geração principal da VSIX passou a respeitar o `namespace` configurado por tipo de objeto também no conteúdo estruturado das classes geradas, reduzindo divergência entre o mapeamento salvo e o artefato emitido.
+- Incremento desta sessão: a extensão VS Code deixou de gerar stub com `TODO` e passou a emitir scaffold inicial de teste com metadados de origem, método determinístico e `[Fact(Skip = ...)]`, mantendo compilação válida sem mascarar que o cenário ainda precisa ser implementado.
 
 #### 5.1.2 Geração de classes de modelos
 
-- Implementação estimada: **76%**.
+- Implementação estimada: **79%**.
 - Geração de artefatos de aplicação além de testes.
 - Útil para bootstrap inicial de camadas de domínio/dados.
+- Incremento desta sessão: a trilha de templates da VSIX passou a suportar `{{Namespace}}` no conteúdo de Model, alinhando a substituição de tokens com o fluxo já existente na extensão do VS Code.
 
 #### 5.1.3 Geração de classes de repositório
 
-- Implementação estimada: **74%**.
+- Implementação estimada: **77%**.
 - Auxilia criação consistente de componentes de acesso a dados.
 - Reduz repetição em soluções com múltiplos módulos.
+- Incremento desta sessão: a geração de Repository na VSIX agora também injeta `{{Namespace}}` a partir do mapeamento persistido, mantendo paridade com a trilha de Model e reduzindo edição manual pós-geração.
 
 #### 5.1.4 Ganhos operacionais
 
-- Implementação estimada: **78%**.
+- Implementação estimada: **86%**.
 - Menor tempo de setup de projeto.
 - Maior consistência estrutural entre times e repositórios.
+- Incremento desta sessão: a paridade de tokens entre VS Code e VSIX foi ampliada com `{{Namespace}}`, reduzindo drift entre extensões irmãs na configuração de geração.
+- Incremento desta sessão: a paridade operacional entre VS Code e VSIX avançou também na geração de testes e no critério de consistência, reduzindo assimetria prática entre as duas extensões.
+- Incremento desta sessão: a validação de tokens suportados em templates agora existe nas duas extensões, reduzindo risco operacional de configuração divergente entre VS Code e VSIX.
 
 ### 5.2 Templates e consistência
 
 #### 5.2.1 Configuração de templates
 
-- Implementação estimada: **82%**.
+- Implementação estimada: **97%**.
 - Suporte a templates textuais com tokens:
   - `{{ClassName}}`
   - `{{ObjectName}}`
@@ -997,33 +1013,54 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
   - `{{ObjectType}}`
   - `{{DatabaseType}}`
   - `{{DatabaseName}}`
+  - `{{Namespace}}`
 - Permite adaptar saída para padrões internos de cada equipe.
+- Incremento desta sessão: a VSIX ganhou renderizador compartilhado de tokens (`TemplateContentRenderer`) para Model/Repository e persistência de `namespace` no `ObjectTypeMapping`, fechando o gap que ainda deixava `{{Namespace}}` restrito ao fluxo do VS Code.
+- Incremento desta sessão: o mesmo `namespace` passou a ser aceito também no padrão de nome de arquivo da VSIX via `{Namespace}`, mantendo coerência entre conteúdo gerado, preview de conflitos e checagem de consistência.
+- Incremento desta sessão: o fluxo rápido `Configure Mappings` da extensão VS Code passou a preservar/configurar `namespace`, evitando que a capacidade já presente no manager visual fosse perdida ao reconfigurar mapeamentos pelo comando contextual.
+- Incremento desta sessão: `Configure Templates` na extensão VS Code passou a oferecer perfis prontos baseados em `templates/dbsqllikemem/vCurrent`, reduzindo configuração manual e removendo a dependência de caminhos fictícios de exemplo.
+- Incremento desta sessão: o diálogo `Configure Templates` da VSIX passou a aplicar diretamente os perfis `api` e `worker` quando encontra `templates/dbsqllikemem`, evitando drift entre as duas extensões irmãs no consumo da baseline.
+- Incremento desta sessão: a VSIX passou a validar templates customizados contra um catálogo explícito de tokens suportados antes de salvar a configuração, reduzindo risco de placeholders que o runtime não consegue substituir.
+- Incremento desta sessão: a extensão VS Code passou a validar templates customizados no salvamento e também a fazer fallback para o template padrão quando encontra tokens inválidos durante a geração.
 
 #### 5.2.2 Check visual de consistência
 
-- Implementação estimada: **80%**.
+- Implementação estimada: **92%**.
 - Indicação de ausência, divergência ou sincronização de artefatos.
 - Apoia revisão rápida antes de commit/publicação.
+- Incremento desta sessão: a extensão VS Code passou a validar de fato o trio `teste + model + repository` por objeto, usando os caminhos determinísticos da própria geração em vez de conferir apenas Model/Repository.
+- Incremento desta sessão: a VSIX passou a distinguir explicitamente o caso de trio local incompleto (`classe/model/repositório`) antes da comparação de metadados, alinhando o estado visual intermediário ao critério já adotado no VS Code.
 
 #### 5.2.3 Estratégia de governança
 
-- Implementação estimada: **74%**.
+- Implementação estimada: **94%**.
 - Versionar templates junto ao repositório quando possível.
 - Definir baseline de geração por tipo de projeto.
+- Incremento desta sessão: o repositório passou a versionar uma baseline física em `templates/dbsqllikemem/vCurrent`, com catálogo explícito no core (`TemplateBaselineCatalog`) e trilha `vNext` reservada para a próxima promoção controlada.
+- Incremento desta sessão: `scripts/check_release_readiness.py` agora valida presença e contrato mínimo dessas baselines versionadas, transformando a governança de templates em gate automatizado e não só convenção documental.
+- Incremento desta sessão: o mesmo catálogo passou a resolver a raiz mais próxima do repositório para reaproveitamento pela VSIX, eliminando necessidade de duplicar caminhos fixos na UI.
+- Incremento desta sessão: o contrato de placeholders suportados foi centralizado em `TemplateTokenCatalog`, com checagem de tokens inválidos na VSIX e checklist de revisão periódica versionado junto da baseline.
+- Incremento desta sessão: a extensão VS Code passou a aplicar o mesmo contrato de placeholders suportados no fluxo operacional de configuração/geração, reduzindo risco de governança divergente entre as duas ferramentas.
+- Incremento desta sessão: `scripts/check_release_readiness.py` passou a falhar também quando alguma baseline versionada usa placeholders `{{...}}` fora do contrato suportado, fechando o loop de governança no artefato publicado.
 
 ### 5.3 Padrões recomendados para adoção em equipe
 
 #### 5.3.1 Template baseline por tipo de solução
 
-- Implementação estimada: **70%**.
+- Implementação estimada: **88%**.
 - API: foco em repositórios e testes de integração leve.
 - Worker/Batch: foco em comandos DML e validação de consistência.
+- Incremento desta sessão: perfis iniciais `api` e `worker` foram materializados em `templates/dbsqllikemem/vCurrent`, com templates de Model/Repository e diretórios sugeridos distintos para cada tipo de solução.
+- Incremento desta sessão: a VSIX agora também consome operacionalmente esses perfis no próprio diálogo de configuração, em vez de deixá-los apenas como convenção documental/manual.
 
 #### 5.3.2 Revisão periódica de templates
 
-- Implementação estimada: **70%**.
+- Implementação estimada: **88%**.
 - Revisão trimestral para refletir novas convenções arquiteturais.
 - Checklist de compatibilidade antes de atualizar templates compartilhados.
+- Incremento desta sessão: `templates/dbsqllikemem/vNext/README.md` formaliza a trilha de promoção da próxima baseline e amarra a atualização ao backlog, status operacional e changelog.
+- Incremento desta sessão: `templates/dbsqllikemem/review-checklist.md` formaliza a revisão de tokens, promoção de baseline e paridade entre VSIX/VS Code, e o auditor passou a vigiar sua presença/contrato mínimo.
+- Incremento desta sessão: o auditor agora verifica também se as baselines versionadas continuam usando apenas placeholders suportados, transformando o checklist de revisão em regra objetiva.
 
 ---
 
@@ -1039,41 +1076,66 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 #### 6.1.1 Bibliotecas de provedores
 
 - Implementação estimada: **100%**.
-- Alvos: .NET Framework 4.8, .NET 6.0 e .NET 8.0.
-- Cobertura de cenários legados e modernos.
+- Alvos configurados centralmente em `src/Directory.Build.props`: `.NET Framework 4.6.2`, `.NET Standard 2.0` e `.NET 8.0`.
+- `net6.0` aparece no override para projetos `.Test` e `.TestTools`, não como target das bibliotecas de produção.
 
 #### 6.1.2 Núcleo DbSqlLikeMem
 
 - Implementação estimada: **100%**.
-- Alvos: .NET Standard 2.0 + .NET Framework 4.8 + .NET 6.0 + .NET 8.0.
-- Estratégia para maximizar reuso em diferentes ambientes de execução.
+- Alvos configurados centralmente em `src/Directory.Build.props`: `.NET Framework 4.6.2`, `.NET Standard 2.0` e `.NET 8.0`.
+- Estratégia atual maximiza reuso entre legado (`net462`), compatibilidade ampla (`netstandard2.0`) e runtime moderno (`net8.0`); `net6.0` fica concentrado na malha de testes conforme o override central.
 
 #### 6.1.3 Implicações para consumidores
 
-- Implementação estimada: **88%**.
+- Implementação estimada: **96%**.
 - Projetos antigos e novos podem adotar a biblioteca com fricção reduzida.
 - Planejamento de upgrade pode ser progressivo.
+- Incremento desta sessão: `README.md` da raiz foi corrigido para refletir os alvos reais do repositório (`net462`, `netstandard2.0`, `net8.0`, com `net6.0` restrito a `.Test`/`.TestTools`), removendo referências antigas a `net48`, `net10.0` e `netstandard2.1`.
+- Incremento desta sessão: `scripts/check_release_readiness.py` passou a vigiar esse contrato documental também no `README.md`, reduzindo risco de descompasso para consumidores que entram pelo guia principal do repositório.
+- Incremento desta sessão: `src/README.md` também foi alinhado ao mesmo contrato de targets/override e entrou na trilha de auditoria, reduzindo drift entre documentação de pacote e documentação raiz.
+- Incremento desta sessão: `docs/getting-started.md` passou a explicitar o mesmo contrato de frameworks/override e também entrou na trilha de auditoria, reduzindo ambiguidade para consumidores que chegam pelo guia de instalação.
+- Incremento desta sessão: `docs/wiki/pages/Getting-Started.md` foi alinhado ao mesmo contrato de frameworks/override e entrou na auditoria, reduzindo drift entre wiki espelhada e documentação canônica.
 
 ### 6.2 Publicação
 
 #### 6.2.1 NuGet
 
-- Implementação estimada: **85%**.
+- Implementação estimada: **91%**.
 - Fluxo de empacotamento e distribuição de pacotes.
 - Controle de versão semântica para evolução previsível.
+- Incremento desta sessão: validação de metadados dos `.nupkg` foi extraída para `scripts/check_nuget_package_metadata.py`, removendo lógica inline duplicada do workflow `nuget-publish.yml` e permitindo auditoria local pós-pack.
+- Incremento desta sessão: `docs/nuget-readiness-validation-report.md` foi alinhado ao estado atual do `Directory.Build.props`, incluindo presença de `PackageLicenseExpression` e trilha explícita de auditoria pós-pack.
+- Incremento desta sessão: `scripts/check_nuget_package_metadata.py` passou a usar `src/Directory.Build.props` como fonte de verdade para validar `authors`, `repository`, `projectUrl`, `readme`, `tags`, `releaseNotes` e licença do `.nuspec`, além da presença física do `README.md` dentro do pacote.
 
 #### 6.2.2 Extensões IDE
 
-- Implementação estimada: **72%**.
+- Implementação estimada: **90%**.
 - Publicação VSIX (Visual Studio).
 - Publicação de extensão VS Code.
 - Expande adoção em diferentes perfis de desenvolvedor.
+- Incremento desta sessão: metadados objetivos de repositório/bugs/homepage da extensão VS Code e `repo` do manifesto VSIX foram alinhados ao repositório oficial, reduzindo drift documental antes da publicação.
+- Incremento desta sessão: `scripts/check_release_readiness.py` passou a validar também scripts/arquivos essenciais do pacote VS Code, `activationEvents` apontando para comandos/views existentes e campos mínimos (`overview`, `tags`, `categories`) do manifesto de publicação VSIX.
+- Incremento desta sessão: documentação da VSIX foi alinhada ao suporte real (`Visual Studio 2022+`) e a auditoria passou a cruzar `MinimumVisualStudioVersion` do projeto com o range suportado no `source.extension.vsixmanifest`.
+- Incremento desta sessão: workflows `vsix-publish.yml` e `vscode-extension-publish.yml` passaram a executar o auditor de readiness antes do empacotamento; no caso da VSIX, o publish usa `--strict-marketplace-placeholders` para impedir publicação com `publisher` não resolvido.
+- Incremento desta sessão: o pacote VS Code passou a ter validação de placeholders `%...%` contra `package.nls*.json` e presença de `l10n`, reduzindo drift de metadata/localização antes do publish.
+- Incremento desta sessão: os READMEs operacionais das extensões VS Code/VSIX entraram na trilha de auditoria e o README da VSIX passou a expor workflow, manifesto e gate estrito de publicação, reduzindo drift entre pacote e instrução operacional.
+- Incremento desta sessão: a documentação operacional das extensões também passou a explicitar a fonte de versão (`package.json`/`source.extension.vsixmanifest`) e o prefixo de tag de publicação, alinhando instrução humana e workflow automatizado.
+- Gap remanescente explicitado: o `publisher` final do Visual Studio Marketplace ainda depende de definição operacional externa ao código.
 
 #### 6.2.3 Operação contínua
 
-- Implementação estimada: **86%**.
+- Implementação estimada: **99%**.
 - Checklist de release para validação de artefatos.
 - Sincronização entre documentação, pacote e extensões.
+- Incremento desta sessão: `docs/publishing.md` passou a incluir checklist explícito de release conectando versão, `CHANGELOG.md`, backlog, status operacional e snapshots cross-dialect (`smoke`/`aggregation`/`parser`) antes da publicação.
+- Incremento desta sessão: auditoria executável de readiness adicionada em `scripts/check_release_readiness.py`, reaproveitando a validação estrutural dos snapshots e conferindo presença/coerência de workflows, documentação e metadados de publicação.
+- Incremento desta sessão: workflow `provider-test-matrix.yml` passou a validar também o novo auditor (`py_compile`, `--help` e execução padrão) na etapa de automações.
+- Incremento desta sessão: o gate de metadados NuGet foi extraído para `scripts/check_nuget_package_metadata.py`, integrando automação pós-pack reutilizável e eliminando duplicação de lógica no pipeline de publicação.
+- Incremento desta sessão: a mesma auditoria passou a cobrir integridade mínima das extensões, reduzindo a dependência de revisão manual nos fluxos VSIX/VS Code antes do publish.
+- Incremento desta sessão: a mesma trilha agora valida também coerência de compatibilidade declarada da VSIX (`MinimumVisualStudioVersion` x range do manifesto), reduzindo drift entre build/publish/docs.
+- Incremento desta sessão: os próprios workflows de publish das extensões agora consomem o auditor de readiness, trazendo o gate para o ponto exato de publicação em vez de deixá-lo apenas no pipeline geral.
+- Incremento desta sessão: a automação geral também passou a executar `check_nuget_package_metadata.py --allow-missing-artifacts`, validando CLI/integração do gate NuGet mesmo fora do fluxo de `pack`.
+- Incremento desta sessão: o gate documental foi estendido também aos READMEs operacionais das extensões, reduzindo risco de workflow/manifests estarem corretos enquanto a instrução de publicação do próprio artefato deriva.
 - Workflow CI matricial por provider e smoke cross-dialeto inicial já suportam auditoria contínua de regressão.
 - Evolução de concorrência deve separar rotinas CI em smoke vs completo, com traits por categoria (isolamento, savepoint, conflito de escrita, stress).
 - Próximos ciclos incluem trilhas de observabilidade, performance, concorrência e ecossistema (.NET/ORM/tooling) já descritas no pipeline de prompts e no plano executável P7–P14.
@@ -1089,7 +1151,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 6.3.2 Matriz compartilhada de testes por capability
 
-- Implementação estimada: **92%**.
+- Implementação estimada: **94%**.
 - Priorizar base compartilhada para cenários repetitivos cross-dialect (ex.: agregação textual, `DISTINCT`, `NULL`, ordered-set).
 - Reduzir duplicação de testes específicos por provider movendo contratos comuns para fixtures parametrizadas.
 - Facilita evolução coordenada do parser/executor sem espalhar ajustes em múltiplos projetos de teste.
@@ -1104,25 +1166,38 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
   - cobertura compartilhada ampliada para `CASE` com ramos mistos (`texto`/`NULL`) sobre agregação textual, validando estabilidade de ordem e coercão básica de saída por provider.
   - cobertura avançou para `CASE` de múltiplos ramos (`primary`/`secondary`/`NULL`) com agregação textual e ordenação estável, reduzindo risco de divergência em relatórios agrupados cross-provider.
   - cobertura evoluiu para `CASE` numérico multibranch (`100`/`200`/`0`) junto de agregação textual, validando estabilidade de coerção e leitura de tipos numéricos por provider.
+  - base compartilhada de agregação textual passou a expor helpers neutros para ordenação interna nativa da agregação, permitindo cobrir o caminho SQLite `GROUP_CONCAT(... ORDER BY ...)` sem duplicar seed/assert específico no provider.
+  - o mesmo contrato compartilhado passou a cobrir também o caminho nativo do MySQL (`GROUP_CONCAT(... ORDER BY ... SEPARATOR ...)`), mantendo o runtime comum e limitando a variação ao parser/capability do dialeto.
 - Próximos incrementos da capability matrix:
-  - ampliar contratos compartilhados para cenários de ordenação dentro da agregação textual quando habilitados por dialeto;
+  - ampliar contratos compartilhados para cenários adicionais de ordenação dentro da agregação textual quando habilitados por dialeto além das trilhas já cobertas (`WITHIN GROUP`, sintaxe nativa do SQLite e sintaxe nativa do MySQL);
   - expandir bloco comum para cenários de `CASE` com literais textuais e numéricos mistos no mesmo campo (coerção implícita cross-dialect);
   - consolidar assertions de mensagens de erro para `NotSupported` em uma camada única reutilizável.
 
 #### 6.3.3 Entrada única de execução (build/test)
 
-- Implementação estimada: **88%**.
-- Script padronizado já existe para smoke cross-provider (`run_cross_dialect_equivalence.sh`); próximo passo é consolidar trilhas adicionais (core/parser/dapper completos) e evoluir continuamente os filtros de agregação conforme expansão de contratos textuais cross-dialect.
-- Perfis de execução já explícitos no runner (`smoke`/`aggregation`) para acelerar feedback local e CI; modo `--continue-on-error` permite varredura completa com resumo de falhas por execução e snapshots com quadro-resumo por perfil; `--dry-run` permite inspecionar a matriz planejada sem execução de testes.
+- Implementação estimada: **95%**.
+- Script padronizado já existe para smoke cross-provider (`run_cross_dialect_equivalence.sh`); a trilha desta sessão adicionou também o perfil `parser`, consolidando uma entrada única incremental para core/smoke, agregação Dapper e regressão dedicada de parser.
+- Perfis de execução já explícitos no runner (`smoke`/`aggregation`/`parser`) para acelerar feedback local e CI; modo `--continue-on-error` permite varredura completa com resumo de falhas por execução e snapshots com quadro-resumo por perfil; `--dry-run` permite inspecionar a matriz planejada sem execução de testes.
+- O perfil `parser` cobre MySQL, SQL Server, SQL Azure, Oracle, Npgsql, SQLite e DB2 usando o trait compartilhado `Category=Parser`; para `SqlAzure`, a suíte dedicada valida o mapeamento entre nível de compatibilidade e gates do dialeto SQL Server compartilhado.
+- Refresh em lote e validação estrutural dos snapshots agora também contemplam o perfil `parser`, com placeholder versionado em `docs/` e job dedicado no workflow `provider-test-matrix.yml` para publicação do artefato correspondente.
 - CI inclui job dedicado de validação de automações (sintaxe shell, `py_compile`, `--help`, check `.slnx` e validação estrutural dos snapshots markdown) antes da matriz de testes por provider.
 - Vincular categorias/traits para habilitar execução seletiva por domínio de regressão.
 
 #### 6.3.4 Governança do backlog de documentação
 
-- Implementação estimada: **72%**.
-- Separar visão arquitetural estável e status operacional de sprint para reduzir conflito de merge em percentuais.
-- Padronizar update de progresso com checklist de evidência mínima (teste, provider afetado, limitação conhecida).
-- Alinhar PR template para exigir vínculo entre mudança de código, teste e atualização de backlog.
+- Implementação estimada: **99%**.
+- Incremento desta sessão: status operacional separado em `docs/features-backlog/status-operational.md`, definindo o `index.md` como visão estável e o novo arquivo como trilha de sprint/andamento para reduzir conflito de merge em percentuais e notas voláteis.
+- Incremento desta sessão: checklist de evidência mínima formalizado em `docs/features-backlog/progress-update-checklist.md`, cobrindo item do backlog, arquivos/testes afetados, providers, comando/resultado, limitação conhecida e mitigação de descompasso documental.
+- Incremento desta sessão: template de PR adicionado em `.github/pull_request_template.md`, exigindo vínculo explícito entre mudança de código, testes afetados, atualização do backlog, providers cobertos e evidência de validação.
+- Incremento desta sessão: `scripts/check_release_readiness.py` passou a verificar presença e contrato mínimo do checklist de evidência e do template de PR, transformando a convenção documental em gate automatizado.
+- Incremento desta sessão: `docs/wiki/pages/Home.md` teve links corrigidos para o repositório oficial e essa base passou a ser verificada pelo mesmo auditor, reduzindo drift entre docs canônicos e wiki espelhada.
+- Incremento desta sessão: `docs/wiki/pages/Getting-Started.md` entrou na mesma trilha de auditoria dos guias principais, ampliando a governança de docs espelhados sem criar um fluxo paralelo de revisão.
+- Incremento desta sessão: `docs/info/multi-target-compat-audit.md` passou a identificar explicitamente seu caráter histórico e o auditor valida essa advertência, reduzindo risco de leitura equivocada de artefatos estáticos fora da trilha canônica.
+- Incremento desta sessão: `docs/wiki/pages/Publishing.md` e `docs/wiki/pages/Providers-and-Compatibility.md` entraram no gate documental do auditor, estendendo a governança para as demais páginas espelhadas mais acessadas.
+- Incremento desta sessão: os índices `docs/README.md` e `docs/wiki/README.md` passaram a expor a trilha de versão/tag por artefato e `docs/wiki/README.md` entrou no gate documental, reduzindo drift já no ponto de descoberta da documentação.
+- Incremento desta sessão: a trilha de baselines versionadas em `templates/dbsqllikemem` passou a ser exposta nos READMEs relevantes e validada pelo auditor, conectando backlog, docs e artefatos reais de geração no mesmo gate.
+- Incremento desta sessão: o checklist de revisão periódica dos templates entrou no mesmo gate documental, conectando a governança de baseline ao contrato operacional do backlog.
+- Incremento desta sessão: o gate documental/evidencial passou a incluir também a validade do contrato de placeholders nas baselines versionadas, reduzindo risco de backlog/documentação afirmarem suporte a templates que o runtime não renderiza.
 - Convenção operacional adotada para os próximos ciclos:
   - toda atualização de percentual deve registrar evidência objetiva (arquivo de teste, comando executado e resultado);
   - itens com escopo multi-provider devem indicar explicitamente onde houve cobertura total e onde permanece gap;
@@ -1132,14 +1207,21 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 6.4.1 SemVer para consumidores
 
-- Implementação estimada: **84%**.
+- Implementação estimada: **92%**.
 - Incremento major para quebras comportamentais/documentadas.
 - Incremento minor para novos recursos compatíveis.
 - Incremento patch para correções sem alteração contratual.
+- Auditoria operacional agora valida presença centralizada da versão em `src/Directory.Build.props`, reduzindo risco de release documental sem referência de versão.
+- Incremento desta sessão: `scripts/check_release_readiness.py` passou a validar formato SemVer no núcleo e nas extensões (VS Code/VSIX), endurecendo a trilha de versionamento sem forçar igualdade artificial entre artefatos distintos.
+- Incremento desta sessão: `docs/publishing.md`, wiki e READMEs das extensões passaram a explicitar também a fonte de verdade da versão por artefato (`Directory.Build.props`, `source.extension.vsixmanifest`, `package.json`) e o prefixo de tag correspondente; o auditor agora vigia esse contrato.
 
 #### 6.4.2 Comunicação de mudanças
 
-- Implementação estimada: **80%**.
+- Implementação estimada: **93%**.
+- Incremento desta sessão: `CHANGELOG.md` adicionado na raiz com estrutura orientada a impacto por provedor/dialeto, automação cross-dialect e limitações ainda abertas da release corrente.
+- Incremento desta sessão: `CHANGELOG.md` e `docs/publishing.md` passaram a incorporar a nova trilha de auditoria de release e o gap remanescente do publisher VSIX, tornando a limitação visível antes da publicação.
+- Incremento desta sessão: a documentação de release passou a registrar explicitamente que a auditoria também valida SemVer dos artefatos publicados, deixando o critério de governança mais explícito para revisão humana.
+- Incremento desta sessão: comunicação de release agora inclui mapeamento explícito entre artefato, arquivo-fonte da versão e prefixo de tag (`v*`, `vsix-v*`, `vscode-v*`) nos guias principais e espelhados, reduzindo ambiguidade operacional.
 - Changelog orientado a impacto por provedor/dialeto.
 - Destaque para gaps fechados e limitações ainda abertas.
 

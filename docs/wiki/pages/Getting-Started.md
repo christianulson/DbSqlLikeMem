@@ -23,6 +23,14 @@ dotnet build src/DbSqlLikeMem.slnx
 
 Use a factory to choose `MySql`, `SqlServer`, `SqlAzure`, `Oracle`, `Npgsql`, `Sqlite`, or `Db2` dynamically.
 
+## Framework compatibility
+
+Production packages follow the central targets declared in `src/Directory.Build.props`: `net462`, `netstandard2.0`, and `net8.0`.
+
+Test and test-tools projects use the dedicated override: `net462`, `net6.0`, and `net8.0`.
+
+If distribution or versioning is part of the rollout, review `docs/publishing.md` together with the repository guides.
+
 ## Sequence quick reference
 
 - SQL Server / SQL Azure: `NEXT VALUE FOR schema.seq_name`
@@ -62,6 +70,14 @@ dotnet build src/DbSqlLikeMem.slnx
 ### Seleção de provider em runtime
 
 Use uma factory para escolher `MySql`, `SqlServer`, `SqlAzure`, `Oracle`, `Npgsql`, `Sqlite` ou `Db2` dinamicamente.
+
+### Compatibilidade de frameworks
+
+Os pacotes de produção seguem os alvos centrais declarados em `src/Directory.Build.props`: `net462`, `netstandard2.0` e `net8.0`.
+
+Os projetos de teste e test-tools usam o override dedicado: `net462`, `net6.0` e `net8.0`.
+
+Se distribuição ou versionamento fizerem parte do rollout, revise `docs/publishing.md` junto com os guias principais do repositório.
 
 ### Referência rápida de sequence
 

@@ -138,6 +138,10 @@ internal interface ISqlDialect
     bool TryGetWindowFunctionArgumentArity(string functionName, out int minArgs, out int maxArgs);
     bool SupportsWithinGroupForStringAggregates { get; }
     bool SupportsWithinGroupStringAggregateFunction(string functionName);
+    bool SupportsAggregateOrderByForStringAggregates { get; }
+    bool SupportsAggregateOrderByStringAggregateFunction(string functionName);
+    bool SupportsAggregateSeparatorKeywordForStringAggregates { get; }
+    bool SupportsAggregateSeparatorKeywordStringAggregateFunction(string functionName);
     bool SupportsPivotClause { get; }
     DbType InferWindowFunctionDbType(WindowFunctionExpr windowFunctionExpr, Func<SqlExpr, DbType> inferArgDbType);
 }
@@ -375,6 +379,30 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual bool SupportsWithinGroupStringAggregateFunction(string functionName)
     {
         if (!SupportsWithinGroupForStringAggregates || string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        return functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public virtual bool SupportsAggregateOrderByForStringAggregates => false;
+
+    public virtual bool SupportsAggregateOrderByStringAggregateFunction(string functionName)
+    {
+        if (!SupportsAggregateOrderByForStringAggregates || string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        return functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public virtual bool SupportsAggregateSeparatorKeywordForStringAggregates => false;
+
+    public virtual bool SupportsAggregateSeparatorKeywordStringAggregateFunction(string functionName)
+    {
+        if (!SupportsAggregateSeparatorKeywordForStringAggregates || string.IsNullOrWhiteSpace(functionName))
             return false;
 
         return functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase)
