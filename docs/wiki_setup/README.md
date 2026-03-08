@@ -1,6 +1,6 @@
 # GitHub Wiki for DbSqlLikeMem
 
-This directory contains a ready-to-publish structure for the repository Wiki.
+This directory documents the repository Wiki workflow now that the mirrored pages live in the `docs/Wiki` submodule.
 
 ## Recommended strategy
 
@@ -10,7 +10,7 @@ This directory contains a ready-to-publish structure for the repository Wiki.
 
 ## Suggested page structure
 
-The files under `docs/wiki/pages` are prepared to be used directly as Wiki pages:
+The files under `docs/Wiki` are prepared to be used directly as Wiki pages:
 
 - `Home.md`
 - `Getting-Started.md`
@@ -34,7 +34,7 @@ Sequence-related highlights already mirrored in the wiki pages:
 ### Option A: Copy and paste in GitHub
 
 1. In the GitHub repository, open the **Wiki** tab.
-2. Create the `Home` page and paste `docs/wiki/pages/Home.md`.
+2. Create the `Home` page and paste `docs/Wiki/Home.md`.
 3. Create the remaining pages with the same names (without `.md`).
 
 ### Option B: Clone the Wiki repository and version it locally
@@ -44,8 +44,8 @@ Sequence-related highlights already mirrored in the wiki pages:
 git clone https://github.com/<org>/<repo>.wiki.git
 cd <repo>.wiki
 
-# copy files from this folder to the wiki repo root
-cp -r ../DbSqlLikeMem/docs/wiki/pages/* .
+# copy files from the submodule to the wiki repo root
+cp -r ../DbSqlLikeMem/docs/Wiki/* .
 
 git add .
 git commit -m "docs(wiki): initial wiki structure"
@@ -56,7 +56,7 @@ git push
 
 - GitHub Wiki uses a separate Git repository (`<repo>.wiki.git`).
 - The sidebar menu can be controlled via `_Sidebar.md` (optional).
-- You can automate sync from `docs/wiki/pages` to the wiki repo using GitHub Actions.
+- You can automate sync from `docs/Wiki` to the wiki repo using GitHub Actions.
 
 ## Related links
 
@@ -89,7 +89,7 @@ Destaques de sequence já refletidos nas páginas da wiki:
 ### Opção A: copiar e colar no GitHub
 
 1. No repositório do GitHub, abra a aba **Wiki**.
-2. Crie a página `Home` e cole `docs/wiki/pages/Home.md`.
+2. Crie a página `Home` e cole `docs/Wiki/Home.md`.
 3. Crie as demais páginas com os mesmos nomes (sem `.md`).
 
 ### Opção B: clonar o repositório da wiki e versionar localmente
@@ -99,8 +99,8 @@ Destaques de sequence já refletidos nas páginas da wiki:
 git clone https://github.com/<org>/<repo>.wiki.git
 cd <repo>.wiki
 
-# copie os arquivos desta pasta para a raiz do repo da wiki
-cp -r ../DbSqlLikeMem/docs/wiki/pages/* .
+# copie os arquivos do submodulo para a raiz do repo da wiki
+cp -r ../DbSqlLikeMem/docs/Wiki/* .
 
 git add .
 git commit -m "docs(wiki): estrutura inicial da wiki"

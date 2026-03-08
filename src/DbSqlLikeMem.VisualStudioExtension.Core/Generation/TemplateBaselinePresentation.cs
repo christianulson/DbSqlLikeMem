@@ -14,7 +14,11 @@ public static class TemplateBaselinePresentation
     /// </summary>
     /// <param name="profile">EN: Baseline profile selected by the user. PT: Perfil de baseline selecionado pelo usuario.</param>
     /// <param name="reviewMetadata">EN: Optional review metadata loaded from `review-metadata.json`. PT: Metadados opcionais de revisao carregados de `review-metadata.json`.</param>
-    public static string BuildProfileSummary(TemplateBaselineProfile profile, TemplateReviewMetadata? reviewMetadata = null)
+    /// <param name="todayUtc">EN: Optional UTC date used to evaluate review windows deterministically. PT: Data UTC opcional usada para avaliar janelas de revisao de forma deterministica.</param>
+    public static string BuildProfileSummary(
+        TemplateBaselineProfile profile,
+        TemplateReviewMetadata? reviewMetadata = null,
+        DateTime? todayUtc = null)
     {
         ArgumentNullException.ThrowIfNull(profile);
 
@@ -35,8 +39,13 @@ public static class TemplateBaselinePresentation
         var evidenceSuffix = reviewMetadata is not null && reviewMetadata.EvidenceFiles.Count > 0
             ? $" Evidence files: {reviewMetadata.EvidenceFiles.Count}."
             : string.Empty;
+        var governanceWarnings = TemplateBaselineGovernance.ValidateProfileAlignment(profile, reviewMetadata, todayUtc);
+        var governanceSuffix = governanceWarnings.Count == 0
+            ? string.Empty
+            : $" Governance drift: {string.Join(" | ", governanceWarnings)}";
+        var outputSuffix = $" Outputs: {profile.ModelOutputDirectory} | {profile.RepositoryOutputDirectory}.";
 
-        return $"{profile.DisplayName} ({profile.Version}) - {profile.Description} Focus: {effectiveFocus} Review: {effectiveCadence} (last {lastReviewedOn}, next {effectiveNextReviewOn}).{evidenceSuffix}";
+        return $"{profile.DisplayName} ({profile.Version}) - {profile.Description} Focus: {effectiveFocus} Review: {effectiveCadence} (last {lastReviewedOn}, next {effectiveNextReviewOn}).{outputSuffix}{evidenceSuffix}{governanceSuffix}";
     }
 
     /// <summary>
@@ -46,10 +55,12 @@ public static class TemplateBaselinePresentation
     /// <param name="profile">EN: Baseline profile selected by the user. PT: Perfil de baseline selecionado pelo usuario.</param>
     /// <param name="objectType">EN: Object type currently being configured. PT: Tipo de objeto configurado no momento.</param>
     /// <param name="reviewMetadata">EN: Optional review metadata loaded from `review-metadata.json`. PT: Metadados opcionais de revisao carregados de `review-metadata.json`.</param>
+    /// <param name="todayUtc">EN: Optional UTC date used to evaluate review windows deterministically. PT: Data UTC opcional usada para avaliar janelas de revisao de forma deterministica.</param>
     public static string BuildMappingSummary(
         TemplateBaselineProfile profile,
         DatabaseObjectType objectType,
-        TemplateReviewMetadata? reviewMetadata = null)
+        TemplateReviewMetadata? reviewMetadata = null,
+        DateTime? todayUtc = null)
     {
         ArgumentNullException.ThrowIfNull(profile);
 
@@ -57,6 +68,6 @@ public static class TemplateBaselinePresentation
             ? recommended
             : new ObjectTypeMapping(objectType, "Generated", "{NamePascal}{Type}Factory.cs");
 
-        return $"{BuildProfileSummary(profile, reviewMetadata)} Recommended {objectType}: {mapping.OutputDirectory} | {mapping.FileNamePattern}.";
+        return $"{BuildProfileSummary(profile, reviewMetadata, todayUtc)} Recommended {objectType}: {mapping.OutputDirectory} | {mapping.FileNamePattern}.";
     }
 }

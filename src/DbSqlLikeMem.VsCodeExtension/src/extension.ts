@@ -8,12 +8,17 @@ import {
   buildTestClassFilePath,
   buildTestClassName,
   evaluateGenerationConsistency,
-  generateTestClassTemplate
+  generateTestClassTemplate,
+  isGeneratedArtifactMetadataAligned,
+  isGeneratedArtifactStructureAligned,
+  renderTemplateContent
 } from './generation-support';
 import {
+  buildTemplateBaselineProfileSummary,
   getMappingBaselineDefaults,
   getTemplateBaselineProfile,
   getTemplateBaselineProfiles,
+  parseTemplateReviewMetadata,
   resolveTemplateSettingsDefaults
 } from './template-baselines';
 import { findUnsupportedTemplateTokens } from './template-token-catalog';
@@ -47,6 +52,7 @@ interface DatabaseObjectReference {
   objectType: DatabaseObjectType;
   columns?: DatabaseColumnReference[];
   foreignKeys?: ForeignKeyReference[];
+  sequenceMetadata?: SequenceMetadataReference;
 }
 
 interface DatabaseColumnReference {
@@ -62,6 +68,12 @@ interface ForeignKeyReference {
   referencedTable: string;
 }
 
+interface SequenceMetadataReference {
+  startValue?: string;
+  incrementBy?: string;
+  currentValue?: string;
+}
+
 interface ExtensionState {
   connections: ConnectionDefinition[];
   mappingConfigurations: ConnectionMappingConfiguration[];
@@ -73,7 +85,7 @@ interface ExtensionState {
 }
 
 type GenerationKind = 'model' | 'repository';
-type GenerationCheckStatus = 'ok' | 'partial' | 'missing';
+type GenerationCheckStatus = 'ok' | 'partial' | 'missing' | 'drift';
 
 interface TemplateSettings {
   modelTemplatePath: string;
@@ -147,6 +159,8 @@ class DbNodeItem extends vscode.TreeItem {
       const status = (node as TreeNode & { generationStatus?: GenerationCheckStatus }).generationStatus;
       if (status === 'ok') {
         this.iconPath = new vscode.ThemeIcon('pass-filled');
+      } else if (status === 'drift') {
+        this.iconPath = new vscode.ThemeIcon('diff');
       } else if (status === 'partial') {
         this.iconPath = new vscode.ThemeIcon('warning');
       } else if (status === 'missing') {
@@ -211,6 +225,7 @@ class SqlMetadataProvider implements DatabaseMetadataProvider {
     const query = "SET NOCOUNT ON; SELECT TABLE_SCHEMA AS [schema], TABLE_NAME AS [name], CASE TABLE_TYPE WHEN 'BASE TABLE' THEN 'Table' ELSE 'View' END AS [objectType] FROM INFORMATION_SCHEMA.TABLES UNION ALL SELECT ROUTINE_SCHEMA AS [schema], ROUTINE_NAME AS [name], 'Procedure' AS [objectType] FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_TYPE = 'PROCEDURE' UNION ALL SELECT SCHEMA_NAME(schema_id) AS [schema], name AS [name], 'Sequence' AS [objectType] FROM sys.sequences ORDER BY [schema], [name];";
     const columnQuery = "SET NOCOUNT ON; SELECT TABLE_SCHEMA AS [schema], TABLE_NAME AS [name], COLUMN_NAME AS [columnName], DATA_TYPE AS [dataType], IS_NULLABLE AS [isNullable], ORDINAL_POSITION AS [ordinalPosition] FROM INFORMATION_SCHEMA.COLUMNS ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION;";
     const foreignKeyQuery = "SET NOCOUNT ON; SELECT sch.name AS [schema], t.name AS [name], fk.name AS [fkName], refSch.name AS [referencedSchema], refTable.name AS [referencedTable] FROM sys.foreign_keys fk JOIN sys.tables t ON fk.parent_object_id = t.object_id JOIN sys.schemas sch ON t.schema_id = sch.schema_id JOIN sys.tables refTable ON fk.referenced_object_id = refTable.object_id JOIN sys.schemas refSch ON refTable.schema_id = refSch.schema_id ORDER BY sch.name, t.name, fk.name;";
+    const sequenceQuery = "SET NOCOUNT ON; SELECT SCHEMA_NAME(schema_id) AS [schema], name AS [name], CAST(start_value AS nvarchar(50)) AS [startValue], CAST(increment AS nvarchar(50)) AS [incrementBy], CAST(current_value AS nvarchar(50)) AS [currentValue] FROM sys.sequences ORDER BY [schema], [name];";
 
     try {
       const { stdout } = await this.executeSqlCmd(parsed, query);
@@ -257,6 +272,20 @@ class SqlMetadataProvider implements DatabaseMetadataProvider {
           referencedSchema: parts[3],
           referencedTable: parts[4]
         });
+      }
+
+      const { stdout: sequenceStdout } = await this.executeSqlCmd(parsed, sequenceQuery);
+      for (const parts of this.parsePipeRows(sequenceStdout, 5)) {
+        const owner = byObjectKey.get(this.buildObjectKey(parts[0], parts[1]));
+        if (!owner || owner.objectType !== 'Sequence') {
+          continue;
+        }
+
+        owner.sequenceMetadata = {
+          startValue: parts[2] || undefined,
+          incrementBy: parts[3] || undefined,
+          currentValue: parts[4] || undefined
+        };
       }
 
       for (const objectRef of objects) {
@@ -618,16 +647,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return;
       }
 
+      const reviewMetadata = await readTemplateReviewMetadataFromWorkspace();
       const current = state.mappingConfigurations.find((x) => x.connectionId === connection.id);
       const currentByType = new Map((current?.mappings ?? []).map((x) => [x.objectType, x]));
       const baselineSelection = await vscode.window.showQuickPick(
         [
           ...getTemplateBaselineProfiles().map((profile) => ({
             label: profile.label,
-            description: vscode.l10n.t(
-              'Recommended test mapping defaults for {0}. Focus: {1}.',
-              profile.label,
-              profile.recommendedTestFocus),
+            description: vscode.l10n.t('Recommended test mapping defaults for {0}.', profile.label),
+            detail: buildTemplateBaselineProfileSummary(profile, reviewMetadata),
             profileId: profile.id
           })),
           {
@@ -737,15 +765,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     vscode.commands.registerCommand('dbSqlLikeMem.configureTemplates', async () => {
       const defaultSettings = resolveTemplateSettingsDefaults(state.templateSettings);
+      const reviewMetadata = await readTemplateReviewMetadataFromWorkspace();
       const baselineSelection = await vscode.window.showQuickPick(
         [
           ...getTemplateBaselineProfiles().map((profile) => ({
             label: profile.label,
-            description: vscode.l10n.t(
-              '{0} Review: {1}, next target {2}.',
-              profile.description,
-              profile.reviewCadence,
-              profile.nextPlannedReviewOn),
+            description: profile.description,
+            detail: buildTemplateBaselineProfileSummary(profile, reviewMetadata),
             profileId: profile.id
           })),
           {
@@ -916,42 +942,60 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
 
       const objects = await getScopedObjects(connection, item, metadataProvider, state.filterText, state.filterMode);
-      const missing: string[] = [];
+      const issues: string[] = [];
       let partialCount = 0;
       let missingCount = 0;
+      let driftCount = 0;
       const checks = { ...state.generationCheckByObjectKey };
       const details = { ...state.generationCheckDetailsByObjectKey };
       const mapping = state.mappingConfigurations.find((x) => x.connectionId === connection.id);
 
       for (const objectRef of objects) {
         const testMapping = mapping?.mappings.find((x) => x.objectType === objectRef.objectType);
-        const testFound = testMapping
-          ? await fileExists(buildTestClassFilePath(workspaceFolder, objectRef, testMapping))
-          : false;
-        const modelFound = await fileExists(
-          buildTemplateClassFilePath(
-            workspaceFolder,
-            objectRef,
-            'model',
-            state.templateSettings.modelTargetFolder,
-            connection,
-            state.templateSettings.modelFileNamePattern,
-            testMapping?.namespace));
-        const repositoryFound = await fileExists(
-          buildTemplateClassFilePath(
-            workspaceFolder,
-            objectRef,
-            'repository',
-            state.templateSettings.repositoryTargetFolder,
-            connection,
-            state.templateSettings.repositoryFileNamePattern,
-            testMapping?.namespace));
+        const testPath = testMapping
+          ? buildTestClassFilePath(workspaceFolder, objectRef, testMapping)
+          : '';
+        const modelPath = buildTemplateClassFilePath(
+          workspaceFolder,
+          objectRef,
+          'model',
+          state.templateSettings.modelTargetFolder,
+          connection,
+          state.templateSettings.modelFileNamePattern,
+          testMapping?.namespace);
+        const repositoryPath = buildTemplateClassFilePath(
+          workspaceFolder,
+          objectRef,
+          'repository',
+          state.templateSettings.repositoryTargetFolder,
+          connection,
+          state.templateSettings.repositoryFileNamePattern,
+          testMapping?.namespace);
+
+        const testFound = !!testPath && await fileExists(testPath);
+        const modelFound = await fileExists(modelPath);
+        const repositoryFound = await fileExists(repositoryPath);
 
         const key = buildObjectKey(connection.id, objectRef);
         const consistency = evaluateGenerationConsistency(testFound, modelFound, repositoryFound);
-        checks[key] = consistency.status;
         delete details[key];
 
+        const driftedArtifacts = await findMetadataDriftedArtifacts(objectRef, [
+          { kind: 'test', exists: testFound, filePath: testPath },
+          { kind: 'model', exists: modelFound, filePath: modelPath },
+          { kind: 'repository', exists: repositoryFound, filePath: repositoryPath }
+        ]);
+
+        if (driftedArtifacts.length > 0) {
+          checks[key] = 'drift';
+          const detail = buildMetadataDriftDetail(driftedArtifacts, consistency.missingArtifacts);
+          details[key] = detail;
+          issues.push(`${objectRef.objectType}: ${objectRef.schema}.${objectRef.name} (${detail})`);
+          driftCount += 1;
+          continue;
+        }
+
+        checks[key] = consistency.status;
         if (consistency.status === 'partial') {
           partialCount += 1;
         } else if (consistency.status === 'missing') {
@@ -961,7 +1005,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         if (consistency.missingArtifacts.length > 0) {
           const detail = buildGenerationStatusDetail(consistency.missingArtifacts);
           details[key] = detail;
-          missing.push(`${objectRef.objectType}: ${objectRef.schema}.${objectRef.name} (${detail})`);
+          issues.push(`${objectRef.objectType}: ${objectRef.schema}.${objectRef.name} (${detail})`);
         }
       }
 
@@ -970,17 +1014,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       await saveState(context, state);
       await refreshTree();
 
-      if (missing.length === 0) {
+      if (issues.length === 0) {
         vscode.window.showInformationMessage(vscode.l10n.t('Consistency OK for {0} (green status).', connection.name));
         return;
       }
 
-      const preview = missing.slice(0, 5).join(', ');
+      const preview = issues.slice(0, 5).join(', ');
       vscode.window.showWarningMessage(
         vscode.l10n.t(
-          'Consistency check found {0} incomplete and {1} missing object groups. Preview: {2}',
+          'Consistency check found {0} incomplete, {1} missing, and {2} drifted object groups. Preview: {3}',
           partialCount,
           missingCount,
+          driftCount,
           preview));
     }),
     vscode.commands.registerCommand('dbSqlLikeMem.exportState', async () => {
@@ -1213,7 +1258,22 @@ async function saveState(context: vscode.ExtensionContext, state: ExtensionState
   await context.globalState.update('dbSqlLikeMem.state', state);
 }
 
+async function readTemplateReviewMetadataFromWorkspace() {
+  for (const workspaceFolder of vscode.workspace.workspaceFolders ?? []) {
+    const metadataPath = path.join(workspaceFolder.uri.fsPath, 'templates', 'dbsqllikemem', 'review-metadata.json');
+    try {
+      const content = await fs.readFile(metadataPath, 'utf8');
+      const metadata = parseTemplateReviewMetadata(content);
+      if (metadata) {
+        return metadata;
+      }
+    } catch {
+      // Ignore missing or unreadable metadata files and keep the catalog defaults.
+    }
+  }
 
+  return undefined;
+}
 
 function buildObjectKey(connectionId: string, objectRef: DatabaseObjectReference): string {
   return `${connectionId}|${objectRef.objectType}|${objectRef.schema}|${objectRef.name}`;
@@ -1221,6 +1281,46 @@ function buildObjectKey(connectionId: string, objectRef: DatabaseObjectReference
 
 function buildGenerationStatusDetail(missingArtifacts: string[]): string {
   return `Missing local artifacts: ${missingArtifacts.join(', ')}`;
+}
+
+function buildMetadataDriftDetail(driftedArtifacts: string[], missingArtifacts: string[]): string {
+  const driftMessage = `Metadata drift in local artifacts: ${driftedArtifacts.join(', ')}`;
+  if (missingArtifacts.length === 0) {
+    return driftMessage;
+  }
+
+  return `${driftMessage}. Missing local artifacts: ${missingArtifacts.join(', ')}`;
+}
+
+async function findMetadataDriftedArtifacts(
+  objectRef: DatabaseObjectReference,
+  artifacts: ReadonlyArray<{ kind: string; exists: boolean; filePath: string }>
+): Promise<string[]> {
+  const driftedArtifacts: string[] = [];
+
+  for (const artifact of artifacts) {
+    if (!artifact.exists || !artifact.filePath) {
+      continue;
+    }
+
+    try {
+      const content = await fs.readFile(artifact.filePath, 'utf8');
+      const isAligned = hasStructuralGenerationMetadata(objectRef)
+        ? isGeneratedArtifactStructureAligned(content, objectRef)
+        : isGeneratedArtifactMetadataAligned(content, objectRef);
+      if (!isAligned) {
+        driftedArtifacts.push(artifact.kind);
+      }
+    } catch {
+      driftedArtifacts.push(artifact.kind);
+    }
+  }
+
+  return driftedArtifacts;
+}
+
+function hasStructuralGenerationMetadata(objectRef: DatabaseObjectReference): boolean {
+  return !!objectRef.columns?.length || !!objectRef.foreignKeys?.length;
 }
 
 async function generateTemplateBasedFiles(
@@ -1282,14 +1382,7 @@ async function generateTemplateBasedFiles(
     );
     const className = path.basename(targetFile, '.cs');
 
-    const content = templateText
-      .split('{{ClassName}}').join(className)
-      .split('{{ObjectName}}').join(objectRef.name)
-      .split('{{Schema}}').join(objectRef.schema)
-      .split('{{ObjectType}}').join(objectRef.objectType)
-      .split('{{DatabaseType}}').join(connection.databaseType)
-      .split('{{DatabaseName}}').join(connection.databaseName)
-      .split('{{Namespace}}').join(namespaceValue);
+    const content = renderTemplateContent(templateText, className, objectRef, connection, namespaceValue);
 
     plans.push({ objectRef, targetFile, content });
   }

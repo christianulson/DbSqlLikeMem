@@ -972,37 +972,46 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 5.1.1 Geração de classes de teste
 
-- Implementação estimada: **97%**.
+- Implementação estimada: **98%**.
 - Fluxo principal para acelerar criação de testes automatizados.
 - Apoia padronização da base de testes.
 - Incremento desta sessão: a geração principal da VSIX passou a respeitar o `namespace` configurado por tipo de objeto também no conteúdo estruturado das classes geradas, reduzindo divergência entre o mapeamento salvo e o artefato emitido.
 - Incremento desta sessão: a extensão VS Code deixou de gerar stub com `TODO` e passou a emitir scaffold inicial de teste com metadados de origem, método determinístico e `[Fact(Skip = ...)]`, mantendo compilação válida sem mascarar que o cenário ainda precisa ser implementado.
 - Incremento desta sessão: o `Configure Mappings` da VSIX deixou de reaplicar um padrão global a toda a malha e passou a editar apenas o tipo de objeto selecionado na conexão atual, eliminando drift acidental na geração principal de classes.
 - Incremento desta sessão: o diálogo `Configure Mappings` da VSIX passou a oferecer também perfis `API` e `Worker/Batch` para aplicar defaults versionados por tipo de objeto, aproximando a baseline operacional do fluxo real de geração de testes.
+- Incremento desta sessão: a extensão VS Code passou a gravar também cabeçalho padronizado `// DBSqlLikeMem:*` nas classes de teste geradas, alinhando o scaffold principal ao mesmo contrato de snapshot usado pela geração estruturada da VSIX.
 
 #### 5.1.2 Geração de classes de modelos
 
-- Implementação estimada: **94%**.
+- Implementação estimada: **100%**.
 - Geração de artefatos de aplicação além de testes.
 - Útil para bootstrap inicial de camadas de domínio/dados.
 - Incremento desta sessão: a trilha de templates da VSIX passou a suportar `{{Namespace}}` no conteúdo de Model, alinhando a substituição de tokens com o fluxo já existente na extensão do VS Code.
 - Incremento desta sessão: a VSIX passou a permitir padrão configurável de nome de arquivo para `Model`, persistido em `TemplateConfiguration` e reaproveitado também na checagem de consistência.
 - Incremento desta sessão: a extensão VS Code passou a persistir e aplicar padrão configurável de nome de arquivo para `Model`, usando o mesmo cálculo na geração e no check de consistência.
 - Incremento desta sessão: a extensão VS Code passou a incluir também objetos `Sequence` no fluxo operacional de geração de Model quando a metadata real do provider os expõe, fechando o gap entre documentação, árvore e template generation.
+- Incremento desta sessão: a geração de `Model` nas duas extensões passou a prependar cabeçalho padronizado `// DBSqlLikeMem:*`, preservando rastreabilidade do objeto de origem mesmo com template customizado.
+- Incremento desta sessão: o snapshot gerado pela extensão VS Code para `Model` passou a incluir também estrutura mínima (`Columns`/`ForeignKeys`) quando disponível, permitindo checagem posterior de drift estrutural do artefato.
+- Incremento desta sessão: a VSIX passou a reaproveitar esse snapshot também para validar coerência estrutural do `Model` frente à classe principal gerada, incluindo `Triggers` quando presentes no objeto de origem.
+- Incremento desta sessão: a extensão VS Code passou a carregar também metadata real de `Sequence` no provider SQL Server e a gravá-la no snapshot de `Model`, fechando o último gap estrutural remanescente desse artefato.
 
 #### 5.1.3 Geração de classes de repositório
 
-- Implementação estimada: **92%**.
+- Implementação estimada: **100%**.
 - Auxilia criação consistente de componentes de acesso a dados.
 - Reduz repetição em soluções com múltiplos módulos.
 - Incremento desta sessão: a geração de Repository na VSIX agora também injeta `{{Namespace}}` a partir do mapeamento persistido, mantendo paridade com a trilha de Model e reduzindo edição manual pós-geração.
 - Incremento desta sessão: a VSIX passou a permitir padrão configurável de nome de arquivo para `Repository`, usando o mesmo resolvedor na geração e no cálculo dos artefatos complementares da consistência.
 - Incremento desta sessão: a extensão VS Code passou a persistir e aplicar padrão configurável de nome de arquivo para `Repository`, mantendo o check de consistência alinhado ao arquivo efetivamente gerado.
 - Incremento desta sessão: a extensão VS Code passou a tratar `Sequence` como tipo de objeto de primeira classe também na geração de Repository e no manager de mappings, removendo a assimetria que ainda deixava esse tipo só na documentação.
+- Incremento desta sessão: a geração de `Repository` nas duas extensões passou a emitir também snapshot padronizado `// DBSqlLikeMem:*`, reduzindo drift silencioso entre arquivo local e objeto-fonte quando o artefato é movido/copiado manualmente.
+- Incremento desta sessão: o snapshot emitido pela extensão VS Code para `Repository` passou a registrar também estrutura mínima do objeto quando disponível, reduzindo falso positivo de consistência em artefatos que mantêm nome correto mas ficaram defasados do schema.
+- Incremento desta sessão: a VSIX passou a comparar também o snapshot estrutural do `Repository` com a classe principal gerada, reduzindo falso verde quando o arquivo complementar mantém identidade correta mas ficou defasado nas propriedades salvas.
+- Incremento desta sessão: a extensão VS Code passou a incluir também `StartValue/IncrementBy/CurrentValue` de `Sequence` no snapshot estrutural de `Repository`, eliminando o último falso verde relevante para esse tipo de artefato.
 
 #### 5.1.4 Ganhos operacionais
 
-- Implementação estimada: **98%**.
+- Implementação estimada: **100%**.
 - Menor tempo de setup de projeto.
 - Maior consistência estrutural entre times e repositórios.
 - Incremento desta sessão: a paridade de tokens entre VS Code e VSIX foi ampliada com `{{Namespace}}`, reduzindo drift entre extensões irmãs na configuração de geração.
@@ -1014,6 +1023,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: a VSIX passou a consumir os mesmos perfis `api/worker` também no `Configure Mappings`, reduzindo mais uma convenção manual que ainda separava a baseline documentada do uso diário na extensão.
 - Incremento desta sessão: a árvore da VSIX passou a exibir tooltip com o diagnóstico persistido da consistência, incluindo os artefatos faltantes do trio local, reduzindo mais uma assimetria operacional em relação ao detalhamento já presente no VS Code.
 - Incremento desta sessão: os diálogos `Configure Mappings` e `Configure Templates` da VSIX passaram a exibir resumo operacional do perfil selecionado, tornando foco de testes, revisão planejada e recomendações de saída mais visíveis no fluxo diário.
+- Incremento desta sessão: os quick picks de baseline do VS Code passaram a reaproveitar também `review-metadata.json` e a acusar drift de governança no ponto de uso, reduzindo a última assimetria relevante de contexto operacional em relação à VSIX.
+- Incremento desta sessão: as duas extensões passaram a compartilhar também o contrato operacional de snapshot `// DBSqlLikeMem:*` nos artefatos gerados e a usar esse cabeçalho para detectar drift de origem, fechando a última assimetria funcional relevante da trilha de produtividade.
 
 ### 5.2 Templates e consistência
 
@@ -1041,17 +1052,19 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 5.2.2 Check visual de consistência
 
-- Implementação estimada: **97%**.
+- Implementação estimada: **100%**.
 - Indicação de ausência, divergência ou sincronização de artefatos.
 - Apoia revisão rápida antes de commit/publicação.
 - Incremento desta sessão: a extensão VS Code passou a validar de fato o trio `teste + model + repository` por objeto, usando os caminhos determinísticos da própria geração em vez de conferir apenas Model/Repository.
 - Incremento desta sessão: a VSIX passou a distinguir explicitamente o caso de trio local incompleto (`classe/model/repositório`) antes da comparação de metadados, alinhando o estado visual intermediário ao critério já adotado no VS Code.
 - Incremento desta sessão: a extensão VS Code passou a persistir o detalhe dos artefatos faltantes por objeto, reaproveitando helper puro para classificar `ok/partial/missing`, exibindo tooltip na árvore e limpando estado residual quando o trio volta a ficar íntegro.
 - Incremento desta sessão: a VSIX passou a expor tooltip na árvore com a mensagem persistida da checagem e a listar os artefatos faltantes (`class/model/repository`) em ordem determinística, aproximando a leitura visual do diagnóstico ao fluxo já consolidado no VS Code.
+- Incremento desta sessão: a extensão VS Code passou a diferenciar também `drift` de artefato, usando cabeçalhos `// DBSqlLikeMem:*` em `teste/model/repository` para detectar quando o arquivo presente não corresponde ao objeto atualmente selecionado.
+- Incremento desta sessão: a VSIX passou a aplicar a mesma detecção de `drift` sobre `class/model/repository`, lendo o snapshot `// DBSqlLikeMem:*` dos três artefatos antes da comparação com o banco e fechando a última lacuna funcional dessa checagem visual.
 
 #### 5.2.3 Estratégia de governança
 
-- Implementação estimada: **98%**.
+- Implementação estimada: **100%**.
 - Versionar templates junto ao repositório quando possível.
 - Definir baseline de geração por tipo de projeto.
 - Incremento desta sessão: o repositório passou a versionar uma baseline física em `templates/dbsqllikemem/vCurrent`, com catálogo explícito no core (`TemplateBaselineCatalog`) e trilha `vNext` reservada para a próxima promoção controlada.
@@ -1064,12 +1077,14 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: a trilha de revisão periódica passou a ter metadado versionado em `templates/dbsqllikemem/review-metadata.json`, com cadência, última revisão, próxima janela-alvo e evidências mínimas validadas pelo auditor de release.
 - Incremento desta sessão: a VSIX passou a consumir a mesma baseline versionada também no diálogo `Configure Mappings`, reaproveitando o catálogo central para aplicar defaults por tipo de objeto sem duplicar convenções na UI.
 - Incremento desta sessão: a apresentação da baseline na VSIX foi centralizada em formatter compartilhado do core, mantendo descrição, foco, revisão e recomendação por tipo sob a mesma fonte de verdade do catálogo versionado.
+- Incremento desta sessão: a governança da baseline passou a detectar e expor também drift entre `review-metadata.json` e o catálogo do core, reduzindo risco de divergência silenciosa nos diálogos da VSIX.
+- Incremento desta sessão: a extensão VS Code passou a consumir o mesmo `review-metadata.json` nos quick picks de baseline de templates e mappings, expondo cadência, evidências e drift de governança sem depender só da VSIX para esse feedback operacional.
 
 ### 5.3 Padrões recomendados para adoção em equipe
 
 #### 5.3.1 Template baseline por tipo de solução
 
-- Implementação estimada: **98%**.
+- Implementação estimada: **100%**.
 - API: foco em repositórios e testes de integração leve.
 - Worker/Batch: foco em comandos DML e validação de consistência.
 - Incremento desta sessão: perfis iniciais `api` e `worker` foram materializados em `templates/dbsqllikemem/vCurrent`, com templates de Model/Repository e diretórios sugeridos distintos para cada tipo de solução.
@@ -1079,10 +1094,12 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: a mesma trilha de defaults por perfil no VS Code passou a cobrir também `Sequence`, evitando que o último tipo suportado pela documentação ficasse fora da baseline operacional adotada pela equipe.
 - Incremento desta sessão: a VSIX passou a aplicar esses mesmos perfis também no `Configure Mappings`, cobrindo `Table`, `View`, `Procedure` e `Sequence` com defaults recomendados diretamente no fluxo de adoção da equipe.
 - Incremento desta sessão: a VSIX passou a exibir também o contexto operacional desses perfis diretamente nos diálogos, reduzindo a distância entre baseline documentada e decisão efetiva de adoção por solução/equipe.
+- Incremento desta sessão: o VS Code passou a exibir no quick pick dos perfis o mesmo contexto operacional de revisão/cadência/evidências, aproximando a decisão de adoção em equipe do contrato versionado da baseline.
+- Incremento desta sessão: os resumos compartilhados de baseline na VSIX e no VS Code passaram a explicitar também os diretórios recomendados de saída para `Model` e `Repository`, fechando o último gap entre catálogo versionado e decisão operacional no ponto de configuração.
 
 #### 5.3.2 Revisão periódica de templates
 
-- Implementação estimada: **94%**.
+- Implementação estimada: **100%**.
 - Revisão trimestral para refletir novas convenções arquiteturais.
 - Checklist de compatibilidade antes de atualizar templates compartilhados.
 - Incremento desta sessão: `templates/dbsqllikemem/vNext/README.md` formaliza a trilha de promoção da próxima baseline e amarra a atualização ao backlog, status operacional e changelog.
@@ -1090,6 +1107,9 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: o auditor agora verifica também se as baselines versionadas continuam usando apenas placeholders suportados, transformando o checklist de revisão em regra objetiva.
 - Incremento desta sessão: `templates/dbsqllikemem/review-metadata.json` passou a registrar a última revisão executada e a próxima janela planejada em formato estruturado, e o auditor valida datas, baseline corrente, staging path e arquivos mínimos de evidência.
 - Incremento desta sessão: a próxima janela de revisão e a cadência do perfil passaram a aparecer diretamente nos diálogos da VSIX, reduzindo o risco de a revisão periódica ficar restrita ao arquivo `review-metadata.json`.
+- Incremento desta sessão: os diálogos da VSIX passaram a acusar explicitamente quando o metadata versionado de revisão diverge do catálogo de baseline, reforçando a revisão periódica como regra operacional e não apenas convenção documental.
+- Incremento desta sessão: os quick picks equivalentes do VS Code passaram a mostrar também a última revisão, a próxima janela planejada, a contagem de evidências e o drift de governança, reforçando a revisão periódica no fluxo diário fora da VSIX.
+- Incremento desta sessão: VSIX, VS Code e `scripts/check_release_readiness.py` passaram a tratar `nextPlannedReviewOn` vencido como gap operacional explícito, transformando a cadência trimestral em regra objetiva também depois que o metadata já existe.
 
 ---
 
@@ -1153,7 +1173,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 6.2.3 Operação contínua
 
-- Implementação estimada: **99%**.
+- Implementação estimada: **100%**.
 - Checklist de release para validação de artefatos.
 - Sincronização entre documentação, pacote e extensões.
 - Incremento desta sessão: `docs/publishing.md` passou a incluir checklist explícito de release conectando versão, `CHANGELOG.md`, backlog, status operacional e snapshots cross-dialect (`smoke`/`aggregation`/`parser`) antes da publicação.
@@ -1165,6 +1185,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: os próprios workflows de publish das extensões agora consomem o auditor de readiness, trazendo o gate para o ponto exato de publicação em vez de deixá-lo apenas no pipeline geral.
 - Incremento desta sessão: a automação geral também passou a executar `check_nuget_package_metadata.py --allow-missing-artifacts`, validando CLI/integração do gate NuGet mesmo fora do fluxo de `pack`.
 - Incremento desta sessão: o gate documental foi estendido também aos READMEs operacionais das extensões, reduzindo risco de workflow/manifests estarem corretos enquanto a instrução de publicação do próprio artefato deriva.
+- Incremento desta sessão: a auditoria contínua de release passou a falhar também quando a revisão trimestral das baselines versionadas expira, conectando governança de templates e readiness de publicação no mesmo gate executável.
 - Workflow CI matricial por provider e smoke cross-dialeto inicial já suportam auditoria contínua de regressão.
 - Evolução de concorrência deve separar rotinas CI em smoke vs completo, com traits por categoria (isolamento, savepoint, conflito de escrita, stress).
 - Próximos ciclos incluem trilhas de observabilidade, performance, concorrência e ecossistema (.NET/ORM/tooling) já descritas no pipeline de prompts e no plano executável P7–P14.
@@ -1214,7 +1235,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 6.3.4 Governança do backlog de documentação
 
-- Implementação estimada: **99%**.
+- Implementação estimada: **100%**.
 - Incremento desta sessão: status operacional separado em `docs/features-backlog/status-operational.md`, definindo o `index.md` como visão estável e o novo arquivo como trilha de sprint/andamento para reduzir conflito de merge em percentuais e notas voláteis.
 - Incremento desta sessão: checklist de evidência mínima formalizado em `docs/features-backlog/progress-update-checklist.md`, cobrindo item do backlog, arquivos/testes afetados, providers, comando/resultado, limitação conhecida e mitigação de descompasso documental.
 - Incremento desta sessão: template de PR adicionado em `.github/pull_request_template.md`, exigindo vínculo explícito entre mudança de código, testes afetados, atualização do backlog, providers cobertos e evidência de validação.
@@ -1227,6 +1248,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: a trilha de baselines versionadas em `templates/dbsqllikemem` passou a ser exposta nos READMEs relevantes e validada pelo auditor, conectando backlog, docs e artefatos reais de geração no mesmo gate.
 - Incremento desta sessão: o checklist de revisão periódica dos templates entrou no mesmo gate documental, conectando a governança de baseline ao contrato operacional do backlog.
 - Incremento desta sessão: o gate documental/evidencial passou a incluir também a validade do contrato de placeholders nas baselines versionadas, reduzindo risco de backlog/documentação afirmarem suporte a templates que o runtime não renderiza.
+- Incremento desta sessão: o auditor e os pontos de entrada da documentação foram alinhados ao caminho canônico da wiki espelhada em submódulo (`docs/Wiki`), com compatibilidade defensiva ao layout legado e cobertura explícita do playbook `docs/wiki_setup/README.md`.
 - Convenção operacional adotada para os próximos ciclos:
   - toda atualização de percentual deve registrar evidência objetiva (arquivo de teste, comando executado e resultado);
   - itens com escopo multi-provider devem indicar explicitamente onde houve cobertura total e onde permanece gap;
@@ -1236,21 +1258,23 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 6.4.1 SemVer para consumidores
 
-- Implementação estimada: **92%**.
+- Implementação estimada: **96%**.
 - Incremento major para quebras comportamentais/documentadas.
 - Incremento minor para novos recursos compatíveis.
 - Incremento patch para correções sem alteração contratual.
 - Auditoria operacional agora valida presença centralizada da versão em `src/Directory.Build.props`, reduzindo risco de release documental sem referência de versão.
 - Incremento desta sessão: `scripts/check_release_readiness.py` passou a validar formato SemVer no núcleo e nas extensões (VS Code/VSIX), endurecendo a trilha de versionamento sem forçar igualdade artificial entre artefatos distintos.
 - Incremento desta sessão: `docs/publishing.md`, wiki e READMEs das extensões passaram a explicitar também a fonte de verdade da versão por artefato (`Directory.Build.props`, `source.extension.vsixmanifest`, `package.json`) e o prefixo de tag correspondente; o auditor agora vigia esse contrato.
+- Incremento desta sessão: `scripts/check_nuget_package_metadata.py` passou a validar também a versão efetivamente publicada no `.nuspec` contra `src/Directory.Build.props` e o sufixo do arquivo `.nupkg`, reduzindo risco de pacote NuGet sair com SemVer divergente da fonte de verdade central.
 
 #### 6.4.2 Comunicação de mudanças
 
-- Implementação estimada: **93%**.
+- Implementação estimada: **97%**.
 - Incremento desta sessão: `CHANGELOG.md` adicionado na raiz com estrutura orientada a impacto por provedor/dialeto, automação cross-dialect e limitações ainda abertas da release corrente.
 - Incremento desta sessão: `CHANGELOG.md` e `docs/publishing.md` passaram a incorporar a nova trilha de auditoria de release e o gap remanescente do publisher VSIX, tornando a limitação visível antes da publicação.
 - Incremento desta sessão: a documentação de release passou a registrar explicitamente que a auditoria também valida SemVer dos artefatos publicados, deixando o critério de governança mais explícito para revisão humana.
 - Incremento desta sessão: comunicação de release agora inclui mapeamento explícito entre artefato, arquivo-fonte da versão e prefixo de tag (`v*`, `vsix-v*`, `vscode-v*`) nos guias principais e espelhados, reduzindo ambiguidade operacional.
+- Incremento desta sessão: `scripts/check_release_readiness.py` passou a validar também o contrato mínimo de comunicação de release (`CHANGELOG.md` com `Unreleased` + subseções + `Known limitations still open`, além de referências explícitas a release notes nos guias de publicação e nos READMEs das extensões), tornando release notes um gate objetivo.
 - Changelog orientado a impacto por provedor/dialeto.
 - Destaque para gaps fechados e limitações ainda abertas.
 

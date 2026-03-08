@@ -30,7 +30,7 @@ Para projetos open source, outra alternativa é habilitar **proveniência de rep
 Implementação atual deste repositório:
 
 - `src/Directory.Build.props` publica metadados de repositório no pacote, habilita build determinístico em CI e gera `snupkg` para depuração.
-- `.github/workflows/nuget-publish.yml` valida metadados dos `.nupkg` via `scripts/check_nuget_package_metadata.py` antes do `push`, usando `src/Directory.Build.props` como fonte de verdade para comparar `authors`, `repository`, `projectUrl`, `readme`, `tags`, `releaseNotes` e licença.
+- `.github/workflows/nuget-publish.yml` valida metadados dos `.nupkg` via `scripts/check_nuget_package_metadata.py` antes do `push`, usando `src/Directory.Build.props` como fonte de verdade para comparar `version`, `authors`, `repository`, `projectUrl`, `readme`, `tags`, `releaseNotes` e licença.
 - A versão do release NuGet sai de `src/Directory.Build.props`; a tag operacional deve seguir `v<versao>` e permanecer em SemVer compatível com esse arquivo.
 
 ### Via GitHub Actions (recomendado)
@@ -79,6 +79,7 @@ Antes de publicar:
 7. Verifique se alguma limitação conhecida precisa ficar explícita na release.
 8. Rode `python3 scripts/check_release_readiness.py` para auditar documentação, workflows, snapshots e metadados de publicação antes de empacotar.
 9. Depois do `pack`, rode `python3 scripts/check_nuget_package_metadata.py --artifacts-dir ./artifacts` para auditar os `.nupkg` que serão publicados.
+10. Confirme que `CHANGELOG.md` continua com `## [Unreleased]`, subseções de impacto e `Known limitations still open` antes de criar qualquer tag de release.
 
 Workflow responsável:
 
@@ -168,4 +169,4 @@ npm run publish
 
 - [Começando rápido](getting-started.md)
 - [Provedores e compatibilidade](old/providers-and-features.md)
-- [Wiki do GitHub](wiki/README.md)
+- [Wiki do GitHub](Wiki/Home.md)

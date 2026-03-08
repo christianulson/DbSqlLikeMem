@@ -23,6 +23,7 @@ public sealed class GeneratedClassSnapshotReaderTests
 // DBSqlLikeMem:PrimaryKey=Id
 // DBSqlLikeMem:Indexes=IX_Orders_Name|0|Name
 // DBSqlLikeMem:ForeignKeys=CustomerId|Customers|Id
+// DBSqlLikeMem:Triggers=trg_orders_audit
 /// <summary>
 /// Represents this public API type.
 /// Representa este tipo público da API.
@@ -34,6 +35,7 @@ public static class OrdersTableFactory {}
         {
             var fallback = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table);
             var snapshot = await GeneratedClassSnapshotReader.ReadAsync(file, fallback, TestContext.Current.CancellationToken);
+            Assert.Equal("trg_orders_audit", snapshot.Reference.Properties!["Triggers"]);
 
             var dbObject = new DatabaseObjectReference(
                 "dbo",
@@ -42,7 +44,8 @@ public static class OrdersTableFactory {}
                 new Dictionary<string, string>
                 {
                     ["Columns"] = "Id|int|0|0|1||||int|;Name|varchar|1|1|0||||varchar|;Status|tinyint|2|1|0||||tinyint|",
-                    ["PrimaryKey"] = "Id"
+                    ["PrimaryKey"] = "Id",
+                    ["Triggers"] = "trg_orders_audit"
                 });
 
             var provider = new SnapshotProvider(dbObject);

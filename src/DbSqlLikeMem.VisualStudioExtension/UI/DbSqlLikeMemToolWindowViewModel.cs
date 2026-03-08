@@ -921,6 +921,20 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                 }
 
                 var snapshot = await GeneratedClassSnapshotReader.ReadAsync(filePath, dbObject, token);
+                var modelSnapshot = await GeneratedClassSnapshotReader.ReadAsync(modelPath, dbObject, token);
+                var repositorySnapshot = await GeneratedClassSnapshotReader.ReadAsync(repositoryPath, dbObject, token);
+                var driftedArtifactKinds = checker.GetDriftedArtifactKinds(dbObject, snapshot, modelSnapshot, repositorySnapshot);
+                var driftStatus = checker.EvaluateArtifactDrift(
+                    dbObject,
+                    filePath,
+                    driftedArtifactKinds,
+                    BuildDriftedGeneratedFilesMessage(driftedArtifactKinds));
+                if (driftStatus is not null)
+                {
+                    updates.Add((BuildObjectKey(connection.Id, dbObject), driftStatus));
+                    return;
+                }
+
                 var result = await checker.CheckAsync(connection, snapshot, metadataProvider, token);
                 updates.Add((BuildObjectKey(connection.Id, dbObject), result));
             }));
@@ -1153,6 +1167,22 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             : "Missing";
         var translatedKinds = missingArtifactKinds.Select(TranslateArtifactKindForUi);
         return $"{Resources.MissingGeneratedFiles} {prefix}: {string.Join(", ", translatedKinds)}.";
+    }
+
+    private static string BuildDriftedGeneratedFilesMessage(IReadOnlyCollection<string> driftedArtifactKinds)
+    {
+        var isPortuguese = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals("pt", StringComparison.OrdinalIgnoreCase);
+        var baseMessage = isPortuguese
+            ? "Artefatos locais apontam para outro objeto."
+            : "Local artifacts point to another object.";
+        if (driftedArtifactKinds.Count == 0)
+        {
+            return baseMessage;
+        }
+
+        var prefix = isPortuguese ? "Divergentes" : "Drifted";
+        var translatedKinds = driftedArtifactKinds.Select(TranslateArtifactKindForUi);
+        return $"{baseMessage} {prefix}: {string.Join(", ", translatedKinds)}.";
     }
 
     private static string TranslateArtifactKindForUi(string artifactKind)

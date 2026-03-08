@@ -283,4 +283,4 @@ dotnet test src/DbSqlLikeMem.slnx
 
 - [Provedores, versões e compatibilidade](old/providers-and-features.md)
 - [Publicação](publishing.md)
-- [Wiki do GitHub](wiki/README.md)
+- [Wiki do GitHub](Wiki/Home.md)

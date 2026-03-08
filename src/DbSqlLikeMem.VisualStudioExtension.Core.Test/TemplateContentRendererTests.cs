@@ -34,6 +34,9 @@ public sealed class TemplateContentRendererTests
             connection,
             "Sample.Generated");
 
+        Assert.Contains("// DBSqlLikeMem:Schema=dbo", content);
+        Assert.Contains("// DBSqlLikeMem:Object=vw_active_customers", content);
+        Assert.Contains("// DBSqlLikeMem:Type=View", content);
         Assert.Contains("namespace Sample.Generated;", content);
         Assert.Contains("// SqlServer / Billing", content);
         Assert.Contains("// dbo.vw_active_customers (View)", content);
@@ -54,6 +57,48 @@ public sealed class TemplateContentRendererTests
 
         var content = TemplateContentRenderer.Render(template, "OrdersTable", dbObject, connection);
 
-        Assert.Equal("namespace ;", content);
+        Assert.Contains("// DBSqlLikeMem:Schema=public", content);
+        Assert.EndsWith("namespace ;", content, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// EN: Ensures an existing standardized snapshot header is not duplicated when a custom template already provides it.
+    /// PT: Garante que um cabecalho padronizado de snapshot existente nao seja duplicado quando um template customizado ja o fornece.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "TemplateContentRenderer")]
+    public void Render_WhenTemplateAlreadyContainsSnapshotHeader_ShouldNotDuplicateMetadataLines()
+    {
+        const string template = """
+            // DBSqlLikeMem:Schema={{Schema}}
+            // DBSqlLikeMem:Object={{ObjectName}}
+            // DBSqlLikeMem:Type={{ObjectType}}
+            public class {{ClassName}}
+            {
+            }
+            """;
+
+        var connection = new ConnectionDefinition("1", "SqlServer", "Billing", "conn");
+        var dbObject = new DatabaseObjectReference("dbo", "orders", DatabaseObjectType.Table);
+
+        var content = TemplateContentRenderer.Render(template, "OrdersModel", dbObject, connection);
+
+        Assert.Equal(1, CountOccurrences(content, "// DBSqlLikeMem:Schema="));
+        Assert.Equal(1, CountOccurrences(content, "// DBSqlLikeMem:Object="));
+        Assert.Equal(1, CountOccurrences(content, "// DBSqlLikeMem:Type="));
+    }
+
+    private static int CountOccurrences(string value, string needle)
+    {
+        var count = 0;
+        var index = value.IndexOf(needle, StringComparison.Ordinal);
+
+        while (index >= 0)
+        {
+            count++;
+            index = value.IndexOf(needle, index + needle.Length, StringComparison.Ordinal);
+        }
+
+        return count;
     }
 }

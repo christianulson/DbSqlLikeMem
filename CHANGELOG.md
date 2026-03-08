@@ -39,6 +39,10 @@ Este arquivo registra mudanças relevantes por impacto funcional, com foco em pr
 - `Configure Templates` agora oferece perfis prontos baseados em `templates/dbsqllikemem/vCurrent`, com baseline `API` e `Worker/Batch` antes da edição manual dos caminhos/pastas.
 - A extensão VS Code agora valida tokens suportados em templates customizados e faz fallback para o template padrão quando encontra placeholders inválidos durante a geração.
 - A extensão VS Code agora também aceita padrão configurável de nome de arquivo para `Model` e `Repository`, reutilizando o mesmo cálculo na geração e no check de consistência.
+- Os quick picks de baseline da extensão VS Code agora também consomem `review-metadata.json` quando presente no workspace e expõem drift de governança em relação ao catálogo embutido.
+- A extensão VS Code agora grava snapshot padronizado `// DBSqlLikeMem:*` também em `teste/model/repository` e usa esse cabeçalho para detectar drift de artefato no `Check Consistency`, não só ausência física.
+- O snapshot do VS Code em `Model/Repository` agora também registra estrutura mínima (`Columns`/`ForeignKeys`) quando a metadata do objeto está disponível, permitindo detectar drift estrutural sem depender apenas da identidade do objeto.
+- O provider SQL Server da extensão VS Code agora também carrega metadata de `Sequence` (`StartValue`, `IncrementBy`, `CurrentValue`) para alimentar o snapshot estrutural e detectar drift também nesse tipo de artefato.
 
 ### Tooling and docs
 
@@ -48,9 +52,13 @@ Este arquivo registra mudanças relevantes por impacto funcional, com foco em pr
 - O fluxo `Configure Mappings` da VSIX agora atualiza apenas o recorte selecionado (`conexão + tipo de objeto`), preservando mapeamentos já existentes dos outros tipos na mesma conexão.
 - O diálogo `Configure Mappings` da VSIX agora também oferece perfis `api` e `worker` para aplicar defaults versionados de pasta/padrão por tipo de objeto, reaproveitando o mesmo catálogo operacional já consumido pelas outras trilhas de baseline.
 - Os diálogos `Configure Mappings` e `Configure Templates` da VSIX agora também exibem resumo do perfil selecionado com descrição, foco recomendado de testes, revisão planejada e, no caso do mapping, a recomendação específica do tipo de objeto.
+- A governança da baseline na VSIX agora também acusa drift quando `review-metadata.json` diverge do catálogo interno do core, em vez de apenas exibir o resumo feliz do perfil.
 - A geração por template da VSIX agora também aceita padrão configurável de nome de arquivo para `Model` e `Repository`, reutilizando o mesmo resolvedor tanto na escrita quanto na checagem de consistência.
+- A geração por template da VSIX agora também prependa snapshot padronizado `// DBSqlLikeMem:*` em `Model` e `Repository`, alinhando a rastreabilidade desses artefatos ao contrato já usado pela geração principal.
 - A checagem de consistência da VSIX agora distingue trio local incompleto de divergência real de metadados, em vez de tratar ausência parcial de artefatos como diferença genérica.
 - A árvore da VSIX agora também expõe tooltip com o diagnóstico persistido da consistência, incluindo os artefatos faltantes do trio local em ordem determinística.
+- A checagem de consistência da VSIX agora também detecta drift de snapshot em `class/model/repository`, acusando quando algum artefato local aponta para outro objeto mesmo com o trio completo presente.
+- A consistência da VSIX agora também compara o snapshot estrutural de `Model/Repository` contra a classe principal gerada e o leitor passou a preservar `Triggers`, reduzindo falso verde em artefatos complementares desatualizados.
 - O diálogo `Configure Templates` da VSIX agora aplica diretamente perfis `api` e `worker` quando encontra `templates/dbsqllikemem`, reduzindo drift operacional em relação ao fluxo já introduzido na extensão VS Code.
 - A VSIX agora valida templates customizados contra o catálogo de tokens suportados antes de aceitar a configuração, reduzindo risco de placeholders que o runtime não sabe renderizar.
 - Baselines versionadas de template foram adicionadas em `templates/dbsqllikemem/vCurrent` com perfis `api` e `worker`, além de trilha controlada `vNext` para próxima promoção.
@@ -58,12 +66,15 @@ Este arquivo registra mudanças relevantes por impacto funcional, com foco em pr
 - `TemplateTokenCatalog` e `templates/dbsqllikemem/review-checklist.md` passaram a formalizar o contrato de tokens e a revisão periódica da baseline, com vigilância do auditor de release.
 - O auditor de release agora também falha quando encontra placeholders `{{...}}` fora do contrato suportado nas baselines versionadas de template.
 - A governança de revisão de templates agora também tem metadado versionado (`templates/dbsqllikemem/review-metadata.json`) com cadência trimestral, última revisão, próxima janela-alvo e evidências mínimas, validado pelo auditor.
+- A governança de revisão de templates agora também acusa explicitamente quando a janela `nextPlannedReviewOn` expira, tanto nos resumos de baseline da VSIX/VS Code quanto no auditor de release.
+- Os resumos compartilhados de baseline agora também mostram os diretórios recomendados de saída para `Model` e `Repository`, fechando a última lacuna prática entre catálogo versionado e configuração diária das extensões.
 - Template de PR adicionado com vínculo explícito entre código, teste, backlog e evidência de validação.
 - Checklist operacional para atualização de percentuais do backlog formalizado em `docs/features-backlog/progress-update-checklist.md`.
 - Status operacional do backlog separado do índice macro em `docs/features-backlog/status-operational.md`.
 - Auditoria automatizada de release adicionada em `scripts/check_release_readiness.py`, cobrindo snapshots, workflows, documentação e metadados básicos de publicação.
 - Validação de metadados de pacote NuGet extraída para `scripts/check_nuget_package_metadata.py`, removendo lógica inline duplicada do workflow de publicação.
 - Auditoria pós-pack do NuGet passou a derivar expectativas do `Directory.Build.props` e validar mais campos do `.nuspec`, incluindo `authors`, `readme`, `tags`, `releaseNotes`, licença e `repository type`.
+- O gate pós-pack do NuGet agora também valida a versão do `.nuspec` contra `src/Directory.Build.props` e o sufixo do arquivo `.nupkg`, reduzindo risco de SemVer divergente no artefato efetivamente publicado.
 - Auditoria de release agora valida também o formato SemVer das versões do core e das extensões, reduzindo risco de versionamento inválido antes da publicação.
 - `README.md` da raiz foi alinhado aos targets reais do repositório (`net462`, `netstandard2.0`, `net8.0`, com `net6.0` restrito à malha de testes), e o auditor passou a vigiar esse contrato documental.
 - `src/README.md` também foi alinhado ao mesmo contrato de targets/override, reduzindo drift entre a documentação de pacote e a documentação da raiz.
@@ -72,6 +83,8 @@ Este arquivo registra mudanças relevantes por impacto funcional, com foco em pr
 - `docs/wiki/pages/Getting-Started.md` foi alinhado ao mesmo contrato de frameworks/override e entrou na auditoria de release para reduzir drift entre wiki espelhada e guias canônicos.
 - `docs/info/multi-target-compat-audit.md` passou a explicitar que é um artefato histórico e não a fonte de verdade para TFMs atuais; o auditor agora vigia essa advertência.
 - `docs/wiki/pages/Publishing.md` e `docs/wiki/pages/Providers-and-Compatibility.md` entraram no mesmo gate documental da wiki, reduzindo drift entre páginas espelhadas e os guias canônicos do repositório.
+- O gate documental e os links de entrada da documentação agora tratam `docs/Wiki` como caminho canônico da wiki espelhada em submódulo, com fallback apenas para o layout legado.
+- O auditor de release agora também valida o contrato mínimo de comunicação de mudança: `CHANGELOG.md` com `Unreleased` + subseções + `Known limitations still open`, além de referências explícitas a release notes nos guias de publicação e nos READMEs das extensões.
 - Os READMEs das extensões VS Code/VSIX entraram na trilha de auditoria de release; a VSIX também recebeu seção explícita de publicação com workflow, manifesto e gate estrito.
 - A documentação de publish agora prende explicitamente a fonte de verdade de versão e o prefixo de tag para NuGet, VSIX e VS Code; o auditor passou a vigiar esse contrato.
 - `docs/README.md` e `docs/wiki/README.md` passaram a expor essa trilha de descoberta e `docs/wiki/README.md` entrou no gate documental, reduzindo drift nos pontos de entrada da documentação.

@@ -8,6 +8,7 @@ Estrutura atual:
 - `vNext/`: área reservada para evolução planejada antes de promover uma nova baseline estável.
 - `review-checklist.md`: checklist de compatibilidade e promoção antes de alterar templates compartilhados.
 - `review-metadata.json`: metadado versionado com cadência, última revisão, próxima janela-alvo e evidências mínimas da baseline.
+  - a janela `nextPlannedReviewOn` agora também é tratada como gate operacional: VSIX/VS Code acusam revisão vencida no resumo do perfil e o auditor de release falha quando a revisão trimestral expira.
 
 Perfis publicados em `vCurrent`:
 

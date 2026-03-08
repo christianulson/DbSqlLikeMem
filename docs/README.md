@@ -97,8 +97,10 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
   - área controlada de promoção em `templates/dbsqllikemem/vNext`
   - checklist de revisão em `templates/dbsqllikemem/review-checklist.md`
   - metadado versionado de revisão em `templates/dbsqllikemem/review-metadata.json`
-- [Wiki do GitHub](wiki/README.md)
+  - revisão vencida agora é tratada como gap operacional explícito nos resumos das extensões e no auditor `scripts/check_release_readiness.py`
+- [Wiki do GitHub](Wiki/Home.md)
   - como habilitar e estruturar
+  - espelho canônico mantido no submódulo `docs/Wiki`
   - páginas prontas para copiar/publicar
 
 ## Convenções sugeridas para novos documentos

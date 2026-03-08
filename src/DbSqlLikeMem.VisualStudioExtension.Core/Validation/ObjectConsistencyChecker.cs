@@ -41,6 +41,49 @@ public sealed class ObjectConsistencyChecker
     }
 
     /// <summary>
+    /// EN: Returns the generated artifact kinds whose embedded snapshot points to a different database object.
+    /// PT: Retorna os tipos de artefato gerado cujo snapshot embutido aponta para um objeto de banco diferente.
+    /// </summary>
+    /// <param name="databaseObject">EN: Database object expected by the current consistency flow. PT: Objeto de banco esperado pelo fluxo atual de consistencia.</param>
+    /// <param name="primarySnapshot">EN: Snapshot for the main generated class. PT: Snapshot da classe gerada principal.</param>
+    /// <param name="modelSnapshot">EN: Snapshot for the generated model artifact. PT: Snapshot do artefato de modelo gerado.</param>
+    /// <param name="repositorySnapshot">EN: Snapshot for the generated repository artifact. PT: Snapshot do artefato de repositorio gerado.</param>
+    public IReadOnlyCollection<string> GetDriftedArtifactKinds(
+        DatabaseObjectReference databaseObject,
+        LocalObjectSnapshot? primarySnapshot,
+        LocalObjectSnapshot? modelSnapshot,
+        LocalObjectSnapshot? repositorySnapshot)
+    {
+        var driftedArtifacts = new List<string>(3);
+        if (primarySnapshot is not null && !IsSnapshotAligned(databaseObject, primarySnapshot))
+        {
+            driftedArtifacts.Add("class");
+        }
+
+        if (modelSnapshot is not null && !IsSnapshotAligned(databaseObject, modelSnapshot))
+        {
+            driftedArtifacts.Add("model");
+        }
+        else if (primarySnapshot is not null && modelSnapshot is not null
+            && !HaveSameProperties(primarySnapshot.Properties ?? new Dictionary<string, string>(), modelSnapshot.Properties ?? new Dictionary<string, string>()))
+        {
+            driftedArtifacts.Add("model");
+        }
+
+        if (repositorySnapshot is not null && !IsSnapshotAligned(databaseObject, repositorySnapshot))
+        {
+            driftedArtifacts.Add("repository");
+        }
+        else if (primarySnapshot is not null && repositorySnapshot is not null
+            && !HaveSameProperties(primarySnapshot.Properties ?? new Dictionary<string, string>(), repositorySnapshot.Properties ?? new Dictionary<string, string>()))
+        {
+            driftedArtifacts.Add("repository");
+        }
+
+        return driftedArtifacts;
+    }
+
+    /// <summary>
     /// EN: Classifies the local artifact set required by the generation flow before metadata comparison.
     /// PT: Classifica o conjunto de artefatos locais exigido pelo fluxo de geracao antes da comparacao de metadados.
     /// </summary>
@@ -67,6 +110,25 @@ public sealed class ObjectConsistencyChecker
             0 => new ObjectHealthResult(databaseObject, localFilePath, ObjectHealthStatus.MissingLocalArtifacts, missingMessage),
             _ => new ObjectHealthResult(databaseObject, localFilePath, ObjectHealthStatus.IncompleteLocalArtifacts, missingMessage),
         };
+    }
+
+    /// <summary>
+    /// EN: Classifies generated artifacts as drifted when their embedded snapshot no longer matches the selected database object.
+    /// PT: Classifica artefatos gerados como divergentes quando o snapshot embutido nao corresponde mais ao objeto de banco selecionado.
+    /// </summary>
+    /// <param name="databaseObject">EN: Database object reference being checked. PT: Referencia do objeto de banco sendo verificada.</param>
+    /// <param name="localFilePath">EN: Primary generated class file path. PT: Caminho do arquivo principal da classe gerada.</param>
+    /// <param name="driftedArtifactKinds">EN: Artifact kinds whose snapshot metadata diverged from the selected object. PT: Tipos de artefato cujo metadata de snapshot divergiu do objeto selecionado.</param>
+    /// <param name="driftMessage">EN: Diagnostic message used when drift is detected. PT: Mensagem diagnostica usada quando um drift e detectado.</param>
+    public ObjectHealthResult? EvaluateArtifactDrift(
+        DatabaseObjectReference databaseObject,
+        string localFilePath,
+        IReadOnlyCollection<string> driftedArtifactKinds,
+        string? driftMessage = null)
+    {
+        return driftedArtifactKinds.Count == 0
+            ? null
+            : new ObjectHealthResult(databaseObject, localFilePath, ObjectHealthStatus.DifferentFromDatabase, driftMessage);
     }
 
     /// <summary>
@@ -119,4 +181,9 @@ public sealed class ObjectConsistencyChecker
 
         return true;
     }
+
+    private static bool IsSnapshotAligned(DatabaseObjectReference databaseObject, LocalObjectSnapshot snapshot)
+        => string.Equals(snapshot.Reference.Schema, databaseObject.Schema, StringComparison.OrdinalIgnoreCase)
+           && string.Equals(snapshot.Reference.Name, databaseObject.Name, StringComparison.OrdinalIgnoreCase)
+           && snapshot.Reference.Type == databaseObject.Type;
 }

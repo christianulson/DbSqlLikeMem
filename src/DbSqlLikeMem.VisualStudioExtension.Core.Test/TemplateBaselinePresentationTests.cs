@@ -26,6 +26,8 @@ public sealed class TemplateBaselinePresentationTests
         Assert.Contains("Light integration tests", summary);
         Assert.Contains("2026-03-08", summary);
         Assert.Contains("2026-06-30", summary);
+        Assert.Contains("src/Models", summary);
+        Assert.Contains("src/Repositories", summary);
     }
 
     /// <summary>
@@ -44,6 +46,36 @@ public sealed class TemplateBaselinePresentationTests
         Assert.Contains("Worker/Batch", summary);
         Assert.Contains("tests/Consistency/Sequences", summary);
         Assert.Contains("{NamePascal}SequenceConsistencyTests.cs", summary);
+    }
+
+    /// <summary>
+    /// EN: Ensures overdue review windows become visible in the profile summary presented to the UI.
+    /// PT: Garante que janelas de revisao vencidas fiquem visiveis no resumo do perfil apresentado para a UI.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "TemplateBaselinePresentation")]
+    public void BuildProfileSummary_WhenReviewWindowIsOverdue_ShouldExposeGovernanceWarning()
+    {
+        var profile = TemplateBaselineCatalog.GetProfile("api")!;
+        var reviewMetadata = new TemplateReviewMetadata(
+            currentBaseline: "vCurrent",
+            promotionStagingPath: "templates/dbsqllikemem/vNext",
+            reviewCadence: "quarterly",
+            lastReviewedOn: "2025-12-31",
+            nextPlannedReviewOn: "2026-01-15",
+            profileFocusById: new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["api"] = profile.RecommendedTestFocus
+            },
+            evidenceFiles: ["CHANGELOG.md"]);
+
+        var summary = TemplateBaselinePresentation.BuildProfileSummary(
+            profile,
+            reviewMetadata,
+            todayUtc: new DateTime(2026, 3, 8, 0, 0, 0, DateTimeKind.Utc));
+
+        Assert.Contains("Governance drift", summary);
+        Assert.Contains("overdue", summary, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string GetRepositoryRoot()

@@ -31,7 +31,9 @@ public static class TemplateContentRenderer
         content = ReplaceIgnoreCase(content, "{{DatabaseType}}", connection.DatabaseType);
         content = ReplaceIgnoreCase(content, "{{DatabaseName}}", connection.DatabaseName);
         content = ReplaceIgnoreCase(content, "{{Namespace}}", @namespace ?? string.Empty);
-        return content;
+        return content.Contains("// DBSqlLikeMem:", StringComparison.Ordinal)
+            ? content
+            : BuildMetadataHeader(dbObject) + content;
     }
 
     private static string ReplaceIgnoreCase(string value, string oldValue, string newValue)
@@ -46,5 +48,34 @@ public static class TemplateContentRenderer
         }
 
         return current;
+    }
+
+    private static string BuildMetadataHeader(DatabaseObjectReference dbObject)
+    {
+        var lines = new List<string>
+        {
+            $"// DBSqlLikeMem:Schema={dbObject.Schema}",
+            $"// DBSqlLikeMem:Object={dbObject.Name}",
+            $"// DBSqlLikeMem:Type={dbObject.Type}"
+        };
+
+        AppendIfPresent(lines, dbObject, "Columns");
+        AppendIfPresent(lines, dbObject, "PrimaryKey");
+        AppendIfPresent(lines, dbObject, "Indexes");
+        AppendIfPresent(lines, dbObject, "ForeignKeys");
+        AppendIfPresent(lines, dbObject, "Triggers");
+        AppendIfPresent(lines, dbObject, "StartValue");
+        AppendIfPresent(lines, dbObject, "IncrementBy");
+        AppendIfPresent(lines, dbObject, "CurrentValue");
+
+        return string.Join(Environment.NewLine, lines) + Environment.NewLine;
+    }
+
+    private static void AppendIfPresent(List<string> lines, DatabaseObjectReference dbObject, string key)
+    {
+        if (dbObject.Properties is not null && dbObject.Properties.TryGetValue(key, out var value))
+        {
+            lines.Add($"// DBSqlLikeMem:{key}={value}");
+        }
     }
 }

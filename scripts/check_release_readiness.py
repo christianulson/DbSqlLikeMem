@@ -39,6 +39,36 @@ def load_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def resolve_first_existing_path(*paths: Path) -> Path | None:
+    for path in paths:
+        if path.exists():
+            return path
+
+    return None
+
+
+def get_wiki_doc_paths(root: Path) -> dict[str, Path | None]:
+    return {
+        "home": resolve_first_existing_path(
+            root / "docs" / "Wiki" / "Home.md",
+            root / "docs" / "wiki" / "pages" / "Home.md",
+            root / "docs" / "wiki" / "README.md",
+        ),
+        "getting_started": resolve_first_existing_path(
+            root / "docs" / "Wiki" / "Getting-Started.md",
+            root / "docs" / "wiki" / "pages" / "Getting-Started.md",
+        ),
+        "publishing": resolve_first_existing_path(
+            root / "docs" / "Wiki" / "Publishing.md",
+            root / "docs" / "wiki" / "pages" / "Publishing.md",
+        ),
+        "providers": resolve_first_existing_path(
+            root / "docs" / "Wiki" / "Providers-and-Compatibility.md",
+            root / "docs" / "wiki" / "pages" / "Providers-and-Compatibility.md",
+        ),
+    }
+
+
 def parse_directory_build_props(path: Path) -> tuple[str | None, str | None]:
     content = load_text(path)
     version_match = VERSION_RE.search(content)
@@ -82,18 +112,16 @@ def collect_package_nls_tokens(value: object) -> set[str]:
 
 
 def check_required_files(root: Path) -> list[str]:
+    wiki_paths = get_wiki_doc_paths(root)
     required_paths = [
         root / "CHANGELOG.md",
         root / "README.md",
         root / "src" / "README.md",
         root / "docs" / "publishing.md",
         root / "docs" / "README.md",
-        root / "docs" / "wiki" / "README.md",
         root / "docs" / "getting-started.md",
         root / "docs" / "info" / "multi-target-compat-audit.md",
-        root / "docs" / "wiki" / "pages" / "Getting-Started.md",
-        root / "docs" / "wiki" / "pages" / "Publishing.md",
-        root / "docs" / "wiki" / "pages" / "Providers-and-Compatibility.md",
+        root / "docs" / "wiki_setup" / "README.md",
         root / "docs" / "features-backlog" / "index.md",
         root / "docs" / "features-backlog" / "progress-update-checklist.md",
         root / "docs" / "features-backlog" / "status-operational.md",
@@ -121,6 +149,10 @@ def check_required_files(root: Path) -> list[str]:
     ]
 
     failures: list[str] = []
+    for label, path in wiki_paths.items():
+        if path is None:
+            failures.append(f"required wiki file not found for '{label}'")
+
     for path in required_paths:
         if not path.exists():
             failures.append(f"required file not found: {path.relative_to(root)}")
@@ -144,6 +176,7 @@ def check_snapshots(root: Path) -> list[str]:
 
 
 def check_docs(root: Path) -> list[str]:
+    wiki_paths = get_wiki_doc_paths(root)
     checks = {
         root / "templates" / "dbsqllikemem" / "README.md": [
             "vCurrent/",
@@ -200,13 +233,7 @@ def check_docs(root: Path) -> list[str]:
             "Directory.Build.props",
             "source.extension.vsixmanifest",
             "package.json",
-        ],
-        root / "docs" / "wiki" / "README.md": [
-            "docs/wiki/pages/Publishing.md",
-            "src/Directory.Build.props",
-            "source.extension.vsixmanifest",
-            "package.json",
-            "scripts/check_release_readiness.py",
+            "Wiki/Home.md",
         ],
         root / "docs" / "getting-started.md": [
             "net462",
@@ -215,6 +242,7 @@ def check_docs(root: Path) -> list[str]:
             "net6.0",
             "src/Directory.Build.props",
             "docs/publishing.md",
+            "Wiki/Home.md",
         ],
         root / "docs" / "info" / "multi-target-compat-audit.md": [
             "artefato histórico",
@@ -222,42 +250,10 @@ def check_docs(root: Path) -> list[str]:
             "README.md",
             "docs/getting-started.md",
         ],
-        root / "docs" / "wiki" / "pages" / "Getting-Started.md": [
-            "net462",
-            "netstandard2.0",
-            "net8.0",
-            "net6.0",
-            "src/Directory.Build.props",
-            "docs/publishing.md",
-        ],
-        root / "docs" / "wiki" / "pages" / "Publishing.md": [
-            ".github/workflows/nuget-publish.yml",
-            ".github/workflows/vsix-publish.yml",
-            ".github/workflows/vscode-extension-publish.yml",
-            "scripts/check_release_readiness.py",
-            "scripts/check_nuget_package_metadata.py",
-            "src/Directory.Build.props",
-            "src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest",
-            "src/DbSqlLikeMem.VsCodeExtension/package.json",
-            "v*",
-            "vsix-v*",
-            "vscode-v*",
-        ],
-        root / "docs" / "wiki" / "pages" / "Providers-and-Compatibility.md": [
-            "MySQL",
-            "SQL Server",
-            "SQL Azure",
-            "Oracle",
-            "PostgreSQL",
-            "SQLite",
-            "DB2",
-            "docs/old/providers-and-features.md",
-        ],
-        root / "docs" / "wiki" / "pages" / "Home.md": [
-            "https://github.com/christianulson/DbSqlLikeMem/blob/main/README.md",
-            "https://github.com/christianulson/DbSqlLikeMem/blob/main/docs/getting-started.md",
-            "https://github.com/christianulson/DbSqlLikeMem/blob/main/docs/old/providers-and-features.md",
-            "https://github.com/christianulson/DbSqlLikeMem/blob/main/docs/publishing.md",
+        root / "docs" / "wiki_setup" / "README.md": [
+            "docs/Wiki",
+            ".wiki.git",
+            "docs/Wiki/Home.md",
         ],
         root / "docs" / "features-backlog" / "progress-update-checklist.md": [
             "Seção/item do backlog:",
@@ -313,7 +309,60 @@ def check_docs(root: Path) -> list[str]:
         ],
     }
 
+    wiki_home = wiki_paths["home"]
+    if wiki_home is not None:
+        checks[wiki_home] = [
+            "https://github.com/christianulson/DbSqlLikeMem/blob/main/README.md",
+            "https://github.com/christianulson/DbSqlLikeMem/blob/main/docs/getting-started.md",
+            "https://github.com/christianulson/DbSqlLikeMem/blob/main/docs/old/providers-and-features.md",
+            "https://github.com/christianulson/DbSqlLikeMem/blob/main/docs/publishing.md",
+        ]
+
+    wiki_getting_started = wiki_paths["getting_started"]
+    if wiki_getting_started is not None:
+        checks[wiki_getting_started] = [
+            "net462",
+            "netstandard2.0",
+            "net8.0",
+            "net6.0",
+            "src/Directory.Build.props",
+            "docs/publishing.md",
+        ]
+
+    wiki_publishing = wiki_paths["publishing"]
+    if wiki_publishing is not None:
+        checks[wiki_publishing] = [
+            ".github/workflows/nuget-publish.yml",
+            ".github/workflows/vsix-publish.yml",
+            ".github/workflows/vscode-extension-publish.yml",
+            "scripts/check_release_readiness.py",
+            "scripts/check_nuget_package_metadata.py",
+            "src/Directory.Build.props",
+            "src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest",
+            "src/DbSqlLikeMem.VsCodeExtension/package.json",
+            "v*",
+            "vsix-v*",
+            "vscode-v*",
+        ]
+
+    wiki_providers = wiki_paths["providers"]
+    if wiki_providers is not None:
+        checks[wiki_providers] = [
+            "MySQL",
+            "SQL Server",
+            "SQL Azure",
+            "Oracle",
+            "PostgreSQL",
+            "SQLite",
+            "DB2",
+            "docs/old/providers-and-features.md",
+        ]
+
     failures: list[str] = []
+    for label, path in wiki_paths.items():
+        if path is None:
+            failures.append(f"wiki documentation path not found for '{label}'")
+
     for path, required_tokens in checks.items():
         content = load_text(path)
         for token in required_tokens:
@@ -336,6 +385,60 @@ def check_workflows(root: Path) -> list[str]:
         for token in tokens:
             if token not in content:
                 failures.append(f"{path.relative_to(root)}: missing token '{token}'")
+
+    return failures
+
+
+def check_release_communication(root: Path) -> list[str]:
+    failures: list[str] = []
+
+    changelog_path = root / "CHANGELOG.md"
+    changelog_content = load_text(changelog_path)
+    if "## [Unreleased]" not in changelog_content:
+        failures.append("CHANGELOG.md: missing '## [Unreleased]' heading")
+    if "Known limitations still open" not in changelog_content:
+        failures.append("CHANGELOG.md: missing 'Known limitations still open' section")
+    if "### " not in changelog_content:
+        failures.append("CHANGELOG.md: missing at least one scoped subsection ('### ...')")
+
+    wiki_paths = get_wiki_doc_paths(root)
+    checks = {
+        root / "docs" / "publishing.md": [
+            "CHANGELOG.md",
+            "limitação",
+            "v<versao>",
+            "vsix-v<versao-da-vsix>",
+            "vscode-v<versao-da-extensao>",
+        ],
+        root / "src" / "DbSqlLikeMem.VsCodeExtension" / "README.md": [
+            "CHANGELOG.md",
+            "docs/publishing.md",
+            "vscode-v*",
+            "package.json",
+        ],
+        root / "src" / "DbSqlLikeMem.VisualStudioExtension" / "README.md": [
+            "CHANGELOG.md",
+            "docs/publishing.md",
+            "vsix-v*",
+            "source.extension.vsixmanifest",
+        ],
+    }
+
+    wiki_publishing = wiki_paths["publishing"]
+    if wiki_publishing is not None:
+        checks[wiki_publishing] = [
+            "CHANGELOG.md",
+            "Known limitations still open",
+            "v*",
+            "vsix-v*",
+            "vscode-v*",
+        ]
+
+    for path, tokens in checks.items():
+        content = load_text(path)
+        for token in tokens:
+            if token not in content:
+                failures.append(f"{path.relative_to(root)}: missing release communication token '{token}'")
 
     return failures
 
@@ -437,6 +540,11 @@ def check_template_review_metadata(root: Path) -> list[str]:
         failures.append(
             "templates/dbsqllikemem/review-metadata.json: "
             "nextPlannedReviewOn must be greater than or equal to lastReviewedOn"
+        )
+    if next_planned_review_on and next_planned_review_on < date.today():
+        failures.append(
+            "templates/dbsqllikemem/review-metadata.json: "
+            f"template baseline review is overdue since '{next_planned_review_on.isoformat()}'"
         )
 
     profiles = data.get("profiles", {})
@@ -722,6 +830,7 @@ def main() -> int:
     failures.extend(check_template_baselines(root))
     failures.extend(check_template_review_metadata(root))
     failures.extend(check_workflows(root))
+    failures.extend(check_release_communication(root))
 
     if repository_url:
         vscode_failures, vscode_warnings = check_vscode_extension(root, repository_url)

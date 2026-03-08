@@ -65,6 +65,20 @@ def validate_package(package: Path, expected_metadata: dict[str, str]) -> list[s
     if metadata is None:
         return [f"{package.name}: has no metadata section in nuspec"]
 
+    version = get_child(metadata, "version")
+    expected_version = expected_metadata.get("Version", "")
+    actual_version = (version.text or "").strip() if version is not None else ""
+    if not actual_version:
+        issues.append(f"{package.name}: missing version metadata")
+    elif expected_version and actual_version != expected_version:
+        issues.append(
+            f"{package.name}: version mismatch (expected '{expected_version}', found '{actual_version}')"
+        )
+    if actual_version and not package.name.endswith(f".{actual_version}.nupkg"):
+        issues.append(
+            f"{package.name}: package filename does not end with '.{actual_version}.nupkg'"
+        )
+
     repository = get_child(metadata, "repository")
     repo_url = repository.attrib.get("url") if repository is not None else None
     expected_repository_url = expected_metadata.get("RepositoryUrl", "")

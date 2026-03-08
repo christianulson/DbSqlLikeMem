@@ -58,7 +58,7 @@ public static class GeneratedClassSnapshotReader
         IReadOnlyDictionary<string, string>? fallback)
     {
         var props = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var key in new[] { "Columns", "PrimaryKey", "Indexes", "ForeignKeys", "StartValue", "IncrementBy", "CurrentValue" })
+        foreach (var key in new[] { "Columns", "PrimaryKey", "Indexes", "ForeignKeys", "Triggers", "StartValue", "IncrementBy", "CurrentValue" })
         {
             if (metadata.TryGetValue(key, out var value))
             {
