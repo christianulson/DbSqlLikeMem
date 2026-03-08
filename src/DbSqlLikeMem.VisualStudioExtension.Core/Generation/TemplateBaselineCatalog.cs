@@ -21,7 +21,12 @@ public static class TemplateBaselineCatalog
             "templates/dbsqllikemem/vCurrent/api/model.template.txt",
             "templates/dbsqllikemem/vCurrent/api/repository.template.txt",
             "src/Models",
-            "src/Repositories"),
+            "src/Repositories",
+            CreateRecommendedMappings(
+                "tests/Integration/Tables", "{NamePascal}TableIntegrationTests.cs",
+                "tests/Integration/Views", "{NamePascal}ViewIntegrationTests.cs",
+                "tests/Integration/Procedures", "{NamePascal}ProcedureIntegrationTests.cs",
+                "tests/Integration/Sequences", "{NamePascal}SequenceIntegrationTests.cs")),
         new TemplateBaselineProfile(
             "worker",
             "Worker/Batch",
@@ -33,7 +38,12 @@ public static class TemplateBaselineCatalog
             "templates/dbsqllikemem/vCurrent/worker/model.template.txt",
             "templates/dbsqllikemem/vCurrent/worker/repository.template.txt",
             "src/Batch/Models",
-            "src/Batch/Repositories"),
+            "src/Batch/Repositories",
+            CreateRecommendedMappings(
+                "tests/Consistency/Tables", "{NamePascal}TableConsistencyTests.cs",
+                "tests/Consistency/Views", "{NamePascal}ViewConsistencyTests.cs",
+                "tests/Consistency/Procedures", "{NamePascal}ProcedureConsistencyTests.cs",
+                "tests/Consistency/Sequences", "{NamePascal}SequenceConsistencyTests.cs")),
     ];
 
     /// <summary>
@@ -49,6 +59,25 @@ public static class TemplateBaselineCatalog
     /// <param name="profileId">EN: Profile identifier like `api` or `worker`. PT: Identificador do perfil como `api` ou `worker`.</param>
     public static TemplateBaselineProfile? GetProfile(string profileId)
         => Profiles.FirstOrDefault(profile => string.Equals(profile.Id, profileId, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// EN: Gets the recommended object-type mapping defaults for the informed profile and object type.
+    /// PT: Obtem os defaults recomendados de mapeamento por tipo de objeto para o perfil e tipo informados.
+    /// </summary>
+    /// <param name="profileId">EN: Profile identifier like `api` or `worker`. PT: Identificador do perfil como `api` ou `worker`.</param>
+    /// <param name="objectType">EN: Object type whose mapping should be resolved. PT: Tipo de objeto cujo mapeamento deve ser resolvido.</param>
+    public static ObjectTypeMapping CreateRecommendedMapping(string profileId, DatabaseObjectType objectType)
+    {
+        var profile = GetProfile(profileId)
+            ?? throw new ArgumentOutOfRangeException(nameof(profileId), profileId, "Unsupported template baseline profile.");
+
+        if (profile.RecommendedMappings.TryGetValue(objectType, out var mapping))
+        {
+            return mapping;
+        }
+
+        return new ObjectTypeMapping(objectType, "Generated", "{NamePascal}{Type}Factory.cs");
+    }
 
     /// <summary>
     /// EN: Creates a template configuration pointing to the current baseline files under a repository root.
@@ -105,4 +134,21 @@ public static class TemplateBaselineCatalog
 
     private static string ResolveRepositoryRelativePath(string repositoryRoot, string relativePath)
         => Path.GetFullPath(Path.Combine(repositoryRoot, relativePath.Replace('/', Path.DirectorySeparatorChar)));
+
+    private static IReadOnlyDictionary<DatabaseObjectType, ObjectTypeMapping> CreateRecommendedMappings(
+        string tableOutputDirectory,
+        string tableFileNamePattern,
+        string viewOutputDirectory,
+        string viewFileNamePattern,
+        string procedureOutputDirectory,
+        string procedureFileNamePattern,
+        string sequenceOutputDirectory,
+        string sequenceFileNamePattern)
+        => new Dictionary<DatabaseObjectType, ObjectTypeMapping>
+        {
+            [DatabaseObjectType.Table] = new(DatabaseObjectType.Table, tableOutputDirectory, tableFileNamePattern),
+            [DatabaseObjectType.View] = new(DatabaseObjectType.View, viewOutputDirectory, viewFileNamePattern),
+            [DatabaseObjectType.Procedure] = new(DatabaseObjectType.Procedure, procedureOutputDirectory, procedureFileNamePattern),
+            [DatabaseObjectType.Sequence] = new(DatabaseObjectType.Sequence, sequenceOutputDirectory, sequenceFileNamePattern),
+        };
 }

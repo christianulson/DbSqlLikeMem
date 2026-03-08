@@ -90,4 +90,22 @@ public sealed class ConnectionMappingServiceTests
         Assert.Equal("{NamePascal}{Type}Factory.cs", updated.Mappings[DatabaseObjectType.View].FileNamePattern);
         Assert.Equal("Generated", updated.Mappings[DatabaseObjectType.View].OutputDirectory);
     }
+
+    /// <summary>
+    /// EN: Ensures baseline-driven mapping defaults reuse the versioned profile catalog while preserving the informed namespace.
+    /// PT: Garante que defaults de mapeamento guiados por baseline reutilizem o catalogo versionado de perfis preservando o namespace informado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ConnectionMappingService")]
+    public void CreateRecommendedMapping_ShouldReuseProfileDefaultsAndPreserveNamespace()
+    {
+        var service = new ConnectionMappingService();
+
+        var mapping = service.CreateRecommendedMapping("worker", DatabaseObjectType.Sequence, "Company.Project.Batch.Sequences");
+
+        Assert.Equal(DatabaseObjectType.Sequence, mapping.ObjectType);
+        Assert.Equal("tests/Consistency/Sequences", mapping.OutputDirectory);
+        Assert.Equal("{NamePascal}SequenceConsistencyTests.cs", mapping.FileNamePattern);
+        Assert.Equal("Company.Project.Batch.Sequences", mapping.Namespace);
+    }
 }

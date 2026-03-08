@@ -10,6 +10,37 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Validation;
 public sealed class ObjectConsistencyChecker
 {
     /// <summary>
+    /// EN: Returns the missing artifact kinds required by the generation flow in deterministic order.
+    /// PT: Retorna os tipos de artefato ausentes exigidos pelo fluxo de geracao em ordem deterministica.
+    /// </summary>
+    /// <param name="hasPrimaryClass">EN: Indicates whether the main generated class exists. PT: Indica se a classe gerada principal existe.</param>
+    /// <param name="hasModel">EN: Indicates whether the companion model file exists. PT: Indica se o arquivo complementar de modelo existe.</param>
+    /// <param name="hasRepository">EN: Indicates whether the companion repository file exists. PT: Indica se o arquivo complementar de repositorio existe.</param>
+    public IReadOnlyCollection<string> GetMissingArtifactKinds(
+        bool hasPrimaryClass,
+        bool hasModel,
+        bool hasRepository)
+    {
+        var missingArtifacts = new List<string>(3);
+        if (!hasPrimaryClass)
+        {
+            missingArtifacts.Add("class");
+        }
+
+        if (!hasModel)
+        {
+            missingArtifacts.Add("model");
+        }
+
+        if (!hasRepository)
+        {
+            missingArtifacts.Add("repository");
+        }
+
+        return missingArtifacts;
+    }
+
+    /// <summary>
     /// EN: Classifies the local artifact set required by the generation flow before metadata comparison.
     /// PT: Classifica o conjunto de artefatos locais exigido pelo fluxo de geracao antes da comparacao de metadados.
     /// </summary>
@@ -27,21 +58,8 @@ public sealed class ObjectConsistencyChecker
         bool hasRepository,
         string? missingMessage = null)
     {
-        var existingArtifacts = 0;
-        if (hasPrimaryClass)
-        {
-            existingArtifacts++;
-        }
-
-        if (hasModel)
-        {
-            existingArtifacts++;
-        }
-
-        if (hasRepository)
-        {
-            existingArtifacts++;
-        }
+        var missingArtifacts = GetMissingArtifactKinds(hasPrimaryClass, hasModel, hasRepository);
+        var existingArtifacts = 3 - missingArtifacts.Count;
 
         return existingArtifacts switch
         {

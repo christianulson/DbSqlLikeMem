@@ -1,4 +1,5 @@
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
+using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Services;
 
@@ -42,6 +43,28 @@ public sealed class ConnectionMappingService
         }
 
         return new ObjectTypeMapping(objectType, DefaultOutputDirectory, DefaultFileNamePattern);
+    }
+
+    /// <summary>
+    /// EN: Resolves the recommended mapping defaults from a versioned baseline profile while preserving the informed namespace.
+    /// PT: Resolve os defaults recomendados de mapeamento a partir de um perfil versionado de baseline preservando o namespace informado.
+    /// </summary>
+    /// <param name="profileId">EN: Baseline profile identifier like `api` or `worker`. PT: Identificador do perfil de baseline como `api` ou `worker`.</param>
+    /// <param name="objectType">EN: Object type whose recommended mapping should be resolved. PT: Tipo de objeto cujo mapeamento recomendado deve ser resolvido.</param>
+    /// <param name="namespace">EN: Optional namespace that should remain associated with the returned mapping. PT: Namespace opcional que deve permanecer associado ao mapeamento retornado.</param>
+    public ObjectTypeMapping CreateRecommendedMapping(
+        string profileId,
+        DatabaseObjectType objectType,
+        string? @namespace = null)
+    {
+        var baselineMapping = TemplateBaselineCatalog.CreateRecommendedMapping(profileId, objectType);
+        var effectiveNamespace = string.IsNullOrWhiteSpace(@namespace) ? null : @namespace.Trim();
+
+        return new ObjectTypeMapping(
+            objectType,
+            baselineMapping.OutputDirectory,
+            baselineMapping.FileNamePattern,
+            effectiveNamespace);
     }
 
     /// <summary>

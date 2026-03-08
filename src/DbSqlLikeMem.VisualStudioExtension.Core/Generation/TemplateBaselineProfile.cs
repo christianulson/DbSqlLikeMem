@@ -21,6 +21,7 @@ public sealed record TemplateBaselineProfile
     /// <param name="repositoryTemplateRelativePath">EN: Repository-relative repository template path. PT: Caminho relativo do template de repositorio no repositorio.</param>
     /// <param name="modelOutputDirectory">EN: Default output directory for model generation. PT: Diretorio padrao de saida para geracao de modelos.</param>
     /// <param name="repositoryOutputDirectory">EN: Default output directory for repository generation. PT: Diretorio padrao de saida para geracao de repositorios.</param>
+    /// <param name="recommendedMappings">EN: Recommended object-type mappings for test/class generation under this profile. PT: Mapeamentos recomendados por tipo de objeto para geracao de testes/classes sob este perfil.</param>
     public TemplateBaselineProfile(
         string id,
         string displayName,
@@ -32,7 +33,8 @@ public sealed record TemplateBaselineProfile
         string modelTemplateRelativePath,
         string repositoryTemplateRelativePath,
         string modelOutputDirectory,
-        string repositoryOutputDirectory)
+        string repositoryOutputDirectory,
+        IReadOnlyDictionary<Models.DatabaseObjectType, Models.ObjectTypeMapping> recommendedMappings)
     {
         Id = id;
         DisplayName = displayName;
@@ -45,6 +47,7 @@ public sealed record TemplateBaselineProfile
         RepositoryTemplateRelativePath = repositoryTemplateRelativePath;
         ModelOutputDirectory = modelOutputDirectory;
         RepositoryOutputDirectory = repositoryOutputDirectory;
+        RecommendedMappings = recommendedMappings;
     }
 
     /// <summary>
@@ -112,4 +115,10 @@ public sealed record TemplateBaselineProfile
     /// PT: Obtem o diretorio padrao de saida para arquivos de repositorio.
     /// </summary>
     public string RepositoryOutputDirectory { get; }
+
+    /// <summary>
+    /// EN: Gets the recommended object-type mappings associated with this profile.
+    /// PT: Obtem os mapeamentos recomendados por tipo de objeto associados a este perfil.
+    /// </summary>
+    public IReadOnlyDictionary<Models.DatabaseObjectType, Models.ObjectTypeMapping> RecommendedMappings { get; }
 }

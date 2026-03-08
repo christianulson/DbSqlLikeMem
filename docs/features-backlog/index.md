@@ -972,12 +972,13 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 5.1.1 Geração de classes de teste
 
-- Implementação estimada: **96%**.
+- Implementação estimada: **97%**.
 - Fluxo principal para acelerar criação de testes automatizados.
 - Apoia padronização da base de testes.
 - Incremento desta sessão: a geração principal da VSIX passou a respeitar o `namespace` configurado por tipo de objeto também no conteúdo estruturado das classes geradas, reduzindo divergência entre o mapeamento salvo e o artefato emitido.
 - Incremento desta sessão: a extensão VS Code deixou de gerar stub com `TODO` e passou a emitir scaffold inicial de teste com metadados de origem, método determinístico e `[Fact(Skip = ...)]`, mantendo compilação válida sem mascarar que o cenário ainda precisa ser implementado.
 - Incremento desta sessão: o `Configure Mappings` da VSIX deixou de reaplicar um padrão global a toda a malha e passou a editar apenas o tipo de objeto selecionado na conexão atual, eliminando drift acidental na geração principal de classes.
+- Incremento desta sessão: o diálogo `Configure Mappings` da VSIX passou a oferecer também perfis `API` e `Worker/Batch` para aplicar defaults versionados por tipo de objeto, aproximando a baseline operacional do fluxo real de geração de testes.
 
 #### 5.1.2 Geração de classes de modelos
 
@@ -1001,7 +1002,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 5.1.4 Ganhos operacionais
 
-- Implementação estimada: **95%**.
+- Implementação estimada: **98%**.
 - Menor tempo de setup de projeto.
 - Maior consistência estrutural entre times e repositórios.
 - Incremento desta sessão: a paridade de tokens entre VS Code e VSIX foi ampliada com `{{Namespace}}`, reduzindo drift entre extensões irmãs na configuração de geração.
@@ -1010,6 +1011,9 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: a paridade operacional entre VS Code e VSIX passou a incluir também o padrão configurável de nome para `Model`/`Repository`, reduzindo setup manual e drift de nomenclatura entre times.
 - Incremento desta sessão: a VSIX passou a respeitar de forma real o escopo `conexão + tipo de objeto` ao configurar mappings, removendo uma fonte de sobrescrita silenciosa que ainda atrapalhava setups multi-módulo.
 - Incremento desta sessão: a extensão VS Code passou a alinhar manager, comando rápido, árvore e metadata real também para `Sequence`, reduzindo mais uma divergência operacional remanescente em relação à VSIX.
+- Incremento desta sessão: a VSIX passou a consumir os mesmos perfis `api/worker` também no `Configure Mappings`, reduzindo mais uma convenção manual que ainda separava a baseline documentada do uso diário na extensão.
+- Incremento desta sessão: a árvore da VSIX passou a exibir tooltip com o diagnóstico persistido da consistência, incluindo os artefatos faltantes do trio local, reduzindo mais uma assimetria operacional em relação ao detalhamento já presente no VS Code.
+- Incremento desta sessão: os diálogos `Configure Mappings` e `Configure Templates` da VSIX passaram a exibir resumo operacional do perfil selecionado, tornando foco de testes, revisão planejada e recomendações de saída mais visíveis no fluxo diário.
 
 ### 5.2 Templates e consistência
 
@@ -1037,16 +1041,17 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 5.2.2 Check visual de consistência
 
-- Implementação estimada: **95%**.
+- Implementação estimada: **97%**.
 - Indicação de ausência, divergência ou sincronização de artefatos.
 - Apoia revisão rápida antes de commit/publicação.
 - Incremento desta sessão: a extensão VS Code passou a validar de fato o trio `teste + model + repository` por objeto, usando os caminhos determinísticos da própria geração em vez de conferir apenas Model/Repository.
 - Incremento desta sessão: a VSIX passou a distinguir explicitamente o caso de trio local incompleto (`classe/model/repositório`) antes da comparação de metadados, alinhando o estado visual intermediário ao critério já adotado no VS Code.
 - Incremento desta sessão: a extensão VS Code passou a persistir o detalhe dos artefatos faltantes por objeto, reaproveitando helper puro para classificar `ok/partial/missing`, exibindo tooltip na árvore e limpando estado residual quando o trio volta a ficar íntegro.
+- Incremento desta sessão: a VSIX passou a expor tooltip na árvore com a mensagem persistida da checagem e a listar os artefatos faltantes (`class/model/repository`) em ordem determinística, aproximando a leitura visual do diagnóstico ao fluxo já consolidado no VS Code.
 
 #### 5.2.3 Estratégia de governança
 
-- Implementação estimada: **96%**.
+- Implementação estimada: **98%**.
 - Versionar templates junto ao repositório quando possível.
 - Definir baseline de geração por tipo de projeto.
 - Incremento desta sessão: o repositório passou a versionar uma baseline física em `templates/dbsqllikemem/vCurrent`, com catálogo explícito no core (`TemplateBaselineCatalog`) e trilha `vNext` reservada para a próxima promoção controlada.
@@ -1057,12 +1062,14 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: `scripts/check_release_readiness.py` passou a falhar também quando alguma baseline versionada usa placeholders `{{...}}` fora do contrato suportado, fechando o loop de governança no artefato publicado.
 - Incremento desta sessão: os perfis `api` e `worker` passaram a orientar também os defaults de mapeamento de testes na extensão VS Code, reduzindo mais uma fonte de convenção solta fora da baseline operacional.
 - Incremento desta sessão: a trilha de revisão periódica passou a ter metadado versionado em `templates/dbsqllikemem/review-metadata.json`, com cadência, última revisão, próxima janela-alvo e evidências mínimas validadas pelo auditor de release.
+- Incremento desta sessão: a VSIX passou a consumir a mesma baseline versionada também no diálogo `Configure Mappings`, reaproveitando o catálogo central para aplicar defaults por tipo de objeto sem duplicar convenções na UI.
+- Incremento desta sessão: a apresentação da baseline na VSIX foi centralizada em formatter compartilhado do core, mantendo descrição, foco, revisão e recomendação por tipo sob a mesma fonte de verdade do catálogo versionado.
 
 ### 5.3 Padrões recomendados para adoção em equipe
 
 #### 5.3.1 Template baseline por tipo de solução
 
-- Implementação estimada: **95%**.
+- Implementação estimada: **98%**.
 - API: foco em repositórios e testes de integração leve.
 - Worker/Batch: foco em comandos DML e validação de consistência.
 - Incremento desta sessão: perfis iniciais `api` e `worker` foram materializados em `templates/dbsqllikemem/vCurrent`, com templates de Model/Repository e diretórios sugeridos distintos para cada tipo de solução.
@@ -1070,16 +1077,19 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: a extensão VS Code passou a consumir também os padrões de nome presentes nesses perfis, eliminando divergência residual entre baseline documentada e saída efetiva da geração.
 - Incremento desta sessão: a extensão VS Code passou a oferecer também defaults de mapeamento de testes coerentes com o perfil selecionado (`API` com foco em integração leve; `Worker/Batch` com foco em consistência), aproximando a baseline do fluxo real de adoção em equipe.
 - Incremento desta sessão: a mesma trilha de defaults por perfil no VS Code passou a cobrir também `Sequence`, evitando que o último tipo suportado pela documentação ficasse fora da baseline operacional adotada pela equipe.
+- Incremento desta sessão: a VSIX passou a aplicar esses mesmos perfis também no `Configure Mappings`, cobrindo `Table`, `View`, `Procedure` e `Sequence` com defaults recomendados diretamente no fluxo de adoção da equipe.
+- Incremento desta sessão: a VSIX passou a exibir também o contexto operacional desses perfis diretamente nos diálogos, reduzindo a distância entre baseline documentada e decisão efetiva de adoção por solução/equipe.
 
 #### 5.3.2 Revisão periódica de templates
 
-- Implementação estimada: **92%**.
+- Implementação estimada: **94%**.
 - Revisão trimestral para refletir novas convenções arquiteturais.
 - Checklist de compatibilidade antes de atualizar templates compartilhados.
 - Incremento desta sessão: `templates/dbsqllikemem/vNext/README.md` formaliza a trilha de promoção da próxima baseline e amarra a atualização ao backlog, status operacional e changelog.
 - Incremento desta sessão: `templates/dbsqllikemem/review-checklist.md` formaliza a revisão de tokens, promoção de baseline e paridade entre VSIX/VS Code, e o auditor passou a vigiar sua presença/contrato mínimo.
 - Incremento desta sessão: o auditor agora verifica também se as baselines versionadas continuam usando apenas placeholders suportados, transformando o checklist de revisão em regra objetiva.
 - Incremento desta sessão: `templates/dbsqllikemem/review-metadata.json` passou a registrar a última revisão executada e a próxima janela planejada em formato estruturado, e o auditor valida datas, baseline corrente, staging path e arquivos mínimos de evidência.
+- Incremento desta sessão: a próxima janela de revisão e a cadência do perfil passaram a aparecer diretamente nos diálogos da VSIX, reduzindo o risco de a revisão periódica ficar restrita ao arquivo `review-metadata.json`.
 
 ---
 

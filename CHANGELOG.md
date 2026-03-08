@@ -46,8 +46,11 @@ Este arquivo registra mudanças relevantes por impacto funcional, com foco em pr
 - Geração principal de classes na VSIX também passou a reaproveitar o `namespace` configurado por tipo de objeto no conteúdo estruturado emitido.
 - O padrão de nome de arquivo da VSIX agora também aceita `{Namespace}`, mantendo o preview de conflitos e a checagem de consistência no mesmo contrato de mapeamento.
 - O fluxo `Configure Mappings` da VSIX agora atualiza apenas o recorte selecionado (`conexão + tipo de objeto`), preservando mapeamentos já existentes dos outros tipos na mesma conexão.
+- O diálogo `Configure Mappings` da VSIX agora também oferece perfis `api` e `worker` para aplicar defaults versionados de pasta/padrão por tipo de objeto, reaproveitando o mesmo catálogo operacional já consumido pelas outras trilhas de baseline.
+- Os diálogos `Configure Mappings` e `Configure Templates` da VSIX agora também exibem resumo do perfil selecionado com descrição, foco recomendado de testes, revisão planejada e, no caso do mapping, a recomendação específica do tipo de objeto.
 - A geração por template da VSIX agora também aceita padrão configurável de nome de arquivo para `Model` e `Repository`, reutilizando o mesmo resolvedor tanto na escrita quanto na checagem de consistência.
 - A checagem de consistência da VSIX agora distingue trio local incompleto de divergência real de metadados, em vez de tratar ausência parcial de artefatos como diferença genérica.
+- A árvore da VSIX agora também expõe tooltip com o diagnóstico persistido da consistência, incluindo os artefatos faltantes do trio local em ordem determinística.
 - O diálogo `Configure Templates` da VSIX agora aplica diretamente perfis `api` e `worker` quando encontra `templates/dbsqllikemem`, reduzindo drift operacional em relação ao fluxo já introduzido na extensão VS Code.
 - A VSIX agora valida templates customizados contra o catálogo de tokens suportados antes de aceitar a configuração, reduzindo risco de placeholders que o runtime não sabe renderizar.
 - Baselines versionadas de template foram adicionadas em `templates/dbsqllikemem/vCurrent` com perfis `api` e `worker`, além de trilha controlada `vNext` para próxima promoção.

@@ -33,6 +33,7 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
    - Botão no topo **Configurar templates** para informar arquivo de template e diretório de saída.
    - Baselines versionadas do repositório ficam disponíveis em `templates/dbsqllikemem/vCurrent`, com perfis iniciais `api` e `worker` para reaproveitamento manual na configuração.
    - O diálogo da VSIX agora também consegue aplicar diretamente esses perfis quando localiza `templates/dbsqllikemem` a partir do ambiente atual.
+   - O diálogo também passou a exibir resumo do perfil selecionado com descrição, foco recomendado de testes e próxima janela de revisão, reduzindo ambiguidade na adoção da baseline.
    - Templates customizados agora são validados contra o contrato de tokens suportados antes de serem salvos.
    - Model e Repository agora também aceitam padrão configurável de nome de arquivo, reutilizando placeholders como `{NamePascal}`, `{Schema}`, `{DatabaseType}`, `{DatabaseName}` e `{Namespace}`.
    - O mapeamento padrão por tipo de objeto também aceita `namespace` opcional reaproveitado na geração.
@@ -43,10 +44,13 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 8. **Mapeamentos de geração realmente por conexão e tipo**
    - O menu **Configurar mapeamentos** da VSIX agora respeita o nó selecionado (`conexão + tipo de objeto`) em vez de reaplicar o mesmo padrão para toda a malha já configurada.
    - Ajustes em `Table`, `View`, `Procedure` ou `Sequence` preservam os demais mapeamentos existentes da mesma conexão.
+   - O mesmo diálogo agora também oferece perfis `API` e `Worker/Batch` para aplicar defaults versionados de pasta/padrão por tipo de objeto, alinhando a VSIX ao catálogo `templates/dbsqllikemem/vCurrent`.
+   - A recomendação exibida no diálogo agora inclui também pasta/padrão sugeridos para o tipo atual, junto do contexto de foco e revisão do perfil.
 
 9. **Checagem complementar de artefatos gerados**
    - A consistência considera também a presença de arquivos de Model e Repository, além das classes já geradas pelo fluxo principal.
    - Quando apenas parte do trio local existe, a VSIX agora sinaliza estado intermediário em vez de misturar esse caso com divergência pura de metadados.
+   - O nó na árvore agora também exibe tooltip com o diagnóstico persistido da checagem, incluindo quais artefatos do trio local ainda faltam.
 
 10. **Importação e exportação de configurações**
    - Botões no topo para **Importar configurações** e **Exportar configurações** em JSON.

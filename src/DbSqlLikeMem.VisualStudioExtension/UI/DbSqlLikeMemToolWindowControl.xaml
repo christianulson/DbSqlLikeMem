@@ -10,7 +10,7 @@
              d:DesignWidth="420">
     <UserControl.Resources>
         <HierarchicalDataTemplate DataType="{x:Type ui:ExplorerNode}" ItemsSource="{Binding Children}">
-            <StackPanel Orientation="Horizontal">
+            <StackPanel Orientation="Horizontal" ToolTip="{Binding HealthMessage}">
                 <TextBlock Text="{Binding NodeGlyph}" Margin="0,0,6,0" />
                 <TextBlock Text="{Binding StatusGlyph}" Margin="0,0,6,0" />
                 <TextBlock Text="{Binding Label}" />

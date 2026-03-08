@@ -110,6 +110,12 @@ public sealed class ExplorerNode
     /// </summary>
     public ObjectHealthStatus? HealthStatus { get; set; }
 
+    /// <summary>
+    /// Gets or sets the diagnostic message associated with the current health status.
+    /// Obtém ou define a mensagem de diagnóstico associada ao status de saúde atual.
+    /// </summary>
+    public string? HealthMessage { get; set; }
+
 
     /// <summary>
     /// Gets an icon glyph for the node kind.

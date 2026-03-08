@@ -1,7 +1,6 @@
 using System.IO;
 using System.Windows;
 using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
-using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 
 using UiResources = DbSqlLikeMem.VisualStudioExtension.Properties.Resources;
 
@@ -9,6 +8,8 @@ namespace DbSqlLikeMem.VisualStudioExtension.UI;
 
 public partial class TemplateConfigurationDialog : Window
 {
+    private readonly TemplateReviewMetadata? reviewMetadata;
+
     /// <summary>
     /// Initializes a dialog to configure model and repository templates and output folders.
     /// Inicializa uma janela para configurar templates e pastas de saída de modelos e repositórios.
@@ -16,6 +17,7 @@ public partial class TemplateConfigurationDialog : Window
     public TemplateConfigurationDialog(TemplateConfiguration current)
     {
         InitializeComponent();
+        reviewMetadata = LoadReviewMetadata();
         TemplateBaselineProfileComboBox.ItemsSource = TemplateBaselineCatalog.GetProfiles().OrderBy(profile => profile.DisplayName).ToArray();
         TemplateBaselineProfileComboBox.SelectedValue = "api";
         ModelTemplatePathTextBox.Text = current.ModelTemplatePath;
@@ -24,6 +26,7 @@ public partial class TemplateConfigurationDialog : Window
         RepositoryOutputDirectoryTextBox.Text = current.RepositoryOutputDirectory;
         ModelFileNamePatternTextBox.Text = current.ModelFileNamePattern;
         RepositoryFileNamePatternTextBox.Text = current.RepositoryFileNamePattern;
+        RefreshBaselineSummary();
     }
 
     /// <summary>
@@ -82,6 +85,9 @@ public partial class TemplateConfigurationDialog : Window
         ModelFileNamePatternTextBox.Text = configuration.ModelFileNamePattern;
         RepositoryFileNamePatternTextBox.Text = configuration.RepositoryFileNamePattern;
     }
+
+    private void OnBaselineSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        => RefreshBaselineSummary();
 
     private void OnSaveClick(object sender, RoutedEventArgs e)
     {
@@ -161,5 +167,21 @@ public partial class TemplateConfigurationDialog : Window
             MessageBox.Show(this, string.Format(UiResources.InvalidDirectoryWithDetail, directory, ex.Message), UiResources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
         }
+    }
+
+    private void RefreshBaselineSummary()
+    {
+        BaselineSummaryTextBlock.Text = TemplateBaselineProfileComboBox.SelectedItem is TemplateBaselineProfile profile
+            ? TemplateBaselinePresentation.BuildProfileSummary(profile, reviewMetadata)
+            : "Select a template baseline profile to preview its intended use, test focus, and review cadence.";
+    }
+
+    private static TemplateReviewMetadata? LoadReviewMetadata()
+    {
+        var repositoryRoot = TemplateBaselineCatalog.FindRepositoryRoot(Directory.GetCurrentDirectory())
+            ?? TemplateBaselineCatalog.FindRepositoryRoot(AppContext.BaseDirectory);
+        return repositoryRoot is null
+            ? null
+            : TemplateReviewMetadataReader.TryLoadFromRepositoryRoot(repositoryRoot);
     }
 }

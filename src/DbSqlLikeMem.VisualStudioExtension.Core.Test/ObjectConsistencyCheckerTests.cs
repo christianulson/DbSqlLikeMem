@@ -84,6 +84,21 @@ public class ObjectConsistencyCheckerTests
     }
 
     /// <summary>
+    /// EN: Ensures missing artifact kinds are exposed in deterministic class-model-repository order for UI diagnostics.
+    /// PT: Garante que os tipos de artefato ausentes sejam expostos na ordem deterministica classe-modelo-repositorio para diagnosticos da UI.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ObjectConsistencyChecker")]
+    public void GetMissingArtifactKinds_WhenArtifactsAreMissing_ReturnsDeterministicOrder()
+    {
+        var checker = new ObjectConsistencyChecker();
+
+        var missingKinds = checker.GetMissingArtifactKinds(hasPrimaryClass: false, hasModel: true, hasRepository: false);
+
+        Assert.Equal(["class", "repository"], missingKinds);
+    }
+
+    /// <summary>
     /// EN: Ensures metadata comparison continues only after the expected local artifact trio exists.
     /// PT: Garante que a comparacao de metadados continue apenas depois que o trio esperado de artefatos locais existir.
     /// </summary>

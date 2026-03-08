@@ -29,6 +29,8 @@ public sealed class TemplateBaselineCatalogTests
                 Assert.Equal("Light integration tests for tables, views, and repositories.", api.RecommendedTestFocus);
                 Assert.Equal("src/Models", api.ModelOutputDirectory);
                 Assert.Equal("src/Repositories", api.RepositoryOutputDirectory);
+                Assert.Equal("tests/Integration/Tables", api.RecommendedMappings[DatabaseObjectType.Table].OutputDirectory);
+                Assert.Equal("{NamePascal}SequenceIntegrationTests.cs", api.RecommendedMappings[DatabaseObjectType.Sequence].FileNamePattern);
             },
             worker =>
             {
@@ -39,7 +41,26 @@ public sealed class TemplateBaselineCatalogTests
                 Assert.Equal("Consistency-oriented tests for batch flows and DML validation.", worker.RecommendedTestFocus);
                 Assert.Equal("src/Batch/Models", worker.ModelOutputDirectory);
                 Assert.Equal("src/Batch/Repositories", worker.RepositoryOutputDirectory);
+                Assert.Equal("tests/Consistency/Views", worker.RecommendedMappings[DatabaseObjectType.View].OutputDirectory);
+                Assert.Equal("{NamePascal}ProcedureConsistencyTests.cs", worker.RecommendedMappings[DatabaseObjectType.Procedure].FileNamePattern);
             });
+    }
+
+    /// <summary>
+    /// EN: Ensures mapping defaults can be resolved from the same baseline catalog used by the VSIX dialogs.
+    /// PT: Garante que defaults de mapeamento possam ser resolvidos a partir do mesmo catalogo de baseline usado pelos dialogos da VSIX.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "TemplateBaselineCatalog")]
+    public void CreateRecommendedMapping_ShouldResolvePerObjectTypeDefaults()
+    {
+        var apiSequence = TemplateBaselineCatalog.CreateRecommendedMapping("api", DatabaseObjectType.Sequence);
+        var workerTable = TemplateBaselineCatalog.CreateRecommendedMapping("worker", DatabaseObjectType.Table);
+
+        Assert.Equal("tests/Integration/Sequences", apiSequence.OutputDirectory);
+        Assert.Equal("{NamePascal}SequenceIntegrationTests.cs", apiSequence.FileNamePattern);
+        Assert.Equal("tests/Consistency/Tables", workerTable.OutputDirectory);
+        Assert.Equal("{NamePascal}TableConsistencyTests.cs", workerTable.FileNamePattern);
     }
 
     /// <summary>

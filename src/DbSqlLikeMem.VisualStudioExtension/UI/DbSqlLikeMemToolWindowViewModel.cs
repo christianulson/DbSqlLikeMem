@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Data.Common;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Text;
@@ -905,13 +906,14 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                 var hasPrimaryClass = File.Exists(filePath);
                 var hasModel = File.Exists(modelPath);
                 var hasRepository = File.Exists(repositoryPath);
+                var missingArtifactKinds = checker.GetMissingArtifactKinds(hasPrimaryClass, hasModel, hasRepository);
                 var artifactStatus = checker.EvaluateLocalArtifacts(
                     dbObject,
                     filePath,
                     hasPrimaryClass,
                     hasModel,
                     hasRepository,
-                    Resources.MissingGeneratedFiles);
+                    BuildMissingGeneratedFilesMessage(missingArtifactKinds));
                 if (artifactStatus is not null)
                 {
                     updates.Add((BuildObjectKey(connection.Id, dbObject), artifactStatus));
@@ -1050,7 +1052,8 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                                 ConnectionId = connection.Id,
                                 ObjectType = dbObject.Type,
                                 DatabaseObject = dbObject,
-                                HealthStatus = status
+                                HealthStatus = status,
+                                HealthMessage = health?.Message
                             };
 
                             if (dbObject.Type == DatabaseObjectType.Table)
@@ -1136,6 +1139,32 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         };
 
         return hasFilter ? $"{baseLabel} 🔎" : baseLabel;
+    }
+
+    private static string BuildMissingGeneratedFilesMessage(IReadOnlyCollection<string> missingArtifactKinds)
+    {
+        if (missingArtifactKinds.Count == 0)
+        {
+            return Resources.MissingGeneratedFiles;
+        }
+
+        var prefix = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals("pt", StringComparison.OrdinalIgnoreCase)
+            ? "Ausentes"
+            : "Missing";
+        var translatedKinds = missingArtifactKinds.Select(TranslateArtifactKindForUi);
+        return $"{Resources.MissingGeneratedFiles} {prefix}: {string.Join(", ", translatedKinds)}.";
+    }
+
+    private static string TranslateArtifactKindForUi(string artifactKind)
+    {
+        var isPortuguese = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals("pt", StringComparison.OrdinalIgnoreCase);
+        return artifactKind switch
+        {
+            "class" when isPortuguese => "classe",
+            "model" when isPortuguese => "modelo",
+            "repository" when isPortuguese => "repositorio",
+            _ => artifactKind
+        };
     }
 
     private static string BuildNodeKey(ExplorerNode node)
