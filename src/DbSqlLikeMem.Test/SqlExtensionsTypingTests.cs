@@ -218,15 +218,70 @@ public sealed class SqlExtensionsTypingTests
         Assert.True(10.Compare("2", dialect) < 0);
     }
 
+    /// <summary>
+    /// EN: Ensures an explicit ESCAPE expression makes LIKE treat wildcard tokens as literals.
+    /// PT: Garante que uma expressão ESCAPE explícita faça o LIKE tratar curingas como literais.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void Like_WithExplicitEscapeExpression_ShouldTreatEscapedWildcardAsLiteral()
+    {
+        var dialect = new SqlExtensionsTestDialect(
+            supportsImplicitNumericStringComparison: true,
+            likeDefaultEscapeCharacter: null);
+
+        Assert.True("Jo_n".Like("Jo#_%", dialect, "#"));
+        Assert.False("Joan".Like("Jo#_%", dialect, "#"));
+    }
+
+    /// <summary>
+    /// EN: Ensures the default LIKE escape behavior follows the configured dialect policy.
+    /// PT: Garante que o escape padrão de LIKE siga a política configurada no dialeto.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void Like_DefaultEscapeBehavior_ShouldFollowDialectPolicy()
+    {
+        var mysqlLikeDialect = new SqlExtensionsTestDialect(
+            supportsImplicitNumericStringComparison: true,
+            likeDefaultEscapeCharacter: '\\');
+        var ansiLikeDialect = new SqlExtensionsTestDialect(
+            supportsImplicitNumericStringComparison: true,
+            likeDefaultEscapeCharacter: null);
+
+        Assert.True("Jo_n".Like(@"Jo\_%", mysqlLikeDialect));
+        Assert.False("Jo_n".Like(@"Jo\_%", ansiLikeDialect));
+    }
+
+    /// <summary>
+    /// EN: Ensures invalid explicit ESCAPE values are rejected when the dialect requires a single character.
+    /// PT: Garante que valores ESCAPE explícitos inválidos sejam rejeitados quando o dialeto exige um único caractere.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void Like_WithMultiCharacterExplicitEscape_ShouldThrow()
+    {
+        var dialect = new SqlExtensionsTestDialect(
+            supportsImplicitNumericStringComparison: true,
+            likeDefaultEscapeCharacter: null);
+
+        var ex = Assert.Throws<InvalidOperationException>(() => "Jo_n".Like("Jo#_%", dialect, "##"));
+
+        Assert.Contains("single character", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private sealed class SqlExtensionsTestDialect : SqlDialectBase
     {
         private readonly bool _supportsImplicitNumericStringComparison;
+        private readonly char? _likeDefaultEscapeCharacter;
 
         /// <summary>
         /// EN: Initializes a lightweight dialect stub for SqlExtensions behavior tests.
         /// PT: Inicializa um stub de dialeto leve para testes de comportamento de SqlExtensions.
         /// </summary>
-        public SqlExtensionsTestDialect(bool supportsImplicitNumericStringComparison)
+        public SqlExtensionsTestDialect(
+            bool supportsImplicitNumericStringComparison,
+            char? likeDefaultEscapeCharacter = '\\')
             : base(
                 name: "test",
                 version: 1,
@@ -235,6 +290,7 @@ public sealed class SqlExtensionsTypingTests
                 operators: [])
         {
             _supportsImplicitNumericStringComparison = supportsImplicitNumericStringComparison;
+            _likeDefaultEscapeCharacter = likeDefaultEscapeCharacter;
         }
 
         /// <summary>
@@ -242,5 +298,11 @@ public sealed class SqlExtensionsTypingTests
         /// PT: Obtém se a comparação implícita número/string está habilitada.
         /// </summary>
         public override bool SupportsImplicitNumericStringComparison => _supportsImplicitNumericStringComparison;
+
+        /// <summary>
+        /// EN: Gets the default LIKE escape character used by this lightweight dialect stub.
+        /// PT: Obtém o caractere padrão de escape do LIKE usado por este stub leve de dialeto.
+        /// </summary>
+        public override char? LikeDefaultEscapeCharacter => _likeDefaultEscapeCharacter;
     }
 }

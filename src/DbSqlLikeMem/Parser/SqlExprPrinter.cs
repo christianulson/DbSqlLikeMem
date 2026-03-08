@@ -66,6 +66,11 @@ internal static class SqlExprPrinter
                 Wrap(l.Left, sb);
                 sb.Append(" LIKE ");
                 Wrap(l.Pattern, sb);
+                if (l.Escape is not null)
+                {
+                    sb.Append(" ESCAPE ");
+                    Wrap(l.Escape, sb);
+                }
                 break;
 
             case IsNullExpr n:

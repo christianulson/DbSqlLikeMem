@@ -80,6 +80,10 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// </summary>
     public override bool LikeIsCaseInsensitive => true;
 
+    public override bool RegexIsCaseInsensitive => true;
+
+    public override char? LikeDefaultEscapeCharacter => '\\';
+
 
     /// <summary>
     /// EN: Gets or sets SupportsHashLineComment.

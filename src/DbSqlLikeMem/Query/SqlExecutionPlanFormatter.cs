@@ -888,7 +888,7 @@ internal static class SqlExecutionPlanFormatter
             BinaryExpr b when b.Op is SqlBinaryOp.And or SqlBinaryOp.Or
                 => 2 + EstimateLogicalPredicateDepthPenalty(b) + EstimateLogicalOperatorMixPenalty(b) + EstimatePredicateComplexityCost(b.Left) + EstimatePredicateComplexityCost(b.Right),
             BinaryExpr b => 1 + EstimatePredicateComplexityCost(b.Left) + EstimatePredicateComplexityCost(b.Right),
-            LikeExpr l => 2 + EstimatePredicateComplexityCost(l.Left) + EstimatePredicateComplexityCost(l.Pattern),
+            LikeExpr l => 2 + EstimatePredicateComplexityCost(l.Left) + EstimatePredicateComplexityCost(l.Pattern) + (l.Escape is null ? 0 : EstimatePredicateComplexityCost(l.Escape)),
             BetweenExpr b => 2 + EstimatePredicateComplexityCost(b.Expr) + EstimatePredicateComplexityCost(b.Low) + EstimatePredicateComplexityCost(b.High),
             InExpr i => 2 + EstimatePredicateComplexityCost(i.Left) + i.Items.Sum(EstimatePredicateComplexityCost) + i.Items.Count,
             ExistsExpr e => EstimateSubqueryPredicateCost(e.Subquery),

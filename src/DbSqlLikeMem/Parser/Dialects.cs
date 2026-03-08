@@ -92,6 +92,7 @@ internal interface ISqlDialect
     bool SupportsJsonArrowOperators { get; }
     bool SupportsJsonExtractFunction { get; }
     bool SupportsJsonValueFunction { get; }
+    bool SupportsJsonValueReturningClause { get; }
     bool SupportsOpenJsonFunction { get; }
 
     // Parser-only compatibility toggles (keep runtime rules separated)
@@ -126,12 +127,15 @@ internal interface ISqlDialect
     bool ConcatReturnsNullOnNullInput { get; }
     // Dialect-specific runtime semantics
     bool RegexInvalidPatternEvaluatesToFalse { get; }
+    bool RegexIsCaseInsensitive { get; }
     bool AreUnionColumnTypesCompatible(DbType first, DbType second);
     bool IsIntegerCastTypeName(string typeName);
     bool SupportsDateAddFunction(string functionName);
     bool SupportsWindowFunctions { get; }
     bool SupportsWindowFrameClause { get; }
     bool SupportsLikeEscapeClause { get; }
+    char? LikeDefaultEscapeCharacter { get; }
+    bool LikeEscapeExpressionMustBeSingleCharacter { get; }
     bool IsRowNumberWindowFunction(string functionName);
     bool SupportsWindowFunction(string functionName);
     bool RequiresOrderByInWindowFunction(string functionName);
@@ -322,6 +326,8 @@ internal abstract class SqlDialectBase : ISqlDialect
 
     public virtual bool RegexInvalidPatternEvaluatesToFalse => false;
 
+    public virtual bool RegexIsCaseInsensitive => false;
+
     public virtual bool AreUnionColumnTypesCompatible(DbType first, DbType second)
     {
         if (first == second)
@@ -373,6 +379,10 @@ internal abstract class SqlDialectBase : ISqlDialect
     }
 
     public virtual bool SupportsLikeEscapeClause => true;
+
+    public virtual char? LikeDefaultEscapeCharacter => null;
+
+    public virtual bool LikeEscapeExpressionMustBeSingleCharacter => true;
 
     public virtual bool SupportsWithinGroupForStringAggregates => false;
 
@@ -677,6 +687,7 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual bool SupportsJsonArrowOperators => false;
     public virtual bool SupportsJsonExtractFunction => false;
     public virtual bool SupportsJsonValueFunction => false;
+    public virtual bool SupportsJsonValueReturningClause => false;
     public virtual bool SupportsOpenJsonFunction => false;
 
     /// <summary>

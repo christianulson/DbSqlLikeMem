@@ -2736,6 +2736,7 @@ WHERE users.id = EXCLUDED.id";
         Assert.False(d.IsIntegerCastTypeName("NUMBER"));
 
         Assert.False(d.RegexInvalidPatternEvaluatesToFalse);
+        Assert.True(d.RegexIsCaseInsensitive);
         Assert.True(d.SupportsTriggers);
     }
 

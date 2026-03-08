@@ -214,8 +214,7 @@ internal sealed class SqlExpressionParser(
         Consume(); // NOT
         Consume(); // LIKE
 
-        var pattern = ParseExpression(51);
-        left = new UnaryExpr(SqlUnaryOp.Not, new LikeExpr(left, pattern));
+        left = new UnaryExpr(SqlUnaryOp.Not, ParseLikeExpression(left, 51));
         return true;
     }
 
@@ -367,20 +366,31 @@ internal sealed class SqlExpressionParser(
             Consume(); // LIKE
         }
 
-        var pattern = ParseExpression(rbp);
-
-        // Optional ANSI/DB2 form: ... LIKE <pattern> ESCAPE <escape-char>
-        // We currently ignore explicit escape char in the AST (default LIKE escape semantics remain in evaluator),
-        // but we must consume the tokens so the predicate is not truncated.
-        if (_dialect.SupportsLikeEscapeClause && IsKeyword(Peek(), "ESCAPE"))
-        {
-            Consume(); // ESCAPE
-            _ = ParseExpression(rbp); // explicit escape expression (ignored for now)
-        }
-
-        var expr = (SqlExpr)new LikeExpr(left, pattern);
+        var expr = (SqlExpr)ParseLikeExpression(left, rbp);
         left = negate ? new UnaryExpr(SqlUnaryOp.Not, expr) : expr;
         return true;
+    }
+
+    private LikeExpr ParseLikeExpression(SqlExpr left, int rbp)
+    {
+        var pattern = ParseExpression(rbp);
+        SqlExpr? escape = null;
+
+        if (_dialect.SupportsLikeEscapeClause && IsKeyword(Peek(), "ESCAPE"))
+        {
+            var escapeToken = Peek();
+            Consume(); // ESCAPE
+            escape = ParseExpression(rbp);
+
+            if (_dialect.LikeEscapeExpressionMustBeSingleCharacter
+                && escape is LiteralExpr { Value: string escapeText }
+                && escapeText.Length != 1)
+            {
+                throw Error("LIKE ESCAPE requires a single-character expression.", escapeToken);
+            }
+        }
+
+        return new LikeExpr(left, pattern, escape);
     }
 
     private bool TryParseRegexpInfix(ref SqlExpr left, int minBp)
@@ -1455,10 +1465,12 @@ internal sealed class SqlExpressionParser(
             }
 
             // Oracle: JSON_VALUE(json_doc, path RETURNING NUMBER)
-            // Keep RETURNING payload as a raw extra argument so evaluator can ignore/use it.
             if (name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
                 && IsKeywordOrIdentifierWord(Peek(), "RETURNING"))
             {
+                if (!_dialect.SupportsJsonValueReturningClause)
+                    throw SqlUnsupported.ForDialect(_dialect, "JSON_VALUE ... RETURNING");
+
                 Consume(); // RETURNING
 
                 var typeToks = new List<SqlToken>();

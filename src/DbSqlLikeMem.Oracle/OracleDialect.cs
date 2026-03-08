@@ -110,6 +110,8 @@ internal sealed class OracleDialect : SqlDialectBase
     /// PT: Obtém se há suporte a função json_value.
     /// </summary>
     public override bool SupportsJsonValueFunction => true;
+
+    public override bool SupportsJsonValueReturningClause => true;
     /// <summary>
     /// EN: Gets whether merge is supported.
     /// PT: Obtém se há suporte a merge.

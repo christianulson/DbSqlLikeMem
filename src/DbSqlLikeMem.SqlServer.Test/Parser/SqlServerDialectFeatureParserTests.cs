@@ -119,6 +119,23 @@ public sealed class SqlServerDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures SQL Server rejects Oracle-style JSON_VALUE RETURNING clause with an actionable dialect gate.
+    /// PT: Garante que o SQL Server rejeite a cláusula Oracle-style JSON_VALUE RETURNING com gate acionável de dialeto.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_JsonValueWithReturningClause_ShouldBeRejected(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("JSON_VALUE(payload, '$.a.b' RETURNING NUMBER)", new SqlServerDialect(version)));
+
+        Assert.Contains("JSON_VALUE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures MERGE parsing follows SQL Server version support and preserves target table metadata.
     /// PT: Garante que o parsing de MERGE siga o suporte por versão do SQL Server e preserve metadados da tabela alvo.
     /// </summary>

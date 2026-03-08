@@ -203,6 +203,43 @@ public sealed class Db2WhereParserAndExecutorTests : XUnitTestBase
     }
 
     /// <summary>
+    /// EN: Verifies LIKE ESCAPE matches literal wildcard characters through the DB2 parser and executor path.
+    /// PT: Verifica se LIKE ESCAPE casa curingas literais pelo fluxo de parser e executor do DB2.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2WhereParserAndExecutor")]
+    public void Where_LikeEscapeClause_ShouldMatchLiteralWildcardCharacters()
+    {
+        var users = _cnn.GetTable("users");
+        users.Add(new Dictionary<int, object?> { [0] = 4, [1] = "Jo_n", [2] = "jon_@x.com", [3] = null });
+        users.Add(new Dictionary<int, object?> { [0] = 5, [1] = "Joan", [2] = "joan@x.com", [3] = null });
+
+        var rows = _cnn.Query<dynamic>(
+            "SELECT id FROM users WHERE name LIKE 'Jo#_%' ESCAPE '#' ORDER BY id")
+            .ToList();
+
+        Assert.Single(rows);
+        Assert.Equal(4, (int)rows[0].id);
+    }
+
+    /// <summary>
+    /// EN: Verifies LIKE ESCAPE rejects parameter values that evaluate to more than one character.
+    /// PT: Verifica se LIKE ESCAPE rejeita valores de parâmetro que resultam em mais de um caractere.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2WhereParserAndExecutor")]
+    public void Where_LikeEscapeClause_WithMultiCharacterParameter_ShouldThrowActionableError()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _cnn.Query<dynamic>(
+                "SELECT id FROM users WHERE name LIKE 'Jo#_%' ESCAPE @esc",
+                new { esc = "##" })
+            .ToList());
+
+        Assert.Contains("single character", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Tests Where_FindInSet_ShouldWork behavior.
     /// PT: Testa o comportamento de Where_FindInSet_ShouldWork.
     /// </summary>

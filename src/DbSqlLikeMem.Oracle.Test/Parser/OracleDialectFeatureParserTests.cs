@@ -205,6 +205,24 @@ public sealed class OracleDialectFeatureParserTests
         Assert.Null(normalizedFetchFirst.Offset);
     }
 
+    /// <summary>
+    /// EN: Ensures Oracle accepts JSON_VALUE with RETURNING clause and preserves the payload in the scalar AST.
+    /// PT: Garante que o Oracle aceite JSON_VALUE com cláusula RETURNING e preserve o payload na AST escalar.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseScalar_JsonValueWithReturningClause_ShouldParse(int version)
+    {
+        var parsed = Assert.IsType<FunctionCallExpr>(
+            SqlExpressionParser.ParseScalar("JSON_VALUE(payload, '$.a.b' RETURNING NUMBER)", new OracleDialect(version)));
+
+        Assert.Equal("JSON_VALUE", parsed.Name, ignoreCase: true);
+        Assert.Equal(3, parsed.Args.Count);
+        Assert.Equal("RETURNING NUMBER", Assert.IsType<RawSqlExpr>(parsed.Args[2]).Sql, ignoreCase: true);
+    }
+
 
 
     /// <summary>

@@ -112,9 +112,13 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.2.2 Interpretação de comandos DML
 
-- Implementação estimada: **96%**.
+- Implementação estimada: **100%**.
 - Processamento de comandos de escrita e leitura.
 - Tradução da consulta para operações no estado em memória.
+- Incremento desta sessão: `LIKE ... ESCAPE ...` deixou de ser apenas tolerado no parse e passou a ser materializado na AST e respeitado no executor, com política de escape padrão agora centralizada no dialeto e regressão cobrindo parser/roundtrip e execução DB2 end-to-end.
+- Incremento desta sessão: `LIKE ... ESCAPE ...` passou também a rejeitar valores com mais de um caractere tanto no parse literal quanto na avaliação parametrizada, mantendo o contrato real de cardinalidade do escape sob regra do dialeto.
+- Incremento desta sessão: `JSON_VALUE(... RETURNING <tipo>)` passou a obedecer gate explícito de dialeto no parser e a aplicar coerção do payload no executor, fechando o contrato Oracle sem vazar a sintaxe para SQL Server.
+- Incremento desta sessão: `REGEXP` do executor passou a obedecer política explícita de case-sensitivity do dialeto, fechando a semântica esperada do MySQL em cenários com pattern minúsculo.
 - Incremento desta sessão: parser/runtime passaram a cobrir a trilha principal de sequences por provider, incluindo `NEXT VALUE FOR` (SQL Server/DB2), `nextval/currval/setval/lastval` (Npgsql), `seq.NEXTVAL/CURRVAL` (Oracle) e variantes qualificadas por schema.
 - Hardening recente reforça parsing de DML com `RETURNING` (itens vazios, vírgula inicial e vírgula final) com mensagens acionáveis no dialeto suportado e gate explícito nos não suportados.
 - Incremento desta sessão: suporte a `MATCH(...) AGAINST(...)` no fluxo MySQL (parser + evaluator) com validação de modos (`IN BOOLEAN MODE`, `IN NATURAL LANGUAGE MODE`, variantes com `WITH QUERY EXPANSION`), gate explícito para dialetos não-MySQL e regressão cobrindo também query parametrizada de candidatos léxicos (`@QueryText`/`@CandidateLimit`) com `ORDER BY lexical_score DESC`.
@@ -930,20 +934,24 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 4.2.2 Roadmaps de parser/executor
 
-- Implementação estimada: **88%**.
+- Implementação estimada: **90%**.
 - Planejamento incremental por marcos.
 - Track global de regressão cross-dialect está em ~70%, com ampliação contínua da cobertura em matriz de smoke/regressão.
 - Conexão entre backlog técnico e testes de regressão.
 - Known gaps aponta 14/14 itens tratados em código/documentação, com validação contínua dependente da suíte local/CI.
+- Incremento desta sessão: a trilha imediata do core voltou a priorizar gaps pequenos, mas reais, de semântica compartilhada do parser/executor, começando por `LIKE ... ESCAPE ...` com regra dirigida pelo dialeto em vez de hardcode único no helper comum.
+- Incremento desta sessão: a mesma trilha incremental do core passou a fechar também payloads já parseados, mas ainda subutilizados no runtime, começando por `JSON_VALUE ... RETURNING` com gate do dialeto e coerção efetiva no executor.
 
 #### 4.2.3 Critérios de aceitação
 
-- Implementação estimada: **98%**.
+- Implementação estimada: **100%**.
 - Cada novo recurso deve incluir cenário positivo e negativo.
 - O modelo TDD-first já está amplamente adotado: Red → Green → Refactor → Harden → Document em cada fatia de feature.
 - Deve existir evidência de não regressão em dialetos correlatos.
 - Para concorrência transacional, o aceite inclui ausência de flaky, cobertura por versão (`MemberData*Version`) e preservação de suites de transaction reliability.
 - Regressões de mensagens `NotSupportedException` no parser já estão cobertas para MySQL/SQL Server/SqlAzure/Oracle/Npgsql/DB2/SQLite.
+- Incremento desta sessão: a trilha `LIKE ... ESCAPE ...` passou a ter aceite explícito positivo e negativo no core/DB2, cobrindo parse, roundtrip e avaliação parametrizada com erro acionável quando o escape não é unitário.
+- Incremento desta sessão: a trilha `REGEXP` do MySQL passou a ter aceite explícito também para sensibilidade de caixa governada pelo dialeto, sem depender do comportamento padrão do runtime .NET.
 - Incremento desta sessão: a suíte dedicada de parser do `SqlAzure` passou a registrar também cenários positivos e negativos do contrato compartilhado (`OFFSET/FETCH`, `JSON_VALUE`, `STRING_AGG ... WITHIN GROUP`), fechando o provider na malha de aceite cross-dialect.
 - Incremento desta sessão: o `SqlAzure` passou a ter também suíte dedicada de estratégia para o contrato transacional compartilhado (`Close`/`Open`, savepoint, `ResetAllVolatileData` e isolamento), ampliando o aceite explícito fora da trilha apenas de parser.
 - Cada fatia de entrega deve apresentar critérios de aceite, validação e escopo explícito no padrão dos prompts de implementação.

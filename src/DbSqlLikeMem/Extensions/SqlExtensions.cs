@@ -61,41 +61,36 @@ internal static class SqlExtensions
         return true;
     }
 
-    internal static bool Like(this string input, string pattern, ISqlDialect? dialect = null)
+    internal static bool Like(this string input, string pattern, ISqlDialect? dialect = null, string? escape = null)
     {
         input ??= "";
         pattern ??= "";
 
-        // Converte LIKE -> Regex
-        // %  => .*     (qualquer sequência)
-        // _  => .      (um caractere)
-        // \% e \_ (escape) -> literal
+        var escapeChar = ResolveLikeEscapeCharacter(dialect, escape);
         var sb = new System.Text.StringBuilder();
         sb.Append('^');
 
-        bool escaped = false;
         for (int i = 0; i < pattern.Length; i++)
         {
             char ch = pattern[i];
 
-            if (!escaped && ch == '\\')
+            if (escapeChar.HasValue && ch == escapeChar.Value)
             {
-                escaped = true;
+                if (i + 1 < pattern.Length)
+                {
+                    AppendRegexLiteral(sb, pattern[++i]);
+                }
+                else
+                {
+                    AppendRegexLiteral(sb, ch);
+                }
                 continue;
             }
 
-            if (!escaped)
-            {
-                if (ch == '%') { sb.Append(".*"); continue; }
-                if (ch == '_') { sb.Append('.'); continue; }
-            }
+            if (ch == '%') { sb.Append(".*"); continue; }
+            if (ch == '_') { sb.Append('.'); continue; }
 
-            // literal (escapa regex specials)
-            if ("\\.^$|?*+()[]{}".Contains($"{ch}", StringComparison.OrdinalIgnoreCase))
-                sb.Append('\\');
-
-            sb.Append(ch);
-            escaped = false;
+            AppendRegexLiteral(sb, ch);
         }
 
         sb.Append('$');
@@ -105,6 +100,32 @@ internal static class SqlExtensions
             options |= RegexOptions.IgnoreCase;
 
         return Regex.IsMatch(input, sb.ToString(), options);
+    }
+
+    private static char? ResolveLikeEscapeCharacter(ISqlDialect? dialect, string? explicitEscape)
+    {
+        if (explicitEscape is not null)
+        {
+            if (dialect?.LikeEscapeExpressionMustBeSingleCharacter ?? true)
+            {
+                if (explicitEscape.Length != 1)
+                    throw new InvalidOperationException("LIKE ESCAPE expression must evaluate to a single character.");
+            }
+
+            return explicitEscape.Length == 0 ? null : explicitEscape[0];
+        }
+
+        return dialect is null
+            ? '\\'
+            : dialect.LikeDefaultEscapeCharacter;
+    }
+
+    private static void AppendRegexLiteral(System.Text.StringBuilder sb, char ch)
+    {
+        if ("\\.^$|?*+()[]{}".Contains($"{ch}", StringComparison.OrdinalIgnoreCase))
+            sb.Append('\\');
+
+        sb.Append(ch);
     }
 
     internal static int Compare(this object a, object b, ISqlDialect? dialect = null)

@@ -485,6 +485,18 @@ ORDER BY id").ToList();
         Assert.Equal([1, 3], [.. rows.Select(r => (int)r.id)]);
     }
 
+    /// <summary>
+    /// EN: Tests Regexp_Operator_ShouldRespectDialectCaseSensitivity behavior.
+    /// PT: Testa o comportamento de Regexp_Operator_ShouldRespectDialectCaseSensitivity.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlAdvancedSqlGap")]
+    public void Regexp_Operator_ShouldRespectDialectCaseSensitivity()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name REGEXP '^j' ORDER BY id").ToList();
+        Assert.Equal([1, 3], [.. rows.Select(r => (int)r.id)]);
+    }
+
 
     /// <summary>
     /// EN: Tests OrderBy_Field_Function_ShouldWork behavior.

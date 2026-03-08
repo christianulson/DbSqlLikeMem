@@ -4,6 +4,15 @@ Este arquivo registra mudanças relevantes por impacto funcional, com foco em pr
 
 ## [Unreleased]
 
+### Core parser/executor
+
+- `LIKE ... ESCAPE ...` agora é materializado na AST e respeitado no executor, em vez de ser apenas consumido no parse.
+- A semântica de escape padrão do `LIKE` passou a ser dirigida pelo dialeto (`LikeDefaultEscapeCharacter`), removendo o hardcode único do helper comum.
+- A trilha recebeu regressão objetiva em helper core, parser/roundtrip DB2 e execução DB2 end-to-end.
+- `LIKE ... ESCAPE ...` agora também rejeita valores com mais de um caractere no parse literal e na avaliação parametrizada, mantendo o contrato do dialeto para cardinalidade do escape.
+- `JSON_VALUE(... RETURNING <tipo>)` agora respeita gate explícito de dialeto no parser e aplica coerção do valor no executor, cobrindo o contrato Oracle e rejeitando a cláusula no SQL Server.
+- `REGEXP` no executor agora também respeita política de case-sensitivity definida pelo dialeto, cobrindo a semântica default do MySQL.
+
 ### Cross-dialect
 
 - Runner central de equivalência ganhou perfil `parser`, além de `smoke` e `aggregation`.

@@ -808,6 +808,7 @@ internal abstract class AstQueryExecutorBase(
             case LikeExpr l:
                 CollectColumns(l.Left, sourceMap, columnsByTable);
                 CollectColumns(l.Pattern, sourceMap, columnsByTable);
+                CollectColumns(l.Escape, sourceMap, columnsByTable);
                 break;
             case IsNullExpr n:
                 CollectColumns(n.Expr, sourceMap, columnsByTable);
@@ -1187,7 +1188,8 @@ internal abstract class AstQueryExecutorBase(
 
             case LikeExpr like:
                 return WalkHasTemporalHavingReference(like.Left, dialect)
-                    || WalkHasTemporalHavingReference(like.Pattern, dialect);
+                    || WalkHasTemporalHavingReference(like.Pattern, dialect)
+                    || WalkHasTemporalHavingReference(like.Escape, dialect);
 
             case InExpr i:
                 if (WalkHasTemporalHavingReference(i.Left, dialect))
@@ -1268,7 +1270,10 @@ internal abstract class AstQueryExecutorBase(
                 return like with
                 {
                     Left = RewriteHavingOrdinals(like.Left, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
-                    Pattern = RewriteHavingOrdinals(like.Pattern, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal)
+                    Pattern = RewriteHavingOrdinals(like.Pattern, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
+                    Escape = like.Escape is null
+                        ? null
+                        : RewriteHavingOrdinals(like.Escape, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal)
                 };
             case InExpr i:
                 var rewrittenInItems = new List<SqlExpr>(i.Items.Count);
@@ -1449,6 +1454,11 @@ internal abstract class AstQueryExecutorBase(
                     yield return id;
                 foreach (var id in EnumerateIdentifiers(l.Pattern))
                     yield return id;
+                if (l.Escape is not null)
+                {
+                    foreach (var id in EnumerateIdentifiers(l.Escape))
+                        yield return id;
+                }
                 yield break;
             case InExpr i:
                 foreach (var id in EnumerateIdentifiers(i.Left))
@@ -3907,7 +3917,8 @@ private void FillPercentRankOrCumeDist(
                 {
                     var left = Eval(like.Left, row, group, ctes)?.ToString() ?? "";
                     var pat = Eval(like.Pattern, row, group, ctes)?.ToString() ?? "";
-                    return left.Like(pat, Dialect);
+                    var escape = like.Escape is null ? null : Eval(like.Escape, row, group, ctes)?.ToString();
+                    return left.Like(pat, Dialect, escape);
                 }
 
             case UnaryExpr u when u.Op == SqlUnaryOp.Not:
@@ -4066,7 +4077,11 @@ private void FillPercentRankOrCumeDist(
     {
         try
         {
-            return Regex.IsMatch(l.ToString() ?? "", r.ToString() ?? "");
+            var options = RegexOptions.CultureInvariant;
+            if (dialect.RegexIsCaseInsensitive)
+                options |= RegexOptions.IgnoreCase;
+
+            return Regex.IsMatch(l.ToString() ?? "", r.ToString() ?? "", options);
         }
         catch (ArgumentException)
         {
@@ -6168,7 +6183,10 @@ private void FillPercentRankOrCumeDist(
 
             try
             {
-                return TryReadJsonPathValue(json!, path!);
+                var value = TryReadJsonPathValue(json!, path!);
+                return fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
+                    ? ApplyJsonValueReturningClause(fn, value)
+                    : value;
             }
 #pragma warning disable CA1031
             catch (Exception e)
@@ -6223,6 +6241,51 @@ private void FillPercentRankOrCumeDist(
 
         handled = false;
         return null;
+    }
+
+    private object? ApplyJsonValueReturningClause(FunctionCallExpr fn, object? value)
+    {
+        if (IsNullish(value) || fn.Args.Count < 3 || fn.Args[2] is not RawSqlExpr raw)
+            return value;
+
+        const string prefix = "RETURNING ";
+        if (!raw.Sql.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            return value;
+
+        var typeSql = raw.Sql[prefix.Length..].Trim();
+        if (typeSql.Length == 0)
+            return value;
+
+        var normalized = typeSql.ToUpperInvariant();
+
+        if (normalized.StartsWith("NUMBER", StringComparison.Ordinal)
+            || normalized.StartsWith("DECIMAL", StringComparison.Ordinal)
+            || normalized.StartsWith("NUMERIC", StringComparison.Ordinal))
+            return Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+
+        if (normalized.StartsWith("DOUBLE", StringComparison.Ordinal)
+            || normalized.StartsWith("FLOAT", StringComparison.Ordinal)
+            || normalized.StartsWith("REAL", StringComparison.Ordinal)
+            || normalized.StartsWith("BINARY_DOUBLE", StringComparison.Ordinal)
+            || normalized.StartsWith("BINARY_FLOAT", StringComparison.Ordinal))
+            return Convert.ToDouble(value, CultureInfo.InvariantCulture);
+
+        if (normalized.StartsWith("INT", StringComparison.Ordinal)
+            || normalized.StartsWith("INTEGER", StringComparison.Ordinal)
+            || normalized.StartsWith("SMALLINT", StringComparison.Ordinal)
+            || normalized.StartsWith("BIGINT", StringComparison.Ordinal))
+            return Convert.ToInt64(value, CultureInfo.InvariantCulture);
+
+        if (normalized.StartsWith("VARCHAR", StringComparison.Ordinal)
+            || normalized.StartsWith("VARCHAR2", StringComparison.Ordinal)
+            || normalized.StartsWith("NVARCHAR", StringComparison.Ordinal)
+            || normalized.StartsWith("NVARCHAR2", StringComparison.Ordinal)
+            || normalized.StartsWith("CHAR", StringComparison.Ordinal)
+            || normalized.StartsWith("NCHAR", StringComparison.Ordinal)
+            || normalized.StartsWith("CLOB", StringComparison.Ordinal))
+            return value.ToString();
+
+        return value;
     }
 
     private object? TryEvalConcatFunctions(
@@ -6727,7 +6790,7 @@ private void FillPercentRankOrCumeDist(
         FunctionCallExpr f => _aggFnsStatic.Contains(f.Name) || f.Args.Any(WalkHasAggregate),
         BinaryExpr b => WalkHasAggregate(b.Left) || WalkHasAggregate(b.Right),
         UnaryExpr u => WalkHasAggregate(u.Expr),
-        LikeExpr l => WalkHasAggregate(l.Left) || WalkHasAggregate(l.Pattern),
+        LikeExpr l => WalkHasAggregate(l.Left) || WalkHasAggregate(l.Pattern) || (l.Escape is not null && WalkHasAggregate(l.Escape)),
         InExpr i => WalkHasAggregate(i.Left) || i.Items.Any(WalkHasAggregate),
         IsNullExpr isn => WalkHasAggregate(isn.Expr),
         QuantifiedComparisonExpr q => WalkHasAggregate(q.Left) || WalkHasAggregate(q.Subquery),

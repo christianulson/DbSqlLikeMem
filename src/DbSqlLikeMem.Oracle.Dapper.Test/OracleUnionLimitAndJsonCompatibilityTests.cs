@@ -50,6 +50,19 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
         Assert.Equal([123m, 456m, null], [.. rows.Select(r => (object?)r.v)]);
     }
 
+    /// <summary>
+    /// EN: Ensures JSON_VALUE RETURNING text types are applied by the executor instead of leaving numeric payloads untouched.
+    /// PT: Garante que JSON_VALUE RETURNING em tipos textuais seja aplicado pelo executor em vez de deixar payloads numéricos inalterados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
+    public void JsonValue_WithReturningVarchar2_ShouldCoerceValueToText()
+    {
+        var rows = Connection.Query<dynamic>("SELECT id, JSON_VALUE(payload, '$.a.b' RETURNING VARCHAR2(30)) AS v FROM t ORDER BY id").ToList();
+
+        Assert.Equal(["123", "456", null], [.. rows.Select(r => (string?)r.v)]);
+    }
+
 
 
 
