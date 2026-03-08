@@ -1,0 +1,21 @@
+{
+  "currentBaseline": "vCurrent",
+  "promotionStagingPath": "templates/dbsqllikemem/vNext",
+  "reviewCadence": "quarterly",
+  "lastReviewedOn": "2026-03-08",
+  "nextPlannedReviewOn": "2026-06-30",
+  "profiles": {
+    "api": {
+      "focus": "Light integration tests for tables, views, and repositories."
+    },
+    "worker": {
+      "focus": "Consistency-oriented tests for batch flows and DML validation."
+    }
+  },
+  "evidenceFiles": [
+    "CHANGELOG.md",
+    "docs/features-backlog/index.md",
+    "docs/features-backlog/status-operational.md",
+    "templates/dbsqllikemem/review-checklist.md"
+  ]
+}

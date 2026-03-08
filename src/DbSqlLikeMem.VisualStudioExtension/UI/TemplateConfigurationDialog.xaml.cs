@@ -22,6 +22,8 @@ public partial class TemplateConfigurationDialog : Window
         RepositoryTemplatePathTextBox.Text = current.RepositoryTemplatePath;
         ModelOutputDirectoryTextBox.Text = current.ModelOutputDirectory;
         RepositoryOutputDirectoryTextBox.Text = current.RepositoryOutputDirectory;
+        ModelFileNamePatternTextBox.Text = current.ModelFileNamePattern;
+        RepositoryFileNamePatternTextBox.Text = current.RepositoryFileNamePattern;
     }
 
     /// <summary>
@@ -44,6 +46,16 @@ public partial class TemplateConfigurationDialog : Window
     /// Obtém o diretório de saída para classes de repositório geradas.
     /// </summary>
     public string RepositoryOutputDirectory { get; private set; } = "Generated/Repositories";
+    /// <summary>
+    /// Gets the configured file name pattern for model generation.
+    /// Obtém o padrão configurado de nome de arquivo para geração de modelos.
+    /// </summary>
+    public string ModelFileNamePattern { get; private set; } = "{NamePascal}Model.cs";
+    /// <summary>
+    /// Gets the configured file name pattern for repository generation.
+    /// Obtém o padrão configurado de nome de arquivo para geração de repositórios.
+    /// </summary>
+    public string RepositoryFileNamePattern { get; private set; } = "{NamePascal}Repository.cs";
 
     private void OnApplyBaselineClick(object sender, RoutedEventArgs e)
     {
@@ -67,6 +79,8 @@ public partial class TemplateConfigurationDialog : Window
         RepositoryTemplatePathTextBox.Text = configuration.RepositoryTemplatePath;
         ModelOutputDirectoryTextBox.Text = configuration.ModelOutputDirectory;
         RepositoryOutputDirectoryTextBox.Text = configuration.RepositoryOutputDirectory;
+        ModelFileNamePatternTextBox.Text = configuration.ModelFileNamePattern;
+        RepositoryFileNamePatternTextBox.Text = configuration.RepositoryFileNamePattern;
     }
 
     private void OnSaveClick(object sender, RoutedEventArgs e)
@@ -75,6 +89,12 @@ public partial class TemplateConfigurationDialog : Window
         RepositoryTemplatePath = RepositoryTemplatePathTextBox.Text.Trim();
         ModelOutputDirectory = ModelOutputDirectoryTextBox.Text.Trim();
         RepositoryOutputDirectory = RepositoryOutputDirectoryTextBox.Text.Trim();
+        ModelFileNamePattern = string.IsNullOrWhiteSpace(ModelFileNamePatternTextBox.Text)
+            ? "{NamePascal}Model.cs"
+            : ModelFileNamePatternTextBox.Text.Trim();
+        RepositoryFileNamePattern = string.IsNullOrWhiteSpace(RepositoryFileNamePatternTextBox.Text)
+            ? "{NamePascal}Repository.cs"
+            : RepositoryFileNamePatternTextBox.Text.Trim();
 
         if (string.IsNullOrWhiteSpace(ModelOutputDirectory) || string.IsNullOrWhiteSpace(RepositoryOutputDirectory))
         {

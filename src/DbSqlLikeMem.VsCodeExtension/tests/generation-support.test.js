@@ -6,7 +6,9 @@ const {
   buildTemplateClassFilePath,
   buildTestClassFilePath,
   buildTestClassName,
+  evaluateGenerationConsistency,
   generateTestClassTemplate,
+  resolveTemplateFileName,
   sanitizeClassName
 } = require('../out/generation-support.js');
 
@@ -39,9 +41,10 @@ test('buildTemplateClassFilePath uses deterministic model and repository targets
       'c:\\workspace',
       { schema: 'dbo', name: 'orders', objectType: 'Table' },
       'model',
-      'src/Models'
+      'src/Models',
+      { databaseType: 'SqlServer', databaseName: 'ERP' }
     ),
-    path.join('c:\\workspace', 'src/Models', 'ordersModel.cs')
+    path.join('c:\\workspace', 'src/Models', 'OrdersModel.cs')
   );
 
   assert.equal(
@@ -49,10 +52,47 @@ test('buildTemplateClassFilePath uses deterministic model and repository targets
       'c:\\workspace',
       { schema: 'dbo', name: 'orders', objectType: 'Table' },
       'repository',
-      'src/Repositories'
+      'src/Repositories',
+      { databaseType: 'SqlServer', databaseName: 'ERP' }
     ),
-    path.join('c:\\workspace', 'src/Repositories', 'ordersRepository.cs')
+    path.join('c:\\workspace', 'src/Repositories', 'OrdersRepository.cs')
   );
+});
+
+test('resolveTemplateFileName expands placeholders for template-based generation', () => {
+  const fileName = resolveTemplateFileName(
+    { schema: 'sales', name: 'monthly-report', objectType: 'View' },
+    'repository',
+    { databaseType: 'PostgreSql', databaseName: 'Billing' },
+    '{DatabaseType}_{DatabaseName}_{Schema}_{NamePascal}_{Type}_{Namespace}.g.cs',
+    'Company.Project.Generated'
+  );
+
+  assert.equal(
+    fileName,
+    'PostgreSql_Billing_sales_MonthlyReport_View_Company.Project.Generated.g.cs'
+  );
+});
+
+test('evaluateGenerationConsistency marks partial and lists the missing artifacts', () => {
+  const result = evaluateGenerationConsistency(false, true, false);
+
+  assert.equal(result.status, 'partial');
+  assert.deepEqual(result.missingArtifacts, ['test', 'repository']);
+});
+
+test('evaluateGenerationConsistency marks missing when the full trio is absent', () => {
+  const result = evaluateGenerationConsistency(false, false, false);
+
+  assert.equal(result.status, 'missing');
+  assert.deepEqual(result.missingArtifacts, ['test', 'model', 'repository']);
+});
+
+test('evaluateGenerationConsistency marks ok when the full trio is present', () => {
+  const result = evaluateGenerationConsistency(true, true, true);
+
+  assert.equal(result.status, 'ok');
+  assert.deepEqual(result.missingArtifacts, []);
 });
 
 test('buildTestClassFilePath uses mapping folder and sanitized class name', () => {
@@ -66,6 +106,15 @@ test('buildTestClassFilePath uses mapping folder and sanitized class name', () =
     filePath,
     path.join('c:\\workspace', 'tests/Procedures', 'sp_refresh_cacheProcedureTests.cs')
   );
+});
+
+test('buildTestClassName supports sequence objects in the same deterministic path flow', () => {
+  const className = buildTestClassName(
+    { schema: 'dbo', name: 'order-seq', objectType: 'Sequence' },
+    { targetFolder: 'tests/Sequences', fileSuffix: 'SequenceTests' }
+  );
+
+  assert.equal(className, 'order_seqSequenceTests');
 });
 
 test('sanitizeClassName replaces unsupported characters with underscores', () => {

@@ -2,6 +2,8 @@
 
 Use este checklist antes de promover mudanças em `templates/dbsqllikemem/vCurrent` ou preparar conteúdo novo em `vNext`.
 
+Metadado operacional obrigatório: `templates/dbsqllikemem/review-metadata.json`.
+
 ## Compatibilidade de tokens
 
 1. Confirme que o template usa apenas os tokens suportados:
@@ -24,6 +26,7 @@ Use este checklist antes de promover mudanças em `templates/dbsqllikemem/vCurre
 2. Atualize o percentual correspondente em `docs/features-backlog/index.md`.
 3. Registre contexto operacional em `docs/features-backlog/status-operational.md` quando a mudança ainda estiver em andamento.
 4. Se a mudança sair de `vNext` para `vCurrent`, revise os perfis `api` e `worker` e confirme os diretórios padrão.
+5. Atualize `review-metadata.json` com a nova data de revisão e a próxima janela-alvo.
 
 ## Paridade entre extensões
 

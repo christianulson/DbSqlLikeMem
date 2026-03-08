@@ -14,7 +14,7 @@ public sealed class StatePersistenceServiceTests
     /// </summary>
     [Fact]
     [Trait("Category", "StatePersistenceService")]
-    public void SaveAndLoad_ShouldRoundTripMappingNamespace()
+    public void SaveAndLoad_ShouldRoundTripMappingNamespaceAndTemplatePatterns()
     {
         var tempPath = Path.Combine(Path.GetTempPath(), $"dbsql-state-{Guid.NewGuid():N}.json");
 
@@ -30,13 +30,22 @@ public sealed class StatePersistenceServiceTests
                         {
                             [DatabaseObjectType.Table] = new(DatabaseObjectType.Table, "Generated", "{NamePascal}Model.cs", "Company.Project.Generated"),
                         })
-                ]);
+                ],
+                new TemplateConfiguration(
+                    "templates/model.template.txt",
+                    "templates/repository.template.txt",
+                    "src/Models",
+                    "src/Repositories",
+                    "{Schema}_{NamePascal}Model.cs",
+                    "{Schema}_{NamePascal}Repository.cs"));
 
             service.Save(state, tempPath);
             var loaded = service.Load(tempPath);
 
             var mapping = Assert.Single(Assert.Single(loaded!.Mappings).Mappings);
             Assert.Equal("Company.Project.Generated", mapping.Value.Namespace);
+            Assert.Equal("{Schema}_{NamePascal}Model.cs", loaded.TemplateConfiguration.ModelFileNamePattern);
+            Assert.Equal("{Schema}_{NamePascal}Repository.cs", loaded.TemplateConfiguration.RepositoryFileNamePattern);
         }
         finally
         {

@@ -31,16 +31,22 @@ Este arquivo registra mudanças relevantes por impacto funcional, com foco em pr
 
 - Geração de classes de teste agora cria scaffold inicial explícito com metadados de origem, método determinístico e `[Fact(Skip = ...)]`, removendo o stub com `TODO`.
 - Check de consistência da extensão VS Code agora valida efetivamente `teste + model + repository` por objeto usando os mesmos caminhos determinísticos da geração.
+- O check de consistência da extensão VS Code agora persiste também o detalhe dos artefatos faltantes por objeto, exibindo tooltip na árvore e limpando diagnóstico residual quando o trio volta a ficar completo.
 - O comando rápido `Configure Mappings` do VS Code passou a preservar/configurar `namespace`, alinhando-o ao fluxo visual do manager.
+- O comando rápido `Configure Mappings` do VS Code agora também oferece defaults de pastas/sufixos de teste alinhados aos perfis `API` e `Worker/Batch`.
+- A extensão VS Code agora também trata `Sequence` como tipo de objeto de primeira classe no manager, no comando `Configure Mappings`, na árvore e na geração/consistência por template; para SQL Server, a metadata real passou a listar `sys.sequences`.
 - Helpers puros de geração para a extensão VS Code agora têm malha mínima de testes locais (`npm test`) e a pasta `tests/` foi excluída do pacote via `.vscodeignore`.
 - `Configure Templates` agora oferece perfis prontos baseados em `templates/dbsqllikemem/vCurrent`, com baseline `API` e `Worker/Batch` antes da edição manual dos caminhos/pastas.
 - A extensão VS Code agora valida tokens suportados em templates customizados e faz fallback para o template padrão quando encontra placeholders inválidos durante a geração.
+- A extensão VS Code agora também aceita padrão configurável de nome de arquivo para `Model` e `Repository`, reutilizando o mesmo cálculo na geração e no check de consistência.
 
 ### Tooling and docs
 
 - Geração de Model/Repository na VSIX agora suporta `{{Namespace}}`, com renderização centralizada de tokens e persistência do namespace no mapeamento exportado/importado.
 - Geração principal de classes na VSIX também passou a reaproveitar o `namespace` configurado por tipo de objeto no conteúdo estruturado emitido.
 - O padrão de nome de arquivo da VSIX agora também aceita `{Namespace}`, mantendo o preview de conflitos e a checagem de consistência no mesmo contrato de mapeamento.
+- O fluxo `Configure Mappings` da VSIX agora atualiza apenas o recorte selecionado (`conexão + tipo de objeto`), preservando mapeamentos já existentes dos outros tipos na mesma conexão.
+- A geração por template da VSIX agora também aceita padrão configurável de nome de arquivo para `Model` e `Repository`, reutilizando o mesmo resolvedor tanto na escrita quanto na checagem de consistência.
 - A checagem de consistência da VSIX agora distingue trio local incompleto de divergência real de metadados, em vez de tratar ausência parcial de artefatos como diferença genérica.
 - O diálogo `Configure Templates` da VSIX agora aplica diretamente perfis `api` e `worker` quando encontra `templates/dbsqllikemem`, reduzindo drift operacional em relação ao fluxo já introduzido na extensão VS Code.
 - A VSIX agora valida templates customizados contra o catálogo de tokens suportados antes de aceitar a configuração, reduzindo risco de placeholders que o runtime não sabe renderizar.
@@ -48,6 +54,7 @@ Este arquivo registra mudanças relevantes por impacto funcional, com foco em pr
 - `TemplateBaselineCatalog` no core e `template-baselines.ts` na extensão VS Code passaram a reutilizar essas baselines físicas como fonte de verdade para configuração inicial, com resolução da raiz mais próxima do repositório no fluxo da VSIX.
 - `TemplateTokenCatalog` e `templates/dbsqllikemem/review-checklist.md` passaram a formalizar o contrato de tokens e a revisão periódica da baseline, com vigilância do auditor de release.
 - O auditor de release agora também falha quando encontra placeholders `{{...}}` fora do contrato suportado nas baselines versionadas de template.
+- A governança de revisão de templates agora também tem metadado versionado (`templates/dbsqllikemem/review-metadata.json`) com cadência trimestral, última revisão, próxima janela-alvo e evidências mínimas, validado pelo auditor.
 - Template de PR adicionado com vínculo explícito entre código, teste, backlog e evidência de validação.
 - Checklist operacional para atualização de percentuais do backlog formalizado em `docs/features-backlog/progress-update-checklist.md`.
 - Status operacional do backlog separado do índice macro em `docs/features-backlog/status-operational.md`.

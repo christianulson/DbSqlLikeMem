@@ -24,6 +24,9 @@ public sealed class TemplateBaselineCatalogTests
             {
                 Assert.Equal("api", api.Id);
                 Assert.Equal("vCurrent", api.Version);
+                Assert.Equal("quarterly", api.ReviewCadence);
+                Assert.Equal("2026-06-30", api.NextPlannedReviewOn);
+                Assert.Equal("Light integration tests for tables, views, and repositories.", api.RecommendedTestFocus);
                 Assert.Equal("src/Models", api.ModelOutputDirectory);
                 Assert.Equal("src/Repositories", api.RepositoryOutputDirectory);
             },
@@ -31,6 +34,9 @@ public sealed class TemplateBaselineCatalogTests
             {
                 Assert.Equal("worker", worker.Id);
                 Assert.Equal("vCurrent", worker.Version);
+                Assert.Equal("quarterly", worker.ReviewCadence);
+                Assert.Equal("2026-06-30", worker.NextPlannedReviewOn);
+                Assert.Equal("Consistency-oriented tests for batch flows and DML validation.", worker.RecommendedTestFocus);
                 Assert.Equal("src/Batch/Models", worker.ModelOutputDirectory);
                 Assert.Equal("src/Batch/Repositories", worker.RepositoryOutputDirectory);
             });
@@ -56,6 +62,8 @@ public sealed class TemplateBaselineCatalogTests
             configuration.RepositoryTemplatePath);
         Assert.Equal("src/Models", configuration.ModelOutputDirectory);
         Assert.Equal("src/Repositories", configuration.RepositoryOutputDirectory);
+        Assert.Equal("{NamePascal}Model.cs", configuration.ModelFileNamePattern);
+        Assert.Equal("{NamePascal}Repository.cs", configuration.RepositoryFileNamePattern);
     }
 
     /// <summary>

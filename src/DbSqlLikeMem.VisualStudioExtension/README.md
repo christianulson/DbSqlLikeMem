@@ -34,16 +34,21 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
    - Baselines versionadas do repositório ficam disponíveis em `templates/dbsqllikemem/vCurrent`, com perfis iniciais `api` e `worker` para reaproveitamento manual na configuração.
    - O diálogo da VSIX agora também consegue aplicar diretamente esses perfis quando localiza `templates/dbsqllikemem` a partir do ambiente atual.
    - Templates customizados agora são validados contra o contrato de tokens suportados antes de serem salvos.
+   - Model e Repository agora também aceitam padrão configurável de nome de arquivo, reutilizando placeholders como `{NamePascal}`, `{Schema}`, `{DatabaseType}`, `{DatabaseName}` e `{Namespace}`.
    - O mapeamento padrão por tipo de objeto também aceita `namespace` opcional reaproveitado na geração.
    - Substituição de tokens no conteúdo durante a geração, incluindo `{{Namespace}}` quando configurado no mapeamento.
    - O mesmo `namespace` também pode entrar no padrão de nome de arquivo via `{Namespace}`.
    - Geração também pode consumir objetos `Sequence` quando presentes na metadata carregada.
 
-8. **Checagem complementar de artefatos gerados**
+8. **Mapeamentos de geração realmente por conexão e tipo**
+   - O menu **Configurar mapeamentos** da VSIX agora respeita o nó selecionado (`conexão + tipo de objeto`) em vez de reaplicar o mesmo padrão para toda a malha já configurada.
+   - Ajustes em `Table`, `View`, `Procedure` ou `Sequence` preservam os demais mapeamentos existentes da mesma conexão.
+
+9. **Checagem complementar de artefatos gerados**
    - A consistência considera também a presença de arquivos de Model e Repository, além das classes já geradas pelo fluxo principal.
    - Quando apenas parte do trio local existe, a VSIX agora sinaliza estado intermediário em vez de misturar esse caso com divergência pura de metadados.
 
-9. **Importação e exportação de configurações**
+10. **Importação e exportação de configurações**
    - Botões no topo para **Importar configurações** e **Exportar configurações** em JSON.
    - Exportação inclui conexões, mapeamentos e templates, com `ConnectionString` protegida (DPAPI por usuário).
 

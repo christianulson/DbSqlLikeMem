@@ -1,7 +1,9 @@
 import * as path from 'node:path';
 
-export type SupportedDatabaseObjectType = 'Table' | 'View' | 'Procedure';
+export type SupportedDatabaseObjectType = 'Table' | 'View' | 'Procedure' | 'Sequence';
 export type TemplateGenerationKind = 'model' | 'repository';
+export type GenerationCheckStatus = 'ok' | 'partial' | 'missing';
+export type GeneratedArtifactKind = 'test' | 'model' | 'repository';
 
 export interface GenerationObjectReference {
   schema: string;
@@ -13,6 +15,16 @@ export interface TestObjectMappingReference {
   targetFolder: string;
   fileSuffix: string;
   namespace?: string;
+}
+
+export interface TemplateConnectionReference {
+  databaseType: string;
+  databaseName: string;
+}
+
+export interface GenerationConsistencyResult {
+  status: GenerationCheckStatus;
+  missingArtifacts: GeneratedArtifactKind[];
 }
 
 export function sanitizeClassName(value: string): string {
@@ -39,11 +51,74 @@ export function buildTemplateClassFilePath(
   workspaceFolder: string,
   objectRef: GenerationObjectReference,
   kind: TemplateGenerationKind,
-  targetFolder: string
+  targetFolder: string,
+  connection: TemplateConnectionReference,
+  fileNamePattern?: string,
+  namespace?: string
 ): string {
-  const suffix = kind === 'model' ? 'Model' : 'Repository';
-  const className = sanitizeClassName(`${objectRef.name}${suffix}`);
-  return path.join(workspaceFolder, targetFolder, `${className}.cs`);
+  const fileName = resolveTemplateFileName(objectRef, kind, connection, fileNamePattern, namespace);
+  return path.join(workspaceFolder, targetFolder, fileName);
+}
+
+export function evaluateGenerationConsistency(
+  testFound: boolean,
+  modelFound: boolean,
+  repositoryFound: boolean
+): GenerationConsistencyResult {
+  const missingArtifacts: GeneratedArtifactKind[] = [];
+
+  if (!testFound) {
+    missingArtifacts.push('test');
+  }
+
+  if (!modelFound) {
+    missingArtifacts.push('model');
+  }
+
+  if (!repositoryFound) {
+    missingArtifacts.push('repository');
+  }
+
+  return {
+    status: missingArtifacts.length === 0 ? 'ok' : (missingArtifacts.length === 3 ? 'missing' : 'partial'),
+    missingArtifacts
+  };
+}
+
+export function resolveTemplateFileName(
+  objectRef: GenerationObjectReference,
+  kind: TemplateGenerationKind,
+  connection: TemplateConnectionReference,
+  fileNamePattern?: string,
+  namespace?: string
+): string {
+  const kindSuffix = kind === 'model' ? 'Model' : 'Repository';
+  const safePattern = fileNamePattern?.trim() || `{NamePascal}${kindSuffix}.cs`;
+  return replaceIgnoreCase(
+    replaceIgnoreCase(
+      replaceIgnoreCase(
+        replaceIgnoreCase(
+          replaceIgnoreCase(
+            replaceIgnoreCase(
+              replaceIgnoreCase(safePattern, '{NamePascal}', toPascalCase(objectRef.name)),
+              '{Name}',
+              objectRef.name
+            ),
+            '{Type}',
+            objectRef.objectType
+          ),
+          '{Schema}',
+          objectRef.schema
+        ),
+        '{DatabaseType}',
+        connection.databaseType
+      ),
+      '{DatabaseName}',
+      connection.databaseName
+    ),
+    '{Namespace}',
+    namespace ?? ''
+  );
 }
 
 export function generateTestClassTemplate(
@@ -81,6 +156,26 @@ export function indentMultiline(value: string, level: number): string {
     .split('\n')
     .map((line) => line ? `${indent}${line}` : line)
     .join('\n');
+}
+
+function toPascalCase(value: string): string {
+  return value
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('');
+}
+
+function replaceIgnoreCase(value: string, oldValue: string, newValue: string): string {
+  let current = value;
+  let index = current.toLowerCase().indexOf(oldValue.toLowerCase());
+
+  while (index >= 0) {
+    current = current.slice(0, index) + newValue + current.slice(index + oldValue.length);
+    index = current.toLowerCase().indexOf(oldValue.toLowerCase(), index + newValue.length);
+  }
+
+  return current;
 }
 
 function escapeCSharpString(value: string): string {

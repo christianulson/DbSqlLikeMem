@@ -7,16 +7,18 @@ import {
   buildTemplateClassFilePath,
   buildTestClassFilePath,
   buildTestClassName,
+  evaluateGenerationConsistency,
   generateTestClassTemplate
 } from './generation-support';
 import {
+  getMappingBaselineDefaults,
   getTemplateBaselineProfile,
   getTemplateBaselineProfiles,
   resolveTemplateSettingsDefaults
 } from './template-baselines';
 import { findUnsupportedTemplateTokens } from './template-token-catalog';
 
-type DatabaseObjectType = 'Table' | 'View' | 'Procedure';
+type DatabaseObjectType = 'Table' | 'View' | 'Procedure' | 'Sequence';
 type FilterMode = 'Equals' | 'Like';
 
 interface ConnectionDefinition {
@@ -65,6 +67,7 @@ interface ExtensionState {
   mappingConfigurations: ConnectionMappingConfiguration[];
   templateSettings: TemplateSettings;
   generationCheckByObjectKey: Record<string, GenerationCheckStatus>;
+  generationCheckDetailsByObjectKey: Record<string, string>;
   filterText: string;
   filterMode: FilterMode;
 }
@@ -77,6 +80,8 @@ interface TemplateSettings {
   repositoryTemplatePath: string;
   modelTargetFolder: string;
   repositoryTargetFolder: string;
+  modelFileNamePattern: string;
+  repositoryFileNamePattern: string;
 }
 
 interface ConnectionInput {
@@ -102,6 +107,7 @@ interface TreeNode {
   connectionId?: string;
   objectRef?: DatabaseObjectReference;
   generationStatus?: GenerationCheckStatus;
+  generationStatusDetail?: string;
 }
 
 const DEFAULT_STATE: ExtensionState = {
@@ -111,15 +117,18 @@ const DEFAULT_STATE: ExtensionState = {
     modelTemplatePath: '',
     repositoryTemplatePath: '',
     modelTargetFolder: 'src/Models',
-    repositoryTargetFolder: 'src/Repositories'
+    repositoryTargetFolder: 'src/Repositories',
+    modelFileNamePattern: '{NamePascal}Model.cs',
+    repositoryFileNamePattern: '{NamePascal}Repository.cs'
   },
   generationCheckByObjectKey: {},
+  generationCheckDetailsByObjectKey: {},
   filterText: '',
   filterMode: 'Like'
 };
 
 function createDefaultMappings(folder: string, fileSuffix: string, namespace?: string): ObjectTypeMapping[] {
-  return ['Table', 'View', 'Procedure'].map((objectType) => ({
+  return ['Table', 'View', 'Procedure', 'Sequence'].map((objectType) => ({
     objectType: objectType as DatabaseObjectType,
     targetFolder: folder,
     fileSuffix,
@@ -142,6 +151,10 @@ class DbNodeItem extends vscode.TreeItem {
         this.iconPath = new vscode.ThemeIcon('warning');
       } else if (status === 'missing') {
         this.iconPath = new vscode.ThemeIcon('error');
+      }
+
+      if (node.generationStatusDetail) {
+        this.tooltip = node.generationStatusDetail;
       }
     } else if (node.kind === 'section') {
       this.iconPath = new vscode.ThemeIcon('list-unordered');
@@ -195,7 +208,7 @@ class SqlMetadataProvider implements DatabaseMetadataProvider {
       return [];
     }
 
-    const query = "SET NOCOUNT ON; SELECT TABLE_SCHEMA AS [schema], TABLE_NAME AS [name], CASE TABLE_TYPE WHEN 'BASE TABLE' THEN 'Table' ELSE 'View' END AS [objectType] FROM INFORMATION_SCHEMA.TABLES UNION ALL SELECT ROUTINE_SCHEMA AS [schema], ROUTINE_NAME AS [name], 'Procedure' AS [objectType] FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_TYPE = 'PROCEDURE' ORDER BY [schema], [name];";
+    const query = "SET NOCOUNT ON; SELECT TABLE_SCHEMA AS [schema], TABLE_NAME AS [name], CASE TABLE_TYPE WHEN 'BASE TABLE' THEN 'Table' ELSE 'View' END AS [objectType] FROM INFORMATION_SCHEMA.TABLES UNION ALL SELECT ROUTINE_SCHEMA AS [schema], ROUTINE_NAME AS [name], 'Procedure' AS [objectType] FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_TYPE = 'PROCEDURE' UNION ALL SELECT SCHEMA_NAME(schema_id) AS [schema], name AS [name], 'Sequence' AS [objectType] FROM sys.sequences ORDER BY [schema], [name];";
     const columnQuery = "SET NOCOUNT ON; SELECT TABLE_SCHEMA AS [schema], TABLE_NAME AS [name], COLUMN_NAME AS [columnName], DATA_TYPE AS [dataType], IS_NULLABLE AS [isNullable], ORDINAL_POSITION AS [ordinalPosition] FROM INFORMATION_SCHEMA.COLUMNS ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION;";
     const foreignKeyQuery = "SET NOCOUNT ON; SELECT sch.name AS [schema], t.name AS [name], fk.name AS [fkName], refSch.name AS [referencedSchema], refTable.name AS [referencedTable] FROM sys.foreign_keys fk JOIN sys.tables t ON fk.parent_object_id = t.object_id JOIN sys.schemas sch ON t.schema_id = sch.schema_id JOIN sys.tables refTable ON fk.referenced_object_id = refTable.object_id JOIN sys.schemas refSch ON refTable.schema_id = refSch.schema_id ORDER BY sch.name, t.name, fk.name;";
 
@@ -208,7 +221,7 @@ class SqlMetadataProvider implements DatabaseMetadataProvider {
         .map((line) => line.split('|').map((x) => x.trim()))
         .filter((parts) => parts.length >= 3)
         .map((parts) => ({ schema: parts[0], name: parts[1], objectType: parts[2] as DatabaseObjectType }))
-        .filter((x) => (x.objectType === 'Table' || x.objectType === 'View' || x.objectType === 'Procedure') && x.schema && x.name);
+        .filter((x) => (x.objectType === 'Table' || x.objectType === 'View' || x.objectType === 'Procedure' || x.objectType === 'Sequence') && x.schema && x.name);
 
       const byObjectKey = new Map<string, DatabaseObjectReference>();
       for (const objectRef of objects) {
@@ -359,7 +372,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   let state = await loadState(context);
 
   const refreshTree = async (): Promise<void> => {
-    const tree = await buildTree(state.connections, state.filterText, state.filterMode, metadataProvider, state.generationCheckByObjectKey);
+    const tree = await buildTree(
+      state.connections,
+      state.filterText,
+      state.filterMode,
+      metadataProvider,
+      state.generationCheckByObjectKey,
+      state.generationCheckDetailsByObjectKey);
     treeProvider.setTree(tree);
   };
 
@@ -462,9 +481,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           const viewSuffix = String(payload.viewSuffix ?? '').trim();
           const procedureFolder = String(payload.procedureFolder ?? '').trim();
           const procedureSuffix = String(payload.procedureSuffix ?? '').trim();
+          const sequenceFolder = String(payload.sequenceFolder ?? '').trim();
+          const sequenceSuffix = String(payload.sequenceSuffix ?? '').trim();
           const namespace = String(payload.namespace ?? '').trim();
 
-          if (!connectionId || !tableFolder || !tableSuffix || !viewFolder || !viewSuffix || !procedureFolder || !procedureSuffix) {
+          if (!connectionId || !tableFolder || !tableSuffix || !viewFolder || !viewSuffix || !procedureFolder || !procedureSuffix || !sequenceFolder || !sequenceSuffix) {
             vscode.window.showWarningMessage(vscode.l10n.t('Fill in connection, folders and mapping suffixes.'));
             return;
           }
@@ -474,7 +495,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             mappings: [
               { objectType: 'Table', targetFolder: tableFolder, fileSuffix: tableSuffix, namespace: namespace || undefined },
               { objectType: 'View', targetFolder: viewFolder, fileSuffix: viewSuffix, namespace: namespace || undefined },
-              { objectType: 'Procedure', targetFolder: procedureFolder, fileSuffix: procedureSuffix, namespace: namespace || undefined }
+              { objectType: 'Procedure', targetFolder: procedureFolder, fileSuffix: procedureSuffix, namespace: namespace || undefined },
+              { objectType: 'Sequence', targetFolder: sequenceFolder, fileSuffix: sequenceSuffix, namespace: namespace || undefined }
             ]
           };
 
@@ -598,10 +620,37 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
       const current = state.mappingConfigurations.find((x) => x.connectionId === connection.id);
       const currentByType = new Map((current?.mappings ?? []).map((x) => [x.objectType, x]));
+      const baselineSelection = await vscode.window.showQuickPick(
+        [
+          ...getTemplateBaselineProfiles().map((profile) => ({
+            label: profile.label,
+            description: vscode.l10n.t(
+              'Recommended test mapping defaults for {0}. Focus: {1}.',
+              profile.label,
+              profile.recommendedTestFocus),
+            profileId: profile.id
+          })),
+          {
+            label: vscode.l10n.t('Keep current/custom values'),
+            description: vscode.l10n.t('Preserves the current mapping folders and suffixes as the prompt baseline.'),
+            profileId: 'custom'
+          }
+        ],
+        {
+          placeHolder: vscode.l10n.t('Choose a baseline profile for the mapping prompts')
+        }
+      );
+      if (!baselineSelection) {
+        return;
+      }
+
+      const selectedMappingBaseline = baselineSelection.profileId === 'custom'
+        ? undefined
+        : getMappingBaselineDefaults(baselineSelection.profileId);
 
       const tableFolder = await vscode.window.showInputBox({
         prompt: vscode.l10n.t('Folder for Table'),
-        value: currentByType.get('Table')?.targetFolder ?? 'src/Models/Tables'
+        value: selectedMappingBaseline?.Table.targetFolder ?? currentByType.get('Table')?.targetFolder ?? 'src/Models/Tables'
       });
       if (!tableFolder) {
         return;
@@ -609,7 +658,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
       const tableSuffix = await vscode.window.showInputBox({
         prompt: vscode.l10n.t('Class suffix for Table'),
-        value: currentByType.get('Table')?.fileSuffix ?? 'TableTests'
+        value: selectedMappingBaseline?.Table.fileSuffix ?? currentByType.get('Table')?.fileSuffix ?? 'TableTests'
       });
       if (!tableSuffix) {
         return;
@@ -617,7 +666,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
       const viewFolder = await vscode.window.showInputBox({
         prompt: vscode.l10n.t('Folder for View'),
-        value: currentByType.get('View')?.targetFolder ?? 'src/Models/Views'
+        value: selectedMappingBaseline?.View.targetFolder ?? currentByType.get('View')?.targetFolder ?? 'src/Models/Views'
       });
       if (!viewFolder) {
         return;
@@ -625,7 +674,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
       const viewSuffix = await vscode.window.showInputBox({
         prompt: vscode.l10n.t('Class suffix for View'),
-        value: currentByType.get('View')?.fileSuffix ?? 'ViewTests'
+        value: selectedMappingBaseline?.View.fileSuffix ?? currentByType.get('View')?.fileSuffix ?? 'ViewTests'
       });
       if (!viewSuffix) {
         return;
@@ -633,7 +682,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
       const procedureFolder = await vscode.window.showInputBox({
         prompt: vscode.l10n.t('Folder for Procedure'),
-        value: currentByType.get('Procedure')?.targetFolder ?? 'src/Models/Procedures'
+        value: selectedMappingBaseline?.Procedure.targetFolder ?? currentByType.get('Procedure')?.targetFolder ?? 'src/Models/Procedures'
       });
       if (!procedureFolder) {
         return;
@@ -641,15 +690,31 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
       const procedureSuffix = await vscode.window.showInputBox({
         prompt: vscode.l10n.t('Class suffix for Procedure'),
-        value: currentByType.get('Procedure')?.fileSuffix ?? 'ProcedureTests'
+        value: selectedMappingBaseline?.Procedure.fileSuffix ?? currentByType.get('Procedure')?.fileSuffix ?? 'ProcedureTests'
       });
       if (!procedureSuffix) {
         return;
       }
 
+      const sequenceFolder = await vscode.window.showInputBox({
+        prompt: vscode.l10n.t('Folder for Sequence'),
+        value: selectedMappingBaseline?.Sequence.targetFolder ?? currentByType.get('Sequence')?.targetFolder ?? 'src/Models/Sequences'
+      });
+      if (!sequenceFolder) {
+        return;
+      }
+
+      const sequenceSuffix = await vscode.window.showInputBox({
+        prompt: vscode.l10n.t('Class suffix for Sequence'),
+        value: selectedMappingBaseline?.Sequence.fileSuffix ?? currentByType.get('Sequence')?.fileSuffix ?? 'SequenceTests'
+      });
+      if (!sequenceSuffix) {
+        return;
+      }
+
       const namespace = await vscode.window.showInputBox({
         prompt: vscode.l10n.t('Namespace (optional)'),
-        value: currentByType.get('Table')?.namespace ?? currentByType.get('View')?.namespace ?? currentByType.get('Procedure')?.namespace ?? ''
+        value: currentByType.get('Table')?.namespace ?? currentByType.get('View')?.namespace ?? currentByType.get('Procedure')?.namespace ?? currentByType.get('Sequence')?.namespace ?? ''
       });
       if (namespace === undefined) {
         return;
@@ -660,7 +725,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         mappings: [
           { objectType: 'Table', targetFolder: tableFolder, fileSuffix: tableSuffix, namespace: namespace || undefined },
           { objectType: 'View', targetFolder: viewFolder, fileSuffix: viewSuffix, namespace: namespace || undefined },
-          { objectType: 'Procedure', targetFolder: procedureFolder, fileSuffix: procedureSuffix, namespace: namespace || undefined }
+          { objectType: 'Procedure', targetFolder: procedureFolder, fileSuffix: procedureSuffix, namespace: namespace || undefined },
+          { objectType: 'Sequence', targetFolder: sequenceFolder, fileSuffix: sequenceSuffix, namespace: namespace || undefined }
         ]
       };
 
@@ -675,7 +741,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         [
           ...getTemplateBaselineProfiles().map((profile) => ({
             label: profile.label,
-            description: profile.description,
+            description: vscode.l10n.t(
+              '{0} Review: {1}, next target {2}.',
+              profile.description,
+              profile.reviewCadence,
+              profile.nextPlannedReviewOn),
             profileId: profile.id
           })),
           {
@@ -729,6 +799,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return;
       }
 
+      const modelFileNamePattern = await vscode.window.showInputBox({
+        prompt: vscode.l10n.t('File name pattern for model classes'),
+        value: promptDefaults.modelFileNamePattern
+      });
+      if (!modelFileNamePattern) {
+        return;
+      }
+
+      const repositoryFileNamePattern = await vscode.window.showInputBox({
+        prompt: vscode.l10n.t('File name pattern for repository classes'),
+        value: promptDefaults.repositoryFileNamePattern
+      });
+      if (!repositoryFileNamePattern) {
+        return;
+      }
+
       const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
       if (workspaceFolder) {
         for (const templatePath of [modelTemplatePath.trim(), repositoryTemplatePath.trim()]) {
@@ -756,7 +842,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         modelTemplatePath: modelTemplatePath.trim(),
         repositoryTemplatePath: repositoryTemplatePath.trim(),
         modelTargetFolder: modelTargetFolder.trim(),
-        repositoryTargetFolder: repositoryTargetFolder.trim()
+        repositoryTargetFolder: repositoryTargetFolder.trim(),
+        modelFileNamePattern: modelFileNamePattern.trim(),
+        repositoryFileNamePattern: repositoryFileNamePattern.trim()
       };
       await saveState(context, state);
       vscode.window.showInformationMessage(vscode.l10n.t('Generation templates configured.'));
@@ -829,7 +917,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
       const objects = await getScopedObjects(connection, item, metadataProvider, state.filterText, state.filterMode);
       const missing: string[] = [];
-      const checks: Record<string, GenerationCheckStatus> = {};
+      let partialCount = 0;
+      let missingCount = 0;
+      const checks = { ...state.generationCheckByObjectKey };
+      const details = { ...state.generationCheckDetailsByObjectKey };
       const mapping = state.mappingConfigurations.find((x) => x.connectionId === connection.id);
 
       for (const objectRef of objects) {
@@ -842,27 +933,40 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             workspaceFolder,
             objectRef,
             'model',
-            state.templateSettings.modelTargetFolder));
+            state.templateSettings.modelTargetFolder,
+            connection,
+            state.templateSettings.modelFileNamePattern,
+            testMapping?.namespace));
         const repositoryFound = await fileExists(
           buildTemplateClassFilePath(
             workspaceFolder,
             objectRef,
             'repository',
-            state.templateSettings.repositoryTargetFolder));
+            state.templateSettings.repositoryTargetFolder,
+            connection,
+            state.templateSettings.repositoryFileNamePattern,
+            testMapping?.namespace));
 
         const key = buildObjectKey(connection.id, objectRef);
-        const foundCount = [testFound, modelFound, repositoryFound].filter(Boolean).length;
-        checks[key] = foundCount === 3 ? 'ok' : (foundCount > 0 ? 'partial' : 'missing');
+        const consistency = evaluateGenerationConsistency(testFound, modelFound, repositoryFound);
+        checks[key] = consistency.status;
+        delete details[key];
 
-        if (!testFound || !modelFound || !repositoryFound) {
-          missing.push(`${objectRef.objectType}: ${objectRef.schema}.${objectRef.name}`);
+        if (consistency.status === 'partial') {
+          partialCount += 1;
+        } else if (consistency.status === 'missing') {
+          missingCount += 1;
+        }
+
+        if (consistency.missingArtifacts.length > 0) {
+          const detail = buildGenerationStatusDetail(consistency.missingArtifacts);
+          details[key] = detail;
+          missing.push(`${objectRef.objectType}: ${objectRef.schema}.${objectRef.name} (${detail})`);
         }
       }
 
-      state.generationCheckByObjectKey = {
-        ...state.generationCheckByObjectKey,
-        ...checks
-      };
+      state.generationCheckByObjectKey = checks;
+      state.generationCheckDetailsByObjectKey = details;
       await saveState(context, state);
       await refreshTree();
 
@@ -872,7 +976,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
 
       const preview = missing.slice(0, 5).join(', ');
-      vscode.window.showWarningMessage(vscode.l10n.t('Objects without local class ({0}) - yellow/red status: {1}', missing.length, preview));
+      vscode.window.showWarningMessage(
+        vscode.l10n.t(
+          'Consistency check found {0} incomplete and {1} missing object groups. Preview: {2}',
+          partialCount,
+          missingCount,
+          preview));
     }),
     vscode.commands.registerCommand('dbSqlLikeMem.exportState', async () => {
       const saveUri = await vscode.window.showSaveDialog({ filters: { Json: ['json'] } });
@@ -890,7 +999,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
 
       const bytes = await vscode.workspace.fs.readFile(openUri[0]);
-      state = JSON.parse(Buffer.from(bytes).toString('utf8')) as ExtensionState;
+      state = normalizeState(JSON.parse(Buffer.from(bytes).toString('utf8')) as Partial<ExtensionState>);
       await saveState(context, state);
       await refreshTree();
       vscode.window.showInformationMessage(vscode.l10n.t('State imported successfully.'));
@@ -909,7 +1018,8 @@ async function buildTree(
   filterText: string,
   filterMode: FilterMode,
   provider: DatabaseMetadataProvider,
-  generationCheckByObjectKey: Record<string, GenerationCheckStatus>
+  generationCheckByObjectKey: Record<string, GenerationCheckStatus>,
+  generationCheckDetailsByObjectKey: Record<string, string>
 ): Promise<TreeNode[]> {
   const byType = new Map<string, TreeNode>();
 
@@ -933,7 +1043,8 @@ async function buildTree(
     const objectGroups: Record<DatabaseObjectType, DatabaseObjectReference[]> = {
       Table: objects.filter((x) => x.objectType === 'Table'),
       View: objects.filter((x) => x.objectType === 'View'),
-      Procedure: objects.filter((x) => x.objectType === 'Procedure')
+      Procedure: objects.filter((x) => x.objectType === 'Procedure'),
+      Sequence: objects.filter((x) => x.objectType === 'Sequence')
     };
 
     (Object.keys(objectGroups) as DatabaseObjectType[]).forEach((objectType) => {
@@ -943,7 +1054,9 @@ async function buildTree(
         kind: 'objectType',
         objectType,
         children: objectGroups[objectType].map((objectRef) => {
-          const generationStatus = generationCheckByObjectKey[buildObjectKey(connection.id, objectRef)];
+          const objectKey = buildObjectKey(connection.id, objectRef);
+          const generationStatus = generationCheckByObjectKey[objectKey];
+          const generationStatusDetail = generationCheckDetailsByObjectKey[objectKey];
           const children = createObjectChildren(connection.id, objectRef);
           return {
             id: `obj-${connection.id}-${objectType}-${objectRef.schema}.${objectRef.name}`,
@@ -953,6 +1066,7 @@ async function buildTree(
             objectRef,
             connectionId: connection.id,
             generationStatus,
+            generationStatusDetail,
             children
           };
         }),
@@ -1075,6 +1189,10 @@ async function getScopedObjects(
 }
 async function loadState(context: vscode.ExtensionContext): Promise<ExtensionState> {
   const raw = context.globalState.get<Partial<ExtensionState>>('dbSqlLikeMem.state');
+  return normalizeState(raw);
+}
+
+function normalizeState(raw?: Partial<ExtensionState>): ExtensionState {
   if (!raw) {
     return structuredClone(DEFAULT_STATE);
   }
@@ -1086,7 +1204,8 @@ async function loadState(context: vscode.ExtensionContext): Promise<ExtensionSta
       ...DEFAULT_STATE.templateSettings,
       ...(raw.templateSettings ?? {})
     },
-    generationCheckByObjectKey: raw.generationCheckByObjectKey ?? {}
+    generationCheckByObjectKey: raw.generationCheckByObjectKey ?? {},
+    generationCheckDetailsByObjectKey: raw.generationCheckDetailsByObjectKey ?? {}
   };
 }
 
@@ -1098,6 +1217,10 @@ async function saveState(context: vscode.ExtensionContext, state: ExtensionState
 
 function buildObjectKey(connectionId: string, objectRef: DatabaseObjectReference): string {
   return `${connectionId}|${objectRef.objectType}|${objectRef.schema}|${objectRef.name}`;
+}
+
+function buildGenerationStatusDetail(missingArtifacts: string[]): string {
+  return `Missing local artifacts: ${missingArtifacts.join(', ')}`;
 }
 
 async function generateTemplateBasedFiles(
@@ -1148,7 +1271,15 @@ async function generateTemplateBasedFiles(
   for (const objectRef of objects) {
     const objectMapping = mapping?.mappings.find((x) => x.objectType === objectRef.objectType);
     const namespaceValue = objectMapping?.namespace ?? '';
-    const targetFile = buildTemplateClassFilePath(workspaceFolder, objectRef, kind, targetFolder);
+    const targetFile = buildTemplateClassFilePath(
+      workspaceFolder,
+      objectRef,
+      kind,
+      targetFolder,
+      connection,
+      kind === 'model' ? state.templateSettings.modelFileNamePattern : state.templateSettings.repositoryFileNamePattern,
+      namespaceValue
+    );
     const className = path.basename(targetFile, '.cs');
 
     const content = templateText
@@ -1312,6 +1443,8 @@ function getManagerHtml(state: ExtensionState): string {
     viewSuffix: vscode.l10n.t('View suffix'),
     procedureFolder: vscode.l10n.t('Procedure folder'),
     procedureSuffix: vscode.l10n.t('Procedure suffix'),
+    sequenceFolder: vscode.l10n.t('Sequence folder'),
+    sequenceSuffix: vscode.l10n.t('Sequence suffix'),
     optionalNamespace: vscode.l10n.t('Namespace (optional)'),
     saveMappings: vscode.l10n.t('Save mappings'),
     registeredConnections: vscode.l10n.t('Registered connections'),
@@ -1337,14 +1470,14 @@ function getManagerHtml(state: ExtensionState): string {
 
   const mappingsTable = state.connections.length === 0
     ? `<p><em>${escapeHtml(tr.addConnectionForMappings)}</em></p>`
-    : `<table><thead><tr><th>${escapeHtml(tr.connection)}</th><th>Table</th><th>View</th><th>Procedure</th></tr></thead><tbody>${state.connections
+    : `<table><thead><tr><th>${escapeHtml(tr.connection)}</th><th>Table</th><th>View</th><th>Procedure</th><th>Sequence</th></tr></thead><tbody>${state.connections
       .map((c) => {
         const map = mappingByConnection.get(c.id);
         const byType = (type: DatabaseObjectType): string => {
           const m = map?.mappings.find((x) => x.objectType === type);
           return m ? `${escapeHtml(m.targetFolder)} / ${escapeHtml(m.fileSuffix)}` : '-';
         };
-        return `<tr><td>${escapeHtml(c.name)}</td><td>${byType('Table')}</td><td>${byType('View')}</td><td>${byType('Procedure')}</td></tr>`;
+        return `<tr><td>${escapeHtml(c.name)}</td><td>${byType('Table')}</td><td>${byType('View')}</td><td>${byType('Procedure')}</td><td>${byType('Sequence')}</td></tr>`;
       }).join('')}</tbody></table>`;
 
   return `<!DOCTYPE html>
@@ -1394,6 +1527,8 @@ function getManagerHtml(state: ExtensionState): string {
       <label>${escapeHtml(tr.viewSuffix)}</label><input id="viewSuffix" value="ViewTests" />
       <label>${escapeHtml(tr.procedureFolder)}</label><input id="procedureFolder" value="src/Models/Procedures" />
       <label>${escapeHtml(tr.procedureSuffix)}</label><input id="procedureSuffix" value="ProcedureTests" />
+      <label>${escapeHtml(tr.sequenceFolder)}</label><input id="sequenceFolder" value="src/Models/Sequences" />
+      <label>${escapeHtml(tr.sequenceSuffix)}</label><input id="sequenceSuffix" value="SequenceTests" />
       <label>${escapeHtml(tr.optionalNamespace)}</label><input id="namespace" />
       <button id="saveMapping">${escapeHtml(tr.saveMappings)}</button>
     </section>
@@ -1422,7 +1557,9 @@ function getManagerHtml(state: ExtensionState): string {
       document.getElementById('viewSuffix').value = selected.View?.fileSuffix || 'ViewTests';
       document.getElementById('procedureFolder').value = selected.Procedure?.targetFolder || 'src/Models/Procedures';
       document.getElementById('procedureSuffix').value = selected.Procedure?.fileSuffix || 'ProcedureTests';
-      document.getElementById('namespace').value = selected.Table?.namespace || selected.View?.namespace || selected.Procedure?.namespace || '';
+      document.getElementById('sequenceFolder').value = selected.Sequence?.targetFolder || 'src/Models/Sequences';
+      document.getElementById('sequenceSuffix').value = selected.Sequence?.fileSuffix || 'SequenceTests';
+      document.getElementById('namespace').value = selected.Table?.namespace || selected.View?.namespace || selected.Procedure?.namespace || selected.Sequence?.namespace || '';
     }
 
     document.getElementById('saveConnection')?.addEventListener('click', () => {
@@ -1449,6 +1586,8 @@ function getManagerHtml(state: ExtensionState): string {
         viewSuffix: document.getElementById('viewSuffix').value,
         procedureFolder: document.getElementById('procedureFolder').value,
         procedureSuffix: document.getElementById('procedureSuffix').value,
+        sequenceFolder: document.getElementById('sequenceFolder').value,
+        sequenceSuffix: document.getElementById('sequenceSuffix').value,
         namespace: document.getElementById('namespace').value
       });
     });

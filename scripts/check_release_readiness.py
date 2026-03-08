@@ -7,6 +7,7 @@ import argparse
 import json
 import re
 import xml.etree.ElementTree as ET
+from datetime import date
 from pathlib import Path
 
 from check_cross_dialect_snapshot_format import validate_snapshot
@@ -101,6 +102,7 @@ def check_required_files(root: Path) -> list[str]:
         root / "docs" / "cross-dialect-parser-snapshot.md",
         root / "templates" / "dbsqllikemem" / "README.md",
         root / "templates" / "dbsqllikemem" / "review-checklist.md",
+        root / "templates" / "dbsqllikemem" / "review-metadata.json",
         root / "templates" / "dbsqllikemem" / "vCurrent" / "api" / "model.template.txt",
         root / "templates" / "dbsqllikemem" / "vCurrent" / "api" / "repository.template.txt",
         root / "templates" / "dbsqllikemem" / "vCurrent" / "worker" / "model.template.txt",
@@ -147,6 +149,7 @@ def check_docs(root: Path) -> list[str]:
             "vCurrent/",
             "vNext/",
             "review-checklist.md",
+            "review-metadata.json",
             "api",
             "worker",
             "{{ClassName}}",
@@ -158,6 +161,7 @@ def check_docs(root: Path) -> list[str]:
             "docs/features-backlog/index.md",
             "docs/features-backlog/status-operational.md",
             "templates/dbsqllikemem/vCurrent",
+            "review-metadata.json",
             "{{Namespace}}",
         ],
         root / "templates" / "dbsqllikemem" / "vNext" / "README.md": [
@@ -165,6 +169,7 @@ def check_docs(root: Path) -> list[str]:
             "docs/features-backlog/index.md",
             "status-operational.md",
             "CHANGELOG.md",
+            "review-metadata.json",
         ],
         root / "docs" / "publishing.md": [
             "CHANGELOG.md",
@@ -190,6 +195,7 @@ def check_docs(root: Path) -> list[str]:
             "publishing.md",
             "templates/dbsqllikemem/vCurrent",
             "templates/dbsqllikemem/review-checklist.md",
+            "templates/dbsqllikemem/review-metadata.json",
             "scripts/check_nuget_package_metadata.py",
             "Directory.Build.props",
             "source.extension.vsixmanifest",
@@ -377,6 +383,98 @@ def check_template_baselines(root: Path) -> list[str]:
             failures.append(
                 f"{path.relative_to(root)}: unsupported template tokens {', '.join(unsupported_tokens)}"
             )
+
+    return failures
+
+
+def check_template_review_metadata(root: Path) -> list[str]:
+    metadata_path = root / "templates" / "dbsqllikemem" / "review-metadata.json"
+    data = json.loads(load_text(metadata_path))
+
+    failures: list[str] = []
+
+    current_baseline = str(data.get("currentBaseline", "")).strip()
+    if current_baseline != "vCurrent":
+        failures.append(
+            "templates/dbsqllikemem/review-metadata.json: "
+            f"currentBaseline must be 'vCurrent' (found '{current_baseline}')"
+        )
+
+    promotion_staging_path = str(data.get("promotionStagingPath", "")).strip()
+    if promotion_staging_path != "templates/dbsqllikemem/vNext":
+        failures.append(
+            "templates/dbsqllikemem/review-metadata.json: "
+            "promotionStagingPath must be 'templates/dbsqllikemem/vNext'"
+        )
+
+    review_cadence = str(data.get("reviewCadence", "")).strip()
+    if review_cadence != "quarterly":
+        failures.append(
+            "templates/dbsqllikemem/review-metadata.json: "
+            f"reviewCadence must be 'quarterly' (found '{review_cadence}')"
+        )
+
+    def parse_iso_date(field_name: str) -> date | None:
+        raw_value = str(data.get(field_name, "")).strip()
+        if not raw_value:
+            failures.append(
+                f"templates/dbsqllikemem/review-metadata.json: missing '{field_name}'"
+            )
+            return None
+
+        try:
+            return date.fromisoformat(raw_value)
+        except ValueError:
+            failures.append(
+                "templates/dbsqllikemem/review-metadata.json: "
+                f"'{field_name}' must use YYYY-MM-DD (found '{raw_value}')"
+            )
+            return None
+
+    last_reviewed_on = parse_iso_date("lastReviewedOn")
+    next_planned_review_on = parse_iso_date("nextPlannedReviewOn")
+    if last_reviewed_on and next_planned_review_on and next_planned_review_on < last_reviewed_on:
+        failures.append(
+            "templates/dbsqllikemem/review-metadata.json: "
+            "nextPlannedReviewOn must be greater than or equal to lastReviewedOn"
+        )
+
+    profiles = data.get("profiles", {})
+    if not isinstance(profiles, dict):
+        failures.append(
+            "templates/dbsqllikemem/review-metadata.json: 'profiles' must be an object"
+        )
+    else:
+        for profile_id in ("api", "worker"):
+            profile_data = profiles.get(profile_id)
+            if not isinstance(profile_data, dict):
+                failures.append(
+                    "templates/dbsqllikemem/review-metadata.json: "
+                    f"missing object for profile '{profile_id}'"
+                )
+                continue
+
+            focus = str(profile_data.get("focus", "")).strip()
+            if not focus:
+                failures.append(
+                    "templates/dbsqllikemem/review-metadata.json: "
+                    f"profile '{profile_id}' must define a non-empty focus"
+                )
+
+    evidence_files = data.get("evidenceFiles", [])
+    if not isinstance(evidence_files, list) or not evidence_files:
+        failures.append(
+            "templates/dbsqllikemem/review-metadata.json: "
+            "evidenceFiles must define at least one repository-relative file"
+        )
+    else:
+        for evidence_file in evidence_files:
+            path = root / str(evidence_file)
+            if not path.exists():
+                failures.append(
+                    "templates/dbsqllikemem/review-metadata.json: "
+                    f"evidence file not found '{evidence_file}'"
+                )
 
     return failures
 
@@ -622,6 +720,7 @@ def main() -> int:
     failures.extend(check_snapshots(root))
     failures.extend(check_docs(root))
     failures.extend(check_template_baselines(root))
+    failures.extend(check_template_review_metadata(root))
     failures.extend(check_workflows(root))
 
     if repository_url:

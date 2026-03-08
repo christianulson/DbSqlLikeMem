@@ -23,6 +23,8 @@ Projeto inicial para suportar uma extensão do Visual Studio focada em geração
 - Renderizador compartilhado de tokens de template (`TemplateContentRenderer`) para `Model`/`Repository`, incluindo `{{Namespace}}`.
 - Catálogo de baseline versionada (`TemplateBaselineCatalog`) apontando para `templates/dbsqllikemem/vCurrent` com perfis `api` e `worker`, incluindo resolução da raiz do repositório para reaproveitamento pela VSIX.
 - Catálogo de tokens suportados (`TemplateTokenCatalog`) para detectar placeholders fora do contrato antes de aceitar templates customizados.
+- Resolvedor compartilhado de nome de arquivo (`TemplateFileNamePatternResolver`) para geração e consistência de `Model`/`Repository` com placeholders configuráveis.
+- Serviço de mapeamento por conexão/tipo (`ConnectionMappingService`) para evitar que ajustes de `Table`, `View`, `Procedure` ou `Sequence` contaminem outros tipos já configurados na VSIX.
 - Leitor de snapshot local (`GeneratedClassSnapshotReader`) para comparar arquivo gerado vs estrutura atual extraída do banco via `ObjectConsistencyChecker`.
 
 ## Próximos passos sugeridos

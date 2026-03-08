@@ -21,13 +21,16 @@ Extensão equivalente ao fluxo desenhado para o Visual Studio Extension Core, ad
 - Geração de classes de **repositório** a partir de template com tokens, com prévia de conflitos (sobrescrita), incluindo objetos `Sequence` quando a metadata do provider os expõe.
 - Configuração de templates (botão no topo da view) para modelos e repositórios.
 - Configuração de templates com baseline versionada do repositório (`templates/dbsqllikemem/vCurrent`) e perfis iniciais `API`/`Worker-Batch`.
+- O fluxo rápido **Configure Mappings** agora também oferece defaults recomendados por perfil (`API`/`Worker-Batch`) para pastas e sufixos das classes de teste.
+- O fluxo de mappings e o manager visual agora também cobrem `Sequence`, mantendo paridade operacional com a VSIX quando o provider expõe esse tipo.
 - Templates customizados agora também são validados contra o contrato de tokens suportados antes de entrar no fluxo de geração.
-- Check de consistência para artefatos gerados (teste/model/repositório), com status visual por objeto na árvore e validação do trio completo por objeto.
+- Model e Repository agora também aceitam padrão configurável de nome de arquivo, reutilizando placeholders como `{NamePascal}`, `{Schema}`, `{DatabaseType}`, `{DatabaseName}` e `{Namespace}`.
+- Check de consistência para artefatos gerados (teste/model/repositório), com status visual por objeto na árvore, tooltip com os artefatos faltantes e validação do trio completo por objeto.
 - Ações de geração/consistência respeitam o nó selecionado da TreeView (`Database`, `ObjectType` ou objeto individual).
 - Menus de contexto de geração/consistência disponíveis em todos os níveis relevantes da árvore (tipo de banco, database, tipo de objeto, objeto e detalhes como colunas/FKs).
 - Exportação/importação do estado em JSON.
 
-> Atualmente o provedor de metadata é **fake** (retorna objetos fixos) para validar UX e workflow. O próximo passo é substituir pelo provider real por banco.
+> Atualmente a extensão já usa metadata real para `SqlServer` (incluindo `sys.sequences`) e mantém fallback simplificado para os demais bancos enquanto a malha de providers reais é expandida.
 
 ## Comandos
 
@@ -147,9 +150,12 @@ public class {{ClassName}}
 
 1. Configure conexões e mapeamentos.
    - O fluxo rápido **Configure Mappings** também aceita `namespace` opcional reaproveitado na geração das classes.
+   - O mesmo comando agora pode partir dos defaults recomendados de teste para `API` (integração leve) ou `Worker-Batch` (consistência), antes de qualquer ajuste manual.
+   - `Sequence` participa do mesmo fluxo de configuração, geração e consistência quando a metadata do banco o expõe.
 2. Use **Configure Templates** para informar os arquivos `.txt` e pastas de saída de Model/Repository.
    - O comando agora oferece baseline pronta do repositório em `templates/dbsqllikemem/vCurrent/api` e `templates/dbsqllikemem/vCurrent/worker`, além da opção de manter valores customizados.
    - Se um template existente usar placeholders fora do contrato suportado, a extensão bloqueia a configuração ou faz fallback para o template padrão na geração.
+   - O mesmo fluxo agora também permite configurar o padrão de nome de arquivo de `Model` e `Repository`.
 3. Use o menu de contexto do database para gerar:
    - classes de teste (ação existente),
    - classes de modelo,

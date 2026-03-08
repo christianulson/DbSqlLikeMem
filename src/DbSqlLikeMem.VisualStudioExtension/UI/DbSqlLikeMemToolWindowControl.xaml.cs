@@ -228,12 +228,17 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
             return;
         }
 
-        var defaults = viewModel.GetMappingDefaults();
+        var defaults = viewModel.GetMappingDefaults(selected);
         var dialog = new MappingDialog(defaults.FileNamePattern, defaults.OutputDirectory, defaults.Namespace) { Owner = System.Windows.Window.GetWindow(this) };
 
         if (dialog.ShowDialog() == true)
         {
-            viewModel.ApplyDefaultMapping(dialog.FileNamePattern, dialog.OutputDirectory, dialog.Namespace);
+            viewModel.ApplyMappingForObjectType(
+                selected.ConnectionId!,
+                selected.ObjectType!.Value,
+                dialog.FileNamePattern,
+                dialog.OutputDirectory,
+                dialog.Namespace);
         }
     }
 
@@ -249,7 +254,13 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         var dialog = new TemplateConfigurationDialog(viewModel.GetTemplateConfiguration()) { Owner = System.Windows.Window.GetWindow(this) };
         if (dialog.ShowDialog() == true)
         {
-            viewModel.ConfigureTemplates(dialog.ModelTemplatePath, dialog.RepositoryTemplatePath, dialog.ModelOutputDirectory, dialog.RepositoryOutputDirectory);
+            viewModel.ConfigureTemplates(
+                dialog.ModelTemplatePath,
+                dialog.RepositoryTemplatePath,
+                dialog.ModelOutputDirectory,
+                dialog.RepositoryOutputDirectory,
+                dialog.ModelFileNamePattern,
+                dialog.RepositoryFileNamePattern);
         }
     }
 

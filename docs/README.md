@@ -96,6 +96,7 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
   - perfis iniciais `api` e `worker`
   - área controlada de promoção em `templates/dbsqllikemem/vNext`
   - checklist de revisão em `templates/dbsqllikemem/review-checklist.md`
+  - metadado versionado de revisão em `templates/dbsqllikemem/review-metadata.json`
 - [Wiki do GitHub](wiki/README.md)
   - como habilitar e estruturar
   - páginas prontas para copiar/publicar

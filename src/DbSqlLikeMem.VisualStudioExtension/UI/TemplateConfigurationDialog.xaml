@@ -15,6 +15,8 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
@@ -39,10 +41,16 @@
         <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="{x:Static prop:Resources.RepositoryOutputLabel}" />
         <TextBox x:Name="RepositoryOutputDirectoryTextBox" Grid.Row="4" Grid.Column="1" Margin="0,0,0,8" />
 
-        <TextBlock Grid.Row="5" Grid.Column="1" Margin="0,0,0,8" TextWrapping="Wrap" Foreground="DimGray"
+        <TextBlock Grid.Row="5" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Model file pattern" />
+        <TextBox x:Name="ModelFileNamePatternTextBox" Grid.Row="5" Grid.Column="1" Margin="0,0,0,8" />
+
+        <TextBlock Grid.Row="6" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Repository file pattern" />
+        <TextBox x:Name="RepositoryFileNamePatternTextBox" Grid.Row="6" Grid.Column="1" Margin="0,0,0,8" />
+
+        <TextBlock Grid.Row="7" Grid.Column="1" Margin="0,0,0,8" TextWrapping="Wrap" Foreground="DimGray"
                    Text="Profiles come from templates/dbsqllikemem/vCurrent and can be edited after applying." />
 
-        <StackPanel Grid.Row="6" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
+        <StackPanel Grid.Row="8" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="{x:Static prop:Resources.CancelButton}" Width="90" Margin="0,0,8,0" IsCancel="True" />
             <Button Content="{x:Static prop:Resources.SaveButton}" Width="90" IsDefault="True" Click="OnSaveClick" />
         </StackPanel>
