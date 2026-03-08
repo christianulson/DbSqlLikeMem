@@ -28,7 +28,7 @@ public static class TemplateFileNamePatternResolver
             ? $"{{NamePascal}}{kindSuffix}.cs"
             : fileNamePattern;
 
-        var resolved = safePattern;
+        var resolved = safePattern!;
         resolved = ReplaceIgnoreCase(resolved, "{NamePascal}", GenerationRuleSet.ToPascalCase(dbObject.Name));
         resolved = ReplaceIgnoreCase(resolved, "{Name}", dbObject.Name);
         resolved = ReplaceIgnoreCase(resolved, "{Type}", dbObject.Type.ToString());

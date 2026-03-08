@@ -43,7 +43,7 @@ public static class TemplateReviewMetadataReader
                         var focus = focusElement.GetString();
                         if (!string.IsNullOrWhiteSpace(focus))
                         {
-                            profileFocus[profile.Name] = focus.Trim();
+                            profileFocus[profile.Name] = focus!.Trim();
                         }
                     }
                 }
@@ -58,7 +58,7 @@ public static class TemplateReviewMetadataReader
                     var value = entry.GetString();
                     if (!string.IsNullOrWhiteSpace(value))
                     {
-                        evidenceFiles.Add(value.Trim());
+                        evidenceFiles.Add(value!.Trim());
                     }
                 }
             }

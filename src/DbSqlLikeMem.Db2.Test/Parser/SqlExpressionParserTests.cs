@@ -248,7 +248,7 @@ public sealed class SqlExpressionParserTests(
         var like = Assert.IsType<LikeExpr>(ast);
         var escape = Assert.IsType<LiteralExpr>(like.Escape);
 
-        Assert.Equal("#", escape.Value);
+        escape.Value.Should().Be("#");
     }
 
     /// <summary>

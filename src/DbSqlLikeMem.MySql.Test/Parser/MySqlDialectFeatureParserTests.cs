@@ -2740,9 +2740,6 @@ WHERE users.id = EXCLUDED.id";
         Assert.True(d.SupportsTriggers);
     }
 
-
-
-
     /// <summary>
     /// EN: Verifies unsupported top-level statements return guidance-focused errors.
     /// PT: Verifica que comandos de topo não suportados retornam erros com orientação.

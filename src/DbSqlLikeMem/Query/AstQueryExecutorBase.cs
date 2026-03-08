@@ -1189,7 +1189,7 @@ internal abstract class AstQueryExecutorBase(
             case LikeExpr like:
                 return WalkHasTemporalHavingReference(like.Left, dialect)
                     || WalkHasTemporalHavingReference(like.Pattern, dialect)
-                    || WalkHasTemporalHavingReference(like.Escape, dialect);
+                    || (like.Escape != null && WalkHasTemporalHavingReference(like.Escape, dialect));
 
             case InExpr i:
                 if (WalkHasTemporalHavingReference(i.Left, dialect))
@@ -6283,7 +6283,7 @@ private void FillPercentRankOrCumeDist(
             || normalized.StartsWith("CHAR", StringComparison.Ordinal)
             || normalized.StartsWith("NCHAR", StringComparison.Ordinal)
             || normalized.StartsWith("CLOB", StringComparison.Ordinal))
-            return value.ToString();
+            return value!.ToString();
 
         return value;
     }

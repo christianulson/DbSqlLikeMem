@@ -4,4 +4,10 @@
 		<IsPackable>false</IsPackable>
 		<Description>Core domain and services for the DbSqlLikeMem Visual Studio extension prototype.</Description>
 	</PropertyGroup>
+	<ItemGroup>
+	  <Compile Include="..\DbSqlLikeMem\Compatibility\FrameworkPolyfills.cs" Link="Compatibility\FrameworkPolyfills.cs" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Compatibility\" />
+	</ItemGroup>
 </Project>

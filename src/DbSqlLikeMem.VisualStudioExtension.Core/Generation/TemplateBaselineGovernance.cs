@@ -20,7 +20,7 @@ public static class TemplateBaselineGovernance
         TemplateReviewMetadata? reviewMetadata,
         DateTime? todayUtc = null)
     {
-        ArgumentNullException.ThrowIfNull(profile);
+        ArgumentNullExceptionCompatible.ThrowIfNull(profile, nameof(profile));
 
         if (reviewMetadata is null)
         {

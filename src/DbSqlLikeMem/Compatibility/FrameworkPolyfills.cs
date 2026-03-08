@@ -188,8 +188,19 @@ namespace DbSqlLikeMem
         }
     }
 
+    /// <summary>
+    /// Clamp
+    /// </summary>
     public static class ClampExtensions
     {
+        /// <summary>
+        /// Clamp
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value"></param>
+        /// <param name="min"></param>
+        /// <param name="max"></param>
+        /// <returns></returns>
         public static T Clamp<T>(this T value, T min, T max)
             where T : IComparable<T>
         {

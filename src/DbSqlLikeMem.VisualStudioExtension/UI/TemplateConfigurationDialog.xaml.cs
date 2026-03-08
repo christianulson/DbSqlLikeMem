@@ -1,7 +1,7 @@
 using System.IO;
 using System.Windows;
 using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
-
+using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 using UiResources = DbSqlLikeMem.VisualStudioExtension.Properties.Resources;
 
 namespace DbSqlLikeMem.VisualStudioExtension.UI;

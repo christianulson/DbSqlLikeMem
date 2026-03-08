@@ -20,7 +20,7 @@ public static class TemplateBaselinePresentation
         TemplateReviewMetadata? reviewMetadata = null,
         DateTime? todayUtc = null)
     {
-        ArgumentNullException.ThrowIfNull(profile);
+        ArgumentNullExceptionCompatible.ThrowIfNull(profile, nameof(profile));
 
         var effectiveFocus = reviewMetadata is not null
             && reviewMetadata.ProfileFocusById.TryGetValue(profile.Id, out var focusFromMetadata)
@@ -62,7 +62,7 @@ public static class TemplateBaselinePresentation
         TemplateReviewMetadata? reviewMetadata = null,
         DateTime? todayUtc = null)
     {
-        ArgumentNullException.ThrowIfNull(profile);
+        ArgumentNullExceptionCompatible.ThrowIfNull(profile, nameof(profile));
 
         var mapping = profile.RecommendedMappings.TryGetValue(objectType, out var recommended)
             ? recommended

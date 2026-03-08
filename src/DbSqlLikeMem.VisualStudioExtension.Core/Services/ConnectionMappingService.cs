@@ -58,7 +58,7 @@ public sealed class ConnectionMappingService
         string? @namespace = null)
     {
         var baselineMapping = TemplateBaselineCatalog.CreateRecommendedMapping(profileId, objectType);
-        var effectiveNamespace = string.IsNullOrWhiteSpace(@namespace) ? null : @namespace.Trim();
+        var effectiveNamespace = string.IsNullOrWhiteSpace(@namespace) ? null : @namespace!.Trim();
 
         return new ObjectTypeMapping(
             objectType,
@@ -85,9 +85,9 @@ public sealed class ConnectionMappingService
         string outputDirectory,
         string? @namespace = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(connectionId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(fileNamePattern);
-        ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(connectionId, nameof(connectionId));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(fileNamePattern, nameof(connectionId));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(outputDirectory, nameof(connectionId));
 
         var effective = configuration ?? CreateDefaultConfiguration(connectionId);
         var updatedMappings = effective.Mappings.ToDictionary(entry => entry.Key, entry => entry.Value);
