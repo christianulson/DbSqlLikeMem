@@ -3357,7 +3357,38 @@ private void FillPercentRankOrCumeDist(
 
     private static bool IsSequenceFunctionName(string? name)
         => string.Equals(name, "NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(name, "NEXTVAL", StringComparison.OrdinalIgnoreCase);
+            || string.Equals(name, "NEXTVAL", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase);
+
+    private void EnsureDialectSupportsSequenceFunction(string? functionName)
+    {
+        if (string.IsNullOrWhiteSpace(functionName))
+            return;
+
+        if (functionName.Equals("NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
+            && !Dialect.SupportsNextValueForSequenceExpression)
+            throw SqlUnsupported.ForDialect(Dialect, "NEXT VALUE FOR");
+
+        if (functionName.Equals("PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
+            && !Dialect.SupportsPreviousValueForSequenceExpression)
+            throw SqlUnsupported.ForDialect(Dialect, "PREVIOUS VALUE FOR");
+
+        if ((functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase))
+            && !Dialect.SupportsSequenceDotValueExpression(functionName))
+        {
+            throw SqlUnsupported.ForDialect(Dialect, functionName.ToUpperInvariant());
+        }
+
+        if ((functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("SETVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase))
+            && !Dialect.SupportsSequenceFunctionCall(functionName))
+        {
+            throw SqlUnsupported.ForDialect(Dialect, functionName.ToUpperInvariant());
+        }
+    }
 
     private static bool IncludExtraColumns(
         List<EvalRow> sampleRows,
@@ -3918,7 +3949,7 @@ private void FillPercentRankOrCumeDist(
                     var left = Eval(like.Left, row, group, ctes)?.ToString() ?? "";
                     var pat = Eval(like.Pattern, row, group, ctes)?.ToString() ?? "";
                     var escape = like.Escape is null ? null : Eval(like.Escape, row, group, ctes)?.ToString();
-                    return left.Like(pat, Dialect, escape);
+                    return left.Like(pat, Dialect, escape, like.CaseInsensitive ? true : null);
                 }
 
             case UnaryExpr u when u.Op == SqlUnaryOp.Not:
@@ -5695,6 +5726,9 @@ private void FillPercentRankOrCumeDist(
 
         if (fn.Name.Equals("MATCH_AGAINST", StringComparison.OrdinalIgnoreCase))
         {
+            if (!dialect.SupportsMatchAgainstPredicate)
+                throw SqlUnsupported.ForDialect(dialect, "MATCH ... AGAINST full-text predicate");
+
             if (fn.Args.Count < 2)
                 return 0;
 
@@ -5779,6 +5813,7 @@ private void FillPercentRankOrCumeDist(
             return left!.Compare(right!, Dialect) == 0 ? null : left;
         }
 
+        EnsureDialectSupportsSequenceFunction(fn.Name);
         if (SqlSequenceEvaluator.TryEvaluateCall(_cnn, fn.Name, fn.Args, expr => Eval(expr, row, group, ctes), out var sequenceValue))
             return sequenceValue;
 
@@ -6574,6 +6609,9 @@ private void FillPercentRankOrCumeDist(
 
         if (name is "GROUP_CONCAT" or "STRING_AGG" or "LISTAGG")
         {
+            if (!Dialect.SupportsStringAggregateFunction(name))
+                throw SqlUnsupported.ForDialect(Dialect, name);
+
             return EvalStringAggregateForCallExpr(fn, group, ctes, name);
         }
 
@@ -7386,27 +7424,14 @@ private void FillPercentRankOrCumeDist(
 
     private static bool IsSqlServerRowCountIdentifier(string identifier, ISqlDialect? dialect)
         => dialect is not null
-           && string.Equals(dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase)
-           && identifier.Equals("@@ROWCOUNT", StringComparison.OrdinalIgnoreCase);
+           && dialect.SupportsLastFoundRowsIdentifier(identifier);
 
     private static bool IsFoundRowsEquivalentFunction(string functionName, ISqlDialect dialect)
     {
         if (string.IsNullOrWhiteSpace(functionName))
             return false;
 
-        if (functionName.Equals("FOUND_ROWS", StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        return dialect.Name.ToLowerInvariant() switch
-        {
-            "mysql" => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase),
-            "sqlserver" => functionName.Equals("ROWCOUNT", StringComparison.OrdinalIgnoreCase),
-            "postgresql" => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase),
-            "oracle" => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase),
-            "db2" => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase),
-            "sqlite" => functionName.Equals("CHANGES", StringComparison.OrdinalIgnoreCase),
-            _ => false
-        };
+        return dialect.SupportsLastFoundRowsFunction(functionName);
     }
 
     private static bool HasSqlCalcFoundRows(SqlSelectQuery query)

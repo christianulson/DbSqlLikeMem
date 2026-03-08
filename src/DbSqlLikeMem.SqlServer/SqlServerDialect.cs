@@ -32,6 +32,8 @@ internal sealed class SqlServerDialect : SqlDialectBase
     internal const int MergeMinVersion = 2008;
     internal const int OffsetFetchMinVersion = 2012;
     internal const int JsonFunctionsMinVersion = 2016;
+    internal const int SequenceMinVersion = 2012;
+    internal const int StringAggMinVersion = 2017;
     internal const int WindowFunctionsMinVersion = 2005;
 
     /// <summary>
@@ -80,10 +82,15 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsWindowFrameClause => Version >= WindowFunctionsMinVersion;
 
-    public override bool SupportsWithinGroupForStringAggregates => true;
+    public override bool SupportsWithinGroupForStringAggregates => Version >= StringAggMinVersion;
+
+    public override bool SupportsStringAggregateFunction(string functionName)
+        => Version >= StringAggMinVersion
+            && functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase);
 
     public override bool SupportsWithinGroupStringAggregateFunction(string functionName)
-        => functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase);
+        => Version >= StringAggMinVersion
+            && functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase);
 
     // OFFSET ... FETCH entrou no SQL Server 2012.
     /// <summary>
@@ -133,6 +140,14 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// PT: Obtém se há suporte a merge.
     /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
+    public override bool SupportsSequenceDdl => Version >= SequenceMinVersion;
+    public override bool SupportsNextValueForSequenceExpression => Version >= SequenceMinVersion;
+    public override bool SupportsPreviousValueForSequenceExpression => false;
+    public override bool SupportsDoubleAtIdentifierSyntax => true;
+    public override bool SupportsLastFoundRowsFunction(string functionName)
+        => functionName.Equals("ROWCOUNT", StringComparison.OrdinalIgnoreCase);
+    public override bool SupportsLastFoundRowsIdentifier(string identifier)
+        => identifier.Equals("@@ROWCOUNT", StringComparison.OrdinalIgnoreCase);
     /// <summary>
     /// EN: Gets whether pivot clause is supported.
     /// PT: Obtém se há suporte a pivot clause.

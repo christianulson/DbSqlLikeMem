@@ -23,11 +23,17 @@ internal static class CommandReaderParsedQueryDispatcher
             case SqlCreateViewQuery viewQ:
                 connection.ExecuteCreateView(viewQ, pars, connection.Db.Dialect);
                 break;
+            case SqlCreateSequenceQuery createSequenceQ:
+                connection.ExecuteCreateSequence(createSequenceQ, pars, connection.Db.Dialect);
+                break;
             case SqlDropViewQuery dropViewQ:
                 connection.ExecuteDropView(dropViewQ, pars, connection.Db.Dialect);
                 break;
             case SqlDropTableQuery dropTableQ:
                 connection.ExecuteDropTable(dropTableQ, pars, connection.Db.Dialect);
+                break;
+            case SqlDropSequenceQuery dropSequenceQ:
+                connection.ExecuteDropSequence(dropSequenceQ, pars, connection.Db.Dialect);
                 break;
             case SqlInsertQuery insertQ:
                 if (executeInsert is null)

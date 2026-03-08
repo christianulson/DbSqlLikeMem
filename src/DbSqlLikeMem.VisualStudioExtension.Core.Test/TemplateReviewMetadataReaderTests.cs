@@ -30,5 +30,6 @@ public sealed class TemplateReviewMetadataReaderTests
     }
 
     private static string GetRepositoryRoot()
-        => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+        => TemplateBaselineCatalog.FindRepositoryRoot(AppContext.BaseDirectory)
+            ?? throw new InvalidOperationException("Repository root containing templates/dbsqllikemem could not be resolved from the test base directory.");
 }

@@ -213,6 +213,9 @@ internal sealed class MySqlDialect : SqlDialectBase
         => functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)
         || functionName.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase);
 
+    public override bool SupportsStringAggregateFunction(string functionName)
+        => functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase);
+
     public override bool SupportsAggregateOrderByForStringAggregates => true;
 
     public override bool SupportsAggregateOrderByStringAggregateFunction(string functionName)
@@ -222,4 +225,10 @@ internal sealed class MySqlDialect : SqlDialectBase
 
     public override bool SupportsAggregateSeparatorKeywordStringAggregateFunction(string functionName)
         => functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase);
+
+    public override bool SupportsMatchAgainstPredicate => true;
+
+    public override bool SupportsLastFoundRowsFunction(string functionName)
+        => functionName.Equals("FOUND_ROWS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase);
 }

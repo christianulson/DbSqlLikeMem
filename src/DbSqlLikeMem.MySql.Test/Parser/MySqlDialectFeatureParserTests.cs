@@ -7,6 +7,100 @@ namespace DbSqlLikeMem.MySql.Test.Parser;
 public sealed class MySqlDialectFeatureParserTests
 {
     /// <summary>
+    /// EN: Ensures JSON_TABLE remains explicitly rejected in MySQL until runtime support exists.
+    /// PT: Garante que JSON_TABLE continue explicitamente rejeitado no MySQL ate existir suporte de runtime.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_JsonTable_ShouldRespectDialectRule(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("JSON_TABLE(payload, '$[*]' COLUMNS(x INT PATH '$'))", new MySqlDialect(version)));
+
+        Assert.Contains("JSON_TABLE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL dialect exposes MATCH ... AGAINST through an explicit capability hook.
+    /// PT: Garante que o dialeto MySQL exponha MATCH ... AGAINST por um hook de capability explicito.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void MatchAgainstCapability_ShouldBeEnabled(int version)
+    {
+        Assert.True(new MySqlDialect(version).SupportsMatchAgainstPredicate);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL keeps FOUND_ROWS/ROW_COUNT wired through the dialect capability used by the executor.
+    /// PT: Garante que o MySQL mantenha FOUND_ROWS/ROW_COUNT ligados pela capability de dialeto usada pelo executor.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void LastFoundRowsCapability_ShouldExposeMySqlFunctions(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        Assert.True(dialect.SupportsLastFoundRowsFunction("FOUND_ROWS"));
+        Assert.True(dialect.SupportsLastFoundRowsFunction("ROW_COUNT"));
+        Assert.False(dialect.SupportsLastFoundRowsFunction("CHANGES"));
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parser accepts its row-count helper functions and still rejects foreign aliases.
+    /// PT: Garante que o parser MySQL aceite suas funções de row-count e continue rejeitando aliases de outros bancos.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_LastFoundRowsFunctions_ShouldFollowDialectCapability(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        Assert.Equal("FOUND_ROWS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("FOUND_ROWS()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ROW_COUNT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROW_COUNT()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+
+        var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("CHANGES()", dialect));
+        Assert.Contains("CHANGES", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parser/tokenizer still rejects SQL Server double-at system identifiers.
+    /// PT: Garante que o parser/tokenizer MySQL continue rejeitando identificadores de sistema com double-at do SQL Server.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_SystemRowCountIdentifier_ShouldBeRejected(int version)
+    {
+        Assert.Throws<InvalidOperationException>(() => SqlExpressionParser.ParseScalar("@@ROWCOUNT", new MySqlDialect(version)));
+    }
+
+    /// <summary>
+    /// EN: Ensures CREATE SEQUENCE remains rejected for MySQL with an actionable dialect gate.
+    /// PT: Garante que CREATE SEQUENCE continue rejeitado no MySQL com gate de dialeto acionavel.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseCreateSequence_ShouldRespectDialectRule(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("CREATE SEQUENCE seq_orders START WITH 1 INCREMENT BY 1", new MySqlDialect(version)));
+
+        Assert.Contains("CREATE SEQUENCE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT syntax is rejected for MySQL.
     /// PT: Garante que a sintaxe ON CONFLICT do PostgreSQL seja rejeitada no MySQL.
     /// </summary>
@@ -89,6 +183,57 @@ public sealed class MySqlDialectFeatureParserTests
             SqlQueryParser.Parse(sql, new MySqlDialect(version)));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures JSON_EXTRACT follows the configured MySQL version support.
+    /// PT: Garante que JSON_EXTRACT siga o suporte configurado por versão do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_JsonExtract_ShouldFollowMySqlVersionSupport(int version)
+    {
+        const string sql = "JSON_EXTRACT(payload, '$.name')";
+        var dialect = new MySqlDialect(version);
+
+        if (version < MySqlDialect.JsonExtractMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar(sql, dialect));
+
+            Assert.Contains("JSON_EXTRACT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var expr = SqlExpressionParser.ParseScalar(sql, dialect);
+        var call = Assert.IsType<CallExpr>(expr);
+        Assert.Equal("JSON_EXTRACT", call.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL accepts DATE_ADD/TIMESTAMPADD and rejects SQL Server DATEADD syntax.
+    /// PT: Garante que o MySQL aceite DATE_ADD/TIMESTAMPADD e rejeite a sintaxe DATEADD do SQL Server.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_DateAddFamily_ShouldRespectMySqlDialectRule(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var dateAddExpr = SqlExpressionParser.ParseScalar("DATE_ADD(created_at, INTERVAL 1 DAY)", dialect);
+        Assert.Equal("DATE_ADD", Assert.IsType<CallExpr>(dateAddExpr).Name, StringComparer.OrdinalIgnoreCase);
+
+        var timestampAddExpr = SqlExpressionParser.ParseScalar("TIMESTAMPADD(DAY, 1, created_at)", dialect);
+        Assert.Equal("TIMESTAMPADD", Assert.IsType<CallExpr>(timestampAddExpr).Name, StringComparer.OrdinalIgnoreCase);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("DATEADD(DAY, 1, created_at)", dialect));
+
+        Assert.Contains("DATEADD", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -3201,6 +3346,28 @@ WHERE users.id = EXCLUDED.id";
         Assert.NotNull(call.WithinGroupOrderBy);
         Assert.Single(call.WithinGroupOrderBy!);
         Assert.True(call.WithinGroupOrderBy[0].Desc);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parser accepts DISTINCT with multiple native ORDER BY items before SEPARATOR in GROUP_CONCAT.
+    /// PT: Garante que o parser MySQL aceite DISTINCT com multiplos itens nativos em ORDER BY antes de SEPARATOR no GROUP_CONCAT.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_GroupConcatDistinctMultipleOrderByInsideCall_ShouldParse(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        var expr = SqlExpressionParser.ParseScalar("GROUP_CONCAT(DISTINCT val ORDER BY ord1 ASC, ord2 ASC SEPARATOR '|')", dialect);
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.True(call.Distinct);
+        Assert.Equal(2, call.Args.Count);
+        Assert.NotNull(call.WithinGroupOrderBy);
+        Assert.Equal(2, call.WithinGroupOrderBy!.Count);
+        Assert.False(call.WithinGroupOrderBy[0].Desc);
+        Assert.False(call.WithinGroupOrderBy[1].Desc);
     }
 
     /// <summary>

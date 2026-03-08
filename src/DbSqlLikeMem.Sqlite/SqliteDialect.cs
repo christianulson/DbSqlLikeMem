@@ -143,6 +143,9 @@ internal sealed class SqliteDialect : SqlDialectBase
     public override IReadOnlyCollection<string> TemporalFunctionCallNames
         => ["NOW"];
 
+    public override bool SupportsStringAggregateFunction(string functionName)
+        => functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>
     /// EN: Gets or sets concat returns null on null input.
     /// PT: Obtém ou define concat returns null on null input.
@@ -182,4 +185,7 @@ internal sealed class SqliteDialect : SqlDialectBase
 
     public override bool SupportsAggregateOrderByStringAggregateFunction(string functionName)
         => functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase);
+
+    public override bool SupportsLastFoundRowsFunction(string functionName)
+        => functionName.Equals("CHANGES", StringComparison.OrdinalIgnoreCase);
 }

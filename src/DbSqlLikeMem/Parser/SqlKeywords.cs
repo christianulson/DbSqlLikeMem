@@ -5,7 +5,7 @@ internal static class SqlKeywords
         new(StringComparer.OrdinalIgnoreCase)
         {
             "AND","OR","NOT",
-            "IN","LIKE","IS","NULL",
+            "IN","LIKE","IS","NULL","ESCAPE",
             "TRUE","FALSE",
             "AS",
             "BETWEEN",

@@ -12,6 +12,20 @@ Este arquivo registra mudanças relevantes por impacto funcional, com foco em pr
 - `LIKE ... ESCAPE ...` agora também rejeita valores com mais de um caractere no parse literal e na avaliação parametrizada, mantendo o contrato do dialeto para cardinalidade do escape.
 - `JSON_VALUE(... RETURNING <tipo>)` agora respeita gate explícito de dialeto no parser e aplica coerção do valor no executor, cobrindo o contrato Oracle e rejeitando a cláusula no SQL Server.
 - `REGEXP` no executor agora também respeita política de case-sensitivity definida pelo dialeto, cobrindo a semântica default do MySQL.
+- `CREATE/DROP SEQUENCE` agora percorre AST/parser/dispatcher/executor com registro e remoção reais no estado em memória, e o suporte passou a obedecer a capacidade declarada pelo dialeto e pela versão simulada.
+- `STRING_AGG` agora também obedece gate explícito de dialeto/versão no parser e no executor, ficando disponível em `SQL Server/SqlAzure` apenas a partir da semântica de 2017/compatibility level 140.
+- `OPENJSON` agora também obedece gate explícito de dialeto/versão já no parser, alinhando `SQL Server/SqlAzure` ao suporte de 2016+.
+- `JSON_EXTRACT` agora também obedece gate explícito de dialeto/versão já no parser do MySQL, alinhando o aceite ao suporte de 5+.
+- A família `DATEADD/DATE_ADD/TIMESTAMPADD` agora também obedece gate explícito do dialeto já no parser, evitando aceite cruzado indevido entre sintaxes de SQL Server e MySQL.
+- `NEXT VALUE FOR` e `PREVIOUS VALUE FOR` agora obedecem capabilities distintas no dialeto também no parser e no executor, mantendo `SQL Server/SqlAzure` com `NEXT VALUE FOR` a partir de 2012 e preservando `PREVIOUS VALUE FOR` como sintaxe específica do DB2.
+- `seq.NEXTVAL/CURRVAL` agora também obedece capability explícita do dialeto no parser e no executor, preservando a forma pontuada como sintaxe Oracle e rejeitando esse formato em providers como Npgsql.
+- `nextval/currval/setval/lastval` agora também obedecem capability explícita do dialeto no parser e no executor, preservando essa família como sintaxe PostgreSQL/Npgsql e bloqueando o uso em dialetos como SQL Server.
+- `ILIKE` agora também obedece capability explícita do dialeto no parser e no executor, preservando a semântica case-insensitive do PostgreSQL/Npgsql e bloqueando o operador em dialetos como SQL Server.
+- `JSON_TABLE` agora também obedece gate explícito do dialeto já no parser, produzindo `NotSupportedException` consistente até existir suporte real no runtime.
+- `MATCH ... AGAINST` agora também depende de capability explícita do dialeto no runtime, removendo o acoplamento a nome hardcoded de provider e alinhando parser/executor à mesma fonte de verdade.
+- Os aliases de row-count do executor (`FOUND_ROWS`, `ROW_COUNT`, `CHANGES`, `ROWCOUNT` e `@@ROWCOUNT`) agora também dependem de capabilities explícitas do dialeto, removendo switches por nome de provider e preservando a herança automática do caminho `SqlAzure -> SqlServer`.
+- O parser agora também aplica o mesmo gate por capability do dialeto para `FOUND_ROWS()`, `ROW_COUNT()`, `CHANGES()` e `ROWCOUNT()`, mantendo parser e executor alinhados na mesma regra por banco.
+- O tokenizer do parser agora também usa capability explícita do dialeto para a sintaxe `@@ident`, removendo o hardcode de `sqlserver` para `@@ROWCOUNT` e preservando a herança automática de `SqlAzure`.
 
 ### Cross-dialect
 
@@ -32,6 +46,7 @@ Este arquivo registra mudanças relevantes por impacto funcional, com foco em pr
 
 - `GROUP_CONCAT` agora cobre sintaxe nativa com `ORDER BY ... SEPARATOR ...`.
 - Parser cobre `DISTINCT` + `ORDER BY` + `SEPARATOR` e erro acionável para `SEPARATOR` sem expressão.
+- Parser de `GROUP_CONCAT` agora também aceita corretamente múltiplos itens em `ORDER BY` antes de `SEPARATOR`, mantendo esse terminador restrito aos dialetos/funções que o declaram.
 
 ### SQLite
 

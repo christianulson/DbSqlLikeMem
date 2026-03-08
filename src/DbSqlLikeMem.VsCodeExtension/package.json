@@ -2,7 +2,7 @@
   "name": "dbsqllikemem-vscode-extension",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "dbsqllikemem",
   "license": "SEE LICENSE IN ../../README.md",
   "repository": {
@@ -26,7 +26,7 @@
     "code-generation"
   ],
   "engines": {
-    "vscode": "^1.90.0"
+    "vscode": "^1.109.0"
   },
   "categories": [
     "Other"
@@ -343,10 +343,10 @@
     "generate:icon": "node ./scripts/generate-icon.js"
   },
   "devDependencies": {
-    "@vscode/vsce": "^3.2.1",
-    "@types/node": "^20.14.2",
-    "@types/vscode": "^1.90.0",
-    "eslint": "^9.4.0",
-    "typescript": "^5.4.5"
+    "@vscode/vsce": "^3.7.1",
+    "@types/node": "^20.19.37",
+    "@types/vscode": "^1.109.0",
+    "eslint": "^9.39.4",
+    "typescript": "^5.9.3"
   }
 }

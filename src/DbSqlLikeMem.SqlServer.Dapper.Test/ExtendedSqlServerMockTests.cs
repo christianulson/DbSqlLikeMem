@@ -106,6 +106,38 @@ public sealed class ExtendedSqlServerMockTests(
     }
 
     /// <summary>
+    /// EN: Verifies CREATE/DROP SEQUENCE DDL registers and removes SQL Server sequences through the parser pipeline.
+    /// PT: Verifica se o DDL CREATE/DROP SEQUENCE registra e remove sequences do SQL Server pelo pipeline do parser.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedSqlServerMock")]
+    public void CreateAndDropSequenceDdl_ShouldRegisterAndRemoveSequence_Test()
+    {
+        var db = CreateDb();
+        using var connection = CreateConnection(db);
+        connection.Open();
+
+        connection.Execute("CREATE SEQUENCE sales.seq_orders START WITH 10 INCREMENT BY 5");
+        connection.Execute("CREATE SEQUENCE IF NOT EXISTS sales.seq_orders START WITH 999 INCREMENT BY 99");
+
+        Assert.True(connection.TryGetSequence("seq_orders", out var created, "sales"));
+        Assert.Equal(10L, created!.StartValue);
+        Assert.Equal(5L, created.IncrementBy);
+        Assert.Null(created.CurrentValue);
+
+        var next = connection.ExecuteScalar<long>("SELECT NEXT VALUE FOR sales.seq_orders");
+        Assert.Equal(10L, next);
+
+        connection.Execute("DROP SEQUENCE sales.seq_orders");
+        connection.Execute("DROP SEQUENCE IF EXISTS sales.seq_orders");
+
+        Assert.False(connection.TryGetSequence("seq_orders", out _, "sales"));
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            connection.ExecuteScalar<long>("SELECT NEXT VALUE FOR sales.seq_orders"));
+        Assert.Contains("Sequence not found", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Verifies inserts with null values succeed for nullable columns.
     /// PT: Verifica se insercoes com valores nulos funcionam para colunas anulaveis.
     /// </summary>

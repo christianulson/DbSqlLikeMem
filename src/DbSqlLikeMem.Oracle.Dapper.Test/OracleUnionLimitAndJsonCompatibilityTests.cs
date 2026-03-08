@@ -60,7 +60,7 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
     {
         var rows = Connection.Query<dynamic>("SELECT id, JSON_VALUE(payload, '$.a.b' RETURNING VARCHAR2(30)) AS v FROM t ORDER BY id").ToList();
 
-        Assert.Equal([123, 456, null], [.. rows.Select(r => (object?)r.v)]);
+        Assert.Equal(["123", "456", null], [.. rows.Select(r => (object?)r.v)]);
     }
 
 

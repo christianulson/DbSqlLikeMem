@@ -64,7 +64,7 @@ internal static class SqlExprPrinter
 
             case LikeExpr l:
                 Wrap(l.Left, sb);
-                sb.Append(" LIKE ");
+                sb.Append(l.CaseInsensitive ? " ILIKE " : " LIKE ");
                 Wrap(l.Pattern, sb);
                 if (l.Escape is not null)
                 {

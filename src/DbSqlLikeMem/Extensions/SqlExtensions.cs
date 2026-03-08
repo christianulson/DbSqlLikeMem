@@ -61,7 +61,7 @@ internal static class SqlExtensions
         return true;
     }
 
-    internal static bool Like(this string input, string pattern, ISqlDialect? dialect = null, string? escape = null)
+    internal static bool Like(this string input, string pattern, ISqlDialect? dialect = null, string? escape = null, bool? forceCaseInsensitive = null)
     {
         input ??= "";
         pattern ??= "";
@@ -96,7 +96,7 @@ internal static class SqlExtensions
         sb.Append('$');
 
         var options = RegexOptions.CultureInvariant;
-        if (dialect?.LikeIsCaseInsensitive ?? true)
+        if (forceCaseInsensitive ?? (dialect?.LikeIsCaseInsensitive ?? true))
             options |= RegexOptions.IgnoreCase;
 
         return Regex.IsMatch(input, sb.ToString(), options);

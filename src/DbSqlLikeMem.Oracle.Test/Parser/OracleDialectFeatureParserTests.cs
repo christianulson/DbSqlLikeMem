@@ -7,6 +7,41 @@ namespace DbSqlLikeMem.Oracle.Test.Parser;
 public sealed class OracleDialectFeatureParserTests
 {
     /// <summary>
+    /// EN: Ensures Oracle exposes ROW_COUNT() through the dialect capability used by the executor.
+    /// PT: Garante que o Oracle exponha ROW_COUNT() pela capability de dialeto usada pelo executor.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void LastFoundRowsCapability_ShouldExposeOracleFunction(int version)
+    {
+        var dialect = new OracleDialect(version);
+
+        Assert.True(dialect.SupportsLastFoundRowsFunction("ROW_COUNT"));
+        Assert.False(dialect.SupportsLastFoundRowsFunction("FOUND_ROWS"));
+        Assert.False(dialect.SupportsLastFoundRowsIdentifier("@@ROWCOUNT"));
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle parser accepts ROW_COUNT() and rejects foreign row-count helper aliases.
+    /// PT: Garante que o parser Oracle aceite ROW_COUNT() e rejeite aliases de row-count de outros bancos.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseScalar_LastFoundRowsFunctions_ShouldFollowDialectCapability(int version)
+    {
+        var dialect = new OracleDialect(version);
+
+        Assert.Equal("ROW_COUNT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROW_COUNT()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+
+        var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FOUND_ROWS()", dialect));
+        Assert.Contains("FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures WITH RECURSIVE syntax is rejected for Oracle.
     /// PT: Garante que a sintaxe with recursive seja rejeitada no Oracle.
     /// </summary>
@@ -215,7 +250,7 @@ public sealed class OracleDialectFeatureParserTests
     [MemberDataOracleVersion]
     public void ParseScalar_JsonValueWithReturningClause_ShouldParse(int version)
     {
-        var parsed = Assert.IsType<FunctionCallExpr>(
+        var parsed = Assert.IsType<CallExpr>(
             SqlExpressionParser.ParseScalar("JSON_VALUE(payload, '$.a.b' RETURNING NUMBER)", new OracleDialect(version)));
 
         Assert.Equal("JSON_VALUE", parsed.Name, ignoreCase: true);

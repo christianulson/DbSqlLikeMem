@@ -55,7 +55,8 @@ public sealed class TemplateTokenCatalogTests
     [Trait("Category", "TemplateTokenCatalog")]
     public void CurrentBaselineTemplates_ShouldUseOnlySupportedTokens()
     {
-        var repositoryRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+        var repositoryRoot = TemplateBaselineCatalog.FindRepositoryRoot(AppContext.BaseDirectory)
+            ?? throw new InvalidOperationException("Repository root containing templates/dbsqllikemem could not be resolved from the test base directory.");
 
         foreach (var profile in TemplateBaselineCatalog.GetProfiles())
         {

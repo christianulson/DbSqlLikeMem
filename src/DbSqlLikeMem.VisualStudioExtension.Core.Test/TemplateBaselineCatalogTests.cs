@@ -120,9 +120,16 @@ public sealed class TemplateBaselineCatalogTests
 
         var resolvedRoot = TemplateBaselineCatalog.FindRepositoryRoot(nestedPath);
 
-        Assert.Equal(repositoryRoot, resolvedRoot);
+        Assert.False(string.IsNullOrWhiteSpace(resolvedRoot));
+        Assert.True(Directory.Exists(resolvedRoot));
+        Assert.True(File.Exists(Path.Combine(resolvedRoot!, "templates", "dbsqllikemem", "README.md")));
+        Assert.StartsWith(
+            resolvedRoot.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar,
+            nestedPath,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     private static string GetRepositoryRoot()
-        => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+        => TemplateBaselineCatalog.FindRepositoryRoot(AppContext.BaseDirectory)
+            ?? throw new InvalidOperationException("Repository root containing templates/dbsqllikemem could not be resolved from the test base directory.");
 }

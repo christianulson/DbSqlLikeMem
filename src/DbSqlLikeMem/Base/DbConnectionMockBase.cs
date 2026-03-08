@@ -528,6 +528,29 @@ public abstract class DbConnectionMockBase(
             out sequence,
             schemaName ?? Database);
 
+    internal void CreateSequence(
+        string sequenceName,
+        bool ifNotExists,
+        long startValue = 1,
+        long incrementBy = 1,
+        string? schemaName = null)
+        => Db.CreateSequence(
+            sequenceName,
+            ifNotExists,
+            startValue,
+            incrementBy,
+            schemaName ?? Database);
+
+    internal void DropSequence(
+        string sequenceName,
+        bool ifExists,
+        string? schemaName = null)
+    {
+        var targetSchema = schemaName ?? Database;
+        ClearSessionSequenceValue(sequenceName, targetSchema);
+        Db.DropSequence(sequenceName, ifExists, targetSchema);
+    }
+
     internal void SetSessionSequenceValue(
         string sequenceName,
         long value,
@@ -557,6 +580,16 @@ public abstract class DbConnectionMockBase(
     {
         var schema = Db.GetSchemaName(schemaName ?? Database);
         return $"{schema}:{sequenceName.NormalizeName()}";
+    }
+
+    private void ClearSessionSequenceValue(
+        string sequenceName,
+        string? schemaName)
+    {
+        var key = BuildSessionSequenceKey(sequenceName, schemaName);
+        _sessionSequenceValues.Remove(key);
+        if (string.Equals(_lastSessionSequenceKey, key, StringComparison.OrdinalIgnoreCase))
+            _lastSessionSequenceKey = null;
     }
 
     #endregion

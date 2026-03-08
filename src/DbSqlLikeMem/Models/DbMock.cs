@@ -506,6 +506,49 @@ public abstract class DbMock
             && sequence != null;
     }
 
+    internal void CreateSequence(
+        string sequenceName,
+        bool ifNotExists,
+        long startValue = 1,
+        long incrementBy = 1,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sequenceName, nameof(sequenceName));
+        var sc = GetSchemaName(schemaName);
+        if (!this.TryGetValue(sc, out var s) || s == null)
+            CreateSchema(sc);
+
+        var normalized = sequenceName.NormalizeName();
+        var sequences = this[sc].MutableSequences;
+        if (sequences.ContainsKey(normalized))
+        {
+            if (ifNotExists)
+                return;
+
+            throw new InvalidOperationException($"Sequence '{normalized}' already exists.");
+        }
+
+        sequences[normalized] = new SequenceDef(sequenceName, startValue, incrementBy);
+    }
+
+    internal void DropSequence(
+        string sequenceName,
+        bool ifExists,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sequenceName, nameof(sequenceName));
+        var sc = GetSchemaName(schemaName);
+        var normalized = sequenceName.NormalizeName();
+
+        if (this[sc].MutableSequences.Remove(normalized))
+            return;
+
+        if (ifExists)
+            return;
+
+        throw new InvalidOperationException($"Sequence '{normalized}' does not exist.");
+    }
+
     #endregion
 
     internal virtual IReadOnlyList<ITableMock> ListAllTablesBestEffort()

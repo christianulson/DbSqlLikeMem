@@ -383,18 +383,24 @@ internal static class DbInsertStrategy
             };
         }
 
-        if (parsedExpr is CallExpr call
-            && SqlSequenceEvaluator.TryEvaluateCall(connection, call.Name, call.Args, Eval, out var callValue))
+        if (parsedExpr is CallExpr call)
         {
-            value = callValue;
-            return true;
+            EnsureDialectSupportsSequenceFunction(dialect, call.Name);
+            if (SqlSequenceEvaluator.TryEvaluateCall(connection, call.Name, call.Args, Eval, out var callValue))
+            {
+                value = callValue;
+                return true;
+            }
         }
 
-        if (parsedExpr is FunctionCallExpr function
-            && SqlSequenceEvaluator.TryEvaluateCall(connection, function.Name, function.Args, Eval, out var functionValue))
+        if (parsedExpr is FunctionCallExpr function)
         {
-            value = functionValue;
-            return true;
+            EnsureDialectSupportsSequenceFunction(dialect, function.Name);
+            if (SqlSequenceEvaluator.TryEvaluateCall(connection, function.Name, function.Args, Eval, out var functionValue))
+            {
+                value = functionValue;
+                return true;
+            }
         }
 
         return false;
@@ -619,6 +625,7 @@ internal static class DbInsertStrategy
 
         object? EvalFunction(FunctionCallExpr fn)
         {
+            EnsureDialectSupportsSequenceFunction(dialect, fn.Name);
             if (SqlSequenceEvaluator.TryEvaluateCall(table, fn.Name, fn.Args, Eval, out var sequenceValue))
                 return sequenceValue;
 
@@ -641,6 +648,7 @@ internal static class DbInsertStrategy
 
         object? EvalCall(CallExpr call)
         {
+            EnsureDialectSupportsSequenceFunction(dialect, call.Name);
             if (SqlSequenceEvaluator.TryEvaluateCall(table, call.Name, call.Args, Eval, out var sequenceValue))
                 return sequenceValue;
 
@@ -809,6 +817,7 @@ internal static class DbInsertStrategy
         {
             // compat: alguns parsers usam FunctionCallExpr
             var name = fn.Name;
+            EnsureDialectSupportsSequenceFunction(dialect, name);
             if (SqlSequenceEvaluator.TryEvaluateCall(table, name, fn.Args, Eval, out var sequenceValue))
                 return sequenceValue;
 
@@ -835,6 +844,7 @@ internal static class DbInsertStrategy
         object? EvalCall(CallExpr call)
         {
             var name = call.Name;
+            EnsureDialectSupportsSequenceFunction(dialect, name);
             if (SqlSequenceEvaluator.TryEvaluateCall(table, name, call.Args, Eval, out var sequenceValue))
                 return sequenceValue;
 
@@ -943,6 +953,7 @@ internal static class DbInsertStrategy
 
         object? EvalFunction(FunctionCallExpr fn)
         {
+            EnsureDialectSupportsSequenceFunction(dialect, fn.Name);
             if (SqlSequenceEvaluator.TryEvaluateCall(table, fn.Name, fn.Args, Eval, out var sequenceValue))
                 return sequenceValue;
 
@@ -968,6 +979,7 @@ internal static class DbInsertStrategy
 
         object? EvalCall(CallExpr call)
         {
+            EnsureDialectSupportsSequenceFunction(dialect, call.Name);
             if (SqlSequenceEvaluator.TryEvaluateCall(table, call.Name, call.Args, Eval, out var sequenceValue))
                 return sequenceValue;
 
@@ -1046,6 +1058,36 @@ internal static class DbInsertStrategy
 
     private static IReadOnlyDictionary<int, object?> SnapshotRow(IReadOnlyDictionary<int, object?> row)
         => row.ToDictionary(_ => _.Key, _ => _.Value);
+
+    private static void EnsureDialectSupportsSequenceFunction(ISqlDialect dialect, string? functionName)
+    {
+        if (string.IsNullOrWhiteSpace(functionName))
+            return;
+
+        if (functionName.Equals("NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
+            && !dialect.SupportsNextValueForSequenceExpression)
+            throw SqlUnsupported.ForDialect(dialect, "NEXT VALUE FOR");
+
+        if (functionName.Equals("PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
+            && !dialect.SupportsPreviousValueForSequenceExpression)
+            throw SqlUnsupported.ForDialect(dialect, "PREVIOUS VALUE FOR");
+
+        if ((functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase))
+            && !dialect.SupportsSequenceDotValueExpression(functionName))
+        {
+            throw SqlUnsupported.ForDialect(dialect, functionName.ToUpperInvariant());
+        }
+
+        if ((functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("SETVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase))
+            && !dialect.SupportsSequenceFunctionCall(functionName))
+        {
+            throw SqlUnsupported.ForDialect(dialect, functionName.ToUpperInvariant());
+        }
+    }
 
     private static void TryExecuteTableTrigger(
         DbConnectionMockBase connection,

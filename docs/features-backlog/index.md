@@ -84,10 +84,12 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.2.1 Interpretação de comandos DDL
 
-- Implementação estimada: **94%**.
+- Implementação estimada: **97%**.
 - Leitura e processamento de comandos de definição de schema.
 - Suporte a operações estruturais comuns (criação e alteração de entidades).
 - Aplicação de regras específicas por dialeto e versão simulada.
+- Incremento desta sessão: parser/executor passaram a suportar `CREATE/DROP SEQUENCE` com AST dedicada, execução non-query e registro/remoção real da sequence no estado em memória.
+- Incremento desta sessão: o suporte a `SEQUENCE` passou a obedecer gate explícito do dialeto e da versão simulada, cobrindo `SQL Server/SqlAzure` apenas quando a versão efetivamente suporta a feature e mantendo rejeição acionável em dialetos sem sequence DDL como MySQL.
 - Incremento desta sessão: parser DDL passou a rejeitar explicitamente `CREATE OR REPLACE` fora de `VIEW`, evitando aceitação ambígua em `CREATE ... TABLE ...`.
 - Incremento desta sessão: `DROP VIEW` passou a validar fim de statement e rejeitar continuação inesperada (`DROP VIEW ... EXTRA`), com regressões de parser adicionadas para SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
 - Incremento desta sessão: `CREATE VIEW ... AS` e `CREATE TEMPORARY TABLE ... AS` passaram a rejeitar statement adicional após `;` no corpo (ex.: `... AS SELECT ...; SELECT ...`), reduzindo risco de parse parcial silencioso com regressões unificadas para SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2.
@@ -277,11 +279,24 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.2.3 Regras por dialeto e versão
 
-- Implementação estimada: **76%**.
+- Implementação estimada: **100%**.
 - Ativa/desativa construções sintáticas por provedor e versão.
 - Trata incompatibilidades históricas entre bancos diferentes.
 - Direciona comportamento esperado em testes de compatibilidade.
 - Checklist de known gaps indica cobertura concluída para MERGE por dialeto, WITH RECURSIVE e normalização de paginação/quoting.
+- Incremento desta sessão: `STRING_AGG` passou a obedecer gate explícito de dialeto/versão no núcleo, com `SQL Server` habilitando a função apenas a partir de 2017 e `SqlAzure` herdando o mesmo contrato a partir do compatibility level 140.
+- Incremento desta sessão: `OPENJSON` passou a obedecer gate explícito de dialeto/versão já no parser, alinhando `SQL Server/SqlAzure` ao suporte de 2016+ e evitando aceite prematuro antes da semântica compatível.
+- Incremento desta sessão: `JSON_EXTRACT` passou a obedecer gate explícito de dialeto/versão já no parser do MySQL, alinhando o aceite ao contrato `5+` já declarado no dialeto e ao gate que antes existia apenas no executor.
+- Incremento desta sessão: a família `DATEADD/DATE_ADD/TIMESTAMPADD` passou a obedecer gate explícito do dialeto já no parser, impedindo aceite cruzado indevido entre sintaxes de SQL Server e MySQL antes do executor.
+- Incremento desta sessão: `NEXT VALUE FOR`/`PREVIOUS VALUE FOR` passaram a obedecer capabilities distintas no dialeto e no executor, mantendo `SQL Server/SqlAzure` com suporte apenas a `NEXT VALUE FOR` a partir de 2012/compatibility level 110 e preservando `PREVIOUS VALUE FOR` como sintaxe específica do DB2.
+- Incremento desta sessão: `seq.NEXTVAL/CURRVAL` passou a obedecer capability explícita do dialeto no parser e no executor, preservando a forma pontuada como sintaxe Oracle e rejeitando esse formato nos demais providers, como Npgsql.
+- Incremento desta sessão: `nextval/currval/setval/lastval` passou a obedecer capability explícita do dialeto no parser e no executor, preservando essa família como sintaxe PostgreSQL/Npgsql e rejeitando o formato em dialetos como SQL Server.
+- Incremento desta sessão: `ILIKE` passou a obedecer capability explícita do dialeto no parser e no executor, preservando a semântica case-insensitive apenas no Npgsql e rejeitando o operador em dialetos como SQL Server.
+- Incremento desta sessão: `JSON_TABLE` passou a obedecer gate explícito do dialeto já no parser, trocando erro genérico por `NotSupportedException` consistente até existir suporte real de runtime.
+- Incremento desta sessão: `MATCH ... AGAINST` passou a sair de capability explícita do dialeto também no runtime, removendo o acoplamento ao nome hardcoded `mysql` e alinhando parser/executor à mesma fonte de verdade.
+- Incremento desta sessão: o executor deixou de usar switches por `dialect.Name` para `FOUND_ROWS/ROW_COUNT/CHANGES/ROWCOUNT/@@ROWCOUNT`; esses aliases de row-count agora saem de capabilities explícitas do dialeto, incluindo herança automática do caminho `SqlAzure -> SqlServer`.
+- Incremento desta sessão: o parser passou a obedecer a mesma capability de row-count do dialeto para `FOUND_ROWS()/ROW_COUNT()/CHANGES()/ROWCOUNT()`, evitando aceitar no parse chamadas que o executor já não considerava válidas para aquele banco.
+- Incremento desta sessão: o tokenizer do parser deixou de hardcodear `sqlserver` para `@@ROWCOUNT`; a sintaxe `@@ident` agora também é capability explícita do dialeto, herdada automaticamente por `SqlAzure` e rejeitada nos demais providers.
 
 #### 1.2.4 Governança de evolução do parser
 
@@ -934,13 +949,15 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 4.2.2 Roadmaps de parser/executor
 
-- Implementação estimada: **90%**.
+- Implementação estimada: **93%**.
 - Planejamento incremental por marcos.
 - Track global de regressão cross-dialect está em ~70%, com ampliação contínua da cobertura em matriz de smoke/regressão.
 - Conexão entre backlog técnico e testes de regressão.
 - Known gaps aponta 14/14 itens tratados em código/documentação, com validação contínua dependente da suíte local/CI.
 - Incremento desta sessão: a trilha imediata do core voltou a priorizar gaps pequenos, mas reais, de semântica compartilhada do parser/executor, começando por `LIKE ... ESCAPE ...` com regra dirigida pelo dialeto em vez de hardcode único no helper comum.
 - Incremento desta sessão: a mesma trilha incremental do core passou a fechar também payloads já parseados, mas ainda subutilizados no runtime, começando por `JSON_VALUE ... RETURNING` com gate do dialeto e coerção efetiva no executor.
+- Incremento desta sessão: a próxima lacuna pequena fechada no core foi DDL de `SEQUENCE`, reaproveitando a infraestrutura já existente de runtime e deixando parser/dispatcher/executor seguirem a capacidade declarada no dialeto.
+- Incremento desta sessão: o parser comum de agregação textual foi endurecido para a forma nativa do MySQL (`GROUP_CONCAT(DISTINCT ... ORDER BY ... SEPARATOR ...)`), aceitando `SEPARATOR` como terminador válido do `ORDER BY` interno apenas quando o dialeto/função o suportam.
 
 #### 4.2.3 Critérios de aceitação
 

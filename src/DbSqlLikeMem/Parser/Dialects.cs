@@ -72,6 +72,14 @@ internal interface ISqlDialect
     bool SupportsReturning { get; }
     bool SupportsMerge { get; }
     bool SupportsTriggers { get; }
+    bool SupportsSequenceDdl { get; }
+    bool SupportsNextValueForSequenceExpression { get; }
+    bool SupportsPreviousValueForSequenceExpression { get; }
+    bool SupportsSequenceDotValueExpression(string suffix);
+    bool SupportsSequenceFunctionCall(string functionName);
+    bool SupportsLastFoundRowsFunction(string functionName);
+    bool SupportsLastFoundRowsIdentifier(string identifier);
+    bool SupportsDoubleAtIdentifierSyntax { get; }
 
     // Pagination
     bool SupportsOffsetFetch { get; }
@@ -94,6 +102,7 @@ internal interface ISqlDialect
     bool SupportsJsonValueFunction { get; }
     bool SupportsJsonValueReturningClause { get; }
     bool SupportsOpenJsonFunction { get; }
+    bool SupportsJsonTableFunction { get; }
 
     // Parser-only compatibility toggles (keep runtime rules separated)
     bool AllowsParserCrossDialectQuotedIdentifiers { get; }
@@ -134,6 +143,7 @@ internal interface ISqlDialect
     bool SupportsWindowFunctions { get; }
     bool SupportsWindowFrameClause { get; }
     bool SupportsLikeEscapeClause { get; }
+    bool SupportsIlikeOperator { get; }
     char? LikeDefaultEscapeCharacter { get; }
     bool LikeEscapeExpressionMustBeSingleCharacter { get; }
     bool IsRowNumberWindowFunction(string functionName);
@@ -142,10 +152,12 @@ internal interface ISqlDialect
     bool TryGetWindowFunctionArgumentArity(string functionName, out int minArgs, out int maxArgs);
     bool SupportsWithinGroupForStringAggregates { get; }
     bool SupportsWithinGroupStringAggregateFunction(string functionName);
+    bool SupportsStringAggregateFunction(string functionName);
     bool SupportsAggregateOrderByForStringAggregates { get; }
     bool SupportsAggregateOrderByStringAggregateFunction(string functionName);
     bool SupportsAggregateSeparatorKeywordForStringAggregates { get; }
     bool SupportsAggregateSeparatorKeywordStringAggregateFunction(string functionName);
+    bool SupportsMatchAgainstPredicate { get; }
     bool SupportsPivotClause { get; }
     DbType InferWindowFunctionDbType(WindowFunctionExpr windowFunctionExpr, Func<SqlExpr, DbType> inferArgDbType);
 }
@@ -380,6 +392,8 @@ internal abstract class SqlDialectBase : ISqlDialect
 
     public virtual bool SupportsLikeEscapeClause => true;
 
+    public virtual bool SupportsIlikeOperator => false;
+
     public virtual char? LikeDefaultEscapeCharacter => null;
 
     public virtual bool LikeEscapeExpressionMustBeSingleCharacter => true;
@@ -389,6 +403,16 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual bool SupportsWithinGroupStringAggregateFunction(string functionName)
     {
         if (!SupportsWithinGroupForStringAggregates || string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        return functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public virtual bool SupportsStringAggregateFunction(string functionName)
+    {
+        if (string.IsNullOrWhiteSpace(functionName))
             return false;
 
         return functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase)
@@ -419,6 +443,8 @@ internal abstract class SqlDialectBase : ISqlDialect
             || functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase);
     }
+
+    public virtual bool SupportsMatchAgainstPredicate => false;
 
     public virtual bool IsRowNumberWindowFunction(string functionName)
         => functionName.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase);
@@ -630,6 +656,22 @@ internal abstract class SqlDialectBase : ISqlDialect
 
     public virtual bool SupportsTriggers => true;
 
+    public virtual bool SupportsSequenceDdl => false;
+
+    public virtual bool SupportsNextValueForSequenceExpression => false;
+
+    public virtual bool SupportsPreviousValueForSequenceExpression => false;
+
+    public virtual bool SupportsSequenceDotValueExpression(string suffix) => false;
+
+    public virtual bool SupportsSequenceFunctionCall(string functionName) => false;
+
+    public virtual bool SupportsLastFoundRowsFunction(string functionName) => false;
+
+    public virtual bool SupportsLastFoundRowsIdentifier(string identifier) => false;
+
+    public virtual bool SupportsDoubleAtIdentifierSyntax => false;
+
     /// <summary>
     /// EN: Gets or sets SupportsOffsetFetch.
     /// PT: Obtém ou define SupportsOffsetFetch.
@@ -689,6 +731,7 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual bool SupportsJsonValueFunction => false;
     public virtual bool SupportsJsonValueReturningClause => false;
     public virtual bool SupportsOpenJsonFunction => false;
+    public virtual bool SupportsJsonTableFunction => false;
 
     /// <summary>
     /// EN: Gets or sets AllowsParserCrossDialectQuotedIdentifiers.

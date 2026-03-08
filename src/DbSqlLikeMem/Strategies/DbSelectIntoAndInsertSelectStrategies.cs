@@ -21,8 +21,10 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             SqlDeleteQuery deleteQ => connection.ExecuteDeleteSmart(deleteQ, pars, dialect),
             SqlCreateTemporaryTableQuery tempQ => connection.ExecuteCreateTemporaryTableAsSelect(tempQ, pars, dialect),
             SqlCreateViewQuery viewQ => connection.ExecuteCreateView(viewQ, pars, dialect),
+            SqlCreateSequenceQuery createSequenceQ => connection.ExecuteCreateSequence(createSequenceQ, pars, dialect),
             SqlDropViewQuery dropViewQ => connection.ExecuteDropView(dropViewQ, pars, dialect),
             SqlDropTableQuery dropTableQ => connection.ExecuteDropTable(dropTableQ, pars, dialect),
+            SqlDropSequenceQuery dropSequenceQ => connection.ExecuteDropSequence(dropSequenceQ, pars, dialect),
             SqlMergeQuery mergeQ when allowMerge => connection.ExecuteMerge(mergeQ, pars, dialect),
             SqlSelectQuery _ => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelect()),
             SqlUnionQuery _ when unionUsesSelectMessage => throw new InvalidOperationException(SqlExceptionMessages.UseExecuteReaderForSelectUnion()),
@@ -136,6 +138,81 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             query.Temporary,
             query.Scope,
             query.Table?.DbName);
+        return 0;
+    }
+
+    /// <summary>
+    /// EN: Implements ExecuteCreateSequence.
+    /// PT: Implementa ExecuteCreateSequence.
+    /// </summary>
+    public static int ExecuteCreateSequence(
+        this DbConnectionMockBase connection,
+        SqlCreateSequenceQuery query,
+        DbParameterCollection pars,
+        ISqlDialect dialect)
+    {
+        _ = pars;
+        _ = dialect;
+        int affected;
+        if (!connection.Db.ThreadSafe)
+            affected = ExecuteCreateSequenceImpl(connection, query);
+        else
+        {
+            lock (connection.Db.SyncRoot)
+                affected = ExecuteCreateSequenceImpl(connection, query);
+        }
+
+        connection.SetLastFoundRows(affected);
+        return affected;
+    }
+
+    private static int ExecuteCreateSequenceImpl(
+        DbConnectionMockBase connection,
+        SqlCreateSequenceQuery query)
+    {
+        var sequenceName = query.Table?.Name;
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sequenceName, nameof(sequenceName));
+        connection.CreateSequence(
+            sequenceName!,
+            query.IfNotExists,
+            query.StartValue,
+            query.IncrementBy,
+            query.Table?.DbName);
+        return 0;
+    }
+
+    /// <summary>
+    /// EN: Implements ExecuteDropSequence.
+    /// PT: Implementa ExecuteDropSequence.
+    /// </summary>
+    public static int ExecuteDropSequence(
+        this DbConnectionMockBase connection,
+        SqlDropSequenceQuery query,
+        DbParameterCollection pars,
+        ISqlDialect dialect)
+    {
+        _ = pars;
+        _ = dialect;
+        int affected;
+        if (!connection.Db.ThreadSafe)
+            affected = ExecuteDropSequenceImpl(connection, query);
+        else
+        {
+            lock (connection.Db.SyncRoot)
+                affected = ExecuteDropSequenceImpl(connection, query);
+        }
+
+        connection.SetLastFoundRows(affected);
+        return affected;
+    }
+
+    private static int ExecuteDropSequenceImpl(
+        DbConnectionMockBase connection,
+        SqlDropSequenceQuery query)
+    {
+        var sequenceName = query.Table?.Name;
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sequenceName, nameof(sequenceName));
+        connection.DropSequence(sequenceName!, query.IfExists, query.Table?.DbName);
         return 0;
     }
 

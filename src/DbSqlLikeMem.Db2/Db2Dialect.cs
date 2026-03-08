@@ -109,6 +109,12 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// PT: Obtém se há suporte a merge.
     /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
+    public override bool SupportsSequenceDdl => true;
+    public override bool SupportsNextValueForSequenceExpression => true;
+    public override bool SupportsPreviousValueForSequenceExpression => true;
+
+    public override bool SupportsStringAggregateFunction(string functionName)
+        => functionName.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase);
     
     /// <summary>
     /// EN: Gets the null substitute function names supported by DB2 compatibility behavior.
@@ -147,4 +153,7 @@ internal sealed class Db2Dialect : SqlDialectBase
     public override bool SupportsDateAddFunction(string functionName)
         => functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)
         || functionName.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase);
+
+    public override bool SupportsLastFoundRowsFunction(string functionName)
+        => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase);
 }

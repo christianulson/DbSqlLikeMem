@@ -7,6 +7,39 @@ namespace DbSqlLikeMem.Sqlite.Test.Parser;
 public sealed class SqliteDialectFeatureParserTests
 {
     /// <summary>
+    /// EN: Ensures SQLite exposes CHANGES() through the dialect capability used by the executor.
+    /// PT: Garante que o SQLite exponha CHANGES() pela capability de dialeto usada pelo executor.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void LastFoundRowsCapability_ShouldExposeSqliteFunction(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        Assert.True(dialect.SupportsLastFoundRowsFunction("CHANGES"));
+        Assert.False(dialect.SupportsLastFoundRowsFunction("ROW_COUNT"));
+        Assert.False(dialect.SupportsLastFoundRowsIdentifier("@@ROWCOUNT"));
+    }
+
+    /// <summary>
+    /// EN: Ensures SQLite parser accepts CHANGES() and rejects foreign row-count helper aliases.
+    /// PT: Garante que o parser SQLite aceite CHANGES() e rejeite aliases de row-count de outros bancos.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseScalar_LastFoundRowsFunctions_ShouldFollowDialectCapability(int version)
+    {
+        var dialect = new SqliteDialect(version);
+
+        Assert.Equal("CHANGES", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CHANGES()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+
+        var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FOUND_ROWS()", dialect));
+        Assert.Contains("FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Executes this API operation.
     /// Executa esta operação da API.
     /// </summary>

@@ -1664,6 +1664,9 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "VIEW"))
             return ParseCreateView(orReplace);
 
+        if (IsWord(Peek(), "SEQUENCE"))
+            return ParseCreateSequence(orReplace);
+
         if (orReplace)
             throw new InvalidOperationException("CREATE OR REPLACE is only supported for VIEW statements.");
 
@@ -1903,6 +1906,84 @@ internal sealed class SqlQueryParser
         };
     }
 
+    private SqlCreateSequenceQuery ParseCreateSequence(bool orReplace)
+    {
+        if (orReplace)
+            throw new InvalidOperationException("CREATE OR REPLACE is only supported for VIEW statements.");
+
+        if (!_dialect.SupportsSequenceDdl)
+            throw SqlUnsupported.ForDialect(_dialect, "CREATE SEQUENCE");
+
+        ExpectWord("SEQUENCE");
+
+        var ifNotExists = false;
+        if (IsWord(Peek(), "IF"))
+        {
+            Consume();
+            ExpectWord("NOT");
+            ExpectWord("EXISTS");
+            ifNotExists = true;
+        }
+
+        var sequenceNameToken = Peek();
+        if (IsEnd(sequenceNameToken) || IsSymbol(sequenceNameToken, ";"))
+            throw new InvalidOperationException("CREATE SEQUENCE requires a sequence name.");
+
+        var sequence = ParseQualifiedObjectName();
+        var startValue = 1L;
+        var incrementBy = 1L;
+        var parsedStart = false;
+        var parsedIncrement = false;
+
+        while (!IsEnd(Peek()) && !IsSymbol(Peek(), ";"))
+        {
+            if (IsWord(Peek(), "START"))
+            {
+                if (parsedStart)
+                    throw new InvalidOperationException("CREATE SEQUENCE START can only be specified once.");
+
+                Consume();
+                if (IsWord(Peek(), "WITH"))
+                    Consume();
+
+                startValue = ExpectSignedNumberLong("CREATE SEQUENCE START");
+                parsedStart = true;
+                continue;
+            }
+
+            if (IsWord(Peek(), "INCREMENT"))
+            {
+                if (parsedIncrement)
+                    throw new InvalidOperationException("CREATE SEQUENCE INCREMENT can only be specified once.");
+
+                Consume();
+                if (IsWord(Peek(), "BY"))
+                    Consume();
+
+                incrementBy = ExpectSignedNumberLong("CREATE SEQUENCE INCREMENT");
+                if (incrementBy == 0)
+                    throw new InvalidOperationException("CREATE SEQUENCE INCREMENT cannot be zero.");
+
+                parsedIncrement = true;
+                continue;
+            }
+
+            var unexpected = Peek();
+            throw new InvalidOperationException(
+                $"Unexpected token after CREATE SEQUENCE: {unexpected.Kind} '{unexpected.Text}'");
+        }
+
+        EnsureStatementEnd("CREATE SEQUENCE");
+
+        return new SqlCreateSequenceQuery
+        {
+            IfNotExists = ifNotExists,
+            StartValue = startValue,
+            IncrementBy = incrementBy,
+            Table = sequence
+        };
+    }
+
     private SqlQueryBase ParseDrop()
     {
         ExpectWord("DROP");
@@ -1910,13 +1991,16 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "VIEW"))
             return ParseDropView();
 
+        if (IsWord(Peek(), "SEQUENCE"))
+            return ParseDropSequence();
+
         if (IsWord(Peek(), "TABLE")
             || IsWord(Peek(), "TEMP")
             || IsWord(Peek(), "TEMPORARY")
             || IsWord(Peek(), "GLOBAL"))
             return ParseDropTable();
 
-        throw new InvalidOperationException("Apenas DROP VIEW e DROP TABLE são suportados no mock no momento.");
+        throw new InvalidOperationException("Apenas DROP VIEW, DROP TABLE e DROP SEQUENCE são suportados no mock no momento.");
     }
 
     private SqlDropViewQuery ParseDropView()
@@ -1965,6 +2049,36 @@ internal sealed class SqlQueryParser
         {
             IfExists = ifExists,
             Table = viewName
+        };
+    }
+
+    private SqlDropSequenceQuery ParseDropSequence()
+    {
+        if (!_dialect.SupportsSequenceDdl)
+            throw SqlUnsupported.ForDialect(_dialect, "DROP SEQUENCE");
+
+        Consume(); // SEQUENCE
+
+        var ifExists = false;
+        if (IsWord(Peek(), "IF"))
+        {
+            Consume();
+            ExpectWord("EXISTS");
+            ifExists = true;
+        }
+
+        var sequenceNameToken = Peek();
+        if (IsEnd(sequenceNameToken) || IsSymbol(sequenceNameToken, ";"))
+            throw new InvalidOperationException("DROP SEQUENCE requires a sequence name.");
+
+        var sequenceName = ParseQualifiedObjectName();
+
+        EnsureStatementEnd("DROP SEQUENCE");
+
+        return new SqlDropSequenceQuery
+        {
+            IfExists = ifExists,
+            Table = sequenceName
         };
     }
 
@@ -2020,6 +2134,29 @@ internal sealed class SqlQueryParser
             Scope = tempScope,
             Table = tableName
         };
+    }
+
+    private SqlTableSource ParseQualifiedObjectName()
+    {
+        var first = ExpectIdentifier();
+        string? dbName = null;
+        var objectName = first;
+        if (IsSymbol(Peek(), "."))
+        {
+            Consume();
+            dbName = objectName;
+            objectName = ExpectIdentifier();
+        }
+
+        return new SqlTableSource(
+            dbName,
+            objectName,
+            Alias: null,
+            Derived: null,
+            DerivedUnion: null,
+            DerivedSql: null,
+            Pivot: null,
+            MySqlIndexHints: null);
     }
 
     private static void EnsureNoUnexpectedTrailingStatementAfterBody(
@@ -2334,7 +2471,7 @@ internal sealed class SqlQueryParser
         Consume();
         // "ON" here is important for INSERT ... SELECT ... WHERE ... ON DUPLICATE ...
         var txt = ReadClauseTextUntilTopLevelStop("GROUP", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "HAVING", "ON", "RETURNING");
-        return SqlExpressionParser.ParseWhere(txt, _dialect);
+        return SqlExpressionParser.ParseWhere(txt, _dialect, _parameters);
     }
 
     private List<string> TryParseGroupBy()
@@ -2354,7 +2491,7 @@ internal sealed class SqlQueryParser
         if (!IsWord(Peek(), "HAVING")) return null;
         Consume();
         var txt = ReadClauseTextUntilTopLevelStop("ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "RETURNING");
-        return SqlExpressionParser.ParseWhere(txt, _dialect);
+        return SqlExpressionParser.ParseWhere(txt, _dialect, _parameters);
     }
 
     private List<SqlOrderByItem> TryParseOrderBy()
@@ -2844,7 +2981,7 @@ internal sealed class SqlQueryParser
         {
             ExpectWord("ON");
             var txt = ReadClauseTextUntilTopLevelStop("JOIN", "LEFT", "RIGHT", "INNER", "CROSS", "WHERE", "GROUP", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION");
-            onExpr = SqlExpressionParser.ParseWhere(txt, _dialect);
+            onExpr = SqlExpressionParser.ParseWhere(txt, _dialect, _parameters);
         }
         return new SqlJoin(type, table, onExpr);
     }
@@ -3386,6 +3523,29 @@ internal sealed class SqlQueryParser
         throw new InvalidOperationException($"Esperava número inteiro ou parâmetro, veio {t.Kind} '{t.Text}'.");
     }
 
+    private long ExpectSignedNumberLong(string clauseName)
+    {
+        var sign = 1L;
+        if (IsSymbol(Peek(), "+"))
+        {
+            Consume();
+        }
+        else if (IsSymbol(Peek(), "-"))
+        {
+            Consume();
+            sign = -1L;
+        }
+
+        var t = Consume();
+        if (t.Kind == SqlTokenKind.Number)
+            return sign * long.Parse(t.Text, CultureInfo.InvariantCulture);
+
+        if (t.Kind == SqlTokenKind.Parameter)
+            return sign * ResolveParameterLong(t.Text);
+
+        throw new InvalidOperationException($"{clauseName} requires an integer literal or parameter.");
+    }
+
     private int ResolveParameterInt(string parameterToken)
     {
         if (_parameters is null)
@@ -3403,6 +3563,28 @@ internal sealed class SqlQueryParser
                 throw new FormatException($"The input string '{parameterToken}' was not in a correct format.");
 
             return Convert.ToInt32(parameter.Value, CultureInfo.InvariantCulture);
+        }
+
+        throw new FormatException($"The input string '{parameterToken}' was not in a correct format.");
+    }
+
+    private long ResolveParameterLong(string parameterToken)
+    {
+        if (_parameters is null)
+            throw new FormatException($"The input string '{parameterToken}' was not in a correct format.");
+
+        var normalized = parameterToken.TrimStart('@', ':', '?');
+
+        foreach (IDataParameter parameter in _parameters)
+        {
+            var name = (parameter.ParameterName ?? string.Empty).TrimStart('@', ':', '?');
+            if (!string.Equals(name, normalized, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (parameter.Value is null || parameter.Value == DBNull.Value)
+                throw new FormatException($"The input string '{parameterToken}' was not in a correct format.");
+
+            return Convert.ToInt64(parameter.Value, CultureInfo.InvariantCulture);
         }
 
         throw new FormatException($"The input string '{parameterToken}' was not in a correct format.");

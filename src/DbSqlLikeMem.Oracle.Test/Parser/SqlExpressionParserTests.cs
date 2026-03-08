@@ -103,6 +103,23 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
+    /// EN: Verifies Oracle accepts sequence dot expressions for NEXTVAL and CURRVAL.
+    /// PT: Verifica se o Oracle aceita expressoes pontuadas de sequence para NEXTVAL e CURRVAL.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versao do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void SequenceDotValueExpressions_ShouldParse(int version)
+    {
+        var nextExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("sales.seq_orders.NEXTVAL", new OracleDialect(version)));
+        Assert.Equal("NEXTVAL", nextExpr.Name, StringComparer.OrdinalIgnoreCase);
+
+        var currExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("sales.seq_orders.CURRVAL", new OracleDialect(version)));
+        Assert.Equal("CURRVAL", currExpr.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Provides WHERE expressions that are intentionally outside the supported parser subset.
     /// PT: Fornece expressões WHERE propositalmente fora do subconjunto suportado pelo parser.
     /// </summary>
