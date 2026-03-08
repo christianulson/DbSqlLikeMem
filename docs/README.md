@@ -57,9 +57,14 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
   - baseline de contratos compartilhados de parser por provider
   - atualização via `scripts/refresh_cross_dialect_snapshots.sh`
   - cobre MySQL, SQL Server, SQL Azure, Oracle, Npgsql, SQLite e DB2 via trait compartilhado `Category=Parser`
+- [Snapshot cross-dialect (strategy)](cross-dialect-strategy-snapshot.md)
+  - baseline de regressão da camada Strategy por provider
+  - atualização via `scripts/refresh_cross_dialect_snapshots.sh`
+  - cobre MySQL, SQL Server, SQL Azure, Oracle, Npgsql, SQLite e DB2 via trait compartilhado `Category=Strategy`
 - [Governança da solução .slnx](features-backlog/index.md#631-arquivo-de-solucao-slnx-e-cobertura-de-projetos)
   - validação de cobertura de projetos com `scripts/check_slnx_project_coverage.py` (Linux/macOS/CI) ou `scripts/check_slnx_project_coverage.ps1` (Windows/PowerShell)
   - prevenção de drift entre `.slnx` e árvore `src/**/*.csproj`
+  - normalização defensiva de separadores (`/` e `\`) para evitar falso positivo entre Windows e CI Linux
 - [Status operacional do backlog](features-backlog/status-operational.md)
   - acompanhamento de sprint e próximos passos sem poluir o índice macro
   - usar junto do checklist `features-backlog/progress-update-checklist.md` ao revisar percentuais

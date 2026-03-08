@@ -13,7 +13,7 @@ permissions:
 jobs:
   publish:
     runs-on: windows-latest
-    environment: nuget-publish
+    environment: ${{ vars.NUGET_PUBLISH_ENVIRONMENT || 'nuget-publish' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,8 +23,21 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
+      - name: Validate release readiness (NuGet baseline)
+        run: python scripts/check_release_readiness.py
+
       - name: Restore
         run: dotnet restore src/DbSqlLikeMem.slnx
+
+      - name: Validate NuGet version source contract
+        shell: bash
+        run: |
+          if [ ! -f src/Directory.Build.props ]; then
+            echo "::error::Version source file not found: src/Directory.Build.props"
+            exit 1
+          fi
+
+          echo "NuGet version source: src/Directory.Build.props"
 
       - name: Pack
         run: dotnet pack src/DbSqlLikeMem.slnx -c Release -o ./artifacts
@@ -36,10 +49,11 @@ jobs:
         shell: bash
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          PUBLISH_ENVIRONMENT: ${{ vars.NUGET_PUBLISH_ENVIRONMENT || 'nuget-publish' }}
         run: |
           if [ -z "$NUGET_API_KEY" ]; then
-            echo "::error::NUGET_API_KEY is empty or unavailable in Environment 'nuget-publish'."
-            echo "::error::Confirm the workflow run is using Environment 'nuget-publish' and that its protection rules allow this run."
+            echo "::error::NUGET_API_KEY is empty or unavailable in Environment '$PUBLISH_ENVIRONMENT'."
+            echo "::error::Confirm the workflow run is using Environment '$PUBLISH_ENVIRONMENT' and that its protection rules allow this run."
             exit 1
           fi
 

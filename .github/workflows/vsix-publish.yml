@@ -38,6 +38,17 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
+      - name: Validate VSIX version source contract
+        shell: pwsh
+        run: |
+          $versionSource = "src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest"
+          if (-not (Test-Path $versionSource)) {
+            Write-Error "Arquivo de versao da VSIX nao encontrado: $versionSource"
+            exit 1
+          }
+
+          Write-Host "VSIX version source: $versionSource"
+
       - name: Build VSIX
         shell: pwsh
         env:

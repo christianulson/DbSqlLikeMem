@@ -72,6 +72,7 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 - Secret: `VS_MARKETPLACE_TOKEN`
 - Tag automática: `vsix-v*`
 - Fonte da versão publicada: `src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest`
+- Contrato do workflow: `.github/workflows/vsix-publish.yml` valida explicitamente `src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest` antes do build/publish, mantendo o fluxo `tag vsix-v* -> source.extension.vsixmanifest -> publish`.
 - Manifesto operacional: `eng/visualstudio/PublishManifest.json`
 - Auditoria base: `python scripts/check_release_readiness.py`
 - Auditoria estrita no publish: `python scripts/check_release_readiness.py --strict-marketplace-placeholders`

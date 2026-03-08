@@ -128,6 +128,7 @@ def check_required_files(root: Path) -> list[str]:
         root / "docs" / "cross-dialect-smoke-snapshot.md",
         root / "docs" / "cross-dialect-aggregation-snapshot.md",
         root / "docs" / "cross-dialect-parser-snapshot.md",
+        root / "docs" / "cross-dialect-strategy-snapshot.md",
         root / "templates" / "dbsqllikemem" / "README.md",
         root / "templates" / "dbsqllikemem" / "review-checklist.md",
         root / "templates" / "dbsqllikemem" / "review-metadata.json",
@@ -165,6 +166,7 @@ def check_snapshots(root: Path) -> list[str]:
         (root / "docs" / "cross-dialect-smoke-snapshot.md", "smoke"),
         (root / "docs" / "cross-dialect-aggregation-snapshot.md", "aggregation"),
         (root / "docs" / "cross-dialect-parser-snapshot.md", "parser"),
+        (root / "docs" / "cross-dialect-strategy-snapshot.md", "strategy"),
     ]
 
     failures: list[str] = []
@@ -219,9 +221,11 @@ def check_docs(root: Path) -> list[str]:
             "v<versao>",
             "vsix-v<versao-da-vsix>",
             "vscode-v<versao-da-extensao>",
+            "strategy",
         ],
         root / "docs" / "README.md": [
             "cross-dialect-parser-snapshot.md",
+            "cross-dialect-strategy-snapshot.md",
             "features-backlog/status-operational.md",
             "features-backlog/progress-update-checklist.md",
             "CHANGELOG.md",
@@ -243,6 +247,14 @@ def check_docs(root: Path) -> list[str]:
             "src/Directory.Build.props",
             "docs/publishing.md",
             "Wiki/Home.md",
+        ],
+        root / "docs" / "old" / "providers-and-features.md": [
+            "src/Directory.Build.props",
+            "net462",
+            "netstandard2.0",
+            "net8.0",
+            "docs/getting-started.md",
+            "docs/publishing.md",
         ],
         root / "docs" / "info" / "multi-target-compat-audit.md": [
             "artefato histórico",
@@ -288,6 +300,7 @@ def check_docs(root: Path) -> list[str]:
             "VSCE_PAT",
             "publisher",
             "package.json",
+            "Contrato do workflow",
             "templates/dbsqllikemem/vCurrent",
             "vscode-v*",
             "npm run package",
@@ -299,6 +312,7 @@ def check_docs(root: Path) -> list[str]:
             "VS_MARKETPLACE_TOKEN",
             "vsix-v*",
             "source.extension.vsixmanifest",
+            "Contrato do workflow",
             "eng/visualstudio/PublishManifest.json",
             "templates/dbsqllikemem/vCurrent",
             "scripts/check_release_readiness.py --strict-marketplace-placeholders",
@@ -343,6 +357,7 @@ def check_docs(root: Path) -> list[str]:
             "v*",
             "vsix-v*",
             "vscode-v*",
+            "strategy",
         ]
 
     wiki_providers = wiki_paths["providers"]
@@ -374,9 +389,29 @@ def check_docs(root: Path) -> list[str]:
 
 def check_workflows(root: Path) -> list[str]:
     expected_tokens = {
-        root / ".github" / "workflows" / "nuget-publish.yml": ['tags:', '- "v*"', "NUGET_API_KEY"],
-        root / ".github" / "workflows" / "vsix-publish.yml": ['tags:', '- "vsix-v*"', "VS_MARKETPLACE_TOKEN"],
-        root / ".github" / "workflows" / "vscode-extension-publish.yml": ['tags:', '- "vscode-v*"', "VSCE_PAT"],
+        root / ".github" / "workflows" / "nuget-publish.yml": [
+            'tags:',
+            '- "v*"',
+            "NUGET_API_KEY",
+            "vars.NUGET_PUBLISH_ENVIRONMENT",
+            "scripts/check_release_readiness.py",
+            "src/Directory.Build.props",
+            "scripts/check_nuget_package_metadata.py --artifacts-dir ./artifacts",
+        ],
+        root / ".github" / "workflows" / "vsix-publish.yml": [
+            'tags:',
+            '- "vsix-v*"',
+            "VS_MARKETPLACE_TOKEN",
+            "source.extension.vsixmanifest",
+            "--strict-marketplace-placeholders",
+        ],
+        root / ".github" / "workflows" / "vscode-extension-publish.yml": [
+            'tags:',
+            '- "vscode-v*"',
+            "VSCE_PAT",
+            "src/DbSqlLikeMem.VsCodeExtension/package.json",
+            "npm run publish",
+        ],
     }
 
     failures: list[str] = []

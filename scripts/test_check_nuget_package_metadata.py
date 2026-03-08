@@ -43,6 +43,16 @@ class CheckNugetPackageMetadataTests(unittest.TestCase):
 
             self.assertTrue(any("filename does not end" in issue for issue in issues))
 
+    def test_validate_package_reports_license_acceptance_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            package_path = root / "DbSqlLikeMem.Core.1.12.0.nupkg"
+            self._create_package(package_path, "1.12.0", require_license_acceptance="true")
+
+            issues = sut.validate_package(package_path, self._expected_metadata())
+
+            self.assertTrue(any("requireLicenseAcceptance mismatch" in issue for issue in issues))
+
     @staticmethod
     def _expected_metadata() -> dict[str, str]:
         return {
@@ -55,16 +65,22 @@ class CheckNugetPackageMetadataTests(unittest.TestCase):
             "PackageReadmeFile": "README.md",
             "PackageTags": "dbsqllikemem sql",
             "PackageReleaseNotes": "See release notes and changelog in the GitHub repository.",
+            "PackageRequireLicenseAcceptance": "false",
         }
 
     @staticmethod
-    def _create_package(package_path: Path, version: str) -> None:
+    def _create_package(
+        package_path: Path,
+        version: str,
+        require_license_acceptance: str = "false",
+    ) -> None:
         nuspec = f"""<?xml version="1.0"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
   <metadata>
     <id>DbSqlLikeMem.Core</id>
     <version>{version}</version>
     <authors>DbSqlLikeMem Contributors</authors>
+    <requireLicenseAcceptance>{require_license_acceptance}</requireLicenseAcceptance>
     <license type="expression">MIT</license>
     <projectUrl>https://github.com/christianulson/DbSqlLikeMem</projectUrl>
     <readme>README.md</readme>

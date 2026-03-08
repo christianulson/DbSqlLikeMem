@@ -17,7 +17,7 @@ def normalize(path: Path) -> str:
 
 def load_slnx_projects(slnx_path: Path) -> set[str]:
     content = slnx_path.read_text(encoding='utf-8')
-    return set(PROJECT_PATTERN.findall(content))
+    return {normalize(Path(project_path)) for project_path in PROJECT_PATTERN.findall(content)}
 
 
 def collect_csproj(src_dir: Path) -> set[str]:

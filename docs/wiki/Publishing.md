@@ -9,6 +9,8 @@
 - Version source: `src/Directory.Build.props`
 - Pre-pack audit: `python3 scripts/check_release_readiness.py`
 - Post-pack `.nupkg` audit: `python3 scripts/check_nuget_package_metadata.py --artifacts-dir ./artifacts`
+- Workflow contract: `.github/workflows/nuget-publish.yml` also checks `src/Directory.Build.props` before `pack`.
+- Refresh the applicable cross-dialect snapshots (`smoke`, `aggregation`, `parser`, `strategy`) with `scripts/refresh_cross_dialect_snapshots.sh`.
 - Version governance: `check_release_readiness.py` validates SemVer format for the core and extension artifacts.
 - NuGet artifact governance: `check_nuget_package_metadata.py` also validates the published `.nuspec` version against `src/Directory.Build.props` and the `.nupkg` filename suffix.
 - Release notes source: `CHANGELOG.md`
@@ -25,6 +27,7 @@
 - Version source: `src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest`
 - Baseline audit before build: `python scripts/check_release_readiness.py`
 - Strict publish audit: `python scripts/check_release_readiness.py --strict-marketplace-placeholders`
+- Workflow contract: `.github/workflows/vsix-publish.yml` also checks `source.extension.vsixmanifest` before build.
 - Review release notes and known limitations in `CHANGELOG.md` before pushing `vsix-v*`.
 
 ## VS Code Extension
@@ -34,6 +37,7 @@
 - Tag: `vscode-v*`
 - Version source: `src/DbSqlLikeMem.VsCodeExtension/package.json`
 - Baseline audit before packaging: `python3 scripts/check_release_readiness.py`
+- Workflow contract: `.github/workflows/vscode-extension-publish.yml` also checks `package.json` before packaging.
 - Review release notes and known limitations in `CHANGELOG.md` before pushing `vscode-v*`.
 
 ---
@@ -49,6 +53,8 @@
 - Fonte da versao: `src/Directory.Build.props`
 - Auditoria antes do pack: `python3 scripts/check_release_readiness.py`
 - Auditoria dos `.nupkg` apos o pack: `python3 scripts/check_nuget_package_metadata.py --artifacts-dir ./artifacts`
+- Contrato do workflow: `.github/workflows/nuget-publish.yml` tambem confere `src/Directory.Build.props` antes do `pack`.
+- Atualize os snapshots cross-dialect aplicaveis (`smoke`, `aggregation`, `parser`, `strategy`) com `scripts/refresh_cross_dialect_snapshots.sh`.
 - Governanca de versao: `check_release_readiness.py` valida o formato SemVer do core e dos artefatos de extensao.
 - Governanca do artefato NuGet: `check_nuget_package_metadata.py` tambem valida a versao publicada no `.nuspec` contra `src/Directory.Build.props` e o sufixo do arquivo `.nupkg`.
 - Fonte das release notes: `CHANGELOG.md`
@@ -65,6 +71,7 @@
 - Fonte da versao: `src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest`
 - Auditoria base antes do build: `python scripts/check_release_readiness.py`
 - Auditoria estrita no publish: `python scripts/check_release_readiness.py --strict-marketplace-placeholders`
+- Contrato do workflow: `.github/workflows/vsix-publish.yml` tambem confere `source.extension.vsixmanifest` antes do build.
 - Revise release notes e limitacoes abertas em `CHANGELOG.md` antes de publicar com `vsix-v*`.
 
 ### Extensão VS Code
@@ -74,4 +81,5 @@
 - Tag: `vscode-v*`
 - Fonte da versao: `src/DbSqlLikeMem.VsCodeExtension/package.json`
 - Auditoria base antes do empacotamento: `python3 scripts/check_release_readiness.py`
+- Contrato do workflow: `.github/workflows/vscode-extension-publish.yml` tambem confere `package.json` antes do empacotamento.
 - Revise release notes e limitacoes abertas em `CHANGELOG.md` antes de publicar com `vscode-v*`.

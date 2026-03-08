@@ -952,12 +952,13 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 4.3.1 Evidências mínimas por cenário
 
-- Implementação estimada: **90%**.
+- Implementação estimada: **92%**.
 - SQL de entrada utilizado no teste.
 - Estado esperado antes/depois quando houver efeito de trigger.
 - Registro do dialeto e versão simulada para facilitar reprodução.
 - Incluir no hardening evidência de mensagem padronizada para não suportado e referência ao teste de regressão associado.
 - CI deve publicar relatório por provider e resultado da smoke cross-dialeto como evidência mínima de fechamento.
+- Incremento desta sessão: a malha CI passou a publicar também snapshot dedicado da camada `Strategy`, ampliando a trilha mínima de evidência objetiva para regressões transacionais/trigger além da smoke geral.
 
 ---
 
@@ -1136,29 +1137,33 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 6.1.3 Implicações para consumidores
 
-- Implementação estimada: **96%**.
+- Implementação estimada: **98%**.
 - Projetos antigos e novos podem adotar a biblioteca com fricção reduzida.
 - Planejamento de upgrade pode ser progressivo.
 - Incremento desta sessão: `README.md` da raiz foi corrigido para refletir os alvos reais do repositório (`net462`, `netstandard2.0`, `net8.0`, com `net6.0` restrito a `.Test`/`.TestTools`), removendo referências antigas a `net48`, `net10.0` e `netstandard2.1`.
 - Incremento desta sessão: `scripts/check_release_readiness.py` passou a vigiar esse contrato documental também no `README.md`, reduzindo risco de descompasso para consumidores que entram pelo guia principal do repositório.
 - Incremento desta sessão: `src/README.md` também foi alinhado ao mesmo contrato de targets/override e entrou na trilha de auditoria, reduzindo drift entre documentação de pacote e documentação raiz.
 - Incremento desta sessão: `docs/getting-started.md` passou a explicitar o mesmo contrato de frameworks/override e também entrou na trilha de auditoria, reduzindo ambiguidade para consumidores que chegam pelo guia de instalação.
-- Incremento desta sessão: `docs/wiki/pages/Getting-Started.md` foi alinhado ao mesmo contrato de frameworks/override e entrou na auditoria, reduzindo drift entre wiki espelhada e documentação canônica.
+- Incremento desta sessão: `docs/Wiki/Getting-Started.md` foi alinhado ao mesmo contrato de frameworks/override e entrou na auditoria, reduzindo drift entre wiki espelhada e documentação canônica.
+- Incremento desta sessão: `docs/old/providers-and-features.md` passou a explicitar o contrato central de frameworks para consumidores e entrou na auditoria, reduzindo drift no guia secundário de compatibilidade por provider.
 
 ### 6.2 Publicação
 
 #### 6.2.1 NuGet
 
-- Implementação estimada: **91%**.
+- Implementação estimada: **97%**.
 - Fluxo de empacotamento e distribuição de pacotes.
 - Controle de versão semântica para evolução previsível.
 - Incremento desta sessão: validação de metadados dos `.nupkg` foi extraída para `scripts/check_nuget_package_metadata.py`, removendo lógica inline duplicada do workflow `nuget-publish.yml` e permitindo auditoria local pós-pack.
 - Incremento desta sessão: `docs/nuget-readiness-validation-report.md` foi alinhado ao estado atual do `Directory.Build.props`, incluindo presença de `PackageLicenseExpression` e trilha explícita de auditoria pós-pack.
 - Incremento desta sessão: `scripts/check_nuget_package_metadata.py` passou a usar `src/Directory.Build.props` como fonte de verdade para validar `authors`, `repository`, `projectUrl`, `readme`, `tags`, `releaseNotes` e licença do `.nuspec`, além da presença física do `README.md` dentro do pacote.
+- Incremento desta sessão: o mesmo gate pós-pack passou a validar também `requireLicenseAcceptance` no `.nuspec`, reaproveitando `PackageRequireLicenseAcceptance` do `src/Directory.Build.props` e cobrindo esse contrato com `unittest` dedicado.
+- Incremento desta sessão: o workflow `nuget-publish.yml` passou a respeitar opcionalmente `vars.NUGET_PUBLISH_ENVIRONMENT` com fallback para `nuget-publish`, alinhando o contrato documentado de Environment ao YAML real e ao auditor de readiness.
+- Incremento desta sessão: o workflow `nuget-publish.yml` passou a executar também `scripts/check_release_readiness.py` antes do `restore`, levando o gate documental/operacional do release para o próprio fluxo de publicação NuGet e prendendo isso no `unittest` do auditor.
 
 #### 6.2.2 Extensões IDE
 
-- Implementação estimada: **90%**.
+- Implementação estimada: **94%**.
 - Publicação VSIX (Visual Studio).
 - Publicação de extensão VS Code.
 - Expande adoção em diferentes perfis de desenvolvedor.
@@ -1169,6 +1174,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: o pacote VS Code passou a ter validação de placeholders `%...%` contra `package.nls*.json` e presença de `l10n`, reduzindo drift de metadata/localização antes do publish.
 - Incremento desta sessão: os READMEs operacionais das extensões VS Code/VSIX entraram na trilha de auditoria e o README da VSIX passou a expor workflow, manifesto e gate estrito de publicação, reduzindo drift entre pacote e instrução operacional.
 - Incremento desta sessão: a documentação operacional das extensões também passou a explicitar a fonte de versão (`package.json`/`source.extension.vsixmanifest`) e o prefixo de tag de publicação, alinhando instrução humana e workflow automatizado.
+- Incremento desta sessão: os workflows `vsix-publish.yml` e `vscode-extension-publish.yml` passaram a validar explicitamente a presença da fonte de versão antes do build/pack, reduzindo drift entre o prefixo de tag documentado e o artefato efetivamente publicado.
+- Incremento desta sessão: os READMEs operacionais das extensões passaram a explicitar também o contrato `workflow -> fonte de versão -> publish`, e o auditor passou a vigiar essa mensagem diretamente no ponto de uso.
 - Gap remanescente explicitado: o `publisher` final do Visual Studio Marketplace ainda depende de definição operacional externa ao código.
 
 #### 6.2.3 Operação contínua
@@ -1176,7 +1183,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Implementação estimada: **100%**.
 - Checklist de release para validação de artefatos.
 - Sincronização entre documentação, pacote e extensões.
-- Incremento desta sessão: `docs/publishing.md` passou a incluir checklist explícito de release conectando versão, `CHANGELOG.md`, backlog, status operacional e snapshots cross-dialect (`smoke`/`aggregation`/`parser`) antes da publicação.
+- Incremento desta sessão: `docs/publishing.md` passou a incluir checklist explícito de release conectando versão, `CHANGELOG.md`, backlog, status operacional e snapshots cross-dialect (`smoke`/`aggregation`/`parser`/`strategy`) antes da publicação.
 - Incremento desta sessão: auditoria executável de readiness adicionada em `scripts/check_release_readiness.py`, reaproveitando a validação estrutural dos snapshots e conferindo presença/coerência de workflows, documentação e metadados de publicação.
 - Incremento desta sessão: workflow `provider-test-matrix.yml` passou a validar também o novo auditor (`py_compile`, `--help` e execução padrão) na etapa de automações.
 - Incremento desta sessão: o gate de metadados NuGet foi extraído para `scripts/check_nuget_package_metadata.py`, integrando automação pós-pack reutilizável e eliminando duplicação de lógica no pipeline de publicação.
@@ -1186,6 +1193,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: a automação geral também passou a executar `check_nuget_package_metadata.py --allow-missing-artifacts`, validando CLI/integração do gate NuGet mesmo fora do fluxo de `pack`.
 - Incremento desta sessão: o gate documental foi estendido também aos READMEs operacionais das extensões, reduzindo risco de workflow/manifests estarem corretos enquanto a instrução de publicação do próprio artefato deriva.
 - Incremento desta sessão: a auditoria contínua de release passou a falhar também quando a revisão trimestral das baselines versionadas expira, conectando governança de templates e readiness de publicação no mesmo gate executável.
+- Incremento desta sessão: o contrato de Environment do publish NuGet (`vars.NUGET_PUBLISH_ENVIRONMENT` com fallback `nuget-publish`) passou a ser validado também pelo auditor, reduzindo drift entre documentação e workflow.
 - Workflow CI matricial por provider e smoke cross-dialeto inicial já suportam auditoria contínua de regressão.
 - Evolução de concorrência deve separar rotinas CI em smoke vs completo, com traits por categoria (isolamento, savepoint, conflito de escrita, stress).
 - Próximos ciclos incluem trilhas de observabilidade, performance, concorrência e ecossistema (.NET/ORM/tooling) já descritas no pipeline de prompts e no plano executável P7–P14.
@@ -1194,10 +1202,11 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 6.3.1 Arquivo de solução (`.slnx`) e cobertura de projetos
 
-- Implementação estimada: **96%**.
+- Implementação estimada: **98%**.
 - Solução `DbSqlLikeMem.slnx` já estruturada por domínio/provedor e pronta para uso no Visual Studio 2026.
 - Validação operacional indica cobertura completa dos projetos `*.csproj` do repositório na solução.
 - Verificação automatizada já adicionada ao CI via `scripts/check_slnx_project_coverage.py` e com alternativa local Windows em `scripts/check_slnx_project_coverage.ps1` para detectar drift entre árvore `src` e conteúdo da solução.
+- Incremento desta sessão: o checker Python passou a normalizar separadores de caminho também nos `Project Path="..."` lidos do `.slnx`, com suíte `unittest` dedicada para evitar falso positivo quando a solução usa `\` no Windows e a validação roda com `/` no CI Linux.
 
 #### 6.3.2 Matriz compartilhada de testes por capability
 
@@ -1225,12 +1234,13 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 6.3.3 Entrada única de execução (build/test)
 
-- Implementação estimada: **95%**.
-- Script padronizado já existe para smoke cross-provider (`run_cross_dialect_equivalence.sh`); a trilha desta sessão adicionou também o perfil `parser`, consolidando uma entrada única incremental para core/smoke, agregação Dapper e regressão dedicada de parser.
-- Perfis de execução já explícitos no runner (`smoke`/`aggregation`/`parser`) para acelerar feedback local e CI; modo `--continue-on-error` permite varredura completa com resumo de falhas por execução e snapshots com quadro-resumo por perfil; `--dry-run` permite inspecionar a matriz planejada sem execução de testes.
+- Implementação estimada: **98%**.
+- Script padronizado já existe para smoke cross-provider (`run_cross_dialect_equivalence.sh`); a trilha desta sessão adicionou também os perfis `parser` e `strategy`, consolidando uma entrada única incremental para core/smoke, agregação Dapper, regressão dedicada de parser e regressão comportamental da camada Strategy.
+- Perfis de execução já explícitos no runner (`smoke`/`aggregation`/`parser`/`strategy`) para acelerar feedback local e CI; modo `--continue-on-error` permite varredura completa com resumo de falhas por execução e snapshots com quadro-resumo por perfil; `--dry-run` permite inspecionar a matriz planejada sem execução de testes.
 - O perfil `parser` cobre MySQL, SQL Server, SQL Azure, Oracle, Npgsql, SQLite e DB2 usando o trait compartilhado `Category=Parser`; para `SqlAzure`, a suíte dedicada valida o mapeamento entre nível de compatibilidade e gates do dialeto SQL Server compartilhado.
-- Refresh em lote e validação estrutural dos snapshots agora também contemplam o perfil `parser`, com placeholder versionado em `docs/` e job dedicado no workflow `provider-test-matrix.yml` para publicação do artefato correspondente.
-- CI inclui job dedicado de validação de automações (sintaxe shell, `py_compile`, `--help`, check `.slnx` e validação estrutural dos snapshots markdown) antes da matriz de testes por provider.
+- O perfil `strategy` cobre MySQL, SQL Server, SQL Azure, Oracle, Npgsql, SQLite e DB2 usando o trait compartilhado `Category=Strategy`, trazendo para a entrada única a mesma trilha que já existia dispersa nos projetos por provider.
+- Refresh em lote e validação estrutural dos snapshots agora também contemplam os perfis `parser` e `strategy`, com placeholders versionados em `docs/` e jobs dedicados no workflow `provider-test-matrix.yml` para publicação dos artefatos correspondentes.
+- CI inclui job dedicado de validação de automações (sintaxe shell, `py_compile`, `unittest`, `--help`, check `.slnx` e validação estrutural dos snapshots markdown) antes da matriz de testes por provider.
 - Vincular categorias/traits para habilitar execução seletiva por domínio de regressão.
 
 #### 6.3.4 Governança do backlog de documentação
@@ -1240,11 +1250,11 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: checklist de evidência mínima formalizado em `docs/features-backlog/progress-update-checklist.md`, cobrindo item do backlog, arquivos/testes afetados, providers, comando/resultado, limitação conhecida e mitigação de descompasso documental.
 - Incremento desta sessão: template de PR adicionado em `.github/pull_request_template.md`, exigindo vínculo explícito entre mudança de código, testes afetados, atualização do backlog, providers cobertos e evidência de validação.
 - Incremento desta sessão: `scripts/check_release_readiness.py` passou a verificar presença e contrato mínimo do checklist de evidência e do template de PR, transformando a convenção documental em gate automatizado.
-- Incremento desta sessão: `docs/wiki/pages/Home.md` teve links corrigidos para o repositório oficial e essa base passou a ser verificada pelo mesmo auditor, reduzindo drift entre docs canônicos e wiki espelhada.
-- Incremento desta sessão: `docs/wiki/pages/Getting-Started.md` entrou na mesma trilha de auditoria dos guias principais, ampliando a governança de docs espelhados sem criar um fluxo paralelo de revisão.
+- Incremento desta sessão: `docs/Wiki/Home.md` teve links corrigidos para o repositório oficial e essa base passou a ser verificada pelo mesmo auditor, reduzindo drift entre docs canônicos e wiki espelhada.
+- Incremento desta sessão: `docs/Wiki/Getting-Started.md` entrou na mesma trilha de auditoria dos guias principais, ampliando a governança de docs espelhados sem criar um fluxo paralelo de revisão.
 - Incremento desta sessão: `docs/info/multi-target-compat-audit.md` passou a identificar explicitamente seu caráter histórico e o auditor valida essa advertência, reduzindo risco de leitura equivocada de artefatos estáticos fora da trilha canônica.
-- Incremento desta sessão: `docs/wiki/pages/Publishing.md` e `docs/wiki/pages/Providers-and-Compatibility.md` entraram no gate documental do auditor, estendendo a governança para as demais páginas espelhadas mais acessadas.
-- Incremento desta sessão: os índices `docs/README.md` e `docs/wiki/README.md` passaram a expor a trilha de versão/tag por artefato e `docs/wiki/README.md` entrou no gate documental, reduzindo drift já no ponto de descoberta da documentação.
+- Incremento desta sessão: `docs/Wiki/Publishing.md` e `docs/Wiki/Providers-and-Compatibility.md` entraram no gate documental do auditor, estendendo a governança para as demais páginas espelhadas mais acessadas.
+- Incremento desta sessão: os índices `docs/README.md` e a wiki em `docs/Wiki` passaram a expor a trilha de versão/tag por artefato, reduzindo drift já no ponto de descoberta da documentação.
 - Incremento desta sessão: a trilha de baselines versionadas em `templates/dbsqllikemem` passou a ser exposta nos READMEs relevantes e validada pelo auditor, conectando backlog, docs e artefatos reais de geração no mesmo gate.
 - Incremento desta sessão: o checklist de revisão periódica dos templates entrou no mesmo gate documental, conectando a governança de baseline ao contrato operacional do backlog.
 - Incremento desta sessão: o gate documental/evidencial passou a incluir também a validade do contrato de placeholders nas baselines versionadas, reduzindo risco de backlog/documentação afirmarem suporte a templates que o runtime não renderiza.
@@ -1258,7 +1268,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 6.4.1 SemVer para consumidores
 
-- Implementação estimada: **96%**.
+- Implementação estimada: **98%**.
 - Incremento major para quebras comportamentais/documentadas.
 - Incremento minor para novos recursos compatíveis.
 - Incremento patch para correções sem alteração contratual.
@@ -1266,15 +1276,18 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: `scripts/check_release_readiness.py` passou a validar formato SemVer no núcleo e nas extensões (VS Code/VSIX), endurecendo a trilha de versionamento sem forçar igualdade artificial entre artefatos distintos.
 - Incremento desta sessão: `docs/publishing.md`, wiki e READMEs das extensões passaram a explicitar também a fonte de verdade da versão por artefato (`Directory.Build.props`, `source.extension.vsixmanifest`, `package.json`) e o prefixo de tag correspondente; o auditor agora vigia esse contrato.
 - Incremento desta sessão: `scripts/check_nuget_package_metadata.py` passou a validar também a versão efetivamente publicada no `.nuspec` contra `src/Directory.Build.props` e o sufixo do arquivo `.nupkg`, reduzindo risco de pacote NuGet sair com SemVer divergente da fonte de verdade central.
+- Incremento desta sessão: os workflows de publish passaram a validar explicitamente a presença da fonte de versão de cada artefato (`Directory.Build.props`, `source.extension.vsixmanifest`, `package.json`), e o auditor agora exige esse contrato para manter tag, arquivo-fonte e publish sob a mesma trilha verificável.
 
 #### 6.4.2 Comunicação de mudanças
 
-- Implementação estimada: **97%**.
+- Implementação estimada: **99%**.
 - Incremento desta sessão: `CHANGELOG.md` adicionado na raiz com estrutura orientada a impacto por provedor/dialeto, automação cross-dialect e limitações ainda abertas da release corrente.
 - Incremento desta sessão: `CHANGELOG.md` e `docs/publishing.md` passaram a incorporar a nova trilha de auditoria de release e o gap remanescente do publisher VSIX, tornando a limitação visível antes da publicação.
 - Incremento desta sessão: a documentação de release passou a registrar explicitamente que a auditoria também valida SemVer dos artefatos publicados, deixando o critério de governança mais explícito para revisão humana.
 - Incremento desta sessão: comunicação de release agora inclui mapeamento explícito entre artefato, arquivo-fonte da versão e prefixo de tag (`v*`, `vsix-v*`, `vscode-v*`) nos guias principais e espelhados, reduzindo ambiguidade operacional.
 - Incremento desta sessão: `scripts/check_release_readiness.py` passou a validar também o contrato mínimo de comunicação de release (`CHANGELOG.md` com `Unreleased` + subseções + `Known limitations still open`, além de referências explícitas a release notes nos guias de publicação e nos READMEs das extensões), tornando release notes um gate objetivo.
+- Incremento desta sessão: os READMEs operacionais das extensões passaram a repetir explicitamente o contrato entre workflow, fonte de versão e prefixo de tag, reduzindo ambiguidade no ponto de execução manual do publish.
+- Incremento desta sessão: o contrato de comunicação por artefato passou a ficar visível também dentro dos próprios workflows de publish, que agora expõem e validam a fonte de versão associada ao prefixo de tag documentado.
 - Changelog orientado a impacto por provedor/dialeto.
 - Destaque para gaps fechados e limitações ainda abertas.
 

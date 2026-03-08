@@ -9,6 +9,8 @@ Este arquivo registra mudanças relevantes por impacto funcional, com foco em pr
 - Runner central de equivalência ganhou perfil `parser`, além de `smoke` e `aggregation`.
 - Refresh, validação estrutural de snapshots e CI passaram a contemplar também o snapshot `parser`.
 - O profile `parser` agora inclui `SqlAzure`, apoiado por suíte dedicada de parser por nível de compatibilidade.
+- Runner central de equivalência agora também expõe perfil `strategy`, cobrindo a camada Strategy por trait compartilhado `Category=Strategy`.
+- Refresh, placeholder versionado, validador estrutural e CI passaram a contemplar também o snapshot `strategy`.
 
 ### SQL Azure
 
@@ -75,19 +77,26 @@ Este arquivo registra mudanças relevantes por impacto funcional, com foco em pr
 - Validação de metadados de pacote NuGet extraída para `scripts/check_nuget_package_metadata.py`, removendo lógica inline duplicada do workflow de publicação.
 - Auditoria pós-pack do NuGet passou a derivar expectativas do `Directory.Build.props` e validar mais campos do `.nuspec`, incluindo `authors`, `readme`, `tags`, `releaseNotes`, licença e `repository type`.
 - O gate pós-pack do NuGet agora também valida a versão do `.nuspec` contra `src/Directory.Build.props` e o sufixo do arquivo `.nupkg`, reduzindo risco de SemVer divergente no artefato efetivamente publicado.
+- O gate pós-pack do NuGet agora também valida `requireLicenseAcceptance` no `.nuspec`, mantendo esse contrato alinhado ao `PackageRequireLicenseAcceptance` centralizado em `src/Directory.Build.props`.
+- O checker de cobertura da solução `.slnx` agora normaliza separadores de caminho também do lado do XML, com suíte Python dedicada para evitar falso positivo entre barras invertidas do Windows e a validação em CI Linux.
 - Auditoria de release agora valida também o formato SemVer das versões do core e das extensões, reduzindo risco de versionamento inválido antes da publicação.
+- Os workflows de publish agora validam explicitamente a fonte de versão de cada artefato (`src/Directory.Build.props`, `source.extension.vsixmanifest`, `package.json`), e o auditor passou a exigir esse contrato junto dos prefixos de tag documentados.
+- Os READMEs operacionais das extensões agora repetem explicitamente o contrato `workflow -> fonte de versão -> publish`, e o auditor passou a vigiar essa mensagem também no ponto de execução manual.
+- O workflow NuGet agora também suporta `vars.NUGET_PUBLISH_ENVIRONMENT` com fallback para `nuget-publish`, alinhando o YAML ao contrato já documentado e tornando esse detalhe parte do gate de readiness.
+- O workflow NuGet agora também executa `scripts/check_release_readiness.py` antes do `restore`, alinhando o publish do pacote ao mesmo gate documental/operacional já usado nos fluxos das extensões.
 - `README.md` da raiz foi alinhado aos targets reais do repositório (`net462`, `netstandard2.0`, `net8.0`, com `net6.0` restrito à malha de testes), e o auditor passou a vigiar esse contrato documental.
 - `src/README.md` também foi alinhado ao mesmo contrato de targets/override, reduzindo drift entre a documentação de pacote e a documentação da raiz.
 - `docs/getting-started.md` passou a explicitar o mesmo contrato de frameworks/override, reduzindo ambiguidade para quem entra pelo guia de instalação.
-- `docs/wiki/pages/Home.md` foi alinhado ao repositório oficial (`christianulson`) e o auditor passou a vigiar esses links base.
-- `docs/wiki/pages/Getting-Started.md` foi alinhado ao mesmo contrato de frameworks/override e entrou na auditoria de release para reduzir drift entre wiki espelhada e guias canônicos.
+- `docs/Wiki/Home.md` foi alinhado ao repositório oficial (`christianulson`) e o auditor passou a vigiar esses links base.
+- `docs/Wiki/Getting-Started.md` foi alinhado ao mesmo contrato de frameworks/override e entrou na auditoria de release para reduzir drift entre wiki espelhada e guias canônicos.
+- `docs/old/providers-and-features.md` passou a explicitar o mesmo contrato de frameworks para consumidores e entrou na auditoria, reduzindo drift no guia secundário de compatibilidade por provider.
 - `docs/info/multi-target-compat-audit.md` passou a explicitar que é um artefato histórico e não a fonte de verdade para TFMs atuais; o auditor agora vigia essa advertência.
-- `docs/wiki/pages/Publishing.md` e `docs/wiki/pages/Providers-and-Compatibility.md` entraram no mesmo gate documental da wiki, reduzindo drift entre páginas espelhadas e os guias canônicos do repositório.
+- `docs/Wiki/Publishing.md` e `docs/Wiki/Providers-and-Compatibility.md` entraram no mesmo gate documental da wiki, reduzindo drift entre páginas espelhadas e os guias canônicos do repositório.
 - O gate documental e os links de entrada da documentação agora tratam `docs/Wiki` como caminho canônico da wiki espelhada em submódulo, com fallback apenas para o layout legado.
 - O auditor de release agora também valida o contrato mínimo de comunicação de mudança: `CHANGELOG.md` com `Unreleased` + subseções + `Known limitations still open`, além de referências explícitas a release notes nos guias de publicação e nos READMEs das extensões.
 - Os READMEs das extensões VS Code/VSIX entraram na trilha de auditoria de release; a VSIX também recebeu seção explícita de publicação com workflow, manifesto e gate estrito.
 - A documentação de publish agora prende explicitamente a fonte de verdade de versão e o prefixo de tag para NuGet, VSIX e VS Code; o auditor passou a vigiar esse contrato.
-- `docs/README.md` e `docs/wiki/README.md` passaram a expor essa trilha de descoberta e `docs/wiki/README.md` entrou no gate documental, reduzindo drift nos pontos de entrada da documentação.
+- `docs/README.md` e a wiki em `docs/Wiki` passaram a expor essa trilha de descoberta, reduzindo drift nos pontos de entrada da documentação.
 - Auditoria de release passou a validar também integridade mínima das extensões: scripts/arquivos do pacote VS Code, activation events válidos e campos essenciais do manifesto de publicação VSIX.
 - Auditoria de release agora vigia também a presença e o contrato mínimo das baselines versionadas em `templates/dbsqllikemem`, evitando drift entre backlog, docs e artefatos de geração.
 - Compatibilidade declarada da VSIX foi alinhada para Visual Studio `17.0+`, e o auditor agora cruza `MinimumVisualStudioVersion` com o range suportado no manifesto.

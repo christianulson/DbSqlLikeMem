@@ -35,6 +35,10 @@ def normalize_tag_tokens(value: str) -> set[str]:
     }
 
 
+def normalize_bool_text(value: str) -> str:
+    return value.strip().lower()
+
+
 def parse_expected_metadata(props_path: Path) -> dict[str, str]:
     root = ET.fromstring(props_path.read_text(encoding="utf-8"))
     expected: dict[str, str] = {}
@@ -110,6 +114,22 @@ def validate_package(package: Path, expected_metadata: dict[str, str]) -> list[s
             issues.append(
                 f"{package.name}: expected license type 'expression', found '{actual_license_type}'"
             )
+
+    require_license_acceptance = get_child(metadata, "requireLicenseAcceptance")
+    expected_license_acceptance = normalize_bool_text(
+        expected_metadata.get("PackageRequireLicenseAcceptance", "")
+    )
+    actual_license_acceptance = (
+        normalize_bool_text((require_license_acceptance.text or "").strip())
+        if require_license_acceptance is not None
+        else ""
+    )
+    if expected_license_acceptance and not actual_license_acceptance:
+        issues.append(f"{package.name}: missing requireLicenseAcceptance metadata")
+    elif expected_license_acceptance and actual_license_acceptance != expected_license_acceptance:
+        issues.append(
+            f"{package.name}: requireLicenseAcceptance mismatch (expected '{expected_license_acceptance}', found '{actual_license_acceptance}')"
+        )
 
     project_url = get_child(metadata, "projectUrl")
     if project_url is None or not (project_url.text or "").strip():

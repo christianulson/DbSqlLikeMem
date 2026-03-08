@@ -24,9 +24,17 @@ jobs:
           python3 -m py_compile scripts/check_slnx_project_coverage.py
           python3 -m py_compile scripts/check_nuget_package_metadata.py
           python3 -m py_compile scripts/check_release_readiness.py
+          python3 -m py_compile scripts/check_cross_dialect_snapshot_format.py
+          python3 -m py_compile scripts/test_check_slnx_project_coverage.py
+          python3 -m py_compile scripts/test_check_cross_dialect_snapshot_format.py
+          python3 -m py_compile scripts/test_check_release_readiness.py
+          python3 -m py_compile scripts/test_check_nuget_package_metadata.py
           python3 scripts/check_slnx_project_coverage.py --src-dir src --slnx src/DbSqlLikeMem.slnx
           python3 scripts/check_nuget_package_metadata.py --allow-missing-artifacts
           python3 scripts/check_release_readiness.py
+
+      - name: Run python unit tests for automation helpers
+        run: python3 -m unittest discover -s scripts -p "test_check_*.py"
 
       - name: Validate runner CLI help
         run: |
@@ -170,4 +178,31 @@ jobs:
         with:
           name: cross-dialect-parser-snapshot
           path: artifacts/cross-dialect-parser-snapshot.md
+          if-no-files-found: ignore
+
+  cross-dialect-strategy:
+    runs-on: ubuntu-latest
+    needs: [automation-scripts, provider-tests]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Check .slnx project coverage
+        run: python3 scripts/check_slnx_project_coverage.py --src-dir src --slnx src/DbSqlLikeMem.slnx
+
+      - name: Run cross-dialect strategy suite
+        run: bash scripts/run_cross_dialect_equivalence.sh --profile strategy --snapshot-file artifacts/cross-dialect-strategy-snapshot.md --continue-on-error
+
+      - name: Upload cross-dialect strategy snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-dialect-strategy-snapshot
+          path: artifacts/cross-dialect-strategy-snapshot.md
           if-no-files-found: ignore

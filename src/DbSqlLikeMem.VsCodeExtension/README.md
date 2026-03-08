@@ -103,6 +103,8 @@ Workflow disponível: `.github/workflows/vscode-extension-publish.yml`.
 
 Fonte da versão publicada: `src/DbSqlLikeMem.VsCodeExtension/package.json`.
 
+Contrato do workflow: `.github/workflows/vscode-extension-publish.yml` valida explicitamente `src/DbSqlLikeMem.VsCodeExtension/package.json` antes de empacotar/publicar, mantendo o fluxo `tag vscode-v* -> package.json -> publish`.
+
 Configuração necessária no repositório:
 
 - Secret `VSCE_PAT`: token do Marketplace para o publisher.

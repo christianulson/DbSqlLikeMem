@@ -3,12 +3,13 @@ set -euo pipefail
 
 usage() {
   cat <<USAGE
-Usage: bash scripts/run_cross_dialect_equivalence.sh [--profile smoke|aggregation|parser] [--snapshot-file <path>] [--continue-on-error] [--dry-run]
+Usage: bash scripts/run_cross_dialect_equivalence.sh [--profile smoke|aggregation|parser|strategy] [--snapshot-file <path>] [--continue-on-error] [--dry-run]
 
 Profiles:
   smoke        Runs provider core test projects with foundational cross-dialect filters.
   aggregation  Runs provider Dapper test projects with aggregation-focused filters.
   parser       Runs provider parser-focused suites where dedicated parser projects exist.
+  strategy     Runs provider strategy-focused suites via the shared Category=Strategy trait.
 
 Options:
   --continue-on-error  Runs full matrix and reports summary before exiting with failure when any check fails.
@@ -45,6 +46,16 @@ parser_projects=(
   "src/DbSqlLikeMem.Db2.Test/DbSqlLikeMem.Db2.Test.csproj"
 )
 
+strategy_projects=(
+  "src/DbSqlLikeMem.MySql.Test/DbSqlLikeMem.MySql.Test.csproj"
+  "src/DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj"
+  "src/DbSqlLikeMem.SqlAzure.Test/DbSqlLikeMem.SqlAzure.Test.csproj"
+  "src/DbSqlLikeMem.Oracle.Test/DbSqlLikeMem.Oracle.Test.csproj"
+  "src/DbSqlLikeMem.Npgsql.Test/DbSqlLikeMem.Npgsql.Test.csproj"
+  "src/DbSqlLikeMem.Sqlite.Test/DbSqlLikeMem.Sqlite.Test.csproj"
+  "src/DbSqlLikeMem.Db2.Test/DbSqlLikeMem.Db2.Test.csproj"
+)
+
 smoke_filters=(
   "ExistsTests"
   "SubqueryFromAndJoinsTests"
@@ -59,6 +70,10 @@ aggregation_filters=(
 
 parser_filters=(
   "Category=Parser"
+)
+
+strategy_filters=(
+  "Category=Strategy"
 )
 
 profile="smoke"
@@ -108,8 +123,12 @@ case "$profile" in
     projects=("${parser_projects[@]}")
     filters=("${parser_filters[@]}")
     ;;
+  strategy)
+    projects=("${strategy_projects[@]}")
+    filters=("${strategy_filters[@]}")
+    ;;
   *)
-    echo "Invalid --profile value: ${profile}. Use: smoke | aggregation | parser" >&2
+    echo "Invalid --profile value: ${profile}. Use: smoke | aggregation | parser | strategy" >&2
     usage >&2
     exit 2
     ;;

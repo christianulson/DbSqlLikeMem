@@ -14,6 +14,13 @@
 | SQLite (Sqlite) | `DbSqlLikeMem.Sqlite` | 3 |
 | DB2 | `DbSqlLikeMem.Db2` | 8, 9, 10, 11 |
 
+## Compatibilidade de frameworks para consumidores
+
+- Os pacotes de produção seguem a fonte de verdade central em `src/Directory.Build.props`: `net462`, `netstandard2.0` e `net8.0`.
+- Os projetos de teste e test-tools usam o override dedicado: `net462`, `net6.0` e `net8.0`.
+- Para instalação e exemplos de adoção, use `docs/getting-started.md`.
+- Para impacto de distribuição, versionamento e publicação, use `docs/publishing.md`.
+
 ## Capacidades comuns (todos os providers)
 
 - Mock de conexão/ADO.NET específico do provedor.

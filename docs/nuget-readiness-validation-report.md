@@ -24,9 +24,9 @@ Date: 2026-03-07
    - Verified package metadata configuration is centralized in `src/Directory.Build.props`.
 
 5. Metadata checks (NuGet quality gates):
-   - Present: `Version`, `Authors`, `PackageTags`, `PackageReadmeFile`, `RepositoryType`, `RepositoryUrl`, `PackageProjectUrl`, `PackageLicenseExpression`, `PackageReleaseNotes`, `PublishRepositoryUrl`, `SymbolPackageFormat`.
-   - Post-pack artifact audit is now available through `scripts/check_nuget_package_metadata.py`.
-   - The audit derives expected values from `src/Directory.Build.props` and checks `.nuspec` fields for `version`, `authors`, `repository`, `projectUrl`, `readme`, `tags`, `releaseNotes` and `license`, plus the presence of the readme file inside the package and coherence with the `.nupkg` filename suffix.
+  - Present: `Version`, `Authors`, `PackageTags`, `PackageReadmeFile`, `RepositoryType`, `RepositoryUrl`, `PackageProjectUrl`, `PackageLicenseExpression`, `PackageRequireLicenseAcceptance`, `PackageReleaseNotes`, `PublishRepositoryUrl`, `SymbolPackageFormat`.
+  - Post-pack artifact audit is now available through `scripts/check_nuget_package_metadata.py`.
+  - The audit derives expected values from `src/Directory.Build.props` and checks `.nuspec` fields for `version`, `authors`, `repository`, `projectUrl`, `readme`, `tags`, `releaseNotes`, `license` and `requireLicenseAcceptance`, plus the presence of the readme file inside the package and coherence with the `.nupkg` filename suffix.
 
 ## Conclusion
 
