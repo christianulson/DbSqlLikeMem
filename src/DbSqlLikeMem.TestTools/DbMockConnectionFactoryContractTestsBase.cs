@@ -104,4 +104,53 @@ public abstract class DbMockConnectionFactoryContractTestsBase
             connection.Should().BeOfType(ExpectedConnectionType, because: $"alias '{providerHint}' must resolve to expected connection type");
         }
     }
+
+    /// <summary>
+    /// EN: Verifies that the intercepted factory path wraps the expected provider connection type and still applies table mappings.
+    /// PT: Verifica se o caminho interceptado da factory encapsula o tipo esperado de conexao do provedor e ainda aplica os mapeamentos de tabela.
+    /// </summary>
+    [Fact]
+    public void CreateWithTablesIntercepted_ShouldWrapExpectedProviderConnectionAndApplyMappings()
+    {
+        var recorder = new RecordingDbConnectionInterceptor();
+        var (db, connection) = DbMockConnectionFactory.CreateWithTablesIntercepted(
+            ProviderHint,
+            [recorder],
+            it =>
+            {
+                var tb = it.AddTable("Users");
+                tb.AddColumn("Id", DbType.Int32, false);
+                tb.Add(new Dictionary<int, object?> { [0] = 1 });
+            });
+
+        db.Should().BeOfType(ExpectedDbType);
+        connection.Should().BeOfType<InterceptingDbConnection>();
+        ((InterceptingDbConnection)connection).InnerConnection.Should().BeOfType(ExpectedConnectionType);
+        db.GetTable("Users").Should().HaveCount(1);
+        connection.Open();
+        recorder.Events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.ConnectionOpened);
+    }
+
+    /// <summary>
+    /// EN: Verifies that the options-based intercepted factory path builds interceptors and wraps the expected provider connection type.
+    /// PT: Verifica se o caminho interceptado baseado em opcoes constroi interceptors e encapsula o tipo esperado de conexao do provedor.
+    /// </summary>
+    [Fact]
+    public void CreateWithTablesIntercepted_WithOptions_ShouldWrapExpectedProviderConnection()
+    {
+        var recorder = new RecordingDbConnectionInterceptor();
+        var (db, connection) = DbMockConnectionFactory.CreateWithTablesIntercepted(
+            ProviderHint,
+            new DbInterceptionOptions
+            {
+                EnableRecording = true,
+                RecordingInterceptor = recorder
+            });
+
+        db.Should().BeOfType(ExpectedDbType);
+        connection.Should().BeOfType<InterceptingDbConnection>();
+        ((InterceptingDbConnection)connection).InnerConnection.Should().BeOfType(ExpectedConnectionType);
+        connection.Open();
+        recorder.Events.Should().Contain(x => x.EventKind == DbInterceptionEventKind.ConnectionOpened);
+    }
 }

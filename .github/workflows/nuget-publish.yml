@@ -43,7 +43,7 @@ jobs:
         run: dotnet pack src/DbSqlLikeMem.slnx -c Release -o ./artifacts
 
       - name: Validate package repository metadata
-        if: false
+        continue-on-error: true
         run: python scripts/check_nuget_package_metadata.py --artifacts-dir ./artifacts
 
       - name: Validate NuGet API key (NUGET_API_KEY)

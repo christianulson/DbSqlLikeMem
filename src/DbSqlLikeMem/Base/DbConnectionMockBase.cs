@@ -115,6 +115,15 @@ public abstract class DbConnectionMockBase(
         _lastDebugTraces.Clear();
     }
 
+    /// <summary>
+    /// EN: Wraps this mock connection with the ADO.NET interception pipeline.
+    /// PT: Encapsula esta conexao mock com o pipeline de interceptacao ADO.NET.
+    /// </summary>
+    /// <param name="interceptors">EN: Interceptors applied in registration order. PT: Interceptors aplicados na ordem de registro.</param>
+    /// <returns>EN: Wrapped connection. PT: Conexao encapsulada.</returns>
+    public DbConnection Intercept(params DbConnectionInterceptor[] interceptors)
+        => DbInterceptionPipeline.Wrap(this, interceptors);
+
     internal bool IsDebugTraceCaptureEnabled => _debugTraceCaptureDepth > 0;
 
     internal ISqlDialect ExecutionDialect => UseAutoSqlDialect ? _autoSqlDialect : Db.Dialect;

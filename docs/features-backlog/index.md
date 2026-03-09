@@ -781,6 +781,59 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
   - Etapa E - Hardening cross-provider de contrato (regressões de semântica idêntica): **100%**.
 - Andamento agregado do roteiro de implantação arquitetural (A-E): **100%**.
 
+#### 2.1.4 Pipeline de interceptação ADO.NET
+
+- Implementação estimada: **100%**.
+- Nova trilha para compor comportamentos sobre `DbConnection`, `DbCommand` e transações sem substituir o engine em memória atual.
+- Direção arquitetural: coexistência entre dois modos complementares:
+  - interceptação de provider real para telemetria, inspeção de query, fault injection, simulação de latência e experimentos de resiliência;
+  - uso do engine `DbSqlLikeMem` como provider/in-memory engine para testes determinísticos e validação SQL cross-dialect.
+- Escopo inicial da abstração: wrapping composable sobre conexão/comando/transação com hooks explícitos de lifecycle e execução, preservando a superfície ADO.NET consumida por aplicações.
+- Primeiros alvos de adoção planejados: `SqlClient`, `Npgsql`, `MySqlConnector`, `Sqlite` e também o próprio engine `DbSqlLikeMem` como destino opcional do pipeline.
+- Benefícios esperados:
+  - instrumentação extensível sem fork por provider;
+  - menor custo para validar retries, timeouts e logging em cima de conexões reais;
+  - trilha futura de integração com `DiagnosticListener`, `Activity` e OpenTelemetry;
+  - possibilidade de reaproveitar a mesma cadeia composable tanto em testes de aplicação quanto em cenários híbridos com banco real.
+- Incremento desta sessão: núcleo inicial do pipeline foi introduzido no core com `DbInterceptionPipeline.Wrap(...)`, contrato público `DbConnectionInterceptor`, wrappers `InterceptingDbConnection`/`InterceptingDbCommand`/`InterceptingDbTransaction`, hooks de `Open`/`Close`, início/commit/rollback de transação, criação de comando e interceptação sync/async de `ExecuteNonQuery`, `ExecuteScalar` e `ExecuteReader`, além de regressões contratuais no projeto base.
+- Incremento desta sessão: o pacote base também passou a expor `DelegatingDbConnectionInterceptor` para composição leve por delegates e `RecordingDbConnectionInterceptor` para trilha diagnóstica em memória de eventos de conexão/comando/transação, ajudando a estabilizar o contrato inicial do pipeline antes dos adapters por provider.
+- Incremento desta sessão: a adoção do pipeline foi conectada também às entradas já existentes do engine, com helper direto em `DbConnectionMockBase` (`Intercept(...)`) e sobrecargas da `DbMockConnectionFactory` para devolver conexão já encapsulada, reduzindo atrito para uso prático da nova trilha em testes atuais.
+- Incremento desta sessão: a trilha também ganhou um interceptor concreto de resiliência (`FaultInjectionDbConnectionInterceptor`) para injeção determinística de latência/falha em conexão, comando e transação, validando um caso de uso central da proposta já no contrato inicial do core.
+- Incremento desta sessão: o núcleo do pipeline também passou a oferecer `LoggingDbConnectionInterceptor` para emissão de eventos estruturados via `Action<string>`, cobrindo um caminho pragmático de observabilidade leve sem exigir integração imediata com frameworks externos.
+- Incremento desta sessão: `LoggingDbConnectionInterceptor` e `RecordingDbConnectionInterceptor` passaram a convergir para um formatter público compartilhado (`DbInterceptionEventFormatter`), reduzindo acoplamento às strings internas e deixando a representação textual dos eventos estável para logging/diagnóstico leve.
+- Incremento desta sessão: a trilha ganhou integração nativa com `DiagnosticListener` (`DiagnosticListenerDbConnectionInterceptor` + nomes públicos em `DbInterceptionDiagnosticNames`), abrindo caminho para observabilidade baseada em runtime sem adicionar dependências externas ao contrato inicial.
+- Incremento desta sessão: em TFMs modernos o pipeline também passou a expor `ActivitySourceDbConnectionInterceptor` e `DbInterceptionActivityNames`, conectando a mesma trilha de eventos a spans/activities nativos do runtime para integração futura com OpenTelemetry.
+- Incremento desta sessão: o pacote base passou a oferecer também `TextWriterDbConnectionInterceptor` como ponte direta para `Console.Out`, `StringWriter` e writers de arquivo, cobrindo um caminho operacional simples de captura textual sem amarrar o contrato a um framework de logging específico.
+- Incremento desta sessão: a criação do pipeline também foi consolidada em `DbInterceptionOptions` + `WithInterception(...)`, permitindo compor recorder/logging/text-writer/fault injection/diagnostics em uma entrada única sem wiring manual repetitivo nos testes consumidores.
+- Incremento desta sessão: a trilha ganhou helpers de DI (`AddDbInterception`, `AddDbConnectionInterceptor<T>` e `WithRegisteredInterceptors(IServiceProvider)`), reduzindo atrito de adoção em aplicações/testes que já constroem conexões a partir de `ServiceCollection`.
+- Incremento desta sessão: o caminho por `DbInterceptionOptions`/DI passou a aceitar instâncias explícitas de recorder e a registrar interceptors também pelo tipo concreto, facilitando reutilização do mesmo `RecordingDbConnectionInterceptor` e inspeção posterior do histórico sem varrer apenas a interface base.
+- Incremento desta sessão: a integração com DI ganhou atalhos mais altos para os casos operacionais mais comuns (`AddDbInterceptionRecording`, `AddDbInterceptionLogging` e `AddDbInterceptionTextWriter`), reduzindo ainda mais o boilerplate em hosts/test setups simples.
+- Incremento desta sessão: a trilha também passou a oferecer ponte direta para o stack padrão de logging do .NET com `ILoggerDbConnectionInterceptor` e `AddDbInterceptionLogger(...)`, reaproveitando o formatter comum do pipeline sem criar um modelo paralelo de mensagem.
+- Incremento desta sessão: o core ganhou também `IDbInterceptionConnectionFactory`/`DbInterceptionConnectionFactory` e os helpers `WithInterceptionFactory(...)`, aproximando a proposta do cenário de providers reais ao permitir encapsular qualquer `Func<DbConnection>` sem depender ainda de um provider específico do repositório.
+- Incremento desta sessão: a primeira adoção provider-specific do pipeline foi aplicada nas factories `Sqlite` de `EF Core` e `LinqToDB`, que passaram a aceitar interceptors ou `DbInterceptionOptions` diretamente e a devolver conexões abertas já encapsuladas, validando o caminho fora do core puro.
+- Incremento desta sessão: o mesmo padrão de adoção provider-specific também foi replicado nas factories `SqlServer` de `EF Core` e `LinqToDB`, reduzindo o risco de que a trilha de interceptação estivesse acoplada a particularidades do provider SQLite.
+- Incremento desta sessão: a adoção provider-specific foi expandida também para `Npgsql` (`EF Core` e `LinqToDB`), consolidando o mesmo modelo em três providers distintos e reduzindo o risco de drift entre integrações ORM principais.
+- Incremento desta sessão: o mesmo modelo foi expandido também para `MySql` (`EF Core` e `LinqToDB`), elevando para quatro providers a adoção direta do pipeline e tornando mais defensável a ideia de uma trilha comum de interceptação para integrações ORM do projeto.
+- Incremento desta sessão: a mesma trilha provider-specific também passou a cobrir `Oracle` (`EF Core` e `LinqToDB`), levando a adoção direta do pipeline para cinco providers principais e reduzindo ainda mais o risco de especialização excessiva por dialeto.
+- Incremento desta sessão: a expansão horizontal foi concluída também em `Db2` (`EF Core` e `LinqToDB`), deixando os seis providers ORM principais do repositório sob o mesmo padrão inicial de factories interceptáveis e reduzindo o trabalho restante para replicação estrutural.
+- Incremento desta sessão: o contrato compartilhado da `DbMockConnectionFactory` também passou a cobrir explicitamente o caminho `CreateWithTablesIntercepted(...)` em todos os providers que reutilizam a base comum, estendendo a trilha de interceptação para o entry point runtime transversal inclusive onde não há factory ORM dedicada.
+- Incremento desta sessão: a integração com DI foi estendida também para `IDbInterceptionConnectionFactory` (`AddDbInterceptionConnectionFactory(...)` com interceptors ou options), conectando a nova factory genérica ao mesmo fluxo de host/test setup já coberto pelos helpers de `ServiceCollection`.
+- Incremento desta sessão: o caminho de DI para `IDbInterceptionConnectionFactory` também ganhou uma sobrecarga baseada em `IServiceProvider`, permitindo que a factory criada por delegate reutilize automaticamente a cadeia de `DbConnectionInterceptor` já registrada no container do host/teste.
+- Incremento desta sessão: a mesma factory em DI também passou a aceitar composicao de `DbInterceptionOptions` a partir do `IServiceProvider`, fechando o caso em que conexao interna, recorder/logger e demais dependencias precisam ser resolvidos do mesmo container sem wiring manual fora do host.
+- Incremento desta sessão: `AddDbInterception(...)` tambem passou a aceitar composicao de `DbInterceptionOptions` com acesso ao `IServiceProvider`, alinhando o helper principal de DI ao restante da trilha e permitindo montar interceptors nativos a partir de servicos ja registrados no host.
+- Incremento desta sessão: a ergonomia da `DbMockConnectionFactory` foi alinhada ao restante da trilha de interceptação, com overloads `Create*WithTablesIntercepted(...)`/`CreateWithTablesIntercepted(...)` aceitando também `DbInterceptionOptions`, e o contrato compartilhado passou a validar esse caminho em todos os providers que reutilizam a base comum.
+- Incremento desta sessão: `DbInterceptionOptions` ganhou helpers fluentes (`UseRecording`, `UseLogging`, `UseTextWriter`, `UseFaultInjection`, `UseDiagnosticListener`, `UseActivitySource`, `AddInterceptor`), reduzindo boilerplate de composição e deixando a superfície principal da feature mais coesa para hosts/test setups.
+- Incremento desta sessão: a API estática `DbInterceptionPipeline.Wrap(...)` passou a aceitar configuração inline por `Action<DbInterceptionOptions>`, fechando a simetria entre entrada estática, extensions, factory genérica e factory runtime interceptada.
+- Incremento desta sessão: a trilha passou a incluir exemplos mínimos de composicao no README e validacao consumidora direta com Dapper sobre conexao interceptada, fechando o escopo pratico da proposta original sem quebrar a superficie ADO.NET padrao usada por bibliotecas externas.
+- Incremento desta sessão: `WithInterceptionFactory(...)` tambem passou a aceitar uma instancia pronta de `DbInterceptionOptions`, fechando a simetria ergonomica entre wrapping direto, factory generica, factory runtime e configuracao por DI.
+- Incremento desta sessão: `SqlAzure` foi fechado explicitamente como provider sem pacote ORM dedicado, com validacao direta do `Intercept(...)`/`CreateSqlAzureWithTablesIntercepted(...)` e documentacao do caminho oficial de adocao pelo proprio provider package e pela `DbMockConnectionFactory`.
+- Resultado consolidado do item:
+  - core do pipeline entregue para conexao, comando e transacao;
+  - interceptors concretos para recorder, logging, `TextWriter`, `ILogger`, fault injection, `DiagnosticListener` e `ActivitySource`;
+  - adocao no engine `DbSqlLikeMem`, factories runtime, factories ORM por provider e fluxo por DI;
+  - validacao de uso com EF Core/LinqToDB por factories, Dapper por testes consumidores e composicao documentada com MiniProfiler.
+- Andamento agregado do item (`2.1.4`): **100%**.
+
 ### 2.2 Compatibilidade com Dapper
 
 #### 2.2.1 Fluxo amigável para micro-ORM
