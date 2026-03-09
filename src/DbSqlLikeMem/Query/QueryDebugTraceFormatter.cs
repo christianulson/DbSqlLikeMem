@@ -121,7 +121,7 @@ public static class QueryDebugTraceFormatter
     private static void AppendOptionalLine(StringBuilder sb, string label, string? value)
     {
         if (!string.IsNullOrWhiteSpace(value))
-            AppendLine(sb, label, value);
+            AppendLine(sb, label, value!);
     }
 
     private static void AppendOptionalLine(StringBuilder sb, string label, int value)
