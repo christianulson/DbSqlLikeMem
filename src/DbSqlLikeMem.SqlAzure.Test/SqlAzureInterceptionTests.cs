@@ -45,6 +45,7 @@ public sealed class SqlAzureInterceptionTests
         var (db, connection) = DbMockConnectionFactory.CreateSqlAzureWithTablesIntercepted(
             new DbInterceptionOptions
             {
+                EnableRecording = true,
                 RecordingInterceptor = recorder
             },
             static mock =>

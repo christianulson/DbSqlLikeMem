@@ -56,6 +56,7 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests
         services.AddSingleton(recorder);
         services.AddDbInterception((serviceProvider, options) =>
         {
+            options.EnableRecording = true;
             options.RecordingInterceptor = serviceProvider.GetRequiredService<RecordingDbConnectionInterceptor>();
             options.Logger = serviceProvider.GetRequiredService<ILogger>();
         });
@@ -239,6 +240,7 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests
             _ => new SqliteConnectionMock(new SqliteDbMock()),
             (serviceProvider, options) =>
             {
+                options.EnableRecording = true;
                 options.RecordingInterceptor = serviceProvider.GetRequiredService<RecordingDbConnectionInterceptor>();
                 options.Logger = serviceProvider.GetRequiredService<ILogger>();
             });

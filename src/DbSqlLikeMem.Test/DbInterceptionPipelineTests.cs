@@ -349,18 +349,19 @@ public sealed class DbInterceptionPipelineTests
         }
         connection.Close();
 
-        Assert.Contains(messages, x => x.Contains("event=connection-opening", StringComparison.Ordinal));
-        Assert.Contains(messages, x => x.Contains("event=command-created", StringComparison.Ordinal)
-            && x.Contains("sql=select 42", StringComparison.Ordinal));
-        Assert.Contains(messages, x => x.Contains("event=command-executed", StringComparison.Ordinal)
+        Assert.Contains(messages, x => x.Contains("event=ConnectionOpening", StringComparison.Ordinal));
+        Assert.Contains(messages, x => x.Contains("event=CommandCreated", StringComparison.Ordinal)
+            && x.Contains("sql=select 1", StringComparison.Ordinal));
+        Assert.Contains(messages, x => x.Contains("event=CommandExecuted", StringComparison.Ordinal)
+            && x.Contains("sql=select 42", StringComparison.Ordinal)
             && x.Contains("commandKind=Scalar", StringComparison.Ordinal)
             && x.Contains("result=42", StringComparison.Ordinal));
-        Assert.Contains(messages, x => x.Contains("event=transaction-starting", StringComparison.Ordinal)
+        Assert.Contains(messages, x => x.Contains("event=TransactionStarting", StringComparison.Ordinal)
             && x.Contains("transactionKind=Begin", StringComparison.Ordinal)
             && x.Contains("isolation=ReadCommitted", StringComparison.Ordinal));
-        Assert.Contains(messages, x => x.Contains("event=transaction-executed", StringComparison.Ordinal)
+        Assert.Contains(messages, x => x.Contains("event=TransactionExecuted", StringComparison.Ordinal)
             && x.Contains("transactionKind=Commit", StringComparison.Ordinal));
-        Assert.Contains(messages, x => x.Contains("event=connection-closed", StringComparison.Ordinal));
+        Assert.Contains(messages, x => x.Contains("event=ConnectionClosed", StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -483,6 +484,7 @@ public sealed class DbInterceptionPipelineTests
         var recorder = new RecordingDbConnectionInterceptor();
         var options = new DbInterceptionOptions
         {
+            EnableRecording = true,
             RecordingInterceptor = recorder
         };
 
