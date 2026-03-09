@@ -26,6 +26,13 @@ Este arquivo registra mudanças relevantes por impacto funcional, com foco em pr
 - Os aliases de row-count do executor (`FOUND_ROWS`, `ROW_COUNT`, `CHANGES`, `ROWCOUNT` e `@@ROWCOUNT`) agora também dependem de capabilities explícitas do dialeto, removendo switches por nome de provider e preservando a herança automática do caminho `SqlAzure -> SqlServer`.
 - O parser agora também aplica o mesmo gate por capability do dialeto para `FOUND_ROWS()`, `ROW_COUNT()`, `CHANGES()` e `ROWCOUNT()`, mantendo parser e executor alinhados na mesma regra por banco.
 - O tokenizer do parser agora também usa capability explícita do dialeto para a sintaxe `@@ident`, removendo o hardcode de `sqlserver` para `@@ROWCOUNT` e preservando a herança automática de `SqlAzure`.
+- As mutações multi-tabela (`UPDATE ... JOIN/FROM` e `DELETE ... FROM/USING`) agora também obedecem capabilities explícitas do dialeto em parser e strategy, removendo branches centrais por nome de provider nessa trilha.
+- O rowcount de `INSERT ... ON DUPLICATE KEY UPDATE` e o modificador MySQL `SQL_CALC_FOUND_ROWS` agora também obedecem contract explícito do dialeto no runtime compartilhado, em vez de branches residuais por provider.
+- O parser de janela deixou de manter fallback legado específico de DB2 para frame clause, usando apenas a capability `SupportsWindowFrameClause` já declarada pelo dialeto.
+- O executor compartilhado de `PIVOT` agora também cobre `SUM`, `MIN`, `MAX` e `AVG`, além de alinhar `COUNT(expr)` e buckets vazios/nulos à mesma semântica agregadora usada no restante do core.
+- O backlog do core foi recalibrado com TODOs explícitos alinhados à documentação oficial dos bancos reais para `PIVOT/UNPIVOT`, `JSON_TABLE`, `FOR JSON`, `STRING_SPLIT`, `DISTINCT ON`, `LATERAL`, `json_each/json_tree` e `MATCH_RECOGNIZE`, além de gaps funcionais residuais ainda fora do subset implementado no executor compartilhado.
+- O backlog passou a exigir `TODO` explícito em todas as seções ainda abaixo de `100%`, reduzindo percentuais sem ação concreta e deixando a trilha de implementação mais auditável item a item.
+- A auditoria passou a revisar também itens já marcados como `100%`, rebaixando o backlog quando o código atual ainda diverge do contrato real por dialeto ou mantém regras residuais fora de capabilities explícitas do provider.
 
 ### Cross-dialect
 
@@ -114,7 +121,7 @@ Este arquivo registra mudanças relevantes por impacto funcional, com foco em pr
 - `docs/Wiki/Home.md` foi alinhado ao repositório oficial (`christianulson`) e o auditor passou a vigiar esses links base.
 - `docs/Wiki/Getting-Started.md` foi alinhado ao mesmo contrato de frameworks/override e entrou na auditoria de release para reduzir drift entre wiki espelhada e guias canônicos.
 - `docs/old/providers-and-features.md` passou a explicitar o mesmo contrato de frameworks para consumidores e entrou na auditoria, reduzindo drift no guia secundário de compatibilidade por provider.
-- `docs/info/multi-target-compat-audit.md` passou a explicitar que é um artefato histórico e não a fonte de verdade para TFMs atuais; o auditor agora vigia essa advertência.
+- `docs/info/multi-target-compat-audit.md` passou a explicitar que é um artefato histórico e não a fonte de verdade para TFMs atuais; quando o arquivo estiver presente no checkout, o auditor vigia essa advertência.
 - `docs/Wiki/Publishing.md` e `docs/Wiki/Providers-and-Compatibility.md` entraram no mesmo gate documental da wiki, reduzindo drift entre páginas espelhadas e os guias canônicos do repositório.
 - O gate documental e os links de entrada da documentação agora tratam `docs/Wiki` como caminho canônico da wiki espelhada em submódulo, com fallback apenas para o layout legado.
 - O auditor de release agora também valida o contrato mínimo de comunicação de mudança: `CHANGELOG.md` com `Unreleased` + subseções + `Known limitations still open`, além de referências explícitas a release notes nos guias de publicação e nos READMEs das extensões.

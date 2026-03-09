@@ -164,6 +164,26 @@ public sealed class SqlAzureDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures SQL Azure inherits SQL Server join-mutation capabilities through the compatibility-mapped dialect.
+    /// PT: Garante que o SQL Azure herde as capabilities de mutacao com join do SQL Server pelo dialeto mapeado por compatibilidade.
+    /// </summary>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void MutationCapabilities_ShouldFollowCompatibilityMappedDialect(int compatibilityLevel)
+    {
+        var dialect = CreateDialect(compatibilityLevel);
+
+        Assert.False(dialect.SupportsUpdateJoinFromSubquerySyntax);
+        Assert.True(dialect.SupportsUpdateFromJoinSubquerySyntax);
+        Assert.True(dialect.SupportsDeleteTargetFromJoinSubquerySyntax);
+        Assert.False(dialect.SupportsDeleteUsingSubquerySyntax);
+        Assert.False(dialect.SupportsSqlCalcFoundRowsModifier);
+        Assert.Equal(2, dialect.GetInsertUpsertAffectedRowCount(1, 1));
+    }
+
+    /// <summary>
     /// EN: Ensures SQL Azure parser inherits SQL Server row-count function gating through compatibility mapping.
     /// PT: Garante que o parser SQL Azure herde o gate de função row-count do SQL Server pelo mapeamento de compatibilidade.
     /// </summary>

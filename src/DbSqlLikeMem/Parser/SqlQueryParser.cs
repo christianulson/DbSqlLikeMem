@@ -495,14 +495,6 @@ internal sealed class SqlQueryParser
             return null;
 
         var next = Peek(1);
-        var isSqlServerDialect = string.Equals(_dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase);
-
-        // SQL Server gate must always be explicit NotSupported for PostgreSQL/MySQL-specific UPSERT syntaxes.
-        if (isSqlServerDialect && IsWord(next, "DUPLICATE"))
-            throw new NotSupportedException(SqlUnsupported.ForOnDuplicateKeyUpdateClause(_dialect).Message);
-
-        if (isSqlServerDialect && IsWord(next, "CONFLICT"))
-            throw new NotSupportedException(SqlUnsupported.ForOnConflictClause(_dialect).Message);
 
         // MySQL: ON DUPLICATE KEY UPDATE
         if (IsWord(next, "DUPLICATE"))
@@ -880,7 +872,7 @@ internal sealed class SqlQueryParser
         // Se vier JOIN antes do SET, pulamos os tokens do JOIN aqui (as estratégias smart usam RawSql)
         if (IsJoinStart(Peek()))
         {
-            if (!string.Equals(_dialect.Name, "mysql", StringComparison.OrdinalIgnoreCase))
+            if (!_dialect.SupportsUpdateJoinFromSubquerySyntax)
                 throw SqlUnsupported.ForDialect(_dialect, "UPDATE ... JOIN (subquery)");
 
             hasJoin = true;
@@ -1334,7 +1326,7 @@ internal sealed class SqlQueryParser
     {
         while (IsWord(Peek(), "SQL_CALC_FOUND_ROWS"))
         {
-            if (!string.Equals(_dialect.Name, "mysql", StringComparison.OrdinalIgnoreCase))
+            if (!_dialect.SupportsSqlCalcFoundRowsModifier)
                 throw SqlUnsupported.ForDialect(_dialect, "SELECT modifier SQL_CALC_FOUND_ROWS");
 
             Consume();

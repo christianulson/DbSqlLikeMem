@@ -2143,20 +2143,29 @@ internal abstract class AstQueryExecutorBase(
     private object? AggregatePivotBucket(string aggregateFunction, SqlExpr aggArgExpr, List<EvalRow> rows, IDictionary<string, Source> ctes)
     {
         if (aggregateFunction.Equals("COUNT", StringComparison.OrdinalIgnoreCase))
-            return rows.Count;
-
-        if (aggregateFunction.Equals("SUM", StringComparison.OrdinalIgnoreCase))
         {
-            decimal total = 0m;
+            if (aggArgExpr is StarExpr)
+                return rows.Count;
+
+            var count = 0;
             foreach (var row in rows)
             {
                 var value = Eval(aggArgExpr, row, group: null, ctes);
-                if (IsNullish(value))
-                    continue;
-                total += Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+                if (!IsNullish(value))
+                    count++;
             }
 
-            return total;
+            return count;
+        }
+
+        if (aggregateFunction.Equals("SUM", StringComparison.OrdinalIgnoreCase)
+            || aggregateFunction.Equals("AVG", StringComparison.OrdinalIgnoreCase)
+            || aggregateFunction.Equals("MIN", StringComparison.OrdinalIgnoreCase)
+            || aggregateFunction.Equals("MAX", StringComparison.OrdinalIgnoreCase))
+        {
+            var group = new EvalGroup(rows);
+            var aggregateExpr = new FunctionCallExpr(aggregateFunction, [aggArgExpr]);
+            return EvalAggregate(aggregateExpr, group, ctes);
         }
 
         throw new NotSupportedException($"PIVOT aggregate '{aggregateFunction}' not supported yet.");
@@ -3365,7 +3374,7 @@ private void FillPercentRankOrCumeDist(
         if (string.IsNullOrWhiteSpace(functionName))
             return;
 
-        if (functionName.Equals("NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
+        if (functionName!.Equals("NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
             && !Dialect.SupportsNextValueForSequenceExpression)
             throw SqlUnsupported.ForDialect(Dialect, "NEXT VALUE FOR");
 
@@ -7434,7 +7443,8 @@ private void FillPercentRankOrCumeDist(
         return dialect.SupportsLastFoundRowsFunction(functionName);
     }
 
-    private static bool HasSqlCalcFoundRows(SqlSelectQuery query)
-        => !string.IsNullOrWhiteSpace(query.RawSql)
+    private bool HasSqlCalcFoundRows(SqlSelectQuery query)
+        => Dialect?.SupportsSqlCalcFoundRowsModifier == true
+           && !string.IsNullOrWhiteSpace(query.RawSql)
            && _sqlCalcFoundRowsRegex.IsMatch(query.RawSql);
 }

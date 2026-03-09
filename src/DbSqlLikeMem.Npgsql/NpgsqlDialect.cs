@@ -113,6 +113,8 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// PT: Obtém se há suporte a delete target alias.
     /// </summary>
     public override bool SupportsDeleteTargetAlias => false;
+    public override bool SupportsUpdateFromJoinSubquerySyntax => true;
+    public override bool SupportsDeleteUsingSubquerySyntax => true;
 
     public override bool SupportsStringAggregateFunction(string functionName)
         => functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase);

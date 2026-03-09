@@ -53,6 +53,26 @@ public sealed class SqlServerDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures SQL Server exposes its join-based mutation syntax through dialect-owned capabilities.
+    /// PT: Garante que o SQL Server exponha sua sintaxe de mutacao com join por capabilities do proprio dialeto.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void MutationCapabilities_ShouldExposeSqlServerContract(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        Assert.False(dialect.SupportsUpdateJoinFromSubquerySyntax);
+        Assert.True(dialect.SupportsUpdateFromJoinSubquerySyntax);
+        Assert.True(dialect.SupportsDeleteTargetFromJoinSubquerySyntax);
+        Assert.False(dialect.SupportsDeleteUsingSubquerySyntax);
+        Assert.False(dialect.SupportsSqlCalcFoundRowsModifier);
+        Assert.Equal(2, dialect.GetInsertUpsertAffectedRowCount(1, 1));
+    }
+
+    /// <summary>
     /// EN: Ensures SQL Server parser accepts ROWCOUNT() and rejects foreign row-count helper aliases.
     /// PT: Garante que o parser SQL Server aceite ROWCOUNT() e rejeite aliases de row-count de outros bancos.
     /// </summary>

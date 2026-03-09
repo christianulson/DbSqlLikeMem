@@ -120,7 +120,6 @@ def check_required_files(root: Path) -> list[str]:
         root / "docs" / "publishing.md",
         root / "docs" / "README.md",
         root / "docs" / "getting-started.md",
-        root / "docs" / "info" / "multi-target-compat-audit.md",
         root / "docs" / "wiki_setup" / "README.md",
         root / "docs" / "features-backlog" / "index.md",
         root / "docs" / "features-backlog" / "progress-update-checklist.md",
@@ -179,6 +178,7 @@ def check_snapshots(root: Path) -> list[str]:
 
 def check_docs(root: Path) -> list[str]:
     wiki_paths = get_wiki_doc_paths(root)
+    historical_multi_target_audit = root / "docs" / "info" / "multi-target-compat-audit.md"
     checks = {
         root / "templates" / "dbsqllikemem" / "README.md": [
             "vCurrent/",
@@ -256,12 +256,6 @@ def check_docs(root: Path) -> list[str]:
             "docs/getting-started.md",
             "docs/publishing.md",
         ],
-        root / "docs" / "info" / "multi-target-compat-audit.md": [
-            "artefato histórico",
-            "src/Directory.Build.props",
-            "README.md",
-            "docs/getting-started.md",
-        ],
         root / "docs" / "wiki_setup" / "README.md": [
             "docs/Wiki",
             ".wiki.git",
@@ -322,6 +316,14 @@ def check_docs(root: Path) -> list[str]:
             "Known limitations still open",
         ],
     }
+
+    if historical_multi_target_audit.exists():
+        checks[historical_multi_target_audit] = [
+            "artefato histórico",
+            "src/Directory.Build.props",
+            "README.md",
+            "docs/getting-started.md",
+        ]
 
     wiki_home = wiki_paths["home"]
     if wiki_home is not None:

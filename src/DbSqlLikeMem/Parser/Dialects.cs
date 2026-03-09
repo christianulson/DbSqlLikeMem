@@ -80,6 +80,7 @@ internal interface ISqlDialect
     bool SupportsLastFoundRowsFunction(string functionName);
     bool SupportsLastFoundRowsIdentifier(string identifier);
     bool SupportsDoubleAtIdentifierSyntax { get; }
+    bool SupportsSqlCalcFoundRowsModifier { get; }
 
     // Pagination
     bool SupportsOffsetFetch { get; }
@@ -89,6 +90,11 @@ internal interface ISqlDialect
     // DML variations
     bool SupportsDeleteWithoutFrom { get; }
     bool SupportsDeleteTargetAlias { get; }
+    bool SupportsUpdateJoinFromSubquerySyntax { get; }
+    bool SupportsUpdateFromJoinSubquerySyntax { get; }
+    bool SupportsDeleteTargetFromJoinSubquerySyntax { get; }
+    bool SupportsDeleteUsingSubquerySyntax { get; }
+    int GetInsertUpsertAffectedRowCount(int insertedCount, int updatedCount);
 
 
     // CTE (WITH ...)
@@ -672,6 +678,8 @@ internal abstract class SqlDialectBase : ISqlDialect
 
     public virtual bool SupportsDoubleAtIdentifierSyntax => false;
 
+    public virtual bool SupportsSqlCalcFoundRowsModifier => false;
+
     /// <summary>
     /// EN: Gets or sets SupportsOffsetFetch.
     /// PT: Obtém ou define SupportsOffsetFetch.
@@ -697,6 +705,37 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// PT: Obtém ou define SupportsDeleteTargetAlias.
     /// </summary>
     public virtual bool SupportsDeleteTargetAlias => true;
+
+    /// <summary>
+    /// EN: Gets whether MySQL-style UPDATE target JOIN (subquery) syntax is supported.
+    /// PT: Obtém se a sintaxe UPDATE alvo JOIN (subquery) no estilo MySQL é suportada.
+    /// </summary>
+    public virtual bool SupportsUpdateJoinFromSubquerySyntax => false;
+
+    /// <summary>
+    /// EN: Gets whether SQL Server/PostgreSQL-style UPDATE ... FROM ... JOIN (subquery) syntax is supported.
+    /// PT: Obtém se a sintaxe UPDATE ... FROM ... JOIN (subquery) no estilo SQL Server/PostgreSQL é suportada.
+    /// </summary>
+    public virtual bool SupportsUpdateFromJoinSubquerySyntax => false;
+
+    /// <summary>
+    /// EN: Gets whether SQL Server/MySQL-style DELETE target FROM ... JOIN (subquery) syntax is supported.
+    /// PT: Obtém se a sintaxe DELETE alvo FROM ... JOIN (subquery) no estilo SQL Server/MySQL é suportada.
+    /// </summary>
+    public virtual bool SupportsDeleteTargetFromJoinSubquerySyntax => false;
+
+    /// <summary>
+    /// EN: Gets whether PostgreSQL-style DELETE FROM ... USING (subquery) syntax is supported.
+    /// PT: Obtém se a sintaxe DELETE FROM ... USING (subquery) no estilo PostgreSQL é suportada.
+    /// </summary>
+    public virtual bool SupportsDeleteUsingSubquerySyntax => false;
+
+    /// <summary>
+    /// EN: Calculates the affected-row count reported by INSERT/UPSERT operations for this dialect.
+    /// PT: Calcula a contagem de linhas afetadas reportada por operacoes INSERT/UPSERT para este dialeto.
+    /// </summary>
+    public virtual int GetInsertUpsertAffectedRowCount(int insertedCount, int updatedCount)
+        => insertedCount + updatedCount;
 
     /// <summary>
     /// EN: Gets or sets SupportsWithCte.

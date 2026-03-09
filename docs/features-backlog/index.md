@@ -111,10 +111,12 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: parser DDL passou a suportar `DROP TABLE` (incluindo `IF EXISTS` e variantes `TEMP/TEMPORARY/GLOBAL TEMPORARY`) com validação de nome obrigatório e boundary de statement.
 - Incremento desta sessão: cobertura de regressão de `DROP TABLE` foi adicionada de forma unificada em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2, incluindo casos válidos (`IF EXISTS`, `GLOBAL TEMPORARY`) e inválidos (`DROP TABLE IF EXISTS ;`, `DROP GLOBAL TABLE ...`, segundo statement indevido).
 - Incremento desta sessão: corpus de parser por provedor foi alinhado para remover `DROP TABLE` da lista de comandos explicitamente inválidos, refletindo o novo contrato de interpretação DDL.
+- TODO: expandir o subset DDL com `ALTER TABLE` pragmático e `CREATE/DROP INDEX`, mantendo gate explícito por dialeto/versão e sem aceitar DDL avançado fora do contrato real do provider.
+- TODO: revisar a trilha de objetos programáveis (`FUNCTION`/`PROCEDURE`/`TRIGGER` DDL) para deixar explícito no backlog o que será suportado de forma real e o que continuará bloqueado por `NotSupportedException`.
 
 #### 1.2.2 Interpretação de comandos DML
 
-- Implementação estimada: **100%**.
+- Implementação estimada: **97%**.
 - Processamento de comandos de escrita e leitura.
 - Tradução da consulta para operações no estado em memória.
 - Incremento desta sessão: `LIKE ... ESCAPE ...` deixou de ser apenas tolerado no parse e passou a ser materializado na AST e respeitado no executor, com política de escape padrão agora centralizada no dialeto e regressão cobrindo parser/roundtrip e execução DB2 end-to-end.
@@ -276,6 +278,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: `UPDATE/DELETE WHERE` sem predicado passaram a incluir token encontrado no diagnóstico (`found '<token>'`) para `EOF`/`;` em Npgsql/MySQL/SQL Server e para `WHERE RETURNING ...` no Npgsql.
 - Incremento desta sessão: `ON CONFLICT target WHERE` e `ON CONFLICT DO UPDATE WHERE` sem predicado passaram a incluir token encontrado no diagnóstico (`found '<token>'`), com regressões Npgsql para caminhos com `DO`, `RETURNING` e `;`.
 - Preservação da experiência de uso próxima ao fluxo SQL tradicional.
+- TODO: manter este item abaixo de `100%` até fechar as famílias reais de DML/query ainda fora do fluxo principal do parser/runtime (`FOR JSON`, `UNPIVOT`, `DISTINCT ON`, `LATERAL`, `json_each/json_tree`, `JSON_TABLE` e demais formas tabulares correlatas por provider).
+- TODO: revisar materialização/execução de DML avançado por provider para que o item só volte a `100%` quando as diferenças remanescentes estiverem reduzidas a subset documentado e intencional.
 
 #### 1.2.3 Regras por dialeto e versão
 
@@ -297,6 +301,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: o executor deixou de usar switches por `dialect.Name` para `FOUND_ROWS/ROW_COUNT/CHANGES/ROWCOUNT/@@ROWCOUNT`; esses aliases de row-count agora saem de capabilities explícitas do dialeto, incluindo herança automática do caminho `SqlAzure -> SqlServer`.
 - Incremento desta sessão: o parser passou a obedecer a mesma capability de row-count do dialeto para `FOUND_ROWS()/ROW_COUNT()/CHANGES()/ROWCOUNT()`, evitando aceitar no parse chamadas que o executor já não considerava válidas para aquele banco.
 - Incremento desta sessão: o tokenizer do parser deixou de hardcodear `sqlserver` para `@@ROWCOUNT`; a sintaxe `@@ident` agora também é capability explícita do dialeto, herdada automaticamente por `SqlAzure` e rejeitada nos demais providers.
+- Incremento desta sessão: as sintaxes de mutação multi-tabela (`UPDATE ... JOIN/FROM` e `DELETE ... FROM/USING`), o rowcount de UPSERT e o modificador MySQL `SQL_CALC_FOUND_ROWS` passaram a obedecer capabilities explícitas do dialeto em parser, strategies e executor; o fallback legado de frame clause do DB2 também foi removido, deixando a regra "o dialeto manda" sem branch comportamental residual por nome de provider nessa trilha.
 
 #### 1.2.4 Governança de evolução do parser
 
@@ -306,10 +311,12 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Priorização por impacto em frameworks de acesso a dados.
 - Expansão incremental para reduzir regressões.
 - Backlog operacional segue cadência priorizada P0→P14 para reduzir dispersão de implementação entre parser/executor/docs.
+- TODO: exigir que cada novo gap do parser registre explicitamente AST afetada, capability do dialeto, suites positivas/negativas e impacto documental antes de subir percentual.
+- TODO: consolidar um inventário executável de gaps ainda abertos por sintaxe/família SQL para reduzir drift entre backlog, código e testes cross-dialect.
 
 #### 1.2.5 Funções SQL agregadoras e de composição de texto
 
-- Implementação estimada: **100%**.
+- Implementação estimada: **96%**.
 - Parser e AST agora suportam `WITHIN GROUP (ORDER BY ...)` para agregações textuais com gate explícito por dialeto/função.
 - Cobertura atual inclui parsing de ordenação simples e composta, validação de cláusula malformada (`WITHIN GROUP requires ORDER BY`) e cenários negativos por função não nativa no dialeto.
 - Hardening recente ampliou a validação de `ORDER BY` malformado dentro de `WITHIN GROUP` (lista vazia, vírgula inicial, vírgula final e ausência de vírgula entre expressões), com mensagens acionáveis por cenário.
@@ -317,6 +324,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: parser/runtime passaram a aceitar a sintaxe nativa do SQLite para ordenação interna em `GROUP_CONCAT(... ORDER BY ...)`, reutilizando a mesma trilha lógica de ordenação da agregação textual e cobrindo também `DISTINCT` + erro acionável para vírgula final malformada.
 - Incremento desta sessão: parser/runtime passaram a aceitar a sintaxe nativa do MySQL para `GROUP_CONCAT(expr ORDER BY ... SEPARATOR ...)`, reaproveitando a mesma trilha de ordenação da agregação textual, com cobertura para `DISTINCT` e erro acionável quando `SEPARATOR` não recebe expressão.
 - Trilha ordered-set para agregações textuais concluída para dialetos suportados (SQL Server, Npgsql, Oracle e DB2), com bloqueio explícito e testado para MySQL e manutenção do `WITHIN GROUP` como não suportado no SQLite, onde o equivalente nativo `GROUP_CONCAT(... ORDER BY ...)` agora está coberto.
+- TODO: revisar `DISTINCT` por agregador/dialeto para impedir aceitar no mock combinações que o banco real não expõe na sintaxe oficial (ex.: `STRING_AGG` no SQL Server), mantendo parser/executor/testes sob contrato real de cada provider.
 
 #### 1.2.6 Funções de data/hora cross-dialect
 
@@ -364,6 +372,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
   - separador customizado,
   - tratamento de `NULL`,
   - compatibilidade com `GROUP BY` e filtros.
+- TODO: fechar a família temporal além de "current time" com equivalências guiadas pelo dialeto para `DATE_TRUNC`/`DATETRUNC`, `DATEDIFF`/`TIMESTAMPDIFF` e aritmética de intervalo por provider/versão.
+- TODO: centralizar a avaliação temporal compartilhada para que parser, executor AST e estratégias de mutação usem a mesma fonte de verdade também nas famílias de diferença/truncamento de data.
 
 ### 1.3 Executor SQL
 
@@ -375,10 +385,12 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Recalibrado por evidências de código: executor AST, estratégias de mutação por dialeto e ampla suíte `*StrategyTests`/`*GapTests` por provider.
 - Tratamento de execução orientado por semântica do dialeto escolhido.
 - Retorno previsível para facilitar asserts em testes.
+- TODO: consolidar os pontos restantes de dispatch/estratégia que ainda escapam do pipeline shared, reduzindo branches residuais fora do contrato dirigido por capability do dialeto.
+- TODO: ampliar o pipeline comum para cobrir também lacunas de execução avançada por family (`PIVOT/UNPIVOT`, JSON tabular, mutações multi-tabela), sem reintroduzir atalhos por provider.
 
 #### 1.3.2 Operações comuns suportadas
 
-- Implementação estimada: **86%**.
+- Implementação estimada: **90%**.
 - Fluxos DDL/DML de uso frequente em aplicações corporativas .NET.
 - Cenários com múltiplos comandos por contexto de teste.
 - Execução orientada a simulação funcional (não benchmark de banco real).
@@ -401,6 +413,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
   - Próximos passos (manutenção contínua):
     - monitorar regressões em novos cenários de procedure quando houver suporte a corpo multi-statement;
     - manter suíte de rowcount por dialeto atualizada conforme expansão de parser/executor.
+- Incremento desta sessão: decisões de `UPDATE/DELETE ... JOIN/FROM/USING` e a semântica de rowcount de `INSERT ... ON DUPLICATE KEY UPDATE` passaram a sair do contrato explícito do dialeto, em vez de depender de branches centrais por nome de provider.
+- Incremento desta sessão: o executor compartilhado de `PIVOT` passou a reutilizar a mesma trilha de agregação comum para `SUM`, `MIN`, `MAX` e `AVG`, corrigindo também a semântica de `COUNT(expr)` para ignorar `NULL` e removendo o retorno artificial de `0` para `SUM` em bucket vazio.
+- TODO: completar no executor a matriz de agregadores avançados de `PIVOT` para os dialetos que já declaram a cláusula (`SQL Server`, `SqlAzure`, `Oracle`), cobrindo funções além do conjunto comum `COUNT/SUM/MIN/MAX/AVG` quando houver necessidade real por banco.
+- TODO: abrir trilha shared para `UNPIVOT` orientada por capability do dialeto, evitando que a cobertura dessa família fique só documental nos bancos que a suportam de forma nativa.
 
 #### 1.3.3 Resultados e consistência
 
@@ -411,6 +427,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Hardening recente reforçou previsibilidade de regressão com foco em mensagens de erro não suportado e consistência de diagnóstico.
 - Checklist operacional confirma padronização de `SqlUnsupported.ForDialect(...)` no runtime para fluxos não suportados.
 - Hardening recente também consolidou semântica ordered-set para agregações textuais com cobertura de ordenação `ASC/DESC`, ordenação composta, `DISTINCT + WITHIN GROUP` e `LISTAGG` sem separador explícito nos dialetos suportados.
+- TODO: ampliar a malha de consistência para batches mistos com `RETURNING`/`OUTPUT`/rowcount/trigger, garantindo que resultado materializado e estado final permaneçam coerentes no mesmo script.
+- TODO: registrar no backlog diferenças conhecidas de materialização por provider quando o mock optar por subset explícito em vez de reproduzir todo o contrato do banco real.
 
 #### 1.3.4 Particionamento de tabelas (avaliação)
 
@@ -427,6 +445,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
   - pruning básico em `SELECT/UPDATE/DELETE` quando filtro contém chave de partição;
   - fallback explícito de não suportado para DDL avançado fora do subset.
 - **Risco/observação:** manter subset pequeno para não aumentar complexidade do executor antes de fechar gaps críticos já priorizados.
+- TODO: validar no core um primeiro subset operacional de partição (`RANGE`/`LIST`) com metadata em memória, roteamento de `INSERT` e pruning básico guiado por predicado simples.
 
 ### 1.4 API fluente
 
@@ -436,6 +455,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Criação declarativa/programática de estruturas.
 - Reduz dependência de scripts SQL longos para setup inicial.
 - Facilita reuso de cenários entre suítes.
+- TODO: expandir a API fluente para cobrir também `View`, `Sequence`, `Index` e metadados de trigger sem obrigar fallback para SQL textual em setups frequentes.
 
 #### 1.4.2 Seed de dados
 
@@ -443,6 +463,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Carga inicial de registros para cenários controlados.
 - Apoia testes de leitura, paginação e filtros complexos.
 - Permite criar massas pequenas e objetivas por caso de teste.
+- TODO: adicionar helpers de seed guiados por dialeto para identidade/sequence, JSON, valores temporais e defaults calculados, reduzindo setup manual repetitivo.
 
 #### 1.4.3 Composição de cenários
 
@@ -450,6 +471,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Encadeamento de passos de inicialização.
 - Uso de builders/factories de contexto de teste.
 - Legibilidade maior para times de aplicação.
+- TODO: materializar cenários reutilizáveis de transação/savepoint/tabela temporária/trigger em builders compartilhados, reduzindo boilerplate cross-provider nas suites consumidoras.
 
 ### 1.5 Diagnóstico e observabilidade da execução
 
@@ -459,6 +481,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Geração de plano sintético para análise de comportamento da query.
 - Visibilidade de entradas da execução e custo estimado.
 - Suporte a testes que verificam diagnóstico e não só resultado.
+- TODO: expandir execution plan além de `SELECT`/`UNION` para DML, batches e pontos de trigger, com warnings e contexto operacional suficientes para diagnóstico de regressão.
 
 #### 1.5.2 Métricas de runtime
 
@@ -467,6 +490,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Recalibrado com base na presença efetiva das métricas e nos testes de plano/formatter existentes no código.
 - Permite validar cenários de seletividade e custo relativo.
 - Facilita comparação entre estratégias de consulta em testes.
+- TODO: consolidar contrato estável para métricas de mutação, batch, trigger e transação, mantendo separação explícita entre telemetria diagnóstica e semântica funcional do executor.
 
 #### 1.5.3 Histórico por conexão
 
@@ -474,6 +498,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - `LastExecutionPlan`: referência ao último plano executado.
 - `LastExecutionPlans`: trilha dos planos da sessão de conexão.
 - Útil para auditoria de execução em cenários multi-etapa.
+- TODO: adicionar política configurável de retenção/limpeza e ampliar o histórico para mutações e batches, não só planos textuais de leitura.
 
 #### 1.5.4 Uso prático no backlog
 
@@ -481,6 +506,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Ajuda a mapear comandos mais custosos no ambiente de testes.
 - Apoia priorização de melhorias no parser/executor.
 - Oferece material para diagnósticos reprodutíveis em issues.
+- TODO: ligar snapshots/telemetria do plano de execução diretamente aos itens do backlog e às issues de regressão, para transformar observabilidade em critério objetivo de priorização.
 
 ### 1.6 Riscos técnicos e mitigação no núcleo
 
@@ -489,12 +515,14 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Implementação estimada: **60%**.
 - Mitigar com smoke tests cross-dialect para consultas críticas.
 - Catalogar explicitamente as diferenças conhecidas em documentação de compatibilidade.
+- TODO: manter um catálogo vivo de diferenças conhecidas por provider/versão e conectá-lo à matriz de compatibilidade e aos snapshots cross-dialect.
 
 #### 1.6.2 Risco: regressão em evolução do parser
 
 - Implementação estimada: **70%**.
 - Exigir cenários de regressão para cada correção de sintaxe.
 - Priorizar suíte incremental por dialeto para reduzir efeito colateral.
+- TODO: fechar o contrato operacional de regressão exigindo sempre teste positivo, teste negativo e prova de não regressão em dialetos correlatos antes de marcar um gap como concluído.
 
 #### 1.6.3 Risco: falsa percepção de performance
 
@@ -510,6 +538,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: guia de compatibilidade (`docs/wiki/pages/Providers-and-Compatibility.md`) passou a explicitar em EN/PT-BR que métricas de execution plan no mock são diagnósticas/relativas e não substituem benchmark de produção.
 - Incremento desta sessão: execution plan textual/JSON passou a incluir `mockRuntimeContext` com `simulatedLatencyMs`, `dropProbability`, `threadSafe` e flag explícita de métricas relativas, reduzindo interpretação ambígua de `elapsed`/`rowsPerMs` como throughput real.
 - Incremento desta sessão: execution plan também passou a sinalizar `mockRuntimePerturbationActive` quando há latência/falha simulada configurada, deixando explícito que comparações diretas de tempo entre cenários estão contaminadas por perturbação artificial.
+- TODO: propagar o disclaimer de performance para todos os pontos de consumo de telemetria/planos e manter a documentação de entrada alinhada sempre que novas métricas forem expostas.
 
 ## 2) Integração ADO.NET e experiência de uso
 
@@ -527,6 +556,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Implementações específicas para cada provedor suportado.
 - Interface familiar para quem já usa `DbConnection`/`DbCommand`.
 - Foco em reduzir atrito de migração de teste real → teste mock.
+- TODO: fechar paridade remanescente de comportamento entre command/batch/async/cancelamento/lifecycle nos providers que ainda dependem de diferenças estruturais fora do núcleo compartilhado.
 
 #### 2.1.2 Integração com fluxo de testes
 
@@ -534,6 +564,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Injeção de conexão mock em serviços, repositórios e UoW.
 - Evita dependência de infraestrutura externa em testes rápidos.
 - Facilita execução local e em pipeline compartilhado.
+- TODO: publicar e manter exemplos mínimos de integração com DI/UoW/transação por provider, reduzindo variação de setup entre projetos consumidores.
 
 #### 2.1.3 Benefícios de arquitetura
 
@@ -730,6 +761,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Cobertura de `GROUP_CONCAT` ampliada com regressão para `DISTINCT`, tratamento de `NULL` e ordenação interna pela sintaxe nativa `ORDER BY ... SEPARATOR ...` dentro da função.
 - P7 consolidado: UPSERT por família (`ON DUPLICATE`/`ON CONFLICT`/`MERGE subset`) e mutações avançadas com contracts por strategy tests.
 - Funções-chave do banco: `GROUP_CONCAT`, `IFNULL`, `DATE_ADD` e `JSON_EXTRACT` (subset no mock).
+- TODO: implementar `JSON_TABLE(...)` no parser/executor do MySQL, hoje ainda só com gate explícito de não suportado, apesar de o banco real suportar a função de tabela JSON.
+- TODO: avaliar subset de particionamento lógico por tabela (`PARTITION BY RANGE/LIST`) para aproximar testes de retenção/time-series de capacidades reais do MySQL/InnoDB.
 
 #### 3.1.3 Aplicações típicas
 
@@ -746,7 +779,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 3.2.2 Recursos relevantes
 
-- Implementação estimada: **91%**.
+- Implementação estimada: **93%**.
 - Parser/executor para DDL/DML comuns.
 - Diferenças de dialeto por versão simulada.
 - Cobertura de `STRING_AGG` ampliada para `DISTINCT`, tratamento de `NULL` e ordenação interna via `WITHIN GROUP`, incluindo cenários de erro malformado com diagnóstico acionável.
@@ -755,6 +788,11 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - `DbSqlLikeMem.SqlAzure` compartilha a base do dialeto SQL Server no ciclo atual, com níveis de compatibilidade 100/110/120/130/140/150/160/170 agora mapeados explicitamente para a semântica correspondente de parser por versão (`2008`..`2025`).
 - Incremento desta sessão: a suíte dedicada de parser do `SqlAzure` também passou a cobrir `STRING_AGG ... WITHIN GROUP` (positivo, `SELECT` completo e cláusula malformada), reforçando que o caminho shared do SQL Server ficou corretamente projetado para níveis de compatibilidade Azure.
 - Incremento desta sessão: a camada Strategy do `SqlAzure` agora também possui regressões explícitas para semântica transacional herdada do SQL Server (`commit`, `rollback`, isolamento, savepoint e limpeza de sessão), reduzindo risco de drift comportamental no provider Azure.
+- Incremento desta sessão: o executor de `PIVOT` passou a cobrir também `MIN`, `MAX` e `AVG` no caminho compartilhado de `SQL Server/SqlAzure`, além de alinhar `COUNT(expr)`/`SUM(expr)` à semântica agregadora comum do core.
+- TODO: completar executor de `PIVOT` para agregadores avançados do SQL Server/SqlAzure além do conjunto comum `COUNT/SUM/MIN/MAX/AVG`, conforme prioridade real de uso.
+- TODO: adicionar `UNPIVOT` no parser/executor para SQL Server/SqlAzure, alinhando a cobertura ao conjunto real documentado pelo banco.
+- TODO: adicionar `FOR JSON` (`PATH`/`AUTO`) no parser/executor para cobrir serialização JSON nativa de consultas, presente no SQL Server 2016+ e Azure SQL.
+- TODO: avaliar subset de `STRING_SPLIT(...)` guiado por versão/compatibility level (`130+`) para cenários de CROSS APPLY e projeção tabular comuns no banco real.
 
 #### 3.2.3 Aplicações típicas
 
@@ -771,12 +809,16 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 3.3.2 Recursos relevantes
 
-- Implementação estimada: **88%**.
+- Implementação estimada: **90%**.
 - Parser/executor para DDL/DML comuns.
 - Diferenças de dialeto por versão simulada.
 - Cobertura de `LISTAGG` ampliada com separador customizado, comportamento padrão sem delimitador quando omitido e ordenação interna via `WITHIN GROUP` (incluindo combinações com `DISTINCT`).
 - P8 consolidado: suporte a `FETCH FIRST/NEXT` por versão e contratos de ordenação por dialeto.
 - Funções-chave do banco: `LISTAGG`, `NVL`, `JSON_VALUE` (subset escalar) e operações de data por versão.
+- TODO: implementar `JSON_TABLE` no parser/executor do Oracle, hoje ainda fora do subset apesar de o banco real suportar projeção relacional de JSON em `FROM`.
+- Incremento desta sessão: o executor de `PIVOT` passou a cobrir também `MIN`, `MAX` e `AVG` no caminho Oracle, além de alinhar buckets vazios/nulos à semântica agregadora compartilhada.
+- TODO: completar executor de `PIVOT` para agregadores avançados relevantes do Oracle além do conjunto comum `COUNT/SUM/MIN/MAX/AVG`, mantendo coerência com `SupportsPivotClause`.
+- TODO: avaliar `MATCH_RECOGNIZE` como trilha separada de parser/executor avançado para cenários analíticos reais do Oracle.
 
 #### 3.3.3 Aplicações típicas
 
@@ -799,6 +841,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Cobertura de `STRING_AGG` ampliada para agregação textual com `DISTINCT`, `NULL` e ordenação por grupo via `WITHIN GROUP`, com gate por função/dialeto e mensagens acionáveis em sintaxe malformada.
 - P7/P10 consolidado: `RETURNING` sintático mínimo em caminhos suportados e fluxo de procedures no contrato Dapper.
 - Funções-chave do banco: `STRING_AGG`, operadores JSON (`->`, `->>`, `#>`, `#>>`) e expressões de data por intervalo.
+- TODO: implementar `DISTINCT ON (...)` no parser/executor do PostgreSQL, incluindo a regra do banco real que exige compatibilidade com os itens mais à esquerda de `ORDER BY`.
+- TODO: implementar `LATERAL` em `FROM`/`JOIN` no parser/executor do Npgsql para subqueries/funções correlacionadas à esquerda, hoje fora da malha principal do mock.
 
 #### 3.4.3 Aplicações típicas
 
@@ -821,6 +865,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Cobertura de `GROUP_CONCAT` ampliada com separador customizado, `DISTINCT`, tratamento de `NULL` e ordenação interna via sintaxe nativa `ORDER BY` dentro da função; `WITHIN GROUP` permanece explicitamente bloqueado no dialeto.
 - P8 consolidado: `LIMIT/OFFSET` e ordenação com regras de compatibilidade por versão simulada.
 - Funções-chave do banco: `GROUP_CONCAT`, `IFNULL`, funções de data (`date`, `datetime`, `strftime`) e `JSON_EXTRACT` (subset).
+- TODO: implementar table-valued JSON functions `json_each(...)`/`json_tree(...)` no parser/executor do SQLite para cenários reais de shredding de JSON em `FROM`.
+- TODO: ampliar a malha de window functions do SQLite para cobrir explicitamente `EXCLUDE`, window chaining e os detalhes adicionais de frame que o banco real suporta.
 
 #### 3.5.3 Restrições relevantes
 
@@ -850,6 +896,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Cobertura de `LISTAGG` ampliada com separador customizado, `DISTINCT`, tratamento de `NULL` e ordenação ordered-set via `WITHIN GROUP`, incluindo validações sintáticas malformadas.
 - P9 consolidado: fallback explícito de não suportado para JSON avançado e cobertura de `FETCH FIRST` no dialeto DB2.
 - Funções-chave do banco: `LISTAGG` (por versão), `COALESCE`, `TIMESTAMPADD` e `FETCH FIRST` no fluxo de paginação.
+- TODO: implementar `JSON_TABLE` no parser/executor do DB2, hoje fora do subset apesar de existir no banco real como função de tabela SQL/JSON.
+- TODO: avaliar `JSON_QUERY` como próximo passo do subset JSON do DB2 para reduzir distância em relação às funções reais já documentadas pelo banco.
 
 #### 3.6.3 Restrições relevantes
 
@@ -876,6 +924,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Cobertura de regressão inclui suíte cross-dialeto com snapshots por perfil (smoke/aggregation/parser), operacionalizada no script `scripts/run_cross_dialect_equivalence.sh`; atualização em lote suportada por `scripts/refresh_cross_dialect_snapshots.sh` e baseline documental semântico (`manual-placeholder`) para evitar snapshot desatualizado no repositório.
 - O profile `parser` agora inclui também `SqlAzure`, fechando a matriz principal de providers SQL suportados nessa trilha sem precisar duplicar runtime do dialeto.
 - Matriz consolidada de providers/versões e capacidades comuns agora está refletida diretamente neste índice como fonte principal de backlog.
+- TODO: ampliar a matriz compartilhada para capacidades avançadas auditadas contra bancos reais (`JSON_TABLE`, `FOR JSON`, `LATERAL`, `DISTINCT ON`, `json_each/json_tree`, `PIVOT/UNPIVOT`) com status explícito por provider.
 
 #### 3.7.2 Priorização de gaps
 
@@ -883,6 +932,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Gaps que quebram fluxo de negócio entram no topo do backlog.
 - Priorização prática usa ondas inspiradas no pipeline P0..P14 (baseline, core, composição, avançado, hardening).
 - Diferenças cosméticas/documentais podem ficar em ondas posteriores.
+- TODO: formalizar critério objetivo de severidade por gap combinando impacto de negócio, quantidade de providers afetados e distância para o comportamento do banco real.
 
 ### 3.8 Modelo de evolução por ondas
 
@@ -890,6 +940,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 - Implementação estimada: **78%**.
 - Comandos que bloqueiam operações essenciais de CRUD e autenticação/autorização da aplicação.
+- TODO: manter nesta onda os gaps que ainda quebram fluxo essencial do core, começando por `UPDATE/DELETE` multi-tabela dirigidos por dialeto, `PIVOT` subset incompleto e families JSON tabulares mais críticas por provider.
 
 #### 3.8.2 Onda 2 (alta)
 
@@ -897,6 +948,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Diferenças que impactam relatórios, filtros avançados e paginação em módulos centrais.
 - Inclui execução do plano P11/P12 para confiabilidade transacional, concorrência e diagnóstico de erro com contexto.
 - Status detalhado de transações concorrentes: fase de hardening base concluída (100%), governança em progresso (~10%) e cenários críticos (fases 2–5) priorizados para fechamento.
+- TODO: manter nesta onda recursos avançados de consulta com impacto funcional frequente (`FOR JSON`, `STRING_SPLIT`, `DISTINCT ON`, `LATERAL`, window frames avançados no SQLite).
 
 #### 3.8.3 Onda 3 (média/baixa)
 
@@ -904,6 +956,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Cobertura de sintaxes menos frequentes e melhorias de ergonomia para debug.
 - Inclui trilhas P13/P14 para performance (hot paths/caching) e conformidade de ecossistema (.NET/ORM/tooling).
 - Inclui avaliação de partição de tabelas em subset (metadado + pruning básico) após estabilização dos gaps críticos de parser/executor.
+- TODO: manter nesta onda recursos especializados e de menor recorrência operacional, como `MATCH_RECOGNIZE`, particionamento simplificado e expansões de observabilidade/ergonomia do plano de execução.
 
 ---
 
@@ -924,6 +977,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Eventos: before/after insert, update e delete.
 - Permite simular regras reativas de domínio persistido.
 - Incremento desta sessão: `SqlAzure` ganhou suíte dedicada de estratégia para triggers em tabelas não temporárias e temporárias, fechando o gap remanescente do provider que compartilha pipeline com SQL Server mas ainda não tinha regressão explícita.
+- TODO: explicitar e validar no backlog as diferenças remanescentes de triggers por provider (ordenação, recursão, mutação encadeada e limitações intencionais do mock).
 
 #### 4.1.2 Tabelas temporárias
 
@@ -936,6 +990,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Implementação estimada: **72%**.
 - Preferir assertions claras sobre efeitos da trigger.
 - Isolar cenários de trigger dos cenários de query pura.
+- TODO: adicionar cookbook operacional de trigger com padrões de teste, anti-padrões e guidance de isolamento por provider/escopo de tabela.
 
 ### 4.2 Compatibilidade por dialeto (governança de gaps)
 
@@ -946,6 +1001,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Visão de lacunas e riscos por área funcional.
 - Matriz feature x dialeto já publicada e usada como referência de hardening/regressão.
 - Matriz versionada (`vCurrent`/`vNext`) e rastreável para testes corresponde ao fechamento do checklist de documentação.
+- TODO: sincronizar a matriz de compatibilidade com a nova auditoria contra bancos reais, expondo explicitamente os recursos já listados como TODO nas seções por provider.
 
 #### 4.2.2 Roadmaps de parser/executor
 
@@ -958,6 +1014,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: a mesma trilha incremental do core passou a fechar também payloads já parseados, mas ainda subutilizados no runtime, começando por `JSON_VALUE ... RETURNING` com gate do dialeto e coerção efetiva no executor.
 - Incremento desta sessão: a próxima lacuna pequena fechada no core foi DDL de `SEQUENCE`, reaproveitando a infraestrutura já existente de runtime e deixando parser/dispatcher/executor seguirem a capacidade declarada no dialeto.
 - Incremento desta sessão: o parser comum de agregação textual foi endurecido para a forma nativa do MySQL (`GROUP_CONCAT(DISTINCT ... ORDER BY ... SEPARATOR ...)`), aceitando `SEPARATOR` como terminador válido do `ORDER BY` interno apenas quando o dialeto/função o suportam.
+- Incremento desta sessão: a trilha auditada de regras por dialeto removeu os últimos branches comportamentais centrais por `dialect.Name` para mutações multi-tabela, rowcount de UPSERT e `SQL_CALC_FOUND_ROWS`, consolidando parser/executor/strategies sob o mesmo contrato de capability do provider.
+- Incremento desta sessão: a próxima fatia funcional do executor fechou o subset principal de `PIVOT` com `SUM/MIN/MAX/AVG` no caminho compartilhado, deixando `UNPIVOT` e agregadores avançados como backlog residual explícito.
+- TODO: fechar a trilha auditada contra bancos reais com implementação incremental de `JSON_TABLE` (MySQL, Oracle, DB2), `FOR JSON`/`UNPIVOT`/`STRING_SPLIT` (SQL Server/SqlAzure), `DISTINCT ON`/`LATERAL` (PostgreSQL), `json_each`/`json_tree` e frames avançados de window (SQLite).
+- TODO: revisar cada nova feature acima com a regra "dialeto manda", garantindo gate no tokenizer/parser, contract no executor e suíte positiva/negativa por versão simulada antes de marcar o item como concluído.
 
 #### 4.2.3 Critérios de aceitação
 
@@ -984,6 +1044,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incluir no hardening evidência de mensagem padronizada para não suportado e referência ao teste de regressão associado.
 - CI deve publicar relatório por provider e resultado da smoke cross-dialeto como evidência mínima de fechamento.
 - Incremento desta sessão: a malha CI passou a publicar também snapshot dedicado da camada `Strategy`, ampliando a trilha mínima de evidência objetiva para regressões transacionais/trigger além da smoke geral.
+- TODO: anexar também o mapeamento entre evidência publicada, item do backlog e suites afetadas, para reduzir fechamento sem rastreabilidade objetiva.
 
 ---
 
@@ -1171,6 +1232,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: `docs/getting-started.md` passou a explicitar o mesmo contrato de frameworks/override e também entrou na trilha de auditoria, reduzindo ambiguidade para consumidores que chegam pelo guia de instalação.
 - Incremento desta sessão: `docs/Wiki/Getting-Started.md` foi alinhado ao mesmo contrato de frameworks/override e entrou na auditoria, reduzindo drift entre wiki espelhada e documentação canônica.
 - Incremento desta sessão: `docs/old/providers-and-features.md` passou a explicitar o contrato central de frameworks para consumidores e entrou na auditoria, reduzindo drift no guia secundário de compatibilidade por provider.
+- TODO: manter o mesmo contrato de compatibilidade em novos pontos de entrada de documentação/pacote assim que surgirem artefatos ou providers adicionais, evitando regressão documental silenciosa.
 
 ### 6.2 Publicação
 
@@ -1185,6 +1247,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: o mesmo gate pós-pack passou a validar também `requireLicenseAcceptance` no `.nuspec`, reaproveitando `PackageRequireLicenseAcceptance` do `src/Directory.Build.props` e cobrindo esse contrato com `unittest` dedicado.
 - Incremento desta sessão: o workflow `nuget-publish.yml` passou a respeitar opcionalmente `vars.NUGET_PUBLISH_ENVIRONMENT` com fallback para `nuget-publish`, alinhando o contrato documentado de Environment ao YAML real e ao auditor de readiness.
 - Incremento desta sessão: o workflow `nuget-publish.yml` passou a executar também `scripts/check_release_readiness.py` antes do `restore`, levando o gate documental/operacional do release para o próprio fluxo de publicação NuGet e prendendo isso no `unittest` do auditor.
+- TODO: ampliar o gate NuGet para símbolos/source metadata e demais artefatos opcionais de publicação quando essa trilha entrar no processo oficial de release.
 
 #### 6.2.2 Extensões IDE
 
@@ -1202,6 +1265,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: os workflows `vsix-publish.yml` e `vscode-extension-publish.yml` passaram a validar explicitamente a presença da fonte de versão antes do build/pack, reduzindo drift entre o prefixo de tag documentado e o artefato efetivamente publicado.
 - Incremento desta sessão: os READMEs operacionais das extensões passaram a explicitar também o contrato `workflow -> fonte de versão -> publish`, e o auditor passou a vigiar essa mensagem diretamente no ponto de uso.
 - Gap remanescente explicitado: o `publisher` final do Visual Studio Marketplace ainda depende de definição operacional externa ao código.
+- TODO: fechar a definição operacional do `publisher`/identidade final de marketplace e automatizar a última etapa que hoje ainda depende de valor externo ao repositório.
 
 #### 6.2.3 Operação contínua
 
@@ -1232,6 +1296,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Validação operacional indica cobertura completa dos projetos `*.csproj` do repositório na solução.
 - Verificação automatizada já adicionada ao CI via `scripts/check_slnx_project_coverage.py` e com alternativa local Windows em `scripts/check_slnx_project_coverage.ps1` para detectar drift entre árvore `src` e conteúdo da solução.
 - Incremento desta sessão: o checker Python passou a normalizar separadores de caminho também nos `Project Path="..."` lidos do `.slnx`, com suíte `unittest` dedicada para evitar falso positivo quando a solução usa `\` no Windows e a validação roda com `/` no CI Linux.
+- TODO: endurecer a governança da solução para sinalizar também desbalanceamento de organização por domínio/provedor quando novos projetos entrarem no repositório.
 
 #### 6.3.2 Matriz compartilhada de testes por capability
 
@@ -1277,7 +1342,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: `scripts/check_release_readiness.py` passou a verificar presença e contrato mínimo do checklist de evidência e do template de PR, transformando a convenção documental em gate automatizado.
 - Incremento desta sessão: `docs/Wiki/Home.md` teve links corrigidos para o repositório oficial e essa base passou a ser verificada pelo mesmo auditor, reduzindo drift entre docs canônicos e wiki espelhada.
 - Incremento desta sessão: `docs/Wiki/Getting-Started.md` entrou na mesma trilha de auditoria dos guias principais, ampliando a governança de docs espelhados sem criar um fluxo paralelo de revisão.
-- Incremento desta sessão: `docs/info/multi-target-compat-audit.md` passou a identificar explicitamente seu caráter histórico e o auditor valida essa advertência, reduzindo risco de leitura equivocada de artefatos estáticos fora da trilha canônica.
+- Incremento desta sessão: `docs/info/multi-target-compat-audit.md` passou a identificar explicitamente seu caráter histórico e, quando presente no checkout, o auditor valida essa advertência para reduzir risco de leitura equivocada de artefatos estáticos fora da trilha canônica.
 - Incremento desta sessão: `docs/Wiki/Publishing.md` e `docs/Wiki/Providers-and-Compatibility.md` entraram no gate documental do auditor, estendendo a governança para as demais páginas espelhadas mais acessadas.
 - Incremento desta sessão: os índices `docs/README.md` e a wiki em `docs/Wiki` passaram a expor a trilha de versão/tag por artefato, reduzindo drift já no ponto de descoberta da documentação.
 - Incremento desta sessão: a trilha de baselines versionadas em `templates/dbsqllikemem` passou a ser exposta nos READMEs relevantes e validada pelo auditor, conectando backlog, docs e artefatos reais de geração no mesmo gate.
@@ -1302,6 +1367,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: `docs/publishing.md`, wiki e READMEs das extensões passaram a explicitar também a fonte de verdade da versão por artefato (`Directory.Build.props`, `source.extension.vsixmanifest`, `package.json`) e o prefixo de tag correspondente; o auditor agora vigia esse contrato.
 - Incremento desta sessão: `scripts/check_nuget_package_metadata.py` passou a validar também a versão efetivamente publicada no `.nuspec` contra `src/Directory.Build.props` e o sufixo do arquivo `.nupkg`, reduzindo risco de pacote NuGet sair com SemVer divergente da fonte de verdade central.
 - Incremento desta sessão: os workflows de publish passaram a validar explicitamente a presença da fonte de versão de cada artefato (`Directory.Build.props`, `source.extension.vsixmanifest`, `package.json`), e o auditor agora exige esse contrato para manter tag, arquivo-fonte e publish sob a mesma trilha verificável.
+- TODO: explicitar e automatizar a classificação de impacto SemVer por tipo de mudança do backlog (breaking, feature, fix), reduzindo subjetividade no momento do release.
 
 #### 6.4.2 Comunicação de mudanças
 
@@ -1315,6 +1381,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: o contrato de comunicação por artefato passou a ficar visível também dentro dos próprios workflows de publish, que agora expõem e validam a fonte de versão associada ao prefixo de tag documentado.
 - Changelog orientado a impacto por provedor/dialeto.
 - Destaque para gaps fechados e limitações ainda abertas.
+- TODO: gerar resumo de impacto por provider/dialeto a partir do backlog/changelog para reaproveitar a mesma mensagem em release notes, wiki e comunicação operacional.
 
 ---
 

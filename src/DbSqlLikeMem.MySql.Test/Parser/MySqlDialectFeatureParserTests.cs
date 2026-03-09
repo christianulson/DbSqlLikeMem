@@ -53,6 +53,42 @@ public sealed class MySqlDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures MySQL exposes join-based mutation syntax and UPSERT rowcount semantics through dialect-owned capabilities.
+    /// PT: Garante que o MySQL exponha sintaxes de mutacao com join e a semantica de rowcount de UPSERT por capabilities do proprio dialeto.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void MutationCapabilities_ShouldExposeMySqlContract(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        Assert.True(dialect.SupportsUpdateJoinFromSubquerySyntax);
+        Assert.False(dialect.SupportsUpdateFromJoinSubquerySyntax);
+        Assert.True(dialect.SupportsDeleteTargetFromJoinSubquerySyntax);
+        Assert.False(dialect.SupportsDeleteUsingSubquerySyntax);
+        Assert.True(dialect.SupportsSqlCalcFoundRowsModifier);
+        Assert.Equal(3, dialect.GetInsertUpsertAffectedRowCount(1, 1));
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parser accepts the SQL_CALC_FOUND_ROWS select modifier through dialect capability.
+    /// PT: Garante que o parser MySQL aceite o modificador SQL_CALC_FOUND_ROWS via capability do dialeto.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_SqlCalcFoundRows_ShouldParse(int version)
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(
+            SqlQueryParser.Parse("SELECT SQL_CALC_FOUND_ROWS name FROM users LIMIT 1", new MySqlDialect(version)));
+
+        Assert.Equal("SELECT SQL_CALC_FOUND_ROWS name FROM users LIMIT 1", parsed.RawSql);
+    }
+
+    /// <summary>
     /// EN: Ensures MySQL parser accepts its row-count helper functions and still rejects foreign aliases.
     /// PT: Garante que o parser MySQL aceite suas funções de row-count e continue rejeitando aliases de outros bancos.
     /// </summary>

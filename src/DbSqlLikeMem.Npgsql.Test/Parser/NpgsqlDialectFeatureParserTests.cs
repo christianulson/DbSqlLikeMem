@@ -58,6 +58,42 @@ public sealed class NpgsqlDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures PostgreSQL exposes its join-based mutation syntax through dialect-owned capabilities.
+    /// PT: Garante que o PostgreSQL exponha sua sintaxe de mutacao com join por capabilities do proprio dialeto.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void MutationCapabilities_ShouldExposePostgreSqlContract(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        Assert.False(dialect.SupportsUpdateJoinFromSubquerySyntax);
+        Assert.True(dialect.SupportsUpdateFromJoinSubquerySyntax);
+        Assert.False(dialect.SupportsDeleteTargetFromJoinSubquerySyntax);
+        Assert.True(dialect.SupportsDeleteUsingSubquerySyntax);
+        Assert.False(dialect.SupportsSqlCalcFoundRowsModifier);
+        Assert.Equal(2, dialect.GetInsertUpsertAffectedRowCount(1, 1));
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL parser rejects SQL_CALC_FOUND_ROWS because the modifier belongs to MySQL.
+    /// PT: Garante que o parser PostgreSQL rejeite SQL_CALC_FOUND_ROWS porque o modificador pertence ao MySQL.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseSelect_SqlCalcFoundRows_ShouldRespectDialectRule(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT SQL_CALC_FOUND_ROWS name FROM users LIMIT 1", new NpgsqlDialect(version)));
+
+        Assert.Contains("SQL_CALC_FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures PostgreSQL parser accepts ROW_COUNT() and rejects foreign row-count helper aliases.
     /// PT: Garante que o parser PostgreSQL aceite ROW_COUNT() e rejeite aliases de row-count de outros bancos.
     /// </summary>

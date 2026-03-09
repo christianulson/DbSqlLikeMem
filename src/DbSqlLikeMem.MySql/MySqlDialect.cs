@@ -113,6 +113,8 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// PT: Obtém ou define SupportsDeleteWithoutFrom.
     /// </summary>
     public override bool SupportsDeleteWithoutFrom => true; // MySQL accepts DELETE [FROM] tbl
+    public override bool SupportsUpdateJoinFromSubquerySyntax => true;
+    public override bool SupportsDeleteTargetFromJoinSubquerySyntax => true;
 
     /// <summary>
     /// EN: Gets or sets SupportsWithCte.
@@ -231,4 +233,9 @@ internal sealed class MySqlDialect : SqlDialectBase
     public override bool SupportsLastFoundRowsFunction(string functionName)
         => functionName.Equals("FOUND_ROWS", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase);
+
+    public override bool SupportsSqlCalcFoundRowsModifier => true;
+
+    public override int GetInsertUpsertAffectedRowCount(int insertedCount, int updatedCount)
+        => insertedCount + (updatedCount * 2);
 }

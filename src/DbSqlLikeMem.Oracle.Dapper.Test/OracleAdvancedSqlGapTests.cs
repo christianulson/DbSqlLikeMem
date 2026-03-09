@@ -392,6 +392,69 @@ PIVOT (
     }
 
     /// <summary>
+    /// EN: Verifies PIVOT supports SUM, MIN, MAX and AVG for Oracle buckets.
+    /// PT: Verifica se o PIVOT suporta SUM, MIN, MAX e AVG para buckets do Oracle.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "OracleAdvancedSqlGap")]
+    public void Pivot_CommonNumericAggregates_ByTenant_ShouldWork()
+    {
+        var sumRow = _cnn.QuerySingle<dynamic>(@"
+SELECT t10, t20
+FROM (
+    SELECT tenantid, id
+    FROM users
+) src
+PIVOT (
+    SUM(id)
+    FOR tenantid IN (10 AS t10, 20 AS t20)
+) p");
+
+        Assert.Equal(3m, (decimal)sumRow.t10);
+        Assert.Equal(3m, (decimal)sumRow.t20);
+
+        var minRow = _cnn.QuerySingle<dynamic>(@"
+SELECT t10, t20
+FROM (
+    SELECT tenantid, id
+    FROM users
+) src
+PIVOT (
+    MIN(id)
+    FOR tenantid IN (10 AS t10, 20 AS t20)
+) p");
+
+        var maxRow = _cnn.QuerySingle<dynamic>(@"
+SELECT t10, t20
+FROM (
+    SELECT tenantid, id
+    FROM users
+) src
+PIVOT (
+    MAX(id)
+    FOR tenantid IN (10 AS t10, 20 AS t20)
+) p");
+
+        var avgRow = _cnn.QuerySingle<dynamic>(@"
+SELECT t10, t20
+FROM (
+    SELECT tenantid, id
+    FROM users
+) src
+PIVOT (
+    AVG(id)
+    FOR tenantid IN (10 AS t10, 20 AS t20)
+) p");
+
+        Assert.Equal(1m, (decimal)minRow.t10);
+        Assert.Equal(3m, (decimal)minRow.t20);
+        Assert.Equal(2m, (decimal)maxRow.t10);
+        Assert.Equal(3m, (decimal)maxRow.t20);
+        Assert.Equal(1.5m, (decimal)avgRow.t10);
+        Assert.Equal(3m, (decimal)avgRow.t20);
+    }
+
+    /// <summary>
     /// EN: Disposes test resources.
     /// PT: Descarta os recursos do teste.
     /// </summary>

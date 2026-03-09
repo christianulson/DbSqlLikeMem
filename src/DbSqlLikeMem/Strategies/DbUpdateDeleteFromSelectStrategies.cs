@@ -16,15 +16,6 @@ internal static class DbUpdateDeleteFromSelectStrategies
         @"^DELETE\s+FROM\s+`?(?<table>[A-Za-z0-9_]+)`?\s+(?<a>[A-Za-z0-9_]+)\s+USING\s*\(\s*(?<sub>(SELECT|WITH)\b[\s\S]*?)\s*\)\s+(?<s>[A-Za-z0-9_]+)\s+WHERE\s+(?<where>[\s\S]*?)\s*;?\s*$",
         RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
-    private static bool IsMySql(ISqlDialect dialect)
-        => dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsSqlServer(ISqlDialect dialect)
-        => dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsPostgreSql(ISqlDialect dialect)
-        => dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase);
-
     private static bool IsUpdateFromSelectSql(string sql)
         => _regexUpdateJoinMySql.IsMatch(sql) || _regexUpdateFromClause.IsMatch(sql);
 
@@ -107,10 +98,10 @@ internal static class DbUpdateDeleteFromSelectStrategies
         if (!m.Success)
             throw new InvalidOperationException(SqlExceptionMessages.UpdateJoinInvalid());
 
-        if (!fromClause && !IsMySql(dialect))
+        if (!fromClause && !dialect.SupportsUpdateJoinFromSubquerySyntax)
             throw SqlUnsupported.ForDialect(dialect, "UPDATE ... JOIN (subquery)");
 
-        if (fromClause && !IsSqlServer(dialect) && !IsPostgreSql(dialect))
+        if (fromClause && !dialect.SupportsUpdateFromJoinSubquerySyntax)
             throw SqlUnsupported.ForDialect(dialect, "UPDATE ... FROM ... JOIN (subquery)");
 
         var tableName = m.Groups["table"].Value.NormalizeName();
@@ -290,10 +281,10 @@ internal static class DbUpdateDeleteFromSelectStrategies
         if (!m.Success)
             throw new InvalidOperationException(SqlExceptionMessages.DeleteJoinInvalid());
 
-        if (!usingSyntax && !IsMySql(dialect) && !IsSqlServer(dialect))
+        if (!usingSyntax && !dialect.SupportsDeleteTargetFromJoinSubquerySyntax)
             throw SqlUnsupported.ForDialect(dialect, "DELETE <alvo> FROM ... JOIN (subquery)");
 
-        if (usingSyntax && !IsPostgreSql(dialect))
+        if (usingSyntax && !dialect.SupportsDeleteUsingSubquerySyntax)
             throw SqlUnsupported.ForDialect(dialect, "DELETE FROM ... USING (subquery)");
 
         var tableName = m.Groups["table"].Value.NormalizeName();

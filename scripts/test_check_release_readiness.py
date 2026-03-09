@@ -212,6 +212,16 @@ class CheckReleaseReadinessDocsTests(unittest.TestCase):
                 any("docs/old/providers-and-features.md" in failure and "net462" in failure for failure in failures)
             )
 
+    def test_check_docs_accepts_missing_historical_multi_target_audit(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            self._write_doc_set(root)
+            (root / "docs" / "info" / "multi-target-compat-audit.md").unlink()
+
+            failures = sut.check_docs(root)
+
+            self.assertEqual(failures, [])
+
     @classmethod
     def _write_doc_set(cls, root: Path) -> None:
         cls._write(

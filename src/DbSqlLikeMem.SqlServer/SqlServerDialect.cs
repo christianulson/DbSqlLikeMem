@@ -114,6 +114,8 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// PT: Obtém se há suporte a delete target alias.
     /// </summary>
     public override bool SupportsDeleteTargetAlias => true; // DELETE alias FROM t alias JOIN ...
+    public override bool SupportsUpdateFromJoinSubquerySyntax => true;
+    public override bool SupportsDeleteTargetFromJoinSubquerySyntax => true;
     /// <summary>
     /// EN: Gets whether with cte is supported.
     /// PT: Obtém se há suporte a with cte.

@@ -113,14 +113,7 @@ internal static class DbInsertStrategy
         connection.Metrics.Inserts += insertedCount;
         connection.Metrics.Updates += updatedCount;
 
-        int affected;
-        if (string.Equals(dialect.Name, "mysql", StringComparison.OrdinalIgnoreCase))
-            // MySQL retorna: 1 para insert, 2 para update em conflito.
-            affected = insertedCount + (updatedCount * 2);
-        else
-            // PostgreSQL/SQLite e demais dialetos retornam linhas efetivamente afetadas.
-            affected = insertedCount + updatedCount;
-
+        int affected = dialect.GetInsertUpsertAffectedRowCount(insertedCount, updatedCount);
         connection.SetLastFoundRows(affected);
         return affected;
     }
@@ -1064,7 +1057,7 @@ internal static class DbInsertStrategy
         if (string.IsNullOrWhiteSpace(functionName))
             return;
 
-        if (functionName.Equals("NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
+        if (functionName!.Equals("NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
             && !dialect.SupportsNextValueForSequenceExpression)
             throw SqlUnsupported.ForDialect(dialect, "NEXT VALUE FOR");
 
