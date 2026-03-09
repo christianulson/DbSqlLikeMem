@@ -81,7 +81,7 @@ public static class TemplateReviewMetadataReader
         if (string.IsNullOrWhiteSpace(value))
             return false;
 
-        focus = value.Trim();
+        focus = value!.Trim();
         return true;
     }
 
@@ -95,7 +95,7 @@ public static class TemplateReviewMetadataReader
         {
             var value = entry.GetString();
             if (!string.IsNullOrWhiteSpace(value))
-                evidenceFiles.Add(value.Trim());
+                evidenceFiles.Add(value!.Trim());
         }
 
         return evidenceFiles;

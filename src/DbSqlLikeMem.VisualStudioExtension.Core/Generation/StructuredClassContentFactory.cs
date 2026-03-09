@@ -19,7 +19,7 @@ public static class StructuredClassContentFactory
         if (dbObject.Type == DatabaseObjectType.Sequence)
             return BuildSequence(dbObject, @namespace);
 
-        var effectiveDatabaseType = string.IsNullOrWhiteSpace(databaseType) ? "MySql" : databaseType;
+        var effectiveDatabaseType = string.IsNullOrWhiteSpace(databaseType) ? "MySql" : databaseType!;
         var className = $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}{dbObject.Type}Factory";
         var methodName = $"Create{dbObject.Type}{GenerationRuleSet.ToPascalCase(dbObject.Name)}";
 

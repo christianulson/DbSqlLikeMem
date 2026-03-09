@@ -35,9 +35,6 @@ internal abstract class AstQueryExecutorBase(
     private static readonly Regex _simpleAliasTokenRegex = new(
         @"^[A-Z_][A-Z0-9_$]*$",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
-    private static readonly Regex _aggregateExpressionRegex = new(
-        @"\b(COUNT|SUM|MIN|MAX|AVG|GROUP_CONCAT|STRING_AGG|LISTAGG)\s*\(",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly Regex _dateModifierRegex = new(
         @"^(?<amount>[+-]?\d+)\s*(?<unit>\w+)s?$",
         RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -115,7 +112,7 @@ internal abstract class AstQueryExecutorBase(
             tables.Sum(static table => table.Count),
             tables.Length,
             TimeSpan.Zero,
-            FormatUnionInputsDebugDetails(parts, allFlags));
+            QueryDebugTraceFormattingHelper.FormatUnionInputsDebugDetails(parts, allFlags));
 
         // Base do resultado
         var result = new TableResultMock
@@ -141,7 +138,7 @@ internal abstract class AstQueryExecutorBase(
                 throw new InvalidOperationException(msg);
             }
 
-            ValidateUnionColumnTypes(result.Columns, tables[i].Columns, i, sqlContextForErrors, dialect);
+            UnionQueryValidationHelper.ValidateUnionColumnTypes(result.Columns, tables[i].Columns, i, sqlContextForErrors, dialect);
         }
 
         // merge
@@ -182,7 +179,7 @@ internal abstract class AstQueryExecutorBase(
             tables.Sum(static table => table.Count),
             result.Count,
             TimeSpan.Zero,
-            FormatUnionCombineDebugDetails(parts, allFlags));
+            QueryDebugTraceFormattingHelper.FormatUnionCombineDebugDetails(parts, allFlags));
 
         // ORDER BY/LIMIT final do UNION segue a projeção final do resultado combinado.
         if ((orderBy?.Count ?? 0) > 0 || rowLimit is not null)
@@ -229,133 +226,6 @@ internal abstract class AstQueryExecutorBase(
         return result;
     }
 
-    private sealed class SqlRowDictionaryComparer(ISqlDialect dialect)
-        : IEqualityComparer<Dictionary<int, object?>>
-    {
-        public bool Equals(Dictionary<int, object?>? x, Dictionary<int, object?>? y)
-        {
-            if (ReferenceEquals(x, y))
-                return true;
-            if (x is null || y is null || x.Count != y.Count)
-                return false;
-
-            foreach (var item in x)
-            {
-                if (!y.TryGetValue(item.Key, out var rightValue))
-                    return false;
-
-                if (!item.Value.EqualsSql(rightValue, dialect))
-                    return false;
-            }
-
-            return true;
-        }
-
-        public int GetHashCode(Dictionary<int, object?> row)
-        {
-            var hash = new HashCode();
-            foreach (var key in row.Keys.OrderBy(k => k))
-            {
-                hash.Add(key);
-                hash.Add(NormalizeHash(row[key]));
-            }
-
-            return hash.ToHashCode();
-        }
-
-        private object? NormalizeHash(object? value)
-        {
-            if (value is null || value is DBNull)
-                return null;
-
-            if (TryNormalizeNumericHash(value, out var numericHash))
-                return numericHash;
-
-            if (value is string text)
-                return dialect.TextComparison == StringComparison.OrdinalIgnoreCase
-                    ? text.ToUpperInvariant()
-                    : text;
-
-            return value;
-        }
-
-        private bool TryNormalizeNumericHash(object value, out string normalized)
-        {
-            normalized = string.Empty;
-
-            if (TryGetNumericValue(value, out var numeric))
-            {
-                normalized = numeric.ToString("G29", CultureInfo.InvariantCulture);
-                return true;
-            }
-
-            if (!dialect.SupportsImplicitNumericStringComparison)
-                return false;
-
-            if (value is string text
-                && decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed))
-            {
-                normalized = parsed.ToString("G29", CultureInfo.InvariantCulture);
-                return true;
-            }
-
-            return false;
-        }
-
-        private static bool TryGetNumericValue(object value, out decimal numeric)
-        {
-            switch (value)
-            {
-                case byte b:
-                    numeric = b;
-                    return true;
-                case short s:
-                    numeric = s;
-                    return true;
-                case int i:
-                    numeric = i;
-                    return true;
-                case long l:
-                    numeric = l;
-                    return true;
-                case float f:
-                    numeric = (decimal)f;
-                    return true;
-                case double d:
-                    numeric = (decimal)d;
-                    return true;
-                case decimal m:
-                    numeric = m;
-                    return true;
-                default:
-                    numeric = default;
-                    return false;
-            }
-        }
-    }
-
-    private static void ValidateUnionColumnTypes(
-        IList<TableResultColMock> expected,
-        IList<TableResultColMock> current,
-        int currentIndex,
-        string? sqlContextForErrors,
-        ISqlDialect dialect)
-    {
-        for (int i = 0; i < expected.Count; i++)
-        {
-            if (dialect.AreUnionColumnTypesCompatible(expected[i].DbType, current[i].DbType))
-                continue;
-
-            var msg =
-                "UNION: tipo de coluna incompatível. " +
-                $"Coluna[{i}] Primeiro={expected[i].DbType}, SELECT[{currentIndex}]={current[i].DbType}.";
-            if (!string.IsNullOrWhiteSpace(sqlContextForErrors))
-                msg += "\nSQL: " + sqlContextForErrors;
-
-            throw new InvalidOperationException(msg);
-        }
-    }
-
     /// <summary>
     /// EN: Implements ExecuteSelect.
     /// PT: Implementa ExecuteSelect.
@@ -375,7 +245,7 @@ internal abstract class AstQueryExecutorBase(
 
         var metrics = BuildPlanRuntimeMetrics(q, result.Count, sw.ElapsedMilliseconds);
         var indexRecommendations = BuildIndexRecommendations(q, metrics);
-        var planWarnings = BuildPlanWarnings(q, metrics);
+        var planWarnings = QueryPlanWarningHelper.BuildPlanWarnings(q, metrics);
         var runtimeContext = BuildPlanMockRuntimeContext();
         var plan = SqlExecutionPlanFormatter.FormatSelect(
             q,
@@ -399,158 +269,6 @@ internal abstract class AstQueryExecutorBase(
     }
 
 
-    private static IReadOnlyList<SqlPlanWarning> BuildPlanWarnings(
-        SqlSelectQuery query,
-        SqlPlanRuntimeMetrics metrics)
-    {
-        const long HighReadThreshold = 100;
-        const long VeryHighReadThreshold = 1000;
-        const long CriticalReadThreshold = 5000;
-        const double LowSelectivityThresholdPct = 60d;
-        const double VeryLowSelectivityThresholdPct = 85d;
-
-        if (metrics.EstimatedRowsRead < HighReadThreshold)
-            return [];
-
-        var warnings = new List<SqlPlanWarning>();
-
-        static bool HasTopPrefixInProjection(SqlSelectQuery q)
-        {
-            if (Regex.IsMatch(
-                q.RawSql,
-                @"^\s*SELECT\s+(?:DISTINCT\s+)?TOP\s*(\(\s*\d+\s*\)|\d+)\b",
-                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
-                return true;
-
-            return q.SelectItems.Any(i => Regex.IsMatch(
-                i.Raw,
-                @"^\s*TOP\s*(\(\s*\d+\s*\)|\d+)\b",
-                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant));
-        }
-
-        if (query.OrderBy.Count > 0 && query.RowLimit is null && !HasTopPrefixInProjection(query))
-        {
-            warnings.Add(new SqlPlanWarning(
-                "PW001",
-                SqlExecutionPlanMessages.WarningOrderByWithoutLimitMessage(),
-                SqlExecutionPlanMessages.WarningOrderByWithoutLimitReason(metrics.EstimatedRowsRead),
-                SqlExecutionPlanMessages.WarningOrderByWithoutLimitAction(),
-                SqlPlanWarningSeverity.High,
-                "EstimatedRowsRead",
-                metrics.EstimatedRowsRead.ToString(CultureInfo.InvariantCulture),
-                BuildTechnicalThreshold(("gte", HighReadThreshold))));
-        }
-
-        if (metrics.SelectivityPct >= LowSelectivityThresholdPct)
-        {
-            var severity = metrics.SelectivityPct >= VeryLowSelectivityThresholdPct
-                ? SqlPlanWarningSeverity.High
-                : SqlPlanWarningSeverity.Warning;
-
-            var message = severity == SqlPlanWarningSeverity.High
-                ? SqlExecutionPlanMessages.WarningLowSelectivityHighImpactMessage()
-                : SqlExecutionPlanMessages.WarningLowSelectivityMessage();
-
-            warnings.Add(new SqlPlanWarning(
-                "PW002",
-                message,
-                SqlExecutionPlanMessages.WarningLowSelectivityReason(metrics.SelectivityPct, metrics.EstimatedRowsRead),
-                SqlExecutionPlanMessages.WarningLowSelectivityAction(),
-                severity,
-                "SelectivityPct",
-                metrics.SelectivityPct.ToString("F2", CultureInfo.InvariantCulture),
-                BuildTechnicalThreshold(("gte", LowSelectivityThresholdPct), ("highImpactGte", VeryLowSelectivityThresholdPct))));
-        }
-
-        if (HasSelectStar(query))
-        {
-            var severity = metrics.EstimatedRowsRead >= CriticalReadThreshold
-                ? SqlPlanWarningSeverity.High
-                : metrics.EstimatedRowsRead >= VeryHighReadThreshold
-                    ? SqlPlanWarningSeverity.Warning
-                    : SqlPlanWarningSeverity.Info;
-
-            var message = severity switch
-            {
-                SqlPlanWarningSeverity.High => SqlExecutionPlanMessages.WarningSelectStarCriticalImpactMessage(),
-                SqlPlanWarningSeverity.Warning => SqlExecutionPlanMessages.WarningSelectStarHighImpactMessage(),
-                _ => SqlExecutionPlanMessages.WarningSelectStarMessage()
-            };
-
-            warnings.Add(new SqlPlanWarning(
-                "PW003",
-                message,
-                SqlExecutionPlanMessages.WarningSelectStarReason(metrics.EstimatedRowsRead),
-                SqlExecutionPlanMessages.WarningSelectStarAction(),
-                severity,
-                "EstimatedRowsRead",
-                metrics.EstimatedRowsRead.ToString(CultureInfo.InvariantCulture),
-                BuildTechnicalThreshold(("gte", HighReadThreshold), ("warningGte", VeryHighReadThreshold), ("highGte", CriticalReadThreshold))));
-        }
-
-        if (query.Where is null && !query.Distinct)
-        {
-            var severity = metrics.EstimatedRowsRead >= CriticalReadThreshold
-                ? SqlPlanWarningSeverity.High
-                : SqlPlanWarningSeverity.Warning;
-
-            var message = severity == SqlPlanWarningSeverity.High
-                ? SqlExecutionPlanMessages.WarningNoWhereHighReadHighImpactMessage()
-                : SqlExecutionPlanMessages.WarningNoWhereHighReadMessage();
-
-            warnings.Add(new SqlPlanWarning(
-                "PW004",
-                message,
-                SqlExecutionPlanMessages.WarningNoWhereHighReadReason(metrics.EstimatedRowsRead),
-                SqlExecutionPlanMessages.WarningNoWhereHighReadAction(),
-                severity,
-                "EstimatedRowsRead",
-                metrics.EstimatedRowsRead.ToString(CultureInfo.InvariantCulture),
-                BuildTechnicalThreshold(("gte", HighReadThreshold), ("highGte", CriticalReadThreshold))));
-        }
-
-
-        if (query.Distinct)
-        {
-            var severity = metrics.EstimatedRowsRead >= CriticalReadThreshold
-                ? SqlPlanWarningSeverity.High
-                : SqlPlanWarningSeverity.Warning;
-
-            var message = severity == SqlPlanWarningSeverity.High
-                ? SqlExecutionPlanMessages.WarningDistinctHighReadHighImpactMessage()
-                : SqlExecutionPlanMessages.WarningDistinctHighReadMessage();
-
-            warnings.Add(new SqlPlanWarning(
-                "PW005",
-                message,
-                SqlExecutionPlanMessages.WarningDistinctHighReadReason(metrics.EstimatedRowsRead),
-                SqlExecutionPlanMessages.WarningDistinctHighReadAction(),
-                severity,
-                "EstimatedRowsRead",
-                metrics.EstimatedRowsRead.ToString(CultureInfo.InvariantCulture),
-                BuildTechnicalThreshold(("gte", HighReadThreshold), ("highGte", CriticalReadThreshold))));
-        }
-
-        return warnings;
-    }
-
-    private static bool HasSelectStar(SqlSelectQuery query)
-        => query.SelectItems.Any(static item => string.Equals(item.Raw?.Trim(), "*", StringComparison.Ordinal));
-
-
-    private static string BuildTechnicalThreshold(params (string Key, IFormattable Value)[] values)
-    {
-        if (values.Length == 0)
-            return string.Empty;
-
-        return string.Join(";", values.Select(static v =>
-        {
-            if (string.IsNullOrWhiteSpace(v.Key))
-                throw new ArgumentException("Threshold key must be provided.", nameof(values));
-
-            return $"{v.Key}:{v.Value.ToString(null, CultureInfo.InvariantCulture)}";
-        }));
-    }
     private IReadOnlyList<SqlIndexRecommendation> BuildIndexRecommendations(
         SqlSelectQuery query,
         SqlPlanRuntimeMetrics metrics)
@@ -1094,7 +812,7 @@ internal abstract class AstQueryExecutorBase(
             projectedRows.Count,
             projected.Count,
             TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(projectStart)),
-            FormatProjectDebugDetails(selectQuery.SelectItems));
+            QueryDebugTraceFormattingHelper.FormatProjectDebugDetails(selectQuery.SelectItems));
 
         // 6) DISTINCT
         if (selectQuery.Distinct)
@@ -1107,7 +825,7 @@ internal abstract class AstQueryExecutorBase(
                 inputRows,
                 projected.Count,
                 TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(distinctStart)),
-                FormatDistinctDebugDetails(selectQuery.SelectItems.Count));
+                QueryDebugTraceFormattingHelper.FormatDistinctDebugDetails(selectQuery.SelectItems.Count));
         }
 
         if (HasSqlCalcFoundRows(selectQuery))
@@ -1139,7 +857,7 @@ internal abstract class AstQueryExecutorBase(
                 sourceRows.Count,
                 groupedList.Count,
                 TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(groupStart)),
-                FormatGroupDebugDetails(q));
+                QueryDebugTraceFormattingHelper.FormatGroupDebugDetails(q));
             grouped = groupedList;
         }
 
@@ -2389,7 +2107,7 @@ internal abstract class AstQueryExecutorBase(
                 inputRows,
                 res.Count,
                 TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(distinctStart)),
-                FormatDistinctDebugDetails(q.SelectItems.Count));
+                QueryDebugTraceFormattingHelper.FormatDistinctDebugDetails(q.SelectItems.Count));
         }
 
         if (HasSqlCalcFoundRows(q))
@@ -2401,89 +2119,10 @@ internal abstract class AstQueryExecutorBase(
             groupsList.Count,
             res.Count,
             TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(projectStart)),
-            FormatProjectDebugDetails(q.SelectItems));
+            QueryDebugTraceFormattingHelper.FormatProjectDebugDetails(q.SelectItems));
         res = ApplyOrderAndLimit(res, q, ctes, debugTrace);
         return res;
     }
-
-    private sealed class SelectPlan
-    {
-        /// <summary>
-        /// EN: Gets or sets Columns.
-        /// PT: Obtém ou define Columns.
-        /// </summary>
-        public required List<TableResultColMock> Columns { get; init; }
-        /// <summary>
-        /// EN: Gets or sets Evaluators.
-        /// PT: Obtém ou define Evaluators.
-        /// </summary>
-        public required List<Func<EvalRow, EvalGroup?, object?>> Evaluators { get; init; }
-
-        // Window functions computed over the current rowset (e.g. ROW_NUMBER() OVER (...))
-        /// <summary>
-        /// EN: Gets or sets WindowSlots.
-        /// PT: Obtém ou define WindowSlots.
-        /// </summary>
-        public required List<WindowSlot> WindowSlots { get; init; }
-    }
-
-    private sealed class WindowSlot
-    {
-        /// <summary>
-        /// EN: Gets or sets Expr.
-        /// PT: Obtém ou define Expr.
-        /// </summary>
-        public required WindowFunctionExpr Expr { get; init; }
-        /// <summary>
-        /// EN: Gets or sets Map.
-        /// PT: Obtém ou define Map.
-        /// </summary>
-        public required Dictionary<EvalRow, object?> Map { get; init; }
-    }
-
-    private sealed class ReferenceEqualityComparer<T> : IEqualityComparer<T>
-        where T : class
-    {
-        /// <summary>
-        /// EN: Implements new.
-        /// PT: Implementa new.
-        /// </summary>
-        public static readonly ReferenceEqualityComparer<T> Instance = new();
-        /// <summary>
-        /// EN: Implements Equals.
-        /// PT: Implementa Equals.
-        /// </summary>
-        public bool Equals(T? x, T? y) => ReferenceEquals(x, y);
-        /// <summary>
-        /// EN: Implements GetHashCode.
-        /// PT: Implementa GetHashCode.
-        /// </summary>
-        public int GetHashCode(T obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
-    }
-
-
-    private static string MakeUniqueAlias(
-        List<TableResultColMock> cols,
-        string preferred,
-        string tableAlias)
-    {
-        if (!cols.Any(c => c.ColumnAlias.Equals(preferred, StringComparison.OrdinalIgnoreCase)))
-            return preferred;
-
-        var alt = $"{tableAlias}_{preferred}";
-        if (!cols.Any(c => c.ColumnAlias.Equals(alt, StringComparison.OrdinalIgnoreCase)))
-            return alt;
-
-        int n = 2;
-        while (true)
-        {
-            var a = $"{alt}_{n}";
-            if (!cols.Any(c => c.ColumnAlias.Equals(a, StringComparison.OrdinalIgnoreCase)))
-                return a;
-            n++;
-        }
-    }
-
 
     private void ComputeWindowSlots(
         List<WindowSlot> slots,
@@ -2518,52 +2157,19 @@ internal abstract class AstQueryExecutorBase(
             if (Dialect?.RequiresOrderByInWindowFunction(w.Name) == true && w.Spec.OrderBy.Count == 0)
                 throw new InvalidOperationException($"Window function '{w.Name}' requires ORDER BY in OVER clause.");
 
-            // Partitioning
-            var partitions = new Dictionary<string, List<EvalRow>>(StringComparer.Ordinal);
-
-            foreach (var r in rows)
-            {
-                string key;
-
-                if (w.Spec.PartitionBy.Count == 0)
-                {
-                    key = "__all__";
-                }
-                else
-                {
-                    var parts = w.Spec.PartitionBy
-                        .Select(e => NormalizeDistinctKey(Eval(e, r, null, ctes)))
-                        .ToArray();
-                    key = string.Join("\u001F", parts);
-                }
-
-                if (!partitions.TryGetValue(key, out var list))
-                {
-                    list = [];
-                    partitions[key] = list;
-                }
-                list.Add(r);
-            }
+            var partitions = WindowPartitionHelper.BuildPartitions(
+                w,
+                rows,
+                (expr, row) => Eval(expr, row, null, ctes),
+                value => NormalizeDistinctKey(value));
 
             foreach (var part in partitions.Values)
             {
-                // ORDER BY inside OVER
-                if (w.Spec.OrderBy.Count > 0)
-                {
-                    part.Sort((a, b) =>
-                    {
-                        foreach (var oi in w.Spec.OrderBy)
-                        {
-                            var av = Eval(oi.Expr, a, null, ctes);
-                            var bv = Eval(oi.Expr, b, null, ctes);
-
-                            var cmp = CompareSql(av, bv);
-                            if (cmp != 0)
-                                return oi.Desc ? -cmp : cmp;
-                        }
-                        return 0;
-                    });
-                }
+                WindowPartitionHelper.SortPartition(
+                    part,
+                    w.Spec.OrderBy,
+                    (expr, row) => Eval(expr, row, null, ctes),
+                    CompareSql);
 
                 if (isRowNumber)
                 {
@@ -2697,282 +2303,22 @@ private void FillNthValue(
             return RowsFrameRange.Empty;
 
         if (frame is null || frame.Unit == WindowFrameUnit.Rows)
-            return ResolveRowsFrameRange(frame, part.Count, rowIndex);
+            return WindowFrameRangeResolver.ResolveRowsFrameRange(frame, part.Count, rowIndex);
 
         if (orderBy.Count == 0)
             throw new InvalidOperationException($"Window frame unit '{frame.Unit}' requires ORDER BY in OVER clause.");
 
-        var orderValuesByRow = BuildWindowOrderValuesByRow(part, orderBy, ctes);
-        return frame.Unit switch
-        {
-            WindowFrameUnit.Groups => ResolveGroupsFrameRange(frame, part, rowIndex, orderValuesByRow),
-            WindowFrameUnit.Range => ResolveRangeFrameRange(frame, part, rowIndex, orderValuesByRow, orderBy),
-            _ => ResolveRowsFrameRange(frame, part.Count, rowIndex)
-        };
-    }
-
-    /// <summary>
-    /// EN: Resolves row index boundaries for a ROWS window frame for the current row.
-    /// PT: Resolve os limites de índice de linha para um frame ROWS da janela na linha atual.
-    /// </summary>
-    private static RowsFrameRange ResolveRowsFrameRange(WindowFrameSpec? frame, int partitionSize, int rowIndex)
-    {
-        if (partitionSize <= 0)
-            return RowsFrameRange.Empty;
-
-        if (frame is null)
-            return new RowsFrameRange(0, partitionSize - 1, IsEmpty: false);
-
-        var lastIndex = partitionSize - 1;
-        var rawStartIndex = ResolveRowsFrameBoundIndex(frame.Start, rowIndex, partitionSize, isStartBound: true);
-        var rawEndIndex = ResolveRowsFrameBoundIndex(frame.End, rowIndex, partitionSize, isStartBound: false);
-
-        if (rawStartIndex > rawEndIndex)
-            return RowsFrameRange.Empty;
-
-        var startIndex = Math.Max(rawStartIndex, 0);
-        var endIndex = Math.Min(rawEndIndex, lastIndex);
-        if (startIndex > endIndex)
-            return RowsFrameRange.Empty;
-
-        return new RowsFrameRange(startIndex, endIndex, IsEmpty: false);
-    }
-
-    private static int ResolveRowsFrameBoundIndex(WindowFrameBound bound, int rowIndex, int partitionSize, bool isStartBound)
-    {
-        var lastIndex = partitionSize - 1;
-        return bound.Kind switch
-        {
-            WindowFrameBoundKind.UnboundedPreceding => 0,
-            WindowFrameBoundKind.UnboundedFollowing => lastIndex,
-            WindowFrameBoundKind.CurrentRow => rowIndex,
-            WindowFrameBoundKind.Preceding => rowIndex - bound.Offset.GetValueOrDefault(),
-            WindowFrameBoundKind.Following => rowIndex + bound.Offset.GetValueOrDefault(),
-            _ => isStartBound ? 0 : lastIndex
-        };
-    }
-
-    private readonly record struct RowsFrameRange(int StartIndex, int EndIndex, bool IsEmpty)
-    {
-        public static RowsFrameRange Empty => new(0, -1, IsEmpty: true);
-    }
-
-    /// <summary>
-    /// EN: Resolves GROUPS frame bounds using peer groups derived from ORDER BY values.
-    /// PT: Resolve limites de frame GROUPS usando grupos de peers derivados dos valores de ORDER BY.
-    /// </summary>
-    private RowsFrameRange ResolveGroupsFrameRange(
-        WindowFrameSpec frame,
-        List<EvalRow> part,
-        int rowIndex,
-        Dictionary<EvalRow, object?[]> orderValuesByRow)
-    {
-        var groups = BuildPeerGroups(part, orderValuesByRow);
-        var currentGroupIndex = groups.FindIndex(g => rowIndex >= g.Start && rowIndex <= g.End);
-        if (currentGroupIndex < 0)
-            return RowsFrameRange.Empty;
-
-        var startGroup = ResolveGroupsBoundIndex(frame.Start, currentGroupIndex, groups.Count, isStartBound: true);
-        var endGroup = ResolveGroupsBoundIndex(frame.End, currentGroupIndex, groups.Count, isStartBound: false);
-        if (startGroup > endGroup)
-            return RowsFrameRange.Empty;
-
-        return new RowsFrameRange(groups[startGroup].Start, groups[endGroup].End, IsEmpty: false);
-    }
-
-    /// <summary>
-    /// EN: Resolves RANGE frame bounds for ORDER BY using peer-aware and offset-aware range semantics.
-    /// PT: Resolve limites de frame RANGE no ORDER BY com semântica de range por peers e offsets.
-    /// </summary>
-    private RowsFrameRange ResolveRangeFrameRange(
-        WindowFrameSpec frame,
-        List<EvalRow> part,
-        int rowIndex,
-        Dictionary<EvalRow, object?[]> orderValuesByRow,
-        IReadOnlyList<WindowOrderItem> orderBy)
-    {
-        var hasOffsetBound = frame.Start.Kind is WindowFrameBoundKind.Preceding or WindowFrameBoundKind.Following
-            || frame.End.Kind is WindowFrameBoundKind.Preceding or WindowFrameBoundKind.Following;
-
-        ValidateRangeOffsetOrderBy(orderBy, hasOffsetBound);
-
-        var peerRange = ResolvePeerRange(part, rowIndex, orderValuesByRow);
-
-        int startIndex;
-        int endIndex;
-        if (hasOffsetBound)
-        {
-            var scalarValues = BuildRangeScalarValues(part, orderValuesByRow, orderBy);
-            var current = scalarValues[rowIndex];
-            startIndex = ResolveRangeBoundIndex(frame.Start, scalarValues, current, peerRange, isStartBound: true);
-            endIndex = ResolveRangeBoundIndex(frame.End, scalarValues, current, peerRange, isStartBound: false);
-        }
-        else
-        {
-            startIndex = ResolveRangeBoundIndexWithoutOffsets(frame.Start, part.Count, peerRange, isStartBound: true);
-            endIndex = ResolveRangeBoundIndexWithoutOffsets(frame.End, part.Count, peerRange, isStartBound: false);
-        }
-
-        if (startIndex > endIndex)
-            return RowsFrameRange.Empty;
-
-        return new RowsFrameRange(startIndex, endIndex, IsEmpty: false);
-    }
-
-    /// <summary>
-    /// EN: Validates ORDER BY shape required by RANGE offset semantics.
-    /// PT: Valida o formato de ORDER BY exigido pela semântica de RANGE com offset.
-    /// </summary>
-    private static void ValidateRangeOffsetOrderBy(IReadOnlyList<WindowOrderItem> orderBy, bool hasOffsetBound)
-    {
-        if (!hasOffsetBound)
-            return;
-
-        if (orderBy.Count != 1)
-            throw new InvalidOperationException("RANGE with PRECEDING/FOLLOWING offset requires exactly one ORDER BY expression.");
-    }
-
-    private List<(int Start, int End)> BuildPeerGroups(List<EvalRow> part, Dictionary<EvalRow, object?[]> orderValuesByRow)
-    {
-        var groups = new List<(int Start, int End)>();
-        var start = 0;
-        for (var i = 1; i <= part.Count; i++)
-        {
-            var isBoundary = i == part.Count || !WindowOrderValuesEqual(orderValuesByRow[part[i - 1]], orderValuesByRow[part[i]]);
-            if (!isBoundary)
-                continue;
-
-            groups.Add((start, i - 1));
-            start = i;
-        }
-
-        return groups;
-    }
-
-    private static int ResolveGroupsBoundIndex(WindowFrameBound bound, int currentGroupIndex, int groupCount, bool isStartBound)
-    {
-        var last = groupCount - 1;
-        return bound.Kind switch
-        {
-            WindowFrameBoundKind.UnboundedPreceding => 0,
-            WindowFrameBoundKind.UnboundedFollowing => last,
-            WindowFrameBoundKind.CurrentRow => currentGroupIndex,
-            WindowFrameBoundKind.Preceding => (currentGroupIndex - bound.Offset.GetValueOrDefault()).Clamp(0, last),
-            WindowFrameBoundKind.Following => (currentGroupIndex + bound.Offset.GetValueOrDefault()).Clamp(0, last),
-            _ => isStartBound ? 0 : last
-        };
-    }
-
-    private (int Start, int End) ResolvePeerRange(List<EvalRow> part, int rowIndex, Dictionary<EvalRow, object?[]> orderValuesByRow)
-    {
-        var current = orderValuesByRow[part[rowIndex]];
-        var start = rowIndex;
-        while (start > 0 && WindowOrderValuesEqual(orderValuesByRow[part[start - 1]], current))
-            start--;
-        var end = rowIndex;
-        while (end < part.Count - 1 && WindowOrderValuesEqual(orderValuesByRow[part[end + 1]], current))
-            end++;
-        return (start, end);
-    }
-
-    private static decimal[] BuildRangeScalarValues(List<EvalRow> part, Dictionary<EvalRow, object?[]> orderValuesByRow, IReadOnlyList<WindowOrderItem> orderBy)
-    {
-        var desc = orderBy.Count > 0 && orderBy[0].Desc;
-        var values = new decimal[part.Count];
-        for (var i = 0; i < part.Count; i++)
-        {
-            var rawOrderValue = orderValuesByRow[part[i]].Length == 0 ? null : orderValuesByRow[part[i]][0];
-            if (!TryConvertRangeOrderToDecimal(rawOrderValue, out var scalar))
-            {
-                var valueType = rawOrderValue?.GetType().Name ?? "NULL";
-                throw new InvalidOperationException($"RANGE with PRECEDING/FOLLOWING offset requires numeric/date ORDER BY values. Actual ORDER BY value type: {valueType}.");
-            }
-
-            values[i] = desc ? -scalar : scalar;
-        }
-
-        return values;
-    }
-
-    private static bool TryConvertRangeOrderToDecimal(object? value, out decimal scalar)
-    {
-        scalar = default;
-        if (value is null || value is DBNull)
-            return false;
-        try
-        {
-            scalar = value switch
-            {
-                DateTime dt => dt.Ticks,
-                DateTimeOffset dto => dto.Ticks,
-                TimeSpan ts => ts.Ticks,
-                _ => Convert.ToDecimal(value, CultureInfo.InvariantCulture)
-            };
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// EN: Resolves RANGE bounds for non-offset variants (CURRENT ROW/UNBOUNDED) using peer range only.
-    /// PT: Resolve limites de RANGE sem offset (CURRENT ROW/UNBOUNDED) usando apenas o intervalo de peers.
-    /// </summary>
-    private static int ResolveRangeBoundIndexWithoutOffsets(
-        WindowFrameBound bound,
-        int partitionSize,
-        (int Start, int End) peerRange,
-        bool isStartBound)
-    {
-        var last = partitionSize - 1;
-        return bound.Kind switch
-        {
-            WindowFrameBoundKind.UnboundedPreceding => 0,
-            WindowFrameBoundKind.UnboundedFollowing => last,
-            WindowFrameBoundKind.CurrentRow => isStartBound ? peerRange.Start : peerRange.End,
-            _ => isStartBound ? 0 : last
-        };
-    }
-
-    private static int ResolveRangeBoundIndex(
-        WindowFrameBound bound,
-        decimal[] scalarValues,
-        decimal currentScalar,
-        (int Start, int End) peerRange,
-        bool isStartBound)
-    {
-        var last = scalarValues.Length - 1;
-        return bound.Kind switch
-        {
-            WindowFrameBoundKind.UnboundedPreceding => 0,
-            WindowFrameBoundKind.UnboundedFollowing => last,
-            WindowFrameBoundKind.CurrentRow => isStartBound ? peerRange.Start : peerRange.End,
-            WindowFrameBoundKind.Preceding => isStartBound
-                ? FirstIndexGreaterOrEqual(scalarValues, currentScalar - bound.Offset.GetValueOrDefault())
-                : LastIndexLessOrEqual(scalarValues, currentScalar - bound.Offset.GetValueOrDefault()),
-            WindowFrameBoundKind.Following => isStartBound
-                ? FirstIndexGreaterOrEqual(scalarValues, currentScalar + bound.Offset.GetValueOrDefault())
-                : LastIndexLessOrEqual(scalarValues, currentScalar + bound.Offset.GetValueOrDefault()),
-            _ => isStartBound ? 0 : last
-        };
-    }
-
-    private static int FirstIndexGreaterOrEqual(decimal[] sortedValues, decimal threshold)
-    {
-        for (var i = 0; i < sortedValues.Length; i++)
-            if (sortedValues[i] >= threshold)
-                return i;
-        return sortedValues.Length;
-    }
-
-    private static int LastIndexLessOrEqual(decimal[] sortedValues, decimal threshold)
-    {
-        for (var i = sortedValues.Length - 1; i >= 0; i--)
-            if (sortedValues[i] <= threshold)
-                return i;
-        return -1;
+        var orderValuesByRow = WindowOrderValueHelper.BuildWindowOrderValuesByRow(
+            part,
+            orderBy,
+            (expr, row) => Eval(expr, row, null, ctes));
+        return WindowFrameRangeResolver.Resolve(
+            frame,
+            part,
+            rowIndex,
+            orderBy,
+            orderValuesByRow,
+            (left, right) => WindowOrderValueHelper.WindowOrderValuesEqual(left, right, CompareSql));
     }
 
         private static bool TryReadIntLiteral(SqlExpr expr, out int value)
@@ -3144,12 +2490,15 @@ private int ResolveLagLeadOffset(
         if (part.Count == 0)
             return;
 
-        var orderValuesByRow = BuildWindowOrderValuesByRow(part, windowFunctionExpr.Spec.OrderBy, ctes);
+        var orderValuesByRow = WindowOrderValueHelper.BuildWindowOrderValuesByRow(
+            part,
+            windowFunctionExpr.Spec.OrderBy,
+            (expr, row) => Eval(expr, row, null, ctes));
 
         for (var i = 0; i < part.Count; i++)
         {
             var frameRange = ResolveWindowFrameRange(windowFunctionExpr.Spec.Frame, part, i, windowFunctionExpr.Spec.OrderBy, ctes);
-            if (frameRange.IsEmpty || !RowsFrameContainsRow(frameRange, i))
+            if (frameRange.IsEmpty || !WindowOrderValueHelper.RowsFrameContainsRow(frameRange, i))
             {
                 map[part[i]] = null;
                 continue;
@@ -3163,13 +2512,13 @@ private int ResolveLagLeadOffset(
             for (var frameIndex = frameRange.StartIndex; frameIndex <= frameRange.EndIndex; frameIndex++)
             {
                 var frameValues = orderValuesByRow[part[frameIndex]];
-                if (prevValues is not null && !WindowOrderValuesEqual(prevValues, frameValues))
+                if (prevValues is not null && !WindowOrderValueHelper.WindowOrderValuesEqual(prevValues, frameValues, CompareSql))
                 {
                     rank = (frameIndex - frameRange.StartIndex) + 1;
                     denseRank++;
                 }
 
-                if (WindowOrderValuesEqual(frameValues, currentValues))
+                if (WindowOrderValueHelper.WindowOrderValuesEqual(frameValues, currentValues, CompareSql))
                     break;
 
                 prevValues = frameValues;
@@ -3193,13 +2542,16 @@ private void FillPercentRankOrCumeDist(
         if (part.Count == 0)
             return;
 
-        var orderValuesByRow = BuildWindowOrderValuesByRow(part, orderBy, ctes);
+        var orderValuesByRow = WindowOrderValueHelper.BuildWindowOrderValuesByRow(
+            part,
+            orderBy,
+            (expr, row) => Eval(expr, row, null, ctes));
 
         for (var rowIndex = 0; rowIndex < part.Count; rowIndex++)
         {
             var row = part[rowIndex];
             var frameRange = ResolveWindowFrameRange(frame, part, rowIndex, orderBy, ctes);
-            if (frameRange.IsEmpty || !RowsFrameContainsRow(frameRange, rowIndex))
+            if (frameRange.IsEmpty || !WindowOrderValueHelper.RowsFrameContainsRow(frameRange, rowIndex))
             {
                 map[row] = null;
                 continue;
@@ -3213,7 +2565,7 @@ private void FillPercentRankOrCumeDist(
             for (var frameIndex = frameRange.StartIndex; frameIndex <= frameRange.EndIndex; frameIndex++)
             {
                 var frameValues = orderValuesByRow[part[frameIndex]];
-                if (WindowOrderValuesEqual(frameValues, currentValues))
+                if (WindowOrderValueHelper.WindowOrderValuesEqual(frameValues, currentValues, CompareSql))
                 {
                     peerCount++;
                     continue;
@@ -3255,7 +2607,7 @@ private void FillPercentRankOrCumeDist(
         for (var rowIndex = 0; rowIndex < part.Count; rowIndex++)
         {
             var frameRange = ResolveWindowFrameRange(windowFunctionExpr.Spec.Frame, part, rowIndex, windowFunctionExpr.Spec.OrderBy, ctes);
-            if (frameRange.IsEmpty || !RowsFrameContainsRow(frameRange, rowIndex))
+            if (frameRange.IsEmpty || !WindowOrderValueHelper.RowsFrameContainsRow(frameRange, rowIndex))
             {
                 map[part[rowIndex]] = null;
                 continue;
@@ -3266,34 +2618,6 @@ private void FillPercentRankOrCumeDist(
             var tile = ((positionInFrame - 1) * bucketCount) / frameSize + 1;
             map[part[rowIndex]] = tile;
         }
-    }
-
-
-    /// <summary>
-    /// EN: Checks whether the current row index is visible inside the resolved ROWS frame.
-    /// PT: Verifica se o índice da linha atual está visível dentro do frame ROWS resolvido.
-    /// </summary>
-    private static bool RowsFrameContainsRow(RowsFrameRange frameRange, int rowIndex)
-        => rowIndex >= frameRange.StartIndex && rowIndex <= frameRange.EndIndex;
-
-    /// <summary>
-    /// EN: Builds evaluated ORDER BY values for each row in the ordered partition.
-    /// PT: Constrói os valores de ORDER BY avaliados para cada linha da partição ordenada.
-    /// </summary>
-    private Dictionary<EvalRow, object?[]> BuildWindowOrderValuesByRow(
-        List<EvalRow> part,
-        IReadOnlyList<WindowOrderItem> orderBy,
-        IDictionary<string, Source> ctes)
-    {
-        var orderValuesByRow = new Dictionary<EvalRow, object?[]>(ReferenceEqualityComparer<EvalRow>.Instance);
-        foreach (var row in part)
-        {
-            orderValuesByRow[row] = orderBy
-                .Select(oi => Eval(oi.Expr, row, null, ctes))
-                .ToArray();
-        }
-
-        return orderValuesByRow;
     }
 
     /// <summary>
@@ -3335,23 +2659,6 @@ private void FillPercentRankOrCumeDist(
 
         return 1;
     }
-    private bool WindowOrderValuesEqual(
-        object?[] left,
-        object?[] right)
-    {
-        if (left.Length != right.Length)
-            return false;
-
-        for (int i = 0; i < left.Length; i++)
-        {
-            var cmp = CompareSql(left[i], right[i]);
-            if (cmp != 0)
-                return false;
-        }
-
-        return true;
-    }
-
     private int CompareSql(object? a, object? b)
     {
         if (IsNullish(a) && IsNullish(b)) return 0;
@@ -3365,321 +2672,17 @@ private void FillPercentRankOrCumeDist(
             SqlSelectQuery q,
             List<EvalRow> sampleRows,
             IDictionary<string, Source> ctes)
-    {
-        var cols = new List<TableResultColMock>();
-        var evals = new List<Func<EvalRow, EvalGroup?, object?>>();
-
-        var windowSlots = new List<WindowSlot>();
-
-        var sampleFirst = sampleRows.FirstOrDefault();
-
-        foreach (var si in q.SelectItems)
-        {
-            Console.WriteLine($"[SELECT ITEM RAW] '{si.Raw}'  Alias='{si.Alias}'");
-            var raw0 = si.Raw.Trim();
-
-            // ✅ separa alias mesmo se o parser não preencheu si.Alias
-            var (raw, asAlias) = SplitTrailingAsAlias(raw0, si.Alias);
-
-            // Expand SELECT *
-            if (!ExpandSelectAsterisc(cols, evals, sampleFirst, raw))
-                continue;
-
-            if (!IncludExtraColumns(sampleRows, cols, evals, raw))
-                continue;
-
-            var exprAst = ParseSelectPlanExpression(raw0, raw, asAlias, si.Alias);
-            AppendSelectPlanProjection(
-                q,
-                sampleRows,
-                ctes,
-                cols,
-                evals,
-                windowSlots,
-                raw,
-                si.Alias,
-                asAlias,
-                exprAst);
-        }
-
-#pragma warning disable CA1303 // Do not pass literals as localized parameters
-        Console.WriteLine("RESULT COLUMNS:");
-#pragma warning restore CA1303 // Do not pass literals as localized parameters
-        foreach (var c in cols)
-            Console.WriteLine($" - {c.ColumnAlias}");
-
-        return new SelectPlan { Columns = cols, Evaluators = evals, WindowSlots = windowSlots };
-    }
-
-    private SqlExpr ParseSelectPlanExpression(
-        string rawInput,
-        string rawExpression,
-        string? extractedAlias,
-        string? selectItemAlias)
-    {
-#pragma warning disable CA1031
-        try
-        {
-            return ParseExpr(rawExpression);
-        }
-        catch (Exception e)
-        {
-#pragma warning disable CA1303 // Do not pass literals as localized parameters
-            Console.WriteLine($"{GetType().Name}.{nameof(BuildSelectPlan)}");
-#pragma warning restore CA1303 // Do not pass literals as localized parameters
-            Console.WriteLine($"[SELECT-ITEM] Raw0='{rawInput}' RawExpr='{rawExpression}' AliasParsed='{extractedAlias ?? "null"}' AliasSi='{selectItemAlias ?? "null"}'");
-            Console.WriteLine(e);
-            return new RawSqlExpr(rawExpression);
-        }
-#pragma warning restore CA1031
-    }
-
-    private void AppendSelectPlanProjection(
-        SqlSelectQuery query,
-        List<EvalRow> sampleRows,
-        IDictionary<string, Source> ctes,
-        List<TableResultColMock> cols,
-        List<Func<EvalRow, EvalGroup?, object?>> evals,
-        List<WindowSlot> windowSlots,
-        string rawExpression,
-        string? selectItemAlias,
-        string? extractedAlias,
-        SqlExpr expression)
-    {
-        var tableAlias = GetSelectProjectionTableAlias(query);
-        var preferredAlias = selectItemAlias ?? extractedAlias ?? InferColumnAlias(rawExpression);
-        var columnAlias = MakeUniqueAlias(cols, preferredAlias, tableAlias);
-        var inferredDbType = InferDbTypeFromExpression(expression, sampleRows, ctes);
-
-        cols.Add(CreateSelectPlanColumn(tableAlias, columnAlias, cols.Count, inferredDbType));
-        evals.Add(CreateSelectPlanEvaluator(expression, ctes, windowSlots));
-    }
-
-    private static string GetSelectProjectionTableAlias(SqlSelectQuery query)
-        => query.Table?.Alias ?? query.Table?.Name ?? string.Empty;
-
-    private static TableResultColMock CreateSelectPlanColumn(
-        string tableAlias,
-        string columnAlias,
-        int columnIndex,
-        DbType dbType)
-        => new(
-            tableAlias: tableAlias,
-            columnAlias: columnAlias,
-            columnName: columnAlias,
-            columIndex: columnIndex,
-            dbType: dbType,
-            isNullable: true);
-
-    private Func<EvalRow, EvalGroup?, object?> CreateSelectPlanEvaluator(
-        SqlExpr expression,
-        IDictionary<string, Source> ctes,
-        List<WindowSlot> windowSlots)
-    {
-        if (expression is not WindowFunctionExpr windowFunction)
-            return (row, group) => Eval(expression, row, group, ctes);
-
-        EnsureWindowFunctionSupported(windowFunction);
-
-        var slot = new WindowSlot
-        {
-            Expr = windowFunction,
-            Map = new Dictionary<EvalRow, object?>(ReferenceEqualityComparer<EvalRow>.Instance)
-        };
-        windowSlots.Add(slot);
-        return (row, group) => slot.Map.TryGetValue(row, out var value) ? value : null;
-    }
-
-    private void EnsureWindowFunctionSupported(WindowFunctionExpr windowFunction)
-    {
-        if (!(Dialect?.SupportsWindowFunctions ?? true)
-            || !(Dialect?.SupportsWindowFunction(windowFunction.Name) ?? true))
-            throw SqlUnsupported.ForDialect(Dialect!, $"window functions ({windowFunction.Name})");
-
-        EnsureWindowFunctionArgumentsAtRuntime(windowFunction);
-    }
-
-    /// <summary>
-    /// EN: Validates window function argument arity at runtime to protect execution paths that bypass parser validation.
-    /// PT: Valida a aridade dos argumentos de funções de janela em runtime para proteger caminhos de execução que ignoram a validação do parser.
-    /// </summary>
-    private void EnsureWindowFunctionArgumentsAtRuntime(WindowFunctionExpr windowFunctionExpr)
-    {
-        if (Dialect is null)
-            return;
-
-        if (!Dialect.TryGetWindowFunctionArgumentArity(windowFunctionExpr.Name, out var minArgs, out var maxArgs))
-            return;
-
-        var actualArgs = windowFunctionExpr.Args.Count;
-        if (actualArgs < minArgs || actualArgs > maxArgs)
-        {
-            if (minArgs == maxArgs)
-                throw new InvalidOperationException($"Window function '{windowFunctionExpr.Name}' expects exactly {minArgs} argument(s), but received {actualArgs}.");
-
-            throw new InvalidOperationException($"Window function '{windowFunctionExpr.Name}' expects between {minArgs} and {maxArgs} argument(s), but received {actualArgs}.");
-        }
-    }
-
-    private DbType InferDbTypeFromExpression(
-        SqlExpr exprAst,
-        List<EvalRow> sampleRows,
-        IDictionary<string, Source> ctes)
-    {
-        if (IsSequenceExpression(exprAst))
-            return DbType.Int64;
-
-        if (exprAst is WindowFunctionExpr w)
-            return Dialect?.InferWindowFunctionDbType(w, arg => InferDbTypeFromExpression(arg, sampleRows, ctes))
-                ?? DbType.Object;
-
-        foreach (var row in sampleRows)
-        {
-            var value = Eval(exprAst, row, group: null, ctes);
-            if (value is null || value is DBNull)
-                continue;
-
-            var type = Nullable.GetUnderlyingType(value.GetType()) ?? value.GetType();
-            try
-            {
-                return type.ConvertTypeToDbType();
-            }
-            catch (ArgumentException)
-            {
-                return DbType.Object;
-            }
-        }
-
-        return DbType.Object;
-    }
-
-    private static bool IsSequenceExpression(SqlExpr exprAst)
-    {
-        return exprAst switch
-        {
-            FunctionCallExpr fn => IsSequenceFunctionName(fn.Name),
-            CallExpr call => IsSequenceFunctionName(call.Name),
-            _ => false
-        };
-    }
-
-    private static bool IsSequenceFunctionName(string? name)
-        => string.Equals(name, "NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(name, "NEXTVAL", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(name, "PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase);
+        => SelectPlanBuilderHelper.Build(
+            q,
+            sampleRows,
+            ctes,
+            Dialect,
+            ParseExpr,
+            Eval,
+            ResolveColumn);
 
     private void EnsureDialectSupportsSequenceFunction(string? functionName)
-    {
-        if (string.IsNullOrWhiteSpace(functionName))
-            return;
-
-        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para funções de sequence.");
-
-        if (functionName!.Equals("NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
-            && !dialect.SupportsNextValueForSequenceExpression)
-            throw SqlUnsupported.ForDialect(dialect, "NEXT VALUE FOR");
-
-        if (functionName.Equals("PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
-            && !dialect.SupportsPreviousValueForSequenceExpression)
-            throw SqlUnsupported.ForDialect(dialect, "PREVIOUS VALUE FOR");
-
-        if ((functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
-                || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)
-                || functionName.Equals("SETVAL", StringComparison.OrdinalIgnoreCase)
-                || functionName.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase))
-            && !SupportsSequenceFunctionCall(dialect, functionName))
-        {
-            throw SqlUnsupported.ForDialect(dialect, functionName.ToUpperInvariant());
-        }
-    }
-
-    private static bool SupportsSequenceFunctionCall(ISqlDialect dialect, string functionName)
-    {
-        if (dialect.SupportsSequenceFunctionCall(functionName))
-            return true;
-
-        if (dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
-        {
-            return functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
-                || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)
-                || functionName.Equals("SETVAL", StringComparison.OrdinalIgnoreCase)
-                || functionName.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase);
-        }
-
-        if (dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
-        {
-            return (functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
-                    || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase))
-                && dialect.SupportsSequenceDotValueExpression(functionName);
-        }
-
-        return false;
-    }
-
-    private static bool IncludExtraColumns(
-        List<EvalRow> sampleRows,
-        List<TableResultColMock> cols,
-        List<Func<EvalRow, EvalGroup?, object?>> evals,
-        string raw)
-    {
-        // tableAlias.*  (robusto: aceita espaços e crases)
-        // casa "algo .*" com espaços opcionais:  <prefix> . *
-        var mStar = Regex.Match(raw, @"^(?<p>.+?)\s*\.\s*\*\s*$");
-        if (!mStar.Success)
-            return true;
-
-        var prefix = mStar.Groups["p"].Value.Trim();
-
-        var sample = sampleRows.FirstOrDefault();
-        if (sample is null)
-            return true;
-
-        // remove crases (caso: `t2`.*)
-        prefix = prefix.Trim('`');
-
-        // tenta achar por alias diretamente
-        if (!sample.Sources.TryGetValue(prefix, out var src))
-        {
-            // tenta case-insensitive na mão (Sources é OrdinalIgnoreCase, mas não custa)
-            var hit = sample.Sources.Keys.FirstOrDefault(k => k.Equals(prefix, StringComparison.OrdinalIgnoreCase));
-            if (hit is not null)
-                src = sample.Sources[hit];
-        }
-
-        if (src is null)
-            return true;
-
-        foreach (var colName in src.ColumnNames)
-        {
-            var alias = MakeUniqueAlias(cols, colName, src.Alias);
-            cols.Add(new TableResultColMock(src.Alias, alias, colName, cols.Count, DbType.Object, true));
-            evals.Add((r, g) => ResolveColumn(src.Alias, colName, r));
-        }
-        return false; // ✅ importante: não cai pro parser de expressão
-    }
-
-    private static bool ExpandSelectAsterisc(
-        List<TableResultColMock> cols,
-        List<Func<EvalRow, EvalGroup?, object?>> evals,
-        EvalRow? sampleFirst, string raw)
-    {
-        if (raw != "*")
-            return true;
-
-        if (sampleFirst is null)
-            return false;
-
-        foreach (var src in sampleFirst.Sources.Values)
-        {
-            foreach (var colName in src.ColumnNames)
-            {
-                var alias = MakeUniqueAlias(cols, colName, src.Alias);
-                cols.Add(new TableResultColMock(src.Alias, alias, colName, cols.Count, DbType.Object, true));
-                evals.Add((r, g) => ResolveColumn(src.Alias, colName, r));
-            }
-        }
-        return false;
-    }
+        => SequenceFunctionSupportHelper.EnsureSupported(Dialect, functionName);
 
     // Remove "AS alias" somente quando:
     // - está no FINAL do select item
@@ -3687,216 +2690,7 @@ private void FillPercentRankOrCumeDist(
     private static (string expr, string? alias) SplitTrailingAsAlias(
         string raw,
         string? alreadyAlias)
-    {
-        raw = raw.Trim();
-        if (!string.IsNullOrWhiteSpace(alreadyAlias))
-            return (raw, alreadyAlias);
-
-        // varre de trás pra frente, mantendo depth de parênteses
-        int depth = GetDepthAlias(raw);
-
-        // regex final (fora de parênteses garantido pelo scanner acima? não 100%)
-        // então fazemos um scanner que acha o último AS fora de parênteses.
-        int asPos = -1;
-        FindPositionOfAS(raw, ref depth, ref asPos);
-
-        if (asPos < 0)
-        {
-            // MySQL permite alias sem AS:  SELECT COUNT(*) c1, col1 c2 FROM ...
-            // Precisamos separar o último identificador (fora de parênteses) como alias,
-            // sem quebrar expressões como "t2.*" ou "CAST(x AS CHAR)".
-            if (TrySplitTrailingImplicitAlias(raw, out var expr0, out var alias0))
-            {
-                if (raw.IndexOf("<=>", StringComparison.Ordinal) >= 0
-                    || Regex.IsMatch(raw, @"\b(NEXT|PREVIOUS)\s+VALUE\s+FOR\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
-                {
-                    Console.WriteLine($"[SPLIT-ALIAS-SUSPECT] Raw='{raw}' Expr='{expr0}' Alias='{alias0}'");
-                }
-                return (expr0, alias0);
-            }
-
-            return (raw, null);
-        }
-
-        // pega o sufixo depois do AS
-        var after = raw[(asPos + 2)..].Trim();
-        if (after.Length == 0)
-            return (raw, null);
-
-        // alias pode vir como `C` ou C
-        // (aqui, só aceitamos identificador simples, que é o caso do seu teste)
-        var m = Regex.Match(after, @"^`?(?<a>[A-Za-z_][A-Za-z0-9_]*)`?\s*$");
-        if (!m.Success)
-            return (raw, null);
-
-        var alias = m.Groups["a"].Value;
-
-        // expr é tudo antes do AS
-        var expr = raw[..asPos].TrimEnd();
-        if (expr.Length == 0)
-            return (raw, null);
-
-        return (expr, alias);
-    }
-
-    private static bool TrySplitTrailingImplicitAlias(
-        string raw,
-        out string expr,
-        out string alias)
-    {
-        expr = raw;
-        alias = string.Empty;
-
-        // scanner reverso, ignorando o que está dentro de parênteses
-        int depth = 0;
-        int i = raw.Length - 1;
-        while (i >= 0 && char.IsWhiteSpace(raw[i])) i--;
-        if (i < 0) return false;
-
-        int end = i;
-        while (i >= 0)
-        {
-            var ch = raw[i];
-            if (ch == ')') { depth++; i--; continue; }
-            if (ch == '(') { depth = Math.Max(0, depth - 1); i--; continue; }
-            if (depth == 0 && char.IsWhiteSpace(ch)) break;
-            i--;
-        }
-
-        int start = i + 1;
-        if (start > end) return false;
-
-        var token = raw[start..(end + 1)].Trim();
-        if (token.Length == 0) return false;
-
-        // Alias tem que ser identificador simples: não aceita "t.col1", "*", "?", etc.
-        var m = Regex.Match(token, @"^`?(?<a>[A-Za-z_][A-Za-z0-9_]*)`?$", RegexOptions.CultureInvariant);
-        if (!m.Success) return false;
-
-        var a = m.Groups["a"].Value;
-        if (IsLikelyKeyword(a)) return false;
-
-        var before = raw[..start].TrimEnd();
-        if (before.Length == 0) return false;
-
-        // Evita pegar alias em "t2." (ex: "t2.*" já falha pelo regex acima)
-        if (before.EndsWith(".")) return false;
-        if (Regex.IsMatch(before, @"(<=>|<>|!=|>=|<=|=|>|<|\+|-|\*|/|,)\s*$", RegexOptions.CultureInvariant))
-            return false;
-        if (Regex.IsMatch(before, @"\b(NEXT|PREVIOUS)\s+VALUE\s+FOR\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
-            return false;
-
-        expr = before;
-        alias = a;
-        return true;
-    }
-
-    private static bool IsLikelyKeyword(string s)
-    {
-        // lista pequena e pragmática: só pra não confundir com sintaxe
-        return s.Equals("FROM", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("WHERE", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("JOIN", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("LEFT", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("RIGHT", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("INNER", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("OUTER", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("ON", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("GROUP", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("BY", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("HAVING", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("ORDER", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("LIMIT", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("UNION", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("ALL", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("DISTINCT", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("ASC", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("DESC", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("NULL", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("TRUE", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("FALSE", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static void FindPositionOfAS(string raw, ref int depth, ref int asPos)
-    {
-        for (int i = 0; i < raw.Length - 1; i++)
-        {
-            UpdateParenDepth(raw[i], ref depth);
-            if (depth != 0) continue;
-
-            if (!IsAsAt(raw, i)) continue;
-            if (!IsWordBoundary(raw, i, 2)) continue;
-
-            asPos = i;
-        }
-    }
-
-    private static void UpdateParenDepth(char ch, ref int depth)
-    {
-        if (ch == '(') { depth++; return; }
-        if (ch == ')') depth = Math.Max(0, depth - 1);
-    }
-
-    private static bool IsAsAt(string s, int i)
-    {
-        return (s[i] == 'A' || s[i] == 'a') &&
-               (s[i + 1] == 'S' || s[i + 1] == 's');
-    }
-
-    // length=2 para "AS"
-    private static bool IsWordBoundary(string s, int start, int length)
-    {
-        int left = start - 1;
-        int right = start + length;
-
-        bool leftOk = left < 0 || !IsIdentChar(s[left]);
-        bool rightOk = right >= s.Length || !IsIdentChar(s[right]);
-
-        return leftOk && rightOk;
-    }
-
-    private static bool IsIdentChar(char c) =>
-        char.IsLetterOrDigit(c) || c == '_';
-
-    private static int GetDepthAlias(string raw)
-    {
-        int depth = 0;
-        for (int i = raw.Length - 1; i >= 0; i--)
-        {
-            char ch = raw[i];
-            if (ch == ')') depth++;
-            else if (ch == '(') depth = Math.Max(0, depth - 1);
-
-            // só tenta achar " AS " quando estiver fora de parênteses
-            if (depth != 0) continue;
-
-            // procura um " AS " (case-insensitive) perto do fim.
-            // Ex: "COUNT(val) AS C"
-            //      ^ aqui
-            if (i >= 1 && raw[i] == 'S' || raw[i] == 's')
-            {
-                // checa "...A S..." com espaço antes e depois
-                // vamos achar o padrão usando regex no sufixo por segurança
-            }
-        }
-
-        return depth;
-    }
-
-    private static string InferColumnAlias(string raw)
-    {
-        raw = raw.Trim();
-
-        // For identifiers/qualified columns, we want the last part, but the token printer
-        // may produce spaces around dots (e.g. "u . id"). Normalize just for alias inference.
-        var norm = Regex.Replace(raw, @"\s*\.\s*", ".");
-
-        var dot = norm.LastIndexOf('.');
-        if (dot >= 0 && dot + 1 < norm.Length)
-            return norm[(dot + 1)..].Trim().Trim('`');
-
-        return norm.Trim().Trim('`');
-    }
+        => SelectAliasParserHelper.SplitTrailingAsAlias(raw, alreadyAlias);
 
     // ---------------- ORDER / LIMIT ----------------
 
@@ -3912,7 +2706,7 @@ private void FillPercentRankOrCumeDist(
         if (q.OrderBy.Count == 0)
         {
             var limitInput = res.Count;
-            ApplyLimit(res, q);
+            QueryRowLimitHelper.ApplyLimit(res, q);
             if (debugTrace is not null && q.RowLimit is not null)
             {
                 debugTrace.AddStep(
@@ -3920,169 +2714,33 @@ private void FillPercentRankOrCumeDist(
                     limitInput,
                     res.Count,
                     TimeSpan.Zero,
-                    FormatLimitDebugDetails(q.RowLimit));
+                    QueryDebugTraceFormattingHelper.FormatLimitDebugDetails(q.RowLimit));
             }
             return res;
-        }
-
-        // Pre-parse ORDER BY keys once
-        var keys = new List<(Func<Dictionary<int, object?>, object?> Get, bool Desc, bool? NullsFirst)>();
-        var joinFieldsByRow = new Dictionary<Dictionary<int, object?>, Dictionary<string, object?>>(ReferenceEqualityComparer<Dictionary<int, object?>>.Instance);
-        for (int i = 0; i < res.Count && i < res.JoinFields.Count; i++)
-            joinFieldsByRow[res[i]] = res.JoinFields[i];
-
-        foreach (var it in q.OrderBy)
-        {
-            var raw = (it.Raw ?? string.Empty).Trim();
-            if (raw.Length == 0)
-                continue;
-
-            // ordinal: ORDER BY 1,2,...
-            if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ord))
-            {
-                if (ord < 1)
-                    throw new InvalidOperationException("invalid: ORDER BY ordinal must be >= 1");
-
-                var colIdx = ord - 1;
-                if (colIdx >= res.Columns.Count)
-                    throw new InvalidOperationException($"invalid: ORDER BY ordinal {ord} out of range");
-
-                keys.Add((r => r.TryGetValue(colIdx, out var v) ? v : null, it.Desc, it.NullsFirst));
-                continue;
-            }
-
-            // column/alias fast-path
-            var col = res.Columns.FirstOrDefault(c =>
-                c.ColumnAlias.Equals(raw, StringComparison.OrdinalIgnoreCase)
-                || c.ColumnName.Equals(raw, StringComparison.OrdinalIgnoreCase));
-            if (col is not null)
-            {
-                var colIdx = col.ColumIndex;
-                keys.Add((r => r.TryGetValue(colIdx, out var v) ? v : null, it.Desc, it.NullsFirst));
-                continue;
-            }
-
-            var aliasToIndex = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-
-            for (int i = 0; i < res.Columns.Count; i++)
-            {
-                var col1 = res.Columns[i];
-
-                if (!string.IsNullOrWhiteSpace(col1.ColumnAlias) && !aliasToIndex.ContainsKey(col1.ColumnAlias))
-                    aliasToIndex[col1.ColumnAlias] = i;
-
-                if (!string.IsNullOrWhiteSpace(col1.ColumnName) && !aliasToIndex.ContainsKey(col1.ColumnName))
-                    aliasToIndex[col1.ColumnName] = i;
-
-                var tail = col1.ColumnName;
-                var dot = tail.LastIndexOf('.');
-                if (dot >= 0 && dot + 1 < tail.Length)
-                    tail = tail[(dot + 1)..];
-
-                if (!string.IsNullOrWhiteSpace(tail) && !aliasToIndex.ContainsKey(tail))
-                    aliasToIndex[tail] = i;
-            }
-
-            var expr = ParseExpr(raw);
-
-            Func<Dictionary<int, object?>, object?> get = r =>
-            {
-                var fake = EvalRow.FromProjected(res, r, aliasToIndex);
-                if (joinFieldsByRow.TryGetValue(r, out var rowFields))
-                {
-                    foreach (var kv in rowFields)
-                    {
-                        if (!fake.Fields.ContainsKey(kv.Key))
-                            fake.Fields[kv.Key] = kv.Value;
-
-                        var dot = kv.Key.IndexOf('.');
-                        if (dot > 0 && dot + 1 < kv.Key.Length)
-                        {
-                            var unqualified = kv.Key[(dot + 1)..];
-                            if (!fake.Fields.ContainsKey(unqualified))
-                                fake.Fields[unqualified] = kv.Value;
-                        }
-                    }
-                }
-
-                return Eval(expr, fake, group: null, ctes);
-            };
-
-            keys.Add((Get: get, it.Desc, it.NullsFirst));
-        }
-
-        if (keys.Count == 0)
-        {
-            var limitInput = res.Count;
-            ApplyLimit(res, q);
-            if (debugTrace is not null && q.RowLimit is not null)
-            {
-                debugTrace.AddStep(
-                    "Limit",
-                    limitInput,
-                    res.Count,
-                    TimeSpan.Zero,
-                    FormatLimitDebugDetails(q.RowLimit));
-            }
-            return res;
-        }
-
-        int CompareObj(object? a, object? b)
-        {
-            if (a is null && b is null) return 0;
-            if (a is null) return -1;
-            if (b is null) return 1;
-
-            return a.Compare(b, Dialect);
-        }
-
-        int CompareRows(Dictionary<int, object?> ra, Dictionary<int, object?> rb)
-        {
-            foreach (var (Get, Desc, NullsFirst) in keys)
-            {
-                var ka = Get(ra);
-                var kb = Get(rb);
-
-                int cmp;
-                var kaIsNull = IsNullish(ka);
-                var kbIsNull = IsNullish(kb);
-                if (kaIsNull || kbIsNull)
-                {
-                    if (kaIsNull && kbIsNull) cmp = 0;
-                    else
-                    {
-                        var explicitNullsFirst = NullsFirst;
-                        if (explicitNullsFirst.HasValue)
-                            cmp = kaIsNull ? (explicitNullsFirst.Value ? -1 : 1) : (explicitNullsFirst.Value ? 1 : -1);
-                        else
-                            cmp = kaIsNull ? (Desc ? 1 : -1) : (Desc ? -1 : 1);
-                    }
-                }
-                else
-                {
-                    cmp = CompareObj(ka, kb);
-                    if (Desc) cmp = -cmp;
-                }
-
-                if (cmp != 0) return cmp;
-            }
-            return 0;
         }
 
         var sortStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
         var sortInput = res.Count;
-        var sorted = res.OrderBy(r => r, Comparer<Dictionary<int, object?>>.Create(CompareRows)).ToList();
-        res.Clear();
-        foreach (var r in sorted) res.Add(r);
-
-        if (res.JoinFields.Count > 0)
+        var sorted = QueryOrderByHelper.TryApplyOrder(
+            res,
+            q.OrderBy,
+            ParseExpr,
+            (expr, row) => Eval(expr, row, group: null, ctes),
+            CompareSql);
+        if (!sorted)
         {
-            var sortedJoinFields = sorted
-                .Select(r => joinFieldsByRow.TryGetValue(r, out var jf)
-                    ? jf
-                    : new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase))
-                .ToList();
-            res.JoinFields = sortedJoinFields;
+            var limitInput = res.Count;
+            QueryRowLimitHelper.ApplyLimit(res, q);
+            if (debugTrace is not null && q.RowLimit is not null)
+            {
+                debugTrace.AddStep(
+                    "Limit",
+                    limitInput,
+                    res.Count,
+                    TimeSpan.Zero,
+                    QueryDebugTraceFormattingHelper.FormatLimitDebugDetails(q.RowLimit));
+            }
+            return res;
         }
 
         debugTrace?.AddStep(
@@ -4090,10 +2748,10 @@ private void FillPercentRankOrCumeDist(
             sortInput,
             res.Count,
             TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(sortStart)),
-            FormatOrderByDebugDetails(q.OrderBy));
+            QueryDebugTraceFormattingHelper.FormatOrderByDebugDetails(q.OrderBy));
 
         var limitInputRows = res.Count;
-        ApplyLimit(res, q);
+        QueryRowLimitHelper.ApplyLimit(res, q);
         if (debugTrace is not null && q.RowLimit is not null)
         {
             debugTrace.AddStep(
@@ -4101,82 +2759,10 @@ private void FillPercentRankOrCumeDist(
                 limitInputRows,
                 res.Count,
                 TimeSpan.Zero,
-                FormatLimitDebugDetails(q.RowLimit));
+                QueryDebugTraceFormattingHelper.FormatLimitDebugDetails(q.RowLimit));
         }
         return res;
     }
-
-    private static string FormatLimitDebugDetails(SqlRowLimit rowLimit)
-        => rowLimit switch
-        {
-            SqlLimitOffset limit when limit.Offset.HasValue => $"count={limit.Count};offset={limit.Offset.Value}",
-            SqlLimitOffset limit => $"count={limit.Count}",
-            SqlFetch fetch when fetch.Offset.HasValue => $"count={fetch.Count};offset={fetch.Offset.Value}",
-            SqlFetch fetch => $"count={fetch.Count}",
-            SqlTop top => $"count={top.Count}",
-            _ => string.Empty
-        };
-
-    private static string FormatUnionInputsDebugDetails(IReadOnlyList<SqlSelectQuery> parts, IReadOnlyList<bool> allFlags)
-    {
-        var distinctCount = allFlags.Count(static flag => !flag);
-        var allCount = allFlags.Count - distinctCount;
-        return $"parts={parts.Count};allSegments={allCount};distinctSegments={distinctCount}";
-    }
-
-    private static string FormatUnionCombineDebugDetails(IReadOnlyList<SqlSelectQuery> parts, IReadOnlyList<bool> allFlags)
-    {
-        var mode = allFlags.Any(static flag => !flag) ? "UNION DISTINCT" : "UNION ALL";
-        return $"{FormatUnionInputsDebugDetails(parts, allFlags)};mode={mode}";
-    }
-
-    private static string FormatDistinctDebugDetails(int projectionColumnCount)
-        => $"columns={projectionColumnCount}";
-
-    private static string FormatProjectDebugDetails(IReadOnlyList<SqlSelectItem> selectItems)
-    {
-        var items = selectItems
-            .Select(static item =>
-            {
-                var raw = (item.Raw ?? string.Empty).Trim();
-                var alias = (item.Alias ?? string.Empty).Trim();
-
-                if (raw.Length == 0)
-                    return alias;
-
-                return alias.Length == 0
-                    ? raw
-                    : $"{raw} AS {alias}";
-            })
-            .Where(static item => !string.IsNullOrWhiteSpace(item))
-            .ToArray();
-        return items.Length == 0
-            ? $"columns={selectItems.Count}"
-            : $"columns={selectItems.Count};items={string.Join("|", items)}";
-    }
-
-    private static string FormatOrderByDebugDetails(IReadOnlyList<SqlOrderByItem> orderBy)
-    {
-        var items = orderBy
-            .Select(static item =>
-            {
-                var raw = (item.Raw ?? string.Empty).Trim();
-                if (raw.Length == 0)
-                    return null;
-
-                return raw + (item.Desc ? " DESC" : " ASC");
-            })
-            .Where(static item => !string.IsNullOrWhiteSpace(item))
-            .ToArray();
-        return items.Length == 0
-            ? $"keys={orderBy.Count}"
-            : $"keys={orderBy.Count};items={string.Join("|", items)}";
-    }
-
-    private static string FormatGroupDebugDetails(SqlSelectQuery query)
-        => query.GroupBy.Count == 0
-            ? "aggregate"
-            : $"keys={query.GroupBy.Count};items={string.Join("|", query.GroupBy)}";
 
     private static string FormatJoinDebugDetails(SqlJoin join)
     {
@@ -4185,58 +2771,6 @@ private void FillPercentRankOrCumeDist(
         return string.IsNullOrWhiteSpace(predicate)
             ? source
             : $"{source};on={predicate}";
-    }
-
-    private sealed class QueryDebugTraceBuilder(string queryType)
-    {
-        private readonly List<QueryDebugTraceStep> _steps = [];
-
-        public void AddStep(
-            string operatorName,
-            int inputRows,
-            int outputRows,
-            TimeSpan executionTime,
-            string? details = null)
-        {
-            _steps.Add(new QueryDebugTraceStep(
-                operatorName,
-                inputRows,
-                outputRows,
-                executionTime,
-                details));
-        }
-
-        public QueryDebugTrace Build()
-            => new(queryType, 0, null, _steps.AsReadOnly());
-    }
-
-    private static void ApplyLimit(
-        TableResultMock res,
-        SqlSelectQuery q)
-    {
-        int? offset = null;
-        int take;
-        switch (q.RowLimit)
-        {
-            case SqlLimitOffset l:
-                offset = l.Offset;
-                take = l.Count;
-                break;
-            case SqlFetch f:
-                offset = f.Offset;
-                take = f.Count;
-                break;
-            case SqlTop t:
-                take = t.Count;
-                break;
-            default:
-                return;
-        }
-
-        var skip = offset ?? 0;
-        var sliced = res.Skip(skip).Take(take).ToList();
-        res.Clear();
-        foreach (var r in sliced) res.Add(r);
     }
 
 
@@ -6263,7 +4797,7 @@ private void FillPercentRankOrCumeDist(
             if (ShouldSkipSimpleCaseMatch(baseValue, whenValue))
                 continue;
 
-            if (baseValue.Compare(whenValue, Dialect) == 0)
+            if (baseValue!.Compare(whenValue!, Dialect) == 0)
                 return Eval(whenThen.Then, row, group, ctes);
         }
 
@@ -7247,232 +5781,20 @@ private void FillPercentRankOrCumeDist(
     }
 
     private object? ApplyJsonValueReturningClause(FunctionCallExpr fn, object? value)
-    {
-        if (IsNullish(value) || !TryGetJsonReturningTypeSql(fn, out var normalizedType))
-            return value;
-
-        return ConvertJsonValueForReturningType(value, normalizedType);
-    }
-
-    private static bool TryGetJsonReturningTypeSql(FunctionCallExpr fn, out string normalizedType)
-    {
-        normalizedType = string.Empty;
-        if (fn.Args.Count < 3 || fn.Args[2] is not RawSqlExpr raw)
-            return false;
-
-        const string prefix = "RETURNING ";
-        if (!raw.Sql.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        var typeSql = raw.Sql[prefix.Length..].Trim();
-        if (typeSql.Length == 0)
-            return false;
-
-        normalizedType = typeSql.ToUpperInvariant();
-        return true;
-    }
-
-    private static object? ConvertJsonValueForReturningType(object? value, string normalizedType)
-    {
-        if (IsJsonReturningDecimalType(normalizedType))
-            return Convert.ToDecimal(value, CultureInfo.InvariantCulture);
-
-        if (IsJsonReturningFloatingType(normalizedType))
-            return Convert.ToDouble(value, CultureInfo.InvariantCulture);
-
-        if (IsJsonReturningIntegerType(normalizedType))
-            return Convert.ToInt64(value, CultureInfo.InvariantCulture);
-
-        if (IsJsonReturningTextType(normalizedType))
-            return value?.ToString();
-
-        return value;
-    }
-
-    private static bool IsJsonReturningDecimalType(string normalizedType)
-        => normalizedType.StartsWith("NUMBER", StringComparison.Ordinal)
-            || normalizedType.StartsWith("DECIMAL", StringComparison.Ordinal)
-            || normalizedType.StartsWith("NUMERIC", StringComparison.Ordinal);
-
-    private static bool IsJsonReturningFloatingType(string normalizedType)
-        => normalizedType.StartsWith("DOUBLE", StringComparison.Ordinal)
-            || normalizedType.StartsWith("FLOAT", StringComparison.Ordinal)
-            || normalizedType.StartsWith("REAL", StringComparison.Ordinal)
-            || normalizedType.StartsWith("BINARY_DOUBLE", StringComparison.Ordinal)
-            || normalizedType.StartsWith("BINARY_FLOAT", StringComparison.Ordinal);
-
-    private static bool IsJsonReturningIntegerType(string normalizedType)
-        => normalizedType.StartsWith("INT", StringComparison.Ordinal)
-            || normalizedType.StartsWith("INTEGER", StringComparison.Ordinal)
-            || normalizedType.StartsWith("SMALLINT", StringComparison.Ordinal)
-            || normalizedType.StartsWith("BIGINT", StringComparison.Ordinal);
-
-    private static bool IsJsonReturningTextType(string normalizedType)
-        => normalizedType.StartsWith("VARCHAR", StringComparison.Ordinal)
-            || normalizedType.StartsWith("VARCHAR2", StringComparison.Ordinal)
-            || normalizedType.StartsWith("NVARCHAR", StringComparison.Ordinal)
-            || normalizedType.StartsWith("NVARCHAR2", StringComparison.Ordinal)
-            || normalizedType.StartsWith("CHAR", StringComparison.Ordinal)
-            || normalizedType.StartsWith("NCHAR", StringComparison.Ordinal)
-            || normalizedType.StartsWith("CLOB", StringComparison.Ordinal);
-    }
+        => QueryJsonFunctionHelper.ApplyJsonValueReturningClause(fn, value);
 
     private object? TryEvalConcatFunctions(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out bool handled)
-    {
-        handled = true;
-
-        if (TryEvalConcatFunction(fn, evalArg, out var concatResult))
-            return concatResult;
-
-        if (TryEvalConcatWithSeparatorFunction(fn, evalArg, out var concatWithSeparatorResult))
-            return concatWithSeparatorResult;
-
-        handled = false;
-        return null;
-    }
-
-    private bool TryEvalConcatFunction(
-        FunctionCallExpr fn,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("CONCAT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        var parts = new string[fn.Args.Count];
-        for (var i = 0; i < fn.Args.Count; i++)
-        {
-            if (!TryConvertConcatArgument(evalArg(i), Dialect!.ConcatReturnsNullOnNullInput, out var part))
-            {
-                result = null;
-                return true;
-            }
-
-            parts[i] = part;
-        }
-
-        result = string.Concat(parts);
-        return true;
-    }
-
-    private static bool TryEvalConcatWithSeparatorFunction(
-        FunctionCallExpr fn,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("CONCAT_WS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        var separatorValue = evalArg(0);
-        if (IsNullish(separatorValue))
-        {
-            result = null;
-            return true;
-        }
-
-        var parts = new List<string>();
-        for (var i = 1; i < fn.Args.Count; i++)
-        {
-            var value = evalArg(i);
-            if (!IsNullish(value))
-                parts.Add(value?.ToString() ?? string.Empty);
-        }
-
-        result = string.Join(separatorValue?.ToString() ?? string.Empty, parts);
-        return true;
-    }
-
-    private static bool TryConvertConcatArgument(
-        object? value,
-        bool nullInputReturnsNull,
-        out string part)
-    {
-        if (IsNullish(value))
-        {
-            part = string.Empty;
-            return !nullInputReturnsNull;
-        }
-
-        part = value?.ToString() ?? string.Empty;
-        return true;
-    }
+        => QueryConcatFunctionHelper.TryEvalConcatFunctions(
+            fn,
+            evalArg,
+            Dialect!.ConcatReturnsNullOnNullInput,
+            out handled);
 
     private static object? TryReadJsonPathValue(object json, string path)
-    {
-        if (!TryParseSimpleJsonPathSegments(path, out var segments))
-            return null;
-
-        using var doc = System.Text.Json.JsonDocument.Parse(json.ToString() ?? string.Empty);
-        if (!TryReadJsonPathElement(doc.RootElement, segments, out var element))
-            return null;
-
-        return ConvertJsonElementToValue(element);
-    }
-
-    private static bool TryParseSimpleJsonPathSegments(string path, out string[] segments)
-    {
-        segments = [];
-        if (!path.StartsWith("$.", StringComparison.Ordinal))
-            return false;
-
-        var rawSegments = path[2..].Split('.');
-        if (rawSegments.Length == 0)
-            return false;
-
-        segments = new string[rawSegments.Length];
-        for (var i = 0; i < rawSegments.Length; i++)
-        {
-            var segment = rawSegments[i].Trim().Trim('"');
-            if (segment.Length == 0)
-                return false;
-
-            segments[i] = segment;
-        }
-
-        return true;
-    }
-
-    private static bool TryReadJsonPathElement(
-        System.Text.Json.JsonElement element,
-        IReadOnlyList<string> segments,
-        out System.Text.Json.JsonElement value)
-    {
-        value = element;
-        for (var i = 0; i < segments.Count; i++)
-        {
-            if (value.ValueKind != System.Text.Json.JsonValueKind.Object
-                || !value.TryGetProperty(segments[i], out var next))
-            {
-                value = default;
-                return false;
-            }
-
-            value = next;
-        }
-
-        return true;
-    }
-
-    private static object? ConvertJsonElementToValue(System.Text.Json.JsonElement element)
-        => element.ValueKind switch
-        {
-            System.Text.Json.JsonValueKind.String => element.GetString(),
-            System.Text.Json.JsonValueKind.Number => element.TryGetInt64(out var integerValue) ? integerValue : element.GetDecimal(),
-            System.Text.Json.JsonValueKind.True => true,
-            System.Text.Json.JsonValueKind.False => false,
-            System.Text.Json.JsonValueKind.Null => null,
-            _ => element.ToString()
-        };
-    }
+        => QueryJsonFunctionHelper.TryReadJsonPathValue(json, path);
 
     private string GetDateAddUnit(
         SqlExpr expr,
@@ -7762,24 +6084,7 @@ private void FillPercentRankOrCumeDist(
     }
 
     private static string NormalizeDistinctKey(object? v, ISqlDialect? dialect = null)
-    {
-        // chave determinística; evita variações idiotas
-        if (v is null) return "NULL";
-        if (v is DBNull) return "NULL";
-
-        return v switch
-        {
-            decimal d => d.ToString(CultureInfo.InvariantCulture),
-            double d => d.ToString("R", CultureInfo.InvariantCulture),
-            float f => f.ToString("R", CultureInfo.InvariantCulture),
-            DateTime dt => dt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
-            bool b => b ? "1" : "0",
-            string s => (dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase) == StringComparison.Ordinal
-                ? s
-                : s.ToUpperInvariant(),
-            _ => v.ToString() ?? ""
-        };
-    }
+        => QueryRowValueHelper.NormalizeDistinctKey(v, dialect);
 
     private static string? EvalStringAggregate(IReadOnlyList<object?> values, object? separatorObj, string defaultSeparator)
     {
@@ -7824,14 +6129,14 @@ private void FillPercentRankOrCumeDist(
     }
 
     private object?[] EvaluateWithinGroupOrderKey(
-        IReadOnlyList<SqlOrderByItem> orderBy,
+        IReadOnlyList<WindowOrderItem> orderBy,
         EvalRow row,
         IDictionary<string, Source> ctes)
         => orderBy
             .Select(order => Eval(order.Expr, row, null, ctes))
             .ToArray();
 
-    private IComparer<object?[]> CreateWithinGroupOrderKeyComparer(IReadOnlyList<SqlOrderByItem> orderBy)
+    private IComparer<object?[]> CreateWithinGroupOrderKeyComparer(IReadOnlyList<WindowOrderItem> orderBy)
         => Comparer<object?[]>.Create((left, right) =>
         {
             for (var i = 0; i < orderBy.Count; i++)
@@ -7959,274 +6264,32 @@ private void FillPercentRankOrCumeDist(
     }
 
     private static bool LooksLikeAggregateExpression(string exprRaw)
-        => _aggregateExpressionRegex.IsMatch(exprRaw);
+        => AggregateExpressionInspector.LooksLikeAggregateExpression(exprRaw);
 
-    private static bool WalkHasAggregate(SqlExpr expr) => expr switch
-    {
-        CallExpr call => HasAggregateFunctionCall(call.Name, call.Args),
-        FunctionCallExpr function => HasAggregateFunctionCall(function.Name, function.Args),
-        BinaryExpr binary => WalkHasAggregate(binary.Left) || WalkHasAggregate(binary.Right),
-        UnaryExpr unary => WalkHasAggregate(unary.Expr),
-        LikeExpr like => WalkHasAggregateLike(like),
-        InExpr inExpression => WalkHasAggregateIn(inExpression),
-        IsNullExpr isNull => WalkHasAggregate(isNull.Expr),
-        QuantifiedComparisonExpr quantified => WalkHasAggregate(quantified.Left) || WalkHasAggregate(quantified.Subquery),
-
-        // ⚠️ cuidado: isso aqui tá “agressivo”
-        // EXISTS não é aggregate. Mas você provavelmente usa isso como “precisa de contexto especial”.
-        // Vou deixar como está pra não quebrar outras coisas.
-        ExistsExpr => true,
-        RowExpr row => WalkHasAggregateSequence(row.Items),
-        _ => false
-    };
-
-    private static bool HasAggregateFunctionCall(string name, IReadOnlyList<SqlExpr> args)
-        => _aggFnsStatic.Contains(name) || WalkHasAggregateSequence(args);
-
-    private static bool WalkHasAggregateLike(LikeExpr like)
-        => WalkHasAggregate(like.Left)
-            || WalkHasAggregate(like.Pattern)
-            || (like.Escape is not null && WalkHasAggregate(like.Escape));
-
-    private static bool WalkHasAggregateIn(InExpr inExpression)
-        => WalkHasAggregate(inExpression.Left)
-            || WalkHasAggregateSequence(inExpression.Items);
-
-    private static bool WalkHasAggregateSequence(IEnumerable<SqlExpr> expressions)
-    {
-        foreach (var expression in expressions)
-        {
-            if (WalkHasAggregate(expression))
-                return true;
-        }
-
-        return false;
-    }
-
-    private static readonly HashSet<string> _aggFnsStatic = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "COUNT","SUM","MIN","MAX","AVG","GROUP_CONCAT","STRING_AGG","LISTAGG"
-    };
+    private static bool WalkHasAggregate(SqlExpr expr)
+        => AggregateExpressionInspector.WalkHasAggregate(expr);
 
     // ---------------- RESOLUTION HELPERS ----------------
 
     private object? ResolveParam(
         string name)
-    {
-        // accept @p, :p, ?  (for ?, just take first parameter)
-        if (name == "?")
-            return ResolvePositionalParam();
-
-        return ResolveNamedParam(name);
-    }
-
-    private object? ResolvePositionalParam()
-        => _pars.Count > 0 ? NormalizeParameterValue((IDataParameter)_pars[0]!) : null;
-
-    private object? ResolveNamedParam(string name)
-    {
-        var normalizedName = name.TrimStart('@', ':');
-        foreach (IDataParameter parameter in _pars)
-        {
-            var parameterName = parameter.ParameterName?.TrimStart('@', ':');
-            if (string.Equals(parameterName, normalizedName, StringComparison.OrdinalIgnoreCase))
-                return NormalizeParameterValue(parameter);
-        }
-
-        return null;
-    }
-
-    private static object? NormalizeParameterValue(IDataParameter parameter)
-        => parameter.Value is DBNull ? null : parameter.Value;
-
-    private static bool TrySplitQualifiedIdentifier(string name, out string qualifier, out string columnName)
-    {
-        qualifier = string.Empty;
-        columnName = string.Empty;
-
-        var dot = name.IndexOf('.');
-        if (dot < 0)
-            return false;
-
-        qualifier = name[..dot];
-        columnName = name[(dot + 1)..];
-        return true;
-    }
+        => QueryRowValueHelper.ResolveParam(_pars, name);
 
     private static object? ResolveIdentifier(
         string name,
         EvalRow row)
-    {
-        if (TrySplitQualifiedIdentifier(name, out var qualifier, out var columnName))
-            return ResolveColumn(qualifier, columnName, row);
-
-        return TryResolveIdentifierFromSources(name, row, out var value)
-            ? value
-            : TryResolveProjectedIdentifier(name, row, out value)
-                ? value
-                : null;
-    }
-
-    private static bool TryResolveIdentifierFromSources(string name, EvalRow row, out object? value)
-    {
-        foreach (var source in row.Sources.Values)
-        {
-            if (row.Fields.TryGetValue($"{source.Alias}.{name}", out value))
-                return true;
-        }
-
-        value = null;
-        return false;
-    }
-
-    private static bool TryResolveProjectedIdentifier(string name, EvalRow row, out object? value)
-        => row.Fields.TryGetValue(name, out value);
-
-    private static bool TryResolveUnqualifiedColumn(string columnName, EvalRow row, out object? value)
-        => row.Fields.TryGetValue(columnName, out value);
-
-    private static bool TryResolveColumnFromSources(string columnName, EvalRow row, out object? value)
-    {
-        foreach (var source in row.Sources.Values)
-        {
-            if (TryResolveColumnFromSource(source, columnName, row, out value))
-                return true;
-        }
-
-        value = null;
-        return false;
-    }
+        => QueryRowValueHelper.ResolveIdentifier(name, row);
 
     private static object? ResolveColumn(
         string? qualifier,
         string col,
         EvalRow row)
-    {
-        col = col.NormalizeName();
-
-        if (!string.IsNullOrWhiteSpace(qualifier))
-            return ResolveQualifiedColumn(qualifier!, col, row, out _);
-
-        // sem qualifier: tenta unqualified (você já expõe no AddFields)
-        if (TryResolveUnqualifiedColumn(col, row, out var value))
-            return value;
-
-        return TryResolveColumnFromSources(col, row, out value)
-            ? value
-            : null;
-    }
-    private static object? ResolveQualifiedColumn(
-        string qualifier,
-        string col,
-        EvalRow row,
-        out Source? src)
-    {
-        qualifier = qualifier.NormalizeName();
-
-        var lastQualifier = GetLastQualifierSegment(qualifier);
-        src = FindQualifiedSource(qualifier, lastQualifier, row);
-
-        if (src is null)
-        {
-            if (TryResolveDirectQualifiedField(qualifier, lastQualifier, col, row, out var directValue))
-                return directValue;
-
-            return null;
-        }
-
-        // wildcard qualificado? (U.*) -> aqui não resolve valor, quem trata é o SELECT planner
-        if (col == "*") return null;
-
-        return TryResolveColumnFromSource(src, col, row, out var resolvedValue)
-            ? resolvedValue
-            : null;
-    }
-
-    private static string GetLastQualifierSegment(string qualifier)
-        => qualifier.Contains('.')
-            ? qualifier.Split('.').Last()
-            : qualifier;
-
-    private static Source? FindQualifiedSource(
-        string qualifier,
-        string lastQualifier,
-        EvalRow row)
-    {
-        if (row.Sources.TryGetValue(qualifier, out var source)
-            || row.Sources.TryGetValue(lastQualifier, out source))
-        {
-            return source;
-        }
-
-        return row.Sources.Values.FirstOrDefault(candidate =>
-            candidate.Name.Equals(qualifier, StringComparison.OrdinalIgnoreCase)
-            || candidate.Name.Equals(lastQualifier, StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static bool TryResolveDirectQualifiedField(
-        string qualifier,
-        string lastQualifier,
-        string columnName,
-        EvalRow row,
-        out object? value)
-    {
-        if (row.Fields.TryGetValue($"{lastQualifier}.{columnName}", out value))
-            return true;
-
-        return row.Fields.TryGetValue($"{qualifier}.{columnName}", out value);
-    }
-
-    private static bool TryResolveColumnFromSource(
-        Source source,
-        string columnName,
-        EvalRow row,
-        out object? value)
-    {
-        if (row.Fields.TryGetValue($"{source.Alias}.{columnName}", out value))
-            return true;
-
-        var matchedColumn = source.ColumnNames.FirstOrDefault(name => name.Equals(columnName, StringComparison.OrdinalIgnoreCase));
-        if (matchedColumn is not null)
-            return row.Fields.TryGetValue($"{source.Alias}.{matchedColumn}", out value);
-
-        value = null;
-        return false;
-    }
+        => QueryRowValueHelper.ResolveColumn(qualifier, col, row);
 
     private static TableResultMock ApplyDistinct(
         TableResultMock res,
         ISqlDialect? dialect)
-    {
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        var outRows = new List<Dictionary<int, object?>>();
-
-        foreach (var row in res)
-        {
-            if (seen.Add(BuildDistinctRowKey(row, res.Columns.Count, dialect)))
-                outRows.Add(row);
-        }
-
-        res.Clear();
-        foreach (var r in outRows) res.Add(r);
-        return res;
-    }
-
-    private static string BuildDistinctRowKey(
-        Dictionary<int, object?> row,
-        int columnCount,
-        ISqlDialect? dialect)
-    {
-        var builder = new StringBuilder();
-        for (var i = 0; i < columnCount; i++)
-        {
-            if (builder.Length > 0)
-                builder.Append('\u001F');
-
-            builder.Append(NormalizeDistinctKey(row.TryGetValue(i, out var value) ? value : null, dialect));
-        }
-
-        return builder.ToString();
-    }
+        => QueryRowValueHelper.ApplyDistinct(res, dialect);
 
     private static SqlSelectQuery GetSingleSubqueryOrThrow(
         SubqueryExpr sq,
@@ -8510,7 +6573,7 @@ private void FillPercentRankOrCumeDist(
         return merged;
     }
 
-    private sealed class EvalGroup
+    internal sealed class EvalGroup
     {
         /// <summary>
         /// EN: Gets or sets Rows.

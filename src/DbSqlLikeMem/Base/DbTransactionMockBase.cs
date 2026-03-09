@@ -18,7 +18,7 @@ public abstract class DbTransactionMockBase<TConnection>(
     /// EN: Gets the provider-specific connection associated with this transaction.
     /// PT: Obtem a conexao especifica do provedor associada a esta transacao.
     /// </summary>
-    protected TConnection Connection { get; } = connection;
+    protected new TConnection Connection { get; } = connection;
 
     /// <inheritdoc />
     protected override DbConnection? DbConnection => Connection;

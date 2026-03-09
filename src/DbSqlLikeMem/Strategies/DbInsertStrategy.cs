@@ -235,8 +235,9 @@ internal static class DbInsertStrategy
         AddInsertColumnCandidate(candidates, trimmedPunctuation);
 
         var firstToken = trimmedPunctuation
-            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .FirstOrDefault();
+            .Split(' ')
+            .Select(_=>_.Trim())
+            .FirstOrDefault(_=>!string.IsNullOrWhiteSpace(_));
         AddInsertColumnCandidate(candidates, firstToken);
 
         AppendQuotedInsertColumnCandidates(candidates, normalized, dialect);
@@ -257,7 +258,7 @@ internal static class DbInsertStrategy
             return;
 
         if (!candidates.Any(existing => string.Equals(existing, candidate, StringComparison.Ordinal)))
-            candidates.Add(candidate);
+            candidates.Add(candidate!);
     }
 
     private static string? UnwrapInsertColumnIdentifier(string value, char quoteStart, bool isAllowed)
