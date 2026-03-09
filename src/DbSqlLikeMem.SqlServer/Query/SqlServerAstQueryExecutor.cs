@@ -11,15 +11,12 @@ public static class SqlServerAstQueryExecutorRegister
     /// PT: Implementa Register.
     /// </summary>
     public static void Register()
-    {
-        if (!AstQueryExecutorFactory.Executors.ContainsKey(SqlServerDialect.DialectName))
-            AstQueryExecutorFactory.Executors.Add(
+        => AstQueryExecutorFactory.RegisterExecutor(
             SqlServerDialect.DialectName,
             (
                 DbConnectionMockBase cnn,
                 IDataParameterCollection pars
             ) => new SqlServerAstQueryExecutor((SqlServerConnectionMock)cnn, pars));
-    }
 }
 
 /// <summary>

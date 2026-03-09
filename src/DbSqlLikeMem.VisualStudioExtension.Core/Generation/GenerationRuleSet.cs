@@ -132,7 +132,19 @@ public static class GenerationRuleSet
         => "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 
     private static bool IsNumericDbType(string dbType)
-        => dbType is "Byte" or "Int16" or "Int32" or "Int64" or "Decimal" or "Double" or "Single" or "UInt64";
+        => NumericDbTypes.Contains(dbType);
+
+    private static readonly HashSet<string> NumericDbTypes = new(StringComparer.Ordinal)
+    {
+        "Byte",
+        "Int16",
+        "Int32",
+        "Int64",
+        "Decimal",
+        "Double",
+        "Single",
+        "UInt64"
+    };
 
     private static string Capitalize(string part)
     {

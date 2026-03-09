@@ -11,15 +11,12 @@ public static class NpgsqlAstQueryExecutorRegister
     /// PT: Implementa Register.
     /// </summary>
     public static void Register()
-    {
-        if (!AstQueryExecutorFactory.Executors.ContainsKey(NpgsqlDialect.DialectName))
-            AstQueryExecutorFactory.Executors.Add(
+        => AstQueryExecutorFactory.RegisterExecutor(
             NpgsqlDialect.DialectName,
             (
                 DbConnectionMockBase cnn,
                 IDataParameterCollection pars
             ) => new NpgsqlAstQueryExecutor((NpgsqlConnectionMock)cnn, pars));
-    }
 }
 
 /// <summary>

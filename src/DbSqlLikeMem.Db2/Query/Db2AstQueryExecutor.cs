@@ -12,15 +12,12 @@ public static class Db2AstQueryExecutorRegister
     /// PT: Implementa Register.
     /// </summary>
     public static void Register()
-    {
-        if (!AstQueryExecutorFactory.Executors.ContainsKey(Db2Dialect.DialectName))
-            AstQueryExecutorFactory.Executors.Add(
-                Db2Dialect.DialectName,
-                (
-                    DbConnectionMockBase cnn,
-                    IDataParameterCollection pars
-                ) => new Db2AstQueryExecutor((Db2ConnectionMock)cnn, pars));
-    }
+        => AstQueryExecutorFactory.RegisterExecutor(
+            Db2Dialect.DialectName,
+            (
+                DbConnectionMockBase cnn,
+                IDataParameterCollection pars
+            ) => new Db2AstQueryExecutor((Db2ConnectionMock)cnn, pars));
 }
 
 /// <summary>

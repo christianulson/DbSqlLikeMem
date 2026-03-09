@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace DbSqlLikeMem;
 
 internal delegate bool TryExecutePipelineCommand(string sqlRaw, out int affectedRows);
@@ -40,51 +38,22 @@ internal sealed class CommandExecutionPipeline : ICommandExecutionPipeline
     {
         var context = new CommandExecutionPipelineContext(connection, pars, options);
         var handlers = options.Handlers ?? DefaultHandlers;
-        var statements = SqlQueryParser
-            .SplitStatements(sql, connection.ExecutionDialect)
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .ToList();
-
         var affectedTotal = 0;
-        foreach (var statementSql in statements)
+        foreach (var statementSql in SqlQueryParser.SplitStatements(sql, connection.ExecutionDialect))
         {
             var sqlRaw = statementSql.Trim();
             if (string.IsNullOrWhiteSpace(sqlRaw))
                 continue;
+
             connection.Metrics.IncrementNonQueryStatement();
 
-            var handled = false;
-            foreach (var handler in handlers)
-            {
-                var startedAt = Stopwatch.GetTimestamp();
-                try
-                {
-                    if (!handler.TryHandle(context, sqlRaw, out var affectedRows))
-                        continue;
-
-                    connection.SetLastFoundRows(affectedRows);
-                    var handlerName = handler.GetType().Name;
-                    connection.Metrics.IncrementNonQueryHandlerHit(handlerName);
-                    var elapsedTicks = StopwatchCompatible.GetElapsedTicks(startedAt);
-                    connection.Metrics.IncrementNonQueryHandlerElapsedTicks(handlerName, elapsedTicks);
-                    affectedTotal += affectedRows;
-                    handled = true;
-                    break;
-                }
-                catch
-                {
-                    var handlerName = handler.GetType().Name;
-                    connection.Metrics.IncrementNonQueryHandlerFailure(handlerName);
-                    connection.Metrics.IncrementNonQueryException();
-                    throw;
-                }
-            }
-
-            if (!handled)
+            if (!NonQueryHandlerExecutionRunner.TryHandleStatement(context, sqlRaw, handlers, out var affectedRows))
             {
                 connection.Metrics.IncrementNonQueryUnhandledStatement();
                 throw new InvalidOperationException(SqlExceptionMessages.NonQueryHandlerCouldNotProcessStatement());
             }
+
+            affectedTotal += affectedRows;
         }
 
         return affectedTotal;

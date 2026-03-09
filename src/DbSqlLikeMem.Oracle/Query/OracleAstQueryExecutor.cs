@@ -11,15 +11,12 @@ public static class OracleAstQueryExecutorRegister
     /// PT: Implementa Register.
     /// </summary>
     public static void Register()
-    {
-        if (!AstQueryExecutorFactory.Executors.ContainsKey(OracleDialect.DialectName))
-            AstQueryExecutorFactory.Executors.Add(
+        => AstQueryExecutorFactory.RegisterExecutor(
             OracleDialect.DialectName,
             (
                 DbConnectionMockBase cnn,
                 IDataParameterCollection pars
             ) => new OracleAstQueryExecutor((OracleConnectionMock)cnn, pars));
-    }
 }
 
 /// <summary>

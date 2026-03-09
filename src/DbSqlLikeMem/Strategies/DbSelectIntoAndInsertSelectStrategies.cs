@@ -545,68 +545,132 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         DbParameterCollection pars,
         ISqlDialect dialect)
     {
-        // INSERT INTO t (c1,c2) SELECT ...
-        var m = Regex.Match(query.RawSql,
-            @"^INSERT\s+INTO\s+`?(?<table>[A-Za-z0-9_]+)`?\s*\((?<cols>[^)]*)\)\s*(?<select>(SELECT|WITH)\s+.*)$",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
-        if (!m.Success)
-            throw new InvalidOperationException(SqlExceptionMessages.InvalidInsertSelectStatement());
-
-        var tableName = m.Groups["table"].Value.NormalizeName();
-        if (!connection.TryGetTable(tableName, out var target)
-            || target == null)
-            throw SqlUnsupported.ForTableDoesNotExist(tableName);
-
-        var cols = m.Groups["cols"].Value.Split(',')
-            .Select(c => c.Replace("`", string.Empty).Trim())
-            .ToList();
-
-        var selectSql = m.Groups["select"].Value;
+        var plan = BuildInsertSelectPlan(connection, query);
         var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
-        var q = SqlQueryParser.Parse(selectSql, dialect);
+        var q = SqlQueryParser.Parse(plan.SelectSql, dialect);
         var res = executor.ExecuteSelect((SqlSelectQuery)q);
 
-        if (cols.Count != res.Columns.Count)
+        if (plan.Columns.Count != res.Columns.Count)
             throw new InvalidOperationException(SqlExceptionMessages.ColumnCountDoesNotMatchSelectList());
 
-        int inserted = 0;
+        var inserted = 0;
         foreach (var row in res)
         {
-            var newRow = new Dictionary<int, object?>();
-            for (int i = 0; i < cols.Count; i++)
-            {
-                var colName = cols[i];
-                var info = target.GetColumn(colName);
-                if (info.GetGenValue is not null) continue;
-                var val = row.TryGetValue(i, out var v) ? v : null;
-                if (val is DBNull) val = null;
-                if (val == null && !info.Nullable)
-                    throw target.ColumnCannotBeNull(colName);
-                newRow[info.Index] = val;
-            }
-
-            // defaults and identity handled like regular insert
-            // reuse internal helper by calling VALUES insert strategy would require SQL building;
-            // do minimal default fill here.
-            foreach (var it in target.Columns)
-            {
-                var col = it.Value;
-                if (newRow.ContainsKey(col.Index)) continue;
-                if (col.Identity)
-                    newRow[col.Index] = target.NextIdentity++;
-                else if (col.DefaultValue is not null)
-                    newRow[col.Index] = col.DefaultValue;
-                else if (!col.Nullable)
-                    throw target.ColumnCannotBeNull(it.Key);
-            }
-
-            target.Add(newRow);
-            target.UpdateIndexesWithRow(target.Count - 1);
+            var newRow = CreateInsertSelectRow(plan.Target, plan.Columns, row);
+            FillMissingInsertSelectValues(plan.Target, newRow);
+            plan.Target.Add(newRow);
+            plan.Target.UpdateIndexesWithRow(plan.Target.Count - 1);
             connection.Metrics.Inserts++;
             inserted++;
         }
         return inserted;
     }
+
+    private static InsertSelectPlan BuildInsertSelectPlan(
+        DbConnectionMockBase connection,
+        SqlInsertQuery query)
+    {
+        var match = MatchInsertSelectStatement(query.RawSql);
+        var tableName = match.Groups["table"].Value.NormalizeName();
+        var target = GetInsertSelectTarget(connection, tableName);
+        var columns = ParseInsertSelectColumns(match);
+        var selectSql = match.Groups["select"].Value;
+        return new InsertSelectPlan(target, columns, selectSql);
+    }
+
+    private static Match MatchInsertSelectStatement(string rawSql)
+    {
+        var match = Regex.Match(
+            rawSql,
+            @"^INSERT\s+INTO\s+`?(?<table>[A-Za-z0-9_]+)`?\s*\((?<cols>[^)]*)\)\s*(?<select>(SELECT|WITH)\s+.*)$",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        if (!match.Success)
+            throw new InvalidOperationException(SqlExceptionMessages.InvalidInsertSelectStatement());
+
+        return match;
+    }
+
+    private static ITableMock GetInsertSelectTarget(DbConnectionMockBase connection, string tableName)
+    {
+        if (connection.TryGetTable(tableName, out var target)
+            && target != null)
+        {
+            return target;
+        }
+
+        throw SqlUnsupported.ForTableDoesNotExist(tableName);
+    }
+
+    private static List<string> ParseInsertSelectColumns(Match match)
+        => match.Groups["cols"].Value.Split(',')
+            .Select(c => c.Replace("`", string.Empty).Trim())
+            .ToList();
+
+    private static Dictionary<int, object?> CreateInsertSelectRow(
+        ITableMock target,
+        IReadOnlyList<string> columns,
+        IReadOnlyDictionary<int, object?> row)
+    {
+        var newRow = new Dictionary<int, object?>();
+        for (var i = 0; i < columns.Count; i++)
+        {
+            var colName = columns[i];
+            var info = target.GetColumn(colName);
+            if (info.GetGenValue is not null)
+                continue;
+
+            var value = row.TryGetValue(i, out var rawValue) ? rawValue : null;
+            if (value is DBNull)
+                value = null;
+            if (value == null && !info.Nullable)
+                throw target.ColumnCannotBeNull(colName);
+
+            newRow[info.Index] = value;
+        }
+
+        return newRow;
+    }
+
+    private static void FillMissingInsertSelectValues(
+        ITableMock target,
+        Dictionary<int, object?> newRow)
+    {
+        foreach (var columnEntry in target.Columns)
+        {
+            var column = columnEntry.Value;
+            if (newRow.ContainsKey(column.Index))
+                continue;
+
+            if (TryGetGeneratedInsertSelectValue(target, column, out var value))
+            {
+                newRow[column.Index] = value;
+                continue;
+            }
+
+            if (!column.Nullable)
+                throw target.ColumnCannotBeNull(columnEntry.Key);
+        }
+    }
+
+    private static bool TryGetGeneratedInsertSelectValue(
+        ITableMock target,
+        ColumnDef column,
+        out object? value)
+    {
+        if (column.Identity)
+        {
+            value = target.NextIdentity++;
+            return true;
+        }
+
+        value = column.DefaultValue;
+        return value is not null;
+    }
+
+    private sealed record InsertSelectPlan(
+        ITableMock Target,
+        IReadOnlyList<string> Columns,
+        string SelectSql);
 
     private static DbType InferDbType(TableResultMock res, int colIndex)
     {

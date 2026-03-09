@@ -55,33 +55,41 @@ public sealed class ObjectConsistencyChecker
         LocalObjectSnapshot? repositorySnapshot)
     {
         var driftedArtifacts = new List<string>(3);
-        if (primarySnapshot is not null && !IsSnapshotAligned(databaseObject, primarySnapshot))
-        {
-            driftedArtifacts.Add("class");
-        }
-
-        if (modelSnapshot is not null && !IsSnapshotAligned(databaseObject, modelSnapshot))
-        {
-            driftedArtifacts.Add("model");
-        }
-        else if (primarySnapshot is not null && modelSnapshot is not null
-            && !HaveSameProperties(primarySnapshot.Properties ?? new Dictionary<string, string>(), modelSnapshot.Properties ?? new Dictionary<string, string>()))
-        {
-            driftedArtifacts.Add("model");
-        }
-
-        if (repositorySnapshot is not null && !IsSnapshotAligned(databaseObject, repositorySnapshot))
-        {
-            driftedArtifacts.Add("repository");
-        }
-        else if (primarySnapshot is not null && repositorySnapshot is not null
-            && !HaveSameProperties(primarySnapshot.Properties ?? new Dictionary<string, string>(), repositorySnapshot.Properties ?? new Dictionary<string, string>()))
-        {
-            driftedArtifacts.Add("repository");
-        }
+        AppendDriftedArtifactKind(driftedArtifacts, "class", databaseObject, primarySnapshot);
+        AppendDriftedArtifactKind(driftedArtifacts, "model", databaseObject, modelSnapshot, primarySnapshot);
+        AppendDriftedArtifactKind(driftedArtifacts, "repository", databaseObject, repositorySnapshot, primarySnapshot);
 
         return driftedArtifacts;
     }
+
+    private static void AppendDriftedArtifactKind(
+        List<string> driftedArtifacts,
+        string artifactKind,
+        DatabaseObjectReference databaseObject,
+        LocalObjectSnapshot? snapshot,
+        LocalObjectSnapshot? primarySnapshot = null)
+    {
+        if (snapshot is null)
+            return;
+
+        if (!IsSnapshotAligned(databaseObject, snapshot)
+            || HasCompanionPropertyDrift(primarySnapshot, snapshot))
+        {
+            driftedArtifacts.Add(artifactKind);
+        }
+    }
+
+    private static bool HasCompanionPropertyDrift(LocalObjectSnapshot? primarySnapshot, LocalObjectSnapshot snapshot)
+    {
+        if (primarySnapshot is null)
+            return false;
+
+        return !HaveSameProperties(
+            primarySnapshot.Properties ?? EmptyProperties,
+            snapshot.Properties ?? EmptyProperties);
+    }
+
+    private static readonly IReadOnlyDictionary<string, string> EmptyProperties = new Dictionary<string, string>();
 
     /// <summary>
     /// EN: Classifies the local artifact set required by the generation flow before metadata comparison.
@@ -145,7 +153,9 @@ public sealed class ObjectConsistencyChecker
 
         if (databaseObject is null)
         {
-            return new ObjectHealthResult(snapshot.Reference, snapshot.FilePath, ObjectHealthStatus.MissingInDatabase,
+            return CreateDatabaseCheckResult(
+                snapshot,
+                ObjectHealthStatus.MissingInDatabase,
                 "Objeto não existe mais na base.");
         }
 
@@ -154,10 +164,18 @@ public sealed class ObjectConsistencyChecker
         var isSame = HaveSameProperties(localProperties, dbProperties);
 
         return isSame
-            ? new ObjectHealthResult(snapshot.Reference, snapshot.FilePath, ObjectHealthStatus.Synchronized)
-            : new ObjectHealthResult(snapshot.Reference, snapshot.FilePath, ObjectHealthStatus.DifferentFromDatabase,
+            ? CreateDatabaseCheckResult(snapshot, ObjectHealthStatus.Synchronized)
+            : CreateDatabaseCheckResult(
+                snapshot,
+                ObjectHealthStatus.DifferentFromDatabase,
                 "Arquivo local diferente das propriedades atuais no banco.");
     }
+
+    private static ObjectHealthResult CreateDatabaseCheckResult(
+        LocalObjectSnapshot snapshot,
+        ObjectHealthStatus status,
+        string? message = null)
+        => new(snapshot.Reference, snapshot.FilePath, status, message);
 
     private static bool HaveSameProperties(IReadOnlyDictionary<string, string> left, IReadOnlyDictionary<string, string> right)
     {

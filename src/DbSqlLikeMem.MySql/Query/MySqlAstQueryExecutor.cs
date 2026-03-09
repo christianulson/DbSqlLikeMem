@@ -12,15 +12,12 @@ public static class MySqlAstQueryExecutorRegister
     /// PT: Implementa Register.
     /// </summary>
     public static void Register()
-    {
-        if (!AstQueryExecutorFactory.Executors.ContainsKey(MySqlDialect.DialectName))
-            AstQueryExecutorFactory.Executors.Add(
-                MySqlDialect.DialectName,
-                (
-                    DbConnectionMockBase cnn,
-                    IDataParameterCollection pars
-                ) => new MySqlAstQueryExecutor((MySqlConnectionMock)cnn, pars));
-    }
+        => AstQueryExecutorFactory.RegisterExecutor(
+            MySqlDialect.DialectName,
+            (
+                DbConnectionMockBase cnn,
+                IDataParameterCollection pars
+            ) => new MySqlAstQueryExecutor((MySqlConnectionMock)cnn, pars));
 }
 
 /// <summary>

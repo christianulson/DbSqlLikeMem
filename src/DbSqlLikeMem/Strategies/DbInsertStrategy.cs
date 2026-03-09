@@ -214,60 +214,64 @@ internal static class DbInsertStrategy
 
     private static ColumnDef ResolveInsertColumn(ITableMock table, string columnName, ISqlDialect dialect)
     {
-        if (TryGetColumn(table, columnName, out var col))
-            return col;
-
-        var normalized = columnName.Trim();
-
-        // Alguns clientes ORM podem incluir sufixos lexicais no nome da coluna
-        // (ex.: "id," / "id;" / "id asc").
-        // Tentamos normalizar versões comuns antes de falhar com UnknownColumn.
-        var trimmedPunctuation = normalized.TrimEnd(',', ';');
-        if (!string.Equals(trimmedPunctuation, normalized, StringComparison.Ordinal)
-            && TryGetColumn(table, trimmedPunctuation, out col))
+        foreach (var candidate in BuildInsertColumnCandidates(columnName, dialect))
         {
-            return col;
-        }
-
-        var tokenParts = trimmedPunctuation.Split(' ').Select(_=>_.Trim()).Where(_=>!string.IsNullOrWhiteSpace(_)).ToArray();
-        if (tokenParts.Length > 0
-            && !string.Equals(tokenParts[0], trimmedPunctuation, StringComparison.Ordinal)
-            && TryGetColumn(table, tokenParts[0], out col))
-        {
-            return col;
-        }
-
-        if (dialect.AllowsDoubleQuoteIdentifiers
-            && normalized.Length >= 2
-            && normalized[0] == '"'
-            && normalized[^1] == '"')
-        {
-            var withoutDoubleQuotes = normalized[1..^1];
-            if (TryGetColumn(table, withoutDoubleQuotes, out col))
-                return col;
-        }
-
-        if (dialect.AllowsBracketIdentifiers
-            && normalized.Length >= 2
-            && normalized[0] == '['
-            && normalized[^1] == ']')
-        {
-            var withoutBrackets = normalized[1..^1];
-            if (TryGetColumn(table, withoutBrackets, out col))
-                return col;
-        }
-
-        if (dialect.AllowsBacktickIdentifiers
-            && normalized.Length >= 2
-            && normalized[0] == '`'
-            && normalized[^1] == '`')
-        {
-            var withoutBackticks = normalized[1..^1];
-            if (TryGetColumn(table, withoutBackticks, out col))
+            if (TryGetColumn(table, candidate, out var col))
                 return col;
         }
 
         return table.GetColumn(columnName);
+    }
+
+    private static List<string> BuildInsertColumnCandidates(string columnName, ISqlDialect dialect)
+    {
+        var candidates = new List<string>();
+        var normalized = columnName.Trim();
+        AddInsertColumnCandidate(candidates, normalized);
+
+        // Alguns clientes ORM podem incluir sufixos lexicais no nome da coluna
+        // (ex.: "id," / "id;" / "id asc").
+        var trimmedPunctuation = normalized.TrimEnd(',', ';');
+        AddInsertColumnCandidate(candidates, trimmedPunctuation);
+
+        var firstToken = trimmedPunctuation
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault();
+        AddInsertColumnCandidate(candidates, firstToken);
+
+        AppendQuotedInsertColumnCandidates(candidates, normalized, dialect);
+
+        return candidates;
+    }
+
+    private static void AppendQuotedInsertColumnCandidates(List<string> candidates, string normalized, ISqlDialect dialect)
+    {
+        AddInsertColumnCandidate(candidates, UnwrapInsertColumnIdentifier(normalized, '"', dialect.AllowsDoubleQuoteIdentifiers));
+        AddInsertColumnCandidate(candidates, UnwrapInsertColumnIdentifier(normalized, '[', dialect.AllowsBracketIdentifiers));
+        AddInsertColumnCandidate(candidates, UnwrapInsertColumnIdentifier(normalized, '`', dialect.AllowsBacktickIdentifiers));
+    }
+
+    private static void AddInsertColumnCandidate(List<string> candidates, string? candidate)
+    {
+        if (string.IsNullOrWhiteSpace(candidate))
+            return;
+
+        if (!candidates.Any(existing => string.Equals(existing, candidate, StringComparison.Ordinal)))
+            candidates.Add(candidate);
+    }
+
+    private static string? UnwrapInsertColumnIdentifier(string value, char quoteStart, bool isAllowed)
+    {
+        if (!isAllowed || value.Length < 2)
+            return null;
+
+        return quoteStart switch
+        {
+            '"' when value[0] == '"' && value[^1] == '"' => value[1..^1],
+            '[' when value[0] == '[' && value[^1] == ']' => value[1..^1],
+            '`' when value[0] == '`' && value[^1] == '`' => value[1..^1],
+            _ => null
+        };
     }
 
     private static bool TryGetColumn(ITableMock table, string columnName, out ColumnDef col)

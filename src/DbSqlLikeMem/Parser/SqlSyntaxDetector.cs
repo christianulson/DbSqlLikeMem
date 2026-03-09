@@ -128,53 +128,60 @@ internal static class SqlSyntaxDetector
         if (token.Kind == SqlTokenKind.Identifier && IsQuotedIdentifier(sql, token))
             return AutoSqlSyntaxFeatures.None;
 
-        if (token.Text.Equals("TOP", StringComparison.OrdinalIgnoreCase))
-            return AutoSqlSyntaxFeatures.Top;
-        if (token.Text.Equals("LIMIT", StringComparison.OrdinalIgnoreCase))
-            return AutoSqlSyntaxFeatures.Limit;
-        if (token.Text.Equals("FETCH", StringComparison.OrdinalIgnoreCase))
-            return AutoSqlSyntaxFeatures.Fetch;
-        if (token.Text.Equals("OFFSET", StringComparison.OrdinalIgnoreCase))
-            return AutoSqlSyntaxFeatures.Offset;
-        if (token.Text.Equals("ROWNUM", StringComparison.OrdinalIgnoreCase))
-            return AutoSqlSyntaxFeatures.Rownum;
-        if (IsIdentityMarker(token))
-            return AutoSqlSyntaxFeatures.Identity;
-        if (IsConcatFunction(tokens, index))
-            return AutoSqlSyntaxFeatures.Concat;
-        if (IsSequenceMarker(tokens, index))
-            return AutoSqlSyntaxFeatures.Sequence;
-        if (IsJsonFunctionMarker(tokens, index))
-            return AutoSqlSyntaxFeatures.JsonFunction;
-        if (IsTemporalMarker(tokens, index))
-            return AutoSqlSyntaxFeatures.Temporal;
-        if (IsDateAddMarker(tokens, index))
-            return AutoSqlSyntaxFeatures.DateAdd;
-        if (IsStringAggregateMarker(tokens, index))
-            return AutoSqlSyntaxFeatures.StringAggregate;
-        if (IsRowCountMarker(tokens, index))
-            return AutoSqlSyntaxFeatures.RowCount;
-        if (token.Text.Equals("SQL_CALC_FOUND_ROWS", StringComparison.OrdinalIgnoreCase))
-            return AutoSqlSyntaxFeatures.SqlCalcFoundRows;
-        if (token.Text.Equals("ILIKE", StringComparison.OrdinalIgnoreCase))
-            return AutoSqlSyntaxFeatures.Ilike;
-        if (IsMatchAgainstMarker(tokens, index))
-            return AutoSqlSyntaxFeatures.MatchAgainst;
-        if (IsConditionalNullFunctionMarker(tokens, index))
-            return AutoSqlSyntaxFeatures.ConditionalNullFunctions;
-        if (IsWindowFunctionMarker(tokens, index))
-            return AutoSqlSyntaxFeatures.WindowFunctions;
-        if (token.Text.Equals("PIVOT", StringComparison.OrdinalIgnoreCase))
-            return AutoSqlSyntaxFeatures.Pivot;
-        if (token.Text.Equals("WITH", StringComparison.OrdinalIgnoreCase))
-            return AutoSqlSyntaxFeatures.WithCte;
-        if (token.Text.Equals("RETURNING", StringComparison.OrdinalIgnoreCase))
-            return AutoSqlSyntaxFeatures.Returning;
-        if (IsOrderByNullsMarker(tokens, index))
-            return AutoSqlSyntaxFeatures.OrderByNulls;
+        if (DirectWordLikeFeatures.TryGetValue(token.Text, out var feature))
+            return feature;
+
+        return DetectComputedWordLikeFeature(tokens, index, token);
+    }
+
+    private static AutoSqlSyntaxFeatures DetectComputedWordLikeFeature(
+        IReadOnlyList<SqlToken> tokens,
+        int index,
+        SqlToken token)
+    {
+        foreach (var rule in ComputedWordLikeRules)
+        {
+            if (rule.IsMatch(tokens, index, token))
+                return rule.Feature;
+        }
 
         return AutoSqlSyntaxFeatures.None;
     }
+
+    private static readonly Dictionary<string, AutoSqlSyntaxFeatures> DirectWordLikeFeatures =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["TOP"] = AutoSqlSyntaxFeatures.Top,
+            ["LIMIT"] = AutoSqlSyntaxFeatures.Limit,
+            ["FETCH"] = AutoSqlSyntaxFeatures.Fetch,
+            ["OFFSET"] = AutoSqlSyntaxFeatures.Offset,
+            ["ROWNUM"] = AutoSqlSyntaxFeatures.Rownum,
+            ["SQL_CALC_FOUND_ROWS"] = AutoSqlSyntaxFeatures.SqlCalcFoundRows,
+            ["ILIKE"] = AutoSqlSyntaxFeatures.Ilike,
+            ["PIVOT"] = AutoSqlSyntaxFeatures.Pivot,
+            ["WITH"] = AutoSqlSyntaxFeatures.WithCte,
+            ["RETURNING"] = AutoSqlSyntaxFeatures.Returning
+        };
+
+    private static readonly ComputedWordLikeRule[] ComputedWordLikeRules =
+    [
+        new(AutoSqlSyntaxFeatures.Identity, static (_, _, token) => IsIdentityMarker(token)),
+        new(AutoSqlSyntaxFeatures.Concat, static (tokens, index, _) => IsConcatFunction(tokens, index)),
+        new(AutoSqlSyntaxFeatures.Sequence, static (tokens, index, _) => IsSequenceMarker(tokens, index)),
+        new(AutoSqlSyntaxFeatures.JsonFunction, static (tokens, index, _) => IsJsonFunctionMarker(tokens, index)),
+        new(AutoSqlSyntaxFeatures.Temporal, static (tokens, index, _) => IsTemporalMarker(tokens, index)),
+        new(AutoSqlSyntaxFeatures.DateAdd, static (tokens, index, _) => IsDateAddMarker(tokens, index)),
+        new(AutoSqlSyntaxFeatures.StringAggregate, static (tokens, index, _) => IsStringAggregateMarker(tokens, index)),
+        new(AutoSqlSyntaxFeatures.RowCount, static (tokens, index, _) => IsRowCountMarker(tokens, index)),
+        new(AutoSqlSyntaxFeatures.MatchAgainst, static (tokens, index, _) => IsMatchAgainstMarker(tokens, index)),
+        new(AutoSqlSyntaxFeatures.ConditionalNullFunctions, static (tokens, index, _) => IsConditionalNullFunctionMarker(tokens, index)),
+        new(AutoSqlSyntaxFeatures.WindowFunctions, static (tokens, index, _) => IsWindowFunctionMarker(tokens, index)),
+        new(AutoSqlSyntaxFeatures.OrderByNulls, static (tokens, index, _) => IsOrderByNullsMarker(tokens, index))
+    ];
+
+    private readonly record struct ComputedWordLikeRule(
+        AutoSqlSyntaxFeatures Feature,
+        Func<IReadOnlyList<SqlToken>, int, SqlToken, bool> IsMatch);
 
     private static bool IsIdentityMarker(SqlToken token)
         => token.Text.Equals("IDENTITY", StringComparison.OrdinalIgnoreCase)

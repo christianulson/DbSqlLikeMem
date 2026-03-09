@@ -721,84 +721,137 @@ internal static class SqlExecutionPlanFormatter
         };
 
         if (runtimeContext is not null)
-        {
-            payload["mockRuntimeContext"] = $"metricsAreRelative:true;simulatedLatencyMs:{runtimeContext.SimulatedLatencyMs};dropProbability:{runtimeContext.DropProbability:F4};threadSafe:{runtimeContext.ThreadSafe.ToString().ToLowerInvariant()}";
-            payload["mockMetricsAreRelative"] = runtimeContext.MetricsAreRelative;
-            payload["mockSimulatedLatencyMs"] = runtimeContext.SimulatedLatencyMs;
-            payload["mockDropProbability"] = runtimeContext.DropProbability;
-            payload["mockThreadSafe"] = runtimeContext.ThreadSafe;
-            payload["mockRuntimePerturbationActive"] = runtimeContext.SimulatedLatencyMs > 0 || runtimeContext.DropProbability > 0d;
-        }
+            AppendMockRuntimeContextJson(payload, runtimeContext);
 
+        var currentRisk = 0;
         if (hasWarnings)
-        {
-            var riskScore = CalculatePlanRiskScore(planWarnings!);
-            var warningSummary = string.Join(";", planWarnings!
-                .OrderByDescending(static w => GetSeverityWeight(w.Severity))
-                .ThenBy(static w => w.Code, StringComparer.Ordinal)
-                .Select(static w => $"{w.Code}:{w.Severity}"));
-
-            var high = planWarnings!.Count(static w => w.Severity == SqlPlanWarningSeverity.High);
-            var warning = planWarnings!.Count(static w => w.Severity == SqlPlanWarningSeverity.Warning);
-            var info = planWarnings!.Count(static w => w.Severity == SqlPlanWarningSeverity.Info);
-
-            var primary = planWarnings!
-                .OrderByDescending(static w => GetSeverityWeight(w.Severity))
-                .ThenBy(static w => w.Code, StringComparer.Ordinal)
-                .First();
-
-            payload["planRiskScore"] = riskScore;
-            payload["planQualityGrade"] = CalculatePlanQualityGrade(riskScore, performanceBand);
-            payload["planWarningSummary"] = warningSummary;
-            payload["planWarningCounts"] = $"high:{high};warning:{warning};info:{info}";
-            payload["planNoiseScore"] = CalculatePlanNoiseScore(planWarnings!);
-            payload["planTopActions"] = string.Join(";", BuildTopActions(indexRecommendations, planWarnings));
-            payload["planPrimaryWarning"] = $"{primary.Code}:{primary.Severity}";
-            payload["planPrimaryCauseGroup"] = MapPrimaryCauseGroup(primary.Code);
-
-            var hintScore = high * 3 + warning * 2 + info;
-            var threshold = severityHintContext switch
-            {
-                SqlPlanSeverityHintContext.Dev => 3,
-                SqlPlanSeverityHintContext.Ci => 2,
-                SqlPlanSeverityHintContext.Prod => 1,
-                _ => 3
-            };
-            var level = hintScore >= threshold * 3 ? "High" : hintScore >= threshold * 2 ? "Warning" : "Info";
-            payload["planSeverityHint"] = $"context:{severityHintContext.ToString().ToLowerInvariant()};level:{level}";
-        }
+            currentRisk = AppendWarningSummaryJson(
+                payload,
+                planWarnings!,
+                indexRecommendations,
+                performanceBand,
+                severityHintContext);
 
         if (previousMetrics is not null)
-        {
-            var currentRisk = hasWarnings ? (int)payload["planRiskScore"]! : 0;
-            var previousRisk = previousWarnings is { Count: > 0 } ? CalculatePlanRiskScore(previousWarnings) : 0;
-            var riskDelta = currentRisk - previousRisk;
-            var elapsedDelta = metrics.ElapsedMs - previousMetrics.ElapsedMs;
-            var riskPrefix = riskDelta >= 0 ? "+" : string.Empty;
-            var elapsedPrefix = elapsedDelta >= 0 ? "+" : string.Empty;
-            payload["planDelta"] = $"riskDelta:{riskPrefix}{riskDelta};elapsedMsDelta:{elapsedPrefix}{elapsedDelta}";
-        }
+            AppendPreviousPlanDeltaJson(payload, metrics, previousMetrics, currentRisk, previousWarnings);
 
         if (hasIndexRecommendations)
-        {
-            var avgConfidence = indexRecommendations!.Average(static r => r.Confidence);
-            var maxGain = indexRecommendations!.Max(static r => r.EstimatedGainPct);
-            payload["indexRecommendationSummary"] = $"count:{indexRecommendations!.Count};avgConfidence:{avgConfidence:F2};maxGainPct:{maxGain:F2}";
-
-            var primary = indexRecommendations
-                .OrderByDescending(static r => r.Confidence)
-                .ThenByDescending(static r => r.EstimatedGainPct)
-                .ThenBy(static r => r.Table, StringComparer.Ordinal)
-                .First();
-            payload["indexPrimaryRecommendation"] = $"table:{primary.Table};confidence:{primary.Confidence};gainPct:{primary.EstimatedGainPct:F2}";
-            payload["indexRecommendationEvidence"] = string.Join("|", indexRecommendations
-                .OrderByDescending(static r => r.Confidence)
-                .ThenByDescending(static r => r.EstimatedGainPct)
-                .ThenBy(static r => r.Table, StringComparer.Ordinal)
-                .Select(static r => BuildIndexRecommendationEvidenceItem(r)));
-        }
+            AppendIndexRecommendationJson(payload, indexRecommendations!);
 
         return JsonSerializer.Serialize(payload);
+    }
+
+    private static void AppendMockRuntimeContextJson(
+        Dictionary<string, object?> payload,
+        SqlPlanMockRuntimeContext runtimeContext)
+    {
+        payload["mockRuntimeContext"] = $"metricsAreRelative:true;simulatedLatencyMs:{runtimeContext.SimulatedLatencyMs};dropProbability:{runtimeContext.DropProbability:F4};threadSafe:{runtimeContext.ThreadSafe.ToString().ToLowerInvariant()}";
+        payload["mockMetricsAreRelative"] = runtimeContext.MetricsAreRelative;
+        payload["mockSimulatedLatencyMs"] = runtimeContext.SimulatedLatencyMs;
+        payload["mockDropProbability"] = runtimeContext.DropProbability;
+        payload["mockThreadSafe"] = runtimeContext.ThreadSafe;
+        payload["mockRuntimePerturbationActive"] = runtimeContext.SimulatedLatencyMs > 0 || runtimeContext.DropProbability > 0d;
+    }
+
+    private static int AppendWarningSummaryJson(
+        Dictionary<string, object?> payload,
+        IReadOnlyList<SqlPlanWarning> planWarnings,
+        IReadOnlyList<SqlIndexRecommendation>? indexRecommendations,
+        string performanceBand,
+        SqlPlanSeverityHintContext severityHintContext)
+    {
+        var riskScore = CalculatePlanRiskScore(planWarnings);
+        var warningSummary = string.Join(";", planWarnings
+            .OrderByDescending(static w => GetSeverityWeight(w.Severity))
+            .ThenBy(static w => w.Code, StringComparer.Ordinal)
+            .Select(static w => $"{w.Code}:{w.Severity}"));
+        var warningCounts = CountWarningsBySeverity(planWarnings);
+        var primary = GetPrimaryWarning(planWarnings);
+
+        payload["planRiskScore"] = riskScore;
+        payload["planQualityGrade"] = CalculatePlanQualityGrade(riskScore, performanceBand);
+        payload["planWarningSummary"] = warningSummary;
+        payload["planWarningCounts"] = $"high:{warningCounts.High};warning:{warningCounts.Warning};info:{warningCounts.Info}";
+        payload["planNoiseScore"] = CalculatePlanNoiseScore(planWarnings);
+        payload["planTopActions"] = string.Join(";", BuildTopActions(indexRecommendations, planWarnings));
+        payload["planPrimaryWarning"] = $"{primary.Code}:{primary.Severity}";
+        payload["planPrimaryCauseGroup"] = MapPrimaryCauseGroup(primary.Code);
+        payload["planSeverityHint"] = BuildSeverityHint(severityHintContext, warningCounts);
+
+        return riskScore;
+    }
+
+    private static void AppendPreviousPlanDeltaJson(
+        Dictionary<string, object?> payload,
+        SqlPlanRuntimeMetrics metrics,
+        SqlPlanRuntimeMetrics previousMetrics,
+        int currentRisk,
+        IReadOnlyList<SqlPlanWarning>? previousWarnings)
+    {
+        var previousRisk = previousWarnings is { Count: > 0 } ? CalculatePlanRiskScore(previousWarnings) : 0;
+        var riskDelta = currentRisk - previousRisk;
+        var elapsedDelta = metrics.ElapsedMs - previousMetrics.ElapsedMs;
+        var riskPrefix = riskDelta >= 0 ? "+" : string.Empty;
+        var elapsedPrefix = elapsedDelta >= 0 ? "+" : string.Empty;
+        payload["planDelta"] = $"riskDelta:{riskPrefix}{riskDelta};elapsedMsDelta:{elapsedPrefix}{elapsedDelta}";
+    }
+
+    private static void AppendIndexRecommendationJson(
+        Dictionary<string, object?> payload,
+        IReadOnlyList<SqlIndexRecommendation> indexRecommendations)
+    {
+        var avgConfidence = indexRecommendations.Average(static r => r.Confidence);
+        var maxGain = indexRecommendations.Max(static r => r.EstimatedGainPct);
+        payload["indexRecommendationSummary"] = $"count:{indexRecommendations.Count};avgConfidence:{avgConfidence:F2};maxGainPct:{maxGain:F2}";
+
+        var orderedRecommendations = indexRecommendations
+            .OrderByDescending(static r => r.Confidence)
+            .ThenByDescending(static r => r.EstimatedGainPct)
+            .ThenBy(static r => r.Table, StringComparer.Ordinal)
+            .ToArray();
+
+        var primary = orderedRecommendations[0];
+        payload["indexPrimaryRecommendation"] = $"table:{primary.Table};confidence:{primary.Confidence};gainPct:{primary.EstimatedGainPct:F2}";
+        payload["indexRecommendationEvidence"] = string.Join("|", orderedRecommendations.Select(static r => BuildIndexRecommendationEvidenceItem(r)));
+    }
+
+    private static (int High, int Warning, int Info) CountWarningsBySeverity(IReadOnlyList<SqlPlanWarning> planWarnings)
+        => (
+            planWarnings.Count(static w => w.Severity == SqlPlanWarningSeverity.High),
+            planWarnings.Count(static w => w.Severity == SqlPlanWarningSeverity.Warning),
+            planWarnings.Count(static w => w.Severity == SqlPlanWarningSeverity.Info));
+
+    private static SqlPlanWarning GetPrimaryWarning(IReadOnlyList<SqlPlanWarning> planWarnings)
+        => planWarnings
+            .OrderByDescending(static w => GetSeverityWeight(w.Severity))
+            .ThenBy(static w => w.Code, StringComparer.Ordinal)
+            .First();
+
+    private static string BuildSeverityHint(
+        SqlPlanSeverityHintContext severityHintContext,
+        (int High, int Warning, int Info) warningCounts)
+    {
+        var hintScore = warningCounts.High * 3 + warningCounts.Warning * 2 + warningCounts.Info;
+        var threshold = GetSeverityThreshold(severityHintContext);
+        var level = GetSeverityLevel(hintScore, threshold);
+        return $"context:{severityHintContext.ToString().ToLowerInvariant()};level:{level}";
+    }
+
+    private static int GetSeverityThreshold(SqlPlanSeverityHintContext severityHintContext)
+        => severityHintContext switch
+        {
+            SqlPlanSeverityHintContext.Dev => 3,
+            SqlPlanSeverityHintContext.Ci => 2,
+            SqlPlanSeverityHintContext.Prod => 1,
+            _ => 3
+        };
+
+    private static string GetSeverityLevel(int hintScore, int threshold)
+    {
+        if (hintScore >= threshold * 3)
+            return "High";
+
+        return hintScore >= threshold * 2 ? "Warning" : "Info";
     }
 
 

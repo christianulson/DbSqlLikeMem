@@ -84,82 +84,102 @@ public class MySqlCommandMock(
     {
         if (BatchableCommandText == null)
         {
-            if (CommandText.Length >= 6
-                && string.Compare(CommandText[..6], "INSERT", StringComparison.OrdinalIgnoreCase) == 0)
-            {
-                var tk = new SqlTokenizer(CommandText, connection!.Db.Dialect);
-                var mySqlTokenizer = tk.Tokenize();
-                //string text = Connection.driver.Property("sql_mode").ToUpperInvariant();
-                //mySqlTokenizer.AnsiQuotes = text.IndexOf("ANSI_QUOTES") != -1;
-                //mySqlTokenizer.BackslashEscapes = text.IndexOf("NO_BACKSLASH_ESCAPES") == -1;
-                for (var i = 0; i < mySqlTokenizer.Count; i++)
-                {
-                    var token = mySqlTokenizer[i];
-                    if (token.Kind == SqlTokenKind.EndOfFile)
-                    {
-                        break;
-                    }
-
-                    if (string.Equals(token.Text, "VALUES", StringComparison.OrdinalIgnoreCase)
-                        && token.Kind != SqlTokenKind.Symbol)
-                    {
-                        i++;
-                        if (i >= mySqlTokenizer.Count || mySqlTokenizer[i].Kind == SqlTokenKind.EndOfFile)
-                        {
-                            break;
-                        }
-
-                        var text2 = mySqlTokenizer[i].Text;
-                        int num = 1;
-                        while (i < mySqlTokenizer.Count && mySqlTokenizer[i].Kind != SqlTokenKind.EndOfFile)
-                        {
-                            BatchableCommandText += text2;
-                            i++;
-                            if (i >= mySqlTokenizer.Count || mySqlTokenizer[i].Kind == SqlTokenKind.EndOfFile)
-                            {
-                                break;
-                            }
-
-                            text2 = mySqlTokenizer[i].Text;
-                            if (text2 == "(")
-                            {
-                                num++;
-                            }
-                            else if (text2 == ")")
-                            {
-                                num--;
-                            }
-
-                            if (num == 0)
-                            {
-                                break;
-                            }
-                        }
-
-                        if (i < mySqlTokenizer.Count && mySqlTokenizer[i].Kind != SqlTokenKind.EndOfFile)
-                        {
-                            BatchableCommandText += text2;
-                        }
-                        i++;
-                        if (i < mySqlTokenizer.Count && mySqlTokenizer[i].Kind != SqlTokenKind.EndOfFile)
-                        {
-                            text2 = mySqlTokenizer[i].Text;
-                            if (text2 == "," || string.Equals(text2, "ON", StringComparison.OrdinalIgnoreCase))
-                            {
-                                BatchableCommandText = null;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                BatchableCommandText = CommandText;
-            }
+            BatchableCommandText = IsInsertCommandText(CommandText)
+                ? BuildInsertBatchableCommandText()
+                : CommandText;
         }
 
         return BatchableCommandText;
+    }
+
+    private static bool IsInsertCommandText(string commandText)
+        => commandText.Length >= 6
+           && string.Compare(commandText[..6], "INSERT", StringComparison.OrdinalIgnoreCase) == 0;
+
+    private string? BuildInsertBatchableCommandText()
+    {
+        var tokens = new SqlTokenizer(CommandText, connection!.Db.Dialect).Tokenize();
+        return TryFindValuesTuple(tokens, out var valuesText, out var nextIndex)
+            && !HasUnsupportedBatchSuffix(tokens, nextIndex)
+            ? valuesText
+            : null;
+    }
+
+    private static bool TryFindValuesTuple(
+        IReadOnlyList<SqlToken> tokens,
+        out string valuesText,
+        out int nextIndex)
+    {
+        valuesText = string.Empty;
+        nextIndex = 0;
+
+        for (var i = 0; i < tokens.Count; i++)
+        {
+            var token = tokens[i];
+            if (token.Kind == SqlTokenKind.EndOfFile)
+                return false;
+
+            if (!IsValuesKeyword(token))
+                continue;
+
+            return TryReadValuesTuple(tokens, i + 1, out valuesText, out nextIndex);
+        }
+
+        return false;
+    }
+
+    private static bool IsValuesKeyword(SqlToken token)
+        => token.Kind != SqlTokenKind.Symbol
+           && string.Equals(token.Text, "VALUES", StringComparison.OrdinalIgnoreCase);
+
+    private static bool TryReadValuesTuple(
+        IReadOnlyList<SqlToken> tokens,
+        int startIndex,
+        out string valuesText,
+        out int nextIndex)
+    {
+        valuesText = string.Empty;
+        nextIndex = startIndex;
+        if (startIndex >= tokens.Count
+            || tokens[startIndex].Kind == SqlTokenKind.EndOfFile
+            || tokens[startIndex].Text != "(")
+        {
+            return false;
+        }
+
+        var sb = new StringBuilder();
+        var depth = 0;
+        for (var i = startIndex; i < tokens.Count; i++)
+        {
+            var token = tokens[i];
+            if (token.Kind == SqlTokenKind.EndOfFile)
+                return false;
+
+            sb.Append(token.Text);
+            if (token.Text == "(")
+                depth++;
+            else if (token.Text == ")")
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    valuesText = sb.ToString();
+                    nextIndex = i + 1;
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasUnsupportedBatchSuffix(IReadOnlyList<SqlToken> tokens, int startIndex)
+    {
+        if (startIndex >= tokens.Count || tokens[startIndex].Kind == SqlTokenKind.EndOfFile)
+            return false;
+
+        var text = tokens[startIndex].Text;
+        return text == "," || string.Equals(text, "ON", StringComparison.OrdinalIgnoreCase);
     }
 
     private readonly MySqlDataParameterCollectionMock collectionMock = [];
