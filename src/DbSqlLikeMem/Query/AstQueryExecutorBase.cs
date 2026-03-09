@@ -3374,28 +3374,30 @@ private void FillPercentRankOrCumeDist(
         if (string.IsNullOrWhiteSpace(functionName))
             return;
 
+        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para funções de sequence.");
+
         if (functionName!.Equals("NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
-            && !Dialect.SupportsNextValueForSequenceExpression)
-            throw SqlUnsupported.ForDialect(Dialect, "NEXT VALUE FOR");
+            && !dialect.SupportsNextValueForSequenceExpression)
+            throw SqlUnsupported.ForDialect(dialect, "NEXT VALUE FOR");
 
         if (functionName.Equals("PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
-            && !Dialect.SupportsPreviousValueForSequenceExpression)
-            throw SqlUnsupported.ForDialect(Dialect, "PREVIOUS VALUE FOR");
+            && !dialect.SupportsPreviousValueForSequenceExpression)
+            throw SqlUnsupported.ForDialect(dialect, "PREVIOUS VALUE FOR");
 
         if ((functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
                 || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase))
-            && !Dialect.SupportsSequenceDotValueExpression(functionName))
+            && !dialect.SupportsSequenceDotValueExpression(functionName))
         {
-            throw SqlUnsupported.ForDialect(Dialect, functionName.ToUpperInvariant());
+            throw SqlUnsupported.ForDialect(dialect, functionName.ToUpperInvariant());
         }
 
         if ((functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
                 || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)
                 || functionName.Equals("SETVAL", StringComparison.OrdinalIgnoreCase)
                 || functionName.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase))
-            && !Dialect.SupportsSequenceFunctionCall(functionName))
+            && !dialect.SupportsSequenceFunctionCall(functionName))
         {
-            throw SqlUnsupported.ForDialect(Dialect, functionName.ToUpperInvariant());
+            throw SqlUnsupported.ForDialect(dialect, functionName.ToUpperInvariant());
         }
     }
 
@@ -6610,6 +6612,7 @@ private void FillPercentRankOrCumeDist(
         EvalGroup group,
         IDictionary<string, Source> ctes)
     {
+        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
         var name = fn.Name.ToUpperInvariant();
 
         // COUNT(DISTINCT ...)
@@ -6618,8 +6621,8 @@ private void FillPercentRankOrCumeDist(
 
         if (name is "GROUP_CONCAT" or "STRING_AGG" or "LISTAGG")
         {
-            if (!Dialect.SupportsStringAggregateFunction(name))
-                throw SqlUnsupported.ForDialect(Dialect, name);
+            if (!dialect.SupportsStringAggregateFunction(name))
+                throw SqlUnsupported.ForDialect(dialect, name);
 
             return EvalStringAggregateForCallExpr(fn, group, ctes, name);
         }
