@@ -26,7 +26,10 @@ internal abstract class AstQueryExecutorBase(
     private readonly DbConnectionMockBase _cnn = cnn ?? throw new ArgumentNullException(nameof(cnn));
     private readonly IDataParameterCollection _pars = pars ?? throw new ArgumentNullException(nameof(pars));
     private readonly object _dialect = dialect ?? throw new ArgumentNullException(nameof(dialect));
-    private ISqlDialect? Dialect => _dialect as ISqlDialect;
+    private ISqlDialect? Dialect
+        => _cnn.UseAutoSqlDialect
+            ? _cnn.ExecutionDialect
+            : _dialect as ISqlDialect;
     private readonly ConcurrentDictionary<string, bool> _existsSubqueryCache = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, List<object?>> _inSubqueryFirstColumnCache = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, ScalarSubqueryCacheEntry> _scalarSubqueryCache = new(StringComparer.Ordinal);
@@ -49,9 +52,10 @@ internal abstract class AstQueryExecutorBase(
         if (string.IsNullOrWhiteSpace(raw))
             throw new ArgumentException("Expressão vazia.", nameof(raw));
 
-        var dialectType = _dialect.GetType();
+        var dialectInstance = (object)(Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para parse de expressão."));
+        var dialectType = dialectInstance.GetType();
         var parserDelegate = _parseWhereDelegateCache.GetOrAdd(dialectType, CreateParseWhereDelegate);
-        return parserDelegate(raw, _dialect);
+        return parserDelegate(raw, dialectInstance);
     }
 
     private static Func<string, object, SqlExpr> CreateParseWhereDelegate(Type dialectType)
@@ -382,7 +386,7 @@ internal abstract class AstQueryExecutorBase(
         var result = ExecuteSelect(q, null, null, debugTrace);
         sw.Stop();
 
-        if (!HasSqlCalcFoundRows(q))
+        if (!HasSqlCalcFoundRows(q) && !IsRowCountHelperSelect(q))
             _cnn.SetLastFoundRows(result.Count);
 
         var metrics = BuildPlanRuntimeMetrics(q, result.Count, sw.ElapsedMilliseconds);
@@ -953,6 +957,20 @@ internal abstract class AstQueryExecutorBase(
         }
 
         return count;
+    }
+
+    private static string FormatSource(SqlTableSource? source)
+    {
+        if (source is null)
+            return "<none>";
+
+        if (source.Derived is not null)
+            return $"subquery AS {source.Alias ?? "<derived>"}";
+
+        if (source.DerivedUnion is not null)
+            return $"union-subquery AS {source.Alias ?? "<derived_union>"}";
+
+        return source.Name ?? "<unknown_table>";
     }
 
     private long EstimateRowsRead(SqlSelectQuery query)
@@ -3527,20 +3545,36 @@ private void FillPercentRankOrCumeDist(
             throw SqlUnsupported.ForDialect(dialect, "PREVIOUS VALUE FOR");
 
         if ((functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
-                || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase))
-            && !dialect.SupportsSequenceDotValueExpression(functionName))
-        {
-            throw SqlUnsupported.ForDialect(dialect, functionName.ToUpperInvariant());
-        }
-
-        if ((functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
                 || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)
                 || functionName.Equals("SETVAL", StringComparison.OrdinalIgnoreCase)
                 || functionName.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase))
-            && !dialect.SupportsSequenceFunctionCall(functionName))
+            && !SupportsSequenceFunctionCall(dialect, functionName))
         {
             throw SqlUnsupported.ForDialect(dialect, functionName.ToUpperInvariant());
         }
+    }
+
+    private static bool SupportsSequenceFunctionCall(ISqlDialect dialect, string functionName)
+    {
+        if (dialect.SupportsSequenceFunctionCall(functionName))
+            return true;
+
+        if (dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        {
+            return functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("SETVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        {
+            return (functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
+                    || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase))
+                && dialect.SupportsSequenceDotValueExpression(functionName);
+        }
+
+        return false;
     }
 
     private static bool IncludExtraColumns(
@@ -3633,7 +3667,14 @@ private void FillPercentRankOrCumeDist(
             // Precisamos separar o último identificador (fora de parênteses) como alias,
             // sem quebrar expressões como "t2.*" ou "CAST(x AS CHAR)".
             if (TrySplitTrailingImplicitAlias(raw, out var expr0, out var alias0))
+            {
+                if (raw.IndexOf("<=>", StringComparison.Ordinal) >= 0
+                    || Regex.IsMatch(raw, @"\b(NEXT|PREVIOUS)\s+VALUE\s+FOR\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                {
+                    Console.WriteLine($"[SPLIT-ALIAS-SUSPECT] Raw='{raw}' Expr='{expr0}' Alias='{alias0}'");
+                }
                 return (expr0, alias0);
+            }
 
             return (raw, null);
         }
@@ -3701,7 +3742,9 @@ private void FillPercentRankOrCumeDist(
 
         // Evita pegar alias em "t2." (ex: "t2.*" já falha pelo regex acima)
         if (before.EndsWith(".")) return false;
-        if (Regex.IsMatch(before, @"\bNEXT\s+VALUE\s+FOR\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        if (Regex.IsMatch(before, @"(<=>|<>|!=|>=|<=|=|>|<|\+|-|\*|/|,)\s*$", RegexOptions.CultureInvariant))
+            return false;
+        if (Regex.IsMatch(before, @"\b(NEXT|PREVIOUS)\s+VALUE\s+FOR\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
             return false;
 
         expr = before;
@@ -3729,7 +3772,10 @@ private void FillPercentRankOrCumeDist(
             || s.Equals("ALL", StringComparison.OrdinalIgnoreCase)
             || s.Equals("DISTINCT", StringComparison.OrdinalIgnoreCase)
             || s.Equals("ASC", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("DESC", StringComparison.OrdinalIgnoreCase);
+            || s.Equals("DESC", StringComparison.OrdinalIgnoreCase)
+            || s.Equals("NULL", StringComparison.OrdinalIgnoreCase)
+            || s.Equals("TRUE", StringComparison.OrdinalIgnoreCase)
+            || s.Equals("FALSE", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void FindPositionOfAS(string raw, ref int depth, ref int asPos)
@@ -4051,7 +4097,18 @@ private void FillPercentRankOrCumeDist(
     private static string FormatProjectDebugDetails(IReadOnlyList<SqlSelectItem> selectItems)
     {
         var items = selectItems
-            .Select(static item => string.IsNullOrWhiteSpace(item.Raw) ? item.Alias : item.Raw.Trim())
+            .Select(static item =>
+            {
+                var raw = (item.Raw ?? string.Empty).Trim();
+                var alias = (item.Alias ?? string.Empty).Trim();
+
+                if (raw.Length == 0)
+                    return alias;
+
+                return alias.Length == 0
+                    ? raw
+                    : $"{raw} AS {alias}";
+            })
             .Where(static item => !string.IsNullOrWhiteSpace(item))
             .ToArray();
         return items.Length == 0
@@ -6486,12 +6543,25 @@ private void FillPercentRankOrCumeDist(
     {
         handled = true;
 
+        if (fn.Name.Equals("__JSON_ACCESS_JSON", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("__JSON_ACCESS_TEXT", StringComparison.OrdinalIgnoreCase))
+        {
+            object? json = evalArg(0);
+            var path = evalArg(1)?.ToString();
+            if (IsNullish(json) || string.IsNullOrWhiteSpace(path))
+                return null;
+
+            var value = TryReadJsonPathValue(json!, path!);
+            return fn.Name.Equals("__JSON_ACCESS_TEXT", StringComparison.OrdinalIgnoreCase)
+                ? value?.ToString()
+                : value;
+        }
+
         if (fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase))
         {
             if (fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
-                && !dialect.SupportsJsonExtractFunction
-                && !dialect.SupportsJsonArrowOperators)
+                && !dialect.SupportsJsonExtractFunction)
                 throw SqlUnsupported.ForDialect(dialect, "JSON_EXTRACT");
 
             if (fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase) && !dialect.SupportsJsonValueFunction)
@@ -6799,6 +6869,23 @@ private void FillPercentRankOrCumeDist(
     }
 
     private static bool IsNullish(object? v) => v is null || v is DBNull;
+
+    private static bool IsRowCountHelperSelect(SqlSelectQuery q)
+    {
+        if (q.SelectItems.Count != 1)
+            return false;
+
+        if (q.Table is not null
+            && !string.Equals(q.Table.Name, "DUAL", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var raw = q.SelectItems[0].Raw.Trim();
+        return raw.Equals("CHANGES()", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("ROW_COUNT()", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("FOUND_ROWS()", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("ROWCOUNT()", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("@@ROWCOUNT", StringComparison.OrdinalIgnoreCase);
+    }
 
     private sealed record IntervalValue(TimeSpan Span);
 

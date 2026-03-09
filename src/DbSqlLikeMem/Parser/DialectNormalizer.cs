@@ -25,6 +25,7 @@ internal static class DialectNormalizer
         var where = query.Where;
 
         if ((syntaxFeatures & AutoSqlSyntaxFeatures.Rownum) != 0
+            && (syntaxFeatures & AutoSqlSyntaxFeatures.Offset) == 0
             && where is not null)
         {
             if (CanNormalizeRownum(rowLimit))

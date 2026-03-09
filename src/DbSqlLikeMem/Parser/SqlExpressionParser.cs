@@ -490,6 +490,9 @@ internal sealed class SqlExpressionParser(
         if (t.Kind != SqlTokenKind.Operator || (t.Text != "->" && t.Text != "->>" && t.Text != "#>" && t.Text != "#>>"))
             return false;
 
+        if (!_dialect.SupportsJsonArrowOperators && !_dialect.AllowsParserCrossDialectJsonOperators)
+            throw SqlUnsupported.ForDialect(_dialect, "JSON -> / ->> / #> / #>> operators");
+
         // MySQL: JSON extract operators bind tightly (treat like high precedence binary)
         const int lbp = 120;
         const int rbp = 121;
@@ -1402,8 +1405,7 @@ internal sealed class SqlExpressionParser(
         }
 
         if (name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
-            && !_dialect.SupportsJsonExtractFunction
-            && !_dialect.SupportsJsonArrowOperators)
+            && !_dialect.SupportsJsonExtractFunction)
         {
             throw SqlUnsupported.ForDialect(_dialect, "JSON_EXTRACT");
         }
@@ -1884,6 +1886,17 @@ internal sealed class SqlExpressionParser(
 
             if (itemTokens.Count == 0)
                 throw Error($"{context} requires at least one expression", Peek());
+
+            for (var i = 0; i < itemTokens.Count; i++)
+            {
+                if (!IsKeywordOrIdentifierWord(itemTokens[i], "ASC")
+                    && !IsKeywordOrIdentifierWord(itemTokens[i], "DESC"))
+                {
+                    continue;
+                }
+
+                throw Error($"{context} requires commas between expressions", itemTokens[i]);
+            }
 
             var sql = string.Join(" ", itemTokens.Select(TokenToSql)).Trim();
             orderBy.Add(new WindowOrderItem(ParseScalar(sql, _dialect, _parameters), desc));

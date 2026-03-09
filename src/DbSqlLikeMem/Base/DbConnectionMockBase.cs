@@ -277,7 +277,11 @@ public abstract class DbConnectionMockBase(
     /// </summary>
     /// <param name="trace">EN: Last retained trace when available; otherwise null. PT: Ultimo trace retido quando disponivel; caso contrario, null.</param>
     /// <returns>EN: True when a retained trace exists; otherwise false. PT: True quando existe um trace retido; caso contrario, false.</returns>
-    public bool TryGetLastDebugTraceSnapshot([NotNullWhen(true)] out QueryDebugTrace? trace)
+    public bool TryGetLastDebugTraceSnapshot(
+#if NET6_0_OR_GREATER
+        [NotNullWhen(true)]
+#endif
+    out QueryDebugTrace? trace)
     {
         trace = LastDebugTrace;
         return trace is not null;
@@ -309,6 +313,117 @@ public abstract class DbConnectionMockBase(
         return QueryDebugTraceFormatter.FormatJson(LastDebugTrace);
     }
 
+    /// <summary>
+    /// EN: Exports the current structural schema snapshot of this connection database.
+    /// PT: Exporta o snapshot estrutural atual do banco associado a esta conexao.
+    /// </summary>
+    /// <returns>EN: Exported schema snapshot. PT: Snapshot de schema exportado.</returns>
+    public SchemaSnapshot ExportSchemaSnapshot()
+        => SchemaSnapshot.Export(this);
+
+    /// <summary>
+    /// EN: Exports the current structural schema snapshot of this connection database as JSON.
+    /// PT: Exporta o snapshot estrutural atual do banco associado a esta conexao como JSON.
+    /// </summary>
+    /// <returns>EN: Serialized schema snapshot JSON. PT: JSON serializado do snapshot de schema.</returns>
+    public string ExportSchemaSnapshotJson()
+        => ExportSchemaSnapshot().ToJson();
+
+    /// <summary>
+    /// EN: Returns the supported schema snapshot subset profile for this connection database.
+    /// PT: Retorna o perfil do subset suportado de schema snapshot para o banco desta conexao.
+    /// </summary>
+    /// <returns>EN: Supported schema snapshot profile. PT: Perfil suportado de schema snapshot.</returns>
+    public SchemaSnapshotSupportProfile GetSchemaSnapshotSupportProfile()
+        => SchemaSnapshot.GetSupportProfile(this);
+
+    /// <summary>
+    /// EN: Returns the supported schema snapshot subset profile for this connection database as text.
+    /// PT: Retorna o perfil do subset suportado de schema snapshot para o banco desta conexao como texto.
+    /// </summary>
+    /// <returns>EN: Multi-line support profile text. PT: Texto multilinha do perfil de suporte.</returns>
+    public string GetSchemaSnapshotSupportProfileText()
+        => GetSchemaSnapshotSupportProfile().ToText();
+
+    /// <summary>
+    /// EN: Exports the current structural schema snapshot of this connection database to a JSON file.
+    /// PT: Exporta o snapshot estrutural atual do banco associado a esta conexao para um arquivo JSON.
+    /// </summary>
+    /// <param name="path">EN: Target JSON file path. PT: Caminho do arquivo JSON de destino.</param>
+    public void ExportSchemaSnapshotToFile(string path)
+        => ExportSchemaSnapshot().SaveToFile(path);
+
+    /// <summary>
+    /// EN: Imports a structural schema snapshot JSON into the database associated with this connection.
+    /// PT: Importa um JSON de snapshot estrutural de schema para o banco associado a esta conexao.
+    /// </summary>
+    /// <param name="json">EN: Serialized schema snapshot. PT: Snapshot de schema serializado.</param>
+    public void ImportSchemaSnapshot(string json)
+        => ImportSchemaSnapshot(json, ensureCompatibility: false);
+
+    /// <summary>
+    /// EN: Imports a structural schema snapshot JSON into the database associated with this connection with optional compatibility validation.
+    /// PT: Importa um JSON de snapshot estrutural de schema para o banco associado a esta conexao com validacao opcional de compatibilidade.
+    /// </summary>
+    /// <param name="json">EN: Serialized schema snapshot. PT: Snapshot de schema serializado.</param>
+    /// <param name="ensureCompatibility">EN: True to enforce dialect/version compatibility before replay. PT: True para exigir compatibilidade de dialeto/versao antes do replay.</param>
+    public void ImportSchemaSnapshot(
+        string json,
+        bool ensureCompatibility)
+        => ImportSchemaSnapshotCore(SchemaSnapshot.Load(json), ensureCompatibility);
+
+    /// <summary>
+    /// EN: Imports a structural schema snapshot JSON file into the database associated with this connection.
+    /// PT: Importa um arquivo JSON de snapshot estrutural de schema para o banco associado a esta conexao.
+    /// </summary>
+    /// <param name="path">EN: Source JSON file path. PT: Caminho do arquivo JSON de origem.</param>
+    public void ImportSchemaSnapshotFromFile(string path)
+        => ImportSchemaSnapshotFromFile(path, ensureCompatibility: false);
+
+    /// <summary>
+    /// EN: Imports a structural schema snapshot JSON file into the database associated with this connection with optional compatibility validation.
+    /// PT: Importa um arquivo JSON de snapshot estrutural de schema para o banco associado a esta conexao com validacao opcional de compatibilidade.
+    /// </summary>
+    /// <param name="path">EN: Source JSON file path. PT: Caminho do arquivo JSON de origem.</param>
+    /// <param name="ensureCompatibility">EN: True to enforce dialect/version compatibility before replay. PT: True para exigir compatibilidade de dialeto/versao antes do replay.</param>
+    public void ImportSchemaSnapshotFromFile(
+        string path,
+        bool ensureCompatibility)
+        => ImportSchemaSnapshotCore(SchemaSnapshot.LoadFromFile(path), ensureCompatibility);
+
+    internal void ImportSchemaSnapshotCore(
+        SchemaSnapshot snapshot,
+        bool ensureCompatibility)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(snapshot, nameof(snapshot));
+        if (ensureCompatibility)
+            snapshot.EnsureCompatibleWith(Db);
+
+        snapshot.ApplyTo(Db);
+        AlignCurrentDatabaseToImportedSchemas(snapshot);
+    }
+
+    private void AlignCurrentDatabaseToImportedSchemas(SchemaSnapshot snapshot)
+    {
+        if (Db.TryGetValue(Database, out _))
+            return;
+
+        var nextDatabase = snapshot.Schemas
+            .FirstOrDefault(static schema =>
+                schema.Tables.Count > 0
+                || schema.Views.Count > 0
+                || schema.Procedures.Count > 0
+                || schema.Sequences.Count > 0)
+            ?.Name
+            ?? snapshot.Schemas
+            .Select(static schema => schema.Name)
+            .FirstOrDefault(name => name.Equals("DefaultSchema", StringComparison.OrdinalIgnoreCase))
+            ?? snapshot.Schemas.FirstOrDefault()?.Name
+            ?? "DefaultSchema";
+
+        ChangeDatabase(nextDatabase);
+    }
+
     private void ContextualizeDebugTraces(string sql)
     {
         var statements = SqlQueryParser
@@ -321,12 +436,14 @@ public abstract class DbConnectionMockBase(
             return;
 
         var contextualized = new List<QueryDebugTrace>(_lastDebugTraces.Count);
+        var statementOffset = Math.Max(0, statements.Count - _lastDebugTraces.Count);
         for (var i = 0; i < _lastDebugTraces.Count; i++)
         {
-            var sqlText = i < statements.Count
-                ? statements[i]
+            var statementIndex = statementOffset + i;
+            var sqlText = statementIndex < statements.Count
+                ? statements[statementIndex]
                 : null;
-            contextualized.Add(_lastDebugTraces[i].WithStatementContext(i, sqlText));
+            contextualized.Add(_lastDebugTraces[i].WithStatementContext(statementIndex, sqlText));
         }
 
         RestoreDebugTraces(contextualized);
@@ -388,7 +505,7 @@ public abstract class DbConnectionMockBase(
     /// </summary>
     public override int ConnectionTimeout { get; } = 1;
 
-    private string _database = defaultDatabase ?? db.GetSchemaName(null);
+    private string _database = ResolveInitialDatabase(db, defaultDatabase);
     /// <summary>
     /// EN: Current database/schema name.
     /// PT: Nome do banco/schema atual.
@@ -408,6 +525,17 @@ public abstract class DbConnectionMockBase(
     /// PT: Fonte de dados simulada.
     /// </summary>
     public override string DataSource => _dataSource;
+
+    private static string ResolveInitialDatabase(DbMock db, string? defaultDatabase)
+    {
+        if (!string.IsNullOrWhiteSpace(defaultDatabase))
+            return defaultDatabase!;
+
+        if (db.TryGetValue("DefaultSchema", out _))
+            return "DefaultSchema";
+
+        return db.GetSchemaName(null);
+    }
 
     /// <summary>
     /// EN: Backing field for the simulated server version.

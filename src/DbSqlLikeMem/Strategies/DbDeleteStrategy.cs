@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace DbSqlLikeMem;
 
 internal static class DbDeleteStrategy
@@ -24,6 +26,7 @@ internal static class DbDeleteStrategy
         SqlDeleteQuery query,
         DbParameterCollection? pars)
     {
+        var sw = Stopwatch.StartNew();
         ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(query!.Table!.Name, nameof(query.Table.Name));
         var tableName = query.Table.Name!;
@@ -31,6 +34,7 @@ internal static class DbDeleteStrategy
         if (!connection.TryGetTable(tableName, out var table, query.Table.DbName)
             || table == null)
             throw SqlUnsupported.ForTableDoesNotExist(tableName);
+        var rowCountBefore = table.Count;
 
         // 1. Filtrar linhas
         // Usa a mesma lógica simplificada de WHERE do UpdateStrategy.
@@ -74,6 +78,18 @@ internal static class DbDeleteStrategy
         table.RebuildAllIndexes();
 
         connection.Metrics.Deletes += rowsToDelete.Count;
+        sw.Stop();
+
+        var metrics = new SqlPlanRuntimeMetrics(
+            InputTables: 1,
+            EstimatedRowsRead: rowCountBefore,
+            ActualRows: rowsToDelete.Count,
+            ElapsedMs: sw.ElapsedMilliseconds);
+        var plan = SqlExecutionPlanFormatter.FormatDelete(
+            query,
+            metrics,
+            new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
+        connection.RegisterExecutionPlan(plan);
         return rowsToDelete.Count;
     }
 

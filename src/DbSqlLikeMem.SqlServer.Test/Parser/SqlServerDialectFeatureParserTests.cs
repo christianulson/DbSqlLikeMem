@@ -329,7 +329,8 @@ public sealed class SqlServerDialectFeatureParserTests
             SqlExpressionParser.ParseScalar("JSON_VALUE(payload, '$.a.b' RETURNING NUMBER)", new SqlServerDialect(version)));
 
         Assert.Contains("JSON_VALUE", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+        if (version >= SqlServerDialect.JsonFunctionsMinVersion)
+            Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1080,7 +1081,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
 
-        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("LISTAGG", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

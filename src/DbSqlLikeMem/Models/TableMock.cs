@@ -313,7 +313,7 @@ public abstract class TableMock
         string refTable,
         HashSet<(string col, string refCol)> references)
     {
-        var tbRef = Schema[refTable];
+        var tbRef = ResolveReferencedTable(refTable);
         var fk = new ForeignDef(
             this,
             name,
@@ -323,6 +323,19 @@ public abstract class TableMock
 
         _foreignKeys.Add(name, fk);
         return fk;
+    }
+
+    private ITableMock ResolveReferencedTable(string refTable)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(refTable, nameof(refTable));
+
+        var separatorIndex = refTable.IndexOf('.');
+        if (separatorIndex <= 0 || separatorIndex == refTable.Length - 1)
+            return Schema[refTable];
+
+        var schemaName = refTable[..separatorIndex].NormalizeName();
+        var tableName = refTable[(separatorIndex + 1)..].NormalizeName();
+        return Schema.Db.GetTable(tableName, schemaName);
     }
 
     internal void ValidateForeignKeysOnRow(IReadOnlyDictionary<int, object?> row)
@@ -732,10 +745,16 @@ public abstract class TableMock
                 continue;
             }
 
-            var kv = s.Split('=').Take(2).ToArray();
-            if (kv.Length == 2)
+            var comparison = Regex.Match(
+                s,
+                @"^(?<c>[\w`\.]+)\s*(?<op><=|>=|<>|!=|=|<|>)\s*(?<v>.+)$",
+                RegexOptions.IgnoreCase);
+            if (comparison.Success)
             {
-                list.Add((kv[0].Trim(), "=", kv[1].Trim()));
+                list.Add((
+                    comparison.Groups["c"].Value.Trim(),
+                    comparison.Groups["op"].Value.Trim(),
+                    comparison.Groups["v"].Value.Trim()));
             }
         }
 
@@ -752,7 +771,7 @@ public abstract class TableMock
         var info = table.GetColumn(cond.C);
         var actual = info.GetGenValue != null ? info.GetGenValue(row, table) : row[info.Index];
 
-        if (IsMatchEquals(table, pars, cond, info, actual, out var value))
+        if (TryMatchComparison(table, pars, cond, info, actual, out var value))
             return value;
 
         if (!cond.Op.Equals("IN", StringComparison.OrdinalIgnoreCase))
@@ -774,7 +793,7 @@ public abstract class TableMock
         return false;
     });
 
-    private static bool IsMatchEquals(
+    private static bool TryMatchComparison(
         ITableMock table,
         DbParameterCollection? pars,
         (string C, string Op, string V) cond,
@@ -782,15 +801,68 @@ public abstract class TableMock
         out bool value)
     {
         value = default;
-        if (!cond.Op.Equals("=", StringComparison.OrdinalIgnoreCase))
-            return false;
-
         table.CurrentColumn = cond.C;
         var exp = table.Resolve(cond.V, info.DbType, info.Nullable, pars, table.Columns);
         table.CurrentColumn = null;
-        value = Equals(actual, exp is DBNull ? null : exp);
-        return true;
+        exp = exp is DBNull ? null : exp;
+
+        switch (cond.Op)
+        {
+            case "=":
+                value = Equals(actual, exp);
+                return true;
+            case "<>":
+            case "!=":
+                value = !Equals(actual, exp);
+                return true;
+            case "<":
+            case "<=":
+            case ">":
+            case ">=":
+                value = CompareSimple(actual, exp, cond.Op);
+                return true;
+            default:
+                return false;
+        }
     }
+
+    private static bool CompareSimple(object? actual, object? expected, string op)
+    {
+        if (actual is null || expected is null)
+            return false;
+
+        if (TryConvertToDecimal(actual, out var left) && TryConvertToDecimal(expected, out var right))
+        {
+            var comparison = left.CompareTo(right);
+            return op switch
+            {
+                "<" => comparison < 0,
+                "<=" => comparison <= 0,
+                ">" => comparison > 0,
+                ">=" => comparison >= 0,
+                _ => false
+            };
+        }
+
+        var comparisonText = StringComparer.OrdinalIgnoreCase.Compare(
+            Convert.ToString(actual, CultureInfo.InvariantCulture),
+            Convert.ToString(expected, CultureInfo.InvariantCulture));
+        return op switch
+        {
+            "<" => comparisonText < 0,
+            "<=" => comparisonText <= 0,
+            ">" => comparisonText > 0,
+            ">=" => comparisonText >= 0,
+            _ => false
+        };
+    }
+
+    private static bool TryConvertToDecimal(object value, out decimal result)
+        => decimal.TryParse(
+            Convert.ToString(value, CultureInfo.InvariantCulture),
+            NumberStyles.Any,
+            CultureInfo.InvariantCulture,
+            out result);
 
     private static IEnumerable<object?> GetCanditateFromTable(
         ITableMock table,

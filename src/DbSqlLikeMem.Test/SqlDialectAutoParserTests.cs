@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Data;
 
 namespace DbSqlLikeMem.Test;
 
@@ -302,7 +301,7 @@ public sealed class SqlDialectAutoParserTests
 
         Assert.Equal("seq_orders", create.Table?.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("sales", create.Table?.DbName, StringComparer.OrdinalIgnoreCase);
-        Assert.Equal(10, create.StartWith);
+        Assert.Equal(10, create.StartValue);
         Assert.Equal(5, create.IncrementBy);
         Assert.True(drop.IfExists);
         Assert.Equal("seq_orders", drop.Table?.Name, StringComparer.OrdinalIgnoreCase);
@@ -375,6 +374,7 @@ public sealed class SqlDialectAutoParserTests
         Assert.True(dialect.SupportsJsonExtractFunction);
         Assert.True(dialect.SupportsJsonValueFunction);
         Assert.True(dialect.SupportsJsonValueReturningClause);
+        Assert.True(dialect.SupportsOpenJsonFunction);
     }
 
     /// <summary>
@@ -388,10 +388,12 @@ public sealed class SqlDialectAutoParserTests
         var extract = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("JSON_EXTRACT(payload, '$.tenant')"));
         var value = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("JSON_VALUE(payload, '$.tenant')"));
         var valueReturning = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("JSON_VALUE(payload, '$.tenant' RETURNING NUMBER)"));
+        var openJson = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("OPENJSON(payload)"));
 
         Assert.Equal("JSON_EXTRACT", extract.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("JSON_VALUE", value.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("JSON_VALUE", valueReturning.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("OPENJSON", openJson.Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("RETURNING NUMBER", Assert.IsType<RawSqlExpr>(valueReturning.Args[2]).Sql, ignoreCase: true);
     }
 
@@ -521,6 +523,105 @@ public sealed class SqlDialectAutoParserTests
     }
 
     /// <summary>
+    /// EN: Verifies Auto dialect exposes the shared MATCH ... AGAINST capability.
+    /// PT: Verifica se o dialeto Auto expoe a capability compartilhada de MATCH ... AGAINST.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldExposeMatchAgainstCapability()
+    {
+        var dialect = new AutoSqlDialect();
+
+        Assert.True(dialect.SupportsMatchAgainstPredicate);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto dialect exposes the shared conditional and null-substitute capabilities.
+    /// PT: Verifica se o dialeto Auto expoe as capabilities compartilhadas de condicionais e substituicao de nulos.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldExposeConditionalAndNullSubstituteCapabilities()
+    {
+        var dialect = new AutoSqlDialect();
+
+        Assert.True(dialect.SupportsIfFunction);
+        Assert.True(dialect.SupportsIifFunction);
+        Assert.Contains("IFNULL", dialect.NullSubstituteFunctionNames, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("ISNULL", dialect.NullSubstituteFunctionNames, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("NVL", dialect.NullSubstituteFunctionNames, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto dialect exposes the shared window-function capability surface.
+    /// PT: Verifica se o dialeto Auto expoe a superficie compartilhada de capabilities de funcoes de janela.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldExposeWindowFunctionCapabilities()
+    {
+        var dialect = new AutoSqlDialect();
+
+        Assert.True(dialect.SupportsWindowFunctions);
+        Assert.True(dialect.SupportsWindowFunction("ROW_NUMBER"));
+        Assert.True(dialect.SupportsWindowFunction("LAG"));
+        Assert.False(dialect.SupportsWindowFunction("PERCENTILE_CONT"));
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto dialect exposes the shared PIVOT capability already available in the shared parser and executor.
+    /// PT: Verifica se o dialeto Auto expoe a capability compartilhada de PIVOT ja disponivel no parser e no executor compartilhados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldExposePivotCapability()
+    {
+        var dialect = new AutoSqlDialect();
+
+        Assert.True(dialect.SupportsPivotClause);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto dialect exposes shared WITH/CTE support.
+    /// PT: Verifica se o dialeto Auto expoe suporte compartilhado a WITH/CTE.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldExposeWithCteCapability()
+    {
+        var dialect = new AutoSqlDialect();
+
+        Assert.True(dialect.SupportsWithCte);
+        Assert.True(dialect.SupportsWithRecursive);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto dialect exposes shared DML RETURNING support.
+    /// PT: Verifica se o dialeto Auto expoe suporte compartilhado a RETURNING em DML.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldExposeReturningCapability()
+    {
+        var dialect = new AutoSqlDialect();
+
+        Assert.True(dialect.SupportsReturning);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto dialect exposes shared ORDER BY NULLS FIRST/LAST support.
+    /// PT: Verifica se o dialeto Auto expoe suporte compartilhado a ORDER BY NULLS FIRST/LAST.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldExposeOrderByNullsCapability()
+    {
+        var dialect = new AutoSqlDialect();
+
+        Assert.True(dialect.SupportsOrderByNullsModifier);
+    }
+
+    /// <summary>
     /// EN: Verifies Auto mode parses shared string-aggregate families, including ordered-set syntax.
     /// PT: Verifica se o modo Auto interpreta familias compartilhadas de agregacao textual, incluindo sintaxe ordered-set.
     /// </summary>
@@ -588,6 +689,158 @@ public sealed class SqlDialectAutoParserTests
     }
 
     /// <summary>
+    /// EN: Verifies Auto mode parses MATCH ... AGAINST into the shared internal call form.
+    /// PT: Verifica se o modo Auto interpreta MATCH ... AGAINST para a forma interna compartilhada de chamada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldParseMatchAgainst()
+    {
+        var expr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto(
+            "MATCH(title, body) AGAINST ('+john -maria' IN BOOLEAN MODE)"));
+
+        Assert.Equal("MATCH_AGAINST", expr.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(3, expr.Args.Count);
+        Assert.Equal("IN BOOLEAN MODE", Assert.IsType<RawSqlExpr>(expr.Args[2]).Sql, ignoreCase: true);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode parses shared conditional and null-substitute helpers.
+    /// PT: Verifica se o modo Auto interpreta helpers compartilhados condicionais e de substituicao de nulos.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldParseConditionalAndNullSubstituteHelpers()
+    {
+        var ifExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("IF(score > 0, 'yes', 'no')"));
+        var iifExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("IIF(score > 0, 'yes', 'no')"));
+        var ifNullExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("IFNULL(name, 'n/a')"));
+        var isNullExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("ISNULL(name, 'n/a')"));
+        var nvlExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("NVL(name, 'n/a')"));
+        var coalesceExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("COALESCE(name, 'n/a')"));
+        var nullIfExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalarAuto("NULLIF(name, 'n/a')"));
+
+        Assert.Equal("IF", ifExpr.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("IIF", iifExpr.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("IFNULL", ifNullExpr.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ISNULL", isNullExpr.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("NVL", nvlExpr.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("COALESCE", coalesceExpr.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("NULLIF", nullIfExpr.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode parses shared window functions without provider-specific dialect selection.
+    /// PT: Verifica se o modo Auto interpreta funcoes de janela compartilhadas sem selecao de dialeto especifica por provider.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldParseSharedWindowFunctions()
+    {
+        var rowNumber = Assert.IsType<WindowFunctionExpr>(SqlExpressionParser.ParseScalarAuto(
+            "ROW_NUMBER() OVER (ORDER BY id)"));
+        var lag = Assert.IsType<WindowFunctionExpr>(SqlExpressionParser.ParseScalarAuto(
+            "LAG(amount, 1, 0) OVER (PARTITION BY userid ORDER BY amount)"));
+
+        Assert.Equal("ROW_NUMBER", rowNumber.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Empty(rowNumber.Args);
+        Assert.Single(rowNumber.Spec.OrderBy);
+        Assert.Equal("LAG", lag.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(3, lag.Args.Count);
+        Assert.Single(lag.Spec.PartitionBy);
+        Assert.Single(lag.Spec.OrderBy);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode parses shared PIVOT syntax without provider-specific dialect selection.
+    /// PT: Verifica se o modo Auto interpreta sintaxe compartilhada de PIVOT sem selecao de dialeto especifica por provider.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldParsePivot()
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.ParseAuto(
+            "SELECT t10, t20 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10, 20 AS t20)) p"));
+
+        var source = parsed.Table;
+        Assert.NotNull(source);
+        var pivot = source!.Pivot;
+        Assert.NotNull(pivot);
+
+        Assert.Equal("COUNT", pivot!.AggregateFunction, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("tenantid", pivot.ForColumnRaw, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(2, pivot.InItems.Count);
+        Assert.Equal("t10", pivot.InItems[0].Alias, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("t20", pivot.InItems[1].Alias, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode parses shared WITH/CTE syntax without provider-specific dialect selection.
+    /// PT: Verifica se o modo Auto interpreta sintaxe compartilhada de WITH/CTE sem selecao de dialeto especifica por provider.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldParseWithCte()
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.ParseAuto(
+            """
+            WITH active_users AS (
+                SELECT Id, Name
+                FROM users
+                WHERE Id <= 2
+            )
+            SELECT Name
+            FROM active_users
+            ORDER BY Id
+            """));
+
+        var cte = Assert.Single(parsed.Ctes);
+        Assert.Equal("active_users", cte.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("active_users", parsed.Table?.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode parses shared RETURNING syntax for DML statements.
+    /// PT: Verifica se o modo Auto interpreta sintaxe compartilhada de RETURNING para comandos DML.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldParseReturning()
+    {
+        var insert = Assert.IsType<SqlInsertQuery>(SqlQueryParser.ParseAuto(
+            "INSERT INTO users (id, name) VALUES (1, 'Ana') RETURNING id, name AS user_name"));
+        var update = Assert.IsType<SqlUpdateQuery>(SqlQueryParser.ParseAuto(
+            "UPDATE users SET name = 'Bia' WHERE id = 1 RETURNING id, name"));
+        var delete = Assert.IsType<SqlDeleteQuery>(SqlQueryParser.ParseAuto(
+            "DELETE FROM users WHERE id = 1 RETURNING id"));
+
+        Assert.Equal(2, insert.Returning.Count);
+        Assert.Equal("user_name", insert.Returning[1].Alias, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(2, update.Returning.Count);
+        Assert.Single(delete.Returning);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode parses shared ORDER BY NULLS FIRST/LAST syntax.
+    /// PT: Verifica se o modo Auto interpreta sintaxe compartilhada de ORDER BY NULLS FIRST/LAST.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldParseOrderByNulls()
+    {
+        var first = Assert.IsType<SqlSelectQuery>(SqlQueryParser.ParseAuto(
+            "SELECT Name FROM users ORDER BY Email NULLS FIRST"));
+        var last = Assert.IsType<SqlSelectQuery>(SqlQueryParser.ParseAuto(
+            "SELECT Name FROM users ORDER BY Email DESC NULLS LAST"));
+
+        Assert.Single(first.OrderBy);
+        Assert.True(first.OrderBy[0].NullsFirst);
+        Assert.Single(last.OrderBy);
+        Assert.False(last.OrderBy[0].NullsFirst);
+        Assert.True(last.OrderBy[0].Desc);
+    }
+
+    /// <summary>
     /// EN: Verifies Auto mode parses the shared SQL_CALC_FOUND_ROWS select modifier.
     /// PT: Verifica se o modo Auto interpreta o modificador compartilhado SQL_CALC_FOUND_ROWS em SELECT.
     /// </summary>
@@ -640,7 +893,7 @@ public sealed class SqlDialectAutoParserTests
     [Trait("Category", "Parser")]
     public void AutoDialect_ShouldDetectJsonFunctionMarkers()
     {
-        var features = DetectSyntaxFeatures("SELECT JSON_EXTRACT(payload, '$.tenant'), JSON_VALUE(payload, '$.region') FROM users");
+        var features = DetectSyntaxFeatures("SELECT JSON_EXTRACT(payload, '$.tenant'), JSON_VALUE(payload, '$.region'), OPENJSON(payload) FROM users");
 
         Assert.True((features & AutoSqlSyntaxFeatures.JsonFunction) != 0);
     }
@@ -724,6 +977,97 @@ public sealed class SqlDialectAutoParserTests
         Assert.True((features & AutoSqlSyntaxFeatures.Ilike) != 0);
     }
 
+    /// <summary>
+    /// EN: Verifies Auto syntax detection recognizes MATCH ... AGAINST markers.
+    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores de MATCH ... AGAINST.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldDetectMatchAgainstMarkers()
+    {
+        var features = DetectSyntaxFeatures("SELECT MATCH(title, body) AGAINST ('john' IN BOOLEAN MODE) FROM users");
+
+        Assert.True((features & AutoSqlSyntaxFeatures.MatchAgainst) != 0);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto syntax detection recognizes shared conditional and null-substitute markers.
+    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados condicionais e de substituicao de nulos.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldDetectConditionalAndNullSubstituteMarkers()
+    {
+        var features = DetectSyntaxFeatures("SELECT IF(a > 0, 1, 0), IIF(a > 0, 1, 0), IFNULL(name, 'n/a'), ISNULL(name, 'n/a'), NVL(name, 'n/a'), COALESCE(name, 'n/a'), NULLIF(name, 'n/a') FROM users");
+
+        Assert.True((features & AutoSqlSyntaxFeatures.ConditionalNullFunctions) != 0);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto syntax detection recognizes shared window-function markers.
+    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de funcoes de janela.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldDetectWindowFunctionMarkers()
+    {
+        var features = DetectSyntaxFeatures("SELECT ROW_NUMBER() OVER (ORDER BY id), LAG(amount, 1, 0) OVER (PARTITION BY userid ORDER BY amount) FROM users");
+
+        Assert.True((features & AutoSqlSyntaxFeatures.WindowFunctions) != 0);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto syntax detection recognizes shared PIVOT markers.
+    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de PIVOT.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldDetectPivotMarkers()
+    {
+        var features = DetectSyntaxFeatures("SELECT t10, t20 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10, 20 AS t20)) p");
+
+        Assert.True((features & AutoSqlSyntaxFeatures.Pivot) != 0);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto syntax detection recognizes shared WITH/CTE markers.
+    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de WITH/CTE.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldDetectWithCteMarkers()
+    {
+        var features = DetectSyntaxFeatures("WITH active_users AS (SELECT Id FROM users) SELECT Id FROM active_users");
+
+        Assert.True((features & AutoSqlSyntaxFeatures.WithCte) != 0);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto syntax detection recognizes shared RETURNING markers.
+    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de RETURNING.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldDetectReturningMarkers()
+    {
+        var features = DetectSyntaxFeatures("INSERT INTO users (id, name) VALUES (1, 'Ana') RETURNING id, name");
+
+        Assert.True((features & AutoSqlSyntaxFeatures.Returning) != 0);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto syntax detection recognizes shared ORDER BY NULLS FIRST/LAST markers.
+    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de ORDER BY NULLS FIRST/LAST.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldDetectOrderByNullsMarkers()
+    {
+        var features = DetectSyntaxFeatures("SELECT Name FROM users ORDER BY Email NULLS FIRST, Name DESC NULLS LAST");
+
+        Assert.True((features & AutoSqlSyntaxFeatures.OrderByNulls) != 0);
+    }
+
     private static SqlLimitOffset ParseRowLimit(string sql, AutoSqlDialect dialect)
     {
         var parsed = ParseSelect(sql, dialect);
@@ -751,10 +1095,14 @@ public sealed class SqlDialectAutoParserTests
             set => throw new NotSupportedException();
         }
 
-        public object this[int index]
+        public object? this[int index]
         {
             get => _items[index];
-            set => _items[index] = value;
+            set
+            {
+                ArgumentNullExceptionCompatible.ThrowIfNull(value, nameof(value));
+                _items[index] = value!;
+            }
         }
 
         public bool IsFixedSize => false;
@@ -770,7 +1118,7 @@ public sealed class SqlDialectAutoParserTests
         public int Add(object? value)
         {
             ArgumentNullExceptionCompatible.ThrowIfNull(value, nameof(value));
-            _items.Add(value);
+            _items.Add(value!);
             return _items.Count - 1;
         }
 
@@ -807,7 +1155,7 @@ public sealed class SqlDialectAutoParserTests
         public void Insert(int index, object? value)
         {
             ArgumentNullExceptionCompatible.ThrowIfNull(value, nameof(value));
-            _items.Insert(index, value);
+            _items.Insert(index, value!);
         }
 
         public void Remove(object? value)
@@ -826,20 +1174,33 @@ public sealed class SqlDialectAutoParserTests
         public void RemoveAt(int index) => _items.RemoveAt(index);
     }
 
-    private sealed class TestParameter(string name, object? value) : IDataParameter
+#nullable disable
+    private sealed class TestParameter(string name, object value) : IDataParameter
     {
+        private string _parameterName = name;
+        private string _sourceColumn = string.Empty;
+
         public DbType DbType { get; set; }
 
         public ParameterDirection Direction { get; set; } = ParameterDirection.Input;
 
         public bool IsNullable => true;
 
-        public string ParameterName { get; set; } = name;
-
-        public string SourceColumn { get; set; } = string.Empty;
-
         public DataRowVersion SourceVersion { get; set; } = DataRowVersion.Current;
 
-        public object? Value { get; set; } = value;
+        public object Value { get; set; } = value;
+
+        string IDataParameter.ParameterName
+        {
+            get => _parameterName;
+            set => _parameterName = value ?? string.Empty;
+        }
+
+        string IDataParameter.SourceColumn
+        {
+            get => _sourceColumn;
+            set => _sourceColumn = value ?? string.Empty;
+        }
     }
+#nullable restore
 }

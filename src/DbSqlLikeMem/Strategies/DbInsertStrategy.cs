@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace DbSqlLikeMem;
 
 internal static class DbInsertStrategy
@@ -24,12 +26,14 @@ internal static class DbInsertStrategy
         DbParameterCollection? pars,
         ISqlDialect dialect)
     {
+        var sw = Stopwatch.StartNew();
         ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(query.Table!.Name, nameof(query.Table.Name));
 
         var tableName = query.Table.Name!; // Nome vindo do Parser
         if (!connection.TryGetTable(tableName, out var table, query.Table.DbName) || table == null)
             throw SqlUnsupported.ForTableDoesNotExist(tableName);
+        var targetRowCountBefore = table.Count;
 
         // Identifica linhas a inserir (seja via VALUES ou SELECT)
         List<Dictionary<int, object?>> newRows;
@@ -115,7 +119,26 @@ internal static class DbInsertStrategy
 
         int affected = dialect.GetInsertUpsertAffectedRowCount(insertedCount, updatedCount);
         connection.SetLastFoundRows(affected);
+        sw.Stop();
+
+        var metrics = new SqlPlanRuntimeMetrics(
+            InputTables: query.InsertSelect is null ? 1 : 1 + CountInputTables(query.InsertSelect),
+            EstimatedRowsRead: targetRowCountBefore + newRows.Count,
+            ActualRows: affected,
+            ElapsedMs: sw.ElapsedMilliseconds);
+        var plan = SqlExecutionPlanFormatter.FormatInsert(
+            query,
+            metrics,
+            new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
+        connection.RegisterExecutionPlan(plan);
         return affected;
+    }
+
+    private static int CountInputTables(SqlSelectQuery query)
+    {
+        var count = query.Table is not null ? 1 : 0;
+        count += query.Joins.Count;
+        return Math.Max(1, count);
     }
 
     // --- Helpers de Criação de Linhas ---
@@ -1066,20 +1089,36 @@ internal static class DbInsertStrategy
             throw SqlUnsupported.ForDialect(dialect, "PREVIOUS VALUE FOR");
 
         if ((functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
-                || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase))
-            && !dialect.SupportsSequenceDotValueExpression(functionName))
-        {
-            throw SqlUnsupported.ForDialect(dialect, functionName.ToUpperInvariant());
-        }
-
-        if ((functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
                 || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)
                 || functionName.Equals("SETVAL", StringComparison.OrdinalIgnoreCase)
                 || functionName.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase))
-            && !dialect.SupportsSequenceFunctionCall(functionName))
+            && !SupportsSequenceFunctionCall(dialect, functionName))
         {
             throw SqlUnsupported.ForDialect(dialect, functionName.ToUpperInvariant());
         }
+    }
+
+    private static bool SupportsSequenceFunctionCall(ISqlDialect dialect, string functionName)
+    {
+        if (dialect.SupportsSequenceFunctionCall(functionName))
+            return true;
+
+        if (dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        {
+            return functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("SETVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        {
+            return (functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
+                    || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase))
+                && dialect.SupportsSequenceDotValueExpression(functionName);
+        }
+
+        return false;
     }
 
     private static void TryExecuteTableTrigger(

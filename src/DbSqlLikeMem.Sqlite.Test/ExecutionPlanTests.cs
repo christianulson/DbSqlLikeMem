@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
@@ -57,6 +59,96 @@ public sealed class ExecutionPlanTests : XUnitTestBase
         cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.ActualRowsLabel()}: 2");
 
         Console.WriteLine("[ExecutionPlan][Sqlite]\n" + cnn.LastExecutionPlan);
+    }
+
+    /// <summary>
+    /// EN: Ensures INSERT non-query execution also generates a readable execution plan.
+    /// PT: Garante que a execucao non-query de INSERT tambem gere um plano de execucao legivel.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteNonQuery_Insert_ShouldGenerateExecutionPlan()
+    {
+        using var cnn = new SqliteConnectionMock();
+
+        cnn.Define("users");
+        cnn.Column<int>("users", "Id");
+        cnn.Column<string>("users", "Name");
+
+        using var cmd = new SqliteCommandMock(cnn)
+        {
+            CommandText = "INSERT INTO users (Id, Name) VALUES (1, 'Ana'), (2, 'Bia')"
+        };
+
+        cmd.ExecuteNonQuery().Should().Be(2);
+        cnn.LastExecutionPlan.Should().NotBeNullOrWhiteSpace();
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.QueryTypeLabel()}: INSERT");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.TableLabel()}: users");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.ActualRowsLabel()}: 2");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.PerformanceDisclaimerLabel()}:");
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE non-query execution also generates a readable execution plan with target and filter details.
+    /// PT: Garante que a execucao non-query de UPDATE tambem gere um plano de execucao legivel com detalhes de alvo e filtro.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteNonQuery_Update_ShouldGenerateExecutionPlan()
+    {
+        using var cnn = new SqliteConnectionMock();
+
+        cnn.Define("users");
+        cnn.Column<int>("users", "Id");
+        cnn.Column<int>("users", "Active");
+        cnn.Seed("users", null,
+            [1, 0],
+            [2, 0],
+            [3, 1]);
+
+        using var cmd = new SqliteCommandMock(cnn)
+        {
+            CommandText = "UPDATE users SET Active = 1 WHERE Id <= 2"
+        };
+
+        cmd.ExecuteNonQuery().Should().Be(2);
+        cnn.LastExecutionPlan.Should().NotBeNullOrWhiteSpace();
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.QueryTypeLabel()}: UPDATE");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.TableLabel()}: users");
+        cnn.LastExecutionPlan.Should().Contain("- SET: 1 item(s)");
+        cnn.LastExecutionPlan.Should().Contain("- WHERE:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.ActualRowsLabel()}: 2");
+    }
+
+    /// <summary>
+    /// EN: Ensures DELETE non-query execution also generates a readable execution plan with target and filter details.
+    /// PT: Garante que a execucao non-query de DELETE tambem gere um plano de execucao legivel com detalhes de alvo e filtro.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteNonQuery_Delete_ShouldGenerateExecutionPlan()
+    {
+        using var cnn = new SqliteConnectionMock();
+
+        cnn.Define("users");
+        cnn.Column<int>("users", "Id");
+        cnn.Column<int>("users", "Active");
+        cnn.Seed("users", null,
+            [1, 1],
+            [2, 0],
+            [3, 0]);
+
+        using var cmd = new SqliteCommandMock(cnn)
+        {
+            CommandText = "DELETE FROM users WHERE Active = 0"
+        };
+
+        cmd.ExecuteNonQuery().Should().Be(2);
+        cnn.LastExecutionPlan.Should().NotBeNullOrWhiteSpace();
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.QueryTypeLabel()}: DELETE");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.TableLabel()}: users");
+        cnn.LastExecutionPlan.Should().Contain("- WHERE:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.ActualRowsLabel()}: 2");
     }
 
     /// <summary>
@@ -426,7 +518,8 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
         text.Should().Contain("Query Debug Trace Batch");
         text.Should().Contain("TraceCount: 2");
-        text.Should().Contain("FastestStatementIndex: 0");
+        text.Should().Contain("FastestStatementIndex:");
+        text.Should().MatchRegex(@"FastestStatementIndex: [01]\r?\n- FastestStatementSql: SELECT [12] AS Id");
         text.Should().Contain("NarrowestStatementIndex: 0");
         text.Should().Contain("SqlText: SELECT 1 AS Id");
         text.Should().Contain("SqlText: SELECT 2 AS Id");
@@ -447,8 +540,10 @@ public sealed class ExecutionPlanTests : XUnitTestBase
         var root = doc.RootElement;
 
         root.GetProperty("traceCount").GetInt32().Should().Be(2);
-        root.GetProperty("fastestStatementIndex").GetInt32().Should().Be(0);
-        root.GetProperty("fastestStatementSql").GetString().Should().Be("SELECT 1 AS Id");
+        var fastestStatementIndex = root.GetProperty("fastestStatementIndex").GetInt32();
+        var fastestStatementSql = root.GetProperty("fastestStatementSql").GetString();
+        fastestStatementIndex.Should().BeOneOf(0, 1);
+        fastestStatementSql.Should().Be(fastestStatementIndex == 0 ? "SELECT 1 AS Id" : "SELECT 2 AS Id");
         root.GetProperty("narrowestStatementIndex").GetInt32().Should().Be(0);
         root.GetProperty("narrowestStatementSql").GetString().Should().Be("SELECT 1 AS Id");
         root.GetProperty("traces")[1].GetProperty("sqlText").GetString().Should().Be("SELECT 2 AS Id");

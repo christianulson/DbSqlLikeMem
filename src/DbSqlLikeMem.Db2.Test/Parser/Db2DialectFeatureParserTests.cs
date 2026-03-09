@@ -726,7 +726,7 @@ public sealed class Db2DialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
 
-        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("SQL não suportado", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

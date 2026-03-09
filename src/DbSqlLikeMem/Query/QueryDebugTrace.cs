@@ -87,6 +87,12 @@ public sealed class QueryDebugTrace
         }
 
         TotalExecutionTime = TimeSpan.FromTicks(totalTicks);
+        Console.WriteLine(
+            $"[QUERY-TRACE-CTOR] QueryType='{queryType}' StatementIndex={StatementIndex} " +
+            $"StepTicks=[{string.Join(", ", Steps.Select(static step => step.ExecutionTime.Ticks.ToString(CultureInfo.InvariantCulture)))}] " +
+            $"StepMs=[{string.Join(", ", Steps.Select(static step => step.ExecutionTime.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)))}] " +
+            $"TotalTicks={totalTicks.ToString(CultureInfo.InvariantCulture)} " +
+            $"TotalMs={TotalExecutionTime.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)}");
         MaxInputRows = maxInputRows;
         MaxOutputRows = maxOutputRows;
         OperatorSignature = signature.ToString();
@@ -296,6 +302,9 @@ public sealed class QueryDebugTraceStep
         OutputRows = outputRows;
         ExecutionTime = executionTime;
         Details = details;
+        Console.WriteLine(
+            $"[QUERY-TRACE-STEP-CTOR] Operator='{operatorName}' Ticks={executionTime.Ticks.ToString(CultureInfo.InvariantCulture)} " +
+            $"ElapsedMs={executionTime.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)}");
     }
 
     /// <summary>

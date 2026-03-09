@@ -183,11 +183,11 @@ public sealed class SqlAzureDialectBehaviorTests
     }
 
     /// <summary>
-    /// EN: Ensures FOUND_ROWS function remains aligned with SQL Azure row-count compatibility behavior.
-    /// PT: Garante que a função FOUND_ROWS permaneça alinhada ao comportamento de compatibilidade de contagem de linhas do SQL Azure.
+    /// EN: Ensures SQL Azure rejects FOUND_ROWS because compatibility mode exposes ROWCOUNT and @@ROWCOUNT instead.
+    /// PT: Garante que o SQL Azure rejeite FOUND_ROWS porque o modo de compatibilidade expoe ROWCOUNT e @@ROWCOUNT no lugar.
     /// </summary>
     [Fact]
-    public void Select_FoundRows_ShouldReturnLastSelectRowCount()
+    public void Select_FoundRows_ShouldThrowNotSupportedException()
     {
         using var connection = CreateOpenConnection();
         using (var seed = new SqlAzureCommandMock(connection))
@@ -204,12 +204,8 @@ public sealed class SqlAzureDialectBehaviorTests
             CommandText = "SELECT TOP 1 Name FROM Users ORDER BY Id; SELECT FOUND_ROWS();"
         };
 
-        using var reader = command.ExecuteReader();
-        Assert.True(reader.Read());
-        Assert.Equal("Found A", reader.GetString(0));
-        Assert.True(reader.NextResult());
-        Assert.True(reader.Read());
-        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+        var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+        Assert.Contains("FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

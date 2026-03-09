@@ -4357,7 +4357,7 @@ WHERE id = 1";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
 
-        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("LISTAGG", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

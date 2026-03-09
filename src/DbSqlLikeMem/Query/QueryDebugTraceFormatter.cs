@@ -18,62 +18,34 @@ public static class QueryDebugTraceFormatter
     public static string Format(QueryDebugTrace trace)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(trace, nameof(trace));
+        LogIfTraceTotalLooksInconsistent(trace);
 
         var sb = new StringBuilder();
         sb.AppendLine("Query Debug Trace");
-        sb.AppendLine($"- QueryType: {trace.QueryType}");
-        sb.AppendLine($"- StatementIndex: {trace.StatementIndex}");
-
-        if (!string.IsNullOrWhiteSpace(trace.SqlText))
-            sb.AppendLine($"- SqlText: {trace.SqlText}");
-
-        sb.AppendLine($"- Steps: {trace.Steps.Count}");
-        sb.AppendLine($"- TotalElapsedMs: {trace.TotalExecutionTime.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)}");
-        sb.AppendLine($"- MaxInputRows: {trace.MaxInputRows}");
-        sb.AppendLine($"- MaxOutputRows: {trace.MaxOutputRows}");
-        if (!string.IsNullOrWhiteSpace(trace.OperatorSignature))
-            sb.AppendLine($"- Operators: {trace.OperatorSignature}");
-        if (!string.IsNullOrWhiteSpace(trace.FirstOperator))
-            sb.AppendLine($"- FirstOperator: {trace.FirstOperator}");
-        if (!string.IsNullOrWhiteSpace(trace.LastOperator))
-            sb.AppendLine($"- LastOperator: {trace.LastOperator}");
-        if (!string.IsNullOrWhiteSpace(trace.OperatorCounts))
-            sb.AppendLine($"- OperatorCounts: {trace.OperatorCounts}");
-        if (!string.IsNullOrWhiteSpace(trace.SlowestOperator))
-            sb.AppendLine($"- SlowestOperator: {trace.SlowestOperator}");
-        if (trace.SlowestStepIndex >= 0)
-            sb.AppendLine($"- SlowestStepIndex: {trace.SlowestStepIndex}");
-        if (!string.IsNullOrWhiteSpace(trace.SlowestStepDetails))
-            sb.AppendLine($"- SlowestStepDetails: {trace.SlowestStepDetails}");
-        if (!string.IsNullOrWhiteSpace(trace.FastestOperator))
-            sb.AppendLine($"- FastestOperator: {trace.FastestOperator}");
-        if (trace.FastestStepIndex >= 0)
-            sb.AppendLine($"- FastestStepIndex: {trace.FastestStepIndex}");
-        if (!string.IsNullOrWhiteSpace(trace.FastestStepDetails))
-            sb.AppendLine($"- FastestStepDetails: {trace.FastestStepDetails}");
-        if (!string.IsNullOrWhiteSpace(trace.WidestOperator))
-            sb.AppendLine($"- WidestOperator: {trace.WidestOperator}");
-        if (trace.WidestStepIndex >= 0)
-            sb.AppendLine($"- WidestStepIndex: {trace.WidestStepIndex}");
-        if (!string.IsNullOrWhiteSpace(trace.WidestStepDetails))
-            sb.AppendLine($"- WidestStepDetails: {trace.WidestStepDetails}");
-        if (!string.IsNullOrWhiteSpace(trace.NarrowestOperator))
-            sb.AppendLine($"- NarrowestOperator: {trace.NarrowestOperator}");
-        if (trace.NarrowestStepIndex >= 0)
-            sb.AppendLine($"- NarrowestStepIndex: {trace.NarrowestStepIndex}");
-        if (!string.IsNullOrWhiteSpace(trace.NarrowestStepDetails))
-            sb.AppendLine($"- NarrowestStepDetails: {trace.NarrowestStepDetails}");
-
-        for (var i = 0; i < trace.Steps.Count; i++)
-        {
-            var step = trace.Steps[i];
-            sb.AppendLine($"  - Step[{i + 1}]: {step.Operator}");
-            sb.AppendLine($"    InputRows: {step.InputRows}");
-            sb.AppendLine($"    OutputRows: {step.OutputRows}");
-            sb.AppendLine($"    ElapsedMs: {step.ExecutionTime.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)}");
-            if (!string.IsNullOrWhiteSpace(step.Details))
-                sb.AppendLine($"    Details: {step.Details}");
-        }
+        AppendLine(sb, "QueryType", trace.QueryType);
+        AppendLine(sb, "StatementIndex", trace.StatementIndex);
+        AppendOptionalLine(sb, "SqlText", trace.SqlText);
+        AppendLine(sb, "Steps", trace.Steps.Count);
+        AppendMillisecondsLine(sb, "TotalElapsedMs", trace.TotalExecutionTime.TotalMilliseconds);
+        AppendLine(sb, "MaxInputRows", trace.MaxInputRows);
+        AppendLine(sb, "MaxOutputRows", trace.MaxOutputRows);
+        AppendOptionalLine(sb, "Operators", trace.OperatorSignature);
+        AppendOptionalLine(sb, "FirstOperator", trace.FirstOperator);
+        AppendOptionalLine(sb, "LastOperator", trace.LastOperator);
+        AppendOptionalLine(sb, "OperatorCounts", trace.OperatorCounts);
+        AppendOptionalLine(sb, "SlowestOperator", trace.SlowestOperator);
+        AppendOptionalLine(sb, "SlowestStepIndex", trace.SlowestStepIndex);
+        AppendOptionalLine(sb, "SlowestStepDetails", trace.SlowestStepDetails);
+        AppendOptionalLine(sb, "FastestOperator", trace.FastestOperator);
+        AppendOptionalLine(sb, "FastestStepIndex", trace.FastestStepIndex);
+        AppendOptionalLine(sb, "FastestStepDetails", trace.FastestStepDetails);
+        AppendOptionalLine(sb, "WidestOperator", trace.WidestOperator);
+        AppendOptionalLine(sb, "WidestStepIndex", trace.WidestStepIndex);
+        AppendOptionalLine(sb, "WidestStepDetails", trace.WidestStepDetails);
+        AppendOptionalLine(sb, "NarrowestOperator", trace.NarrowestOperator);
+        AppendOptionalLine(sb, "NarrowestStepIndex", trace.NarrowestStepIndex);
+        AppendOptionalLine(sb, "NarrowestStepDetails", trace.NarrowestStepDetails);
+        AppendStepLines(sb, trace.Steps);
 
         return sb.ToString().TrimEnd();
     }
@@ -92,33 +64,18 @@ public static class QueryDebugTraceFormatter
 
         var sb = new StringBuilder();
         sb.AppendLine("Query Debug Trace Batch");
-        sb.AppendLine($"- TraceCount: {traces.Count}");
-        sb.AppendLine($"- TotalStepCount: {summary.TotalStepCount}");
-        sb.AppendLine($"- TotalElapsedMs: {summary.TotalElapsedMs.ToString("F3", CultureInfo.InvariantCulture)}");
-        sb.AppendLine($"- MaxInputRows: {summary.MaxInputRows}");
-        sb.AppendLine($"- MaxOutputRows: {summary.MaxOutputRows}");
-        if (!string.IsNullOrWhiteSpace(summary.OperatorSignature))
-            sb.AppendLine($"- Operators: {summary.OperatorSignature}");
-        if (!string.IsNullOrWhiteSpace(summary.QueryTypeCounts))
-            sb.AppendLine($"- QueryTypes: {summary.QueryTypeCounts}");
-        if (!string.IsNullOrWhiteSpace(summary.OperatorCounts))
-            sb.AppendLine($"- OperatorCounts: {summary.OperatorCounts}");
-        if (summary.SlowestStatement is not null)
-            sb.AppendLine($"- SlowestStatementIndex: {summary.SlowestStatement.StatementIndex}");
-        if (!string.IsNullOrWhiteSpace(summary.SlowestStatement?.SqlText))
-            sb.AppendLine($"- SlowestStatementSql: {summary.SlowestStatement.SqlText}");
-        if (summary.FastestStatement is not null)
-            sb.AppendLine($"- FastestStatementIndex: {summary.FastestStatement.StatementIndex}");
-        if (!string.IsNullOrWhiteSpace(summary.FastestStatement?.SqlText))
-            sb.AppendLine($"- FastestStatementSql: {summary.FastestStatement.SqlText}");
-        if (summary.WidestStatement is not null)
-            sb.AppendLine($"- WidestStatementIndex: {summary.WidestStatement.StatementIndex}");
-        if (!string.IsNullOrWhiteSpace(summary.WidestStatement?.SqlText))
-            sb.AppendLine($"- WidestStatementSql: {summary.WidestStatement.SqlText}");
-        if (summary.NarrowestStatement is not null)
-            sb.AppendLine($"- NarrowestStatementIndex: {summary.NarrowestStatement.StatementIndex}");
-        if (!string.IsNullOrWhiteSpace(summary.NarrowestStatement?.SqlText))
-            sb.AppendLine($"- NarrowestStatementSql: {summary.NarrowestStatement.SqlText}");
+        AppendLine(sb, "TraceCount", traces.Count);
+        AppendLine(sb, "TotalStepCount", summary.TotalStepCount);
+        AppendMillisecondsLine(sb, "TotalElapsedMs", summary.TotalElapsedMs);
+        AppendLine(sb, "MaxInputRows", summary.MaxInputRows);
+        AppendLine(sb, "MaxOutputRows", summary.MaxOutputRows);
+        AppendOptionalLine(sb, "Operators", summary.OperatorSignature);
+        AppendOptionalLine(sb, "QueryTypes", summary.QueryTypeCounts);
+        AppendOptionalLine(sb, "OperatorCounts", summary.OperatorCounts);
+        AppendOptionalStatementLine(sb, "SlowestStatementIndex", "SlowestStatementSql", summary.SlowestStatement);
+        AppendOptionalStatementLine(sb, "FastestStatementIndex", "FastestStatementSql", summary.FastestStatement);
+        AppendOptionalStatementLine(sb, "WidestStatementIndex", "WidestStatementSql", summary.WidestStatement);
+        AppendOptionalStatementLine(sb, "NarrowestStatementIndex", "NarrowestStatementSql", summary.NarrowestStatement);
 
         for (var i = 0; i < traces.Count; i++)
         {
@@ -131,6 +88,51 @@ public static class QueryDebugTraceFormatter
         return sb.ToString().TrimEnd();
     }
 
+    private static void AppendStepLines(StringBuilder sb, IReadOnlyList<QueryDebugTraceStep> steps)
+    {
+        for (var i = 0; i < steps.Count; i++)
+        {
+            var step = steps[i];
+            sb.AppendLine($"  - Step[{i + 1}]: {step.Operator}");
+            sb.AppendLine($"    InputRows: {step.InputRows}");
+            sb.AppendLine($"    OutputRows: {step.OutputRows}");
+            sb.AppendLine($"    ElapsedMs: {step.ExecutionTime.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)}");
+            if (!string.IsNullOrWhiteSpace(step.Details))
+                sb.AppendLine($"    Details: {step.Details}");
+        }
+    }
+
+    private static void AppendOptionalStatementLine(
+        StringBuilder sb,
+        string indexLabel,
+        string sqlLabel,
+        QueryDebugTrace? statement)
+    {
+        if (statement is null)
+            return;
+
+        AppendLine(sb, indexLabel, statement.StatementIndex);
+        AppendOptionalLine(sb, sqlLabel, statement.SqlText);
+    }
+
+    private static void AppendMillisecondsLine(StringBuilder sb, string label, double value)
+        => AppendLine(sb, label, value.ToString("F3", CultureInfo.InvariantCulture));
+
+    private static void AppendOptionalLine(StringBuilder sb, string label, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+            AppendLine(sb, label, value);
+    }
+
+    private static void AppendOptionalLine(StringBuilder sb, string label, int value)
+    {
+        if (value >= 0)
+            AppendLine(sb, label, value);
+    }
+
+    private static void AppendLine(StringBuilder sb, string label, object value)
+        => sb.AppendLine($"- {label}: {value}");
+
     /// <summary>
     /// EN: Formats one runtime query debug trace as structured JSON.
     /// PT: Formata um trace de debug de query em runtime como JSON estruturado.
@@ -140,6 +142,7 @@ public static class QueryDebugTraceFormatter
     public static string FormatJson(QueryDebugTrace trace)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(trace, nameof(trace));
+        LogIfTraceTotalLooksInconsistent(trace);
 
         var payload = new Dictionary<string, object?>
         {
@@ -216,7 +219,9 @@ public static class QueryDebugTraceFormatter
     }
 
     private static Dictionary<string, object?> AsJsonPayload(QueryDebugTrace trace)
-        => new()
+    {
+        LogIfTraceTotalLooksInconsistent(trace);
+        return new()
         {
             ["queryType"] = trace.QueryType,
             ["statementIndex"] = trace.StatementIndex,
@@ -250,6 +255,24 @@ public static class QueryDebugTraceFormatter
                 ["details"] = step.Details
             }).ToArray()
         };
+    }
+
+    private static void LogIfTraceTotalLooksInconsistent(QueryDebugTrace trace)
+    {
+        if (trace.Steps.Count == 0)
+            return;
+
+        var stepsTotalMs = trace.Steps.Sum(static step => step.ExecutionTime.TotalMilliseconds);
+        var traceTotalMs = trace.TotalExecutionTime.TotalMilliseconds;
+        if (Math.Abs(stepsTotalMs - traceTotalMs) <= 0.0001d)
+            return;
+
+        Console.WriteLine(
+            $"[QUERY-TRACE-TOTAL-MISMATCH] QueryType='{trace.QueryType}' StatementIndex={trace.StatementIndex} " +
+            $"StepsTotalMs={stepsTotalMs.ToString("F3", CultureInfo.InvariantCulture)} " +
+            $"TraceTotalMs={traceTotalMs.ToString("F3", CultureInfo.InvariantCulture)} " +
+            $"Steps=[{string.Join(", ", trace.Steps.Select(static step => step.ExecutionTime.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)))}]");
+    }
 
     private static string FormatCountMap(IReadOnlyDictionary<string, int> counts)
     {
@@ -323,7 +346,9 @@ public static class QueryDebugTraceFormatter
 
     private static bool IsBetterElapsedCandidate(QueryDebugTrace candidate, QueryDebugTrace current, bool descending)
     {
-        var comparison = candidate.TotalExecutionTime.CompareTo(current.TotalExecutionTime);
+        var candidateMs = Math.Round(candidate.TotalExecutionTime.TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+        var currentMs = Math.Round(current.TotalExecutionTime.TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+        var comparison = candidateMs.CompareTo(currentMs);
         if (comparison != 0)
             return descending ? comparison > 0 : comparison < 0;
 

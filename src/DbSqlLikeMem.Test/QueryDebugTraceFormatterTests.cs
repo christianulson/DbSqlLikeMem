@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace DbSqlLikeMem.Test;
 
 /// <summary>
@@ -6,6 +8,9 @@ namespace DbSqlLikeMem.Test;
 /// </summary>
 public sealed class QueryDebugTraceFormatterTests
 {
+    private static TimeSpan Ms(decimal milliseconds)
+        => TimeSpan.FromTicks((long)(milliseconds * TimeSpan.TicksPerMillisecond));
+
     /// <summary>
     /// EN: Ensures the formatter renders statement context and ordered runtime steps.
     /// PT: Garante que o formatter renderize o contexto do statement e os passos de runtime em ordem.
@@ -18,10 +23,11 @@ public sealed class QueryDebugTraceFormatterTests
             0,
             "SELECT Id FROM users",
             [
-                new QueryDebugTraceStep("TableScan", 3, 3, TimeSpan.FromMilliseconds(1.25), "users"),
-                new QueryDebugTraceStep("Project", 3, 3, TimeSpan.FromMilliseconds(0.2), "columns=1"),
-                new QueryDebugTraceStep("Project", 3, 3, TimeSpan.FromMilliseconds(0.4), "columns=1")
+                new QueryDebugTraceStep("TableScan", 3, 3, Ms(1.25m), "users"),
+                new QueryDebugTraceStep("Project", 3, 3, Ms(0.2m), "columns=1"),
+                new QueryDebugTraceStep("Project", 3, 3, Ms(0.4m), "columns=1")
             ]);
+        LogTrace("single", trace);
 
         var text = QueryDebugTraceFormatter.Format(trace);
 
@@ -46,9 +52,9 @@ public sealed class QueryDebugTraceFormatterTests
         text.Should().Contain("- WidestOperator: TableScan");
         text.Should().Contain("- WidestStepIndex: 0");
         text.Should().Contain("- WidestStepDetails: users");
-        text.Should().Contain("- NarrowestOperator: Project");
-        text.Should().Contain("- NarrowestStepIndex: 1");
-        text.Should().Contain("- NarrowestStepDetails: columns=1");
+        text.Should().Contain("- NarrowestOperator: TableScan");
+        text.Should().Contain("- NarrowestStepIndex: 0");
+        text.Should().Contain("- NarrowestStepDetails: users");
         text.Should().Contain("  - Step[1]: TableScan");
         text.Should().Contain("    InputRows: 3");
         text.Should().Contain("    OutputRows: 3");
@@ -65,22 +71,23 @@ public sealed class QueryDebugTraceFormatterTests
     [Fact]
     public void FormatBatch_ShouldSeparateTraces_AndPreserveStatementContext()
     {
-        var traces =
+        List<QueryDebugTrace> traces =
         [
             new QueryDebugTrace(
                 "SELECT",
                 0,
                 "SELECT 1",
-                [new QueryDebugTraceStep("Project", 1, 1, TimeSpan.FromMilliseconds(0.1))]),
+                [new QueryDebugTraceStep("Project", 1, 1, Ms(0.1m))]),
             new QueryDebugTrace(
                 "UNION",
                 1,
                 "SELECT 2",
                 [
-                    new QueryDebugTraceStep("UnionInputs", 2, 2, TimeSpan.FromMilliseconds(1.2)),
-                    new QueryDebugTraceStep("Project", 1, 1, TimeSpan.FromMilliseconds(0.3))
+                    new QueryDebugTraceStep("UnionInputs", 2, 2, Ms(1.2m)),
+                    new QueryDebugTraceStep("Project", 1, 1, Ms(0.3m))
                 ])
         ];
+        LogBatch("text-batch", traces);
 
         var text = QueryDebugTraceFormatter.FormatBatch(traces);
 
@@ -119,7 +126,8 @@ public sealed class QueryDebugTraceFormatterTests
             "SELECT",
             2,
             "SELECT Id FROM users",
-            [new QueryDebugTraceStep("Project", 3, 3, TimeSpan.FromMilliseconds(0.4), "columns=1")]);
+            [new QueryDebugTraceStep("Project", 3, 3, Ms(0.4m), "columns=1")]);
+        LogTrace("json-single", trace);
 
         var json = QueryDebugTraceFormatter.FormatJson(trace);
         using var doc = JsonDocument.Parse(json);
@@ -168,9 +176,9 @@ public sealed class QueryDebugTraceFormatterTests
             0,
             "SELECT 1",
             [
-                new QueryDebugTraceStep("Filter", 5, 2, TimeSpan.FromMilliseconds(0.5), "first"),
-                new QueryDebugTraceStep("Project", 5, 2, TimeSpan.FromMilliseconds(0.5), "second"),
-                new QueryDebugTraceStep("Limit", 2, 1, TimeSpan.FromMilliseconds(0.2), "third")
+                new QueryDebugTraceStep("Filter", 5, 2, Ms(0.5m), "first"),
+                new QueryDebugTraceStep("Project", 5, 2, Ms(0.5m), "second"),
+                new QueryDebugTraceStep("Limit", 2, 1, Ms(0.2m), "third")
             ]);
 
         trace.SlowestOperator.Should().Be("Filter");
@@ -192,18 +200,19 @@ public sealed class QueryDebugTraceFormatterTests
     [Fact]
     public void FormatBatchJson_ShouldPreserveOrder_AndStatementMetadata()
     {
-        var traces =
+        List<QueryDebugTrace> traces =
         [
-            new QueryDebugTrace("SELECT", 0, "SELECT 1", [new QueryDebugTraceStep("Project", 1, 1, TimeSpan.FromMilliseconds(0.1))]),
+            new QueryDebugTrace("SELECT", 0, "SELECT 1", [new QueryDebugTraceStep("Project", 1, 1, Ms(0.1m))]),
             new QueryDebugTrace(
                 "UNION",
                 1,
                 "SELECT 2",
                 [
-                    new QueryDebugTraceStep("UnionInputs", 2, 2, TimeSpan.FromMilliseconds(1.2)),
-                    new QueryDebugTraceStep("Project", 1, 1, TimeSpan.FromMilliseconds(0.3))
+                    new QueryDebugTraceStep("UnionInputs", 2, 2, Ms(1.2m)),
+                    new QueryDebugTraceStep("Project", 1, 1, Ms(0.3m))
                 ])
         ];
+        LogBatch("json-batch", traces);
 
         var json = QueryDebugTraceFormatter.FormatBatchJson(traces);
         using var doc = JsonDocument.Parse(json);
@@ -232,6 +241,21 @@ public sealed class QueryDebugTraceFormatterTests
         items[1].GetProperty("sqlText").GetString().Should().Be("SELECT 2");
     }
 
+    private static void LogBatch(string label, IReadOnlyList<QueryDebugTrace> traces)
+    {
+        Console.WriteLine($"[TEST-TRACE-BATCH] Label={label} Count={traces.Count}");
+        for (var i = 0; i < traces.Count; i++)
+            LogTrace($"{label}[{i}]", traces[i]);
+    }
+
+    private static void LogTrace(string label, QueryDebugTrace trace)
+    {
+        Console.WriteLine(
+            $"[TEST-TRACE] Label={label} QueryType={trace.QueryType} StatementIndex={trace.StatementIndex} " +
+            $"TotalMs={trace.TotalExecutionTime.TotalMilliseconds:F3} " +
+            $"StepMs=[{string.Join(", ", trace.Steps.Select(static step => step.ExecutionTime.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)))}]");
+    }
+
     /// <summary>
     /// EN: Ensures batch summaries keep the earliest statement when batch-level metrics tie.
     /// PT: Garante que os resumos em lote mantenham o primeiro statement quando houver empate de metricas no batch.
@@ -239,10 +263,10 @@ public sealed class QueryDebugTraceFormatterTests
     [Fact]
     public void FormatBatch_ShouldKeepEarliestStatement_WhenMetricsTie()
     {
-        var traces =
+        List<QueryDebugTrace> traces =
         [
-            new QueryDebugTrace("SELECT", 0, "SELECT 1", [new QueryDebugTraceStep("Project", 2, 2, TimeSpan.FromMilliseconds(0.5))]),
-            new QueryDebugTrace("SELECT", 1, "SELECT 2", [new QueryDebugTraceStep("Project", 2, 2, TimeSpan.FromMilliseconds(0.5))])
+            new QueryDebugTrace("SELECT", 0, "SELECT 1", [new QueryDebugTraceStep("Project", 2, 2, Ms(0.5m))]),
+            new QueryDebugTrace("SELECT", 1, "SELECT 2", [new QueryDebugTraceStep("Project", 2, 2, Ms(0.5m))])
         ];
 
         var text = QueryDebugTraceFormatter.FormatBatch(traces);

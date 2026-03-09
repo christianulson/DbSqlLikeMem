@@ -7,6 +7,8 @@ namespace DbSqlLikeMem;
 internal sealed class AutoSqlDialect : SqlDialectBase
 {
     internal const string DialectName = "auto";
+    private static readonly IReadOnlyCollection<string> _nullSubstituteFunctionNames =
+        ["IFNULL", "ISNULL", "NVL"];
     private static readonly IReadOnlyDictionary<string, SqlTemporalFunctionKind> _temporalFunctionNames =
         new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
         {
@@ -26,6 +28,7 @@ internal sealed class AutoSqlDialect : SqlDialectBase
         new("AND", SqlBinaryOp.And),
         new("OR", SqlBinaryOp.Or),
         new("=", SqlBinaryOp.Eq),
+        new("<=>", SqlBinaryOp.NullSafeEq),
         new("<>", SqlBinaryOp.Neq),
         new("!=", SqlBinaryOp.Neq),
         new(">", SqlBinaryOp.Greater),
@@ -45,7 +48,7 @@ internal sealed class AutoSqlDialect : SqlDialectBase
             version: version,
             keywords: [],
             binOps: _binaryOperators,
-            operators: [">=", "<=", "<>", "!="])
+            operators: ["<=>", ">=", "<=", "<>", "!="])
     {
     }
 
@@ -128,6 +131,9 @@ internal sealed class AutoSqlDialect : SqlDialectBase
     public override bool SupportsJsonValueReturningClause => true;
 
     /// <inheritdoc />
+    public override bool SupportsOpenJsonFunction => true;
+
+    /// <inheritdoc />
     public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames => _temporalFunctionNames;
 
     /// <inheritdoc />
@@ -199,4 +205,31 @@ internal sealed class AutoSqlDialect : SqlDialectBase
 
     /// <inheritdoc />
     public override bool SupportsIlikeOperator => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMatchAgainstPredicate => true;
+
+    /// <inheritdoc />
+    public override bool SupportsIfFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsIifFunction => true;
+
+    /// <inheritdoc />
+    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => _nullSubstituteFunctionNames;
+
+    /// <inheritdoc />
+    public override bool SupportsWindowFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsPivotClause => true;
+
+    /// <inheritdoc />
+    public override bool SupportsWithCte => true;
+
+    /// <inheritdoc />
+    public override bool SupportsReturning => true;
+
+    /// <inheritdoc />
+    public override bool SupportsOrderByNullsModifier => true;
 }

@@ -84,7 +84,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.2.1 Interpretação de comandos DDL
 
-- Implementação estimada: **97%**.
+- Implementação estimada: **100%**.
 - Leitura e processamento de comandos de definição de schema.
 - Suporte a operações estruturais comuns (criação e alteração de entidades).
 - Aplicação de regras específicas por dialeto e versão simulada.
@@ -386,7 +386,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.2.7 Detecção automática de dialeto
 
-- Implementação estimada: **84%**.
+- Implementação estimada: **97%**.
 - Objetivo: aceitar múltiplas sintaxes SQL equivalentes sem exigir seleção manual prévia do dialeto.
 - O parser deve continuar agnóstico; a detecção e a normalização devem ficar concentradas em componentes próprios de dialeto.
 - Incremento desta sessão: a primeira entrega de `Auto` já detecta marcadores de paginação/`ROWNUM` em varredura linear (`SqlSyntaxDetector`) e normaliza `TOP`, `LIMIT`, `FETCH FIRST`, `OFFSET/FETCH` e `ROWNUM` seguro para `SqlLimitOffset` (`DialectNormalizer`).
@@ -410,7 +410,15 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem o modificador `SQL_CALC_FOUND_ROWS`, reaproveitando o suporte ja existente do parser e do executor para popular `FOUND_ROWS()`; o detector barato agora tambem marca esse sinal e a trilha TDD cobre parsing e runtime do fluxo `SELECT SQL_CALC_FOUND_ROWS ...; SELECT FOUND_ROWS();`.
 - Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem o operador de igualdade null-safe `<=>`, reaproveitando o `SqlBinaryOp.NullSafeEq` e a avaliação já existente no executor; o detector barato agora tambem marca esse operador e a trilha TDD cobre parsing e runtime no modo `Auto`.
 - Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem `ILIKE`, reaproveitando o `LikeExpr` com `CaseInsensitive = true` e a avaliação já existente no executor; o detector barato agora tambem marca esse operador e a trilha TDD cobre parsing e runtime no modo `Auto`.
-- TODO: expandir `SqlSyntaxDetector` além da fatia atual de paginação/`ROWNUM`/marcadores de `identidade` e `concatenacao`, cobrindo apenas equivalências cross-dialect de alto retorno realmente consumidas.
+- Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem `MATCH ... AGAINST`, reaproveitando o parser para `MATCH_AGAINST` e o evaluator compartilhado de score/boolean mode; o detector barato agora tambem marca essa familia e a trilha TDD cobre parsing e runtime no modo `Auto`.
+- Incremento desta sessão: `SqlDialect.Auto` passou a explicitar tambem `IF`/`IIF` e a familia compartilhada de null-substitute (`IFNULL`, `ISNULL`, `NVL`, `COALESCE`, `NULLIF`); o detector barato agora tambem marca essa familia e a trilha TDD cobre parsing e runtime escalar no modo `Auto`.
+- Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem `OPENJSON` no subset escalar já suportado pelo parser/evaluator compartilhados; o detector barato passou a incluir essa chamada na familia de funcoes JSON e a trilha TDD cobre parsing e runtime basico no modo `Auto`.
+- Incremento desta sessão: `SqlDialect.Auto` passou a assumir explicitamente tambem a superficie compartilhada de window functions (`ROW_NUMBER`, `RANK`, `DENSE_RANK`, `NTILE`, `PERCENT_RANK`, `CUME_DIST`, `LAG`, `LEAD`, `FIRST_VALUE`, `LAST_VALUE`, `NTH_VALUE`) no subset já suportado pelo parser/evaluator; o detector barato agora tambem marca essa familia e a trilha TDD cobre parsing e runtime de `ROW_NUMBER`/`LAG` no modo `Auto`.
+- Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem `PIVOT` no subset compartilhado já implementado pelo parser/executor (`COUNT`, `SUM`, `MIN`, `MAX`, `AVG`); o detector barato agora tambem marca essa clausula e a trilha TDD cobre parsing e runtime com `COUNT(...) FOR ... IN (...)` no modo `Auto`.
+- Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem `WITH/CTE` no fluxo compartilhado já suportado pelo parser/executor; o detector barato agora tambem marca esse cabeçalho e a trilha TDD cobre parsing e runtime de CTE não-recursiva no modo `Auto`.
+- Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem `RETURNING` no fluxo DML já suportado por parser/runtime; o detector barato agora tambem marca essa clausula e a trilha TDD cobre parsing e runtime de `INSERT`/`UPDATE`/`DELETE ... RETURNING` no modo `Auto`.
+- Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem `ORDER BY ... NULLS FIRST/LAST` no fluxo compartilhado já suportado pelo parser/executor; o detector barato agora tambem marca esse modificador e a trilha TDD cobre parsing e runtime da ordenação explícita de `NULL` no modo `Auto`.
+- TODO: expandir `SqlSyntaxDetector` além da fatia atual de paginação/`ROWNUM`/marcadores compartilhados ja cobertos (`identidade`, `concatenacao`, `sequence`, JSON, temporal, agregacao textual, rowcount, comparadores e helpers condicionais/nulos), cobrindo apenas equivalências cross-dialect de alto retorno realmente consumidas.
 - TODO: expandir `DialectNormalizer` além da primeira AST canônica de paginação para novos nós compartilhados somente quando houver contrato claro de execução comum.
 - TODO: validar em TDD que queries equivalentes (`TOP`, `LIMIT`, `FETCH FIRST`, `ROWNUM`) produzam o mesmo shape de AST e, quando o modo `Auto` estiver exposto no runtime, o mesmo resultado de execução também em batches e cenários de mutação suportados.
 - TODO: impedir que `SqlDialect.Auto` introduza branches sintáticos no executor; qualquer diferença nova deve ser resolvida antes da execução.
@@ -515,22 +523,46 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.4.4 Snapshot e replay de schema
 
-- Implementação estimada: **0%**.
+- Implementação estimada: **100%**.
 - Objetivo: capturar schema real de uma conexao ADO.NET e reproduzi-lo no mock sem reescrita manual de setup.
 - Deve servir tanto para bootstrap de suite quanto para congelar fixtures versionaveis em JSON.
-- TODO: expor `SchemaSnapshot.Export(connection)` para serializar tabelas, colunas e demais objetos de schema suportados pelo provider.
-- TODO: expor `SchemaSnapshot.Load(schema.json)` para reconstruir o estado estrutural no `DbMock`, preservando nomes, tipos e metadados relevantes.
-- TODO: decidir o subset inicial de objetos a exportar/reaplicar (`tables`, `columns`, `constraints`, `views`, `sequences`) com gate explicito por provider.
-- TODO: adicionar regressao/documentacao de replay end-to-end para evitar drift entre schema real capturado e setup manual local.
+- Incremento desta sessão: a primeira fatia de `SchemaSnapshot` já expõe `Export(connection|db)`, `ToJson()`, `Load(json)` e `ApplyTo(DbMock)`, cobrindo exportação e replay estrutural do subset básico de `tables` e `columns`.
+- Incremento desta sessão: o snapshot já preserva metadados essenciais de coluna (`DbType`, `nullable`, `size`, `decimalPlaces`, `identity`, `defaultValue`, `enumValues`) e `NextIdentity` por tabela, com round-trip JSON em TDD.
+- Incremento desta sessão: o replay atual substitui o estado estrutural anterior do `DbMock` de forma determinística antes de recriar o schema exportado, evitando drift residual entre fixtures.
+- Incremento desta sessão: `SchemaSnapshot` passou a cobrir tambem `views` e `sequences`, persistindo `RawSql` da view e estado estrutural/corrente da sequence (`start`, `increment`, `currentValue`) para replay determinístico.
+- Incremento desta sessão: `SchemaSnapshot` passou a cobrir tambem `primary key`, `indexes` e `foreign keys`, reaplicando a estrutura na ordem correta (tabelas -> PK/indices -> FKs -> views -> sequences) para evitar referências quebradas no replay.
+- Incremento desta sessão: a conexão agora expõe atalhos públicos (`ExportSchemaSnapshot`, `ExportSchemaSnapshotJson`, `ImportSchemaSnapshot`) para consumir o snapshot sem acoplamento direto ao `DbMock`, com round-trip coberto em TDD.
+- Incremento desta sessão: `SchemaSnapshot` tambem já suporta persistência versionável em arquivo (`SaveToFile`, `LoadFromFile`) e replay direto por caminho para bootstrap de fixture sem passar manualmente por string JSON.
+- Incremento desta sessão: a conexão agora expõe atalhos file-based (`ExportSchemaSnapshotToFile`, `ImportSchemaSnapshotFromFile`), com round-trip em arquivo coberto em TDD no provider SQLite.
+- Incremento desta sessão: `SchemaSnapshot` passou a preservar tambem assinaturas de `procedure` (`required in`, `optional in`, `out` e `return`, incluindo valores default), com replay estrutural coberto em TDD.
+- Incremento desta sessão: o replay agora tem cobertura TDD para multi-schema (`tables`, `views`, `sequences` e `procedures` em schemas distintos), reduzindo risco de fixture parcial quando o banco simulado usa mais de um schema.
+- Incremento desta sessão: `foreign keys` passaram a preservar tambem o schema da tabela referenciada, com replay cross-schema coberto em TDD para evitar perda silenciosa de relacionamento ao exportar fixtures multi-schema.
+- Incremento desta sessão: a importação via conexão passou a realinhar `Database` quando o schema anteriormente selecionado deixa de existir após o replay, evitando que a conexão fique apontando para um schema removido.
+- Incremento desta sessão: `SchemaSnapshot` agora expõe gate explícito de compatibilidade por `dialect/version` (`IsCompatibleWith` e `EnsureCompatibleWith`), e a conexão ganhou import estrito opcional para bloquear replay em destino incompatível antes de alterar o estado.
+- Incremento desta sessão: a API orientada a snapshot ficou simétrica com a da conexão, com `ApplyTo(DbConnectionMockBase)` e loaders estáticos para conexão (`Load(..., connection)` / `LoadFromFile(..., connection)`), evitando reserialização desnecessária no bootstrap de fixture.
+- Incremento desta sessão: o mesmo gate estrito de compatibilidade agora tambem cobre o caminho `DbMock` puro (`ApplyTo(db, ensureCompatibility)` / `Load(..., db, ensureCompatibility)`), mantendo consistencia entre as superfícies de replay.
+- Incremento desta sessão: `SchemaSnapshot` agora expõe fingerprint estável e comparação direta contra `snapshot`/`DbMock`/`connection`, permitindo detectar drift estrutural objetivo de fixture sem inspeção manual do JSON.
+- Incremento desta sessão: a comparação agora também retorna relatório estruturado de drift (`CompareTo(...)` + `SchemaSnapshotComparison.ToText()`), tornando divergências de schema anexáveis em log/issue sem diff manual do arquivo JSON.
+- Incremento desta sessão: o subset suportado do `SchemaSnapshot` ficou explicitado em código/documentação via `SchemaSnapshotSupportProfile` e [schema-snapshot.md](/c:/Projects/DbSqlLikeMem/docs/features-backlog/schema-snapshot.md), fechando o escopo funcional do item com gate explícito do que entra e do que fica fora.
+- Incremento desta sessão: a mesma descrição do subset suportado também ficou acessível direto pela conexão (`GetSchemaSnapshotSupportProfile()` / `GetSchemaSnapshotSupportProfileText()`), mantendo a superfície pública simétrica com os helpers de export/import.
+- Incremento desta sessão: a regressão end-to-end do subset suportado agora valida export -> replay -> reexport sem drift estrutural, usando `CompareTo(...)` e fingerprint para confirmar equivalência canônica.
+
+#### 1.4.5 Expansão de metadata avançada de snapshot
+
+- Implementação estimada: **0%**.
+- Objetivo: cobrir metadata e objetos executáveis intencionalmente fora do subset estrutural concluído em `1.4.4`.
+- Escopo futuro: `check constraints`, defaults computados por expressão, geradores de coluna computada, corpos de `trigger`, corpos de `procedure` e demais objetos programáveis não-estruturais.
 
 ### 1.5 Diagnóstico e observabilidade da execução
 
 #### 1.5.1 Plano de execução mock
 
-- Implementação estimada: **42%**.
+- Implementação estimada: **48%**.
 - Geração de plano sintético para análise de comportamento da query.
 - Visibilidade de entradas da execução e custo estimado.
 - Suporte a testes que verificam diagnóstico e não só resultado.
+- Incremento desta sessão: o execution plan passou a cobrir também a primeira fatia de DML (`INSERT`, `UPDATE` e `DELETE`) no fluxo non-query, reutilizando a mesma superfície pública de `LastExecutionPlan` sem custo no parser/runtime fora da própria mutação.
+- Incremento desta sessão: a suíte SQLite agora valida emissão de plano para `INSERT`, `UPDATE` e `DELETE`, incluindo alvo, filtro/SET básicos, linhas afetadas e disclaimer de performance.
 - TODO: expandir execution plan além de `SELECT`/`UNION` para DML, batches e pontos de trigger, com warnings e contexto operacional suficientes para diagnóstico de regressão.
 
 #### 1.5.2 Métricas de runtime
@@ -635,6 +667,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: execution plan textual/JSON passou a incluir `mockRuntimeContext` com `simulatedLatencyMs`, `dropProbability`, `threadSafe` e flag explícita de métricas relativas, reduzindo interpretação ambígua de `elapsed`/`rowsPerMs` como throughput real.
 - Incremento desta sessão: execution plan também passou a sinalizar `mockRuntimePerturbationActive` quando há latência/falha simulada configurada, deixando explícito que comparações diretas de tempo entre cenários estão contaminadas por perturbação artificial.
 - TODO: propagar o disclaimer de performance para todos os pontos de consumo de telemetria/planos e manter a documentação de entrada alinhada sempre que novas métricas forem expostas.
+- TODO: estruturar uma trilha de benchmark comparativo em ambiente de teste contra bancos reais locais/containerizados, focada em demonstrar ganho de feedback/custo operacional do mock para clientes e não em tuning de produção.
 
 ## 2) Integração ADO.NET e experiência de uso
 
@@ -876,6 +909,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Implementação estimada: **90%**.
 - Legados com SQL histórico do ecossistema MySQL.
 - Validação de comportamento de upsert no fluxo de escrita.
+- TODO: adicionar benchmark controlado contra MySQL local para queries/cargas representativas de testes, gerando baseline comparativa para demonstrar a clientes o custo/benefício de usar o mock no ciclo de testes.
 
 ### 3.2 SQL Server (`DbSqlLikeMem.SqlServer`)
 
@@ -906,6 +940,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Implementação estimada: **90%**.
 - Sistemas .NET com forte dependência de SQL Server.
 - Testes de compatibilidade evolutiva por geração da plataforma.
+- TODO: adicionar benchmark controlado contra SQL Server LocalDB para queries/cargas representativas de testes, gerando baseline comparativa para demonstrar a clientes o custo/benefício de usar o mock no ciclo de testes.
 
 ### 3.3 Oracle (`DbSqlLikeMem.Oracle`)
 
@@ -1035,6 +1070,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - TODO: incluir `SqlDialect.Auto` na malha `parser`/`smoke` com snapshots dedicados para sintaxes equivalentes de paginação e demais heurísticas que entrarem no modo automático.
 - TODO: expandir a matriz para os próximos providers/famílias planejados (`MariaDB`, `Firebird`, `DuckDB` e, em fase posterior, `ClickHouse`/`Snowflake`) com status por etapa de implementação.
 - TODO: conectar a futura API de validação cross-dialect aos artefatos publicados da matriz para transformar compatibilidade em evidência objetiva de CI.
+- TODO: criar uma trilha dedicada de benchmark comparativo por containers para bancos reais viáveis no ambiente de testes.
+  - Providers já mapeados com benchmark viável por container: `MySQL`, `SQL Server`, `PostgreSQL/Npgsql`, `Oracle` e `DB2`.
+  - Providers do backlog com benchmark viável por container: `MariaDB`, `Firebird` e `ClickHouse`.
+  - Fora desta trilha por enquanto: `SQLite` e `DuckDB` (embedded) e `SqlAzure`/`Snowflake` (sem baseline local/container equivalente no ciclo atual).
 
 #### 3.7.2 Priorização de gaps
 

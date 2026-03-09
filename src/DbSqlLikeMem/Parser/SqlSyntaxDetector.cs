@@ -20,7 +20,14 @@ internal enum AutoSqlSyntaxFeatures
     RowCount = 1 << 13,
     SqlCalcFoundRows = 1 << 14,
     NullSafeEq = 1 << 15,
-    Ilike = 1 << 16
+    Ilike = 1 << 16,
+    MatchAgainst = 1 << 17,
+    ConditionalNullFunctions = 1 << 18,
+    WindowFunctions = 1 << 19,
+    Pivot = 1 << 20,
+    WithCte = 1 << 21,
+    Returning = 1 << 22,
+    OrderByNulls = 1 << 23
 }
 
 /// <summary>
@@ -46,7 +53,14 @@ internal static class SqlSyntaxDetector
         | AutoSqlSyntaxFeatures.RowCount
         | AutoSqlSyntaxFeatures.SqlCalcFoundRows
         | AutoSqlSyntaxFeatures.NullSafeEq
-        | AutoSqlSyntaxFeatures.Ilike;
+        | AutoSqlSyntaxFeatures.Ilike
+        | AutoSqlSyntaxFeatures.MatchAgainst
+        | AutoSqlSyntaxFeatures.ConditionalNullFunctions
+        | AutoSqlSyntaxFeatures.WindowFunctions
+        | AutoSqlSyntaxFeatures.Pivot
+        | AutoSqlSyntaxFeatures.WithCte
+        | AutoSqlSyntaxFeatures.Returning
+        | AutoSqlSyntaxFeatures.OrderByNulls;
 
     /// <summary>
     /// EN: Scans tokenized SQL once and returns the syntax markers found for Auto mode.
@@ -75,90 +89,91 @@ internal static class SqlSyntaxDetector
             if (token.Kind == SqlTokenKind.EndOfFile)
                 break;
 
-            if (token.Kind is SqlTokenKind.Keyword or SqlTokenKind.Identifier)
-            {
-                if (token.Kind == SqlTokenKind.Identifier && IsQuotedIdentifier(sql, token))
-                    continue;
-
-                if (token.Text.Equals("TOP", StringComparison.OrdinalIgnoreCase))
-                {
-                    features |= AutoSqlSyntaxFeatures.Top;
-                }
-                else if (token.Text.Equals("LIMIT", StringComparison.OrdinalIgnoreCase))
-                {
-                    features |= AutoSqlSyntaxFeatures.Limit;
-                }
-                else if (token.Text.Equals("FETCH", StringComparison.OrdinalIgnoreCase))
-                {
-                    features |= AutoSqlSyntaxFeatures.Fetch;
-                }
-                else if (token.Text.Equals("OFFSET", StringComparison.OrdinalIgnoreCase))
-                {
-                    features |= AutoSqlSyntaxFeatures.Offset;
-                }
-                else if (token.Text.Equals("ROWNUM", StringComparison.OrdinalIgnoreCase))
-                {
-                    features |= AutoSqlSyntaxFeatures.Rownum;
-                }
-                else if (IsIdentityMarker(token))
-                {
-                    features |= AutoSqlSyntaxFeatures.Identity;
-                }
-                else if (IsConcatFunction(tokens, i))
-                {
-                    features |= AutoSqlSyntaxFeatures.Concat;
-                }
-                else if (IsSequenceMarker(tokens, i))
-                {
-                    features |= AutoSqlSyntaxFeatures.Sequence;
-                }
-                else if (IsJsonFunctionMarker(tokens, i))
-                {
-                    features |= AutoSqlSyntaxFeatures.JsonFunction;
-                }
-                else if (IsTemporalMarker(tokens, i))
-                {
-                    features |= AutoSqlSyntaxFeatures.Temporal;
-                }
-                else if (IsDateAddMarker(tokens, i))
-                {
-                    features |= AutoSqlSyntaxFeatures.DateAdd;
-                }
-                else if (IsStringAggregateMarker(tokens, i))
-                {
-                    features |= AutoSqlSyntaxFeatures.StringAggregate;
-                }
-                else if (IsRowCountMarker(tokens, i))
-                {
-                    features |= AutoSqlSyntaxFeatures.RowCount;
-                }
-                else if (token.Text.Equals("SQL_CALC_FOUND_ROWS", StringComparison.OrdinalIgnoreCase))
-                {
-                    features |= AutoSqlSyntaxFeatures.SqlCalcFoundRows;
-                }
-                else if (token.Text.Equals("ILIKE", StringComparison.OrdinalIgnoreCase))
-                {
-                    features |= AutoSqlSyntaxFeatures.Ilike;
-                }
-            }
-            else if (token.Kind == SqlTokenKind.Operator && token.Text == "<=>")
-            {
-                features |= AutoSqlSyntaxFeatures.NullSafeEq;
-            }
-            else if (IsConcatOperator(tokens, i))
-            {
-                features |= AutoSqlSyntaxFeatures.Concat;
-            }
-            else if (IsJsonArrowOperator(token))
-            {
-                features |= AutoSqlSyntaxFeatures.JsonArrow;
-            }
+            features |= DetectFeature(sql, tokens, i, token);
 
             if (features == AllKnownFeatures)
                 break;
         }
 
         return features;
+    }
+
+    private static AutoSqlSyntaxFeatures DetectFeature(
+        string? sql,
+        IReadOnlyList<SqlToken> tokens,
+        int index,
+        SqlToken token)
+    {
+        if (token.Kind is SqlTokenKind.Keyword or SqlTokenKind.Identifier)
+            return DetectWordLikeFeature(sql, tokens, index, token);
+
+        if (token.Kind == SqlTokenKind.Operator && token.Text == "<=>")
+            return AutoSqlSyntaxFeatures.NullSafeEq;
+
+        if (IsConcatOperator(tokens, index))
+            return AutoSqlSyntaxFeatures.Concat;
+
+        if (IsJsonArrowOperator(token))
+            return AutoSqlSyntaxFeatures.JsonArrow;
+
+        return AutoSqlSyntaxFeatures.None;
+    }
+
+    private static AutoSqlSyntaxFeatures DetectWordLikeFeature(
+        string? sql,
+        IReadOnlyList<SqlToken> tokens,
+        int index,
+        SqlToken token)
+    {
+        if (token.Kind == SqlTokenKind.Identifier && IsQuotedIdentifier(sql, token))
+            return AutoSqlSyntaxFeatures.None;
+
+        if (token.Text.Equals("TOP", StringComparison.OrdinalIgnoreCase))
+            return AutoSqlSyntaxFeatures.Top;
+        if (token.Text.Equals("LIMIT", StringComparison.OrdinalIgnoreCase))
+            return AutoSqlSyntaxFeatures.Limit;
+        if (token.Text.Equals("FETCH", StringComparison.OrdinalIgnoreCase))
+            return AutoSqlSyntaxFeatures.Fetch;
+        if (token.Text.Equals("OFFSET", StringComparison.OrdinalIgnoreCase))
+            return AutoSqlSyntaxFeatures.Offset;
+        if (token.Text.Equals("ROWNUM", StringComparison.OrdinalIgnoreCase))
+            return AutoSqlSyntaxFeatures.Rownum;
+        if (IsIdentityMarker(token))
+            return AutoSqlSyntaxFeatures.Identity;
+        if (IsConcatFunction(tokens, index))
+            return AutoSqlSyntaxFeatures.Concat;
+        if (IsSequenceMarker(tokens, index))
+            return AutoSqlSyntaxFeatures.Sequence;
+        if (IsJsonFunctionMarker(tokens, index))
+            return AutoSqlSyntaxFeatures.JsonFunction;
+        if (IsTemporalMarker(tokens, index))
+            return AutoSqlSyntaxFeatures.Temporal;
+        if (IsDateAddMarker(tokens, index))
+            return AutoSqlSyntaxFeatures.DateAdd;
+        if (IsStringAggregateMarker(tokens, index))
+            return AutoSqlSyntaxFeatures.StringAggregate;
+        if (IsRowCountMarker(tokens, index))
+            return AutoSqlSyntaxFeatures.RowCount;
+        if (token.Text.Equals("SQL_CALC_FOUND_ROWS", StringComparison.OrdinalIgnoreCase))
+            return AutoSqlSyntaxFeatures.SqlCalcFoundRows;
+        if (token.Text.Equals("ILIKE", StringComparison.OrdinalIgnoreCase))
+            return AutoSqlSyntaxFeatures.Ilike;
+        if (IsMatchAgainstMarker(tokens, index))
+            return AutoSqlSyntaxFeatures.MatchAgainst;
+        if (IsConditionalNullFunctionMarker(tokens, index))
+            return AutoSqlSyntaxFeatures.ConditionalNullFunctions;
+        if (IsWindowFunctionMarker(tokens, index))
+            return AutoSqlSyntaxFeatures.WindowFunctions;
+        if (token.Text.Equals("PIVOT", StringComparison.OrdinalIgnoreCase))
+            return AutoSqlSyntaxFeatures.Pivot;
+        if (token.Text.Equals("WITH", StringComparison.OrdinalIgnoreCase))
+            return AutoSqlSyntaxFeatures.WithCte;
+        if (token.Text.Equals("RETURNING", StringComparison.OrdinalIgnoreCase))
+            return AutoSqlSyntaxFeatures.Returning;
+        if (IsOrderByNullsMarker(tokens, index))
+            return AutoSqlSyntaxFeatures.OrderByNulls;
+
+        return AutoSqlSyntaxFeatures.None;
     }
 
     private static bool IsIdentityMarker(SqlToken token)
@@ -232,7 +247,8 @@ internal static class SqlSyntaxDetector
     {
         var token = tokens[index];
         if (!token.Text.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
-            && !token.Text.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase))
+            && !token.Text.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase))
             return false;
 
         var next = index + 1 < tokens.Count ? tokens[index + 1] : SqlToken.EOF;
@@ -301,11 +317,68 @@ internal static class SqlSyntaxDetector
         return next.Kind == SqlTokenKind.Symbol && next.Text == "(";
     }
 
+    private static bool IsMatchAgainstMarker(IReadOnlyList<SqlToken> tokens, int index)
+    {
+        var token = tokens[index];
+        if (!token.Text.Equals("MATCH", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var next = index + 1 < tokens.Count ? tokens[index + 1] : SqlToken.EOF;
+        return next.Kind == SqlTokenKind.Symbol && next.Text == "(";
+    }
+
+    private static bool IsConditionalNullFunctionMarker(IReadOnlyList<SqlToken> tokens, int index)
+    {
+        var token = tokens[index];
+        if (!token.Text.Equals("IF", StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals("IIF", StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals("IFNULL", StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals("ISNULL", StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals("NVL", StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals("COALESCE", StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals("NULLIF", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var next = index + 1 < tokens.Count ? tokens[index + 1] : SqlToken.EOF;
+        return next.Kind == SqlTokenKind.Symbol && next.Text == "(";
+    }
+
+    private static bool IsWindowFunctionMarker(IReadOnlyList<SqlToken> tokens, int index)
+    {
+        var token = tokens[index];
+        if (!token.Text.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals("RANK", StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals("DENSE_RANK", StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals("NTILE", StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals("PERCENT_RANK", StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals("CUME_DIST", StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals("LAG", StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals("LEAD", StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals("FIRST_VALUE", StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals("LAST_VALUE", StringComparison.OrdinalIgnoreCase)
+            && !token.Text.Equals("NTH_VALUE", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var next = index + 1 < tokens.Count ? tokens[index + 1] : SqlToken.EOF;
+        return next.Kind == SqlTokenKind.Symbol && next.Text == "(";
+    }
+
+    private static bool IsOrderByNullsMarker(IReadOnlyList<SqlToken> tokens, int index)
+    {
+        var token = tokens[index];
+        if (!token.Text.Equals("NULLS", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var next = index + 1 < tokens.Count ? tokens[index + 1] : SqlToken.EOF;
+        return next.Text.Equals("FIRST", StringComparison.OrdinalIgnoreCase)
+            || next.Text.Equals("LAST", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool IsQuotedIdentifier(string? sql, SqlToken token)
     {
         if (string.IsNullOrEmpty(sql)
             || token.Position < 0
-            || token.Position >= sql.Length)
+            || token.Position >= sql!.Length)
             return false;
 
         var first = sql[token.Position];

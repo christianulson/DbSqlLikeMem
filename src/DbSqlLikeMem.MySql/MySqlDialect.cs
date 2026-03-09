@@ -188,7 +188,7 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// EN: Indicates whether parser-level cross-dialect JSON operators are accepted for compatibility.
     /// PT: Indica se operadores JSON entre dialetos são aceitos pelo parser para compatibilidade.
     /// </summary>
-    public override bool AllowsParserCrossDialectJsonOperators => true;
+    public override bool AllowsParserCrossDialectJsonOperators => Version >= JsonExtractMinVersion;
 
     /// <summary>
     /// EN: Indicates whether JSON extraction functions are supported by the configured MySQL version.

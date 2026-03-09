@@ -764,7 +764,7 @@ public sealed class OracleDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
 
-        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("STRING_AGG", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

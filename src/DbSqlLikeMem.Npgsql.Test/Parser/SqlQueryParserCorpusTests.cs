@@ -65,6 +65,11 @@ public sealed class SqlQueryParserCorpusTests(
             "SELECT t10, t20 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10, 20 AS t20)) p",
             "unsupported: PIVOT clause",
             SqlCaseExpectation.ThrowNotSupported);
+        yield return Case(
+            @"INSERT INTO t (a)
+              SELECT JSON_EXTRACT(data, '$.on_duplicate') FROM src",
+            "unsupported: INSERT INTO ... SELECT with JSON_EXTRACT and JSON path containing on_duplicate",
+            SqlCaseExpectation.ThrowNotSupported);
         // Inválidas (ThrowInvalid)
         foreach (var row in InvalidSelectStatements())
         {
@@ -412,12 +417,6 @@ ON CONFLICT (grp) DO UPDATE SET total = EXCLUDED.total",
             @"INSERT INTO t (a)
               SELECT CASE WHEN x = 'ON DUPLICATE' THEN 1 ELSE 0 END FROM src",
             "INSERT INTO ... SELECT containing string 'ON DUPLICATE'"
-        };
-
-        yield return new object[] {
-            @"INSERT INTO t (a)
-              SELECT JSON_EXTRACT(data, '$.on_duplicate') FROM src",
-            "INSERT INTO ... SELECT with JSON path containing on_duplicate"
         };
 
         yield return new object[] { "DELETE FROM Users WHERE Id = 1", "DELETE by literal id" };

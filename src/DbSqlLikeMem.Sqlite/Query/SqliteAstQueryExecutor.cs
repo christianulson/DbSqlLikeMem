@@ -29,7 +29,7 @@ public static class SqliteAstQueryExecutorRegister
 internal sealed class SqliteAstQueryExecutor(
     SqliteConnectionMock cnn,
     IDataParameterCollection pars
-    ) : AstQueryExecutorBase(cnn, pars, cnn.Db.Dialect)
+    ) : AstQueryExecutorBase(cnn, pars, cnn.ExecutionDialect)
 {
     // Keep SQLite defaults from base.
 }

@@ -139,7 +139,8 @@ public class SqliteCommandMock(
         {
             return earlyReader!;
         }
-        var executor = AstQueryExecutorFactory.Create(connection!.ExecutionDialect, connection, Parameters);
+        var executorDialect = connection!.ExecutionDialect;
+        var executor = AstQueryExecutorFactory.Create(executorDialect, connection, Parameters);
 
         // Parse múltiplo (ex: "SELECT 1; SELECT 2;" ou "BEGIN; SELECT CHANGES();")
         var tables = new List<TableResultMock>();

@@ -243,12 +243,12 @@ public sealed class Db2MockTests
     }
 
     /// <summary>
-    /// EN: Tests TestSelect_FoundRows_ShouldReturnLastSelectRowCount behavior.
-    /// PT: Testa o comportamento de TestSelect_FoundRows_ShouldReturnLastSelectRowCount.
+    /// EN: Verifies DB2 rejects FOUND_ROWS because the provider exposes ROW_COUNT for row-count inspection.
+    /// PT: Verifica que o DB2 rejeita FOUND_ROWS porque o provider expoe ROW_COUNT para inspecao de contagem de linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
-    public void TestSelect_FoundRows_ShouldReturnLastSelectRowCount()
+    public void TestSelect_FoundRows_ShouldThrowNotSupportedException()
     {
         using var command = new Db2CommandMock(_connection);
         command.CommandText = """
@@ -259,13 +259,9 @@ public sealed class Db2MockTests
         command.ExecuteNonQuery();
 
         command.CommandText = "SELECT Name FROM Users ORDER BY Id FETCH FIRST 1 ROWS ONLY; SELECT FOUND_ROWS();";
-        using var reader = command.ExecuteReader();
+        var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
 
-        Assert.True(reader.Read());
-        Assert.Equal("Ana", reader.GetString(0));
-        Assert.True(reader.NextResult());
-        Assert.True(reader.Read());
-        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0)));
+        Assert.Contains("FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 

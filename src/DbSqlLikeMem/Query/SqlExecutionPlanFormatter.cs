@@ -61,6 +61,98 @@ internal sealed record SqlPlanWarning(
 
 internal static class SqlExecutionPlanFormatter
 {
+    public static string FormatInsert(
+        SqlInsertQuery query,
+        SqlPlanRuntimeMetrics metrics,
+        SqlPlanMockRuntimeContext? runtimeContext = null)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(SqlExecutionPlanMessages.ExecutionPlanTitle());
+        sb.AppendLine($"- {SqlExecutionPlanMessages.QueryTypeLabel()}: INSERT");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.EstimatedCostLabel()}: {EstimateInsertCost(query)}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.TableLabel()}: {FormatSource(query.Table)}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.ProjectionLabel()}: {query.Columns.Count} item(s)");
+
+        if (query.InsertSelect is not null)
+        {
+            sb.AppendLine($"- FROM: {FormatSource(query.InsertSelect.Table)}");
+            foreach (var join in query.InsertSelect.Joins)
+            {
+                var on = SqlExprPrinter.Print(join.On);
+                sb.AppendLine($"- JOIN: {join.Type.ToString().ToUpperInvariant()} {FormatSource(join.Table)} ON {on}");
+            }
+
+            if (query.InsertSelect.Where is not null)
+                sb.AppendLine($"- WHERE: {SqlExprPrinter.Print(query.InsertSelect.Where)}");
+        }
+        else
+        {
+            sb.AppendLine($"- FROM: VALUES ({query.ValuesRaw.Count} row(s))");
+        }
+
+        if (query.HasOnDuplicateKeyUpdate)
+            sb.AppendLine($"- SET: {query.OnDupAssigns.Count} item(s)");
+
+        if (query.Returning.Count > 0)
+            sb.AppendLine($"- RETURNING: {query.Returning.Count} item(s)");
+
+        AppendMetricsBlock(sb, metrics, runtimeContext);
+        return sb.ToString().TrimEnd();
+    }
+
+    public static string FormatUpdate(
+        SqlUpdateQuery query,
+        SqlPlanRuntimeMetrics metrics,
+        SqlPlanMockRuntimeContext? runtimeContext = null)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(SqlExecutionPlanMessages.ExecutionPlanTitle());
+        sb.AppendLine($"- {SqlExecutionPlanMessages.QueryTypeLabel()}: UPDATE");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.EstimatedCostLabel()}: {EstimateUpdateCost(query)}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.TableLabel()}: {FormatSource(query.Table)}");
+        sb.AppendLine($"- SET: {query.Set.Count} item(s)");
+
+        if (query.Where is not null)
+            sb.AppendLine($"- WHERE: {SqlExprPrinter.Print(query.Where)}");
+        else if (!string.IsNullOrWhiteSpace(query.WhereRaw))
+            sb.AppendLine($"- WHERE: {query.WhereRaw}");
+
+        if (query.UpdateFromSelect is not null)
+            sb.AppendLine($"- FROM: {FormatSource(query.UpdateFromSelect.Table)}");
+
+        if (query.Returning.Count > 0)
+            sb.AppendLine($"- RETURNING: {query.Returning.Count} item(s)");
+
+        AppendMetricsBlock(sb, metrics, runtimeContext);
+        return sb.ToString().TrimEnd();
+    }
+
+    public static string FormatDelete(
+        SqlDeleteQuery query,
+        SqlPlanRuntimeMetrics metrics,
+        SqlPlanMockRuntimeContext? runtimeContext = null)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(SqlExecutionPlanMessages.ExecutionPlanTitle());
+        sb.AppendLine($"- {SqlExecutionPlanMessages.QueryTypeLabel()}: DELETE");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.EstimatedCostLabel()}: {EstimateDeleteCost(query)}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.TableLabel()}: {FormatSource(query.Table)}");
+
+        if (query.Where is not null)
+            sb.AppendLine($"- WHERE: {SqlExprPrinter.Print(query.Where)}");
+        else if (!string.IsNullOrWhiteSpace(query.WhereRaw))
+            sb.AppendLine($"- WHERE: {query.WhereRaw}");
+
+        if (query.DeleteFromSelect is not null)
+            sb.AppendLine($"- FROM: {FormatSource(query.DeleteFromSelect.Table)}");
+
+        if (query.Returning.Count > 0)
+            sb.AppendLine($"- RETURNING: {query.Returning.Count} item(s)");
+
+        AppendMetricsBlock(sb, metrics, runtimeContext);
+        return sb.ToString().TrimEnd();
+    }
+
     public static string FormatSelect(
         SqlSelectQuery query,
         SqlPlanRuntimeMetrics metrics,
@@ -147,6 +239,25 @@ internal static class SqlExecutionPlanFormatter
         AppendPlanSeverityHint(sb, planWarnings, severityHintContext);
 
         return sb.ToString().TrimEnd();
+    }
+
+    private static void AppendMetricsBlock(
+        StringBuilder sb,
+        SqlPlanRuntimeMetrics metrics,
+        SqlPlanMockRuntimeContext? runtimeContext)
+    {
+        sb.AppendLine($"- {SqlExecutionPlanMessages.InputTablesLabel()}: {metrics.InputTables}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.EstimatedRowsReadLabel()}: {metrics.EstimatedRowsRead}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.ActualRowsLabel()}: {metrics.ActualRows}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.SelectivityPctLabel()}: {metrics.SelectivityPct:F2}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.RowsPerMsLabel()}: {metrics.RowsPerMs:F2}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.ElapsedMsLabel()}: {metrics.ElapsedMs}");
+        AppendPerformanceDisclaimer(sb);
+        AppendMockRuntimeContext(sb, runtimeContext);
+        sb.AppendLine($"- {SqlExecutionPlanMessages.PlanMetadataVersionLabel()}: 1");
+        AppendPlanCorrelationId(sb);
+        AppendPlanFlags(sb, null, null);
+        AppendPlanPerformanceBand(sb, metrics);
     }
 
 
@@ -795,6 +906,57 @@ internal static class SqlExecutionPlanFormatter
         cost += query.Joins.Sum(join => EstimateNestedOrderByCouplingCost(join.Table, query.OrderBy, query.RowLimit));
         cost += EstimateProjectionCost(query.SelectItems);
         cost -= EstimateRowLimitRelief(query.RowLimit);
+        return Math.Max(1, cost);
+    }
+
+    private static int EstimateInsertCost(SqlInsertQuery query)
+    {
+        var cost = 8;
+        cost += query.Columns.Count * 2;
+        cost += query.ValuesRaw.Count * 3;
+
+        if (query.InsertSelect is not null)
+            cost += EstimateSelectCost(query.InsertSelect);
+
+        if (query.HasOnDuplicateKeyUpdate)
+            cost += 15 + query.OnDupAssigns.Count * 4;
+
+        if (query.Returning.Count > 0)
+            cost += query.Returning.Count * 2;
+
+        return Math.Max(1, cost);
+    }
+
+    private static int EstimateUpdateCost(SqlUpdateQuery query)
+    {
+        var cost = 12;
+        cost += query.Set.Count * 4;
+
+        if (query.Where is not null)
+            cost += 8;
+
+        if (query.UpdateFromSelect is not null)
+            cost += EstimateSelectCost(query.UpdateFromSelect);
+
+        if (query.Returning.Count > 0)
+            cost += query.Returning.Count * 2;
+
+        return Math.Max(1, cost);
+    }
+
+    private static int EstimateDeleteCost(SqlDeleteQuery query)
+    {
+        var cost = 10;
+
+        if (query.Where is not null || !string.IsNullOrWhiteSpace(query.WhereRaw))
+            cost += 8;
+
+        if (query.DeleteFromSelect is not null)
+            cost += EstimateSelectCost(query.DeleteFromSelect);
+
+        if (query.Returning.Count > 0)
+            cost += query.Returning.Count * 2;
+
         return Math.Max(1, cost);
     }
 
