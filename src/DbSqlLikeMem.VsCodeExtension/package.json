@@ -31,7 +31,7 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
+  "activationEvents__old": [
     "onCommand:dbSqlLikeMem.addConnection",
     "onCommand:dbSqlLikeMem.checkConsistency",
     "onCommand:dbSqlLikeMem.configureMappings",
