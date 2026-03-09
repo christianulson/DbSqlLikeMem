@@ -27,7 +27,7 @@ internal static class DbDeleteStrategy
         ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(query!.Table!.Name, nameof(query.Table.Name));
         var tableName = query.Table.Name!;
-        var dialect = connection.Db.Dialect;
+        var dialect = connection.ExecutionDialect;
         if (!connection.TryGetTable(tableName, out var table, query.Table.DbName)
             || table == null)
             throw SqlUnsupported.ForTableDoesNotExist(tableName);

@@ -41,7 +41,7 @@ internal sealed class CommandExecutionPipeline : ICommandExecutionPipeline
         var context = new CommandExecutionPipelineContext(connection, pars, options);
         var handlers = options.Handlers ?? DefaultHandlers;
         var statements = SqlQueryParser
-            .SplitStatements(sql, connection.Db.Dialect)
+            .SplitStatements(sql, connection.ExecutionDialect)
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .ToList();
 

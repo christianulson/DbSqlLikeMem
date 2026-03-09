@@ -278,12 +278,15 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: `UPDATE/DELETE WHERE` sem predicado passaram a incluir token encontrado no diagnóstico (`found '<token>'`) para `EOF`/`;` em Npgsql/MySQL/SQL Server e para `WHERE RETURNING ...` no Npgsql.
 - Incremento desta sessão: `ON CONFLICT target WHERE` e `ON CONFLICT DO UPDATE WHERE` sem predicado passaram a incluir token encontrado no diagnóstico (`found '<token>'`), com regressões Npgsql para caminhos com `DO`, `RETURNING` e `;`.
 - Preservação da experiência de uso próxima ao fluxo SQL tradicional.
+- TODO: revisar cobertura equivalente de sintaxes nativas de `sequence` nos demais providers que exponham formas próprias alem de `SQL Server`, `Npgsql`, `Oracle` e `DB2`.
+- TODO: avaliar variantes adicionais de `sequence` por dialeto somente quando houver demanda real e validacao contra o comportamento do banco/provedor real.
+- TODO: levar a trilha de `sequence` para exemplos/documentacao canonica end-to-end assim que a matriz cross-provider dessa feature estiver fechada.
 - TODO: manter este item abaixo de `100%` até fechar as famílias reais de DML/query ainda fora do fluxo principal do parser/runtime (`FOR JSON`, `UNPIVOT`, `DISTINCT ON`, `LATERAL`, `json_each/json_tree`, `JSON_TABLE` e demais formas tabulares correlatas por provider).
 - TODO: revisar materialização/execução de DML avançado por provider para que o item só volte a `100%` quando as diferenças remanescentes estiverem reduzidas a subset documentado e intencional.
 
 #### 1.2.3 Regras por dialeto e versão
 
-- Implementação estimada: **100%**.
+- Implementação estimada: **92%**.
 - Ativa/desativa construções sintáticas por provedor e versão.
 - Trata incompatibilidades históricas entre bancos diferentes.
 - Direciona comportamento esperado em testes de compatibilidade.
@@ -302,10 +305,16 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: o parser passou a obedecer a mesma capability de row-count do dialeto para `FOUND_ROWS()/ROW_COUNT()/CHANGES()/ROWCOUNT()`, evitando aceitar no parse chamadas que o executor já não considerava válidas para aquele banco.
 - Incremento desta sessão: o tokenizer do parser deixou de hardcodear `sqlserver` para `@@ROWCOUNT`; a sintaxe `@@ident` agora também é capability explícita do dialeto, herdada automaticamente por `SqlAzure` e rejeitada nos demais providers.
 - Incremento desta sessão: as sintaxes de mutação multi-tabela (`UPDATE ... JOIN/FROM` e `DELETE ... FROM/USING`), o rowcount de UPSERT e o modificador MySQL `SQL_CALC_FOUND_ROWS` passaram a obedecer capabilities explícitas do dialeto em parser, strategies e executor; o fallback legado de frame clause do DB2 também foi removido, deixando a regra "o dialeto manda" sem branch comportamental residual por nome de provider nessa trilha.
+- Incremento desta sessão: a primeira fatia de `SqlDialect.Auto` entrou no parser com `AutoSqlDialect`, `SqlSyntaxDetector` e `DialectNormalizer`, normalizando `TOP`, `LIMIT`, `FETCH FIRST`, `OFFSET/FETCH` e o subset seguro de `ROWNUM` para a mesma AST de paginação, sem novos branches no executor.
+- Incremento desta sessão: o hot path de `SqlQueryParser.Parse` deixou de retokenizar o mesmo SQL no parse uncached, reduzindo custo linear redundante justamente na nova trilha de detecção automática.
+- Incremento desta sessão: o pipeline de parsing agora também expõe entradas explícitas dedicadas ao modo `Auto` (`ParseAuto`, `ParseMultiAuto`, `SplitStatementsAuto`, `ParseUnionChainAuto`, `ParseScalarAuto` e `ParseWhereAuto`), centralizando a criação do dialeto automático sem espalhar construção manual no código chamador.
+- TODO: evoluir `SqlDialect.Auto` com heuristicas adicionais realmente necessarias (`identidade`, `concatenacao` e demais diferencas compartilhadas), mantendo parser e executor agnosticos a provider.
+- TODO: expor `SqlDialect.Auto` como entrada explícita também no runtime de execução, sem quebrar o modelo atual baseado em provider/`DbMock`.
+- TODO: garantir que a expansao de familias continue baseada em heranca/refatoracao de dialeto compartilhado (`MariaDb` na familia MySQL e `DuckDb` na familia PostgreSQL), sem reintroduzir switches centrais por nome de provider.
 
 #### 1.2.4 Governança de evolução do parser
 
-- Implementação estimada: **94%**.
+- Implementação estimada: **100%**.
 - Backlog guiado por gaps observados em testes reais.
 - Track global de normalização Parser/AST consolidado em ~90%, com foco atual em refinos finais por dialeto.
 - Priorização por impacto em frameworks de acesso a dados.
@@ -328,7 +337,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.2.6 Funções de data/hora cross-dialect
 
-- Implementação estimada: **93%**.
+- Implementação estimada: **94%**.
 - Consolidar no `dialect` o catálogo de funções temporais sem argumento (data, hora e data/hora).
 - Garantir suporte de avaliação tanto para função com parênteses quanto para tokens sem parênteses em `SELECT`, `WHERE`, `HAVING` e expressões de `INSERT/UPSERT`.
 - Cobertura Dapper cross-provider adicionada para funções temporais sem argumento em projeção/filtro `WHERE`, em expressões de `INSERT VALUES` e em `UPDATE ... SET` (MySQL/SQL Server/Oracle/Npgsql/SQLite/DB2).
@@ -375,6 +384,37 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - TODO: fechar a família temporal além de "current time" com equivalências guiadas pelo dialeto para `DATE_TRUNC`/`DATETRUNC`, `DATEDIFF`/`TIMESTAMPDIFF` e aritmética de intervalo por provider/versão.
 - TODO: centralizar a avaliação temporal compartilhada para que parser, executor AST e estratégias de mutação usem a mesma fonte de verdade também nas famílias de diferença/truncamento de data.
 
+#### 1.2.7 Detecção automática de dialeto
+
+- Implementação estimada: **84%**.
+- Objetivo: aceitar múltiplas sintaxes SQL equivalentes sem exigir seleção manual prévia do dialeto.
+- O parser deve continuar agnóstico; a detecção e a normalização devem ficar concentradas em componentes próprios de dialeto.
+- Incremento desta sessão: a primeira entrega de `Auto` já detecta marcadores de paginação/`ROWNUM` em varredura linear (`SqlSyntaxDetector`) e normaliza `TOP`, `LIMIT`, `FETCH FIRST`, `OFFSET/FETCH` e `ROWNUM` seguro para `SqlLimitOffset` (`DialectNormalizer`).
+- Incremento desta sessão: o parser já possui entradas explícitas dedicadas para o modo `Auto` em queries e expressões (`ParseAuto`, `ParseMultiAuto`, `SplitStatementsAuto`, `ParseUnionChainAuto`, `ParseScalarAuto` e `ParseWhereAuto`), reduzindo acoplamento de criação manual do dialeto.
+- Incremento desta sessão: a cobertura TDD inicial já valida shape canônico de AST para `TOP`, `LIMIT`, `FETCH FIRST`, `OFFSET/FETCH`, `ROWNUM` simples, `ROWNUM` parametrizado, combinação com `AND`, combinação com `TOP`, helpers dedicados de parse de query/expressão e o caso inseguro com `OR`.
+- Incremento desta sessão: o pipeline compartilhado de execução agora resolve um dialeto efetivo por conexão (`UseAutoSqlDialect`) e já aceita em runtime sintaxes equivalentes de paginação como `TOP` e `FETCH FIRST` em providers concretos, sem introduzir branches sintáticos no executor.
+- Incremento desta sessão: a cobertura de runtime do modo `Auto` agora inclui também mutação suportada (`INSERT ... SELECT TOP 1`) no pipeline compartilhado de non-query, além de leitura com `TOP` e `FETCH FIRST` em `SqliteConnectionMock`.
+- Incremento desta sessão: o modo `Auto` agora também possui regressao de batch multi-statement em runtime cobrindo `TOP`, `FETCH FIRST` e `LIMIT` no mesmo `ExecuteReader`, reforçando a equivalencia operacional das sintaxes de paginação já normalizadas.
+- Incremento desta sessão: a propagacao do dialeto efetivo no runtime foi estendida aos `CommandMock` restantes (`MySql`, `Db2`, `Npgsql`, `Oracle` e `SqlServer`), reduzindo risco de comportamento inconsistente do modo `Auto` entre providers.
+- Incremento desta sessão: a trilha TDD de runtime do modo `Auto` agora prova equivalencia de resultado para `TOP`, `LIMIT`, `FETCH FIRST` e o subset seguro de `ROWNUM`, todos convergindo para a mesma leitura em `SqliteConnectionMock`.
+- Incremento desta sessão: `SqlSyntaxDetector` passou a cobrir tambem heuristicas lineares de `identidade` (`IDENTITY`, `AUTO_INCREMENT`, `SERIAL`, `BIGSERIAL`) e `concatenacao` (`CONCAT`, `CONCAT_WS`, `||`), com regressao para evitar falso positivo quando esses marcadores aparecem apenas dentro de strings.
+- Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem a familia compartilhada de `sequence` (`CREATE/DROP SEQUENCE`, `NEXT VALUE FOR`, `PREVIOUS VALUE FOR`, `NEXTVAL/CURRVAL/LASTVAL` e `seq.NEXTVAL/CURRVAL`), reaproveitando o evaluator e o runtime ja existentes sem adicionar branch especial por provider.
+- Incremento desta sessão: `SqlSyntaxDetector` passou a reconhecer tambem marcadores baratos da familia `sequence` (`SEQUENCE`, `NEXT/PREVIOUS VALUE FOR`, `NEXTVAL`, `CURRVAL`, `SETVAL`, `LASTVAL`), e a trilha TDD do runtime agora cobre estado de sessao com `PREVIOUS VALUE FOR` e `DROP SEQUENCE IF EXISTS` no modo `Auto`.
+- Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem operadores JSON compartilhados (`->`, `->>`, `#>`, `#>>`), reaproveitando `JsonAccessExpr` e a avaliacao compartilhada do executor; o detector barato agora tambem marca essa familia e a trilha TDD cobre parsing e runtime de `->>` no modo `Auto`.
+- Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem as funcoes JSON compartilhadas `JSON_EXTRACT` e `JSON_VALUE`, reaproveitando gates ja existentes no parser/executor; o detector barato agora tambem marca essa familia e a trilha TDD cobre parsing e runtime dessas chamadas no modo `Auto`.
+- Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem aliases temporais compartilhados (`CURRENT_DATE`, `CURRENT_TIME`, `CURRENT_TIMESTAMP`, `SYSTEMDATE`, `SYSDATE`, `NOW()`, `GETDATE()`, `SYSDATETIME()`, `SYSTIMESTAMP()`), reaproveitando `SqlTemporalFunctionEvaluator`; o detector barato agora tambem marca essa familia e a trilha TDD cobre parsing e runtime desses aliases no modo `Auto`.
+- Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem `JSON_VALUE ... RETURNING`, reaproveitando a coerção ja existente no executor compartilhado; a trilha TDD cobre parsing do payload `RETURNING` e execução com coerção numérica no modo `Auto`.
+- Incremento desta sessão: `SqlDialect.Auto` passou a explicitar tambem a familia compartilhada de adição temporal (`DATE_ADD`, `DATEADD`, `TIMESTAMPADD`), reaproveitando o evaluator temporal ja existente; o detector barato agora tambem marca essa familia e a trilha TDD cobre parsing e runtime das três variantes no modo `Auto`.
+- Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem a familia compartilhada de agregação textual (`GROUP_CONCAT`, `STRING_AGG`, `LISTAGG`), incluindo `WITHIN GROUP`, `ORDER BY` interno e `SEPARATOR` no subset comum; o detector barato agora tambem marca essa familia e a trilha TDD cobre parsing e runtime dessas variantes no modo `Auto`.
+- Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem a familia compartilhada de rowcount (`FOUND_ROWS`, `ROW_COUNT`, `CHANGES`, `ROWCOUNT` e `@@ROWCOUNT`), reaproveitando o estado de last-found-rows ja existente na conexao/executor; o detector barato agora tambem marca essa familia e a trilha TDD cobre parsing e runtime dessas variantes no modo `Auto`.
+- Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem o modificador `SQL_CALC_FOUND_ROWS`, reaproveitando o suporte ja existente do parser e do executor para popular `FOUND_ROWS()`; o detector barato agora tambem marca esse sinal e a trilha TDD cobre parsing e runtime do fluxo `SELECT SQL_CALC_FOUND_ROWS ...; SELECT FOUND_ROWS();`.
+- Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem o operador de igualdade null-safe `<=>`, reaproveitando o `SqlBinaryOp.NullSafeEq` e a avaliação já existente no executor; o detector barato agora tambem marca esse operador e a trilha TDD cobre parsing e runtime no modo `Auto`.
+- Incremento desta sessão: `SqlDialect.Auto` passou a expor tambem `ILIKE`, reaproveitando o `LikeExpr` com `CaseInsensitive = true` e a avaliação já existente no executor; o detector barato agora tambem marca esse operador e a trilha TDD cobre parsing e runtime no modo `Auto`.
+- TODO: expandir `SqlSyntaxDetector` além da fatia atual de paginação/`ROWNUM`/marcadores de `identidade` e `concatenacao`, cobrindo apenas equivalências cross-dialect de alto retorno realmente consumidas.
+- TODO: expandir `DialectNormalizer` além da primeira AST canônica de paginação para novos nós compartilhados somente quando houver contrato claro de execução comum.
+- TODO: validar em TDD que queries equivalentes (`TOP`, `LIMIT`, `FETCH FIRST`, `ROWNUM`) produzam o mesmo shape de AST e, quando o modo `Auto` estiver exposto no runtime, o mesmo resultado de execução também em batches e cenários de mutação suportados.
+- TODO: impedir que `SqlDialect.Auto` introduza branches sintáticos no executor; qualquer diferença nova deve ser resolvida antes da execução.
+
 ### 1.3 Executor SQL
 
 #### 1.3.1 Pipeline de execução
@@ -390,7 +430,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.3.2 Operações comuns suportadas
 
-- Implementação estimada: **90%**.
+- Implementação estimada: **93%**.
 - Fluxos DDL/DML de uso frequente em aplicações corporativas .NET.
 - Cenários com múltiplos comandos por contexto de teste.
 - Execução orientada a simulação funcional (não benchmark de banco real).
@@ -473,6 +513,16 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Legibilidade maior para times de aplicação.
 - TODO: materializar cenários reutilizáveis de transação/savepoint/tabela temporária/trigger em builders compartilhados, reduzindo boilerplate cross-provider nas suites consumidoras.
 
+#### 1.4.4 Snapshot e replay de schema
+
+- Implementação estimada: **0%**.
+- Objetivo: capturar schema real de uma conexao ADO.NET e reproduzi-lo no mock sem reescrita manual de setup.
+- Deve servir tanto para bootstrap de suite quanto para congelar fixtures versionaveis em JSON.
+- TODO: expor `SchemaSnapshot.Export(connection)` para serializar tabelas, colunas e demais objetos de schema suportados pelo provider.
+- TODO: expor `SchemaSnapshot.Load(schema.json)` para reconstruir o estado estrutural no `DbMock`, preservando nomes, tipos e metadados relevantes.
+- TODO: decidir o subset inicial de objetos a exportar/reaplicar (`tables`, `columns`, `constraints`, `views`, `sequences`) com gate explicito por provider.
+- TODO: adicionar regressao/documentacao de replay end-to-end para evitar drift entre schema real capturado e setup manual local.
+
 ### 1.5 Diagnóstico e observabilidade da execução
 
 #### 1.5.1 Plano de execução mock
@@ -485,7 +535,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.5.2 Métricas de runtime
 
-- Implementação estimada: **72%**.
+- Implementação estimada: **77%**.
 - Métricas disponíveis: `EstimatedCost`, `InputTables`, `EstimatedRowsRead`, `ActualRows`, `SelectivityPct`, `RowsPerMs`, `ElapsedMs`.
 - Recalibrado com base na presença efetiva das métricas e nos testes de plano/formatter existentes no código.
 - Permite validar cenários de seletividade e custo relativo.
@@ -494,7 +544,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.5.3 Histórico por conexão
 
-- Implementação estimada: **85%**.
+- Implementação estimada: **87%**.
 - `LastExecutionPlan`: referência ao último plano executado.
 - `LastExecutionPlans`: trilha dos planos da sessão de conexão.
 - Útil para auditoria de execução em cenários multi-etapa.
@@ -502,11 +552,57 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.5.4 Uso prático no backlog
 
-- Implementação estimada: **70%**.
+- Implementação estimada: **72%**.
 - Ajuda a mapear comandos mais custosos no ambiente de testes.
 - Apoia priorização de melhorias no parser/executor.
 - Oferece material para diagnósticos reprodutíveis em issues.
 - TODO: ligar snapshots/telemetria do plano de execução diretamente aos itens do backlog e às issues de regressão, para transformar observabilidade em critério objetivo de priorização.
+
+#### 1.5.5 Debug trace de execução
+
+- Implementação estimada: **90%**.
+- Diferente do execution plan textual/JSON: deve mostrar o rastro real dos operadores executados no runtime do mock.
+- Precisa expor volume de linhas de entrada/saída, tempo relativo e detalhes suficientes para diagnosticar interpretação incorreta da query.
+- Incremento desta sessão: a primeira fatia da feature já expõe `DebugSql(string sql)` na conexão e os contratos públicos `QueryDebugTrace`/`QueryDebugTraceStep`, sem conflitar com `LastExecutionPlan`.
+- Incremento desta sessão: o executor já registra um trace mínimo sob demanda para `SELECT`/`UNION`, cobrindo etapas básicas como `TableScan`, `Join`, `Filter`, `Group`, `Having`, `Project`, `Sort`, `Limit`, `UnionInputs` e `UnionCombine`.
+- Incremento desta sessão: a cobertura inicial de regressão foi ligada à suíte SQLite para validar a API `DebugSql` e a presença dos operadores básicos de leitura.
+- Incremento desta sessão: `DebugSql` agora preserva o último trace mesmo quando precisa abrir/fechar a conexão automaticamente, evitando perda do artefato logo após a chamada.
+- Incremento desta sessão: `UNION` passou a publicar apenas o trace consolidado da operação em vez de vazar traces internos de cada `SELECT`, reduzindo ruído sem custo extra no caminho normal.
+- Incremento desta sessão: a conexão agora também expõe `DebugSqlBatch(string sql)` para multi-statements, reaproveitando a captura existente e devolvendo todos os traces da execução reader em ordem.
+- Incremento desta sessão: a malha TDD inicial do debugger cobre agora `SELECT`, retenção após auto-close, `UNION` consolidado e batch com múltiplos statements.
+- Incremento desta sessão: cada `QueryDebugTrace` retornado pelo batch agora carrega também contexto do statement (`StatementIndex` e `SqlText`), deixando o resultado autoexplicativo em execuções multi-statement.
+- Incremento desta sessão: a feature agora também possui formatter textual dedicado (`QueryDebugTraceFormatter`) e atalhos na conexão (`DebugSqlText`/`DebugSqlBatchText`) para inspeção direta sem montagem manual de saída.
+- Incremento desta sessão: o formatter do debugger agora também expõe JSON estruturado (`FormatJson`/`FormatBatchJson`) e atalhos na conexão (`DebugSqlJson`/`DebugSqlBatchJson`), preparando consumo automatizado futuro sem serialização ad-hoc.
+- Incremento desta sessão: o contrato do trace passou a expor agregados prontos de observabilidade (`TotalExecutionTime`, `MaxInputRows`, `MaxOutputRows`, `OperatorSignature`), e os formatters textual/JSON agora refletem esse resumo sem recomputacao no chamador.
+- Incremento desta sessão: o formatter de batch passou a expor tambem resumo consolidado do lote (`TotalStepCount`, tempo total, maiores volumes e assinatura agregada de operadores), facilitando leitura e automacao sem reprocessamento externo.
+- Incremento desta sessão: o resumo de batch agora inclui tambem contagens agregadas por tipo de query e por operador (`QueryTypes`/`OperatorCounts`), reduzindo trabalho manual para diagnostico e futura integracao com CI.
+- Incremento desta sessão: o resumo de batch agora identifica tambem o statement mais caro e o de maior volume (`SlowestStatementIndex`/`WidestStatementIndex`), com desempate estavel por indice para consumo automatizado.
+- Incremento desta sessão: o resumo de batch passou a expor tambem o SQL associado ao statement mais caro e ao de maior volume (`SlowestStatementSql`/`WidestStatementSql`), eliminando lookup manual adicional no cliente.
+- Incremento desta sessão: a visualizacao consolidada do batch agora entrega diretamente indice e SQL dos statements criticos, reduzindo o passo manual de correlacionar resumo agregado com a lista detalhada de traces.
+- Incremento desta sessão: o trace individual passou a expor tambem `OperatorCounts`, e os formatters textual/JSON agora entregam a distribuicao por operador sem recontagem no chamador.
+- Incremento desta sessão: o trace individual agora tambem aponta o operador mais caro e o de maior volume (`SlowestOperator`/`WidestOperator`), facilitando diagnostico rapido sem inspecionar todos os passos manualmente.
+- Incremento desta sessão: a leitura rapida do trace individual agora fica simetrica ao resumo de batch, destacando tanto distribuicao (`OperatorCounts`) quanto hotspots principais do fluxo executado.
+- Incremento desta sessão: o trace individual agora tambem explicita o primeiro e o ultimo operador do fluxo (`FirstOperator`/`LastOperator`), deixando o inicio/fim da pipeline visivel sem depender apenas da assinatura completa.
+- Incremento desta sessão: o trace individual passou a expor tambem os indices dos hotspots (`SlowestStepIndex`/`WidestStepIndex`), permitindo localizar o passo critico diretamente sem percorrer a lista inteira.
+- Incremento desta sessão: o resumo individual do trace agora combina operador e indice do hotspot, deixando a navegacao ate o passo critico direta nas saidas textual e JSON.
+- Incremento desta sessão: o trace individual agora tambem expõe os `Details` do passo mais lento e do mais largo (`SlowestStepDetails`/`WidestStepDetails`), reduzindo a necessidade de abrir manualmente a lista detalhada.
+- Incremento desta sessão: o trace individual agora tambem cobre os extremos minimos (`Fastest*` e `Narrowest*`), fechando a leitura rapida dos extremos de custo e volume sem depender de analise manual.
+- Incremento desta sessão: o resumo individual do trace agora cobre os dois extremos completos do fluxo (mais caro/mais barato e mais largo/mais estreito), com operador, indice e detalhes prontos nas saidas textual e JSON.
+- Incremento desta sessão: o resumo consolidado de batch agora expõe tambem os statements mais rapido e mais estreito (`FastestStatement*`/`NarrowestStatement*`), fechando a visao dos quatro extremos do lote com selecao estavel e sem ordenacoes LINQ extras.
+- Incremento desta sessão: a integracao publica do debugger em batch agora tambem possui regressao dedicada para `DebugSqlBatchText` e `DebugSqlBatchJson`, cobrindo os agregados novos diretamente na API da conexao.
+- Incremento desta sessão: os `Details` dos operadores de leitura ficaram mais ricos para diagnostico (`Project`, `Sort`, `Group` e `Join` agora carregam itens/chaves/predicado relevantes), sem alterar o caminho normal fora do modo debug.
+- Incremento desta sessão: `UNION` e `DISTINCT` agora tambem expõem detalhes operacionais mais explicitos (`parts`, segmentos `ALL`/`DISTINCT`, modo consolidado e contagem de colunas projetadas), e a suíte SQLite passou a cobrir um fluxo agrupado com `GROUP`/`HAVING`/`DISTINCT`.
+- Incremento desta sessão: a materializacao de `QueryDebugTrace` foi reescrita para agregacao em passagem unica, reduzindo ordenacoes e enumeracoes LINQ repetidas sem mudar o contrato observavel de desempate dos hotspots/extremos.
+- Incremento desta sessão: o formatter de batch agora consolida todos os agregados em um resumo interno unico, evitando multiplas passagens sobre os traces e preservando o mesmo desempate estavel para os extremos do lote.
+- Incremento desta sessão: a conexao agora tem politica simples de retencao e limpeza para traces (`DebugTraceRetentionLimit` e `ClearDebugTraces()`), mantendo por padrao a compatibilidade e permitindo limitar memoria em cenarios de batch/debug intensivo.
+- Incremento desta sessão: cada nova captura externa de debug agora reinicia o historico anterior antes da execucao, alinhando `LastDebugTrace`/`LastDebugTraces` com a semantica documentada de “ultima execucao” e evitando acumulacao indevida entre chamadas.
+- Incremento desta sessão: a conexao agora pode exportar o snapshot atual do debugger sem reexecutar SQL (`GetDebugTraceSnapshot`, `GetDebugTraceSnapshotText`, `GetDebugTraceSnapshotJson`), facilitando anexar artefatos a regressões e issues.
+- Incremento desta sessão: a API publica do debugger ficou simetrica tambem para o ultimo trace retido (`GetLastDebugTraceSnapshot`, `GetLastDebugTraceSnapshotText`, `GetLastDebugTraceSnapshotJson`), cobrindo tanto inspeção pontual quanto exportacao do lote inteiro sem nova execucao.
+- Incremento desta sessão: a camada publica de snapshot agora tem comportamento vazio coberto por regressao, incluindo lote vazio formatavel e erro explicito para exportacao textual/JSON do ultimo trace quando nada foi retido.
+- Incremento desta sessão: a superficie publica do debugger agora tambem oferece leitura nao-excepcional do ultimo trace (`TryGetLastDebugTraceSnapshot`), fechando a ergonomia de consumo para cenarios interativos e automacao defensiva.
+- TODO: aprofundar a instrumentação do executor para registrar detalhes mais ricos por operador e reduzir passos ainda genéricos/agrupados.
+- TODO: manter o trace em memória por conexão/comando, com política clara de retenção e limpeza.
+- TODO: conectar o trace aos cenários de regressão para que debug de parser/executor não dependa apenas do plano sintético final.
 
 ### 1.6 Riscos técnicos e mitigação no núcleo
 
@@ -746,6 +842,17 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Tratar diferenças de sintaxe como requisito funcional, não detalhe cosmético.
 - Manter rastreabilidade entre gap reportado, teste criado e item de roadmap.
 
+#### 3.0.1 Expansão planejada de famílias SQL
+
+- Implementação estimada: **0%**.
+- A próxima expansão deve continuar por famílias de dialeto, reaproveitando parser/runtime existentes antes de criar providers isolados.
+- TODO: refatorar a família MySQL para permitir um `MariaDbDialect` reaproveitável e implementar o subset inicial de diferenças reais (`RETURNING`, `SEQUENCE`, `JSON_TABLE`) com regressão positiva/negativa.
+- TODO: adicionar `FirebirdDialect` com suporte inicial a `SELECT FIRST`, `ROWS` e `GENERATOR`, mantendo gates explícitos para tudo que ainda não entrar no subset.
+- TODO: refatorar a família PostgreSQL para permitir um `DuckDbDialect` compartilhando o máximo possível do caminho `Npgsql/PostgreSQL`.
+- TODO: cobrir no `DuckDbDialect` o subset inicial realmente priorizado (`STRUCT`, `LIST`, `UNNEST`) somente depois da base compartilhada estar pronta.
+- TODO: planejar a fase posterior da família analytics com `ClickHouse` (`ARRAY JOIN`, `LIMIT BY`, `ENGINE MergeTree`) sem acoplar sintaxe analítica diretamente ao executor comum.
+- TODO: planejar `Snowflake` como extensão posterior da trilha analytics, com matriz de compatibilidade e subset explícito antes da primeira implementação.
+
 ### 3.1 MySQL (`DbSqlLikeMem.MySql`)
 
 #### 3.1.1 Versões simuladas
@@ -917,7 +1024,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 3.7.1 Matriz de cobertura
 
-- Implementação estimada: **96%**.
+- Implementação estimada: **90%**.
 - Executar casos críticos em todos os provedores prioritários do produto.
 - Definir perfil mínimo de compatibilidade por módulo.
 - Execução matricial por provider já iniciada em CI (`provider-test-matrix.yml`), com publicação de artefatos de resultado por projeto e etapas dedicadas de smoke e agregação cross-dialect, com publicação de snapshot por perfil em artefatos de CI.
@@ -925,6 +1032,9 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - O profile `parser` agora inclui também `SqlAzure`, fechando a matriz principal de providers SQL suportados nessa trilha sem precisar duplicar runtime do dialeto.
 - Matriz consolidada de providers/versões e capacidades comuns agora está refletida diretamente neste índice como fonte principal de backlog.
 - TODO: ampliar a matriz compartilhada para capacidades avançadas auditadas contra bancos reais (`JSON_TABLE`, `FOR JSON`, `LATERAL`, `DISTINCT ON`, `json_each/json_tree`, `PIVOT/UNPIVOT`) com status explícito por provider.
+- TODO: incluir `SqlDialect.Auto` na malha `parser`/`smoke` com snapshots dedicados para sintaxes equivalentes de paginação e demais heurísticas que entrarem no modo automático.
+- TODO: expandir a matriz para os próximos providers/famílias planejados (`MariaDB`, `Firebird`, `DuckDB` e, em fase posterior, `ClickHouse`/`Snowflake`) com status por etapa de implementação.
+- TODO: conectar a futura API de validação cross-dialect aos artefatos publicados da matriz para transformar compatibilidade em evidência objetiva de CI.
 
 #### 3.7.2 Priorização de gaps
 
@@ -940,7 +1050,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 - Implementação estimada: **78%**.
 - Comandos que bloqueiam operações essenciais de CRUD e autenticação/autorização da aplicação.
-- TODO: manter nesta onda os gaps que ainda quebram fluxo essencial do core, começando por `UPDATE/DELETE` multi-tabela dirigidos por dialeto, `PIVOT` subset incompleto e families JSON tabulares mais críticas por provider.
+- TODO: manter nesta onda os gaps que ainda quebram fluxo essencial do core, começando por `SqlDialect.Auto`, refatoração das famílias reutilizáveis de dialeto e o fechamento dos gaps pequenos/críticos do parser comum.
+- TODO: manter também nesta onda os gaps que ainda quebram fluxo essencial do core, como `UPDATE/DELETE` multi-tabela dirigidos por dialeto, `PIVOT` subset incompleto e families JSON tabulares mais críticas por provider.
 
 #### 3.8.2 Onda 2 (alta)
 
@@ -949,6 +1060,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Inclui execução do plano P11/P12 para confiabilidade transacional, concorrência e diagnóstico de erro com contexto.
 - Status detalhado de transações concorrentes: fase de hardening base concluída (100%), governança em progresso (~10%) e cenários críticos (fases 2–5) priorizados para fechamento.
 - TODO: manter nesta onda recursos avançados de consulta com impacto funcional frequente (`FOR JSON`, `STRING_SPLIT`, `DISTINCT ON`, `LATERAL`, window frames avançados no SQLite).
+- TODO: priorizar nesta onda `Query Plan Debugger`, `MariaDB`, `Firebird`, `DuckDB`, `Schema Snapshot` e `Cross Dialect Validator`, respeitando a ordem de dependências definida no roadmap.
 
 #### 3.8.3 Onda 3 (média/baixa)
 
@@ -957,6 +1069,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Inclui trilhas P13/P14 para performance (hot paths/caching) e conformidade de ecossistema (.NET/ORM/tooling).
 - Inclui avaliação de partição de tabelas em subset (metadado + pruning básico) após estabilização dos gaps críticos de parser/executor.
 - TODO: manter nesta onda recursos especializados e de menor recorrência operacional, como `MATCH_RECOGNIZE`, particionamento simplificado e expansões de observabilidade/ergonomia do plano de execução.
+- TODO: deixar nesta onda a família analytics (`ClickHouse`, `Snowflake`) e a trilha de fuzz/comparação multi-dialeto, salvo se algum consumidor real elevar a prioridade.
 
 ---
 
@@ -996,26 +1109,29 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 4.2.1 Matriz de compatibilidade SQL
 
-- Implementação estimada: **94%**.
+- Implementação estimada: **88%**.
 - Registro do que já está suportado por banco/versão.
 - Visão de lacunas e riscos por área funcional.
 - Matriz feature x dialeto já publicada e usada como referência de hardening/regressão.
 - Matriz versionada (`vCurrent`/`vNext`) e rastreável para testes corresponde ao fechamento do checklist de documentação.
 - TODO: sincronizar a matriz de compatibilidade com a nova auditoria contra bancos reais, expondo explicitamente os recursos já listados como TODO nas seções por provider.
+- TODO: publicar também o resultado do futuro `SqlCompatibilityCheck`/`ValidateAcrossDialects(query)` como evidência objetiva por recurso, provider e versão simulada.
 
 #### 4.2.2 Roadmaps de parser/executor
 
-- Implementação estimada: **93%**.
+- Implementação estimada: **84%**.
 - Planejamento incremental por marcos.
 - Track global de regressão cross-dialect está em ~70%, com ampliação contínua da cobertura em matriz de smoke/regressão.
 - Conexão entre backlog técnico e testes de regressão.
-- Known gaps aponta 14/14 itens tratados em código/documentação, com validação contínua dependente da suíte local/CI.
+- Known gaps do ciclo anterior foram tratados, mas o roadmap seguinte reabre trilhas estruturais de multi-dialeto, novos providers, snapshot de schema e validação de compatibilidade.
 - Incremento desta sessão: a trilha imediata do core voltou a priorizar gaps pequenos, mas reais, de semântica compartilhada do parser/executor, começando por `LIKE ... ESCAPE ...` com regra dirigida pelo dialeto em vez de hardcode único no helper comum.
 - Incremento desta sessão: a mesma trilha incremental do core passou a fechar também payloads já parseados, mas ainda subutilizados no runtime, começando por `JSON_VALUE ... RETURNING` com gate do dialeto e coerção efetiva no executor.
 - Incremento desta sessão: a próxima lacuna pequena fechada no core foi DDL de `SEQUENCE`, reaproveitando a infraestrutura já existente de runtime e deixando parser/dispatcher/executor seguirem a capacidade declarada no dialeto.
 - Incremento desta sessão: o parser comum de agregação textual foi endurecido para a forma nativa do MySQL (`GROUP_CONCAT(DISTINCT ... ORDER BY ... SEPARATOR ...)`), aceitando `SEPARATOR` como terminador válido do `ORDER BY` interno apenas quando o dialeto/função o suportam.
 - Incremento desta sessão: a trilha auditada de regras por dialeto removeu os últimos branches comportamentais centrais por `dialect.Name` para mutações multi-tabela, rowcount de UPSERT e `SQL_CALC_FOUND_ROWS`, consolidando parser/executor/strategies sob o mesmo contrato de capability do provider.
 - Incremento desta sessão: a próxima fatia funcional do executor fechou o subset principal de `PIVOT` com `SUM/MIN/MAX/AVG` no caminho compartilhado, deixando `UNPIVOT` e agregadores avançados como backlog residual explícito.
+- TODO: executar o roadmap na ordem acordada: `SqlDialect.Auto` -> `Query Plan Debugger` -> `MariaDB` -> `Firebird` -> `DuckDB` -> `Schema Snapshot` -> `Cross Dialect Validator`.
+- TODO: extrair/refatorar bases compartilhadas por família antes de `MariaDB` e `DuckDB`, para evitar duplicação e preservar o parser/executor agnósticos.
 - TODO: fechar a trilha auditada contra bancos reais com implementação incremental de `JSON_TABLE` (MySQL, Oracle, DB2), `FOR JSON`/`UNPIVOT`/`STRING_SPLIT` (SQL Server/SqlAzure), `DISTINCT ON`/`LATERAL` (PostgreSQL), `json_each`/`json_tree` e frames avançados de window (SQLite).
 - TODO: revisar cada nova feature acima com a regra "dialeto manda", garantindo gate no tokenizer/parser, contract no executor e suíte positiva/negativa por versão simulada antes de marcar o item como concluído.
 
@@ -1033,6 +1149,15 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: o `SqlAzure` passou a ter também suíte dedicada de estratégia para o contrato transacional compartilhado (`Close`/`Open`, savepoint, `ResetAllVolatileData` e isolamento), ampliando o aceite explícito fora da trilha apenas de parser.
 - Cada fatia de entrega deve apresentar critérios de aceite, validação e escopo explícito no padrão dos prompts de implementação.
 
+#### 4.2.4 Validador cross-dialect
+
+- Implementação estimada: **0%**.
+- Objetivo: informar se um SQL é compatível ou não com cada dialeto suportado, sem depender de tentativa manual provider a provider.
+- O resultado precisa usar o banco/provedor real como fonte de verdade para heurísticas e gaps conhecidos, não apenas opinião do mock.
+- TODO: expor `SqlCompatibilityCheck` / `ValidateAcrossDialects(query)` com saída mínima `Compatible` e `Not compatible` por dialeto.
+- TODO: reutilizar capabilities reais do dialeto, regras por versão e baselines auditadas contra bancos reais para reduzir falso positivo/falso negativo.
+- TODO: ligar o validador à matriz de compatibilidade, snapshots de CI e backlog de gaps para que cada divergência vire item rastreável.
+
 ### 4.3 Observabilidade de comportamento em testes
 
 #### 4.3.1 Evidências mínimas por cenário
@@ -1045,6 +1170,15 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - CI deve publicar relatório por provider e resultado da smoke cross-dialeto como evidência mínima de fechamento.
 - Incremento desta sessão: a malha CI passou a publicar também snapshot dedicado da camada `Strategy`, ampliando a trilha mínima de evidência objetiva para regressões transacionais/trigger além da smoke geral.
 - TODO: anexar também o mapeamento entre evidência publicada, item do backlog e suites afetadas, para reduzir fechamento sem rastreabilidade objetiva.
+
+#### 4.3.2 Fuzz testing e comparação multi-dialeto
+
+- Implementação estimada: **0%**.
+- Objetivo: executar a mesma query em múltiplos dialetos e produzir quadro objetivo de `OK`/`FAIL` por provider.
+- Essa trilha deve complementar o validador de compatibilidade com execução comparativa e não apenas análise estática.
+- TODO: adicionar um runner do tipo `TestAcrossDialects(query)` para comparar parse/execução/erro entre providers selecionados.
+- TODO: registrar motivo da divergência por provider (`parse`, `gate de dialeto`, `semântica`, `resultado`) para acelerar triagem.
+- TODO: usar essa trilha primeiro em regressões de compatibilidade e, depois, como base de futura expansão para `ClickHouse`/`Snowflake`.
 
 ---
 

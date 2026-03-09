@@ -9,7 +9,6 @@ internal sealed class AstUnsupportedNonQueryCommandHandler : INonQueryCommandHan
     {
         var query = context.GetParsedQuery(sqlRaw);
         affectedRows = 0;
-        throw SqlUnsupported.ForCommandType(context.Connection.Db.Dialect, "ExecuteNonQuery", query.GetType());
+        throw SqlUnsupported.ForCommandType(context.Connection.ExecutionDialect, "ExecuteNonQuery", query.GetType());
     }
 }
-

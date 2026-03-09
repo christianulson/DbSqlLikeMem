@@ -7,6 +7,7 @@ internal sealed class SqlQueryParser
     private readonly IReadOnlyList<SqlToken> _toks;
     private readonly ISqlDialect _dialect;
     private readonly IDataParameterCollection? _parameters;
+    private readonly AutoSqlSyntaxFeatures _autoSyntaxFeatures;
     private int _i;
     // INSERT ... SELECT pode ter um sufixo de UPSERT após o SELECT (MySQL ON DUPLICATE..., Postgres ON CONFLICT ...)
     private bool _allowInsertSelectSuffixBoundary;
@@ -35,6 +36,24 @@ internal sealed class SqlQueryParser
         _dialect = dialect;
         _parameters = parameters;
         _toks = new SqlTokenizer(sql, _dialect).Tokenize();
+        _autoSyntaxFeatures = _dialect is AutoSqlDialect
+            ? SqlSyntaxDetector.Detect(sql, _toks)
+            : AutoSqlSyntaxFeatures.None;
+        _i = 0;
+    }
+
+    private SqlQueryParser(
+        IReadOnlyList<SqlToken> toks,
+        ISqlDialect dialect,
+        IDataParameterCollection? parameters,
+        AutoSqlSyntaxFeatures autoSyntaxFeatures)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(toks, nameof(toks));
+        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
+        _toks = toks;
+        _dialect = dialect;
+        _parameters = parameters;
+        _autoSyntaxFeatures = autoSyntaxFeatures;
         _i = 0;
     }
 
@@ -47,6 +66,25 @@ internal sealed class SqlQueryParser
     /// <returns>EN: Parsed query AST root. PT: Raiz da AST da query parseada.</returns>
     public static SqlQueryBase Parse(string sql, ISqlDialect dialect)
         => Parse(sql, dialect, null);
+
+    /// <summary>
+    /// EN: Parses one SQL statement using the automatic dialect compatibility mode.
+    /// PT: Faz o parsing de um statement SQL usando o modo de compatibilidade automatica de dialeto.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
+    /// <returns>EN: Parsed query AST root. PT: Raiz da AST da query parseada.</returns>
+    public static SqlQueryBase ParseAuto(string sql)
+        => Parse(sql, new AutoSqlDialect(), null);
+
+    /// <summary>
+    /// EN: Parses one SQL statement using the automatic dialect compatibility mode and optional parameters.
+    /// PT: Faz o parsing de um statement SQL usando o modo de compatibilidade automatica de dialeto e parametros opcionais.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
+    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized numeric values. PT: Parametros de comando opcionais usados por caminhos do parser que resolvem valores numericos parametrizados.</param>
+    /// <returns>EN: Parsed query AST root. PT: Raiz da AST da query parseada.</returns>
+    public static SqlQueryBase ParseAuto(string sql, IDataParameterCollection? parameters)
+        => Parse(sql, new AutoSqlDialect(), parameters);
 
     /// <summary>
     /// EN: Parses one SQL statement into an AST root using dialect capabilities and optional command parameters.
@@ -63,13 +101,16 @@ internal sealed class SqlQueryParser
 
         // Fast feature gate before cache lookup to avoid serving incompatible ASTs for version-gated commands.
         var tokens = new SqlTokenizer(sql, dialect).Tokenize();
+        var autoSyntaxFeatures = dialect is AutoSqlDialect
+            ? SqlSyntaxDetector.Detect(sql, tokens)
+            : AutoSqlSyntaxFeatures.None;
         var first = tokens.Count > 0 ? tokens[0] : default;
         if (IsWord(first, "MERGE") && !dialect.SupportsMerge)
             throw SqlUnsupported.ForMerge(dialect);
 
         if (parameters is not null)
         {
-            var uncached = ParseUncached(sql, dialect, parameters);
+            var uncached = ParseUncached(tokens, dialect, parameters, autoSyntaxFeatures);
             EnsureDialectSupport(uncached, dialect);
             return uncached with { RawSql = sql };
         }
@@ -77,7 +118,7 @@ internal sealed class SqlQueryParser
         // DDL statements are cheap to parse and benefit from deterministic no-cache behavior in tests.
         if (IsWord(first, "CREATE") || IsWord(first, "DROP"))
         {
-            var uncached = ParseUncached(sql, dialect, null);
+            var uncached = ParseUncached(tokens, dialect, null, autoSyntaxFeatures);
             EnsureDialectSupport(uncached, dialect);
             return uncached with { RawSql = sql };
         }
@@ -89,7 +130,7 @@ internal sealed class SqlQueryParser
             return cached with { RawSql = sql };
         }
 
-        var parsed = ParseUncached(sql, dialect, null);
+        var parsed = ParseUncached(tokens, dialect, null, autoSyntaxFeatures);
         EnsureDialectSupport(parsed, dialect);
         _astCache.Set(cacheKey, parsed);
 
@@ -156,9 +197,13 @@ internal sealed class SqlQueryParser
         }
     }
 
-    private static SqlQueryBase ParseUncached(string sql, ISqlDialect dialect, IDataParameterCollection? parameters)
+    private static SqlQueryBase ParseUncached(
+        IReadOnlyList<SqlToken> tokens,
+        ISqlDialect dialect,
+        IDataParameterCollection? parameters,
+        AutoSqlSyntaxFeatures autoSyntaxFeatures)
     {
-        var q = new SqlQueryParser(sql, dialect, parameters);
+        var q = new SqlQueryParser(tokens, dialect, parameters, autoSyntaxFeatures);
         var first = q.Peek();
 
         SqlQueryBase? result;
@@ -202,6 +247,27 @@ internal sealed class SqlQueryParser
         => ParseMulti(sql, dialect, null);
 
     /// <summary>
+    /// EN: Parses a SQL batch using the automatic dialect compatibility mode.
+    /// PT: Faz o parsing de um lote SQL usando o modo de compatibilidade automatica de dialeto.
+    /// </summary>
+    /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
+    /// <returns>EN: Sequence of parsed AST roots. PT: Sequencia de raizes de AST parseadas.</returns>
+    public static IEnumerable<SqlQueryBase> ParseMultiAuto(string sql)
+        => ParseMulti(sql, new AutoSqlDialect(), null);
+
+    /// <summary>
+    /// EN: Parses a SQL batch using the automatic dialect compatibility mode and optional parameters.
+    /// PT: Faz o parsing de um lote SQL usando o modo de compatibilidade automatica de dialeto e parametros opcionais.
+    /// </summary>
+    /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
+    /// <param name="parameters">EN: Optional parameters forwarded to each statement parse. PT: Parametros opcionais repassados para o parse de cada statement.</param>
+    /// <returns>EN: Sequence of parsed AST roots. PT: Sequencia de raizes de AST parseadas.</returns>
+    public static IEnumerable<SqlQueryBase> ParseMultiAuto(
+        string sql,
+        IDataParameterCollection? parameters)
+        => ParseMulti(sql, new AutoSqlDialect(), parameters);
+
+    /// <summary>
     /// EN: Parses a SQL batch and yields AST roots for each top-level statement split by semicolon boundaries.
     /// PT: Faz o parsing de um lote SQL e retorna raízes de AST para cada statement top-level separado por fronteiras de ponto e vírgula.
     /// </summary>
@@ -234,6 +300,15 @@ internal sealed class SqlQueryParser
         ISqlDialect dialect)
         => SplitStatementsTopLevel(sql, dialect);
 
+    /// <summary>
+    /// EN: Splits a SQL batch into top-level statements using the automatic dialect compatibility mode.
+    /// PT: Separa um lote SQL em statements de topo usando o modo de compatibilidade automatica de dialeto.
+    /// </summary>
+    /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
+    /// <returns>EN: Top-level SQL statements. PT: Statements SQL de topo.</returns>
+    public static IEnumerable<string> SplitStatementsAuto(string sql)
+        => SplitStatementsTopLevel(sql, new AutoSqlDialect());
+
     // Mantido para compatibilidade com lógica de Union
     /// <summary>
     /// EN: Represents a normalized UNION parsing result including parts, ALL flags, final ORDER BY and row-limit tail.
@@ -264,6 +339,15 @@ internal sealed class SqlQueryParser
 
         throw new InvalidOperationException("UNION chain deve conter apenas SELECT.");
     }
+
+    /// <summary>
+    /// EN: Parses SQL into a normalized UNION chain using the automatic dialect compatibility mode.
+    /// PT: Faz o parsing de SQL para uma cadeia UNION normalizada usando o modo de compatibilidade automatica de dialeto.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
+    /// <returns>EN: Normalized UNION chain representation. PT: Representacao normalizada de cadeia UNION.</returns>
+    public static UnionChain ParseUnionChainAuto(string sql)
+        => ParseUnionChain(sql, new AutoSqlDialect());
 
     // ------------------------------------------------------------
     // NOVAS IMPLEMENTAÇÕES DE INSERT / UPDATE / DELETE VIA TOKENS
@@ -1281,10 +1365,7 @@ internal sealed class SqlQueryParser
         if (allowOrderByAndLimit)
             TryConsumeQueryHintOption();
         if (top is not null)
-        {
-            // TOP é prefixo (SQL Server). Se também apareceu LIMIT/FETCH no fim, prioriza o fim.
             rowLimit ??= top;
-        }
 
         if (allowOrderByAndLimit)
         {
@@ -1306,7 +1387,7 @@ internal sealed class SqlQueryParser
             }
         }
 
-        return new SqlSelectQuery(
+        var query = new SqlSelectQuery(
             Ctes: ctes,
             Distinct: distinct,
             SelectItems: selectItems,
@@ -1320,6 +1401,16 @@ internal sealed class SqlQueryParser
         {
             Table = table
         };
+
+        if (_dialect is AutoSqlDialect)
+        {
+            query = DialectNormalizer.NormalizeAutoSelect(
+                query,
+                _autoSyntaxFeatures,
+                ResolveParameterInt);
+        }
+
+        return query;
     }
 
     private void TryParseSelectModifiers()

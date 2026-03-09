@@ -57,7 +57,10 @@ public abstract class DbConnectionMockBase(
     public IReadOnlyList<string> LastExecutionPlans => _lastExecutionPlans;
 
     private readonly List<string> _lastExecutionPlans = [];
+    private readonly List<QueryDebugTrace> _lastDebugTraces = [];
+    private int _debugTraceCaptureDepth;
     private long _lastFoundRows;
+    private readonly AutoSqlDialect _autoSqlDialect = new();
     private readonly Dictionary<string, long> _sessionSequenceValues =
         new(StringComparer.OrdinalIgnoreCase);
     private string? _lastSessionSequenceKey;
@@ -66,6 +69,7 @@ public abstract class DbConnectionMockBase(
     {
         LastExecutionPlan = null;
         _lastExecutionPlans.Clear();
+        ClearDebugTraces();
     }
 
     internal void RegisterExecutionPlan(string executionPlan)
@@ -75,6 +79,283 @@ public abstract class DbConnectionMockBase(
 
         LastExecutionPlan = executionPlan;
         _lastExecutionPlans.Add(executionPlan);
+    }
+
+    /// <summary>
+    /// EN: Last runtime query debug trace captured for this connection.
+    /// PT: Ultimo trace de debug de query em runtime capturado para esta conexao.
+    /// </summary>
+    public QueryDebugTrace? LastDebugTrace { get; private set; }
+
+    /// <summary>
+    /// EN: Runtime query debug traces captured during the last command execution.
+    /// PT: Traces de debug de query em runtime capturados durante a ultima execucao de comando.
+    /// </summary>
+    public IReadOnlyList<QueryDebugTrace> LastDebugTraces => _lastDebugTraces;
+
+    /// <summary>
+    /// EN: Enables automatic SQL dialect compatibility mode for parsing and execution on this connection.
+    /// PT: Habilita o modo automatico de compatibilidade de dialeto SQL para parsing e execucao nesta conexao.
+    /// </summary>
+    public bool UseAutoSqlDialect { get; set; }
+
+    /// <summary>
+    /// EN: Maximum number of runtime debug traces retained in connection history.
+    /// PT: Numero maximo de traces de debug em runtime retidos no historico da conexao.
+    /// </summary>
+    public int DebugTraceRetentionLimit { get; set; } = int.MaxValue;
+
+    /// <summary>
+    /// EN: Clears the runtime debug trace history kept by this connection.
+    /// PT: Limpa o historico de traces de debug em runtime mantido por esta conexao.
+    /// </summary>
+    public void ClearDebugTraces()
+    {
+        LastDebugTrace = null;
+        _lastDebugTraces.Clear();
+    }
+
+    internal bool IsDebugTraceCaptureEnabled => _debugTraceCaptureDepth > 0;
+
+    internal ISqlDialect ExecutionDialect => UseAutoSqlDialect ? _autoSqlDialect : Db.Dialect;
+
+    internal IDisposable BeginDebugTraceCapture()
+    {
+        if (_debugTraceCaptureDepth == 0)
+            ClearDebugTraces();
+
+        _debugTraceCaptureDepth++;
+        return new DebugTraceCaptureScope(this);
+    }
+
+    internal void RegisterDebugTrace(QueryDebugTrace trace)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(trace, nameof(trace));
+        LastDebugTrace = trace;
+        _lastDebugTraces.Add(trace);
+        TrimDebugTraceHistoryIfNeeded();
+    }
+
+    internal void RestoreDebugTraces(IReadOnlyList<QueryDebugTrace> traces)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(traces, nameof(traces));
+        _lastDebugTraces.Clear();
+        _lastDebugTraces.AddRange(traces);
+        TrimDebugTraceHistoryIfNeeded();
+        LastDebugTrace = _lastDebugTraces.Count > 0 ? _lastDebugTraces[^1] : null;
+    }
+
+    /// <summary>
+    /// EN: Executes a SQL command and returns the captured runtime operator traces for the reader statements in that execution.
+    /// PT: Executa um comando SQL e retorna os traces de operadores em runtime capturados para os statements de leitura dessa execucao.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to execute. PT: Texto SQL a executar.</param>
+    /// <returns>EN: Captured runtime traces for the executed command. PT: Traces de runtime capturados para o comando executado.</returns>
+    public IReadOnlyList<QueryDebugTrace> DebugSqlBatch(string sql)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
+
+        var shouldOpen = State != ConnectionState.Open;
+        List<QueryDebugTrace>? retainedTraces = null;
+        if (shouldOpen)
+            Open();
+
+        try
+        {
+            using var scope = BeginDebugTraceCapture();
+            using var command = CreateCommand();
+            command.CommandText = sql;
+            using var reader = command.ExecuteReader();
+
+            do
+            {
+                while (reader.Read())
+                {
+                }
+            }
+            while (reader.NextResult());
+
+            if (_lastDebugTraces.Count == 0)
+                throw new InvalidOperationException("No runtime debug trace was captured for the executed SQL.");
+
+            ContextualizeDebugTraces(sql);
+            return _lastDebugTraces.AsReadOnly();
+        }
+        finally
+        {
+            if (shouldOpen && LastDebugTrace is not null)
+                retainedTraces = [.. _lastDebugTraces];
+
+            if (shouldOpen && State == ConnectionState.Open)
+                Close();
+
+            if (retainedTraces is not null)
+                RestoreDebugTraces(retainedTraces);
+        }
+    }
+
+    /// <summary>
+    /// EN: Executes a SQL command and returns the captured runtime operator trace for the last reader query.
+    /// PT: Executa um comando SQL e retorna o trace de operadores em runtime capturado para a ultima query de leitura.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to execute. PT: Texto SQL a executar.</param>
+    /// <returns>EN: Captured runtime trace for the executed command. PT: Trace de runtime capturado para o comando executado.</returns>
+    public QueryDebugTrace DebugSql(string sql)
+        => DebugSqlBatch(sql).Last();
+
+    /// <summary>
+    /// EN: Executes a SQL command and returns the formatted runtime trace for the last reader query.
+    /// PT: Executa um comando SQL e retorna o trace de runtime formatado para a ultima query de leitura.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to execute. PT: Texto SQL a executar.</param>
+    /// <returns>EN: Formatted runtime trace. PT: Trace de runtime formatado.</returns>
+    public string DebugSqlText(string sql)
+        => QueryDebugTraceFormatter.Format(DebugSql(sql));
+
+    /// <summary>
+    /// EN: Executes a SQL command and returns the formatted runtime traces for all reader statements in the batch.
+    /// PT: Executa um comando SQL e retorna os traces de runtime formatados para todos os statements de leitura do lote.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to execute. PT: Texto SQL a executar.</param>
+    /// <returns>EN: Formatted runtime trace batch. PT: Lote formatado de traces de runtime.</returns>
+    public string DebugSqlBatchText(string sql)
+        => QueryDebugTraceFormatter.FormatBatch(DebugSqlBatch(sql));
+
+    /// <summary>
+    /// EN: Executes a SQL command and returns the runtime trace for the last reader query as structured JSON.
+    /// PT: Executa um comando SQL e retorna o trace de runtime da ultima query de leitura como JSON estruturado.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to execute. PT: Texto SQL a executar.</param>
+    /// <returns>EN: JSON runtime trace. PT: Trace de runtime em JSON.</returns>
+    public string DebugSqlJson(string sql)
+        => QueryDebugTraceFormatter.FormatJson(DebugSql(sql));
+
+    /// <summary>
+    /// EN: Executes a SQL command and returns the runtime traces for all reader statements in the batch as structured JSON.
+    /// PT: Executa um comando SQL e retorna os traces de runtime de todos os statements de leitura do lote como JSON estruturado.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to execute. PT: Texto SQL a executar.</param>
+    /// <returns>EN: JSON runtime trace batch. PT: Lote de traces de runtime em JSON.</returns>
+    public string DebugSqlBatchJson(string sql)
+        => QueryDebugTraceFormatter.FormatBatchJson(DebugSqlBatch(sql));
+
+    /// <summary>
+    /// EN: Returns a snapshot of the currently retained runtime debug traces without executing new SQL.
+    /// PT: Retorna um snapshot dos traces de debug em runtime atualmente retidos sem executar novo SQL.
+    /// </summary>
+    /// <returns>EN: Snapshot of the retained runtime traces. PT: Snapshot dos traces de runtime retidos.</returns>
+    public IReadOnlyList<QueryDebugTrace> GetDebugTraceSnapshot()
+        => [.. _lastDebugTraces];
+
+    /// <summary>
+    /// EN: Returns the currently retained runtime debug traces formatted as text without executing new SQL.
+    /// PT: Retorna os traces de debug em runtime atualmente retidos formatados como texto sem executar novo SQL.
+    /// </summary>
+    /// <returns>EN: Formatted runtime trace snapshot. PT: Snapshot formatado dos traces de runtime.</returns>
+    public string GetDebugTraceSnapshotText()
+        => QueryDebugTraceFormatter.FormatBatch(GetDebugTraceSnapshot());
+
+    /// <summary>
+    /// EN: Returns the currently retained runtime debug traces as JSON without executing new SQL.
+    /// PT: Retorna os traces de debug em runtime atualmente retidos como JSON sem executar novo SQL.
+    /// </summary>
+    /// <returns>EN: JSON runtime trace snapshot. PT: Snapshot JSON dos traces de runtime.</returns>
+    public string GetDebugTraceSnapshotJson()
+        => QueryDebugTraceFormatter.FormatBatchJson(GetDebugTraceSnapshot());
+
+    /// <summary>
+    /// EN: Returns the last retained runtime debug trace without executing new SQL.
+    /// PT: Retorna o ultimo trace de debug em runtime retido sem executar novo SQL.
+    /// </summary>
+    /// <returns>EN: Last retained runtime trace, when available. PT: Ultimo trace de runtime retido, quando disponivel.</returns>
+    public QueryDebugTrace? GetLastDebugTraceSnapshot()
+        => LastDebugTrace;
+
+    /// <summary>
+    /// EN: Tries to get the last retained runtime debug trace without throwing when none is available.
+    /// PT: Tenta obter o ultimo trace de debug em runtime retido sem lancar excecao quando nenhum estiver disponivel.
+    /// </summary>
+    /// <param name="trace">EN: Last retained trace when available; otherwise null. PT: Ultimo trace retido quando disponivel; caso contrario, null.</param>
+    /// <returns>EN: True when a retained trace exists; otherwise false. PT: True quando existe um trace retido; caso contrario, false.</returns>
+    public bool TryGetLastDebugTraceSnapshot([NotNullWhen(true)] out QueryDebugTrace? trace)
+    {
+        trace = LastDebugTrace;
+        return trace is not null;
+    }
+
+    /// <summary>
+    /// EN: Returns the last retained runtime debug trace formatted as text without executing new SQL.
+    /// PT: Retorna o ultimo trace de debug em runtime retido formatado como texto sem executar novo SQL.
+    /// </summary>
+    /// <returns>EN: Formatted last runtime trace. PT: Ultimo trace de runtime formatado.</returns>
+    public string GetLastDebugTraceSnapshotText()
+    {
+        if (LastDebugTrace is null)
+            throw new InvalidOperationException("No runtime debug trace is currently retained.");
+
+        return QueryDebugTraceFormatter.Format(LastDebugTrace);
+    }
+
+    /// <summary>
+    /// EN: Returns the last retained runtime debug trace as JSON without executing new SQL.
+    /// PT: Retorna o ultimo trace de debug em runtime retido como JSON sem executar novo SQL.
+    /// </summary>
+    /// <returns>EN: JSON payload for the last runtime trace. PT: Payload JSON do ultimo trace de runtime.</returns>
+    public string GetLastDebugTraceSnapshotJson()
+    {
+        if (LastDebugTrace is null)
+            throw new InvalidOperationException("No runtime debug trace is currently retained.");
+
+        return QueryDebugTraceFormatter.FormatJson(LastDebugTrace);
+    }
+
+    private void ContextualizeDebugTraces(string sql)
+    {
+        var statements = SqlQueryParser
+            .SplitStatements(sql, ExecutionDialect)
+            .Where(static statement => !string.IsNullOrWhiteSpace(statement))
+            .Select(static statement => statement.Trim())
+            .ToList();
+
+        if (statements.Count == 0 || _lastDebugTraces.Count == 0)
+            return;
+
+        var contextualized = new List<QueryDebugTrace>(_lastDebugTraces.Count);
+        for (var i = 0; i < _lastDebugTraces.Count; i++)
+        {
+            var sqlText = i < statements.Count
+                ? statements[i]
+                : null;
+            contextualized.Add(_lastDebugTraces[i].WithStatementContext(i, sqlText));
+        }
+
+        RestoreDebugTraces(contextualized);
+    }
+
+    private void TrimDebugTraceHistoryIfNeeded()
+    {
+        var retentionLimit = Math.Max(1, DebugTraceRetentionLimit);
+
+        if (_lastDebugTraces.Count <= retentionLimit)
+            return;
+
+        var removeCount = _lastDebugTraces.Count - retentionLimit;
+        _lastDebugTraces.RemoveRange(0, removeCount);
+        LastDebugTrace = _lastDebugTraces[^1];
+    }
+
+    private sealed class DebugTraceCaptureScope(DbConnectionMockBase connection) : IDisposable
+    {
+        private DbConnectionMockBase? _connection = connection;
+
+        public void Dispose()
+        {
+            if (_connection is null)
+                return;
+
+            _connection._debugTraceCaptureDepth = Math.Max(0, _connection._debugTraceCaptureDepth - 1);
+            _connection = null;
+        }
     }
 
     internal void SetLastFoundRows(long value)
@@ -811,7 +1092,7 @@ public abstract class DbConnectionMockBase(
     {
         EnsureActiveTransaction();
         if (!SupportsSavepoints)
-            throw SqlUnsupported.ForDialect(Db.Dialect, "SAVEPOINT");
+            throw SqlUnsupported.ForDialect(ExecutionDialect, "SAVEPOINT");
 
         var normalizedName = NormalizeSavepointName(savepointName);
         var snapshot = CaptureSnapshot();
@@ -825,7 +1106,7 @@ public abstract class DbConnectionMockBase(
     {
         EnsureActiveTransaction();
         if (!SupportsSavepoints)
-            throw SqlUnsupported.ForDialect(Db.Dialect, "ROLLBACK TO SAVEPOINT");
+            throw SqlUnsupported.ForDialect(ExecutionDialect, "ROLLBACK TO SAVEPOINT");
 
         var normalizedName = NormalizeSavepointName(savepointName);
         if (!_savepoints.TryGetValue(normalizedName, out var snapshot))
@@ -848,7 +1129,7 @@ public abstract class DbConnectionMockBase(
     {
         EnsureActiveTransaction();
         if (!SupportsSavepoints || !SupportsReleaseSavepoint)
-            throw SqlUnsupported.ForDialect(Db.Dialect, "RELEASE SAVEPOINT");
+            throw SqlUnsupported.ForDialect(ExecutionDialect, "RELEASE SAVEPOINT");
 
         var normalizedName = NormalizeSavepointName(savepointName);
         if (!_savepoints.Remove(normalizedName))

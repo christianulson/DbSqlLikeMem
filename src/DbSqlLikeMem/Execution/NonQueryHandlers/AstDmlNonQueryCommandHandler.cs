@@ -11,10 +11,10 @@ internal sealed class AstDmlNonQueryCommandHandler : INonQueryCommandHandler
 
         affectedRows = query switch
         {
-            SqlInsertQuery insertQ => context.Connection.ExecuteInsert(insertQ, context.Parameters, context.Connection.Db.Dialect),
-            SqlUpdateQuery updateQ => context.Connection.ExecuteUpdateSmart(updateQ, context.Parameters, context.Connection.Db.Dialect),
-            SqlDeleteQuery deleteQ => context.Connection.ExecuteDeleteSmart(deleteQ, context.Parameters, context.Connection.Db.Dialect),
-            SqlMergeQuery mergeQ when context.Options.AllowMerge => context.Connection.ExecuteMerge(mergeQ, context.Parameters, context.Connection.Db.Dialect),
+            SqlInsertQuery insertQ => context.Connection.ExecuteInsert(insertQ, context.Parameters, context.Connection.ExecutionDialect),
+            SqlUpdateQuery updateQ => context.Connection.ExecuteUpdateSmart(updateQ, context.Parameters, context.Connection.ExecutionDialect),
+            SqlDeleteQuery deleteQ => context.Connection.ExecuteDeleteSmart(deleteQ, context.Parameters, context.Connection.ExecutionDialect),
+            SqlMergeQuery mergeQ when context.Options.AllowMerge => context.Connection.ExecuteMerge(mergeQ, context.Parameters, context.Connection.ExecutionDialect),
             _ => 0
         };
 

@@ -138,7 +138,7 @@ public class Db2CommandMock(
         {
             return earlyReader!;
         }
-        var executor = AstQueryExecutorFactory.Create(connection.Db.Dialect, connection, Parameters);
+        var executor = AstQueryExecutorFactory.Create(connection.ExecutionDialect, connection, Parameters);
 
         // Parse múltiplo (ex: "SELECT 1; SELECT 2;" ou "BEGIN; SELECT ROW_COUNT();")
         var tables = new List<TableResultMock>();
@@ -159,7 +159,7 @@ public class Db2CommandMock(
                 continue;
             }
 
-            var q = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect, Parameters);
+            var q = SqlQueryParser.Parse(sqlRaw, connection.ExecutionDialect, Parameters);
             parsedStatementCount++;
 
             connection.DispatchParsedReaderQuery(
@@ -167,7 +167,7 @@ public class Db2CommandMock(
                 Parameters,
                 executor,
                 tables,
-                executeMerge: mergeQ => connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect));
+                executeMerge: mergeQ => connection.ExecuteMerge(mergeQ, Parameters, connection.ExecutionDialect));
         }
 
         connection.FinalizeReaderExecution(tables, parsedStatementCount);

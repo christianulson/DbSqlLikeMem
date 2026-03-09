@@ -51,6 +51,506 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
+    /// EN: Verifies automatic dialect mode executes SQL Server TOP syntax on the shared runtime pipeline.
+    /// PT: Verifica se o modo automatico de dialeto executa sintaxe TOP do SQL Server no pipeline compartilhado de runtime.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteReader_WithAutoSqlDialect_ShouldAcceptTopSyntax()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bia', NULL);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "SELECT TOP 1 Name FROM Users ORDER BY Id"
+        };
+
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal("Ana", reader.GetString(0));
+    }
+
+    /// <summary>
+    /// EN: Verifies automatic dialect mode executes ANSI FETCH FIRST syntax on the shared runtime pipeline.
+    /// PT: Verifica se o modo automatico de dialeto executa sintaxe ANSI FETCH FIRST no pipeline compartilhado de runtime.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteReader_WithAutoSqlDialect_ShouldAcceptFetchFirstSyntax()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bia', NULL);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "SELECT Name FROM Users ORDER BY Id FETCH FIRST 1 ROWS ONLY"
+        };
+
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal("Ana", reader.GetString(0));
+    }
+
+    /// <summary>
+    /// EN: Verifies automatic dialect mode executes INSERT SELECT with TOP through the shared non-query pipeline.
+    /// PT: Verifica se o modo automatico de dialeto executa INSERT SELECT com TOP pelo pipeline compartilhado de non-query.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteNonQuery_WithAutoSqlDialect_ShouldAcceptInsertSelectTopSyntax()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bia', NULL);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO Users (Id, Name, Email)
+                SELECT TOP 1 10, Name, Email
+                FROM Users
+                ORDER BY Id
+                """
+        };
+
+        var rowsAffected = command.ExecuteNonQuery();
+
+        Assert.Equal(1, rowsAffected);
+        Assert.Equal(3, _connection.GetTable("users").Count);
+        Assert.Equal("Ana", _connection.GetTable("users")[2][1]);
+    }
+
+    /// <summary>
+    /// EN: Verifies automatic dialect mode supports equivalent pagination syntaxes inside the same reader batch.
+    /// PT: Verifica se o modo automatico de dialeto suporta sintaxes equivalentes de paginacao no mesmo batch de leitura.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteReaderBatch_WithAutoSqlDialect_ShouldAcceptEquivalentPaginationSyntaxes()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bia', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (3, 'Caio', NULL);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT TOP 1 Name FROM Users ORDER BY Id;
+                SELECT Name FROM Users ORDER BY Id FETCH FIRST 1 ROWS ONLY;
+                SELECT Name FROM Users ORDER BY Id LIMIT 1;
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal("Ana", reader.GetString(0));
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal("Ana", reader.GetString(0));
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal("Ana", reader.GetString(0));
+    }
+
+    /// <summary>
+    /// EN: Verifies equivalent pagination syntaxes return the same runtime result when automatic dialect mode is enabled.
+    /// PT: Verifica se sintaxes equivalentes de paginacao retornam o mesmo resultado em runtime quando o modo automatico de dialeto esta habilitado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteReader_WithAutoSqlDialect_ShouldReturnSameResult_ForEquivalentPaginationSyntaxes()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bia', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (3, 'Caio', NULL);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        static List<string> ReadSingleColumn(SqliteConnectionMock connection, string sql)
+        {
+            using var command = new SqliteCommandMock(connection)
+            {
+                CommandText = sql
+            };
+            using var reader = command.ExecuteReader();
+            var values = new List<string>();
+            while (reader.Read())
+                values.Add(reader.GetString(0));
+            return values;
+        }
+
+        var top = ReadSingleColumn(_connection, "SELECT TOP 2 Name FROM Users ORDER BY Id");
+        var limit = ReadSingleColumn(_connection, "SELECT Name FROM Users ORDER BY Id LIMIT 2");
+        var fetch = ReadSingleColumn(_connection, "SELECT Name FROM Users ORDER BY Id FETCH FIRST 2 ROWS ONLY");
+        var rownum = ReadSingleColumn(_connection, "SELECT Name FROM Users WHERE ROWNUM <= 2 ORDER BY Id");
+
+        Assert.Equal(new[] { "Ana", "Bia" }, top);
+        Assert.Equal(top, limit);
+        Assert.Equal(top, fetch);
+        Assert.Equal(top, rownum);
+    }
+
+    /// <summary>
+    /// EN: Verifies automatic dialect mode executes shared sequence DDL and expression families through the SQLite runtime pipeline.
+    /// PT: Verifica se o modo automatico de dialeto executa DDL compartilhado de sequence e suas familias de expressoes pelo pipeline de runtime do SQLite.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_WithAutoSqlDialect_ShouldAcceptSharedSequenceSyntaxFamilies()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "CREATE SEQUENCE seq_users START WITH 10 INCREMENT BY 2"
+        };
+        Assert.Equal(0, command.ExecuteNonQuery());
+
+        command.CommandText = "SELECT NEXT VALUE FOR seq_users";
+        Assert.Equal(10L, Convert.ToInt64(command.ExecuteScalar()));
+
+        command.CommandText = "SELECT seq_users.NEXTVAL";
+        Assert.Equal(12L, Convert.ToInt64(command.ExecuteScalar()));
+
+        command.CommandText = "SELECT CURRVAL('seq_users')";
+        Assert.Equal(12L, Convert.ToInt64(command.ExecuteScalar()));
+
+        command.CommandText = "SELECT LASTVAL()";
+        Assert.Equal(12L, Convert.ToInt64(command.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies automatic dialect mode executes sequence expressions inside shared DML paths.
+    /// PT: Verifica se o modo automatico de dialeto executa expressoes de sequence dentro de caminhos compartilhados de DML.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteNonQuery_WithAutoSqlDialect_ShouldAcceptSequenceExpressionsInsideInsert()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = """
+                CREATE SEQUENCE seq_users START WITH 20 INCREMENT BY 5;
+                INSERT INTO Users (Id, Name, Email) VALUES (NEXT VALUE FOR seq_users, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (NEXTVAL('seq_users'), 'Bia', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (seq_users.NEXTVAL, 'Caio', NULL);
+                """
+        };
+
+        Assert.Equal(3, command.ExecuteNonQuery());
+
+        var users = _connection.GetTable("users");
+        Assert.Equal(3, users.Count);
+        Assert.Equal(20, Convert.ToInt32(users[0][0]));
+        Assert.Equal(25, Convert.ToInt32(users[1][0]));
+        Assert.Equal(30, Convert.ToInt32(users[2][0]));
+    }
+
+    /// <summary>
+    /// EN: Verifies automatic dialect mode preserves session-scoped sequence state and shared DROP SEQUENCE behavior.
+    /// PT: Verifica se o modo automatico de dialeto preserva o estado de sequence por sessao e o comportamento compartilhado de DROP SEQUENCE.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_WithAutoSqlDialect_ShouldAcceptPreviousValueForAndDropSequence()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "CREATE SEQUENCE seq_runtime START WITH 7 INCREMENT BY 3"
+        };
+        Assert.Equal(0, command.ExecuteNonQuery());
+
+        command.CommandText = "SELECT NEXT VALUE FOR seq_runtime";
+        Assert.Equal(7L, Convert.ToInt64(command.ExecuteScalar()));
+
+        command.CommandText = "SELECT PREVIOUS VALUE FOR seq_runtime";
+        Assert.Equal(7L, Convert.ToInt64(command.ExecuteScalar()));
+
+        command.CommandText = "DROP SEQUENCE IF EXISTS seq_runtime";
+        Assert.Equal(0, command.ExecuteNonQuery());
+        Assert.False(_connection.TryGetSequence("seq_runtime", out _));
+    }
+
+    /// <summary>
+    /// EN: Verifies automatic dialect mode executes shared JSON arrow operators through the SQLite runtime pipeline.
+    /// PT: Verifica se o modo automatico de dialeto executa operadores JSON compartilhados pelo pipeline de runtime do SQLite.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_WithAutoSqlDialect_ShouldAcceptJsonArrowOperators()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "SELECT '{\"tenant\":\"acme\",\"region\":\"us\"}'->>'$.tenant'"
+        };
+
+        Assert.Equal("acme", Convert.ToString(command.ExecuteScalar()));
+
+        command.CommandText = "SELECT '{\"tenant\":\"acme\",\"region\":\"us\"}'->>'$.region'";
+        Assert.Equal("us", Convert.ToString(command.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies automatic dialect mode executes shared JSON_EXTRACT and JSON_VALUE functions through the SQLite runtime pipeline.
+    /// PT: Verifica se o modo automatico de dialeto executa funcoes compartilhadas JSON_EXTRACT e JSON_VALUE pelo pipeline de runtime do SQLite.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_WithAutoSqlDialect_ShouldAcceptSharedJsonFunctions()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "SELECT JSON_EXTRACT('{\"tenant\":\"acme\",\"region\":\"us\"}', '$.tenant')"
+        };
+
+        Assert.Equal("acme", Convert.ToString(command.ExecuteScalar()));
+
+        command.CommandText = "SELECT JSON_VALUE('{\"tenant\":\"acme\",\"region\":\"us\"}', '$.region')";
+        Assert.Equal("us", Convert.ToString(command.ExecuteScalar()));
+
+        command.CommandText = "SELECT JSON_VALUE('{\"tenantId\":42}', '$.tenantId' RETURNING NUMBER)";
+        Assert.Equal(42m, Convert.ToDecimal(command.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies automatic dialect mode executes shared temporal aliases through the SQLite runtime pipeline.
+    /// PT: Verifica se o modo automatico de dialeto executa aliases temporais compartilhados pelo pipeline de runtime do SQLite.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_WithAutoSqlDialect_ShouldAcceptSharedTemporalAliases()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "SELECT NOW()"
+        };
+
+        Assert.IsType<DateTime>(command.ExecuteScalar());
+
+        command.CommandText = "SELECT GETDATE()";
+        Assert.IsType<DateTime>(command.ExecuteScalar());
+
+        command.CommandText = "SELECT CURRENT_DATE";
+        Assert.IsType<DateTime>(command.ExecuteScalar());
+
+        command.CommandText = "SELECT SYSTEMDATE";
+        Assert.IsType<DateTime>(command.ExecuteScalar());
+    }
+
+    /// <summary>
+    /// EN: Verifies automatic dialect mode executes shared date-add function families through the SQLite runtime pipeline.
+    /// PT: Verifica se o modo automatico de dialeto executa familias compartilhadas de funcoes de adicao temporal pelo pipeline de runtime do SQLite.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_WithAutoSqlDialect_ShouldAcceptSharedDateAddFamilies()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "SELECT DATE_ADD('2024-01-10', INTERVAL 2 DAY)"
+        };
+
+        Assert.Equal(new DateTime(2024, 1, 12), Assert.IsType<DateTime>(command.ExecuteScalar()));
+
+        command.CommandText = "SELECT DATEADD(DAY, 2, '2024-01-10')";
+        Assert.Equal(new DateTime(2024, 1, 12), Assert.IsType<DateTime>(command.ExecuteScalar()));
+
+        command.CommandText = "SELECT TIMESTAMPADD(DAY, 2, '2024-01-10')";
+        Assert.Equal(new DateTime(2024, 1, 12), Assert.IsType<DateTime>(command.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies automatic dialect mode executes shared string-aggregate families through the SQLite runtime pipeline.
+    /// PT: Verifica se o modo automatico de dialeto executa familias compartilhadas de agregacao textual pelo pipeline de runtime do SQLite.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_WithAutoSqlDialect_ShouldAcceptSharedStringAggregateFamilies()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bia', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (3, 'Caio', NULL);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "SELECT GROUP_CONCAT(Name, '|') FROM Users"
+        };
+
+        Assert.Equal("Ana|Bia|Caio", Convert.ToString(command.ExecuteScalar()));
+
+        command.CommandText = "SELECT STRING_AGG(Name, '|') FROM Users";
+        Assert.Equal("Ana|Bia|Caio", Convert.ToString(command.ExecuteScalar()));
+
+        command.CommandText = "SELECT LISTAGG(Name, '|') WITHIN GROUP (ORDER BY Name DESC) FROM Users";
+        Assert.Equal("Caio|Bia|Ana", Convert.ToString(command.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies automatic dialect mode executes shared rowcount helpers through the SQLite runtime pipeline.
+    /// PT: Verifica se o modo automatico de dialeto executa helpers compartilhados de rowcount pelo pipeline de runtime do SQLite.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_WithAutoSqlDialect_ShouldAcceptSharedRowCountHelpers()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'Updated User' WHERE Id = 999"
+        };
+        command.ExecuteNonQuery();
+
+        command.CommandText = "SELECT CHANGES()";
+        Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar()));
+
+        command.CommandText = "SELECT ROW_COUNT()";
+        Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar()));
+
+        command.CommandText = "SELECT FOUND_ROWS()";
+        Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar()));
+
+        command.CommandText = "SELECT ROWCOUNT()";
+        Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar()));
+
+        command.CommandText = "SELECT @@ROWCOUNT";
+        Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies automatic dialect mode executes SQL_CALC_FOUND_ROWS with FOUND_ROWS through the shared runtime pipeline.
+    /// PT: Verifica se o modo automatico de dialeto executa SQL_CALC_FOUND_ROWS com FOUND_ROWS pelo pipeline compartilhado de runtime.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteReader_WithAutoSqlDialect_ShouldAcceptSqlCalcFoundRowsModifier()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using (var seed = new SqliteCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bia', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (3, 'Caio', NULL);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "SELECT SQL_CALC_FOUND_ROWS Name FROM Users ORDER BY Id LIMIT 1; SELECT FOUND_ROWS();"
+        };
+
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal("Ana", reader.GetString(0));
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(3L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+    /// <summary>
+    /// EN: Verifies automatic dialect mode executes null-safe equality through the shared runtime pipeline.
+    /// PT: Verifica se o modo automatico de dialeto executa igualdade null-safe pelo pipeline compartilhado de runtime.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_WithAutoSqlDialect_ShouldAcceptNullSafeEquality()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "SELECT NULL <=> NULL"
+        };
+
+        Assert.True(Convert.ToBoolean(command.ExecuteScalar()));
+
+        command.CommandText = "SELECT NULL <=> 1";
+        Assert.False(Convert.ToBoolean(command.ExecuteScalar()));
+    }
+
+    /// <summary>
+    /// EN: Verifies automatic dialect mode executes ILIKE through the shared runtime pipeline.
+    /// PT: Verifica se o modo automatico de dialeto executa ILIKE pelo pipeline compartilhado de runtime.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_WithAutoSqlDialect_ShouldAcceptIlike()
+    {
+        _connection.UseAutoSqlDialect = true;
+
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "SELECT 'John' ILIKE 'jo%'"
+        };
+
+        Assert.True(Convert.ToBoolean(command.ExecuteScalar()));
+
+        command.CommandText = "SELECT 'John' ILIKE 'ma%'";
+        Assert.False(Convert.ToBoolean(command.ExecuteScalar()));
+    }
+
+    /// <summary>
     /// EN: Tests ExecuteNonQuery with multi-statement INSERT script behavior.
     /// PT: Testa o comportamento de ExecuteNonQuery com script de INSERT multi-statement.
     /// </summary>

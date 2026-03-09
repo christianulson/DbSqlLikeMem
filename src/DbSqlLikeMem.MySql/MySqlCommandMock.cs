@@ -285,7 +285,7 @@ public class MySqlCommandMock(
         {
             return earlyReader!;
         }
-        var executor = AstQueryExecutorFactory.Create(connection!.Db.Dialect, connection, Parameters);
+        var executor = AstQueryExecutorFactory.Create(connection!.ExecutionDialect, connection, Parameters);
 
         // Parse múltiplo (ex: "SELECT 1; SELECT 2;" ou "BEGIN; SELECT FOUND_ROWS();")
         var tables = new List<TableResultMock>();
@@ -306,7 +306,7 @@ public class MySqlCommandMock(
                 continue;
             }
 
-            var q = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect, Parameters);
+            var q = SqlQueryParser.Parse(sqlRaw, connection.ExecutionDialect, Parameters);
             parsedStatementCount++;
 
             connection.DispatchParsedReaderQuery(q, Parameters, executor, tables);

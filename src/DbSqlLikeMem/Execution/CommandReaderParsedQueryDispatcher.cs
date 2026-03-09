@@ -18,27 +18,27 @@ internal static class CommandReaderParsedQueryDispatcher
         switch (query)
         {
             case SqlCreateTemporaryTableQuery tempQ:
-                connection.ExecuteCreateTemporaryTableAsSelect(tempQ, pars, connection.Db.Dialect);
+                connection.ExecuteCreateTemporaryTableAsSelect(tempQ, pars, connection.ExecutionDialect);
                 break;
             case SqlCreateViewQuery viewQ:
-                connection.ExecuteCreateView(viewQ, pars, connection.Db.Dialect);
+                connection.ExecuteCreateView(viewQ, pars, connection.ExecutionDialect);
                 break;
             case SqlCreateSequenceQuery createSequenceQ:
-                connection.ExecuteCreateSequence(createSequenceQ, pars, connection.Db.Dialect);
+                connection.ExecuteCreateSequence(createSequenceQ, pars, connection.ExecutionDialect);
                 break;
             case SqlDropViewQuery dropViewQ:
-                connection.ExecuteDropView(dropViewQ, pars, connection.Db.Dialect);
+                connection.ExecuteDropView(dropViewQ, pars, connection.ExecutionDialect);
                 break;
             case SqlDropTableQuery dropTableQ:
-                connection.ExecuteDropTable(dropTableQ, pars, connection.Db.Dialect);
+                connection.ExecuteDropTable(dropTableQ, pars, connection.ExecutionDialect);
                 break;
             case SqlDropSequenceQuery dropSequenceQ:
-                connection.ExecuteDropSequence(dropSequenceQ, pars, connection.Db.Dialect);
+                connection.ExecuteDropSequence(dropSequenceQ, pars, connection.ExecutionDialect);
                 break;
             case SqlInsertQuery insertQ:
                 if (executeInsert is null)
                 {
-                    connection.ExecuteInsert(insertQ, pars, connection.Db.Dialect);
+                    connection.ExecuteInsert(insertQ, pars, connection.ExecutionDialect);
                 }
                 else
                 {
@@ -50,7 +50,7 @@ internal static class CommandReaderParsedQueryDispatcher
             case SqlUpdateQuery updateQ:
                 if (executeUpdate is null)
                 {
-                    connection.ExecuteUpdateSmart(updateQ, pars, connection.Db.Dialect);
+                    connection.ExecuteUpdateSmart(updateQ, pars, connection.ExecutionDialect);
                 }
                 else
                 {
@@ -62,7 +62,7 @@ internal static class CommandReaderParsedQueryDispatcher
             case SqlDeleteQuery deleteQ:
                 if (executeDelete is null)
                 {
-                    connection.ExecuteDeleteSmart(deleteQ, pars, connection.Db.Dialect);
+                    connection.ExecuteDeleteSmart(deleteQ, pars, connection.ExecutionDialect);
                 }
                 else
                 {
@@ -81,7 +81,7 @@ internal static class CommandReaderParsedQueryDispatcher
                 tables.Add(executor.ExecuteUnion(unionQ.Parts, unionQ.AllFlags, unionQ.OrderBy, unionQ.RowLimit, unionQ.RawSql));
                 break;
             default:
-                throw SqlUnsupported.ForCommandType(connection.Db.Dialect, "ExecuteReader", query.GetType());
+                throw SqlUnsupported.ForCommandType(connection.ExecutionDialect, "ExecuteReader", query.GetType());
         }
     }
 }

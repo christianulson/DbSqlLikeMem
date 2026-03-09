@@ -28,7 +28,7 @@ internal static class DbUpdateStrategy
         var queryTable = query.Table;
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(queryTable!.Name, nameof(query.Table.Name));
         var tableName = queryTable.Name!;
-        var dialect = connection.Db.Dialect;
+        var dialect = connection.ExecutionDialect;
         if (!connection.TryGetTable(tableName, out var table, queryTable.DbName) || table == null)
             throw SqlUnsupported.ForTableDoesNotExist(tableName);
 

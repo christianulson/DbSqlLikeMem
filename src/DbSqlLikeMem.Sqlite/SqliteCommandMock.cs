@@ -139,7 +139,7 @@ public class SqliteCommandMock(
         {
             return earlyReader!;
         }
-        var executor = AstQueryExecutorFactory.Create(connection!.Db.Dialect, connection, Parameters);
+        var executor = AstQueryExecutorFactory.Create(connection!.ExecutionDialect, connection, Parameters);
 
         // Parse múltiplo (ex: "SELECT 1; SELECT 2;" ou "BEGIN; SELECT CHANGES();")
         var tables = new List<TableResultMock>();
@@ -160,7 +160,7 @@ public class SqliteCommandMock(
                 continue;
             }
 
-            var q = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect, Parameters);
+            var q = SqlQueryParser.Parse(sqlRaw, connection.ExecutionDialect, Parameters);
             parsedStatementCount++;
 
             connection.DispatchParsedReaderQuery(
@@ -186,13 +186,13 @@ public class SqliteCommandMock(
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
         {
-            connection!.ExecuteInsert(query, Parameters, connection!.Db.Dialect);
+            connection!.ExecuteInsert(query, Parameters, connection!.ExecutionDialect);
             return null;
         }
 
         var hadReturning = query.Returning.Count > 0;
         var beforeCount = table.Count;
-        connection!.ExecuteInsert(query, Parameters, connection!.Db.Dialect);
+        connection!.ExecuteInsert(query, Parameters, connection!.ExecutionDialect);
 
         if (!hadReturning)
             return null;
@@ -213,7 +213,7 @@ public class SqliteCommandMock(
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
         {
-            connection!.ExecuteUpdateSmart(query, Parameters, connection!.Db.Dialect);
+            connection!.ExecuteUpdateSmart(query, Parameters, connection!.ExecutionDialect);
             return null;
         }
 
@@ -222,7 +222,7 @@ public class SqliteCommandMock(
         if (hadReturning)
             matchedIndexes = MatchRowIndexes(table, query.WhereRaw, query.RawSql);
 
-        connection!.ExecuteUpdateSmart(query, Parameters, connection!.Db.Dialect);
+        connection!.ExecuteUpdateSmart(query, Parameters, connection!.ExecutionDialect);
 
         if (!hadReturning)
             return null;
@@ -246,7 +246,7 @@ public class SqliteCommandMock(
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
         {
-            connection!.ExecuteDeleteSmart(query, Parameters, connection!.Db.Dialect);
+            connection!.ExecuteDeleteSmart(query, Parameters, connection!.ExecutionDialect);
             return null;
         }
 
@@ -258,7 +258,7 @@ public class SqliteCommandMock(
             snapshotRows = matchedIndexes.ConvertAll(i => SnapshotRow(table[i]));
         }
 
-        connection!.ExecuteDeleteSmart(query, Parameters, connection!.Db.Dialect);
+        connection!.ExecuteDeleteSmart(query, Parameters, connection!.ExecutionDialect);
 
         if (!hadReturning)
             return null;

@@ -21,6 +21,25 @@ internal sealed class SqlExpressionParser(
         ISqlDialect dialect)
         => ParseWhere(whereSql, dialect, null);
 
+    /// <summary>
+    /// EN: Parses a WHERE expression using the automatic dialect compatibility mode.
+    /// PT: Faz o parsing de uma expressao WHERE usando o modo de compatibilidade automatica de dialeto.
+    /// </summary>
+    /// <param name="whereSql">EN: WHERE expression text. PT: Texto da expressao WHERE.</param>
+    /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
+    public static SqlExpr ParseWhereAuto(string whereSql)
+        => ParseWhere(whereSql, new AutoSqlDialect(), null);
+
+    /// <summary>
+    /// EN: Parses a WHERE expression using the automatic dialect compatibility mode and optional parameters.
+    /// PT: Faz o parsing de uma expressao WHERE usando o modo de compatibilidade automatica de dialeto e parametros opcionais.
+    /// </summary>
+    /// <param name="whereSql">EN: WHERE expression text. PT: Texto da expressao WHERE.</param>
+    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized values. PT: Parametros de comando opcionais usados por caminhos do parser que resolvem valores parametrizados.</param>
+    /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
+    public static SqlExpr ParseWhereAuto(string whereSql, IDataParameterCollection? parameters)
+        => ParseWhere(whereSql, new AutoSqlDialect(), parameters);
+
     public static SqlExpr ParseWhere(
         string whereSql,
         ISqlDialect dialect,
@@ -42,6 +61,25 @@ internal sealed class SqlExpressionParser(
     /// </summary>
     public static SqlExpr ParseScalar(string sql, ISqlDialect dialect)
         => ParseScalar(sql, dialect, null);
+
+    /// <summary>
+    /// EN: Parses a scalar expression using the automatic dialect compatibility mode.
+    /// PT: Faz o parsing de uma expressao escalar usando o modo de compatibilidade automatica de dialeto.
+    /// </summary>
+    /// <param name="sql">EN: Scalar SQL expression to parse. PT: Expressao SQL escalar para parsear.</param>
+    /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
+    public static SqlExpr ParseScalarAuto(string sql)
+        => ParseScalar(sql, new AutoSqlDialect(), null);
+
+    /// <summary>
+    /// EN: Parses a scalar expression using the automatic dialect compatibility mode and optional parameters.
+    /// PT: Faz o parsing de uma expressao escalar usando o modo de compatibilidade automatica de dialeto e parametros opcionais.
+    /// </summary>
+    /// <param name="sql">EN: Scalar SQL expression to parse. PT: Expressao SQL escalar para parsear.</param>
+    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized values. PT: Parametros de comando opcionais usados por caminhos do parser que resolvem valores parametrizados.</param>
+    /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
+    public static SqlExpr ParseScalarAuto(string sql, IDataParameterCollection? parameters)
+        => ParseScalar(sql, new AutoSqlDialect(), parameters);
 
     public static SqlExpr ParseScalar(string sql, ISqlDialect dialect, IDataParameterCollection? parameters)
     {

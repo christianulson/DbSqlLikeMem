@@ -173,7 +173,7 @@ public class OracleCommandMock(
                 continue;
             }
 
-            var query = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect, Parameters);
+            var query = SqlQueryParser.Parse(sqlRaw, connection.ExecutionDialect, Parameters);
             parsedStatementCount++;
 
             connection.DispatchParsedReaderQuery(
@@ -239,7 +239,7 @@ public class OracleCommandMock(
             throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable("RETURNING INTO");
 
         var beforeCount = table.Count;
-        var affected = connection!.ExecuteInsert(query, Parameters, connection!.Db.Dialect);
+        var affected = connection!.ExecuteInsert(query, Parameters, connection!.ExecutionDialect);
         var insertedRows = Math.Max(0, table.Count - beforeCount);
         affectedRows = Enumerable.Range(beforeCount, insertedRows)
             .Select(i => SnapshotRow(table[i]))
