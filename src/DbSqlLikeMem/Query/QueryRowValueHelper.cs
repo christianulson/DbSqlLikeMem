@@ -1,5 +1,3 @@
-using System.Data;
-using System.Globalization;
 using System.Text;
 
 namespace DbSqlLikeMem;

@@ -1,6 +1,3 @@
-using System.Globalization;
-using System.Text.RegularExpressions;
-
 namespace DbSqlLikeMem;
 
 internal static class QueryPlanWarningHelper

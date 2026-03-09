@@ -1,6 +1,3 @@
-using DbSqlLikeMem;
-using System.Data;
-
 namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
@@ -34,7 +31,7 @@ public sealed class SqlAzureInterceptionTests
         recorder.Events.Should().Contain(x =>
             x.EventKind == DbInterceptionEventKind.CommandExecuted
             && x.CommandText == "select name from users where id = 1"
-            && x.ExecutionKind == DbCommandExecutionKind.Scalar);
+            && x.CommandExecutionKind == DbCommandExecutionKind.Scalar);
     }
 
     /// <summary>
@@ -46,7 +43,10 @@ public sealed class SqlAzureInterceptionTests
     {
         var recorder = new RecordingDbConnectionInterceptor();
         var (db, connection) = DbMockConnectionFactory.CreateSqlAzureWithTablesIntercepted(
-            recorder,
+            new DbInterceptionOptions
+            {
+                RecordingInterceptor = recorder
+            },
             static mock =>
             {
                 var users = mock.AddTable("users");

@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace DbSqlLikeMem;
 
 /// <summary>
@@ -31,6 +33,7 @@ public sealed class InterceptingDbCommand : DbCommand
     public DbCommand InnerCommand => _innerCommand;
 
     /// <inheritdoc />
+    [AllowNull]
     public override string CommandText
     {
         get => _innerCommand.CommandText;
@@ -66,6 +69,7 @@ public sealed class InterceptingDbCommand : DbCommand
     }
 
     /// <inheritdoc />
+    [AllowNull]
     protected override DbConnection DbConnection
     {
         get => _connection;

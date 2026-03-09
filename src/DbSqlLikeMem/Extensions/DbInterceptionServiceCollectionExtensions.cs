@@ -140,7 +140,7 @@ public static class DbInterceptionServiceCollectionExtensions
     /// <returns>EN: Same service collection. PT: Mesma colecao de servicos.</returns>
     public static IServiceCollection AddDbConnectionInterceptor<TInterceptor>(
         this IServiceCollection services)
-        where TInterceptor : class, DbConnectionInterceptor
+        where TInterceptor : DbConnectionInterceptor
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(services, nameof(services));
         services.AddSingleton<DbConnectionInterceptor, TInterceptor>();

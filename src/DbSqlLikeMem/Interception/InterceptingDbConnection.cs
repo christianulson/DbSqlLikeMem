@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace DbSqlLikeMem;
 
 /// <summary>
@@ -32,6 +34,7 @@ public sealed class InterceptingDbConnection : DbConnection
     public DbConnection InnerConnection => _innerConnection;
 
     /// <inheritdoc />
+    [AllowNull]
     public override string ConnectionString
     {
         get => _innerConnection.ConnectionString;

@@ -1,5 +1,3 @@
-using DbSqlLikeMem.SqlServer;
-
 namespace DbSqlLikeMem.SqlAzure.Test.Parser;
 
 /// <summary>

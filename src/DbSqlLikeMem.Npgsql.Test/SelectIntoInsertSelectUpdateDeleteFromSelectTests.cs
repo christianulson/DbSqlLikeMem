@@ -1,5 +1,3 @@
-using DbSqlLikeMem.Resources;
-
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>

@@ -1,8 +1,5 @@
 using System.Collections;
-using System.Data;
-using System.Data.Common;
 using System.Diagnostics;
-using System.IO;
 
 namespace DbSqlLikeMem.Test;
 
@@ -608,13 +605,13 @@ public sealed class DbInterceptionPipelineTests
         Assert.Contains(observer.Events, x => x.Key == DbInterceptionDiagnosticNames.TransactionExecuted);
         Assert.All(observer.Events, x => Assert.IsType<DbInterceptionEvent>(x.Value));
 
-        var commandEvent = Assert.Single(observer.Events.Where(x => x.Key == DbInterceptionDiagnosticNames.CommandExecuting));
+        var commandEvent = Assert.Single(observer.Events, x => x.Key == DbInterceptionDiagnosticNames.CommandExecuting);
         var payload = Assert.IsType<DbInterceptionEvent>(commandEvent.Value);
         Assert.Equal(DbCommandExecutionKind.Scalar, payload.CommandExecutionKind);
         Assert.Equal("select 42", payload.CommandText);
     }
 
-#if NET6_0_OR_GREATER
+#if NET8_0_OR_GREATER
     /// <summary>
     /// EN: Ensures the activity-source interceptor emits activities with the documented names and tags.
     /// PT: Garante que o interceptor de activity source emita activities com os nomes e tags documentados.
@@ -650,11 +647,13 @@ public sealed class DbInterceptionPipelineTests
         Assert.Contains(activities, x => x.OperationName == DbInterceptionActivityNames.Command);
         Assert.Contains(activities, x => x.OperationName == DbInterceptionActivityNames.TransactionOperation);
 
-        var commandActivity = Assert.Single(activities.Where(x => x.OperationName == DbInterceptionActivityNames.Command));
+        var commandActivity = Assert.Single(activities, x => x.OperationName == DbInterceptionActivityNames.Command);
         Assert.Equal("Scalar", commandActivity.Tags.FirstOrDefault(x => x.Key == "db.operation").Value);
         Assert.Equal("select 42", commandActivity.Tags.FirstOrDefault(x => x.Key == "db.statement").Value);
     }
 #endif
+
+#pragma warning disable CS8764, CS8765
 
     private sealed class RecordingInterceptor : DbConnectionInterceptor
     {
@@ -722,7 +721,7 @@ public sealed class DbInterceptionPipelineTests
 
         public bool TransactionDisposed { get; set; }
 
-        public override string ConnectionString { get; set; } = string.Empty;
+        public override string? ConnectionString { get; set; } = string.Empty;
 
         public override string Database => "fake";
 
@@ -762,7 +761,7 @@ public sealed class DbInterceptionPipelineTests
 
         public FakeDbCommand(FakeDbConnection connection) => _connection = connection;
 
-        public override string CommandText { get; set; } = "select 1";
+        public override string? CommandText { get; set; } = "select 1";
 
         public override int CommandTimeout { get; set; }
 
@@ -772,7 +771,7 @@ public sealed class DbInterceptionPipelineTests
 
         public override UpdateRowSource UpdatedRowSource { get; set; }
 
-        protected override DbConnection DbConnection
+        protected override DbConnection? DbConnection
         {
             get => _connection;
             set => throw new NotSupportedException();
@@ -933,9 +932,9 @@ public sealed class DbInterceptionPipelineTests
 
         public override bool IsNullable { get; set; }
 
-        public override string ParameterName { get; set; } = string.Empty;
+        public override string? ParameterName { get; set; } = string.Empty;
 
-        public override string SourceColumn { get; set; } = string.Empty;
+        public override string? SourceColumn { get; set; } = string.Empty;
 
         public override object? Value { get; set; }
 
@@ -962,4 +961,6 @@ public sealed class DbInterceptionPipelineTests
 
         public void OnNext(KeyValuePair<string, object?> value) => Events.Add(value);
     }
+
+#pragma warning restore CS8764, CS8765
 }

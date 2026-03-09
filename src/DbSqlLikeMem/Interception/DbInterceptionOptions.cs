@@ -57,11 +57,11 @@ public sealed class DbInterceptionOptions
     /// </summary>
     public DiagnosticListener? DiagnosticListener { get; set; }
 
+#if NET5_0_OR_GREATER
     /// <summary>
     /// EN: Activity source used by the activity-source interceptor when configured on supported target frameworks.
     /// PT: Activity source usado pelo interceptor de activity source quando configurado em target frameworks suportados.
     /// </summary>
-#if NET5_0_OR_GREATER
     public ActivitySource? ActivitySource { get; set; }
 #endif
 

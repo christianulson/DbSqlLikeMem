@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace DbSqlLikeMem;
 
 internal sealed class SqlRowDictionaryComparer(ISqlDialect dialect)

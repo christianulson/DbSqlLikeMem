@@ -90,6 +90,16 @@ When touching XML docs:
 - verify nested public classes and helper contract members too
 - if a provider-specific test project mirrors another provider, reuse the same documentation pattern adapted to the provider type
 
+## Execution Policy
+
+For the current TDD workflow in this repository:
+
+- do not run `dotnet build`
+- do not run `dotnet test`
+- do not trigger restores implicitly through validation commands
+- only execute builds or tests when the user explicitly asks for execution
+- assume the user runs validation manually unless they say otherwise
+
 ## Test Failure Triage
 
 When fixing a failing test:

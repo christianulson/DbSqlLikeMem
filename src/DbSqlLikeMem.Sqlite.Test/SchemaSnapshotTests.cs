@@ -1,6 +1,4 @@
-using System.Data;
 using System.Text.Json;
-using DbSqlLikeMem.Sqlite;
 
 namespace DbSqlLikeMem.Sqlite.Test;
 

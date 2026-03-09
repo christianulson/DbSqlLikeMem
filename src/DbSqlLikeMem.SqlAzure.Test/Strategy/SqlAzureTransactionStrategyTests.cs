@@ -1,5 +1,4 @@
 using DbSqlLikeMem.SqlServer;
-using System.Data;
 
 namespace DbSqlLikeMem.SqlAzure.Test.Strategy;
 

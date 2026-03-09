@@ -1,5 +1,3 @@
-using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
-
 namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>

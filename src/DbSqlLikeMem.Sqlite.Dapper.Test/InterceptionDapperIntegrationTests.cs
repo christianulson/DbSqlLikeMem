@@ -1,6 +1,3 @@
-using DbSqlLikeMem;
-using System.Data;
-
 namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
@@ -38,7 +35,7 @@ public sealed class InterceptionDapperIntegrationTests
             recorder.Events,
             x => x.EventKind == DbInterceptionEventKind.CommandExecuted
                 && x.CommandText == "select id, name from users where id = @id"
-                && x.ExecutionKind == DbCommandExecutionKind.Reader);
+                && x.CommandExecutionKind == DbCommandExecutionKind.Reader);
     }
 
     /// <summary>
