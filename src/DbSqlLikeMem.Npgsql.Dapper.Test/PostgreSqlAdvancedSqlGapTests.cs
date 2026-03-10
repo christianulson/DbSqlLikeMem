@@ -196,6 +196,83 @@ ORDER BY id").ToList();
         Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.lead0)]);
     }
 
+    /// <summary>
+    /// EN: Verifies a PostgreSQL reference query combining CTE, JOIN, LEFT JOIN, LATERAL, FILTER, STRING_AGG, COALESCE, INTERVAL, CASE, CAST and ROW_NUMBER returns the expected rows.
+    /// PT: Verifica se uma query de referencia do PostgreSQL combinando CTE, JOIN, LEFT JOIN, LATERAL, FILTER, STRING_AGG, COALESCE, INTERVAL, CASE, CAST e ROW_NUMBER retorna as linhas esperadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void ProviderSignature_CteAggregateAndWindow_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+WITH tenant_scope AS (
+    SELECT 10 AS tenantid
+    UNION ALL
+    SELECT 20
+),
+order_totals AS (
+    SELECT o.userid,
+           COUNT(*) AS order_count,
+           COUNT(*) FILTER (WHERE o.amount >= CAST(10 AS DECIMAL(10,2))) AS big_order_count,
+           SUM(CAST(o.amount AS DECIMAL(10,2))) AS total_amount,
+           STRING_AGG(CAST(o.id AS TEXT), '|' ORDER BY o.id DESC) AS order_ids
+    FROM orders o
+    GROUP BY o.userid
+),
+ranked AS (
+    SELECT u.id,
+           u.name,
+           u.tenantid,
+           CAST(u.id AS INTEGER) AS normalized_id,
+           u.created + INTERVAL '1 day' AS shifted_created,
+           EXTRACT(DAY FROM (u.created - TIMESTAMP '2020-01-01 00:00:00')) AS days_from_anchor,
+           u.tenantid::text || '-' || u.id::text AS user_code,
+           COALESCE(order_totals.order_count, CAST(0 AS INTEGER)) AS order_count,
+           COALESCE(order_totals.big_order_count, CAST(0 AS INTEGER)) AS big_order_count,
+           COALESCE(order_totals.total_amount, CAST(0 AS DECIMAL(10,2))) AS total_amount,
+           COALESCE(order_totals.order_ids, CAST('' AS TEXT)) AS order_ids,
+           latest.last_order_id,
+           COALESCE(latest.last_order_amount, CAST(0 AS DECIMAL(10,2))) AS last_order_amount,
+           CASE WHEN latest.last_order_id IS NULL THEN FALSE ELSE TRUE END AS has_orders,
+           ROW_NUMBER() OVER (
+               PARTITION BY u.tenantid
+               ORDER BY COALESCE(order_totals.total_amount, CAST(0 AS DECIMAL(10,2))) DESC, u.id
+           ) AS rn
+    FROM users u
+    JOIN tenant_scope scope ON scope.tenantid = u.tenantid
+    LEFT JOIN order_totals ON order_totals.userid = u.id
+    LEFT JOIN LATERAL (
+        SELECT o.id AS last_order_id,
+               CAST(o.amount AS DECIMAL(10,2)) AS last_order_amount
+        FROM orders o
+        WHERE o.userid = u.id
+        ORDER BY o.id DESC
+        LIMIT 1
+    ) latest ON TRUE
+)
+SELECT id, name, tenantid, normalized_id, shifted_created, days_from_anchor, user_code, order_count, big_order_count, total_amount, order_ids, last_order_id, last_order_amount, has_orders, rn
+FROM ranked
+ORDER BY tenantid, rn, id").ToList();
+
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.id)]);
+        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.name)]);
+        Assert.Equal([10, 10, 20], [.. rows.Select(r => (int)r.tenantid)]);
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.normalized_id)]);
+        Assert.Equal(
+            [new DateTime(2020, 1, 2, 0, 0, 0, DateTimeKind.Local), new DateTime(2020, 1, 3, 0, 0, 0, DateTimeKind.Local), new DateTime(2020, 1, 4, 0, 0, 0, DateTimeKind.Local)],
+            [.. rows.Select(r => (DateTime)r.shifted_created)]);
+        Assert.Equal([0d, 1d, 2d], [.. rows.Select(r => Convert.ToDouble(r.days_from_anchor))]);
+        Assert.Equal(["10-1", "10-2", "20-3"], [.. rows.Select(r => (string)r.user_code)]);
+        Assert.Equal([2, 1, 0], [.. rows.Select(r => Convert.ToInt32(r.order_count))]);
+        Assert.Equal([1, 0, 0], [.. rows.Select(r => Convert.ToInt32(r.big_order_count))]);
+        Assert.Equal([15m, 7m, 0m], [.. rows.Select(r => Convert.ToDecimal(r.total_amount))]);
+        Assert.Equal(["11|10", "12", string.Empty], [.. rows.Select(r => (string)r.order_ids)]);
+        Assert.Equal([11, 12, null], [.. rows.Select(r => (int?)r.last_order_id)]);
+        Assert.Equal([5m, 7m, 0m], [.. rows.Select(r => Convert.ToDecimal(r.last_order_amount))]);
+        Assert.Equal([true, true, false], [.. rows.Select(r => Convert.ToBoolean(r.has_orders))]);
+        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.rn)]);
+    }
+
 
     /// <summary>
     /// EN: Tests Regexp_NotOperator_ShouldWork behavior.

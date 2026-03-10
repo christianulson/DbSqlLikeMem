@@ -132,6 +132,7 @@ internal sealed class OracleDialect : SqlDialectBase
     /// PT: Obtém se há suporte a pivot clause.
     /// </summary>
     public override bool SupportsPivotClause => true;
+    public override bool PivotAvgReturnsDecimalForIntegralInputs => true;
     /// <summary>
     /// EN: Gets or sets null substitute function names.
     /// PT: Obtém ou define null substitute function names.

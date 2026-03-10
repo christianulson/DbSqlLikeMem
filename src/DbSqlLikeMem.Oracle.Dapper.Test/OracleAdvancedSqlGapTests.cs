@@ -196,6 +196,75 @@ ORDER BY id").ToList();
         Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.lead0)]);
     }
 
+    /// <summary>
+    /// EN: Verifies an Oracle reference query combining CTE, JOIN, LEFT JOIN, EXISTS, LISTAGG, NVL, NVL2, DECODE, INTERVAL, CAST and ROW_NUMBER returns the expected rows.
+    /// PT: Verifica se uma query de referencia do Oracle combinando CTE, JOIN, LEFT JOIN, EXISTS, LISTAGG, NVL, NVL2, DECODE, INTERVAL, CAST e ROW_NUMBER retorna as linhas esperadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "OracleAdvancedSqlGap")]
+    public void ProviderSignature_CteAggregateAndWindow_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+WITH tenant_scope AS (
+    SELECT 10 AS tenantid
+    UNION ALL
+    SELECT 20
+),
+order_totals AS (
+    SELECT o.userid,
+           COUNT(*) AS order_count,
+           SUM(CAST(o.amount AS NUMBER(10,2))) AS total_amount,
+           LISTAGG(CAST(o.id AS VARCHAR2(20)), '|') WITHIN GROUP (ORDER BY o.id DESC) AS order_ids
+    FROM orders o
+    GROUP BY o.userid
+),
+ranked AS (
+    SELECT u.id,
+           u.name,
+           u.tenantid,
+           CAST(u.id AS NUMBER(10)) AS normalized_id,
+           u.created + INTERVAL '1' DAY AS shifted_created,
+           TRUNC(u.created) - DATE '2020-01-01' AS days_from_anchor,
+           TO_CHAR(u.tenantid) || '-' || TO_CHAR(u.id) AS user_code,
+           NVL(order_totals.order_count, CAST(0 AS NUMBER(10))) AS order_count,
+           NVL(order_totals.total_amount, CAST(0 AS NUMBER(10,2))) AS total_amount,
+           NVL(order_totals.order_ids, CAST('' AS VARCHAR2(20))) AS order_ids,
+           DECODE(NVL(order_totals.order_count, 0), 0, 'NO', 'YES') AS has_orders_text,
+           CASE
+               WHEN EXISTS (SELECT 1 FROM orders ox WHERE ox.userid = u.id AND ox.amount >= CAST(10 AS NUMBER(10,2))) THEN 1
+               ELSE 0
+           END AS has_big_order,
+           NVL2(order_totals.order_ids, LENGTH(order_totals.order_ids), 0) AS order_ids_length,
+           ROW_NUMBER() OVER (
+               PARTITION BY u.tenantid
+               ORDER BY NVL(order_totals.total_amount, CAST(0 AS NUMBER(10,2))) DESC, u.id
+           ) AS rn
+    FROM users u
+    JOIN tenant_scope scope ON scope.tenantid = u.tenantid
+    LEFT JOIN order_totals ON order_totals.userid = u.id
+)
+SELECT id, name, tenantid, normalized_id, shifted_created, days_from_anchor, user_code, order_count, total_amount, order_ids, has_orders_text, has_big_order, order_ids_length, rn
+FROM ranked
+ORDER BY tenantid, rn, id").ToList();
+
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.id)]);
+        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.name)]);
+        Assert.Equal([10, 10, 20], [.. rows.Select(r => (int)r.tenantid)]);
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => Convert.ToInt32(r.normalized_id))]);
+        Assert.Equal(
+            [new DateTime(2020, 1, 2, 0, 0, 0, DateTimeKind.Local), new DateTime(2020, 1, 3, 0, 0, 0, DateTimeKind.Local), new DateTime(2020, 1, 4, 0, 0, 0, DateTimeKind.Local)],
+            [.. rows.Select(r => (DateTime)r.shifted_created)]);
+        Assert.Equal([0m, 1m, 2m], [.. rows.Select(r => Convert.ToDecimal(r.days_from_anchor))]);
+        Assert.Equal(["10-1", "10-2", "20-3"], [.. rows.Select(r => (string)r.user_code)]);
+        Assert.Equal([2, 1, 0], [.. rows.Select(r => Convert.ToInt32(r.order_count))]);
+        Assert.Equal([15m, 7m, 0m], [.. rows.Select(r => Convert.ToDecimal(r.total_amount))]);
+        Assert.Equal(["11|10", "12", string.Empty], [.. rows.Select(r => (string)r.order_ids)]);
+        Assert.Equal(["YES", "YES", "NO"], [.. rows.Select(r => (string)r.has_orders_text)]);
+        Assert.Equal([1, 0, 0], [.. rows.Select(r => Convert.ToInt32(r.has_big_order))]);
+        Assert.Equal([5, 2, 0], [.. rows.Select(r => Convert.ToInt32(r.order_ids_length))]);
+        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.rn)]);
+    }
+
 
     /// <summary>
     /// EN: Tests Regexp_NotOperator_ShouldWork behavior.

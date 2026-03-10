@@ -61,6 +61,7 @@ public class TableResultColMock
     /// <param name="columIndex">EN: Column position in the result. PT: Posição da coluna no resultado.</param>
     /// <param name="dbType">EN: Data type in the result. PT: Tipo do dado no resultado.</param>
     /// <param name="isNullable">EN: Whether the column accepts nulls. PT: Indica se a coluna aceita valores nulos.</param>
+    /// <param name="isJsonFragment">EN: Whether the column carries a JSON fragment that should remain raw during JSON serialization. PT: Indica se a coluna carrega um fragmento JSON que deve permanecer bruto durante a serializacao JSON.</param>
     [SetsRequiredMembers]
     public TableResultColMock(
         string tableAlias,

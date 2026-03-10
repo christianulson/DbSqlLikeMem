@@ -243,7 +243,7 @@ internal sealed record SqlLimitOffset(int Count, int? Offset) : SqlRowLimit;
 internal sealed record SqlTop(int Count) : SqlRowLimit;
 internal sealed record SqlFetch(int Count, int? Offset) : SqlRowLimit;
 
-internal sealed record SqlCte(string Name, SqlSelectQuery Query);
+internal sealed record SqlCte(string Name, SqlQueryBase Query);
 
 internal sealed record SqlOnDuplicateKeyUpdate(
     IReadOnlyList<SqlAssignment> Assignments,

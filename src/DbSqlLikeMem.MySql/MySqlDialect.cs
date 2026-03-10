@@ -32,10 +32,10 @@ internal sealed class MySqlDialect : SqlDialectBase
     { }
 
 
-    internal const int WithCteMinVersion = 8;
+    internal const int WithCteMinVersion = 80;
     internal const int MergeMinVersion = int.MaxValue;
-    internal const int WindowFunctionsMinVersion = 8;
-    internal const int JsonExtractMinVersion = 5;
+    internal const int WindowFunctionsMinVersion = 80;
+    internal const int JsonExtractMinVersion = 50;
     /// <summary>
     /// EN: Gets or sets AllowsBacktickIdentifiers.
     /// PT: Obtém ou define AllowsBacktickIdentifiers.

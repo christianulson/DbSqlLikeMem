@@ -1145,7 +1145,15 @@ internal static class SqlExecutionPlanFormatter
     /// EN: Estimates lightweight nested CTE query complexity to avoid over-amplifying recursive cost loops.
     /// PT: Estima complexidade leve de consulta CTE aninhada para evitar sobre-amplificação em loops recursivos de custo.
     /// </summary>
-    private static int EstimateCteQueryCost(SqlSelectQuery query)
+    private static int EstimateCteQueryCost(SqlQueryBase query)
+        => query switch
+        {
+            SqlSelectQuery select => EstimateCteSelectQueryCost(select),
+            SqlUnionQuery union => union.Parts.Sum(EstimateCteSelectQueryCost) + union.Parts.Count,
+            _ => 2
+        };
+
+    private static int EstimateCteSelectQueryCost(SqlSelectQuery query)
     {
         var cost = 2;
         cost += query.Joins.Count * 3;

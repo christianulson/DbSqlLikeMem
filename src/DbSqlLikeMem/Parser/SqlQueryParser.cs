@@ -1304,6 +1304,7 @@ internal sealed class SqlQueryParser
         {
             var orderBy = TryParseOrderBy();
             var rowLimit = TryParseRowLimitTail(orderBy.Count > 0);
+            var forJson = TryParseForJsonClause();
             rowLimit ??= first.RowLimit;
             TryConsumeQueryHintOption();
             ExpectEndOrUnionBoundary();
@@ -1311,7 +1312,8 @@ internal sealed class SqlQueryParser
             return first with
             {
                 OrderBy = orderBy,
-                RowLimit = rowLimit
+                RowLimit = rowLimit,
+                ForJson = forJson
             };
         }
 
@@ -1384,6 +1386,7 @@ internal sealed class SqlQueryParser
                 && !IsWord(t, "LIMIT")
                 && !IsWord(t, "OFFSET")
                 && !IsWord(t, "FETCH")
+                && !IsWord(t, "FOR")
                 && !IsWord(t, "OPTION")
                 && !IsSymbol(t, ";"))
             {
@@ -2494,7 +2497,7 @@ internal sealed class SqlQueryParser
 
     private List<SqlSelectItem> ParseSelectItemsWithValidation()
     {
-        var raws = ParseCommaSeparatedRawItemsUntilAny("FROM", "WHERE", "GROUP", "HAVING", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION");
+        var raws = ParseCommaSeparatedRawItemsUntilAny("FROM", "WHERE", "GROUP", "HAVING", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "FOR");
         return raws.ConvertAll(r =>
         {
             // Fail fast on known-invalid patterns before any splitting/normalization.
@@ -2558,7 +2561,7 @@ internal sealed class SqlQueryParser
         if (!IsWord(Peek(), "WHERE")) return null;
         Consume();
         // "ON" here is important for INSERT ... SELECT ... WHERE ... ON DUPLICATE ...
-        var txt = ReadClauseTextUntilTopLevelStop("GROUP", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "HAVING", "ON", "RETURNING");
+        var txt = ReadClauseTextUntilTopLevelStop("GROUP", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "HAVING", "FOR", "ON", "RETURNING");
         return SqlExpressionParser.ParseWhere(txt, _dialect, _parameters);
     }
 
@@ -2568,7 +2571,7 @@ internal sealed class SqlQueryParser
         if (!IsWord(Peek(), "GROUP")) return list;
         Consume();
         ExpectWord("BY");
-        list.AddRange(ParseRawItemsUntil("HAVING", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "RETURNING"));
+        list.AddRange(ParseRawItemsUntil("HAVING", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "FOR", "RETURNING"));
         if (list.Count == 0)
             throw new InvalidOperationException("GROUP BY sem expressões.");
         return list;
@@ -2578,7 +2581,7 @@ internal sealed class SqlQueryParser
     {
         if (!IsWord(Peek(), "HAVING")) return null;
         Consume();
-        var txt = ReadClauseTextUntilTopLevelStop("ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "RETURNING");
+        var txt = ReadClauseTextUntilTopLevelStop("ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "FOR", "RETURNING");
         return SqlExpressionParser.ParseWhere(txt, _dialect, _parameters);
     }
 
@@ -2589,7 +2592,7 @@ internal sealed class SqlQueryParser
         Consume();
         ExpectWord("BY");
         // Reutiliza lógica simplificada
-        var raws = ParseCommaSeparatedRawItemsUntilAny("LIMIT", "OFFSET", "FETCH", "UNION", "RETURNING");
+        var raws = ParseCommaSeparatedRawItemsUntilAny("LIMIT", "OFFSET", "FETCH", "UNION", "FOR", "RETURNING");
         foreach (var r in raws)
         {
             var raw = r.Trim();
@@ -2758,7 +2761,8 @@ internal sealed class SqlQueryParser
             }
             var innerSql = ReadBalancedParenRawTokens();
             var q = Parse(innerSql, _dialect);
-            if (q is SqlSelectQuery sq) list.Add(new SqlCte(name, sq));
+            if (q is SqlSelectQuery or SqlUnionQuery)
+                list.Add(new SqlCte(name, q));
 
             if (IsSymbol(Peek(), ",")) { Consume(); continue; }
             break;
@@ -2802,7 +2806,7 @@ internal sealed class SqlQueryParser
 
         if (allowFunctionSource
             && IsSymbol(Peek(), ".")
-            && IsIdentifier(Peek(1))
+            && Peek(1).Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword
             && IsSupportedTableFunctionName(Peek(1).Text)
             && IsSymbol(Peek(2), "("))
         {
@@ -2838,12 +2842,13 @@ internal sealed class SqlQueryParser
     private SqlTableSource ParseTableFunctionSource(string functionName, string? schemaName = null)
     {
         var argsSql = ReadBalancedParenRawTokens();
-        var rawSql = schemaName is null
-            ? $"{functionName}({argsSql})"
-            : $"{schemaName}.{functionName}({argsSql})";
-        var expr = SqlExpressionParser.ParseScalar(rawSql, _dialect, _parameters);
-        if (expr is not FunctionCallExpr function)
-            throw new InvalidOperationException("Table-valued source deve ser uma chamada de função.");
+        var function = new FunctionCallExpr(
+            functionName,
+            SplitRawByComma(argsSql)
+                .Select(static arg => arg.Trim())
+                .Where(static arg => arg.Length > 0)
+                .Select(arg => SqlExpressionParser.ParseScalar(arg, _dialect, _parameters))
+                .ToList());
 
         ValidateTableFunctionSource(function);
 
@@ -2895,14 +2900,14 @@ internal sealed class SqlQueryParser
 
         if (function.Name.Equals("STRING_SPLIT", StringComparison.OrdinalIgnoreCase))
         {
+            if (function.Args.Count == 3 && !_dialect.SupportsStringSplitOrdinalArgument)
+                throw SqlUnsupported.ForDialect(_dialect, "STRING_SPLIT enable_ordinal");
+
             if (!_dialect.SupportsStringSplitFunction)
                 throw SqlUnsupported.ForDialect(_dialect, "STRING_SPLIT");
 
             if (function.Args.Count is < 2 or > 3)
                 throw new NotSupportedException("STRING_SPLIT table source currently supports two or three arguments in the mock.");
-
-            if (function.Args.Count == 3 && !_dialect.SupportsStringSplitOrdinalArgument)
-                throw SqlUnsupported.ForDialect(_dialect, "STRING_SPLIT enable_ordinal");
 
             return;
         }
@@ -3412,7 +3417,7 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "CROSS") && IsWord(Peek(1), "APPLY"))
         {
             if (!_dialect.SupportsApplyClause)
-                throw SqlUnsupported.ForDialect(_dialect, "CROSS APPLY");
+                throw CreateApplyUnsupportedException("CROSS APPLY", 2);
 
             Consume(); // CROSS
             Consume(); // APPLY
@@ -3425,7 +3430,7 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "OUTER") && IsWord(Peek(1), "APPLY"))
         {
             if (!_dialect.SupportsApplyClause)
-                throw SqlUnsupported.ForDialect(_dialect, "OUTER APPLY");
+                throw CreateApplyUnsupportedException("OUTER APPLY", 2);
 
             Consume(); // OUTER
             Consume(); // APPLY
@@ -3453,6 +3458,109 @@ internal sealed class SqlQueryParser
             onExpr = SqlExpressionParser.ParseWhere(txt, _dialect, _parameters);
         }
         return new SqlJoin(type, table, onExpr);
+    }
+
+    private NotSupportedException CreateApplyUnsupportedException(string clause, int sourceOffset)
+    {
+        var functionInfo = TryPeekApplyTableFunctionInfo(sourceOffset);
+        if (functionInfo is not null)
+        {
+            var (functionName, argCount) = functionInfo.Value;
+
+            if (functionName.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase) && !_dialect.SupportsOpenJsonFunction)
+                return SqlUnsupported.ForDialect(_dialect, "OPENJSON");
+
+            if (functionName.Equals("STRING_SPLIT", StringComparison.OrdinalIgnoreCase))
+            {
+                if (argCount == 3 && !_dialect.SupportsStringSplitOrdinalArgument)
+                    return SqlUnsupported.ForDialect(_dialect, "STRING_SPLIT enable_ordinal");
+
+                if (!_dialect.SupportsStringSplitFunction)
+                    return SqlUnsupported.ForDialect(_dialect, "STRING_SPLIT");
+            }
+        }
+
+        return SqlUnsupported.ForDialect(_dialect, clause);
+    }
+
+    private (string Name, int ArgCount)? TryPeekApplyTableFunctionInfo(int startOffset)
+    {
+        var parts = new List<string>();
+        for (var offset = startOffset; offset <= startOffset + 24; offset++)
+        {
+            var token = Peek(offset);
+            if (token.Kind == SqlTokenKind.EndOfFile)
+                break;
+            parts.Add(token.Text);
+        }
+
+        if (parts.Count == 0)
+            return null;
+
+        var snippet = string.Join(" ", parts);
+        var match = Regex.Match(
+            snippet,
+            @"(?ix)\b(?:[A-Za-z_][A-Za-z0-9_]*\s*\.\s*)*(OPENJSON|STRING_SPLIT)\s*\(");
+        if (!match.Success)
+            return null;
+
+        var functionName = match.Groups[1].Value;
+        var openParenIndex = snippet.IndexOf('(', match.Index + match.Length - 1);
+        if (openParenIndex < 0)
+            return (functionName, 0);
+
+        return (functionName, CountFunctionArgsInSnippet(snippet, openParenIndex));
+    }
+
+    private static int CountFunctionArgsInSnippet(string snippet, int openParenIndex)
+    {
+        var depth = 0;
+        var argCount = 0;
+        var sawTokenInCurrentArg = false;
+
+        for (var index = openParenIndex; index < snippet.Length; index++)
+        {
+            var ch = snippet[index];
+
+            if (ch == '(')
+            {
+                depth++;
+                if (depth > 1)
+                    sawTokenInCurrentArg = true;
+                continue;
+            }
+
+            if (ch == ')')
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    if (sawTokenInCurrentArg)
+                        argCount++;
+
+                    return argCount;
+                }
+
+                sawTokenInCurrentArg = true;
+                continue;
+            }
+
+            if (depth == 1 && ch == ',')
+            {
+                if (sawTokenInCurrentArg)
+                {
+                    argCount++;
+                    sawTokenInCurrentArg = false;
+                }
+
+                continue;
+            }
+
+            if (depth >= 1 && !char.IsWhiteSpace(ch))
+                sawTokenInCurrentArg = true;
+        }
+
+        return 0;
     }
 
     private static void ValidateApplySource(SqlTableSource table, string clause)
@@ -3545,6 +3653,14 @@ internal sealed class SqlQueryParser
         if (!stopWords.Any(sw => IsWord(current, sw)))
             return false;
 
+        // Keep shared sequence syntax like NEXT VALUE FOR / PREVIOUS VALUE FOR
+        // inside the same SELECT expression.
+        if (IsWord(current, "FOR") && EndsWithWords(buffer, "NEXT", "VALUE"))
+            return false;
+
+        if (IsWord(current, "FOR") && EndsWithWords(buffer, "PREVIOUS", "VALUE"))
+            return false;
+
         // Keep "WITHIN GROUP (...)" inside the same SELECT expression.
         if (IsWord(current, "GROUP") && EndsWithWord(buffer, "WITHIN"))
             return false;
@@ -3566,6 +3682,20 @@ internal sealed class SqlQueryParser
 
         var tail = buffer[^1];
         return IsWord(tail, word);
+    }
+
+    private static bool EndsWithWords(IReadOnlyList<SqlToken> buffer, params string[] words)
+    {
+        if (buffer.Count < words.Length)
+            return false;
+
+        for (var index = 0; index < words.Length; index++)
+        {
+            if (!IsWord(buffer[buffer.Count - words.Length + index], words[index]))
+                return false;
+        }
+
+        return true;
     }
 
     private string TokensToSql(List<SqlToken> toks)

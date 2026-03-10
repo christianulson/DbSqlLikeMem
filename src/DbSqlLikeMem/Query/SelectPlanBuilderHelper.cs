@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace DbSqlLikeMem;
 
 internal static class SelectPlanBuilderHelper
@@ -95,9 +97,10 @@ internal static class SelectPlanBuilderHelper
         var preferredAlias = selectItemAlias ?? extractedAlias ?? SelectPlanProjectionHelper.InferColumnAlias(rawExpression);
         var columnAlias = SelectPlanProjectionHelper.MakeUniqueAlias(columns, preferredAlias, tableAlias);
         var inferredDbType = InferDbTypeFromExpression(expression, sampleRows, ctes, dialect, evalExpression);
+        var isNullable = InferNullabilityFromExpression(expression, sampleRows);
         var isJsonFragment = TryInferProjectedJsonFragment(expression, sampleRows);
 
-        columns.Add(SelectPlanProjectionHelper.CreateSelectPlanColumn(tableAlias, columnAlias, columns.Count, inferredDbType, isJsonFragment));
+        columns.Add(SelectPlanProjectionHelper.CreateSelectPlanColumn(tableAlias, columnAlias, columns.Count, inferredDbType, isNullable, isJsonFragment));
         evaluators.Add(CreateSelectPlanEvaluator(expression, ctes, dialect, windowSlots, evalExpression));
     }
 
@@ -177,6 +180,9 @@ internal static class SelectPlanBuilderHelper
         if (IsSequenceExpression(expression))
             return DbType.Int64;
 
+        if (TryInferDbTypeFromColumnMetadata(expression, sampleRows, out var columnDbType))
+            return columnDbType;
+
         if (expression is WindowFunctionExpr windowFunction)
         {
             return dialect?.InferWindowFunctionDbType(
@@ -184,6 +190,9 @@ internal static class SelectPlanBuilderHelper
                     arg => InferDbTypeFromExpression(arg, sampleRows, ctes, dialect, evalExpression))
                 ?? DbType.Object;
         }
+
+        if (TryInferDbTypeFromExpressionShape(expression, out var inferredDbType))
+            return inferredDbType;
 
         foreach (var row in sampleRows)
         {
@@ -203,6 +212,268 @@ internal static class SelectPlanBuilderHelper
         }
 
         return DbType.Object;
+    }
+
+    private static bool TryInferDbTypeFromColumnMetadata(
+        SqlExpr expression,
+        List<AstQueryExecutorBase.EvalRow> sampleRows,
+        out DbType dbType)
+    {
+        dbType = DbType.Object;
+
+        var sampleRow = sampleRows.FirstOrDefault();
+        if (sampleRow is null)
+            return false;
+
+        if (expression is ColumnExpr qualifiedColumn)
+        {
+            var matchedKey = sampleRow.Sources.Keys.FirstOrDefault(key =>
+                key.Equals(qualifiedColumn.Qualifier, StringComparison.OrdinalIgnoreCase));
+            if (matchedKey is null)
+                return false;
+
+            return TryGetSourceColumnDbType(sampleRow.Sources[matchedKey], qualifiedColumn.Name, out dbType);
+        }
+
+        if (expression is not IdentifierExpr identifier)
+            return false;
+
+        AstQueryExecutorBase.Source? matchedSource = null;
+        foreach (var source in sampleRow.Sources.Values)
+        {
+            if (!TryGetSourceColumnDbType(source, identifier.Name, out var candidateDbType))
+                continue;
+
+            if (matchedSource is not null)
+                return false;
+
+            matchedSource = source;
+            dbType = candidateDbType;
+        }
+
+        return matchedSource is not null;
+    }
+
+    private static bool TryGetSourceColumnDbType(
+        AstQueryExecutorBase.Source source,
+        string columnName,
+        out DbType dbType)
+    {
+        dbType = DbType.Object;
+        if (!source.TryGetColumnMetadata(columnName, out var metadata))
+            return false;
+
+        dbType = metadata.DbType;
+        return true;
+    }
+
+    private static bool InferNullabilityFromExpression(SqlExpr expression, List<AstQueryExecutorBase.EvalRow> sampleRows)
+    {
+        var sampleRow = sampleRows.FirstOrDefault();
+        if (sampleRow is null)
+            return true;
+
+        if (expression is ColumnExpr qualifiedColumn)
+        {
+            var matchedKey = sampleRow.Sources.Keys.FirstOrDefault(key =>
+                key.Equals(qualifiedColumn.Qualifier, StringComparison.OrdinalIgnoreCase));
+            if (matchedKey is null)
+                return true;
+
+            return TryGetSourceColumnNullability(sampleRow.Sources[matchedKey], qualifiedColumn.Name, out var isNullable)
+                ? isNullable
+                : true;
+        }
+
+        if (expression is IdentifierExpr identifier)
+        {
+            bool? resolved = null;
+            foreach (var source in sampleRow.Sources.Values)
+            {
+                if (!TryGetSourceColumnNullability(source, identifier.Name, out var candidate))
+                    continue;
+
+                if (resolved.HasValue)
+                    return true;
+
+                resolved = candidate;
+            }
+
+            return resolved ?? true;
+        }
+
+        if (expression is LiteralExpr literal)
+            return literal.Value is null;
+
+        return true;
+    }
+
+    private static bool TryGetSourceColumnNullability(
+        AstQueryExecutorBase.Source source,
+        string columnName,
+        out bool isNullable)
+    {
+        isNullable = true;
+        if (!source.TryGetColumnMetadata(columnName, out var metadata))
+            return false;
+
+        isNullable = metadata.IsNullable;
+        return true;
+    }
+
+    private static bool TryInferDbTypeFromExpressionShape(SqlExpr expression, out DbType dbType)
+    {
+        dbType = DbType.Object;
+
+        if (expression is LiteralExpr literal)
+        {
+            if (TryInferDbTypeFromLiteralValue(literal.Value, out dbType))
+                return true;
+
+            return false;
+        }
+
+        if (expression is RawSqlExpr rawExpression
+            && TryInferDbTypeFromRawSqlExpression(rawExpression.Sql, out dbType))
+        {
+            return true;
+        }
+
+        if (expression is not CallExpr call
+            || (!call.Name.Equals("CAST", StringComparison.OrdinalIgnoreCase)
+                && !call.Name.Equals("TRY_CAST", StringComparison.OrdinalIgnoreCase))
+            || call.Args.Count < 2
+            || call.Args[1] is not RawSqlExpr rawType)
+        {
+            return false;
+        }
+
+        dbType = ParseDbTypeFromCastSqlType(rawType.Sql);
+        return true;
+    }
+
+    private static bool TryInferDbTypeFromLiteralValue(object? value, out DbType dbType)
+    {
+        dbType = DbType.Object;
+        if (value is null)
+            return false;
+
+        if (value is int or short or byte or sbyte or ushort)
+        {
+            dbType = DbType.Int32;
+            return true;
+        }
+
+        if (value is uint uintValue)
+        {
+            dbType = uintValue <= int.MaxValue ? DbType.Int32 : DbType.Int64;
+            return true;
+        }
+
+        if (value is long longValue)
+        {
+            dbType = longValue is >= int.MinValue and <= int.MaxValue ? DbType.Int32 : DbType.Int64;
+            return true;
+        }
+
+        if (value is ulong ulongValue)
+        {
+            dbType = ulongValue <= int.MaxValue ? DbType.Int32 : DbType.Int64;
+            return true;
+        }
+
+        if (value is decimal dec)
+        {
+            if (decimal.Truncate(dec) == dec
+                && dec >= int.MinValue
+                && dec <= int.MaxValue)
+            {
+                dbType = DbType.Int32;
+                return true;
+            }
+
+            dbType = DbType.Decimal;
+            return true;
+        }
+
+        if (value is double or float)
+        {
+            dbType = DbType.Double;
+            return true;
+        }
+
+        if (value is bool)
+        {
+            dbType = DbType.Boolean;
+            return true;
+        }
+
+        if (value is string)
+        {
+            dbType = DbType.String;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryInferDbTypeFromRawSqlExpression(string sql, out DbType dbType)
+    {
+        dbType = DbType.Object;
+        if (string.IsNullOrWhiteSpace(sql))
+            return false;
+
+        var match = Regex.Match(
+            sql,
+            @"^\s*(?:TRY_)?CAST\s*\(.+\s+AS\s+(?<type>[^)]+)\)\s*$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (!match.Success)
+            return false;
+
+        dbType = ParseDbTypeFromCastSqlType(match.Groups["type"].Value);
+        return true;
+    }
+
+    private static DbType ParseDbTypeFromCastSqlType(string sqlType)
+    {
+        var normalized = sqlType.Trim().ToUpperInvariant();
+        if (normalized.StartsWith("BIGINT", StringComparison.Ordinal))
+            return DbType.Int64;
+        if (normalized.StartsWith("INT", StringComparison.Ordinal)
+            || normalized.StartsWith("INTEGER", StringComparison.Ordinal)
+            || normalized.StartsWith("SMALLINT", StringComparison.Ordinal)
+            || normalized.StartsWith("TINYINT", StringComparison.Ordinal))
+            return DbType.Int32;
+        if (normalized.StartsWith("DECIMAL", StringComparison.Ordinal)
+            || normalized.StartsWith("NUMERIC", StringComparison.Ordinal)
+            || normalized.StartsWith("NUMBER", StringComparison.Ordinal)
+            || normalized.StartsWith("MONEY", StringComparison.Ordinal)
+            || normalized.StartsWith("SMALLMONEY", StringComparison.Ordinal))
+            return DbType.Decimal;
+        if (normalized.StartsWith("FLOAT", StringComparison.Ordinal)
+            || normalized.StartsWith("REAL", StringComparison.Ordinal)
+            || normalized.StartsWith("DOUBLE", StringComparison.Ordinal))
+            return DbType.Double;
+        if (normalized.StartsWith("BIT", StringComparison.Ordinal)
+            || normalized.StartsWith("BOOLEAN", StringComparison.Ordinal))
+            return DbType.Boolean;
+        if (normalized.StartsWith("DATE", StringComparison.Ordinal))
+            return DbType.Date;
+        if (normalized.StartsWith("TIME", StringComparison.Ordinal))
+            return DbType.Time;
+        if (normalized.StartsWith("DATETIME", StringComparison.Ordinal)
+            || normalized.StartsWith("TIMESTAMP", StringComparison.Ordinal))
+            return DbType.DateTime;
+        if (normalized.StartsWith("UNIQUEIDENTIFIER", StringComparison.Ordinal)
+            || normalized.StartsWith("UUID", StringComparison.Ordinal))
+            return DbType.Guid;
+        if (normalized.StartsWith("VARBINARY", StringComparison.Ordinal)
+            || normalized.StartsWith("BINARY", StringComparison.Ordinal)
+            || normalized.StartsWith("BLOB", StringComparison.Ordinal)
+            || normalized.StartsWith("IMAGE", StringComparison.Ordinal))
+            return DbType.Binary;
+
+        return DbType.String;
     }
 
     private static bool IsSequenceExpression(SqlExpr expression)

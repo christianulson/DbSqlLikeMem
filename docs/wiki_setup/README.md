@@ -28,12 +28,30 @@ Future languages should follow the same naming style, for example `Getting-Start
 - `Providers-and-Compatibility`
 - `ADO.NET-and-Dapper`
 - `DbConnection-Interception`
+- `DI-and-Interception-Setup`
+- `Testing-Strategy`
 - `Diagnostics-and-Execution-Plans`
 - `Limitations-and-Known-Gaps`
 - `Recipes-and-Common-Scenarios`
 - `Transactions-and-Volatile-Data`
 - `Schema-Snapshots-and-Replay`
 - `FAQ-and-Troubleshooting`
+
+### Guided walkthroughs
+
+- `Dapper-and-Interception-Walkthrough`
+- `Snapshot-Fixture-in-CI`
+- `Troubleshooting-by-Provider`
+
+### Advanced guides
+
+- `Observability-and-Debugging`
+- `Provider-Specific-Recipes`
+- `Examples-by-Architecture`
+- `Migration-from-Real-DB-Tests`
+- `Performance-of-Test-Suites`
+- `Compatibility-Matrix-Summary`
+- `Glossary`
 
 ### Ecosystem navigation
 

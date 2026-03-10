@@ -14,6 +14,11 @@ public sealed class SqlAzureDialectBehaviorTests
             new("Name", DbType.String, false),
             new("Email", DbType.String, true)
         ]);
+        db.AddTable("Orders", [
+            new("OrderId", DbType.Int32, false),
+            new("UserId", DbType.Int32, false),
+            new("Amount", DbType.Decimal, false, decimalPlaces:2)
+        ]);
 
         var connection = new SqlAzureConnectionMock(db);
         connection.Open();
@@ -92,6 +97,149 @@ public sealed class SqlAzureDialectBehaviorTests
         Assert.True(reader.Read());
         Assert.Equal(701, reader.GetInt32(reader.GetOrdinal("Id")));
         Assert.Equal("Output Insert", reader.GetString(reader.GetOrdinal("user_name")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Azure compatibility mode executes an Azure SQL reference query with CTE, JOIN, LEFT JOIN, CROSS APPLY, OUTER APPLY, EXISTS, STRING_AGG, DATEADD, DATEDIFF, CASE, CAST and ROW_NUMBER.
+    /// PT: Garante que o modo de compatibilidade SQL Azure execute uma query de referencia do Azure SQL com CTE, JOIN, LEFT JOIN, CROSS APPLY, OUTER APPLY, EXISTS, STRING_AGG, DATEADD, DATEDIFF, CASE, CAST e ROW_NUMBER.
+    /// </summary>
+    [Fact]
+    public void ExecuteReader_ProviderSignatureComplexQuery_ShouldReturnExpectedRows()
+    {
+        using var connection = CreateOpenConnection();
+        using (var seed = new SqlAzureCommandMock(connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (811, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (812, 'Bia', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (813, 'Caio', NULL);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (9101, 811, 10.50);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (9102, 811, 5.25);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (9103, 812, 7.75);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqlAzureCommandMock(connection)
+        {
+            CommandText = """
+                WITH base_users AS (
+                    SELECT u.Id,
+                           u.Name,
+                           CASE
+                               WHEN u.Id IN (811, 812) THEN 10
+                               ELSE 20
+                           END AS TenantId
+                    FROM Users u
+                ),
+                tenant_scope AS (
+                    SELECT 10 AS TenantId
+                    UNION ALL
+                    SELECT 20
+                ),
+                order_rollup AS (
+                    SELECT o.UserId,
+                           COUNT(*) AS OrderCount,
+                           SUM(CAST(o.Amount AS DECIMAL(10,2))) AS TotalAmount,
+                           STRING_AGG(CAST(o.OrderId AS NVARCHAR(20)), '|') WITHIN GROUP (ORDER BY o.OrderId DESC) AS OrderIds
+                    FROM Orders o
+                    GROUP BY o.UserId
+                ),
+                latest_orders AS (
+                    SELECT bu.Id,
+                           bu.Name,
+                           bu.TenantId,
+                           calc.NormalizedId,
+                           calc.SnapshotPlusOneDay,
+                           calc.DaysFromAnchor,
+                           calc.UserCode,
+                           ISNULL(rollup.OrderCount, CAST(0 AS INT)) AS OrderCount,
+                           ISNULL(rollup.TotalAmount, CAST(0 AS DECIMAL(10,2))) AS TotalAmount,
+                           ISNULL(rollup.OrderIds, CAST('' AS NVARCHAR(20))) AS OrderIds,
+                           latest.LastOrderId,
+                           ISNULL(latest.LastAmount, CAST(0 AS DECIMAL(10,2))) AS LastAmount,
+                           CASE
+                               WHEN EXISTS (SELECT 1 FROM Orders ox WHERE ox.UserId = bu.Id AND ox.Amount >= CAST(10 AS DECIMAL(10,2))) THEN CAST(1 AS BIT)
+                               ELSE CAST(0 AS BIT)
+                           END AS HasBigOrder,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY bu.TenantId
+                               ORDER BY ISNULL(latest.LastAmount, CAST(0 AS DECIMAL(10,2))) DESC, bu.Id
+                           ) AS Rn
+                    FROM base_users bu
+                    JOIN tenant_scope scope ON scope.TenantId = bu.TenantId
+                    LEFT JOIN order_rollup rollup ON rollup.UserId = bu.Id
+                    CROSS APPLY (
+                        SELECT CAST(bu.Id AS INT) AS NormalizedId,
+                               DATEADD(DAY, 1, CURRENT_TIMESTAMP) AS SnapshotPlusOneDay,
+                               DATEDIFF(DAY, CAST('2020-01-01' AS DATETIME), CAST('2020-01-01' AS DATETIME) + (bu.Id - 811)) AS DaysFromAnchor,
+                               CONCAT(CAST(bu.TenantId AS NVARCHAR(10)), '-', CAST(bu.Id AS NVARCHAR(10))) AS UserCode
+                    ) calc
+                    OUTER APPLY (
+                        SELECT TOP 1
+                               CAST(o.OrderId AS INT) AS LastOrderId,
+                               CAST(o.Amount AS DECIMAL(10,2)) AS LastAmount
+                        FROM Orders o
+                        WHERE o.UserId = bu.Id
+                        ORDER BY o.OrderId DESC
+                    ) latest
+                )
+                SELECT Id, Name, TenantId, NormalizedId, SnapshotPlusOneDay, DaysFromAnchor, UserCode, OrderCount, TotalAmount, OrderIds, LastOrderId, LastAmount, HasBigOrder, Rn
+                FROM latest_orders
+                ORDER BY TenantId, Rn, Id
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(812, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("Bia", reader.GetString(reader.GetOrdinal("Name")));
+        Assert.Equal(10, reader.GetInt32(reader.GetOrdinal("TenantId")));
+        Assert.Equal(812, reader.GetInt32(reader.GetOrdinal("NormalizedId")));
+        Assert.NotNull(reader.GetValue(reader.GetOrdinal("SnapshotPlusOneDay")));
+        Assert.Equal(1, Convert.ToInt32(reader.GetValue(reader.GetOrdinal("DaysFromAnchor"))));
+        Assert.Equal("10-812", Convert.ToString(reader.GetValue(reader.GetOrdinal("UserCode"))));
+        Assert.Equal(1, Convert.ToInt32(reader.GetValue(reader.GetOrdinal("OrderCount"))));
+        Assert.Equal(7.75m, Convert.ToDecimal(reader.GetValue(reader.GetOrdinal("TotalAmount"))));
+        Assert.Equal("9103", Convert.ToString(reader.GetValue(reader.GetOrdinal("OrderIds"))));
+        Assert.Equal(9103, Convert.ToInt32(reader.GetValue(reader.GetOrdinal("LastOrderId"))));
+        Assert.Equal(7.75m, Convert.ToDecimal(reader.GetValue(reader.GetOrdinal("LastAmount"))));
+        Assert.False(Convert.ToBoolean(reader.GetValue(reader.GetOrdinal("HasBigOrder"))));
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(reader.GetOrdinal("Rn"))));
+
+        Assert.True(reader.Read());
+        Assert.Equal(811, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("Ana", reader.GetString(reader.GetOrdinal("Name")));
+        Assert.Equal(10, reader.GetInt32(reader.GetOrdinal("TenantId")));
+        Assert.Equal(811, reader.GetInt32(reader.GetOrdinal("NormalizedId")));
+        Assert.NotNull(reader.GetValue(reader.GetOrdinal("SnapshotPlusOneDay")));
+        Assert.Equal(0, Convert.ToInt32(reader.GetValue(reader.GetOrdinal("DaysFromAnchor"))));
+        Assert.Equal("10-811", Convert.ToString(reader.GetValue(reader.GetOrdinal("UserCode"))));
+        Assert.Equal(2, Convert.ToInt32(reader.GetValue(reader.GetOrdinal("OrderCount"))));
+        Assert.Equal(15.75m, Convert.ToDecimal(reader.GetValue(reader.GetOrdinal("TotalAmount"))));
+        Assert.Equal("9102|9101", Convert.ToString(reader.GetValue(reader.GetOrdinal("OrderIds"))));
+        Assert.Equal(9102, Convert.ToInt32(reader.GetValue(reader.GetOrdinal("LastOrderId"))));
+        Assert.Equal(5.25m, Convert.ToDecimal(reader.GetValue(reader.GetOrdinal("LastAmount"))));
+        Assert.True(Convert.ToBoolean(reader.GetValue(reader.GetOrdinal("HasBigOrder"))));
+        Assert.Equal(2L, Convert.ToInt64(reader.GetValue(reader.GetOrdinal("Rn"))));
+
+        Assert.True(reader.Read());
+        Assert.Equal(813, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal("Caio", reader.GetString(reader.GetOrdinal("Name")));
+        Assert.Equal(20, reader.GetInt32(reader.GetOrdinal("TenantId")));
+        Assert.Equal(813, reader.GetInt32(reader.GetOrdinal("NormalizedId")));
+        Assert.NotNull(reader.GetValue(reader.GetOrdinal("SnapshotPlusOneDay")));
+        Assert.Equal(2, Convert.ToInt32(reader.GetValue(reader.GetOrdinal("DaysFromAnchor"))));
+        Assert.Equal("20-813", Convert.ToString(reader.GetValue(reader.GetOrdinal("UserCode"))));
+        Assert.Equal(0, Convert.ToInt32(reader.GetValue(reader.GetOrdinal("OrderCount"))));
+        Assert.Equal(0m, Convert.ToDecimal(reader.GetValue(reader.GetOrdinal("TotalAmount"))));
+        Assert.Equal(string.Empty, Convert.ToString(reader.GetValue(reader.GetOrdinal("OrderIds"))));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("LastOrderId")));
+        Assert.Equal(0m, Convert.ToDecimal(reader.GetValue(reader.GetOrdinal("LastAmount"))));
+        Assert.False(Convert.ToBoolean(reader.GetValue(reader.GetOrdinal("HasBigOrder"))));
+        Assert.Equal(3L, Convert.ToInt64(reader.GetValue(reader.GetOrdinal("Rn"))));
         Assert.False(reader.Read());
     }
 

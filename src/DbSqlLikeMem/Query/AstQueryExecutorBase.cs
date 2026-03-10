@@ -142,6 +142,8 @@ internal abstract class AstQueryExecutorBase(
             UnionQueryValidationHelper.ValidateUnionColumnTypes(result.Columns, tables[i].Columns, i, sqlContextForErrors, dialect);
         }
 
+        result.Columns = MergeUnionColumnMetadata(tables.Select(static table => table.Columns).ToList());
+
         // merge
         // - entre 0 e 1 usa allFlags[0]
         // - entre 1 e 2 usa allFlags[1]
@@ -225,6 +227,75 @@ internal abstract class AstQueryExecutorBase(
             _cnn.RegisterDebugTrace(debugTrace.Build());
 
         return result;
+    }
+
+    private static IList<TableResultColMock> MergeUnionColumnMetadata(IReadOnlyList<IList<TableResultColMock>> columnSets)
+    {
+        if (columnSets.Count == 0)
+            return [];
+
+        var merged = new List<TableResultColMock>(columnSets[0].Count);
+        for (var index = 0; index < columnSets[0].Count; index++)
+        {
+            var first = columnSets[0][index];
+            var dbType = first.DbType;
+            var isNullable = first.IsNullable;
+
+            for (var setIndex = 1; setIndex < columnSets.Count; setIndex++)
+            {
+                var current = columnSets[setIndex][index];
+                dbType = MergeUnionDbType(dbType, current.DbType);
+                isNullable |= current.IsNullable;
+            }
+
+            merged.Add(new TableResultColMock(
+                first.TableAlias,
+                first.ColumnAlias,
+                first.ColumnName,
+                first.ColumIndex,
+                dbType,
+                isNullable,
+                first.IsJsonFragment));
+        }
+
+        return merged;
+    }
+
+    private static DbType MergeUnionDbType(DbType left, DbType right)
+    {
+        if (left == right)
+            return left;
+
+        static bool IsFloating(DbType type)
+            => type is DbType.Single or DbType.Double;
+
+        static bool IsDecimalLike(DbType type)
+            => type is DbType.Decimal or DbType.VarNumeric or DbType.Currency;
+
+        static bool IsIntegerLike(DbType type)
+            => type is DbType.Byte or DbType.SByte
+                or DbType.Int16 or DbType.UInt16
+                or DbType.Int32 or DbType.UInt32
+                or DbType.Int64 or DbType.UInt64;
+
+        if ((IsFloating(left) && (IsFloating(right) || IsDecimalLike(right) || IsIntegerLike(right)))
+            || (IsFloating(right) && (IsDecimalLike(left) || IsIntegerLike(left))))
+        {
+            return DbType.Double;
+        }
+
+        if (IsDecimalLike(left) && (IsDecimalLike(right) || IsIntegerLike(right)))
+            return DbType.Decimal;
+
+        if (IsDecimalLike(right) && IsIntegerLike(left))
+            return DbType.Decimal;
+
+        if (IsIntegerLike(left) && IsIntegerLike(right))
+            return left is DbType.Int64 or DbType.UInt64 || right is DbType.Int64 or DbType.UInt64
+                ? DbType.Int64
+                : DbType.Int32;
+
+        return left;
     }
 
     /// <summary>
@@ -777,7 +848,17 @@ internal abstract class AstQueryExecutorBase(
         foreach (var cte in selectQuery.Ctes)
         {
             var cteStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
-            var res = ExecuteSelect(cte.Query, ctes, outerRow);
+            var res = cte.Query switch
+            {
+                SqlSelectQuery cteSelect => ExecuteSelect(cteSelect, ctes, outerRow),
+                SqlUnionQuery cteUnion => ExecuteUnion(
+                    cteUnion.Parts,
+                    cteUnion.AllFlags,
+                    cteUnion.OrderBy,
+                    cteUnion.RowLimit,
+                    cteUnion.RawSql),
+                _ => throw new NotSupportedException($"CTE query type '{cte.Query.GetType().Name}' is not supported.")
+            };
             ctes[cte.Name] = Source.FromResult(cte.Name, res);
             debugTrace?.AddStep(
                 "CteMaterialize",
@@ -2520,7 +2601,7 @@ internal abstract class AstQueryExecutorBase(
             result.Columns.Add(new TableResultColMock(source.Alias, groupColumns[i], groupColumns[i], i, dbType, isNullable));
         }
 
-        var pivotAggregateDbType = GetPivotAggregateResultDbType(pivot.AggregateFunction, aggArgExpr, source);
+        var pivotAggregateDbType = GetPivotAggregateResultDbType(pivot.AggregateFunction, aggArgExpr, source, dialect);
         for (int i = 0; i < inItems.Count; i++)
             result.Columns.Add(new TableResultColMock(source.Alias, inItems[i].Alias, inItems[i].Alias, groupColumns.Count + i, pivotAggregateDbType, true));
 
@@ -2545,14 +2626,14 @@ internal abstract class AstQueryExecutorBase(
         return Source.FromResult(source.Name, source.Alias, result);
     }
 
-    private static DbType GetPivotAggregateResultDbType(string aggregateFunction, SqlExpr aggArgExpr, Source source)
+    private static DbType GetPivotAggregateResultDbType(string aggregateFunction, SqlExpr aggArgExpr, Source source, ISqlDialect dialect)
         => aggregateFunction.ToUpperInvariant() switch
         {
             "COUNT" => DbType.Int32,
             "COUNT_BIG" => DbType.Int64,
             "STDEV" or "STDEVP" or "VAR" or "VARP" => DbType.Double,
             "SUM" => PromotePivotSumResultDbType(TryGetPivotAggregateArgumentDbType(aggArgExpr, source) ?? DbType.Object),
-            "AVG" => PromotePivotAvgResultDbType(TryGetPivotAggregateArgumentDbType(aggArgExpr, source) ?? DbType.Object),
+            "AVG" => PromotePivotAvgResultDbType(TryGetPivotAggregateArgumentDbType(aggArgExpr, source) ?? DbType.Object, dialect),
             "MIN" or "MAX" => TryGetPivotAggregateArgumentDbType(aggArgExpr, source) ?? DbType.Object,
             _ => DbType.Object
         };
@@ -2567,8 +2648,12 @@ internal abstract class AstQueryExecutorBase(
             _ => inputType
         };
 
-    private static DbType PromotePivotAvgResultDbType(DbType inputType)
-        => inputType switch
+    private static DbType PromotePivotAvgResultDbType(DbType inputType, ISqlDialect dialect)
+    {
+        if (dialect.PivotAvgReturnsDecimalForIntegralInputs && IsIntegralPivotDbType(inputType))
+            return DbType.Decimal;
+
+        return inputType switch
         {
             DbType.Byte or DbType.SByte or DbType.Int16 or DbType.UInt16 or DbType.Int32 => DbType.Int32,
             DbType.UInt32 or DbType.Int64 or DbType.UInt64 => DbType.Int64,
@@ -2576,6 +2661,17 @@ internal abstract class AstQueryExecutorBase(
             DbType.Single or DbType.Double => DbType.Double,
             _ => inputType
         };
+    }
+
+    private static bool IsIntegralPivotDbType(DbType inputType)
+        => inputType is DbType.Byte
+            or DbType.SByte
+            or DbType.Int16
+            or DbType.UInt16
+            or DbType.Int32
+            or DbType.UInt32
+            or DbType.Int64
+            or DbType.UInt64;
 
     private static object? CoercePivotAggregateValue(object? value, string aggregateFunction, DbType targetDbType)
     {
@@ -2618,7 +2714,7 @@ internal abstract class AstQueryExecutorBase(
         if (aggArgExpr is not IdentifierExpr identifier)
             return null;
 
-        return TryGetSourceColumnDbType(source, identifier.Name);
+        return ResolveSourceColumnDbType(source, identifier.Name);
     }
 
     private static DbType? TryGetSourceColumnDbType(Source source, string columnName)
@@ -2638,12 +2734,67 @@ internal abstract class AstQueryExecutorBase(
                 : null;
     }
 
+    private static DbType? ResolveSourceColumnDbType(Source source, string columnName)
+    {
+        var metadataDbType = TryGetSourceColumnDbType(source, columnName);
+        var sampledDbType = TryInferSourceColumnDbTypeFromRows(source, columnName);
+
+        if (sampledDbType is DbType.Int32
+            && metadataDbType is DbType.Decimal or DbType.Object or null)
+        {
+            return DbType.Int32;
+        }
+
+        if (sampledDbType is DbType.Double
+            && metadataDbType is DbType.Decimal or DbType.Object or null)
+        {
+            return DbType.Double;
+        }
+
+        return metadataDbType ?? sampledDbType;
+    }
+
+    private static DbType? TryInferSourceColumnDbTypeFromRows(Source source, string columnName)
+    {
+        var normalizedColumnName = columnName[(columnName.LastIndexOf('.') + 1)..];
+        var qualifiedColumnName = $"{source.Alias}.{normalizedColumnName}";
+
+        foreach (var row in source.Rows())
+        {
+            if (!row.TryGetValue(qualifiedColumnName, out var value) || value is null or DBNull)
+                continue;
+
+            if (value is decimal dec
+                && decimal.Truncate(dec) == dec
+                && dec >= int.MinValue
+                && dec <= int.MaxValue)
+            {
+                return DbType.Int32;
+            }
+
+            var type = Nullable.GetUnderlyingType(value.GetType()) ?? value.GetType();
+            if (type == typeof(float) || type == typeof(double))
+                return DbType.Double;
+
+            try
+            {
+                return type.ConvertTypeToDbType();
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
     private static DbType? ResolveUnpivotValueDbType(Source source, SqlUnpivotSpec unpivot)
     {
         DbType? resolved = null;
         foreach (var item in unpivot.InItems)
         {
-            var next = TryGetSourceColumnDbType(source, item.SourceColumnName) ?? DbType.Object;
+            var next = ResolveSourceColumnDbType(source, item.SourceColumnName) ?? DbType.Object;
             if (resolved is null)
             {
                 resolved = next;
@@ -2680,7 +2831,7 @@ internal abstract class AstQueryExecutorBase(
         var result = new TableResultMock();
         for (var index = 0; index < groupColumns.Count; index++)
         {
-            var dbType = TryGetSourceColumnDbType(source, groupColumns[index]) ?? DbType.Object;
+            var dbType = ResolveSourceColumnDbType(source, groupColumns[index]) ?? DbType.Object;
             var isNullable = TryGetSourceColumnIsNullable(source, groupColumns[index]) ?? true;
             result.Columns.Add(new TableResultColMock(source.Alias, groupColumns[index], groupColumns[index], index, dbType, isNullable));
         }
@@ -3747,6 +3898,13 @@ private void FillPercentRankOrCumeDist(
 
                 for (var depth = commonPrefixLength + 1; depth < previousSegments.Length; depth++)
                     closedObjectPaths.Add(BuildJsonPath(previousSegments, depth));
+
+                for (var depth = 1; depth < commonPrefixLength; depth++)
+                {
+                    var sharedPrefix = BuildJsonPath(segments, depth);
+                    if (closedObjectPaths.Contains(sharedPrefix))
+                        throw CreateForJsonPathConflictException(column.ColumnAlias);
+                }
             }
 
             for (var depth = 1; depth < segments.Length; depth++)
@@ -6508,7 +6666,18 @@ private void FillPercentRankOrCumeDist(
                 || type.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase))
             {
                 if (v is decimal dd) return dd;
-                if (decimal.TryParse(v!.ToString(), out var dx)) return dx;
+                if (decimal.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return dx;
+                return null;
+            }
+
+            if (type.StartsWith("FLOAT", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("REAL", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("DOUBLE", StringComparison.OrdinalIgnoreCase))
+            {
+                if (v is double dfx) return dfx;
+                if (v is float ffx) return (double)ffx;
+                if (v is decimal ddx) return (double)ddx;
+                if (double.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var fx)) return fx;
                 return null;
             }
 
@@ -6549,6 +6718,17 @@ private void FillPercentRankOrCumeDist(
                 if (v is decimal dd) return dd;
                 if (decimal.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var dx)) return dx;
                 return 0m;
+            }
+
+            if (type.StartsWith("FLOAT", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("REAL", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("DOUBLE", StringComparison.OrdinalIgnoreCase))
+            {
+                if (v is double dfx) return dfx;
+                if (v is float ffx) return (double)ffx;
+                if (v is decimal ddx) return (double)ddx;
+                if (double.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var fx)) return fx;
+                return 0d;
             }
 
             if (type.Equals("JSON", StringComparison.OrdinalIgnoreCase))
@@ -7164,15 +7344,53 @@ private void FillPercentRankOrCumeDist(
         var separator = GetAggregateSeparator(fn, group, ctes);
         return name switch
         {
-            "SUM" => values.Sum(static value => value!.ToDec()),
-            "AVG" => values.Sum(static value => value!.ToDec()) / values.Count,
-            "MIN" => values.Min(static value => value!.ToDec()),
-            "MAX" => values.Max(static value => value!.ToDec()),
+            "SUM" => AggregateNumericValues(values, AggregateNumericOperation.Sum),
+            "AVG" => AggregateNumericValues(values, AggregateNumericOperation.Average),
+            "MIN" => AggregateNumericValues(values, AggregateNumericOperation.Min),
+            "MAX" => AggregateNumericValues(values, AggregateNumericOperation.Max),
             "GROUP_CONCAT" => EvalStringAggregate(values, separator, ","),
             "STRING_AGG" => EvalStringAggregate(values, separator, ","),
             "LISTAGG" => EvalStringAggregate(values, separator, string.Empty),
             _ => null
         };
+    }
+
+    private static object? AggregateNumericValues(IReadOnlyList<object?> values, AggregateNumericOperation operation)
+    {
+        if (values.Count == 0)
+            return null;
+
+        var useDouble = values.Any(static value => value is float or double);
+        if (useDouble)
+        {
+            var numericValues = values.Select(static value => Convert.ToDouble(value, CultureInfo.InvariantCulture)).ToArray();
+            return operation switch
+            {
+                AggregateNumericOperation.Sum => numericValues.Sum(),
+                AggregateNumericOperation.Average => numericValues.Average(),
+                AggregateNumericOperation.Min => numericValues.Min(),
+                AggregateNumericOperation.Max => numericValues.Max(),
+                _ => null
+            };
+        }
+
+        var decimalValues = values.Select(static value => value!.ToDec()).ToArray();
+        return operation switch
+        {
+            AggregateNumericOperation.Sum => decimalValues.Sum(),
+            AggregateNumericOperation.Average => decimalValues.Sum() / decimalValues.Length,
+            AggregateNumericOperation.Min => decimalValues.Min(),
+            AggregateNumericOperation.Max => decimalValues.Max(),
+            _ => null
+        };
+    }
+
+    private enum AggregateNumericOperation
+    {
+        Sum,
+        Average,
+        Min,
+        Max
     }
 
     private object? GetAggregateSeparator(

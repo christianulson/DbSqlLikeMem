@@ -8,7 +8,7 @@ namespace DbSqlLikeMem.MySql.Dapper.Test;
 public sealed class MySqlAdvancedSqlGapTests : XUnitTestBase
 {
     private readonly MySqlConnectionMock _cnn;
-    private const int MySqlWindowFunctionsMinVersion = 8;
+    private const int MySqlWindowFunctionsMinVersion = 80;
 
     /// <summary>
     /// EN: Tests MySqlAdvancedSqlGapTests behavior.
@@ -325,6 +325,84 @@ ORDER BY id").ToList();
 
         Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.lag0)]);
         Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.lead0)]);
+    }
+
+    /// <summary>
+    /// EN: Verifies a MySQL reference query combining CTE, JOIN, LEFT JOIN, EXISTS, GROUP_CONCAT, DATE_ADD, TIMESTAMPDIFF, CASE, CAST, IFNULL, REGEXP and ROW_NUMBER respects the configured version.
+    /// PT: Verifica se uma query de referencia do MySQL combinando CTE, JOIN, LEFT JOIN, EXISTS, GROUP_CONCAT, DATE_ADD, TIMESTAMPDIFF, CASE, CAST, IFNULL, REGEXP e ROW_NUMBER respeita a versão configurada.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "MySqlAdvancedSqlGap")]
+    [MemberDataMySqlVersion]
+    public void ProviderSignature_CteAggregateRegexpAndWindow_ShouldRespectVersion(int version)
+    {
+        using var cnn = CreateConnection(version);
+        cnn.Open();
+
+        const string sql = @"
+WITH tenant_scope AS (
+    SELECT 10 AS tenantid
+    UNION ALL
+    SELECT 20
+),
+order_totals AS (
+    SELECT o.userid,
+           COUNT(*) AS order_count,
+           SUM(CAST(o.amount AS DECIMAL(10,2))) AS total_amount,
+           GROUP_CONCAT(CAST(o.id AS CHAR) ORDER BY o.id DESC SEPARATOR '|') AS order_ids
+    FROM orders o
+    GROUP BY o.userid
+),
+ranked AS (
+    SELECT u.id,
+           u.name,
+           u.tenantid,
+           CAST(u.id AS SIGNED) AS normalized_id,
+           DATE_ADD(u.created, INTERVAL 1 DAY) AS shifted_created,
+           TIMESTAMPDIFF(DAY, CAST('2020-01-01 00:00:00' AS DATETIME), u.created) AS days_from_anchor,
+           CONCAT(CAST(u.tenantid AS CHAR), '-', CAST(u.id AS CHAR)) AS user_code,
+           IFNULL(order_totals.order_count, CAST(0 AS SIGNED)) AS order_count,
+           IFNULL(order_totals.total_amount, CAST(0 AS DECIMAL(10,2))) AS total_amount,
+           IFNULL(order_totals.order_ids, '') AS order_ids,
+           CASE
+               WHEN EXISTS (SELECT 1 FROM orders ox WHERE ox.userid = u.id AND ox.amount >= CAST(10 AS DECIMAL(10,2))) THEN TRUE
+               ELSE FALSE
+           END AS has_big_order,
+           ROW_NUMBER() OVER (
+               PARTITION BY u.tenantid
+               ORDER BY IFNULL(order_totals.total_amount, CAST(0 AS DECIMAL(10,2))) DESC, u.id
+           ) AS rn
+    FROM users u
+    JOIN tenant_scope scope ON scope.tenantid = u.tenantid
+    LEFT JOIN order_totals ON order_totals.userid = u.id
+    WHERE u.name REGEXP '^(John|Bob|Jane)$'
+)
+SELECT id, name, tenantid, normalized_id, shifted_created, days_from_anchor, user_code, order_count, total_amount, order_ids, has_big_order, rn
+FROM ranked
+ORDER BY tenantid, rn, id";
+
+        if (version < MySqlWindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => cnn.Query<dynamic>(sql).ToList());
+            return;
+        }
+
+        var rows = cnn.Query<dynamic>(sql).ToList();
+
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.id)]);
+        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.name)]);
+        Assert.Equal([10, 10, 20], [.. rows.Select(r => (int)r.tenantid)]);
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.normalized_id)]);
+        Assert.Equal(
+            [new DateTime(2020, 1, 2, 0, 0, 0, DateTimeKind.Local), new DateTime(2020, 1, 3, 0, 0, 0, DateTimeKind.Local), new DateTime(2020, 1, 4, 0, 0, 0, DateTimeKind.Local)],
+            [.. rows.Select(r => (DateTime)r.shifted_created)]);
+        Assert.Equal([0, 1, 2], [.. rows.Select(r => Convert.ToInt32(r.days_from_anchor))]);
+        Assert.Equal(["10-1", "10-2", "20-3"], [.. rows.Select(r => (string)r.user_code)]);
+        Assert.Equal([2, 1, 0], [.. rows.Select(r => Convert.ToInt32(r.order_count))]);
+        Assert.Equal([15m, 7m, 0m], [.. rows.Select(r => Convert.ToDecimal(r.total_amount))]);
+        Assert.Equal(["11|10", "12", string.Empty], [.. rows.Select(r => (string)r.order_ids)]);
+        Assert.Equal([true, false, false], [.. rows.Select(r => Convert.ToBoolean(r.has_big_order))]);
+        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.rn)]);
     }
 
 

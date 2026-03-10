@@ -239,6 +239,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     [Fact]
     public void FormatSelect_ShouldRenderSchemaQualifiedTableFunctionSource()
     {
+        var metrics = new SqlPlanRuntimeMetrics(1, 1, 1, 1);
         var query = new SqlSelectQuery([], false, [new SqlSelectItem("j.value", null)], [], null, [], null, [], null)
         {
             Table = new SqlTableSource(
@@ -252,7 +253,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
                 TableFunction: new FunctionCallExpr("OPENJSON", [new IdentifierExpr("payload")]))
         };
 
-        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query, metrics, [], []);
         plan.Should().Contain("- FROM: dbo.OPENJSON(...) AS j");
     }
 
@@ -263,6 +264,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     [Fact]
     public void FormatSelect_ShouldRenderOpenJsonWithClauseInTableFunctionSource()
     {
+        var metrics = new SqlPlanRuntimeMetrics(1, 1, 1, 1);
         var query = new SqlSelectQuery([], false, [new SqlSelectItem("data.Name", null)], [], null, [], null, [], null)
         {
             Table = new SqlTableSource(
@@ -280,7 +282,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
                 ]))
         };
 
-        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query, metrics, [], []);
         plan.Should().Contain("- FROM: dbo.OPENJSON(...) WITH (...) AS data");
     }
 
@@ -291,6 +293,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     [Fact]
     public void FormatSelect_ShouldRenderStringSplitEnableOrdinalInTableFunctionSource()
     {
+        var metrics = new SqlPlanRuntimeMetrics(1, 1, 1, 1);
         var query = new SqlSelectQuery([], false, [new SqlSelectItem("part.value", null)], [], null, [], null, [], null)
         {
             Table = new SqlTableSource(
@@ -304,7 +307,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
                 TableFunction: new FunctionCallExpr("STRING_SPLIT", [new IdentifierExpr("payload"), new LiteralExpr(","), new LiteralExpr(1)]))
         };
 
-        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query, metrics, [], []);
         plan.Should().Contain("- FROM: dbo.STRING_SPLIT(..., ..., enable_ordinal) AS part");
     }
 
@@ -315,6 +318,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     [Fact]
     public void FormatSelect_ShouldRenderOpenJsonPathInTableFunctionSource()
     {
+        var metrics = new SqlPlanRuntimeMetrics(1, 1, 1, 1);
         var query = new SqlSelectQuery([], false, [new SqlSelectItem("j.value", null)], [], null, [], null, [], null)
         {
             Table = new SqlTableSource(
@@ -328,7 +332,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
                 TableFunction: new FunctionCallExpr("OPENJSON", [new IdentifierExpr("payload"), new LiteralExpr("strict $.items[1]")]))
         };
 
-        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query, metrics, [], []);
         plan.Should().Contain("- FROM: dbo.OPENJSON(..., strict path) AS j");
     }
 
@@ -339,6 +343,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     [Fact]
     public void FormatSelect_ShouldRenderOpenJsonStrictPathWithClauseInTableFunctionSource()
     {
+        var metrics = new SqlPlanRuntimeMetrics(1, 1, 1, 1);
         var query = new SqlSelectQuery([], false, [new SqlSelectItem("data.Name", null)], [], null, [], null, [], null)
         {
             Table = new SqlTableSource(
@@ -356,7 +361,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
                 ]))
         };
 
-        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query, metrics, [], []);
         plan.Should().Contain("- FROM: dbo.OPENJSON(..., strict path) WITH (...) AS data");
     }
 
@@ -367,6 +372,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     [Fact]
     public void FormatSelect_ShouldRenderCrossApplyOpenJsonStrictPathWithClauseInJoinLine()
     {
+        var metrics = new SqlPlanRuntimeMetrics(1, 1, 1, 1);
         var join = new SqlJoin(
             SqlJoinType.CrossApply,
             new SqlTableSource(
@@ -382,14 +388,14 @@ public sealed class ExecutionPlanFormattingAndI18nTests
                 [
                     new SqlOpenJsonWithColumn("Name", "NVARCHAR(20)", DbType.String, "$.Name", false)
                 ])),
-            null);
+            new LiteralExpr(true));
 
         var query = new SqlSelectQuery([], false, [new SqlSelectItem("data.Name", null)], [join], null, [], null, [], null)
         {
             Table = new SqlTableSource(null, "users", "u", null, null, null, null)
         };
 
-        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query, metrics, [], []);
         plan.Should().Contain("- JOIN: CROSS APPLY dbo.OPENJSON(..., strict path) WITH (...) AS data");
     }
 
@@ -400,6 +406,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     [Fact]
     public void FormatSelect_ShouldRenderCrossApplyStringSplitEnableOrdinalInJoinLine()
     {
+        var metrics = new SqlPlanRuntimeMetrics(1, 1, 1, 1);
         var join = new SqlJoin(
             SqlJoinType.CrossApply,
             new SqlTableSource(
@@ -411,14 +418,14 @@ public sealed class ExecutionPlanFormattingAndI18nTests
                 DerivedSql: null,
                 Pivot: null,
                 TableFunction: new FunctionCallExpr("STRING_SPLIT", [new IdentifierExpr("payload"), new LiteralExpr(","), new LiteralExpr(1)])),
-            null);
+            new LiteralExpr(true));
 
         var query = new SqlSelectQuery([], false, [new SqlSelectItem("part.value", null)], [join], null, [], null, [], null)
         {
             Table = new SqlTableSource(null, "users", "u", null, null, null, null)
         };
 
-        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query, metrics, [], []);
         plan.Should().Contain("- JOIN: CROSS APPLY dbo.STRING_SPLIT(..., ..., enable_ordinal) AS part");
     }
 
@@ -429,6 +436,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     [Fact]
     public void FormatSelect_ShouldRenderOuterApplyStringSplitInJoinLine()
     {
+        var metrics = new SqlPlanRuntimeMetrics(1, 1, 1, 1);
         var join = new SqlJoin(
             SqlJoinType.OuterApply,
             new SqlTableSource(
@@ -440,14 +448,14 @@ public sealed class ExecutionPlanFormattingAndI18nTests
                 DerivedSql: null,
                 Pivot: null,
                 TableFunction: new FunctionCallExpr("STRING_SPLIT", [new IdentifierExpr("payload"), new LiteralExpr(",")])),
-            null);
+            new LiteralExpr(true));
 
         var query = new SqlSelectQuery([], false, [new SqlSelectItem("part.value", null)], [join], null, [], null, [], null)
         {
             Table = new SqlTableSource(null, "users", "u", null, null, null, null)
         };
 
-        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query, metrics, [], []);
         plan.Should().Contain("- JOIN: OUTER APPLY dbo.STRING_SPLIT(...) AS part");
     }
 
@@ -458,6 +466,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     [Fact]
     public void FormatSelect_ShouldRenderOuterApplyOpenJsonStrictPathWithClauseInJoinLine()
     {
+        var metrics = new SqlPlanRuntimeMetrics(1, 1, 1, 1);
         var join = new SqlJoin(
             SqlJoinType.OuterApply,
             new SqlTableSource(
@@ -473,14 +482,14 @@ public sealed class ExecutionPlanFormattingAndI18nTests
                 [
                     new SqlOpenJsonWithColumn("Name", "NVARCHAR(20)", DbType.String, "$.Name", false)
                 ])),
-            null);
+            new LiteralExpr(true));
 
         var query = new SqlSelectQuery([], false, [new SqlSelectItem("data.Name", null)], [join], null, [], null, [], null)
         {
             Table = new SqlTableSource(null, "users", "u", null, null, null, null)
         };
 
-        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query, metrics, [], []);
         plan.Should().Contain("- JOIN: OUTER APPLY dbo.OPENJSON(..., strict path) WITH (...) AS data");
     }
 
@@ -491,6 +500,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests
     [Fact]
     public void FormatSelect_ShouldRenderOuterApplyStringSplitEnableOrdinalInJoinLine()
     {
+        var metrics = new SqlPlanRuntimeMetrics(1, 1, 1, 1);
         var join = new SqlJoin(
             SqlJoinType.OuterApply,
             new SqlTableSource(
@@ -502,14 +512,14 @@ public sealed class ExecutionPlanFormattingAndI18nTests
                 DerivedSql: null,
                 Pivot: null,
                 TableFunction: new FunctionCallExpr("STRING_SPLIT", [new IdentifierExpr("payload"), new LiteralExpr(","), new LiteralExpr(1)])),
-            null);
+            new LiteralExpr(true));
 
         var query = new SqlSelectQuery([], false, [new SqlSelectItem("part.value", null)], [join], null, [], null, [], null)
         {
             Table = new SqlTableSource(null, "users", "u", null, null, null, null)
         };
 
-        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query, metrics, [], []);
         plan.Should().Contain("- JOIN: OUTER APPLY dbo.STRING_SPLIT(..., ..., enable_ordinal) AS part");
     }
 

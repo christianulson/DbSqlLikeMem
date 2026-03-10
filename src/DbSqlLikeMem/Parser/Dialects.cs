@@ -168,6 +168,7 @@ internal interface ISqlDialect
     bool SupportsForJsonClause { get; }
     bool SupportsPivotClause { get; }
     bool SupportsUnpivotClause { get; }
+    bool PivotAvgReturnsDecimalForIntegralInputs { get; }
     bool SupportsApplyClause { get; }
     bool SupportsStringSplitFunction { get; }
     bool SupportsStringSplitOrdinalArgument { get; }
@@ -332,6 +333,7 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual bool SupportsForJsonClause => false;
     public virtual bool SupportsPivotClause => false;
     public virtual bool SupportsUnpivotClause => false;
+    public virtual bool PivotAvgReturnsDecimalForIntegralInputs => false;
     public virtual IReadOnlyCollection<string> NullSubstituteFunctionNames
         => ["IFNULL", "ISNULL", "NVL"];
     public virtual IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames

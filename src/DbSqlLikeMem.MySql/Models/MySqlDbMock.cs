@@ -16,7 +16,7 @@ public class MySqlDbMock
     /// </summary>
     public MySqlDbMock(
         int? version = null
-        ): base(version ?? 8)
+        ): base(version ?? 80)
     {
         Dialect = new MySqlDialect(Version);
     }

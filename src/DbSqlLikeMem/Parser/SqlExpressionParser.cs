@@ -586,10 +586,41 @@ internal sealed class SqlExpressionParser(
 
         Consume(); // + or -
         var right = ParseExpression(rbp);
+        right = TryAttachCompactIntervalUnit(right);
 
         var op = t.Text == "+" ? SqlBinaryOp.Add : SqlBinaryOp.Subtract;
         left = new BinaryExpr(op, left, right);
         return true;
+    }
+
+    private SqlExpr TryAttachCompactIntervalUnit(SqlExpr expression)
+    {
+        if (expression is not LiteralExpr { Value: not null and not string } literal)
+            return expression;
+
+        var unitToken = Peek();
+        if (!IsCompactIntervalUnit(unitToken))
+            return expression;
+
+        Consume();
+        return new CallExpr("INTERVAL", [literal, new RawSqlExpr(unitToken.Text)]);
+    }
+
+    private static bool IsCompactIntervalUnit(SqlToken token)
+    {
+        if (token.Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword))
+            return false;
+
+        return token.Text.ToUpperInvariant() switch
+        {
+            "YEAR" or "YEARS"
+            or "MONTH" or "MONTHS"
+            or "DAY" or "DAYS"
+            or "HOUR" or "HOURS"
+            or "MINUTE" or "MINUTES"
+            or "SECOND" or "SECONDS" => true,
+            _ => false
+        };
     }
 
     private bool TryParseBetweenInfix(ref SqlExpr left, int minBp)
@@ -1003,10 +1034,60 @@ internal sealed class SqlExpressionParser(
 
         Consume();
 
-        if (!decimal.TryParse(t.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out var d))
-            throw Error($"Número inválido: {t.Text}", t);
+        if (TryParseNumericLiteralValue(t.Text, out var numericValue))
+        {
+            expr = new LiteralExpr(numericValue);
+            return true;
+        }
 
-        expr = new LiteralExpr(d);
+        throw Error($"Número inválido: {t.Text}", t);
+    }
+
+    private static bool TryParseNumericLiteralValue(string text, out object numericValue)
+    {
+        numericValue = default!;
+
+        var normalized = text.Trim();
+        if (normalized.Length == 0)
+            return false;
+
+        var hasExponent =
+            normalized.IndexOf('e') >= 0
+            || normalized.IndexOf('E') >= 0;
+        var hasDecimalPoint = normalized.IndexOf('.') >= 0;
+
+        if (!hasDecimalPoint && !hasExponent)
+        {
+            if (int.TryParse(normalized, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intValue))
+            {
+                numericValue = intValue;
+                return true;
+            }
+
+            if (long.TryParse(normalized, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue))
+            {
+                numericValue = longValue;
+                return true;
+            }
+        }
+
+        if (hasExponent
+            && double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out var doubleValue))
+        {
+            numericValue = doubleValue;
+            return true;
+        }
+
+        if (decimal.TryParse(normalized, NumberStyles.Any, CultureInfo.InvariantCulture, out var decimalValue))
+        {
+            numericValue = decimalValue;
+            return true;
+        }
+
+        if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out var fallbackDouble))
+            return false;
+
+        numericValue = fallbackDouble;
         return true;
     }
 
@@ -1033,7 +1114,10 @@ internal sealed class SqlExpressionParser(
         var name = t.Text;
 
         // function call: name(...)
-        if (IsSymbol(Peek(), "("))
+        if (IsSymbol(Peek(), "(")
+            || (IsSymbol(Peek(), ".")
+                && Peek(1).Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword
+                && IsSymbol(Peek(2), "(")))
         {
             EnsureTemporalIdentifierDoesNotAllowParentheses(name);
             var call = ParseCallAfterName(name);
@@ -1386,10 +1470,12 @@ internal sealed class SqlExpressionParser(
 
     private CallExpr ParseCallAfterName(string name)
     {
-        if (IsSymbol(Peek(), ".") && IsIdentifier(Peek(1)) && IsSymbol(Peek(2), "("))
+        if (IsSymbol(Peek(), ".")
+            && Peek(1).Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword
+            && IsSymbol(Peek(2), "("))
         {
             Consume(); // .
-            name = ExpectIdentifier();
+            name = Consume().Text;
         }
 
         if (name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)

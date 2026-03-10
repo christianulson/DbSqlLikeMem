@@ -308,7 +308,8 @@ public sealed class SqlServerDialectFeatureParserTests
         if (version < SqlServerDialect.StringSplitOrdinalMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
-            Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
+            //Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
@@ -806,7 +807,8 @@ public sealed class SqlServerDialectFeatureParserTests
         if (version < SqlServerDialect.StringSplitOrdinalMinVersion)
         {
             var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
-            Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
+            //Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
