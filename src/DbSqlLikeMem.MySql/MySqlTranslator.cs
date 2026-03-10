@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace DbSqlLikeMem.MySql;
 
 #pragma warning disable CA1305 // Specify IFormatProvider

@@ -236,6 +236,85 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
+    /// EN: Verifies LIKE preserves the optional ESCAPE expression in the AST.
+    /// PT: Verifica se LIKE preserva a expressão opcional ESCAPE na AST.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void Like_WithEscapeClause_ShouldParseEscapeExpression(int version)
+    {
+        var ast = SqlExpressionParser.ParseWhere("name LIKE 'Jo#_%' ESCAPE '#'", new Db2Dialect(version));
+        var like = Assert.IsType<LikeExpr>(ast);
+        var escape = Assert.IsType<LiteralExpr>(like.Escape);
+
+        escape.Value.Should().Be("#");
+    }
+
+    /// <summary>
+    /// EN: Verifies LIKE rejects literal ESCAPE expressions with more than one character.
+    /// PT: Verifica se LIKE rejeita expressões literais ESCAPE com mais de um caractere.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void Like_WithMultiCharacterEscapeLiteral_ShouldThrowActionableError(int version)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseWhere("name LIKE 'Jo#_%' ESCAPE '##'", new Db2Dialect(version)));
+
+        Assert.Contains("single character", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies LIKE rejects parameter ESCAPE expressions with more than one character.
+    /// PT: Verifica se LIKE rejeita expressões ESCAPE parametrizadas com mais de um caractere.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void Like_WithMultiCharacterEscapeParameter_ShouldThrowActionableError(int version)
+    {
+        var parameters = new Db2DataParameterCollectionMock();
+        parameters.AddWithValue("@esc", "##");
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseWhere("name LIKE 'Jo#_%' ESCAPE @esc", new Db2Dialect(version), parameters));
+
+        Assert.Contains("single character", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies DB2 accepts NEXT VALUE FOR sequence expressions.
+    /// PT: Verifica se o DB2 aceita expressoes NEXT VALUE FOR.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void SequenceExpression_NextValueFor_ShouldParse(int version)
+    {
+        var expr = SqlExpressionParser.ParseScalar("NEXT VALUE FOR sales.seq_orders", new Db2Dialect(version));
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.Equal("NEXT_VALUE_FOR", call.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies DB2 accepts PREVIOUS VALUE FOR sequence expressions.
+    /// PT: Verifica se o DB2 aceita expressoes PREVIOUS VALUE FOR.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void SequenceExpression_PreviousValueFor_ShouldParse(int version)
+    {
+        var expr = SqlExpressionParser.ParseScalar("PREVIOUS VALUE FOR sales.seq_orders", new Db2Dialect(version));
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.Equal("PREVIOUS_VALUE_FOR", call.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Tests Identifier_WithAliasDotColumn_ShouldParse behavior.
     /// PT: Testa o comportamento de Identifier_WithAliasDotColumn_ShouldParse.
     /// </summary>

@@ -70,6 +70,19 @@ public sealed class SqlValueHelperTests(
     }
 
     /// <summary>
+    /// EN: Tests Resolve_NullOnNullable_ShouldReturnNull behavior.
+    /// PT: Testa o comportamento de Resolve_NullOnNullable_ShouldReturnNull.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
+    public void Resolve_NullOnNullable_ShouldReturnNull()
+    {
+        var value = MySqlValueHelper.Resolve("null", DbType.Int32, isNullable: true, pars: null, colDict: null);
+
+        Assert.Null(value);
+    }
+
+    /// <summary>
     /// EN: Tests Resolve_Json_ShouldReturnJsonDocument_WhenValid behavior.
     /// PT: Testa o comportamento de Resolve_Json_ShouldReturnJsonDocument_WhenValid.
     /// </summary>
@@ -81,6 +94,19 @@ public sealed class SqlValueHelperTests(
 
         var doc = Assert.IsType<JsonDocument>(v);
         Assert.Equal(1, doc.RootElement.GetProperty("a").GetInt32());
+    }
+
+    /// <summary>
+    /// EN: Tests Resolve_InvalidJson_ShouldReturnRawString behavior.
+    /// PT: Testa o comportamento de Resolve_InvalidJson_ShouldReturnRawString.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlValueHelperTests ")]
+    public void Resolve_InvalidJson_ShouldReturnRawString()
+    {
+        var value = MySqlValueHelper.Resolve("{invalid json", DbType.Object, isNullable: false, pars: null, colDict: null);
+
+        Assert.Equal("{invalid json", value);
     }
 
     /// <summary>

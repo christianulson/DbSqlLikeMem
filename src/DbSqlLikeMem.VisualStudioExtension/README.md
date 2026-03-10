@@ -11,6 +11,7 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 
 2. **Carregamento real de objetos**
    - Botão **Atualizar objetos** para listar metadados estruturais via `SqlDatabaseMetadataProvider`.
+   - Objetos `Sequence` entram na árvore para bancos com metadata suportada (SqlServer/SqlAzure, PostgreSql, Oracle e Db2).
 
 3. **Menus de contexto na árvore**
    - **Gerar classes de teste**
@@ -22,7 +23,7 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
    - Pré-visualização de arquivos já existentes (sobrescrita) antes de gerar.
 
 5. **Indicadores visuais de consistência**
-   - Nó de objeto com marcador de status: 🟢 sincronizado, 🟡 divergente, 🔴 ausente.
+   - Nó de objeto com marcador de status: 🟢 sincronizado, 🟡 divergente ou trio local incompleto, 🔴 ausente.
 
 6. **Hardening básico**
    - Mensagens de status operacionais na UI.
@@ -30,18 +31,54 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 
 7. **Templates configuráveis para modelos e repositórios**
    - Botão no topo **Configurar templates** para informar arquivo de template e diretório de saída.
-   - Substituição de tokens no conteúdo durante a geração.
+   - Baselines versionadas do repositório ficam disponíveis em `templates/dbsqllikemem/vCurrent`, com perfis iniciais `api` e `worker` para reaproveitamento manual na configuração.
+   - O diálogo da VSIX agora também consegue aplicar diretamente esses perfis quando localiza `templates/dbsqllikemem` a partir do ambiente atual.
+   - O diálogo também passou a exibir resumo do perfil selecionado com descrição, foco recomendado de testes e próxima janela de revisão, reduzindo ambiguidade na adoção da baseline.
+   - Quando `review-metadata.json` diverge do catálogo interno, o resumo também passa a explicitar o drift de governança no próprio diálogo.
+   - Quando a data `nextPlannedReviewOn` expira, o mesmo resumo também acusa revisão vencida antes da aplicação da baseline.
+   - O resumo do perfil agora também mostra os diretórios recomendados de saída para `Model` e `Repository`, aproximando a escolha operacional do catálogo versionado.
+- Templates customizados agora são validados contra o contrato de tokens suportados antes de serem salvos.
+- Model e Repository agora também aceitam padrão configurável de nome de arquivo, reutilizando placeholders como `{NamePascal}`, `{Schema}`, `{DatabaseType}`, `{DatabaseName}` e `{Namespace}`.
+- O mapeamento padrão por tipo de objeto também aceita `namespace` opcional reaproveitado na geração.
+- Substituição de tokens no conteúdo durante a geração, incluindo `{{Namespace}}` quando configurado no mapeamento.
+- Model e Repository gerados por template agora também recebem cabeçalho padronizado `// DBSqlLikeMem:*`, mantendo rastreabilidade de origem alinhada ao contrato já usado na geração principal.
+- A checagem da VSIX agora também compara o snapshot estrutural desses artefatos (`Columns`, `ForeignKeys`, `Triggers` e metadados de sequência quando presentes) contra a classe principal gerada antes de marcar o trio como coerente.
+- O mesmo `namespace` também pode entrar no padrão de nome de arquivo via `{Namespace}`.
+- Geração também pode consumir objetos `Sequence` quando presentes na metadata carregada.
 
-8. **Checagem complementar de artefatos gerados**
+8. **Mapeamentos de geração realmente por conexão e tipo**
+   - O menu **Configurar mapeamentos** da VSIX agora respeita o nó selecionado (`conexão + tipo de objeto`) em vez de reaplicar o mesmo padrão para toda a malha já configurada.
+   - Ajustes em `Table`, `View`, `Procedure` ou `Sequence` preservam os demais mapeamentos existentes da mesma conexão.
+   - O mesmo diálogo agora também oferece perfis `API` e `Worker/Batch` para aplicar defaults versionados de pasta/padrão por tipo de objeto, alinhando a VSIX ao catálogo `templates/dbsqllikemem/vCurrent`.
+   - A recomendação exibida no diálogo agora inclui também pasta/padrão sugeridos para o tipo atual, junto do contexto de foco e revisão do perfil.
+
+9. **Checagem complementar de artefatos gerados**
    - A consistência considera também a presença de arquivos de Model e Repository, além das classes já geradas pelo fluxo principal.
+   - Quando apenas parte do trio local existe, a VSIX agora sinaliza estado intermediário em vez de misturar esse caso com divergência pura de metadados.
+   - O nó na árvore agora também exibe tooltip com o diagnóstico persistido da checagem, incluindo quais artefatos do trio local ainda faltam.
+   - Quando `class/model/repository` existem, a VSIX agora também lê o snapshot `// DBSqlLikeMem:*` dos três artefatos para acusar drift de origem se algum arquivo local apontar para outro objeto.
 
-9. **Importação e exportação de configurações**
+10. **Importação e exportação de configurações**
    - Botões no topo para **Importar configurações** e **Exportar configurações** em JSON.
    - Exportação inclui conexões, mapeamentos e templates, com `ConnectionString` protegida (DPAPI por usuário).
 
 ## Compatibilidade VSIX
 
-- Compatível com Visual Studio **2019, 2022 e linha futura (incluindo 2026)** (`[16.0,19.0)`) nas edições Community/Professional/Enterprise.
+- Compatível com Visual Studio **2022 e linha futura (incluindo 2026)** (`[17.0,19.0)`) nas edições Community/Professional/Enterprise.
+
+## Publicação da VSIX
+
+- Workflow: `.github/workflows/vsix-publish.yml`
+- Secret: `VS_MARKETPLACE_TOKEN`
+- Tag automática: `vsix-v*`
+- Fonte da versão publicada: `src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest`
+- Contrato do workflow: `.github/workflows/vsix-publish.yml` valida explicitamente `src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest` antes do build/publish, mantendo o fluxo `tag vsix-v* -> source.extension.vsixmanifest -> publish`.
+- Manifesto operacional: `eng/visualstudio/PublishManifest.json`
+- Auditoria base: `python scripts/check_release_readiness.py`
+- Auditoria estrita no publish: `python scripts/check_release_readiness.py --strict-marketplace-placeholders`
+- Antes de criar a tag `vsix-v*`, revise `../../CHANGELOG.md` e `../../docs/publishing.md` para manter release notes e limitações abertas visíveis no fluxo de publicação.
+
+Antes do publish final, confirme o `publisher` do marketplace no manifesto operacional.
 
 
 ## Qualidade e performance
@@ -61,10 +98,13 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 - `{{ObjectType}}`
 - `{{DatabaseType}}`
 - `{{DatabaseName}}`
+- `{{Namespace}}`
 
 Exemplo:
 
 ```txt
+namespace {{Namespace}};
+
 // {{DatabaseType}} - {{DatabaseName}}
 // {{Schema}}.{{ObjectName}}
 public class {{ClassName}}

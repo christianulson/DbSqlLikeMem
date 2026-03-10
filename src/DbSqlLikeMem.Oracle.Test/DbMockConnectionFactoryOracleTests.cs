@@ -13,7 +13,7 @@ public sealed class DbMockConnectionFactoryOracleTests : DbMockConnectionFactory
     /// <inheritdoc />
     protected override Type ExpectedConnectionType => typeof(OracleConnectionMock);
     /// <inheritdoc />
-    protected override IReadOnlyList<string> ProviderAliases => ["Oracle", "oracle", "or_acle", "  ORACLE  "];
+    protected override IReadOnlyList<string> ProviderAliases => ["Oracle", "oracle", "ora", "or_acle", "  ORACLE  "];
 
     /// <inheritdoc />
     protected override (DbMock Db, IDbConnection Connection) CreateViaProviderShortcut(params Action<DbMock>[] tableMappers)

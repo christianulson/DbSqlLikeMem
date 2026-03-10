@@ -60,6 +60,9 @@ public sealed class SqlQueryParserCorpusTests(
                 minVersion = SqlServerDialect.WithCteMinVersion;
             else if (trimmed.Contains("FETCH", StringComparison.OrdinalIgnoreCase))
                 minVersion = SqlServerDialect.OffsetFetchMinVersion;
+            else if (trimmed.Contains("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
+                || trimmed.Contains("OPENJSON", StringComparison.OrdinalIgnoreCase))
+                minVersion = SqlServerDialect.JsonFunctionsMinVersion;
 
             yield return Case(sql, why, expectation, minVersion);
         }

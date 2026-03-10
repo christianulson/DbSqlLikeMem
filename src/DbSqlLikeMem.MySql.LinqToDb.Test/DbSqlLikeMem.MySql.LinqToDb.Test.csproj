@@ -2,7 +2,6 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <RunSettingsFilePath>C:\Projects\DbSqlLikeMem\src\DbSqlLikeMem.MySql.LinqToDb.Test\bin\DbSqlLikeMem.MySql.LinqToDb.Test\Debug\net462\fine-code-coverage\coverage-tool-output\DbSqlLikeMem.MySql.LinqToDb.Test %28net462%29-fcc-mscodecoverage-generated.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <ItemGroup>

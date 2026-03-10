@@ -1,7 +1,6 @@
 using DbSqlLikeMem.Interfaces;
 using System.Diagnostics;
 using DbSqlLikeMem.Models;
-using System.Collections.Concurrent;
 using System.Text;
 
 namespace DbSqlLikeMem;
@@ -18,18 +17,39 @@ internal abstract class AstQueryExecutorBase(
     object dialect)
     : IAstQueryExecutor
 {
-    private static readonly ConcurrentDictionary<Type, Func<string, object, SqlExpr>> _parseWhereDelegateCache = new();
     private static readonly Regex _sqlCalcFoundRowsRegex = new(
         @"\bSQL_CALC_FOUND_ROWS\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+    private static readonly Regex _cacheKeyWherePredicateRegex = new(
+        @"\bWHERE\s+(?<predicate>.+?)(?=(?:\bGROUP\s+BY\b|\bHAVING\b|\bORDER\s+BY\b|\bLIMIT\b|\bOFFSET\b|\bUNION\b|$))",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline | RegexOptions.Compiled);
+    private static readonly Regex _cacheKeyHavingPredicateRegex = new(
+        @"\bHAVING\s+(?<predicate>.+?)(?=(?:\bORDER\s+BY\b|\bLIMIT\b|\bOFFSET\b|\bUNION\b|$))",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline | RegexOptions.Compiled);
+    private static readonly Regex _qualifiedSqlIdentifierRegex = new(
+        @"(?<![A-Za-z0-9_$])([A-Za-z_][A-Za-z0-9_$]*\.[A-Za-z_][A-Za-z0-9_$]*)(?![A-Za-z0-9_$])",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+    private static readonly Regex _subqueryAliasDeclarationRegex = new(
+        @"\b(?:FROM|JOIN)\s+(?:[A-Z_][A-Z0-9_$]*(?:\.[A-Z_][A-Z0-9_$]*)*)\s+(?:AS\s+)?([A-Z_][A-Z0-9_$]*)\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+    private static readonly Regex _simpleAliasTokenRegex = new(
+        @"^[A-Z_][A-Z0-9_$]*$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+    private static readonly Regex _dateModifierRegex = new(
+        @"^(?<amount>[+-]?\d+)\s*(?<unit>\w+)s?$",
+        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex _intervalLiteralRegex = new(
+        @"^(?<num>-?\d+(?:\.\d+)?)\s*(?<unit>[a-zA-Z]+)$",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private readonly DbConnectionMockBase _cnn = cnn ?? throw new ArgumentNullException(nameof(cnn));
     private readonly IDataParameterCollection _pars = pars ?? throw new ArgumentNullException(nameof(pars));
     private readonly object _dialect = dialect ?? throw new ArgumentNullException(nameof(dialect));
-    private ISqlDialect? Dialect => _dialect as ISqlDialect;
-    private readonly ConcurrentDictionary<string, bool> _existsSubqueryCache = new(StringComparer.Ordinal);
-    private readonly ConcurrentDictionary<string, List<object?>> _inSubqueryFirstColumnCache = new(StringComparer.Ordinal);
-    private readonly ConcurrentDictionary<string, ScalarSubqueryCacheEntry> _scalarSubqueryCache = new(StringComparer.Ordinal);
+    private readonly AstSubqueryEvaluationCache _subqueryEvaluationCache = new();
+    private ISqlDialect? Dialect
+        => _cnn.UseAutoSqlDialect
+            ? _cnn.ExecutionDialect
+            : _dialect as ISqlDialect;
 
 
     private static readonly HashSet<string> _aggFns = new(StringComparer.OrdinalIgnoreCase)
@@ -42,46 +62,11 @@ internal abstract class AstQueryExecutorBase(
     };
 
     // Dialect-aware expression parsing without hard dependency on a specific dialect type.
-    // We resolve SqlExpressionParser.ParseWhere(string, <dialectType>) via reflection so the base
-    // can be reused by SqlServer/Postgre/Oracle dialects.
+    // Resolution is delegated to a shared resolver so this base stays focused on query execution.
     private SqlExpr ParseExpr(string raw)
     {
-        if (string.IsNullOrWhiteSpace(raw))
-            throw new ArgumentException("Expressão vazia.", nameof(raw));
-
-        var dialectType = _dialect.GetType();
-        var parserDelegate = _parseWhereDelegateCache.GetOrAdd(dialectType, CreateParseWhereDelegate);
-        return parserDelegate(raw, _dialect);
-    }
-
-    private static Func<string, object, SqlExpr> CreateParseWhereDelegate(Type dialectType)
-    {
-        var mi = typeof(SqlExpressionParser)
-            .GetMethods(BindingFlags.Public | BindingFlags.Static)
-            .FirstOrDefault(m =>
-            {
-                if (m.Name != nameof(SqlExpressionParser.ParseWhere)) return false;
-                var ps = m.GetParameters();
-                if (ps.Length != 2) return false;
-                if (ps[0].ParameterType != typeof(string)) return false;
-                return ps[1].ParameterType.IsAssignableFrom(dialectType);
-            });
-
-        if (mi is null)
-            throw new MissingMethodException(
-                $"{nameof(SqlExpressionParser)}.{nameof(SqlExpressionParser.ParseWhere)}(string, {dialectType.Name}) não encontrado.");
-
-        return (raw, dialectInstance) =>
-        {
-            try
-            {
-                return (SqlExpr)mi.Invoke(null, [raw, dialectInstance])!;
-            }
-            catch (TargetInvocationException tie) when (tie.InnerException is not null)
-            {
-                throw tie.InnerException;
-            }
-        };
+        var dialectInstance = (object)(Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para parse de expressão."));
+        return SqlExpressionParserResolver.ParseWhere(raw, dialectInstance);
     }
 
     /// <summary>
@@ -97,6 +82,9 @@ internal abstract class AstQueryExecutorBase(
     {
         var sw = Stopwatch.StartNew();
         ClearSubqueryEvaluationCaches();
+        QueryDebugTraceBuilder? debugTrace = _cnn.IsDebugTraceCaptureEnabled
+            ? new QueryDebugTraceBuilder("UNION")
+            : null;
 
         if (parts is null || parts.Count == 0)
             throw new InvalidOperationException("UNION: nenhuma query.");
@@ -112,12 +100,19 @@ internal abstract class AstQueryExecutorBase(
 
         if (parts.Count == 1)
         {
-            tables[0] = ExecuteSelect(parts[0]);
+            tables[0] = ExecuteSelect(parts[0], null, null);
         }
         else
         {
-            Parallel.For(0, parts.Count, i => tables[i] = ExecuteSelect(parts[i]));
+            Parallel.For(0, parts.Count, i => tables[i] = ExecuteSelect(parts[i], null, null));
         }
+
+        debugTrace?.AddStep(
+            "UnionInputs",
+            tables.Sum(static table => table.Count),
+            tables.Length,
+            TimeSpan.Zero,
+            QueryDebugTraceFormattingHelper.FormatUnionInputsDebugDetails(parts, allFlags));
 
         // Base do resultado
         var result = new TableResultMock
@@ -143,7 +138,7 @@ internal abstract class AstQueryExecutorBase(
                 throw new InvalidOperationException(msg);
             }
 
-            ValidateUnionColumnTypes(result.Columns, tables[i].Columns, i, sqlContextForErrors, dialect);
+            UnionQueryValidationHelper.ValidateUnionColumnTypes(result.Columns, tables[i].Columns, i, sqlContextForErrors, dialect);
         }
 
         // merge
@@ -179,6 +174,13 @@ internal abstract class AstQueryExecutorBase(
             }
         }
 
+        debugTrace?.AddStep(
+            "UnionCombine",
+            tables.Sum(static table => table.Count),
+            result.Count,
+            TimeSpan.Zero,
+            QueryDebugTraceFormattingHelper.FormatUnionCombineDebugDetails(parts, allFlags));
+
         // ORDER BY/LIMIT final do UNION segue a projeção final do resultado combinado.
         if ((orderBy?.Count ?? 0) > 0 || rowLimit is not null)
         {
@@ -194,7 +196,7 @@ internal abstract class AstQueryExecutorBase(
                 Having: null);
 
             var ctes = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase);
-            result = ApplyOrderAndLimit(result, finalQ, ctes);
+            result = ApplyOrderAndLimit(result, finalQ, ctes, debugTrace);
         }
 
         sw.Stop();
@@ -218,135 +220,10 @@ internal abstract class AstQueryExecutorBase(
         result.ExecutionPlan = plan;
         _cnn.RegisterExecutionPlan(plan);
         _cnn.SetLastFoundRows(result.Count);
+        if (debugTrace is not null)
+            _cnn.RegisterDebugTrace(debugTrace.Build());
 
         return result;
-    }
-
-    private sealed class SqlRowDictionaryComparer(ISqlDialect dialect)
-        : IEqualityComparer<Dictionary<int, object?>>
-    {
-        public bool Equals(Dictionary<int, object?>? x, Dictionary<int, object?>? y)
-        {
-            if (ReferenceEquals(x, y))
-                return true;
-            if (x is null || y is null || x.Count != y.Count)
-                return false;
-
-            foreach (var item in x)
-            {
-                if (!y.TryGetValue(item.Key, out var rightValue))
-                    return false;
-
-                if (!item.Value.EqualsSql(rightValue, dialect))
-                    return false;
-            }
-
-            return true;
-        }
-
-        public int GetHashCode(Dictionary<int, object?> row)
-        {
-            var hash = new HashCode();
-            foreach (var key in row.Keys.OrderBy(k => k))
-            {
-                hash.Add(key);
-                hash.Add(NormalizeHash(row[key]));
-            }
-
-            return hash.ToHashCode();
-        }
-
-        private object? NormalizeHash(object? value)
-        {
-            if (value is null || value is DBNull)
-                return null;
-
-            if (TryNormalizeNumericHash(value, out var numericHash))
-                return numericHash;
-
-            if (value is string text)
-                return dialect.TextComparison == StringComparison.OrdinalIgnoreCase
-                    ? text.ToUpperInvariant()
-                    : text;
-
-            return value;
-        }
-
-        private bool TryNormalizeNumericHash(object value, out string normalized)
-        {
-            normalized = string.Empty;
-
-            if (TryGetNumericValue(value, out var numeric))
-            {
-                normalized = numeric.ToString("G29", CultureInfo.InvariantCulture);
-                return true;
-            }
-
-            if (!dialect.SupportsImplicitNumericStringComparison)
-                return false;
-
-            if (value is string text
-                && decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed))
-            {
-                normalized = parsed.ToString("G29", CultureInfo.InvariantCulture);
-                return true;
-            }
-
-            return false;
-        }
-
-        private static bool TryGetNumericValue(object value, out decimal numeric)
-        {
-            switch (value)
-            {
-                case byte b:
-                    numeric = b;
-                    return true;
-                case short s:
-                    numeric = s;
-                    return true;
-                case int i:
-                    numeric = i;
-                    return true;
-                case long l:
-                    numeric = l;
-                    return true;
-                case float f:
-                    numeric = (decimal)f;
-                    return true;
-                case double d:
-                    numeric = (decimal)d;
-                    return true;
-                case decimal m:
-                    numeric = m;
-                    return true;
-                default:
-                    numeric = default;
-                    return false;
-            }
-        }
-    }
-
-    private static void ValidateUnionColumnTypes(
-        IList<TableResultColMock> expected,
-        IList<TableResultColMock> current,
-        int currentIndex,
-        string? sqlContextForErrors,
-        ISqlDialect dialect)
-    {
-        for (int i = 0; i < expected.Count; i++)
-        {
-            if (dialect.AreUnionColumnTypesCompatible(expected[i].DbType, current[i].DbType))
-                continue;
-
-            var msg =
-                "UNION: tipo de coluna incompatível. " +
-                $"Coluna[{i}] Primeiro={expected[i].DbType}, SELECT[{currentIndex}]={current[i].DbType}.";
-            if (!string.IsNullOrWhiteSpace(sqlContextForErrors))
-                msg += "\nSQL: " + sqlContextForErrors;
-
-            throw new InvalidOperationException(msg);
-        }
     }
 
     /// <summary>
@@ -357,15 +234,18 @@ internal abstract class AstQueryExecutorBase(
     {
         var sw = Stopwatch.StartNew();
         ClearSubqueryEvaluationCaches();
-        var result = ExecuteSelect(q, null, null);
+        QueryDebugTraceBuilder? debugTrace = _cnn.IsDebugTraceCaptureEnabled
+            ? new QueryDebugTraceBuilder("SELECT")
+            : null;
+        var result = ExecuteSelect(q, null, null, debugTrace);
         sw.Stop();
 
-        if (!HasSqlCalcFoundRows(q))
+        if (!HasSqlCalcFoundRows(q) && !IsRowCountHelperSelect(q))
             _cnn.SetLastFoundRows(result.Count);
 
         var metrics = BuildPlanRuntimeMetrics(q, result.Count, sw.ElapsedMilliseconds);
         var indexRecommendations = BuildIndexRecommendations(q, metrics);
-        var planWarnings = BuildPlanWarnings(q, metrics);
+        var planWarnings = QueryPlanWarningHelper.BuildPlanWarnings(q, metrics);
         var runtimeContext = BuildPlanMockRuntimeContext();
         var plan = SqlExecutionPlanFormatter.FormatSelect(
             q,
@@ -375,6 +255,8 @@ internal abstract class AstQueryExecutorBase(
             runtimeContext: runtimeContext);
         result.ExecutionPlan = plan;
         _cnn.RegisterExecutionPlan(plan);
+        if (debugTrace is not null)
+            _cnn.RegisterDebugTrace(debugTrace.Build());
         return result;
     }
 
@@ -387,158 +269,6 @@ internal abstract class AstQueryExecutorBase(
     }
 
 
-    private static IReadOnlyList<SqlPlanWarning> BuildPlanWarnings(
-        SqlSelectQuery query,
-        SqlPlanRuntimeMetrics metrics)
-    {
-        const long HighReadThreshold = 100;
-        const long VeryHighReadThreshold = 1000;
-        const long CriticalReadThreshold = 5000;
-        const double LowSelectivityThresholdPct = 60d;
-        const double VeryLowSelectivityThresholdPct = 85d;
-
-        if (metrics.EstimatedRowsRead < HighReadThreshold)
-            return [];
-
-        var warnings = new List<SqlPlanWarning>();
-
-        static bool HasTopPrefixInProjection(SqlSelectQuery q)
-        {
-            if (Regex.IsMatch(
-                q.RawSql,
-                @"^\s*SELECT\s+(?:DISTINCT\s+)?TOP\s*(\(\s*\d+\s*\)|\d+)\b",
-                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
-                return true;
-
-            return q.SelectItems.Any(i => Regex.IsMatch(
-                i.Raw,
-                @"^\s*TOP\s*(\(\s*\d+\s*\)|\d+)\b",
-                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant));
-        }
-
-        if (query.OrderBy.Count > 0 && query.RowLimit is null && !HasTopPrefixInProjection(query))
-        {
-            warnings.Add(new SqlPlanWarning(
-                "PW001",
-                SqlExecutionPlanMessages.WarningOrderByWithoutLimitMessage(),
-                SqlExecutionPlanMessages.WarningOrderByWithoutLimitReason(metrics.EstimatedRowsRead),
-                SqlExecutionPlanMessages.WarningOrderByWithoutLimitAction(),
-                SqlPlanWarningSeverity.High,
-                "EstimatedRowsRead",
-                metrics.EstimatedRowsRead.ToString(CultureInfo.InvariantCulture),
-                BuildTechnicalThreshold(("gte", HighReadThreshold))));
-        }
-
-        if (metrics.SelectivityPct >= LowSelectivityThresholdPct)
-        {
-            var severity = metrics.SelectivityPct >= VeryLowSelectivityThresholdPct
-                ? SqlPlanWarningSeverity.High
-                : SqlPlanWarningSeverity.Warning;
-
-            var message = severity == SqlPlanWarningSeverity.High
-                ? SqlExecutionPlanMessages.WarningLowSelectivityHighImpactMessage()
-                : SqlExecutionPlanMessages.WarningLowSelectivityMessage();
-
-            warnings.Add(new SqlPlanWarning(
-                "PW002",
-                message,
-                SqlExecutionPlanMessages.WarningLowSelectivityReason(metrics.SelectivityPct, metrics.EstimatedRowsRead),
-                SqlExecutionPlanMessages.WarningLowSelectivityAction(),
-                severity,
-                "SelectivityPct",
-                metrics.SelectivityPct.ToString("F2", CultureInfo.InvariantCulture),
-                BuildTechnicalThreshold(("gte", LowSelectivityThresholdPct), ("highImpactGte", VeryLowSelectivityThresholdPct))));
-        }
-
-        if (HasSelectStar(query))
-        {
-            var severity = metrics.EstimatedRowsRead >= CriticalReadThreshold
-                ? SqlPlanWarningSeverity.High
-                : metrics.EstimatedRowsRead >= VeryHighReadThreshold
-                    ? SqlPlanWarningSeverity.Warning
-                    : SqlPlanWarningSeverity.Info;
-
-            var message = severity switch
-            {
-                SqlPlanWarningSeverity.High => SqlExecutionPlanMessages.WarningSelectStarCriticalImpactMessage(),
-                SqlPlanWarningSeverity.Warning => SqlExecutionPlanMessages.WarningSelectStarHighImpactMessage(),
-                _ => SqlExecutionPlanMessages.WarningSelectStarMessage()
-            };
-
-            warnings.Add(new SqlPlanWarning(
-                "PW003",
-                message,
-                SqlExecutionPlanMessages.WarningSelectStarReason(metrics.EstimatedRowsRead),
-                SqlExecutionPlanMessages.WarningSelectStarAction(),
-                severity,
-                "EstimatedRowsRead",
-                metrics.EstimatedRowsRead.ToString(CultureInfo.InvariantCulture),
-                BuildTechnicalThreshold(("gte", HighReadThreshold), ("warningGte", VeryHighReadThreshold), ("highGte", CriticalReadThreshold))));
-        }
-
-        if (query.Where is null && !query.Distinct)
-        {
-            var severity = metrics.EstimatedRowsRead >= CriticalReadThreshold
-                ? SqlPlanWarningSeverity.High
-                : SqlPlanWarningSeverity.Warning;
-
-            var message = severity == SqlPlanWarningSeverity.High
-                ? SqlExecutionPlanMessages.WarningNoWhereHighReadHighImpactMessage()
-                : SqlExecutionPlanMessages.WarningNoWhereHighReadMessage();
-
-            warnings.Add(new SqlPlanWarning(
-                "PW004",
-                message,
-                SqlExecutionPlanMessages.WarningNoWhereHighReadReason(metrics.EstimatedRowsRead),
-                SqlExecutionPlanMessages.WarningNoWhereHighReadAction(),
-                severity,
-                "EstimatedRowsRead",
-                metrics.EstimatedRowsRead.ToString(CultureInfo.InvariantCulture),
-                BuildTechnicalThreshold(("gte", HighReadThreshold), ("highGte", CriticalReadThreshold))));
-        }
-
-
-        if (query.Distinct)
-        {
-            var severity = metrics.EstimatedRowsRead >= CriticalReadThreshold
-                ? SqlPlanWarningSeverity.High
-                : SqlPlanWarningSeverity.Warning;
-
-            var message = severity == SqlPlanWarningSeverity.High
-                ? SqlExecutionPlanMessages.WarningDistinctHighReadHighImpactMessage()
-                : SqlExecutionPlanMessages.WarningDistinctHighReadMessage();
-
-            warnings.Add(new SqlPlanWarning(
-                "PW005",
-                message,
-                SqlExecutionPlanMessages.WarningDistinctHighReadReason(metrics.EstimatedRowsRead),
-                SqlExecutionPlanMessages.WarningDistinctHighReadAction(),
-                severity,
-                "EstimatedRowsRead",
-                metrics.EstimatedRowsRead.ToString(CultureInfo.InvariantCulture),
-                BuildTechnicalThreshold(("gte", HighReadThreshold), ("highGte", CriticalReadThreshold))));
-        }
-
-        return warnings;
-    }
-
-    private static bool HasSelectStar(SqlSelectQuery query)
-        => query.SelectItems.Any(static item => string.Equals(item.Raw?.Trim(), "*", StringComparison.Ordinal));
-
-
-    private static string BuildTechnicalThreshold(params (string Key, IFormattable Value)[] values)
-    {
-        if (values.Length == 0)
-            return string.Empty;
-
-        return string.Join(";", values.Select(static v =>
-        {
-            if (string.IsNullOrWhiteSpace(v.Key))
-                throw new ArgumentException("Threshold key must be provided.", nameof(values));
-
-            return $"{v.Key}:{v.Value.ToString(null, CultureInfo.InvariantCulture)}";
-        }));
-    }
     private IReadOnlyList<SqlIndexRecommendation> BuildIndexRecommendations(
         SqlSelectQuery query,
         SqlPlanRuntimeMetrics metrics)
@@ -808,6 +538,7 @@ internal abstract class AstQueryExecutorBase(
             case LikeExpr l:
                 CollectColumns(l.Left, sourceMap, columnsByTable);
                 CollectColumns(l.Pattern, sourceMap, columnsByTable);
+                CollectColumns(l.Escape, sourceMap, columnsByTable);
                 break;
             case IsNullExpr n:
                 CollectColumns(n.Expr, sourceMap, columnsByTable);
@@ -930,6 +661,20 @@ internal abstract class AstQueryExecutorBase(
         return count;
     }
 
+    private static string FormatSource(SqlTableSource? source)
+    {
+        if (source is null)
+            return "<none>";
+
+        if (source.Derived is not null)
+            return $"subquery AS {source.Alias ?? "<derived>"}";
+
+        if (source.DerivedUnion is not null)
+            return $"union-subquery AS {source.Alias ?? "<derived_union>"}";
+
+        return source.Name ?? "<unknown_table>";
+    }
+
     private long EstimateRowsRead(SqlSelectQuery query)
     {
         long total = 0;
@@ -958,7 +703,8 @@ internal abstract class AstQueryExecutorBase(
     private TableResultMock ExecuteSelect(
         SqlSelectQuery selectQuery,
         IDictionary<string, Source>? inheritedCtes,
-        EvalRow? outerRow)
+        EvalRow? outerRow,
+        QueryDebugTraceBuilder? debugTrace = null)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(selectQuery, nameof(selectQuery));
 
@@ -969,26 +715,62 @@ internal abstract class AstQueryExecutorBase(
 
         foreach (var cte in selectQuery.Ctes)
         {
+            var cteStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
             var res = ExecuteSelect(cte.Query, ctes, outerRow);
             ctes[cte.Name] = Source.FromResult(cte.Name, res);
+            debugTrace?.AddStep(
+                "CteMaterialize",
+                0,
+                res.Count,
+                TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(cteStart)),
+                cte.Name);
         }
 
         // 1) FROM
+        var fromStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
         var rows = BuildFrom(
             selectQuery.Table,
             ctes,
             selectQuery.Where,
             hasOrderBy: selectQuery.OrderBy.Count > 0,
             hasGroupBy: selectQuery.GroupBy.Count > 0);
+        if (debugTrace is not null)
+        {
+            var fromRows = rows as List<EvalRow> ?? rows.ToList();
+            debugTrace.AddStep(
+                "TableScan",
+                (int)Math.Min(int.MaxValue, GetKnownSourceRows(selectQuery.Table)),
+                fromRows.Count,
+                TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(fromStart)),
+                FormatSource(selectQuery.Table));
+            rows = fromRows;
+        }
 
         // 2) JOINS
         foreach (var j in selectQuery.Joins)
+        {
+            var joinStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+            var inputRows = debugTrace is not null
+                ? (rows as ICollection<EvalRow>)?.Count ?? rows.Count()
+                : 0;
             rows = ApplyJoin(
                 rows,
                 j,
                 ctes,
                 hasOrderBy: selectQuery.OrderBy.Count > 0,
                 hasGroupBy: selectQuery.GroupBy.Count > 0);
+            if (debugTrace is not null)
+            {
+                var joinedRows = rows as List<EvalRow> ?? rows.ToList();
+                debugTrace.AddStep(
+                    $"Join({j.Type.ToString().ToUpperInvariant()})",
+                    inputRows,
+                    joinedRows.Count,
+                    TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(joinStart)),
+                    FormatJoinDebugDetails(j));
+                rows = joinedRows;
+            }
+        }
 
         // 2.5) Correlated subquery: expose outer row fields/sources to subquery evaluation (EXISTS, IN subselect, etc.)
         if (outerRow is not null)
@@ -996,46 +778,94 @@ internal abstract class AstQueryExecutorBase(
 
         // 3) WHERE
         if (selectQuery.Where is not null)
+        {
+            var filterStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+            var inputRows = debugTrace is not null
+                ? (rows as ICollection<EvalRow>)?.Count ?? rows.Count()
+                : 0;
             rows = ApplyRowPredicate(rows, selectQuery.Where, ctes);
+            if (debugTrace is not null)
+            {
+                var filteredRows = rows as List<EvalRow> ?? rows.ToList();
+                debugTrace.AddStep(
+                    "Filter",
+                    inputRows,
+                    filteredRows.Count,
+                    TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(filterStart)),
+                    SqlExprPrinter.Print(selectQuery.Where));
+                rows = filteredRows;
+            }
+        }
 
         // 4) GROUP BY / HAVING / SELECT projection
         bool needsGrouping = selectQuery.GroupBy.Count > 0 || selectQuery.Having is not null || ContainsAggregate(selectQuery);
 
         if (needsGrouping)
-            return ExecuteGroup(selectQuery, ctes, rows);
+            return ExecuteGroup(selectQuery, ctes, rows, debugTrace);
 
         // 5) Project non-grouped
         var projectedRows = rows as List<EvalRow> ?? rows.ToList();
+        var projectStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
         var projected = ProjectRows(selectQuery, projectedRows, ctes);
+        debugTrace?.AddStep(
+            "Project",
+            projectedRows.Count,
+            projected.Count,
+            TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(projectStart)),
+            QueryDebugTraceFormattingHelper.FormatProjectDebugDetails(selectQuery.SelectItems));
 
         // 6) DISTINCT
         if (selectQuery.Distinct)
+        {
+            var distinctStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+            var inputRows = projected.Count;
             projected = ApplyDistinct(projected, Dialect);
+            debugTrace?.AddStep(
+                "Distinct",
+                inputRows,
+                projected.Count,
+                TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(distinctStart)),
+                QueryDebugTraceFormattingHelper.FormatDistinctDebugDetails(selectQuery.SelectItems.Count));
+        }
 
         if (HasSqlCalcFoundRows(selectQuery))
             _cnn.SetLastFoundRows(projected.Count);
 
         // 7) ORDER BY / LIMIT
-        projected = ApplyOrderAndLimit(projected, selectQuery, ctes);
+        projected = ApplyOrderAndLimit(projected, selectQuery, ctes, debugTrace);
         return projected;
     }
 
     private TableResultMock ExecuteGroup(
         SqlSelectQuery q,
         Dictionary<string, Source> ctes,
-        IEnumerable<EvalRow> rows)
+        IEnumerable<EvalRow> rows,
+        QueryDebugTraceBuilder? debugTrace = null)
     {
+        var sourceRows = rows as List<EvalRow> ?? rows.ToList();
         var keyExprs = BuildGroupByKeyExpressions(q);
 
-        var grouped = rows.GroupBy(
+        var groupStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+        var grouped = sourceRows.GroupBy(
             r => new GroupKey([.. keyExprs.Select(e => Eval(e, r, group: null, ctes))]),
             GroupKey.Comparer);
+        if (debugTrace is not null)
+        {
+            var groupedList = grouped.ToList();
+            debugTrace.AddStep(
+                "Group",
+                sourceRows.Count,
+                groupedList.Count,
+                TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(groupStart)),
+                QueryDebugTraceFormattingHelper.FormatGroupDebugDetails(q));
+            grouped = groupedList;
+        }
 
         // HAVING filter (MySQL: HAVING pode referenciar alias do SELECT)
         if (q.Having is null)
         {
             // Project grouped
-            return ProjectGrouped(q, grouped, ctes);
+            return ProjectGrouped(q, grouped, ctes, debugTrace);
         }
 
         // pré-parse das expressões do SELECT que têm Alias (ex: COUNT(val) AS C)
@@ -1068,10 +898,25 @@ internal abstract class AstQueryExecutorBase(
 
         var havingExpr = NormalizeHavingExpression(q.Having, q);
 
+        var havingStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+        var inputGroups = debugTrace is not null
+            ? (grouped as ICollection<IGrouping<GroupKey, EvalRow>>)?.Count ?? grouped.Count()
+            : 0;
         grouped = ApplyHavingPredicate(grouped, havingExpr, aliasExprs, ctes);
+        if (debugTrace is not null)
+        {
+            var filteredGroups = grouped.ToList();
+            debugTrace.AddStep(
+                "Having",
+                inputGroups,
+                filteredGroups.Count,
+                TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(havingStart)),
+                SqlExprPrinter.Print(q.Having));
+            grouped = filteredGroups;
+        }
 
         // Project grouped
-        return ProjectGrouped(q, grouped, ctes);
+        return ProjectGrouped(q, grouped, ctes, debugTrace);
     }
 
 
@@ -1187,7 +1032,8 @@ internal abstract class AstQueryExecutorBase(
 
             case LikeExpr like:
                 return WalkHasTemporalHavingReference(like.Left, dialect)
-                    || WalkHasTemporalHavingReference(like.Pattern, dialect);
+                    || WalkHasTemporalHavingReference(like.Pattern, dialect)
+                    || (like.Escape != null && WalkHasTemporalHavingReference(like.Escape, dialect));
 
             case InExpr i:
                 if (WalkHasTemporalHavingReference(i.Left, dialect))
@@ -1268,7 +1114,10 @@ internal abstract class AstQueryExecutorBase(
                 return like with
                 {
                     Left = RewriteHavingOrdinals(like.Left, q, ref usedOrdinal, true, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
-                    Pattern = RewriteHavingOrdinals(like.Pattern, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal)
+                    Pattern = RewriteHavingOrdinals(like.Pattern, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal),
+                    Escape = like.Escape is null
+                        ? null
+                        : RewriteHavingOrdinals(like.Escape, q, ref usedOrdinal, false, ref outOfRangeOrdinal, ref nonPositiveOrdinal)
                 };
             case InExpr i:
                 var rewrittenInItems = new List<SqlExpr>(i.Items.Count);
@@ -1422,94 +1271,110 @@ internal abstract class AstQueryExecutorBase(
 
     private static IEnumerable<string> EnumerateIdentifiers(SqlExpr expr)
     {
+        var identifiers = new List<string>();
+        AppendIdentifiers(expr, identifiers);
+        return identifiers;
+    }
+
+    private static void AppendIdentifiers(SqlExpr expr, List<string> identifiers)
+    {
         switch (expr)
         {
             case IdentifierExpr id:
-                yield return id.Name;
-                yield break;
+                identifiers.Add(id.Name);
+                return;
             case ColumnExpr col:
-                yield return string.IsNullOrWhiteSpace(col.Qualifier) ? col.Name : $"{col.Qualifier}.{col.Name}";
-                yield break;
-            case BinaryExpr b:
-                foreach (var id in EnumerateIdentifiers(b.Left))
-                    yield return id;
-                foreach (var id in EnumerateIdentifiers(b.Right))
-                    yield return id;
-                yield break;
-            case UnaryExpr u:
-                foreach (var id in EnumerateIdentifiers(u.Expr))
-                    yield return id;
-                yield break;
-            case IsNullExpr isn:
-                foreach (var id in EnumerateIdentifiers(isn.Expr))
-                    yield return id;
-                yield break;
-            case LikeExpr l:
-                foreach (var id in EnumerateIdentifiers(l.Left))
-                    yield return id;
-                foreach (var id in EnumerateIdentifiers(l.Pattern))
-                    yield return id;
-                yield break;
-            case InExpr i:
-                foreach (var id in EnumerateIdentifiers(i.Left))
-                    yield return id;
-                foreach (var it in i.Items)
-                    foreach (var id in EnumerateIdentifiers(it))
-                        yield return id;
-                yield break;
-            case RowExpr r:
-                foreach (var it in r.Items)
-                    foreach (var id in EnumerateIdentifiers(it))
-                        yield return id;
-                yield break;
-            case CaseExpr c:
-                if (c.BaseExpr is not null)
-                {
-                    foreach (var id in EnumerateIdentifiers(c.BaseExpr))
-                        yield return id;
-                }
-
-                foreach (var when in c.Whens)
-                {
-                    foreach (var id in EnumerateIdentifiers(when.When))
-                        yield return id;
-                    foreach (var id in EnumerateIdentifiers(when.Then))
-                        yield return id;
-                }
-
-                if (c.ElseExpr is not null)
-                {
-                    foreach (var id in EnumerateIdentifiers(c.ElseExpr))
-                        yield return id;
-                }
-                yield break;
-            case FunctionCallExpr fn:
-                foreach (var arg in fn.Args)
-                    foreach (var id in EnumerateIdentifiers(arg))
-                        yield return id;
-                yield break;
+                identifiers.Add(FormatIdentifierColumn(col));
+                return;
+            case UnaryExpr unary:
+                AppendIdentifiers(unary.Expr, identifiers);
+                return;
+            case IsNullExpr isNull:
+                AppendIdentifiers(isNull.Expr, identifiers);
+                return;
+            case BinaryExpr binary:
+                AppendBinaryIdentifiers(binary.Left, binary.Right, identifiers);
+                return;
+            case LikeExpr like:
+                AppendLikeIdentifiers(like, identifiers);
+                return;
+            case InExpr inExpr:
+                AppendInIdentifiers(inExpr, identifiers);
+                return;
+            case RowExpr row:
+                AppendIdentifierSequence(row.Items, identifiers);
+                return;
+            case CaseExpr @case:
+                AppendCaseIdentifiers(@case, identifiers);
+                return;
+            case FunctionCallExpr function:
+                AppendIdentifierSequence(function.Args, identifiers);
+                return;
             case CallExpr call:
-                foreach (var arg in call.Args)
-                    foreach (var id in EnumerateIdentifiers(arg))
-                        yield return id;
-                yield break;
-            case JsonAccessExpr ja:
-                foreach (var id in EnumerateIdentifiers(ja.Target))
-                    yield return id;
-                foreach (var id in EnumerateIdentifiers(ja.Path))
-                    yield return id;
-                yield break;
-            case BetweenExpr bt:
-                foreach (var id in EnumerateIdentifiers(bt.Expr))
-                    yield return id;
-                foreach (var id in EnumerateIdentifiers(bt.Low))
-                    yield return id;
-                foreach (var id in EnumerateIdentifiers(bt.High))
-                    yield return id;
-                yield break;
+                AppendIdentifierSequence(call.Args, identifiers);
+                return;
+            case JsonAccessExpr jsonAccess:
+                AppendBinaryIdentifiers(jsonAccess.Target, jsonAccess.Path, identifiers);
+                return;
+            case BetweenExpr between:
+                AppendBetweenIdentifiers(between, identifiers);
+                return;
             default:
-                yield break;
+                return;
         }
+    }
+
+    private static string FormatIdentifierColumn(ColumnExpr column)
+        => string.IsNullOrWhiteSpace(column.Qualifier)
+            ? column.Name
+            : $"{column.Qualifier}.{column.Name}";
+
+    private static void AppendBinaryIdentifiers(SqlExpr left, SqlExpr right, List<string> identifiers)
+    {
+        AppendIdentifiers(left, identifiers);
+        AppendIdentifiers(right, identifiers);
+    }
+
+    private static void AppendLikeIdentifiers(LikeExpr like, List<string> identifiers)
+    {
+        AppendIdentifiers(like.Left, identifiers);
+        AppendIdentifiers(like.Pattern, identifiers);
+        if (like.Escape is not null)
+            AppendIdentifiers(like.Escape, identifiers);
+    }
+
+    private static void AppendInIdentifiers(InExpr inExpr, List<string> identifiers)
+    {
+        AppendIdentifiers(inExpr.Left, identifiers);
+        AppendIdentifierSequence(inExpr.Items, identifiers);
+    }
+
+    private static void AppendCaseIdentifiers(CaseExpr @case, List<string> identifiers)
+    {
+        if (@case.BaseExpr is not null)
+            AppendIdentifiers(@case.BaseExpr, identifiers);
+
+        foreach (var when in @case.Whens)
+        {
+            AppendIdentifiers(when.When, identifiers);
+            AppendIdentifiers(when.Then, identifiers);
+        }
+
+        if (@case.ElseExpr is not null)
+            AppendIdentifiers(@case.ElseExpr, identifiers);
+    }
+
+    private static void AppendBetweenIdentifiers(BetweenExpr between, List<string> identifiers)
+    {
+        AppendIdentifiers(between.Expr, identifiers);
+        AppendIdentifiers(between.Low, identifiers);
+        AppendIdentifiers(between.High, identifiers);
+    }
+
+    private static void AppendIdentifierSequence(IEnumerable<SqlExpr> expressions, List<string> identifiers)
+    {
+        foreach (var expression in expressions)
+            AppendIdentifiers(expression, identifiers);
     }
 
     private SqlExpr[] BuildGroupByKeyExpressions(SqlSelectQuery q)
@@ -2133,20 +1998,29 @@ internal abstract class AstQueryExecutorBase(
     private object? AggregatePivotBucket(string aggregateFunction, SqlExpr aggArgExpr, List<EvalRow> rows, IDictionary<string, Source> ctes)
     {
         if (aggregateFunction.Equals("COUNT", StringComparison.OrdinalIgnoreCase))
-            return rows.Count;
-
-        if (aggregateFunction.Equals("SUM", StringComparison.OrdinalIgnoreCase))
         {
-            decimal total = 0m;
+            if (aggArgExpr is StarExpr)
+                return rows.Count;
+
+            var count = 0;
             foreach (var row in rows)
             {
                 var value = Eval(aggArgExpr, row, group: null, ctes);
-                if (IsNullish(value))
-                    continue;
-                total += Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+                if (!IsNullish(value))
+                    count++;
             }
 
-            return total;
+            return count;
+        }
+
+        if (aggregateFunction.Equals("SUM", StringComparison.OrdinalIgnoreCase)
+            || aggregateFunction.Equals("AVG", StringComparison.OrdinalIgnoreCase)
+            || aggregateFunction.Equals("MIN", StringComparison.OrdinalIgnoreCase)
+            || aggregateFunction.Equals("MAX", StringComparison.OrdinalIgnoreCase))
+        {
+            var group = new EvalGroup(rows);
+            var aggregateExpr = new FunctionCallExpr(aggregateFunction, [aggArgExpr]);
+            return EvalAggregate(aggregateExpr, group, ctes);
         }
 
         throw new NotSupportedException($"PIVOT aggregate '{aggregateFunction}' not supported yet.");
@@ -2185,8 +2059,10 @@ internal abstract class AstQueryExecutorBase(
     private TableResultMock ProjectGrouped(
         SqlSelectQuery q,
         IEnumerable<IGrouping<GroupKey, EvalRow>> groups,
-        IDictionary<string, Source> ctes)
+        IDictionary<string, Source> ctes,
+        QueryDebugTraceBuilder? debugTrace = null)
     {
+        var projectStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
         var res = new TableResultMock();
         var groupsList = groups.Select(g => new { g.Key, Rows = g.ToList() }).ToList();
         var hasGroups = groupsList.Count > 0;
@@ -2222,94 +2098,31 @@ internal abstract class AstQueryExecutorBase(
         }
 
         if (q.Distinct)
+        {
+            var distinctStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+            var inputRows = res.Count;
             res = ApplyDistinct(res, Dialect);
+            debugTrace?.AddStep(
+                "Distinct",
+                inputRows,
+                res.Count,
+                TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(distinctStart)),
+                QueryDebugTraceFormattingHelper.FormatDistinctDebugDetails(q.SelectItems.Count));
+        }
 
         if (HasSqlCalcFoundRows(q))
             _cnn.SetLastFoundRows(res.Count);
 
         // ORDER / LIMIT
-        res = ApplyOrderAndLimit(res, q, ctes);
+        debugTrace?.AddStep(
+            "Project",
+            groupsList.Count,
+            res.Count,
+            TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(projectStart)),
+            QueryDebugTraceFormattingHelper.FormatProjectDebugDetails(q.SelectItems));
+        res = ApplyOrderAndLimit(res, q, ctes, debugTrace);
         return res;
     }
-
-    private sealed class SelectPlan
-    {
-        /// <summary>
-        /// EN: Gets or sets Columns.
-        /// PT: Obtém ou define Columns.
-        /// </summary>
-        public required List<TableResultColMock> Columns { get; init; }
-        /// <summary>
-        /// EN: Gets or sets Evaluators.
-        /// PT: Obtém ou define Evaluators.
-        /// </summary>
-        public required List<Func<EvalRow, EvalGroup?, object?>> Evaluators { get; init; }
-
-        // Window functions computed over the current rowset (e.g. ROW_NUMBER() OVER (...))
-        /// <summary>
-        /// EN: Gets or sets WindowSlots.
-        /// PT: Obtém ou define WindowSlots.
-        /// </summary>
-        public required List<WindowSlot> WindowSlots { get; init; }
-    }
-
-    private sealed class WindowSlot
-    {
-        /// <summary>
-        /// EN: Gets or sets Expr.
-        /// PT: Obtém ou define Expr.
-        /// </summary>
-        public required WindowFunctionExpr Expr { get; init; }
-        /// <summary>
-        /// EN: Gets or sets Map.
-        /// PT: Obtém ou define Map.
-        /// </summary>
-        public required Dictionary<EvalRow, object?> Map { get; init; }
-    }
-
-    private sealed class ReferenceEqualityComparer<T> : IEqualityComparer<T>
-        where T : class
-    {
-        /// <summary>
-        /// EN: Implements new.
-        /// PT: Implementa new.
-        /// </summary>
-        public static readonly ReferenceEqualityComparer<T> Instance = new();
-        /// <summary>
-        /// EN: Implements Equals.
-        /// PT: Implementa Equals.
-        /// </summary>
-        public bool Equals(T? x, T? y) => ReferenceEquals(x, y);
-        /// <summary>
-        /// EN: Implements GetHashCode.
-        /// PT: Implementa GetHashCode.
-        /// </summary>
-        public int GetHashCode(T obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
-    }
-
-
-    private static string MakeUniqueAlias(
-        List<TableResultColMock> cols,
-        string preferred,
-        string tableAlias)
-    {
-        if (!cols.Any(c => c.ColumnAlias.Equals(preferred, StringComparison.OrdinalIgnoreCase)))
-            return preferred;
-
-        var alt = $"{tableAlias}_{preferred}";
-        if (!cols.Any(c => c.ColumnAlias.Equals(alt, StringComparison.OrdinalIgnoreCase)))
-            return alt;
-
-        int n = 2;
-        while (true)
-        {
-            var a = $"{alt}_{n}";
-            if (!cols.Any(c => c.ColumnAlias.Equals(a, StringComparison.OrdinalIgnoreCase)))
-                return a;
-            n++;
-        }
-    }
-
 
     private void ComputeWindowSlots(
         List<WindowSlot> slots,
@@ -2344,52 +2157,19 @@ internal abstract class AstQueryExecutorBase(
             if (Dialect?.RequiresOrderByInWindowFunction(w.Name) == true && w.Spec.OrderBy.Count == 0)
                 throw new InvalidOperationException($"Window function '{w.Name}' requires ORDER BY in OVER clause.");
 
-            // Partitioning
-            var partitions = new Dictionary<string, List<EvalRow>>(StringComparer.Ordinal);
-
-            foreach (var r in rows)
-            {
-                string key;
-
-                if (w.Spec.PartitionBy.Count == 0)
-                {
-                    key = "__all__";
-                }
-                else
-                {
-                    var parts = w.Spec.PartitionBy
-                        .Select(e => NormalizeDistinctKey(Eval(e, r, null, ctes)))
-                        .ToArray();
-                    key = string.Join("\u001F", parts);
-                }
-
-                if (!partitions.TryGetValue(key, out var list))
-                {
-                    list = [];
-                    partitions[key] = list;
-                }
-                list.Add(r);
-            }
+            var partitions = WindowPartitionHelper.BuildPartitions(
+                w,
+                rows,
+                (expr, row) => Eval(expr, row, null, ctes),
+                value => NormalizeDistinctKey(value));
 
             foreach (var part in partitions.Values)
             {
-                // ORDER BY inside OVER
-                if (w.Spec.OrderBy.Count > 0)
-                {
-                    part.Sort((a, b) =>
-                    {
-                        foreach (var oi in w.Spec.OrderBy)
-                        {
-                            var av = Eval(oi.Expr, a, null, ctes);
-                            var bv = Eval(oi.Expr, b, null, ctes);
-
-                            var cmp = CompareSql(av, bv);
-                            if (cmp != 0)
-                                return oi.Desc ? -cmp : cmp;
-                        }
-                        return 0;
-                    });
-                }
+                WindowPartitionHelper.SortPartition(
+                    part,
+                    w.Spec.OrderBy,
+                    (expr, row) => Eval(expr, row, null, ctes),
+                    CompareSql);
 
                 if (isRowNumber)
                 {
@@ -2523,282 +2303,22 @@ private void FillNthValue(
             return RowsFrameRange.Empty;
 
         if (frame is null || frame.Unit == WindowFrameUnit.Rows)
-            return ResolveRowsFrameRange(frame, part.Count, rowIndex);
+            return WindowFrameRangeResolver.ResolveRowsFrameRange(frame, part.Count, rowIndex);
 
         if (orderBy.Count == 0)
             throw new InvalidOperationException($"Window frame unit '{frame.Unit}' requires ORDER BY in OVER clause.");
 
-        var orderValuesByRow = BuildWindowOrderValuesByRow(part, orderBy, ctes);
-        return frame.Unit switch
-        {
-            WindowFrameUnit.Groups => ResolveGroupsFrameRange(frame, part, rowIndex, orderValuesByRow),
-            WindowFrameUnit.Range => ResolveRangeFrameRange(frame, part, rowIndex, orderValuesByRow, orderBy),
-            _ => ResolveRowsFrameRange(frame, part.Count, rowIndex)
-        };
-    }
-
-    /// <summary>
-    /// EN: Resolves row index boundaries for a ROWS window frame for the current row.
-    /// PT: Resolve os limites de índice de linha para um frame ROWS da janela na linha atual.
-    /// </summary>
-    private static RowsFrameRange ResolveRowsFrameRange(WindowFrameSpec? frame, int partitionSize, int rowIndex)
-    {
-        if (partitionSize <= 0)
-            return RowsFrameRange.Empty;
-
-        if (frame is null)
-            return new RowsFrameRange(0, partitionSize - 1, IsEmpty: false);
-
-        var lastIndex = partitionSize - 1;
-        var rawStartIndex = ResolveRowsFrameBoundIndex(frame.Start, rowIndex, partitionSize, isStartBound: true);
-        var rawEndIndex = ResolveRowsFrameBoundIndex(frame.End, rowIndex, partitionSize, isStartBound: false);
-
-        if (rawStartIndex > rawEndIndex)
-            return RowsFrameRange.Empty;
-
-        var startIndex = Math.Max(rawStartIndex, 0);
-        var endIndex = Math.Min(rawEndIndex, lastIndex);
-        if (startIndex > endIndex)
-            return RowsFrameRange.Empty;
-
-        return new RowsFrameRange(startIndex, endIndex, IsEmpty: false);
-    }
-
-    private static int ResolveRowsFrameBoundIndex(WindowFrameBound bound, int rowIndex, int partitionSize, bool isStartBound)
-    {
-        var lastIndex = partitionSize - 1;
-        return bound.Kind switch
-        {
-            WindowFrameBoundKind.UnboundedPreceding => 0,
-            WindowFrameBoundKind.UnboundedFollowing => lastIndex,
-            WindowFrameBoundKind.CurrentRow => rowIndex,
-            WindowFrameBoundKind.Preceding => rowIndex - bound.Offset.GetValueOrDefault(),
-            WindowFrameBoundKind.Following => rowIndex + bound.Offset.GetValueOrDefault(),
-            _ => isStartBound ? 0 : lastIndex
-        };
-    }
-
-    private readonly record struct RowsFrameRange(int StartIndex, int EndIndex, bool IsEmpty)
-    {
-        public static RowsFrameRange Empty => new(0, -1, IsEmpty: true);
-    }
-
-    /// <summary>
-    /// EN: Resolves GROUPS frame bounds using peer groups derived from ORDER BY values.
-    /// PT: Resolve limites de frame GROUPS usando grupos de peers derivados dos valores de ORDER BY.
-    /// </summary>
-    private RowsFrameRange ResolveGroupsFrameRange(
-        WindowFrameSpec frame,
-        List<EvalRow> part,
-        int rowIndex,
-        Dictionary<EvalRow, object?[]> orderValuesByRow)
-    {
-        var groups = BuildPeerGroups(part, orderValuesByRow);
-        var currentGroupIndex = groups.FindIndex(g => rowIndex >= g.Start && rowIndex <= g.End);
-        if (currentGroupIndex < 0)
-            return RowsFrameRange.Empty;
-
-        var startGroup = ResolveGroupsBoundIndex(frame.Start, currentGroupIndex, groups.Count, isStartBound: true);
-        var endGroup = ResolveGroupsBoundIndex(frame.End, currentGroupIndex, groups.Count, isStartBound: false);
-        if (startGroup > endGroup)
-            return RowsFrameRange.Empty;
-
-        return new RowsFrameRange(groups[startGroup].Start, groups[endGroup].End, IsEmpty: false);
-    }
-
-    /// <summary>
-    /// EN: Resolves RANGE frame bounds for ORDER BY using peer-aware and offset-aware range semantics.
-    /// PT: Resolve limites de frame RANGE no ORDER BY com semântica de range por peers e offsets.
-    /// </summary>
-    private RowsFrameRange ResolveRangeFrameRange(
-        WindowFrameSpec frame,
-        List<EvalRow> part,
-        int rowIndex,
-        Dictionary<EvalRow, object?[]> orderValuesByRow,
-        IReadOnlyList<WindowOrderItem> orderBy)
-    {
-        var hasOffsetBound = frame.Start.Kind is WindowFrameBoundKind.Preceding or WindowFrameBoundKind.Following
-            || frame.End.Kind is WindowFrameBoundKind.Preceding or WindowFrameBoundKind.Following;
-
-        ValidateRangeOffsetOrderBy(orderBy, hasOffsetBound);
-
-        var peerRange = ResolvePeerRange(part, rowIndex, orderValuesByRow);
-
-        int startIndex;
-        int endIndex;
-        if (hasOffsetBound)
-        {
-            var scalarValues = BuildRangeScalarValues(part, orderValuesByRow, orderBy);
-            var current = scalarValues[rowIndex];
-            startIndex = ResolveRangeBoundIndex(frame.Start, scalarValues, current, peerRange, isStartBound: true);
-            endIndex = ResolveRangeBoundIndex(frame.End, scalarValues, current, peerRange, isStartBound: false);
-        }
-        else
-        {
-            startIndex = ResolveRangeBoundIndexWithoutOffsets(frame.Start, part.Count, peerRange, isStartBound: true);
-            endIndex = ResolveRangeBoundIndexWithoutOffsets(frame.End, part.Count, peerRange, isStartBound: false);
-        }
-
-        if (startIndex > endIndex)
-            return RowsFrameRange.Empty;
-
-        return new RowsFrameRange(startIndex, endIndex, IsEmpty: false);
-    }
-
-    /// <summary>
-    /// EN: Validates ORDER BY shape required by RANGE offset semantics.
-    /// PT: Valida o formato de ORDER BY exigido pela semântica de RANGE com offset.
-    /// </summary>
-    private static void ValidateRangeOffsetOrderBy(IReadOnlyList<WindowOrderItem> orderBy, bool hasOffsetBound)
-    {
-        if (!hasOffsetBound)
-            return;
-
-        if (orderBy.Count != 1)
-            throw new InvalidOperationException("RANGE with PRECEDING/FOLLOWING offset requires exactly one ORDER BY expression.");
-    }
-
-    private List<(int Start, int End)> BuildPeerGroups(List<EvalRow> part, Dictionary<EvalRow, object?[]> orderValuesByRow)
-    {
-        var groups = new List<(int Start, int End)>();
-        var start = 0;
-        for (var i = 1; i <= part.Count; i++)
-        {
-            var isBoundary = i == part.Count || !WindowOrderValuesEqual(orderValuesByRow[part[i - 1]], orderValuesByRow[part[i]]);
-            if (!isBoundary)
-                continue;
-
-            groups.Add((start, i - 1));
-            start = i;
-        }
-
-        return groups;
-    }
-
-    private static int ResolveGroupsBoundIndex(WindowFrameBound bound, int currentGroupIndex, int groupCount, bool isStartBound)
-    {
-        var last = groupCount - 1;
-        return bound.Kind switch
-        {
-            WindowFrameBoundKind.UnboundedPreceding => 0,
-            WindowFrameBoundKind.UnboundedFollowing => last,
-            WindowFrameBoundKind.CurrentRow => currentGroupIndex,
-            WindowFrameBoundKind.Preceding => (currentGroupIndex - bound.Offset.GetValueOrDefault()).Clamp(0, last),
-            WindowFrameBoundKind.Following => (currentGroupIndex + bound.Offset.GetValueOrDefault()).Clamp(0, last),
-            _ => isStartBound ? 0 : last
-        };
-    }
-
-    private (int Start, int End) ResolvePeerRange(List<EvalRow> part, int rowIndex, Dictionary<EvalRow, object?[]> orderValuesByRow)
-    {
-        var current = orderValuesByRow[part[rowIndex]];
-        var start = rowIndex;
-        while (start > 0 && WindowOrderValuesEqual(orderValuesByRow[part[start - 1]], current))
-            start--;
-        var end = rowIndex;
-        while (end < part.Count - 1 && WindowOrderValuesEqual(orderValuesByRow[part[end + 1]], current))
-            end++;
-        return (start, end);
-    }
-
-    private static decimal[] BuildRangeScalarValues(List<EvalRow> part, Dictionary<EvalRow, object?[]> orderValuesByRow, IReadOnlyList<WindowOrderItem> orderBy)
-    {
-        var desc = orderBy.Count > 0 && orderBy[0].Desc;
-        var values = new decimal[part.Count];
-        for (var i = 0; i < part.Count; i++)
-        {
-            var rawOrderValue = orderValuesByRow[part[i]].Length == 0 ? null : orderValuesByRow[part[i]][0];
-            if (!TryConvertRangeOrderToDecimal(rawOrderValue, out var scalar))
-            {
-                var valueType = rawOrderValue?.GetType().Name ?? "NULL";
-                throw new InvalidOperationException($"RANGE with PRECEDING/FOLLOWING offset requires numeric/date ORDER BY values. Actual ORDER BY value type: {valueType}.");
-            }
-
-            values[i] = desc ? -scalar : scalar;
-        }
-
-        return values;
-    }
-
-    private static bool TryConvertRangeOrderToDecimal(object? value, out decimal scalar)
-    {
-        scalar = default;
-        if (value is null || value is DBNull)
-            return false;
-        try
-        {
-            scalar = value switch
-            {
-                DateTime dt => dt.Ticks,
-                DateTimeOffset dto => dto.Ticks,
-                TimeSpan ts => ts.Ticks,
-                _ => Convert.ToDecimal(value, CultureInfo.InvariantCulture)
-            };
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// EN: Resolves RANGE bounds for non-offset variants (CURRENT ROW/UNBOUNDED) using peer range only.
-    /// PT: Resolve limites de RANGE sem offset (CURRENT ROW/UNBOUNDED) usando apenas o intervalo de peers.
-    /// </summary>
-    private static int ResolveRangeBoundIndexWithoutOffsets(
-        WindowFrameBound bound,
-        int partitionSize,
-        (int Start, int End) peerRange,
-        bool isStartBound)
-    {
-        var last = partitionSize - 1;
-        return bound.Kind switch
-        {
-            WindowFrameBoundKind.UnboundedPreceding => 0,
-            WindowFrameBoundKind.UnboundedFollowing => last,
-            WindowFrameBoundKind.CurrentRow => isStartBound ? peerRange.Start : peerRange.End,
-            _ => isStartBound ? 0 : last
-        };
-    }
-
-    private static int ResolveRangeBoundIndex(
-        WindowFrameBound bound,
-        decimal[] scalarValues,
-        decimal currentScalar,
-        (int Start, int End) peerRange,
-        bool isStartBound)
-    {
-        var last = scalarValues.Length - 1;
-        return bound.Kind switch
-        {
-            WindowFrameBoundKind.UnboundedPreceding => 0,
-            WindowFrameBoundKind.UnboundedFollowing => last,
-            WindowFrameBoundKind.CurrentRow => isStartBound ? peerRange.Start : peerRange.End,
-            WindowFrameBoundKind.Preceding => isStartBound
-                ? FirstIndexGreaterOrEqual(scalarValues, currentScalar - bound.Offset.GetValueOrDefault())
-                : LastIndexLessOrEqual(scalarValues, currentScalar - bound.Offset.GetValueOrDefault()),
-            WindowFrameBoundKind.Following => isStartBound
-                ? FirstIndexGreaterOrEqual(scalarValues, currentScalar + bound.Offset.GetValueOrDefault())
-                : LastIndexLessOrEqual(scalarValues, currentScalar + bound.Offset.GetValueOrDefault()),
-            _ => isStartBound ? 0 : last
-        };
-    }
-
-    private static int FirstIndexGreaterOrEqual(decimal[] sortedValues, decimal threshold)
-    {
-        for (var i = 0; i < sortedValues.Length; i++)
-            if (sortedValues[i] >= threshold)
-                return i;
-        return sortedValues.Length;
-    }
-
-    private static int LastIndexLessOrEqual(decimal[] sortedValues, decimal threshold)
-    {
-        for (var i = sortedValues.Length - 1; i >= 0; i--)
-            if (sortedValues[i] <= threshold)
-                return i;
-        return -1;
+        var orderValuesByRow = WindowOrderValueHelper.BuildWindowOrderValuesByRow(
+            part,
+            orderBy,
+            (expr, row) => Eval(expr, row, null, ctes));
+        return WindowFrameRangeResolver.Resolve(
+            frame,
+            part,
+            rowIndex,
+            orderBy,
+            orderValuesByRow,
+            (left, right) => WindowOrderValueHelper.WindowOrderValuesEqual(left, right, CompareSql));
     }
 
         private static bool TryReadIntLiteral(SqlExpr expr, out int value)
@@ -2970,12 +2490,15 @@ private int ResolveLagLeadOffset(
         if (part.Count == 0)
             return;
 
-        var orderValuesByRow = BuildWindowOrderValuesByRow(part, windowFunctionExpr.Spec.OrderBy, ctes);
+        var orderValuesByRow = WindowOrderValueHelper.BuildWindowOrderValuesByRow(
+            part,
+            windowFunctionExpr.Spec.OrderBy,
+            (expr, row) => Eval(expr, row, null, ctes));
 
         for (var i = 0; i < part.Count; i++)
         {
             var frameRange = ResolveWindowFrameRange(windowFunctionExpr.Spec.Frame, part, i, windowFunctionExpr.Spec.OrderBy, ctes);
-            if (frameRange.IsEmpty || !RowsFrameContainsRow(frameRange, i))
+            if (frameRange.IsEmpty || !WindowOrderValueHelper.RowsFrameContainsRow(frameRange, i))
             {
                 map[part[i]] = null;
                 continue;
@@ -2989,13 +2512,13 @@ private int ResolveLagLeadOffset(
             for (var frameIndex = frameRange.StartIndex; frameIndex <= frameRange.EndIndex; frameIndex++)
             {
                 var frameValues = orderValuesByRow[part[frameIndex]];
-                if (prevValues is not null && !WindowOrderValuesEqual(prevValues, frameValues))
+                if (prevValues is not null && !WindowOrderValueHelper.WindowOrderValuesEqual(prevValues, frameValues, CompareSql))
                 {
                     rank = (frameIndex - frameRange.StartIndex) + 1;
                     denseRank++;
                 }
 
-                if (WindowOrderValuesEqual(frameValues, currentValues))
+                if (WindowOrderValueHelper.WindowOrderValuesEqual(frameValues, currentValues, CompareSql))
                     break;
 
                 prevValues = frameValues;
@@ -3019,13 +2542,16 @@ private void FillPercentRankOrCumeDist(
         if (part.Count == 0)
             return;
 
-        var orderValuesByRow = BuildWindowOrderValuesByRow(part, orderBy, ctes);
+        var orderValuesByRow = WindowOrderValueHelper.BuildWindowOrderValuesByRow(
+            part,
+            orderBy,
+            (expr, row) => Eval(expr, row, null, ctes));
 
         for (var rowIndex = 0; rowIndex < part.Count; rowIndex++)
         {
             var row = part[rowIndex];
             var frameRange = ResolveWindowFrameRange(frame, part, rowIndex, orderBy, ctes);
-            if (frameRange.IsEmpty || !RowsFrameContainsRow(frameRange, rowIndex))
+            if (frameRange.IsEmpty || !WindowOrderValueHelper.RowsFrameContainsRow(frameRange, rowIndex))
             {
                 map[row] = null;
                 continue;
@@ -3039,7 +2565,7 @@ private void FillPercentRankOrCumeDist(
             for (var frameIndex = frameRange.StartIndex; frameIndex <= frameRange.EndIndex; frameIndex++)
             {
                 var frameValues = orderValuesByRow[part[frameIndex]];
-                if (WindowOrderValuesEqual(frameValues, currentValues))
+                if (WindowOrderValueHelper.WindowOrderValuesEqual(frameValues, currentValues, CompareSql))
                 {
                     peerCount++;
                     continue;
@@ -3081,7 +2607,7 @@ private void FillPercentRankOrCumeDist(
         for (var rowIndex = 0; rowIndex < part.Count; rowIndex++)
         {
             var frameRange = ResolveWindowFrameRange(windowFunctionExpr.Spec.Frame, part, rowIndex, windowFunctionExpr.Spec.OrderBy, ctes);
-            if (frameRange.IsEmpty || !RowsFrameContainsRow(frameRange, rowIndex))
+            if (frameRange.IsEmpty || !WindowOrderValueHelper.RowsFrameContainsRow(frameRange, rowIndex))
             {
                 map[part[rowIndex]] = null;
                 continue;
@@ -3092,34 +2618,6 @@ private void FillPercentRankOrCumeDist(
             var tile = ((positionInFrame - 1) * bucketCount) / frameSize + 1;
             map[part[rowIndex]] = tile;
         }
-    }
-
-
-    /// <summary>
-    /// EN: Checks whether the current row index is visible inside the resolved ROWS frame.
-    /// PT: Verifica se o índice da linha atual está visível dentro do frame ROWS resolvido.
-    /// </summary>
-    private static bool RowsFrameContainsRow(RowsFrameRange frameRange, int rowIndex)
-        => rowIndex >= frameRange.StartIndex && rowIndex <= frameRange.EndIndex;
-
-    /// <summary>
-    /// EN: Builds evaluated ORDER BY values for each row in the ordered partition.
-    /// PT: Constrói os valores de ORDER BY avaliados para cada linha da partição ordenada.
-    /// </summary>
-    private Dictionary<EvalRow, object?[]> BuildWindowOrderValuesByRow(
-        List<EvalRow> part,
-        IReadOnlyList<WindowOrderItem> orderBy,
-        IDictionary<string, Source> ctes)
-    {
-        var orderValuesByRow = new Dictionary<EvalRow, object?[]>(ReferenceEqualityComparer<EvalRow>.Instance);
-        foreach (var row in part)
-        {
-            orderValuesByRow[row] = orderBy
-                .Select(oi => Eval(oi.Expr, row, null, ctes))
-                .ToArray();
-        }
-
-        return orderValuesByRow;
     }
 
     /// <summary>
@@ -3161,23 +2659,6 @@ private void FillPercentRankOrCumeDist(
 
         return 1;
     }
-    private bool WindowOrderValuesEqual(
-        object?[] left,
-        object?[] right)
-    {
-        if (left.Length != right.Length)
-            return false;
-
-        for (int i = 0; i < left.Length; i++)
-        {
-            var cmp = CompareSql(left[i], right[i]);
-            if (cmp != 0)
-                return false;
-        }
-
-        return true;
-    }
-
     private int CompareSql(object? a, object? b)
     {
         if (IsNullish(a) && IsNullish(b)) return 0;
@@ -3191,211 +2672,17 @@ private void FillPercentRankOrCumeDist(
             SqlSelectQuery q,
             List<EvalRow> sampleRows,
             IDictionary<string, Source> ctes)
-    {
-        var cols = new List<TableResultColMock>();
-        var evals = new List<Func<EvalRow, EvalGroup?, object?>>();
+        => SelectPlanBuilderHelper.Build(
+            q,
+            sampleRows,
+            ctes,
+            Dialect,
+            ParseExpr,
+            Eval,
+            ResolveColumn);
 
-        var windowSlots = new List<WindowSlot>();
-
-        var sampleFirst = sampleRows.FirstOrDefault();
-
-        foreach (var si in q.SelectItems)
-        {
-            Console.WriteLine($"[SELECT ITEM RAW] '{si.Raw}'  Alias='{si.Alias}'");
-            var raw0 = si.Raw.Trim();
-
-            // ✅ separa alias mesmo se o parser não preencheu si.Alias
-            var (raw, asAlias) = SplitTrailingAsAlias(raw0, si.Alias);
-
-            // Expand SELECT *
-            if (!ExpandSelectAsterisc(cols, evals, sampleFirst, raw))
-                continue;
-
-            if (!IncludExtraColumns(sampleRows, cols, evals, raw))
-                continue;
-
-            // Default: parse as expression (best-effort)
-            SqlExpr exprAst;
-#pragma warning disable CA1031
-            try
-            {
-                exprAst = ParseExpr(raw);
-            }
-            catch (Exception e)
-            {
-#pragma warning disable CA1303 // Do not pass literals as localized parameters
-                Console.WriteLine($"{GetType().Name}.{nameof(BuildSelectPlan)}");
-#pragma warning restore CA1303 // Do not pass literals as localized parameters
-                Console.WriteLine($"[SELECT-ITEM] Raw0='{raw0}' RawExpr='{raw}' AliasParsed='{asAlias ?? "null"}' AliasSi='{si.Alias ?? "null"}'");
-                Console.WriteLine(e);
-                exprAst = new RawSqlExpr(raw);
-            }
-#pragma warning restore CA1031
-
-            // ✅ alias preferido: (1) parser do SELECT (si.Alias), (2) AS extraído do raw, (3) infer
-            var preferred = si.Alias ?? asAlias ?? InferColumnAlias(raw);
-            var tableAl = q.Table?.Alias ?? q.Table?.Name ?? "";
-            var colAlias = MakeUniqueAlias(cols, preferred, tableAl);
-            var inferredDbType = InferDbTypeFromExpression(exprAst, sampleRows, ctes);
-
-            cols.Add(new TableResultColMock(
-                tableAlias: q.Table?.Alias ?? q.Table?.Name ?? "",
-                columnAlias: colAlias,
-                columnName: colAlias,
-                columIndex: cols.Count,
-                dbType: inferredDbType,
-                isNullable: true));
-
-            if (exprAst is WindowFunctionExpr w)
-            {
-                if (!(Dialect?.SupportsWindowFunctions ?? true)
-                    || !(Dialect?.SupportsWindowFunction(w.Name) ?? true))
-                    throw SqlUnsupported.ForDialect(
-                        Dialect!,
-                        $"window functions ({w.Name})");
-
-                EnsureWindowFunctionArgumentsAtRuntime(w);
-
-                // slot.Map preenchido depois (quando tivermos todas as rows)
-                var slot = new WindowSlot
-                {
-                    Expr = w,
-                    Map = new Dictionary<EvalRow, object?>(ReferenceEqualityComparer<EvalRow>.Instance)
-                };
-                windowSlots.Add(slot);
-
-                evals.Add((r, g) => slot.Map.TryGetValue(r, out var v) ? v : null);
-            }
-            else
-            {
-                evals.Add((r, g) => Eval(exprAst, r, g, ctes));
-            }
-        }
-
-#pragma warning disable CA1303 // Do not pass literals as localized parameters
-        Console.WriteLine("RESULT COLUMNS:");
-#pragma warning restore CA1303 // Do not pass literals as localized parameters
-        foreach (var c in cols)
-            Console.WriteLine($" - {c.ColumnAlias}");
-
-        return new SelectPlan { Columns = cols, Evaluators = evals, WindowSlots = windowSlots };
-    }
-
-    /// <summary>
-    /// EN: Validates window function argument arity at runtime to protect execution paths that bypass parser validation.
-    /// PT: Valida a aridade dos argumentos de funções de janela em runtime para proteger caminhos de execução que ignoram a validação do parser.
-    /// </summary>
-    private void EnsureWindowFunctionArgumentsAtRuntime(WindowFunctionExpr windowFunctionExpr)
-    {
-        if (Dialect is null)
-            return;
-
-        if (!Dialect.TryGetWindowFunctionArgumentArity(windowFunctionExpr.Name, out var minArgs, out var maxArgs))
-            return;
-
-        var actualArgs = windowFunctionExpr.Args.Count;
-        if (actualArgs < minArgs || actualArgs > maxArgs)
-        {
-            if (minArgs == maxArgs)
-                throw new InvalidOperationException($"Window function '{windowFunctionExpr.Name}' expects exactly {minArgs} argument(s), but received {actualArgs}.");
-
-            throw new InvalidOperationException($"Window function '{windowFunctionExpr.Name}' expects between {minArgs} and {maxArgs} argument(s), but received {actualArgs}.");
-        }
-    }
-
-    private DbType InferDbTypeFromExpression(
-        SqlExpr exprAst,
-        List<EvalRow> sampleRows,
-        IDictionary<string, Source> ctes)
-    {
-        if (exprAst is WindowFunctionExpr w)
-            return Dialect?.InferWindowFunctionDbType(w, arg => InferDbTypeFromExpression(arg, sampleRows, ctes))
-                ?? DbType.Object;
-
-        foreach (var row in sampleRows)
-        {
-            var value = Eval(exprAst, row, group: null, ctes);
-            if (value is null || value is DBNull)
-                continue;
-
-            var type = Nullable.GetUnderlyingType(value.GetType()) ?? value.GetType();
-            try
-            {
-                return type.ConvertTypeToDbType();
-            }
-            catch (ArgumentException)
-            {
-                return DbType.Object;
-            }
-        }
-
-        return DbType.Object;
-    }
-
-    private static bool IncludExtraColumns(
-        List<EvalRow> sampleRows,
-        List<TableResultColMock> cols,
-        List<Func<EvalRow, EvalGroup?, object?>> evals,
-        string raw)
-    {
-        // tableAlias.*  (robusto: aceita espaços e crases)
-        // casa "algo .*" com espaços opcionais:  <prefix> . *
-        var mStar = Regex.Match(raw, @"^(?<p>.+?)\s*\.\s*\*\s*$");
-        if (!mStar.Success)
-            return true;
-
-        var prefix = mStar.Groups["p"].Value.Trim();
-
-        var sample = sampleRows.FirstOrDefault();
-        if (sample is null)
-            return true;
-
-        // remove crases (caso: `t2`.*)
-        prefix = prefix.Trim('`');
-
-        // tenta achar por alias diretamente
-        if (!sample.Sources.TryGetValue(prefix, out var src))
-        {
-            // tenta case-insensitive na mão (Sources é OrdinalIgnoreCase, mas não custa)
-            var hit = sample.Sources.Keys.FirstOrDefault(k => k.Equals(prefix, StringComparison.OrdinalIgnoreCase));
-            if (hit is not null)
-                src = sample.Sources[hit];
-        }
-
-        if (src is null)
-            return true;
-
-        foreach (var colName in src.ColumnNames)
-        {
-            var alias = MakeUniqueAlias(cols, colName, src.Alias);
-            cols.Add(new TableResultColMock(src.Alias, alias, colName, cols.Count, DbType.Object, true));
-            evals.Add((r, g) => ResolveColumn(src.Alias, colName, r));
-        }
-        return false; // ✅ importante: não cai pro parser de expressão
-    }
-
-    private static bool ExpandSelectAsterisc(
-        List<TableResultColMock> cols,
-        List<Func<EvalRow, EvalGroup?, object?>> evals,
-        EvalRow? sampleFirst, string raw)
-    {
-        if (raw != "*")
-            return true;
-
-        if (sampleFirst is null)
-            return false;
-
-        foreach (var src in sampleFirst.Sources.Values)
-        {
-            foreach (var colName in src.ColumnNames)
-            {
-                var alias = MakeUniqueAlias(cols, colName, src.Alias);
-                cols.Add(new TableResultColMock(src.Alias, alias, colName, cols.Count, DbType.Object, true));
-                evals.Add((r, g) => ResolveColumn(src.Alias, colName, r));
-            }
-        }
-        return false;
-    }
+    private void EnsureDialectSupportsSequenceFunction(string? functionName)
+        => SequenceFunctionSupportHelper.EnsureSupported(Dialect, functionName);
 
     // Remove "AS alias" somente quando:
     // - está no FINAL do select item
@@ -3403,398 +2690,87 @@ private void FillPercentRankOrCumeDist(
     private static (string expr, string? alias) SplitTrailingAsAlias(
         string raw,
         string? alreadyAlias)
-    {
-        raw = raw.Trim();
-        if (!string.IsNullOrWhiteSpace(alreadyAlias))
-            return (raw, alreadyAlias);
-
-        // varre de trás pra frente, mantendo depth de parênteses
-        int depth = GetDepthAlias(raw);
-
-        // regex final (fora de parênteses garantido pelo scanner acima? não 100%)
-        // então fazemos um scanner que acha o último AS fora de parênteses.
-        int asPos = -1;
-        FindPositionOfAS(raw, ref depth, ref asPos);
-
-        if (asPos < 0)
-        {
-            // MySQL permite alias sem AS:  SELECT COUNT(*) c1, col1 c2 FROM ...
-            // Precisamos separar o último identificador (fora de parênteses) como alias,
-            // sem quebrar expressões como "t2.*" ou "CAST(x AS CHAR)".
-            if (TrySplitTrailingImplicitAlias(raw, out var expr0, out var alias0))
-                return (expr0, alias0);
-
-            return (raw, null);
-        }
-
-        // pega o sufixo depois do AS
-        var after = raw[(asPos + 2)..].Trim();
-        if (after.Length == 0)
-            return (raw, null);
-
-        // alias pode vir como `C` ou C
-        // (aqui, só aceitamos identificador simples, que é o caso do seu teste)
-        var m = Regex.Match(after, @"^`?(?<a>[A-Za-z_][A-Za-z0-9_]*)`?\s*$");
-        if (!m.Success)
-            return (raw, null);
-
-        var alias = m.Groups["a"].Value;
-
-        // expr é tudo antes do AS
-        var expr = raw[..asPos].TrimEnd();
-        if (expr.Length == 0)
-            return (raw, null);
-
-        return (expr, alias);
-    }
-
-    private static bool TrySplitTrailingImplicitAlias(
-        string raw,
-        out string expr,
-        out string alias)
-    {
-        expr = raw;
-        alias = string.Empty;
-
-        // scanner reverso, ignorando o que está dentro de parênteses
-        int depth = 0;
-        int i = raw.Length - 1;
-        while (i >= 0 && char.IsWhiteSpace(raw[i])) i--;
-        if (i < 0) return false;
-
-        int end = i;
-        while (i >= 0)
-        {
-            var ch = raw[i];
-            if (ch == ')') { depth++; i--; continue; }
-            if (ch == '(') { depth = Math.Max(0, depth - 1); i--; continue; }
-            if (depth == 0 && char.IsWhiteSpace(ch)) break;
-            i--;
-        }
-
-        int start = i + 1;
-        if (start > end) return false;
-
-        var token = raw[start..(end + 1)].Trim();
-        if (token.Length == 0) return false;
-
-        // Alias tem que ser identificador simples: não aceita "t.col1", "*", "?", etc.
-        var m = Regex.Match(token, @"^`?(?<a>[A-Za-z_][A-Za-z0-9_]*)`?$", RegexOptions.CultureInvariant);
-        if (!m.Success) return false;
-
-        var a = m.Groups["a"].Value;
-        if (IsLikelyKeyword(a)) return false;
-
-        var before = raw[..start].TrimEnd();
-        if (before.Length == 0) return false;
-
-        // Evita pegar alias em "t2." (ex: "t2.*" já falha pelo regex acima)
-        if (before.EndsWith(".")) return false;
-
-        expr = before;
-        alias = a;
-        return true;
-    }
-
-    private static bool IsLikelyKeyword(string s)
-    {
-        // lista pequena e pragmática: só pra não confundir com sintaxe
-        return s.Equals("FROM", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("WHERE", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("JOIN", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("LEFT", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("RIGHT", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("INNER", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("OUTER", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("ON", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("GROUP", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("BY", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("HAVING", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("ORDER", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("LIMIT", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("UNION", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("ALL", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("DISTINCT", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("ASC", StringComparison.OrdinalIgnoreCase)
-            || s.Equals("DESC", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static void FindPositionOfAS(string raw, ref int depth, ref int asPos)
-    {
-        for (int i = 0; i < raw.Length - 1; i++)
-        {
-            UpdateParenDepth(raw[i], ref depth);
-            if (depth != 0) continue;
-
-            if (!IsAsAt(raw, i)) continue;
-            if (!IsWordBoundary(raw, i, 2)) continue;
-
-            asPos = i;
-        }
-    }
-
-    private static void UpdateParenDepth(char ch, ref int depth)
-    {
-        if (ch == '(') { depth++; return; }
-        if (ch == ')') depth = Math.Max(0, depth - 1);
-    }
-
-    private static bool IsAsAt(string s, int i)
-    {
-        return (s[i] == 'A' || s[i] == 'a') &&
-               (s[i + 1] == 'S' || s[i + 1] == 's');
-    }
-
-    // length=2 para "AS"
-    private static bool IsWordBoundary(string s, int start, int length)
-    {
-        int left = start - 1;
-        int right = start + length;
-
-        bool leftOk = left < 0 || !IsIdentChar(s[left]);
-        bool rightOk = right >= s.Length || !IsIdentChar(s[right]);
-
-        return leftOk && rightOk;
-    }
-
-    private static bool IsIdentChar(char c) =>
-        char.IsLetterOrDigit(c) || c == '_';
-
-    private static int GetDepthAlias(string raw)
-    {
-        int depth = 0;
-        for (int i = raw.Length - 1; i >= 0; i--)
-        {
-            char ch = raw[i];
-            if (ch == ')') depth++;
-            else if (ch == '(') depth = Math.Max(0, depth - 1);
-
-            // só tenta achar " AS " quando estiver fora de parênteses
-            if (depth != 0) continue;
-
-            // procura um " AS " (case-insensitive) perto do fim.
-            // Ex: "COUNT(val) AS C"
-            //      ^ aqui
-            if (i >= 1 && raw[i] == 'S' || raw[i] == 's')
-            {
-                // checa "...A S..." com espaço antes e depois
-                // vamos achar o padrão usando regex no sufixo por segurança
-            }
-        }
-
-        return depth;
-    }
-
-    private static string InferColumnAlias(string raw)
-    {
-        raw = raw.Trim();
-
-        // For identifiers/qualified columns, we want the last part, but the token printer
-        // may produce spaces around dots (e.g. "u . id"). Normalize just for alias inference.
-        var norm = Regex.Replace(raw, @"\s*\.\s*", ".");
-
-        var dot = norm.LastIndexOf('.');
-        if (dot >= 0 && dot + 1 < norm.Length)
-            return norm[(dot + 1)..].Trim().Trim('`');
-
-        return norm.Trim().Trim('`');
-    }
+        => SelectAliasParserHelper.SplitTrailingAsAlias(raw, alreadyAlias);
 
     // ---------------- ORDER / LIMIT ----------------
 
     private TableResultMock ApplyOrderAndLimit(
         TableResultMock res,
         SqlSelectQuery q,
-        IDictionary<string, Source> ctes)
+        IDictionary<string, Source> ctes,
+        QueryDebugTraceBuilder? debugTrace = null)
     {
         // ORDER BY (aliases/ordinals/expressions) + LIMIT/OFFSET
 
         // LIMIT/OFFSET sem ORDER BY ainda precisa aplicar
         if (q.OrderBy.Count == 0)
         {
-            ApplyLimit(res, q);
+            var limitInput = res.Count;
+            QueryRowLimitHelper.ApplyLimit(res, q);
+            if (debugTrace is not null && q.RowLimit is not null)
+            {
+                debugTrace.AddStep(
+                    "Limit",
+                    limitInput,
+                    res.Count,
+                    TimeSpan.Zero,
+                    QueryDebugTraceFormattingHelper.FormatLimitDebugDetails(q.RowLimit));
+            }
             return res;
         }
 
-        // Pre-parse ORDER BY keys once
-        var keys = new List<(Func<Dictionary<int, object?>, object?> Get, bool Desc, bool? NullsFirst)>();
-        var joinFieldsByRow = new Dictionary<Dictionary<int, object?>, Dictionary<string, object?>>(ReferenceEqualityComparer<Dictionary<int, object?>>.Instance);
-        for (int i = 0; i < res.Count && i < res.JoinFields.Count; i++)
-            joinFieldsByRow[res[i]] = res.JoinFields[i];
-
-        foreach (var it in q.OrderBy)
+        var sortStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+        var sortInput = res.Count;
+        var sorted = QueryOrderByHelper.TryApplyOrder(
+            res,
+            q.OrderBy,
+            ParseExpr,
+            (expr, row) => Eval(expr, row, group: null, ctes),
+            CompareSql);
+        if (!sorted)
         {
-            var raw = (it.Raw ?? string.Empty).Trim();
-            if (raw.Length == 0)
-                continue;
-
-            // ordinal: ORDER BY 1,2,...
-            if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var ord))
+            var limitInput = res.Count;
+            QueryRowLimitHelper.ApplyLimit(res, q);
+            if (debugTrace is not null && q.RowLimit is not null)
             {
-                if (ord < 1)
-                    throw new InvalidOperationException("invalid: ORDER BY ordinal must be >= 1");
-
-                var colIdx = ord - 1;
-                if (colIdx >= res.Columns.Count)
-                    throw new InvalidOperationException($"invalid: ORDER BY ordinal {ord} out of range");
-
-                keys.Add((r => r.TryGetValue(colIdx, out var v) ? v : null, it.Desc, it.NullsFirst));
-                continue;
+                debugTrace.AddStep(
+                    "Limit",
+                    limitInput,
+                    res.Count,
+                    TimeSpan.Zero,
+                    QueryDebugTraceFormattingHelper.FormatLimitDebugDetails(q.RowLimit));
             }
-
-            // column/alias fast-path
-            var col = res.Columns.FirstOrDefault(c =>
-                c.ColumnAlias.Equals(raw, StringComparison.OrdinalIgnoreCase)
-                || c.ColumnName.Equals(raw, StringComparison.OrdinalIgnoreCase));
-            if (col is not null)
-            {
-                var colIdx = col.ColumIndex;
-                keys.Add((r => r.TryGetValue(colIdx, out var v) ? v : null, it.Desc, it.NullsFirst));
-                continue;
-            }
-
-            var aliasToIndex = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-
-            for (int i = 0; i < res.Columns.Count; i++)
-            {
-                var col1 = res.Columns[i];
-
-                if (!string.IsNullOrWhiteSpace(col1.ColumnAlias) && !aliasToIndex.ContainsKey(col1.ColumnAlias))
-                    aliasToIndex[col1.ColumnAlias] = i;
-
-                if (!string.IsNullOrWhiteSpace(col1.ColumnName) && !aliasToIndex.ContainsKey(col1.ColumnName))
-                    aliasToIndex[col1.ColumnName] = i;
-
-                var tail = col1.ColumnName;
-                var dot = tail.LastIndexOf('.');
-                if (dot >= 0 && dot + 1 < tail.Length)
-                    tail = tail[(dot + 1)..];
-
-                if (!string.IsNullOrWhiteSpace(tail) && !aliasToIndex.ContainsKey(tail))
-                    aliasToIndex[tail] = i;
-            }
-
-            var expr = ParseExpr(raw);
-
-            Func<Dictionary<int, object?>, object?> get = r =>
-            {
-                var fake = EvalRow.FromProjected(res, r, aliasToIndex);
-                if (joinFieldsByRow.TryGetValue(r, out var rowFields))
-                {
-                    foreach (var kv in rowFields)
-                    {
-                        if (!fake.Fields.ContainsKey(kv.Key))
-                            fake.Fields[kv.Key] = kv.Value;
-
-                        var dot = kv.Key.IndexOf('.');
-                        if (dot > 0 && dot + 1 < kv.Key.Length)
-                        {
-                            var unqualified = kv.Key[(dot + 1)..];
-                            if (!fake.Fields.ContainsKey(unqualified))
-                                fake.Fields[unqualified] = kv.Value;
-                        }
-                    }
-                }
-
-                return Eval(expr, fake, group: null, ctes);
-            };
-
-            keys.Add((Get: get, it.Desc, it.NullsFirst));
-        }
-
-        if (keys.Count == 0)
-        {
-            ApplyLimit(res, q);
             return res;
         }
 
-        int CompareObj(object? a, object? b)
+        debugTrace?.AddStep(
+            "Sort",
+            sortInput,
+            res.Count,
+            TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(sortStart)),
+            QueryDebugTraceFormattingHelper.FormatOrderByDebugDetails(q.OrderBy));
+
+        var limitInputRows = res.Count;
+        QueryRowLimitHelper.ApplyLimit(res, q);
+        if (debugTrace is not null && q.RowLimit is not null)
         {
-            if (a is null && b is null) return 0;
-            if (a is null) return -1;
-            if (b is null) return 1;
-
-            return a.Compare(b, Dialect);
+            debugTrace.AddStep(
+                "Limit",
+                limitInputRows,
+                res.Count,
+                TimeSpan.Zero,
+                QueryDebugTraceFormattingHelper.FormatLimitDebugDetails(q.RowLimit));
         }
-
-        int CompareRows(Dictionary<int, object?> ra, Dictionary<int, object?> rb)
-        {
-            foreach (var (Get, Desc, NullsFirst) in keys)
-            {
-                var ka = Get(ra);
-                var kb = Get(rb);
-
-                int cmp;
-                var kaIsNull = IsNullish(ka);
-                var kbIsNull = IsNullish(kb);
-                if (kaIsNull || kbIsNull)
-                {
-                    if (kaIsNull && kbIsNull) cmp = 0;
-                    else
-                    {
-                        var explicitNullsFirst = NullsFirst;
-                        if (explicitNullsFirst.HasValue)
-                            cmp = kaIsNull ? (explicitNullsFirst.Value ? -1 : 1) : (explicitNullsFirst.Value ? 1 : -1);
-                        else
-                            cmp = kaIsNull ? (Desc ? 1 : -1) : (Desc ? -1 : 1);
-                    }
-                }
-                else
-                {
-                    cmp = CompareObj(ka, kb);
-                    if (Desc) cmp = -cmp;
-                }
-
-                if (cmp != 0) return cmp;
-            }
-            return 0;
-        }
-
-        var sorted = res.OrderBy(r => r, Comparer<Dictionary<int, object?>>.Create(CompareRows)).ToList();
-        res.Clear();
-        foreach (var r in sorted) res.Add(r);
-
-        if (res.JoinFields.Count > 0)
-        {
-            var sortedJoinFields = sorted
-                .Select(r => joinFieldsByRow.TryGetValue(r, out var jf)
-                    ? jf
-                    : new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase))
-                .ToList();
-            res.JoinFields = sortedJoinFields;
-        }
-
-        ApplyLimit(res, q);
         return res;
     }
 
-    private static void ApplyLimit(
-        TableResultMock res,
-        SqlSelectQuery q)
+    private static string FormatJoinDebugDetails(SqlJoin join)
     {
-        int? offset = null;
-        int take;
-        switch (q.RowLimit)
-        {
-            case SqlLimitOffset l:
-                offset = l.Offset;
-                take = l.Count;
-                break;
-            case SqlFetch f:
-                offset = f.Offset;
-                take = f.Count;
-                break;
-            case SqlTop t:
-                take = t.Count;
-                break;
-            default:
-                return;
-        }
-
-        var skip = offset ?? 0;
-        var sliced = res.Skip(skip).Take(take).ToList();
-        res.Clear();
-        foreach (var r in sliced) res.Add(r);
+        var source = FormatSource(join.Table);
+        var predicate = SqlExprPrinter.Print(join.On);
+        return string.IsNullOrWhiteSpace(predicate)
+            ? source
+            : $"{source};on={predicate}";
     }
 
 
@@ -3832,14 +2808,13 @@ private void FillPercentRankOrCumeDist(
     {
         var cacheKey = BuildCorrelatedSubqueryCacheKey("SCALAR", sq.Sql, row);
 
-        return _scalarSubqueryCache.GetOrAdd(
+        return _subqueryEvaluationCache.GetOrAddScalar(
             cacheKey,
             _ =>
             {
                 var r = ExecuteSelect(GetSingleSubqueryOrThrow(sq, "EVAL subquery"), ctes, row);
-                var value = r.Count > 0 && r[0].TryGetValue(0, out var v) ? v : null;
-                return new ScalarSubqueryCacheEntry(value);
-            }).Value;
+                return r.Count > 0 && r[0].TryGetValue(0, out var v) ? v : null;
+            });
     }
 
     // ---------------- EXPRESSION EVAL ----------------
@@ -3859,16 +2834,7 @@ private void FillPercentRankOrCumeDist(
                 return ResolveParam(p.Name);
 
             case IdentifierExpr id:
-                if (SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(
-                    Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para avaliação de função temporal."),
-                    id.Name,
-                    out var temporalIdentifierValue))
-                    return temporalIdentifierValue;
-
-                if (IsSqlServerRowCountIdentifier(id.Name, Dialect))
-                    return _cnn.GetLastFoundRows();
-
-                return ResolveIdentifier(id.Name, row);
+                return EvalIdentifier(id, row);
 
             case ColumnExpr col:
                 return ResolveColumn(col.Qualifier, col.Name, row);
@@ -3878,24 +2844,13 @@ private void FillPercentRankOrCumeDist(
                 return "*";
 
             case IsNullExpr isn:
-                {
-                    var v1 = Eval(isn.Expr, row, group, ctes);
-                    var isNull = v1 is null || v1 is DBNull;
-                    return isn.Negated ? !isNull : isNull;
-                }
+                return EvalIsNull(isn, row, group, ctes);
 
             case LikeExpr like:
-                {
-                    var left = Eval(like.Left, row, group, ctes)?.ToString() ?? "";
-                    var pat = Eval(like.Pattern, row, group, ctes)?.ToString() ?? "";
-                    return left.Like(pat, Dialect);
-                }
+                return EvalLike(like, row, group, ctes);
 
             case UnaryExpr u when u.Op == SqlUnaryOp.Not:
-                if (u.Expr is InExpr notInExpr)
-                    return EvalNotIn(notInExpr, row, group, ctes);
-
-                return !Eval(u.Expr, row, group, ctes).ToBool();
+                return EvalNot(u, row, group, ctes);
 
             case BinaryExpr b:
                 return EvalBinary(b, row, group, ctes);
@@ -3914,11 +2869,7 @@ private void FillPercentRankOrCumeDist(
                 return EvalCase(c, row, group, ctes);
 
             case JsonAccessExpr ja:
-                if (!Dialect!.SupportsJsonArrowOperators)
-                    throw SqlUnsupported.ForDialect(Dialect, "JSON -> / ->> / #> / #>> operators");
-
-                var mapped = MapJsonAccess(ja);
-                return Eval(mapped, row, group, ctes);
+                return EvalJsonAccess(ja, row, group, ctes);
             case FunctionCallExpr fn:
                 return EvalFunction(fn, row, group, ctes);
             case CallExpr ce:
@@ -3928,7 +2879,7 @@ private void FillPercentRankOrCumeDist(
             case SubqueryExpr sq:
                 return EvalScalarSubquery(sq, ctes, row);
             case RowExpr re:
-                return re.Items.Select(it => Eval(it, row, group, ctes)).ToArray();
+                return EvalRowExpression(re, row, group, ctes);
 
             case RawSqlExpr:
                 // unsupported expression (e.g. CAST(x AS CHAR)): best-effort: null
@@ -3938,6 +2889,75 @@ private void FillPercentRankOrCumeDist(
                 throw new InvalidOperationException($"Expr não suportada no executor: {expr.GetType().Name}");
         }
     }
+
+    private object? EvalIdentifier(IdentifierExpr identifier, EvalRow row)
+    {
+        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para avaliação de função temporal.");
+        if (SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, identifier.Name, out var temporalIdentifierValue))
+            return temporalIdentifierValue;
+
+        if (IsSqlServerRowCountIdentifier(identifier.Name, Dialect))
+            return _cnn.GetLastFoundRows();
+
+        return ResolveIdentifier(identifier.Name, row);
+    }
+
+    private object? EvalIsNull(
+        IsNullExpr expression,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+    {
+        var value = Eval(expression.Expr, row, group, ctes);
+        var isNull = value is null || value is DBNull;
+        return expression.Negated ? !isNull : isNull;
+    }
+
+    private bool EvalLike(
+        LikeExpr expression,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+    {
+        var left = Eval(expression.Left, row, group, ctes)?.ToString() ?? string.Empty;
+        var pattern = Eval(expression.Pattern, row, group, ctes)?.ToString() ?? string.Empty;
+        var escape = expression.Escape is null
+            ? null
+            : Eval(expression.Escape, row, group, ctes)?.ToString();
+        return left.Like(pattern, Dialect, escape, expression.CaseInsensitive ? true : null);
+    }
+
+    private object? EvalNot(
+        UnaryExpr expression,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+    {
+        if (expression.Expr is InExpr notInExpression)
+            return EvalNotIn(notInExpression, row, group, ctes);
+
+        return !Eval(expression.Expr, row, group, ctes).ToBool();
+    }
+
+    private object? EvalJsonAccess(
+        JsonAccessExpr expression,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+    {
+        if (!Dialect!.SupportsJsonArrowOperators)
+            throw SqlUnsupported.ForDialect(Dialect, "JSON -> / ->> / #> / #>> operators");
+
+        var mapped = MapJsonAccess(expression);
+        return Eval(mapped, row, group, ctes);
+    }
+
+    private object?[] EvalRowExpression(
+        RowExpr expression,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+        => expression.Items.Select(item => Eval(item, row, group, ctes)).ToArray();
 
     private object? EvalBetween(
         BetweenExpr b,
@@ -3964,63 +2984,17 @@ private void FillPercentRankOrCumeDist(
         EvalGroup? group,
         IDictionary<string, Source> ctes)
     {
-        if (b.Op == SqlBinaryOp.And)
-            return Eval(b.Left, row, group, ctes).ToBool() && Eval(b.Right, row, group, ctes).ToBool();
-
-        if (b.Op == SqlBinaryOp.Or)
-            return Eval(b.Left, row, group, ctes).ToBool()
-                || Eval(b.Right, row, group, ctes).ToBool();
+        if (TryEvalLogicalBinary(b, row, group, ctes, out var logicalResult))
+            return logicalResult;
 
         var l = Eval(b.Left, row, group, ctes);
         var r = Eval(b.Right, row, group, ctes);
 
-        // arithmetic: NULL propagates (MySQL)
-        if (b.Op is SqlBinaryOp.Add or SqlBinaryOp.Subtract or SqlBinaryOp.Multiply or SqlBinaryOp.Divide)
-        {
-            if (l is null || r is null) return null;
+        if (TryEvalArithmeticBinary(b.Op, l, r, out var arithmeticResult))
+            return arithmeticResult;
 
-            if (l is DateTime dt && r is IntervalValue interval)
-            {
-                return b.Op switch
-                {
-                    SqlBinaryOp.Add => dt.Add(interval.Span),
-                    SqlBinaryOp.Subtract => dt.Subtract(interval.Span),
-                    _ => throw new InvalidOperationException("op aritmético inválido")
-                };
-            }
-
-            decimal ToDec(object v)
-            {
-                if (v is decimal dd) return dd;
-                if (v is byte or sbyte or short or ushort or int or uint or long or ulong)
-                    return Convert.ToDecimal(v, CultureInfo.InvariantCulture);
-                if (v is float ff) return Convert.ToDecimal(ff, CultureInfo.InvariantCulture);
-                if (v is double db) return Convert.ToDecimal(db, CultureInfo.InvariantCulture);
-                if (v is string s && decimal.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed))
-                    return parsed;
-                throw new InvalidOperationException($"Não consigo converter '{v}' para número.");
-            }
-
-            var a = ToDec(l);
-            var b2 = ToDec(r);
-
-            return b.Op switch
-            {
-                SqlBinaryOp.Add => a + b2,
-                SqlBinaryOp.Subtract => a - b2,
-                SqlBinaryOp.Multiply => a * b2,
-                SqlBinaryOp.Divide => b2 == 0m ? null : a / b2,
-                _ => throw new InvalidOperationException("op aritmético inválido")
-            };
-        }
-
-        // NULL-safe equality
-        if (b.Op == SqlBinaryOp.NullSafeEq)
-        {
-            if (l is null && r is null) return true;
-            if (l is null || r is null) return false;
-            return l.Compare(r, Dialect) == 0;
-        }
+        if (TryEvalNullSafeEqualityBinary(b.Op, l, r, out var nullSafeEqualityResult))
+            return nullSafeEqualityResult;
 
         if (l is null || l is DBNull || r is null || r is DBNull)
         {
@@ -4028,18 +3002,139 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        var cmp = l.Compare(r, Dialect);
+        return EvalComparisonBinary(b.Op, l, r);
+    }
 
-        return b.Op switch
+    private bool TryEvalLogicalBinary(
+        BinaryExpr expression,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        out object? result)
+    {
+        result = expression.Op switch
         {
-            SqlBinaryOp.Eq => cmp == 0,
-            SqlBinaryOp.Neq => cmp != 0,
-            SqlBinaryOp.Greater => cmp > 0,
-            SqlBinaryOp.GreaterOrEqual => cmp >= 0,
-            SqlBinaryOp.Less => cmp < 0,
-            SqlBinaryOp.LessOrEqual => cmp <= 0,
-            SqlBinaryOp.Regexp => EvalRegexp(l, r, Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para REGEXP.")),
-            _ => throw new InvalidOperationException($"Binary op não suportado: {b.Op}")
+            SqlBinaryOp.And => Eval(expression.Left, row, group, ctes).ToBool()
+                && Eval(expression.Right, row, group, ctes).ToBool(),
+            SqlBinaryOp.Or => Eval(expression.Left, row, group, ctes).ToBool()
+                || Eval(expression.Right, row, group, ctes).ToBool(),
+            _ => null
+        };
+
+        return expression.Op is SqlBinaryOp.And or SqlBinaryOp.Or;
+    }
+
+    private static bool TryEvalArithmeticBinary(
+        SqlBinaryOp op,
+        object? left,
+        object? right,
+        out object? result)
+    {
+        if (op is not (SqlBinaryOp.Add or SqlBinaryOp.Subtract or SqlBinaryOp.Multiply or SqlBinaryOp.Divide))
+        {
+            result = null;
+            return false;
+        }
+
+        if (left is null || right is null)
+        {
+            result = null;
+            return true;
+        }
+
+        if (TryEvalDateIntervalArithmeticBinary(op, left, right, out result))
+            return true;
+
+        var leftNumber = ConvertBinaryArithmeticOperandToDecimal(left);
+        var rightNumber = ConvertBinaryArithmeticOperandToDecimal(right);
+        result = op switch
+        {
+            SqlBinaryOp.Add => leftNumber + rightNumber,
+            SqlBinaryOp.Subtract => leftNumber - rightNumber,
+            SqlBinaryOp.Multiply => leftNumber * rightNumber,
+            SqlBinaryOp.Divide => rightNumber == 0m ? null : leftNumber / rightNumber,
+            _ => throw new InvalidOperationException("op aritmético inválido")
+        };
+        return true;
+    }
+
+    private static bool TryEvalDateIntervalArithmeticBinary(
+        SqlBinaryOp op,
+        object left,
+        object right,
+        out object? result)
+    {
+        if (left is not DateTime dateTime || right is not IntervalValue interval)
+        {
+            result = null;
+            return false;
+        }
+
+        result = op switch
+        {
+            SqlBinaryOp.Add => dateTime.Add(interval.Span),
+            SqlBinaryOp.Subtract => dateTime.Subtract(interval.Span),
+            _ => throw new InvalidOperationException("op aritmético inválido")
+        };
+        return true;
+    }
+
+    private static decimal ConvertBinaryArithmeticOperandToDecimal(object value)
+    {
+        if (value is decimal decimalValue) return decimalValue;
+        if (value is byte or sbyte or short or ushort or int or uint or long or ulong)
+            return Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+        if (value is float singleValue) return Convert.ToDecimal(singleValue, CultureInfo.InvariantCulture);
+        if (value is double doubleValue) return Convert.ToDecimal(doubleValue, CultureInfo.InvariantCulture);
+        if (value is string text
+            && decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedValue))
+            return parsedValue;
+
+        throw new InvalidOperationException($"Não consigo converter '{value}' para número.");
+    }
+
+    private bool TryEvalNullSafeEqualityBinary(
+        SqlBinaryOp op,
+        object? left,
+        object? right,
+        out object? result)
+    {
+        if (op != SqlBinaryOp.NullSafeEq)
+        {
+            result = null;
+            return false;
+        }
+
+        if (left is null && right is null)
+        {
+            result = true;
+            return true;
+        }
+
+        if (left is null || right is null)
+        {
+            result = false;
+            return true;
+        }
+
+        result = left.Compare(right, Dialect) == 0;
+        return true;
+    }
+
+    private bool EvalComparisonBinary(SqlBinaryOp op, object left, object right)
+    {
+        var comparison = left.Compare(right, Dialect);
+
+        return op switch
+        {
+            SqlBinaryOp.Eq => comparison == 0,
+            SqlBinaryOp.Neq => comparison != 0,
+            SqlBinaryOp.Greater => comparison > 0,
+            SqlBinaryOp.GreaterOrEqual => comparison >= 0,
+            SqlBinaryOp.Less => comparison < 0,
+            SqlBinaryOp.LessOrEqual => comparison <= 0,
+            SqlBinaryOp.Regexp => EvalRegexp(left, right, Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para REGEXP.")),
+            _ => throw new InvalidOperationException($"Binary op não suportado: {op}")
         };
     }
 
@@ -4047,7 +3142,11 @@ private void FillPercentRankOrCumeDist(
     {
         try
         {
-            return Regex.IsMatch(l.ToString() ?? "", r.ToString() ?? "");
+            var options = RegexOptions.CultureInvariant;
+            if (dialect.RegexIsCaseInsensitive)
+                options |= RegexOptions.IgnoreCase;
+
+            return Regex.IsMatch(l.ToString() ?? "", r.ToString() ?? "", options);
         }
         catch (ArgumentException)
         {
@@ -4110,99 +3209,159 @@ private void FillPercentRankOrCumeDist(
     {
         var hasNullCandidate = false;
 
-        // IN (subquery)
-        if (i.Items.Count == 1 && i.Items[0] is SubqueryExpr sq)
-        {
-            var subqueryValues = GetOrEvaluateInSubqueryFirstColumnValues(sq, row, ctes);
+        if (TryEvaluateInSubqueryMembership(i, leftVal, row, ctes, ref hasNullCandidate, out var subqueryState))
+            return subqueryState;
 
-            // MySQL: IN(subquery) considera a 1a coluna retornada
-            foreach (var v in subqueryValues)
-            {
-                if (v is null || v is DBNull)
-                {
-                    hasNullCandidate = true;
-                    continue;
-                }
-
-                if (leftVal.EqualsSql(v, Dialect))
-                    return new InMembershipState(Matched: true, HasNullCandidate: hasNullCandidate);
-            }
-
-            return new InMembershipState(Matched: false, HasNullCandidate: hasNullCandidate);
-        }
-
-        // IN (item1, item2, ...)
         foreach (var it in i.Items)
         {
             var v = Eval(it, row, group, ctes);
-
-            // ✅ Caso especial: IN @ids onde @ids é lista/array
-            // Expande IEnumerable (mas não string) como múltiplos candidatos.
-            if (v is IEnumerable ie && v is not string)
+            if (TryEvaluateEnumerableMembership(leftVal, v, ref hasNullCandidate, out var enumerableState))
             {
-                foreach (var item in ie)
-                {
-                    var cand = item;
-                    if (cand is null || cand is DBNull)
-                    {
-                        hasNullCandidate = true;
-                        continue;
-                    }
+                if (enumerableState.Matched)
+                    return enumerableState;
 
-                    // Row IN Row (quando o parametro é lista de tuples/rows)
-                    if (leftVal is object?[] la2 && cand is object?[] ra2)
-                    {
-                        if (HasNullElement(la2) || HasNullElement(ra2))
-                        {
-                            hasNullCandidate = true;
-                            continue;
-                        }
-
-                        if (la2.Length == ra2.Length && !la2.Where((t, idx) => !t.EqualsSql(ra2[idx], Dialect)).Any())
-                            return new InMembershipState(Matched: true, HasNullCandidate: hasNullCandidate);
-                        continue;
-                    }
-
-                    if (leftVal.EqualsSql(cand, Dialect))
-                        return new InMembershipState(Matched: true, HasNullCandidate: hasNullCandidate);
-                }
-
-                continue; // não cai no EqualsSql(v) do enumerable inteiro
-            }
-
-            // Row IN Row (normal)
-            if (leftVal is object?[] la && v is object?[] ra)
-            {
-                if (HasNullElement(la) || HasNullElement(ra))
-                {
-                    hasNullCandidate = true;
-                    continue;
-                }
-
-                if (la.Length == ra.Length && !la.Where((t, idx) => !t.EqualsSql(ra[idx], Dialect)).Any())
-                    return new InMembershipState(Matched: true, HasNullCandidate: hasNullCandidate);
                 continue;
             }
 
-            if (v is null || v is DBNull)
-            {
-                hasNullCandidate = true;
-                continue;
-            }
-
-            if (leftVal.EqualsSql(v, Dialect))
-                return new InMembershipState(Matched: true, HasNullCandidate: hasNullCandidate);
+            if (TryEvaluateCandidateMembership(leftVal, v, ref hasNullCandidate, out var candidateState))
+                return candidateState;
         }
 
         return new InMembershipState(Matched: false, HasNullCandidate: hasNullCandidate);
     }
+
+    private bool TryEvaluateInSubqueryMembership(
+        InExpr expression,
+        object leftVal,
+        EvalRow row,
+        IDictionary<string, Source> ctes,
+        ref bool hasNullCandidate,
+        out InMembershipState state)
+    {
+        state = default;
+        if (expression.Items.Count != 1 || expression.Items[0] is not SubqueryExpr subquery)
+            return false;
+
+        state = EvaluateMembershipCandidates(
+            leftVal,
+            GetOrEvaluateInSubqueryFirstColumnValues(subquery, row, ctes),
+            ref hasNullCandidate);
+        return true;
+    }
+
+    private bool TryEvaluateEnumerableMembership(
+        object leftVal,
+        object? candidateValue,
+        ref bool hasNullCandidate,
+        out InMembershipState state)
+    {
+        state = default;
+        if (candidateValue is not IEnumerable enumerable || candidateValue is string)
+            return false;
+
+        state = EvaluateMembershipCandidates(leftVal, enumerable, ref hasNullCandidate);
+        return true;
+    }
+
+    private InMembershipState EvaluateMembershipCandidates(
+        object leftVal,
+        IEnumerable candidates,
+        ref bool hasNullCandidate)
+    {
+        foreach (var candidate in candidates)
+        {
+            if (TryEvaluateCandidateMembership(leftVal, candidate, ref hasNullCandidate, out var state))
+                return state;
+        }
+
+        return CreateMembershipState(matched: false, hasNullCandidate);
+    }
+
+    private bool TryEvaluateCandidateMembership(
+        object leftVal,
+        object? candidateValue,
+        ref bool hasNullCandidate,
+        out InMembershipState state)
+    {
+        if (IsSqlNullLike(candidateValue))
+        {
+            state = RegisterNullCandidate(ref hasNullCandidate);
+            return false;
+        }
+
+        if (TryEvaluateRowCandidateMembership(leftVal, candidateValue, ref hasNullCandidate, out state))
+            return state.Matched;
+
+        if (leftVal.EqualsSql(candidateValue, Dialect))
+        {
+            state = CreateMembershipState(matched: true, hasNullCandidate);
+            return true;
+        }
+
+        state = CreateMembershipState(matched: false, hasNullCandidate);
+        return false;
+    }
+
+    private bool TryEvaluateRowCandidateMembership(
+        object leftVal,
+        object? candidateValue,
+        ref bool hasNullCandidate,
+        out InMembershipState state)
+    {
+        state = default;
+        if (leftVal is not object?[] leftRow || candidateValue is not object?[] rightRow)
+            return false;
+
+        if (HasNullElement(leftRow) || HasNullElement(rightRow))
+        {
+            state = RegisterNullCandidate(ref hasNullCandidate);
+            return true;
+        }
+
+        state = CreateMembershipState(RowValuesMatch(leftRow, rightRow), hasNullCandidate);
+        return true;
+    }
+
+    private static InMembershipState RegisterNullCandidate(ref bool hasNullCandidate)
+    {
+        hasNullCandidate = true;
+        return CreateMembershipState(matched: false, hasNullCandidate);
+    }
+
+    private static InMembershipState CreateMembershipState(bool matched, bool hasNullCandidate)
+        => new(Matched: matched, HasNullCandidate: hasNullCandidate);
+
+    private bool RowValuesMatch(object?[] left, object?[] right)
+    {
+        if (left.Length != right.Length)
+            return false;
+
+        for (var i = 0; i < left.Length; i++)
+        {
+            if (!left[i].EqualsSql(right[i], Dialect))
+                return false;
+        }
+
+        return true;
+    }
+
+    private static bool IsSqlNullLike(object? value)
+        => value is null or DBNull;
 
     /// <summary>
     /// EN: Checks whether an object array contains at least one SQL NULL-like value.
     /// PT: Verifica se um array de objetos contém ao menos um valor SQL nulo.
     /// </summary>
     private static bool HasNullElement(object?[] values)
-        => values.Any(static v => v is null || v is DBNull);
+    {
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (values[i] is null or DBNull)
+                return true;
+        }
+
+        return false;
+    }
 
     private bool EvalExists(
         ExistsExpr ex,
@@ -4212,7 +3371,7 @@ private void FillPercentRankOrCumeDist(
         var sq = ex.Subquery;
         var cacheKey = BuildCorrelatedSubqueryCacheKey("EXISTS", sq.Sql, row);
 
-        return _existsSubqueryCache.GetOrAdd(
+        return _subqueryEvaluationCache.GetOrAddExists(
             cacheKey,
             _ =>
             {
@@ -4234,42 +3393,56 @@ private void FillPercentRankOrCumeDist(
         var leftVal = Eval(quantified.Left, row, group, ctes);
         var candidates = GetOrEvaluateSubqueryFirstColumnValuesForOperation(
             quantified.Subquery,
-            quantified.Quantifier == SqlQuantifier.Any
-                ? $"QANY_{quantified.Op}"
-                : $"QALL_{quantified.Op}",
+            BuildQuantifiedComparisonOperationName(quantified),
             row,
             ctes);
 
-        if (quantified.Quantifier == SqlQuantifier.Any)
-        {
-            foreach (var candidate in candidates)
-            {
-                var truth = EvaluateScalarComparisonTruthValue(quantified.Op, leftVal, candidate);
-                if (truth == SqlTruthValue.True)
-                    return true;
-            }
+        return quantified.Quantifier == SqlQuantifier.Any
+            ? EvalAnyQuantifiedComparison(quantified.Op, leftVal, candidates)
+            : EvalAllQuantifiedComparison(quantified.Op, leftVal, candidates);
+    }
 
-            // UNKNOWN in WHERE is filtered out (same observable result as false).
-            return false;
+    private static string BuildQuantifiedComparisonOperationName(QuantifiedComparisonExpr quantified)
+        => quantified.Quantifier == SqlQuantifier.Any
+            ? $"QANY_{quantified.Op}"
+            : $"QALL_{quantified.Op}";
+
+    private bool EvalAnyQuantifiedComparison(
+        SqlBinaryOp op,
+        object? leftValue,
+        IReadOnlyList<object?> candidates)
+    {
+        foreach (var candidate in candidates)
+        {
+            if (EvaluateScalarComparisonTruthValue(op, leftValue, candidate) == SqlTruthValue.True)
+                return true;
         }
 
-        // ALL on empty set is true (vacuous truth).
+        // UNKNOWN in WHERE is filtered out (same observable result as false).
+        return false;
+    }
+
+    private bool EvalAllQuantifiedComparison(
+        SqlBinaryOp op,
+        object? leftValue,
+        IReadOnlyList<object?> candidates)
+    {
         if (candidates.Count == 0)
             return true;
 
-        var hasUnknownAll = false;
+        var hasUnknown = false;
         foreach (var candidate in candidates)
         {
-            var truth = EvaluateScalarComparisonTruthValue(quantified.Op, leftVal, candidate);
+            var truth = EvaluateScalarComparisonTruthValue(op, leftValue, candidate);
             if (truth == SqlTruthValue.False)
                 return false;
 
             if (truth == SqlTruthValue.Unknown)
-                hasUnknownAll = true;
+                hasUnknown = true;
         }
 
         // If no FALSE but at least one UNKNOWN => UNKNOWN => filtered out in WHERE.
-        return !hasUnknownAll;
+        return !hasUnknown;
     }
 
     /// <summary>
@@ -4319,17 +3492,23 @@ private void FillPercentRankOrCumeDist(
     {
         var cacheKey = BuildCorrelatedSubqueryCacheKey(operation, sq.Sql, row);
 
-        return _inSubqueryFirstColumnCache.GetOrAdd(
+        return _subqueryEvaluationCache.GetOrAddFirstColumnValues(
             cacheKey,
-            _ =>
-            {
-                var sub = ExecuteSelect(GetSingleSubqueryOrThrow(sq, operation), ctes, row);
-                var values = new List<object?>(sub.Count);
-                foreach (var sr in sub)
-                    values.Add(sr.TryGetValue(0, out var cell) ? cell : null);
+            _ => EvaluateSubqueryFirstColumnValues(sq, operation, row, ctes));
+    }
 
-                return values;
-            });
+    private List<object?> EvaluateSubqueryFirstColumnValues(
+        SubqueryExpr sq,
+        string operation,
+        EvalRow row,
+        IDictionary<string, Source> ctes)
+    {
+        var subqueryResult = ExecuteSelect(GetSingleSubqueryOrThrow(sq, operation), ctes, row);
+        var values = new List<object?>(subqueryResult.Count);
+        foreach (var resultRow in subqueryResult)
+            values.Add(resultRow.TryGetValue(0, out var cell) ? cell : null);
+
+        return values;
     }
 
     /// <summary>
@@ -4338,15 +3517,35 @@ private void FillPercentRankOrCumeDist(
     /// </summary>
     private static string BuildCorrelatedSubqueryCacheKey(string operation, string? subquerySql, EvalRow row)
     {
-        var normalizedSubquerySql = NormalizeSubquerySqlForCacheKey(subquerySql ?? string.Empty);
-        normalizedSubquerySql = NormalizeOperationSpecificSubquerySqlForCacheKey(operation, normalizedSubquerySql);
+        var normalizedSubquerySql = BuildNormalizedCorrelatedSubquerySql(operation, subquerySql);
         var sb = new StringBuilder();
+        AppendCorrelatedSubqueryCacheKeyPrefix(sb, operation, normalizedSubquerySql);
+        AppendCorrelatedSubqueryCacheKeyFields(sb, GetCorrelatedSubqueryCacheFields(subquerySql ?? string.Empty, row));
+
+        return sb.ToString();
+    }
+
+    private static string BuildNormalizedCorrelatedSubquerySql(string operation, string? subquerySql)
+    {
+        var normalizedSubquerySql = NormalizeSubquerySqlForCacheKey(subquerySql ?? string.Empty);
+        return NormalizeOperationSpecificSubquerySqlForCacheKey(operation, normalizedSubquerySql);
+    }
+
+    private static void AppendCorrelatedSubqueryCacheKeyPrefix(
+        StringBuilder sb,
+        string operation,
+        string normalizedSubquerySql)
+    {
         sb.Append(operation);
         sb.Append('\u001F');
         sb.Append(normalizedSubquerySql);
         sb.Append('\u001F');
+    }
 
-        var cacheFields = GetCorrelatedSubqueryCacheFields(subquerySql ?? string.Empty, row);
+    private static void AppendCorrelatedSubqueryCacheKeyFields(
+        StringBuilder sb,
+        IReadOnlyList<KeyValuePair<string, object?>> cacheFields)
+    {
         foreach (var kv in cacheFields)
         {
             sb.Append(kv.Key);
@@ -4354,8 +3553,6 @@ private void FillPercentRankOrCumeDist(
             sb.Append(NormalizeSubqueryCacheValue(kv.Value));
             sb.Append('\u001E');
         }
-
-        return sb.ToString();
     }
 
     /// <summary>
@@ -4389,27 +3586,18 @@ private void FillPercentRankOrCumeDist(
         string subquerySql,
         EvalRow row)
     {
-        var allFields = row.Fields
-            .OrderBy(static kv => kv.Key, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        var allFields = GetOrderedCorrelatedSubqueryCacheFields(row);
 
         if (allFields.Count == 0 || string.IsNullOrWhiteSpace(subquerySql))
             return allFields;
 
         var normalizedSql = NormalizeSqlIdentifierSpacing(subquerySql);
-        var qualifiedIdentifiers = ExtractQualifiedSqlIdentifiers(normalizedSql);
-        var qualifiedMatches = allFields
-            .Where(static kv => kv.Key.IndexOf('.') >= 0)
-            .Where(kv => qualifiedIdentifiers.Contains(kv.Key))
-            .ToList();
+        var qualifiedMatches = GetQualifiedCorrelatedSubqueryCacheFieldMatches(allFields, normalizedSql);
 
         if (qualifiedMatches.Count > 0)
             return qualifiedMatches;
 
-        var unqualifiedMatches = allFields
-            .Where(static kv => kv.Key.IndexOf('.') < 0)
-            .Where(kv => ContainsSqlIdentifierToken(normalizedSql, kv.Key))
-            .ToList();
+        var unqualifiedMatches = GetUnqualifiedCorrelatedSubqueryCacheFieldMatches(allFields, normalizedSql);
 
         if (unqualifiedMatches.Count > 0)
             return unqualifiedMatches;
@@ -4420,6 +3608,30 @@ private void FillPercentRankOrCumeDist(
             ? allFields
             : [];
     }
+
+    private static List<KeyValuePair<string, object?>> GetOrderedCorrelatedSubqueryCacheFields(EvalRow row)
+        => row.Fields
+            .OrderBy(static kv => kv.Key, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    private static List<KeyValuePair<string, object?>> GetQualifiedCorrelatedSubqueryCacheFieldMatches(
+        IReadOnlyList<KeyValuePair<string, object?>> allFields,
+        string normalizedSql)
+    {
+        var qualifiedIdentifiers = ExtractQualifiedSqlIdentifiers(normalizedSql);
+        return allFields
+            .Where(static kv => kv.Key.IndexOf('.') >= 0)
+            .Where(kv => qualifiedIdentifiers.Contains(kv.Key))
+            .ToList();
+    }
+
+    private static List<KeyValuePair<string, object?>> GetUnqualifiedCorrelatedSubqueryCacheFieldMatches(
+        IReadOnlyList<KeyValuePair<string, object?>> allFields,
+        string normalizedSql)
+        => allFields
+            .Where(static kv => kv.Key.IndexOf('.') < 0)
+            .Where(kv => ContainsSqlIdentifierToken(normalizedSql, kv.Key))
+            .ToList();
 
     /// <summary>
     /// EN: Checks whether a candidate identifier token appears in SQL text using lightweight identifier-boundary guards.
@@ -4465,10 +3677,7 @@ private void FillPercentRankOrCumeDist(
         if (string.IsNullOrWhiteSpace(sql))
             return identifiers;
 
-        var matches = Regex.Matches(
-            sql,
-            @"(?<![A-Za-z0-9_$])([A-Za-z_][A-Za-z0-9_$]*\.[A-Za-z_][A-Za-z0-9_$]*)(?![A-Za-z0-9_$])",
-            RegexOptions.CultureInvariant);
+        var matches = _qualifiedSqlIdentifierRegex.Matches(sql);
 
         foreach (Match match in matches)
         {
@@ -4535,35 +3744,13 @@ private void FillPercentRankOrCumeDist(
 
         for (var i = 0; i < normalized.Length; i++)
         {
+            if (TryAppendProtectedSqlSegment(normalized, ref i, sb))
+            {
+                previousWasSpace = false;
+                continue;
+            }
+
             var ch = normalized[i];
-
-            if (ch == '\'')
-            {
-                previousWasSpace = false;
-                i = AppendQuotedSegment(normalized, i, '\'', sb);
-                continue;
-            }
-
-            if (ch == '"')
-            {
-                previousWasSpace = false;
-                i = AppendQuotedSegment(normalized, i, '"', sb);
-                continue;
-            }
-
-            if (ch == '`')
-            {
-                previousWasSpace = false;
-                i = AppendQuotedSegment(normalized, i, '`', sb);
-                continue;
-            }
-
-            if (ch == '[')
-            {
-                previousWasSpace = false;
-                i = AppendBracketIdentifierSegment(normalized, i, sb);
-                continue;
-            }
 
             if (char.IsWhiteSpace(ch))
             {
@@ -4602,7 +3789,7 @@ private void FillPercentRankOrCumeDist(
         while (i < sql.Length)
         {
             var ch = sql[i];
-            sb.Append(ch);
+            sb.Append(sql[i]);
 
             if (ch == quoteChar)
             {
@@ -4638,13 +3825,35 @@ private void FillPercentRankOrCumeDist(
         while (i < sql.Length)
         {
             var ch = sql[i];
-            sb.Append(ch);
+            sb.Append(sql[i]);
             if (ch == ']')
                 return i;
             i++;
         }
 
         return sql.Length - 1;
+    }
+
+    private static bool TryAppendProtectedSqlSegment(
+        string sql,
+        ref int index,
+        StringBuilder sb)
+    {
+        if (index < 0 || index >= sql.Length)
+            return false;
+
+        var ch = sql[index];
+        if (ch is '\'' or '"' or '`')
+        {
+            index = AppendQuotedSegment(sql, index, ch, sb);
+            return true;
+        }
+
+        if (ch != '[')
+            return false;
+
+        index = AppendBracketIdentifierSegment(sql, index, sb);
+        return true;
     }
 
     /// <summary>
@@ -4660,6 +3869,13 @@ private void FillPercentRankOrCumeDist(
         if (aliasMap.Count == 0)
             return sql;
 
+        return ApplySubqueryAliasMapForCacheKey(sql, aliasMap);
+    }
+
+    private static string ApplySubqueryAliasMapForCacheKey(
+        string sql,
+        IReadOnlyDictionary<string, string> aliasMap)
+    {
         var normalized = sql;
         foreach (var aliasPair in aliasMap)
         {
@@ -4680,10 +3896,7 @@ private void FillPercentRankOrCumeDist(
         if (string.IsNullOrWhiteSpace(sql))
             return map;
 
-        var matches = Regex.Matches(
-            sql,
-            @"\b(?:FROM|JOIN)\s+(?:[A-Z_][A-Z0-9_$]*(?:\.[A-Z_][A-Z0-9_$]*)*)\s+(?:AS\s+)?([A-Z_][A-Z0-9_$]*)\b",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        var matches = _subqueryAliasDeclarationRegex.Matches(sql);
 
         foreach (Match match in matches)
         {
@@ -4740,18 +3953,8 @@ private void FillPercentRankOrCumeDist(
 
         for (var i = 0; i < sql.Length; i++)
         {
-            var ch = sql[i];
-            if (ch == '\'' || ch == '"' || ch == '`')
-            {
-                i = AppendQuotedSegment(sql, i, ch, sb);
+            if (TryAppendProtectedSqlSegment(sql, ref i, sb))
                 continue;
-            }
-
-            if (ch == '[')
-            {
-                i = AppendBracketIdentifierSegment(sql, i, sb);
-                continue;
-            }
 
             if (IsAliasQualifierReferenceAt(sql, i, alias))
             {
@@ -4761,7 +3964,7 @@ private void FillPercentRankOrCumeDist(
                 continue;
             }
 
-            sb.Append(ch);
+            sb.Append(sql[i]);
         }
 
         return sb.ToString();
@@ -4807,18 +4010,10 @@ private void FillPercentRankOrCumeDist(
 
         for (var i = 0; i < sql.Length; i++)
         {
-            var ch = sql[i];
-            if (ch == '\'' || ch == '"' || ch == '`')
-            {
-                i = AppendQuotedSegment(sql, i, ch, sb);
+            if (TryAppendProtectedSqlSegment(sql, ref i, sb))
                 continue;
-            }
 
-            if (ch == '[')
-            {
-                i = AppendBracketIdentifierSegment(sql, i, sb);
-                continue;
-            }
+            var ch = sql[i];
 
             if (!TryReadRelationalOperator(sql, i, out var op, out var opLength))
             {
@@ -4919,20 +4114,13 @@ private void FillPercentRankOrCumeDist(
 
         for (var i = 0; i < sql.Length; i++)
         {
-            var ch = sql[i];
-            if (ch == '\'' || ch == '"' || ch == '`')
+            if (TryAppendProtectedSqlSegment(sql, ref i, sb))
             {
                 previousWasSpace = false;
-                i = AppendQuotedSegment(sql, i, ch, sb);
                 continue;
             }
 
-            if (ch == '[')
-            {
-                previousWasSpace = false;
-                i = AppendBracketIdentifierSegment(sql, i, sb);
-                continue;
-            }
+            var ch = sql[i];
 
             if (!char.IsWhiteSpace(ch))
             {
@@ -4957,23 +4145,7 @@ private void FillPercentRankOrCumeDist(
     /// </summary>
     private static string NormalizeExistsProjectionPayloadForCacheKey(string sql)
     {
-        if (string.IsNullOrWhiteSpace(sql))
-            return string.Empty;
-
-        if (!TryFindTopLevelKeywordIndex(sql, "SELECT", 0, out var selectIndex))
-            return sql;
-
-        var afterSelect = selectIndex + "SELECT".Length;
-        if (!TryFindTopLevelKeywordIndex(sql, "FROM", afterSelect, out var fromIndex))
-            return sql;
-
-        if (fromIndex <= afterSelect)
-            return sql;
-
-        return string.Concat(
-            sql.Substring(0, afterSelect),
-            " <EXISTS_PAYLOAD> ",
-            sql.Substring(fromIndex));
+        return RewriteTopLevelSelectPayloadForCacheKey(sql, static _ => "<EXISTS_PAYLOAD>");
     }
 
     /// <summary>
@@ -4982,27 +4154,45 @@ private void FillPercentRankOrCumeDist(
     /// </summary>
     private static string NormalizeSelectProjectionAliasesForCacheKey(string sql)
     {
+        return RewriteTopLevelSelectPayloadForCacheKey(sql, NormalizeSelectListAliasesForCacheKey);
+    }
+
+    private static string RewriteTopLevelSelectPayloadForCacheKey(
+        string sql,
+        Func<string, string> rewritePayload)
+    {
         if (string.IsNullOrWhiteSpace(sql))
             return string.Empty;
 
-        if (!TryFindTopLevelKeywordIndex(sql, "SELECT", 0, out var selectIndex))
+        if (!TryGetTopLevelSelectPayloadRange(sql, out var afterSelect, out var fromIndex))
             return sql;
 
-        var afterSelect = selectIndex + "SELECT".Length;
-        if (!TryFindTopLevelKeywordIndex(sql, "FROM", afterSelect, out var fromIndex))
-            return sql;
-
-        if (fromIndex <= afterSelect)
-            return sql;
-
-        var payload = sql[afterSelect..fromIndex];
-        var normalizedPayload = NormalizeSelectListAliasesForCacheKey(payload);
         return string.Concat(
             sql.Substring(0, afterSelect),
             " ",
-            normalizedPayload,
+            rewritePayload(sql[afterSelect..fromIndex]),
             " ",
             sql.Substring(fromIndex));
+    }
+
+    private static bool TryGetTopLevelSelectPayloadRange(
+        string sql,
+        out int afterSelect,
+        out int fromIndex)
+    {
+        afterSelect = -1;
+        fromIndex = -1;
+        if (string.IsNullOrWhiteSpace(sql))
+            return false;
+
+        if (!TryFindTopLevelKeywordIndex(sql, "SELECT", 0, out var selectIndex))
+            return false;
+
+        afterSelect = selectIndex + "SELECT".Length;
+        if (!TryFindTopLevelKeywordIndex(sql, "FROM", afterSelect, out fromIndex))
+            return false;
+
+        return fromIndex > afterSelect;
     }
 
     /// <summary>
@@ -5038,18 +4228,10 @@ private void FillPercentRankOrCumeDist(
         var depth = 0;
         for (var i = 0; i < text.Length; i++)
         {
-            var ch = text[i];
-            if (ch == '\'' || ch == '"' || ch == '`')
-            {
-                i = FindQuotedSegmentEndIndex(text, i, ch);
+            if (TrySkipProtectedSqlSegment(text, ref i))
                 continue;
-            }
 
-            if (ch == '[')
-            {
-                i = FindBracketSegmentEndIndex(text, i);
-                continue;
-            }
+            var ch = text[i];
 
             if (ch == '(')
             {
@@ -5089,15 +4271,29 @@ private void FillPercentRankOrCumeDist(
             return string.Empty;
 
         var trimmed = expression.Trim();
-        if (!TryFindTopLevelKeywordIndex(trimmed, "AS", 0, out var asIndex))
-            return trimmed;
-
-        var beforeAs = trimmed[..asIndex].TrimEnd();
-        var aliasPart = trimmed[(asIndex + 2)..].Trim();
-        if (!IsValidExplicitAliasToken(aliasPart))
+        if (!TrySplitExplicitAsAlias(trimmed, out var beforeAs, out var aliasPart)
+            || !IsValidExplicitAliasToken(aliasPart))
             return trimmed;
 
         return beforeAs;
+    }
+
+    private static bool TrySplitExplicitAsAlias(
+        string expression,
+        out string beforeAs,
+        out string aliasPart)
+    {
+        beforeAs = string.Empty;
+        aliasPart = string.Empty;
+        if (string.IsNullOrWhiteSpace(expression))
+            return false;
+
+        if (!TryFindTopLevelKeywordIndex(expression, "AS", 0, out var asIndex))
+            return false;
+
+        beforeAs = expression[..asIndex].TrimEnd();
+        aliasPart = expression[(asIndex + 2)..].Trim();
+        return true;
     }
 
     /// <summary>
@@ -5110,7 +4306,7 @@ private void FillPercentRankOrCumeDist(
             return false;
 
         var trimmed = aliasToken.Trim();
-        if (Regex.IsMatch(trimmed, @"^[A-Z_][A-Z0-9_$]*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        if (_simpleAliasTokenRegex.IsMatch(trimmed))
             return true;
 
         if (trimmed.Length >= 2 && trimmed[0] == '[' && trimmed[^1] == ']')
@@ -5147,18 +4343,10 @@ private void FillPercentRankOrCumeDist(
         var depth = 0;
         for (var i = safeStart; i < sql.Length; i++)
         {
-            var ch = sql[i];
-            if (ch == '\'' || ch == '"' || ch == '`')
-            {
-                i = FindQuotedSegmentEndIndex(sql, i, ch);
+            if (TrySkipProtectedSqlSegment(sql, ref i))
                 continue;
-            }
 
-            if (ch == '[')
-            {
-                i = FindBracketSegmentEndIndex(sql, i);
-                continue;
-            }
+            var ch = sql[i];
 
             if (ch == '(')
             {
@@ -5182,6 +4370,25 @@ private void FillPercentRankOrCumeDist(
         return false;
     }
 
+    private static bool TrySkipProtectedSqlSegment(string sql, ref int index)
+    {
+        if (index < 0 || index >= sql.Length)
+            return false;
+
+        var ch = sql[index];
+        if (ch is '\'' or '"' or '`')
+        {
+            index = FindQuotedSegmentEndIndex(sql, index, ch);
+            return true;
+        }
+
+        if (ch != '[')
+            return false;
+
+        index = FindBracketSegmentEndIndex(sql, index);
+        return true;
+    }
+
     /// <summary>
     /// EN: Normalizes commutative top-level AND chains in WHERE/HAVING clauses so equivalent predicate orderings reuse the same cache-key SQL fragment.
     /// PT: Normaliza cadeias comutativas de AND no topo em cláusulas WHERE/HAVING para que ordenações equivalentes de predicados reutilizem o mesmo fragmento SQL da chave de cache.
@@ -5191,21 +4398,17 @@ private void FillPercentRankOrCumeDist(
         if (string.IsNullOrWhiteSpace(sql))
             return string.Empty;
 
-        var wherePattern = @"\bWHERE\s+(?<predicate>.+?)(?=(?:\bGROUP\s+BY\b|\bHAVING\b|\bORDER\s+BY\b|\bLIMIT\b|\bOFFSET\b|\bUNION\b|$))";
-        var havingPattern = @"\bHAVING\s+(?<predicate>.+?)(?=(?:\bORDER\s+BY\b|\bLIMIT\b|\bOFFSET\b|\bUNION\b|$))";
-
-        var normalizedWhere = Regex.Replace(
-            sql,
-            wherePattern,
-            m => "WHERE " + NormalizeTopLevelAndPredicateForCacheKey(m.Groups["predicate"].Value),
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline);
-
-        return Regex.Replace(
-            normalizedWhere,
-            havingPattern,
-            m => "HAVING " + NormalizeTopLevelAndPredicateForCacheKey(m.Groups["predicate"].Value),
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline);
+        var normalizedWhere = RewritePredicateClauseForCacheKey(sql, _cacheKeyWherePredicateRegex, "WHERE");
+        return RewritePredicateClauseForCacheKey(normalizedWhere, _cacheKeyHavingPredicateRegex, "HAVING");
     }
+
+    private static string RewritePredicateClauseForCacheKey(
+        string sql,
+        Regex clauseRegex,
+        string clauseKeyword)
+        => clauseRegex.Replace(
+            sql,
+            match => $"{clauseKeyword} {NormalizeTopLevelAndPredicateForCacheKey(match.Groups["predicate"].Value)}");
 
     /// <summary>
     /// EN: Canonicalizes a predicate text by sorting top-level AND segments when safe (no top-level OR and no BETWEEN token).
@@ -5217,15 +4420,24 @@ private void FillPercentRankOrCumeDist(
             return string.Empty;
 
         var trimmedPredicate = TrimRedundantOuterParentheses(predicate);
-        if (ContainsTokenOutsideQuotedSegments(trimmedPredicate, "OR"))
-            return trimmedPredicate;
-
-        if (ContainsTokenOutsideQuotedSegments(trimmedPredicate, "BETWEEN"))
+        if (!ShouldNormalizeTopLevelAndPredicateForCacheKey(trimmedPredicate))
             return trimmedPredicate;
 
         var segments = SplitTopLevelAndSegments(trimmedPredicate);
+        return JoinNormalizedTopLevelAndSegments(trimmedPredicate, segments);
+    }
+
+    private static bool ShouldNormalizeTopLevelAndPredicateForCacheKey(string predicate)
+        => !string.IsNullOrWhiteSpace(predicate)
+            && !ContainsTokenOutsideQuotedSegments(predicate, "OR")
+            && !ContainsTokenOutsideQuotedSegments(predicate, "BETWEEN");
+
+    private static string JoinNormalizedTopLevelAndSegments(
+        string originalPredicate,
+        List<string> segments)
+    {
         if (segments.Count <= 1)
-            return trimmedPredicate;
+            return originalPredicate;
 
         segments.Sort(StringComparer.Ordinal);
         return string.Join(" AND ", segments);
@@ -5246,18 +4458,10 @@ private void FillPercentRankOrCumeDist(
 
         for (var i = 0; i < predicate.Length; i++)
         {
-            var ch = predicate[i];
-            if (ch == '\'' || ch == '"' || ch == '`')
-            {
-                i = FindQuotedSegmentEndIndex(predicate, i, ch);
+            if (TrySkipProtectedSqlSegment(predicate, ref i))
                 continue;
-            }
 
-            if (ch == '[')
-            {
-                i = FindBracketSegmentEndIndex(predicate, i);
-                continue;
-            }
+            var ch = predicate[i];
 
             if (ch == '(')
             {
@@ -5273,20 +4477,22 @@ private void FillPercentRankOrCumeDist(
 
             if (depth == 0 && MatchesKeywordTokenAt(predicate, i, "AND"))
             {
-                var segment = NormalizePredicateSegmentForCacheKey(predicate[start..i]);
-                if (segment.Length > 0)
-                    segments.Add(segment);
-
+                AppendNormalizedPredicateSegment(segments, predicate[start..i]);
                 start = i + 3;
                 i += 2;
             }
         }
 
-        var lastSegment = NormalizePredicateSegmentForCacheKey(predicate[start..]);
-        if (lastSegment.Length > 0)
-            segments.Add(lastSegment);
+        AppendNormalizedPredicateSegment(segments, predicate[start..]);
 
         return segments;
+    }
+
+    private static void AppendNormalizedPredicateSegment(List<string> segments, string rawSegment)
+    {
+        var segment = NormalizePredicateSegmentForCacheKey(rawSegment);
+        if (segment.Length > 0)
+            segments.Add(segment);
     }
 
     /// <summary>
@@ -5311,18 +4517,31 @@ private void FillPercentRankOrCumeDist(
         if (string.IsNullOrWhiteSpace(segment))
             return string.Empty;
 
+        if (!TrySplitStandaloneTopLevelEqualityOperands(segment, out var left, out var right))
+            return segment;
+
+        return BuildOrderedEqualitySegmentForCacheKey(left, right);
+    }
+
+    private static bool TrySplitStandaloneTopLevelEqualityOperands(
+        string segment,
+        out string left,
+        out string right)
+    {
+        left = string.Empty;
+        right = string.Empty;
         if (!TryFindStandaloneTopLevelEqualityOperator(segment, out var equalityIndex))
-            return segment;
+            return false;
 
-        var left = TrimRedundantOuterParentheses(segment[..equalityIndex]);
-        var right = TrimRedundantOuterParentheses(segment[(equalityIndex + 1)..]);
-        if (left.Length == 0 || right.Length == 0)
-            return segment;
+        left = TrimRedundantOuterParentheses(segment[..equalityIndex]);
+        right = TrimRedundantOuterParentheses(segment[(equalityIndex + 1)..]);
+        return left.Length > 0 && right.Length > 0;
+    }
 
-        return StringComparer.Ordinal.Compare(left, right) <= 0
+    private static string BuildOrderedEqualitySegmentForCacheKey(string left, string right)
+        => StringComparer.Ordinal.Compare(left, right) <= 0
             ? $"{left} = {right}"
             : $"{right} = {left}";
-    }
 
     /// <summary>
     /// EN: Tries to find a single standalone top-level equality operator, excluding composite comparisons such as less-or-equal, greater-or-equal, different and double-equals.
@@ -5337,18 +4556,10 @@ private void FillPercentRankOrCumeDist(
         var depth = 0;
         for (var i = 0; i < segment.Length; i++)
         {
-            var ch = segment[i];
-            if (ch == '\'' || ch == '"' || ch == '`')
-            {
-                i = FindQuotedSegmentEndIndex(segment, i, ch);
+            if (TrySkipProtectedSqlSegment(segment, ref i))
                 continue;
-            }
 
-            if (ch == '[')
-            {
-                i = FindBracketSegmentEndIndex(segment, i);
-                continue;
-            }
+            var ch = segment[i];
 
             if (ch == '(')
             {
@@ -5418,18 +4629,10 @@ private void FillPercentRankOrCumeDist(
         var depth = 0;
         for (var i = 0; i < expression.Length; i++)
         {
-            var ch = expression[i];
-            if (ch == '\'' || ch == '"' || ch == '`')
-            {
-                i = FindQuotedSegmentEndIndex(expression, i, ch);
+            if (TrySkipProtectedSqlSegment(expression, ref i))
                 continue;
-            }
 
-            if (ch == '[')
-            {
-                i = FindBracketSegmentEndIndex(expression, i);
-                continue;
-            }
+            var ch = expression[i];
 
             if (ch == '(')
             {
@@ -5456,44 +4659,7 @@ private void FillPercentRankOrCumeDist(
     /// PT: Detecta se um token aparece fora de segmentos entre aspas e parênteses aninhados.
     /// </summary>
     private static bool ContainsTokenOutsideQuotedSegments(string sql, string token)
-    {
-        if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(token))
-            return false;
-
-        var depth = 0;
-        for (var i = 0; i < sql.Length; i++)
-        {
-            var ch = sql[i];
-            if (ch == '\'' || ch == '"' || ch == '`')
-            {
-                i = FindQuotedSegmentEndIndex(sql, i, ch);
-                continue;
-            }
-
-            if (ch == '[')
-            {
-                i = FindBracketSegmentEndIndex(sql, i);
-                continue;
-            }
-
-            if (ch == '(')
-            {
-                depth++;
-                continue;
-            }
-
-            if (ch == ')' && depth > 0)
-            {
-                depth--;
-                continue;
-            }
-
-            if (depth == 0 && MatchesKeywordTokenAt(sql, i, token))
-                return true;
-        }
-
-        return false;
-    }
+        => TryFindTopLevelKeywordIndex(sql, token, 0, out _);
 
     /// <summary>
     /// EN: Matches a SQL keyword token at a position ensuring identifier boundaries.
@@ -5587,11 +4753,7 @@ private void FillPercentRankOrCumeDist(
     /// PT: Limpa caches de subquery correlacionada por consulta para que valores memoizados não vazem entre execuções de topo independentes.
     /// </summary>
     private void ClearSubqueryEvaluationCaches()
-    {
-        _existsSubqueryCache.Clear();
-        _inSubqueryFirstColumnCache.Clear();
-        _scalarSubqueryCache.Clear();
-    }
+        => _subqueryEvaluationCache.Clear();
 
 
     private object? EvalCase(
@@ -5600,39 +4762,59 @@ private void FillPercentRankOrCumeDist(
         EvalGroup? group,
         IDictionary<string, Source> ctes)
     {
-        // Searched CASE: CASE WHEN cond THEN x ...
         if (c.BaseExpr is null)
-        {
-            foreach (var wt in c.Whens)
-            {
-                if (Eval(wt.When, row, group, ctes).ToBool())
-                    return Eval(wt.Then, row, group, ctes);
-            }
+            return EvaluateSearchedCase(c, row, group, ctes);
 
-            return c.ElseExpr is not null
-                ? Eval(c.ElseExpr, row, group, ctes)
-                : null;
+        return EvaluateSimpleCase(c, row, group, ctes);
+    }
+
+    private object? EvaluateSearchedCase(
+        CaseExpr @case,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+    {
+        foreach (var whenThen in @case.Whens)
+        {
+            if (Eval(whenThen.When, row, group, ctes).ToBool())
+                return Eval(whenThen.Then, row, group, ctes);
         }
 
-        // Simple CASE: CASE base WHEN val THEN x ...
-        var baseVal = Eval(c.BaseExpr, row, group, ctes);
+        return EvaluateCaseElse(@case, row, group, ctes);
+    }
 
-        foreach (var wt in c.Whens)
+    private object? EvaluateSimpleCase(
+        CaseExpr @case,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+    {
+        var baseValue = Eval(@case.BaseExpr!, row, group, ctes);
+
+        foreach (var whenThen in @case.Whens)
         {
-            var whenVal = Eval(wt.When, row, group, ctes);
-
-            // MySQL uses '=' comparison semantics here: NULL never matches (even NULL)
-            if (baseVal is null || baseVal is DBNull || whenVal is null || whenVal is DBNull)
+            var whenValue = Eval(whenThen.When, row, group, ctes);
+            if (ShouldSkipSimpleCaseMatch(baseValue, whenValue))
                 continue;
 
-            if (baseVal.Compare(whenVal, Dialect) == 0)
-                return Eval(wt.Then, row, group, ctes);
+            if (baseValue!.Compare(whenValue!, Dialect) == 0)
+                return Eval(whenThen.Then, row, group, ctes);
         }
 
-        return c.ElseExpr is not null
-            ? Eval(c.ElseExpr, row, group, ctes)
-            : null;
+        return EvaluateCaseElse(@case, row, group, ctes);
     }
+
+    private object? EvaluateCaseElse(
+        CaseExpr @case,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+        => @case.ElseExpr is not null
+            ? Eval(@case.ElseExpr, row, group, ctes)
+            : null;
+
+    private static bool ShouldSkipSimpleCaseMatch(object? baseValue, object? whenValue)
+        => baseValue is null or DBNull || whenValue is null or DBNull;
 
     private object? EvalFunction(
         FunctionCallExpr fn,
@@ -5650,56 +4832,11 @@ private void FillPercentRankOrCumeDist(
         if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, fn.Name, out var temporalValue))
             return temporalValue;
 
-        if (fn.Name.Equals("FIND_IN_SET", StringComparison.OrdinalIgnoreCase))
-        {
-            var needle = EvalArg(0)?.ToString() ?? "";
-            var hay = EvalArg(1)?.ToString() ?? "";
-            var parts = hay.Split(',').Select(_=>_.Trim()).ToArray();
-            var idx = Array.FindIndex(parts, p => string.Equals(p, needle, StringComparison.OrdinalIgnoreCase));
-            return idx >= 0 ? idx + 1 : 0;
-        }
+        if (TryEvalFindInSetFunction(fn, EvalArg, out var findInSetResult))
+            return findInSetResult;
 
-        if (fn.Name.Equals("MATCH_AGAINST", StringComparison.OrdinalIgnoreCase))
-        {
-            if (fn.Args.Count < 2)
-                return 0;
-
-            var haystack = FlattenMatchAgainstTarget(EvalArg(0));
-            var query = EvalArg(1)?.ToString() ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(haystack) || string.IsNullOrWhiteSpace(query))
-                return 0;
-
-            var terms = ExtractMatchAgainstTerms(query);
-            if (terms.Count == 0)
-                return 0;
-
-            var modeSql = fn.Args.Count > 2
-                ? (fn.Args[2] is RawSqlExpr rx ? rx.Sql : EvalArg(2)?.ToString() ?? string.Empty)
-                : string.Empty;
-
-            var isBooleanMode = modeSql.IndexOf("BOOLEAN MODE", StringComparison.OrdinalIgnoreCase) >= 0;
-            var comparison = Dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase;
-            var haystackWords = ExtractMatchAgainstWords(haystack);
-
-            var score = 0;
-            foreach (var term in terms)
-            {
-                var found = ContainsMatchAgainstTerm(haystack, haystackWords, term, comparison);
-                if (isBooleanMode)
-                {
-                    if (term.Prohibited && found)
-                        return 0;
-
-                    if (term.Required && !found)
-                        return 0;
-                }
-
-                if (found && !term.Prohibited)
-                    score++;
-            }
-
-            return score;
-        }
+        if (TryEvalMatchAgainstFunction(fn, dialect, EvalArg, out var matchAgainstResult))
+            return matchAgainstResult;
 
         if (IsFoundRowsEquivalentFunction(fn.Name, dialect))
         {
@@ -5709,41 +4846,21 @@ private void FillPercentRankOrCumeDist(
             return _cnn.GetLastFoundRows();
         }
 
-        var isIf = fn.Name.Equals("IF", StringComparison.OrdinalIgnoreCase);
-        var isIif = fn.Name.Equals("IIF", StringComparison.OrdinalIgnoreCase);
-        if ((isIf && dialect.SupportsIfFunction) || (isIif && dialect.SupportsIifFunction))
-        {
-            var cond = EvalArg(0).ToBool();
-            return cond ? EvalArg(1) : EvalArg(2);
-        }
+        if (TryEvalConditionalFunction(fn, dialect, EvalArg, out var conditionalResult))
+            return conditionalResult;
 
-        if (!fn.Name.Equals("COALESCE", StringComparison.OrdinalIgnoreCase)
-            && dialect.NullSubstituteFunctionNames.Any(n => n.Equals(fn.Name, StringComparison.OrdinalIgnoreCase)))
-        {
-            var v = EvalArg(0);
-            return IsNullish(v) ? EvalArg(1) : v;
-        }
+        if (TryEvalNullSubstituteFunction(fn, dialect, EvalArg, out var nullSubstituteResult))
+            return nullSubstituteResult;
 
-        if (fn.Name.Equals("COALESCE", StringComparison.OrdinalIgnoreCase))
-        {
-            for (int i = 0; i < fn.Args.Count; i++)
-            {
-                var v = EvalArg(i);
-                if (!IsNullish(v)) return v;
-            }
-            return null;
-        }
+        if (TryEvalCoalesceFunction(fn, EvalArg, out var coalesceResult))
+            return coalesceResult;
 
-        if (fn.Name.Equals("NULLIF", StringComparison.OrdinalIgnoreCase))
-        {
-            var left = EvalArg(0);
-            var right = EvalArg(1);
+        if (TryEvalNullIfFunction(fn, dialect, EvalArg, out var nullIfResult))
+            return nullIfResult;
 
-            if (IsNullish(left) || IsNullish(right))
-                return left;
-
-            return left!.Compare(right!, Dialect) == 0 ? null : left;
-        }
+        EnsureDialectSupportsSequenceFunction(fn.Name);
+        if (SqlSequenceEvaluator.TryEvaluateCall(_cnn, fn.Name, fn.Args, expr => Eval(expr, row, group, ctes), out var sequenceValue))
+            return sequenceValue;
 
         var jsonNumberResult = TryEvalJsonAndNumberFunctions(fn, dialect, EvalArg, out var handledJsonNumber);
         if (handledJsonNumber)
@@ -5760,122 +4877,25 @@ private void FillPercentRankOrCumeDist(
         if (handledConcat)
             return concatResult;
 
-        if (fn.Name.Equals("LOWER", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("LCASE", StringComparison.OrdinalIgnoreCase))
-        {
-            var v = EvalArg(0);
-#pragma warning disable CA1308 // Normalize strings to uppercase
-            return IsNullish(v) ? null : v!.ToString()!.ToLowerInvariant();
-#pragma warning restore CA1308 // Normalize strings to uppercase
-        }
+        if (TryEvalBasicStringFunction(fn, EvalArg, out var basicStringResult))
+            return basicStringResult;
 
-        if (fn.Name.Equals("UPPER", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("UCASE", StringComparison.OrdinalIgnoreCase))
-        {
-            var v = EvalArg(0);
-            return IsNullish(v) ? null : v!.ToString()!.ToUpperInvariant();
-        }
+        if (TryEvalSubstringFunction(fn, EvalArg, out var substringResult))
+            return substringResult;
 
-        if (fn.Name.Equals("TRIM", StringComparison.OrdinalIgnoreCase))
-        {
-            var v = EvalArg(0);
-            return IsNullish(v) ? null : v!.ToString()!.Trim();
-        }
-
-        if (fn.Name.Equals("LENGTH", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("CHAR_LENGTH", StringComparison.OrdinalIgnoreCase))
-        {
-            var v = EvalArg(0);
-            return IsNullish(v) ? null : (long)(v!.ToString()!.Length);
-        }
-
-        if (fn.Name.Equals("SUBSTRING", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("SUBSTR", StringComparison.OrdinalIgnoreCase))
-        {
-            var s = EvalArg(0);
-            if (IsNullish(s)) return null;
-            var str = s!.ToString() ?? "";
-
-            var pos = EvalArg(1);
-            if (IsNullish(pos)) return null;
-
-            var start = Convert.ToInt32(pos.ToDec()) - 1; // MySQL is 1-based
-            if (start < 0) start = 0;
-            if (start >= str.Length) return "";
-
-            var lenObj = EvalArg(2);
-            if (IsNullish(lenObj))
-                return str[start..];
-
-            var len = Convert.ToInt32(lenObj.ToDec());
-            if (len <= 0) return "";
-            if (start + len > str.Length) len = str.Length - start;
-
-            return str.Substring(start, len);
-        }
-
-        if (fn.Name.Equals("REPLACE", StringComparison.OrdinalIgnoreCase))
-        {
-            var s = EvalArg(0);
-            var from = EvalArg(1);
-            var to = EvalArg(2);
-
-            if (IsNullish(s) || IsNullish(from) || IsNullish(to))
-                return null;
-
-            return (s!.ToString() ?? "")
-                .Replace(from!.ToString() ?? "", to!.ToString() ?? "");
-        }
+        if (TryEvalReplaceFunction(fn, EvalArg, out var replaceResult))
+            return replaceResult;
 
 
         var dateAddResult = TryEvalDateAddFunction(fn, row, group, ctes, EvalArg, out var handledDateAdd);
         if (handledDateAdd)
             return dateAddResult;
 
-        if ((fn.Name.Equals("DATE", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("DATETIME", StringComparison.OrdinalIgnoreCase))
-            && fn.Args.Count >= 1)
-        {
-            var baseVal = EvalArg(0);
-            if (IsNullish(baseVal)) return null;
-            if (!TryCoerceDateTime(baseVal, out var dt))
-                return null;
+        if (TryEvalDateConstructionFunction(fn, EvalArg, out var dateConstructionResult))
+            return dateConstructionResult;
 
-            // Minimal SQLite-like modifier support: '+N day|hour|minute|second|month|year'
-            for (int i = 1; i < fn.Args.Count; i++)
-            {
-                var modifier = EvalArg(i)?.ToString();
-                if (string.IsNullOrWhiteSpace(modifier))
-                    continue;
-
-                if (!TryParseDateModifier(modifier!, out var unit, out var amount))
-                    continue;
-
-                dt = ApplyDateDelta(dt, unit, amount);
-            }
-
-            if (fn.Name.Equals("DATE", StringComparison.OrdinalIgnoreCase))
-                return dt.Date;
-
-            return dt;
-        }
-
-        
-        if (fn.Name.Equals("FIELD", StringComparison.OrdinalIgnoreCase))
-        {
-            // MySQL FIELD(str, str1, str2, ...) returns 1-based index of str in the list; 0 if not found
-            var target = EvalArg(0);
-            if (IsNullish(target)) return 0;
-
-            for (int ai = 1; ai < fn.Args.Count; ai++)
-            {
-                var cand = EvalArg(ai);
-                if (IsNullish(cand)) continue;
-                if (target.EqualsSql(cand, Dialect))
-                    return ai; // 1-based
-            }
-            return 0;
-        }
+        if (TryEvalFieldFunction(fn, dialect, EvalArg, out var fieldResult))
+            return fieldResult;
 
         if (fn.Args.Count == 0
             && SqlTemporalFunctionEvaluator.IsKnownTemporalFunctionName(fn.Name))
@@ -5885,6 +4905,378 @@ private void FillPercentRankOrCumeDist(
         return null;
 
         object? EvalArg(int i) => i < fn.Args.Count ? Eval(fn.Args[i], row, group, ctes) : null;
+    }
+
+    private bool TryEvalFindInSetFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("FIND_IN_SET", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var needle = evalArg(0)?.ToString() ?? string.Empty;
+        var haystack = evalArg(1)?.ToString() ?? string.Empty;
+        var parts = haystack.Split(',').Select(static part => part.Trim()).ToArray();
+        var index = Array.FindIndex(parts, part => string.Equals(part, needle, StringComparison.OrdinalIgnoreCase));
+        result = index >= 0 ? index + 1 : 0;
+        return true;
+    }
+
+    private bool TryEvalMatchAgainstFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("MATCH_AGAINST", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.SupportsMatchAgainstPredicate)
+            throw SqlUnsupported.ForDialect(dialect, "MATCH ... AGAINST full-text predicate");
+
+        if (fn.Args.Count < 2)
+        {
+            result = 0;
+            return true;
+        }
+
+        var haystack = FlattenMatchAgainstTarget(evalArg(0));
+        var query = evalArg(1)?.ToString() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(haystack) || string.IsNullOrWhiteSpace(query))
+        {
+            result = 0;
+            return true;
+        }
+
+        var terms = ExtractMatchAgainstTerms(query);
+        if (terms.Count == 0)
+        {
+            result = 0;
+            return true;
+        }
+
+        var modeSql = fn.Args.Count > 2
+            ? (fn.Args[2] is RawSqlExpr rx ? rx.Sql : evalArg(2)?.ToString() ?? string.Empty)
+            : string.Empty;
+
+        result = EvaluateMatchAgainstTerms(haystack, terms, modeSql, dialect.TextComparison);
+        return true;
+    }
+
+    private static int EvaluateMatchAgainstTerms(
+        string haystack,
+        IReadOnlyList<MatchAgainstTerm> terms,
+        string modeSql,
+        StringComparison comparison)
+    {
+        var isBooleanMode = modeSql.IndexOf("BOOLEAN MODE", StringComparison.OrdinalIgnoreCase) >= 0;
+        var haystackWords = ExtractMatchAgainstWords(haystack);
+        var score = 0;
+
+        foreach (var term in terms)
+        {
+            var found = ContainsMatchAgainstTerm(haystack, haystackWords, term, comparison);
+            if (isBooleanMode)
+            {
+                if (term.Prohibited && found)
+                    return 0;
+
+                if (term.Required && !found)
+                    return 0;
+            }
+
+            if (found && !term.Prohibited)
+                score++;
+        }
+
+        return score;
+    }
+
+    private static bool TryEvalConditionalFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var isIf = fn.Name.Equals("IF", StringComparison.OrdinalIgnoreCase);
+        var isIif = fn.Name.Equals("IIF", StringComparison.OrdinalIgnoreCase);
+        if (!((isIf && dialect.SupportsIfFunction) || (isIif && dialect.SupportsIifFunction)))
+        {
+            result = null;
+            return false;
+        }
+
+        var condition = evalArg(0).ToBool();
+        result = condition ? evalArg(1) : evalArg(2);
+        return true;
+    }
+
+    private static bool TryEvalNullSubstituteFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (fn.Name.Equals("COALESCE", StringComparison.OrdinalIgnoreCase)
+            || !dialect.NullSubstituteFunctionNames.Any(name => name.Equals(fn.Name, StringComparison.OrdinalIgnoreCase)))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        result = IsNullish(value) ? evalArg(1) : value;
+        return true;
+    }
+
+    private static bool TryEvalCoalesceFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("COALESCE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        for (int i = 0; i < fn.Args.Count; i++)
+        {
+            var value = evalArg(i);
+            if (!IsNullish(value))
+            {
+                result = value;
+                return true;
+            }
+        }
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalNullIfFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("NULLIF", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var left = evalArg(0);
+        var right = evalArg(1);
+        if (IsNullish(left) || IsNullish(right))
+        {
+            result = left;
+            return true;
+        }
+
+        result = left!.Compare(right!, dialect) == 0 ? null : left;
+        return true;
+    }
+
+    private static bool TryEvalDateConstructionFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!(fn.Name.Equals("DATE", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("DATETIME", StringComparison.OrdinalIgnoreCase))
+            || fn.Args.Count < 1)
+        {
+            result = null;
+            return false;
+        }
+
+        var baseValue = evalArg(0);
+        if (IsNullish(baseValue) || !TryCoerceDateTime(baseValue, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        for (int i = 1; i < fn.Args.Count; i++)
+        {
+            var modifier = evalArg(i)?.ToString();
+            if (string.IsNullOrWhiteSpace(modifier)
+                || !TryParseDateModifier(modifier!, out var unit, out var amount))
+            {
+                continue;
+            }
+
+            dateTime = ApplyDateDelta(dateTime, unit, amount);
+        }
+
+        result = fn.Name.Equals("DATE", StringComparison.OrdinalIgnoreCase)
+            ? dateTime.Date
+            : dateTime;
+        return true;
+    }
+
+    private static bool TryEvalFieldFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("FIELD", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var target = evalArg(0);
+        if (IsNullish(target))
+        {
+            result = 0;
+            return true;
+        }
+
+        for (int argIndex = 1; argIndex < fn.Args.Count; argIndex++)
+        {
+            var candidate = evalArg(argIndex);
+            if (!IsNullish(candidate) && target.EqualsSql(candidate, dialect))
+            {
+                result = argIndex;
+                return true;
+            }
+        }
+
+        result = 0;
+        return true;
+    }
+
+    private static bool TryEvalBasicStringFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var value = evalArg(0);
+
+        if (fn.Name.Equals("LOWER", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("LCASE", StringComparison.OrdinalIgnoreCase))
+        {
+#pragma warning disable CA1308 // Normalize strings to uppercase
+            result = IsNullish(value) ? null : value!.ToString()!.ToLowerInvariant();
+#pragma warning restore CA1308 // Normalize strings to uppercase
+            return true;
+        }
+
+        if (fn.Name.Equals("UPPER", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("UCASE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = IsNullish(value) ? null : value!.ToString()!.ToUpperInvariant();
+            return true;
+        }
+
+        if (fn.Name.Equals("TRIM", StringComparison.OrdinalIgnoreCase))
+        {
+            result = IsNullish(value) ? null : value!.ToString()!.Trim();
+            return true;
+        }
+
+        if (fn.Name.Equals("LENGTH", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("CHAR_LENGTH", StringComparison.OrdinalIgnoreCase))
+        {
+            result = IsNullish(value) ? null : (long)(value!.ToString()!.Length);
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private static bool TryEvalSubstringFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!(fn.Name.Equals("SUBSTRING", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("SUBSTR", StringComparison.OrdinalIgnoreCase)))
+        {
+            result = null;
+            return false;
+        }
+
+        var source = evalArg(0);
+        if (IsNullish(source))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = source!.ToString() ?? string.Empty;
+        var position = evalArg(1);
+        if (IsNullish(position))
+        {
+            result = null;
+            return true;
+        }
+
+        var start = Convert.ToInt32(position.ToDec()) - 1;
+        if (start < 0)
+            start = 0;
+
+        if (start >= text.Length)
+        {
+            result = string.Empty;
+            return true;
+        }
+
+        var lengthValue = evalArg(2);
+        if (IsNullish(lengthValue))
+        {
+            result = text[start..];
+            return true;
+        }
+
+        var length = Convert.ToInt32(lengthValue.ToDec());
+        if (length <= 0)
+        {
+            result = string.Empty;
+            return true;
+        }
+
+        if (start + length > text.Length)
+            length = text.Length - start;
+
+        result = text.Substring(start, length);
+        return true;
+    }
+
+    private static bool TryEvalReplaceFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("REPLACE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var source = evalArg(0);
+        var from = evalArg(1);
+        var to = evalArg(2);
+        if (IsNullish(source) || IsNullish(from) || IsNullish(to))
+        {
+            result = null;
+            return true;
+        }
+
+        result = (source!.ToString() ?? string.Empty)
+            .Replace(from!.ToString() ?? string.Empty, to!.ToString() ?? string.Empty);
+        return true;
     }
 
     private static string FlattenMatchAgainstTarget(object? value)
@@ -6060,10 +5452,7 @@ private void FillPercentRankOrCumeDist(
 #pragma warning disable CA1031
         catch (Exception e)
         {
-#pragma warning disable CA1303 // Do not pass literals as localized parameters
-            Console.WriteLine($"{GetType().Name}.{nameof(EvalFunction)}");
-#pragma warning restore CA1303 // Do not pass literals as localized parameters
-            Console.WriteLine(e);
+            LogFunctionEvaluationFailure(e);
             return null;
         }
 #pragma warning restore CA1031
@@ -6078,45 +5467,95 @@ private void FillPercentRankOrCumeDist(
         out bool handled)
     {
         handled = true;
-        if (fn.Name.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase))
-        {
-            if (!(Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para operações de data.")).SupportsDateAddFunction("DATE_ADD"))
-                return null;
-            var baseVal = evalArg(0);
-            if (IsNullish(baseVal) || !TryCoerceDateTime(baseVal, out var dt))
-                return null;
+        if (TryEvalDateAddStyleFunction(fn, row, group, ctes, evalArg, out var dateAddResult))
+            return dateAddResult;
 
-            var itExpr = fn.Args.Count > 1 ? fn.Args[1] : null;
-            if (itExpr is not CallExpr ce || !ce.Name.Equals("INTERVAL", StringComparison.OrdinalIgnoreCase) || ce.Args.Count < 2)
-                return dt;
-
-            var nObj = Eval(ce.Args[0], row, group, ctes);
-            var unit = ce.Args[1] is RawSqlExpr rx ? rx.Sql : Eval(ce.Args[1], row, group, ctes)?.ToString() ?? "DAY";
-            var n = Convert.ToInt32((nObj ?? 0m).ToDec());
-            return ApplyDateDelta(dt, unit, n);
-        }
-
-        if (fn.Name.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("DATEADD", StringComparison.OrdinalIgnoreCase))
-        {
-            var featureName = fn.Name.ToUpperInvariant();
-            if (!(Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para operações de data.")).SupportsDateAddFunction(featureName))
-                return null;
-            if (fn.Args.Count < 3)
-                return null;
-
-            var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
-            var amountObj = evalArg(1);
-            var baseVal = evalArg(2);
-            if (IsNullish(baseVal) || !TryCoerceDateTime(baseVal, out var dt))
-                return null;
-
-            var n = Convert.ToInt32((amountObj ?? 0m).ToDec());
-            return ApplyDateDelta(dt, unit, n);
-        }
+        if (TryEvalTimestampAddStyleFunction(fn, row, group, ctes, evalArg, out var timestampAddResult))
+            return timestampAddResult;
 
         handled = false;
         return null;
+    }
+
+    private bool TryEvalDateAddStyleFunction(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para operações de data.");
+        if (!dialect.SupportsDateAddFunction("DATE_ADD"))
+        {
+            result = null;
+            return true;
+        }
+
+        var baseValue = evalArg(0);
+        if (IsNullish(baseValue) || !TryCoerceDateTime(baseValue, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        var intervalExpression = fn.Args.Count > 1 ? fn.Args[1] : null;
+        if (intervalExpression is not CallExpr intervalCall
+            || !intervalCall.Name.Equals("INTERVAL", StringComparison.OrdinalIgnoreCase)
+            || intervalCall.Args.Count < 2)
+        {
+            result = dateTime;
+            return true;
+        }
+
+        var amountObject = Eval(intervalCall.Args[0], row, group, ctes);
+        var unit = intervalCall.Args[1] is RawSqlExpr raw
+            ? raw.Sql
+            : Eval(intervalCall.Args[1], row, group, ctes)?.ToString() ?? "DAY";
+        result = ApplyDateDelta(dateTime, unit, Convert.ToInt32((amountObject ?? 0m).ToDec()));
+        return true;
+    }
+
+    private bool TryEvalTimestampAddStyleFunction(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!(fn.Name.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("DATEADD", StringComparison.OrdinalIgnoreCase)))
+        {
+            result = null;
+            return false;
+        }
+
+        var featureName = fn.Name.ToUpperInvariant();
+        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para operações de data.");
+        if (!dialect.SupportsDateAddFunction(featureName) || fn.Args.Count < 3)
+        {
+            result = null;
+            return true;
+        }
+
+        var baseValue = evalArg(2);
+        if (IsNullish(baseValue) || !TryCoerceDateTime(baseValue, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
+        var amountObject = evalArg(1);
+        result = ApplyDateDelta(dateTime, unit, Convert.ToInt32((amountObject ?? 0m).ToDec()));
+        return true;
     }
 
 
@@ -6128,167 +5567,234 @@ private void FillPercentRankOrCumeDist(
     {
         handled = true;
 
-        if (fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase))
-        {
-            if (fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
-                && !dialect.SupportsJsonExtractFunction
-                && !dialect.SupportsJsonArrowOperators)
-                throw SqlUnsupported.ForDialect(dialect, "JSON_EXTRACT");
+        if (TryEvalJsonAccessShimFunction(fn, evalArg, out var jsonAccessResult))
+            return jsonAccessResult;
 
-            if (fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase) && !dialect.SupportsJsonValueFunction)
-                throw SqlUnsupported.ForDialect(dialect, "JSON_VALUE");
+        if (TryEvalJsonExtractionFunction(fn, dialect, evalArg, out var jsonExtractionResult))
+            return jsonExtractionResult;
 
-            object? json = evalArg(0);
-            var path = evalArg(1)?.ToString();
-            if (IsNullish(json) || string.IsNullOrWhiteSpace(path))
-                return null;
+        if (TryEvalOpenJsonFunction(fn, dialect, evalArg, out var openJsonResult))
+            return openJsonResult;
 
-            try
-            {
-                return TryReadJsonPathValue(json!, path!);
-            }
-#pragma warning disable CA1031
-            catch (Exception e)
-            {
-#pragma warning disable CA1303 // Do not pass literals as localized parameters
-                Console.WriteLine($"{GetType().Name}.{nameof(EvalFunction)}");
-#pragma warning restore CA1303 // Do not pass literals as localized parameters
-                Console.WriteLine(e);
-                return null;
-            }
-#pragma warning restore CA1031
-        }
+        if (TryEvalJsonUnquoteFunction(fn, evalArg, out var jsonUnquoteResult))
+            return jsonUnquoteResult;
 
-        if (fn.Name.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase))
-        {
-            if (!dialect.SupportsOpenJsonFunction)
-                throw SqlUnsupported.ForDialect(dialect, "OPENJSON");
-
-            object? json = evalArg(0);
-            return IsNullish(json) ? null : json?.ToString();
-        }
-
-        if (fn.Name.Equals("JSON_UNQUOTE", StringComparison.OrdinalIgnoreCase))
-        {
-            object? v = evalArg(0);
-            if (IsNullish(v)) return null;
-            var s = v!.ToString() ?? string.Empty;
-            if (s.Length >= 2 && ((s[0] == '"' && s[^1] == '"') || (s[0] == '\'' && s[^1] == '\'')))
-                return s[1..^1];
-            return s;
-        }
-
-        if (fn.Name.Equals("TO_NUMBER", StringComparison.OrdinalIgnoreCase))
-        {
-            var v = evalArg(0);
-            if (IsNullish(v)) return null;
-
-            if (v is byte or sbyte or short or ushort or int or uint or long or ulong)
-                return Convert.ToInt64(v, CultureInfo.InvariantCulture);
-            if (v is decimal or double or float)
-                return Convert.ToDecimal(v, CultureInfo.InvariantCulture);
-
-            var text = v?.ToString();
-            if (string.IsNullOrWhiteSpace(text))
-                return null;
-            if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var li))
-                return li;
-            if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var dec))
-                return dec;
-            return null;
-        }
+        if (TryEvalToNumberFunction(fn, evalArg, out var toNumberResult))
+            return toNumberResult;
 
         handled = false;
         return null;
     }
+
+    private static bool TryEvalJsonAccessShimFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!(fn.Name.Equals("__JSON_ACCESS_JSON", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("__JSON_ACCESS_TEXT", StringComparison.OrdinalIgnoreCase)))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!TryGetJsonAndPathArguments(evalArg, out var json, out var path))
+        {
+            result = null;
+            return true;
+        }
+
+        var value = TryReadJsonPathValue(json!, path!);
+        result = fn.Name.Equals("__JSON_ACCESS_TEXT", StringComparison.OrdinalIgnoreCase)
+            ? value?.ToString()
+            : value;
+        return true;
+    }
+
+    private bool TryEvalJsonExtractionFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!(fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)))
+        {
+            result = null;
+            return false;
+        }
+
+        EnsureJsonExtractionSupported(fn.Name, dialect);
+        if (!TryGetJsonAndPathArguments(evalArg, out var json, out var path))
+        {
+            result = null;
+            return true;
+        }
+
+        result = TryEvalJsonExtractionValue(fn, json!, path!);
+        return true;
+    }
+
+    private static void EnsureJsonExtractionSupported(string functionName, ISqlDialect dialect)
+    {
+        if (functionName.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
+            && !dialect.SupportsJsonExtractFunction)
+            throw SqlUnsupported.ForDialect(dialect, "JSON_EXTRACT");
+
+        if (functionName.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
+            && !dialect.SupportsJsonValueFunction)
+            throw SqlUnsupported.ForDialect(dialect, "JSON_VALUE");
+    }
+
+    private object? TryEvalJsonExtractionValue(FunctionCallExpr fn, object json, string path)
+    {
+        try
+        {
+            var value = TryReadJsonPathValue(json, path);
+            return fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
+                ? ApplyJsonValueReturningClause(fn, value)
+                : value;
+        }
+#pragma warning disable CA1031
+        catch (Exception e)
+        {
+            LogFunctionEvaluationFailure(e);
+            return null;
+        }
+#pragma warning restore CA1031
+    }
+
+    private static bool TryEvalOpenJsonFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.SupportsOpenJsonFunction)
+            throw SqlUnsupported.ForDialect(dialect, "OPENJSON");
+
+        var json = evalArg(0);
+        result = IsNullish(json) ? null : json?.ToString();
+        return true;
+    }
+
+    private static bool TryEvalJsonUnquoteFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("JSON_UNQUOTE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = value!.ToString() ?? string.Empty;
+        result = text.Length >= 2 && ((text[0] == '"' && text[^1] == '"') || (text[0] == '\'' && text[^1] == '\''))
+            ? text[1..^1]
+            : text;
+        return true;
+    }
+
+    private static bool TryEvalToNumberFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("TO_NUMBER", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (value is byte or sbyte or short or ushort or int or uint or long or ulong)
+        {
+            result = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        if (value is decimal or double or float)
+        {
+            result = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        var text = value?.ToString();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            result = null;
+            return true;
+        }
+
+        if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var integerValue))
+        {
+            result = integerValue;
+            return true;
+        }
+
+        if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var decimalValue))
+        {
+            result = decimalValue;
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryGetJsonAndPathArguments(
+        Func<int, object?> evalArg,
+        out object? json,
+        out string? path)
+    {
+        json = evalArg(0);
+        path = evalArg(1)?.ToString();
+        return !IsNullish(json) && !string.IsNullOrWhiteSpace(path);
+    }
+
+    private void LogFunctionEvaluationFailure(Exception exception)
+    {
+#pragma warning disable CA1303 // Do not pass literals as localized parameters
+        Console.WriteLine($"{GetType().Name}.{nameof(EvalFunction)}");
+#pragma warning restore CA1303 // Do not pass literals as localized parameters
+        Console.WriteLine(exception);
+    }
+
+    private object? ApplyJsonValueReturningClause(FunctionCallExpr fn, object? value)
+        => QueryJsonFunctionHelper.ApplyJsonValueReturningClause(fn, value);
 
     private object? TryEvalConcatFunctions(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out bool handled)
-    {
-        handled = true;
-
-        if (fn.Name.Equals("CONCAT", StringComparison.OrdinalIgnoreCase))
-        {
-            var parts = new string[fn.Args.Count];
-            for (int i = 0; i < fn.Args.Count; i++)
-            {
-                var v = evalArg(i);
-                if (IsNullish(v))
-                {
-                    if (Dialect!.ConcatReturnsNullOnNullInput)
-                        return null;
-
-                    parts[i] = string.Empty;
-                    continue;
-                }
-
-#pragma warning disable CA1508 // Avoid dead conditional code
-                parts[i] = v?.ToString() ?? string.Empty;
-#pragma warning restore CA1508 // Avoid dead conditional code
-            }
-            return string.Concat(parts);
-        }
-
-        if (fn.Name.Equals("CONCAT_WS", StringComparison.OrdinalIgnoreCase))
-        {
-            var sep = evalArg(0);
-            if (IsNullish(sep)) return null;
-#pragma warning disable CA1508 // Avoid dead conditional code
-            var separator = sep?.ToString() ?? string.Empty;
-#pragma warning restore CA1508 // Avoid dead conditional code
-
-            var parts = new List<string>();
-            for (int i = 1; i < fn.Args.Count; i++)
-            {
-                var v = evalArg(i);
-                if (IsNullish(v)) continue;
-#pragma warning disable CA1508 // Avoid dead conditional code
-                parts.Add(v?.ToString() ?? string.Empty);
-#pragma warning restore CA1508 // Avoid dead conditional code
-            }
-
-            return string.Join(separator, parts);
-        }
-
-        handled = false;
-        return null;
-    }
+        => QueryConcatFunctionHelper.TryEvalConcatFunctions(
+            fn,
+            evalArg,
+            Dialect!.ConcatReturnsNullOnNullInput,
+            out handled);
 
     private static object? TryReadJsonPathValue(object json, string path)
-    {
-        var jsonStr = json.ToString() ?? "";
-        using var doc = System.Text.Json.JsonDocument.Parse(jsonStr);
-
-        // suporta só "$.a.b" e "$.a" (suficiente pro corpus)
-        if (!path.StartsWith("$.", StringComparison.Ordinal))
-            return null;
-
-        var cur = doc.RootElement;
-        var segs = path[2..].Split('.').Select(_=>_.Trim()).ToArray();
-        foreach (var s in segs)
-        {
-            if (cur.ValueKind != System.Text.Json.JsonValueKind.Object)
-                return null;
-
-            if (!cur.TryGetProperty(s.Trim('"'), out var next))
-                return null;
-
-            cur = next;
-        }
-
-        return cur.ValueKind switch
-        {
-            System.Text.Json.JsonValueKind.String => cur.GetString(),
-            System.Text.Json.JsonValueKind.Number => cur.TryGetInt64(out var li) ? li : cur.GetDecimal(),
-            System.Text.Json.JsonValueKind.True => true,
-            System.Text.Json.JsonValueKind.False => false,
-            System.Text.Json.JsonValueKind.Null => null,
-            _ => cur.ToString()
-        };
-    }
+        => QueryJsonFunctionHelper.TryReadJsonPathValue(json, path);
 
     private string GetDateAddUnit(
         SqlExpr expr,
@@ -6358,18 +5864,14 @@ private void FillPercentRankOrCumeDist(
         unit = string.Empty;
         amount = 0;
 
-        var m = Regex.Match(
-            modifier.Trim(),
-            @"^(?<amount>[+-]?\d+)\s*(?<unit>\w+)s?$",
-            RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
-
-        if (!m.Success)
+        var match = _dateModifierRegex.Match(modifier.Trim());
+        if (!match.Success)
             return false;
 
-        if (!int.TryParse(m.Groups["amount"].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out amount))
+        if (!int.TryParse(match.Groups["amount"].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out amount))
             return false;
 
-        unit = m.Groups["unit"].Value;
+        unit = match.Groups["unit"].Value;
         return !string.IsNullOrWhiteSpace(unit);
     }
 
@@ -6394,6 +5896,23 @@ private void FillPercentRankOrCumeDist(
 
     private static bool IsNullish(object? v) => v is null || v is DBNull;
 
+    private static bool IsRowCountHelperSelect(SqlSelectQuery q)
+    {
+        if (q.SelectItems.Count != 1)
+            return false;
+
+        if (q.Table is not null
+            && !string.Equals(q.Table.Name, "DUAL", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var raw = q.SelectItems[0].Raw.Trim();
+        return raw.Equals("CHANGES()", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("ROW_COUNT()", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("FOUND_ROWS()", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("ROWCOUNT()", StringComparison.OrdinalIgnoreCase)
+            || raw.Equals("@@ROWCOUNT", StringComparison.OrdinalIgnoreCase);
+    }
+
     private sealed record IntervalValue(TimeSpan Span);
 
     private IntervalValue? ParseIntervalValue(
@@ -6409,19 +5928,35 @@ private void FillPercentRankOrCumeDist(
         if (string.IsNullOrWhiteSpace(raw))
             return null;
 
-        raw = raw!.Trim();
-        if (raw.Contains('\\'))
-            raw = raw.Replace("\\", string.Empty);
+        if (!TryParseIntervalLiteral(raw!, out var value, out var unit))
+            return null;
 
-        var match = Regex.Match(raw, @"^(?<num>-?\d+(?:\.\d+)?)\s*(?<unit>[a-zA-Z]+)$");
+        var span = TryConvertIntervalToTimeSpan(value, unit);
+        return span is null ? null : new IntervalValue(span.Value);
+    }
+
+    private static bool TryParseIntervalLiteral(string raw, out decimal value, out string unit)
+    {
+        value = 0;
+        unit = string.Empty;
+
+        var normalized = raw.Trim();
+        if (normalized.Contains('\\'))
+            normalized = normalized.Replace("\\", string.Empty);
+
+        var match = _intervalLiteralRegex.Match(normalized);
         if (!match.Success)
-            return null;
+            return false;
 
-        if (!decimal.TryParse(match.Groups["num"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var value))
-            return null;
+        if (!decimal.TryParse(match.Groups["num"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out value))
+            return false;
 
-        var unit = match.Groups["unit"].Value.ToUpperInvariant();
-        var span = unit switch
+        unit = match.Groups["unit"].Value.ToUpperInvariant();
+        return true;
+    }
+
+    private static TimeSpan? TryConvertIntervalToTimeSpan(decimal value, string unit)
+        => unit switch
         {
             "DAY" or "DAYS" => TimeSpan.FromDays((double)value),
             "HOUR" or "HOURS" => TimeSpan.FromHours((double)value),
@@ -6430,9 +5965,6 @@ private void FillPercentRankOrCumeDist(
             _ => (TimeSpan?)null
         };
 
-        return span is null ? null : new IntervalValue(span.Value);
-    }
-
     private object? EvalAggregate(
         FunctionCallExpr fn,
         EvalGroup group,
@@ -6440,15 +5972,12 @@ private void FillPercentRankOrCumeDist(
     {
         var name = fn.Name.ToUpperInvariant();
 
-        // COUNT -> SEMPRE long
-        if (!TryEvalAggrageteCount(fn, group, ctes, name, out var value))
-            return value;
+        if (TryEvalAggregateCount(fn, group, ctes, name, out var countValue))
+            return countValue;
 
-        if (fn.Args.Count == 0)
+        var values = TryGetAggregateValues(fn, group, ctes);
+        if (values is null)
             return null;
-
-        // coleta valores (não-nulos)
-        var values = GetNotNullValues(fn, group, ctes);
 
         if (values.Count == 0)
         {
@@ -6456,31 +5985,44 @@ private void FillPercentRankOrCumeDist(
             return null;
         }
 
+        return EvalCollectedAggregateValues(fn, group, ctes, name, values);
+    }
+
+    private object? EvalCollectedAggregateValues(
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        string name,
+        IReadOnlyList<object?> values)
+    {
+        var separator = GetAggregateSeparator(fn, group, ctes);
         return name switch
         {
-            "SUM" =>
-                values.Sum(_ => _.ToDec()),                 // decimal
-            "AVG" =>
-                values.Sum(_ => _.ToDec()) / values.Count,  // decimal
-            "MIN" =>
-                values.Min(_ => _.ToDec()),                 // decimal (consistente pro teu teste)
-            "MAX" =>
-                values.Max(_ => _.ToDec()),                 // decimal
-            "GROUP_CONCAT" =>
-                EvalStringAggregate(values, fn.Args.Count > 1 && group.Rows.Count > 0 ? Eval(fn.Args[1], group.Rows[0], null, ctes) : null, ","),
-            "STRING_AGG" =>
-                EvalStringAggregate(values, fn.Args.Count > 1 && group.Rows.Count > 0 ? Eval(fn.Args[1], group.Rows[0], null, ctes) : null, ","),
-            "LISTAGG" =>
-                EvalStringAggregate(values, fn.Args.Count > 1 && group.Rows.Count > 0 ? Eval(fn.Args[1], group.Rows[0], null, ctes) : null, string.Empty),
+            "SUM" => values.Sum(static value => value!.ToDec()),
+            "AVG" => values.Sum(static value => value!.ToDec()) / values.Count,
+            "MIN" => values.Min(static value => value!.ToDec()),
+            "MAX" => values.Max(static value => value!.ToDec()),
+            "GROUP_CONCAT" => EvalStringAggregate(values, separator, ","),
+            "STRING_AGG" => EvalStringAggregate(values, separator, ","),
+            "LISTAGG" => EvalStringAggregate(values, separator, string.Empty),
             _ => null
         };
     }
+
+    private object? GetAggregateSeparator(
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes)
+        => fn.Args.Count > 1 && group.Rows.Count > 0
+            ? Eval(fn.Args[1], group.Rows[0], null, ctes)
+            : null;
 
     private object? EvalAggregate(
         CallExpr fn,
         EvalGroup group,
         IDictionary<string, Source> ctes)
     {
+        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
         var name = fn.Name.ToUpperInvariant();
 
         // COUNT(DISTINCT ...)
@@ -6489,6 +6031,9 @@ private void FillPercentRankOrCumeDist(
 
         if (name is "GROUP_CONCAT" or "STRING_AGG" or "LISTAGG")
         {
+            if (!dialect.SupportsStringAggregateFunction(name))
+                throw SqlUnsupported.ForDialect(dialect, name);
+
             return EvalStringAggregateForCallExpr(fn, group, ctes, name);
         }
 
@@ -6503,46 +6048,43 @@ private void FillPercentRankOrCumeDist(
         if (fn.Args.Count == 1 && fn.Args[0] is StarExpr)
             return group.Rows.Count;
 
-        // MySQL permite COUNT(DISTINCT expr) e COUNT(DISTINCT expr1, expr2)
         var set = new HashSet<string>(StringComparer.Ordinal);
-
-        foreach (var r in group.Rows)
+        foreach (var row in group.Rows)
         {
-            // avalia todos os args
-            var vals = fn.Args.Select(a => Eval(a, r, null, ctes)).ToArray();
-
-            // Regra prática compatível: se algum é NULL => ignora a linha
-            // (na prática, COUNT(DISTINCT ...) ignora NULL; com múltiplas colunas,
-            // qualquer NULL “mata” a tupla)
-            if (vals.Any(IsNullish))
-                continue;
-
-            var key = string.Join("\u001F", vals.Select(v => NormalizeDistinctKey(v, Dialect)));
-            set.Add(key);
+            if (TryBuildCountDistinctKey(fn, row, ctes, out var key))
+                set.Add(key);
         }
 
         return set.Count;
     }
 
-    private static string NormalizeDistinctKey(object? v, ISqlDialect? dialect = null)
+    private bool TryBuildCountDistinctKey(
+        CallExpr fn,
+        EvalRow row,
+        IDictionary<string, Source> ctes,
+        out string key)
     {
-        // chave determinística; evita variações idiotas
-        if (v is null) return "NULL";
-        if (v is DBNull) return "NULL";
+        key = string.Empty;
+        var builder = new StringBuilder();
 
-        return v switch
+        for (var i = 0; i < fn.Args.Count; i++)
         {
-            decimal d => d.ToString(CultureInfo.InvariantCulture),
-            double d => d.ToString("R", CultureInfo.InvariantCulture),
-            float f => f.ToString("R", CultureInfo.InvariantCulture),
-            DateTime dt => dt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
-            bool b => b ? "1" : "0",
-            string s => (dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase) == StringComparison.Ordinal
-                ? s
-                : s.ToUpperInvariant(),
-            _ => v.ToString() ?? ""
-        };
+            var value = Eval(fn.Args[i], row, null, ctes);
+            if (IsNullish(value))
+                return false;
+
+            if (builder.Length > 0)
+                builder.Append('\u001F');
+
+            builder.Append(NormalizeDistinctKey(value, Dialect));
+        }
+
+        key = builder.ToString();
+        return true;
     }
+
+    private static string NormalizeDistinctKey(object? v, ISqlDialect? dialect = null)
+        => QueryRowValueHelper.NormalizeDistinctKey(v, dialect);
 
     private static string? EvalStringAggregate(IReadOnlyList<object?> values, object? separatorObj, string defaultSeparator)
     {
@@ -6558,59 +6100,82 @@ private void FillPercentRankOrCumeDist(
         if (fn.Args.Count == 0)
             return null;
 
-        object? separatorObj = null;
-        if (fn.Args.Count > 1 && group.Rows.Count > 0)
-            separatorObj = Eval(fn.Args[1], group.Rows[0], null, ctes);
-
-        IEnumerable<EvalRow> rows = group.Rows;
-        if (fn.WithinGroupOrderBy is { Count: > 0 })
-        {
-            rows = rows.OrderBy(
-                row => fn.WithinGroupOrderBy
-                    .Select(order => Eval(order.Expr, row, null, ctes))
-                    .ToArray(),
-                Comparer<object?[]>.Create((left, right) =>
-                {
-                    for (var i = 0; i < fn.WithinGroupOrderBy.Count; i++)
-                    {
-                        var cmp = CompareSql(left[i], right[i]);
-                        if (cmp == 0)
-                            continue;
-
-                        if (fn.WithinGroupOrderBy[i].Desc)
-                            cmp = -cmp;
-
-                        return cmp;
-                    }
-
-                    return 0;
-                }));
-        }
-
-        var values = new List<object?>();
-        var distinct = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var r in rows)
-        {
-            var v = Eval(fn.Args[0], r, null, ctes);
-            if (IsNullish(v))
-                continue;
-
-            if (!fn.Distinct)
-            {
-                values.Add(v);
-                continue;
-            }
-
-            var normalized = NormalizeDistinctKey(v, Dialect);
-            if (distinct.Add(normalized))
-                values.Add(v);
-        }
-
-        var defaultSeparator = name == "LISTAGG" ? string.Empty : ",";
-        return EvalStringAggregate(values, separatorObj, defaultSeparator);
+        var separator = GetAggregateSeparator(fn, group, ctes);
+        var rows = GetStringAggregateRows(fn, group, ctes);
+        var values = CollectStringAggregateValues(fn, rows, ctes);
+        return EvalStringAggregate(values, separator, GetStringAggregateDefaultSeparator(name));
     }
 
-    private bool TryEvalAggrageteCount(
+    private object? GetAggregateSeparator(
+        CallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes)
+        => fn.Args.Count > 1 && group.Rows.Count > 0
+            ? Eval(fn.Args[1], group.Rows[0], null, ctes)
+            : null;
+
+    private IEnumerable<EvalRow> GetStringAggregateRows(
+        CallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes)
+    {
+        var orderBy = fn.WithinGroupOrderBy;
+        if (orderBy is not { Count: > 0 })
+            return group.Rows;
+
+        return group.Rows.OrderBy(
+            row => EvaluateWithinGroupOrderKey(orderBy, row, ctes),
+            CreateWithinGroupOrderKeyComparer(orderBy));
+    }
+
+    private object?[] EvaluateWithinGroupOrderKey(
+        IReadOnlyList<WindowOrderItem> orderBy,
+        EvalRow row,
+        IDictionary<string, Source> ctes)
+        => orderBy
+            .Select(order => Eval(order.Expr, row, null, ctes))
+            .ToArray();
+
+    private IComparer<object?[]> CreateWithinGroupOrderKeyComparer(IReadOnlyList<WindowOrderItem> orderBy)
+        => Comparer<object?[]>.Create((left, right) =>
+        {
+            for (var i = 0; i < orderBy.Count; i++)
+            {
+                var comparison = CompareSql(left[i], right[i]);
+                if (comparison == 0)
+                    continue;
+
+                return orderBy[i].Desc ? -comparison : comparison;
+            }
+
+            return 0;
+        });
+
+    private List<object?> CollectStringAggregateValues(
+        CallExpr fn,
+        IEnumerable<EvalRow> rows,
+        IDictionary<string, Source> ctes)
+    {
+        var values = new List<object?>();
+        HashSet<string>? distinct = fn.Distinct ? new HashSet<string>(StringComparer.Ordinal) : null;
+
+        foreach (var row in rows)
+        {
+            var value = Eval(fn.Args[0], row, null, ctes);
+            if (IsNullish(value))
+                continue;
+
+            if (distinct is null || distinct.Add(NormalizeDistinctKey(value, Dialect)))
+                values.Add(value);
+        }
+
+        return values;
+    }
+
+    private static string GetStringAggregateDefaultSeparator(string name)
+        => name == "LISTAGG" ? string.Empty : ",";
+
+    private bool TryEvalAggregateCount(
         FunctionCallExpr fn,
         EvalGroup group,
         IDictionary<string, Source> ctes,
@@ -6620,19 +6185,19 @@ private void FillPercentRankOrCumeDist(
         if (name != "COUNT")
         {
             value = null;
-            return true;
+            return false;
         }
 
         if (fn.Args.Count == 0)
         {
             value = (long)group.Rows.Count;
-            return false;
+            return true;
         }
 
         if (fn.Args.Count == 1 && fn.Args[0] is StarExpr)
         {
             value = (long)group.Rows.Count;
-            return false;
+            return true;
         }
 
         long c = 0;
@@ -6642,14 +6207,17 @@ private void FillPercentRankOrCumeDist(
             if (!IsNullish(v)) c++;
         }
         value = c;
-        return false;
+        return true;
     }
 
-    private List<object?> GetNotNullValues(
+    private List<object?>? TryGetAggregateValues(
         FunctionCallExpr fn,
         EvalGroup group,
         IDictionary<string, Source> ctes)
     {
+        if (fn.Args.Count == 0)
+            return null;
+
         var values = new List<object?>();
         foreach (var r in group.Rows)
         {
@@ -6666,213 +6234,62 @@ private void FillPercentRankOrCumeDist(
         foreach (var si in q.SelectItems)
         {
             var (exprRaw, _) = SplitTrailingAsAlias(si.Raw, si.Alias);
-#pragma warning disable CA1031 // Do not catch general exception types
-            try
-            {
-                var e = ParseExpr(exprRaw);
-                if (WalkHasAggregate(e) || (e is RawSqlExpr && LooksLikeAggregateExpression(exprRaw)))
-                    return true;
-            }
-            catch (Exception e)
-            {
-#pragma warning disable CA1303 // Do not pass literals as localized parameters
-                Console.WriteLine($"{GetType().Name}.{nameof(ContainsAggregate)}");
-#pragma warning restore CA1303 // Do not pass literals as localized parameters
-                Console.WriteLine(e);
-
-                // fallback: preserve aggregate semantics even when expression parsing fails.
-                if (LooksLikeAggregateExpression(exprRaw))
-                    return true;
-            }
-#pragma warning restore CA1031 // Do not catch general exception types
+            if (SelectItemContainsAggregate(exprRaw))
+                return true;
         }
         return q.Having is not null
             && WalkHasAggregate(q.Having);
     }
 
+    private bool SelectItemContainsAggregate(string exprRaw)
+    {
+#pragma warning disable CA1031 // Do not catch general exception types
+        try
+        {
+            var parsedExpression = ParseExpr(exprRaw);
+            return WalkHasAggregate(parsedExpression)
+                || (parsedExpression is RawSqlExpr && LooksLikeAggregateExpression(exprRaw));
+        }
+        catch (Exception e)
+        {
+#pragma warning disable CA1303 // Do not pass literals as localized parameters
+            Console.WriteLine($"{GetType().Name}.{nameof(ContainsAggregate)}");
+#pragma warning restore CA1303 // Do not pass literals as localized parameters
+            Console.WriteLine(e);
+
+            // fallback: preserve aggregate semantics even when expression parsing fails.
+            return LooksLikeAggregateExpression(exprRaw);
+        }
+#pragma warning restore CA1031 // Do not catch general exception types
+    }
+
     private static bool LooksLikeAggregateExpression(string exprRaw)
-        => Regex.IsMatch(
-            exprRaw,
-            @"\b(COUNT|SUM|MIN|MAX|AVG|GROUP_CONCAT|STRING_AGG|LISTAGG)\s*\(",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        => AggregateExpressionInspector.LooksLikeAggregateExpression(exprRaw);
 
-    private static bool WalkHasAggregate(SqlExpr e) => e switch
-    {
-        // ✅ NOVO: o parser usa CallExpr (COUNT, SUM, etc.)
-        CallExpr c => _aggFnsStatic.Contains(c.Name) || c.Args.Any(WalkHasAggregate),
-
-        // já existia
-        FunctionCallExpr f => _aggFnsStatic.Contains(f.Name) || f.Args.Any(WalkHasAggregate),
-        BinaryExpr b => WalkHasAggregate(b.Left) || WalkHasAggregate(b.Right),
-        UnaryExpr u => WalkHasAggregate(u.Expr),
-        LikeExpr l => WalkHasAggregate(l.Left) || WalkHasAggregate(l.Pattern),
-        InExpr i => WalkHasAggregate(i.Left) || i.Items.Any(WalkHasAggregate),
-        IsNullExpr isn => WalkHasAggregate(isn.Expr),
-        QuantifiedComparisonExpr q => WalkHasAggregate(q.Left) || WalkHasAggregate(q.Subquery),
-
-        // ⚠️ cuidado: isso aqui tá “agressivo”
-        // EXISTS não é aggregate. Mas você provavelmente usa isso como “precisa de contexto especial”.
-        // Vou deixar como está pra não quebrar outras coisas.
-        ExistsExpr => true,
-
-        RowExpr r => r.Items.Any(WalkHasAggregate),
-        _ => false
-    };
-
-    private static readonly HashSet<string> _aggFnsStatic = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "COUNT","SUM","MIN","MAX","AVG","GROUP_CONCAT","STRING_AGG","LISTAGG"
-    };
+    private static bool WalkHasAggregate(SqlExpr expr)
+        => AggregateExpressionInspector.WalkHasAggregate(expr);
 
     // ---------------- RESOLUTION HELPERS ----------------
 
     private object? ResolveParam(
         string name)
-    {
-        // accept @p, :p, ?  (for ?, just take first parameter)
-        if (name == "?")
-        {
-            return _pars.Count > 0 ? ((IDataParameter)_pars[0]!).Value : null;
-        }
-
-        var norm = name.TrimStart('@', ':');
-
-        foreach (IDataParameter p in _pars)
-        {
-            var pn = p.ParameterName?.TrimStart('@', ':');
-            if (string.Equals(pn, norm, StringComparison.OrdinalIgnoreCase))
-                return p.Value is DBNull ? null : p.Value;
-        }
-
-        return null;
-    }
+        => QueryRowValueHelper.ResolveParam(_pars, name);
 
     private static object? ResolveIdentifier(
         string name,
         EvalRow row)
-    {
-        // "a.b"
-        var dot = name.IndexOf('.');
-        if (dot >= 0)
-            return ResolveColumn(name[..dot], name[(dot + 1)..], row);
-
-        // unqualified: try exact match in any source (first wins)
-        foreach (var src in row.Sources.Values)
-        {
-            var key = $"{src.Alias}.{name}";
-            if (row.Fields.TryGetValue(key, out var v))
-                return v;
-        }
-
-        // maybe projected alias
-        if (row.Fields.TryGetValue(name, out var v2))
-            return v2;
-
-        return null;
-    }
+        => QueryRowValueHelper.ResolveIdentifier(name, row);
 
     private static object? ResolveColumn(
         string? qualifier,
         string col,
         EvalRow row)
-    {
-        col = col.NormalizeName();
-
-        Source? src = null;
-
-        if (!string.IsNullOrWhiteSpace(qualifier))
-            return ResolveQualifiedColumn(qualifier!, col, row, out src);
-
-        // sem qualifier: tenta unqualified (você já expõe no AddFields)
-        if (row.Fields.TryGetValue(col, out var v2))
-            return v2;
-
-        // fallback: tenta varrer sources
-        foreach (var vlr in row.Sources.Values)
-        {
-            var key = $"{vlr.Alias}.{col}";
-            if (row.Fields.TryGetValue(key, out var v))
-                return v;
-
-            var colHit = vlr.ColumnNames.FirstOrDefault(c => c.Equals(col, StringComparison.OrdinalIgnoreCase));
-            if (colHit is not null && row.Fields.TryGetValue($"{vlr.Alias}.{colHit}", out v))
-                return v;
-        }
-
-        return null;
-
-
-    }
-    private static object? ResolveQualifiedColumn(
-        string qualifier,
-        string col,
-        EvalRow row,
-        out Source? src)
-    {
-        qualifier = qualifier.NormalizeName();
-
-        // se vier db.table, pega o "table"
-        var lastQual = qualifier.Contains('.')
-            ? qualifier.Split('.').Last()
-            : qualifier;
-
-        // 1) tenta por alias
-        if (!row.Sources.TryGetValue(qualifier, out src) &&
-            !row.Sources.TryGetValue(lastQual, out src))
-        {
-            // 2) tenta por nome físico da tabela
-            src = row.Sources.Values.FirstOrDefault(s =>
-                s.Name.Equals(qualifier, StringComparison.OrdinalIgnoreCase) ||
-                s.Name.Equals(lastQual, StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (src is null)
-        {
-            // Fallback: even if Sources doesn't contain the qualifier, fields may already have qualified keys
-            var directKey = $"{lastQual}.{col}";
-            if (row.Fields.TryGetValue(directKey, out var dv))
-                return dv;
-            directKey = $"{qualifier}.{col}";
-            if (row.Fields.TryGetValue(directKey, out dv))
-                return dv;
-            return null;
-        }
-
-        // wildcard qualificado? (U.*) -> aqui não resolve valor, quem trata é o SELECT planner
-        if (col == "*") return null;
-
-        var key = $"{src.Alias}.{col}";
-        if (row.Fields.TryGetValue(key, out var v))
-            return v;
-
-        var colHit = src.ColumnNames.FirstOrDefault(c => c.Equals(col, StringComparison.OrdinalIgnoreCase));
-        if (colHit is not null && row.Fields.TryGetValue($"{src.Alias}.{colHit}", out v))
-            return v;
-
-        return null;
-    }
+        => QueryRowValueHelper.ResolveColumn(qualifier, col, row);
 
     private static TableResultMock ApplyDistinct(
         TableResultMock res,
         ISqlDialect? dialect)
-    {
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        var outRows = new List<Dictionary<int, object?>>();
-
-        foreach (var row in res)
-        {
-            var key = new string[res.Columns.Count];
-            for (int i = 0; i < res.Columns.Count; i++)
-                key[i] = NormalizeDistinctKey(row.TryGetValue(i, out var v) ? v : null, dialect);
-
-            if (seen.Add(string.Join("\u001F", key)))
-                outRows.Add(row);
-        }
-
-        res.Clear();
-        foreach (var r in outRows) res.Add(r);
-        return res;
-    }
+        => QueryRowValueHelper.ApplyDistinct(res, dialect);
 
     private static SqlSelectQuery GetSingleSubqueryOrThrow(
         SubqueryExpr sq,
@@ -7035,7 +6452,6 @@ private void FillPercentRankOrCumeDist(
             => new(tableName, tableName, result);
     }
 
-    private sealed record ScalarSubqueryCacheEntry(object? Value);
     private readonly record struct InMembershipState(bool Matched, bool HasNullCandidate);
     private enum SqlTruthValue { True, False, Unknown }
 
@@ -7157,7 +6573,7 @@ private void FillPercentRankOrCumeDist(
         return merged;
     }
 
-    private sealed class EvalGroup
+    internal sealed class EvalGroup
     {
         /// <summary>
         /// EN: Gets or sets Rows.
@@ -7301,30 +6717,18 @@ private void FillPercentRankOrCumeDist(
 
     private static bool IsSqlServerRowCountIdentifier(string identifier, ISqlDialect? dialect)
         => dialect is not null
-           && string.Equals(dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase)
-           && identifier.Equals("@@ROWCOUNT", StringComparison.OrdinalIgnoreCase);
+           && dialect.SupportsLastFoundRowsIdentifier(identifier);
 
     private static bool IsFoundRowsEquivalentFunction(string functionName, ISqlDialect dialect)
     {
         if (string.IsNullOrWhiteSpace(functionName))
             return false;
 
-        if (functionName.Equals("FOUND_ROWS", StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        return dialect.Name.ToLowerInvariant() switch
-        {
-            "mysql" => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase),
-            "sqlserver" => functionName.Equals("ROWCOUNT", StringComparison.OrdinalIgnoreCase),
-            "postgresql" => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase),
-            "oracle" => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase),
-            "db2" => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase),
-            "sqlite" => functionName.Equals("CHANGES", StringComparison.OrdinalIgnoreCase),
-            _ => false
-        };
+        return dialect.SupportsLastFoundRowsFunction(functionName);
     }
 
-    private static bool HasSqlCalcFoundRows(SqlSelectQuery query)
-        => !string.IsNullOrWhiteSpace(query.RawSql)
+    private bool HasSqlCalcFoundRows(SqlSelectQuery query)
+        => Dialect?.SupportsSqlCalcFoundRowsModifier == true
+           && !string.IsNullOrWhiteSpace(query.RawSql)
            && _sqlCalcFoundRowsRegex.IsMatch(query.RawSql);
 }

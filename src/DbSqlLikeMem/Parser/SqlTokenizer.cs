@@ -143,7 +143,7 @@ internal sealed class SqlTokenizer
     {
         token = default;
 
-        if (!string.Equals(_dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase))
+        if (!_dialect.SupportsDoubleAtIdentifierSyntax)
             return false;
 
         if (Peek() != '@' || Peek(1) != '@' || !IsIdentStart(Peek(2)))

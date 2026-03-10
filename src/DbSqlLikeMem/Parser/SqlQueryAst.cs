@@ -116,6 +116,18 @@ internal sealed record SqlDropTableQuery : SqlQueryBase
     internal TemporaryTableScope Scope { get; init; } = TemporaryTableScope.None;
 }
 
+internal sealed record SqlCreateSequenceQuery : SqlQueryBase
+{
+    internal bool IfNotExists { get; init; }
+    internal long StartValue { get; init; } = 1;
+    internal long IncrementBy { get; init; } = 1;
+}
+
+internal sealed record SqlDropSequenceQuery : SqlQueryBase
+{
+    internal bool IfExists { get; init; }
+}
+
 internal sealed record SqlMergeQuery : SqlQueryBase
 {
     internal SqlTableSource? Source { get; init; } // opcional (pode deixar null por enquanto)

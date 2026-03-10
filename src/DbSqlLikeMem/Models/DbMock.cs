@@ -1,8 +1,8 @@
 ﻿namespace DbSqlLikeMem;
 
 /// <summary>
-/// EN: Base of an in-memory database with schemas, tables, and procedures.
-/// PT: Base de um banco em memória com schemas, tabelas e procedimentos.
+/// EN: Base of an in-memory database with schemas, tables, procedures, and sequences.
+/// PT: Base de um banco em memória com schemas, tabelas, procedimentos e sequences.
 /// </summary>
 public abstract class DbMock
     : Dictionary<string, SchemaMock>
@@ -88,9 +88,9 @@ public abstract class DbMock
         if (schemaName == null)
         {
             if (Count > 1)
-                throw new Exception($"Existe mais de um Schema ({string.Join(",", this.Keys)}), escolha um e passe como parâmetro");
+                throw new InvalidOperationException(Resources.SqlExceptionMessages.MultipleSchemasRequireExplicitName(string.Join(",", this.Keys)));
             if (Count == 0)
-                throw new Exception("Schema não existe cadastrado");
+                throw new InvalidOperationException(Resources.SqlExceptionMessages.NoSchemaRegistered());
             schemaName = this.Keys.First();
         }
         return schemaName.NormalizeName();
@@ -201,7 +201,7 @@ public abstract class DbMock
         if (ifExists)
             return;
 
-        throw new InvalidOperationException($"Table '{tableName.NormalizeName()}' does not exist.");
+        throw SqlUnsupported.ForNormalizedTableDoesNotExist(tableName);
     }
 
     /// <summary>
@@ -240,7 +240,7 @@ public abstract class DbMock
         var sc = GetSchemaName(schemaName);
         if (!this[sc].TryGetTable(tableName, out var tb)
             || tb == null)
-            throw new Exception($"Tabela não existe cadastrada {tableName}");
+            throw SqlUnsupported.ForNormalizedTableDoesNotExist(tableName);
         return tb;
     }
 
@@ -299,7 +299,7 @@ public abstract class DbMock
         if (removed || ifExists)
             return;
 
-        throw new InvalidOperationException($"Table '{normalized}' does not exist.");
+        throw SqlUnsupported.ForNormalizedTableDoesNotExist(normalized);
     }
 
     /// <summary>
@@ -349,7 +349,7 @@ public abstract class DbMock
                 return; // não cria, não dá erro
             }
 
-            throw new InvalidOperationException($"View '{name}' already exists.");
+            throw new InvalidOperationException(Resources.SqlExceptionMessages.ViewAlreadyExists(name!));
         }
 
         schema.Views[name!] = query.Select;
@@ -364,7 +364,7 @@ public abstract class DbMock
         var sc = GetSchemaName(schemaName);
         if (!this[sc].Views.TryGetValue(viewName, out var vw)
             || vw == null)
-            throw new Exception($"View não existe cadastrada {viewName}");
+            throw new InvalidOperationException(Resources.SqlExceptionMessages.ViewDoesNotExist(viewName));
         return vw;
     }
 
@@ -396,7 +396,7 @@ public abstract class DbMock
         if (ifExists)
             return;
 
-        throw new InvalidOperationException($"View '{normalized}' does not exist.");
+        throw new InvalidOperationException(Resources.SqlExceptionMessages.ViewDoesNotExist(normalized));
     }
 
     #endregion
@@ -439,6 +439,114 @@ public abstract class DbMock
         var sc = GetSchemaName(schemaName);
         return this[sc].Procedures.TryGetValue(procName, out pr)
             && pr != null;
+    }
+
+    #endregion
+
+    #region Sequences
+
+    /// <summary>
+    /// EN: Registers a sequence in the specified schema.
+    /// PT: Registra uma sequence no schema informado.
+    /// </summary>
+    /// <param name="sequenceName">EN: Sequence name. PT: Nome da sequence.</param>
+    /// <param name="sequence">EN: Sequence definition. PT: Definição da sequence.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    public void AddSequence(
+        string sequenceName,
+        SequenceDef sequence,
+        string? schemaName = null)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(sequenceName, nameof(sequenceName));
+        ArgumentNullExceptionCompatible.ThrowIfNull(sequence, nameof(sequence));
+        var sc = GetSchemaName(schemaName);
+        if (!this.TryGetValue(sc, out var s) || s == null)
+            CreateSchema(sc);
+        this[sc].MutableSequences[sequenceName.NormalizeName()] = sequence;
+    }
+
+    /// <summary>
+    /// EN: Creates and registers a sequence in the specified schema.
+    /// PT: Cria e registra uma sequence no schema informado.
+    /// </summary>
+    /// <param name="sequenceName">EN: Sequence name. PT: Nome da sequence.</param>
+    /// <param name="startValue">EN: First sequence value. PT: Primeiro valor da sequence.</param>
+    /// <param name="incrementBy">EN: Increment step. PT: Passo de incremento.</param>
+    /// <param name="currentValue">EN: Current value when known. PT: Valor atual quando conhecido.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: Registered sequence. PT: Sequence registrada.</returns>
+    public SequenceDef AddSequence(
+        string sequenceName,
+        long startValue = 1,
+        long incrementBy = 1,
+        long? currentValue = null,
+        string? schemaName = null)
+    {
+        var sequence = new SequenceDef(sequenceName, startValue, incrementBy, currentValue);
+        AddSequence(sequenceName, sequence, schemaName);
+        return sequence;
+    }
+
+    /// <summary>
+    /// EN: Tries to get a sequence by name.
+    /// PT: Tenta obter uma sequence pelo nome.
+    /// </summary>
+    /// <param name="sequenceName">EN: Sequence name. PT: Nome da sequence.</param>
+    /// <param name="sequence">EN: Found sequence, if any. PT: Sequence encontrada, se houver.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: True if it exists. PT: True se existir.</returns>
+    public bool TryGetSequence(
+        string sequenceName,
+        out SequenceDef? sequence,
+        string? schemaName = null)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(sequenceName, nameof(sequenceName));
+        var sc = GetSchemaName(schemaName);
+        return this[sc].MutableSequences.TryGetValue(sequenceName.NormalizeName(), out sequence)
+            && sequence != null;
+    }
+
+    internal void CreateSequence(
+        string sequenceName,
+        bool ifNotExists,
+        long startValue = 1,
+        long incrementBy = 1,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sequenceName, nameof(sequenceName));
+        var sc = GetSchemaName(schemaName);
+        if (!this.TryGetValue(sc, out var s) || s == null)
+            CreateSchema(sc);
+
+        var normalized = sequenceName.NormalizeName();
+        var sequences = this[sc].MutableSequences;
+        if (sequences.ContainsKey(normalized))
+        {
+            if (ifNotExists)
+                return;
+
+            throw new InvalidOperationException($"Sequence '{normalized}' already exists.");
+        }
+
+        sequences[normalized] = new SequenceDef(sequenceName, startValue, incrementBy);
+    }
+
+    internal void DropSequence(
+        string sequenceName,
+        bool ifExists,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sequenceName, nameof(sequenceName));
+        var sc = GetSchemaName(schemaName);
+        var normalized = sequenceName.NormalizeName();
+
+        if (this[sc].MutableSequences.Remove(normalized))
+            return;
+
+        if (ifExists)
+            return;
+
+        throw new InvalidOperationException($"Sequence '{normalized}' does not exist.");
     }
 
     #endregion

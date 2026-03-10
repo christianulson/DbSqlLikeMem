@@ -1,276 +1,321 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
-/// EN: Defines the class ExtendedMySqlMockTests.
-/// PT: Define a classe ExtendedMySqlMockTests.
+/// EN: Defines the class ExtendedPostgreSqlMockTests.
+/// PT: Define a classe ExtendedPostgreSqlMockTests.
 /// </summary>
-public sealed class ExtendedMySqlMockTests(
+public sealed class ExtendedPostgreSqlMockTests(
         ITestOutputHelper helper
-    ) : XUnitTestBase(helper)
+    ) : ExtendedDapperProviderTestsBase<NpgsqlDbMock, NpgsqlConnectionMock, NpgsqlMockException>(helper)
 {
+    /// <inheritdoc />
+    protected override NpgsqlConnectionMock CreateConnection(NpgsqlDbMock db)
+        => new(db);
+
+    /// <inheritdoc />
+    protected override string DistinctPaginationSql
+        => "SELECT DISTINCT id FROM t ORDER BY id DESC OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
+
     /// <summary>
-    /// EN: Tests InsertAutoIncrementShouldAssignIdentityWhenNotSpecified behavior.
-    /// PT: Testa o comportamento de InsertAutoIncrementShouldAssignIdentityWhenNotSpecified.
+    /// EN: Verifies inserts without explicit identity values receive an auto-generated identifier.
+    /// PT: Verifica se insercoes sem valor explicito de identidade recebem um identificador gerado automaticamente.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
-    public void InsertAutoIncrementShouldAssignIdentityWhenNotSpecified()
-    {
-        var db = new NpgsqlDbMock();
-        var table = db.AddTable("users");
-        table.AddColumn("id", DbType.Int32, false, identity: true);
-        table.AddColumn("name", DbType.String, false);
-        using var cnn = new NpgsqlConnectionMock(db);
-        cnn.Open();
-        var rows1 = cnn.Execute("INSERT INTO users (name) VALUES (@name)", new { name = "Alice" });
-        Assert.Equal(1, rows1);
-        Assert.Single(table);
-        Assert.Equal(1, table[0][0]);
-        Assert.Equal("Alice", table[0][1]);
-
-        var rows2 = cnn.Execute("INSERT INTO users (name) VALUES (@name)", new { name = "Bob" });
-        Assert.Equal(1, rows2);
-        Assert.Equal(2, table.Count);
-        Assert.Equal(2, table[1][0]);
-        Assert.Equal("Bob", table[1][1]);
-    }
+    public void InsertAutoIncrementShouldAssignIdentityWhenNotSpecified_Test()
+        => InsertAutoIncrementShouldAssignIdentityWhenNotSpecified();
 
     /// <summary>
-    /// EN: Tests InsertNullIntoNullableColumnShouldSucceed behavior.
-    /// PT: Testa o comportamento de InsertNullIntoNullableColumnShouldSucceed.
+    /// EN: Verifies explicit identity values are respected only when identity override is enabled for the scenario.
+    /// PT: Verifica se valores explícitos de identity são respeitados apenas quando a sobrescrita de identity está habilitada no cenário.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
-    public void InsertNullIntoNullableColumnShouldSucceed()
-    {
-        var db = new NpgsqlDbMock();
-        var table = db.AddTable("data");
-        table.AddColumn("id", DbType.Int32, false);
-        table.AddColumn("info", DbType.String, true);
-        using var cnn = new NpgsqlConnectionMock(db);
-        cnn.Open();
-
-        var rows = cnn.Execute("INSERT INTO data (id, info) VALUES (@id, @info)", new { id = 1, info = (string?)null });
-        Assert.Equal(1, rows);
-        Assert.Null(table[0][1]);
-    }
+    public void InsertAutoIncrementShouldRespectExplicitIdentityWhenEnabled_Test()
+        => InsertAutoIncrementShouldRespectExplicitIdentityWhenEnabled();
 
     /// <summary>
-    /// EN: Tests InsertNullIntoNonNullableColumnShouldThrow behavior.
-    /// PT: Testa o comportamento de InsertNullIntoNonNullableColumnShouldThrow.
+    /// EN: Verifies nextval reads and advances registered schema sequences during inserts.
+    /// PT: Verifica se nextval le e avanca sequences registradas no schema durante insercoes.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
-    public void InsertNullIntoNonNullableColumnShouldThrow()
+    public void NextVal_ShouldAdvanceRegisteredSequence_Test()
     {
-        var db = new NpgsqlDbMock();
-        var table = db.AddTable("data");
-        table.AddColumn("id", DbType.Int32, false);
-        table.AddColumn("info", DbType.String, false);
-        using var cnn = new NpgsqlConnectionMock(db);
-        cnn.Open();
+        var db = CreateDb();
+        using var connection = CreateConnection(db);
+        connection.Open();
+        connection.AddSequence("seq_orders", startValue: 3, incrementBy: 2);
+        var table = db.AddTable("orders");
+        table.AddColumn("id", DbType.Int64, false);
 
-        Assert.Throws<NpgsqlMockException>(() =>
-            cnn.Execute("INSERT INTO data (id, info) VALUES (@id, @info)", new { id = 1, info = (string?)null }));
-    }
+        connection.Execute("INSERT INTO orders (id) VALUES (nextval('seq_orders'))");
+        connection.Execute("INSERT INTO orders (id) VALUES (nextval('seq_orders'))");
 
-    private static readonly string[] item = ["first", "second"];
-
-    /// <summary>
-    /// EN: Tests CompositeIndexFilterShouldReturnCorrectRows behavior.
-    /// PT: Testa o comportamento de CompositeIndexFilterShouldReturnCorrectRows.
-    /// </summary>
-    [Fact]
-    [Trait("Category", "ExtendedPostgreSqlMock")]
-    public void CompositeIndexFilterShouldReturnCorrectRows()
-    {
-        var db = new NpgsqlDbMock();
-        var table = db.AddTable("t");
-        table.AddColumn("first", DbType.String, false);
-        table.AddColumn("second", DbType.String, false);
-        table.AddColumn("value", DbType.Int32, false);
-        table.Add(new Dictionary<int, object?> { { 0, "A" }, { 1, "X" }, { 2, 1 } });
-        table.Add(new Dictionary<int, object?> { { 0, "A" }, { 1, "Y" }, { 2, 2 } });
-        table.Add(new Dictionary<int, object?> { { 0, "B" }, { 1, "X" }, { 2, 3 } });
-        table.CreateIndex("ix_fs2", item, unique: false);
-
-        using var cnn = new NpgsqlConnectionMock(db);
-        cnn.Open();
-
-        var result = cnn.Query<dynamic>("SELECT * FROM t WHERE first = @f AND second = @s", new { f = "A", s = "X" }).ToList();
-        Assert.Single(result);
-        Assert.Equal(1, (int)result[0].value);
+        Assert.Equal(3L, table[0][0]);
+        Assert.Equal(5L, table[1][0]);
+        Assert.True(connection.TryGetSequence("seq_orders", out var sequence));
+        Assert.Equal(5, sequence!.CurrentValue);
     }
 
     /// <summary>
-    /// EN: Tests LikeFilterShouldReturnMatchingRows behavior.
-    /// PT: Testa o comportamento de LikeFilterShouldReturnMatchingRows.
+    /// EN: Verifies SELECT nextval advances the registered schema sequence once per scalar evaluation.
+    /// PT: Verifica se SELECT nextval avanca a sequence registrada no schema uma vez por avaliacao escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
-    public void LikeFilterShouldReturnMatchingRows()
+    public void SelectNextVal_ShouldAdvanceRegisteredSequence_Test()
     {
-        var db = new NpgsqlDbMock();
-        var table = db.AddTable("t");
-        table.AddColumn("name", DbType.String, false);
-        table.Add(new Dictionary<int, object?> { { 0, "alice" } });
-        table.Add(new Dictionary<int, object?> { { 0, "bob" } });
-        using var cnn = new NpgsqlConnectionMock(db);
-        cnn.Open();
+        var db = CreateDb();
+        using var connection = CreateConnection(db);
+        connection.Open();
+        connection.AddSequence("seq_orders", startValue: 3, incrementBy: 2);
 
-        var res = cnn.Query<dynamic>("SELECT * FROM t WHERE name LIKE 'a%'").ToList();
-        Assert.Single(res);
-        Assert.Equal("alice", res[0].name);
+        var first = connection.ExecuteScalar<long>("SELECT nextval('seq_orders')");
+        var second = connection.ExecuteScalar<long>("SELECT nextval('seq_orders')");
+
+        Assert.Equal(3L, first);
+        Assert.Equal(5L, second);
+        Assert.True(connection.TryGetSequence("seq_orders", out var sequence));
+        Assert.Equal(5, sequence!.CurrentValue);
     }
 
     /// <summary>
-    /// EN: Tests InFilterShouldReturnMatchingRows behavior.
-    /// PT: Testa o comportamento de InFilterShouldReturnMatchingRows.
+    /// EN: Verifies schema-qualified sequences are resolved during scalar selects and inserts.
+    /// PT: Verifica se sequences qualificadas por schema sao resolvidas durante selects escalares e insercoes.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
-    public void InFilterShouldReturnMatchingRows()
+    public void SchemaQualifiedNextVal_ShouldResolveRegisteredSequence_Test()
     {
-        var db = new NpgsqlDbMock();
-        var table = db.AddTable("t");
-        table.AddColumn("id", DbType.Int32, false);
-        table.Add(new Dictionary<int, object?> { { 0, 1 } });
-        table.Add(new Dictionary<int, object?> { { 0, 2 } });
-        table.Add(new Dictionary<int, object?> { { 0, 3 } });
-        using var cnn = new NpgsqlConnectionMock(db);
-        cnn.Open();
+        var db = CreateDb();
+        db.CreateSchema("sales");
+        using var connection = new NpgsqlConnectionMock(db, "sales");
+        connection.Open();
+        connection.AddSequence("seq_orders", startValue: 7, incrementBy: 4, schemaName: "sales");
+        var table = db.AddTable("orders", schemaName: "sales");
+        table.AddColumn("id", DbType.Int64, false);
 
-        var res = cnn.Query<dynamic>("SELECT * FROM t WHERE id IN (1,3)").ToList();
-        var ids = res.Select(r => (int)r.id).OrderBy(_ => _).ToArray();
-        Assert.Equal([1, 3], ids);
+        var scalar = connection.ExecuteScalar<long>("SELECT nextval('sales.seq_orders')");
+        connection.Execute("INSERT INTO sales.orders (id) VALUES (nextval('sales.seq_orders'))");
+
+        Assert.Equal(7L, scalar);
+        Assert.Equal(11L, table[0][0]);
+        Assert.True(connection.TryGetSequence("seq_orders", out var sequence, "sales"));
+        Assert.Equal(11, sequence!.CurrentValue);
     }
 
     /// <summary>
-    /// EN: Tests OrderByLimitOffsetDistinctShouldReturnExpectedRows behavior.
-    /// PT: Testa o comportamento de OrderByLimitOffsetDistinctShouldReturnExpectedRows.
+    /// EN: Verifies currval is session-local and only becomes available after nextval in the same connection.
+    /// PT: Verifica se currval e local da sessao e so fica disponivel apos nextval na mesma conexao.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
-    public void OrderByLimitOffsetDistinctShouldReturnExpectedRows()
+    public void CurrVal_ShouldBeSessionLocal_Test()
     {
-        var db = new NpgsqlDbMock();
-        var table = db.AddTable("t");
-        table.AddColumn("id", DbType.Int32, false);
-        table.Add(new Dictionary<int, object?> { { 0, 2 } });
-        table.Add(new Dictionary<int, object?> { { 0, 1 } });
-        table.Add(new Dictionary<int, object?> { { 0, 2 } });
-        using var cnn = new NpgsqlConnectionMock(db);
-        cnn.Open();
+        var db = CreateDb();
+        using var first = CreateConnection(db);
+        using var second = CreateConnection(db);
+        first.Open();
+        second.Open();
+        first.AddSequence("seq_orders", startValue: 10, incrementBy: 2);
 
-        var res = cnn.Query<dynamic>("SELECT DISTINCT id FROM t ORDER BY id DESC OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY").ToList();
-        Assert.Single(res);
-        Assert.Equal(1, (int)res[0].id);
+        var firstNext = first.ExecuteScalar<long>("SELECT nextval('seq_orders')");
+        var firstCurr = first.ExecuteScalar<long>("SELECT currval('seq_orders')");
+        var missingCurr = Assert.Throws<InvalidOperationException>(() => second.ExecuteScalar<long>("SELECT currval('seq_orders')"));
+        var secondNext = second.ExecuteScalar<long>("SELECT nextval('seq_orders')");
+        var secondCurr = second.ExecuteScalar<long>("SELECT currval('seq_orders')");
+        var firstCurrAfterSecond = first.ExecuteScalar<long>("SELECT currval('seq_orders')");
+
+        Assert.Equal(10L, firstNext);
+        Assert.Equal(10L, firstCurr);
+        Assert.Contains("not yet defined", missingCurr.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(12L, secondNext);
+        Assert.Equal(12L, secondCurr);
+        Assert.Equal(10L, firstCurrAfterSecond);
     }
 
     /// <summary>
-    /// EN: Tests HavingFilterShouldApplyAfterAggregation behavior.
-    /// PT: Testa o comportamento de HavingFilterShouldApplyAfterAggregation.
+    /// EN: Verifies setval updates the sequence state and honors the is_called flag for the next nextval.
+    /// PT: Verifica se setval atualiza o estado da sequence e respeita a flag is_called para o proximo nextval.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
-    public void HavingFilterShouldApplyAfterAggregation()
+    public void SetVal_ShouldHonorIsCalledFlag_Test()
     {
-        var db = new NpgsqlDbMock();
-        var table = db.AddTable("t");
-        table.AddColumn("grp", DbType.String, false);
-        table.AddColumn("val", DbType.Int32, false);
-        table.Add(new Dictionary<int, object?> { { 0, "a" }, { 1, 1 } });
-        table.Add(new Dictionary<int, object?> { { 0, "a" }, { 1, 2 } });
-        table.Add(new Dictionary<int, object?> { { 0, "b" }, { 1, 3 } });
-        using var cnn = new NpgsqlConnectionMock(db);
-        cnn.Open();
-        const string sql = "SELECT grp, COUNT(val) AS C FROM t GROUP BY grp HAVING C > 1";
+        var db = CreateDb();
+        using var connection = CreateConnection(db);
+        connection.Open();
+        connection.AddSequence("seq_orders", startValue: 1, incrementBy: 1);
 
-        var result = cnn.Query<dynamic>(sql).ToList();
-        Assert.Single(result);
-        Assert.Equal("a", result[0].grp);
-        Assert.Equal(2L, result[0].C);
+        var initial = connection.ExecuteScalar<long>("SELECT nextval('seq_orders')");
+        var setCalled = connection.ExecuteScalar<long>("SELECT setval('seq_orders', 20)");
+        var currAfterSetCalled = connection.ExecuteScalar<long>("SELECT currval('seq_orders')");
+        var nextAfterSetCalled = connection.ExecuteScalar<long>("SELECT nextval('seq_orders')");
+        var setNotCalled = connection.ExecuteScalar<long>("SELECT setval('seq_orders', 30, false)");
+        var currAfterSetNotCalled = connection.ExecuteScalar<long>("SELECT currval('seq_orders')");
+        var nextAfterSetNotCalled = connection.ExecuteScalar<long>("SELECT nextval('seq_orders')");
+        var currAfterNext = connection.ExecuteScalar<long>("SELECT currval('seq_orders')");
+
+        Assert.Equal(1L, initial);
+        Assert.Equal(20L, setCalled);
+        Assert.Equal(20L, currAfterSetCalled);
+        Assert.Equal(21L, nextAfterSetCalled);
+        Assert.Equal(30L, setNotCalled);
+        Assert.Equal(21L, currAfterSetNotCalled);
+        Assert.Equal(30L, nextAfterSetNotCalled);
+        Assert.Equal(30L, currAfterNext);
+        Assert.True(connection.TryGetSequence("seq_orders", out var sequence));
+        Assert.Equal(30, sequence!.CurrentValue);
     }
 
     /// <summary>
-    /// EN: Tests ForeignKeyDeleteShouldThrowOnReferencedParentDeletion behavior.
-    /// PT: Testa o comportamento de ForeignKeyDeleteShouldThrowOnReferencedParentDeletion.
+    /// EN: Verifies lastval returns the last sequence value produced in the current session.
+    /// PT: Verifica se lastval retorna o ultimo valor de sequence produzido na sessao atual.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
-    public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletion()
+    public void LastVal_ShouldReturnLastSessionSequenceValue_Test()
     {
-        // Parent
-        var db = new NpgsqlDbMock();
-        var parent = db.AddTable("parent");
-        parent.AddColumn("id", DbType.Int32, false);
-        parent.Add(new Dictionary<int, object?> { { 0, 1 } });
-        parent.AddPrimaryKeyIndexes("id");
-        // Child with FK to parent
-        var child = db.AddTable("child");
-        child.AddColumn("pid", DbType.Int32, false);
-        child.AddColumn("data", DbType.String, false);
-        child.CreateForeignKey("ix_parent_id", parent.TableName, [("pid", "id")]);
-        child.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "x" } });
+        var db = CreateDb();
+        using var first = CreateConnection(db);
+        using var second = CreateConnection(db);
+        first.Open();
+        second.Open();
+        first.AddSequence("seq_orders", startValue: 100, incrementBy: 10);
 
-        using var cnn = new NpgsqlConnectionMock(db);
-        cnn.Open();
+        var missing = Assert.Throws<InvalidOperationException>(() => first.ExecuteScalar<long>("SELECT lastval()"));
+        var firstNext = first.ExecuteScalar<long>("SELECT nextval('seq_orders')");
+        var firstLast = first.ExecuteScalar<long>("SELECT lastval()");
+        var secondMissing = Assert.Throws<InvalidOperationException>(() => second.ExecuteScalar<long>("SELECT lastval()"));
+        var secondNext = second.ExecuteScalar<long>("SELECT nextval('seq_orders')");
+        var secondLast = second.ExecuteScalar<long>("SELECT lastval()");
+        var firstLastAfterSecond = first.ExecuteScalar<long>("SELECT lastval()");
 
-        Assert.Throws<NpgsqlMockException>(() =>
-            cnn.Execute("DELETE FROM parent WHERE id = 1"));
+        Assert.Contains("not yet defined", missing.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(100L, firstNext);
+        Assert.Equal(100L, firstLast);
+        Assert.Contains("not yet defined", secondMissing.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(110L, secondNext);
+        Assert.Equal(110L, secondLast);
+        Assert.Equal(100L, firstLastAfterSecond);
     }
 
     /// <summary>
-    /// EN: Tests ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK behavior.
-    /// PT: Testa o comportamento de ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK.
+    /// EN: Verifies setval with is_called false does not change lastval until a new nextval is executed.
+    /// PT: Verifica se setval com is_called false nao altera lastval ate que um novo nextval seja executado.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
-    public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK()
+    public void LastVal_ShouldRemainUnchangedAfterSetValWithIsCalledFalse_Test()
     {
-        // Parent
-        var db = new NpgsqlDbMock();
-        var parent = db.AddTable("parent");
-        parent.AddColumn("id", DbType.Int32, false);
-        parent.Add(new Dictionary<int, object?> { { 0, 1 } });
-        // Child with FK to parent
-        var child = db.AddTable("child");
-        child.AddColumn("pid", DbType.Int32, false);
-        child.AddColumn("data", DbType.String, false);
-        child.CreateForeignKey("ix_parent_id", parent.TableName, [("pid", "id")]);
-        child.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "x" } });
+        var db = CreateDb();
+        using var connection = CreateConnection(db);
+        connection.Open();
+        connection.AddSequence("seq_orders", startValue: 1, incrementBy: 1);
 
-        using var cnn = new NpgsqlConnectionMock(db);
-        cnn.Open();
+        var initial = connection.ExecuteScalar<long>("SELECT nextval('seq_orders')");
+        var lastAfterInitial = connection.ExecuteScalar<long>("SELECT lastval()");
+        var setResult = connection.ExecuteScalar<long>("SELECT setval('seq_orders', 40, false)");
+        var lastAfterSet = connection.ExecuteScalar<long>("SELECT lastval()");
+        var nextAfterSet = connection.ExecuteScalar<long>("SELECT nextval('seq_orders')");
+        var lastAfterNext = connection.ExecuteScalar<long>("SELECT lastval()");
 
-        Assert.Throws<NpgsqlMockException>(() =>
-            cnn.Execute("DELETE FROM parent WHERE id = 1"));
+        Assert.Equal(1L, initial);
+        Assert.Equal(1L, lastAfterInitial);
+        Assert.Equal(40L, setResult);
+        Assert.Equal(1L, lastAfterSet);
+        Assert.Equal(40L, nextAfterSet);
+        Assert.Equal(40L, lastAfterNext);
     }
 
     /// <summary>
-    /// EN: Tests MultipleParameterSetsInsertShouldInsertAllRows behavior.
-    /// PT: Testa o comportamento de MultipleParameterSetsInsertShouldInsertAllRows.
+    /// EN: Verifies inserts with null values succeed for nullable columns.
+    /// PT: Verifica se insercoes com valores nulos funcionam para colunas anulaveis.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
-    public void MultipleParameterSetsInsertShouldInsertAllRows()
-    {
-        var db = new NpgsqlDbMock();
-        var table = db.AddTable("users");
-        table.AddColumn("id", DbType.Int32, false);
-        table.AddColumn("name", DbType.String, false);
-        using var cnn = new NpgsqlConnectionMock(db);
-        cnn.Open();
+    public void InsertNullIntoNullableColumnShouldSucceed_Test()
+        => InsertNullIntoNullableColumnShouldSucceed();
 
-        var data = new[]
-        {
-        new { id = 1, name = "A" },
-        new { id = 2, name = "B" }
-    };
-        var rows = cnn.Execute("INSERT INTO users (id,name) VALUES (@id,@name)", data);
-        Assert.Equal(2, rows);
-        Assert.Equal(2, table.Count);
-        Assert.Equal("A", table[0][1]);
-        Assert.Equal("B", table[1][1]);
-    }
+    /// <summary>
+    /// EN: Verifies inserts with null values fail for non-nullable columns.
+    /// PT: Verifica se insercoes com valores nulos falham para colunas nao anulaveis.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedPostgreSqlMock")]
+    public void InsertNullIntoNonNullableColumnShouldThrow_Test()
+        => InsertNullIntoNonNullableColumnShouldThrow();
+
+    /// <summary>
+    /// EN: Verifies composite index filters return only the expected rows.
+    /// PT: Verifica se filtros por indice composto retornam apenas as linhas esperadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedPostgreSqlMock")]
+    public void CompositeIndexFilterShouldReturnCorrectRows_Test()
+        => CompositeIndexFilterShouldReturnCorrectRows();
+
+    /// <summary>
+    /// EN: Verifies LIKE filters return the matching rows.
+    /// PT: Verifica se filtros LIKE retornam as linhas correspondentes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedPostgreSqlMock")]
+    public void LikeFilterShouldReturnMatchingRows_Test()
+        => LikeFilterShouldReturnMatchingRows();
+
+    /// <summary>
+    /// EN: Verifies IN filters return the matching rows.
+    /// PT: Verifica se filtros IN retornam as linhas correspondentes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedPostgreSqlMock")]
+    public void InFilterShouldReturnMatchingRows_Test()
+        => InFilterShouldReturnMatchingRows();
+
+    /// <summary>
+    /// EN: Verifies distinct pagination returns the expected ordered page of rows.
+    /// PT: Verifica se a paginacao com distinct retorna a pagina ordenada esperada de linhas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedPostgreSqlMock")]
+    public void OrderByLimitOffsetDistinctShouldReturnExpectedRows_Test()
+        => OrderByLimitOffsetDistinctShouldReturnExpectedRows();
+
+    /// <summary>
+    /// EN: Verifies HAVING filters are applied after aggregation results are produced.
+    /// PT: Verifica se filtros HAVING sao aplicados depois que os resultados agregados sao produzidos.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedPostgreSqlMock")]
+    public void HavingFilterShouldApplyAfterAggregation_Test()
+        => HavingFilterShouldApplyAfterAggregation();
+
+    /// <summary>
+    /// EN: Verifies deleting a parent row fails when child rows still reference it.
+    /// PT: Verifica se excluir uma linha pai falha quando linhas filhas ainda a referenciam.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedPostgreSqlMock")]
+    public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletion_Test()
+        => ForeignKeyDeleteShouldThrowOnReferencedParentDeletion();
+
+    /// <summary>
+    /// EN: Verifies deleting a referenced parent row without a primary key still fails.
+    /// PT: Verifica se excluir uma linha pai referenciada sem chave primaria ainda falha.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedPostgreSqlMock")]
+    public void ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK_Test()
+        => ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK();
+
+    /// <summary>
+    /// EN: Verifies multiple parameter sets in one insert command add all expected rows.
+    /// PT: Verifica se multiplos conjuntos de parametros em um comando de insercao adicionam todas as linhas esperadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExtendedPostgreSqlMock")]
+    public void MultipleParameterSetsInsertShouldInsertAllRows_Test()
+        => MultipleParameterSetsInsertShouldInsertAllRows();
 }

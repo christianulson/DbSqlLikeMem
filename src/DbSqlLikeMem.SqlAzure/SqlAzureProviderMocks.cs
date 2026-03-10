@@ -85,6 +85,20 @@ public static class SqlAzureDbCompatibilityLevels
         yield return SqlServer2022;
         yield return SqlServer2025;
     }
+
+    internal static int ToSqlServerDialectVersion(int compatibilityLevel)
+        => compatibilityLevel switch
+        {
+            SqlServer2008 => 2008,
+            SqlServer2012 => 2012,
+            SqlServer2014 => 2014,
+            SqlServer2016 => 2016,
+            SqlServer2017 => 2017,
+            SqlServer2019 => 2019,
+            SqlServer2022 => 2022,
+            SqlServer2025 => 2025,
+            _ => compatibilityLevel,
+        };
 }
 
 /// <summary>
@@ -112,6 +126,7 @@ public class SqlAzureDbMock : SqlServerDbMock
     /// </summary>
     public SqlAzureDbMock(int? version = null) : base(version ?? SqlAzureDbCompatibilityLevels.Default)
     {
+        Dialect = new SqlServerDialect(SqlAzureDbCompatibilityLevels.ToSqlServerDialectVersion(Version));
     }
 
     /// <summary>

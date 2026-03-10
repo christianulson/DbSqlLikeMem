@@ -57,7 +57,7 @@ public class ClassGeneratorTests
     /// </summary>
     [Fact]
     [Trait("Category", "ClassGenerator")]
-    public async Task GenerateAsync_ReplacesPatternTokensIncludingDatabaseContext()
+    public async Task GenerateAsync_ReplacesPatternTokensIncludingDatabaseContextAndNamespace()
     {
         var outputDir = Path.Combine(Path.GetTempPath(), $"dbsql-{Guid.NewGuid():N}");
 
@@ -75,14 +75,15 @@ public class ClassGeneratorTests
                     [DatabaseObjectType.View] = new(
                         DatabaseObjectType.View,
                         outputDir,
-                        "{DatabaseType}.{DatabaseName}.{Schema}.{NamePascal}.{Type}.cs")
+                        "{Namespace}.{DatabaseType}.{DatabaseName}.{Schema}.{NamePascal}.{Type}.cs",
+                        "Company.Generated")
                 });
 
             var files = await generator.GenerateAsync(request, config, _ => "// test", TestContext.Current.CancellationToken);
 
             var file = Assert.Single(files);
             Assert.Equal(
-                Path.Combine(outputDir, "PostgreSql.Billing.public.VwActiveCustomers.View.cs"),
+                Path.Combine(outputDir, "Company.Generated.PostgreSql.Billing.public.VwActiveCustomers.View.cs"),
                 file);
             Assert.True(File.Exists(file));
         }

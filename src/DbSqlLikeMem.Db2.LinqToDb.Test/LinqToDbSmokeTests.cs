@@ -6,12 +6,4 @@ namespace DbSqlLikeMem.Db2.LinqToDb.Test;
 /// </summary>
 public sealed class LinqToDbSmokeTests(
     ITestOutputHelper helper
-) : LinqToDbSupportTestsBase(helper)
-{
-    /// <summary>
-    /// EN: Creates the Db2 LinqToDB connection factory used by shared contract tests.
-    /// PT: Cria a fábrica de conexão LinqToDB de Db2 usada pelos testes de contrato compartilhados.
-    /// </summary>
-    protected override IDbSqlLikeMemLinqToDbConnectionFactory CreateFactory()
-        => new Db2LinqToDbConnectionFactory();
-}
+) : LinqToDbSmokeTestsBase(helper, static () => new Db2LinqToDbConnectionFactory());

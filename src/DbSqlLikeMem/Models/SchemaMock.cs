@@ -3,8 +3,8 @@ using DbSqlLikeMem.Models;
 namespace DbSqlLikeMem;
 
 /// <summary>
-/// EN: Base for an in-memory schema responsible for tables and procedures.
-/// PT: Base de um schema em memória, responsável por tabelas e procedimentos.
+/// EN: Base for an in-memory schema responsible for tables, procedures, and sequences.
+/// PT: Base de um schema em memória, responsável por tabelas, procedimentos e sequences.
 /// </summary>
 public abstract class SchemaMock
     : ISchemaMock
@@ -20,11 +20,13 @@ public abstract class SchemaMock
     /// <param name="db">EN: Parent database instance. PT: Instância do banco pai.</param>
     /// <param name="tables">EN: Initial table configuration. PT: Configuração inicial de tabelas.</param>
     /// <param name="procedures">EN: Initial procedures. PT: Procedimentos iniciais.</param>
+    /// <param name="sequences">EN: Initial sequences. PT: Sequences iniciais.</param>
     protected SchemaMock(
         string schemaName,
         DbMock db,
         IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null,
-        IDictionary<string, ProcedureDef>? procedures = null/*,
+        IDictionary<string, ProcedureDef>? procedures = null,
+        IDictionary<string, SequenceDef>? sequences = null/*,
         IDictionary<string, SqlSelectQuery>? views = null*/
     )
     {
@@ -36,6 +38,9 @@ public abstract class SchemaMock
         if (procedures != null)
             foreach (var it in procedures)
                 Procedures.Add(it.Key, it.Value);
+        if (sequences != null)
+            foreach (var it in sequences)
+                this.sequences.Add(it.Key, it.Value);
         //if (views != null)
         //    foreach (var (viewName, config) in views)
         //        Views.AddTable(viewName, config);
@@ -71,6 +76,17 @@ public abstract class SchemaMock
     /// </summary>
     public IDictionary<string, ProcedureDef> Procedures { get; } =
         new Dictionary<string, ProcedureDef>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// EN: Sequence definitions registered in the schema.
+    /// PT: Definições de sequence registradas no schema.
+    /// </summary>
+    public IReadOnlyDictionary<string, SequenceDef> Sequences => sequences;
+
+    private readonly Dictionary<string, SequenceDef> sequences =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    internal IDictionary<string, SequenceDef> MutableSequences => sequences;
 
     /// <summary>
     /// EN: Non-materialized views (definition only) evaluated on demand.
@@ -154,7 +170,7 @@ public abstract class SchemaMock
     private void AddUnsafe(string key, ITableMock table)
     {
         if (tables.ContainsKey(key))
-            throw new InvalidOperationException($"Table '{key}' already exists.");
+            throw new InvalidOperationException(SqlExceptionMessages.TableAlreadyExists(key));
 
         tables.Add(key, table);
     }

@@ -57,12 +57,19 @@ public abstract class DbConnectionMockBase(
     public IReadOnlyList<string> LastExecutionPlans => _lastExecutionPlans;
 
     private readonly List<string> _lastExecutionPlans = [];
+    private readonly List<QueryDebugTrace> _lastDebugTraces = [];
+    private int _debugTraceCaptureDepth;
     private long _lastFoundRows;
+    private readonly AutoSqlDialect _autoSqlDialect = new();
+    private readonly Dictionary<string, long> _sessionSequenceValues =
+        new(StringComparer.OrdinalIgnoreCase);
+    private string? _lastSessionSequenceKey;
 
     internal void ClearExecutionPlans()
     {
         LastExecutionPlan = null;
         _lastExecutionPlans.Clear();
+        ClearDebugTraces();
     }
 
     internal void RegisterExecutionPlan(string executionPlan)
@@ -72,6 +79,409 @@ public abstract class DbConnectionMockBase(
 
         LastExecutionPlan = executionPlan;
         _lastExecutionPlans.Add(executionPlan);
+    }
+
+    /// <summary>
+    /// EN: Last runtime query debug trace captured for this connection.
+    /// PT: Ultimo trace de debug de query em runtime capturado para esta conexao.
+    /// </summary>
+    public QueryDebugTrace? LastDebugTrace { get; private set; }
+
+    /// <summary>
+    /// EN: Runtime query debug traces captured during the last command execution.
+    /// PT: Traces de debug de query em runtime capturados durante a ultima execucao de comando.
+    /// </summary>
+    public IReadOnlyList<QueryDebugTrace> LastDebugTraces => _lastDebugTraces;
+
+    /// <summary>
+    /// EN: Enables automatic SQL dialect compatibility mode for parsing and execution on this connection.
+    /// PT: Habilita o modo automatico de compatibilidade de dialeto SQL para parsing e execucao nesta conexao.
+    /// </summary>
+    public bool UseAutoSqlDialect { get; set; }
+
+    /// <summary>
+    /// EN: Maximum number of runtime debug traces retained in connection history.
+    /// PT: Numero maximo de traces de debug em runtime retidos no historico da conexao.
+    /// </summary>
+    public int DebugTraceRetentionLimit { get; set; } = int.MaxValue;
+
+    /// <summary>
+    /// EN: Clears the runtime debug trace history kept by this connection.
+    /// PT: Limpa o historico de traces de debug em runtime mantido por esta conexao.
+    /// </summary>
+    public void ClearDebugTraces()
+    {
+        LastDebugTrace = null;
+        _lastDebugTraces.Clear();
+    }
+
+    /// <summary>
+    /// EN: Wraps this mock connection with the ADO.NET interception pipeline.
+    /// PT: Encapsula esta conexao mock com o pipeline de interceptacao ADO.NET.
+    /// </summary>
+    /// <param name="interceptors">EN: Interceptors applied in registration order. PT: Interceptors aplicados na ordem de registro.</param>
+    /// <returns>EN: Wrapped connection. PT: Conexao encapsulada.</returns>
+    public DbConnection Intercept(params DbConnectionInterceptor[] interceptors)
+        => DbInterceptionPipeline.Wrap(this, interceptors);
+
+    internal bool IsDebugTraceCaptureEnabled => _debugTraceCaptureDepth > 0;
+
+    internal ISqlDialect ExecutionDialect => UseAutoSqlDialect ? _autoSqlDialect : Db.Dialect;
+
+    internal IDisposable BeginDebugTraceCapture()
+    {
+        if (_debugTraceCaptureDepth == 0)
+            ClearDebugTraces();
+
+        _debugTraceCaptureDepth++;
+        return new DebugTraceCaptureScope(this);
+    }
+
+    internal void RegisterDebugTrace(QueryDebugTrace trace)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(trace, nameof(trace));
+        LastDebugTrace = trace;
+        _lastDebugTraces.Add(trace);
+        TrimDebugTraceHistoryIfNeeded();
+    }
+
+    internal void RestoreDebugTraces(IReadOnlyList<QueryDebugTrace> traces)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(traces, nameof(traces));
+        _lastDebugTraces.Clear();
+        _lastDebugTraces.AddRange(traces);
+        TrimDebugTraceHistoryIfNeeded();
+        LastDebugTrace = _lastDebugTraces.Count > 0 ? _lastDebugTraces[^1] : null;
+    }
+
+    /// <summary>
+    /// EN: Executes a SQL command and returns the captured runtime operator traces for the reader statements in that execution.
+    /// PT: Executa um comando SQL e retorna os traces de operadores em runtime capturados para os statements de leitura dessa execucao.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to execute. PT: Texto SQL a executar.</param>
+    /// <returns>EN: Captured runtime traces for the executed command. PT: Traces de runtime capturados para o comando executado.</returns>
+    public IReadOnlyList<QueryDebugTrace> DebugSqlBatch(string sql)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
+
+        var shouldOpen = State != ConnectionState.Open;
+        List<QueryDebugTrace>? retainedTraces = null;
+        if (shouldOpen)
+            Open();
+
+        try
+        {
+            using var scope = BeginDebugTraceCapture();
+            using var command = CreateCommand();
+            command.CommandText = sql;
+            using var reader = command.ExecuteReader();
+
+            do
+            {
+                while (reader.Read())
+                {
+                }
+            }
+            while (reader.NextResult());
+
+            if (_lastDebugTraces.Count == 0)
+                throw new InvalidOperationException("No runtime debug trace was captured for the executed SQL.");
+
+            ContextualizeDebugTraces(sql);
+            return _lastDebugTraces.AsReadOnly();
+        }
+        finally
+        {
+            if (shouldOpen && LastDebugTrace is not null)
+                retainedTraces = [.. _lastDebugTraces];
+
+            if (shouldOpen && State == ConnectionState.Open)
+                Close();
+
+            if (retainedTraces is not null)
+                RestoreDebugTraces(retainedTraces);
+        }
+    }
+
+    /// <summary>
+    /// EN: Executes a SQL command and returns the captured runtime operator trace for the last reader query.
+    /// PT: Executa um comando SQL e retorna o trace de operadores em runtime capturado para a ultima query de leitura.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to execute. PT: Texto SQL a executar.</param>
+    /// <returns>EN: Captured runtime trace for the executed command. PT: Trace de runtime capturado para o comando executado.</returns>
+    public QueryDebugTrace DebugSql(string sql)
+        => DebugSqlBatch(sql).Last();
+
+    /// <summary>
+    /// EN: Executes a SQL command and returns the formatted runtime trace for the last reader query.
+    /// PT: Executa um comando SQL e retorna o trace de runtime formatado para a ultima query de leitura.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to execute. PT: Texto SQL a executar.</param>
+    /// <returns>EN: Formatted runtime trace. PT: Trace de runtime formatado.</returns>
+    public string DebugSqlText(string sql)
+        => QueryDebugTraceFormatter.Format(DebugSql(sql));
+
+    /// <summary>
+    /// EN: Executes a SQL command and returns the formatted runtime traces for all reader statements in the batch.
+    /// PT: Executa um comando SQL e retorna os traces de runtime formatados para todos os statements de leitura do lote.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to execute. PT: Texto SQL a executar.</param>
+    /// <returns>EN: Formatted runtime trace batch. PT: Lote formatado de traces de runtime.</returns>
+    public string DebugSqlBatchText(string sql)
+        => QueryDebugTraceFormatter.FormatBatch(DebugSqlBatch(sql));
+
+    /// <summary>
+    /// EN: Executes a SQL command and returns the runtime trace for the last reader query as structured JSON.
+    /// PT: Executa um comando SQL e retorna o trace de runtime da ultima query de leitura como JSON estruturado.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to execute. PT: Texto SQL a executar.</param>
+    /// <returns>EN: JSON runtime trace. PT: Trace de runtime em JSON.</returns>
+    public string DebugSqlJson(string sql)
+        => QueryDebugTraceFormatter.FormatJson(DebugSql(sql));
+
+    /// <summary>
+    /// EN: Executes a SQL command and returns the runtime traces for all reader statements in the batch as structured JSON.
+    /// PT: Executa um comando SQL e retorna os traces de runtime de todos os statements de leitura do lote como JSON estruturado.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to execute. PT: Texto SQL a executar.</param>
+    /// <returns>EN: JSON runtime trace batch. PT: Lote de traces de runtime em JSON.</returns>
+    public string DebugSqlBatchJson(string sql)
+        => QueryDebugTraceFormatter.FormatBatchJson(DebugSqlBatch(sql));
+
+    /// <summary>
+    /// EN: Returns a snapshot of the currently retained runtime debug traces without executing new SQL.
+    /// PT: Retorna um snapshot dos traces de debug em runtime atualmente retidos sem executar novo SQL.
+    /// </summary>
+    /// <returns>EN: Snapshot of the retained runtime traces. PT: Snapshot dos traces de runtime retidos.</returns>
+    public IReadOnlyList<QueryDebugTrace> GetDebugTraceSnapshot()
+        => [.. _lastDebugTraces];
+
+    /// <summary>
+    /// EN: Returns the currently retained runtime debug traces formatted as text without executing new SQL.
+    /// PT: Retorna os traces de debug em runtime atualmente retidos formatados como texto sem executar novo SQL.
+    /// </summary>
+    /// <returns>EN: Formatted runtime trace snapshot. PT: Snapshot formatado dos traces de runtime.</returns>
+    public string GetDebugTraceSnapshotText()
+        => QueryDebugTraceFormatter.FormatBatch(GetDebugTraceSnapshot());
+
+    /// <summary>
+    /// EN: Returns the currently retained runtime debug traces as JSON without executing new SQL.
+    /// PT: Retorna os traces de debug em runtime atualmente retidos como JSON sem executar novo SQL.
+    /// </summary>
+    /// <returns>EN: JSON runtime trace snapshot. PT: Snapshot JSON dos traces de runtime.</returns>
+    public string GetDebugTraceSnapshotJson()
+        => QueryDebugTraceFormatter.FormatBatchJson(GetDebugTraceSnapshot());
+
+    /// <summary>
+    /// EN: Returns the last retained runtime debug trace without executing new SQL.
+    /// PT: Retorna o ultimo trace de debug em runtime retido sem executar novo SQL.
+    /// </summary>
+    /// <returns>EN: Last retained runtime trace, when available. PT: Ultimo trace de runtime retido, quando disponivel.</returns>
+    public QueryDebugTrace? GetLastDebugTraceSnapshot()
+        => LastDebugTrace;
+
+    /// <summary>
+    /// EN: Tries to get the last retained runtime debug trace without throwing when none is available.
+    /// PT: Tenta obter o ultimo trace de debug em runtime retido sem lancar excecao quando nenhum estiver disponivel.
+    /// </summary>
+    /// <param name="trace">EN: Last retained trace when available; otherwise null. PT: Ultimo trace retido quando disponivel; caso contrario, null.</param>
+    /// <returns>EN: True when a retained trace exists; otherwise false. PT: True quando existe um trace retido; caso contrario, false.</returns>
+    public bool TryGetLastDebugTraceSnapshot(
+#if NET6_0_OR_GREATER
+        [NotNullWhen(true)]
+#endif
+    out QueryDebugTrace? trace)
+    {
+        trace = LastDebugTrace;
+        return trace is not null;
+    }
+
+    /// <summary>
+    /// EN: Returns the last retained runtime debug trace formatted as text without executing new SQL.
+    /// PT: Retorna o ultimo trace de debug em runtime retido formatado como texto sem executar novo SQL.
+    /// </summary>
+    /// <returns>EN: Formatted last runtime trace. PT: Ultimo trace de runtime formatado.</returns>
+    public string GetLastDebugTraceSnapshotText()
+    {
+        if (LastDebugTrace is null)
+            throw new InvalidOperationException("No runtime debug trace is currently retained.");
+
+        return QueryDebugTraceFormatter.Format(LastDebugTrace);
+    }
+
+    /// <summary>
+    /// EN: Returns the last retained runtime debug trace as JSON without executing new SQL.
+    /// PT: Retorna o ultimo trace de debug em runtime retido como JSON sem executar novo SQL.
+    /// </summary>
+    /// <returns>EN: JSON payload for the last runtime trace. PT: Payload JSON do ultimo trace de runtime.</returns>
+    public string GetLastDebugTraceSnapshotJson()
+    {
+        if (LastDebugTrace is null)
+            throw new InvalidOperationException("No runtime debug trace is currently retained.");
+
+        return QueryDebugTraceFormatter.FormatJson(LastDebugTrace);
+    }
+
+    /// <summary>
+    /// EN: Exports the current structural schema snapshot of this connection database.
+    /// PT: Exporta o snapshot estrutural atual do banco associado a esta conexao.
+    /// </summary>
+    /// <returns>EN: Exported schema snapshot. PT: Snapshot de schema exportado.</returns>
+    public SchemaSnapshot ExportSchemaSnapshot()
+        => SchemaSnapshot.Export(this);
+
+    /// <summary>
+    /// EN: Exports the current structural schema snapshot of this connection database as JSON.
+    /// PT: Exporta o snapshot estrutural atual do banco associado a esta conexao como JSON.
+    /// </summary>
+    /// <returns>EN: Serialized schema snapshot JSON. PT: JSON serializado do snapshot de schema.</returns>
+    public string ExportSchemaSnapshotJson()
+        => ExportSchemaSnapshot().ToJson();
+
+    /// <summary>
+    /// EN: Returns the supported schema snapshot subset profile for this connection database.
+    /// PT: Retorna o perfil do subset suportado de schema snapshot para o banco desta conexao.
+    /// </summary>
+    /// <returns>EN: Supported schema snapshot profile. PT: Perfil suportado de schema snapshot.</returns>
+    public SchemaSnapshotSupportProfile GetSchemaSnapshotSupportProfile()
+        => SchemaSnapshot.GetSupportProfile(this);
+
+    /// <summary>
+    /// EN: Returns the supported schema snapshot subset profile for this connection database as text.
+    /// PT: Retorna o perfil do subset suportado de schema snapshot para o banco desta conexao como texto.
+    /// </summary>
+    /// <returns>EN: Multi-line support profile text. PT: Texto multilinha do perfil de suporte.</returns>
+    public string GetSchemaSnapshotSupportProfileText()
+        => GetSchemaSnapshotSupportProfile().ToText();
+
+    /// <summary>
+    /// EN: Exports the current structural schema snapshot of this connection database to a JSON file.
+    /// PT: Exporta o snapshot estrutural atual do banco associado a esta conexao para um arquivo JSON.
+    /// </summary>
+    /// <param name="path">EN: Target JSON file path. PT: Caminho do arquivo JSON de destino.</param>
+    public void ExportSchemaSnapshotToFile(string path)
+        => ExportSchemaSnapshot().SaveToFile(path);
+
+    /// <summary>
+    /// EN: Imports a structural schema snapshot JSON into the database associated with this connection.
+    /// PT: Importa um JSON de snapshot estrutural de schema para o banco associado a esta conexao.
+    /// </summary>
+    /// <param name="json">EN: Serialized schema snapshot. PT: Snapshot de schema serializado.</param>
+    public void ImportSchemaSnapshot(string json)
+        => ImportSchemaSnapshot(json, ensureCompatibility: false);
+
+    /// <summary>
+    /// EN: Imports a structural schema snapshot JSON into the database associated with this connection with optional compatibility validation.
+    /// PT: Importa um JSON de snapshot estrutural de schema para o banco associado a esta conexao com validacao opcional de compatibilidade.
+    /// </summary>
+    /// <param name="json">EN: Serialized schema snapshot. PT: Snapshot de schema serializado.</param>
+    /// <param name="ensureCompatibility">EN: True to enforce dialect/version compatibility before replay. PT: True para exigir compatibilidade de dialeto/versao antes do replay.</param>
+    public void ImportSchemaSnapshot(
+        string json,
+        bool ensureCompatibility)
+        => ImportSchemaSnapshotCore(SchemaSnapshot.Load(json), ensureCompatibility);
+
+    /// <summary>
+    /// EN: Imports a structural schema snapshot JSON file into the database associated with this connection.
+    /// PT: Importa um arquivo JSON de snapshot estrutural de schema para o banco associado a esta conexao.
+    /// </summary>
+    /// <param name="path">EN: Source JSON file path. PT: Caminho do arquivo JSON de origem.</param>
+    public void ImportSchemaSnapshotFromFile(string path)
+        => ImportSchemaSnapshotFromFile(path, ensureCompatibility: false);
+
+    /// <summary>
+    /// EN: Imports a structural schema snapshot JSON file into the database associated with this connection with optional compatibility validation.
+    /// PT: Importa um arquivo JSON de snapshot estrutural de schema para o banco associado a esta conexao com validacao opcional de compatibilidade.
+    /// </summary>
+    /// <param name="path">EN: Source JSON file path. PT: Caminho do arquivo JSON de origem.</param>
+    /// <param name="ensureCompatibility">EN: True to enforce dialect/version compatibility before replay. PT: True para exigir compatibilidade de dialeto/versao antes do replay.</param>
+    public void ImportSchemaSnapshotFromFile(
+        string path,
+        bool ensureCompatibility)
+        => ImportSchemaSnapshotCore(SchemaSnapshot.LoadFromFile(path), ensureCompatibility);
+
+    internal void ImportSchemaSnapshotCore(
+        SchemaSnapshot snapshot,
+        bool ensureCompatibility)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(snapshot, nameof(snapshot));
+        if (ensureCompatibility)
+            snapshot.EnsureCompatibleWith(Db);
+
+        snapshot.ApplyTo(Db);
+        AlignCurrentDatabaseToImportedSchemas(snapshot);
+    }
+
+    private void AlignCurrentDatabaseToImportedSchemas(SchemaSnapshot snapshot)
+    {
+        if (Db.TryGetValue(Database, out _))
+            return;
+
+        var nextDatabase = snapshot.Schemas
+            .FirstOrDefault(static schema =>
+                schema.Tables.Count > 0
+                || schema.Views.Count > 0
+                || schema.Procedures.Count > 0
+                || schema.Sequences.Count > 0)
+            ?.Name
+            ?? snapshot.Schemas
+            .Select(static schema => schema.Name)
+            .FirstOrDefault(name => name.Equals("DefaultSchema", StringComparison.OrdinalIgnoreCase))
+            ?? snapshot.Schemas.FirstOrDefault()?.Name
+            ?? "DefaultSchema";
+
+        ChangeDatabase(nextDatabase);
+    }
+
+    private void ContextualizeDebugTraces(string sql)
+    {
+        var statements = SqlQueryParser
+            .SplitStatements(sql, ExecutionDialect)
+            .Where(static statement => !string.IsNullOrWhiteSpace(statement))
+            .Select(static statement => statement.Trim())
+            .ToList();
+
+        if (statements.Count == 0 || _lastDebugTraces.Count == 0)
+            return;
+
+        var contextualized = new List<QueryDebugTrace>(_lastDebugTraces.Count);
+        var statementOffset = Math.Max(0, statements.Count - _lastDebugTraces.Count);
+        for (var i = 0; i < _lastDebugTraces.Count; i++)
+        {
+            var statementIndex = statementOffset + i;
+            var sqlText = statementIndex < statements.Count
+                ? statements[statementIndex]
+                : null;
+            contextualized.Add(_lastDebugTraces[i].WithStatementContext(statementIndex, sqlText));
+        }
+
+        RestoreDebugTraces(contextualized);
+    }
+
+    private void TrimDebugTraceHistoryIfNeeded()
+    {
+        var retentionLimit = Math.Max(1, DebugTraceRetentionLimit);
+
+        if (_lastDebugTraces.Count <= retentionLimit)
+            return;
+
+        var removeCount = _lastDebugTraces.Count - retentionLimit;
+        _lastDebugTraces.RemoveRange(0, removeCount);
+        LastDebugTrace = _lastDebugTraces[^1];
+    }
+
+    private sealed class DebugTraceCaptureScope(DbConnectionMockBase connection) : IDisposable
+    {
+        private DbConnectionMockBase? _connection = connection;
+
+        public void Dispose()
+        {
+            if (_connection is null)
+                return;
+
+            _connection._debugTraceCaptureDepth = Math.Max(0, _connection._debugTraceCaptureDepth - 1);
+            _connection = null;
+        }
     }
 
     internal void SetLastFoundRows(long value)
@@ -104,7 +514,7 @@ public abstract class DbConnectionMockBase(
     /// </summary>
     public override int ConnectionTimeout { get; } = 1;
 
-    private string _database = defaultDatabase ?? db.GetSchemaName(null);
+    private string _database = ResolveInitialDatabase(db, defaultDatabase);
     /// <summary>
     /// EN: Current database/schema name.
     /// PT: Nome do banco/schema atual.
@@ -124,6 +534,17 @@ public abstract class DbConnectionMockBase(
     /// PT: Fonte de dados simulada.
     /// </summary>
     public override string DataSource => _dataSource;
+
+    private static string ResolveInitialDatabase(DbMock db, string? defaultDatabase)
+    {
+        if (!string.IsNullOrWhiteSpace(defaultDatabase))
+            return defaultDatabase!;
+
+        if (db.TryGetValue("DefaultSchema", out _))
+            return "DefaultSchema";
+
+        return db.GetSchemaName(null);
+    }
 
     /// <summary>
     /// EN: Backing field for the simulated server version.
@@ -467,6 +888,130 @@ public abstract class DbConnectionMockBase(
 
     #endregion
 
+    #region Sequences
+
+    /// <summary>
+    /// EN: Registers a sequence.
+    /// PT: Registra uma sequence.
+    /// </summary>
+    /// <param name="sequenceName">EN: Sequence name. PT: Nome da sequence.</param>
+    /// <param name="sequence">EN: Sequence definition. PT: Definição da sequence.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    public void AddSequence(
+        string sequenceName,
+        SequenceDef sequence,
+        string? schemaName = null)
+        => Db.AddSequence(
+            sequenceName,
+            sequence,
+            schemaName ?? Database);
+
+    /// <summary>
+    /// EN: Creates and registers a sequence.
+    /// PT: Cria e registra uma sequence.
+    /// </summary>
+    /// <param name="sequenceName">EN: Sequence name. PT: Nome da sequence.</param>
+    /// <param name="startValue">EN: First sequence value. PT: Primeiro valor da sequence.</param>
+    /// <param name="incrementBy">EN: Increment step. PT: Passo de incremento.</param>
+    /// <param name="currentValue">EN: Current value when known. PT: Valor atual quando conhecido.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: Registered sequence. PT: Sequence registrada.</returns>
+    public SequenceDef AddSequence(
+        string sequenceName,
+        long startValue = 1,
+        long incrementBy = 1,
+        long? currentValue = null,
+        string? schemaName = null)
+        => Db.AddSequence(
+            sequenceName,
+            startValue,
+            incrementBy,
+            currentValue,
+            schemaName ?? Database);
+
+    /// <summary>
+    /// EN: Tries to get a sequence.
+    /// PT: Tenta obter uma sequence.
+    /// </summary>
+    /// <param name="sequenceName">EN: Sequence name. PT: Nome da sequence.</param>
+    /// <param name="sequence">EN: Found sequence, if any. PT: Sequence encontrada, se houver.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: True if it exists. PT: True se existir.</returns>
+    public bool TryGetSequence(
+        string sequenceName,
+        out SequenceDef? sequence,
+        string? schemaName = null)
+        => Db.TryGetSequence(
+            sequenceName,
+            out sequence,
+            schemaName ?? Database);
+
+    internal void CreateSequence(
+        string sequenceName,
+        bool ifNotExists,
+        long startValue = 1,
+        long incrementBy = 1,
+        string? schemaName = null)
+        => Db.CreateSequence(
+            sequenceName,
+            ifNotExists,
+            startValue,
+            incrementBy,
+            schemaName ?? Database);
+
+    internal void DropSequence(
+        string sequenceName,
+        bool ifExists,
+        string? schemaName = null)
+    {
+        var targetSchema = schemaName ?? Database;
+        ClearSessionSequenceValue(sequenceName, targetSchema);
+        Db.DropSequence(sequenceName, ifExists, targetSchema);
+    }
+
+    internal void SetSessionSequenceValue(
+        string sequenceName,
+        long value,
+        string? schemaName = null)
+    {
+        var key = BuildSessionSequenceKey(sequenceName, schemaName);
+        _sessionSequenceValues[key] = value;
+        _lastSessionSequenceKey = key;
+    }
+
+    internal bool TryGetSessionSequenceValue(
+        string sequenceName,
+        out long value,
+        string? schemaName = null)
+        => _sessionSequenceValues.TryGetValue(BuildSessionSequenceKey(sequenceName, schemaName), out value);
+
+    internal bool TryGetLastSessionSequenceValue(out long value)
+    {
+        value = default;
+        return _lastSessionSequenceKey is not null
+            && _sessionSequenceValues.TryGetValue(_lastSessionSequenceKey, out value);
+    }
+
+    private string BuildSessionSequenceKey(
+        string sequenceName,
+        string? schemaName)
+    {
+        var schema = Db.GetSchemaName(schemaName ?? Database);
+        return $"{schema}:{sequenceName.NormalizeName()}";
+    }
+
+    private void ClearSessionSequenceValue(
+        string sequenceName,
+        string? schemaName)
+    {
+        var key = BuildSessionSequenceKey(sequenceName, schemaName);
+        _sessionSequenceValues.Remove(key);
+        if (string.Equals(_lastSessionSequenceKey, key, StringComparison.OrdinalIgnoreCase))
+            _lastSessionSequenceKey = null;
+    }
+
+    #endregion
+
     /// <summary>
     /// EN: Begins a database transaction with the specified isolation level.
     /// PT: Inicia uma transação com o nível de isolamento especificado.
@@ -542,6 +1087,8 @@ public abstract class DbConnectionMockBase(
         }
 
         _temporaryTables.Clear();
+        _sessionSequenceValues.Clear();
+        _lastSessionSequenceKey = null;
         SetLastFoundRows(0);
         ClearExecutionPlans();
         _state = ConnectionState.Closed;
@@ -682,7 +1229,7 @@ public abstract class DbConnectionMockBase(
     {
         EnsureActiveTransaction();
         if (!SupportsSavepoints)
-            throw SqlUnsupported.ForDialect(Db.Dialect, "SAVEPOINT");
+            throw SqlUnsupported.ForDialect(ExecutionDialect, "SAVEPOINT");
 
         var normalizedName = NormalizeSavepointName(savepointName);
         var snapshot = CaptureSnapshot();
@@ -696,7 +1243,7 @@ public abstract class DbConnectionMockBase(
     {
         EnsureActiveTransaction();
         if (!SupportsSavepoints)
-            throw SqlUnsupported.ForDialect(Db.Dialect, "ROLLBACK TO SAVEPOINT");
+            throw SqlUnsupported.ForDialect(ExecutionDialect, "ROLLBACK TO SAVEPOINT");
 
         var normalizedName = NormalizeSavepointName(savepointName);
         if (!_savepoints.TryGetValue(normalizedName, out var snapshot))
@@ -719,7 +1266,7 @@ public abstract class DbConnectionMockBase(
     {
         EnsureActiveTransaction();
         if (!SupportsSavepoints || !SupportsReleaseSavepoint)
-            throw SqlUnsupported.ForDialect(Db.Dialect, "RELEASE SAVEPOINT");
+            throw SqlUnsupported.ForDialect(ExecutionDialect, "RELEASE SAVEPOINT");
 
         var normalizedName = NormalizeSavepointName(savepointName);
         if (!_savepoints.Remove(normalizedName))

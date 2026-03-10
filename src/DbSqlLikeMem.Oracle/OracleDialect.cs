@@ -110,11 +110,23 @@ internal sealed class OracleDialect : SqlDialectBase
     /// PT: Obtém se há suporte a função json_value.
     /// </summary>
     public override bool SupportsJsonValueFunction => true;
+
+    public override bool SupportsStringAggregateFunction(string functionName)
+        => functionName.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase);
+
+    public override bool SupportsJsonValueReturningClause => true;
     /// <summary>
     /// EN: Gets whether merge is supported.
     /// PT: Obtém se há suporte a merge.
     /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
+    public override bool SupportsSequenceDdl => true;
+    public override bool SupportsSequenceDotValueExpression(string suffix)
+        => suffix.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
+            || suffix.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase);
+    public override bool SupportsSequenceFunctionCall(string functionName)
+        => functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase);
     /// <summary>
     /// EN: Gets whether pivot clause is supported.
     /// PT: Obtém se há suporte a pivot clause.
@@ -156,4 +168,7 @@ internal sealed class OracleDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsDateAddFunction(string functionName)
         => false;
+
+    public override bool SupportsLastFoundRowsFunction(string functionName)
+        => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase);
 }

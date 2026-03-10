@@ -244,12 +244,12 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
-    /// EN: Tests TestSelect_FoundRows_ShouldReturnLastSelectRowCount behavior.
-    /// PT: Testa o comportamento de TestSelect_FoundRows_ShouldReturnLastSelectRowCount.
+    /// EN: Verifies SQL Server rejects FOUND_ROWS because the provider exposes ROWCOUNT and @@ROWCOUNT for row-count inspection.
+    /// PT: Verifica que o SQL Server rejeita FOUND_ROWS porque o provider expoe ROWCOUNT e @@ROWCOUNT para inspecao de contagem de linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
-    public void TestSelect_FoundRows_ShouldReturnLastSelectRowCount()
+    public void TestSelect_FoundRows_ShouldThrowNotSupportedException()
     {
         using var command = new SqlServerCommandMock(_connection);
         command.CommandText = """
@@ -260,13 +260,9 @@ public sealed class SqlServerMockTests
         command.ExecuteNonQuery();
 
         command.CommandText = "SELECT Name FROM Users ORDER BY Id OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY; SELECT FOUND_ROWS();";
-        using var reader = command.ExecuteReader();
+        var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
 
-        Assert.True(reader.Read());
-        Assert.Equal("Ana", reader.GetString(0));
-        Assert.True(reader.NextResult());
-        Assert.True(reader.Read());
-        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0), CultureInfo.InvariantCulture));
+        Assert.Contains("FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 

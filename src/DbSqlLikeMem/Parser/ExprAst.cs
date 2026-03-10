@@ -10,7 +10,7 @@ internal sealed record ParameterExpr(string Name) : SqlExpr;              // @p1
 internal sealed record UnaryExpr(SqlUnaryOp Op, SqlExpr Expr) : SqlExpr;  // NOT x
 internal sealed record BinaryExpr(SqlBinaryOp Op, SqlExpr Left, SqlExpr Right) : SqlExpr; // AND/OR e comparações
 internal sealed record InExpr(SqlExpr Left, IReadOnlyList<SqlExpr> Items) : SqlExpr;
-internal sealed record LikeExpr(SqlExpr Left, SqlExpr Pattern) : SqlExpr;
+internal sealed record LikeExpr(SqlExpr Left, SqlExpr Pattern, SqlExpr? Escape = null, bool CaseInsensitive = false) : SqlExpr;
 internal sealed record IsNullExpr(SqlExpr Expr, bool Negated) : SqlExpr;  // IS NULL / IS NOT NULL
 internal sealed record SubqueryExpr(string Sql, SqlSelectQuery Parsed) : SqlExpr;
 internal sealed record RowExpr(IReadOnlyList<SqlExpr> Items) : SqlExpr;

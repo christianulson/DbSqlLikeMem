@@ -171,6 +171,32 @@ public sealed class SqliteAggregationTests : AggregationHavingOrdinalTestsBase<S
     }
 
     /// <summary>
+    /// EN: Ensures SQLite native ORDER BY inside GROUP_CONCAT controls aggregation order.
+    /// PT: Garante que o ORDER BY nativo dentro do GROUP_CONCAT no SQLite controle a ordem da agregação.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAggregation")]
+    public void StringAggregation_OrderByInsideCall_ShouldWork()
+    {
+        AssertStringAggregationWithInternalOrder(
+            "SELECT GROUP_CONCAT(amount, '|' ORDER BY amount DESC) AS joined FROM orders",
+            "30|10|5");
+    }
+
+    /// <summary>
+    /// EN: Ensures DISTINCT respects SQLite native ORDER BY inside GROUP_CONCAT.
+    /// PT: Garante que DISTINCT respeite o ORDER BY nativo dentro do GROUP_CONCAT no SQLite.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteAggregation")]
+    public void StringAggregation_DistinctOrderByInsideCall_ShouldWork()
+    {
+        AssertStringAggregationDistinctWithInternalOrder(
+            "SELECT GROUP_CONCAT(DISTINCT val, '|' ORDER BY ord1 ASC, ord2 ASC) AS joined FROM textagg_distinct_order WHERE grp = 1",
+            "b|a");
+    }
+
+    /// <summary>
     /// EN: Ensures ordered-set syntax WITHIN GROUP remains blocked for SQLite string aggregation.
     /// PT: Garante que a sintaxe ordered-set WITHIN GROUP continue bloqueada para agregação textual no SQLite.
     /// </summary>

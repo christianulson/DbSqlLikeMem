@@ -7,6 +7,39 @@ namespace DbSqlLikeMem.Db2.Test.Parser;
 public sealed class Db2DialectFeatureParserTests
 {
     /// <summary>
+    /// EN: Ensures DB2 exposes ROW_COUNT() through the dialect capability used by the executor.
+    /// PT: Garante que o DB2 exponha ROW_COUNT() pela capability de dialeto usada pelo executor.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void LastFoundRowsCapability_ShouldExposeDb2Function(int version)
+    {
+        var dialect = new Db2Dialect(version);
+
+        Assert.True(dialect.SupportsLastFoundRowsFunction("ROW_COUNT"));
+        Assert.False(dialect.SupportsLastFoundRowsFunction("FOUND_ROWS"));
+        Assert.False(dialect.SupportsLastFoundRowsIdentifier("@@ROWCOUNT"));
+    }
+
+    /// <summary>
+    /// EN: Ensures DB2 parser accepts ROW_COUNT() and rejects foreign row-count helper aliases.
+    /// PT: Garante que o parser DB2 aceite ROW_COUNT() e rejeite aliases de row-count de outros bancos.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseScalar_LastFoundRowsFunctions_ShouldFollowDialectCapability(int version)
+    {
+        var dialect = new Db2Dialect(version);
+
+        Assert.Equal("ROW_COUNT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROW_COUNT()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+
+        var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FOUND_ROWS()", dialect));
+        Assert.Contains("FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Tests ParseSelect_WithRecursive_ShouldBeRejected behavior.
     /// PT: Testa o comportamento de ParseSelect_WithRecursive_ShouldBeRejected.
     /// </summary>
@@ -693,7 +726,7 @@ public sealed class Db2DialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
 
-        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("SQL não suportado", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

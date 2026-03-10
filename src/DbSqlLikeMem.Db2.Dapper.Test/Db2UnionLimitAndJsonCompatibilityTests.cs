@@ -4,27 +4,16 @@
 /// Tests that lock-in expected behavior for DB2 features that the in-memory mock already supports.
 /// Keep these green: they protect you from regressions while you implement more advanced gaps elsewhere.
 /// </summary>
-public sealed class Db2UnionLimitAndJsonCompatibilityTests : XUnitTestBase
+public sealed class Db2UnionLimitAndJsonCompatibilityTests : DapperUnionLimitAndJsonCompatibilityTestsBase<Db2DbMock, Db2ConnectionMock>
 {
-    private readonly Db2ConnectionMock _cnn;
-
     /// <summary>
     /// EN: Tests Db2UnionLimitAndJsonCompatibilityTests behavior.
     /// PT: Testa o comportamento de Db2UnionLimitAndJsonCompatibilityTests.
     /// </summary>
-    public Db2UnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper)
-    {
-        var db = new Db2DbMock();
-        var t = db.AddTable("t");
-        t.AddColumn("id", DbType.Int32, false);
-        t.AddColumn("payload", DbType.String, true);
-        t.Add(new Dictionary<int, object?> { [0] = 1, [1] = "{\"a\":{\"b\":123}}" });
-        t.Add(new Dictionary<int, object?> { [0] = 2, [1] = "{\"a\":{\"b\":456}}" });
-        t.Add(new Dictionary<int, object?> { [0] = 3, [1] = null });
+    public Db2UnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper) { }
 
-        _cnn = new Db2ConnectionMock(db);
-        _cnn.Open();
-    }
+    /// <inheritdoc />
+    protected override Db2ConnectionMock CreateConnection(Db2DbMock db) => new(db);
 
     /// <summary>
     /// EN: Tests UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates behavior.
@@ -33,23 +22,7 @@ public sealed class Db2UnionLimitAndJsonCompatibilityTests : XUnitTestBase
     [Fact]
     [Trait("Category", "Db2UnionLimitAndJsonCompatibility")]
     public void UnionAll_ShouldKeepDuplicates_UnionShouldRemoveDuplicates()
-    {
-        // UNION ALL keeps duplicates
-        var all = _cnn.Query<dynamic>(@"
-SELECT id FROM t WHERE id = 1
-UNION ALL
-SELECT id FROM t WHERE id = 1
-").ToList();
-        Assert.Equal([1, 1], [.. all.Select(r => (int)r.id)]);
-
-        // UNION removes duplicates
-        var distinct = _cnn.Query<dynamic>(@"
-SELECT id FROM t WHERE id = 1
-UNION
-SELECT id FROM t WHERE id = 1
-").ToList();
-        Assert.Equal([1], [.. distinct.Select(r => (int)r.id)]);
-    }
+        => AssertUnionAllKeepsDuplicatesAndUnionRemovesThem();
 
     /// <summary>
     /// EN: Tests Limit_OffsetCommaSyntax_ShouldWork behavior.
@@ -59,8 +32,7 @@ SELECT id FROM t WHERE id = 1
     [Trait("Category", "Db2UnionLimitAndJsonCompatibility")]
     public void Limit_OffsetCommaSyntax_ShouldWork()
     {
-        // DB2 supports: LIMIT offset, count
-        var rows = _cnn.Query<dynamic>("SELECT id FROM t ORDER BY id LIMIT 1, 2").ToList();
+        var rows = Connection.Query<dynamic>("SELECT id FROM t ORDER BY id LIMIT 1, 2").ToList();
         Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id)]);
     }
 
@@ -72,8 +44,7 @@ SELECT id FROM t WHERE id = 1
     [Trait("Category", "Db2UnionLimitAndJsonCompatibility")]
     public void Limit_OffsetKeywordSyntax_ShouldWork()
     {
-        // DB2 supports: LIMIT count OFFSET offset
-        var rows = _cnn.Query<dynamic>("SELECT id FROM t ORDER BY id LIMIT 2 OFFSET 1").ToList();
+        var rows = Connection.Query<dynamic>("SELECT id FROM t ORDER BY id LIMIT 2 OFFSET 1").ToList();
         Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id)]);
     }
 
@@ -86,7 +57,7 @@ SELECT id FROM t WHERE id = 1
     public void JsonExtract_SimpleObjectPath_ShouldThrow_WhenNotSupportedByDialect()
     {
         Assert.Throws<NotSupportedException>(() =>
-            _cnn.Query<dynamic>("SELECT id, JSON_EXTRACT(payload, '$.a.b') AS v FROM t ORDER BY id").ToList());
+            Connection.Query<dynamic>("SELECT id, JSON_EXTRACT(payload, '$.a.b') AS v FROM t ORDER BY id").ToList());
     }
 
 
@@ -101,7 +72,7 @@ SELECT id FROM t WHERE id = 1
     public void OrderBy_NullsFirst_ShouldThrow_WhenDialectDoesNotSupportModifier()
     {
         Assert.Throws<NotSupportedException>(() =>
-            _cnn.Query<dynamic>("SELECT id FROM t ORDER BY payload NULLS FIRST").ToList());
+            Connection.Query<dynamic>("SELECT id FROM t ORDER BY payload NULLS FIRST").ToList());
     }
 
 
@@ -114,7 +85,7 @@ SELECT id FROM t WHERE id = 1
     public void JsonFunction_ShouldThrow_WhenNotSupportedByDialect()
     {
         Assert.Throws<NotSupportedException>(() =>
-            _cnn.Query<dynamic>("SELECT JSON_EXTRACT(payload, '$.a.b') AS v FROM t").ToList());
+            Connection.Query<dynamic>("SELECT JSON_EXTRACT(payload, '$.a.b') AS v FROM t").ToList());
     }
 
     /// <summary>
@@ -124,15 +95,7 @@ SELECT id FROM t WHERE id = 1
     [Fact]
     [Trait("Category", "Db2UnionLimitAndJsonCompatibility")]
     public void Union_ShouldNormalizeEquivalentNumericTypes()
-    {
-        var rows = _cnn.Query<dynamic>(@"
-SELECT 1.0 AS v
-UNION
-SELECT 1 AS v
-").ToList();
-
-        Assert.Single(rows);
-    }
+        => AssertUnionNormalizesEquivalentNumericTypes();
 
     /// <summary>
     /// EN: Ensures UNION rejects incompatible column types across SELECT parts.
@@ -141,14 +104,7 @@ SELECT 1 AS v
     [Fact]
     [Trait("Category", "Db2UnionLimitAndJsonCompatibility")]
     public void Union_ShouldValidateIncompatibleColumnTypes()
-    {
-        Assert.Throws<InvalidOperationException>(() =>
-            _cnn.Query<dynamic>(@"
-SELECT 1 AS v
-UNION
-SELECT 'x' AS v
-").ToList());
-    }
+        => AssertUnionValidatesIncompatibleColumnTypes();
 
 
 
@@ -159,25 +115,5 @@ SELECT 'x' AS v
     [Fact]
     [Trait("Category", "Db2UnionLimitAndJsonCompatibility")]
     public void Union_ShouldNormalizeSchemaToFirstSelectAlias()
-    {
-        var rows = _cnn.Query<dynamic>(@"
-SELECT id AS v FROM t WHERE id IN (1, 2)
-UNION ALL
-SELECT id AS x FROM t WHERE id = 3
-ORDER BY v
-").ToList();
-
-        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.v)]);
-    }
-
-    /// <summary>
-    /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
-    /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
-    protected override void Dispose(bool disposing)
-    {
-        _cnn?.Dispose();
-        base.Dispose(disposing);
-    }
+        => AssertUnionNormalizesSchemaToFirstSelectAlias();
 }

@@ -47,6 +47,14 @@ Assim, ao instalar um provider via nuget.org, o núcleo é instalado automaticam
 
 Dica: escolha **um provider por projeto de teste** (ou por suíte), conforme o dialeto que você precisa validar.
 
+## Compatibilidade de frameworks
+
+Os pacotes de produção seguem os alvos centrais de `src/Directory.Build.props`: `net462`, `netstandard2.0` e `net8.0`.
+
+Os projetos de teste e test-tools usam o override dedicado: `net462`, `net6.0` e `net8.0`.
+
+Se houver impacto de distribuição ou versionamento, revise também `docs/publishing.md`.
+
 ## Seleção de provider em runtime
 
 Quando o banco é escolhido em tempo de execução, use uma factory:
@@ -176,6 +184,86 @@ Observações:
 - `LastExecutionPlans` mantém o histórico da última execução do comando (útil para SQL com múltiplos SELECTs).
 - O plano também fica disponível no resultado (`TableResultMock.ExecutionPlan`) internamente no executor AST.
 
+### Exemplo 4: sequence por schema + override opcional de identity
+
+```csharp
+using DbSqlLikeMem.SqlServer;
+
+var db = new SqlServerDbMock();
+db.CreateSchema("sales");
+
+var orders = db.AddTable("orders", schemaName: "sales");
+orders.AddColumn("id", DbType.Int64, false, identity: true);
+orders.AddColumn("description", DbType.String, false);
+orders.IdentityOf(nextIdentity: 100, allowInsertOverride: true);
+
+using var connection = new SqlServerConnectionMock(db, "sales");
+connection.Open();
+connection.AddSequence("seq_orders", startValue: 1000, incrementBy: 5, schemaName: "sales");
+
+connection.Execute("INSERT INTO sales.orders (id, description) VALUES (150, 'manual identity')");
+connection.Execute("INSERT INTO sales.orders (id, description) VALUES (NEXT VALUE FOR sales.seq_orders, 'sequence value')");
+
+var ids = connection.Query<long>("SELECT id FROM sales.orders ORDER BY id").ToList();
+```
+
+Observações do exemplo:
+
+- `IdentityOf(..., allowInsertOverride: true)` libera sobrescrita explícita da coluna `identity` só para esse cenário.
+- `AddSequence(..., schemaName: "sales")` registra a sequence no schema correto.
+- Para SQL Server e PostgreSQL, os fluxos validados hoje cobrem `SELECT` e `INSERT` com sequence simples e qualificada por schema; no PostgreSQL, o mock também cobre `currval(...)`, `setval(...)` e `lastval()`.
+
+### Exemplo 5: funções de sequence no PostgreSQL
+
+```csharp
+using DbSqlLikeMem.Npgsql;
+
+var db = new NpgsqlDbMock();
+using var connection = new NpgsqlConnectionMock(db);
+connection.Open();
+connection.AddSequence("seq_orders", startValue: 10, incrementBy: 2);
+
+var first = connection.ExecuteScalar<long>("SELECT nextval('seq_orders')");
+var current = connection.ExecuteScalar<long>("SELECT currval('seq_orders')");
+var updated = connection.ExecuteScalar<long>("SELECT setval('seq_orders', 30, false)");
+var next = connection.ExecuteScalar<long>("SELECT nextval('seq_orders')");
+var last = connection.ExecuteScalar<long>("SELECT lastval()");
+```
+
+Observações do exemplo:
+
+- `currval(...)` e `lastval()` são locais da sessão/conexão.
+- `setval(..., false)` faz o próximo `nextval(...)` retornar exatamente o valor informado.
+
+### Exemplo 6: sintaxe Oracle e DB2 para sequence
+
+```csharp
+using DbSqlLikeMem.Oracle;
+using DbSqlLikeMem.Db2;
+
+var oracleDb = new OracleDbMock();
+using var oracle = new OracleConnectionMock(oracleDb);
+oracle.Open();
+oracle.AddSequence("seq_orders", startValue: 100, incrementBy: 10);
+
+var oracleNext = oracle.ExecuteScalar<long>("SELECT seq_orders.NEXTVAL");
+var oracleCurr = oracle.ExecuteScalar<long>("SELECT seq_orders.CURRVAL");
+
+var db2Db = new Db2DbMock();
+using var db2 = new Db2ConnectionMock(db2Db);
+db2.Open();
+db2.AddSequence("seq_orders", startValue: 50, incrementBy: 5);
+
+var db2Next = db2.ExecuteScalar<long>("VALUES NEXT VALUE FOR seq_orders");
+var db2Previous = db2.ExecuteScalar<long>("VALUES PREVIOUS VALUE FOR seq_orders");
+```
+
+Observações do exemplo:
+
+- Oracle usa `seq.NEXTVAL` e `seq.CURRVAL`.
+- DB2 usa `NEXT VALUE FOR seq` e `PREVIOUS VALUE FOR seq`.
+- Os dois caminhos também aceitam nomes qualificados por schema no mock.
+
 ## Checklist rápido de revisão de documentação
 
 Use esta lista quando fizer alterações grandes no código:
@@ -195,4 +283,4 @@ dotnet test src/DbSqlLikeMem.slnx
 
 - [Provedores, versões e compatibilidade](old/providers-and-features.md)
 - [Publicação](publishing.md)
-- [Wiki do GitHub](wiki/README.md)
+- [Wiki do GitHub](Wiki/Home.md)

@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem;
 
 /// <summary>
-/// EN: Defines the contract of an in-memory schema with table creation and retrieval.
-/// PT: Define o contrato de um schema em memória com criação e recuperação de tabelas.
+/// EN: Defines the contract of an in-memory schema with tables, procedures, and sequences.
+/// PT: Define o contrato de um schema em memória com tabelas, procedimentos e sequences.
 /// </summary>
 public interface ISchemaMock
 {
@@ -33,6 +33,12 @@ public interface ISchemaMock
     /// <param name="value">EN: Found table, if any. PT: Tabela encontrada, se houver.</param>
     /// <returns>EN: True if the table exists. PT: True se a tabela existir.</returns>
     bool TryGetTable(string key, out ITableMock? value);
+
+    /// <summary>
+    /// EN: Gets the sequences registered in the schema.
+    /// PT: Obtém as sequences registradas no schema.
+    /// </summary>
+    IReadOnlyDictionary<string, SequenceDef> Sequences { get; }
 
     /// <summary>
     /// EN: Backs up all tables, ignoring individual failures.

@@ -4,19 +4,15 @@ namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 /// EN: Validates transactional reliability additions for P11 scenarios.
 /// PT: Valida as adições de confiabilidade transacional para cenários do P11.
 /// </summary>
-public sealed class SqliteTransactionReliabilityTests : DapperTransactionConcurrencyTestsBase
+public sealed class SqliteTransactionReliabilityTests : ProviderDapperTransactionReliabilityTestsBase<SqliteDbMock, SqliteConnectionMock>
 {
     /// <inheritdoc />
-    protected override Func<DbConnectionMockBase> CreateOpenConnectionFactory(bool threadSafe, int? version = null)
-    {
-        var db = new SqliteDbMock(version) { ThreadSafe = threadSafe };
-        return () =>
-        {
-            var connection = new SqliteConnectionMock(db);
-            connection.Open();
-            return connection;
-        };
-    }
+    protected override SqliteDbMock CreateDb(int? version, bool threadSafe)
+        => new(version) { ThreadSafe = threadSafe };
+
+    /// <inheritdoc />
+    protected override SqliteConnectionMock CreateConnection(SqliteDbMock db)
+        => new(db);
 
     /// <summary>
     /// EN: Ensures rolling back to a savepoint restores the intermediate state.

@@ -24,9 +24,15 @@ public sealed class MySqlQueryProvider(
 
         return (IQueryable)Activator.CreateInstance(
             queryType,
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+            binder: null,
+            args:
+            [
             /* provider   */ this,
             /* expression */ expression,
             /* tableName  */ tableName
+            ],
+            culture: null
         )!;
     }
 

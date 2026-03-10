@@ -10,7 +10,7 @@
   "priceCategory": "free",
   "publisher": "SEU_PUBLISHER",
   "qna": true,
-  "repo": "https://github.com/SEU_ORG/DbSqlLikeMem",
+  "repo": "https://github.com/christianulson/DbSqlLikeMem",
   "releaseNotes": "Release notes",
   "tags": [
     "database",

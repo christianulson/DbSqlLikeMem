@@ -15,8 +15,11 @@ public sealed class SqlExprPrinterTest(
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataByMySqlVersion(nameof(Expressions))]
-    public void ExprPrinter_ShouldAllow_Roundtrip_Parse_Print_Parse(string expr, int version)
+    public void ExprPrinter_ShouldAllow_Roundtrip_Parse_Print_Parse(string expr, int minVersion, int version)
     {
+        if (version < minVersion)
+            return;
+
         var d = new MySqlDialect(version);
         var ast1 = SqlExpressionParser.ParseWhere(expr, d);
         var printed = SqlExprPrinter.Print(ast1);
@@ -33,12 +36,12 @@ public sealed class SqlExprPrinterTest(
     /// </summary>
     public static IEnumerable<object[]> Expressions()
     {
-        yield return new object[] { "a = 1 AND b = 2 OR c = 3" };
-        yield return new object[] { "NOT (a = 1)" };
-        yield return new object[] { "a IN (1,2,3)" };
-        yield return new object[] { "a IN ((SELECT 1 WHERE 0))" };
-        yield return new object[] { "EXISTS(SELECT 1 WHERE 0)" };
-        yield return new object[] { "data->'$.name' = 'x'" };
-        yield return new object[] { "data->>'$.name' = 'x'" };
+        yield return new object[] { "a = 1 AND b = 2 OR c = 3", 0 };
+        yield return new object[] { "NOT (a = 1)", 0 };
+        yield return new object[] { "a IN (1,2,3)", 0 };
+        yield return new object[] { "a IN ((SELECT 1 WHERE 0))", 0 };
+        yield return new object[] { "EXISTS(SELECT 1 WHERE 0)", 0 };
+        yield return new object[] { "data->'$.name' = 'x'", MySqlDialect.JsonExtractMinVersion };
+        yield return new object[] { "data->>'$.name' = 'x'", MySqlDialect.JsonExtractMinVersion };
     }
 }

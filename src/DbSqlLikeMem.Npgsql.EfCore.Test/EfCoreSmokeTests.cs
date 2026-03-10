@@ -6,12 +6,4 @@ namespace DbSqlLikeMem.Npgsql.EfCore.Test;
 /// </summary>
 public sealed class EfCoreSmokeTests(
     ITestOutputHelper helper
-) : EfCoreSupportTestsBase(helper)
-{
-    /// <summary>
-    /// EN: Creates the Npgsql EF Core connection factory used by the shared contract tests.
-    /// PT: Cria a fábrica de conexão EF Core de Npgsql usada pelos testes de contrato compartilhados.
-    /// </summary>
-    protected override IDbSqlLikeMemEfCoreConnectionFactory CreateFactory()
-        => new NpgsqlEfCoreConnectionFactory();
-}
+) : EfCoreSmokeTestsBase(helper, static () => new NpgsqlEfCoreConnectionFactory());

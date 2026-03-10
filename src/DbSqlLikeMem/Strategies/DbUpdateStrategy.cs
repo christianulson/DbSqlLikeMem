@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 
 namespace DbSqlLikeMem;
 
@@ -24,13 +25,15 @@ internal static class DbUpdateStrategy
         SqlUpdateQuery query,
         DbParameterCollection? pars)
     {
+        var sw = Stopwatch.StartNew();
         ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
         var queryTable = query.Table;
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(queryTable!.Name, nameof(query.Table.Name));
         var tableName = queryTable.Name!;
-        var dialect = connection.Db.Dialect;
+        var dialect = connection.ExecutionDialect;
         if (!connection.TryGetTable(tableName, out var table, queryTable.DbName) || table == null)
             throw SqlUnsupported.ForTableDoesNotExist(tableName);
+        var rowCountBefore = table.Count;
 
         // JOIN updates ainda não suportados plenamente no Parser simples, 
         // mas se o AST viesse com UpdateFromSelect, trataríamos aqui.
@@ -74,6 +77,18 @@ internal static class DbUpdateStrategy
         }
 
         connection.Metrics.Updates += updated;
+        sw.Stop();
+
+        var metrics = new SqlPlanRuntimeMetrics(
+            InputTables: 1,
+            EstimatedRowsRead: rowCountBefore,
+            ActualRows: updated,
+            ElapsedMs: sw.ElapsedMilliseconds);
+        var plan = SqlExecutionPlanFormatter.FormatUpdate(
+            query,
+            metrics,
+            new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
+        connection.RegisterExecutionPlan(plan);
         return updated;
     }
 

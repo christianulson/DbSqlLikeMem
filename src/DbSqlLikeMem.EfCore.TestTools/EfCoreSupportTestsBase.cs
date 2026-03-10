@@ -1,5 +1,3 @@
-using DbSqlLikeMem.TestTools;
-
 namespace DbSqlLikeMem.EfCore.TestTools;
 
 /// <summary>
@@ -1785,6 +1783,23 @@ ORDER BY u.id";
         Assert.Equal([4, 5, 6], p2a);
         Assert.Equal([7, 8, 9], p3a);
     }
+}
 
+/// <summary>
+/// EN: Reusable smoke test wrapper for EF Core provider factories.
+/// PT: Wrapper reutilizável de smoke tests para fábricas de provedor EF Core.
+/// </summary>
+public abstract class EfCoreSmokeTestsBase(
+    ITestOutputHelper helper,
+    Func<IDbSqlLikeMemEfCoreConnectionFactory> factoryFactory
+) : EfCoreSupportTestsBase(helper)
+{
+    private readonly Func<IDbSqlLikeMemEfCoreConnectionFactory> _factoryFactory = factoryFactory;
 
+    /// <summary>
+    /// EN: Creates the provider-specific EF Core connection factory used by the smoke contract.
+    /// PT: Cria a factory de conexão EF Core específica do provider usada pelo contrato smoke.
+    /// </summary>
+    protected override IDbSqlLikeMemEfCoreConnectionFactory CreateFactory()
+        => _factoryFactory();
 }

@@ -8,10 +8,12 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
   - instalação
   - setup de provider
   - exemplos de uso
+  - exemplos de sequence por provider
   - checklist de revisão da documentação pós-mudanças
 - [Provedores, versões e compatibilidade](old/providers-and-features.md)
   - matriz por banco
   - capacidades SQL por dialeto/versão
+  - trilha de sequences por provider
   - sugestões de evolução do parser
 - [Plano global de evolução (TDD-first)](old/global-evolution-plan.md)
   - avaliação consolidada de documentação, planos e código
@@ -42,7 +44,7 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
 - [Snapshot cross-dialect (smoke)](cross-dialect-smoke-snapshot.md)
   - baseline de equivalência entre providers
   - atualização via `scripts/refresh_cross_dialect_snapshots.sh` (ou runner direto `scripts/run_cross_dialect_equivalence.sh`)
-  - suporte a perfis de execução (`--profile smoke` para projetos core e `--profile aggregation` para projetos Dapper)
+  - suporte a perfis de execução (`--profile smoke` para projetos core, `--profile aggregation` para projetos Dapper e `--profile parser` para suítes dedicadas de parser)
   - opção `--continue-on-error` para executar a matriz inteira e gerar resumo de falhas
   - opção `--dry-run` para inspeção da matriz planejada sem executar `dotnet`
   - snapshots agora incluem quadro-resumo final (checks totais/falhas por perfil)
@@ -51,9 +53,24 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
 - [Snapshot cross-dialect (aggregation)](cross-dialect-aggregation-snapshot.md)
   - baseline de contratos de agregação textual por provider
   - atualização via `scripts/refresh_cross_dialect_snapshots.sh`
+- [Snapshot cross-dialect (parser)](cross-dialect-parser-snapshot.md)
+  - baseline de contratos compartilhados de parser por provider
+  - atualização via `scripts/refresh_cross_dialect_snapshots.sh`
+  - cobre MySQL, SQL Server, SQL Azure, Oracle, Npgsql, SQLite e DB2 via trait compartilhado `Category=Parser`
+- [Snapshot cross-dialect (strategy)](cross-dialect-strategy-snapshot.md)
+  - baseline de regressão da camada Strategy por provider
+  - atualização via `scripts/refresh_cross_dialect_snapshots.sh`
+  - cobre MySQL, SQL Server, SQL Azure, Oracle, Npgsql, SQLite e DB2 via trait compartilhado `Category=Strategy`
 - [Governança da solução .slnx](features-backlog/index.md#631-arquivo-de-solucao-slnx-e-cobertura-de-projetos)
   - validação de cobertura de projetos com `scripts/check_slnx_project_coverage.py` (Linux/macOS/CI) ou `scripts/check_slnx_project_coverage.ps1` (Windows/PowerShell)
   - prevenção de drift entre `.slnx` e árvore `src/**/*.csproj`
+  - normalização defensiva de separadores (`/` e `\`) para evitar falso positivo entre Windows e CI Linux
+- [Status operacional do backlog](features-backlog/status-operational.md)
+  - acompanhamento de sprint e próximos passos sem poluir o índice macro
+  - usar junto do checklist `features-backlog/progress-update-checklist.md` ao revisar percentuais
+- [Changelog](../CHANGELOG.md)
+  - mudanças recentes organizadas por provider/dialeto e automação
+  - destaque para limitações ainda abertas na linha de release
 - [Relatório de hardening/regressão](old/hardening-regression-report.md)
   - regressões corrigidas
   - próximos itens priorizados
@@ -66,6 +83,7 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
 - [Relatório de readiness para NuGet](nuget-readiness-validation-report.md)
   - checklist de empacotamento
   - validações antes de publicar
+  - auditoria de `.nupkg` via `scripts/check_nuget_package_metadata.py`
 - [Revisão de performance (work branch)](performance-review-work-branch.md)
   - achados de performance
   - recomendações de otimização
@@ -76,8 +94,18 @@ Este diretório organiza o conteúdo por contexto para facilitar navegação, ma
   - NuGet
   - Visual Studio (VSIX)
   - VS Code Marketplace
-- [Wiki do GitHub](wiki/README.md)
+  - mapa de versões e tags por artefato (`Directory.Build.props`, `source.extension.vsixmanifest`, `package.json`)
+  - auditoria final via `scripts/check_release_readiness.py`
+- [Baselines de template](../templates/dbsqllikemem/README.md)
+  - catálogo versionado em `templates/dbsqllikemem/vCurrent`
+  - perfis iniciais `api` e `worker`
+  - área controlada de promoção em `templates/dbsqllikemem/vNext`
+  - checklist de revisão em `templates/dbsqllikemem/review-checklist.md`
+  - metadado versionado de revisão em `templates/dbsqllikemem/review-metadata.json`
+  - revisão vencida agora é tratada como gap operacional explícito nos resumos das extensões e no auditor `scripts/check_release_readiness.py`
+- [Wiki do GitHub](Wiki/Home.md)
   - como habilitar e estruturar
+  - espelho canônico mantido no submódulo `docs/Wiki`
   - páginas prontas para copiar/publicar
 
 ## Convenções sugeridas para novos documentos

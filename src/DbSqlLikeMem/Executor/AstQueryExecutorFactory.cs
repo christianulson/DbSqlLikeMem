@@ -1,4 +1,6 @@
 
+using System.Collections.Concurrent;
+
 namespace DbSqlLikeMem;
 
 /// <summary>
@@ -10,15 +12,32 @@ namespace DbSqlLikeMem;
 /// </summary>
 internal static class AstQueryExecutorFactory
 {
+    private static readonly ConcurrentDictionary<string, Func<
+        DbConnectionMockBase,
+        IDataParameterCollection,
+        IAstQueryExecutor>> _executors = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
     /// EN: Implements this member.
     /// PT: Implementa este membro.
     /// </summary>
-    public static Dictionary<string, Func<
+    public static IReadOnlyDictionary<string, Func<
         DbConnectionMockBase,
         IDataParameterCollection,
-        IAstQueryExecutor>> Executors { get; set; } = new Dictionary<string, Func<DbConnectionMockBase, IDataParameterCollection, IAstQueryExecutor>>(StringComparer.OrdinalIgnoreCase);
+        IAstQueryExecutor>> Executors => _executors;
 
+    /// <summary>
+    /// EN: Registers a dialect executor when it is not already available.
+    /// PT: Registra um executor de dialeto quando ele ainda nao esta disponivel.
+    /// </summary>
+    public static void RegisterExecutor(
+        string dialectName,
+        Func<DbConnectionMockBase, IDataParameterCollection, IAstQueryExecutor> executorFactory)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(dialectName, nameof(dialectName));
+        ArgumentNullExceptionCompatible.ThrowIfNull(executorFactory, nameof(executorFactory));
+        _executors.TryAdd(dialectName, executorFactory);
+    }
 
     /// <summary>
     /// EN: Implements Create.
@@ -33,8 +52,14 @@ internal static class AstQueryExecutorFactory
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         ArgumentNullExceptionCompatible.ThrowIfNull(parameters, nameof(parameters));
 
-        if(Executors.TryGetValue(dialect.Name, out var exc))
+        if (_executors.TryGetValue(dialect.Name, out var exc))
             return exc(connection, parameters);
+
+        if (dialect.Name.Equals("auto", StringComparison.OrdinalIgnoreCase)
+            && _executors.TryGetValue(connection.Db.Dialect.Name, out var providerExecutor))
+        {
+            return providerExecutor(connection, parameters);
+        }
 
         // Preparado para futura implementação.
         return new NotImplementedAstQueryExecutor(dialect.Name);

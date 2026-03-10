@@ -4,19 +4,15 @@ namespace DbSqlLikeMem.Oracle.Test;
 /// EN: Validates transactional reliability additions for P11 scenarios.
 /// PT: Valida as adições de confiabilidade transacional para cenários do P11.
 /// </summary>
-public sealed class OracleTransactionReliabilityTests : DapperTransactionConcurrencyTestsBase
+public sealed class OracleTransactionReliabilityTests : ProviderDapperTransactionReliabilityTestsBase<OracleDbMock, OracleConnectionMock>
 {
     /// <inheritdoc />
-    protected override Func<DbConnectionMockBase> CreateOpenConnectionFactory(bool threadSafe, int? version = null)
-    {
-        var db = new OracleDbMock(version) { ThreadSafe = threadSafe };
-        return () =>
-        {
-            var connection = new OracleConnectionMock(db);
-            connection.Open();
-            return connection;
-        };
-    }
+    protected override OracleDbMock CreateDb(int? version, bool threadSafe)
+        => new(version) { ThreadSafe = threadSafe };
+
+    /// <inheritdoc />
+    protected override OracleConnectionMock CreateConnection(OracleDbMock db)
+        => new(db);
 
     /// <summary>
     /// EN: Ensures rolling back to a savepoint restores the intermediate state.

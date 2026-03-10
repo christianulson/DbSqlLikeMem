@@ -31,8 +31,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate release readiness (VSIX baseline)
+        shell: pwsh
+        run: python scripts/check_release_readiness.py
+
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
+
+      - name: Validate VSIX version source contract
+        shell: pwsh
+        run: |
+          $versionSource = "src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest"
+          if (-not (Test-Path $versionSource)) {
+            Write-Error "Arquivo de versao da VSIX nao encontrado: $versionSource"
+            exit 1
+          }
+
+          Write-Host "VSIX version source: $versionSource"
 
       - name: Build VSIX
         shell: pwsh
@@ -77,6 +92,8 @@ jobs:
           VS_MARKETPLACE_TOKEN: ${{ secrets.VS_MARKETPLACE_TOKEN }}
           PUBLISH_MANIFEST: ${{ github.event.inputs.publish_manifest || 'eng/visualstudio/PublishManifest.json' }}
         run: |
+          python scripts/check_release_readiness.py --strict-marketplace-placeholders
+
           if (-not $env:VS_MARKETPLACE_TOKEN) {
             Write-Error "Secret VS_MARKETPLACE_TOKEN não configurado."
             exit 1

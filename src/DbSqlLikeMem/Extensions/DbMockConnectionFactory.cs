@@ -15,13 +15,22 @@ public static class DbMockConnectionFactory
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["oracle"] = "Oracle",
+            ["ora"] = "Oracle",
             ["sqlserver"] = "SqlServer",
+            ["mssql"] = "SqlServer",
+            ["sqlsrv"] = "SqlServer",
             ["sqlazure"] = "SqlAzure",
             ["azuresql"] = "SqlAzure",
+            ["azuresqldb"] = "SqlAzure",
+            ["azuresqlserver"] = "SqlAzure",
             ["mysql"] = "MySql",
+            ["mariadb"] = "MySql",
             ["sqlite"] = "Sqlite",
+            ["sqlite3"] = "Sqlite",
             ["db2"] = "Db2",
+            ["ibmdb2"] = "Db2",
             ["npgsql"] = "Npgsql",
+            ["pg"] = "Npgsql",
             ["postgres"] = "Npgsql",
             ["postgresql"] = "Npgsql"
         };
@@ -29,23 +38,142 @@ public static class DbMockConnectionFactory
     public static (DbMock Db, IDbConnection Connection) CreateOracleWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("Oracle", tableMappers);
 
+    /// <summary>
+    /// EN: Creates an Oracle mock and wraps its connection with the interception pipeline.
+    /// PT: Cria um mock Oracle e encapsula sua conexao com o pipeline de interceptacao.
+    /// </summary>
+    public static (DbMock Db, DbConnection Connection) CreateOracleWithTablesIntercepted(
+        params DbConnectionInterceptor[] interceptors)
+        => CreateWithTablesIntercepted("Oracle", interceptors);
+
+    /// <summary>
+    /// EN: Creates an Oracle mock and wraps its connection using interception options.
+    /// PT: Cria um mock Oracle e encapsula sua conexao usando opcoes de interceptacao.
+    /// </summary>
+    public static (DbMock Db, DbConnection Connection) CreateOracleWithTablesIntercepted(
+        DbInterceptionOptions options,
+        params Action<DbMock>[] tableMappers)
+        => CreateWithTablesIntercepted("Oracle", options, tableMappers);
+
     public static (DbMock Db, IDbConnection Connection) CreateSqlServerWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("SqlServer", tableMappers);
+
+    /// <summary>
+    /// EN: Creates a SQL Server mock and wraps its connection with the interception pipeline.
+    /// PT: Cria um mock SQL Server e encapsula sua conexao com o pipeline de interceptacao.
+    /// </summary>
+    public static (DbMock Db, DbConnection Connection) CreateSqlServerWithTablesIntercepted(
+        params DbConnectionInterceptor[] interceptors)
+        => CreateWithTablesIntercepted("SqlServer", interceptors);
+
+    /// <summary>
+    /// EN: Creates a SQL Server mock and wraps its connection using interception options.
+    /// PT: Cria um mock SQL Server e encapsula sua conexao usando opcoes de interceptacao.
+    /// </summary>
+    public static (DbMock Db, DbConnection Connection) CreateSqlServerWithTablesIntercepted(
+        DbInterceptionOptions options,
+        params Action<DbMock>[] tableMappers)
+        => CreateWithTablesIntercepted("SqlServer", options, tableMappers);
 
     public static (DbMock Db, IDbConnection Connection) CreateSqlAzureWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("SqlAzure", tableMappers);
 
+    /// <summary>
+    /// EN: Creates a SQL Azure mock and wraps its connection with the interception pipeline.
+    /// PT: Cria um mock SQL Azure e encapsula sua conexao com o pipeline de interceptacao.
+    /// </summary>
+    public static (DbMock Db, DbConnection Connection) CreateSqlAzureWithTablesIntercepted(
+        params DbConnectionInterceptor[] interceptors)
+        => CreateWithTablesIntercepted("SqlAzure", interceptors);
+
+    /// <summary>
+    /// EN: Creates a SQL Azure mock and wraps its connection using interception options.
+    /// PT: Cria um mock SQL Azure e encapsula sua conexao usando opcoes de interceptacao.
+    /// </summary>
+    public static (DbMock Db, DbConnection Connection) CreateSqlAzureWithTablesIntercepted(
+        DbInterceptionOptions options,
+        params Action<DbMock>[] tableMappers)
+        => CreateWithTablesIntercepted("SqlAzure", options, tableMappers);
+
     public static (DbMock Db, IDbConnection Connection) CreateMySqlWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("MySql", tableMappers);
+
+    /// <summary>
+    /// EN: Creates a MySQL mock and wraps its connection with the interception pipeline.
+    /// PT: Cria um mock MySQL e encapsula sua conexao com o pipeline de interceptacao.
+    /// </summary>
+    public static (DbMock Db, DbConnection Connection) CreateMySqlWithTablesIntercepted(
+        params DbConnectionInterceptor[] interceptors)
+        => CreateWithTablesIntercepted("MySql", interceptors);
+
+    /// <summary>
+    /// EN: Creates a MySQL mock and wraps its connection using interception options.
+    /// PT: Cria um mock MySQL e encapsula sua conexao usando opcoes de interceptacao.
+    /// </summary>
+    public static (DbMock Db, DbConnection Connection) CreateMySqlWithTablesIntercepted(
+        DbInterceptionOptions options,
+        params Action<DbMock>[] tableMappers)
+        => CreateWithTablesIntercepted("MySql", options, tableMappers);
 
     public static (DbMock Db, IDbConnection Connection) CreateSqliteWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("Sqlite", tableMappers);
 
+    /// <summary>
+    /// EN: Creates a SQLite mock and wraps its connection with the interception pipeline.
+    /// PT: Cria um mock SQLite e encapsula sua conexao com o pipeline de interceptacao.
+    /// </summary>
+    public static (DbMock Db, DbConnection Connection) CreateSqliteWithTablesIntercepted(
+        params DbConnectionInterceptor[] interceptors)
+        => CreateWithTablesIntercepted("Sqlite", interceptors);
+
+    /// <summary>
+    /// EN: Creates a SQLite mock and wraps its connection using interception options.
+    /// PT: Cria um mock SQLite e encapsula sua conexao usando opcoes de interceptacao.
+    /// </summary>
+    public static (DbMock Db, DbConnection Connection) CreateSqliteWithTablesIntercepted(
+        DbInterceptionOptions options,
+        params Action<DbMock>[] tableMappers)
+        => CreateWithTablesIntercepted("Sqlite", options, tableMappers);
+
     public static (DbMock Db, IDbConnection Connection) CreateDb2WithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("Db2", tableMappers);
 
+    /// <summary>
+    /// EN: Creates a DB2 mock and wraps its connection with the interception pipeline.
+    /// PT: Cria um mock DB2 e encapsula sua conexao com o pipeline de interceptacao.
+    /// </summary>
+    public static (DbMock Db, DbConnection Connection) CreateDb2WithTablesIntercepted(
+        params DbConnectionInterceptor[] interceptors)
+        => CreateWithTablesIntercepted("Db2", interceptors);
+
+    /// <summary>
+    /// EN: Creates a DB2 mock and wraps its connection using interception options.
+    /// PT: Cria um mock DB2 e encapsula sua conexao usando opcoes de interceptacao.
+    /// </summary>
+    public static (DbMock Db, DbConnection Connection) CreateDb2WithTablesIntercepted(
+        DbInterceptionOptions options,
+        params Action<DbMock>[] tableMappers)
+        => CreateWithTablesIntercepted("Db2", options, tableMappers);
+
     public static (DbMock Db, IDbConnection Connection) CreateNpgsqlWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("Npgsql", tableMappers);
+
+    /// <summary>
+    /// EN: Creates an Npgsql mock and wraps its connection with the interception pipeline.
+    /// PT: Cria um mock Npgsql e encapsula sua conexao com o pipeline de interceptacao.
+    /// </summary>
+    public static (DbMock Db, DbConnection Connection) CreateNpgsqlWithTablesIntercepted(
+        params DbConnectionInterceptor[] interceptors)
+        => CreateWithTablesIntercepted("Npgsql", interceptors);
+
+    /// <summary>
+    /// EN: Creates an Npgsql mock and wraps its connection using interception options.
+    /// PT: Cria um mock Npgsql e encapsula sua conexao usando opcoes de interceptacao.
+    /// </summary>
+    public static (DbMock Db, DbConnection Connection) CreateNpgsqlWithTablesIntercepted(
+        DbInterceptionOptions options,
+        params Action<DbMock>[] tableMappers)
+        => CreateWithTablesIntercepted("Npgsql", options, tableMappers);
 
     /// <summary>
     /// EN: Creates a provider-specific <see cref="DbMock"/> and resolves an <see cref="IDbConnection"/> for it.
@@ -77,10 +205,50 @@ public static class DbMockConnectionFactory
             if (!IsConnectionTypeCompatibleForProvider(connection.GetType(), canonicalProviderHint))
             {
                 throw new InvalidOperationException(
-                    $"Resolved connection type '{connection.GetType().FullName}' is not compatible with provider '{canonicalProviderHint}'.");
+                    SqlExceptionMessages.ResolvedConnectionTypeNotCompatible(
+                        connection.GetType().FullName ?? connection.GetType().Name,
+                        canonicalProviderHint));
             }
         }
         return (db, connection);
+    }
+
+    /// <summary>
+    /// EN: Creates a provider-specific mock and returns its connection already wrapped by the interception pipeline.
+    /// PT: Cria um mock especifico do provedor e retorna sua conexao ja encapsulada pelo pipeline de interceptacao.
+    /// </summary>
+    /// <param name="providerHint">EN: Provider name hint. PT: Indicacao do provedor.</param>
+    /// <param name="interceptors">EN: Interceptors applied in registration order. PT: Interceptors aplicados na ordem de registro.</param>
+    /// <param name="tableMappers">EN: Optional actions to configure tables/schemas on the created mock. PT: Acoes opcionais para configurar tabelas/esquemas no mock criado.</param>
+    /// <returns>EN: Provider mock and wrapped connection. PT: Mock do provedor e conexao encapsulada.</returns>
+    public static (DbMock Db, DbConnection Connection) CreateWithTablesIntercepted(
+        string providerHint,
+        DbConnectionInterceptor[] interceptors,
+        params Action<DbMock>[] tableMappers)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(interceptors, nameof(interceptors));
+        var created = CreateWithTables(providerHint, tableMappers);
+        if (created.Connection is not DbConnection dbConnection)
+            throw new InvalidOperationException("The resolved provider connection does not derive from DbConnection.");
+
+        return (created.Db, DbInterceptionPipeline.Wrap(dbConnection, interceptors));
+    }
+
+    /// <summary>
+    /// EN: Creates a provider-specific mock and returns its connection wrapped with interceptors built from the supplied options.
+    /// PT: Cria um mock especifico do provedor e retorna sua conexao encapsulada com interceptors construidos a partir das opcoes informadas.
+    /// </summary>
+    /// <param name="providerHint">EN: Provider name hint. PT: Indicacao do provedor.</param>
+    /// <param name="options">EN: Interception options. PT: Opcoes de interceptacao.</param>
+    /// <param name="tableMappers">EN: Optional actions to configure tables/schemas on the created mock. PT: Acoes opcionais para configurar tabelas/esquemas no mock criado.</param>
+    /// <returns>EN: Provider mock and wrapped connection. PT: Mock do provedor e conexao encapsulada.</returns>
+    public static (DbMock Db, DbConnection Connection) CreateWithTablesIntercepted(
+        string providerHint,
+        DbInterceptionOptions options,
+        params Action<DbMock>[] tableMappers)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(options, nameof(options));
+        return CreateWithTablesIntercepted(providerHint, options.BuildInterceptors(), tableMappers);
     }
 
     private static ProviderResolutionPlan BuildProviderResolutionPlan(string providerHint)
@@ -104,7 +272,7 @@ public static class DbMockConnectionFactory
         if (preferred is null)
         {
             throw new InvalidOperationException(
-                $"No concrete DbMock implementation was found. Loaded assemblies: {AppDomain.CurrentDomain.GetAssemblies().Length}.");
+                SqlExceptionMessages.NoConcreteDbMockImplementationFound(AppDomain.CurrentDomain.GetAssemblies().Length));
         }
 
         var dbFactory = CreateDbMockFactory(preferred);
@@ -209,7 +377,7 @@ public static class DbMockConnectionFactory
             .FirstOrDefault(ctor => ctor.GetParameters().All(p => p.IsOptional));
 
         if (optionalCtor is null)
-            throw new MissingMethodException($"No compatible constructor was found for '{dbType.FullName}'.");
+            throw new MissingMethodException(SqlExceptionMessages.NoCompatibleDbMockConstructorFound(dbType.FullName ?? dbType.Name));
 
         var optionalCtorArgs = optionalCtor
             .GetParameters()
@@ -271,7 +439,9 @@ public static class DbMockConnectionFactory
                 }
 
                 throw new InvalidOperationException(
-                    $"Could not resolve an IDbConnection from DbMock type '{dbType.FullName}' with provider hint '{providerHint}'.");
+                    SqlExceptionMessages.CouldNotResolveConnectionFromDbMock(
+                        dbType.FullName ?? dbType.Name,
+                        providerHint));
             };
         }
 
@@ -292,11 +462,13 @@ public static class DbMockConnectionFactory
         if (connectionType is null)
         {
             return _ => throw new InvalidOperationException(
-                $"Could not resolve an IDbConnection from DbMock type '{dbType.FullName}' with provider hint '{providerHint}'.");
+                SqlExceptionMessages.CouldNotResolveConnectionFromDbMock(
+                    dbType.FullName ?? dbType.Name,
+                    providerHint));
         }
 
         var ctor = GetCompatibleConnectionCtor(connectionType, dbType)
-            ?? throw new InvalidOperationException($"No compatible connection constructor found for '{connectionType.FullName}'.");
+            ?? throw new InvalidOperationException(SqlExceptionMessages.NoCompatibleConnectionConstructorFound(connectionType.FullName ?? connectionType.Name));
         var ctorParameters = ctor.GetParameters();
 
         return db =>

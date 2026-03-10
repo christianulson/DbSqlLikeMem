@@ -26,12 +26,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate release readiness (VS Code baseline)
+        working-directory: .
+        run: python3 scripts/check_release_readiness.py
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: npm
           cache-dependency-path: src/DbSqlLikeMem.VsCodeExtension/package.json
+
+      - name: Validate VS Code version source contract
+        working-directory: .
+        run: |
+          if [ ! -f src/DbSqlLikeMem.VsCodeExtension/package.json ]; then
+            echo "Version source file not found: src/DbSqlLikeMem.VsCodeExtension/package.json" >&2
+            exit 1
+          fi
+
+          echo "VS Code version source: src/DbSqlLikeMem.VsCodeExtension/package.json"
 
       - name: Install dependencies
         run: npm install

@@ -2,17 +2,17 @@
   "name": "dbsqllikemem-vscode-extension",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "dbsqllikemem",
   "license": "SEE LICENSE IN ../../README.md",
   "repository": {
     "type": "git",
-    "url": "https://github.com/SEU_USUARIO/DbSqlLikeMem.git"
+    "url": "https://github.com/christianulson/DbSqlLikeMem.git"
   },
   "bugs": {
-    "url": "https://github.com/SEU_USUARIO/DbSqlLikeMem/issues"
+    "url": "https://github.com/christianulson/DbSqlLikeMem/issues"
   },
-  "homepage": "https://github.com/SEU_USUARIO/DbSqlLikeMem#readme",
+  "homepage": "https://github.com/christianulson/DbSqlLikeMem#readme",
   "icon": "resources/icon.png",
   "galleryBanner": {
     "color": "#1f2937",
@@ -26,12 +26,12 @@
     "code-generation"
   ],
   "engines": {
-    "vscode": "^1.90.0"
+    "vscode": "^1.109.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [
+  "activationEvents__old": [
     "onCommand:dbSqlLikeMem.addConnection",
     "onCommand:dbSqlLikeMem.checkConsistency",
     "onCommand:dbSqlLikeMem.configureMappings",
@@ -337,15 +337,16 @@
     "watch": "tsc -watch -p ./",
     "vscode:prepublish": "npm run generate:icon && npm run compile",
     "lint": "tsc -p ./ --noEmit",
+    "test": "node --test tests/*.test.js",
     "package": "npm run generate:icon && npx @vscode/vsce package",
     "publish": "npm run generate:icon && npx @vscode/vsce publish",
     "generate:icon": "node ./scripts/generate-icon.js"
   },
   "devDependencies": {
-    "@vscode/vsce": "^3.2.1",
-    "@types/node": "^20.14.2",
-    "@types/vscode": "^1.90.0",
-    "eslint": "^9.4.0",
-    "typescript": "^5.4.5"
+    "@vscode/vsce": "^3.7.1",
+    "@types/node": "^20.19.37",
+    "@types/vscode": "^1.109.0",
+    "eslint": "^9.39.4",
+    "typescript": "^5.9.3"
   }
 }

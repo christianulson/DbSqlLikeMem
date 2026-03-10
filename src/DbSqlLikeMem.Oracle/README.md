@@ -24,6 +24,17 @@ var conn = new OracleConnectionMock(new OracleDbMock());
 conn.Open();
 ```
 
+## Sequence syntax
+
+Use Oracle-style sequence access in the mock:
+
+```sql
+SELECT sales.seq_orders.NEXTVAL;
+SELECT sales.seq_orders.CURRVAL;
+```
+
+See `docs/getting-started.md` for end-to-end setup examples.
+
 ## Comunidade
 
 Queremos construir o melhor mock Oracle para .NET, juntos. Traga exemplos, gaps de compatibilidade e PRs com testes de regressão.

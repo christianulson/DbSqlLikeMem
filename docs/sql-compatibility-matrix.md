@@ -16,6 +16,7 @@
 | `FETCH FIRST/NEXT` | ❌ | ❌ | ✅ | ❌ | ✅ | ❌ | [`Db2DialectFeatureParserTests`](../src/DbSqlLikeMem.Db2.Test/Parser/Db2DialectFeatureParserTests.cs) |
 | `INSERT ... ON DUPLICATE KEY UPDATE` | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | [`InsertOnDuplicateTests`](../src/DbSqlLikeMem.MySql.Test/Strategy/MySqlInsertOnDuplicateTests.cs) |
 | `INSERT ... ON CONFLICT` | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ | [`ExtendedPostgreSqlMockTests`](../src/DbSqlLikeMem.Npgsql.Dapper.Test/ExtendedPostgreSqlMockTests.cs) |
+| Sequences (`NEXT VALUE FOR`, `nextval/currval/setval/lastval`, `seq.NEXTVAL/CURRVAL`, `PREVIOUS VALUE FOR`) | ❌ | ✅ | ✅ | ✅ | ✅ | ❌ | [`ExtendedSqlServerMockTests`](../src/DbSqlLikeMem.SqlServer.Dapper.Test/ExtendedSqlServerMockTests.cs) |
 | Table hints SQL Server `WITH (...)` | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | [`SqlServerDialectFeatureParserTests`](../src/DbSqlLikeMem.SqlServer.Test/Parser/SqlServerDialectFeatureParserTests.cs) |
 | Index hints MySQL (`USE/IGNORE/FORCE INDEX`) | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | [`MySqlDialectFeatureParserTests`](../src/DbSqlLikeMem.MySql.Test/Parser/MySqlDialectFeatureParserTests.cs) |
 | Operadores JSON `->` / `->>` | ⚠️ (dependente de parser/executor por cenário) | ❌ | ❌ | ✅ | ❌ | ✅ | [`*AdvancedSqlGapTests`](../src/DbSqlLikeMem.Npgsql.Dapper.Test/PostgreSqlAdvancedSqlGapTests.cs) |
@@ -26,6 +27,7 @@
 - Esta matriz resume o comportamento esperado após os hardenings de parser/testes. Em caso de divergência, os testes por provider têm prioridade como fonte de verdade.
 - SQL Azure segue a mesma base de compatibilidade do dialeto SQL Server neste ciclo; use a coluna de SQL Server como baseline para SQL Azure.
 - Recursos marcados como ⚠️ indicam suporte com gate de versão do dialeto ou cobertura parcial.
+- Na linha de sequences, a coluna resume a família de sintaxe principal suportada por cada provider; detalhes por função/sintaxe estão em `docs/old/providers-and-features.md`.
 - Para evoluções planejadas, consulte também o checklist de gaps conhecidos.
 
 ## Referências

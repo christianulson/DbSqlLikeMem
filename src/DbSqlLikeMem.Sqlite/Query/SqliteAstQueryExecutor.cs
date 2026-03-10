@@ -12,15 +12,12 @@ public static class SqliteAstQueryExecutorRegister
     /// PT: Implementa Register.
     /// </summary>
     public static void Register()
-    {
-        if (!AstQueryExecutorFactory.Executors.ContainsKey(SqliteDialect.DialectName))
-            AstQueryExecutorFactory.Executors.Add(
-                SqliteDialect.DialectName,
-                (
-                    DbConnectionMockBase cnn,
-                    IDataParameterCollection pars
-                ) => new SqliteAstQueryExecutor((SqliteConnectionMock)cnn, pars));
-    }
+        => AstQueryExecutorFactory.RegisterExecutor(
+            SqliteDialect.DialectName,
+            (
+                DbConnectionMockBase cnn,
+                IDataParameterCollection pars
+            ) => new SqliteAstQueryExecutor((SqliteConnectionMock)cnn, pars));
 }
 
 /// <summary>
@@ -29,7 +26,7 @@ public static class SqliteAstQueryExecutorRegister
 internal sealed class SqliteAstQueryExecutor(
     SqliteConnectionMock cnn,
     IDataParameterCollection pars
-    ) : AstQueryExecutorBase(cnn, pars, cnn.Db.Dialect)
+    ) : AstQueryExecutorBase(cnn, pars, cnn.ExecutionDialect)
 {
     // Keep SQLite defaults from base.
 }

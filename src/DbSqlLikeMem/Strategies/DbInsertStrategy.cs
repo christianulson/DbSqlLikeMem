@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace DbSqlLikeMem;
 
 internal static class DbInsertStrategy
@@ -24,12 +26,14 @@ internal static class DbInsertStrategy
         DbParameterCollection? pars,
         ISqlDialect dialect)
     {
+        var sw = Stopwatch.StartNew();
         ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(query.Table!.Name, nameof(query.Table.Name));
 
         var tableName = query.Table.Name!; // Nome vindo do Parser
         if (!connection.TryGetTable(tableName, out var table, query.Table.DbName) || table == null)
             throw SqlUnsupported.ForTableDoesNotExist(tableName);
+        var targetRowCountBefore = table.Count;
 
         // Identifica linhas a inserir (seja via VALUES ou SELECT)
         List<Dictionary<int, object?>> newRows;
@@ -42,7 +46,7 @@ internal static class DbInsertStrategy
         else
         {
             // Caso: INSERT INTO ... VALUES ...
-            newRows = CreateRowsFromValues(query, table, pars, dialect);
+            newRows = CreateRowsFromValues(query, table, connection, pars, dialect);
         }
 
         int insertedCount = 0;
@@ -113,16 +117,28 @@ internal static class DbInsertStrategy
         connection.Metrics.Inserts += insertedCount;
         connection.Metrics.Updates += updatedCount;
 
-        int affected;
-        if (string.Equals(dialect.Name, "mysql", StringComparison.OrdinalIgnoreCase))
-            // MySQL retorna: 1 para insert, 2 para update em conflito.
-            affected = insertedCount + (updatedCount * 2);
-        else
-            // PostgreSQL/SQLite e demais dialetos retornam linhas efetivamente afetadas.
-            affected = insertedCount + updatedCount;
-
+        int affected = dialect.GetInsertUpsertAffectedRowCount(insertedCount, updatedCount);
         connection.SetLastFoundRows(affected);
+        sw.Stop();
+
+        var metrics = new SqlPlanRuntimeMetrics(
+            InputTables: query.InsertSelect is null ? 1 : 1 + CountInputTables(query.InsertSelect),
+            EstimatedRowsRead: targetRowCountBefore + newRows.Count,
+            ActualRows: affected,
+            ElapsedMs: sw.ElapsedMilliseconds);
+        var plan = SqlExecutionPlanFormatter.FormatInsert(
+            query,
+            metrics,
+            new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
+        connection.RegisterExecutionPlan(plan);
         return affected;
+    }
+
+    private static int CountInputTables(SqlSelectQuery query)
+    {
+        var count = query.Table is not null ? 1 : 0;
+        count += query.Joins.Count;
+        return Math.Max(1, count);
     }
 
     // --- Helpers de Criação de Linhas ---
@@ -130,6 +146,7 @@ internal static class DbInsertStrategy
     private static List<Dictionary<int, object?>> CreateRowsFromValues(
         SqlInsertQuery query,
         ITableMock table,
+        DbConnectionMockBase connection,
         DbParameterCollection? pars,
         ISqlDialect dialect)
     {
@@ -174,7 +191,7 @@ internal static class DbInsertStrategy
                     var parsedExpr = parsedExprBlock is not null && i < parsedExprBlock.Count
                         ? parsedExprBlock[i]
                         : null;
-                    SetColValue(table, pars, targetCols[i].Index, valueBlock[i], parsedExpr, newRow, dialect);
+                    SetColValue(table, connection, pars, targetCols[i].Index, valueBlock[i], parsedExpr, newRow, dialect);
                 }
             }
             else if (colNames.Count > 0)
@@ -186,7 +203,7 @@ internal static class DbInsertStrategy
                     var parsedExpr = parsedExprBlock is not null && i < parsedExprBlock.Count
                         ? parsedExprBlock[i]
                         : null;
-                    SetColValue(table, pars, colInfo.Index, valueBlock[i], parsedExpr, newRow, dialect);
+                    SetColValue(table, connection, pars, colInfo.Index, valueBlock[i], parsedExpr, newRow, dialect);
                 }
             }
 
@@ -197,60 +214,65 @@ internal static class DbInsertStrategy
 
     private static ColumnDef ResolveInsertColumn(ITableMock table, string columnName, ISqlDialect dialect)
     {
-        if (TryGetColumn(table, columnName, out var col))
-            return col;
-
-        var normalized = columnName.Trim();
-
-        // Alguns clientes ORM podem incluir sufixos lexicais no nome da coluna
-        // (ex.: "id," / "id;" / "id asc").
-        // Tentamos normalizar versões comuns antes de falhar com UnknownColumn.
-        var trimmedPunctuation = normalized.TrimEnd(',', ';');
-        if (!string.Equals(trimmedPunctuation, normalized, StringComparison.Ordinal)
-            && TryGetColumn(table, trimmedPunctuation, out col))
+        foreach (var candidate in BuildInsertColumnCandidates(columnName, dialect))
         {
-            return col;
-        }
-
-        var tokenParts = trimmedPunctuation.Split(' ').Select(_=>_.Trim()).Where(_=>!string.IsNullOrWhiteSpace(_)).ToArray();
-        if (tokenParts.Length > 0
-            && !string.Equals(tokenParts[0], trimmedPunctuation, StringComparison.Ordinal)
-            && TryGetColumn(table, tokenParts[0], out col))
-        {
-            return col;
-        }
-
-        if (dialect.AllowsDoubleQuoteIdentifiers
-            && normalized.Length >= 2
-            && normalized[0] == '"'
-            && normalized[^1] == '"')
-        {
-            var withoutDoubleQuotes = normalized[1..^1];
-            if (TryGetColumn(table, withoutDoubleQuotes, out col))
-                return col;
-        }
-
-        if (dialect.AllowsBracketIdentifiers
-            && normalized.Length >= 2
-            && normalized[0] == '['
-            && normalized[^1] == ']')
-        {
-            var withoutBrackets = normalized[1..^1];
-            if (TryGetColumn(table, withoutBrackets, out col))
-                return col;
-        }
-
-        if (dialect.AllowsBacktickIdentifiers
-            && normalized.Length >= 2
-            && normalized[0] == '`'
-            && normalized[^1] == '`')
-        {
-            var withoutBackticks = normalized[1..^1];
-            if (TryGetColumn(table, withoutBackticks, out col))
+            if (TryGetColumn(table, candidate, out var col))
                 return col;
         }
 
         return table.GetColumn(columnName);
+    }
+
+    private static List<string> BuildInsertColumnCandidates(string columnName, ISqlDialect dialect)
+    {
+        var candidates = new List<string>();
+        var normalized = columnName.Trim();
+        AddInsertColumnCandidate(candidates, normalized);
+
+        // Alguns clientes ORM podem incluir sufixos lexicais no nome da coluna
+        // (ex.: "id," / "id;" / "id asc").
+        var trimmedPunctuation = normalized.TrimEnd(',', ';');
+        AddInsertColumnCandidate(candidates, trimmedPunctuation);
+
+        var firstToken = trimmedPunctuation
+            .Split(' ')
+            .Select(_=>_.Trim())
+            .FirstOrDefault(_=>!string.IsNullOrWhiteSpace(_));
+        AddInsertColumnCandidate(candidates, firstToken);
+
+        AppendQuotedInsertColumnCandidates(candidates, normalized, dialect);
+
+        return candidates;
+    }
+
+    private static void AppendQuotedInsertColumnCandidates(List<string> candidates, string normalized, ISqlDialect dialect)
+    {
+        AddInsertColumnCandidate(candidates, UnwrapInsertColumnIdentifier(normalized, '"', dialect.AllowsDoubleQuoteIdentifiers));
+        AddInsertColumnCandidate(candidates, UnwrapInsertColumnIdentifier(normalized, '[', dialect.AllowsBracketIdentifiers));
+        AddInsertColumnCandidate(candidates, UnwrapInsertColumnIdentifier(normalized, '`', dialect.AllowsBacktickIdentifiers));
+    }
+
+    private static void AddInsertColumnCandidate(List<string> candidates, string? candidate)
+    {
+        if (string.IsNullOrWhiteSpace(candidate))
+            return;
+
+        if (!candidates.Any(existing => string.Equals(existing, candidate, StringComparison.Ordinal)))
+            candidates.Add(candidate!);
+    }
+
+    private static string? UnwrapInsertColumnIdentifier(string value, char quoteStart, bool isAllowed)
+    {
+        if (!isAllowed || value.Length < 2)
+            return null;
+
+        return quoteStart switch
+        {
+            '"' when value[0] == '"' && value[^1] == '"' => value[1..^1],
+            '[' when value[0] == '[' && value[^1] == ']' => value[1..^1],
+            '`' when value[0] == '`' && value[^1] == '`' => value[1..^1],
+            _ => null
+        };
     }
 
     private static bool TryGetColumn(ITableMock table, string columnName, out ColumnDef col)
@@ -286,7 +308,7 @@ internal static class DbInsertStrategy
         var colNames = query.Columns;
 
         if (colNames.Count > 0 && colNames.Count != res.Columns.Count)
-            throw new InvalidOperationException("Column count does not match SELECT list.");
+            throw new InvalidOperationException(SqlExceptionMessages.ColumnCountDoesNotMatchSelectList());
 
         foreach (var srcRow in res)
         {
@@ -321,6 +343,7 @@ internal static class DbInsertStrategy
 
     private static void SetColValue(
         ITableMock table,
+        DbConnectionMockBase connection,
         DbParameterCollection? pars,
         int colIndex,
         string rawValue,
@@ -338,6 +361,10 @@ internal static class DbInsertStrategy
         {
             resolved = castJsonValue;
         }
+        else if (TryResolveParsedSpecialValue(table, connection, parsedExpr, pars, dialect, out var parsedValue))
+        {
+            resolved = parsedValue;
+        }
         else
         {
             resolved = TryResolveTemporalValue(rawValue, dialect, out var temporalValue)
@@ -351,6 +378,53 @@ internal static class DbInsertStrategy
             throw table.ColumnCannotBeNull("Idx:" + colIndex);
 
         row[colIndex] = val;
+    }
+
+    private static bool TryResolveParsedSpecialValue(
+        ITableMock table,
+        DbConnectionMockBase connection,
+        SqlExpr? parsedExpr,
+        DbParameterCollection? pars,
+        ISqlDialect dialect,
+        out object? value)
+    {
+        value = null;
+        if (parsedExpr is null)
+            return false;
+
+        object? Eval(SqlExpr expr)
+        {
+            return expr switch
+            {
+                LiteralExpr lit => lit.Value,
+                ParameterExpr p when TryResolveParameterValue(pars, p.Name, out var parameterValue) => parameterValue,
+                IdentifierExpr id when SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, id.Name, out var temporalIdentifierValue) => temporalIdentifierValue,
+                ColumnExpr c when SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, c.Name, out var temporalColumnValue) => temporalColumnValue,
+                _ => null
+            };
+        }
+
+        if (parsedExpr is CallExpr call)
+        {
+            EnsureDialectSupportsSequenceFunction(dialect, call.Name);
+            if (SqlSequenceEvaluator.TryEvaluateCall(connection, call.Name, call.Args, Eval, out var callValue))
+            {
+                value = callValue;
+                return true;
+            }
+        }
+
+        if (parsedExpr is FunctionCallExpr function)
+        {
+            EnsureDialectSupportsSequenceFunction(dialect, function.Name);
+            if (SqlSequenceEvaluator.TryEvaluateCall(connection, function.Name, function.Args, Eval, out var functionValue))
+            {
+                value = functionValue;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool TryResolveCastAsJsonValue(
@@ -572,6 +646,10 @@ internal static class DbInsertStrategy
 
         object? EvalFunction(FunctionCallExpr fn)
         {
+            EnsureDialectSupportsSequenceFunction(dialect, fn.Name);
+            if (SqlSequenceEvaluator.TryEvaluateCall(table, fn.Name, fn.Args, Eval, out var sequenceValue))
+                return sequenceValue;
+
             if (fn.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
                 && fn.Args.Count == 1)
             {
@@ -591,6 +669,10 @@ internal static class DbInsertStrategy
 
         object? EvalCall(CallExpr call)
         {
+            EnsureDialectSupportsSequenceFunction(dialect, call.Name);
+            if (SqlSequenceEvaluator.TryEvaluateCall(table, call.Name, call.Args, Eval, out var sequenceValue))
+                return sequenceValue;
+
             if (call.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
                 && call.Args.Count == 1)
             {
@@ -756,6 +838,10 @@ internal static class DbInsertStrategy
         {
             // compat: alguns parsers usam FunctionCallExpr
             var name = fn.Name;
+            EnsureDialectSupportsSequenceFunction(dialect, name);
+            if (SqlSequenceEvaluator.TryEvaluateCall(table, name, fn.Args, Eval, out var sequenceValue))
+                return sequenceValue;
+
             if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, name, out var temporalValue))
                 return temporalValue;
 
@@ -779,6 +865,9 @@ internal static class DbInsertStrategy
         object? EvalCall(CallExpr call)
         {
             var name = call.Name;
+            EnsureDialectSupportsSequenceFunction(dialect, name);
+            if (SqlSequenceEvaluator.TryEvaluateCall(table, name, call.Args, Eval, out var sequenceValue))
+                return sequenceValue;
 
             // MySQL: VALUES(col)
             if (name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
@@ -885,6 +974,10 @@ internal static class DbInsertStrategy
 
         object? EvalFunction(FunctionCallExpr fn)
         {
+            EnsureDialectSupportsSequenceFunction(dialect, fn.Name);
+            if (SqlSequenceEvaluator.TryEvaluateCall(table, fn.Name, fn.Args, Eval, out var sequenceValue))
+                return sequenceValue;
+
             if (fn.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
                 && fn.Args.Count == 1)
             {
@@ -907,6 +1000,10 @@ internal static class DbInsertStrategy
 
         object? EvalCall(CallExpr call)
         {
+            EnsureDialectSupportsSequenceFunction(dialect, call.Name);
+            if (SqlSequenceEvaluator.TryEvaluateCall(table, call.Name, call.Args, Eval, out var sequenceValue))
+                return sequenceValue;
+
             if (call.Name.Equals("VALUES", StringComparison.OrdinalIgnoreCase)
                 && call.Args.Count == 1)
             {
@@ -982,6 +1079,52 @@ internal static class DbInsertStrategy
 
     private static IReadOnlyDictionary<int, object?> SnapshotRow(IReadOnlyDictionary<int, object?> row)
         => row.ToDictionary(_ => _.Key, _ => _.Value);
+
+    private static void EnsureDialectSupportsSequenceFunction(ISqlDialect dialect, string? functionName)
+    {
+        if (string.IsNullOrWhiteSpace(functionName))
+            return;
+
+        if (functionName!.Equals("NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
+            && !dialect.SupportsNextValueForSequenceExpression)
+            throw SqlUnsupported.ForDialect(dialect, "NEXT VALUE FOR");
+
+        if (functionName.Equals("PREVIOUS_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
+            && !dialect.SupportsPreviousValueForSequenceExpression)
+            throw SqlUnsupported.ForDialect(dialect, "PREVIOUS VALUE FOR");
+
+        if ((functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("SETVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase))
+            && !SupportsSequenceFunctionCall(dialect, functionName))
+        {
+            throw SqlUnsupported.ForDialect(dialect, functionName.ToUpperInvariant());
+        }
+    }
+
+    private static bool SupportsSequenceFunctionCall(ISqlDialect dialect, string functionName)
+    {
+        if (dialect.SupportsSequenceFunctionCall(functionName))
+            return true;
+
+        if (dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        {
+            return functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("SETVAL", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        {
+            return (functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
+                    || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase))
+                && dialect.SupportsSequenceDotValueExpression(functionName);
+        }
+
+        return false;
+    }
 
     private static void TryExecuteTableTrigger(
         DbConnectionMockBase connection,

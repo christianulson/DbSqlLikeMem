@@ -28,7 +28,7 @@ internal static class CommandReaderExecutionPrelude
             ? commandText.NormalizeString()
             : commandText;
         statements = SqlQueryParser
-            .SplitStatements(sql, connection.Db.Dialect)
+            .SplitStatements(sql, connection.ExecutionDialect)
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .ToList();
 

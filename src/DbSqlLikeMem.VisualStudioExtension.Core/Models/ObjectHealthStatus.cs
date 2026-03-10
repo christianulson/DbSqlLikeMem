@@ -17,6 +17,11 @@ public enum ObjectHealthStatus
     /// </summary>
     MissingLocalArtifacts,
     /// <summary>
+    /// The local generated artifacts exist only partially.
+    /// Os artefatos locais gerados existem apenas parcialmente.
+    /// </summary>
+    IncompleteLocalArtifacts,
+    /// <summary>
     /// The object exists but differs from the database metadata.
     /// O objeto existe, mas difere dos metadados do banco.
     /// </summary>

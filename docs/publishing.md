@@ -30,12 +30,16 @@ Para projetos open source, outra alternativa é habilitar **proveniência de rep
 Implementação atual deste repositório:
 
 - `src/Directory.Build.props` publica metadados de repositório no pacote, habilita build determinístico em CI e gera `snupkg` para depuração.
-- `.github/workflows/nuget-publish.yml` valida metadados de repositório nos `.nupkg` antes do `push`.
+- `.github/workflows/nuget-publish.yml` valida metadados dos `.nupkg` via `scripts/check_nuget_package_metadata.py` antes do `push`, usando `src/Directory.Build.props` como fonte de verdade para comparar `version`, `authors`, `repository`, `projectUrl`, `readme`, `tags`, `releaseNotes`, licença e `requireLicenseAcceptance`.
+- A versão do release NuGet sai de `src/Directory.Build.props`; a tag operacional deve seguir `v<versao>` e permanecer em SemVer compatível com esse arquivo.
+- O workflow também valida explicitamente a presença dessa fonte de versão antes do `pack`, prendendo o contrato `tag v* -> src/Directory.Build.props -> .nupkg`.
+- O mesmo workflow agora executa `python scripts/check_release_readiness.py` antes do `restore`, trazendo o gate documental/operacional para o ponto exato do publish NuGet.
 
 ### Via GitHub Actions (recomendado)
 
 1. Crie uma API key em <https://www.nuget.org/> (Account settings → API Keys).
 2. No repositório do GitHub, adicione o secret **`NUGET_API_KEY`** no Environment **`nuget-publish`**.
+   Se precisar variar o Environment sem editar o workflow, defina `vars.NUGET_PUBLISH_ENVIRONMENT`; o fallback continua sendo `nuget-publish`.
 3. Atualize a versão em `src/Directory.Build.props` (`Version`).
 4. Crie e envie uma tag de release:
 
@@ -60,6 +64,26 @@ Checklist rápido para confirmar **breaking change**:
 
 Se todas as respostas forem **não**, prefira `PATCH` (sem feature nova) ou `MINOR` (com feature nova).
 
+`python3 scripts/check_release_readiness.py` também passa a validar o formato SemVer das versões configuradas no núcleo (`src/Directory.Build.props`) e nas extensões (`package.json` do VS Code e `source.extension.vsixmanifest` do VSIX), sem impor que todos compartilhem o mesmo número.
+O mesmo auditor agora cobre contratos mínimos de publicação das extensões: scripts/arquivos essenciais do pacote VS Code, activation events apontando para comandos/views existentes e presença do `overview`/tags/categorias no manifesto de publicação VSIX.
+No caso da VSIX, a auditoria também verifica alinhamento entre `MinimumVisualStudioVersion` do projeto e o range suportado no `source.extension.vsixmanifest`, evitando drift de compatibilidade declarada.
+Para a extensão VS Code, a mesma trilha também valida placeholders `%...%` do `package.json` contra `package.nls*.json` e a presença da pasta `l10n`.
+
+### Checklist de release
+
+Antes de publicar:
+
+1. Atualize a versão em `src/Directory.Build.props`.
+2. Revise `CHANGELOG.md` com impacto por provider/dialeto e limitações ainda abertas.
+3. Confirme que `docs/features-backlog/index.md` reflete os percentuais e incrementos entregues.
+4. Registre o andamento operacional em `docs/features-backlog/status-operational.md` quando houver contexto de sprint ainda relevante.
+5. Refaça os snapshots cross-dialect aplicáveis (`smoke`, `aggregation`, `parser`, `strategy`) via `scripts/refresh_cross_dialect_snapshots.sh`.
+6. Valide que workflows de publicação/CI e documentação apontam para os artefatos corretos.
+7. Verifique se alguma limitação conhecida precisa ficar explícita na release.
+8. Rode `python3 scripts/check_release_readiness.py` para auditar documentação, workflows, snapshots e metadados de publicação antes de empacotar.
+9. Depois do `pack`, rode `python3 scripts/check_nuget_package_metadata.py --artifacts-dir ./artifacts` para auditar os `.nupkg` que serão publicados.
+10. Confirme que `CHANGELOG.md` continua com `## [Unreleased]`, subseções de impacto e `Known limitations still open` antes de criar qualquer tag de release.
+
 Workflow responsável:
 
 - `.github/workflows/nuget-publish.yml`
@@ -68,7 +92,7 @@ Esse pipeline empacota e publica os projetos do solution no nuget.org.
 
 O pacote `DbSqlLikeMem.VisualStudioExtension.*.nupkg` é ignorado nesse workflow, pois a extensão Visual Studio é publicada separadamente pelo fluxo de VSIX.
 
-> Observação: o workflow usa especificamente `secrets.NUGET_API_KEY` do Environment `nuget-publish` para `dotnet nuget push`.
+> Observação: o workflow usa `secrets.NUGET_API_KEY` do Environment resolvido por `vars.NUGET_PUBLISH_ENVIRONMENT` ou, na ausência dela, do fallback `nuget-publish`.
 
 ### Publicação manual (local)
 
@@ -90,13 +114,18 @@ done
 Workflow preparado:
 
 - `.github/workflows/vsix-publish.yml`
+- O workflow executa `python scripts/check_release_readiness.py` antes do build e usa `--strict-marketplace-placeholders` ao publicar, bloqueando publish com `publisher` placeholder.
+- A versão operacional da VSIX sai de `src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest`; a tag automática deve seguir `vsix-v<versao-da-vsix>`.
+- O workflow também valida explicitamente essa origem antes do build, prendendo o contrato `tag vsix-v* -> source.extension.vsixmanifest -> publish`.
 
 ### Pré-requisitos
 
 1. Criar PAT para publicação no Visual Studio Marketplace.
 2. Salvar no GitHub como secret `VS_MARKETPLACE_TOKEN`.
-3. Ajustar placeholders em `eng/visualstudio/PublishManifest.json` (`publisher`, `repo`, `identity.internalName`, etc.).
+3. Confirmar os campos operacionais finais em `eng/visualstudio/PublishManifest.json`, principalmente `publisher`.
 4. Garantir que exista um projeto VSIX (workflow usa `src/DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj`).
+
+> O campo `repo` do manifesto já aponta para o repositório oficial; o `publisher` ainda deve ser confirmado antes da publicação final.
 
 ### Como publicar
 
@@ -113,8 +142,20 @@ Workflow preparado:
 A extensão em `src/DbSqlLikeMem.VsCodeExtension` está preparada para empacotamento/publicação.
 
 - Workflow: `.github/workflows/vscode-extension-publish.yml`
+- O workflow valida explicitamente `src/DbSqlLikeMem.VsCodeExtension/package.json` antes de empacotar, prendendo o contrato `tag vscode-v* -> package.json -> publish`.
 - Secret necessário: `VSCE_PAT`
 - Tag para publicação automática: `vscode-v*`
+- O workflow executa `python3 scripts/check_release_readiness.py` antes de instalar dependências/empacotar.
+- A versão operacional da extensão sai de `src/DbSqlLikeMem.VsCodeExtension/package.json`; a tag automática deve seguir `vscode-v<versao-da-extensao>`.
+
+As URLs de repositório/bugs/homepage do `package.json` já foram alinhadas ao repositório oficial; mantenha a revisão do `publisher` e use `python3 scripts/check_release_readiness.py` como auditoria final de readiness.
+
+## Mapa de versões e tags
+
+- NuGet: versão em `src/Directory.Build.props` e tag `v<versao>`.
+- VSIX: versão em `src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest` e tag `vsix-v<versao-da-vsix>`.
+- VS Code: versão em `src/DbSqlLikeMem.VsCodeExtension/package.json` e tag `vscode-v<versao-da-extensao>`.
+- Os três fluxos exigem SemVer válido, mas não precisam compartilhar exatamente o mesmo número de versão.
 
 ### Publicação manual local
 
@@ -127,10 +168,10 @@ npm run package
 npm run publish
 ```
 
-> Antes de publicar, ajuste no `package.json` os placeholders de URL (`repository`, `bugs`, `homepage`) e confirme o `publisher` final.
+> Antes de publicar, confirme o `publisher` final e rode `python3 scripts/check_release_readiness.py`.
 
 ## Links relacionados
 
 - [Começando rápido](getting-started.md)
 - [Provedores e compatibilidade](old/providers-and-features.md)
-- [Wiki do GitHub](wiki/README.md)
+- [Wiki do GitHub](Wiki/Home.md)

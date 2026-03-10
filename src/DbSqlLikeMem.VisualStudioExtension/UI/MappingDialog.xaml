@@ -11,19 +11,37 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="360" />
         </Grid.ColumnDefinitions>
 
-        <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="{x:Static prop:Resources.FilePatternLabel}" />
-        <TextBox x:Name="FilePatternTextBox" Grid.Row="0" Grid.Column="1" Margin="0,0,0,8" />
+        <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Mapping baseline" />
+        <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,8" Orientation="Horizontal">
+            <ComboBox x:Name="TemplateBaselineProfileComboBox" Width="230" DisplayMemberPath="DisplayName" SelectedValuePath="Id" SelectionChanged="OnBaselineSelectionChanged" />
+            <Button Content="Apply baseline" Width="120" Margin="8,0,0,0" Click="OnApplyBaselineClick" />
+        </StackPanel>
 
-        <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="{x:Static prop:Resources.OutputDirectoryLabel}" />
-        <TextBox x:Name="OutputDirectoryTextBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" />
+        <TextBlock x:Name="BaselineSummaryTextBlock" Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" TextWrapping="Wrap" Foreground="DimGray" />
 
-        <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
+        <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="{x:Static prop:Resources.FilePatternLabel}" />
+        <TextBox x:Name="FilePatternTextBox" Grid.Row="2" Grid.Column="1" Margin="0,0,0,8" />
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="{x:Static prop:Resources.OutputDirectoryLabel}" />
+        <TextBox x:Name="OutputDirectoryTextBox" Grid.Row="3" Grid.Column="1" Margin="0,0,0,8" />
+
+        <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Namespace (optional)" />
+        <TextBox x:Name="NamespaceTextBox" Grid.Row="4" Grid.Column="1" Margin="0,0,0,8" />
+
+        <TextBlock Grid.Row="5" Grid.Column="1" Margin="0,0,0,8" TextWrapping="Wrap" Foreground="DimGray"
+                   Text="Profiles reuse the versioned defaults from templates/dbsqllikemem/vCurrent for the selected object type and can still be edited before saving." />
+
+        <StackPanel Grid.Row="6" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="{x:Static prop:Resources.CancelButton}" Width="90" Margin="0,0,8,0" IsCancel="True" />
             <Button Content="{x:Static prop:Resources.SaveButton}" Width="90" IsDefault="True" Click="OnSaveClick" />
         </StackPanel>

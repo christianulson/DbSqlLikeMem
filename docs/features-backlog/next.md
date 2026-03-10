@@ -329,6 +329,25 @@ QueryPlanDebugger
 CompatibilityAnalyzer
 SchemaSnapshot
 
+12. Status recente da trilha de sequences e setup
+
+Entregue:
+
+- Sequences como objetos de schema no `DbMock`.
+- Extração de metadata de sequence nos generators suportados e geração de código equivalente.
+- Consumo SQL de sequence em `INSERT` e `SELECT` para `NEXT VALUE FOR` e `nextval(...)`.
+- Suporte a `currval(...)` e `setval(...)` no provider PostgreSQL com semântica session-local validada por testes.
+- Suporte a sintaxe Oracle-style `seq.NEXTVAL` / `seq.CURRVAL` implementado, com testes preparados para a validação final.
+- Suporte a sintaxe DB2 `NEXT VALUE FOR` / `PREVIOUS VALUE FOR` implementado, com testes preparados para a validação final.
+- Resolução de sequences qualificadas por schema nos fluxos validados de SQL Server e PostgreSQL.
+- Sobrescrita opcional de colunas `identity` para montagem de cenário.
+
+Próximos passos reais:
+
+1. Revisar cobertura equivalente em outros providers que expõem sintaxe própria de sequence.
+2. Avaliar variantes específicas adicionais de sequence por dialeto quando houver demanda real.
+3. Levar exemplos end-to-end dessa feature para a documentação canônica de providers quando a matriz completa for revisada.
+
 💡 Opinião direta:
 
 Se você implementar MariaDB + Firebird + SqlDialect.Auto, o projeto já vira algo bem raro no ecossistema .NET.

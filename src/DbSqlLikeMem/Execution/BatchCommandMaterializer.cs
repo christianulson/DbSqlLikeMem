@@ -57,12 +57,14 @@ internal static class BatchCommandMaterializer
                 ?? batchCommandType.GetProperty("DbParameterCollection", BindingFlags.Instance | BindingFlags.NonPublic);
 
             if (textProperty is null || typeProperty is null || parametersProperty is null)
-                throw new InvalidOperationException($"Cannot materialize batch command type '{batchCommandType.FullName}'.");
+                throw new InvalidOperationException(
+                    SqlExceptionMessages.CannotMaterializeBatchCommandType(batchCommandType.FullName ?? batchCommandType.Name));
 
             if (textProperty.PropertyType != typeof(string)
                 || typeProperty.PropertyType != typeof(CommandType)
                 || !typeof(DbParameterCollection).IsAssignableFrom(parametersProperty.PropertyType))
-                throw new InvalidOperationException($"Batch command type '{batchCommandType.FullName}' has incompatible members.");
+                throw new InvalidOperationException(
+                    SqlExceptionMessages.BatchCommandTypeHasIncompatibleMembers(batchCommandType.FullName ?? batchCommandType.Name));
 
             return new BatchCommandAccessor(
                 BuildPropertyGetter<string>(batchCommandType, textProperty),

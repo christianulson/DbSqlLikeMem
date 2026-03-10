@@ -2,12 +2,14 @@ namespace DbSqlLikeMem;
 
 internal sealed class SqlExpressionParser(
     IReadOnlyList<SqlToken> toks,
-    ISqlDialect dialect
+    ISqlDialect dialect,
+    IDataParameterCollection? parameters = null
     )
 {
     private readonly IReadOnlyList<SqlToken> _toks = toks
         ?? throw new ArgumentNullException(nameof(toks));
     private readonly ISqlDialect _dialect = dialect ?? throw new ArgumentNullException(nameof(dialect));
+    private readonly IDataParameterCollection? _parameters = parameters;
     private int _i;
 
     /// <summary>
@@ -17,12 +19,38 @@ internal sealed class SqlExpressionParser(
     public static SqlExpr ParseWhere(
         string whereSql,
         ISqlDialect dialect)
+        => ParseWhere(whereSql, dialect, null);
+
+    /// <summary>
+    /// EN: Parses a WHERE expression using the automatic dialect compatibility mode.
+    /// PT: Faz o parsing de uma expressao WHERE usando o modo de compatibilidade automatica de dialeto.
+    /// </summary>
+    /// <param name="whereSql">EN: WHERE expression text. PT: Texto da expressao WHERE.</param>
+    /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
+    public static SqlExpr ParseWhereAuto(string whereSql)
+        => ParseWhere(whereSql, new AutoSqlDialect(), null);
+
+    /// <summary>
+    /// EN: Parses a WHERE expression using the automatic dialect compatibility mode and optional parameters.
+    /// PT: Faz o parsing de uma expressao WHERE usando o modo de compatibilidade automatica de dialeto e parametros opcionais.
+    /// </summary>
+    /// <param name="whereSql">EN: WHERE expression text. PT: Texto da expressao WHERE.</param>
+    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized values. PT: Parametros de comando opcionais usados por caminhos do parser que resolvem valores parametrizados.</param>
+    /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
+    public static SqlExpr ParseWhereAuto(string whereSql, IDataParameterCollection? parameters)
+        => ParseWhere(whereSql, new AutoSqlDialect(), parameters);
+
+    public static SqlExpr ParseWhere(
+        string whereSql,
+        ISqlDialect dialect,
+        IDataParameterCollection? parameters)
     {
         var d = dialect;
         var toks = new SqlTokenizer(whereSql, d).Tokenize();
         EnsureJsonArrowSupport(toks, d);
-        var p = new SqlExpressionParser(toks, d);
+        var p = new SqlExpressionParser(toks, d, parameters);
         var expr = p.ParseExpression(0);
+        expr = p.TryConsumeTrailingLikeEscape(expr);
         p.ExpectEnd();
         return expr;
     }
@@ -32,14 +60,37 @@ internal sealed class SqlExpressionParser(
     /// PT: Implementa ParseScalar.
     /// </summary>
     public static SqlExpr ParseScalar(string sql, ISqlDialect dialect)
+        => ParseScalar(sql, dialect, null);
+
+    /// <summary>
+    /// EN: Parses a scalar expression using the automatic dialect compatibility mode.
+    /// PT: Faz o parsing de uma expressao escalar usando o modo de compatibilidade automatica de dialeto.
+    /// </summary>
+    /// <param name="sql">EN: Scalar SQL expression to parse. PT: Expressao SQL escalar para parsear.</param>
+    /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
+    public static SqlExpr ParseScalarAuto(string sql)
+        => ParseScalar(sql, new AutoSqlDialect(), null);
+
+    /// <summary>
+    /// EN: Parses a scalar expression using the automatic dialect compatibility mode and optional parameters.
+    /// PT: Faz o parsing de uma expressao escalar usando o modo de compatibilidade automatica de dialeto e parametros opcionais.
+    /// </summary>
+    /// <param name="sql">EN: Scalar SQL expression to parse. PT: Expressao SQL escalar para parsear.</param>
+    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized values. PT: Parametros de comando opcionais usados por caminhos do parser que resolvem valores parametrizados.</param>
+    /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
+    public static SqlExpr ParseScalarAuto(string sql, IDataParameterCollection? parameters)
+        => ParseScalar(sql, new AutoSqlDialect(), parameters);
+
+    public static SqlExpr ParseScalar(string sql, ISqlDialect dialect, IDataParameterCollection? parameters)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
         var d = dialect;
         var toks = new SqlTokenizer(sql, d).Tokenize();
         EnsureJsonArrowSupport(toks, d);
-        var p = new SqlExpressionParser(toks, d);
+        var p = new SqlExpressionParser(toks, d, parameters);
         var expr = p.ParseExpression(0);
+        expr = p.TryConsumeTrailingLikeEscape(expr);
         p.ExpectEnd();
         return expr;
     }
@@ -163,7 +214,7 @@ internal sealed class SqlExpressionParser(
         if (IsKeyword(t2, "IN"))
             return TryParseNotIn(ref left, minBp);
 
-        if (IsKeyword(t2, "LIKE"))
+        if (IsKeyword(t2, "LIKE") || IsKeywordOrIdentifierWord(t2, "ILIKE"))
             return TryParseNotLike(ref left, minBp);
 
         if (IsKeywordOrIdentifierWord(t2, "REGEXP"))
@@ -214,8 +265,7 @@ internal sealed class SqlExpressionParser(
         Consume(); // NOT
         Consume(); // LIKE
 
-        var pattern = ParseExpression(51);
-        left = new UnaryExpr(SqlUnaryOp.Not, new LikeExpr(left, pattern));
+        left = new UnaryExpr(SqlUnaryOp.Not, ParseLikeExpression(left, 51));
         return true;
     }
 
@@ -342,14 +392,30 @@ internal sealed class SqlExpressionParser(
         var t = Peek();
         var negate = false;
 
+        var caseInsensitive = false;
+
         if (IsKeyword(t, "NOT"))
         {
             var next = Peek(1);
-            if (!IsKeyword(next, "LIKE"))
+            if (IsKeyword(next, "LIKE"))
+            {
+            }
+            else if (IsKeywordOrIdentifierWord(next, "ILIKE"))
+            {
+                caseInsensitive = true;
+            }
+            else
                 return false;
             negate = true;
         }
-        else if (!IsKeyword(t, "LIKE"))
+        else if (IsKeyword(t, "LIKE"))
+        {
+        }
+        else if (IsKeywordOrIdentifierWord(t, "ILIKE"))
+        {
+            caseInsensitive = true;
+        }
+        else
         {
             return false;
         }
@@ -360,27 +426,25 @@ internal sealed class SqlExpressionParser(
         if (negate)
         {
             Consume(); // NOT
-            Consume(); // LIKE
+            Consume(); // LIKE / ILIKE
         }
         else
         {
-            Consume(); // LIKE
+            Consume(); // LIKE / ILIKE
         }
 
-        var pattern = ParseExpression(rbp);
+        if (caseInsensitive && !_dialect.SupportsIlikeOperator)
+            throw SqlUnsupported.ForDialect(_dialect, "ILIKE");
 
-        // Optional ANSI/DB2 form: ... LIKE <pattern> ESCAPE <escape-char>
-        // We currently ignore explicit escape char in the AST (default LIKE escape semantics remain in evaluator),
-        // but we must consume the tokens so the predicate is not truncated.
-        if (_dialect.SupportsLikeEscapeClause && IsKeyword(Peek(), "ESCAPE"))
-        {
-            Consume(); // ESCAPE
-            _ = ParseExpression(rbp); // explicit escape expression (ignored for now)
-        }
-
-        var expr = (SqlExpr)new LikeExpr(left, pattern);
+        var expr = (SqlExpr)ParseLikeExpression(left, rbp, caseInsensitive);
         left = negate ? new UnaryExpr(SqlUnaryOp.Not, expr) : expr;
         return true;
+    }
+
+    private LikeExpr ParseLikeExpression(SqlExpr left, int rbp, bool caseInsensitive = false)
+    {
+        var pattern = ParseExpression(rbp);
+        return TryParseLikeEscape(new LikeExpr(left, pattern, null, caseInsensitive), rbp);
     }
 
     private bool TryParseRegexpInfix(ref SqlExpr left, int minBp)
@@ -425,6 +489,9 @@ internal sealed class SqlExpressionParser(
         var t = Peek();
         if (t.Kind != SqlTokenKind.Operator || (t.Text != "->" && t.Text != "->>" && t.Text != "#>" && t.Text != "#>>"))
             return false;
+
+        if (!_dialect.SupportsJsonArrowOperators && !_dialect.AllowsParserCrossDialectJsonOperators)
+            throw SqlUnsupported.ForDialect(_dialect, "JSON -> / ->> / #> / #>> operators");
 
         // MySQL: JSON extract operators bind tightly (treat like high precedence binary)
         const int lbp = 120;
@@ -653,6 +720,8 @@ internal sealed class SqlExpressionParser(
         if (TryParseNumber(t, out var l3)) return l3;
         if (TryParseParameter(t, out var p)) return p;
         if (TryParseIntervalLiteral(t, out var interval)) return interval;
+        if (TryParseNextValueFor(t, out var nextValueFor)) return nextValueFor;
+        if (TryParsePreviousValueFor(t, out var previousValueFor)) return previousValueFor;
         if (TryParseIdentifierOrCall(t, out var id)) return id;
 
         throw Error($"Token inesperado no prefix: {t.Kind} '{t.Text}'", t);
@@ -782,6 +851,60 @@ internal sealed class SqlExpressionParser(
         }
 
         expr = new CallExpr("INTERVAL", [new LiteralExpr(raw)]);
+        return true;
+    }
+
+    private bool TryParseNextValueFor(SqlToken t, out SqlExpr expr)
+    {
+        expr = default!;
+
+        if (!IsKeywordOrIdentifierWord(t, "NEXT"))
+            return false;
+
+        if (!IsKeywordOrIdentifierWord(Peek(1), "VALUE")
+            || !IsKeywordOrIdentifierWord(Peek(2), "FOR"))
+            return false;
+
+        if (!_dialect.SupportsNextValueForSequenceExpression)
+            throw SqlUnsupported.ForDialect(_dialect, "NEXT VALUE FOR");
+
+        Consume(); // NEXT
+        Consume(); // VALUE
+        Consume(); // FOR
+
+        var sequenceToken = Peek();
+        if (sequenceToken.Kind is not SqlTokenKind.Identifier and not SqlTokenKind.Keyword)
+            throw Error("NEXT VALUE FOR requires a sequence name.", sequenceToken);
+
+        Consume();
+        expr = new CallExpr("NEXT_VALUE_FOR", [ParseIdentifierChainOrColumn(sequenceToken.Text)]);
+        return true;
+    }
+
+    private bool TryParsePreviousValueFor(SqlToken t, out SqlExpr expr)
+    {
+        expr = default!;
+
+        if (!IsKeywordOrIdentifierWord(t, "PREVIOUS"))
+            return false;
+
+        if (!IsKeywordOrIdentifierWord(Peek(1), "VALUE")
+            || !IsKeywordOrIdentifierWord(Peek(2), "FOR"))
+            return false;
+
+        if (!_dialect.SupportsPreviousValueForSequenceExpression)
+            throw SqlUnsupported.ForDialect(_dialect, "PREVIOUS VALUE FOR");
+
+        Consume(); // PREVIOUS
+        Consume(); // VALUE
+        Consume(); // FOR
+
+        var sequenceToken = Peek();
+        if (sequenceToken.Kind is not SqlTokenKind.Identifier and not SqlTokenKind.Keyword)
+            throw Error("PREVIOUS VALUE FOR requires a sequence name.", sequenceToken);
+
+        Consume();
+        expr = new CallExpr("PREVIOUS_VALUE_FOR", [ParseIdentifierChainOrColumn(sequenceToken.Text)]);
         return true;
     }
 
@@ -985,7 +1108,7 @@ internal sealed class SqlExpressionParser(
 
     private void EnsureMatchAgainstSupport()
     {
-        if (_dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        if (_dialect.SupportsMatchAgainstPredicate)
             return;
 
         throw SqlUnsupported.ForDialect(_dialect, "MATCH ... AGAINST full-text predicate");
@@ -1263,6 +1386,64 @@ internal sealed class SqlExpressionParser(
 
     private CallExpr ParseCallAfterName(string name)
     {
+        if (name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
+            && !_dialect.SupportsJsonValueFunction)
+        {
+            throw SqlUnsupported.ForDialect(_dialect, "JSON_VALUE");
+        }
+
+        if (name.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase)
+            && !_dialect.SupportsOpenJsonFunction)
+        {
+            throw SqlUnsupported.ForDialect(_dialect, "OPENJSON");
+        }
+
+        if (name.Equals("JSON_TABLE", StringComparison.OrdinalIgnoreCase)
+            && !_dialect.SupportsJsonTableFunction)
+        {
+            throw SqlUnsupported.ForDialect(_dialect, "JSON_TABLE");
+        }
+
+        if (name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
+            && !_dialect.SupportsJsonExtractFunction)
+        {
+            throw SqlUnsupported.ForDialect(_dialect, "JSON_EXTRACT");
+        }
+
+        if ((name.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("DATEADD", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsDateAddFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if ((name.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsStringAggregateFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if ((name.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SETVAL", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsSequenceFunctionCall(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if ((name.Equals("FOUND_ROWS", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("CHANGES", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("ROWCOUNT", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsLastFoundRowsFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
         Consume(); // '('
 
         // ================================
@@ -1395,7 +1576,9 @@ internal sealed class SqlExpressionParser(
                 }
                 else
                 {
-                    args.Add(ParseExpression(0));
+                    args.Add(ShouldUseNativeStringAggregateArgumentBoundaries(name)
+                        ? ParseStringAggregateFunctionArgument(name)
+                        : ParseExpression(0));
                 }
 
                 if (!IsSymbol(Peek(), ","))
@@ -1405,10 +1588,12 @@ internal sealed class SqlExpressionParser(
             }
 
             // Oracle: JSON_VALUE(json_doc, path RETURNING NUMBER)
-            // Keep RETURNING payload as a raw extra argument so evaluator can ignore/use it.
             if (name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
                 && IsKeywordOrIdentifierWord(Peek(), "RETURNING"))
             {
+                if (!_dialect.SupportsJsonValueReturningClause)
+                    throw SqlUnsupported.ForDialect(_dialect, "JSON_VALUE ... RETURNING");
+
                 Consume(); // RETURNING
 
                 var typeToks = new List<SqlToken>();
@@ -1439,8 +1624,139 @@ internal sealed class SqlExpressionParser(
             }
         }
 
+        var aggregateOrderBy = ParseAggregateOrderByInsideCallIfPresent(name);
+        ParseAggregateSeparatorKeywordIfPresent(name, args);
+
         ExpectSymbol(")");
-        return new CallExpr(name, args, distinct);
+        return new CallExpr(name, args, distinct, aggregateOrderBy);
+    }
+
+    private IReadOnlyList<WindowOrderItem>? ParseAggregateOrderByInsideCallIfPresent(string functionName)
+    {
+        if (!IsKeywordOrIdentifierWord(Peek(), "ORDER"))
+            return null;
+
+        var normalizedName = functionName.ToUpperInvariant();
+        if (normalizedName is not "GROUP_CONCAT" and not "STRING_AGG" and not "LISTAGG")
+            throw SqlUnsupported.ForDialect(_dialect, $"aggregate ORDER BY for function '{functionName}'");
+
+        if (!_dialect.SupportsAggregateOrderByForStringAggregates)
+            throw SqlUnsupported.ForDialect(_dialect, "aggregate ORDER BY");
+
+        if (!_dialect.SupportsAggregateOrderByStringAggregateFunction(functionName))
+            throw SqlUnsupported.ForDialect(_dialect, $"aggregate ORDER BY for function '{functionName}'");
+
+        Consume(); // ORDER
+        if (!IsKeywordOrIdentifierWord(Peek(), "BY"))
+            throw Error("aggregate ORDER BY requires BY", Peek());
+        Consume();
+
+        var allowSeparatorTerminator =
+            _dialect.SupportsAggregateSeparatorKeywordForStringAggregates
+            && _dialect.SupportsAggregateSeparatorKeywordStringAggregateFunction(functionName);
+
+        var orderBy = ParseStringAggregateOrderByItems("aggregate ORDER BY", allowSeparatorTerminator);
+
+        if (allowSeparatorTerminator
+            && IsKeywordOrIdentifierWord(Peek(), "SEPARATOR")
+            && IsSymbol(Peek(1), ")"))
+        {
+            return orderBy;
+        }
+
+        return orderBy;
+    }
+
+    private bool ShouldUseNativeStringAggregateArgumentBoundaries(string functionName)
+        => _dialect.SupportsAggregateOrderByStringAggregateFunction(functionName)
+            || _dialect.SupportsAggregateSeparatorKeywordStringAggregateFunction(functionName);
+
+    private void ParseAggregateSeparatorKeywordIfPresent(string functionName, List<SqlExpr> args)
+    {
+        if (!IsKeywordOrIdentifierWord(Peek(), "SEPARATOR"))
+            return;
+
+        var normalizedName = functionName.ToUpperInvariant();
+        if (normalizedName is not "GROUP_CONCAT" and not "STRING_AGG" and not "LISTAGG")
+            throw SqlUnsupported.ForDialect(_dialect, $"aggregate separator keyword for function '{functionName}'");
+
+        if (!_dialect.SupportsAggregateSeparatorKeywordForStringAggregates)
+            throw SqlUnsupported.ForDialect(_dialect, "aggregate separator keyword");
+
+        if (!_dialect.SupportsAggregateSeparatorKeywordStringAggregateFunction(functionName))
+            throw SqlUnsupported.ForDialect(_dialect, $"aggregate separator keyword for function '{functionName}'");
+
+        Consume(); // SEPARATOR
+
+        if (IsSymbol(Peek(), ")"))
+            throw Error("aggregate separator keyword requires an expression", Peek());
+
+        var separatorExpr = ParseExpression(0);
+        if (args.Count == 0)
+        {
+            args.Add(separatorExpr);
+            return;
+        }
+
+        if (args.Count == 1)
+        {
+            args.Add(separatorExpr);
+            return;
+        }
+
+        args[1] = separatorExpr;
+    }
+
+    private SqlExpr ParseStringAggregateFunctionArgument(string functionName)
+    {
+        var start = _i;
+        var depth = 0;
+
+        while (true)
+        {
+            var token = Peek();
+
+            if (token.Kind == SqlTokenKind.EndOfFile)
+                throw Error($"function '{functionName}' argument not closed", token);
+
+            if (depth == 0)
+            {
+                if (IsSymbol(token, ",")
+                    || IsSymbol(token, ")")
+                    || (_dialect.SupportsAggregateOrderByStringAggregateFunction(functionName)
+                        && IsKeywordOrIdentifierWord(token, "ORDER"))
+                    || (_dialect.SupportsAggregateSeparatorKeywordStringAggregateFunction(functionName)
+                        && IsKeywordOrIdentifierWord(token, "SEPARATOR")))
+                {
+                    break;
+                }
+            }
+
+            if (IsSymbol(token, "("))
+            {
+                depth++;
+                Consume();
+                continue;
+            }
+
+            if (IsSymbol(token, ")"))
+            {
+                if (depth == 0)
+                    break;
+
+                depth--;
+                Consume();
+                continue;
+            }
+
+            Consume();
+        }
+
+        if (_i == start)
+            throw Error($"function '{functionName}' requires an expression", Peek());
+
+        var sql = string.Join(" ", _toks.Skip(start).Take(_i - start).Select(TokenToSql)).Trim();
+        return ParseScalar(sql, _dialect, _parameters);
     }
 
     private CallExpr ParseWithinGroupOrderByIfPresent(CallExpr call)
@@ -1474,48 +1790,119 @@ internal sealed class SqlExpressionParser(
             throw Error("WITHIN GROUP requires ORDER BY", Peek());
         Consume();
 
-        var orderBy = new List<WindowOrderItem>();
-        while (true)
-        {
-            if (IsSymbol(Peek(), ")"))
-                throw Error("WITHIN GROUP ORDER BY requires at least one expression", Peek());
-
-            if (IsSymbol(Peek(), ","))
-                throw Error("WITHIN GROUP ORDER BY has an unexpected comma before expression", Peek());
-
-            var expr = ParseExpression(0);
-
-            var desc = false;
-            if (IsKeywordOrIdentifierWord(Peek(), "DESC"))
-            {
-                Consume();
-                desc = true;
-            }
-            else if (IsKeywordOrIdentifierWord(Peek(), "ASC"))
-            {
-                Consume();
-            }
-
-            orderBy.Add(new WindowOrderItem(expr, desc));
-
-            if (IsSymbol(Peek(), ","))
-            {
-                Consume();
-
-                if (IsSymbol(Peek(), ")"))
-                    throw Error("WITHIN GROUP ORDER BY has a trailing comma without expression", Peek());
-
-                continue;
-            }
-
-            if (!IsSymbol(Peek(), ")"))
-                throw Error("WITHIN GROUP ORDER BY requires commas between expressions", Peek());
-
-            break;
-        }
+        var orderBy = ParseStringAggregateOrderByItems("WITHIN GROUP ORDER BY");
 
         ExpectSymbol(")");
         return call with { WithinGroupOrderBy = orderBy };
+    }
+
+    private List<WindowOrderItem> ParseStringAggregateOrderByItems(string context, bool allowSeparatorTerminator = false)
+    {
+        var start = _i;
+        var depth = 0;
+
+        while (true)
+        {
+            var token = Peek();
+
+            if (token.Kind == SqlTokenKind.EndOfFile)
+                throw Error($"{context} expression not closed", token);
+
+            if (depth == 0)
+            {
+                if (IsSymbol(token, ")")
+                    || (allowSeparatorTerminator && IsKeywordOrIdentifierWord(token, "SEPARATOR")))
+                {
+                    break;
+                }
+            }
+
+            if (IsSymbol(token, "("))
+            {
+                depth++;
+                Consume();
+                continue;
+            }
+
+            if (IsSymbol(token, ")"))
+            {
+                if (depth == 0)
+                    break;
+
+                depth--;
+                Consume();
+                continue;
+            }
+
+            Consume();
+        }
+
+        var payloadTokens = _toks.Skip(start).Take(_i - start).ToList();
+        if (payloadTokens.Count == 0)
+            throw Error($"{context} requires at least one expression", Peek());
+
+        var items = new List<List<SqlToken>>();
+        var current = new List<SqlToken>();
+        depth = 0;
+
+        foreach (var token in payloadTokens)
+        {
+            if (depth == 0 && IsSymbol(token, ","))
+            {
+                if (current.Count == 0)
+                    throw Error($"{context} has an unexpected comma before expression", token);
+
+                items.Add(current);
+                current = [];
+                continue;
+            }
+
+            if (IsSymbol(token, "("))
+                depth++;
+            else if (IsSymbol(token, ")"))
+                depth--;
+
+            current.Add(token);
+        }
+
+        if (current.Count == 0)
+            throw Error($"{context} has a trailing comma without expression", Peek());
+
+        items.Add(current);
+
+        var orderBy = new List<WindowOrderItem>(items.Count);
+        foreach (var itemTokens in items)
+        {
+            var desc = false;
+            if (itemTokens.Count > 0 && IsKeywordOrIdentifierWord(itemTokens[^1], "DESC"))
+            {
+                desc = true;
+                itemTokens.RemoveAt(itemTokens.Count - 1);
+            }
+            else if (itemTokens.Count > 0 && IsKeywordOrIdentifierWord(itemTokens[^1], "ASC"))
+            {
+                itemTokens.RemoveAt(itemTokens.Count - 1);
+            }
+
+            if (itemTokens.Count == 0)
+                throw Error($"{context} requires at least one expression", Peek());
+
+            for (var i = 0; i < itemTokens.Count; i++)
+            {
+                if (!IsKeywordOrIdentifierWord(itemTokens[i], "ASC")
+                    && !IsKeywordOrIdentifierWord(itemTokens[i], "DESC"))
+                {
+                    continue;
+                }
+
+                throw Error($"{context} requires commas between expressions", itemTokens[i]);
+            }
+
+            var sql = string.Join(" ", itemTokens.Select(TokenToSql)).Trim();
+            orderBy.Add(new WindowOrderItem(ParseScalar(sql, _dialect, _parameters), desc));
+        }
+
+        return orderBy;
     }
 
     private WindowSpec ParseWindowSpec()
@@ -1573,11 +1960,7 @@ internal sealed class SqlExpressionParser(
             || IsKeywordOrIdentifierWord(Peek(), "RANGE")
             || IsKeywordOrIdentifierWord(Peek(), "GROUPS"))
         {
-            var supportsFrameClause = _dialect.SupportsWindowFrameClause
-                || (_dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase)
-                    && _dialect.SupportsWindowFunctions);
-
-            if (!supportsFrameClause)
+            if (!_dialect.SupportsWindowFrameClause)
                 throw SqlUnsupported.ForDialect(_dialect, "window frame clause (ROWS/RANGE/GROUPS)");
 
             frame = ParseWindowFrameClause();
@@ -1732,12 +2115,45 @@ internal sealed class SqlExpressionParser(
             parts.Add(Consume().Text);
         }
 
+        if (TryBuildSequenceDotCall(parts, out var sequenceCall))
+            return sequenceCall;
+
         return parts.Count switch
         {
             1 => new IdentifierExpr(parts[0]),                 // col
             2 => new ColumnExpr(parts[0], parts[1]),           // alias.col  OR table.col  OR alias.*
             _ => new RawSqlExpr(string.Join(".", parts))       // db.table.col (por enquanto)
         };
+    }
+
+    private bool TryBuildSequenceDotCall(
+        IReadOnlyList<string> parts,
+        out SqlExpr expr)
+    {
+        expr = default!;
+        if (parts.Count < 2)
+            return false;
+
+        var suffix = parts[^1];
+        if (!suffix.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
+            && !suffix.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (!_dialect.SupportsSequenceDotValueExpression(suffix))
+            throw SqlUnsupported.ForDialect(_dialect, suffix.ToUpperInvariant());
+
+        var targetParts = parts.Take(parts.Count - 1).ToArray();
+        SqlExpr target = targetParts.Length switch
+        {
+            1 => new IdentifierExpr(targetParts[0]),
+            2 => new ColumnExpr(targetParts[0], targetParts[1]),
+            _ => new RawSqlExpr(string.Join(".", targetParts))
+        };
+
+        expr = new CallExpr(suffix.ToUpperInvariant(), [target]);
+        return true;
     }
 
     #endregion
@@ -1822,6 +2238,74 @@ internal sealed class SqlExpressionParser(
 
     private static bool IsKeywordOrIdentifierWord(SqlToken t, string word)
         => t.Text.Equals(word, StringComparison.OrdinalIgnoreCase);
+
+    private SqlExpr TryConsumeTrailingLikeEscape(SqlExpr expr)
+    {
+        if (!_dialect.SupportsLikeEscapeClause || !IsKeywordOrIdentifierWord(Peek(), "ESCAPE"))
+            return expr;
+
+        return expr switch
+        {
+            LikeExpr like when like.Escape is null => TryParseLikeEscape(like, 51),
+            UnaryExpr { Op: SqlUnaryOp.Not, Expr: LikeExpr like } unary when like.Escape is null
+                => unary with { Expr = TryParseLikeEscape(like, 51) },
+            _ => expr
+        };
+    }
+
+    private LikeExpr TryParseLikeEscape(LikeExpr like, int rbp)
+    {
+        if (!_dialect.SupportsLikeEscapeClause || !IsKeywordOrIdentifierWord(Peek(), "ESCAPE"))
+            return like;
+
+        var escapeToken = Peek();
+        Consume(); // ESCAPE
+        var escape = ParseExpression(rbp);
+        ValidateLikeEscapeExpression(escape, escapeToken);
+        return like with { Escape = escape };
+    }
+
+    private void ValidateLikeEscapeExpression(SqlExpr escape, SqlToken escapeToken)
+    {
+        if (_dialect.LikeEscapeExpressionMustBeSingleCharacter
+            && escape is LiteralExpr { Value: string escapeText }
+            && escapeText.Length != 1)
+        {
+            throw Error("LIKE ESCAPE requires a single character expression.", escapeToken);
+        }
+
+        if (_dialect.LikeEscapeExpressionMustBeSingleCharacter
+            && escape is ParameterExpr parameterEscape
+            && TryResolveParameterString(parameterEscape.Name, out var parameterEscapeText)
+            && parameterEscapeText is not null
+            && parameterEscapeText.Length != 1)
+        {
+            throw Error("LIKE ESCAPE requires a single character expression.", escapeToken);
+        }
+    }
+
+    private bool TryResolveParameterString(string parameterToken, out string? value)
+    {
+        value = null;
+        if (_parameters is null)
+            return false;
+
+        var normalized = parameterToken.TrimStart('@', ':', '?');
+        foreach (IDataParameter parameter in _parameters)
+        {
+            var name = (parameter.ParameterName ?? string.Empty).TrimStart('@', ':', '?');
+            if (!string.Equals(name, normalized, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (parameter.Value is null || parameter.Value == DBNull.Value)
+                return true;
+
+            value = Convert.ToString(parameter.Value, CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        return false;
+    }
 
     private string ReadRawUntilMatchingParen()
     {

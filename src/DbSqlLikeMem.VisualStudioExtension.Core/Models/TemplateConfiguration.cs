@@ -25,10 +25,22 @@ public sealed record TemplateConfiguration
     public string ModelOutputDirectory { get; init; }
 
     /// <summary>
+    /// Gets the model file name pattern.
+    /// Obtém o padrão de nome de arquivo do modelo.
+    /// </summary>
+    public string ModelFileNamePattern { get; init; }
+
+    /// <summary>
     /// Gets the repository output directory.
     /// Obtém o diretório de saída dos repositórios.
     /// </summary>
     public string RepositoryOutputDirectory { get; init; }
+
+    /// <summary>
+    /// Gets the repository file name pattern.
+    /// Obtém o padrão de nome de arquivo do repositório.
+    /// </summary>
+    public string RepositoryFileNamePattern { get; init; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TemplateConfiguration"/> record.
@@ -38,16 +50,22 @@ public sealed record TemplateConfiguration
     /// <param name="repositoryTemplatePath">Repository template file path. Caminho do template de repositório.</param>
     /// <param name="modelOutputDirectory">Model output directory. Diretório de saída dos modelos.</param>
     /// <param name="repositoryOutputDirectory">Repository output directory. Diretório de saída dos repositórios.</param>
+    /// <param name="modelFileNamePattern">Model file name pattern. Padrão de nome de arquivo do modelo.</param>
+    /// <param name="repositoryFileNamePattern">Repository file name pattern. Padrão de nome de arquivo do repositório.</param>
     public TemplateConfiguration(
         string modelTemplatePath,
         string repositoryTemplatePath,
         string modelOutputDirectory,
-        string repositoryOutputDirectory)
+        string repositoryOutputDirectory,
+        string modelFileNamePattern = "{NamePascal}Model.cs",
+        string repositoryFileNamePattern = "{NamePascal}Repository.cs")
     {
         ModelTemplatePath = modelTemplatePath;
         RepositoryTemplatePath = repositoryTemplatePath;
         ModelOutputDirectory = modelOutputDirectory;
+        ModelFileNamePattern = modelFileNamePattern;
         RepositoryOutputDirectory = repositoryOutputDirectory;
+        RepositoryFileNamePattern = repositoryFileNamePattern;
     }
 
     /// <summary>
@@ -58,5 +76,7 @@ public sealed record TemplateConfiguration
         string.Empty,
         string.Empty,
         "Generated/Models",
-        "Generated/Repositories");
+        "Generated/Repositories",
+        "{NamePascal}Model.cs",
+        "{NamePascal}Repository.cs");
 }

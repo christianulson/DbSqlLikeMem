@@ -103,6 +103,25 @@ public sealed class SqlExpressionParserTests(
     }
 
     /// <summary>
+    /// EN: Verifies PostgreSQL rejects Oracle-style sequence dot expressions.
+    /// PT: Verifica se o PostgreSQL rejeita expressoes de sequence no estilo Oracle com ponto.
+    /// </summary>
+    /// <param name="version">EN: PostgreSQL dialect version under test. PT: Versao do dialeto PostgreSQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void SequenceDotValueExpressions_ShouldBeRejected(int version)
+    {
+        var nextEx = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("sales.seq_orders.NEXTVAL", new NpgsqlDialect(version)));
+        Assert.Contains("NEXTVAL", nextEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var currEx = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("sales.seq_orders.CURRVAL", new NpgsqlDialect(version)));
+        Assert.Contains("CURRVAL", currEx.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Provides test data for WhereExpressions_Unsupported.
     /// PT: Fornece dados de teste para WhereExpressions_Unsupported.
     /// </summary>

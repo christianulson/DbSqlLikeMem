@@ -253,6 +253,48 @@ public sealed class MySqlTransactionTests(
     }
 
     /// <summary>
+    /// EN: Ensures savepoint operations on the transaction wrapper delegate to the connection lifecycle correctly.
+    /// PT: Garante que operações de savepoint no wrapper de transação deleguem corretamente ao ciclo de vida da conexão.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void TransactionSavepointMethods_ShouldDelegateToConnectionState()
+    {
+        var db = new MySqlDbMock();
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+
+        using var connection = new MySqlConnectionMock(db);
+        connection.Open();
+
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        using var insert = new MySqlCommandMock(connection, (MySqlTransactionMock)transaction)
+        {
+            CommandText = "INSERT INTO users (id, name) VALUES (1, 'Ana')"
+        };
+        insert.ExecuteNonQuery();
+
+        ((MySqlTransactionMock)transaction).Save("sp_users");
+
+        using var update = new MySqlCommandMock(connection, (MySqlTransactionMock)transaction)
+        {
+            CommandText = "UPDATE users SET name = 'Bia' WHERE id = 1"
+        };
+        update.ExecuteNonQuery();
+
+        ((MySqlTransactionMock)transaction).Rollback("sp_users");
+        Assert.Equal("Ana", users.Single()[1]);
+
+        ((MySqlTransactionMock)transaction).Save("sp_release");
+        ((MySqlTransactionMock)transaction).Release("sp_release");
+        transaction.Commit();
+
+        Assert.False(connection.HasActiveTransaction);
+        Assert.Equal(IsolationLevel.Unspecified, connection.CurrentIsolationLevel);
+    }
+
+    /// <summary>
     /// EN: Ensures transaction rollback restores connection temporary-table state.
     /// PT: Garante que rollback de transação restaure o estado de tabela temporária da conexão.
     /// </summary>

@@ -110,6 +110,12 @@ public sealed class ExplorerNode
     /// </summary>
     public ObjectHealthStatus? HealthStatus { get; set; }
 
+    /// <summary>
+    /// Gets or sets the diagnostic message associated with the current health status.
+    /// Obtém ou define a mensagem de diagnóstico associada ao status de saúde atual.
+    /// </summary>
+    public string? HealthMessage { get; set; }
+
 
     /// <summary>
     /// Gets an icon glyph for the node kind.
@@ -160,7 +166,7 @@ public sealed class ExplorerNode
     public string StatusGlyph => HealthStatus switch
     {
         ObjectHealthStatus.Synchronized => "🟢",
-        ObjectHealthStatus.DifferentFromDatabase => "🟡",
+        ObjectHealthStatus.DifferentFromDatabase or ObjectHealthStatus.IncompleteLocalArtifacts => "🟡",
         ObjectHealthStatus.MissingInDatabase or ObjectHealthStatus.MissingLocalArtifacts => "🔴",
         _ => string.Empty
     };

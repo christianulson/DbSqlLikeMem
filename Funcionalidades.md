@@ -33,6 +33,9 @@
 - Suporte a `CREATE VIEW` / `CREATE OR REPLACE VIEW`.
 - Suporte a `CREATE TEMPORARY TABLE`, incluindo variantes `AS SELECT`.
 - Definição fluente de schema e helpers determinísticos de seed.
+- Sequences como objetos de schema, com registro via `DbMock`/`DbConnectionMockBase`, extração por generators compatíveis e geração de código equivalente.
+- Consumo SQL de sequences em caminhos validados de `INSERT` e `SELECT`, incluindo `NEXT VALUE FOR`, `nextval(...)`, `currval(...)`, `setval(...)`, `lastval()` e nomes qualificados por schema nos providers cobertos.
+- Sobrescrita opcional de colunas `identity` em cenários e inserts, preservando o comportamento atual por padrão.
 - Regras padronizadas de collation/coerção no mock para comparações textuais e numéricas por string.
 
 ## Camadas de integração usadas em stacks reais de teste
@@ -88,19 +91,23 @@
 
 - Comportamento de dialeto por versão no pacote do provedor.
 - `RELEASE SAVEPOINT` intencionalmente padronizado como não suportado.
+- `NEXT VALUE FOR` com sequence registrada no schema: suportado nos fluxos validados de `SELECT` e `INSERT`.
 
 ### SQL Azure
 
 - Comportamento de Azure SQL por versão no pacote do provedor.
 - Regras de compatibilidade dedicadas para fluxos de comando/transação no SQL Azure.
+- `NEXT VALUE FOR` segue a mesma base de compatibilidade do SQL Server no mock atual, incluindo sequences qualificadas por schema.
 
 ### Oracle
 
 - Comportamento de dialeto por versão no pacote do provedor.
+- Sintaxe Oracle-style `seq.NEXTVAL` e `seq.CURRVAL`: implementada no parser/runtime, incluindo nome qualificado por schema.
 
 ### PostgreSQL (Npgsql)
 
 - Comportamento de dialeto por versão no pacote do provedor.
+- `nextval(...)`, `currval(...)`, `setval(...)` e `lastval()` com sequence registrada no schema: suportados nos fluxos validados do provider.
 
 ### SQLite
 
@@ -114,6 +121,7 @@
 - `WITH`/CTE: disponível (>= 8).
 - `MERGE`: disponível (>= 9).
 - `FETCH FIRST`: suportado.
+- `NEXT VALUE FOR` e `PREVIOUS VALUE FOR`: implementados no parser/runtime, incluindo names qualificados por schema.
 - `LIMIT/OFFSET`: não suportado no dialeto DB2.
 - `ON DUPLICATE KEY UPDATE`: não suportado.
 - Operador null-safe `<=>`: não suportado.

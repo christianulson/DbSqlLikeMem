@@ -203,6 +203,19 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
     }
 
     /// <summary>
+    /// EN: Tests Where_Ilike_ShouldWork behavior.
+    /// PT: Testa o comportamento de Where_Ilike_ShouldWork.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlWhereParserAndExecutor")]
+    public void Where_Ilike_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name ILIKE 'jo%'").ToList();
+        Assert.Single(rows);
+        Assert.Equal(1, (int)rows[0].id);
+    }
+
+    /// <summary>
     /// EN: Tests Where_FindInSet_ShouldWork behavior.
     /// PT: Testa o comportamento de Where_FindInSet_ShouldWork.
     /// </summary>

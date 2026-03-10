@@ -4,7 +4,6 @@
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
 		<PlatformTarget>x64</PlatformTarget>
-		<RunSettingsFilePath>C:\Projects\DbSqlLikeMem\src\DbSqlLikeMem.Db2.Test\bin\DbSqlLikeMem.Db2.Test\Debug\net8.0\fine-code-coverage\coverage-tool-output\DbSqlLikeMem.Db2.Test %28net8.0%29-fcc-mscodecoverage-generated.runsettings</RunSettingsFilePath>
 	</PropertyGroup>
 
 	<ItemGroup>

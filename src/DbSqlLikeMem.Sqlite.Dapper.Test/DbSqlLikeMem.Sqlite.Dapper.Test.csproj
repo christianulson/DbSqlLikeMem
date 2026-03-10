@@ -1,9 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
-		<RunSettingsFilePath>C:\Projects\DbSqlLikeMem\src\DbSqlLikeMem.Sqlite.Dapper.Test\bin\DbSqlLikeMem.Sqlite.Dapper.Test\Debug\net6.0\fine-code-coverage\coverage-tool-output\DbSqlLikeMem.Sqlite.Dapper.Test %28net6.0%29-fcc-mscodecoverage-generated.runsettings</RunSettingsFilePath>
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
@@ -27,6 +26,8 @@
 		<Using Include="Dapper" />
 		<Using Include="DbSqlLikeMem.Sqlite" />
 		<Using Include="Microsoft.Data.Sqlite" />
+		<Using Include="System.Linq.Expressions" />
+		<Using Include="System.Reflection" />
 	</ItemGroup>
 
 </Project>

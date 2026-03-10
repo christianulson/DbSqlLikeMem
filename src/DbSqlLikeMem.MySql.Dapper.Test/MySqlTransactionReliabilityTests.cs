@@ -4,19 +4,15 @@ namespace DbSqlLikeMem.MySql.Dapper.Test;
 /// EN: Validates transactional reliability additions for P11 scenarios.
 /// PT: Valida as adições de confiabilidade transacional para cenários do P11.
 /// </summary>
-public sealed class MySqlTransactionReliabilityTests : DapperTransactionConcurrencyTestsBase
+public sealed class MySqlTransactionReliabilityTests : ProviderDapperTransactionReliabilityTestsBase<MySqlDbMock, MySqlConnectionMock>
 {
     /// <inheritdoc />
-    protected override Func<DbConnectionMockBase> CreateOpenConnectionFactory(bool threadSafe, int? version = null)
-    {
-        var db = new MySqlDbMock(version) { ThreadSafe = threadSafe };
-        return () =>
-        {
-            var connection = new MySqlConnectionMock(db);
-            connection.Open();
-            return connection;
-        };
-    }
+    protected override MySqlDbMock CreateDb(int? version, bool threadSafe)
+        => new(version) { ThreadSafe = threadSafe };
+
+    /// <inheritdoc />
+    protected override MySqlConnectionMock CreateConnection(MySqlDbMock db)
+        => new(db);
 
     /// <summary>
     /// EN: Ensures rolling back to a savepoint restores the intermediate state.

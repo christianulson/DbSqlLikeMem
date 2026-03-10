@@ -4,19 +4,15 @@ namespace DbSqlLikeMem.Npgsql.Test;
 /// EN: Validates transactional reliability additions for P11 scenarios.
 /// PT: Valida as adições de confiabilidade transacional para cenários do P11.
 /// </summary>
-public sealed class PostgreSqlTransactionReliabilityTests : DapperTransactionConcurrencyTestsBase
+public sealed class PostgreSqlTransactionReliabilityTests : ProviderDapperTransactionReliabilityTestsBase<NpgsqlDbMock, NpgsqlConnectionMock>
 {
     /// <inheritdoc />
-    protected override Func<DbConnectionMockBase> CreateOpenConnectionFactory(bool threadSafe, int? version = null)
-    {
-        var db = new NpgsqlDbMock(version) { ThreadSafe = threadSafe };
-        return () =>
-        {
-            var connection = new NpgsqlConnectionMock(db);
-            connection.Open();
-            return connection;
-        };
-    }
+    protected override NpgsqlDbMock CreateDb(int? version, bool threadSafe)
+        => new(version) { ThreadSafe = threadSafe };
+
+    /// <inheritdoc />
+    protected override NpgsqlConnectionMock CreateConnection(NpgsqlDbMock db)
+        => new(db);
 
     /// <summary>
     /// EN: Ensures rolling back to a savepoint restores the intermediate state.

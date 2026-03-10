@@ -78,4 +78,42 @@ public sealed class MySqlProviderSurfaceMocksTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => adapter.FillAsync(new DataTable(), cts.Token));
     }
+
+    /// <summary>
+    /// EN: Ensures additional fill overloads also honor a pre-canceled token without touching the underlying operation.
+    /// PT: Garante que sobrecargas adicionais de fill também respeitem um token previamente cancelado sem tocar na operacao subjacente.
+    /// </summary>
+    [Fact]
+    public async Task FillAsync_AdditionalOverloads_WithCanceledToken_ShouldReturnCanceledTask()
+    {
+        var adapter = new MySqlDataAdapterMock();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => adapter.FillAsync(new DataSet(), "Users", cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => adapter.FillAsync(new DataTable(), new DataTableReader(new DataTable()), cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => adapter.FillAsync(new DataTable(), new MySqlCommandMock(), CommandBehavior.Default, cts.Token));
+    }
+
+    /// <summary>
+    /// EN: Ensures fill-schema and update async overloads also honor pre-canceled tokens.
+    /// PT: Garante que as sobrecargas assincronas de fill-schema e update também respeitem tokens previamente cancelados.
+    /// </summary>
+    [Fact]
+    public async Task FillSchemaAndUpdateAsync_WithCanceledToken_ShouldReturnCanceledTask()
+    {
+        var adapter = new MySqlDataAdapterMock();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => adapter.FillSchemaAsync(new DataSet(), SchemaType.Source, cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => adapter.FillSchemaAsync(new DataTable(), SchemaType.Source, cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => adapter.UpdateAsync(new DataTable(), cts.Token));
+    }
 }

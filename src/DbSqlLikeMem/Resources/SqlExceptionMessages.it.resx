@@ -105,4 +105,118 @@
   <data name="LinqCouldNotExtractTableNameFromExpression" xml:space="preserve">
     <value>Impossibile estrarre il nome della tabella dall'espressione: {0}</value>
   </data>
+  <data name="TableAlreadyExists" xml:space="preserve">
+    <value>La tabella '{0}' esiste già.</value>
+  </data>
+  <data name="InvalidCreateTableStatement" xml:space="preserve">
+    <value>Istruzione CREATE TABLE non valida.</value>
+  </data>
+  <data name="InvalidInsertSelectStatement" xml:space="preserve">
+    <value>Istruzione INSERT ... SELECT non valida.</value>
+  </data>
+  <data name="ColumnCountDoesNotMatchSelectList" xml:space="preserve">
+    <value>Il numero di colonne non corrisponde all'elenco SELECT.</value>
+  </data>
+  <data name="MergeCouldNotIdentifyTargetTable" xml:space="preserve">
+    <value>MERGE: impossibile identificare la tabella di destinazione.</value>
+  </data>
+  <data name="MergeUsingClauseNotFound" xml:space="preserve">
+    <value>MERGE: clausola USING non trovata.</value>
+  </data>
+  <data name="MergeSourceSelectInvalid" xml:space="preserve">
+    <value>MERGE: SELECT sorgente non valido.</value>
+  </data>
+  <data name="MergeOnClauseNotFound" xml:space="preserve">
+    <value>MERGE: clausola ON non trovata.</value>
+  </data>
+  <data name="MergeOnConditionNotSupported" xml:space="preserve">
+    <value>MERGE: condizione ON non supportata.</value>
+  </data>
+  <data name="MergeCouldNotReadUsingSubquery" xml:space="preserve">
+    <value>MERGE: impossibile leggere la sottoquery USING.</value>
+  </data>
+  <data name="MergeUsingClauseUnbalancedParentheses" xml:space="preserve">
+    <value>MERGE: parentesi non bilanciate nella clausola USING.</value>
+  </data>
+  <data name="UpdateJoinInvalid" xml:space="preserve">
+    <value>UPDATE ... JOIN non valido. Usare: UPDATE &lt;table&gt; &lt;alias&gt; JOIN (&lt;select&gt;) ... SET ... oppure UPDATE &lt;alias&gt; SET ... FROM &lt;table&gt; &lt;alias&gt; JOIN (&lt;select&gt;) ...</value>
+  </data>
+  <data name="UpdateJoinOnlySimpleEqualityOnSupported" xml:space="preserve">
+    <value>In UPDATE ... JOIN è supportata solo l'uguaglianza semplice in ON: &lt;alias1&gt;.&lt;col&gt; = &lt;alias2&gt;.&lt;col&gt;.</value>
+  </data>
+  <data name="JoinOnMustReferenceTargetAndSubqueryAliases" xml:space="preserve">
+    <value>ON deve fare riferimento all'alias della tabella di destinazione e all'alias della sottoquery.</value>
+  </data>
+  <data name="UpdateJoinOnlySingleSetAssignmentSupported" xml:space="preserve">
+    <value>È supportata solo una singola assegnazione SET: &lt;targetAlias&gt;.&lt;col&gt; = &lt;subAlias&gt;.&lt;col&gt;.</value>
+  </data>
+  <data name="UpdateJoinSetMustAssignFromSubqueryToTargetAlias" xml:space="preserve">
+    <value>SET deve assegnare dall'alias della sottoquery all'alias della tabella di destinazione.</value>
+  </data>
+  <data name="DeleteJoinInvalid" xml:space="preserve">
+    <value>DELETE ... JOIN non valido. Usare: DELETE &lt;target&gt; FROM &lt;table&gt; &lt;alias&gt; JOIN (&lt;select&gt;) ... ON ... oppure DELETE FROM &lt;table&gt; &lt;alias&gt; USING (&lt;select&gt;) ... WHERE ...</value>
+  </data>
+  <data name="DeleteJoinOnlySimpleEqualityOnSupported" xml:space="preserve">
+    <value>In DELETE ... JOIN è supportata solo l'uguaglianza semplice in ON: &lt;alias1&gt;.&lt;col&gt; = &lt;alias2&gt;.&lt;col&gt;.</value>
+  </data>
+  <data name="DeleteUsingWhereMustContainJoinEqualityCondition" xml:space="preserve">
+    <value>WHERE deve contenere una condizione di join per uguaglianza tra gli alias della destinazione e della sottoquery (ad esempio, s.id = a.id).</value>
+  </data>
+  <data name="ResolvedConnectionTypeNotCompatible" xml:space="preserve">
+    <value>Il tipo di connessione risolto '{0}' non è compatibile con l'indizio provider '{1}'.</value>
+  </data>
+  <data name="NoConcreteDbMockImplementationFound" xml:space="preserve">
+    <value>Nessuna implementazione concreta di DbMock trovata negli assembly caricati. Numero di assembly ispezionati: {0}.</value>
+  </data>
+  <data name="NoCompatibleDbMockConstructorFound" xml:space="preserve">
+    <value>Nessun costruttore DbMock compatibile trovato per il tipo '{0}'.</value>
+  </data>
+  <data name="CouldNotResolveConnectionFromDbMock" xml:space="preserve">
+    <value>Impossibile risolvere una connessione dal DbMock '{0}' per l'indizio provider '{1}'.</value>
+  </data>
+  <data name="NoCompatibleConnectionConstructorFound" xml:space="preserve">
+    <value>Nessun costruttore di connessione compatibile trovato per il tipo '{0}'.</value>
+  </data>
+  <data name="CannotMaterializeBatchCommandType" xml:space="preserve">
+    <value>Impossibile materializzare il tipo di comando batch '{0}'.</value>
+  </data>
+  <data name="BatchCommandTypeHasIncompatibleMembers" xml:space="preserve">
+    <value>Il tipo di comando batch '{0}' contiene membri incompatibili per la materializzazione.</value>
+  </data>
+  <data name="TableNotYetDefined" xml:space="preserve">
+    <value>La tabella '{0}' non è ancora definita.</value>
+  </data>
+  <data name="ColumnAlreadyExistsInTable" xml:space="preserve">
+    <value>La colonna '{0}' esiste già in '{1}'.</value>
+  </data>
+  <data name="SeedRowHasMoreValuesThanColumns" xml:space="preserve">
+    <value>La riga seed contiene {0} valori, ma la tabella '{1}' ha solo {2} colonne.</value>
+  </data>
+  <data name="ViewAlreadyExists" xml:space="preserve">
+    <value>La vista '{0}' esiste già.</value>
+  </data>
+  <data name="ViewDoesNotExist" xml:space="preserve">
+    <value>La vista '{0}' non esiste.</value>
+  </data>
+  <data name="MultipleSchemasRequireExplicitName" xml:space="preserve">
+    <value>È registrato più di uno schema ({0}); scegline uno e passalo esplicitamente.</value>
+  </data>
+  <data name="NoSchemaRegistered" xml:space="preserve">
+    <value>Nessuno schema è registrato.</value>
+  </data>
+  <data name="DuplicatePrimaryKeyColumns" xml:space="preserve">
+    <value>Sono state fornite colonne di chiave primaria duplicate.</value>
+  </data>
+  <data name="IndexAlreadyExists" xml:space="preserve">
+    <value>L'indice '{0}' esiste già.</value>
+  </data>
+  <data name="StringColumnSizeRequired" xml:space="preserve">
+    <value>La dimensione del campo è obbligatoria per il tipo String.</value>
+  </data>
+  <data name="DecimalPlacesRequiredForDbType" xml:space="preserve">
+    <value>Il DbType '{0}' richiede che decimalPlaces sia specificato.</value>
+  </data>
+  <data name="DuplicateEnumItems" xml:space="preserve">
+    <value>Sono stati forniti elementi enum duplicati.</value>
+  </data>
 </root>

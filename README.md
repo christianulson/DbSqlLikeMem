@@ -34,6 +34,8 @@
   **PT-BR:** Parser + executor SQL para operações DDL/DML comuns.
 - **EN:** Fluent API for schema definition and data seeding.  
   **PT-BR:** API fluente para definição de schema e seed de dados.
+- **EN:** Schema-level sequences plus optional identity override for deterministic setup and dialect-aware sequence flows.  
+  **PT-BR:** Sequences em nível de schema e sobrescrita opcional de identity para setup determinístico e fluxos de sequence sensíveis ao dialeto.
 - **EN:** Friendly execution flow for Dapper-based tests.  
   **PT-BR:** Fluxo de execução amigável para testes com Dapper.
 - **EN:** Dialect/version-specific behavior.  
@@ -90,6 +92,20 @@ var name = (string?)cmd.ExecuteScalar();
 **EN:** For provider-specific examples (Dapper, transactions, RETURNING/OUTPUT, etc.), see: [docs/getting-started.md](docs/getting-started.md)  
 **PT-BR:** Para exemplos por provedor (Dapper, transações, RETURNING/OUTPUT etc.), veja: [docs/getting-started.md](docs/getting-started.md)
 
+## Sequence quick reference | Referência rápida de sequence
+
+- **EN:** SQL Server: `NEXT VALUE FOR schema.seq_name`  
+  **PT-BR:** SQL Server: `NEXT VALUE FOR schema.seq_name`
+- **EN:** PostgreSQL: `nextval('schema.seq_name')`, `currval('schema.seq_name')`, `setval('schema.seq_name', value, is_called)`, `lastval()`  
+  **PT-BR:** PostgreSQL: `nextval('schema.seq_name')`, `currval('schema.seq_name')`, `setval('schema.seq_name', value, is_called)`, `lastval()`
+- **EN:** Oracle: `schema.seq_name.NEXTVAL`, `schema.seq_name.CURRVAL`  
+  **PT-BR:** Oracle: `schema.seq_name.NEXTVAL`, `schema.seq_name.CURRVAL`
+- **EN:** DB2: `NEXT VALUE FOR schema.seq_name`, `PREVIOUS VALUE FOR schema.seq_name`  
+  **PT-BR:** DB2: `NEXT VALUE FOR schema.seq_name`, `PREVIOUS VALUE FOR schema.seq_name`
+
+**EN:** See [docs/getting-started.md](docs/getting-started.md) for end-to-end examples.  
+**PT-BR:** Veja [docs/getting-started.md](docs/getting-started.md) para exemplos end-to-end.
+
 ## Execution plan diagnostics (quick view) | Diagnóstico de plano de execução (visão rápida)
 
 ```csharp
@@ -106,12 +122,12 @@ var plan = cnn.LastExecutionPlan;
 
 ## Requirements | Requisitos
 
-- **EN:** Main provider and test projects target: **.NET Framework 4.8**, **.NET 6.0**, **.NET 8.0**, and **.NET 10.0**.  
-  **PT-BR:** Os principais projetos de provedor e teste têm como alvo: **.NET Framework 4.8**, **.NET 6.0**, **.NET 8.0** e **.NET 10.0**.
-- **EN:** Core `DbSqlLikeMem` multi-targets: **.NET Standard 2.1**, **.NET Framework 4.8**, **.NET 6.0**, **.NET 8.0**, and **.NET 10.0**.  
-  **PT-BR:** O núcleo `DbSqlLikeMem` é multi-target em: **.NET Standard 2.1**, **.NET Framework 4.8**, **.NET 6.0**, **.NET 8.0** e **.NET 10.0**.
-- **EN:** Some integration-specific modules (for example, part of DB2 stack) may target a subset (`net6.0+`).  
-  **PT-BR:** Alguns módulos específicos de integração (por exemplo, parte da stack DB2) podem ter alvo em subconjunto (`net6.0+`).
+- **EN:** Production core and provider packages follow the central targets in `src/Directory.Build.props`: **`net462`**, **`netstandard2.0`**, and **`net8.0`**.  
+  **PT-BR:** Os pacotes de produção do núcleo e dos provedores seguem os alvos centrais de `src/Directory.Build.props`: **`net462`**, **`netstandard2.0`** e **`net8.0`**.
+- **EN:** Test and test-tools projects use the dedicated override target set: **`net462`**, **`net6.0`**, and **`net8.0`**.  
+  **PT-BR:** Os projetos de teste e test-tools usam o conjunto de alvos do override dedicado: **`net462`**, **`net6.0`** e **`net8.0`**.
+- **EN:** Some tooling or integration-specific projects may use narrower target sets (for example, extension/tooling projects outside the main NuGet package flow).  
+  **PT-BR:** Alguns projetos específicos de tooling ou integração podem usar conjuntos de alvo mais estreitos (por exemplo, extensões e ferramentas fora do fluxo principal de pacotes NuGet).
 
 ## Supported Providers | Provedores suportados
 

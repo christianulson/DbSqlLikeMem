@@ -1,6 +1,6 @@
 # NuGet readiness validation report
 
-Date: 2026-02-12
+Date: 2026-03-07
 
 ## Executed validations
 
@@ -21,14 +21,16 @@ Date: 2026-02-12
    - Verified non-package internal projects are marked `IsPackable=false`:
      - `DbSqlLikeMem.MySqlConsoleGenerator`
      - `DbSqlLikeMem.VisualStudioExtension.Core`
+   - Verified package metadata configuration is centralized in `src/Directory.Build.props`.
 
 5. Metadata checks (NuGet quality gates):
-   - Present: `Version`, `Authors`, `PackageTags`, `PackageReadmeFile`, `RepositoryType`, `RepositoryUrl`, `PackageProjectUrl`.
-   - Missing/recommended: `PackageLicenseExpression` (or `PackageLicenseFile`).
+  - Present: `Version`, `Authors`, `PackageTags`, `PackageReadmeFile`, `RepositoryType`, `RepositoryUrl`, `PackageProjectUrl`, `PackageLicenseExpression`, `PackageRequireLicenseAcceptance`, `PackageReleaseNotes`, `PublishRepositoryUrl`, `SymbolPackageFormat`.
+  - Post-pack artifact audit is now available through `scripts/check_nuget_package_metadata.py`.
+  - The audit derives expected values from `src/Directory.Build.props` and checks `.nuspec` fields for `version`, `authors`, `repository`, `projectUrl`, `readme`, `tags`, `releaseNotes`, `license` and `requireLicenseAcceptance`, plus the presence of the readme file inside the package and coherence with the `.nupkg` filename suffix.
 
 ## Conclusion
 
-- The repository is structurally close to NuGet publication readiness for multiple frameworks.
+- The repository is structurally close to NuGet publication readiness for multiple frameworks and now has a reusable metadata audit script for `.nupkg` artifacts.
 - Full runtime validation (`restore`, `build`, `test`, `pack`) could not be executed in this environment due blocked .NET installation/network access.
 - Before final release tag, run in CI or a machine with .NET SDK:
 
@@ -37,4 +39,5 @@ dotnet restore src/DbSqlLikeMem.slnx
 dotnet build src/DbSqlLikeMem.slnx -c Release
 dotnet test src/DbSqlLikeMem.slnx -c Release --no-build
 dotnet pack src/DbSqlLikeMem.slnx -c Release -o ./artifacts
+python3 scripts/check_nuget_package_metadata.py --artifacts-dir ./artifacts
 ```

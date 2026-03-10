@@ -51,6 +51,27 @@ public abstract class TableMock
     /// </summary>
     public int NextIdentity { get; set; } = 1;
 
+    /// <summary>
+    /// EN: Enables explicit values for identity columns when building scenarios or executing inserts.
+    /// PT: Habilita valores explícitos para colunas identity ao montar cenários ou executar inserções.
+    /// </summary>
+    public bool AllowIdentityInsert { get; set; }
+
+    /// <summary>
+    /// EN: Sets the AllowIdentityInsert property.
+    /// PT: Define a propriedade AllowIdentityInsert.
+    /// </summary>
+    /// <param name="allowIdentityInsert">
+    /// EN: Enables explicit values for identity columns when building scenarios or executing inserts.
+    /// PT: Habilita valores explícitos para colunas identity ao montar cenários ou executar inserções.
+    /// </param>
+    /// <returns></returns>
+    public ITableMock SetAllowIdentityInsert(bool allowIdentityInsert)
+    {
+        AllowIdentityInsert = allowIdentityInsert;
+        return this;
+    }
+
     private readonly ColumnDictionary _columns = [];
 
     /// <summary>
@@ -79,7 +100,7 @@ public abstract class TableMock
         foreach (var colName in columns)
             _primaryKeyIndexes.Add(Columns[colName].Index);
         if (_primaryKeyIndexes.Count != columns.Length)
-            throw new InvalidOperationException("Colunas da PK Duplicadas");
+            throw new InvalidOperationException(Resources.SqlExceptionMessages.DuplicatePrimaryKeyColumns());
     }
 
     private readonly Dictionary<string, ForeignDef> _foreignKeys = new(StringComparer.OrdinalIgnoreCase);
@@ -231,7 +252,7 @@ public abstract class TableMock
         ArgumentNullExceptionCompatible.ThrowIfNull(keyCols, nameof(keyCols));
         name = name.NormalizeName();
         if (_indexes.ContainsKey(name))
-            throw new InvalidOperationException($"Índice '{name}' já existe.");
+            throw new InvalidOperationException(Resources.SqlExceptionMessages.IndexAlreadyExists(name));
         var idx = new IndexDef(this, name, keyCols, include, unique);
         _indexes.Add(name, idx);
         return idx;
@@ -292,7 +313,7 @@ public abstract class TableMock
         string refTable,
         HashSet<(string col, string refCol)> references)
     {
-        var tbRef = Schema[refTable];
+        var tbRef = ResolveReferencedTable(refTable);
         var fk = new ForeignDef(
             this,
             name,
@@ -302,6 +323,19 @@ public abstract class TableMock
 
         _foreignKeys.Add(name, fk);
         return fk;
+    }
+
+    private ITableMock ResolveReferencedTable(string refTable)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(refTable, nameof(refTable));
+
+        var separatorIndex = refTable.IndexOf('.');
+        if (separatorIndex <= 0 || separatorIndex == refTable.Length - 1)
+            return Schema[refTable];
+
+        var schemaName = refTable[..separatorIndex].NormalizeName();
+        var tableName = refTable[(separatorIndex + 1)..].NormalizeName();
+        return Schema.Db.GetTable(tableName, schemaName);
     }
 
     internal void ValidateForeignKeysOnRow(IReadOnlyDictionary<int, object?> row)
@@ -459,16 +493,47 @@ public abstract class TableMock
             if (!value.ContainsKey(col.Index))
                 value[col.Index] = null;
 
-            if (col.Identity)
+            if (!col.Identity)
+            {
+                if (col.DefaultValue != null && value[col.Index] == null)
+                    value[col.Index] = col.DefaultValue;
+            }
+            else if (AllowIdentityInsert && value[col.Index] is not null)
+                UpdateNextIdentityFromExplicitValue(value[col.Index]);
+            else
                 value[col.Index] = NextIdentity++;
-            else if (col.DefaultValue != null && value[col.Index] == null)
-                value[col.Index] = col.DefaultValue;
 
             if (col.GetGenValue != null && col.PersistComputedValue)
                 value[col.Index] = col.GetGenValue(value, this);
 
             if (!col.Nullable && value[col.Index] == null)
                 throw ColumnCannotBeNull(it.Key);
+        }
+    }
+
+    private void UpdateNextIdentityFromExplicitValue(object? explicitValue)
+    {
+        if (explicitValue is null)
+            return;
+
+        if (!TryConvertIdentityValue(explicitValue, out var numericValue))
+            return;
+
+        if (numericValue >= NextIdentity)
+            NextIdentity = numericValue + 1;
+    }
+
+    private static bool TryConvertIdentityValue(object value, out int numericValue)
+    {
+        try
+        {
+            numericValue = Convert.ToInt32(value, System.Globalization.CultureInfo.InvariantCulture);
+            return true;
+        }
+        catch
+        {
+            numericValue = default;
+            return false;
         }
     }
 
@@ -680,10 +745,16 @@ public abstract class TableMock
                 continue;
             }
 
-            var kv = s.Split('=').Take(2).ToArray();
-            if (kv.Length == 2)
+            var comparison = Regex.Match(
+                s,
+                @"^(?<c>[\w`\.]+)\s*(?<op><=|>=|<>|!=|=|<|>)\s*(?<v>.+)$",
+                RegexOptions.IgnoreCase);
+            if (comparison.Success)
             {
-                list.Add((kv[0].Trim(), "=", kv[1].Trim()));
+                list.Add((
+                    comparison.Groups["c"].Value.Trim(),
+                    comparison.Groups["op"].Value.Trim(),
+                    comparison.Groups["v"].Value.Trim()));
             }
         }
 
@@ -700,9 +771,9 @@ public abstract class TableMock
         var info = table.GetColumn(cond.C);
         var actual = info.GetGenValue != null ? info.GetGenValue(row, table) : row[info.Index];
 
-        if (IsMatchEquals(table, pars, cond, info, actual, out var value))
+        if (TryMatchComparison(table, pars, cond, info, actual, out var value))
             return value;
-        
+
         if (!cond.Op.Equals("IN", StringComparison.OrdinalIgnoreCase))
             return false;
 
@@ -722,7 +793,7 @@ public abstract class TableMock
         return false;
     });
 
-    private static bool IsMatchEquals(
+    private static bool TryMatchComparison(
         ITableMock table,
         DbParameterCollection? pars,
         (string C, string Op, string V) cond,
@@ -730,15 +801,68 @@ public abstract class TableMock
         out bool value)
     {
         value = default;
-        if (!cond.Op.Equals("=", StringComparison.OrdinalIgnoreCase))
-            return false;
-
         table.CurrentColumn = cond.C;
         var exp = table.Resolve(cond.V, info.DbType, info.Nullable, pars, table.Columns);
         table.CurrentColumn = null;
-        value = Equals(actual, exp is DBNull ? null : exp);
-        return true;
+        exp = exp is DBNull ? null : exp;
+
+        switch (cond.Op)
+        {
+            case "=":
+                value = Equals(actual, exp);
+                return true;
+            case "<>":
+            case "!=":
+                value = !Equals(actual, exp);
+                return true;
+            case "<":
+            case "<=":
+            case ">":
+            case ">=":
+                value = CompareSimple(actual, exp, cond.Op);
+                return true;
+            default:
+                return false;
+        }
     }
+
+    private static bool CompareSimple(object? actual, object? expected, string op)
+    {
+        if (actual is null || expected is null)
+            return false;
+
+        if (TryConvertToDecimal(actual, out var left) && TryConvertToDecimal(expected, out var right))
+        {
+            var comparison = left.CompareTo(right);
+            return op switch
+            {
+                "<" => comparison < 0,
+                "<=" => comparison <= 0,
+                ">" => comparison > 0,
+                ">=" => comparison >= 0,
+                _ => false
+            };
+        }
+
+        var comparisonText = StringComparer.OrdinalIgnoreCase.Compare(
+            Convert.ToString(actual, CultureInfo.InvariantCulture),
+            Convert.ToString(expected, CultureInfo.InvariantCulture));
+        return op switch
+        {
+            "<" => comparisonText < 0,
+            "<=" => comparisonText <= 0,
+            ">" => comparisonText > 0,
+            ">=" => comparisonText >= 0,
+            _ => false
+        };
+    }
+
+    private static bool TryConvertToDecimal(object value, out decimal result)
+        => decimal.TryParse(
+            Convert.ToString(value, CultureInfo.InvariantCulture),
+            NumberStyles.Any,
+            CultureInfo.InvariantCulture,
+            out result);
 
     private static IEnumerable<object?> GetCanditateFromTable(
         ITableMock table,

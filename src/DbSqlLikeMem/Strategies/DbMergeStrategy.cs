@@ -37,7 +37,7 @@ internal static class DbMergeStrategy
             @"MERGE\s+INTO\s+(?<target>[A-Za-z0-9_#]+)(?:\s+AS)?\s+(?<alias>[A-Za-z0-9_]+)?",
             RegexOptions.IgnoreCase);
         if (!targetMatch.Success)
-            throw new InvalidOperationException("MERGE: não foi possível identificar a tabela alvo.");
+            throw new InvalidOperationException(SqlExceptionMessages.MergeCouldNotIdentifyTargetTable());
 
         var targetName = targetMatch.Groups["target"].Value;
         var targetAlias = targetMatch.Groups["alias"].Success
@@ -50,7 +50,7 @@ internal static class DbMergeStrategy
         var usingIndex = CultureInfo.InvariantCulture.CompareInfo
             .IndexOf(sql, "USING", CompareOptions.IgnoreCase);
         if (usingIndex < 0)
-            throw new InvalidOperationException("MERGE: cláusula USING não encontrada.");
+            throw new InvalidOperationException(SqlExceptionMessages.MergeUsingClauseNotFound());
 
         var selectSql = ExtractParenthesized(sql, sql.IndexOf('(', usingIndex));
         var srcAliasMatch = Regex.Match(
@@ -61,7 +61,7 @@ internal static class DbMergeStrategy
 
         var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
         var parsedSource = SqlQueryParser.Parse(selectSql, dialect) as SqlSelectQuery
-            ?? throw new InvalidOperationException("MERGE: source SELECT inválido.");
+            ?? throw new InvalidOperationException(SqlExceptionMessages.MergeSourceSelectInvalid());
         var sourceTable = executor.ExecuteSelect(parsedSource);
 
         var onMatch = Regex.Match(
@@ -69,14 +69,14 @@ internal static class DbMergeStrategy
             @"ON\s+(?<on>.+?)\s+WHEN",
             RegexOptions.IgnoreCase | RegexOptions.Singleline);
         if (!onMatch.Success)
-            throw new InvalidOperationException("MERGE: cláusula ON não encontrada.");
+            throw new InvalidOperationException(SqlExceptionMessages.MergeOnClauseNotFound());
 
         var joinMatch = Regex.Match(
             onMatch.Groups["on"].Value,
             @"(?<talias>[A-Za-z0-9_]+)\.(?<tcol>[A-Za-z0-9_]+)\s*=\s*(?<salias>[A-Za-z0-9_]+)\.(?<scol>[A-Za-z0-9_]+)",
             RegexOptions.IgnoreCase);
         if (!joinMatch.Success)
-            throw new InvalidOperationException("MERGE: condição ON não suportada.");
+            throw new InvalidOperationException(SqlExceptionMessages.MergeOnConditionNotSupported());
 
         var targetJoinColumn = joinMatch.Groups["tcol"].Value;
         var sourceJoinColumn = joinMatch.Groups["scol"].Value;
@@ -218,7 +218,7 @@ internal static class DbMergeStrategy
     private static string ExtractParenthesized(string sql, int startIndex)
     {
         if (startIndex < 0 || startIndex >= sql.Length || sql[startIndex] != '(')
-            throw new InvalidOperationException("MERGE: não foi possível ler a subconsulta USING.");
+            throw new InvalidOperationException(SqlExceptionMessages.MergeCouldNotReadUsingSubquery());
 
         var depth = 0;
         var end = startIndex;
@@ -237,7 +237,7 @@ internal static class DbMergeStrategy
         }
 
         if (depth != 0)
-            throw new InvalidOperationException("MERGE: parênteses não fechados na cláusula USING.");
+            throw new InvalidOperationException(SqlExceptionMessages.MergeUsingClauseUnbalancedParentheses());
 
         return sql[(startIndex + 1)..(end - 1)].Trim();
     }

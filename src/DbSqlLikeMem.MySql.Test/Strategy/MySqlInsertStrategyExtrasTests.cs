@@ -91,6 +91,34 @@ public sealed class MySqlInsertStrategyExtrasTests(
         var ex = Assert.Throws<MySqlMockException>(() => cmd.ExecuteNonQuery());
         Assert.Contains(SqlExceptionMessages.DuplicateKey(string.Empty, string.Empty).Split('\'')[0].Trim(), ex.Message, StringComparison.OrdinalIgnoreCase);
     }
+
+    /// <summary>
+    /// EN: Verifies MySQL UPSERT reports two affected rows when an existing row is updated on conflict.
+    /// PT: Verifica que o UPSERT do MySQL reporte duas linhas afetadas quando uma linha existente e atualizada em conflito.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void InsertOnDuplicateConflictShouldReportTwoAffectedRows()
+    {
+        var db = new MySqlDbMock();
+        var table = db.AddTable("t");
+        table.AddColumn("id", DbType.Int32, false, identity: false);
+        table.AddColumn("name", DbType.String, false);
+        table.AddPrimaryKeyIndexes("id");
+        table.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "OLD" } });
+
+        using var cnn = new MySqlConnectionMock(db);
+        using var cmd = new MySqlCommandMock(cnn)
+        {
+            CommandText = "INSERT INTO t (id, name) VALUES (1, 'NEW') ON DUPLICATE KEY UPDATE name = VALUES(name)"
+        };
+
+        var affected = cmd.ExecuteNonQuery();
+
+        Assert.Equal(2, affected);
+        Assert.Single(table);
+        Assert.Equal("NEW", table[0][1]);
+    }
 }
 
     /// <summary>

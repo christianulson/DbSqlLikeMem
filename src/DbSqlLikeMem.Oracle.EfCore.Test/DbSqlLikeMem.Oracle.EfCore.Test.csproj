@@ -3,7 +3,6 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <RunSettingsFilePath>C:\Projects\DbSqlLikeMem\src\DbSqlLikeMem.Oracle.EfCore.Test\bin\DbSqlLikeMem.Oracle.EfCore.Test\Debug\net6.0\fine-code-coverage\coverage-tool-output\DbSqlLikeMem.Oracle.EfCore.Test %28net6.0%29-fcc-mscodecoverage-generated.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <ItemGroup>

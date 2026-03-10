@@ -68,6 +68,14 @@ public static class SqlMetadataQueryFactory
     public static string BuildTriggersQuery(string databaseType)
         => ResolveStrategy(databaseType).BuildTriggersQuery();
 
+    /// <summary>
+    /// Builds the metadata query that returns sequence settings for the specified database type.
+    /// </summary>
+    /// <param name="databaseType">The target database type.</param>
+    /// <returns>The SQL query text.</returns>
+    public static string BuildSequenceMetadataQuery(string databaseType)
+        => ResolveStrategy(databaseType).BuildSequenceMetadataQuery();
+
     private static ISqlMetadataQueryStrategy ResolveStrategy(string databaseType)
     {
         var normalizedType = Normalize(databaseType);
@@ -87,6 +95,7 @@ public static class SqlMetadataQueryFactory
         string BuildIndexesQuery();
         string BuildForeignKeysQuery();
         string BuildTriggersQuery();
+        string BuildSequenceMetadataQuery();
     }
 
     private sealed class MySqlMetadataQueryStrategy : ISqlMetadataQueryStrategy
@@ -174,6 +183,9 @@ SELECT TRIGGER_NAME AS `TriggerName`
    AND EVENT_OBJECT_TABLE=@objectName
  ORDER BY TRIGGER_NAME;
 """;
+
+        public string BuildSequenceMetadataQuery()
+            => "SELECT '' AS StartValue, '' AS IncrementBy, '' AS CurrentValue WHERE 1=0;";
     }
 
     private sealed class SqlServerMetadataQueryStrategy : ISqlMetadataQueryStrategy
@@ -186,11 +198,12 @@ SELECT TRIGGER_NAME AS `TriggerName`
          WHEN 'U' THEN 'Table' 
          WHEN 'V' THEN 'View' 
          WHEN 'P' THEN 'Procedure' 
+         WHEN 'SO' THEN 'Sequence'
          ELSE o.type 
          END AS [ObjectType]
     FROM sys.objects o
     JOIN sys.schemas s ON s.schema_id = o.schema_id
-   WHERE o.type IN ('U', 'V', 'P')
+   WHERE o.type IN ('U', 'V', 'P', 'SO')
 {(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND o.name " + filter)}
 ORDER BY s.name
        , ObjectType
@@ -275,6 +288,17 @@ ORDER BY fkc.constraint_column_id;
    WHERE s.name=@schemaName AND o.name=@objectName
 ORDER BY tr.name;
 """;
+
+        public string BuildSequenceMetadataQuery()
+            => """
+SELECT CAST(seq.start_value AS bigint) AS [StartValue]
+     , CAST(seq.increment AS bigint) AS [IncrementBy]
+     , CAST(seq.current_value AS bigint) AS [CurrentValue]
+  FROM sys.sequences seq
+  JOIN sys.schemas s ON s.schema_id=seq.schema_id
+ WHERE s.name=@schemaName
+   AND seq.name=@objectName;
+""";
     }
 
     private sealed class PostgreSqlMetadataQueryStrategy : ISqlMetadataQueryStrategy
@@ -292,6 +316,11 @@ SELECT routine_schema AS SchemaName, routine_name AS ObjectName, 'Procedure' AS 
 FROM information_schema.routines
 WHERE routine_schema NOT IN ('pg_catalog', 'information_schema')
 {(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND routine_name " + filter)}
+UNION ALL
+SELECT sequence_schema AS SchemaName, sequence_name AS ObjectName, 'Sequence' AS ObjectType
+FROM information_schema.sequences
+WHERE sequence_schema NOT IN ('pg_catalog', 'information_schema')
+{(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND sequence_name " + filter)}
 ORDER BY SchemaName, ObjectType, ObjectName;
 """;
 
@@ -359,6 +388,16 @@ JOIN pg_namespace n ON n.oid=c.relnamespace
 WHERE NOT t.tgisinternal AND n.nspname=@schemaName AND c.relname=@objectName
 ORDER BY t.tgname;
 """;
+
+        public string BuildSequenceMetadataQuery()
+            => """
+SELECT start_value::bigint AS StartValue
+     , increment_by::bigint AS IncrementBy
+     , last_value::bigint AS CurrentValue
+  FROM pg_sequences
+ WHERE schemaname=@schemaName
+   AND sequencename=@objectName;
+""";
     }
 
     private sealed class OracleMetadataQueryStrategy : ISqlMetadataQueryStrategy
@@ -371,10 +410,11 @@ SELECT OWNER AS SchemaName
        WHEN 'TABLE' THEN 'Table' 
        WHEN 'VIEW' THEN 'View' 
        WHEN 'PROCEDURE' THEN 'Procedure' 
+       WHEN 'SEQUENCE' THEN 'Sequence'
        ELSE OBJECT_TYPE 
        END AS ObjectType
 FROM ALL_OBJECTS
-WHERE OBJECT_TYPE IN ('TABLE', 'VIEW', 'PROCEDURE')
+WHERE OBJECT_TYPE IN ('TABLE', 'VIEW', 'PROCEDURE', 'SEQUENCE')
   {(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND OBJECT_NAME " + filter)}
 ORDER BY OWNER, ObjectType, OBJECT_NAME
 """;
@@ -431,6 +471,15 @@ FROM ALL_TRIGGERS
 WHERE OWNER=:schemaName AND TABLE_NAME=:objectName
 ORDER BY TRIGGER_NAME
 """;
+
+        public string BuildSequenceMetadataQuery()
+            => """
+SELECT LAST_NUMBER AS StartValue
+     , INCREMENT_BY AS IncrementBy
+     , LAST_NUMBER AS CurrentValue
+FROM ALL_SEQUENCES
+WHERE SEQUENCE_OWNER=:schemaName AND SEQUENCE_NAME=:objectName
+""";
     }
 
     private sealed class SqliteMetadataQueryStrategy : ISqlMetadataQueryStrategy
@@ -472,6 +521,9 @@ ORDER BY cid;
 
         public string BuildTriggersQuery()
             => "SELECT \"\" AS TriggerName WHERE 1=0;";
+
+        public string BuildSequenceMetadataQuery()
+            => "SELECT '' AS StartValue, '' AS IncrementBy, '' AS CurrentValue WHERE 1=0;";
     }
 
     private sealed class Db2MetadataQueryStrategy : ISqlMetadataQueryStrategy
@@ -491,6 +543,13 @@ SELECT RTRIM(ROUTINESCHEMA) AS SchemaName
 FROM SYSCAT.ROUTINES
 WHERE ROUTINETYPE = 'P'
   {(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND RTRIM(ROUTINENAME) " + filter)}
+UNION ALL
+SELECT RTRIM(SEQSCHEMA) AS SchemaName
+     , RTRIM(SEQNAME) AS ObjectName
+     , 'Sequence' AS ObjectType
+FROM SYSCAT.SEQUENCES
+WHERE 1=1
+  {(string.IsNullOrWhiteSpace(filter) ? string.Empty : " AND RTRIM(SEQNAME) " + filter)}
 ORDER BY SchemaName, ObjectType, ObjectName;
 """;
 
@@ -544,6 +603,15 @@ SELECT RTRIM(TRIGNAME) AS TriggerName
 FROM SYSCAT.TRIGGERS
 WHERE TABSCHEMA=@schemaName AND TABNAME=@objectName
 ORDER BY TRIGNAME;
+""";
+
+        public string BuildSequenceMetadataQuery()
+            => """
+SELECT BIGINT(START) AS StartValue
+     , BIGINT(INCREMENT) AS IncrementBy
+     , CAST(NULL AS BIGINT) AS CurrentValue
+FROM SYSCAT.SEQUENCES
+WHERE RTRIM(SEQSCHEMA)=@schemaName AND RTRIM(SEQNAME)=@objectName;
 """;
     }
 

@@ -6,12 +6,4 @@ namespace DbSqlLikeMem.Db2.EfCore.Test;
 /// </summary>
 public sealed class EfCoreSmokeTests(
     ITestOutputHelper helper
-) : EfCoreSupportTestsBase(helper)
-{
-    /// <summary>
-    /// EN: Creates the Db2 EF Core connection factory used by the shared contract tests.
-    /// PT: Cria a fábrica de conexão EF Core de Db2 usada pelos testes de contrato compartilhados.
-    /// </summary>
-    protected override IDbSqlLikeMemEfCoreConnectionFactory CreateFactory()
-        => new Db2EfCoreConnectionFactory();
-}
+) : EfCoreSmokeTestsBase(helper, static () => new Db2EfCoreConnectionFactory());

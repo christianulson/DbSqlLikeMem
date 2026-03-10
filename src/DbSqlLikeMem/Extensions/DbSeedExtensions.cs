@@ -43,6 +43,47 @@ public static class DbSeedExtensions
     }
 
     /// <summary>
+    /// EN: Configures the next identity value and optional explicit identity insertion for a table.
+    /// PT: Configura o próximo valor de identidade e a inserção explícita opcional de identity para uma tabela.
+    /// </summary>
+    /// <param name="cnn">EN: Target connection. PT: Conexão alvo.</param>
+    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
+    /// <param name="nextIdentity">EN: Next identity value. PT: Próximo valor de identidade.</param>
+    /// <param name="allowInsertOverride">EN: Enables explicit identity values when true. PT: Habilita valores explícitos de identity quando true.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: Same connection instance. PT: Mesma instância da conexão.</returns>
+    public static DbConnectionMockBase IdentityOf(
+        this DbConnectionMockBase cnn,
+        string tableName,
+        int nextIdentity,
+        bool allowInsertOverride = false,
+        string? schemaName = null)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
+        cnn.GetTable(tableName, schemaName).IdentityOf(nextIdentity, allowInsertOverride);
+        return cnn;
+    }
+
+    /// <summary>
+    /// EN: Configures the next identity value and optional explicit identity insertion for a table.
+    /// PT: Configura o próximo valor de identidade e a inserção explícita opcional de identity para uma tabela.
+    /// </summary>
+    /// <param name="tb">EN: Target table. PT: Tabela alvo.</param>
+    /// <param name="nextIdentity">EN: Next identity value. PT: Próximo valor de identidade.</param>
+    /// <param name="allowInsertOverride">EN: Enables explicit identity values when true. PT: Habilita valores explícitos de identity quando true.</param>
+    /// <returns>EN: Same table instance. PT: Mesma instância da tabela.</returns>
+    public static ITableMock IdentityOf(
+        this ITableMock tb,
+        int nextIdentity,
+        bool allowInsertOverride = false)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(tb, nameof(tb));
+        tb.NextIdentity = nextIdentity;
+        tb.AllowIdentityInsert = allowInsertOverride;
+        return tb;
+    }
+
+    /// <summary>
     /// EN: Implements this member.
     /// PT: Implementa este membro.
     /// </summary>
@@ -61,12 +102,12 @@ public static class DbSeedExtensions
         ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
 
         if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName))
-            throw new InvalidOperationException($"Tabela '{tableName}' ainda não definida.");
+            throw new InvalidOperationException(SqlExceptionMessages.TableNotYetDefined(tableName));
         ArgumentNullExceptionCompatible.ThrowIfNull(tb, nameof(tb));
         ArgumentNullExceptionCompatible.ThrowIfNull(column, nameof(column));
 
         if (tb!.Columns.ContainsKey(column))
-            throw new InvalidOperationException($"Coluna '{column}' já existe em '{tableName}'.");
+            throw new InvalidOperationException(SqlExceptionMessages.ColumnAlreadyExistsInTable(column, tableName));
 
         var dbType = MapTypeToDbType(typeof(T));
 
@@ -103,7 +144,7 @@ public static class DbSeedExtensions
         ArgumentNullExceptionCompatible.ThrowIfNull(column, nameof(column));
 
         if (tb.Columns.ContainsKey(column))
-            throw new InvalidOperationException($"Coluna '{column}' já existe em '{tb}'.");
+            throw new InvalidOperationException(SqlExceptionMessages.ColumnAlreadyExistsInTable(column, tb.TableName));
 
         var dbType = MapTypeToDbType(typeof(T));
 
@@ -135,7 +176,7 @@ public static class DbSeedExtensions
         ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
         ArgumentNullExceptionCompatible.ThrowIfNull(rows, nameof(rows));
         if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName) || tb == null)
-            throw new InvalidOperationException($"Tabela '{tableName}' ainda não definida.");
+            throw new InvalidOperationException(SqlExceptionMessages.TableNotYetDefined(tableName));
         var props = typeof(T).GetFields();
         foreach (var r in rows)
         {
@@ -163,13 +204,14 @@ public static class DbSeedExtensions
         ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
         ArgumentNullExceptionCompatible.ThrowIfNull(rows, nameof(rows));
         if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName) || tb == null)
-            throw new InvalidOperationException($"Tabela '{tableName}' ainda não definida.");
+            throw new InvalidOperationException(SqlExceptionMessages.TableNotYetDefined(tableName));
         foreach (var arr in rows)
         {
             var dic = new Dictionary<int, object?>();
             var orderedCols = tb.Columns.Values.OrderBy(c => c.Index).ToList();
             if (arr.Length > orderedCols.Count)
-                throw new InvalidOperationException($"Seed row has {arr.Length} values, but table '{tableName}' has only {orderedCols.Count} columns.");
+                throw new InvalidOperationException(
+                    SqlExceptionMessages.SeedRowHasMoreValuesThanColumns(arr.Length, tableName, orderedCols.Count));
             for (int i = 0; i < arr.Length; i++)
                 dic[orderedCols[i].Index] = arr[i];
             tb.Add(dic);

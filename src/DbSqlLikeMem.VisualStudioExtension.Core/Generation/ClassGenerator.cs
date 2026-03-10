@@ -29,7 +29,7 @@ public sealed class ClassGenerator
             }
 
             Directory.CreateDirectory(mapping.OutputDirectory);
-            var fileName = ResolveFileName(mapping.FileNamePattern, request.Connection, dbObject);
+            var fileName = ResolveFileName(mapping.FileNamePattern, request.Connection, dbObject, mapping.Namespace);
             var fullPath = Path.Combine(mapping.OutputDirectory, fileName);
             var content = classContentFactory(dbObject);
 
@@ -42,7 +42,11 @@ public sealed class ClassGenerator
         return writtenFiles;
     }
 
-    private static string ResolveFileName(string fileNamePattern, ConnectionDefinition connection, DatabaseObjectReference dbObject)
+    private static string ResolveFileName(
+        string fileNamePattern,
+        ConnectionDefinition connection,
+        DatabaseObjectReference dbObject,
+        string? @namespace = null)
     {
         var safePattern = string.IsNullOrWhiteSpace(fileNamePattern)
             ? "{NamePascal}{Type}Factory.cs"
@@ -51,22 +55,13 @@ public sealed class ClassGenerator
         var namePascal = GenerationRuleSet.ToPascalCase(dbObject.Name);
         var typeName = dbObject.Type.ToString();
 
-        return ReplaceIgnoreCase(
-            ReplaceIgnoreCase(
-                ReplaceIgnoreCase(
-                    ReplaceIgnoreCase(
-                        ReplaceIgnoreCase(
-                            ReplaceIgnoreCase(safePattern, "{NamePascal}", namePascal),
-                            "{Name}",
-                            dbObject.Name),
-                        "{Type}",
-                        typeName),
-                    "{Schema}",
-                    dbObject.Schema),
-                "{DatabaseType}",
-                connection.DatabaseType),
-            "{DatabaseName}",
-            connection.DatabaseName);
+        var resolved = ReplaceIgnoreCase(safePattern, "{NamePascal}", namePascal);
+        resolved = ReplaceIgnoreCase(resolved, "{Name}", dbObject.Name);
+        resolved = ReplaceIgnoreCase(resolved, "{Type}", typeName);
+        resolved = ReplaceIgnoreCase(resolved, "{Schema}", dbObject.Schema);
+        resolved = ReplaceIgnoreCase(resolved, "{DatabaseType}", connection.DatabaseType);
+        resolved = ReplaceIgnoreCase(resolved, "{DatabaseName}", connection.DatabaseName);
+        return ReplaceIgnoreCase(resolved, "{Namespace}", @namespace ?? string.Empty);
     }
 
     private static string ReplaceIgnoreCase(string value, string oldValue, string newValue)

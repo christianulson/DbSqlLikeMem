@@ -16,22 +16,54 @@ public static class StructuredClassContentFactory
     /// </summary>
     public static string Build(DatabaseObjectReference dbObject, string? @namespace = null, string? databaseType = null)
     {
-        var effectiveDatabaseType = string.IsNullOrWhiteSpace(databaseType) ? "MySql" : databaseType;
+        if (dbObject.Type == DatabaseObjectType.Sequence)
+            return BuildSequence(dbObject, @namespace);
+
+        var effectiveDatabaseType = string.IsNullOrWhiteSpace(databaseType) ? "MySql" : databaseType!;
         var className = $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}{dbObject.Type}Factory";
         var methodName = $"Create{dbObject.Type}{GenerationRuleSet.ToPascalCase(dbObject.Name)}";
 
-        var columns = ParseColumns(Get(dbObject, "Columns"));
-        var primaryKey = ParseCommaSeparated(Get(dbObject, "PrimaryKey"));
-        var indexes = ParseIndexes(Get(dbObject, "Indexes"));
-        var foreignKeys = ParseForeignKeys(Get(dbObject, "ForeignKeys"));
+        var columns = ReadColumns(dbObject);
+        var primaryKey = ReadPrimaryKey(dbObject);
+        var indexes = ReadIndexes(dbObject);
+        var foreignKeys = ReadForeignKeys(dbObject);
 
         var sb = new StringBuilder();
-        if (!string.IsNullOrWhiteSpace(@namespace))
-        {
-            sb.AppendLine($"namespace {@namespace};");
-            sb.AppendLine();
-        }
+        AppendFileHeader(sb, dbObject, @namespace);
+        sb.AppendLine($"public static class {className}");
+        sb.AppendLine("{");
+        sb.AppendLine($"    public static ITableMock {methodName}(this DbMock db)");
+        sb.AppendLine("    {");
+        sb.AppendLine($"        var table = db.AddTable({Literal(dbObject.Name)});");
+        AppendColumns(sb, columns, effectiveDatabaseType);
+        sb.AppendLine();
 
+        AppendPrimaryKey(sb, primaryKey);
+        AppendIndexes(sb, indexes);
+        AppendForeignKeys(sb, dbObject, foreignKeys);
+        sb.AppendLine("        return table;");
+        sb.AppendLine("    }");
+        sb.AppendLine("}");
+        return sb.ToString();
+    }
+
+    private static void AppendFileHeader(StringBuilder sb, DatabaseObjectReference dbObject, string? @namespace)
+    {
+        AppendNamespace(sb, @namespace);
+        AppendObjectMetadata(sb, dbObject);
+    }
+
+    private static void AppendNamespace(StringBuilder sb, string? @namespace)
+    {
+        if (string.IsNullOrWhiteSpace(@namespace))
+            return;
+
+        sb.AppendLine($"namespace {@namespace};");
+        sb.AppendLine();
+    }
+
+    private static void AppendObjectMetadata(StringBuilder sb, DatabaseObjectReference dbObject)
+    {
         sb.AppendLine($"// DBSqlLikeMem:Schema={dbObject.Schema}");
         sb.AppendLine($"// DBSqlLikeMem:Object={dbObject.Name}");
         sb.AppendLine($"// DBSqlLikeMem:Type={dbObject.Type}");
@@ -39,62 +71,121 @@ public static class StructuredClassContentFactory
         sb.AppendLine($"// DBSqlLikeMem:PrimaryKey={Get(dbObject, "PrimaryKey")}");
         sb.AppendLine($"// DBSqlLikeMem:Indexes={Get(dbObject, "Indexes")}");
         sb.AppendLine($"// DBSqlLikeMem:ForeignKeys={Get(dbObject, "ForeignKeys")}");
+    }
 
-        sb.AppendLine($"public static class {className}");
-        sb.AppendLine("{");
-        sb.AppendLine($"    public static ITableMock {methodName}(this DbMock db)");
-        sb.AppendLine("    {");
-        sb.AppendLine($"        var table = db.AddTable({Literal(dbObject.Name)});");
-
-        foreach (var c in columns.OrderBy(c => c.Ordinal))
+    private static void AppendColumns(StringBuilder sb, IReadOnlyList<ColumnMeta> columns, string effectiveDatabaseType)
+    {
+        foreach (var column in columns.OrderBy(c => c.Ordinal))
         {
-            var mappedDbType = GenerationRuleSet.MapDbType(c.DataType, c.CharMaxLen, c.NumPrecision, c.Name, effectiveDatabaseType);
-            var ctor = $"DbType.{mappedDbType}, {Bool(c.IsNullable)}";
-            if (c.IsIdentity) ctor += ", true";
-            if (!string.IsNullOrWhiteSpace(c.DefaultValue) && GenerationRuleSet.IsSimpleLiteralDefault(c.DefaultValue))
-                ctor += $", defaultValue: {GenerationRuleSet.FormatDefaultLiteral(c.DefaultValue, mappedDbType)}";
-            if (c.CharMaxLen is > 0 and <= int.MaxValue)
-                ctor += $", size: {(int)c.CharMaxLen.Value}";
-            if (c.NumScale is >= 0)
-                ctor += $", decimalPlaces: {c.NumScale.Value}";
-
-            var enums = GenerationRuleSet.TryParseEnumValues(c.ColumnType);
-            if (enums.Length > 0)
-                ctor += $", enumValues: [{string.Join(", ", enums.Select(Literal))}]";
-
+            var ctor = BuildColumnConstructor(column, effectiveDatabaseType);
             sb.AppendLine();
-            sb.Append($"        table.AddColumn({Literal(c.Name)}, {ctor})");
-            if (!string.IsNullOrWhiteSpace(c.Generated) && GenerationRuleSet.TryConvertIfIsNull(c.Generated, out var genCode))
+            sb.Append($"        table.AddColumn({Literal(column.Name)}, {ctor})");
+            if (!string.IsNullOrWhiteSpace(column.Generated)
+                && GenerationRuleSet.TryConvertIfIsNull(column.Generated, out var genCode))
+            {
                 sb.Append($"\n            .GetGenValue = {genCode}");
+            }
 
             sb.Append(';');
         }
-        sb.AppendLine();
+    }
 
-        if (primaryKey.Count > 0)
-        {
-            sb.AppendLine($"        table.AddPrimaryKeyIndexes({string.Join(",", primaryKey.Select(_ => $"\"{_}\""))});");
-            sb.AppendLine($"        table.CreateIndex(\"PRIMARY\", [{string.Join(", ", primaryKey.Select(Literal))}], unique: true);");
-        }
+    private static string BuildColumnConstructor(ColumnMeta column, string effectiveDatabaseType)
+    {
+        var mappedDbType = GenerationRuleSet.MapDbType(
+            column.DataType,
+            column.CharMaxLen,
+            column.NumPrecision,
+            column.Name,
+            effectiveDatabaseType);
+        var ctor = $"DbType.{mappedDbType}, {Bool(column.IsNullable)}";
+        if (column.IsIdentity)
+            ctor += ", true";
+        if (!string.IsNullOrWhiteSpace(column.DefaultValue) && GenerationRuleSet.IsSimpleLiteralDefault(column.DefaultValue))
+            ctor += $", defaultValue: {GenerationRuleSet.FormatDefaultLiteral(column.DefaultValue, mappedDbType)}";
+        if (column.CharMaxLen is > 0 and <= int.MaxValue)
+            ctor += $", size: {(int)column.CharMaxLen.Value}";
+        if (column.NumScale is >= 0)
+            ctor += $", decimalPlaces: {column.NumScale.Value}";
 
+        var enums = GenerationRuleSet.TryParseEnumValues(column.ColumnType);
+        if (enums.Length > 0)
+            ctor += $", enumValues: [{string.Join(", ", enums.Select(Literal))}]";
+
+        return ctor;
+    }
+
+    private static void AppendPrimaryKey(StringBuilder sb, IReadOnlyList<string> primaryKey)
+    {
+        if (primaryKey.Count == 0)
+            return;
+
+        sb.AppendLine($"        table.AddPrimaryKeyIndexes({string.Join(",", primaryKey.Select(_ => $"\"{_}\""))});");
+        sb.AppendLine($"        table.CreateIndex(\"PRIMARY\", [{string.Join(", ", primaryKey.Select(Literal))}], unique: true);");
+    }
+
+    private static void AppendIndexes(StringBuilder sb, IReadOnlyList<IndexMeta> indexes)
+    {
         foreach (var idx in indexes.OrderBy(i => i.Name, StringComparer.OrdinalIgnoreCase))
-        {
             sb.AppendLine($"        table.CreateIndex({Literal(idx.Name)}, [{string.Join(", ", idx.Columns.Select(Literal))}], unique: {Bool(idx.Unique)});");
-        }
+    }
 
+    private static void AppendForeignKeys(
+        StringBuilder sb,
+        DatabaseObjectReference dbObject,
+        IReadOnlyList<ForeignKeyMeta> foreignKeys)
+    {
         foreach (var fk in foreignKeys)
         {
             sb.AppendLine($"        table.CreateForeignKey({Literal($"FK_{dbObject.Name}_{fk.Column}_{fk.RefTable}_{fk.RefColumn}")}, {Literal(fk.RefTable)}, [({Literal(fk.Column)}, {Literal(fk.RefColumn)})]);");
         }
+    }
 
-        sb.AppendLine("        return table;");
+    private static string BuildSequence(DatabaseObjectReference dbObject, string? @namespace)
+    {
+        var className = $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}{dbObject.Type}Factory";
+        var methodName = $"Create{dbObject.Type}{GenerationRuleSet.ToPascalCase(dbObject.Name)}";
+        var startValue = ParseNullableLong(Get(dbObject, "StartValue")) ?? 1L;
+        var incrementBy = ParseNullableLong(Get(dbObject, "IncrementBy")) ?? 1L;
+        var currentValue = ParseNullableLong(Get(dbObject, "CurrentValue"));
+
+        var sb = new StringBuilder();
+        AppendSequenceFileHeader(sb, dbObject, @namespace);
+        sb.AppendLine($"public static class {className}");
+        sb.AppendLine("{");
+        sb.AppendLine($"    public static SequenceDef {methodName}(this DbMock db)");
+        sb.AppendLine("    {");
+        sb.AppendLine($"        return db.AddSequence({Literal(dbObject.Name)}, startValue: {startValue}L, incrementBy: {incrementBy}L, currentValue: {(currentValue.HasValue ? $"{currentValue.Value}L" : "null")}, schemaName: {Literal(dbObject.Schema)});");
         sb.AppendLine("    }");
         sb.AppendLine("}");
         return sb.ToString();
     }
 
+    private static void AppendSequenceFileHeader(StringBuilder sb, DatabaseObjectReference dbObject, string? @namespace)
+    {
+        AppendNamespace(sb, @namespace);
+        sb.AppendLine($"// DBSqlLikeMem:Schema={dbObject.Schema}");
+        sb.AppendLine($"// DBSqlLikeMem:Object={dbObject.Name}");
+        sb.AppendLine($"// DBSqlLikeMem:Type={dbObject.Type}");
+        sb.AppendLine($"// DBSqlLikeMem:StartValue={Get(dbObject, "StartValue")}");
+        sb.AppendLine($"// DBSqlLikeMem:IncrementBy={Get(dbObject, "IncrementBy")}");
+        sb.AppendLine($"// DBSqlLikeMem:CurrentValue={Get(dbObject, "CurrentValue")}");
+    }
+
     private static string Get(DatabaseObjectReference obj, string key)
         => obj.Properties?.TryGetValue(key, out var v) == true ? v : string.Empty;
+
+    private static List<ColumnMeta> ReadColumns(DatabaseObjectReference dbObject)
+        => ParseColumns(Get(dbObject, "Columns"));
+
+    private static List<string> ReadPrimaryKey(DatabaseObjectReference dbObject)
+        => ParseCommaSeparated(Get(dbObject, "PrimaryKey"));
+
+    private static List<IndexMeta> ReadIndexes(DatabaseObjectReference dbObject)
+        => ParseIndexes(Get(dbObject, "Indexes"));
+
+    private static List<ForeignKeyMeta> ReadForeignKeys(DatabaseObjectReference dbObject)
+        => ParseForeignKeys(Get(dbObject, "ForeignKeys"));
 
     private static List<ColumnMeta> ParseColumns(string text)
     {

@@ -55,7 +55,8 @@ cmd.ExecuteNonQuery();
 
 ### Target frameworks
 
-Core and provider packages target modern .NET and legacy enterprise scenarios, including `net462`, `netstandard2.0`, `net8.0` (with package-specific variations where applicable).
+Core and provider packages follow the central production targets from `src/Directory.Build.props`: `net462`, `netstandard2.0`, and `net8.0`.
+Test and test-tools projects use the dedicated override target set: `net462`, `net6.0`, and `net8.0`.
 
 ### Documentation and contribution
 
@@ -122,7 +123,8 @@ cmd.ExecuteNonQuery();
 
 ### Frameworks alvo
 
-Os pacotes core e de provedores cobrem cenários modernos e legados do .NET, incluindo `net462`, `netstandard2.0`, `net8.0` (com variações específicas por pacote quando aplicável).
+Os pacotes core e de provedores seguem os alvos de produção centrais de `src/Directory.Build.props`: `net462`, `netstandard2.0` e `net8.0`.
+Os projetos de teste e test-tools usam o conjunto de override dedicado: `net462`, `net6.0` e `net8.0`.
 
 ### Documentação e contribuição
 

@@ -7,6 +7,7 @@ internal sealed class SqlQueryParser
     private readonly IReadOnlyList<SqlToken> _toks;
     private readonly ISqlDialect _dialect;
     private readonly IDataParameterCollection? _parameters;
+    private readonly AutoSqlSyntaxFeatures _autoSyntaxFeatures;
     private int _i;
     // INSERT ... SELECT pode ter um sufixo de UPSERT após o SELECT (MySQL ON DUPLICATE..., Postgres ON CONFLICT ...)
     private bool _allowInsertSelectSuffixBoundary;
@@ -35,6 +36,24 @@ internal sealed class SqlQueryParser
         _dialect = dialect;
         _parameters = parameters;
         _toks = new SqlTokenizer(sql, _dialect).Tokenize();
+        _autoSyntaxFeatures = _dialect is AutoSqlDialect
+            ? SqlSyntaxDetector.Detect(sql, _toks)
+            : AutoSqlSyntaxFeatures.None;
+        _i = 0;
+    }
+
+    private SqlQueryParser(
+        IReadOnlyList<SqlToken> toks,
+        ISqlDialect dialect,
+        IDataParameterCollection? parameters,
+        AutoSqlSyntaxFeatures autoSyntaxFeatures)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(toks, nameof(toks));
+        ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
+        _toks = toks;
+        _dialect = dialect;
+        _parameters = parameters;
+        _autoSyntaxFeatures = autoSyntaxFeatures;
         _i = 0;
     }
 
@@ -47,6 +66,25 @@ internal sealed class SqlQueryParser
     /// <returns>EN: Parsed query AST root. PT: Raiz da AST da query parseada.</returns>
     public static SqlQueryBase Parse(string sql, ISqlDialect dialect)
         => Parse(sql, dialect, null);
+
+    /// <summary>
+    /// EN: Parses one SQL statement using the automatic dialect compatibility mode.
+    /// PT: Faz o parsing de um statement SQL usando o modo de compatibilidade automatica de dialeto.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
+    /// <returns>EN: Parsed query AST root. PT: Raiz da AST da query parseada.</returns>
+    public static SqlQueryBase ParseAuto(string sql)
+        => Parse(sql, new AutoSqlDialect(), null);
+
+    /// <summary>
+    /// EN: Parses one SQL statement using the automatic dialect compatibility mode and optional parameters.
+    /// PT: Faz o parsing de um statement SQL usando o modo de compatibilidade automatica de dialeto e parametros opcionais.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
+    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized numeric values. PT: Parametros de comando opcionais usados por caminhos do parser que resolvem valores numericos parametrizados.</param>
+    /// <returns>EN: Parsed query AST root. PT: Raiz da AST da query parseada.</returns>
+    public static SqlQueryBase ParseAuto(string sql, IDataParameterCollection? parameters)
+        => Parse(sql, new AutoSqlDialect(), parameters);
 
     /// <summary>
     /// EN: Parses one SQL statement into an AST root using dialect capabilities and optional command parameters.
@@ -63,13 +101,16 @@ internal sealed class SqlQueryParser
 
         // Fast feature gate before cache lookup to avoid serving incompatible ASTs for version-gated commands.
         var tokens = new SqlTokenizer(sql, dialect).Tokenize();
+        var autoSyntaxFeatures = dialect is AutoSqlDialect
+            ? SqlSyntaxDetector.Detect(sql, tokens)
+            : AutoSqlSyntaxFeatures.None;
         var first = tokens.Count > 0 ? tokens[0] : default;
         if (IsWord(first, "MERGE") && !dialect.SupportsMerge)
             throw SqlUnsupported.ForMerge(dialect);
 
         if (parameters is not null)
         {
-            var uncached = ParseUncached(sql, dialect, parameters);
+            var uncached = ParseUncached(tokens, dialect, parameters, autoSyntaxFeatures);
             EnsureDialectSupport(uncached, dialect);
             return uncached with { RawSql = sql };
         }
@@ -77,7 +118,7 @@ internal sealed class SqlQueryParser
         // DDL statements are cheap to parse and benefit from deterministic no-cache behavior in tests.
         if (IsWord(first, "CREATE") || IsWord(first, "DROP"))
         {
-            var uncached = ParseUncached(sql, dialect, null);
+            var uncached = ParseUncached(tokens, dialect, null, autoSyntaxFeatures);
             EnsureDialectSupport(uncached, dialect);
             return uncached with { RawSql = sql };
         }
@@ -89,7 +130,7 @@ internal sealed class SqlQueryParser
             return cached with { RawSql = sql };
         }
 
-        var parsed = ParseUncached(sql, dialect, null);
+        var parsed = ParseUncached(tokens, dialect, null, autoSyntaxFeatures);
         EnsureDialectSupport(parsed, dialect);
         _astCache.Set(cacheKey, parsed);
 
@@ -156,9 +197,13 @@ internal sealed class SqlQueryParser
         }
     }
 
-    private static SqlQueryBase ParseUncached(string sql, ISqlDialect dialect, IDataParameterCollection? parameters)
+    private static SqlQueryBase ParseUncached(
+        IReadOnlyList<SqlToken> tokens,
+        ISqlDialect dialect,
+        IDataParameterCollection? parameters,
+        AutoSqlSyntaxFeatures autoSyntaxFeatures)
     {
-        var q = new SqlQueryParser(sql, dialect, parameters);
+        var q = new SqlQueryParser(tokens, dialect, parameters, autoSyntaxFeatures);
         var first = q.Peek();
 
         SqlQueryBase? result;
@@ -202,6 +247,27 @@ internal sealed class SqlQueryParser
         => ParseMulti(sql, dialect, null);
 
     /// <summary>
+    /// EN: Parses a SQL batch using the automatic dialect compatibility mode.
+    /// PT: Faz o parsing de um lote SQL usando o modo de compatibilidade automatica de dialeto.
+    /// </summary>
+    /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
+    /// <returns>EN: Sequence of parsed AST roots. PT: Sequencia de raizes de AST parseadas.</returns>
+    public static IEnumerable<SqlQueryBase> ParseMultiAuto(string sql)
+        => ParseMulti(sql, new AutoSqlDialect(), null);
+
+    /// <summary>
+    /// EN: Parses a SQL batch using the automatic dialect compatibility mode and optional parameters.
+    /// PT: Faz o parsing de um lote SQL usando o modo de compatibilidade automatica de dialeto e parametros opcionais.
+    /// </summary>
+    /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
+    /// <param name="parameters">EN: Optional parameters forwarded to each statement parse. PT: Parametros opcionais repassados para o parse de cada statement.</param>
+    /// <returns>EN: Sequence of parsed AST roots. PT: Sequencia de raizes de AST parseadas.</returns>
+    public static IEnumerable<SqlQueryBase> ParseMultiAuto(
+        string sql,
+        IDataParameterCollection? parameters)
+        => ParseMulti(sql, new AutoSqlDialect(), parameters);
+
+    /// <summary>
     /// EN: Parses a SQL batch and yields AST roots for each top-level statement split by semicolon boundaries.
     /// PT: Faz o parsing de um lote SQL e retorna raízes de AST para cada statement top-level separado por fronteiras de ponto e vírgula.
     /// </summary>
@@ -234,6 +300,15 @@ internal sealed class SqlQueryParser
         ISqlDialect dialect)
         => SplitStatementsTopLevel(sql, dialect);
 
+    /// <summary>
+    /// EN: Splits a SQL batch into top-level statements using the automatic dialect compatibility mode.
+    /// PT: Separa um lote SQL em statements de topo usando o modo de compatibilidade automatica de dialeto.
+    /// </summary>
+    /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
+    /// <returns>EN: Top-level SQL statements. PT: Statements SQL de topo.</returns>
+    public static IEnumerable<string> SplitStatementsAuto(string sql)
+        => SplitStatementsTopLevel(sql, new AutoSqlDialect());
+
     // Mantido para compatibilidade com lógica de Union
     /// <summary>
     /// EN: Represents a normalized UNION parsing result including parts, ALL flags, final ORDER BY and row-limit tail.
@@ -264,6 +339,15 @@ internal sealed class SqlQueryParser
 
         throw new InvalidOperationException("UNION chain deve conter apenas SELECT.");
     }
+
+    /// <summary>
+    /// EN: Parses SQL into a normalized UNION chain using the automatic dialect compatibility mode.
+    /// PT: Faz o parsing de SQL para uma cadeia UNION normalizada usando o modo de compatibilidade automatica de dialeto.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
+    /// <returns>EN: Normalized UNION chain representation. PT: Representacao normalizada de cadeia UNION.</returns>
+    public static UnionChain ParseUnionChainAuto(string sql)
+        => ParseUnionChain(sql, new AutoSqlDialect());
 
     // ------------------------------------------------------------
     // NOVAS IMPLEMENTAÇÕES DE INSERT / UPDATE / DELETE VIA TOKENS
@@ -495,14 +579,6 @@ internal sealed class SqlQueryParser
             return null;
 
         var next = Peek(1);
-        var isSqlServerDialect = string.Equals(_dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase);
-
-        // SQL Server gate must always be explicit NotSupported for PostgreSQL/MySQL-specific UPSERT syntaxes.
-        if (isSqlServerDialect && IsWord(next, "DUPLICATE"))
-            throw new NotSupportedException(SqlUnsupported.ForOnDuplicateKeyUpdateClause(_dialect).Message);
-
-        if (isSqlServerDialect && IsWord(next, "CONFLICT"))
-            throw new NotSupportedException(SqlUnsupported.ForOnConflictClause(_dialect).Message);
 
         // MySQL: ON DUPLICATE KEY UPDATE
         if (IsWord(next, "DUPLICATE"))
@@ -880,7 +956,7 @@ internal sealed class SqlQueryParser
         // Se vier JOIN antes do SET, pulamos os tokens do JOIN aqui (as estratégias smart usam RawSql)
         if (IsJoinStart(Peek()))
         {
-            if (!string.Equals(_dialect.Name, "mysql", StringComparison.OrdinalIgnoreCase))
+            if (!_dialect.SupportsUpdateJoinFromSubquerySyntax)
                 throw SqlUnsupported.ForDialect(_dialect, "UPDATE ... JOIN (subquery)");
 
             hasJoin = true;
@@ -1289,10 +1365,7 @@ internal sealed class SqlQueryParser
         if (allowOrderByAndLimit)
             TryConsumeQueryHintOption();
         if (top is not null)
-        {
-            // TOP é prefixo (SQL Server). Se também apareceu LIMIT/FETCH no fim, prioriza o fim.
             rowLimit ??= top;
-        }
 
         if (allowOrderByAndLimit)
         {
@@ -1314,7 +1387,7 @@ internal sealed class SqlQueryParser
             }
         }
 
-        return new SqlSelectQuery(
+        var query = new SqlSelectQuery(
             Ctes: ctes,
             Distinct: distinct,
             SelectItems: selectItems,
@@ -1328,13 +1401,23 @@ internal sealed class SqlQueryParser
         {
             Table = table
         };
+
+        if (_dialect is AutoSqlDialect)
+        {
+            query = DialectNormalizer.NormalizeAutoSelect(
+                query,
+                _autoSyntaxFeatures,
+                ResolveParameterInt);
+        }
+
+        return query;
     }
 
     private void TryParseSelectModifiers()
     {
         while (IsWord(Peek(), "SQL_CALC_FOUND_ROWS"))
         {
-            if (!string.Equals(_dialect.Name, "mysql", StringComparison.OrdinalIgnoreCase))
+            if (!_dialect.SupportsSqlCalcFoundRowsModifier)
                 throw SqlUnsupported.ForDialect(_dialect, "SELECT modifier SQL_CALC_FOUND_ROWS");
 
             Consume();
@@ -1664,6 +1747,9 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "VIEW"))
             return ParseCreateView(orReplace);
 
+        if (IsWord(Peek(), "SEQUENCE"))
+            return ParseCreateSequence(orReplace);
+
         if (orReplace)
             throw new InvalidOperationException("CREATE OR REPLACE is only supported for VIEW statements.");
 
@@ -1903,6 +1989,84 @@ internal sealed class SqlQueryParser
         };
     }
 
+    private SqlCreateSequenceQuery ParseCreateSequence(bool orReplace)
+    {
+        if (orReplace)
+            throw new InvalidOperationException("CREATE OR REPLACE is only supported for VIEW statements.");
+
+        if (!_dialect.SupportsSequenceDdl)
+            throw SqlUnsupported.ForDialect(_dialect, "CREATE SEQUENCE");
+
+        ExpectWord("SEQUENCE");
+
+        var ifNotExists = false;
+        if (IsWord(Peek(), "IF"))
+        {
+            Consume();
+            ExpectWord("NOT");
+            ExpectWord("EXISTS");
+            ifNotExists = true;
+        }
+
+        var sequenceNameToken = Peek();
+        if (IsEnd(sequenceNameToken) || IsSymbol(sequenceNameToken, ";"))
+            throw new InvalidOperationException("CREATE SEQUENCE requires a sequence name.");
+
+        var sequence = ParseQualifiedObjectName();
+        var startValue = 1L;
+        var incrementBy = 1L;
+        var parsedStart = false;
+        var parsedIncrement = false;
+
+        while (!IsEnd(Peek()) && !IsSymbol(Peek(), ";"))
+        {
+            if (IsWord(Peek(), "START"))
+            {
+                if (parsedStart)
+                    throw new InvalidOperationException("CREATE SEQUENCE START can only be specified once.");
+
+                Consume();
+                if (IsWord(Peek(), "WITH"))
+                    Consume();
+
+                startValue = ExpectSignedNumberLong("CREATE SEQUENCE START");
+                parsedStart = true;
+                continue;
+            }
+
+            if (IsWord(Peek(), "INCREMENT"))
+            {
+                if (parsedIncrement)
+                    throw new InvalidOperationException("CREATE SEQUENCE INCREMENT can only be specified once.");
+
+                Consume();
+                if (IsWord(Peek(), "BY"))
+                    Consume();
+
+                incrementBy = ExpectSignedNumberLong("CREATE SEQUENCE INCREMENT");
+                if (incrementBy == 0)
+                    throw new InvalidOperationException("CREATE SEQUENCE INCREMENT cannot be zero.");
+
+                parsedIncrement = true;
+                continue;
+            }
+
+            var unexpected = Peek();
+            throw new InvalidOperationException(
+                $"Unexpected token after CREATE SEQUENCE: {unexpected.Kind} '{unexpected.Text}'");
+        }
+
+        EnsureStatementEnd("CREATE SEQUENCE");
+
+        return new SqlCreateSequenceQuery
+        {
+            IfNotExists = ifNotExists,
+            StartValue = startValue,
+            IncrementBy = incrementBy,
+            Table = sequence
+        };
+    }
+
     private SqlQueryBase ParseDrop()
     {
         ExpectWord("DROP");
@@ -1910,13 +2074,16 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "VIEW"))
             return ParseDropView();
 
+        if (IsWord(Peek(), "SEQUENCE"))
+            return ParseDropSequence();
+
         if (IsWord(Peek(), "TABLE")
             || IsWord(Peek(), "TEMP")
             || IsWord(Peek(), "TEMPORARY")
             || IsWord(Peek(), "GLOBAL"))
             return ParseDropTable();
 
-        throw new InvalidOperationException("Apenas DROP VIEW e DROP TABLE são suportados no mock no momento.");
+        throw new InvalidOperationException("Apenas DROP VIEW, DROP TABLE e DROP SEQUENCE são suportados no mock no momento.");
     }
 
     private SqlDropViewQuery ParseDropView()
@@ -1965,6 +2132,36 @@ internal sealed class SqlQueryParser
         {
             IfExists = ifExists,
             Table = viewName
+        };
+    }
+
+    private SqlDropSequenceQuery ParseDropSequence()
+    {
+        if (!_dialect.SupportsSequenceDdl)
+            throw SqlUnsupported.ForDialect(_dialect, "DROP SEQUENCE");
+
+        Consume(); // SEQUENCE
+
+        var ifExists = false;
+        if (IsWord(Peek(), "IF"))
+        {
+            Consume();
+            ExpectWord("EXISTS");
+            ifExists = true;
+        }
+
+        var sequenceNameToken = Peek();
+        if (IsEnd(sequenceNameToken) || IsSymbol(sequenceNameToken, ";"))
+            throw new InvalidOperationException("DROP SEQUENCE requires a sequence name.");
+
+        var sequenceName = ParseQualifiedObjectName();
+
+        EnsureStatementEnd("DROP SEQUENCE");
+
+        return new SqlDropSequenceQuery
+        {
+            IfExists = ifExists,
+            Table = sequenceName
         };
     }
 
@@ -2020,6 +2217,29 @@ internal sealed class SqlQueryParser
             Scope = tempScope,
             Table = tableName
         };
+    }
+
+    private SqlTableSource ParseQualifiedObjectName()
+    {
+        var first = ExpectIdentifier();
+        string? dbName = null;
+        var objectName = first;
+        if (IsSymbol(Peek(), "."))
+        {
+            Consume();
+            dbName = objectName;
+            objectName = ExpectIdentifier();
+        }
+
+        return new SqlTableSource(
+            dbName,
+            objectName,
+            Alias: null,
+            Derived: null,
+            DerivedUnion: null,
+            DerivedSql: null,
+            Pivot: null,
+            MySqlIndexHints: null);
     }
 
     private static void EnsureNoUnexpectedTrailingStatementAfterBody(
@@ -2334,7 +2554,7 @@ internal sealed class SqlQueryParser
         Consume();
         // "ON" here is important for INSERT ... SELECT ... WHERE ... ON DUPLICATE ...
         var txt = ReadClauseTextUntilTopLevelStop("GROUP", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "HAVING", "ON", "RETURNING");
-        return SqlExpressionParser.ParseWhere(txt, _dialect);
+        return SqlExpressionParser.ParseWhere(txt, _dialect, _parameters);
     }
 
     private List<string> TryParseGroupBy()
@@ -2354,7 +2574,7 @@ internal sealed class SqlQueryParser
         if (!IsWord(Peek(), "HAVING")) return null;
         Consume();
         var txt = ReadClauseTextUntilTopLevelStop("ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "RETURNING");
-        return SqlExpressionParser.ParseWhere(txt, _dialect);
+        return SqlExpressionParser.ParseWhere(txt, _dialect, _parameters);
     }
 
     private List<SqlOrderByItem> TryParseOrderBy()
@@ -2844,7 +3064,7 @@ internal sealed class SqlQueryParser
         {
             ExpectWord("ON");
             var txt = ReadClauseTextUntilTopLevelStop("JOIN", "LEFT", "RIGHT", "INNER", "CROSS", "WHERE", "GROUP", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION");
-            onExpr = SqlExpressionParser.ParseWhere(txt, _dialect);
+            onExpr = SqlExpressionParser.ParseWhere(txt, _dialect, _parameters);
         }
         return new SqlJoin(type, table, onExpr);
     }
@@ -3068,235 +3288,352 @@ internal sealed class SqlQueryParser
     private static (string Expr, string? Alias) SplitTrailingAsAliasTopLevel(string raw, ISqlDialect dialect)
     {
         raw = raw.Trim();
-        if (raw.Length == 0) return (raw, null);
+        if (raw.Length == 0)
+            return (raw, null);
 
-        // Quote behavior depends on dialect:
-        // - Strings: single quote always; double quote only if dialect treats it as string
-        // - Identifiers: backtick / double quote / brackets only if dialect allows them
-        bool dqIsString = dialect.IsStringQuote('"');
-        bool allowBacktick = dialect.AllowsBacktickIdentifiers;
-        bool allowDqIdent = dialect.AllowsDoubleQuoteIdentifiers && !dqIsString;
-        bool allowBracket = dialect.AllowsBracketIdentifiers;
+        var options = new AliasSplitOptions(
+            dialect.IsStringQuote('"'),
+            dialect.AllowsBacktickIdentifiers,
+            dialect.AllowsDoubleQuoteIdentifiers && !dialect.IsStringQuote('"'),
+            dialect.AllowsBracketIdentifiers);
 
-        static bool LooksLikeAliasToken(string rawRight, bool allowBacktick, bool allowDqIdent, bool allowBracket)
+        var explicitAlias = TrySplitExplicitAliasTopLevel(raw, dialect, options);
+        if (explicitAlias is not null)
+            return explicitAlias.Value;
+
+        var implicitAlias = TrySplitImplicitAliasTopLevel(raw, dialect, options);
+        if (implicitAlias is not null)
+            return implicitAlias.Value;
+
+        return (raw, null);
+    }
+
+    private static (string Expr, string Alias)? TrySplitExplicitAliasTopLevel(
+        string raw,
+        ISqlDialect dialect,
+        AliasSplitOptions options)
+    {
+        var state = new AliasForwardScanState();
+        for (int i = 0; i + 4 <= raw.Length; i++)
         {
-            rawRight = rawRight.Trim();
-            if (rawRight.Length == 0) return false;
+            if (TryConsumeAliasForwardQuotedChar(raw, ref i, ref state))
+                continue;
 
-            // Quoted identifiers (may contain spaces) – only if dialect allows that quoting style.
-            if (rawRight[0] == '`')
-                return allowBacktick && rawRight.Length >= 2 && rawRight[^1] == '`';
-
-            if (rawRight[0] == '"')
-                return allowDqIdent && rawRight.Length >= 2 && rawRight[^1] == '"';
-
-            if (rawRight[0] == '[')
-                return allowBracket && rawRight.Length >= 2 && rawRight[^1] == ']';
-
-            // Unquoted alias MUST be a single token (no whitespace) and start with letter/_.
-            for (int i = 0; i < rawRight.Length; i++)
-                if (char.IsWhiteSpace(rawRight[i])) return false;
-
-            var c0 = rawRight[0];
-            if (!(char.IsLetter(c0) || c0 == '_')) return false;
-
-            for (int i = 1; i < rawRight.Length; i++)
+            var ch = raw[i];
+            if (ch == '(')
             {
-                var ch = rawRight[i];
-                if (!(char.IsLetterOrDigit(ch) || ch == '_' || ch == '$'))
-                    return false;
+                state.Depth++;
+                continue;
             }
+
+            if (ch == ')')
+            {
+                state.Depth = Math.Max(0, state.Depth - 1);
+                continue;
+            }
+
+            if (state.Depth != 0)
+                continue;
+
+            if (TryBeginAliasForwardQuotedChar(ch, options, ref state))
+                continue;
+
+            if (!IsExplicitAliasKeyword(raw, i))
+                continue;
+
+            var expr = raw[..i].Trim();
+            var aliasRaw = raw[(i + 2)..].Trim();
+            if (aliasRaw.Length == 0)
+                return null;
+
+            return (expr, NormalizeAlias(aliasRaw, dialect, options));
+        }
+
+        return null;
+    }
+
+    private static (string Expr, string Alias)? TrySplitImplicitAliasTopLevel(
+        string raw,
+        ISqlDialect dialect,
+        AliasSplitOptions options)
+    {
+        var state = new AliasBackwardScanState();
+        for (int i = raw.Length - 1; i >= 0; i--)
+        {
+            if (TryConsumeAliasBackwardQuotedChar(raw[i], ref state))
+                continue;
+
+            var ch = raw[i];
+            if (ch == ')')
+            {
+                state.Depth++;
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                state.Depth = Math.Max(0, state.Depth - 1);
+                continue;
+            }
+
+            if (state.Depth != 0)
+                continue;
+
+            if (TryBeginAliasBackwardQuotedChar(ch, options, ref state))
+                continue;
+
+            if (!char.IsWhiteSpace(ch))
+                continue;
+
+            var split = TryCreateImplicitAliasSplit(raw, i, dialect, options);
+            if (split is not null)
+                return split;
+        }
+
+        return null;
+    }
+
+    private static (string Expr, string Alias)? TryCreateImplicitAliasSplit(
+        string raw,
+        int separatorIndex,
+        ISqlDialect dialect,
+        AliasSplitOptions options)
+    {
+        var left = raw[..separatorIndex].TrimEnd();
+        var right = raw[(separatorIndex + 1)..].TrimStart();
+        if (left.Length == 0 || right.Length == 0)
+            return null;
+
+        ThrowIfUnsupportedAliasQuote(right, dialect, options);
+
+        var lastLeft = left.TrimEnd();
+        if (Regex.IsMatch(lastLeft, @"(<=>|<>|!=|>=|<=|=|>|<|\+|-|\*|/|,)\s*$", RegexOptions.CultureInvariant))
+            return null;
+        if (Regex.IsMatch(lastLeft, @"\b(NEXT|PREVIOUS)\s+VALUE\s+FOR\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            return null;
+        if (!LooksLikeAliasToken(right, options))
+            return null;
+
+        var alias = NormalizeAlias(right, dialect, options);
+        if (dialect.IsKeyword(alias))
+            return null;
+
+        return (left, alias);
+    }
+
+    private static void ThrowIfUnsupportedAliasQuote(string aliasRaw, ISqlDialect dialect, AliasSplitOptions options)
+    {
+        if ((aliasRaw[0] == '`' && !options.AllowBacktick)
+            || (aliasRaw[0] == '[' && !options.AllowBracket)
+            || (aliasRaw[0] == '"' && !options.AllowDqIdent && !options.DqIsString))
+        {
+            throw SqlUnsupported.ForDialect(dialect, $"Identificador/alias quoting: '{aliasRaw[0]}'");
+        }
+    }
+
+    private static bool IsExplicitAliasKeyword(string raw, int index)
+    {
+        if (!(raw[index] is 'A' or 'a') || !(raw[index + 1] is 'S' or 's'))
+            return false;
+
+        var leftOk = index == 0 || char.IsWhiteSpace(raw[index - 1]);
+        var rightOk = index + 2 < raw.Length && char.IsWhiteSpace(raw[index + 2]);
+        return leftOk && rightOk;
+    }
+
+    private static bool TryConsumeAliasForwardQuotedChar(string raw, ref int index, ref AliasForwardScanState state)
+    {
+        var ch = raw[index];
+        if (state.InSingle)
+        {
+            if (ch == '\'' && index + 1 < raw.Length && raw[index + 1] == '\'')
+                index++;
+            else if (ch == '\'')
+                state.InSingle = false;
 
             return true;
         }
 
-        // 1) Preferencial: "... AS alias" (top-level: fora de parênteses e fora de strings/ident-quotes)
+        if (state.InDoubleString)
         {
-            int depth = 0;
-            bool inSingle = false, inDoubleString = false, inDoubleIdent = false, inBacktick = false, inBracket = false;
+            if (ch == '"')
+                state.InDoubleString = false;
 
-            for (int i = 0; i + 4 <= raw.Length; i++)
-            {
-                var ch = raw[i];
-
-                if (inSingle)
-                {
-                    if (ch == '\'' && i + 1 < raw.Length && raw[i + 1] == '\'') { i++; continue; } // ''
-                    if (ch == '\'') inSingle = false;
-                    continue;
-                }
-
-                if (inDoubleString)
-                {
-                    if (ch == '"') inDoubleString = false;
-                    continue;
-                }
-
-                if (inDoubleIdent)
-                {
-                    if (ch == '"') inDoubleIdent = false;
-                    continue;
-                }
-
-                if (inBacktick)
-                {
-                    if (ch == '`') inBacktick = false;
-                    continue;
-                }
-
-                if (inBracket)
-                {
-                    if (ch == ']')
-                    {
-                        // SQL Server bracket escaping: ]]
-                        if (i + 1 < raw.Length && raw[i + 1] == ']') { i++; continue; }
-                        inBracket = false;
-                    }
-                    continue;
-                }
-
-                if (ch == '(') { depth++; continue; }
-                if (ch == ')') { if (depth > 0) depth--; continue; }
-
-                if (depth != 0) continue;
-
-                if (ch == '\'') { inSingle = true; continue; }
-                if (ch == '"')
-                {
-                    if (dqIsString) inDoubleString = true;
-                    else if (allowDqIdent) inDoubleIdent = true;
-                    continue;
-                }
-                if (ch == '`' && allowBacktick) { inBacktick = true; continue; }
-                if (ch == '[' && allowBracket) { inBracket = true; continue; }
-
-                if ((ch == 'a' || ch == 'A') && i + 4 <= raw.Length)
-                {
-                    if ((raw[i + 1] == 's' || raw[i + 1] == 'S') &&
-                        char.IsWhiteSpace(raw[i + 2]) &&
-                        char.IsWhiteSpace(raw[i >= 1 ? i - 1 : 0]))
-                    {
-                        // Too fragile; we instead do a proper word check below with boundaries
-                    }
-                }
-
-                // Match " AS " with word boundaries
-                if ((ch == 'A' || ch == 'a')
-                    && (raw[i + 1] == 'S' || raw[i + 1] == 's'))
-                {
-                    bool leftOk = (i == 0) || char.IsWhiteSpace(raw[i - 1]);
-                    bool rightOk = (i + 2 < raw.Length) && char.IsWhiteSpace(raw[i + 2]);
-                    if (leftOk && rightOk)
-                    {
-                        var expr = raw[..i].Trim();
-                        var aliasRaw = raw[(i + 2)..].Trim();
-                        if (aliasRaw.Length == 0) return (raw, null);
-
-                        var alias = NormalizeAlias(aliasRaw, dialect, dqIsString, allowBacktick, allowDqIdent, allowBracket);
-                        return (expr, alias);
-                    }
-                }
-            }
+            return true;
         }
 
-        // 2) Caso: "... alias" (sem AS) no final, top-level.
-        // Vamos tentar separar o último token como alias, respeitando os quotes permitidos pelo dialeto.
+        if (state.InDoubleIdent)
         {
-            int depth = 0;
-            bool inSingle = false, inDoubleString = false, inDoubleIdent = false, inBacktick = false, inBracket = false;
+            if (ch == '"')
+                state.InDoubleIdent = false;
 
-            for (int i = raw.Length - 1; i >= 0; i--)
-            {
-                var ch = raw[i];
-
-                if (inSingle)
-                {
-                    if (ch == '\'') inSingle = false;
-                    continue;
-                }
-
-                if (inDoubleString)
-                {
-                    if (ch == '"') inDoubleString = false;
-                    continue;
-                }
-
-                if (inDoubleIdent)
-                {
-                    if (ch == '"') inDoubleIdent = false;
-                    continue;
-                }
-
-                if (inBacktick)
-                {
-                    if (ch == '`') inBacktick = false;
-                    continue;
-                }
-
-                if (inBracket)
-                {
-                    if (ch == '[') inBracket = false;
-                    continue;
-                }
-
-                if (ch == ')') { depth++; continue; }
-                if (ch == '(') { if (depth > 0) depth--; continue; }
-
-                if (depth != 0) continue;
-
-                if (ch == '\'') { inSingle = true; continue; }
-                if (ch == '"')
-                {
-                    if (dqIsString) inDoubleString = true;
-                    else if (allowDqIdent) inDoubleIdent = true;
-                    continue;
-                }
-                if (ch == '`' && allowBacktick) { inBacktick = true; continue; }
-                if (ch == ']' && allowBracket) { inBracket = true; continue; }
-
-                if (char.IsWhiteSpace(ch))
-                {
-                    var left = raw[..i].TrimEnd();
-                    var right = raw[(i + 1)..].TrimStart();
-
-                    if (left.Length == 0 || right.Length == 0)
-                        continue;
-
-                    // If right starts with a quote that this dialect DOES NOT allow for identifiers,
-                    // treat it as not supported rather than silently accepting.
-                    if ((right[0] == '`' && !allowBacktick) ||
-                        (right[0] == '[' && !allowBracket) ||
-                        (right[0] == '"' && !allowDqIdent && !dqIsString))
-                    {
-                        throw SqlUnsupported.ForDialect(dialect, $"Identificador/alias quoting: '{right[0]}'");
-                    }
-
-                    // Avoid splitting if it looks like "expr op something"
-                    // Here we keep the heuristic minimal: if left ends with one of these, it's not alias.
-                    HashSet<string> operatorChars = ["=", ">", "<", "!", "+", "-", "*", "/", ","];
-                    var lastLeft = left.TrimEnd();
-                    if (operatorChars.Any(_=> lastLeft.EndsWith(_)))
-                        continue;
-
-                    // Alias must be a single identifier token (possibly quoted). Without this guard,
-                    // expressions like "... ELSE 0 END" could be incorrectly split as expr="... ELSE"
-                    // alias="0 END", which breaks CASE parsing.
-                    if (!LooksLikeAliasToken(right, allowBacktick, allowDqIdent, allowBracket))
-                        continue;
-
-                    var alias = NormalizeAlias(right, dialect, dqIsString, allowBacktick, allowDqIdent, allowBracket);
-
-                    // Do not treat SQL keywords as aliases.
-                    // Example: "CASE ... 'ON DUPLICATE' ... END" (END is a keyword, not an alias).
-                    if (dialect.IsKeyword(alias))
-                        continue;
-
-                    return (left, alias);
-                }
-            }
+            return true;
         }
 
-        return (raw, null);
+        if (state.InBacktick)
+        {
+            if (ch == '`')
+                state.InBacktick = false;
+
+            return true;
+        }
+
+        if (!state.InBracket)
+            return false;
+
+        if (ch == ']')
+        {
+            if (index + 1 < raw.Length && raw[index + 1] == ']')
+                index++;
+            else
+                state.InBracket = false;
+        }
+
+        return true;
+    }
+
+    private static bool TryBeginAliasForwardQuotedChar(char ch, AliasSplitOptions options, ref AliasForwardScanState state)
+    {
+        if (ch == '\'')
+        {
+            state.InSingle = true;
+            return true;
+        }
+
+        if (ch == '"')
+        {
+            if (options.DqIsString)
+                state.InDoubleString = true;
+            else if (options.AllowDqIdent)
+                state.InDoubleIdent = true;
+
+            return true;
+        }
+
+        if (ch == '`' && options.AllowBacktick)
+        {
+            state.InBacktick = true;
+            return true;
+        }
+
+        if (ch == '[' && options.AllowBracket)
+        {
+            state.InBracket = true;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryConsumeAliasBackwardQuotedChar(char ch, ref AliasBackwardScanState state)
+    {
+        if (state.InSingle)
+        {
+            if (ch == '\'')
+                state.InSingle = false;
+
+            return true;
+        }
+
+        if (state.InDoubleString)
+        {
+            if (ch == '"')
+                state.InDoubleString = false;
+
+            return true;
+        }
+
+        if (state.InDoubleIdent)
+        {
+            if (ch == '"')
+                state.InDoubleIdent = false;
+
+            return true;
+        }
+
+        if (state.InBacktick)
+        {
+            if (ch == '`')
+                state.InBacktick = false;
+
+            return true;
+        }
+
+        if (!state.InBracket)
+            return false;
+
+        if (ch == '[')
+            state.InBracket = false;
+
+        return true;
+    }
+
+    private static bool TryBeginAliasBackwardQuotedChar(char ch, AliasSplitOptions options, ref AliasBackwardScanState state)
+    {
+        if (ch == '\'')
+        {
+            state.InSingle = true;
+            return true;
+        }
+
+        if (ch == '"')
+        {
+            if (options.DqIsString)
+                state.InDoubleString = true;
+            else if (options.AllowDqIdent)
+                state.InDoubleIdent = true;
+
+            return true;
+        }
+
+        if (ch == '`' && options.AllowBacktick)
+        {
+            state.InBacktick = true;
+            return true;
+        }
+
+        if (ch == ']' && options.AllowBracket)
+        {
+            state.InBracket = true;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool LooksLikeAliasToken(string rawRight, AliasSplitOptions options)
+    {
+        rawRight = rawRight.Trim();
+        if (rawRight.Length == 0)
+            return false;
+
+        if (rawRight[0] == '`')
+            return options.AllowBacktick && rawRight.Length >= 2 && rawRight[^1] == '`';
+
+        if (rawRight[0] == '"')
+            return options.AllowDqIdent && rawRight.Length >= 2 && rawRight[^1] == '"';
+
+        if (rawRight[0] == '[')
+            return options.AllowBracket && rawRight.Length >= 2 && rawRight[^1] == ']';
+
+        for (var i = 0; i < rawRight.Length; i++)
+        {
+            if (char.IsWhiteSpace(rawRight[i]))
+                return false;
+        }
+
+        var first = rawRight[0];
+        if (!(char.IsLetter(first) || first == '_'))
+            return false;
+
+        for (var i = 1; i < rawRight.Length; i++)
+        {
+            var ch = rawRight[i];
+            if (!(char.IsLetterOrDigit(ch) || ch == '_' || ch == '$'))
+                return false;
+        }
+
+        return true;
     }
 
     private static string NormalizeAlias(
@@ -3344,6 +3681,41 @@ internal sealed class SqlQueryParser
         return aliasRaw;
     }
 
+    private static string NormalizeAlias(string aliasRaw, ISqlDialect dialect, AliasSplitOptions options)
+        => NormalizeAlias(
+            aliasRaw,
+            dialect,
+            options.DqIsString,
+            options.AllowBacktick,
+            options.AllowDqIdent,
+            options.AllowBracket);
+
+    private readonly record struct AliasSplitOptions(
+        bool DqIsString,
+        bool AllowBacktick,
+        bool AllowDqIdent,
+        bool AllowBracket);
+
+    private struct AliasForwardScanState
+    {
+        public int Depth;
+        public bool InSingle;
+        public bool InDoubleString;
+        public bool InDoubleIdent;
+        public bool InBacktick;
+        public bool InBracket;
+    }
+
+    private struct AliasBackwardScanState
+    {
+        public int Depth;
+        public bool InSingle;
+        public bool InDoubleString;
+        public bool InDoubleIdent;
+        public bool InBacktick;
+        public bool InBracket;
+    }
+
 
     // Plumbing Básico
     private SqlToken Peek(int offset = 0) => (_i + offset < _toks.Count) ? _toks[_i + offset] : SqlToken.EOF;
@@ -3384,6 +3756,29 @@ internal sealed class SqlQueryParser
         throw new InvalidOperationException($"Esperava número inteiro ou parâmetro, veio {t.Kind} '{t.Text}'.");
     }
 
+    private long ExpectSignedNumberLong(string clauseName)
+    {
+        var sign = 1L;
+        if (IsSymbol(Peek(), "+"))
+        {
+            Consume();
+        }
+        else if (IsSymbol(Peek(), "-"))
+        {
+            Consume();
+            sign = -1L;
+        }
+
+        var t = Consume();
+        if (t.Kind == SqlTokenKind.Number)
+            return sign * long.Parse(t.Text, CultureInfo.InvariantCulture);
+
+        if (t.Kind == SqlTokenKind.Parameter)
+            return sign * ResolveParameterLong(t.Text);
+
+        throw new InvalidOperationException($"{clauseName} requires an integer literal or parameter.");
+    }
+
     private int ResolveParameterInt(string parameterToken)
     {
         if (_parameters is null)
@@ -3401,6 +3796,28 @@ internal sealed class SqlQueryParser
                 throw new FormatException($"The input string '{parameterToken}' was not in a correct format.");
 
             return Convert.ToInt32(parameter.Value, CultureInfo.InvariantCulture);
+        }
+
+        throw new FormatException($"The input string '{parameterToken}' was not in a correct format.");
+    }
+
+    private long ResolveParameterLong(string parameterToken)
+    {
+        if (_parameters is null)
+            throw new FormatException($"The input string '{parameterToken}' was not in a correct format.");
+
+        var normalized = parameterToken.TrimStart('@', ':', '?');
+
+        foreach (IDataParameter parameter in _parameters)
+        {
+            var name = (parameter.ParameterName ?? string.Empty).TrimStart('@', ':', '?');
+            if (!string.Equals(name, normalized, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (parameter.Value is null || parameter.Value == DBNull.Value)
+                throw new FormatException($"The input string '{parameterToken}' was not in a correct format.");
+
+            return Convert.ToInt64(parameter.Value, CultureInfo.InvariantCulture);
         }
 
         throw new FormatException($"The input string '{parameterToken}' was not in a correct format.");
@@ -3522,154 +3939,238 @@ internal sealed class SqlQueryParser
     // Helpers estáticos de split (mantidos do original)
     internal static List<string> SplitStatementsTopLevel(string sql, ISqlDialect dialect)
     {
-        // Split por ';' respeitando strings/identificadores quoted, parênteses e (Postgres) dollar-quoted strings.
         var res = new List<string>();
         if (string.IsNullOrWhiteSpace(sql))
             return res;
 
+        var options = new StatementSplitOptions(
+            dialect.SupportsDollarQuotedStrings,
+            dialect.StringEscapeStyle,
+            dialect.IsStringQuote('"'),
+            dialect.AllowsDoubleQuoteIdentifiers,
+            dialect.AllowsBacktickIdentifiers,
+            dialect.AllowsBracketIdentifiers);
         var start = 0;
-        var depth = 0;
-
-        bool inSingle = false;
-        bool inStringDouble = false; // only if dialect uses " as string quote
-        bool inIdentDouble = false;
-        bool inBacktick = false;
-        bool inBracket = false;
-
-        string? dollarTag = null; // Postgres: $$...$$ or $tag$...$tag$
+        var state = new StatementSplitState();
 
         for (int i = 0; i < sql.Length; i++)
         {
+            if (TryConsumeStatementQuotedChar(sql, options, ref i, ref state))
+                continue;
+
+            if (TryBeginStatementQuotedChar(sql, options, ref i, ref state))
+                continue;
+
             var ch = sql[i];
-
-            // Dollar-quoted string (Postgres)
-            if (dollarTag is not null)
+            if (ch == '(')
             {
-                if (i + dollarTag.Length <= sql.Length && sql.AsSpan(i, dollarTag.Length).SequenceEqual(dollarTag))
-                {
-                    i += dollarTag.Length - 1;
-                    dollarTag = null;
-                }
+                state.Depth++;
                 continue;
             }
 
-            if (inSingle)
+            if (ch == ')')
             {
-                if (dialect.StringEscapeStyle == SqlStringEscapeStyle.doubled_quote
-                    && ch == '\'' && i + 1 < sql.Length && sql[i + 1] == '\'')
-                {
-                    i++; // escape ''
-                    continue;
-                }
-
-                if (dialect.StringEscapeStyle == SqlStringEscapeStyle.backslash
-                    && ch == '\'' && i > 0 && sql[i - 1] == '\\')
-                {
-                    continue;
-                }
-
-                if (ch == '\'') inSingle = false;
+                state.Depth = Math.Max(0, state.Depth - 1);
                 continue;
             }
 
-            if (inStringDouble)
+            if (ch == ';' && state.Depth == 0)
             {
-                if (dialect.StringEscapeStyle == SqlStringEscapeStyle.doubled_quote
-                    && ch == '"' && i + 1 < sql.Length && sql[i + 1] == '"')
-                {
-                    i++; // escape ""
-                    continue;
-                }
-
-                if (dialect.StringEscapeStyle == SqlStringEscapeStyle.backslash
-                    && ch == '"' && i > 0 && sql[i - 1] == '\\')
-                {
-                    continue;
-                }
-
-                if (ch == '"') inStringDouble = false;
-                continue;
-            }
-
-            if (inIdentDouble)
-            {
-                // "" escape inside quoted identifier
-                if (ch == '"' && i + 1 < sql.Length && sql[i + 1] == '"')
-                {
-                    i++;
-                    continue;
-                }
-                if (ch == '"') inIdentDouble = false;
-                continue;
-            }
-
-            if (inBacktick)
-            {
-                if (ch == '`' && i + 1 < sql.Length && sql[i + 1] == '`')
-                {
-                    i++;
-                    continue;
-                }
-                if (ch == '`') inBacktick = false;
-                continue;
-            }
-
-            if (inBracket)
-            {
-                if (ch == ']' && i + 1 < sql.Length && sql[i + 1] == ']')
-                {
-                    i++;
-                    continue;
-                }
-                if (ch == ']') inBracket = false;
-                continue;
-            }
-
-            // Start dollar-quote?
-            if (dialect.SupportsDollarQuotedStrings && ch == '$')
-            {
-                // find next '$' to close tag
-                int j = i + 1;
-                while (j < sql.Length && (char.IsLetterOrDigit(sql[j]) || sql[j] == '_')) j++;
-                if (j < sql.Length && sql[j] == '$')
-                {
-                    dollarTag = sql.Substring(i, j - i + 1);
-                    i = j;
-                    continue;
-                }
-            }
-
-            // enter string / identifier quoted
-            if (ch == '\'') { inSingle = true; continue; }
-
-            if (ch == '"')
-            {
-                // MySQL dialect treats " as string; others treat it as identifier quote.
-                if (dialect.IsStringQuote('"')) inStringDouble = true;
-                else if (dialect.AllowsDoubleQuoteIdentifiers) inIdentDouble = true;
-                continue;
-            }
-
-            if (ch == '`' && dialect.AllowsBacktickIdentifiers) { inBacktick = true; continue; }
-            if (ch == '[' && dialect.AllowsBracketIdentifiers) { inBracket = true; continue; }
-
-            if (ch == '(') { depth++; continue; }
-            if (ch == ')') { depth = Math.Max(0, depth - 1); continue; }
-
-            if (ch == ';' && depth == 0)
-            {
-                var stmt = sql[start..i].Trim();
-                if (stmt.Length > 0)
-                    res.Add(stmt);
+                AddTopLevelStatement(res, sql, start, i);
                 start = i + 1;
             }
         }
 
-        var last = sql[start..].Trim();
-        if (last.Length > 0)
-            res.Add(last);
-
+        AddTopLevelStatement(res, sql, start, sql.Length);
         return res;
+    }
+
+    private static void AddTopLevelStatement(List<string> statements, string sql, int start, int endExclusive)
+    {
+        var stmt = sql[start..endExclusive].Trim();
+        if (stmt.Length > 0)
+            statements.Add(stmt);
+    }
+
+    private static bool TryConsumeStatementQuotedChar(
+        string sql,
+        StatementSplitOptions options,
+        ref int index,
+        ref StatementSplitState state)
+    {
+        if (state.DollarTag is not null)
+        {
+            if (MatchesDollarTag(sql, index, state.DollarTag))
+            {
+                index += state.DollarTag.Length - 1;
+                state.DollarTag = null;
+            }
+
+            return true;
+        }
+
+        var ch = sql[index];
+        if (state.InSingle)
+            return ConsumeStringQuotedChar(sql, options.EscapeStyle, '\'', ref index, ref state.InSingle);
+
+        if (state.InStringDouble)
+            return ConsumeStringQuotedChar(sql, options.EscapeStyle, '"', ref index, ref state.InStringDouble);
+
+        if (state.InIdentDouble)
+            return ConsumeIdentifierQuotedChar(sql, '"', ref index, ref state.InIdentDouble);
+
+        if (state.InBacktick)
+            return ConsumeIdentifierQuotedChar(sql, '`', ref index, ref state.InBacktick);
+
+        if (!state.InBracket)
+            return false;
+
+        if (ch == ']')
+        {
+            if (index + 1 < sql.Length && sql[index + 1] == ']')
+                index++;
+            else
+                state.InBracket = false;
+        }
+
+        return true;
+    }
+
+    private static bool TryBeginStatementQuotedChar(
+        string sql,
+        StatementSplitOptions options,
+        ref int index,
+        ref StatementSplitState state)
+    {
+        var ch = sql[index];
+        if (TryBeginDollarQuotedString(sql, options, ref index, ref state))
+            return true;
+
+        if (ch == '\'')
+        {
+            state.InSingle = true;
+            return true;
+        }
+
+        if (ch == '"')
+        {
+            if (options.DoubleQuoteIsString)
+                state.InStringDouble = true;
+            else if (options.AllowDoubleQuoteIdentifiers)
+                state.InIdentDouble = true;
+
+            return true;
+        }
+
+        if (ch == '`' && options.AllowBacktickIdentifiers)
+        {
+            state.InBacktick = true;
+            return true;
+        }
+
+        if (ch == '[' && options.AllowBracketIdentifiers)
+        {
+            state.InBracket = true;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryBeginDollarQuotedString(
+        string sql,
+        StatementSplitOptions options,
+        ref int index,
+        ref StatementSplitState state)
+    {
+        if (!options.SupportsDollarQuotedStrings || sql[index] != '$')
+            return false;
+
+        var closingTagIndex = index + 1;
+        while (closingTagIndex < sql.Length
+            && (char.IsLetterOrDigit(sql[closingTagIndex]) || sql[closingTagIndex] == '_'))
+        {
+            closingTagIndex++;
+        }
+
+        if (closingTagIndex >= sql.Length || sql[closingTagIndex] != '$')
+            return false;
+
+        state.DollarTag = sql[index..(closingTagIndex + 1)];
+        index = closingTagIndex;
+        return true;
+    }
+
+    private static bool MatchesDollarTag(string sql, int index, string dollarTag)
+        => index + dollarTag.Length <= sql.Length
+           && sql.AsSpan(index, dollarTag.Length).SequenceEqual(dollarTag);
+
+    private static bool ConsumeStringQuotedChar(
+        string sql,
+        SqlStringEscapeStyle escapeStyle,
+        char quote,
+        ref int index,
+        ref bool inQuote)
+    {
+        var ch = sql[index];
+        if (escapeStyle == SqlStringEscapeStyle.doubled_quote
+            && ch == quote
+            && index + 1 < sql.Length
+            && sql[index + 1] == quote)
+        {
+            index++;
+            return true;
+        }
+
+        if (escapeStyle == SqlStringEscapeStyle.backslash
+            && ch == quote
+            && index > 0
+            && sql[index - 1] == '\\')
+        {
+            return true;
+        }
+
+        if (ch == quote)
+            inQuote = false;
+
+        return true;
+    }
+
+    private static bool ConsumeIdentifierQuotedChar(
+        string sql,
+        char quote,
+        ref int index,
+        ref bool inQuote)
+    {
+        if (sql[index] == quote && index + 1 < sql.Length && sql[index + 1] == quote)
+        {
+            index++;
+            return true;
+        }
+
+        if (sql[index] == quote)
+            inQuote = false;
+
+        return true;
+    }
+
+    private readonly record struct StatementSplitOptions(
+        bool SupportsDollarQuotedStrings,
+        SqlStringEscapeStyle EscapeStyle,
+        bool DoubleQuoteIsString,
+        bool AllowDoubleQuoteIdentifiers,
+        bool AllowBacktickIdentifiers,
+        bool AllowBracketIdentifiers);
+
+    private struct StatementSplitState
+    {
+        public int Depth;
+        public bool InSingle;
+        public bool InStringDouble;
+        public bool InIdentDouble;
+        public bool InBacktick;
+        public bool InBracket;
+        public string? DollarTag;
     }
 
     private static bool IsTrailingTokenInWherePredicate(InvalidOperationException ex)

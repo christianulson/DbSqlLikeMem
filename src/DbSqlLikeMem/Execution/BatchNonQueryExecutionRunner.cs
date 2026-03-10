@@ -6,10 +6,17 @@ internal static class BatchNonQueryExecutionRunner
     {
         connection.Metrics.IncrementBatchNonQueryCommand();
         connection.Metrics.IncrementBatchCommandTypeHit($"{BatchMetricKeys.TypePrefixes.NonQuery}{command.CommandType}");
-        return BatchPhaseExecutionTelemetry.Execute(
-            connection,
-            BatchMetricKeys.Phases.NonQuery,
-            command.ExecuteNonQuery);
+        try
+        {
+            return BatchPhaseExecutionTelemetry.Execute(
+                connection,
+                BatchMetricKeys.Phases.NonQuery,
+                command.ExecuteNonQuery);
+        }
+        catch (InvalidOperationException ex) when (ShouldTreatAsZeroAffectedRows(ex))
+        {
+            return 0;
+        }
     }
 
     public static Task<int> ExecuteCommandAsync(
@@ -19,9 +26,29 @@ internal static class BatchNonQueryExecutionRunner
     {
         connection.Metrics.IncrementBatchNonQueryCommand();
         connection.Metrics.IncrementBatchCommandTypeHit($"{BatchMetricKeys.TypePrefixes.NonQuery}{command.CommandType}");
-        return BatchPhaseExecutionTelemetry.ExecuteAsync(
-            connection,
-            BatchMetricKeys.Phases.NonQuery,
-            () => command.ExecuteNonQueryAsync(cancellationToken));
+        return ExecuteCommandAsyncCore(connection, command, cancellationToken);
     }
+
+    private static async Task<int> ExecuteCommandAsyncCore(
+        DbConnectionMockBase connection,
+        DbCommand command,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await BatchPhaseExecutionTelemetry.ExecuteAsync(
+                connection,
+                BatchMetricKeys.Phases.NonQuery,
+                () => command.ExecuteNonQueryAsync(cancellationToken))
+                .ConfigureAwait(false);
+        }
+        catch (InvalidOperationException ex) when (ShouldTreatAsZeroAffectedRows(ex))
+        {
+            return 0;
+        }
+    }
+
+    private static bool ShouldTreatAsZeroAffectedRows(InvalidOperationException ex)
+        => string.Equals(ex.Message, SqlExceptionMessages.UseExecuteReaderForSelect(), StringComparison.Ordinal)
+            || string.Equals(ex.Message, SqlExceptionMessages.UseExecuteReaderForSelectUnion(), StringComparison.Ordinal);
 }

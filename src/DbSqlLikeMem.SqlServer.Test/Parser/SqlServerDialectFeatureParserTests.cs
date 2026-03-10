@@ -7,6 +7,203 @@ namespace DbSqlLikeMem.SqlServer.Test.Parser;
 public sealed class SqlServerDialectFeatureParserTests
 {
     /// <summary>
+    /// EN: Ensures JSON_TABLE is rejected in SQL Server dialect with an explicit dialect gate.
+    /// PT: Garante que JSON_TABLE seja rejeitado no dialeto SQL Server com gate explicito de dialeto.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_JsonTable_ShouldBeRejected(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("JSON_TABLE(payload, '$[*]' COLUMNS(x INT PATH '$'))", new SqlServerDialect(version)));
+
+        Assert.Contains("JSON_TABLE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server dialect keeps MATCH ... AGAINST disabled in its explicit capability hook.
+    /// PT: Garante que o dialeto SQL Server mantenha MATCH ... AGAINST desabilitado em seu hook explicito de capability.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void MatchAgainstCapability_ShouldBeDisabled(int version)
+    {
+        Assert.False(new SqlServerDialect(version).SupportsMatchAgainstPredicate);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server row-count helpers are exposed through dialect-owned capabilities.
+    /// PT: Garante que os helpers de row-count do SQL Server sejam expostos por capabilities do próprio dialeto.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void LastFoundRowsCapability_ShouldExposeSqlServerFunctionAndIdentifier(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        Assert.True(dialect.SupportsLastFoundRowsFunction("ROWCOUNT"));
+        Assert.True(dialect.SupportsLastFoundRowsIdentifier("@@ROWCOUNT"));
+        Assert.False(dialect.SupportsLastFoundRowsFunction("FOUND_ROWS"));
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server exposes its join-based mutation syntax through dialect-owned capabilities.
+    /// PT: Garante que o SQL Server exponha sua sintaxe de mutacao com join por capabilities do proprio dialeto.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void MutationCapabilities_ShouldExposeSqlServerContract(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        Assert.False(dialect.SupportsUpdateJoinFromSubquerySyntax);
+        Assert.True(dialect.SupportsUpdateFromJoinSubquerySyntax);
+        Assert.True(dialect.SupportsDeleteTargetFromJoinSubquerySyntax);
+        Assert.False(dialect.SupportsDeleteUsingSubquerySyntax);
+        Assert.False(dialect.SupportsSqlCalcFoundRowsModifier);
+        Assert.Equal(2, dialect.GetInsertUpsertAffectedRowCount(1, 1));
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server parser accepts ROWCOUNT() and rejects foreign row-count helper aliases.
+    /// PT: Garante que o parser SQL Server aceite ROWCOUNT() e rejeite aliases de row-count de outros bancos.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_LastFoundRowsFunctions_ShouldFollowDialectCapability(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        Assert.Equal("ROWCOUNT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROWCOUNT()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+
+        var foundRowsEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FOUND_ROWS()", dialect));
+        Assert.Contains("FOUND_ROWS", foundRowsEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var rowCountEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_COUNT()", dialect));
+        Assert.Contains("ROW_COUNT", rowCountEx.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server parser/tokenizer accepts @@ROWCOUNT through dialect-owned syntax capability.
+    /// PT: Garante que o parser/tokenizer SQL Server aceite @@ROWCOUNT pela capability de sintaxe do próprio dialeto.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_SystemRowCountIdentifier_ShouldFollowDialectCapability(int version)
+    {
+        var expr = SqlExpressionParser.ParseScalar("@@ROWCOUNT", new SqlServerDialect(version));
+        var identifier = Assert.IsType<IdentifierExpr>(expr);
+
+        Assert.Equal("@@ROWCOUNT", identifier.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL-style ILIKE is rejected in SQL Server dialect.
+    /// PT: Garante que ILIKE no estilo PostgreSQL seja rejeitado no dialeto SQL Server.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_Ilike_ShouldBeRejected(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("name ILIKE 'jo%'", new SqlServerDialect(version)));
+
+        Assert.Contains("ILIKE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL-style sequence function calls are rejected in SQL Server dialect.
+    /// PT: Garante que chamadas de sequence no estilo PostgreSQL sejam rejeitadas no dialeto SQL Server.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_PostgreSqlStyleSequenceFunctionCalls_ShouldBeRejected(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        var nextEx = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("nextval('sales.seq_orders')", dialect));
+        Assert.Contains("NEXTVAL", nextEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var currEx = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("currval('sales.seq_orders')", dialect));
+        Assert.Contains("CURRVAL", currEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var setEx = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("setval('sales.seq_orders', 30, false)", dialect));
+        Assert.Contains("SETVAL", setEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var lastEx = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("lastval()", dialect));
+        Assert.Contains("LASTVAL", lastEx.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures CREATE SEQUENCE follows SQL Server version support and captures numeric options in the AST.
+    /// PT: Garante que CREATE SEQUENCE siga o suporte por versao do SQL Server e capture opcoes numericas na AST.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseCreateSequence_ShouldFollowSqlServerVersionSupport(int version)
+    {
+        const string sql = "CREATE SEQUENCE sales.seq_orders START WITH 10 INCREMENT BY 5";
+
+        if (version < SqlServerDialect.SequenceMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlCreateSequenceQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.Equal("sales", parsed.Table?.DbName, ignoreCase: true);
+        Assert.Equal("seq_orders", parsed.Table?.Name, ignoreCase: true);
+        Assert.Equal(10L, parsed.StartValue);
+        Assert.Equal(5L, parsed.IncrementBy);
+    }
+
+    /// <summary>
+    /// EN: Ensures DROP SEQUENCE follows SQL Server version support and preserves the IF EXISTS flag.
+    /// PT: Garante que DROP SEQUENCE siga o suporte por versao do SQL Server e preserve a flag IF EXISTS.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseDropSequence_ShouldFollowSqlServerVersionSupport(int version)
+    {
+        const string sql = "DROP SEQUENCE IF EXISTS sales.seq_orders";
+
+        if (version < SqlServerDialect.SequenceMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlDropSequenceQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        Assert.True(parsed.IfExists);
+        Assert.Equal("sales", parsed.Table?.DbName, ignoreCase: true);
+        Assert.Equal("seq_orders", parsed.Table?.Name, ignoreCase: true);
+    }
+
+    /// <summary>
     /// EN: Validates OFFSET/FETCH without ORDER BY according to dialect version rules.
     /// PT: Valida OFFSET/FETCH sem ORDER BY conforme as regras de versão do dialeto.
     /// </summary>
@@ -116,6 +313,108 @@ public sealed class SqlServerDialectFeatureParserTests
 
         Assert.Contains("token inicial", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("SELECT/INSERT/UPDATE/DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects Oracle-style JSON_VALUE RETURNING clause with an actionable dialect gate.
+    /// PT: Garante que o SQL Server rejeite a cláusula Oracle-style JSON_VALUE RETURNING com gate acionável de dialeto.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_JsonValueWithReturningClause_ShouldBeRejected(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("JSON_VALUE(payload, '$.a.b' RETURNING NUMBER)", new SqlServerDialect(version)));
+
+        Assert.Contains("JSON_VALUE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        if (version >= SqlServerDialect.JsonFunctionsMinVersion)
+            Assert.Contains("RETURNING", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures OPENJSON follows SQL Server version support starting in 2016.
+    /// PT: Garante que OPENJSON siga o suporte por versão do SQL Server a partir de 2016.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_OpenJson_ShouldFollowSqlServerVersionSupport(int version)
+    {
+        const string sql = "OPENJSON(payload)";
+        var dialect = new SqlServerDialect(version);
+
+        if (version < SqlServerDialect.JsonFunctionsMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar(sql, dialect));
+
+            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var expr = SqlExpressionParser.ParseScalar(sql, dialect);
+        var call = Assert.IsType<CallExpr>(expr);
+        Assert.Equal("OPENJSON", call.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server accepts DATEADD and rejects MySQL DATE_ADD/TIMESTAMPADD syntax.
+    /// PT: Garante que o SQL Server aceite DATEADD e rejeite a sintaxe DATE_ADD/TIMESTAMPADD do MySQL.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_DateAddFamily_ShouldRespectSqlServerDialectRule(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        var expr = SqlExpressionParser.ParseScalar("DATEADD(DAY, 1, created_at)", dialect);
+        var call = Assert.IsType<CallExpr>(expr);
+        Assert.Equal("DATEADD", call.Name, StringComparer.OrdinalIgnoreCase);
+
+        var dateAddEx = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("DATE_ADD(created_at, INTERVAL 1 DAY)", dialect));
+        Assert.Contains("DATE_ADD", dateAddEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var timestampAddEx = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("TIMESTAMPADD(DAY, 1, created_at)", dialect));
+        Assert.Contains("TIMESTAMPADD", timestampAddEx.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures NEXT/PREVIOUS VALUE FOR follow SQL Server sequence-expression support by version.
+    /// PT: Garante que NEXT/PREVIOUS VALUE FOR sigam o suporte a expressoes de sequence por versao no SQL Server.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_SequenceValueFunctions_ShouldFollowSqlServerVersionSupport(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        if (version < SqlServerDialect.SequenceMinVersion)
+        {
+            var nextEx = Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("NEXT VALUE FOR sales.seq_orders", dialect));
+            Assert.Contains("NEXT VALUE FOR", nextEx.Message, StringComparison.OrdinalIgnoreCase);
+
+            var previousEx = Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("PREVIOUS VALUE FOR sales.seq_orders", dialect));
+            Assert.Contains("PREVIOUS VALUE FOR", previousEx.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var nextExpr = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("NEXT VALUE FOR sales.seq_orders", dialect));
+        Assert.Equal("NEXT_VALUE_FOR", nextExpr.Name, StringComparer.OrdinalIgnoreCase);
+
+        var previousExSupported = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("PREVIOUS VALUE FOR sales.seq_orders", dialect));
+        Assert.Contains("PREVIOUS VALUE FOR", previousExSupported.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -743,6 +1042,15 @@ public sealed class SqlServerDialectFeatureParserTests
     {
         var dialect = new SqlServerDialect(version);
 
+        if (version < SqlServerDialect.StringAggMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
+            Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|')", dialect));
+            return;
+        }
+
         var expr = SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect);
         var call = Assert.IsType<CallExpr>(expr);
 
@@ -773,7 +1081,7 @@ public sealed class SqlServerDialectFeatureParserTests
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
 
-        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("LISTAGG", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -786,6 +1094,15 @@ public sealed class SqlServerDialectFeatureParserTests
     public void ParseScalar_StringAggWithinGroupWithoutOrderBy_ShouldThrowActionableError(int version)
     {
         var dialect = new SqlServerDialect(version);
+
+        if (version < SqlServerDialect.StringAggMinVersion)
+        {
+            var gateEx = Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (amount DESC)", dialect));
+
+            Assert.Contains("STRING_AGG", gateEx.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (amount DESC)", dialect));
@@ -804,6 +1121,15 @@ public sealed class SqlServerDialectFeatureParserTests
     {
         var dialect = new SqlServerDialect(version);
 
+        if (version < SqlServerDialect.StringAggMinVersion)
+        {
+            var gateEx = Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", dialect));
+
+            Assert.Contains("STRING_AGG", gateEx.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", dialect));
 
@@ -820,6 +1146,15 @@ public sealed class SqlServerDialectFeatureParserTests
     public void ParseScalar_WithinGroupOrderByEmptyList_ShouldThrowActionableError(int version)
     {
         var dialect = new SqlServerDialect(version);
+
+        if (version < SqlServerDialect.StringAggMinVersion)
+        {
+            var gateEx = Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY)", dialect));
+
+            Assert.Contains("STRING_AGG", gateEx.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY)", dialect));
@@ -838,6 +1173,15 @@ public sealed class SqlServerDialectFeatureParserTests
     {
         var dialect = new SqlServerDialect(version);
 
+        if (version < SqlServerDialect.StringAggMinVersion)
+        {
+            var gateEx = Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", dialect));
+
+            Assert.Contains("STRING_AGG", gateEx.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", dialect));
 
@@ -855,6 +1199,15 @@ public sealed class SqlServerDialectFeatureParserTests
     public void ParseScalar_WithinGroupOrderByMissingCommaBetweenExpressions_ShouldThrowActionableError(int version)
     {
         var dialect = new SqlServerDialect(version);
+
+        if (version < SqlServerDialect.StringAggMinVersion)
+        {
+            var gateEx = Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", dialect));
+
+            Assert.Contains("STRING_AGG", gateEx.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
             SqlExpressionParser.ParseScalar("STRING_AGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", dialect));

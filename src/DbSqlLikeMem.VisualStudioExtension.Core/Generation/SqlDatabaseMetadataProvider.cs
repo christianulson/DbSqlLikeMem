@@ -58,6 +58,15 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
             ["objectName"] = reference.Name
         };
 
+        if (reference.Type == DatabaseObjectType.Sequence)
+        {
+            var sequenceRows = await queryExecutor.QueryAsync(connection, SqlMetadataQueryFactory.BuildSequenceMetadataQuery(connection.DatabaseType), args, cancellationToken);
+            return reference with
+            {
+                Properties = SerializeSequence(sequenceRows)
+            };
+        }
+
         var columns = await queryExecutor.QueryAsync(connection, SqlMetadataQueryFactory.BuildObjectColumnsQuery(connection.DatabaseType), args, cancellationToken);
         var pks = await queryExecutor.QueryAsync(connection, SqlMetadataQueryFactory.BuildPrimaryKeyQuery(connection.DatabaseType), args, cancellationToken);
         var indexes = await queryExecutor.QueryAsync(connection, SqlMetadataQueryFactory.BuildIndexesQuery(connection.DatabaseType), args, cancellationToken);
@@ -218,6 +227,17 @@ public sealed class SqlDatabaseMetadataProvider : IDatabaseMetadataProvider
             .Select(f => $"{Escape(f.col)}|{Escape(f.refTable)}|{Escape(f.refCol)}");
 
         return string.Join(";", fks);
+    }
+
+    private static IReadOnlyDictionary<string, string> SerializeSequence(IReadOnlyCollection<IReadOnlyDictionary<string, object?>> rows)
+    {
+        var row = rows.FirstOrDefault();
+        return new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["StartValue"] = row is null ? string.Empty : ReadString(row, "StartValue"),
+            ["IncrementBy"] = row is null ? string.Empty : ReadString(row, "IncrementBy"),
+            ["CurrentValue"] = row is null ? string.Empty : ReadString(row, "CurrentValue")
+        };
     }
 
     private static DatabaseObjectReference? MapObject(IReadOnlyDictionary<string, object?> row)

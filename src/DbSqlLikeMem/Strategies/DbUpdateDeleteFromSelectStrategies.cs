@@ -16,15 +16,6 @@ internal static class DbUpdateDeleteFromSelectStrategies
         @"^DELETE\s+FROM\s+`?(?<table>[A-Za-z0-9_]+)`?\s+(?<a>[A-Za-z0-9_]+)\s+USING\s*\(\s*(?<sub>(SELECT|WITH)\b[\s\S]*?)\s*\)\s+(?<s>[A-Za-z0-9_]+)\s+WHERE\s+(?<where>[\s\S]*?)\s*;?\s*$",
         RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
-    private static bool IsMySql(ISqlDialect dialect)
-        => dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsSqlServer(ISqlDialect dialect)
-        => dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsPostgreSql(ISqlDialect dialect)
-        => dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase);
-
     private static bool IsUpdateFromSelectSql(string sql)
         => _regexUpdateJoinMySql.IsMatch(sql) || _regexUpdateFromClause.IsMatch(sql);
 
@@ -105,12 +96,12 @@ internal static class DbUpdateDeleteFromSelectStrategies
         }
 
         if (!m.Success)
-            throw new InvalidOperationException("UPDATE ... JOIN inválido. Use os formatos: UPDATE <tabela> <alias> JOIN (<select>) ... SET ... ou UPDATE <alias> SET ... FROM <tabela> <alias> JOIN (<select>) ...");
+            throw new InvalidOperationException(SqlExceptionMessages.UpdateJoinInvalid());
 
-        if (!fromClause && !IsMySql(dialect))
+        if (!fromClause && !dialect.SupportsUpdateJoinFromSubquerySyntax)
             throw SqlUnsupported.ForDialect(dialect, "UPDATE ... JOIN (subquery)");
 
-        if (fromClause && !IsSqlServer(dialect) && !IsPostgreSql(dialect))
+        if (fromClause && !dialect.SupportsUpdateFromJoinSubquerySyntax)
             throw SqlUnsupported.ForDialect(dialect, "UPDATE ... FROM ... JOIN (subquery)");
 
         var tableName = m.Groups["table"].Value.NormalizeName();
@@ -129,7 +120,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
             @"^(?<l>[A-Za-z0-9_]+)\.(?<lc>[A-Za-z0-9_`]+)\s*=\s*(?<r>[A-Za-z0-9_]+)\.(?<rc>[A-Za-z0-9_`]+)$",
             RegexOptions.IgnoreCase);
         if (!onM.Success)
-            throw new InvalidOperationException("Apenas ON com igualdade simples é suportado em UPDATE ... JOIN: <alias1>.<col> = <alias2>.<col>.");
+            throw new InvalidOperationException(SqlExceptionMessages.UpdateJoinOnlySimpleEqualityOnSupported());
 
         var leftAlias = onM.Groups["l"].Value;
         var leftCol = onM.Groups["lc"].Value.Trim('`');
@@ -150,7 +141,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         }
         else
         {
-            throw new InvalidOperationException("ON deve referenciar o alias da tabela alvo e o alias da subconsulta.");
+            throw new InvalidOperationException(SqlExceptionMessages.JoinOnMustReferenceTargetAndSubqueryAliases());
         }
 
         // Parse SET: a.col = s.col  (single assignment for now)
@@ -158,10 +149,10 @@ internal static class DbUpdateDeleteFromSelectStrategies
             @"^(?<ta>[A-Za-z0-9_]+)\.(?<tcol>[A-Za-z0-9_`]+)\s*=\s*(?<sa>[A-Za-z0-9_]+)\.(?<scol>[A-Za-z0-9_`]+)$",
             RegexOptions.IgnoreCase);
         if (!setM.Success)
-            throw new InvalidOperationException("Apenas SET com única atribuição é suportado: <aliasAlvo>.<col> = <aliasSub>.<col>.");
+            throw new InvalidOperationException(SqlExceptionMessages.UpdateJoinOnlySingleSetAssignmentSupported());
         if (!string.Equals(setM.Groups["ta"].Value, aAlias, StringComparison.OrdinalIgnoreCase) ||
             !string.Equals(setM.Groups["sa"].Value, sAlias, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("SET deve atribuir do alias da subconsulta para o alias da tabela alvo.");
+            throw new InvalidOperationException(SqlExceptionMessages.UpdateJoinSetMustAssignFromSubqueryToTargetAlias());
 
         var targetSetCol = setM.Groups["tcol"].Value.Trim('`');
         var subSetCol = setM.Groups["scol"].Value.Trim('`');
@@ -288,12 +279,12 @@ internal static class DbUpdateDeleteFromSelectStrategies
             usingSyntax = m.Success;
         }
         if (!m.Success)
-            throw new InvalidOperationException("DELETE ... JOIN inválido. Use os formatos: DELETE <alvo> FROM <tabela> <alias> JOIN (<select>) ... ON ... ou DELETE FROM <tabela> <alias> USING (<select>) ... WHERE ...");
+            throw new InvalidOperationException(SqlExceptionMessages.DeleteJoinInvalid());
 
-        if (!usingSyntax && !IsMySql(dialect) && !IsSqlServer(dialect))
+        if (!usingSyntax && !dialect.SupportsDeleteTargetFromJoinSubquerySyntax)
             throw SqlUnsupported.ForDialect(dialect, "DELETE <alvo> FROM ... JOIN (subquery)");
 
-        if (usingSyntax && !IsPostgreSql(dialect))
+        if (usingSyntax && !dialect.SupportsDeleteUsingSubquerySyntax)
             throw SqlUnsupported.ForDialect(dialect, "DELETE FROM ... USING (subquery)");
 
         var tableName = m.Groups["table"].Value.NormalizeName();
@@ -310,7 +301,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
         var onM = _regexOnSql.Match(onSql);
         if (!onM.Success)
-            throw new InvalidOperationException("Apenas ON com igualdade simples é suportado em DELETE ... JOIN: <alias1>.<col> = <alias2>.<col>.");
+            throw new InvalidOperationException(SqlExceptionMessages.DeleteJoinOnlySimpleEqualityOnSupported());
 
         var leftAlias = onM.Groups["l"].Value;
         var leftCol = onM.Groups["lc"].Value.Trim('`');
@@ -331,7 +322,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         }
         else
         {
-            throw new InvalidOperationException("ON deve referenciar o alias da tabela alvo e o alias da subconsulta.");
+            throw new InvalidOperationException(SqlExceptionMessages.JoinOnMustReferenceTargetAndSubqueryAliases());
         }
 
         var executor = AstQueryExecutorFactory.Create(dialect, connection, pars);
@@ -395,7 +386,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
             return candidate;
         }
 
-        throw new InvalidOperationException("WHERE deve conter uma condição de junção por igualdade entre aliases de alvo e subconsulta (ex.: s.id = a.id).");
+        throw new InvalidOperationException(SqlExceptionMessages.DeleteUsingWhereMustContainJoinEqualityCondition());
     }
 
     private sealed class ObjectEqualityComparer : IEqualityComparer<object>

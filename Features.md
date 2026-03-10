@@ -33,6 +33,9 @@
 - `CREATE VIEW` / `CREATE OR REPLACE VIEW` support.
 - `CREATE TEMPORARY TABLE` support, including `AS SELECT` variants.
 - Fluent schema definition and deterministic data seeding helpers.
+- Schema-level sequences with registration through `DbMock`/`DbConnectionMockBase`, compatible generator extraction, and equivalent generated code output.
+- SQL sequence consumption in validated `INSERT` and `SELECT` paths, including `NEXT VALUE FOR`, `nextval(...)`, `currval(...)`, `setval(...)`, `lastval()`, and schema-qualified names in covered providers.
+- Optional identity-column override for scenarios and inserts, while preserving current default behavior.
 - Standardized mock collation/coercion rules for deterministic text and numeric-string comparisons.
 
 ## Integration layers used in real test stacks
@@ -88,19 +91,23 @@
 
 - Version-aware dialect behavior in provider package.
 - `RELEASE SAVEPOINT` intentionally standardized as unsupported.
+- `NEXT VALUE FOR` against registered schema sequences is supported in validated `SELECT` and `INSERT` flows.
 
 ### SQL Azure
 
 - Version-aware Azure SQL behavior in provider package.
 - Dedicated compatibility behavior for SQL Azure command/transaction flows.
+- `NEXT VALUE FOR` follows the same SQL Server-compatible mock behavior, including schema-qualified sequences.
 
 ### Oracle
 
 - Version-aware dialect behavior in provider package.
+- Oracle-style `seq.NEXTVAL` and `seq.CURRVAL` syntax is implemented in the parser/runtime, including schema-qualified names.
 
 ### PostgreSQL (Npgsql)
 
 - Version-aware dialect behavior in provider package.
+- `nextval(...)`, `currval(...)`, `setval(...)`, and `lastval()` against registered schema sequences are supported in validated provider flows.
 
 ### SQLite
 
@@ -114,6 +121,7 @@
 - `WITH`/CTE: available (>= 8).
 - `MERGE`: available (>= 9).
 - `FETCH FIRST`: supported.
+- `NEXT VALUE FOR` and `PREVIOUS VALUE FOR` are implemented in the parser/runtime, including schema-qualified names.
 - `LIMIT/OFFSET`: not supported in DB2 dialect.
 - `ON DUPLICATE KEY UPDATE`: not supported.
 - Null-safe operator `<=>`: not supported.

@@ -7,6 +7,111 @@ namespace DbSqlLikeMem.Npgsql.Test.Parser;
 public sealed class NpgsqlDialectFeatureParserTests
 {
     /// <summary>
+    /// EN: Ensures PostgreSQL accepts ILIKE and keeps the case-insensitive flag in the AST.
+    /// PT: Garante que o PostgreSQL aceite ILIKE e mantenha a flag case-insensitive na AST.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseScalar_Ilike_ShouldParse(int version)
+    {
+        var expr = SqlExpressionParser.ParseScalar("name ILIKE 'jo%'", new NpgsqlDialect(version));
+        var like = Assert.IsType<LikeExpr>(expr);
+
+        Assert.True(like.CaseInsensitive);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL sequence function calls are parsed through dialect-owned capabilities.
+    /// PT: Garante que chamadas de funcao de sequence do PostgreSQL sejam interpretadas por capabilities do dialeto.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseScalar_SequenceFunctionCalls_ShouldParse(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        Assert.Equal("NEXTVAL", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("nextval('sales.seq_orders')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("CURRVAL", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("currval('sales.seq_orders')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SETVAL", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("setval('sales.seq_orders', 30, false)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("LASTVAL", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("lastval()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL row-count helper stays owned by the dialect capability used by the executor.
+    /// PT: Garante que o helper de row-count do PostgreSQL continue pertencendo à capability de dialeto usada pelo executor.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void LastFoundRowsCapability_ShouldExposePostgreSqlFunction(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        Assert.True(dialect.SupportsLastFoundRowsFunction("ROW_COUNT"));
+        Assert.False(dialect.SupportsLastFoundRowsFunction("FOUND_ROWS"));
+        Assert.False(dialect.SupportsLastFoundRowsIdentifier("@@ROWCOUNT"));
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL exposes its join-based mutation syntax through dialect-owned capabilities.
+    /// PT: Garante que o PostgreSQL exponha sua sintaxe de mutacao com join por capabilities do proprio dialeto.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void MutationCapabilities_ShouldExposePostgreSqlContract(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        Assert.False(dialect.SupportsUpdateJoinFromSubquerySyntax);
+        Assert.True(dialect.SupportsUpdateFromJoinSubquerySyntax);
+        Assert.False(dialect.SupportsDeleteTargetFromJoinSubquerySyntax);
+        Assert.True(dialect.SupportsDeleteUsingSubquerySyntax);
+        Assert.False(dialect.SupportsSqlCalcFoundRowsModifier);
+        Assert.Equal(2, dialect.GetInsertUpsertAffectedRowCount(1, 1));
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL parser rejects SQL_CALC_FOUND_ROWS because the modifier belongs to MySQL.
+    /// PT: Garante que o parser PostgreSQL rejeite SQL_CALC_FOUND_ROWS porque o modificador pertence ao MySQL.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseSelect_SqlCalcFoundRows_ShouldRespectDialectRule(int version)
+    {
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT SQL_CALC_FOUND_ROWS name FROM users LIMIT 1", new NpgsqlDialect(version)));
+
+        Assert.Contains("SQL_CALC_FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL parser accepts ROW_COUNT() and rejects foreign row-count helper aliases.
+    /// PT: Garante que o parser PostgreSQL aceite ROW_COUNT() e rejeite aliases de row-count de outros bancos.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseScalar_LastFoundRowsFunctions_ShouldFollowDialectCapability(int version)
+    {
+        var dialect = new NpgsqlDialect(version);
+
+        Assert.Equal("ROW_COUNT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROW_COUNT()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+
+        var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FOUND_ROWS()", dialect));
+        Assert.Contains("FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures ON CONFLICT DO NOTHING is parsed as duplicate-key handling.
     /// PT: Garante que ON CONFLICT DO NOTHING seja interpretado como tratamento de chave duplicada.
     /// </summary>
@@ -4252,7 +4357,7 @@ WHERE id = 1";
         var ex = Assert.Throws<NotSupportedException>(() =>
             SqlExpressionParser.ParseScalar("LISTAGG(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", dialect));
 
-        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("LISTAGG", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

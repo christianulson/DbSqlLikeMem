@@ -159,7 +159,7 @@ public class NpgsqlCommandMock(
                 continue;
             }
 
-            var query = SqlQueryParser.Parse(sqlRaw, connection.Db.Dialect, Parameters);
+            var query = SqlQueryParser.Parse(sqlRaw, connection.ExecutionDialect, Parameters);
             parsedStatementCount++;
 
             connection.DispatchParsedReaderQuery(
@@ -170,7 +170,7 @@ public class NpgsqlCommandMock(
                 executeInsert: ExecuteInsertReturning,
                 executeUpdate: ExecuteUpdateReturning,
                 executeDelete: ExecuteDeleteReturning,
-                executeMerge: mergeQ => connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect));
+                executeMerge: mergeQ => connection.ExecuteMerge(mergeQ, Parameters, connection.ExecutionDialect));
         }
 
         connection.FinalizeReaderExecution(tables, parsedStatementCount);
@@ -186,7 +186,7 @@ public class NpgsqlCommandMock(
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
         {
-            connection!.ExecuteInsert(query, Parameters, connection!.Db.Dialect);
+            connection!.ExecuteInsert(query, Parameters, connection!.ExecutionDialect);
             return null;
         }
         if (table is null)
@@ -195,7 +195,7 @@ public class NpgsqlCommandMock(
 
         var hadReturning = query.Returning.Count > 0;
         var beforeCount = targetTable.Count;
-        connection!.ExecuteInsert(query, Parameters, connection!.Db.Dialect);
+        connection!.ExecuteInsert(query, Parameters, connection!.ExecutionDialect);
 
         if (!hadReturning)
             return null;
@@ -216,7 +216,7 @@ public class NpgsqlCommandMock(
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
         {
-            connection!.ExecuteUpdateSmart(query, Parameters, connection!.Db.Dialect);
+            connection!.ExecuteUpdateSmart(query, Parameters, connection!.ExecutionDialect);
             return null;
         }
         if (table is null)
@@ -228,7 +228,7 @@ public class NpgsqlCommandMock(
         if (hadReturning)
             matchedIndexes = MatchRowIndexes(targetTable, query.WhereRaw, query.RawSql);
 
-        connection!.ExecuteUpdateSmart(query, Parameters, connection!.Db.Dialect);
+        connection!.ExecuteUpdateSmart(query, Parameters, connection!.ExecutionDialect);
 
         if (!hadReturning)
             return null;
@@ -252,7 +252,7 @@ public class NpgsqlCommandMock(
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
         {
-            connection!.ExecuteDeleteSmart(query, Parameters, connection!.Db.Dialect);
+            connection!.ExecuteDeleteSmart(query, Parameters, connection!.ExecutionDialect);
             return null;
         }
         if (table is null)
@@ -267,7 +267,7 @@ public class NpgsqlCommandMock(
             snapshotRows = [.. matchedIndexes.Select(i => SnapshotRow(targetTable[i]))];
         }
 
-        connection!.ExecuteDeleteSmart(query, Parameters, connection!.Db.Dialect);
+        connection!.ExecuteDeleteSmart(query, Parameters, connection!.ExecutionDialect);
 
         if (!hadReturning)
             return null;

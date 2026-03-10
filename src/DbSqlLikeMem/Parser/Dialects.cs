@@ -72,6 +72,15 @@ internal interface ISqlDialect
     bool SupportsReturning { get; }
     bool SupportsMerge { get; }
     bool SupportsTriggers { get; }
+    bool SupportsSequenceDdl { get; }
+    bool SupportsNextValueForSequenceExpression { get; }
+    bool SupportsPreviousValueForSequenceExpression { get; }
+    bool SupportsSequenceDotValueExpression(string suffix);
+    bool SupportsSequenceFunctionCall(string functionName);
+    bool SupportsLastFoundRowsFunction(string functionName);
+    bool SupportsLastFoundRowsIdentifier(string identifier);
+    bool SupportsDoubleAtIdentifierSyntax { get; }
+    bool SupportsSqlCalcFoundRowsModifier { get; }
 
     // Pagination
     bool SupportsOffsetFetch { get; }
@@ -81,6 +90,11 @@ internal interface ISqlDialect
     // DML variations
     bool SupportsDeleteWithoutFrom { get; }
     bool SupportsDeleteTargetAlias { get; }
+    bool SupportsUpdateJoinFromSubquerySyntax { get; }
+    bool SupportsUpdateFromJoinSubquerySyntax { get; }
+    bool SupportsDeleteTargetFromJoinSubquerySyntax { get; }
+    bool SupportsDeleteUsingSubquerySyntax { get; }
+    int GetInsertUpsertAffectedRowCount(int insertedCount, int updatedCount);
 
 
     // CTE (WITH ...)
@@ -92,7 +106,9 @@ internal interface ISqlDialect
     bool SupportsJsonArrowOperators { get; }
     bool SupportsJsonExtractFunction { get; }
     bool SupportsJsonValueFunction { get; }
+    bool SupportsJsonValueReturningClause { get; }
     bool SupportsOpenJsonFunction { get; }
+    bool SupportsJsonTableFunction { get; }
 
     // Parser-only compatibility toggles (keep runtime rules separated)
     bool AllowsParserCrossDialectQuotedIdentifiers { get; }
@@ -126,18 +142,28 @@ internal interface ISqlDialect
     bool ConcatReturnsNullOnNullInput { get; }
     // Dialect-specific runtime semantics
     bool RegexInvalidPatternEvaluatesToFalse { get; }
+    bool RegexIsCaseInsensitive { get; }
     bool AreUnionColumnTypesCompatible(DbType first, DbType second);
     bool IsIntegerCastTypeName(string typeName);
     bool SupportsDateAddFunction(string functionName);
     bool SupportsWindowFunctions { get; }
     bool SupportsWindowFrameClause { get; }
     bool SupportsLikeEscapeClause { get; }
+    bool SupportsIlikeOperator { get; }
+    char? LikeDefaultEscapeCharacter { get; }
+    bool LikeEscapeExpressionMustBeSingleCharacter { get; }
     bool IsRowNumberWindowFunction(string functionName);
     bool SupportsWindowFunction(string functionName);
     bool RequiresOrderByInWindowFunction(string functionName);
     bool TryGetWindowFunctionArgumentArity(string functionName, out int minArgs, out int maxArgs);
     bool SupportsWithinGroupForStringAggregates { get; }
     bool SupportsWithinGroupStringAggregateFunction(string functionName);
+    bool SupportsStringAggregateFunction(string functionName);
+    bool SupportsAggregateOrderByForStringAggregates { get; }
+    bool SupportsAggregateOrderByStringAggregateFunction(string functionName);
+    bool SupportsAggregateSeparatorKeywordForStringAggregates { get; }
+    bool SupportsAggregateSeparatorKeywordStringAggregateFunction(string functionName);
+    bool SupportsMatchAgainstPredicate { get; }
     bool SupportsPivotClause { get; }
     DbType InferWindowFunctionDbType(WindowFunctionExpr windowFunctionExpr, Func<SqlExpr, DbType> inferArgDbType);
 }
@@ -318,6 +344,8 @@ internal abstract class SqlDialectBase : ISqlDialect
 
     public virtual bool RegexInvalidPatternEvaluatesToFalse => false;
 
+    public virtual bool RegexIsCaseInsensitive => false;
+
     public virtual bool AreUnionColumnTypesCompatible(DbType first, DbType second)
     {
         if (first == second)
@@ -370,6 +398,12 @@ internal abstract class SqlDialectBase : ISqlDialect
 
     public virtual bool SupportsLikeEscapeClause => true;
 
+    public virtual bool SupportsIlikeOperator => false;
+
+    public virtual char? LikeDefaultEscapeCharacter => null;
+
+    public virtual bool LikeEscapeExpressionMustBeSingleCharacter => true;
+
     public virtual bool SupportsWithinGroupForStringAggregates => false;
 
     public virtual bool SupportsWithinGroupStringAggregateFunction(string functionName)
@@ -381,6 +415,42 @@ internal abstract class SqlDialectBase : ISqlDialect
             || functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase);
     }
+
+    public virtual bool SupportsStringAggregateFunction(string functionName)
+    {
+        if (string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        return functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public virtual bool SupportsAggregateOrderByForStringAggregates => false;
+
+    public virtual bool SupportsAggregateOrderByStringAggregateFunction(string functionName)
+    {
+        if (!SupportsAggregateOrderByForStringAggregates || string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        return functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public virtual bool SupportsAggregateSeparatorKeywordForStringAggregates => false;
+
+    public virtual bool SupportsAggregateSeparatorKeywordStringAggregateFunction(string functionName)
+    {
+        if (!SupportsAggregateSeparatorKeywordForStringAggregates || string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        return functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public virtual bool SupportsMatchAgainstPredicate => false;
 
     public virtual bool IsRowNumberWindowFunction(string functionName)
         => functionName.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase);
@@ -592,6 +662,24 @@ internal abstract class SqlDialectBase : ISqlDialect
 
     public virtual bool SupportsTriggers => true;
 
+    public virtual bool SupportsSequenceDdl => false;
+
+    public virtual bool SupportsNextValueForSequenceExpression => false;
+
+    public virtual bool SupportsPreviousValueForSequenceExpression => false;
+
+    public virtual bool SupportsSequenceDotValueExpression(string suffix) => false;
+
+    public virtual bool SupportsSequenceFunctionCall(string functionName) => false;
+
+    public virtual bool SupportsLastFoundRowsFunction(string functionName) => false;
+
+    public virtual bool SupportsLastFoundRowsIdentifier(string identifier) => false;
+
+    public virtual bool SupportsDoubleAtIdentifierSyntax => false;
+
+    public virtual bool SupportsSqlCalcFoundRowsModifier => false;
+
     /// <summary>
     /// EN: Gets or sets SupportsOffsetFetch.
     /// PT: Obtém ou define SupportsOffsetFetch.
@@ -617,6 +705,37 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// PT: Obtém ou define SupportsDeleteTargetAlias.
     /// </summary>
     public virtual bool SupportsDeleteTargetAlias => true;
+
+    /// <summary>
+    /// EN: Gets whether MySQL-style UPDATE target JOIN (subquery) syntax is supported.
+    /// PT: Obtém se a sintaxe UPDATE alvo JOIN (subquery) no estilo MySQL é suportada.
+    /// </summary>
+    public virtual bool SupportsUpdateJoinFromSubquerySyntax => false;
+
+    /// <summary>
+    /// EN: Gets whether SQL Server/PostgreSQL-style UPDATE ... FROM ... JOIN (subquery) syntax is supported.
+    /// PT: Obtém se a sintaxe UPDATE ... FROM ... JOIN (subquery) no estilo SQL Server/PostgreSQL é suportada.
+    /// </summary>
+    public virtual bool SupportsUpdateFromJoinSubquerySyntax => false;
+
+    /// <summary>
+    /// EN: Gets whether SQL Server/MySQL-style DELETE target FROM ... JOIN (subquery) syntax is supported.
+    /// PT: Obtém se a sintaxe DELETE alvo FROM ... JOIN (subquery) no estilo SQL Server/MySQL é suportada.
+    /// </summary>
+    public virtual bool SupportsDeleteTargetFromJoinSubquerySyntax => false;
+
+    /// <summary>
+    /// EN: Gets whether PostgreSQL-style DELETE FROM ... USING (subquery) syntax is supported.
+    /// PT: Obtém se a sintaxe DELETE FROM ... USING (subquery) no estilo PostgreSQL é suportada.
+    /// </summary>
+    public virtual bool SupportsDeleteUsingSubquerySyntax => false;
+
+    /// <summary>
+    /// EN: Calculates the affected-row count reported by INSERT/UPSERT operations for this dialect.
+    /// PT: Calcula a contagem de linhas afetadas reportada por operacoes INSERT/UPSERT para este dialeto.
+    /// </summary>
+    public virtual int GetInsertUpsertAffectedRowCount(int insertedCount, int updatedCount)
+        => insertedCount + updatedCount;
 
     /// <summary>
     /// EN: Gets or sets SupportsWithCte.
@@ -649,7 +768,9 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual bool SupportsJsonArrowOperators => false;
     public virtual bool SupportsJsonExtractFunction => false;
     public virtual bool SupportsJsonValueFunction => false;
+    public virtual bool SupportsJsonValueReturningClause => false;
     public virtual bool SupportsOpenJsonFunction => false;
+    public virtual bool SupportsJsonTableFunction => false;
 
     /// <summary>
     /// EN: Gets or sets AllowsParserCrossDialectQuotedIdentifiers.

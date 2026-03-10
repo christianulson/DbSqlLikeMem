@@ -6,12 +6,4 @@ namespace DbSqlLikeMem.MySql.LinqToDb.Test;
 /// </summary>
 public sealed class LinqToDbSmokeTests(
     ITestOutputHelper helper
-) : LinqToDbSupportTestsBase(helper)
-{
-    /// <summary>
-    /// EN: Creates the MySql LinqToDB connection factory used by shared contract tests.
-    /// PT: Cria a fábrica de conexão LinqToDB de MySql usada pelos testes de contrato compartilhados.
-    /// </summary>
-    protected override IDbSqlLikeMemLinqToDbConnectionFactory CreateFactory()
-        => new MySqlLinqToDbConnectionFactory();
-}
+) : LinqToDbSmokeTestsBase(helper, static () => new MySqlLinqToDbConnectionFactory());

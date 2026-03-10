@@ -4,22 +4,18 @@ namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 /// EN: Validates transactional reliability additions for P11 scenarios.
 /// PT: Valida as adições de confiabilidade transacional para cenários do P11.
 /// </summary>
-public sealed class SqlServerTransactionReliabilityTests : DapperTransactionConcurrencyTestsBase
+public sealed class SqlServerTransactionReliabilityTests : ProviderDapperTransactionReliabilityTestsBase<SqlServerDbMock, SqlServerConnectionMock>
 {
     /// <inheritdoc />
     protected override bool SupportsReleaseSavepoint => false;
 
     /// <inheritdoc />
-    protected override Func<DbConnectionMockBase> CreateOpenConnectionFactory(bool threadSafe, int? version = null)
-    {
-        var db = new SqlServerDbMock(version) { ThreadSafe = threadSafe };
-        return () =>
-        {
-            var connection = new SqlServerConnectionMock(db);
-            connection.Open();
-            return connection;
-        };
-    }
+    protected override SqlServerDbMock CreateDb(int? version, bool threadSafe)
+        => new(version) { ThreadSafe = threadSafe };
+
+    /// <inheritdoc />
+    protected override SqlServerConnectionMock CreateConnection(SqlServerDbMock db)
+        => new(db);
 
     /// <summary>
     /// EN: Ensures rolling back to a savepoint restores the intermediate state.

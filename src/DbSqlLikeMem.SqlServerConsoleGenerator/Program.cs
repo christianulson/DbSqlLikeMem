@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Text;
 using Dapper;
 using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
+using DbSqlLikeMem.VisualStudioExtension.Core.Models;
 using Microsoft.Extensions.Configuration;
 
 namespace DbSqlLikeMem.SqlServerConsoleGenerator;
@@ -18,7 +19,8 @@ static partial class Program
         string Schema,
         string Namespace,
         string? ClassAccessibility = null,
-        List<string>? Tables = null);
+        List<string>? Tables = null,
+        List<string>? Sequences = null);
 
     private sealed record ConnectionInfo(
         string Name,
@@ -90,11 +92,14 @@ static partial class Program
                 var tables = (destiny.Tables != null && destiny.Tables.Count != 0)
                     ? destiny.Tables
                     : GetTablesInSchema(connection, destiny.Schema);
+                var sequences = (destiny.Sequences != null && destiny.Sequences.Count != 0)
+                    ? destiny.Sequences
+                    : GetSequencesInSchema(connection, destiny.Schema);
 
                 Console.WriteLine($"Schema: {destiny.Schema}");
 
                 var outputPath = Path.Combine(baseDirectory, destiny.OutputPath);
-                if (tables.Count > 0 && !Directory.Exists(outputPath))
+                if ((tables.Count > 0 || sequences.Count > 0) && !Directory.Exists(outputPath))
                     Directory.CreateDirectory(outputPath);
 
                 foreach (var tableName in tables.Distinct(StringComparer.OrdinalIgnoreCase))
@@ -115,6 +120,16 @@ static partial class Program
                         outputPath: outputPath);
 
                     Console.WriteLine($" - Tabela: {tableName} gerada.");
+                }
+
+                foreach (var sequenceName in sequences.Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    var clean = sequenceName.Trim();
+                    if (string.IsNullOrEmpty(clean)) continue;
+
+                    var meta = LoadSequenceMetadata(connection, destiny.Schema, clean);
+                    GenerateSequenceFile(destiny.Namespace, clean, destiny.Schema, meta, outputPath);
+                    Console.WriteLine($" - Sequence: {sequenceName} gerada.");
                 }
             }
         }
@@ -147,6 +162,22 @@ static partial class Program
         return rows;
     }
 
+    private static List<string> GetSequencesInSchema(IDbConnection cn, string schema)
+    {
+        var qObjects = SqlMetadataQueryFactory.BuildListObjectsQuery(DatabaseType);
+        var rows = cn.Query(qObjects, new { databaseName = schema })
+            .Select(ToDictionary)
+            .Where(r => ReadString(r, "ObjectType").Equals("Sequence", StringComparison.OrdinalIgnoreCase))
+            .Where(r => string.IsNullOrWhiteSpace(schema) || ReadString(r, "SchemaName").Equals(schema, StringComparison.OrdinalIgnoreCase))
+            .Select(r => ReadString(r, "ObjectName"))
+            .Where(static name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(static name => name)
+            .ToList();
+
+        return rows;
+    }
+
     private sealed record ColumnMeta(
         string ColumnName,
         string DataType,
@@ -165,6 +196,11 @@ static partial class Program
         List<string> PrimaryKey,
         Dictionary<string, (bool Unique, List<string> Cols)> Indexes,
         List<(string Col, string RefTable, string RefCol)> ForeignKeys);
+
+    private sealed record SequenceMeta(
+        long? StartValue,
+        long? IncrementBy,
+        long? CurrentValue);
 
     private static TableMeta LoadTableMetadata(IDbConnection cn, string schema, string table)
     {
@@ -229,6 +265,19 @@ static partial class Program
             .ToList();
 
         return new TableMeta(cols, pk, idx, fks);
+    }
+
+    private static SequenceMeta LoadSequenceMetadata(IDbConnection cn, string schema, string sequence)
+    {
+        var args = new { schemaName = schema, objectName = sequence };
+        var row = cn.Query(SqlMetadataQueryFactory.BuildSequenceMetadataQuery(DatabaseType), args)
+            .Select(ToDictionary)
+            .FirstOrDefault();
+
+        return new SequenceMeta(
+            StartValue: row is null ? null : ReadNullableLong(row, "StartValue"),
+            IncrementBy: row is null ? null : ReadNullableLong(row, "IncrementBy"),
+            CurrentValue: row is null ? null : ReadNullableLong(row, "CurrentValue"));
     }
 
     private static void GenerateTableFile(
@@ -316,6 +365,29 @@ static partial class Program
         w.WriteLine("        return table;");
         w.WriteLine("    }");
         w.WriteLine("}");
+    }
+
+    private static void GenerateSequenceFile(
+        string ns,
+        string sequenceName,
+        string schema,
+        SequenceMeta meta,
+        string outputPath)
+    {
+        var dbObject = new DatabaseObjectReference(
+            schema,
+            sequenceName,
+            DatabaseObjectType.Sequence,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["StartValue"] = meta.StartValue?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+                ["IncrementBy"] = meta.IncrementBy?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+                ["CurrentValue"] = meta.CurrentValue?.ToString(CultureInfo.InvariantCulture) ?? string.Empty
+            });
+
+        var className = $"{GenerationRuleSet.ToPascalCase(sequenceName)}SequenceFactory";
+        var fileName = Path.Combine(outputPath, $"{className}.cs");
+        File.WriteAllText(fileName, StructuredClassContentFactory.Build(dbObject, ns), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
     }
 
     private static IDictionary<string, object?> ToDictionary(object row)

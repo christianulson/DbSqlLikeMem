@@ -3,7 +3,6 @@ using NHibernate.Connection;
 using NHibernate.Criterion;
 using NHibernate.Mapping.ByCode;
 using NHibernate.Mapping.ByCode.Conformist;
-using System.Data.Common;
 using Environment = NHibernate.Cfg.Environment;
 
 namespace DbSqlLikeMem.NHibernate.TestTools;
@@ -3227,4 +3226,44 @@ internal sealed class NhVersionedUserMap : ClassMapping<NhVersionedUser>
             map.NotNullable(true);
         });
     }
+}
+
+/// <summary>
+/// EN: Reusable smoke test wrapper for NHibernate provider integrations.
+/// PT: Wrapper reutilizável de smoke tests para integrações NHibernate por provedor.
+/// </summary>
+public abstract class NHibernateSmokeTestsBase(
+    ITestOutputHelper helper,
+    string nhDialectClass,
+    Func<DbConnection> connectionFactory,
+    string? nhDriverClass = null,
+    bool useInMemoryPaginationFallback = false
+) : NHibernateSupportTestsBase(helper)
+{
+    private readonly Func<DbConnection> _connectionFactory = connectionFactory;
+
+    /// <summary>
+    /// EN: Gets the NHibernate dialect class name used by the smoke contract.
+    /// PT: Obtém o nome da classe de dialeto NHibernate usada pelo contrato smoke.
+    /// </summary>
+    protected override string NhDialectClass { get; } = nhDialectClass;
+
+    /// <summary>
+    /// EN: Gets the optional NHibernate driver class name used by the smoke contract.
+    /// PT: Obtém o nome opcional da classe de driver NHibernate usada pelo contrato smoke.
+    /// </summary>
+    protected override string? NhDriverClass { get; } = nhDriverClass;
+
+    /// <summary>
+    /// EN: Indicates whether the smoke contract should use the in-memory pagination fallback.
+    /// PT: Indica se o contrato smoke deve usar o fallback de paginação em memória.
+    /// </summary>
+    protected override bool UseInMemoryPaginationFallback { get; } = useInMemoryPaginationFallback;
+
+    /// <summary>
+    /// EN: Creates the provider-specific open connection used by the NHibernate smoke contract.
+    /// PT: Cria a conexão aberta específica do provider usada pelo contrato smoke de NHibernate.
+    /// </summary>
+    protected override DbConnection CreateOpenConnection()
+        => _connectionFactory();
 }

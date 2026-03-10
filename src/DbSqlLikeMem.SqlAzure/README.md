@@ -48,3 +48,30 @@ var db = new SqlAzureDbMock(SqlAzureDbCompatibilityLevels.SqlServer2022);
 using var connection = new SqlAzureConnectionMock(db);
 connection.Open();
 ```
+
+## Interceptacao ADO.NET
+
+O provider `SqlAzure` tambem participa da trilha de interceptacao ADO.NET do pacote base. Como este provider nao expõe um pacote ORM dedicado no repositório, a adoção acontece diretamente sobre `SqlAzureConnectionMock` ou pelos atalhos da `DbMockConnectionFactory`.
+
+```csharp
+var recorder = new RecordingDbConnectionInterceptor();
+using var connection = new SqlAzureConnectionMock(new SqlAzureDbMock()).Intercept(recorder);
+connection.Open();
+```
+
+```csharp
+var (db, connection) = DbMockConnectionFactory.CreateSqlAzureWithTablesIntercepted(
+    new RecordingDbConnectionInterceptor(),
+    mock => { /* tables */ });
+```
+
+## Sequence syntax
+
+Azure SQL segue a mesma base de sintaxe SQL Server no mock atual:
+
+```sql
+SELECT NEXT VALUE FOR sales.seq_orders;
+INSERT INTO sales.orders (id) VALUES (NEXT VALUE FOR sales.seq_orders);
+```
+
+See `docs/getting-started.md` for end-to-end setup examples.

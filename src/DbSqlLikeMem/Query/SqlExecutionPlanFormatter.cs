@@ -61,6 +61,98 @@ internal sealed record SqlPlanWarning(
 
 internal static class SqlExecutionPlanFormatter
 {
+    public static string FormatInsert(
+        SqlInsertQuery query,
+        SqlPlanRuntimeMetrics metrics,
+        SqlPlanMockRuntimeContext? runtimeContext = null)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(SqlExecutionPlanMessages.ExecutionPlanTitle());
+        sb.AppendLine($"- {SqlExecutionPlanMessages.QueryTypeLabel()}: INSERT");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.EstimatedCostLabel()}: {EstimateInsertCost(query)}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.TableLabel()}: {FormatSource(query.Table)}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.ProjectionLabel()}: {query.Columns.Count} item(s)");
+
+        if (query.InsertSelect is not null)
+        {
+            sb.AppendLine($"- FROM: {FormatSource(query.InsertSelect.Table)}");
+            foreach (var join in query.InsertSelect.Joins)
+            {
+                var on = SqlExprPrinter.Print(join.On);
+                sb.AppendLine($"- JOIN: {join.Type.ToString().ToUpperInvariant()} {FormatSource(join.Table)} ON {on}");
+            }
+
+            if (query.InsertSelect.Where is not null)
+                sb.AppendLine($"- WHERE: {SqlExprPrinter.Print(query.InsertSelect.Where)}");
+        }
+        else
+        {
+            sb.AppendLine($"- FROM: VALUES ({query.ValuesRaw.Count} row(s))");
+        }
+
+        if (query.HasOnDuplicateKeyUpdate)
+            sb.AppendLine($"- SET: {query.OnDupAssigns.Count} item(s)");
+
+        if (query.Returning.Count > 0)
+            sb.AppendLine($"- RETURNING: {query.Returning.Count} item(s)");
+
+        AppendMetricsBlock(sb, metrics, runtimeContext);
+        return sb.ToString().TrimEnd();
+    }
+
+    public static string FormatUpdate(
+        SqlUpdateQuery query,
+        SqlPlanRuntimeMetrics metrics,
+        SqlPlanMockRuntimeContext? runtimeContext = null)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(SqlExecutionPlanMessages.ExecutionPlanTitle());
+        sb.AppendLine($"- {SqlExecutionPlanMessages.QueryTypeLabel()}: UPDATE");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.EstimatedCostLabel()}: {EstimateUpdateCost(query)}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.TableLabel()}: {FormatSource(query.Table)}");
+        sb.AppendLine($"- SET: {query.Set.Count} item(s)");
+
+        if (query.Where is not null)
+            sb.AppendLine($"- WHERE: {SqlExprPrinter.Print(query.Where)}");
+        else if (!string.IsNullOrWhiteSpace(query.WhereRaw))
+            sb.AppendLine($"- WHERE: {query.WhereRaw}");
+
+        if (query.UpdateFromSelect is not null)
+            sb.AppendLine($"- FROM: {FormatSource(query.UpdateFromSelect.Table)}");
+
+        if (query.Returning.Count > 0)
+            sb.AppendLine($"- RETURNING: {query.Returning.Count} item(s)");
+
+        AppendMetricsBlock(sb, metrics, runtimeContext);
+        return sb.ToString().TrimEnd();
+    }
+
+    public static string FormatDelete(
+        SqlDeleteQuery query,
+        SqlPlanRuntimeMetrics metrics,
+        SqlPlanMockRuntimeContext? runtimeContext = null)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(SqlExecutionPlanMessages.ExecutionPlanTitle());
+        sb.AppendLine($"- {SqlExecutionPlanMessages.QueryTypeLabel()}: DELETE");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.EstimatedCostLabel()}: {EstimateDeleteCost(query)}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.TableLabel()}: {FormatSource(query.Table)}");
+
+        if (query.Where is not null)
+            sb.AppendLine($"- WHERE: {SqlExprPrinter.Print(query.Where)}");
+        else if (!string.IsNullOrWhiteSpace(query.WhereRaw))
+            sb.AppendLine($"- WHERE: {query.WhereRaw}");
+
+        if (query.DeleteFromSelect is not null)
+            sb.AppendLine($"- FROM: {FormatSource(query.DeleteFromSelect.Table)}");
+
+        if (query.Returning.Count > 0)
+            sb.AppendLine($"- RETURNING: {query.Returning.Count} item(s)");
+
+        AppendMetricsBlock(sb, metrics, runtimeContext);
+        return sb.ToString().TrimEnd();
+    }
+
     public static string FormatSelect(
         SqlSelectQuery query,
         SqlPlanRuntimeMetrics metrics,
@@ -147,6 +239,25 @@ internal static class SqlExecutionPlanFormatter
         AppendPlanSeverityHint(sb, planWarnings, severityHintContext);
 
         return sb.ToString().TrimEnd();
+    }
+
+    private static void AppendMetricsBlock(
+        StringBuilder sb,
+        SqlPlanRuntimeMetrics metrics,
+        SqlPlanMockRuntimeContext? runtimeContext)
+    {
+        sb.AppendLine($"- {SqlExecutionPlanMessages.InputTablesLabel()}: {metrics.InputTables}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.EstimatedRowsReadLabel()}: {metrics.EstimatedRowsRead}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.ActualRowsLabel()}: {metrics.ActualRows}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.SelectivityPctLabel()}: {metrics.SelectivityPct:F2}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.RowsPerMsLabel()}: {metrics.RowsPerMs:F2}");
+        sb.AppendLine($"- {SqlExecutionPlanMessages.ElapsedMsLabel()}: {metrics.ElapsedMs}");
+        AppendPerformanceDisclaimer(sb);
+        AppendMockRuntimeContext(sb, runtimeContext);
+        sb.AppendLine($"- {SqlExecutionPlanMessages.PlanMetadataVersionLabel()}: 1");
+        AppendPlanCorrelationId(sb);
+        AppendPlanFlags(sb, null, null);
+        AppendPlanPerformanceBand(sb, metrics);
     }
 
 
@@ -610,84 +721,137 @@ internal static class SqlExecutionPlanFormatter
         };
 
         if (runtimeContext is not null)
-        {
-            payload["mockRuntimeContext"] = $"metricsAreRelative:true;simulatedLatencyMs:{runtimeContext.SimulatedLatencyMs};dropProbability:{runtimeContext.DropProbability:F4};threadSafe:{runtimeContext.ThreadSafe.ToString().ToLowerInvariant()}";
-            payload["mockMetricsAreRelative"] = runtimeContext.MetricsAreRelative;
-            payload["mockSimulatedLatencyMs"] = runtimeContext.SimulatedLatencyMs;
-            payload["mockDropProbability"] = runtimeContext.DropProbability;
-            payload["mockThreadSafe"] = runtimeContext.ThreadSafe;
-            payload["mockRuntimePerturbationActive"] = runtimeContext.SimulatedLatencyMs > 0 || runtimeContext.DropProbability > 0d;
-        }
+            AppendMockRuntimeContextJson(payload, runtimeContext);
 
+        var currentRisk = 0;
         if (hasWarnings)
-        {
-            var riskScore = CalculatePlanRiskScore(planWarnings!);
-            var warningSummary = string.Join(";", planWarnings!
-                .OrderByDescending(static w => GetSeverityWeight(w.Severity))
-                .ThenBy(static w => w.Code, StringComparer.Ordinal)
-                .Select(static w => $"{w.Code}:{w.Severity}"));
-
-            var high = planWarnings!.Count(static w => w.Severity == SqlPlanWarningSeverity.High);
-            var warning = planWarnings!.Count(static w => w.Severity == SqlPlanWarningSeverity.Warning);
-            var info = planWarnings!.Count(static w => w.Severity == SqlPlanWarningSeverity.Info);
-
-            var primary = planWarnings!
-                .OrderByDescending(static w => GetSeverityWeight(w.Severity))
-                .ThenBy(static w => w.Code, StringComparer.Ordinal)
-                .First();
-
-            payload["planRiskScore"] = riskScore;
-            payload["planQualityGrade"] = CalculatePlanQualityGrade(riskScore, performanceBand);
-            payload["planWarningSummary"] = warningSummary;
-            payload["planWarningCounts"] = $"high:{high};warning:{warning};info:{info}";
-            payload["planNoiseScore"] = CalculatePlanNoiseScore(planWarnings!);
-            payload["planTopActions"] = string.Join(";", BuildTopActions(indexRecommendations, planWarnings));
-            payload["planPrimaryWarning"] = $"{primary.Code}:{primary.Severity}";
-            payload["planPrimaryCauseGroup"] = MapPrimaryCauseGroup(primary.Code);
-
-            var hintScore = high * 3 + warning * 2 + info;
-            var threshold = severityHintContext switch
-            {
-                SqlPlanSeverityHintContext.Dev => 3,
-                SqlPlanSeverityHintContext.Ci => 2,
-                SqlPlanSeverityHintContext.Prod => 1,
-                _ => 3
-            };
-            var level = hintScore >= threshold * 3 ? "High" : hintScore >= threshold * 2 ? "Warning" : "Info";
-            payload["planSeverityHint"] = $"context:{severityHintContext.ToString().ToLowerInvariant()};level:{level}";
-        }
+            currentRisk = AppendWarningSummaryJson(
+                payload,
+                planWarnings!,
+                indexRecommendations,
+                performanceBand,
+                severityHintContext);
 
         if (previousMetrics is not null)
-        {
-            var currentRisk = hasWarnings ? (int)payload["planRiskScore"]! : 0;
-            var previousRisk = previousWarnings is { Count: > 0 } ? CalculatePlanRiskScore(previousWarnings) : 0;
-            var riskDelta = currentRisk - previousRisk;
-            var elapsedDelta = metrics.ElapsedMs - previousMetrics.ElapsedMs;
-            var riskPrefix = riskDelta >= 0 ? "+" : string.Empty;
-            var elapsedPrefix = elapsedDelta >= 0 ? "+" : string.Empty;
-            payload["planDelta"] = $"riskDelta:{riskPrefix}{riskDelta};elapsedMsDelta:{elapsedPrefix}{elapsedDelta}";
-        }
+            AppendPreviousPlanDeltaJson(payload, metrics, previousMetrics, currentRisk, previousWarnings);
 
         if (hasIndexRecommendations)
-        {
-            var avgConfidence = indexRecommendations!.Average(static r => r.Confidence);
-            var maxGain = indexRecommendations!.Max(static r => r.EstimatedGainPct);
-            payload["indexRecommendationSummary"] = $"count:{indexRecommendations!.Count};avgConfidence:{avgConfidence:F2};maxGainPct:{maxGain:F2}";
-
-            var primary = indexRecommendations
-                .OrderByDescending(static r => r.Confidence)
-                .ThenByDescending(static r => r.EstimatedGainPct)
-                .ThenBy(static r => r.Table, StringComparer.Ordinal)
-                .First();
-            payload["indexPrimaryRecommendation"] = $"table:{primary.Table};confidence:{primary.Confidence};gainPct:{primary.EstimatedGainPct:F2}";
-            payload["indexRecommendationEvidence"] = string.Join("|", indexRecommendations
-                .OrderByDescending(static r => r.Confidence)
-                .ThenByDescending(static r => r.EstimatedGainPct)
-                .ThenBy(static r => r.Table, StringComparer.Ordinal)
-                .Select(static r => BuildIndexRecommendationEvidenceItem(r)));
-        }
+            AppendIndexRecommendationJson(payload, indexRecommendations!);
 
         return JsonSerializer.Serialize(payload);
+    }
+
+    private static void AppendMockRuntimeContextJson(
+        Dictionary<string, object?> payload,
+        SqlPlanMockRuntimeContext runtimeContext)
+    {
+        payload["mockRuntimeContext"] = $"metricsAreRelative:true;simulatedLatencyMs:{runtimeContext.SimulatedLatencyMs};dropProbability:{runtimeContext.DropProbability:F4};threadSafe:{runtimeContext.ThreadSafe.ToString().ToLowerInvariant()}";
+        payload["mockMetricsAreRelative"] = runtimeContext.MetricsAreRelative;
+        payload["mockSimulatedLatencyMs"] = runtimeContext.SimulatedLatencyMs;
+        payload["mockDropProbability"] = runtimeContext.DropProbability;
+        payload["mockThreadSafe"] = runtimeContext.ThreadSafe;
+        payload["mockRuntimePerturbationActive"] = runtimeContext.SimulatedLatencyMs > 0 || runtimeContext.DropProbability > 0d;
+    }
+
+    private static int AppendWarningSummaryJson(
+        Dictionary<string, object?> payload,
+        IReadOnlyList<SqlPlanWarning> planWarnings,
+        IReadOnlyList<SqlIndexRecommendation>? indexRecommendations,
+        string performanceBand,
+        SqlPlanSeverityHintContext severityHintContext)
+    {
+        var riskScore = CalculatePlanRiskScore(planWarnings);
+        var warningSummary = string.Join(";", planWarnings
+            .OrderByDescending(static w => GetSeverityWeight(w.Severity))
+            .ThenBy(static w => w.Code, StringComparer.Ordinal)
+            .Select(static w => $"{w.Code}:{w.Severity}"));
+        var warningCounts = CountWarningsBySeverity(planWarnings);
+        var primary = GetPrimaryWarning(planWarnings);
+
+        payload["planRiskScore"] = riskScore;
+        payload["planQualityGrade"] = CalculatePlanQualityGrade(riskScore, performanceBand);
+        payload["planWarningSummary"] = warningSummary;
+        payload["planWarningCounts"] = $"high:{warningCounts.High};warning:{warningCounts.Warning};info:{warningCounts.Info}";
+        payload["planNoiseScore"] = CalculatePlanNoiseScore(planWarnings);
+        payload["planTopActions"] = string.Join(";", BuildTopActions(indexRecommendations, planWarnings));
+        payload["planPrimaryWarning"] = $"{primary.Code}:{primary.Severity}";
+        payload["planPrimaryCauseGroup"] = MapPrimaryCauseGroup(primary.Code);
+        payload["planSeverityHint"] = BuildSeverityHint(severityHintContext, warningCounts);
+
+        return riskScore;
+    }
+
+    private static void AppendPreviousPlanDeltaJson(
+        Dictionary<string, object?> payload,
+        SqlPlanRuntimeMetrics metrics,
+        SqlPlanRuntimeMetrics previousMetrics,
+        int currentRisk,
+        IReadOnlyList<SqlPlanWarning>? previousWarnings)
+    {
+        var previousRisk = previousWarnings is { Count: > 0 } ? CalculatePlanRiskScore(previousWarnings) : 0;
+        var riskDelta = currentRisk - previousRisk;
+        var elapsedDelta = metrics.ElapsedMs - previousMetrics.ElapsedMs;
+        var riskPrefix = riskDelta >= 0 ? "+" : string.Empty;
+        var elapsedPrefix = elapsedDelta >= 0 ? "+" : string.Empty;
+        payload["planDelta"] = $"riskDelta:{riskPrefix}{riskDelta};elapsedMsDelta:{elapsedPrefix}{elapsedDelta}";
+    }
+
+    private static void AppendIndexRecommendationJson(
+        Dictionary<string, object?> payload,
+        IReadOnlyList<SqlIndexRecommendation> indexRecommendations)
+    {
+        var avgConfidence = indexRecommendations.Average(static r => r.Confidence);
+        var maxGain = indexRecommendations.Max(static r => r.EstimatedGainPct);
+        payload["indexRecommendationSummary"] = $"count:{indexRecommendations.Count};avgConfidence:{avgConfidence:F2};maxGainPct:{maxGain:F2}";
+
+        var orderedRecommendations = indexRecommendations
+            .OrderByDescending(static r => r.Confidence)
+            .ThenByDescending(static r => r.EstimatedGainPct)
+            .ThenBy(static r => r.Table, StringComparer.Ordinal)
+            .ToArray();
+
+        var primary = orderedRecommendations[0];
+        payload["indexPrimaryRecommendation"] = $"table:{primary.Table};confidence:{primary.Confidence};gainPct:{primary.EstimatedGainPct:F2}";
+        payload["indexRecommendationEvidence"] = string.Join("|", orderedRecommendations.Select(static r => BuildIndexRecommendationEvidenceItem(r)));
+    }
+
+    private static (int High, int Warning, int Info) CountWarningsBySeverity(IReadOnlyList<SqlPlanWarning> planWarnings)
+        => (
+            planWarnings.Count(static w => w.Severity == SqlPlanWarningSeverity.High),
+            planWarnings.Count(static w => w.Severity == SqlPlanWarningSeverity.Warning),
+            planWarnings.Count(static w => w.Severity == SqlPlanWarningSeverity.Info));
+
+    private static SqlPlanWarning GetPrimaryWarning(IReadOnlyList<SqlPlanWarning> planWarnings)
+        => planWarnings
+            .OrderByDescending(static w => GetSeverityWeight(w.Severity))
+            .ThenBy(static w => w.Code, StringComparer.Ordinal)
+            .First();
+
+    private static string BuildSeverityHint(
+        SqlPlanSeverityHintContext severityHintContext,
+        (int High, int Warning, int Info) warningCounts)
+    {
+        var hintScore = warningCounts.High * 3 + warningCounts.Warning * 2 + warningCounts.Info;
+        var threshold = GetSeverityThreshold(severityHintContext);
+        var level = GetSeverityLevel(hintScore, threshold);
+        return $"context:{severityHintContext.ToString().ToLowerInvariant()};level:{level}";
+    }
+
+    private static int GetSeverityThreshold(SqlPlanSeverityHintContext severityHintContext)
+        => severityHintContext switch
+        {
+            SqlPlanSeverityHintContext.Dev => 3,
+            SqlPlanSeverityHintContext.Ci => 2,
+            SqlPlanSeverityHintContext.Prod => 1,
+            _ => 3
+        };
+
+    private static string GetSeverityLevel(int hintScore, int threshold)
+    {
+        if (hintScore >= threshold * 3)
+            return "High";
+
+        return hintScore >= threshold * 2 ? "Warning" : "Info";
     }
 
 
@@ -798,6 +962,57 @@ internal static class SqlExecutionPlanFormatter
         return Math.Max(1, cost);
     }
 
+    private static int EstimateInsertCost(SqlInsertQuery query)
+    {
+        var cost = 8;
+        cost += query.Columns.Count * 2;
+        cost += query.ValuesRaw.Count * 3;
+
+        if (query.InsertSelect is not null)
+            cost += EstimateSelectCost(query.InsertSelect);
+
+        if (query.HasOnDuplicateKeyUpdate)
+            cost += 15 + query.OnDupAssigns.Count * 4;
+
+        if (query.Returning.Count > 0)
+            cost += query.Returning.Count * 2;
+
+        return Math.Max(1, cost);
+    }
+
+    private static int EstimateUpdateCost(SqlUpdateQuery query)
+    {
+        var cost = 12;
+        cost += query.Set.Count * 4;
+
+        if (query.Where is not null)
+            cost += 8;
+
+        if (query.UpdateFromSelect is not null)
+            cost += EstimateSelectCost(query.UpdateFromSelect);
+
+        if (query.Returning.Count > 0)
+            cost += query.Returning.Count * 2;
+
+        return Math.Max(1, cost);
+    }
+
+    private static int EstimateDeleteCost(SqlDeleteQuery query)
+    {
+        var cost = 10;
+
+        if (query.Where is not null || !string.IsNullOrWhiteSpace(query.WhereRaw))
+            cost += 8;
+
+        if (query.DeleteFromSelect is not null)
+            cost += EstimateSelectCost(query.DeleteFromSelect);
+
+        if (query.Returning.Count > 0)
+            cost += query.Returning.Count * 2;
+
+        return Math.Max(1, cost);
+    }
+
     /// <summary>
     /// EN: Estimates join-graph cost combining base join count, join types, predicate complexity and multi-join fan-out risk.
     /// PT: Estima custo do grafo de joins combinando quantidade base de joins, tipos de join, complexidade de predicado e risco de fan-out em múltiplos joins.
@@ -888,7 +1103,7 @@ internal static class SqlExecutionPlanFormatter
             BinaryExpr b when b.Op is SqlBinaryOp.And or SqlBinaryOp.Or
                 => 2 + EstimateLogicalPredicateDepthPenalty(b) + EstimateLogicalOperatorMixPenalty(b) + EstimatePredicateComplexityCost(b.Left) + EstimatePredicateComplexityCost(b.Right),
             BinaryExpr b => 1 + EstimatePredicateComplexityCost(b.Left) + EstimatePredicateComplexityCost(b.Right),
-            LikeExpr l => 2 + EstimatePredicateComplexityCost(l.Left) + EstimatePredicateComplexityCost(l.Pattern),
+            LikeExpr l => 2 + EstimatePredicateComplexityCost(l.Left) + EstimatePredicateComplexityCost(l.Pattern) + (l.Escape is null ? 0 : EstimatePredicateComplexityCost(l.Escape)),
             BetweenExpr b => 2 + EstimatePredicateComplexityCost(b.Expr) + EstimatePredicateComplexityCost(b.Low) + EstimatePredicateComplexityCost(b.High),
             InExpr i => 2 + EstimatePredicateComplexityCost(i.Left) + i.Items.Sum(EstimatePredicateComplexityCost) + i.Items.Count,
             ExistsExpr e => EstimateSubqueryPredicateCost(e.Subquery),

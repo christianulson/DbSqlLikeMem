@@ -14,7 +14,7 @@ public sealed class DbMockConnectionFactorySqlAzureTests : DbMockConnectionFacto
     protected override Type ExpectedConnectionType => typeof(SqlAzureConnectionMock);
     /// <inheritdoc />
     protected override IReadOnlyList<string> ProviderAliases =>
-        ["SqlAzure", "sqlazure", "AzureSql", "azure-sql", "azure_sql", "  azure-sql  "];
+        ["SqlAzure", "sqlazure", "AzureSql", "azure-sql", "azure_sql", "azure-sql-db", "  azure-sql  "];
 
     /// <inheritdoc />
     protected override (DbMock Db, IDbConnection Connection) CreateViaProviderShortcut(params Action<DbMock>[] tableMappers)

@@ -14,8 +14,7 @@ internal sealed class CreateTableAsSelectNonQueryCommandHandler : INonQueryComma
         affectedRows = context.Connection.ExecuteCreateTableAsSelect(
             sqlRaw,
             context.Parameters,
-            context.Connection.Db.Dialect);
+            context.Connection.ExecutionDialect);
         return true;
     }
 }
-

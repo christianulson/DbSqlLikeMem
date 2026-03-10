@@ -201,7 +201,7 @@ public class SqlServerCommandMock(
                     }
                     return ExecuteDeleteOutput(deleteQ, outputClause);
                 },
-                executeMerge: mergeQ => connection.ExecuteMerge(mergeQ, Parameters, connection.Db.Dialect));
+                executeMerge: mergeQ => connection.ExecuteMerge(mergeQ, Parameters, connection.ExecutionDialect));
         }
 
         connection.FinalizeReaderExecution(tables, parsedStatementCount);
@@ -220,7 +220,7 @@ public class SqlServerCommandMock(
         var targetTable = table;
 
         var beforeCount = targetTable.Count;
-        connection!.ExecuteInsert(query, Parameters, connection!.Db.Dialect);
+        connection!.ExecuteInsert(query, Parameters, connection!.ExecutionDialect);
         var insertedRows = Math.Max(0, targetTable.Count - beforeCount);
         var pairs = new List<(IReadOnlyDictionary<int, object?>? OldRow, IReadOnlyDictionary<int, object?>? NewRow)>();
         for (var i = beforeCount; i < beforeCount + insertedRows; i++)
@@ -241,7 +241,7 @@ public class SqlServerCommandMock(
 
         var matchedIndexes = MatchRowIndexes(targetTable, query.WhereRaw, query.RawSql);
         var beforeRows = matchedIndexes.Select(i => SnapshotRow(targetTable[i])).ToList();
-        connection!.ExecuteUpdateSmart(query, Parameters, connection!.Db.Dialect);
+        connection!.ExecuteUpdateSmart(query, Parameters, connection!.ExecutionDialect);
 
         var pairs = new List<(IReadOnlyDictionary<int, object?>? OldRow, IReadOnlyDictionary<int, object?>? NewRow)>();
         for (var i = 0; i < matchedIndexes.Count; i++)
@@ -267,7 +267,7 @@ public class SqlServerCommandMock(
 
         var matchedIndexes = MatchRowIndexes(targetTable, query.WhereRaw, query.RawSql);
         var deletedRows = matchedIndexes.Select(i => SnapshotRow(targetTable[i])).ToList();
-        connection!.ExecuteDeleteSmart(query, Parameters, connection!.Db.Dialect);
+        connection!.ExecuteDeleteSmart(query, Parameters, connection!.ExecutionDialect);
 
         var pairs = deletedRows
             .Select(row => (OldRow: (IReadOnlyDictionary<int, object?>?)row, NewRow: (IReadOnlyDictionary<int, object?>?)null))

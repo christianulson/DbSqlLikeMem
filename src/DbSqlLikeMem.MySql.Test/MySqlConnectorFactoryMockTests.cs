@@ -19,6 +19,13 @@ public sealed class MySqlConnectorFactoryMockTests
         Assert.IsType<MySqlConnectionMock>(factory.CreateConnection());
         Assert.IsType<MySqlDataAdapterMock>(factory.CreateDataAdapter());
         Assert.IsType<MySqlParameter>(factory.CreateParameter());
+        Assert.IsType<MySqlConnectionStringBuilder>(factory.CreateConnectionStringBuilder());
+        Assert.IsType<MySqlCommandBuilder>(factory.CreateCommandBuilder());
+        Assert.False(factory.CanCreateDataSourceEnumerator);
+#if NETCOREAPP3_0_OR_GREATER
+        Assert.True(factory.CanCreateCommandBuilder);
+        Assert.True(factory.CanCreateDataAdapter);
+#endif
     }
 
 #if NET6_0_OR_GREATER

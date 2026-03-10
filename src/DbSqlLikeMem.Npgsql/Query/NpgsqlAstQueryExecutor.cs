@@ -11,15 +11,12 @@ public static class NpgsqlAstQueryExecutorRegister
     /// PT: Implementa Register.
     /// </summary>
     public static void Register()
-    {
-        if (!AstQueryExecutorFactory.Executors.ContainsKey(NpgsqlDialect.DialectName))
-            AstQueryExecutorFactory.Executors.Add(
+        => AstQueryExecutorFactory.RegisterExecutor(
             NpgsqlDialect.DialectName,
             (
                 DbConnectionMockBase cnn,
                 IDataParameterCollection pars
             ) => new NpgsqlAstQueryExecutor((NpgsqlConnectionMock)cnn, pars));
-    }
 }
 
 /// <summary>
@@ -44,8 +41,9 @@ internal sealed class NpgsqlAstQueryExecutor(
                 pathExpr = new LiteralExpr(converted);
         }
 
-        var normalized = new JsonAccessExpr(ja.Target, pathExpr, ja.Unquote);
-        return base.MapJsonAccess(normalized);
+        return new FunctionCallExpr(
+            ja.Unquote ? "__JSON_ACCESS_TEXT" : "__JSON_ACCESS_JSON",
+            [ja.Target, pathExpr]);
     }
 
     private static string? ConvertPostgresJsonPath(string raw)

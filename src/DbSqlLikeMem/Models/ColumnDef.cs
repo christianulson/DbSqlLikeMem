@@ -45,13 +45,13 @@ public sealed class ColumnDef
     {
         if (dbType == DbType.String
             && size <= 0)
-            throw new InvalidOperationException("Tamanho do campo é obrigatório para o tipo String");
+            throw new InvalidOperationException(Resources.SqlExceptionMessages.StringColumnSizeRequired());
         if ((dbType == DbType.Currency
                 || dbType == DbType.Decimal
                 // || dbType == DbType.Double
                 )
             && !decimalPlaces.HasValue)
-            throw new InvalidOperationException($"DbType {dbType} é obrigatório informafar decimalPlaces");
+            throw new InvalidOperationException(Resources.SqlExceptionMessages.DecimalPlacesRequiredForDbType(dbType));
 
         Table = table;
         Name = name;
@@ -68,7 +68,7 @@ public sealed class ColumnDef
                     enumValues.Select(v => v.Trim()),
                     StringComparer.OrdinalIgnoreCase);
         if (enumValues.Count != EnumValues.Count)
-            throw new InvalidOperationException("Existem itens de enum duplicados");
+            throw new InvalidOperationException(Resources.SqlExceptionMessages.DuplicateEnumItems());
     }
 
     /// <summary>

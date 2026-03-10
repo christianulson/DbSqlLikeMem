@@ -46,6 +46,8 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsDollarQuotedStrings => true;
 
+    public override bool SupportsIlikeOperator => true;
+
     /// <summary>
     /// EN: Gets whether limit offset is supported.
     /// PT: Obtém se há suporte a limit offset.
@@ -99,11 +101,23 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsReturning => true;
 
+    public override bool SupportsSequenceDdl => true;
+    public override bool SupportsSequenceFunctionCall(string functionName)
+        => functionName.Equals("NEXTVAL", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("CURRVAL", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SETVAL", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LASTVAL", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>
     /// EN: Gets whether delete target alias is supported.
     /// PT: Obtém se há suporte a delete target alias.
     /// </summary>
     public override bool SupportsDeleteTargetAlias => false;
+    public override bool SupportsUpdateFromJoinSubquerySyntax => true;
+    public override bool SupportsDeleteUsingSubquerySyntax => true;
+
+    public override bool SupportsStringAggregateFunction(string functionName)
+        => functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// EN: Gets whether json arrow operators is supported.
@@ -187,4 +201,7 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsDateAddFunction(string functionName)
         => false;
+
+    public override bool SupportsLastFoundRowsFunction(string functionName)
+        => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase);
 }
