@@ -971,6 +971,521 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
+    /// EN: Ensures PIVOT and UNPIVOT preserve source column metadata for copied columns on the shared SQL Server runtime path.
+    /// PT: Garante que PIVOT e UNPIVOT preservem o metadata das colunas de origem para colunas copiadas no caminho compartilhado de runtime do SQL Server.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_WithPivotAndUnpivotCopiedColumns_ShouldExposeSourceFieldTypes()
+    {
+        using var pivotCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.Category, p.T10
+                FROM (
+                    SELECT CAST('A' AS NVARCHAR(10)) AS Category, 10 AS TenantId, CAST(2.0 AS FLOAT) AS Amount
+                    UNION ALL SELECT CAST('A' AS NVARCHAR(10)), 10, CAST(4.0 AS FLOAT)
+                ) src
+                PIVOT (
+                    MAX(Amount) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var pivotReader = pivotCommand.ExecuteReader();
+        Assert.Equal(typeof(string), pivotReader.GetFieldType(pivotReader.GetOrdinal("Category")));
+        Assert.Equal("String", pivotReader.GetDataTypeName(pivotReader.GetOrdinal("Category")));
+
+        using var unpivotCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT up.Id, up.FieldName, up.FieldValue
+                FROM (
+                    SELECT 1 AS Id, CAST('Ana' AS NVARCHAR(50)) AS Name, CAST('ana@example.com' AS NVARCHAR(100)) AS Email
+                ) src
+                UNPIVOT (FieldValue FOR FieldName IN (Name, Email)) up
+                """
+        };
+
+        using var unpivotReader = unpivotCommand.ExecuteReader();
+        Assert.Equal(typeof(int), unpivotReader.GetFieldType(unpivotReader.GetOrdinal("Id")));
+        Assert.Equal("Int32", unpivotReader.GetDataTypeName(unpivotReader.GetOrdinal("Id")));
+        Assert.Equal(typeof(string), unpivotReader.GetFieldType(unpivotReader.GetOrdinal("FieldName")));
+        Assert.Equal("String", unpivotReader.GetDataTypeName(unpivotReader.GetOrdinal("FieldName")));
+        Assert.Equal(typeof(string), unpivotReader.GetFieldType(unpivotReader.GetOrdinal("FieldValue")));
+        Assert.Equal("String", unpivotReader.GetDataTypeName(unpivotReader.GetOrdinal("FieldValue")));
+
+        using var mixedUnpivotCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT up.Id, up.FieldValue
+                FROM (
+                    SELECT 1 AS Id, CAST('Ana' AS NVARCHAR(50)) AS Name, CAST(42 AS INT) AS Score
+                ) src
+                UNPIVOT (FieldValue FOR FieldName IN (Name, Score)) up
+                """
+        };
+
+        using var mixedUnpivotReader = mixedUnpivotCommand.ExecuteReader();
+        Assert.Equal(typeof(object), mixedUnpivotReader.GetFieldType(mixedUnpivotReader.GetOrdinal("FieldValue")));
+        Assert.Equal("Object", mixedUnpivotReader.GetDataTypeName(mixedUnpivotReader.GetOrdinal("FieldValue")));
+
+        using var schemaCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT up.Id, up.FieldName, up.FieldValue
+                FROM (
+                    SELECT 1 AS Id, CAST('Ana' AS NVARCHAR(50)) AS Name, CAST('ana@example.com' AS NVARCHAR(100)) AS Email
+                ) src
+                UNPIVOT (FieldValue FOR FieldName IN (Name, Email)) up
+                """
+        };
+
+        using var schemaReader = schemaCommand.ExecuteReader();
+        var schema = schemaReader.GetSchemaTable();
+        Assert.NotNull(schema);
+        Assert.False(schema!.Columns["FieldValue"]!.AllowDBNull);
+        Assert.False(schema.Columns["FieldName"]!.AllowDBNull);
+    }
+
+    /// <summary>
+    /// EN: Ensures PIVOT computes STDEV, STDEVP, VAR, and VARP through the shared SQL Server runtime path.
+    /// PT: Garante que PIVOT calcule STDEV, STDEVP, VAR e VARP pelo caminho compartilhado de runtime do SQL Server.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_WithPivotVarianceAggregates_ShouldReturnExpectedNumbers()
+    {
+        static string BuildPivotSql(string aggregateName)
+            => $"""
+                SELECT p.T10, p.T20
+                FROM (
+                    SELECT 10 AS TenantId, CAST(2.0 AS FLOAT) AS Amount
+                    UNION ALL SELECT 10, CAST(4.0 AS FLOAT)
+                    UNION ALL SELECT 20, CAST(1.0 AS FLOAT)
+                    UNION ALL SELECT 20, CAST(5.0 AS FLOAT)
+                ) src
+                PIVOT (
+                    {aggregateName}(Amount) FOR TenantId IN (10 AS T10, 20 AS T20)
+                ) p
+                """;
+
+        static void AssertPivotAggregate(
+            SqlServerConnectionMock connection,
+            string aggregateName,
+            double expectedTenant10,
+            double expectedTenant20)
+        {
+            using var command = new SqlServerCommandMock(connection)
+            {
+                CommandText = BuildPivotSql(aggregateName)
+            };
+
+            using var reader = command.ExecuteReader();
+            Assert.True(reader.Read());
+            Assert.Equal(expectedTenant10, reader.GetDouble(reader.GetOrdinal("T10")), 10);
+            Assert.Equal(expectedTenant20, reader.GetDouble(reader.GetOrdinal("T20")), 10);
+            Assert.False(reader.Read());
+        }
+
+        AssertPivotAggregate(_connection, "STDEV", Math.Sqrt(2d), Math.Sqrt(8d));
+        AssertPivotAggregate(_connection, "STDEVP", 1d, 2d);
+        AssertPivotAggregate(_connection, "VAR", 2d, 8d);
+        AssertPivotAggregate(_connection, "VARP", 1d, 4d);
+    }
+
+    /// <summary>
+    /// EN: Ensures PIVOT computes COUNT_BIG with bigint-shaped results on the shared SQL Server runtime path.
+    /// PT: Garante que PIVOT calcule COUNT_BIG com resultado no shape bigint no caminho compartilhado de runtime do SQL Server.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_WithPivotCountBig_ShouldReturnInt64Counts()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.T10, p.T20
+                FROM (
+                    SELECT 10 AS TenantId, CAST(2.0 AS FLOAT) AS Amount
+                    UNION ALL SELECT 10, CAST(NULL AS FLOAT)
+                    UNION ALL SELECT 10, CAST(4.0 AS FLOAT)
+                    UNION ALL SELECT 20, CAST(1.0 AS FLOAT)
+                    UNION ALL SELECT 20, CAST(5.0 AS FLOAT)
+                ) src
+                PIVOT (
+                    COUNT_BIG(Amount) FOR TenantId IN (10 AS T10, 20 AS T20)
+                ) p
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("T10")));
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("T20")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Ensures PIVOT exposes aggregate column metadata aligned with COUNT_BIG and statistical return types on the shared SQL Server runtime path.
+    /// PT: Garante que PIVOT exponha metadados de coluna alinhados aos tipos de retorno de COUNT_BIG e agregadores estatisticos no caminho compartilhado de runtime do SQL Server.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_WithPivotAggregateMetadata_ShouldExposeExpectedFieldTypes()
+    {
+        using var countBigCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.T10
+                FROM (
+                    SELECT 10 AS TenantId, CAST(2.0 AS FLOAT) AS Amount
+                    UNION ALL SELECT 10, CAST(4.0 AS FLOAT)
+                ) src
+                PIVOT (
+                    COUNT_BIG(Amount) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var countBigReader = countBigCommand.ExecuteReader();
+        Assert.Equal(typeof(long), countBigReader.GetFieldType(countBigReader.GetOrdinal("T10")));
+        Assert.Equal("Int64", countBigReader.GetDataTypeName(countBigReader.GetOrdinal("T10")));
+        var countBigSchema = countBigReader.GetSchemaTable();
+        Assert.NotNull(countBigSchema);
+        Assert.True(countBigSchema!.Columns["T10"]!.AllowDBNull);
+
+        using var countCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.T10
+                FROM (
+                    SELECT 10 AS TenantId, CAST(2.0 AS FLOAT) AS Amount
+                    UNION ALL SELECT 10, CAST(4.0 AS FLOAT)
+                ) src
+                PIVOT (
+                    COUNT(Amount) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var countReader = countCommand.ExecuteReader();
+        Assert.Equal(typeof(int), countReader.GetFieldType(countReader.GetOrdinal("T10")));
+        Assert.Equal("Int32", countReader.GetDataTypeName(countReader.GetOrdinal("T10")));
+        var countSchema = countReader.GetSchemaTable();
+        Assert.NotNull(countSchema);
+        Assert.True(countSchema!.Columns["T10"]!.AllowDBNull);
+
+        using var countStarCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.T10
+                FROM (
+                    SELECT 10 AS TenantId, CAST(2.0 AS FLOAT) AS Amount
+                    UNION ALL SELECT 10, CAST(NULL AS FLOAT)
+                ) src
+                PIVOT (
+                    COUNT(*) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var countStarReader = countStarCommand.ExecuteReader();
+        Assert.Equal(typeof(int), countStarReader.GetFieldType(countStarReader.GetOrdinal("T10")));
+        Assert.Equal("Int32", countStarReader.GetDataTypeName(countStarReader.GetOrdinal("T10")));
+        var countStarSchema = countStarReader.GetSchemaTable();
+        Assert.NotNull(countStarSchema);
+        Assert.True(countStarSchema!.Columns["T10"]!.AllowDBNull);
+
+        using var stdevCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.T10
+                FROM (
+                    SELECT 10 AS TenantId, CAST(2.0 AS FLOAT) AS Amount
+                    UNION ALL SELECT 10, CAST(4.0 AS FLOAT)
+                ) src
+                PIVOT (
+                    STDEV(Amount) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var stdevReader = stdevCommand.ExecuteReader();
+        Assert.Equal(typeof(double), stdevReader.GetFieldType(stdevReader.GetOrdinal("T10")));
+        Assert.Equal("Double", stdevReader.GetDataTypeName(stdevReader.GetOrdinal("T10")));
+
+        using var maxCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.T10
+                FROM (
+                    SELECT 10 AS TenantId, CAST(2.0 AS FLOAT) AS Amount
+                    UNION ALL SELECT 10, CAST(4.0 AS FLOAT)
+                ) src
+                PIVOT (
+                    MAX(Amount) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var maxReader = maxCommand.ExecuteReader();
+        Assert.Equal(typeof(double), maxReader.GetFieldType(maxReader.GetOrdinal("T10")));
+        Assert.Equal("Double", maxReader.GetDataTypeName(maxReader.GetOrdinal("T10")));
+
+        using var sumCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.T10
+                FROM (
+                    SELECT 10 AS TenantId, CAST(2.0 AS FLOAT) AS Amount
+                    UNION ALL SELECT 10, CAST(4.0 AS FLOAT)
+                ) src
+                PIVOT (
+                    SUM(Amount) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var sumReader = sumCommand.ExecuteReader();
+        Assert.Equal(typeof(double), sumReader.GetFieldType(sumReader.GetOrdinal("T10")));
+        Assert.Equal("Double", sumReader.GetDataTypeName(sumReader.GetOrdinal("T10")));
+
+        using var sumSmallIntCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.T10
+                FROM (
+                    SELECT 10 AS TenantId, CAST(2 AS SMALLINT) AS Amount
+                    UNION ALL SELECT 10, CAST(4 AS SMALLINT)
+                ) src
+                PIVOT (
+                    SUM(Amount) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var sumSmallIntReader = sumSmallIntCommand.ExecuteReader();
+        Assert.Equal(typeof(int), sumSmallIntReader.GetFieldType(sumSmallIntReader.GetOrdinal("T10")));
+        Assert.Equal("Int32", sumSmallIntReader.GetDataTypeName(sumSmallIntReader.GetOrdinal("T10")));
+        Assert.True(sumSmallIntReader.Read());
+        Assert.Equal(6, sumSmallIntReader.GetInt32(sumSmallIntReader.GetOrdinal("T10")));
+        Assert.IsType<int>(sumSmallIntReader.GetValue(sumSmallIntReader.GetOrdinal("T10")));
+        Assert.False(sumSmallIntReader.Read());
+
+        using var sumTinyIntCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.T10
+                FROM (
+                    SELECT 10 AS TenantId, CAST(2 AS TINYINT) AS Amount
+                    UNION ALL SELECT 10, CAST(4 AS TINYINT)
+                ) src
+                PIVOT (
+                    SUM(Amount) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var sumTinyIntReader = sumTinyIntCommand.ExecuteReader();
+        Assert.Equal(typeof(int), sumTinyIntReader.GetFieldType(sumTinyIntReader.GetOrdinal("T10")));
+        Assert.Equal("Int32", sumTinyIntReader.GetDataTypeName(sumTinyIntReader.GetOrdinal("T10")));
+        Assert.True(sumTinyIntReader.Read());
+        Assert.Equal(6, sumTinyIntReader.GetInt32(sumTinyIntReader.GetOrdinal("T10")));
+        Assert.IsType<int>(sumTinyIntReader.GetValue(sumTinyIntReader.GetOrdinal("T10")));
+        Assert.False(sumTinyIntReader.Read());
+
+        using var avgCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.T10
+                FROM (
+                    SELECT 10 AS TenantId, CAST(2.0 AS FLOAT) AS Amount
+                    UNION ALL SELECT 10, CAST(4.0 AS FLOAT)
+                ) src
+                PIVOT (
+                    AVG(Amount) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var avgReader = avgCommand.ExecuteReader();
+        Assert.Equal(typeof(double), avgReader.GetFieldType(avgReader.GetOrdinal("T10")));
+        Assert.Equal("Double", avgReader.GetDataTypeName(avgReader.GetOrdinal("T10")));
+        var avgSchema = avgReader.GetSchemaTable();
+        Assert.NotNull(avgSchema);
+        Assert.True(avgSchema!.Columns["T10"]!.AllowDBNull);
+
+        using var avgSmallIntCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.T10
+                FROM (
+                    SELECT 10 AS TenantId, CAST(2 AS SMALLINT) AS Amount
+                    UNION ALL SELECT 10, CAST(4 AS SMALLINT)
+                ) src
+                PIVOT (
+                    AVG(Amount) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var avgSmallIntReader = avgSmallIntCommand.ExecuteReader();
+        Assert.Equal(typeof(int), avgSmallIntReader.GetFieldType(avgSmallIntReader.GetOrdinal("T10")));
+        Assert.Equal("Int32", avgSmallIntReader.GetDataTypeName(avgSmallIntReader.GetOrdinal("T10")));
+        Assert.True(avgSmallIntReader.Read());
+        Assert.Equal(3, avgSmallIntReader.GetInt32(avgSmallIntReader.GetOrdinal("T10")));
+        Assert.IsType<int>(avgSmallIntReader.GetValue(avgSmallIntReader.GetOrdinal("T10")));
+        Assert.False(avgSmallIntReader.Read());
+
+        using var avgTinyIntCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.T10
+                FROM (
+                    SELECT 10 AS TenantId, CAST(2 AS TINYINT) AS Amount
+                    UNION ALL SELECT 10, CAST(4 AS TINYINT)
+                ) src
+                PIVOT (
+                    AVG(Amount) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var avgTinyIntReader = avgTinyIntCommand.ExecuteReader();
+        Assert.Equal(typeof(int), avgTinyIntReader.GetFieldType(avgTinyIntReader.GetOrdinal("T10")));
+        Assert.Equal("Int32", avgTinyIntReader.GetDataTypeName(avgTinyIntReader.GetOrdinal("T10")));
+        Assert.True(avgTinyIntReader.Read());
+        Assert.Equal(3, avgTinyIntReader.GetInt32(avgTinyIntReader.GetOrdinal("T10")));
+        Assert.IsType<int>(avgTinyIntReader.GetValue(avgTinyIntReader.GetOrdinal("T10")));
+        Assert.False(avgTinyIntReader.Read());
+
+        using var avgIntCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.T10
+                FROM (
+                    SELECT 10 AS TenantId, CAST(2 AS INT) AS Amount
+                    UNION ALL SELECT 10, CAST(4 AS INT)
+                ) src
+                PIVOT (
+                    AVG(Amount) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var avgIntReader = avgIntCommand.ExecuteReader();
+        Assert.Equal(typeof(int), avgIntReader.GetFieldType(avgIntReader.GetOrdinal("T10")));
+        Assert.Equal("Int32", avgIntReader.GetDataTypeName(avgIntReader.GetOrdinal("T10")));
+        Assert.True(avgIntReader.Read());
+        Assert.Equal(3, avgIntReader.GetInt32(avgIntReader.GetOrdinal("T10")));
+        Assert.IsType<int>(avgIntReader.GetValue(avgIntReader.GetOrdinal("T10")));
+        Assert.False(avgIntReader.Read());
+
+        using var avgIntFractionCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.T10
+                FROM (
+                    SELECT 10 AS TenantId, CAST(1 AS INT) AS Amount
+                    UNION ALL SELECT 10, CAST(2 AS INT)
+                ) src
+                PIVOT (
+                    AVG(Amount) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var avgIntFractionReader = avgIntFractionCommand.ExecuteReader();
+        Assert.True(avgIntFractionReader.Read());
+        Assert.Equal(1, avgIntFractionReader.GetInt32(avgIntFractionReader.GetOrdinal("T10")));
+        Assert.IsType<int>(avgIntFractionReader.GetValue(avgIntFractionReader.GetOrdinal("T10")));
+        Assert.False(avgIntFractionReader.Read());
+
+        using var avgIntNegativeFractionCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.T10
+                FROM (
+                    SELECT 10 AS TenantId, CAST(-1 AS INT) AS Amount
+                    UNION ALL SELECT 10, CAST(-2 AS INT)
+                ) src
+                PIVOT (
+                    AVG(Amount) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var avgIntNegativeFractionReader = avgIntNegativeFractionCommand.ExecuteReader();
+        Assert.True(avgIntNegativeFractionReader.Read());
+        Assert.Equal(-1, avgIntNegativeFractionReader.GetInt32(avgIntNegativeFractionReader.GetOrdinal("T10")));
+        Assert.IsType<int>(avgIntNegativeFractionReader.GetValue(avgIntNegativeFractionReader.GetOrdinal("T10")));
+        Assert.False(avgIntNegativeFractionReader.Read());
+
+        using var avgBigIntCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.T10
+                FROM (
+                    SELECT 10 AS TenantId, CAST(2 AS BIGINT) AS Amount
+                    UNION ALL SELECT 10, CAST(4 AS BIGINT)
+                ) src
+                PIVOT (
+                    AVG(Amount) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var avgBigIntReader = avgBigIntCommand.ExecuteReader();
+        Assert.Equal(typeof(long), avgBigIntReader.GetFieldType(avgBigIntReader.GetOrdinal("T10")));
+        Assert.Equal("Int64", avgBigIntReader.GetDataTypeName(avgBigIntReader.GetOrdinal("T10")));
+        Assert.True(avgBigIntReader.Read());
+        Assert.Equal(3L, avgBigIntReader.GetInt64(avgBigIntReader.GetOrdinal("T10")));
+        Assert.IsType<long>(avgBigIntReader.GetValue(avgBigIntReader.GetOrdinal("T10")));
+        Assert.False(avgBigIntReader.Read());
+
+        using var avgBigIntFractionCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.T10
+                FROM (
+                    SELECT 10 AS TenantId, CAST(1 AS BIGINT) AS Amount
+                    UNION ALL SELECT 10, CAST(2 AS BIGINT)
+                ) src
+                PIVOT (
+                    AVG(Amount) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var avgBigIntFractionReader = avgBigIntFractionCommand.ExecuteReader();
+        Assert.True(avgBigIntFractionReader.Read());
+        Assert.Equal(1L, avgBigIntFractionReader.GetInt64(avgBigIntFractionReader.GetOrdinal("T10")));
+        Assert.IsType<long>(avgBigIntFractionReader.GetValue(avgBigIntFractionReader.GetOrdinal("T10")));
+        Assert.False(avgBigIntFractionReader.Read());
+
+        using var avgBigIntNegativeFractionCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.T10
+                FROM (
+                    SELECT 10 AS TenantId, CAST(-1 AS BIGINT) AS Amount
+                    UNION ALL SELECT 10, CAST(-2 AS BIGINT)
+                ) src
+                PIVOT (
+                    AVG(Amount) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var avgBigIntNegativeFractionReader = avgBigIntNegativeFractionCommand.ExecuteReader();
+        Assert.True(avgBigIntNegativeFractionReader.Read());
+        Assert.Equal(-1L, avgBigIntNegativeFractionReader.GetInt64(avgBigIntNegativeFractionReader.GetOrdinal("T10")));
+        Assert.IsType<long>(avgBigIntNegativeFractionReader.GetValue(avgBigIntNegativeFractionReader.GetOrdinal("T10")));
+        Assert.False(avgBigIntNegativeFractionReader.Read());
+    }
+
+    /// <summary>
     /// EN: Ensures FOR JSON PATH serializes the final SQL Server rowset with nested aliases and ROOT wrapper.
     /// PT: Garante que FOR JSON PATH serialize o rowset final do SQL Server com aliases aninhados e wrapper ROOT.
     /// </summary>
@@ -1015,6 +1530,30 @@ public sealed class SqlServerMockTests
         Assert.Equal(882, secondUser.GetProperty("Id").GetInt32());
         Assert.Equal("Bia", secondUser.GetProperty("Name").GetString());
         Assert.False(secondUser.TryGetProperty("Email", out _));
+    }
+
+    /// <summary>
+    /// EN: Ensures FOR JSON PATH rejects conflicting nested alias order instead of silently merging incompatible object paths.
+    /// PT: Garante que FOR JSON PATH rejeite ordem conflitante de aliases aninhados em vez de mesclar silenciosamente caminhos de objeto incompativeis.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteScalar_ForJsonPath_WithConflictingNestedAliasOrder_ShouldThrow()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT
+                    1 AS [Movement.Something.LocationName],
+                    2 AS [Movement.Transporter.Id],
+                    3 AS [Movement.Something.Destination]
+                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+                """
+        };
+
+        var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteScalar());
+        Assert.Contains("FOR JSON PATH", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Movement.Something.Destination", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1070,6 +1609,296 @@ public sealed class SqlServerMockTests
         var secondOrders = second.GetProperty("o");
         Assert.Single(secondOrders.EnumerateArray());
         Assert.Equal(9903, secondOrders[0].GetProperty("OrderId").GetInt32());
+    }
+
+    /// <summary>
+    /// EN: Ensures FOR JSON AUTO does not materialize nested arrays for LEFT JOIN rows without child matches, even with INCLUDE_NULL_VALUES.
+    /// PT: Garante que FOR JSON AUTO não materialize arrays aninhados para linhas de LEFT JOIN sem correspondência filha, mesmo com INCLUDE_NULL_VALUES.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteScalar_ForJsonAuto_LeftJoinWithoutChild_ShouldSkipNestedAlias()
+    {
+        using (var seed = new SqlServerCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (895, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (896, 'Bia', NULL);
+                INSERT INTO Orders (OrderId, UserId, Amount) VALUES (9904, 895, 10.50);
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT u.Id, u.Name, o.OrderId, o.Amount
+                FROM Users u
+                LEFT JOIN Orders o ON o.UserId = u.Id
+                WHERE u.Id IN (895, 896)
+                ORDER BY u.Id, o.OrderId
+                FOR JSON AUTO, INCLUDE_NULL_VALUES
+                """
+        };
+
+        var json = Assert.IsType<string>(command.ExecuteScalar());
+        using var document = System.Text.Json.JsonDocument.Parse(json);
+        var array = document.RootElement;
+
+        Assert.Equal(2, array.GetArrayLength());
+
+        var first = array[0];
+        Assert.True(first.TryGetProperty("o", out var firstOrders));
+        Assert.Single(firstOrders.EnumerateArray());
+        Assert.Equal(9904, firstOrders[0].GetProperty("OrderId").GetInt32());
+
+        var second = array[1];
+        Assert.Equal(896, second.GetProperty("Id").GetInt32());
+        Assert.False(second.TryGetProperty("o", out _));
+    }
+
+    /// <summary>
+    /// EN: Ensures FOR JSON PATH embeds OPENJSON AS JSON fragments as nested JSON instead of escaped text.
+    /// PT: Garante que FOR JSON PATH incorpore fragmentos de OPENJSON AS JSON como JSON aninhado em vez de texto escapado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteScalar_ForJsonPath_WithOpenJsonAsJson_ShouldEmbedJsonFragment()
+    {
+        using (var seed = new SqlServerCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (893, 'Ana', '{"profile":{"active":true,"roles":["admin","ops"]}}');
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT profile.Profile AS [User.Profile]
+                FROM Users u
+                CROSS APPLY OPENJSON(u.Email) WITH (
+                    Profile nvarchar(max) '$.profile' AS JSON
+                ) profile
+                WHERE u.Id = 893
+                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+                """
+        };
+
+        var json = Assert.IsType<string>(command.ExecuteScalar());
+        using var document = System.Text.Json.JsonDocument.Parse(json);
+        var profile = document.RootElement.GetProperty("User").GetProperty("Profile");
+
+        Assert.Equal(System.Text.Json.JsonValueKind.Object, profile.ValueKind);
+        Assert.True(profile.GetProperty("active").GetBoolean());
+        Assert.Equal(2, profile.GetProperty("roles").GetArrayLength());
+        Assert.Equal("admin", profile.GetProperty("roles")[0].GetString());
+    }
+
+    /// <summary>
+    /// EN: Ensures FOR JSON PATH preserves JSON_QUERY fragments as nested JSON instead of escaped strings.
+    /// PT: Garante que FOR JSON PATH preserve fragmentos de JSON_QUERY como JSON aninhado em vez de strings escapadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteScalar_ForJsonPath_WithJsonQuery_ShouldEmbedJsonFragment()
+    {
+        using (var seed = new SqlServerCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (894, 'Ana', '{"profile":{"active":true,"roles":["admin","ops"]}}');
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT JSON_QUERY(u.Email, '$.profile') AS [User.Profile]
+                FROM Users u
+                WHERE u.Id = 894
+                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+                """
+        };
+
+        var json = Assert.IsType<string>(command.ExecuteScalar());
+        using var document = System.Text.Json.JsonDocument.Parse(json);
+        var profile = document.RootElement.GetProperty("User").GetProperty("Profile");
+
+        Assert.Equal(System.Text.Json.JsonValueKind.Object, profile.ValueKind);
+        Assert.True(profile.GetProperty("active").GetBoolean());
+        Assert.Equal("ops", profile.GetProperty("roles")[1].GetString());
+    }
+
+    /// <summary>
+    /// EN: Ensures schema-qualified STRING_SPLIT works through CROSS APPLY on the shared SQL Server runtime path.
+    /// PT: Garante que STRING_SPLIT qualificado por schema funcione via CROSS APPLY no caminho compartilhado de runtime do SQL Server.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_CrossApply_SchemaQualifiedStringSplit_ShouldReturnTokens()
+    {
+        using (var seed = new SqlServerCommandMock(_connection))
+        {
+            seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (897, 'Ana', 'red,blue')";
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT part.value AS Token
+                FROM Users u
+                CROSS APPLY dbo.STRING_SPLIT(u.Email, ',') part
+                WHERE u.Id = 897
+                ORDER BY part.value
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal("blue", reader.GetString(reader.GetOrdinal("Token")));
+        Assert.True(reader.Read());
+        Assert.Equal("red", reader.GetString(reader.GetOrdinal("Token")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Ensures schema-qualified OPENJSON WITH explicit schema works through CROSS APPLY on the shared SQL Server runtime path.
+    /// PT: Garante que OPENJSON qualificado por schema com WITH explicito funcione via CROSS APPLY no caminho compartilhado de runtime do SQL Server.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_CrossApply_SchemaQualifiedOpenJsonWithSchema_ShouldProjectTypedColumns()
+    {
+        using (var seed = new SqlServerCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (898, 'Ana', '[{"Name":"red","Payload":{"kind":"primary"}}]');
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT data.Name AS ColorName, data.PayloadJson AS PayloadJson
+                FROM Users u
+                CROSS APPLY dbo.OPENJSON(u.Email) WITH (
+                    Name NVARCHAR(20) '$.Name',
+                    PayloadJson NVARCHAR(MAX) '$.Payload' AS JSON
+                ) data
+                WHERE u.Id = 898
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal("red", reader.GetString(reader.GetOrdinal("ColorName")));
+        Assert.Equal("""{"kind":"primary"}""", reader.GetString(reader.GetOrdinal("PayloadJson")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Ensures schema-qualified STRING_SPLIT with enable_ordinal returns the ordinal column on the shared SQL Server runtime path.
+    /// PT: Garante que STRING_SPLIT qualificado por schema com enable_ordinal retorne a coluna ordinal no caminho compartilhado de runtime do SQL Server.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_CrossApply_SchemaQualifiedStringSplitWithOrdinal_ShouldReturnOrdinalColumn()
+    {
+        using (var seed = new SqlServerCommandMock(_connection))
+        {
+            seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (899, 'Ana', 'red,blue,green')";
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT part.value AS Token, part.ordinal AS TokenOrdinal
+                FROM Users u
+                CROSS APPLY dbo.STRING_SPLIT(u.Email, ',', 1) part
+                WHERE u.Id = 899
+                ORDER BY part.ordinal
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal("red", reader.GetString(reader.GetOrdinal("Token")));
+        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
+        Assert.True(reader.Read());
+        Assert.Equal("blue", reader.GetString(reader.GetOrdinal("Token")));
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
+        Assert.True(reader.Read());
+        Assert.Equal("green", reader.GetString(reader.GetOrdinal("Token")));
+        Assert.Equal(3L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Ensures schema-qualified STRING_SPLIT enable_ordinal accepts numeric text that coerces exactly to 1 on the shared SQL Server runtime path.
+    /// PT: Garante que STRING_SPLIT qualificado por schema com enable_ordinal aceite texto numerico que coerce exatamente para 1 no caminho compartilhado de runtime do SQL Server.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_CrossApply_SchemaQualifiedStringSplitWithOrdinalNumericTextFlag_ShouldReturnOrdinalColumn()
+    {
+        using (var seed = new SqlServerCommandMock(_connection))
+        {
+            seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (846, 'Ana', 'red,blue')";
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT part.value AS Token, part.ordinal AS TokenOrdinal
+                FROM Users u
+                CROSS APPLY dbo.STRING_SPLIT(u.Email, ',', '1.0') part
+                WHERE u.Id = 846
+                ORDER BY part.ordinal
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal("red", reader.GetString(reader.GetOrdinal("Token")));
+        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
+        Assert.True(reader.Read());
+        Assert.Equal("blue", reader.GetString(reader.GetOrdinal("Token")));
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Ensures schema-qualified STRING_SPLIT enable_ordinal rejects invalid numeric text outside the 0 or 1 subset on the shared SQL Server runtime path.
+    /// PT: Garante que STRING_SPLIT qualificado por schema com enable_ordinal rejeite texto numerico invalido fora do subset 0 ou 1 no caminho compartilhado de runtime do SQL Server.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_CrossApply_SchemaQualifiedStringSplitWithOrdinalInvalidNumericTextFlag_ShouldThrow()
+    {
+        using (var seed = new SqlServerCommandMock(_connection))
+        {
+            seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (847, 'Ana', 'red,blue')";
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT part.value
+                FROM Users u
+                CROSS APPLY dbo.STRING_SPLIT(u.Email, ',', '2.0') part
+                WHERE u.Id = 847
+                """
+        };
+
+        var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteReader());
+        Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1158,6 +1987,147 @@ public sealed class SqlServerMockTests
         Assert.Equal(3L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
 
         Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Ensures STRING_SPLIT enable_ordinal accepts decimal values that coerce exactly to 0 or 1 on the shared SQL Server runtime path.
+    /// PT: Garante que STRING_SPLIT enable_ordinal aceite valores decimais que coercem exatamente para 0 ou 1 no caminho compartilhado de runtime do SQL Server.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_CrossApply_StringSplitWithOrdinalDecimalFlag_ShouldReturnOrdinalColumn()
+    {
+        using (var seed = new SqlServerCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (842, 'Ana', 'red,blue');
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT part.value AS Token, part.ordinal AS TokenOrdinal
+                FROM Users u
+                CROSS APPLY STRING_SPLIT(u.Email, ',', CAST(1 AS DECIMAL(10,2))) part
+                WHERE u.Id = 842
+                ORDER BY part.ordinal
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal("red", reader.GetString(reader.GetOrdinal("Token")));
+        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
+        Assert.True(reader.Read());
+        Assert.Equal("blue", reader.GetString(reader.GetOrdinal("Token")));
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Ensures STRING_SPLIT enable_ordinal accepts numeric text that coerces exactly to 0 or 1 on the shared SQL Server runtime path.
+    /// PT: Garante que STRING_SPLIT enable_ordinal aceite texto numerico que coerce exatamente para 0 ou 1 no caminho compartilhado de runtime do SQL Server.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_CrossApply_StringSplitWithOrdinalNumericTextFlag_ShouldReturnOrdinalColumn()
+    {
+        using (var seed = new SqlServerCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (843, 'Ana', 'red,blue');
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT part.value AS Token, part.ordinal AS TokenOrdinal
+                FROM Users u
+                CROSS APPLY STRING_SPLIT(u.Email, ',', '1.0') part
+                WHERE u.Id = 843
+                ORDER BY part.ordinal
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal("red", reader.GetString(reader.GetOrdinal("Token")));
+        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
+        Assert.True(reader.Read());
+        Assert.Equal("blue", reader.GetString(reader.GetOrdinal("Token")));
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("TokenOrdinal")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Ensures STRING_SPLIT enable_ordinal accepts numeric text that coerces exactly to 0 and suppresses the ordinal column on the shared SQL Server runtime path.
+    /// PT: Garante que STRING_SPLIT enable_ordinal aceite texto numerico que coerce exatamente para 0 e suprima a coluna ordinal no caminho compartilhado de runtime do SQL Server.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_CrossApply_StringSplitWithOrdinalNumericTextZeroFlag_ShouldSuppressOrdinalColumn()
+    {
+        using (var seed = new SqlServerCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (844, 'Ana', 'red,blue');
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT part.value AS Token
+                FROM Users u
+                CROSS APPLY STRING_SPLIT(u.Email, ',', '0.0') part
+                WHERE u.Id = 844
+                ORDER BY part.value
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+        Assert.Equal(1, reader.FieldCount);
+        Assert.Equal("Token", reader.GetName(0));
+        Assert.True(reader.Read());
+        Assert.Equal("blue", reader.GetString(reader.GetOrdinal("Token")));
+        Assert.True(reader.Read());
+        Assert.Equal("red", reader.GetString(reader.GetOrdinal("Token")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Ensures STRING_SPLIT enable_ordinal rejects invalid numeric text values outside the 0 or 1 subset on the shared SQL Server runtime path.
+    /// PT: Garante que STRING_SPLIT enable_ordinal rejeite valores textuais numericos invalidos fora do subset 0 ou 1 no caminho compartilhado de runtime do SQL Server.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_CrossApply_StringSplitWithOrdinalInvalidNumericTextFlag_ShouldThrow()
+    {
+        using (var seed = new SqlServerCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (845, 'Ana', 'red,blue');
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT part.value
+                FROM Users u
+                CROSS APPLY STRING_SPLIT(u.Email, ',', '2.0') part
+                WHERE u.Id = 845
+                """
+        };
+
+        var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteReader());
+        Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 }

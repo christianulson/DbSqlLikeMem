@@ -105,6 +105,7 @@ internal interface ISqlDialect
     bool SupportsNullSafeEq { get; }
     bool SupportsJsonArrowOperators { get; }
     bool SupportsJsonExtractFunction { get; }
+    bool SupportsJsonQueryFunction { get; }
     bool SupportsJsonValueFunction { get; }
     bool SupportsJsonValueReturningClause { get; }
     bool SupportsOpenJsonFunction { get; }
@@ -777,6 +778,7 @@ internal abstract class SqlDialectBase : ISqlDialect
     /// </summary>
     public virtual bool SupportsJsonArrowOperators => false;
     public virtual bool SupportsJsonExtractFunction => false;
+    public virtual bool SupportsJsonQueryFunction => false;
     public virtual bool SupportsJsonValueFunction => false;
     public virtual bool SupportsJsonValueReturningClause => false;
     public virtual bool SupportsOpenJsonFunction => false;

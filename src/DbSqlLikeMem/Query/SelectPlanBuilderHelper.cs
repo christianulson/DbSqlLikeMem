@@ -95,9 +95,55 @@ internal static class SelectPlanBuilderHelper
         var preferredAlias = selectItemAlias ?? extractedAlias ?? SelectPlanProjectionHelper.InferColumnAlias(rawExpression);
         var columnAlias = SelectPlanProjectionHelper.MakeUniqueAlias(columns, preferredAlias, tableAlias);
         var inferredDbType = InferDbTypeFromExpression(expression, sampleRows, ctes, dialect, evalExpression);
+        var isJsonFragment = TryInferProjectedJsonFragment(expression, sampleRows);
 
-        columns.Add(SelectPlanProjectionHelper.CreateSelectPlanColumn(tableAlias, columnAlias, columns.Count, inferredDbType));
+        columns.Add(SelectPlanProjectionHelper.CreateSelectPlanColumn(tableAlias, columnAlias, columns.Count, inferredDbType, isJsonFragment));
         evaluators.Add(CreateSelectPlanEvaluator(expression, ctes, dialect, windowSlots, evalExpression));
+    }
+
+    private static bool TryInferProjectedJsonFragment(SqlExpr expression, List<AstQueryExecutorBase.EvalRow> sampleRows)
+    {
+        if (expression is FunctionCallExpr jsonFunction
+            && jsonFunction.Name.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (expression is CallExpr jsonCall
+            && jsonCall.Name.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (expression is not ColumnExpr column)
+            return false;
+
+        var sampleRow = sampleRows.FirstOrDefault();
+        if (sampleRow is null)
+            return false;
+
+        if (!string.IsNullOrWhiteSpace(column.Qualifier))
+        {
+            var matchedKey = sampleRow.Sources.Keys.FirstOrDefault(key => key.Equals(column.Qualifier, StringComparison.OrdinalIgnoreCase));
+            if (matchedKey is null)
+                return false;
+
+            return sampleRow.Sources[matchedKey].TryGetColumnMetadata(column.Name, out var metadata) && metadata.IsJsonFragment;
+        }
+
+        TableResultColMock? matchedMetadata = null;
+        foreach (var source in sampleRow.Sources.Values)
+        {
+            if (!source.TryGetColumnMetadata(column.Name, out var metadata))
+                continue;
+
+            if (matchedMetadata is not null)
+                return false;
+
+            matchedMetadata = metadata;
+        }
+
+        return matchedMetadata?.IsJsonFragment == true;
     }
 
     private static Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?> CreateSelectPlanEvaluator(

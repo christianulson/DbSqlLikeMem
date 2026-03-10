@@ -673,6 +673,30 @@ public sealed class SqlServerDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures JSON_QUERY follows SQL Server version support starting in 2016.
+    /// PT: Garante que JSON_QUERY siga o suporte por versão do SQL Server a partir de 2016.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_JsonQuery_ShouldFollowSqlServerVersionSupport(int version)
+    {
+        const string sql = "JSON_QUERY(payload, '$.profile')";
+        var dialect = new SqlServerDialect(version);
+
+        if (version < SqlServerDialect.JsonFunctionsMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            Assert.Contains("JSON_QUERY", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
+        Assert.Equal("JSON_QUERY", call.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures OPENJSON follows SQL Server version support starting in 2016.
     /// PT: Garante que OPENJSON siga o suporte por versão do SQL Server a partir de 2016.
     /// </summary>
@@ -697,6 +721,100 @@ public sealed class SqlServerDialectFeatureParserTests
         var expr = SqlExpressionParser.ParseScalar(sql, dialect);
         var call = Assert.IsType<CallExpr>(expr);
         Assert.Equal("OPENJSON", call.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server parses schema-qualified table-valued functions in APPLY once the shared function subset is supported.
+    /// PT: Garante que o SQL Server interprete funcoes de tabela qualificadas por schema em APPLY quando o subset compartilhado de funcoes estiver suportado.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_SchemaQualifiedTableFunctionInApply_ShouldFollowVersionSupport(int version)
+    {
+        const string sql = """
+            SELECT u.Id, part.value
+            FROM Users u
+            CROSS APPLY dbo.STRING_SPLIT(u.Email, ',') part
+            """;
+
+        if (version < SqlServerDialect.JsonFunctionsMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+            Assert.Contains("STRING_SPLIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        var join = Assert.Single(parsed.Joins);
+        Assert.Equal("dbo", join.Table.DbName, ignoreCase: true);
+        var function = Assert.IsType<FunctionCallExpr>(join.Table.TableFunction);
+        Assert.Equal("STRING_SPLIT", function.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server parses schema-qualified OPENJSON WITH explicit schema through the shared APPLY table-function path.
+    /// PT: Garante que o SQL Server interprete OPENJSON qualificado por schema com WITH explicito pelo caminho compartilhado de funcao tabular em APPLY.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_SchemaQualifiedOpenJsonWithSchema_ShouldFollowVersionSupport(int version)
+    {
+        const string sql = """
+            SELECT data.Name, data.PayloadJson
+            FROM Users u
+            CROSS APPLY dbo.OPENJSON(u.Email) WITH (
+                Name NVARCHAR(20) '$.Name',
+                PayloadJson NVARCHAR(MAX) '$.Payload' AS JSON
+            ) data
+            """;
+
+        if (version < SqlServerDialect.JsonFunctionsMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        var join = Assert.Single(parsed.Joins);
+        Assert.Equal("dbo", join.Table.DbName, ignoreCase: true);
+        var withClause = Assert.IsType<SqlOpenJsonWithClause>(join.Table.OpenJsonWithClause);
+        Assert.Equal(2, withClause.Columns.Count);
+        Assert.True(withClause.Columns[1].AsJson);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server parses schema-qualified STRING_SPLIT enable_ordinal only once the dialect reaches SQL Server 2022 semantics.
+    /// PT: Garante que o SQL Server interprete STRING_SPLIT qualificado por schema com enable_ordinal apenas quando o dialeto atingir a semantica do SQL Server 2022.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_SchemaQualifiedStringSplitWithOrdinal_ShouldFollowVersionSupport(int version)
+    {
+        const string sql = """
+            SELECT u.Id, part.value, part.ordinal
+            FROM Users u
+            CROSS APPLY dbo.STRING_SPLIT(u.Email, ',', 1) part
+            """;
+
+        if (version < SqlServerDialect.StringSplitOrdinalMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+            Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        var join = Assert.Single(parsed.Joins);
+        Assert.Equal("dbo", join.Table.DbName, ignoreCase: true);
+        var function = Assert.IsType<FunctionCallExpr>(join.Table.TableFunction);
+        Assert.Equal(3, function.Args.Count);
     }
 
     /// <summary>

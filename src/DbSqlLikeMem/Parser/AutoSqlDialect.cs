@@ -123,6 +123,7 @@ internal sealed class AutoSqlDialect : SqlDialectBase
 
     /// <inheritdoc />
     public override bool SupportsJsonExtractFunction => true;
+    public override bool SupportsJsonQueryFunction => true;
 
     /// <inheritdoc />
     public override bool SupportsJsonValueFunction => true;

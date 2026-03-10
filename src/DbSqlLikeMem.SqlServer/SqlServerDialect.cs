@@ -132,6 +132,11 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// EN: Gets whether json value function is supported.
     /// PT: Obtém se há suporte a função json_value.
     /// </summary>
+    public override bool SupportsJsonQueryFunction => Version >= JsonFunctionsMinVersion;
+    /// <summary>
+    /// EN: Gets whether json value function is supported.
+    /// PT: Obtém se há suporte a função json_value.
+    /// </summary>
     public override bool SupportsJsonValueFunction => Version >= JsonFunctionsMinVersion;
     /// <inheritdoc />
     public override bool SupportsForJsonClause => Version >= JsonFunctionsMinVersion;

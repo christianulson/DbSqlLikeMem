@@ -232,6 +232,287 @@ public sealed class ExecutionPlanFormattingAndI18nTests
         plan.Should().NotContain("PlanQualityGrade:");
     }
 
+    /// <summary>
+    /// EN: Verifies schema-qualified table-valued sources are rendered with the schema name in the execution plan.
+    /// PT: Verifica se fontes tabulares qualificadas por schema sao renderizadas com o nome do schema no plano de execucao.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_ShouldRenderSchemaQualifiedTableFunctionSource()
+    {
+        var query = new SqlSelectQuery([], false, [new SqlSelectItem("j.value", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(
+                DbName: "dbo",
+                Name: null,
+                Alias: "j",
+                Derived: null,
+                DerivedUnion: null,
+                DerivedSql: null,
+                Pivot: null,
+                TableFunction: new FunctionCallExpr("OPENJSON", [new IdentifierExpr("payload")]))
+        };
+
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        plan.Should().Contain("- FROM: dbo.OPENJSON(...) AS j");
+    }
+
+    /// <summary>
+    /// EN: Verifies OPENJSON sources with explicit WITH schema keep that shape in the execution plan.
+    /// PT: Verifica se fontes OPENJSON com schema explicito em WITH mantem esse shape no plano de execucao.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_ShouldRenderOpenJsonWithClauseInTableFunctionSource()
+    {
+        var query = new SqlSelectQuery([], false, [new SqlSelectItem("data.Name", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(
+                DbName: "dbo",
+                Name: null,
+                Alias: "data",
+                Derived: null,
+                DerivedUnion: null,
+                DerivedSql: null,
+                Pivot: null,
+                TableFunction: new FunctionCallExpr("OPENJSON", [new IdentifierExpr("payload")]),
+                OpenJsonWithClause: new SqlOpenJsonWithClause(
+                [
+                    new SqlOpenJsonWithColumn("Name", "NVARCHAR(20)", DbType.String, "$.Name", false)
+                ]))
+        };
+
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        plan.Should().Contain("- FROM: dbo.OPENJSON(...) WITH (...) AS data");
+    }
+
+    /// <summary>
+    /// EN: Verifies STRING_SPLIT sources with enable_ordinal keep that shape in the execution plan.
+    /// PT: Verifica se fontes STRING_SPLIT com enable_ordinal mantem esse shape no plano de execucao.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_ShouldRenderStringSplitEnableOrdinalInTableFunctionSource()
+    {
+        var query = new SqlSelectQuery([], false, [new SqlSelectItem("part.value", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(
+                DbName: "dbo",
+                Name: null,
+                Alias: "part",
+                Derived: null,
+                DerivedUnion: null,
+                DerivedSql: null,
+                Pivot: null,
+                TableFunction: new FunctionCallExpr("STRING_SPLIT", [new IdentifierExpr("payload"), new LiteralExpr(","), new LiteralExpr(1)]))
+        };
+
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        plan.Should().Contain("- FROM: dbo.STRING_SPLIT(..., ..., enable_ordinal) AS part");
+    }
+
+    /// <summary>
+    /// EN: Verifies OPENJSON sources with an explicit path keep that shape in the execution plan.
+    /// PT: Verifica se fontes OPENJSON com path explicito mantem esse shape no plano de execucao.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_ShouldRenderOpenJsonPathInTableFunctionSource()
+    {
+        var query = new SqlSelectQuery([], false, [new SqlSelectItem("j.value", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(
+                DbName: "dbo",
+                Name: null,
+                Alias: "j",
+                Derived: null,
+                DerivedUnion: null,
+                DerivedSql: null,
+                Pivot: null,
+                TableFunction: new FunctionCallExpr("OPENJSON", [new IdentifierExpr("payload"), new LiteralExpr("strict $.items[1]")]))
+        };
+
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        plan.Should().Contain("- FROM: dbo.OPENJSON(..., strict path) AS j");
+    }
+
+    /// <summary>
+    /// EN: Verifies OPENJSON sources keep strict-path and WITH shape together in the execution plan.
+    /// PT: Verifica se fontes OPENJSON mantem juntos os detalhes de strict-path e WITH no plano de execucao.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_ShouldRenderOpenJsonStrictPathWithClauseInTableFunctionSource()
+    {
+        var query = new SqlSelectQuery([], false, [new SqlSelectItem("data.Name", null)], [], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(
+                DbName: "dbo",
+                Name: null,
+                Alias: "data",
+                Derived: null,
+                DerivedUnion: null,
+                DerivedSql: null,
+                Pivot: null,
+                TableFunction: new FunctionCallExpr("OPENJSON", [new IdentifierExpr("payload"), new LiteralExpr("strict $.items[1]")]),
+                OpenJsonWithClause: new SqlOpenJsonWithClause(
+                [
+                    new SqlOpenJsonWithColumn("Name", "NVARCHAR(20)", DbType.String, "$.Name", false)
+                ]))
+        };
+
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        plan.Should().Contain("- FROM: dbo.OPENJSON(..., strict path) WITH (...) AS data");
+    }
+
+    /// <summary>
+    /// EN: Verifies CROSS APPLY join lines preserve strict-path and WITH details for OPENJSON sources.
+    /// PT: Verifica se linhas de CROSS APPLY preservam os detalhes de strict-path e WITH para fontes OPENJSON.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_ShouldRenderCrossApplyOpenJsonStrictPathWithClauseInJoinLine()
+    {
+        var join = new SqlJoin(
+            SqlJoinType.CrossApply,
+            new SqlTableSource(
+                DbName: "dbo",
+                Name: null,
+                Alias: "data",
+                Derived: null,
+                DerivedUnion: null,
+                DerivedSql: null,
+                Pivot: null,
+                TableFunction: new FunctionCallExpr("OPENJSON", [new IdentifierExpr("payload"), new LiteralExpr("strict $.items[1]")]),
+                OpenJsonWithClause: new SqlOpenJsonWithClause(
+                [
+                    new SqlOpenJsonWithColumn("Name", "NVARCHAR(20)", DbType.String, "$.Name", false)
+                ])),
+            null);
+
+        var query = new SqlSelectQuery([], false, [new SqlSelectItem("data.Name", null)], [join], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", "u", null, null, null, null)
+        };
+
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        plan.Should().Contain("- JOIN: CROSS APPLY dbo.OPENJSON(..., strict path) WITH (...) AS data");
+    }
+
+    /// <summary>
+    /// EN: Verifies CROSS APPLY join lines preserve enable_ordinal details for STRING_SPLIT sources.
+    /// PT: Verifica se linhas de CROSS APPLY preservam os detalhes de enable_ordinal para fontes STRING_SPLIT.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_ShouldRenderCrossApplyStringSplitEnableOrdinalInJoinLine()
+    {
+        var join = new SqlJoin(
+            SqlJoinType.CrossApply,
+            new SqlTableSource(
+                DbName: "dbo",
+                Name: null,
+                Alias: "part",
+                Derived: null,
+                DerivedUnion: null,
+                DerivedSql: null,
+                Pivot: null,
+                TableFunction: new FunctionCallExpr("STRING_SPLIT", [new IdentifierExpr("payload"), new LiteralExpr(","), new LiteralExpr(1)])),
+            null);
+
+        var query = new SqlSelectQuery([], false, [new SqlSelectItem("part.value", null)], [join], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", "u", null, null, null, null)
+        };
+
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        plan.Should().Contain("- JOIN: CROSS APPLY dbo.STRING_SPLIT(..., ..., enable_ordinal) AS part");
+    }
+
+    /// <summary>
+    /// EN: Verifies OUTER APPLY join lines preserve the shared STRING_SPLIT source shape in the execution plan.
+    /// PT: Verifica se linhas de OUTER APPLY preservam o shape compartilhado da fonte STRING_SPLIT no plano de execucao.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_ShouldRenderOuterApplyStringSplitInJoinLine()
+    {
+        var join = new SqlJoin(
+            SqlJoinType.OuterApply,
+            new SqlTableSource(
+                DbName: "dbo",
+                Name: null,
+                Alias: "part",
+                Derived: null,
+                DerivedUnion: null,
+                DerivedSql: null,
+                Pivot: null,
+                TableFunction: new FunctionCallExpr("STRING_SPLIT", [new IdentifierExpr("payload"), new LiteralExpr(",")])),
+            null);
+
+        var query = new SqlSelectQuery([], false, [new SqlSelectItem("part.value", null)], [join], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", "u", null, null, null, null)
+        };
+
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        plan.Should().Contain("- JOIN: OUTER APPLY dbo.STRING_SPLIT(...) AS part");
+    }
+
+    /// <summary>
+    /// EN: Verifies OUTER APPLY join lines preserve strict-path and WITH details for OPENJSON sources.
+    /// PT: Verifica se linhas de OUTER APPLY preservam os detalhes de strict-path e WITH para fontes OPENJSON.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_ShouldRenderOuterApplyOpenJsonStrictPathWithClauseInJoinLine()
+    {
+        var join = new SqlJoin(
+            SqlJoinType.OuterApply,
+            new SqlTableSource(
+                DbName: "dbo",
+                Name: null,
+                Alias: "data",
+                Derived: null,
+                DerivedUnion: null,
+                DerivedSql: null,
+                Pivot: null,
+                TableFunction: new FunctionCallExpr("OPENJSON", [new IdentifierExpr("payload"), new LiteralExpr("strict $.items[1]")]),
+                OpenJsonWithClause: new SqlOpenJsonWithClause(
+                [
+                    new SqlOpenJsonWithColumn("Name", "NVARCHAR(20)", DbType.String, "$.Name", false)
+                ])),
+            null);
+
+        var query = new SqlSelectQuery([], false, [new SqlSelectItem("data.Name", null)], [join], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", "u", null, null, null, null)
+        };
+
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        plan.Should().Contain("- JOIN: OUTER APPLY dbo.OPENJSON(..., strict path) WITH (...) AS data");
+    }
+
+    /// <summary>
+    /// EN: Verifies OUTER APPLY join lines preserve enable_ordinal details for STRING_SPLIT sources.
+    /// PT: Verifica se linhas de OUTER APPLY preservam os detalhes de enable_ordinal para fontes STRING_SPLIT.
+    /// </summary>
+    [Fact]
+    public void FormatSelect_ShouldRenderOuterApplyStringSplitEnableOrdinalInJoinLine()
+    {
+        var join = new SqlJoin(
+            SqlJoinType.OuterApply,
+            new SqlTableSource(
+                DbName: "dbo",
+                Name: null,
+                Alias: "part",
+                Derived: null,
+                DerivedUnion: null,
+                DerivedSql: null,
+                Pivot: null,
+                TableFunction: new FunctionCallExpr("STRING_SPLIT", [new IdentifierExpr("payload"), new LiteralExpr(","), new LiteralExpr(1)])),
+            null);
+
+        var query = new SqlSelectQuery([], false, [new SqlSelectItem("part.value", null)], [join], null, [], null, [], null)
+        {
+            Table = new SqlTableSource(null, "users", "u", null, null, null, null)
+        };
+
+        var plan = SqlExecutionPlanFormatter.FormatSelect(query);
+        plan.Should().Contain("- JOIN: OUTER APPLY dbo.STRING_SPLIT(..., ..., enable_ordinal) AS part");
+    }
+
 
     /// <summary>
     /// EN: Verifies quality grade thresholds from risk score and performance band remain stable.

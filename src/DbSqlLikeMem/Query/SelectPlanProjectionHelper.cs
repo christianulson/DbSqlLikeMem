@@ -91,14 +91,16 @@ internal static class SelectPlanProjectionHelper
         string tableAlias,
         string columnAlias,
         int columnIndex,
-        DbType dbType)
+        DbType dbType,
+        bool isJsonFragment = false)
         => new(
             tableAlias: tableAlias,
             columnAlias: columnAlias,
             columnName: columnAlias,
             columIndex: columnIndex,
             dbType: dbType,
-            isNullable: true);
+            isNullable: true,
+            isJsonFragment: isJsonFragment);
 
     private static void AppendSourceColumns(
         List<TableResultColMock> columns,
@@ -109,7 +111,8 @@ internal static class SelectPlanProjectionHelper
         foreach (var columnName in source.ColumnNames)
         {
             var alias = MakeUniqueAlias(columns, columnName, source.Alias);
-            columns.Add(new TableResultColMock(source.Alias, alias, columnName, columns.Count, DbType.Object, true));
+            var isJsonFragment = source.TryGetColumnMetadata(columnName, out var metadata) && metadata.IsJsonFragment;
+            columns.Add(new TableResultColMock(source.Alias, alias, columnName, columns.Count, DbType.Object, true, isJsonFragment));
             evaluators.Add((row, group) => resolveColumn(source.Alias, columnName, row));
         }
     }

@@ -145,6 +145,127 @@ public sealed class SqlAzureDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures JSON_QUERY follows SQL Azure compatibility thresholds mapped to SQL Server 2016 semantics.
+    /// PT: Garante que JSON_QUERY siga os limiares de compatibilidade do SQL Azure mapeados para a semantica do SQL Server 2016.
+    /// </summary>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ParseSelect_JsonQuery_ShouldRespectCompatibilityLevel(int compatibilityLevel)
+    {
+        const string sql = "SELECT JSON_QUERY(data, '$.profile') AS profile FROM users";
+        var dialect = CreateDialect(compatibilityLevel);
+
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+        Assert.Single(parsed.SelectItems);
+        Assert.Contains("JSON_QUERY", parsed.SelectItems[0].Raw, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Azure parser accepts schema-qualified table-valued functions in APPLY only when compatibility reaches SQL Server 2016 semantics.
+    /// PT: Garante que o parser SQL Azure aceite funcoes de tabela qualificadas por schema em APPLY apenas quando a compatibilidade atingir a semantica do SQL Server 2016.
+    /// </summary>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ParseSelect_SchemaQualifiedTableFunctionInApply_ShouldRespectCompatibilityLevel(int compatibilityLevel)
+    {
+        const string sql = """
+            SELECT u.Id, j.[value]
+            FROM Users u
+            CROSS APPLY dbo.OPENJSON(u.Email) j
+            """;
+
+        var dialect = CreateDialect(compatibilityLevel);
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+        var join = Assert.Single(parsed.Joins);
+        Assert.Equal("dbo", join.Table.DbName, ignoreCase: true);
+        var function = Assert.IsType<FunctionCallExpr>(join.Table.TableFunction);
+        Assert.Equal("OPENJSON", function.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Azure parser accepts schema-qualified OPENJSON WITH explicit schema only when compatibility reaches SQL Server 2016 semantics.
+    /// PT: Garante que o parser SQL Azure aceite OPENJSON qualificado por schema com WITH explicito apenas quando a compatibilidade atingir a semantica do SQL Server 2016.
+    /// </summary>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ParseSelect_SchemaQualifiedOpenJsonWithSchema_ShouldRespectCompatibilityLevel(int compatibilityLevel)
+    {
+        const string sql = """
+            SELECT data.Name, data.PayloadJson
+            FROM Users u
+            CROSS APPLY dbo.OPENJSON(u.Email) WITH (
+                Name NVARCHAR(20) '$.Name',
+                PayloadJson NVARCHAR(MAX) '$.Payload' AS JSON
+            ) data
+            """;
+
+        var dialect = CreateDialect(compatibilityLevel);
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+        var join = Assert.Single(parsed.Joins);
+        Assert.Equal("dbo", join.Table.DbName, ignoreCase: true);
+        var withClause = Assert.IsType<SqlOpenJsonWithClause>(join.Table.OpenJsonWithClause);
+        Assert.Equal(2, withClause.Columns.Count);
+        Assert.True(withClause.Columns[1].AsJson);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Azure parser accepts schema-qualified STRING_SPLIT enable_ordinal only when compatibility reaches SQL Server 2022 semantics.
+    /// PT: Garante que o parser SQL Azure aceite STRING_SPLIT qualificado por schema com enable_ordinal apenas quando a compatibilidade atingir a semantica do SQL Server 2022.
+    /// </summary>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ParseSelect_SchemaQualifiedStringSplitWithOrdinal_ShouldRespectCompatibilityLevel(int compatibilityLevel)
+    {
+        const string sql = """
+            SELECT u.Id, part.value, part.ordinal
+            FROM Users u
+            CROSS APPLY dbo.STRING_SPLIT(u.Email, ',', 1) part
+            """;
+
+        var dialect = CreateDialect(compatibilityLevel);
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2022)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, dialect));
+            Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, dialect));
+        var join = Assert.Single(parsed.Joins);
+        Assert.Equal("dbo", join.Table.DbName, ignoreCase: true);
+        var function = Assert.IsType<FunctionCallExpr>(join.Table.TableFunction);
+        Assert.Equal(3, function.Args.Count);
+    }
+
+    /// <summary>
     /// EN: Ensures SQL Azure inherits SQL Server row-count capabilities through the compatibility-mapped dialect.
     /// PT: Garante que o SQL Azure herde as capabilities de row-count do SQL Server pelo dialeto mapeado por compatibilidade.
     /// </summary>

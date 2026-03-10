@@ -1386,10 +1386,22 @@ internal sealed class SqlExpressionParser(
 
     private CallExpr ParseCallAfterName(string name)
     {
+        if (IsSymbol(Peek(), ".") && IsIdentifier(Peek(1)) && IsSymbol(Peek(2), "("))
+        {
+            Consume(); // .
+            name = ExpectIdentifier();
+        }
+
         if (name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
             && !_dialect.SupportsJsonValueFunction)
         {
             throw SqlUnsupported.ForDialect(_dialect, "JSON_VALUE");
+        }
+
+        if (name.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase)
+            && !_dialect.SupportsJsonQueryFunction)
+        {
+            throw SqlUnsupported.ForDialect(_dialect, "JSON_QUERY");
         }
 
         if (name.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase)

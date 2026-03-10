@@ -2800,6 +2800,16 @@ internal sealed class SqlQueryParser
         if (allowFunctionSource && IsSupportedTableFunctionName(first) && IsSymbol(Peek(), "("))
             return ParseTableFunctionSource(first);
 
+        if (allowFunctionSource
+            && IsSymbol(Peek(), ".")
+            && IsIdentifier(Peek(1))
+            && IsSupportedTableFunctionName(Peek(1).Text)
+            && IsSymbol(Peek(2), "("))
+        {
+            Consume(); // .
+            return ParseTableFunctionSource(ExpectIdentifier(), first);
+        }
+
         string? db = null;
         var table = first;
         var mySqlIndexHints = new List<SqlMySqlIndexHint>();
@@ -2825,10 +2835,12 @@ internal sealed class SqlQueryParser
             MySqlIndexHints: mySqlIndexHints);
     }
 
-    private SqlTableSource ParseTableFunctionSource(string functionName)
+    private SqlTableSource ParseTableFunctionSource(string functionName, string? schemaName = null)
     {
         var argsSql = ReadBalancedParenRawTokens();
-        var rawSql = $"{functionName}({argsSql})";
+        var rawSql = schemaName is null
+            ? $"{functionName}({argsSql})"
+            : $"{schemaName}.{functionName}({argsSql})";
         var expr = SqlExpressionParser.ParseScalar(rawSql, _dialect, _parameters);
         if (expr is not FunctionCallExpr function)
             throw new InvalidOperationException("Table-valued source deve ser uma chamada de função.");
@@ -2842,7 +2854,7 @@ internal sealed class SqlQueryParser
             var rawSchema = ReadBalancedParenRawTokens();
             var aliasWithSchema = ReadOptionalAlias();
             return new SqlTableSource(
-                null,
+                schemaName,
                 null,
                 aliasWithSchema,
                 Derived: null,
@@ -2856,7 +2868,7 @@ internal sealed class SqlQueryParser
 
         var alias = ReadOptionalAlias();
         return new SqlTableSource(
-            null,
+            schemaName,
             null,
             alias,
             Derived: null,

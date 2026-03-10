@@ -675,13 +675,65 @@ internal abstract class AstQueryExecutorBase(
 
         if (source.TableFunction is not null)
         {
+            var functionName = FormatQualifiedFunctionSource(source);
             var alias = source.Alias ?? source.TableFunction.Name;
             return alias.Equals(source.TableFunction.Name, StringComparison.OrdinalIgnoreCase)
-                ? $"{source.TableFunction.Name}(...)"
-                : $"{source.TableFunction.Name}(...) AS {alias}";
+                ? functionName
+                : $"{functionName} AS {alias}";
         }
 
-        return source.Name ?? "<unknown_table>";
+        return FormatQualifiedTableName(source);
+    }
+
+    private static string FormatQualifiedFunctionSource(SqlTableSource source)
+    {
+        var functionName = source.DbName is null
+            ? source.TableFunction?.Name ?? "<unknown_function>"
+            : $"{source.DbName}.{source.TableFunction?.Name ?? "<unknown_function>"}";
+
+        if (source.TableFunction?.Name.Equals("STRING_SPLIT", StringComparison.OrdinalIgnoreCase) == true
+            && source.TableFunction.Args.Count == 3)
+        {
+            return $"{functionName}(..., ..., enable_ordinal)";
+        }
+
+        if (source.TableFunction?.Name.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase) == true
+            && source.TableFunction.Args.Count == 2)
+        {
+            var pathShape = TryFormatOpenJsonPathShape(source.TableFunction.Args[1]);
+            return source.OpenJsonWithClause is null
+                ? $"{functionName}(..., {pathShape})"
+                : $"{functionName}(..., {pathShape}) WITH (...)";
+        }
+
+        return source.OpenJsonWithClause is null
+            ? $"{functionName}(...)"
+            : $"{functionName}(...) WITH (...)";
+    }
+
+    private static string FormatQualifiedTableName(SqlTableSource source)
+    {
+        if (source.Name is null)
+            return "<unknown_table>";
+
+        return source.DbName is null
+            ? source.Name
+            : $"{source.DbName}.{source.Name}";
+    }
+
+    private static string TryFormatOpenJsonPathShape(SqlExpr pathExpr)
+    {
+        if (pathExpr is not LiteralExpr { Value: string pathText })
+            return "path";
+
+        var trimmed = pathText.Trim();
+        if (trimmed.StartsWith("strict ", StringComparison.OrdinalIgnoreCase))
+            return "strict path";
+
+        if (trimmed.StartsWith("lax ", StringComparison.OrdinalIgnoreCase))
+            return "lax path";
+
+        return "path";
     }
 
     private long EstimateRowsRead(SqlSelectQuery query)
@@ -2177,7 +2229,8 @@ internal abstract class AstQueryExecutorBase(
                     column.Name,
                     index,
                     column.DbType,
-                    true))
+                    true,
+                    column.AsJson))
                 .ToList()
         };
 
@@ -2216,12 +2269,33 @@ internal abstract class AstQueryExecutorBase(
             };
         }
 
+        if (rawValue is decimal or double or float)
+        {
+            var numeric = Convert.ToDecimal(rawValue, CultureInfo.InvariantCulture);
+            return numeric switch
+            {
+                0m => false,
+                1m => true,
+                _ => throw new InvalidOperationException("STRING_SPLIT enable_ordinal must be 0 or 1 in the mock.")
+            };
+        }
+
         var text = rawValue.ToString()?.Trim();
         if (string.Equals(text, "0", StringComparison.Ordinal))
             return false;
 
         if (string.Equals(text, "1", StringComparison.Ordinal))
             return true;
+
+        if (decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedNumeric))
+        {
+            return parsedNumeric switch
+            {
+                0m => false,
+                1m => true,
+                _ => throw new InvalidOperationException("STRING_SPLIT enable_ordinal must be 0 or 1 in the mock.")
+            };
+        }
 
         throw new InvalidOperationException("STRING_SPLIT enable_ordinal must be 0 or 1 in the mock.");
     }
@@ -2369,7 +2443,8 @@ internal abstract class AstQueryExecutorBase(
     private readonly record struct AutoJsonProjection(
         int ColumnIndex,
         string? Qualifier,
-        string PropertyName);
+        string PropertyName,
+        bool IsJsonFragment);
 
     private sealed class AutoJsonRootRow(Dictionary<string, object?> properties)
     {
@@ -2439,10 +2514,15 @@ internal abstract class AstQueryExecutorBase(
         var result = new TableResultMock();
 
         for (int i = 0; i < groupColumns.Count; i++)
-            result.Columns.Add(new TableResultColMock(source.Alias, groupColumns[i], groupColumns[i], i, DbType.Object, true));
+        {
+            var dbType = TryGetSourceColumnDbType(source, groupColumns[i]) ?? DbType.Object;
+            var isNullable = TryGetSourceColumnIsNullable(source, groupColumns[i]) ?? true;
+            result.Columns.Add(new TableResultColMock(source.Alias, groupColumns[i], groupColumns[i], i, dbType, isNullable));
+        }
 
+        var pivotAggregateDbType = GetPivotAggregateResultDbType(pivot.AggregateFunction, aggArgExpr, source);
         for (int i = 0; i < inItems.Count; i++)
-            result.Columns.Add(new TableResultColMock(source.Alias, inItems[i].Alias, inItems[i].Alias, groupColumns.Count + i, DbType.Object, true));
+            result.Columns.Add(new TableResultColMock(source.Alias, inItems[i].Alias, inItems[i].Alias, groupColumns.Count + i, pivotAggregateDbType, true));
 
         foreach (var group in grouped)
         {
@@ -2455,13 +2535,126 @@ internal abstract class AstQueryExecutorBase(
             for (int i = 0; i < inItems.Count; i++)
             {
                 var bucket = group.Where(r => forValues[r].EqualsSql(inItems[i].Value, dialect)).ToList();
-                outRow[groupColumns.Count + i] = AggregatePivotBucket(pivot.AggregateFunction, aggArgExpr, bucket, ctes);
+                var aggregated = AggregatePivotBucket(pivot.AggregateFunction, aggArgExpr, bucket, ctes);
+                outRow[groupColumns.Count + i] = CoercePivotAggregateValue(aggregated, pivot.AggregateFunction, pivotAggregateDbType);
             }
 
             result.Add(outRow);
         }
 
         return Source.FromResult(source.Name, source.Alias, result);
+    }
+
+    private static DbType GetPivotAggregateResultDbType(string aggregateFunction, SqlExpr aggArgExpr, Source source)
+        => aggregateFunction.ToUpperInvariant() switch
+        {
+            "COUNT" => DbType.Int32,
+            "COUNT_BIG" => DbType.Int64,
+            "STDEV" or "STDEVP" or "VAR" or "VARP" => DbType.Double,
+            "SUM" => PromotePivotSumResultDbType(TryGetPivotAggregateArgumentDbType(aggArgExpr, source) ?? DbType.Object),
+            "AVG" => PromotePivotAvgResultDbType(TryGetPivotAggregateArgumentDbType(aggArgExpr, source) ?? DbType.Object),
+            "MIN" or "MAX" => TryGetPivotAggregateArgumentDbType(aggArgExpr, source) ?? DbType.Object,
+            _ => DbType.Object
+        };
+
+    private static DbType PromotePivotSumResultDbType(DbType inputType)
+        => inputType switch
+        {
+            DbType.Byte or DbType.SByte or DbType.Int16 or DbType.UInt16 or DbType.Int32 => DbType.Int32,
+            DbType.UInt32 or DbType.Int64 or DbType.UInt64 => DbType.Int64,
+            DbType.Single or DbType.Double => DbType.Double,
+            DbType.Currency or DbType.Decimal or DbType.VarNumeric => DbType.Decimal,
+            _ => inputType
+        };
+
+    private static DbType PromotePivotAvgResultDbType(DbType inputType)
+        => inputType switch
+        {
+            DbType.Byte or DbType.SByte or DbType.Int16 or DbType.UInt16 or DbType.Int32 => DbType.Int32,
+            DbType.UInt32 or DbType.Int64 or DbType.UInt64 => DbType.Int64,
+            DbType.Currency or DbType.Decimal or DbType.VarNumeric => DbType.Decimal,
+            DbType.Single or DbType.Double => DbType.Double,
+            _ => inputType
+        };
+
+    private static object? CoercePivotAggregateValue(object? value, string aggregateFunction, DbType targetDbType)
+    {
+        if (value is null)
+            return null;
+
+        if (aggregateFunction.Equals("SUM", StringComparison.OrdinalIgnoreCase)
+            || aggregateFunction.Equals("AVG", StringComparison.OrdinalIgnoreCase))
+        {
+            return targetDbType switch
+            {
+                DbType.Int32 => CoercePivotIntegerLikeValue<int>(value),
+                DbType.Int64 => CoercePivotIntegerLikeValue<long>(value),
+                DbType.Double => Convert.ToDouble(value, CultureInfo.InvariantCulture),
+                DbType.Decimal or DbType.Currency or DbType.VarNumeric => Convert.ToDecimal(value, CultureInfo.InvariantCulture),
+                _ => value
+            };
+        }
+
+        return value;
+    }
+
+    private static TInteger CoercePivotIntegerLikeValue<TInteger>(object value)
+        where TInteger : struct
+    {
+        var decimalValue = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+        var truncated = decimal.Truncate(decimalValue);
+
+        if (typeof(TInteger) == typeof(int))
+            return (TInteger)(object)decimal.ToInt32(truncated);
+
+        if (typeof(TInteger) == typeof(long))
+            return (TInteger)(object)decimal.ToInt64(truncated);
+
+        throw new NotSupportedException($"Integer-like coercion to '{typeof(TInteger).Name}' is not supported.");
+    }
+
+    private static DbType? TryGetPivotAggregateArgumentDbType(SqlExpr aggArgExpr, Source source)
+    {
+        if (aggArgExpr is not IdentifierExpr identifier)
+            return null;
+
+        return TryGetSourceColumnDbType(source, identifier.Name);
+    }
+
+    private static DbType? TryGetSourceColumnDbType(Source source, string columnName)
+        => TryGetSourceColumnMetadata(source, columnName)?.DbType;
+
+    private static bool? TryGetSourceColumnIsNullable(Source source, string columnName)
+        => TryGetSourceColumnMetadata(source, columnName)?.IsNullable;
+
+    private static TableResultColMock? TryGetSourceColumnMetadata(Source source, string columnName)
+    {
+        var normalizedColumnName = columnName[(columnName.LastIndexOf('.') + 1)..];
+
+        return source.TryGetColumnMetadata(columnName, out var qualifiedMetadata)
+            ? qualifiedMetadata
+            : source.TryGetColumnMetadata(normalizedColumnName, out var metadata)
+                ? metadata
+                : null;
+    }
+
+    private static DbType? ResolveUnpivotValueDbType(Source source, SqlUnpivotSpec unpivot)
+    {
+        DbType? resolved = null;
+        foreach (var item in unpivot.InItems)
+        {
+            var next = TryGetSourceColumnDbType(source, item.SourceColumnName) ?? DbType.Object;
+            if (resolved is null)
+            {
+                resolved = next;
+                continue;
+            }
+
+            if (resolved != next)
+                return DbType.Object;
+        }
+
+        return resolved;
     }
 
     private Source ApplyUnpivotIfNeeded(Source source, SqlUnpivotSpec? unpivot)
@@ -2486,10 +2679,15 @@ internal abstract class AstQueryExecutorBase(
 
         var result = new TableResultMock();
         for (var index = 0; index < groupColumns.Count; index++)
-            result.Columns.Add(new TableResultColMock(source.Alias, groupColumns[index], groupColumns[index], index, DbType.Object, true));
+        {
+            var dbType = TryGetSourceColumnDbType(source, groupColumns[index]) ?? DbType.Object;
+            var isNullable = TryGetSourceColumnIsNullable(source, groupColumns[index]) ?? true;
+            result.Columns.Add(new TableResultColMock(source.Alias, groupColumns[index], groupColumns[index], index, dbType, isNullable));
+        }
 
         result.Columns.Add(new TableResultColMock(source.Alias, unpivot.NameColumnName, unpivot.NameColumnName, groupColumns.Count, DbType.String, false));
-        result.Columns.Add(new TableResultColMock(source.Alias, unpivot.ValueColumnName, unpivot.ValueColumnName, groupColumns.Count + 1, DbType.Object, true));
+        var unpivotValueDbType = ResolveUnpivotValueDbType(source, unpivot) ?? DbType.Object;
+        result.Columns.Add(new TableResultColMock(source.Alias, unpivot.ValueColumnName, unpivot.ValueColumnName, groupColumns.Count + 1, unpivotValueDbType, false));
 
         foreach (var row in inputRows)
         {
@@ -2544,6 +2742,22 @@ internal abstract class AstQueryExecutorBase(
             return count;
         }
 
+        if (aggregateFunction.Equals("COUNT_BIG", StringComparison.OrdinalIgnoreCase))
+        {
+            if (aggArgExpr is StarExpr)
+                return (long)rows.Count;
+
+            long count = 0;
+            foreach (var row in rows)
+            {
+                var value = Eval(aggArgExpr, row, group: null, ctes);
+                if (!IsNullish(value))
+                    count++;
+            }
+
+            return count;
+        }
+
         if (aggregateFunction.Equals("SUM", StringComparison.OrdinalIgnoreCase)
             || aggregateFunction.Equals("AVG", StringComparison.OrdinalIgnoreCase)
             || aggregateFunction.Equals("MIN", StringComparison.OrdinalIgnoreCase)
@@ -2554,7 +2768,58 @@ internal abstract class AstQueryExecutorBase(
             return EvalAggregate(aggregateExpr, group, ctes);
         }
 
+        if (aggregateFunction.Equals("STDEV", StringComparison.OrdinalIgnoreCase))
+            return EvaluatePivotVarianceAggregate(rows, aggArgExpr, ctes, sample: true, squareRoot: true);
+
+        if (aggregateFunction.Equals("STDEVP", StringComparison.OrdinalIgnoreCase))
+            return EvaluatePivotVarianceAggregate(rows, aggArgExpr, ctes, sample: false, squareRoot: true);
+
+        if (aggregateFunction.Equals("VAR", StringComparison.OrdinalIgnoreCase))
+            return EvaluatePivotVarianceAggregate(rows, aggArgExpr, ctes, sample: true, squareRoot: false);
+
+        if (aggregateFunction.Equals("VARP", StringComparison.OrdinalIgnoreCase))
+            return EvaluatePivotVarianceAggregate(rows, aggArgExpr, ctes, sample: false, squareRoot: false);
+
         throw new NotSupportedException($"PIVOT aggregate '{aggregateFunction}' not supported yet.");
+    }
+
+    private double? EvaluatePivotVarianceAggregate(
+        IReadOnlyList<EvalRow> rows,
+        SqlExpr aggArgExpr,
+        IDictionary<string, Source> ctes,
+        bool sample,
+        bool squareRoot)
+    {
+        var values = new List<double>(rows.Count);
+        foreach (var row in rows)
+        {
+            var rawValue = Eval(aggArgExpr, row, group: null, ctes);
+            if (IsNullish(rawValue))
+                continue;
+
+            values.Add(Convert.ToDouble(rawValue, CultureInfo.InvariantCulture));
+        }
+
+        if (values.Count == 0)
+            return null;
+
+        if (sample && values.Count < 2)
+            return null;
+
+        var mean = values.Average();
+        var sumOfSquaredDifferences = 0d;
+        foreach (var value in values)
+        {
+            var difference = value - mean;
+            sumOfSquaredDifferences += difference * difference;
+        }
+
+        var divisor = sample ? values.Count - 1 : values.Count;
+        if (divisor <= 0)
+            return null;
+
+        var variance = sumOfSquaredDifferences / divisor;
+        return squareRoot ? Math.Sqrt(variance) : variance;
     }
 
     // ---------------- PROJECTION ----------------
@@ -3338,6 +3603,8 @@ private void FillPercentRankOrCumeDist(
 
     private static string SerializeForJsonPath(TableResultMock result, SqlForJsonClause clause)
     {
+        ValidateForJsonPathProjectionOrder(result);
+
         var rowJson = new List<string>(result.Count);
         foreach (var row in result)
             rowJson.Add(System.Text.Json.JsonSerializer.Serialize(BuildPathJsonObject(result, row, clause.IncludeNullValues)));
@@ -3357,6 +3624,7 @@ private void FillPercentRankOrCumeDist(
         {
             var rootProperties = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
             var nestedByAlias = new Dictionary<string, Dictionary<string, object?>>(StringComparer.OrdinalIgnoreCase);
+            var nestedHasNonNullValueByAlias = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
 
             for (var i = 0; i < projections.Count; i++)
             {
@@ -3367,7 +3635,7 @@ private void FillPercentRankOrCumeDist(
                     || rootAlias is null
                     || projection.Qualifier.Equals(rootAlias, StringComparison.OrdinalIgnoreCase))
                 {
-                    AddJsonProperty(rootProperties, projection.PropertyName, value, clause.IncludeNullValues);
+                    AddJsonProperty(rootProperties, projection.PropertyName, value, clause.IncludeNullValues, projection.IsJsonFragment);
                     continue;
                 }
 
@@ -3375,9 +3643,12 @@ private void FillPercentRankOrCumeDist(
                 {
                     nested = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
                     nestedByAlias[projection.Qualifier] = nested;
+                    nestedHasNonNullValueByAlias[projection.Qualifier] = false;
                 }
 
-                AddJsonProperty(nested, projection.PropertyName, value, clause.IncludeNullValues);
+                AddJsonProperty(nested, projection.PropertyName, value, clause.IncludeNullValues, projection.IsJsonFragment);
+                if (NormalizeForJsonValue(value, projection.IsJsonFragment) is not null)
+                    nestedHasNonNullValueByAlias[projection.Qualifier] = true;
             }
 
             var rootKey = System.Text.Json.JsonSerializer.Serialize(rootProperties);
@@ -3391,7 +3662,9 @@ private void FillPercentRankOrCumeDist(
             var groupedRoot = grouped[rootIndex];
             foreach (var nested in nestedByAlias)
             {
-                if (nested.Value.Count == 0)
+                if (nested.Value.Count == 0
+                    || !nestedHasNonNullValueByAlias.TryGetValue(nested.Key, out var hasNonNullValue)
+                    || !hasNonNullValue)
                     continue;
 
                 if (!groupedRoot.Nested.TryGetValue(nested.Key, out var items))
@@ -3439,17 +3712,77 @@ private void FillPercentRankOrCumeDist(
         {
             var column = result.Columns[index];
             var value = row.TryGetValue(index, out var rawValue) ? rawValue : null;
-            AddPathJsonProperty(root, column.ColumnAlias, value, includeNullValues);
+            AddPathJsonProperty(root, column.ColumnAlias, value, includeNullValues, column.IsJsonFragment);
         }
 
         return root;
     }
 
+    private static void ValidateForJsonPathProjectionOrder(TableResultMock result)
+    {
+        var terminalPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var objectPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var closedObjectPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        string[]? previousSegments = null;
+
+        foreach (var column in result.Columns)
+        {
+            var segments = column.ColumnAlias
+                .Split('.')
+                .Select(static segment => segment.Trim())
+                .Where(static segment => !string.IsNullOrWhiteSpace(segment))
+                .ToArray();
+            if (segments.Length == 0)
+                continue;
+
+            if (previousSegments is not null)
+            {
+                var commonPrefixLength = 0;
+                var maxShared = Math.Min(previousSegments.Length, segments.Length);
+                while (commonPrefixLength < maxShared
+                    && previousSegments[commonPrefixLength].Equals(segments[commonPrefixLength], StringComparison.OrdinalIgnoreCase))
+                {
+                    commonPrefixLength++;
+                }
+
+                for (var depth = commonPrefixLength + 1; depth < previousSegments.Length; depth++)
+                    closedObjectPaths.Add(BuildJsonPath(previousSegments, depth));
+            }
+
+            for (var depth = 1; depth < segments.Length; depth++)
+            {
+                var prefix = BuildJsonPath(segments, depth);
+                if (closedObjectPaths.Contains(prefix))
+                    throw CreateForJsonPathConflictException(column.ColumnAlias);
+
+                if (terminalPaths.Contains(prefix))
+                    throw CreateForJsonPathConflictException(column.ColumnAlias);
+            }
+
+            var fullPath = BuildJsonPath(segments, segments.Length);
+            if (terminalPaths.Contains(fullPath) || objectPaths.Contains(fullPath))
+                throw CreateForJsonPathConflictException(column.ColumnAlias);
+
+            for (var depth = 1; depth < segments.Length; depth++)
+                objectPaths.Add(BuildJsonPath(segments, depth));
+
+            terminalPaths.Add(fullPath);
+            previousSegments = segments;
+        }
+    }
+
+    private static InvalidOperationException CreateForJsonPathConflictException(string propertyPath)
+        => new($"Property '{propertyPath}' cannot be generated in JSON output due to a conflict with another column name or alias in the FOR JSON PATH projection order.");
+
+    private static string BuildJsonPath(string[] segments, int length)
+        => string.Join(".", segments.Take(length));
+
     private static void AddPathJsonProperty(
         Dictionary<string, object?> root,
         string propertyPath,
         object? value,
-        bool includeNullValues)
+        bool includeNullValues,
+        bool isJsonFragment = false)
     {
         if (value is null && !includeNullValues)
             return;
@@ -3475,19 +3808,20 @@ private void FillPercentRankOrCumeDist(
             current = nested;
         }
 
-        current[segments[^1]] = value;
+        current[segments[^1]] = NormalizeForJsonValue(value, isJsonFragment);
     }
 
     private static void AddJsonProperty(
         Dictionary<string, object?> target,
         string propertyName,
         object? value,
-        bool includeNullValues)
+        bool includeNullValues,
+        bool isJsonFragment = false)
     {
         if (value is null && !includeNullValues)
             return;
 
-        target[propertyName] = value;
+        target[propertyName] = NormalizeForJsonValue(value, isJsonFragment);
     }
 
     private static List<AutoJsonProjection> BuildAutoJsonProjections(TableResultMock result, SqlSelectQuery query)
@@ -3499,10 +3833,38 @@ private void FillPercentRankOrCumeDist(
                 ? TryGetSimpleQualifiedColumnQualifier(query.SelectItems[i].Raw, query.SelectItems[i].Alias)
                 : null;
 
-            projections.Add(new AutoJsonProjection(i, qualifier, result.Columns[i].ColumnAlias));
+            projections.Add(new AutoJsonProjection(i, qualifier, result.Columns[i].ColumnAlias, result.Columns[i].IsJsonFragment));
         }
 
         return projections;
+    }
+
+    private static object? NormalizeForJsonValue(object? value, bool isJsonFragment)
+    {
+        if (!isJsonFragment || value is null)
+            return value;
+
+        if (value is System.Text.Json.JsonElement jsonElement)
+            return jsonElement.Clone();
+
+        if (value is not string text)
+            return value;
+
+        var trimmed = text.Trim();
+        if (trimmed.Length < 2 || (trimmed[0] != '{' && trimmed[0] != '['))
+            return value;
+
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(trimmed);
+            return document.RootElement.ValueKind is System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array
+                ? document.RootElement.Clone()
+                : value;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return value;
+        }
     }
 
     private static string? TryGetSimpleQualifiedColumnQualifier(string raw, string? alias)
@@ -6383,6 +6745,7 @@ private void FillPercentRankOrCumeDist(
         out object? result)
     {
         if (!(fn.Name.Equals("JSON_EXTRACT", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)))
         {
             result = null;
@@ -6406,6 +6769,10 @@ private void FillPercentRankOrCumeDist(
             && !dialect.SupportsJsonExtractFunction)
             throw SqlUnsupported.ForDialect(dialect, "JSON_EXTRACT");
 
+        if (functionName.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase)
+            && !dialect.SupportsJsonQueryFunction)
+            throw SqlUnsupported.ForDialect(dialect, "JSON_QUERY");
+
         if (functionName.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
             && !dialect.SupportsJsonValueFunction)
             throw SqlUnsupported.ForDialect(dialect, "JSON_VALUE");
@@ -6415,6 +6782,16 @@ private void FillPercentRankOrCumeDist(
     {
         try
         {
+            if (fn.Name.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!QueryJsonFunctionHelper.TryReadJsonPathElement(json, path, out var element))
+                    return null;
+
+                return element.ValueKind is System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array
+                    ? element.GetRawText()
+                    : null;
+            }
+
             var value = TryReadJsonPathValue(json, path);
             return fn.Name.Equals("JSON_VALUE", StringComparison.OrdinalIgnoreCase)
                 ? ApplyJsonValueReturningClause(fn, value)
@@ -7119,6 +7496,22 @@ private void FillPercentRankOrCumeDist(
             if (Physical is not null)
                 return FromPhysical(Name, alias, Physical, MySqlIndexHints);
             return FromResult(Name, alias, _result!);
+        }
+
+        internal bool TryGetColumnMetadata(string columnName, out TableResultColMock metadata)
+        {
+            metadata = null!;
+            if (_result is null)
+                return false;
+
+            var matched = _result.Columns.FirstOrDefault(column =>
+                column.ColumnAlias.Equals(columnName, StringComparison.OrdinalIgnoreCase)
+                || column.ColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase));
+            if (matched is null)
+                return false;
+
+            metadata = matched;
+            return true;
         }
 
         /// <summary>
