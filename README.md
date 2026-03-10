@@ -4,6 +4,8 @@
 
 **PT-BR:** Mecanismo de banco de dados em memória para testes unitários em C# que emula dialetos SQL e o comportamento de ADO.NET para **MySQL**, **SQL Server**, **SQL Azure**, **Oracle**, **PostgreSQL (Npgsql)**, **SQLite** e **DB2**.
 
+![Logo DbSqlLikeMem](./blob/develop/image.png)
+
 ---
 
 ## 📚 Documentation by context | Documentação por contexto

@@ -6774,7 +6774,7 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        result = TryEvalJsonExtractionValue(fn, json!, path);
+        result = TryEvalJsonExtractionValue(fn, json!, path!);
         return true;
     }
 
