@@ -752,6 +752,26 @@ public sealed class SqlAzureDialectBehaviorTests
         Assert.IsType<int>(avgTinyIntReader.GetValue(avgTinyIntReader.GetOrdinal("T10")));
         Assert.False(avgTinyIntReader.Read());
 
+        using var avgTinyIntFractionCommand = new SqlAzureCommandMock(connection)
+        {
+            CommandText = """
+                SELECT p.T10
+                FROM (
+                    SELECT 10 AS TenantId, CAST(1 AS TINYINT) AS Amount
+                    UNION ALL SELECT 10, CAST(2 AS TINYINT)
+                ) src
+                PIVOT (
+                    AVG(Amount) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var avgTinyIntFractionReader = avgTinyIntFractionCommand.ExecuteReader();
+        Assert.True(avgTinyIntFractionReader.Read());
+        Assert.Equal(1, avgTinyIntFractionReader.GetInt32(avgTinyIntFractionReader.GetOrdinal("T10")));
+        Assert.IsType<int>(avgTinyIntFractionReader.GetValue(avgTinyIntFractionReader.GetOrdinal("T10")));
+        Assert.False(avgTinyIntFractionReader.Read());
+
         using var avgIntCommand = new SqlAzureCommandMock(connection)
         {
             CommandText = """
@@ -1007,6 +1027,56 @@ public sealed class SqlAzureDialectBehaviorTests
         Assert.Equal(System.Text.Json.JsonValueKind.Object, profile.ValueKind);
         Assert.True(profile.GetProperty("active").GetBoolean());
         Assert.Equal(2, profile.GetProperty("roles").GetArrayLength());
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Azure compatibility mode preserves a root JSON object when JSON_QUERY is called without an explicit path.
+    /// PT: Garante que o modo de compatibilidade SQL Azure preserve um objeto JSON de raiz quando JSON_QUERY e chamado sem path explicito.
+    /// </summary>
+    [Fact]
+    public void ExecuteScalar_JsonQuery_WithoutPath_ShouldReturnRootJsonFragment()
+    {
+        using var connection = CreateOpenConnection();
+        using (var seed = new SqlAzureCommandMock(connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (8831, 'Bia', '{"profile":{"active":true},"roles":["admin","ops"]}');
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var scalarCommand = new SqlAzureCommandMock(connection)
+        {
+            CommandText = """
+                SELECT JSON_QUERY(u.Email)
+                FROM Users u
+                WHERE u.Id = 8831
+                """
+        };
+
+        var scalarJson = Assert.IsType<string>(scalarCommand.ExecuteScalar());
+        using (var scalarDocument = System.Text.Json.JsonDocument.Parse(scalarJson))
+        {
+            Assert.Equal(System.Text.Json.JsonValueKind.Object, scalarDocument.RootElement.ValueKind);
+            Assert.True(scalarDocument.RootElement.GetProperty("profile").GetProperty("active").GetBoolean());
+        }
+
+        using var forJsonCommand = new SqlAzureCommandMock(connection)
+        {
+            CommandText = """
+                SELECT JSON_QUERY(u.Email) AS [User.Payload]
+                FROM Users u
+                WHERE u.Id = 8831
+                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+                """
+        };
+
+        var embeddedJson = Assert.IsType<string>(forJsonCommand.ExecuteScalar());
+        using var embeddedDocument = System.Text.Json.JsonDocument.Parse(embeddedJson);
+        var payload = embeddedDocument.RootElement.GetProperty("User").GetProperty("Payload");
+
+        Assert.Equal(System.Text.Json.JsonValueKind.Object, payload.ValueKind);
+        Assert.Equal("ops", payload.GetProperty("roles")[1].GetString());
     }
 
     /// <summary>

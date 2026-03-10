@@ -6753,13 +6753,28 @@ private void FillPercentRankOrCumeDist(
         }
 
         EnsureJsonExtractionSupported(fn.Name, dialect);
-        if (!TryGetJsonAndPathArguments(evalArg, out var json, out var path))
+        var json = evalArg(0);
+        if (IsNullish(json))
         {
             result = null;
             return true;
         }
 
-        result = TryEvalJsonExtractionValue(fn, json!, path!);
+        if (fn.Name.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase)
+            && fn.Args.Count == 1)
+        {
+            result = TryEvalJsonQueryWithoutPath(json!);
+            return true;
+        }
+
+        var path = evalArg(1)?.ToString();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            result = null;
+            return true;
+        }
+
+        result = TryEvalJsonExtractionValue(fn, json!, path);
         return true;
     }
 
@@ -6804,6 +6819,15 @@ private void FillPercentRankOrCumeDist(
             return null;
         }
 #pragma warning restore CA1031
+    }
+
+    private static object? TryEvalJsonQueryWithoutPath(object json)
+    {
+        using var document = System.Text.Json.JsonDocument.Parse(json.ToString() ?? string.Empty);
+        var root = document.RootElement;
+        return root.ValueKind is System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array
+            ? root.GetRawText()
+            : null;
     }
 
     private static bool TryEvalOpenJsonFunction(

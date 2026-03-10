@@ -983,7 +983,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 3.2.2 Recursos relevantes
 
-- Implementação estimada: **94%**.
+- Implementação estimada: **95%**.
 - Parser/executor para DDL/DML comuns.
 - Diferenças de dialeto por versão simulada.
 - Cobertura de `STRING_AGG` ampliada para `DISTINCT`, tratamento de `NULL` e ordenação interna via `WITHIN GROUP`, incluindo cenários de erro malformado com diagnóstico acionável.
@@ -998,6 +998,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: `FOR JSON` entrou no parser/executor compartilhado de `SQL Server/SqlAzure` com gate de versão `2016+`, suporte inicial a `PATH`/`AUTO`, opções `ROOT('...')`, `INCLUDE_NULL_VALUES` e `WITHOUT_ARRAY_WRAPPER`, serialização do rowset final em coluna JSON única, regressões de parser nos dois providers e cobertura comportamental de runtime para `PATH` e `AUTO`.
 - Incremento desta sessão: o subset de `FOR JSON PATH` agora preserva fragmentos vindos de colunas marcadas como JSON (`OPENJSON ... WITH (... AS JSON)`) em vez de escapá-los como texto, com propagação de metadata no plano/projeção compartilhados e regressão de runtime para `SQL Server` e `SqlAzure`.
 - Incremento desta sessão: `JSON_QUERY(...)` entrou no gate/evaluator compartilhado de `SQL Server/SqlAzure` com semântica escalar conservadora de retornar apenas objeto/array JSON, e projeções via `FOR JSON PATH` agora preservam esse fragmento bruto sem escape indevido, com regressões de parser/runtime nos dois providers.
+- Incremento desta sessão: `JSON_QUERY(expr)` sem path explícito passou a preservar também o documento JSON raiz quando ele já for objeto/array, permitindo reuso direto desse fragmento em projeções e em `FOR JSON PATH` no caminho compartilhado de `SQL Server`/`SqlAzure`.
 - Incremento desta sessão: `FOR JSON AUTO` passou a ignorar aliases aninhados vindos de `LEFT JOIN` sem linha filha real, mesmo sob `INCLUDE_NULL_VALUES`, evitando arrays-filhos fantasmas quando todas as colunas da fonte não raiz chegam `NULL`, com regressões de runtime em `SQL Server` e `SqlAzure`.
 - Incremento desta sessão: a família `APPLY` passou a aceitar TVF schema-qualified no subset compartilhado (`dbo.STRING_SPLIT(...)` e `dbo.OPENJSON(...)`), preservando o schema na AST e reaproveitando o executor atual sem branch extra por provider, com regressões de parser/runtime para `SQL Server` e `SqlAzure`.
 - Incremento desta sessão: a cobertura de TVF schema-qualified foi estendida para variantes já suportadas do subset compartilhado, incluindo `dbo.OPENJSON(...) WITH (...)` e `dbo.STRING_SPLIT(..., enable_ordinal)`, com regressões explícitas de parser/runtime para `SQL Server` e `SqlAzure`.

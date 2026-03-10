@@ -1360,6 +1360,26 @@ public sealed class SqlServerMockTests
         Assert.IsType<int>(avgTinyIntReader.GetValue(avgTinyIntReader.GetOrdinal("T10")));
         Assert.False(avgTinyIntReader.Read());
 
+        using var avgTinyIntFractionCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT p.T10
+                FROM (
+                    SELECT 10 AS TenantId, CAST(1 AS TINYINT) AS Amount
+                    UNION ALL SELECT 10, CAST(2 AS TINYINT)
+                ) src
+                PIVOT (
+                    AVG(Amount) FOR TenantId IN (10 AS T10)
+                ) p
+                """
+        };
+
+        using var avgTinyIntFractionReader = avgTinyIntFractionCommand.ExecuteReader();
+        Assert.True(avgTinyIntFractionReader.Read());
+        Assert.Equal(1, avgTinyIntFractionReader.GetInt32(avgTinyIntFractionReader.GetOrdinal("T10")));
+        Assert.IsType<int>(avgTinyIntFractionReader.GetValue(avgTinyIntFractionReader.GetOrdinal("T10")));
+        Assert.False(avgTinyIntFractionReader.Read());
+
         using var avgIntCommand = new SqlServerCommandMock(_connection)
         {
             CommandText = """
@@ -1729,6 +1749,56 @@ public sealed class SqlServerMockTests
         Assert.Equal(System.Text.Json.JsonValueKind.Object, profile.ValueKind);
         Assert.True(profile.GetProperty("active").GetBoolean());
         Assert.Equal("ops", profile.GetProperty("roles")[1].GetString());
+    }
+
+    /// <summary>
+    /// EN: Ensures JSON_QUERY without an explicit path preserves a root JSON object as a raw fragment on the shared SQL Server runtime path.
+    /// PT: Garante que JSON_QUERY sem path explicito preserve um objeto JSON de raiz como fragmento bruto no caminho compartilhado de runtime do SQL Server.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteScalar_JsonQuery_WithoutPath_ShouldReturnRootJsonFragment()
+    {
+        using (var seed = new SqlServerCommandMock(_connection))
+        {
+            seed.CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (895, 'Bia', '{"profile":{"active":true},"roles":["admin","ops"]}');
+                """;
+            seed.ExecuteNonQuery();
+        }
+
+        using var scalarCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT JSON_QUERY(u.Email)
+                FROM Users u
+                WHERE u.Id = 895
+                """
+        };
+
+        var scalarJson = Assert.IsType<string>(scalarCommand.ExecuteScalar());
+        using (var scalarDocument = System.Text.Json.JsonDocument.Parse(scalarJson))
+        {
+            Assert.Equal(System.Text.Json.JsonValueKind.Object, scalarDocument.RootElement.ValueKind);
+            Assert.True(scalarDocument.RootElement.GetProperty("profile").GetProperty("active").GetBoolean());
+        }
+
+        using var forJsonCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT JSON_QUERY(u.Email) AS [User.Payload]
+                FROM Users u
+                WHERE u.Id = 895
+                FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+                """
+        };
+
+        var embeddedJson = Assert.IsType<string>(forJsonCommand.ExecuteScalar());
+        using var embeddedDocument = System.Text.Json.JsonDocument.Parse(embeddedJson);
+        var payload = embeddedDocument.RootElement.GetProperty("User").GetProperty("Payload");
+
+        Assert.Equal(System.Text.Json.JsonValueKind.Object, payload.ValueKind);
+        Assert.Equal("ops", payload.GetProperty("roles")[1].GetString());
     }
 
     /// <summary>

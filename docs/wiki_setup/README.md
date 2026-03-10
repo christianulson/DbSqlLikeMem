@@ -30,6 +30,10 @@ Future languages should follow the same naming style, for example `Getting-Start
 - `DbConnection-Interception`
 - `Diagnostics-and-Execution-Plans`
 - `Limitations-and-Known-Gaps`
+- `Recipes-and-Common-Scenarios`
+- `Transactions-and-Volatile-Data`
+- `Schema-Snapshots-and-Replay`
+- `FAQ-and-Troubleshooting`
 
 ### Ecosystem navigation
 
