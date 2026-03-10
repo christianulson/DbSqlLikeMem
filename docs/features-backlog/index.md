@@ -281,7 +281,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - TODO: revisar cobertura equivalente de sintaxes nativas de `sequence` nos demais providers que exponham formas próprias alem de `SQL Server`, `Npgsql`, `Oracle` e `DB2`.
 - TODO: avaliar variantes adicionais de `sequence` por dialeto somente quando houver demanda real e validacao contra o comportamento do banco/provedor real.
 - TODO: levar a trilha de `sequence` para exemplos/documentacao canonica end-to-end assim que a matriz cross-provider dessa feature estiver fechada.
-- TODO: manter este item abaixo de `100%` até fechar as famílias reais de DML/query ainda fora do fluxo principal do parser/runtime (`FOR JSON`, `UNPIVOT`, `DISTINCT ON`, `LATERAL`, `json_each/json_tree`, `JSON_TABLE` e demais formas tabulares correlatas por provider).
+- TODO: manter este item abaixo de `100%` até fechar as famílias reais de DML/query ainda fora do fluxo principal do parser/runtime (`FOR JSON`, `CROSS APPLY/OUTER APPLY`, `DISTINCT ON`, `LATERAL`, `json_each/json_tree`, `JSON_TABLE` e demais formas tabulares correlatas por provider).
 - TODO: revisar materialização/execução de DML avançado por provider para que o item só volte a `100%` quando as diferenças remanescentes estiverem reduzidas a subset documentado e intencional.
 
 #### 1.2.3 Regras por dialeto e versão
@@ -434,7 +434,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Tratamento de execução orientado por semântica do dialeto escolhido.
 - Retorno previsível para facilitar asserts em testes.
 - TODO: consolidar os pontos restantes de dispatch/estratégia que ainda escapam do pipeline shared, reduzindo branches residuais fora do contrato dirigido por capability do dialeto.
-- TODO: ampliar o pipeline comum para cobrir também lacunas de execução avançada por family (`PIVOT/UNPIVOT`, JSON tabular, mutações multi-tabela), sem reintroduzir atalhos por provider.
+- TODO: ampliar o pipeline comum para cobrir também lacunas de execução avançada por family (`PIVOT` avançado, JSON tabular, mutações multi-tabela), sem reintroduzir atalhos por provider.
 
 #### 1.3.2 Operações comuns suportadas
 
@@ -464,7 +464,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: decisões de `UPDATE/DELETE ... JOIN/FROM/USING` e a semântica de rowcount de `INSERT ... ON DUPLICATE KEY UPDATE` passaram a sair do contrato explícito do dialeto, em vez de depender de branches centrais por nome de provider.
 - Incremento desta sessão: o executor compartilhado de `PIVOT` passou a reutilizar a mesma trilha de agregação comum para `SUM`, `MIN`, `MAX` e `AVG`, corrigindo também a semântica de `COUNT(expr)` para ignorar `NULL` e removendo o retorno artificial de `0` para `SUM` em bucket vazio.
 - TODO: completar no executor a matriz de agregadores avançados de `PIVOT` para os dialetos que já declaram a cláusula (`SQL Server`, `SqlAzure`, `Oracle`), cobrindo funções além do conjunto comum `COUNT/SUM/MIN/MAX/AVG` quando houver necessidade real por banco.
-- TODO: abrir trilha shared para `UNPIVOT` orientada por capability do dialeto, evitando que a cobertura dessa família fique só documental nos bancos que a suportam de forma nativa.
+- TODO: expandir a trilha shared de `UNPIVOT` para além de `SQL Server/SqlAzure`, mantendo gate por capability do dialeto nos bancos que suportam essa família de forma nativa.
 
 #### 1.3.3 Resultados e consistência
 
@@ -939,6 +939,16 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - TODO: planejar a fase posterior da família analytics com `ClickHouse` (`ARRAY JOIN`, `LIMIT BY`, `ENGINE MergeTree`) sem acoplar sintaxe analítica diretamente ao executor comum.
 - TODO: planejar `Snowflake` como extensão posterior da trilha analytics, com matriz de compatibilidade e subset explícito antes da primeira implementação.
 
+#### 3.0.2 Inventário funcional pendente por provider
+
+- Implementação estimada: **0%**.
+- TODO: mapear explicitamente no backlog as famílias nativas do `MySQL` já cobertas/parciais (`LIMIT/OFFSET`, `ON DUPLICATE KEY UPDATE`, `MATCH ... AGAINST`, `SQL_CALC_FOUND_ROWS`/`FOUND_ROWS`, `USE/IGNORE/FORCE INDEX`, `<=>`, `GROUP_CONCAT`, `JSON_EXTRACT`/`->`/`->>`, `WITH RECURSIVE`, window functions) com status por versão simulada.
+- TODO: mapear explicitamente no backlog as famílias nativas de `SQL Server/SqlAzure` (`TOP`, `OFFSET/FETCH`, `OUTPUT`, `MERGE`, `@@ROWCOUNT`, table/query hints `WITH (...)`, `PIVOT/UNPIVOT`, `CROSS APPLY`/`OUTER APPLY`, `JSON_VALUE`/`OPENJSON`, `STRING_AGG`, `STRING_SPLIT`, `FOR JSON`) com status por versão simulada e `compatibility level`.
+- TODO: mapear explicitamente no backlog as famílias nativas do `Oracle` (`ROWNUM`, `FETCH FIRST`, `MERGE`, `seq.NEXTVAL/CURRVAL`, `LISTAGG`, `JSON_VALUE`/`JSON_TABLE`, `PIVOT/UNPIVOT`, `CONNECT BY`/`START WITH`, `MATCH_RECOGNIZE`, `MODEL`) com status por versão simulada.
+- TODO: mapear explicitamente no backlog as famílias nativas do `PostgreSQL/Npgsql` (`LIMIT/OFFSET`, `FETCH FIRST`, `ON CONFLICT`, `RETURNING`, `ILIKE`, `STRING_AGG`, `DISTINCT ON`, `LATERAL`, operadores JSON `->`/`->>`/`#>`/`#>>`, `WITH [NOT] MATERIALIZED`, `MERGE`) com status por versão simulada.
+- TODO: mapear explicitamente no backlog as famílias nativas do `SQLite` (`LIMIT/OFFSET`, `ON CONFLICT`, `RETURNING`, `GROUP_CONCAT` com `ORDER BY`, `json_each`/`json_tree`, `JSON_EXTRACT`/`->`/`->>`, `WITH RECURSIVE`, `MATERIALIZED/NOT MATERIALIZED`, window functions e frames, `NULLS FIRST/LAST`, `CHANGES()`) com status por versão simulada e subset real do mock.
+- TODO: mapear explicitamente no backlog as famílias nativas do `DB2` (`FETCH FIRST`/`OFFSET`, `MERGE`, `NEXT VALUE FOR`/`PREVIOUS VALUE FOR`, `LISTAGG`, `WITH RECURSIVE`, `ROW_NUMBER` e frames de janela, `JSON_TABLE`, `JSON_QUERY`) com status por versão simulada.
+
 ### 3.1 MySQL (`DbSqlLikeMem.MySql`)
 
 #### 3.1.1 Versões simuladas
@@ -973,20 +983,23 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 3.2.2 Recursos relevantes
 
-- Implementação estimada: **93%**.
+- Implementação estimada: **99.5%**.
 - Parser/executor para DDL/DML comuns.
 - Diferenças de dialeto por versão simulada.
 - Cobertura de `STRING_AGG` ampliada para `DISTINCT`, tratamento de `NULL` e ordenação interna via `WITHIN GROUP`, incluindo cenários de erro malformado com diagnóstico acionável.
 - P8 consolidado: paginação por versão (`OFFSET/FETCH`, `TOP`) com gates explícitos de dialeto.
-- Funções-chave do banco: `STRING_AGG`, `ISNULL`, `DATEADD`, `JSON_VALUE`/`OPENJSON` (subset no mock).
+- Funções-chave do banco: `STRING_AGG`, `STRING_SPLIT`, `ISNULL`, `DATEADD`, `JSON_VALUE`/`OPENJSON` (subset escalar/tabular com schema default/explicito, `strict/lax` e path avançado inicial no mock), `PIVOT`/`UNPIVOT` e `FOR JSON` (`PATH`/`AUTO` em subset inicial) no caminho compartilhado.
 - `DbSqlLikeMem.SqlAzure` compartilha a base do dialeto SQL Server no ciclo atual, com níveis de compatibilidade 100/110/120/130/140/150/160/170 agora mapeados explicitamente para a semântica correspondente de parser por versão (`2008`..`2025`).
 - Incremento desta sessão: a suíte dedicada de parser do `SqlAzure` também passou a cobrir `STRING_AGG ... WITHIN GROUP` (positivo, `SELECT` completo e cláusula malformada), reforçando que o caminho shared do SQL Server ficou corretamente projetado para níveis de compatibilidade Azure.
 - Incremento desta sessão: a camada Strategy do `SqlAzure` agora também possui regressões explícitas para semântica transacional herdada do SQL Server (`commit`, `rollback`, isolamento, savepoint e limpeza de sessão), reduzindo risco de drift comportamental no provider Azure.
 - Incremento desta sessão: o executor de `PIVOT` passou a cobrir também `MIN`, `MAX` e `AVG` no caminho compartilhado de `SQL Server/SqlAzure`, além de alinhar `COUNT(expr)`/`SUM(expr)` à semântica agregadora comum do core.
+- Incremento desta sessão: parser/executor passaram a suportar `CROSS APPLY`/`OUTER APPLY` no caminho compartilhado de `SQL Server/SqlAzure` tanto com subquery derivada correlacionada quanto com fontes tabulares nativas `OPENJSON(json[, path])` em schema default e `WITH (...)` explícito (subset de colunas tipadas + `AS JSON`) e `STRING_SPLIT(text, separator[, enable_ordinal])`, incluindo gate por versão no dialeto SQL Server, `enable_ordinal` restrito a SQL Server 2022+/compatibility level `160+`, suporte inicial a `strict/lax`, chaves JSON escapadas com aspas e array index em paths do `OPENJSON`, regressão dedicada de parser no `SqlAzure` e cobertura comportamental de runtime nos dois providers.
+- Incremento desta sessão: `UNPIVOT` entrou no parser/executor compartilhado de `SQL Server/SqlAzure`, com AST própria de transformação tabular, parsing em `FROM`/`JOIN`, expansão de colunas em linhas no runtime, descarte de valores `NULL`, regressões de parser/runtime nos dois providers e cobertura adicional no modo `Auto`.
+- Incremento desta sessão: `FOR JSON` entrou no parser/executor compartilhado de `SQL Server/SqlAzure` com gate de versão `2016+`, suporte inicial a `PATH`/`AUTO`, opções `ROOT('...')`, `INCLUDE_NULL_VALUES` e `WITHOUT_ARRAY_WRAPPER`, serialização do rowset final em coluna JSON única, regressões de parser nos dois providers e cobertura comportamental de runtime para `PATH` e `AUTO`.
 - TODO: completar executor de `PIVOT` para agregadores avançados do SQL Server/SqlAzure além do conjunto comum `COUNT/SUM/MIN/MAX/AVG`, conforme prioridade real de uso.
-- TODO: adicionar `UNPIVOT` no parser/executor para SQL Server/SqlAzure, alinhando a cobertura ao conjunto real documentado pelo banco.
-- TODO: adicionar `FOR JSON` (`PATH`/`AUTO`) no parser/executor para cobrir serialização JSON nativa de consultas, presente no SQL Server 2016+ e Azure SQL.
-- TODO: avaliar subset de `STRING_SPLIT(...)` guiado por versão/compatibility level (`130+`) para cenários de CROSS APPLY e projeção tabular comuns no banco real.
+- TODO: expandir `FOR JSON` além do subset atual (`PATH`/`AUTO`, `ROOT`, `INCLUDE_NULL_VALUES`, `WITHOUT_ARRAY_WRAPPER`), cobrindo diferenças finas de serialização/nesting, edge cases de `AUTO`, propriedades/fragmentos JSON já serializados e demais nuances do banco real antes de considerar a família fechada.
+- TODO: expandir a família `APPLY` (`CROSS APPLY`/`OUTER APPLY`) além do subset atual já coberto (`subquery` derivada correlacionada, `OPENJSON(json[, path])` com schema default e `WITH (...)` explícito em subset inicial, e `STRING_SPLIT(text, separator[, enable_ordinal])`), cobrindo `OPENJSON` com semântica mais completa de schema/path (`strict/lax` residual, validações finas, modos avançados e variantes adicionais), TVF inline/schema-qualified e demais fontes tabulares nativas com gate por versão/`compatibility level`.
+- TODO: revisar diferenças finas de `STRING_SPLIT(...)` por versão (`160+`), especialmente coercões aceitas no `enable_ordinal`, shape de metadata e nuances de ordenação/estabilidade sem `ORDER BY`, antes de considerar a família tabular do banco como fechada.
 
 #### 3.2.3 Aplicações típicas
 
@@ -1119,7 +1132,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Cobertura de regressão inclui suíte cross-dialeto com snapshots por perfil (smoke/aggregation/parser), operacionalizada no script `scripts/run_cross_dialect_equivalence.sh`; atualização em lote suportada por `scripts/refresh_cross_dialect_snapshots.sh` e baseline documental semântico (`manual-placeholder`) para evitar snapshot desatualizado no repositório.
 - O profile `parser` agora inclui também `SqlAzure`, fechando a matriz principal de providers SQL suportados nessa trilha sem precisar duplicar runtime do dialeto.
 - Matriz consolidada de providers/versões e capacidades comuns agora está refletida diretamente neste índice como fonte principal de backlog.
-- TODO: ampliar a matriz compartilhada para capacidades avançadas auditadas contra bancos reais (`JSON_TABLE`, `FOR JSON`, `LATERAL`, `DISTINCT ON`, `json_each/json_tree`, `PIVOT/UNPIVOT`) com status explícito por provider.
+- TODO: ampliar a matriz compartilhada para capacidades avançadas auditadas contra bancos reais (`JSON_TABLE`, `FOR JSON`, `CROSS APPLY/OUTER APPLY`, `LATERAL`, `DISTINCT ON`, `json_each/json_tree`, `PIVOT/UNPIVOT`) com status explícito por provider.
 - TODO: incluir `SqlDialect.Auto` na malha `parser`/`smoke` com snapshots dedicados para sintaxes equivalentes de paginação e demais heurísticas que entrarem no modo automático.
 - TODO: expandir a matriz para os próximos providers/famílias planejados (`MariaDB`, `Firebird`, `DuckDB` e, em fase posterior, `ClickHouse`/`Snowflake`) com status por etapa de implementação.
 - TODO: conectar a futura API de validação cross-dialect aos artefatos publicados da matriz para transformar compatibilidade em evidência objetiva de CI.
@@ -1151,7 +1164,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Diferenças que impactam relatórios, filtros avançados e paginação em módulos centrais.
 - Inclui execução do plano P11/P12 para confiabilidade transacional, concorrência e diagnóstico de erro com contexto.
 - Status detalhado de transações concorrentes: fase de hardening base concluída (100%), governança em progresso (~10%) e cenários críticos (fases 2–5) priorizados para fechamento.
-- TODO: manter nesta onda recursos avançados de consulta com impacto funcional frequente (`FOR JSON`, `STRING_SPLIT`, `DISTINCT ON`, `LATERAL`, window frames avançados no SQLite).
+- TODO: manter nesta onda recursos avançados de consulta com impacto funcional frequente (`FOR JSON`, `STRING_SPLIT`, `CROSS APPLY/OUTER APPLY`, `DISTINCT ON`, `LATERAL`, window frames avançados no SQLite).
 - TODO: priorizar nesta onda `Query Plan Debugger`, `MariaDB`, `Firebird`, `DuckDB`, `Schema Snapshot` e `Cross Dialect Validator`, respeitando a ordem de dependências definida no roadmap.
 
 #### 3.8.3 Onda 3 (média/baixa)
@@ -1221,10 +1234,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: a próxima lacuna pequena fechada no core foi DDL de `SEQUENCE`, reaproveitando a infraestrutura já existente de runtime e deixando parser/dispatcher/executor seguirem a capacidade declarada no dialeto.
 - Incremento desta sessão: o parser comum de agregação textual foi endurecido para a forma nativa do MySQL (`GROUP_CONCAT(DISTINCT ... ORDER BY ... SEPARATOR ...)`), aceitando `SEPARATOR` como terminador válido do `ORDER BY` interno apenas quando o dialeto/função o suportam.
 - Incremento desta sessão: a trilha auditada de regras por dialeto removeu os últimos branches comportamentais centrais por `dialect.Name` para mutações multi-tabela, rowcount de UPSERT e `SQL_CALC_FOUND_ROWS`, consolidando parser/executor/strategies sob o mesmo contrato de capability do provider.
-- Incremento desta sessão: a próxima fatia funcional do executor fechou o subset principal de `PIVOT` com `SUM/MIN/MAX/AVG` no caminho compartilhado, deixando `UNPIVOT` e agregadores avançados como backlog residual explícito.
+- Incremento desta sessão: a próxima fatia funcional do executor fechou o subset principal de `PIVOT` com `SUM/MIN/MAX/AVG`, adicionou `UNPIVOT` e abriu o subset inicial de `FOR JSON` no caminho compartilhado de `SQL Server/SqlAzure`, deixando agregadores avançados, nuances tabulares por versão e arestas finas de serialização JSON como backlog residual explícito.
 - TODO: executar o roadmap na ordem acordada: `SqlDialect.Auto` -> `Query Plan Debugger` -> `MariaDB` -> `Firebird` -> `DuckDB` -> `Schema Snapshot` -> `Cross Dialect Validator`.
 - TODO: extrair/refatorar bases compartilhadas por família antes de `MariaDB` e `DuckDB`, para evitar duplicação e preservar o parser/executor agnósticos.
-- TODO: fechar a trilha auditada contra bancos reais com implementação incremental de `JSON_TABLE` (MySQL, Oracle, DB2), `FOR JSON`/`UNPIVOT`/`STRING_SPLIT` (SQL Server/SqlAzure), `DISTINCT ON`/`LATERAL` (PostgreSQL), `json_each`/`json_tree` e frames avançados de window (SQLite).
+- TODO: fechar a trilha auditada contra bancos reais com implementação incremental de `JSON_TABLE` (MySQL, Oracle, DB2), `FOR JSON`/`STRING_SPLIT`/`CROSS APPLY`/`OUTER APPLY` (SQL Server/SqlAzure), `DISTINCT ON`/`LATERAL` (PostgreSQL), `json_each`/`json_tree` e frames avançados de window (SQLite).
 - TODO: revisar cada nova feature acima com a regra "dialeto manda", garantindo gate no tokenizer/parser, contract no executor e suíte positiva/negativa por versão simulada antes de marcar o item como concluído.
 
 #### 4.2.3 Critérios de aceitação

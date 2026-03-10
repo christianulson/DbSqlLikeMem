@@ -775,6 +775,46 @@ public sealed class SqlDialectAutoParserTests
     }
 
     /// <summary>
+    /// EN: Verifies Auto mode parses shared UNPIVOT syntax without provider-specific dialect selection.
+    /// PT: Verifica se o modo Auto interpreta sintaxe compartilhada de UNPIVOT sem selecao de dialeto especifica por provider.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldParseUnpivot()
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.ParseAuto(
+            "SELECT up.id, up.FieldName, up.FieldValue FROM (SELECT id, name, email FROM users) src UNPIVOT (FieldValue FOR FieldName IN (name, email)) up"));
+
+        var source = parsed.Table;
+        Assert.NotNull(source);
+        var unpivot = source!.Unpivot;
+        Assert.NotNull(unpivot);
+
+        Assert.Equal("FieldValue", unpivot!.ValueColumnName, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("FieldName", unpivot.NameColumnName, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(2, unpivot.InItems.Count);
+        Assert.Equal("name", unpivot.InItems[0].SourceColumnName, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("email", unpivot.InItems[1].SourceColumnName, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto mode parses shared FOR JSON PATH syntax without provider-specific dialect selection.
+    /// PT: Verifica se o modo Auto interpreta sintaxe compartilhada de FOR JSON PATH sem selecao de dialeto especifica por provider.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldParseForJsonPath()
+    {
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.ParseAuto(
+            "SELECT id AS [User.Id], name AS [User.Name] FROM users ORDER BY id FOR JSON PATH, ROOT('users')"));
+
+        var forJson = parsed.ForJson;
+        Assert.NotNull(forJson);
+        Assert.Equal(SqlForJsonMode.Path, forJson!.Mode);
+        Assert.Equal("users", forJson.RootName, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Verifies Auto mode parses shared WITH/CTE syntax without provider-specific dialect selection.
     /// PT: Verifica se o modo Auto interpreta sintaxe compartilhada de WITH/CTE sem selecao de dialeto especifica por provider.
     /// </summary>
@@ -1025,6 +1065,19 @@ public sealed class SqlDialectAutoParserTests
     public void AutoDialect_ShouldDetectPivotMarkers()
     {
         var features = DetectSyntaxFeatures("SELECT t10, t20 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10, 20 AS t20)) p");
+
+        Assert.True((features & AutoSqlSyntaxFeatures.Pivot) != 0);
+    }
+
+    /// <summary>
+    /// EN: Verifies Auto syntax detection recognizes shared UNPIVOT markers.
+    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de UNPIVOT.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldDetectUnpivotMarkers()
+    {
+        var features = DetectSyntaxFeatures("SELECT up.id, up.FieldName, up.FieldValue FROM (SELECT id, name, email FROM users) src UNPIVOT (FieldValue FOR FieldName IN (name, email)) up");
 
         Assert.True((features & AutoSqlSyntaxFeatures.Pivot) != 0);
     }

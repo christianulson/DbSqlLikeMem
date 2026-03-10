@@ -171,6 +171,9 @@ internal sealed class SqlQueryParser
 
         EnsureRowLimitDialectSupport(select.RowLimit, dialect);
 
+        if (select.ForJson is not null && !dialect.SupportsForJsonClause)
+            throw SqlUnsupported.ForDialect(dialect, "FOR JSON");
+
         if (select.Table?.Derived is not null)
             EnsureSelectDialectSupport(select.Table.Derived, dialect);
 
@@ -358,7 +361,7 @@ internal sealed class SqlQueryParser
         Consume(); // INSERT
         if (IsWord(Peek(), "INTO")) Consume();
 
-        var table = ParseTableSource(consumeHints: false); // Tabela
+        var table = ParseTableSource(consumeHints: false, allowFunctionSource: false); // Tabela
 
         // Colunas opcionais: (col1, col2)
         var hasExplicitColumnList = IsSymbol(Peek(), "(");
@@ -1079,7 +1082,7 @@ internal sealed class SqlQueryParser
         {
             // DELETE FROM t WHERE ...
             Consume();
-            table = ParseTableSource();
+            table = ParseTableSource(allowFunctionSource: false);
 
             if (IsWord(Peek(), "USING"))
             {
@@ -1104,7 +1107,7 @@ internal sealed class SqlQueryParser
             if (!_dialect.SupportsDeleteWithoutFrom && !_dialect.AllowsParserDeleteWithoutFromCompatibility && !allowsTargetAlias)
                 throw SqlUnsupported.ForDeleteWithoutFrom(_dialect);
 
-            var first = ParseTableSource(); // pode ser tabela ou alvo
+            var first = ParseTableSource(allowFunctionSource: false); // pode ser tabela ou alvo
 
             if (IsWord(Peek(), "FROM"))
             {
@@ -1113,7 +1116,7 @@ internal sealed class SqlQueryParser
 
                 // DELETE <alias> FROM <table> <alias> JOIN ...
                 Consume(); // FROM
-                table = ParseTableSource(); // ex: users
+                table = ParseTableSource(allowFunctionSource: false); // ex: users
 
                 // alias pós-tabela (ex: users u)
                 if (Peek().Kind == SqlTokenKind.Identifier && !IsWord(Peek(), "WHERE") && !IsJoinStart(Peek()))
@@ -1206,7 +1209,7 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "INTO")) Consume();
 
         // target table + alias (ex: stats target)
-        var target = ParseTableSource();
+        var target = ParseTableSource(allowFunctionSource: false);
 
         if (!HasTopLevelWordInRemaining("USING"))
             throw new InvalidOperationException("MERGE requer cláusula USING. Ex.: MERGE INTO <target> USING <source> ON ...");
@@ -1362,6 +1365,7 @@ internal sealed class SqlQueryParser
         var having = TryParseHavingExpr();
         var orderBy = allowOrderByAndLimit ? TryParseOrderBy() : [];
         var rowLimit = allowOrderByAndLimit ? TryParseRowLimitTail(orderBy.Count > 0) : null;
+        var forJson = allowOrderByAndLimit ? TryParseForJsonClause() : null;
         if (allowOrderByAndLimit)
             TryConsumeQueryHintOption();
         if (top is not null)
@@ -1396,7 +1400,8 @@ internal sealed class SqlQueryParser
             OrderBy: orderBy,
             RowLimit: rowLimit,
             GroupBy: groupBy,
-            Having: having
+            Having: having,
+            ForJson: forJson
         )
         {
             Table = table
@@ -1794,7 +1799,7 @@ internal sealed class SqlQueryParser
         if (nameTok.Kind != SqlTokenKind.Identifier)
             throw new InvalidOperationException($"Esperava nome da tabela, veio {nameTok.Kind} '{nameTok.Text}'");
 
-        var table = ParseTableSource(consumeHints: false);
+        var table = ParseTableSource(consumeHints: false, allowFunctionSource: false);
 
         // Optional column list: (id INT, name VARCHAR(50))
         var colNames = new List<string>();
@@ -2532,7 +2537,7 @@ internal sealed class SqlQueryParser
             if (IsWord(Peek(), "FROM"))
                 throw new InvalidOperationException("invalid: duplicated FROM keyword");
             var ts = ParseTableSource();
-            ts = TryParsePivot(ts);
+            ts = TryParseTableTransforms(ts);
             if (IsWord(Peek(), "FROM"))
                 throw new InvalidOperationException("invalid: FROM inside FROM");
             return ts;
@@ -2761,7 +2766,7 @@ internal sealed class SqlQueryParser
         return list;
     }
 
-    private SqlTableSource ParseTableSource(bool consumeHints = true)
+    private SqlTableSource ParseTableSource(bool consumeHints = true, bool allowFunctionSource = true)
     {
         if (IsSymbol(Peek(), "("))
         {
@@ -2791,6 +2796,10 @@ internal sealed class SqlQueryParser
         }
 
         var first = ExpectIdentifier();
+
+        if (allowFunctionSource && IsSupportedTableFunctionName(first) && IsSymbol(Peek(), "("))
+            return ParseTableFunctionSource(first);
+
         string? db = null;
         var table = first;
         var mySqlIndexHints = new List<SqlMySqlIndexHint>();
@@ -2816,6 +2825,202 @@ internal sealed class SqlQueryParser
             MySqlIndexHints: mySqlIndexHints);
     }
 
+    private SqlTableSource ParseTableFunctionSource(string functionName)
+    {
+        var argsSql = ReadBalancedParenRawTokens();
+        var rawSql = $"{functionName}({argsSql})";
+        var expr = SqlExpressionParser.ParseScalar(rawSql, _dialect, _parameters);
+        if (expr is not FunctionCallExpr function)
+            throw new InvalidOperationException("Table-valued source deve ser uma chamada de função.");
+
+        ValidateTableFunctionSource(function);
+
+        if (function.Name.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase)
+            && IsWord(Peek(), "WITH") && IsSymbol(Peek(1), "("))
+        {
+            Consume(); // WITH
+            var rawSchema = ReadBalancedParenRawTokens();
+            var aliasWithSchema = ReadOptionalAlias();
+            return new SqlTableSource(
+                null,
+                null,
+                aliasWithSchema,
+                Derived: null,
+                DerivedUnion: null,
+                DerivedSql: null,
+                Pivot: null,
+                MySqlIndexHints: null,
+                TableFunction: function,
+                OpenJsonWithClause: ParseOpenJsonWithClause(rawSchema));
+        }
+
+        var alias = ReadOptionalAlias();
+        return new SqlTableSource(
+            null,
+            null,
+            alias,
+            Derived: null,
+            DerivedUnion: null,
+            DerivedSql: null,
+            Pivot: null,
+            MySqlIndexHints: null,
+            TableFunction: function,
+            OpenJsonWithClause: null);
+    }
+
+    private void ValidateTableFunctionSource(FunctionCallExpr function)
+    {
+        if (function.Name.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!_dialect.SupportsOpenJsonFunction)
+                throw SqlUnsupported.ForDialect(_dialect, "OPENJSON");
+
+            if (function.Args.Count is < 1 or > 2)
+                throw new NotSupportedException("OPENJSON table source currently supports one or two arguments in the mock.");
+
+            return;
+        }
+
+        if (function.Name.Equals("STRING_SPLIT", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!_dialect.SupportsStringSplitFunction)
+                throw SqlUnsupported.ForDialect(_dialect, "STRING_SPLIT");
+
+            if (function.Args.Count is < 2 or > 3)
+                throw new NotSupportedException("STRING_SPLIT table source currently supports two or three arguments in the mock.");
+
+            if (function.Args.Count == 3 && !_dialect.SupportsStringSplitOrdinalArgument)
+                throw SqlUnsupported.ForDialect(_dialect, "STRING_SPLIT enable_ordinal");
+
+            return;
+        }
+
+        throw new NotSupportedException($"Table-valued function '{function.Name}' not supported yet in the mock.");
+    }
+
+    private static bool IsSupportedTableFunctionName(string functionName)
+        => functionName.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("STRING_SPLIT", StringComparison.OrdinalIgnoreCase);
+
+    private static SqlOpenJsonWithClause ParseOpenJsonWithClause(string rawSchema)
+    {
+        var items = SplitRawByComma(rawSchema)
+            .Select(static x => x.Trim())
+            .Where(static x => x.Length > 0)
+            .ToList();
+
+        if (items.Count == 0)
+            throw new InvalidOperationException("OPENJSON WITH requires at least one column definition.");
+
+        var columns = items
+            .Select(ParseOpenJsonWithColumn)
+            .ToList();
+
+        return new SqlOpenJsonWithClause(columns);
+    }
+
+    private static SqlOpenJsonWithColumn ParseOpenJsonWithColumn(string rawItem)
+    {
+        var item = rawItem.Trim();
+        var asJson = false;
+        if (item.EndsWith(" AS JSON", StringComparison.OrdinalIgnoreCase))
+        {
+            asJson = true;
+            item = item[..^8].TrimEnd();
+        }
+
+        string? path = null;
+        var pathMatch = Regex.Match(
+            item,
+            @"\s+(?<path>N?'(?:''|[^'])*')\s*$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (pathMatch.Success)
+        {
+            path = UnquoteSqlStringLiteral(pathMatch.Groups["path"].Value);
+            item = item[..pathMatch.Index].TrimEnd();
+        }
+
+        var nameAndTypeMatch = Regex.Match(
+            item,
+            @"^(?<name>\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)\s+(?<type>.+)$",
+            RegexOptions.CultureInvariant);
+        if (!nameAndTypeMatch.Success)
+            throw new InvalidOperationException($"OPENJSON WITH column definition is invalid: '{rawItem}'.");
+
+        var name = nameAndTypeMatch.Groups["name"].Value.NormalizeName();
+        var sqlType = nameAndTypeMatch.Groups["type"].Value.Trim();
+        if (string.IsNullOrWhiteSpace(sqlType))
+            throw new InvalidOperationException($"OPENJSON WITH column '{name}' requires a SQL type.");
+
+        return new SqlOpenJsonWithColumn(
+            name,
+            sqlType,
+            ParseOpenJsonColumnDbType(sqlType),
+            path,
+            asJson);
+    }
+
+    private static string UnquoteSqlStringLiteral(string token)
+    {
+        var trimmed = token.Trim();
+        if (trimmed.StartsWith("N'", StringComparison.OrdinalIgnoreCase))
+            trimmed = trimmed[1..];
+
+        if (trimmed.Length >= 2 && trimmed[0] == '\'' && trimmed[^1] == '\'')
+            return trimmed[1..^1].Replace("''", "'");
+
+        return trimmed;
+    }
+
+    private static DbType ParseOpenJsonColumnDbType(string sqlType)
+    {
+        var normalized = sqlType.Trim().NormalizeName().ToUpperInvariant();
+        if (normalized.StartsWith("DATETIMEOFFSET", StringComparison.Ordinal))
+            return DbType.DateTimeOffset;
+        if (normalized.StartsWith("DATETIME2", StringComparison.Ordinal)
+            || normalized.StartsWith("DATETIME", StringComparison.Ordinal)
+            || normalized.StartsWith("SMALLDATETIME", StringComparison.Ordinal))
+            return DbType.DateTime;
+        if (normalized.StartsWith("DATE", StringComparison.Ordinal))
+            return DbType.Date;
+        if (normalized.StartsWith("TIME", StringComparison.Ordinal))
+            return DbType.Time;
+        if (normalized.StartsWith("BIGINT", StringComparison.Ordinal))
+            return DbType.Int64;
+        if (normalized.StartsWith("INT", StringComparison.Ordinal)
+            || normalized.StartsWith("INTEGER", StringComparison.Ordinal)
+            || normalized.StartsWith("SMALLINT", StringComparison.Ordinal)
+            || normalized.StartsWith("TINYINT", StringComparison.Ordinal))
+            return DbType.Int32;
+        if (normalized.StartsWith("DECIMAL", StringComparison.Ordinal)
+            || normalized.StartsWith("NUMERIC", StringComparison.Ordinal)
+            || normalized.StartsWith("MONEY", StringComparison.Ordinal)
+            || normalized.StartsWith("SMALLMONEY", StringComparison.Ordinal))
+            return DbType.Decimal;
+        if (normalized.StartsWith("FLOAT", StringComparison.Ordinal)
+            || normalized.StartsWith("REAL", StringComparison.Ordinal))
+            return DbType.Double;
+        if (normalized.StartsWith("BIT", StringComparison.Ordinal))
+            return DbType.Boolean;
+        if (normalized.StartsWith("UNIQUEIDENTIFIER", StringComparison.Ordinal))
+            return DbType.Guid;
+        if (normalized.StartsWith("VARBINARY", StringComparison.Ordinal)
+            || normalized.StartsWith("BINARY", StringComparison.Ordinal)
+            || normalized.StartsWith("IMAGE", StringComparison.Ordinal))
+            return DbType.Binary;
+        if (normalized.StartsWith("XML", StringComparison.Ordinal))
+            return DbType.String;
+
+        return DbType.String;
+    }
+
+    private SqlTableSource TryParseTableTransforms(SqlTableSource source)
+    {
+        source = TryParsePivot(source);
+        source = TryParseUnpivot(source);
+        return source;
+    }
+
     private SqlTableSource TryParsePivot(SqlTableSource source)
     {
         if (!IsWord(Peek(), "PIVOT"))
@@ -2833,6 +3038,26 @@ internal sealed class SqlQueryParser
         {
             Alias = pivotAlias ?? source.Alias,
             Pivot = spec
+        };
+    }
+
+    private SqlTableSource TryParseUnpivot(SqlTableSource source)
+    {
+        if (!IsWord(Peek(), "UNPIVOT"))
+            return source;
+
+        if (!_dialect.SupportsUnpivotClause)
+            throw SqlUnsupported.ForDialect(_dialect, "UNPIVOT");
+
+        Consume(); // UNPIVOT
+        var raw = ReadBalancedParenRawTokens();
+        var spec = ParseUnpivotSpec(raw);
+
+        var unpivotAlias = ReadOptionalAlias();
+        return source with
+        {
+            Alias = unpivotAlias ?? source.Alias,
+            Unpivot = spec
         };
     }
 
@@ -2877,6 +3102,129 @@ internal sealed class SqlQueryParser
             throw new InvalidOperationException("invalid: PIVOT IN list is empty");
 
         return new SqlPivotSpec(aggregateFunction, aggregateArgRaw, forColumnRaw, inItems);
+    }
+
+    private static SqlUnpivotSpec ParseUnpivotSpec(string raw)
+    {
+        const string identifierPattern = @"(?:\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)";
+
+        var match = Regex.Match(
+            raw,
+            $@"^\s*(?<value>{identifierPattern})\s+FOR\s+(?<name>{identifierPattern})\s+IN\s*\((?<in>.+)\)\s*$",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant);
+
+        if (!match.Success)
+            throw new InvalidOperationException("invalid: unsupported UNPIVOT syntax");
+
+        var valueColumnName = match.Groups["value"].Value.NormalizeName();
+        var nameColumnName = match.Groups["name"].Value.NormalizeName();
+        var inListRaw = match.Groups["in"].Value.Trim();
+
+        var inItems = new List<SqlUnpivotInItem>();
+        foreach (var itemRaw in SplitPivotInItems(inListRaw))
+        {
+            var item = itemRaw.Trim();
+            if (item.Length == 0)
+                continue;
+
+            if (!Regex.IsMatch(item, $"^{identifierPattern}$", RegexOptions.CultureInvariant))
+                throw new InvalidOperationException("invalid: unsupported UNPIVOT IN item");
+
+            var normalized = item.NormalizeName();
+            inItems.Add(new SqlUnpivotInItem(normalized, normalized));
+        }
+
+        if (inItems.Count == 0)
+            throw new InvalidOperationException("invalid: UNPIVOT IN list is empty");
+
+        return new SqlUnpivotSpec(valueColumnName, nameColumnName, inItems);
+    }
+
+    private SqlForJsonClause? TryParseForJsonClause()
+    {
+        if (!IsWord(Peek(), "FOR") || !IsWord(Peek(1), "JSON"))
+            return null;
+
+        if (!_dialect.SupportsForJsonClause)
+            throw SqlUnsupported.ForDialect(_dialect, "FOR JSON");
+
+        Consume(); // FOR
+        Consume(); // JSON
+
+        SqlForJsonMode mode;
+        if (IsWord(Peek(), "PATH"))
+        {
+            mode = SqlForJsonMode.Path;
+            Consume();
+        }
+        else if (IsWord(Peek(), "AUTO"))
+        {
+            mode = SqlForJsonMode.Auto;
+            Consume();
+        }
+        else
+        {
+            throw new InvalidOperationException("FOR JSON requires PATH or AUTO mode.");
+        }
+
+        string? rootName = null;
+        var includeNullValues = false;
+        var withoutArrayWrapper = false;
+
+        while (IsSymbol(Peek(), ","))
+        {
+            Consume();
+
+            if (IsWord(Peek(), "ROOT"))
+            {
+                if (rootName is not null)
+                    throw new InvalidOperationException("FOR JSON ROOT option cannot be specified more than once.");
+
+                Consume();
+                if (!IsSymbol(Peek(), "("))
+                    throw new InvalidOperationException("FOR JSON ROOT requires a string literal root name.");
+
+                var rootArgRaw = ReadBalancedParenRawTokens().Trim();
+                rootName = ParseForJsonRootName(rootArgRaw);
+                continue;
+            }
+
+            if (IsWord(Peek(), "INCLUDE_NULL_VALUES"))
+            {
+                if (includeNullValues)
+                    throw new InvalidOperationException("FOR JSON INCLUDE_NULL_VALUES option cannot be specified more than once.");
+
+                includeNullValues = true;
+                Consume();
+                continue;
+            }
+
+            if (IsWord(Peek(), "WITHOUT_ARRAY_WRAPPER"))
+            {
+                if (withoutArrayWrapper)
+                    throw new InvalidOperationException("FOR JSON WITHOUT_ARRAY_WRAPPER option cannot be specified more than once.");
+
+                withoutArrayWrapper = true;
+                Consume();
+                continue;
+            }
+
+            throw new InvalidOperationException($"FOR JSON option '{Peek().Text}' is not supported in the mock.");
+        }
+
+        return new SqlForJsonClause(mode, rootName, includeNullValues, withoutArrayWrapper);
+    }
+
+    private static string ParseForJsonRootName(string raw)
+    {
+        var trimmed = raw.Trim();
+        if (trimmed.Length == 0)
+            throw new InvalidOperationException("FOR JSON ROOT requires a string literal root name.");
+
+        if (!Regex.IsMatch(trimmed, @"^N?'(?:''|[^'])*'$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            throw new InvalidOperationException("FOR JSON ROOT requires a string literal root name.");
+
+        return UnquoteSqlStringLiteral(trimmed);
     }
 
     private static IEnumerable<string> SplitPivotInItems(string raw)
@@ -3049,6 +3397,32 @@ internal sealed class SqlQueryParser
 
     private SqlJoin ParseJoin()
     {
+        if (IsWord(Peek(), "CROSS") && IsWord(Peek(1), "APPLY"))
+        {
+            if (!_dialect.SupportsApplyClause)
+                throw SqlUnsupported.ForDialect(_dialect, "CROSS APPLY");
+
+            Consume(); // CROSS
+            Consume(); // APPLY
+
+            var tableCross = ParseTableSource();
+            ValidateApplySource(tableCross, "CROSS APPLY");
+            return new SqlJoin(SqlJoinType.CrossApply, tableCross, new LiteralExpr(true));
+        }
+
+        if (IsWord(Peek(), "OUTER") && IsWord(Peek(1), "APPLY"))
+        {
+            if (!_dialect.SupportsApplyClause)
+                throw SqlUnsupported.ForDialect(_dialect, "OUTER APPLY");
+
+            Consume(); // OUTER
+            Consume(); // APPLY
+
+            var tableOuter = ParseTableSource();
+            ValidateApplySource(tableOuter, "OUTER APPLY");
+            return new SqlJoin(SqlJoinType.OuterApply, tableOuter, new LiteralExpr(true));
+        }
+
         var type = SqlJoinType.Inner;
         if (IsWord(Peek(), "LEFT")) { Consume(); type = SqlJoinType.Left; }
         else if (IsWord(Peek(), "RIGHT")) { Consume(); type = SqlJoinType.Right; }
@@ -3057,16 +3431,24 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "OUTER")) Consume();
         ExpectWord("JOIN");
 
-        var table = ParseTableSource();
+        var table = TryParseTableTransforms(ParseTableSource());
         SqlExpr onExpr = new LiteralExpr(true);
 
         if (type != SqlJoinType.Cross)
         {
             ExpectWord("ON");
-            var txt = ReadClauseTextUntilTopLevelStop("JOIN", "LEFT", "RIGHT", "INNER", "CROSS", "WHERE", "GROUP", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION");
+            var txt = ReadClauseTextUntilTopLevelStop("JOIN", "LEFT", "RIGHT", "INNER", "CROSS", "OUTER", "APPLY", "WHERE", "GROUP", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION");
             onExpr = SqlExpressionParser.ParseWhere(txt, _dialect, _parameters);
         }
         return new SqlJoin(type, table, onExpr);
+    }
+
+    private static void ValidateApplySource(SqlTableSource table, string clause)
+    {
+        if (table.Derived is not null || table.DerivedUnion is not null || table.TableFunction is not null)
+            return;
+
+        throw new NotSupportedException($"{clause} currently supports only derived subqueries and supported table-valued functions in the mock.");
     }
 
     // --- Helpers de Token Plumbing ---
@@ -3917,6 +4299,7 @@ internal sealed class SqlQueryParser
         "RIGHT"  ,
         "CROSS"  ,
         "OUTER"  ,
+        "APPLY"  ,
         "OFFSET" ,
         "FETCH"  ,
         "OPTION" ,

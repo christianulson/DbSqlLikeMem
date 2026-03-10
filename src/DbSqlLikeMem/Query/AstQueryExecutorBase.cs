@@ -17,6 +17,7 @@ internal abstract class AstQueryExecutorBase(
     object dialect)
     : IAstQueryExecutor
 {
+    private const string SqlServerForJsonColumnName = "JSON_F52E2B61-18A1-11d1-B105-00805F49916B";
     private static readonly Regex _sqlCalcFoundRowsRegex = new(
         @"\bSQL_CALC_FOUND_ROWS\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
@@ -30,7 +31,7 @@ internal abstract class AstQueryExecutorBase(
         @"(?<![A-Za-z0-9_$])([A-Za-z_][A-Za-z0-9_$]*\.[A-Za-z_][A-Za-z0-9_$]*)(?![A-Za-z0-9_$])",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly Regex _subqueryAliasDeclarationRegex = new(
-        @"\b(?:FROM|JOIN)\s+(?:[A-Z_][A-Z0-9_$]*(?:\.[A-Z_][A-Z0-9_$]*)*)\s+(?:AS\s+)?([A-Z_][A-Z0-9_$]*)\b",
+        @"\b(?:FROM|JOIN|APPLY)\s+(?:[A-Z_][A-Z0-9_$]*(?:\.[A-Z_][A-Z0-9_$]*)*)\s+(?:AS\s+)?([A-Z_][A-Z0-9_$]*)\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly Regex _simpleAliasTokenRegex = new(
         @"^[A-Z_][A-Z0-9_$]*$",
@@ -58,7 +59,7 @@ internal abstract class AstQueryExecutorBase(
     };
     private static readonly HashSet<string> _sqlAliasReservedTokens = new(StringComparer.OrdinalIgnoreCase)
     {
-        "SELECT","FROM","JOIN","INNER","LEFT","RIGHT","FULL","CROSS","ON","WHERE","GROUP","BY","ORDER","HAVING","LIMIT","OFFSET","UNION","ALL","AS","USING","WHEN","THEN","ELSE","END"
+        "SELECT","FROM","JOIN","INNER","LEFT","RIGHT","FULL","CROSS","OUTER","APPLY","ON","WHERE","GROUP","BY","ORDER","HAVING","LIMIT","OFFSET","UNION","ALL","AS","USING","WHEN","THEN","ELSE","END"
     };
 
     // Dialect-aware expression parsing without hard dependency on a specific dialect type.
@@ -672,6 +673,14 @@ internal abstract class AstQueryExecutorBase(
         if (source.DerivedUnion is not null)
             return $"union-subquery AS {source.Alias ?? "<derived_union>"}";
 
+        if (source.TableFunction is not null)
+        {
+            var alias = source.Alias ?? source.TableFunction.Name;
+            return alias.Equals(source.TableFunction.Name, StringComparison.OrdinalIgnoreCase)
+                ? $"{source.TableFunction.Name}(...)"
+                : $"{source.TableFunction.Name}(...) AS {alias}";
+        }
+
         return source.Name ?? "<unknown_table>";
     }
 
@@ -687,7 +696,7 @@ internal abstract class AstQueryExecutorBase(
     }
 
     private static bool HasKnownPhysicalTable(SqlTableSource source)
-        => source.Name is not null && source.Derived is null && source.DerivedUnion is null;
+        => source.Name is not null && source.Derived is null && source.DerivedUnion is null && source.TableFunction is null;
 
     private long GetKnownSourceRows(SqlTableSource? source)
     {
@@ -763,7 +772,7 @@ internal abstract class AstQueryExecutorBase(
             {
                 var joinedRows = rows as List<EvalRow> ?? rows.ToList();
                 debugTrace.AddStep(
-                    $"Join({j.Type.ToString().ToUpperInvariant()})",
+                    $"Join({FormatJoinTypeForDebug(j.Type)})",
                     inputRows,
                     joinedRows.Count,
                     TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(joinStart)),
@@ -833,6 +842,7 @@ internal abstract class AstQueryExecutorBase(
 
         // 7) ORDER BY / LIMIT
         projected = ApplyOrderAndLimit(projected, selectQuery, ctes, debugTrace);
+        projected = ApplyForJsonIfNeeded(projected, selectQuery, debugTrace);
         return projected;
     }
 
@@ -1741,8 +1751,23 @@ internal abstract class AstQueryExecutorBase(
         bool hasOrderBy,
         bool hasGroupBy)
     {
-        var rightSrc = ResolveSource(join.Table, ctes);
+        // FULL is not MySQL; accept as INNER for test/mock purposes
+        var jt = //join.Type == SqlJoinType.Full ? SqlJoinType.Inner : 
+            join.Type;
 
+        if (jt is SqlJoinType.CrossApply or SqlJoinType.OuterApply)
+        {
+            var isOuterApply = jt == SqlJoinType.OuterApply;
+            foreach (var leftRow in leftRows)
+            {
+                foreach (var applied in ApplyApplyJoin(join, ctes, hasOrderBy, hasGroupBy, leftRow, isOuterApply))
+                    yield return applied;
+            }
+
+            yield break;
+        }
+
+        var rightSrc = ResolveSource(join.Table, ctes);
 
         if (rightSrc.Physical is not null)
         {
@@ -1750,10 +1775,6 @@ internal abstract class AstQueryExecutorBase(
             if (hintPlan?.MissingForcedIndexes.Count > 0)
                 throw new InvalidOperationException($"MySQL FORCE INDEX referencia índice inexistente: {string.Join(", ", hintPlan.MissingForcedIndexes)}.");
         }
-
-        // FULL is not MySQL; accept as INNER for test/mock purposes
-        var jt = //join.Type == SqlJoinType.Full ? SqlJoinType.Inner : 
-            join.Type;
 
         if (jt == SqlJoinType.Cross)
         {
@@ -1782,6 +1803,43 @@ internal abstract class AstQueryExecutorBase(
         foreach (var l in leftRows)
             foreach (var li in ApplyLeftJoin(join, ctes, rightSrc, isLeft, l))
                 yield return li;
+    }
+
+    private IEnumerable<EvalRow> ApplyApplyJoin(
+        SqlJoin join,
+        IDictionary<string, Source> ctes,
+        bool hasOrderBy,
+        bool hasGroupBy,
+        EvalRow leftRow,
+        bool isOuterApply)
+    {
+        var rightSrc = ResolveSource(join.Table, ctes, leftRow);
+
+        if (rightSrc.Physical is not null)
+        {
+            var hintPlan = BuildMySqlIndexHintPlan(join.Table.MySqlIndexHints, rightSrc.Physical, hasOrderBy, hasGroupBy);
+            if (hintPlan?.MissingForcedIndexes.Count > 0)
+                throw new InvalidOperationException($"MySQL FORCE INDEX referencia índice inexistente: {string.Join(", ", hintPlan.MissingForcedIndexes)}.");
+        }
+
+        var matched = false;
+        foreach (var rr in rightSrc.Rows())
+        {
+            matched = true;
+            var merged = leftRow.CloneRow();
+            merged.AddSource(rightSrc);
+            merged.AddFields(rr);
+            yield return merged;
+        }
+
+        if (!isOuterApply || matched)
+            yield break;
+
+        var mergedOuter = leftRow.CloneRow();
+        mergedOuter.AddSource(rightSrc);
+        foreach (var c in rightSrc.ColumnNames)
+            mergedOuter.Fields[$"{rightSrc.Alias}.{c}"] = null;
+        yield return mergedOuter;
     }
 
     private IEnumerable<EvalRow> ApplyLeftJoin(
@@ -1859,9 +1917,10 @@ internal abstract class AstQueryExecutorBase(
 
     private Source ResolveSource(
         SqlTableSource ts,
-        IDictionary<string, Source> ctes)
+        IDictionary<string, Source> ctes,
+        EvalRow? outerRow = null)
     {
-        var alias = ts.Alias ?? ts.Name ?? ts.DbName ?? "t";
+        var alias = ts.Alias ?? ts.TableFunction?.Name ?? ts.Name ?? ts.DbName ?? "t";
 
         Source source;
 
@@ -1878,21 +1937,27 @@ internal abstract class AstQueryExecutorBase(
                 ts.DerivedSql ?? "(derived)"
             );
             source = Source.FromResult(alias, res);
-            return ApplyPivotIfNeeded(source, ts.Pivot, ctes);
+            return ApplyTableTransformsIfNeeded(source, ts.Pivot, ts.Unpivot, ctes);
         }
 
         if (ts.Derived is not null)
         {
-            var res = ExecuteSelect(ts.Derived);
+            var res = ExecuteSelect(ts.Derived, ctes, outerRow);
             source = Source.FromResult(alias, res);
-            return ApplyPivotIfNeeded(source, ts.Pivot, ctes);
+            return ApplyTableTransformsIfNeeded(source, ts.Pivot, ts.Unpivot, ctes);
+        }
+
+        if (ts.TableFunction is not null)
+        {
+            source = ResolveTableFunctionSource(ts.TableFunction, alias, ts.OpenJsonWithClause, ctes, outerRow);
+            return ApplyTableTransformsIfNeeded(source, ts.Pivot, ts.Unpivot, ctes);
         }
 
         if (!string.IsNullOrWhiteSpace(ts.Name)
             && ctes.TryGetValue(ts.Name!, out var cteSrc))
         {
             source = cteSrc.WithAlias(alias);
-            return ApplyPivotIfNeeded(source, ts.Pivot, ctes);
+            return ApplyTableTransformsIfNeeded(source, ts.Pivot, ts.Unpivot, ctes);
         }
 
         if (string.IsNullOrWhiteSpace(ts.Name))
@@ -1905,7 +1970,7 @@ internal abstract class AstQueryExecutorBase(
         {
             var viewRes = ExecuteSelect(viewSelect, ctes, outerRow: null);
             source = Source.FromResult(alias, viewRes);
-            return ApplyPivotIfNeeded(source, ts.Pivot, ctes);
+            return ApplyTableTransformsIfNeeded(source, ts.Pivot, ts.Unpivot, ctes);
         }
 
         if (tableName.Equals("DUAL", StringComparison.OrdinalIgnoreCase))
@@ -1915,13 +1980,427 @@ internal abstract class AstQueryExecutorBase(
                 ([])
             };
             source = Source.FromResult("DUAL", alias, one);
-            return ApplyPivotIfNeeded(source, ts.Pivot, ctes);
+            return ApplyTableTransformsIfNeeded(source, ts.Pivot, ts.Unpivot, ctes);
         }
 
         _cnn.Metrics.IncrementTableHint(tableName);
         var tb = _cnn.GetTable(tableName, ts.DbName);
         source = Source.FromPhysical(tableName, alias, tb, ts.MySqlIndexHints);
-        return ApplyPivotIfNeeded(source, ts.Pivot, ctes);
+        return ApplyTableTransformsIfNeeded(source, ts.Pivot, ts.Unpivot, ctes);
+    }
+
+    private Source ResolveTableFunctionSource(
+        FunctionCallExpr function,
+        string alias,
+        SqlOpenJsonWithClause? openJsonWithClause,
+        IDictionary<string, Source> ctes,
+        EvalRow? outerRow)
+    {
+        TableResultMock result;
+        if (function.Name.Equals("OPENJSON", StringComparison.OrdinalIgnoreCase))
+        {
+            result = ExecuteOpenJsonTableFunction(function, alias, openJsonWithClause, ctes, outerRow);
+            return Source.FromResult(function.Name, alias, result);
+        }
+
+        if (function.Name.Equals("STRING_SPLIT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = ExecuteStringSplitTableFunction(function, alias, ctes, outerRow);
+            return Source.FromResult(function.Name, alias, result);
+        }
+
+        throw new NotSupportedException($"Table-valued function '{function.Name}' not supported yet in the mock.");
+    }
+
+    private TableResultMock ExecuteOpenJsonTableFunction(
+        FunctionCallExpr function,
+        string alias,
+        SqlOpenJsonWithClause? openJsonWithClause,
+        IDictionary<string, Source> ctes,
+        EvalRow? outerRow)
+    {
+        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para OPENJSON.");
+        if (!dialect.SupportsOpenJsonFunction)
+            throw SqlUnsupported.ForDialect(dialect, "OPENJSON");
+
+        if (function.Args.Count is < 1 or > 2)
+            throw new NotSupportedException("OPENJSON table source currently supports one or two arguments in the mock.");
+
+        var evalRow = CreateFunctionEvaluationRow(outerRow);
+        var json = Eval(function.Args[0], evalRow, group: null, ctes);
+        var result = openJsonWithClause is null
+            ? CreateOpenJsonTableResult(alias)
+            : CreateOpenJsonWithSchemaTableResult(alias, openJsonWithClause);
+
+        if (IsNullish(json))
+            return result;
+
+        var path = function.Args.Count == 2
+            ? Eval(function.Args[1], evalRow, group: null, ctes)?.ToString()
+            : null;
+
+        System.Text.Json.JsonElement target;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                using var document = System.Text.Json.JsonDocument.Parse(json!.ToString() ?? string.Empty);
+                target = document.RootElement.Clone();
+            }
+            else
+            {
+                var lookup = QueryJsonFunctionHelper.LookupJsonPath(json!, path!);
+                if (!lookup.Success)
+                {
+                    if (lookup.Failure == QueryJsonFunctionHelper.JsonPathLookupFailure.InvalidPath)
+                        throw new InvalidOperationException($"OPENJSON path '{path}' is invalid in the mock.");
+
+                    if (lookup.Mode == QueryJsonFunctionHelper.JsonPathMode.Strict)
+                        throw new InvalidOperationException($"OPENJSON strict path '{path}' was not found in the JSON payload.");
+
+                    return result;
+                }
+
+                target = lookup.Value;
+            }
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            throw new InvalidOperationException("OPENJSON recebeu JSON inválido.", ex);
+        }
+
+        if (openJsonWithClause is not null)
+        {
+            foreach (var rowContext in EnumerateOpenJsonExplicitSchemaContexts(target))
+                result.Add(ProjectOpenJsonExplicitSchemaRow(openJsonWithClause, rowContext));
+
+            return result;
+        }
+
+        if (target.ValueKind == System.Text.Json.JsonValueKind.Array)
+        {
+            var index = 0;
+            foreach (var item in target.EnumerateArray())
+            {
+                AddOpenJsonRow(result, index.ToString(CultureInfo.InvariantCulture), item);
+                index++;
+            }
+
+            return result;
+        }
+
+        if (target.ValueKind == System.Text.Json.JsonValueKind.Object)
+        {
+            foreach (var property in target.EnumerateObject())
+                AddOpenJsonRow(result, property.Name, property.Value);
+
+            return result;
+        }
+
+        AddOpenJsonRow(result, "0", target);
+        return result;
+    }
+
+    private TableResultMock ExecuteStringSplitTableFunction(
+        FunctionCallExpr function,
+        string alias,
+        IDictionary<string, Source> ctes,
+        EvalRow? outerRow)
+    {
+        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para STRING_SPLIT.");
+        if (!dialect.SupportsStringSplitFunction)
+            throw SqlUnsupported.ForDialect(dialect, "STRING_SPLIT");
+
+        if (function.Args.Count is < 2 or > 3)
+            throw new NotSupportedException("STRING_SPLIT table source currently supports two or three arguments in the mock.");
+
+        var evalRow = CreateFunctionEvaluationRow(outerRow);
+        var input = Eval(function.Args[0], evalRow, group: null, ctes);
+        var separator = Eval(function.Args[1], evalRow, group: null, ctes)?.ToString() ?? string.Empty;
+        var includeOrdinal = false;
+        if (function.Args.Count == 3)
+        {
+            if (!dialect.SupportsStringSplitOrdinalArgument)
+                throw SqlUnsupported.ForDialect(dialect, "STRING_SPLIT enable_ordinal");
+
+            includeOrdinal = EvaluateStringSplitOrdinalFlag(
+                Eval(function.Args[2], evalRow, group: null, ctes));
+        }
+
+        var result = CreateStringSplitTableResult(alias, includeOrdinal);
+
+        if (IsNullish(input))
+            return result;
+
+        if (separator.Length != 1)
+            throw new InvalidOperationException("STRING_SPLIT separator must be a single character in the mock.");
+
+        var pieces = (input?.ToString() ?? string.Empty)
+            .Split([separator], StringSplitOptions.None);
+
+        for (var index = 0; index < pieces.Length; index++)
+        {
+            var row = new Dictionary<int, object?>
+            {
+                [0] = pieces[index]
+            };
+
+            if (includeOrdinal)
+                row[1] = (long)index + 1L;
+
+            result.Add(row);
+        }
+
+        return result;
+    }
+
+    private static TableResultMock CreateOpenJsonTableResult(string tableAlias)
+        => new()
+        {
+            Columns =
+            [
+                new TableResultColMock(tableAlias, "key", "key", 0, DbType.String, false),
+                new TableResultColMock(tableAlias, "value", "value", 1, DbType.String, true),
+                new TableResultColMock(tableAlias, "type", "type", 2, DbType.Int32, false)
+            ]
+        };
+
+    private static TableResultMock CreateOpenJsonWithSchemaTableResult(
+        string tableAlias,
+        SqlOpenJsonWithClause withClause)
+        => new()
+        {
+            Columns = withClause.Columns
+                .Select((column, index) => new TableResultColMock(
+                    tableAlias,
+                    column.Name,
+                    column.Name,
+                    index,
+                    column.DbType,
+                    true))
+                .ToList()
+        };
+
+    private static TableResultMock CreateStringSplitTableResult(string tableAlias, bool includeOrdinal)
+    {
+        var columns = new List<TableResultColMock>
+        {
+            new(tableAlias, "value", "value", 0, DbType.String, true)
+        };
+
+        if (includeOrdinal)
+            columns.Add(new TableResultColMock(tableAlias, "ordinal", "ordinal", 1, DbType.Int64, false));
+
+        return new TableResultMock
+        {
+            Columns = columns
+        };
+    }
+
+    private static bool EvaluateStringSplitOrdinalFlag(object? rawValue)
+    {
+        if (rawValue is null or DBNull)
+            throw new InvalidOperationException("STRING_SPLIT enable_ordinal must be 0 or 1 in the mock.");
+
+        if (rawValue is bool boolean)
+            return boolean;
+
+        if (rawValue is byte or sbyte or short or ushort or int or uint or long or ulong)
+        {
+            var numeric = Convert.ToInt64(rawValue, CultureInfo.InvariantCulture);
+            return numeric switch
+            {
+                0 => false,
+                1 => true,
+                _ => throw new InvalidOperationException("STRING_SPLIT enable_ordinal must be 0 or 1 in the mock.")
+            };
+        }
+
+        var text = rawValue.ToString()?.Trim();
+        if (string.Equals(text, "0", StringComparison.Ordinal))
+            return false;
+
+        if (string.Equals(text, "1", StringComparison.Ordinal))
+            return true;
+
+        throw new InvalidOperationException("STRING_SPLIT enable_ordinal must be 0 or 1 in the mock.");
+    }
+
+    private static void AddOpenJsonRow(
+        TableResultMock result,
+        string key,
+        System.Text.Json.JsonElement value)
+    {
+        result.Add(new Dictionary<int, object?>
+        {
+            [0] = key,
+            [1] = ConvertOpenJsonValue(value),
+            [2] = GetOpenJsonType(value)
+        });
+    }
+
+    private static object? ConvertOpenJsonValue(System.Text.Json.JsonElement value)
+        => value.ValueKind switch
+        {
+            System.Text.Json.JsonValueKind.Null => null,
+            System.Text.Json.JsonValueKind.String => value.GetString(),
+            System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array => value.GetRawText(),
+            _ => value.ToString()
+        };
+
+    private static int GetOpenJsonType(System.Text.Json.JsonElement value)
+        => value.ValueKind switch
+        {
+            System.Text.Json.JsonValueKind.Null => 0,
+            System.Text.Json.JsonValueKind.String => 1,
+            System.Text.Json.JsonValueKind.Number => 2,
+            System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False => 3,
+            System.Text.Json.JsonValueKind.Array => 4,
+            System.Text.Json.JsonValueKind.Object => 5,
+            _ => 0
+        };
+
+    private static IEnumerable<System.Text.Json.JsonElement> EnumerateOpenJsonExplicitSchemaContexts(System.Text.Json.JsonElement target)
+    {
+        if (target.ValueKind == System.Text.Json.JsonValueKind.Array)
+        {
+            foreach (var item in target.EnumerateArray())
+                yield return item;
+
+            yield break;
+        }
+
+        yield return target;
+    }
+
+    private static Dictionary<int, object?> ProjectOpenJsonExplicitSchemaRow(
+        SqlOpenJsonWithClause withClause,
+        System.Text.Json.JsonElement rowContext)
+    {
+        var row = new Dictionary<int, object?>();
+        for (var i = 0; i < withClause.Columns.Count; i++)
+            row[i] = ResolveOpenJsonExplicitColumnValue(rowContext, withClause.Columns[i]);
+
+        return row;
+    }
+
+    private static object? ResolveOpenJsonExplicitColumnValue(
+        System.Text.Json.JsonElement rowContext,
+        SqlOpenJsonWithColumn column)
+    {
+        var resolution = ResolveOpenJsonExplicitColumnElement(rowContext, column);
+        if (!resolution.Success)
+        {
+            if (resolution.InvalidPath)
+                throw new InvalidOperationException($"OPENJSON WITH column '{column.Name}' uses an invalid JSON path '{resolution.Path}'.");
+
+            if (resolution.IsStrict)
+                throw new InvalidOperationException($"OPENJSON WITH strict path '{resolution.Path}' for column '{column.Name}' was not found in the JSON payload.");
+
+            return null;
+        }
+
+        var valueElement = resolution.Value;
+
+        if (column.AsJson)
+        {
+            if (valueElement.ValueKind is System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array)
+                return valueElement.GetRawText();
+
+            if (resolution.IsStrict)
+                throw new InvalidOperationException($"OPENJSON WITH column '{column.Name}' requires an object or array at strict path '{resolution.Path}' when AS JSON is used.");
+
+            return null;
+        }
+
+        if (valueElement.ValueKind is System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array)
+        {
+            if (resolution.IsStrict)
+                throw new InvalidOperationException($"OPENJSON WITH column '{column.Name}' requires a scalar value at strict path '{resolution.Path}'.");
+
+            return null;
+        }
+
+        var scalarText = ConvertOpenJsonExplicitScalarToText(valueElement);
+        return scalarText is null ? null : column.DbType.Parse(scalarText);
+    }
+
+    private static OpenJsonColumnResolution ResolveOpenJsonExplicitColumnElement(
+        System.Text.Json.JsonElement rowContext,
+        SqlOpenJsonWithColumn column)
+    {
+        if (!string.IsNullOrWhiteSpace(column.Path))
+        {
+            var lookup = QueryJsonFunctionHelper.LookupJsonPath(rowContext, column.Path!);
+            return new OpenJsonColumnResolution(
+                lookup.Success,
+                lookup.Mode == QueryJsonFunctionHelper.JsonPathMode.Strict,
+                lookup.Failure == QueryJsonFunctionHelper.JsonPathLookupFailure.InvalidPath,
+                column.Path,
+                lookup.Value);
+        }
+
+        if (rowContext.ValueKind == System.Text.Json.JsonValueKind.Object
+            && rowContext.TryGetProperty(column.Name, out var valueElement))
+        {
+            return new OpenJsonColumnResolution(true, false, false, null, valueElement);
+        }
+
+        return new OpenJsonColumnResolution(false, false, false, null, default);
+    }
+
+    private static string? ConvertOpenJsonExplicitScalarToText(System.Text.Json.JsonElement valueElement)
+        => valueElement.ValueKind switch
+        {
+            System.Text.Json.JsonValueKind.Null => null,
+            System.Text.Json.JsonValueKind.String => valueElement.GetString(),
+            System.Text.Json.JsonValueKind.True => "true",
+            System.Text.Json.JsonValueKind.False => "false",
+            _ => valueElement.ToString()
+        };
+
+    private readonly record struct OpenJsonColumnResolution(
+        bool Success,
+        bool IsStrict,
+        bool InvalidPath,
+        string? Path,
+        System.Text.Json.JsonElement Value);
+
+    private readonly record struct AutoJsonProjection(
+        int ColumnIndex,
+        string? Qualifier,
+        string PropertyName);
+
+    private sealed class AutoJsonRootRow(Dictionary<string, object?> properties)
+    {
+        internal Dictionary<string, object?> Properties { get; } = properties;
+        internal Dictionary<string, List<Dictionary<string, object?>>> Nested { get; } =
+            new(StringComparer.OrdinalIgnoreCase);
+
+        internal Dictionary<string, object?> ToJsonObject()
+        {
+            var json = new Dictionary<string, object?>(Properties, StringComparer.OrdinalIgnoreCase);
+            foreach (var nested in Nested)
+                json[nested.Key] = nested.Value;
+
+            return json;
+        }
+    }
+
+    private static EvalRow CreateFunctionEvaluationRow(EvalRow? outerRow)
+        => outerRow ?? new EvalRow(
+            new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase),
+            new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase));
+
+    private Source ApplyTableTransformsIfNeeded(
+        Source source,
+        SqlPivotSpec? pivot,
+        SqlUnpivotSpec? unpivot,
+        IDictionary<string, Source> ctes)
+    {
+        source = ApplyPivotIfNeeded(source, pivot, ctes);
+        source = ApplyUnpivotIfNeeded(source, unpivot);
+        return source;
     }
 
     private Source ApplyPivotIfNeeded(Source source, SqlPivotSpec? pivot, IDictionary<string, Source> ctes)
@@ -1930,17 +2409,7 @@ internal abstract class AstQueryExecutorBase(
             return source;
 
         var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para PIVOT.");
-        var inputRows = source.Rows()
-            .Select(fields =>
-            {
-                var rowSources = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase)
-                {
-                    [source.Alias] = source,
-                    [source.Name] = source
-                };
-                return new EvalRow(new Dictionary<string, object?>(fields, StringComparer.OrdinalIgnoreCase), rowSources);
-            })
-            .ToList();
+        var inputRows = MaterializeSourceRows(source);
 
         var forExpr = ParseExpr(pivot.ForColumnRaw);
         var aggArgExpr = ParseExpr(pivot.AggregateArgRaw);
@@ -1994,6 +2463,68 @@ internal abstract class AstQueryExecutorBase(
 
         return Source.FromResult(source.Name, source.Alias, result);
     }
+
+    private Source ApplyUnpivotIfNeeded(Source source, SqlUnpivotSpec? unpivot)
+    {
+        if (unpivot is null)
+            return source;
+
+        var inputRows = MaterializeSourceRows(source);
+        var inColumns = new HashSet<string>(
+            unpivot.InItems.Select(static item => item.SourceColumnName),
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in unpivot.InItems)
+        {
+            if (!source.ColumnNames.Any(column => column.Equals(item.SourceColumnName, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException($"UNPIVOT source column '{item.SourceColumnName}' was not found in the input rowset.");
+        }
+
+        var groupColumns = source.ColumnNames
+            .Where(column => !inColumns.Contains(column))
+            .ToList();
+
+        var result = new TableResultMock();
+        for (var index = 0; index < groupColumns.Count; index++)
+            result.Columns.Add(new TableResultColMock(source.Alias, groupColumns[index], groupColumns[index], index, DbType.Object, true));
+
+        result.Columns.Add(new TableResultColMock(source.Alias, unpivot.NameColumnName, unpivot.NameColumnName, groupColumns.Count, DbType.String, false));
+        result.Columns.Add(new TableResultColMock(source.Alias, unpivot.ValueColumnName, unpivot.ValueColumnName, groupColumns.Count + 1, DbType.Object, true));
+
+        foreach (var row in inputRows)
+        {
+            foreach (var item in unpivot.InItems)
+            {
+                var value = row.GetByName(item.SourceColumnName);
+                if (IsNullish(value))
+                    continue;
+
+                var outRow = new Dictionary<int, object?>();
+                for (var index = 0; index < groupColumns.Count; index++)
+                    outRow[index] = row.GetByName(groupColumns[index]);
+
+                outRow[groupColumns.Count] = item.OutputName;
+                outRow[groupColumns.Count + 1] = value;
+                result.Add(outRow);
+            }
+        }
+
+        return Source.FromResult(source.Name, source.Alias, result);
+    }
+
+    private static List<EvalRow> MaterializeSourceRows(Source source)
+        => source.Rows()
+            .Select(fields =>
+            {
+                var rowSources = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase)
+                {
+                    [source.Alias] = source
+                };
+                if (!source.Name.Equals(source.Alias, StringComparison.OrdinalIgnoreCase))
+                    rowSources[source.Name] = source;
+                return new EvalRow(new Dictionary<string, object?>(fields, StringComparer.OrdinalIgnoreCase), rowSources);
+            })
+            .ToList();
 
     private object? AggregatePivotBucket(string aggregateFunction, SqlExpr aggArgExpr, List<EvalRow> rows, IDictionary<string, Source> ctes)
     {
@@ -2121,6 +2652,7 @@ internal abstract class AstQueryExecutorBase(
             TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(projectStart)),
             QueryDebugTraceFormattingHelper.FormatProjectDebugDetails(q.SelectItems));
         res = ApplyOrderAndLimit(res, q, ctes, debugTrace);
+        res = ApplyForJsonIfNeeded(res, q, debugTrace);
         return res;
     }
 
@@ -2764,14 +3296,247 @@ private void FillPercentRankOrCumeDist(
         return res;
     }
 
+    private TableResultMock ApplyForJsonIfNeeded(
+        TableResultMock result,
+        SqlSelectQuery query,
+        QueryDebugTraceBuilder? debugTrace = null)
+    {
+        if (query.ForJson is null)
+            return result;
+
+        var serializeStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+        var serialized = SerializeForJson(result, query);
+        debugTrace?.AddStep(
+            "ForJson",
+            result.Count,
+            serialized.Count,
+            TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(serializeStart)),
+            $"{query.ForJson.Mode.ToString().ToUpperInvariant()}{(query.ForJson.RootName is null ? string.Empty : $";root={query.ForJson.RootName}")}");
+        return serialized;
+    }
+
+    private static TableResultMock SerializeForJson(TableResultMock result, SqlSelectQuery query)
+    {
+        var clause = query.ForJson ?? throw new InvalidOperationException("FOR JSON clause expected by serializer.");
+        var payload = clause.Mode switch
+        {
+            SqlForJsonMode.Path => SerializeForJsonPath(result, clause),
+            SqlForJsonMode.Auto => SerializeForJsonAuto(result, query, clause),
+            _ => throw new NotSupportedException($"FOR JSON mode '{clause.Mode}' not supported in the mock.")
+        };
+
+        var table = new TableResultMock
+        {
+            Columns =
+            [
+                new TableResultColMock(string.Empty, SqlServerForJsonColumnName, SqlServerForJsonColumnName, 0, DbType.String, false)
+            ]
+        };
+        table.Add(new Dictionary<int, object?> { [0] = payload });
+        return table;
+    }
+
+    private static string SerializeForJsonPath(TableResultMock result, SqlForJsonClause clause)
+    {
+        var rowJson = new List<string>(result.Count);
+        foreach (var row in result)
+            rowJson.Add(System.Text.Json.JsonSerializer.Serialize(BuildPathJsonObject(result, row, clause.IncludeNullValues)));
+
+        return WrapForJsonPayload(rowJson, clause);
+    }
+
+    private static string SerializeForJsonAuto(TableResultMock result, SqlSelectQuery query, SqlForJsonClause clause)
+    {
+        var projections = BuildAutoJsonProjections(result, query);
+        var rootAlias = query.Table?.Alias ?? query.Table?.Name;
+
+        var grouped = new List<AutoJsonRootRow>();
+        var groupedIndex = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        foreach (var row in result)
+        {
+            var rootProperties = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            var nestedByAlias = new Dictionary<string, Dictionary<string, object?>>(StringComparer.OrdinalIgnoreCase);
+
+            for (var i = 0; i < projections.Count; i++)
+            {
+                var projection = projections[i];
+                var value = row.TryGetValue(projection.ColumnIndex, out var rawValue) ? rawValue : null;
+
+                if (projection.Qualifier is null
+                    || rootAlias is null
+                    || projection.Qualifier.Equals(rootAlias, StringComparison.OrdinalIgnoreCase))
+                {
+                    AddJsonProperty(rootProperties, projection.PropertyName, value, clause.IncludeNullValues);
+                    continue;
+                }
+
+                if (!nestedByAlias.TryGetValue(projection.Qualifier, out var nested))
+                {
+                    nested = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                    nestedByAlias[projection.Qualifier] = nested;
+                }
+
+                AddJsonProperty(nested, projection.PropertyName, value, clause.IncludeNullValues);
+            }
+
+            var rootKey = System.Text.Json.JsonSerializer.Serialize(rootProperties);
+            if (!groupedIndex.TryGetValue(rootKey, out var rootIndex))
+            {
+                rootIndex = grouped.Count;
+                groupedIndex[rootKey] = rootIndex;
+                grouped.Add(new AutoJsonRootRow(rootProperties));
+            }
+
+            var groupedRoot = grouped[rootIndex];
+            foreach (var nested in nestedByAlias)
+            {
+                if (nested.Value.Count == 0)
+                    continue;
+
+                if (!groupedRoot.Nested.TryGetValue(nested.Key, out var items))
+                {
+                    items = [];
+                    groupedRoot.Nested[nested.Key] = items;
+                }
+
+                items.Add(nested.Value);
+            }
+        }
+
+        var serializedRows = grouped
+            .Select(static groupedRow => System.Text.Json.JsonSerializer.Serialize(groupedRow.ToJsonObject()))
+            .ToList();
+
+        return WrapForJsonPayload(serializedRows, clause);
+    }
+
+    private static string WrapForJsonPayload(IReadOnlyList<string> serializedRows, SqlForJsonClause clause)
+    {
+        var payload = clause.WithoutArrayWrapper
+            ? serializedRows.Count switch
+            {
+                0 => "[]",
+                1 => serializedRows[0],
+                _ => string.Join(",", serializedRows)
+            }
+            : $"[{string.Join(",", serializedRows)}]";
+
+        if (clause.RootName is null)
+            return payload;
+
+        return "{" + System.Text.Json.JsonSerializer.Serialize(clause.RootName) + ":" + payload + "}";
+    }
+
+    private static Dictionary<string, object?> BuildPathJsonObject(
+        TableResultMock result,
+        Dictionary<int, object?> row,
+        bool includeNullValues)
+    {
+        var root = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+
+        for (var index = 0; index < result.Columns.Count; index++)
+        {
+            var column = result.Columns[index];
+            var value = row.TryGetValue(index, out var rawValue) ? rawValue : null;
+            AddPathJsonProperty(root, column.ColumnAlias, value, includeNullValues);
+        }
+
+        return root;
+    }
+
+    private static void AddPathJsonProperty(
+        Dictionary<string, object?> root,
+        string propertyPath,
+        object? value,
+        bool includeNullValues)
+    {
+        if (value is null && !includeNullValues)
+            return;
+
+        var segments = propertyPath
+            .Split('.')
+            .Select(_=>_.Trim())
+            .Where(_=>!string.IsNullOrWhiteSpace(_))
+            .ToArray();
+        if (segments.Length == 0)
+            return;
+
+        Dictionary<string, object?> current = root;
+        for (var i = 0; i < segments.Length - 1; i++)
+        {
+            var segment = segments[i];
+            if (!current.TryGetValue(segment, out var nestedValue) || nestedValue is not Dictionary<string, object?> nested)
+            {
+                nested = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                current[segment] = nested;
+            }
+
+            current = nested;
+        }
+
+        current[segments[^1]] = value;
+    }
+
+    private static void AddJsonProperty(
+        Dictionary<string, object?> target,
+        string propertyName,
+        object? value,
+        bool includeNullValues)
+    {
+        if (value is null && !includeNullValues)
+            return;
+
+        target[propertyName] = value;
+    }
+
+    private static List<AutoJsonProjection> BuildAutoJsonProjections(TableResultMock result, SqlSelectQuery query)
+    {
+        var projections = new List<AutoJsonProjection>(result.Columns.Count);
+        for (var i = 0; i < result.Columns.Count; i++)
+        {
+            var qualifier = i < query.SelectItems.Count
+                ? TryGetSimpleQualifiedColumnQualifier(query.SelectItems[i].Raw, query.SelectItems[i].Alias)
+                : null;
+
+            projections.Add(new AutoJsonProjection(i, qualifier, result.Columns[i].ColumnAlias));
+        }
+
+        return projections;
+    }
+
+    private static string? TryGetSimpleQualifiedColumnQualifier(string raw, string? alias)
+    {
+        var (expression, _) = SelectAliasParserHelper.SplitTrailingAsAlias(raw, alias);
+        var match = Regex.Match(
+            expression.Trim(),
+            @"^(?<qual>\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)\s*\.\s*(?<name>\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)$",
+            RegexOptions.CultureInvariant);
+
+        return match.Success
+            ? match.Groups["qual"].Value.NormalizeName()
+            : null;
+    }
+
     private static string FormatJoinDebugDetails(SqlJoin join)
     {
         var source = FormatSource(join.Table);
+        if (join.Type is SqlJoinType.CrossApply or SqlJoinType.OuterApply)
+            return source;
+
         var predicate = SqlExprPrinter.Print(join.On);
         return string.IsNullOrWhiteSpace(predicate)
             ? source
             : $"{source};on={predicate}";
     }
+
+    private static string FormatJoinTypeForDebug(SqlJoinType joinType)
+        => joinType switch
+        {
+            SqlJoinType.CrossApply => "CROSS APPLY",
+            SqlJoinType.OuterApply => "OUTER APPLY",
+            _ => joinType.ToString().ToUpperInvariant()
+        };
 
 
     // ---------------- DIALECT HOOKS ----------------
@@ -3927,7 +4692,7 @@ private void FillPercentRankOrCumeDist(
             return sql;
 
         var pattern =
-            $@"(?<![A-Z0-9_$])(?<kw>FROM|JOIN)\s+(?<table>[A-Z_][A-Z0-9_$]*(?:\.[A-Z_][A-Z0-9_$]*)*)\s+(?:AS\s+)?" +
+            $@"(?<![A-Z0-9_$])(?<kw>FROM|JOIN|APPLY)\s+(?<table>[A-Z_][A-Z0-9_$]*(?:\.[A-Z_][A-Z0-9_$]*)*)\s+(?:AS\s+)?" +
             $@"{Regex.Escape(alias)}(?![A-Z0-9_$])";
 
         return Regex.Replace(

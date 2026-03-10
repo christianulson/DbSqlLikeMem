@@ -52,7 +52,7 @@ internal static class SelectPlanProjectionHelper
     }
 
     internal static string GetSelectProjectionTableAlias(SqlSelectQuery query)
-        => query.Table?.Alias ?? query.Table?.Name ?? string.Empty;
+        => query.Table?.Alias ?? query.Table?.TableFunction?.Name ?? query.Table?.Name ?? string.Empty;
 
     internal static string InferColumnAlias(string rawExpression)
     {

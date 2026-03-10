@@ -164,7 +164,12 @@ internal interface ISqlDialect
     bool SupportsAggregateSeparatorKeywordForStringAggregates { get; }
     bool SupportsAggregateSeparatorKeywordStringAggregateFunction(string functionName);
     bool SupportsMatchAgainstPredicate { get; }
+    bool SupportsForJsonClause { get; }
     bool SupportsPivotClause { get; }
+    bool SupportsUnpivotClause { get; }
+    bool SupportsApplyClause { get; }
+    bool SupportsStringSplitFunction { get; }
+    bool SupportsStringSplitOrdinalArgument { get; }
     DbType InferWindowFunctionDbType(WindowFunctionExpr windowFunctionExpr, Func<SqlExpr, DbType> inferArgDbType);
 }
 
@@ -323,7 +328,9 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual bool SupportsIifFunction => true;
     public virtual bool SupportsWindowFunctions => true;
     public virtual bool SupportsWindowFrameClause => false;
+    public virtual bool SupportsForJsonClause => false;
     public virtual bool SupportsPivotClause => false;
+    public virtual bool SupportsUnpivotClause => false;
     public virtual IReadOnlyCollection<string> NullSubstituteFunctionNames
         => ["IFNULL", "ISNULL", "NVL"];
     public virtual IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
@@ -451,6 +458,9 @@ internal abstract class SqlDialectBase : ISqlDialect
     }
 
     public virtual bool SupportsMatchAgainstPredicate => false;
+    public virtual bool SupportsApplyClause => false;
+    public virtual bool SupportsStringSplitFunction => false;
+    public virtual bool SupportsStringSplitOrdinalArgument => false;
 
     public virtual bool IsRowNumberWindowFunction(string functionName)
         => functionName.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase);

@@ -73,6 +73,345 @@ public sealed class SqlServerDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures SQL Server exposes APPLY support only for versions that already include the native clause.
+    /// PT: Garante que o SQL Server exponha suporte a APPLY apenas para versoes que ja incluem a clausula nativa.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ApplyCapability_ShouldFollowSqlServerVersionSupport(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        Assert.Equal(version >= SqlServerDialect.WithCteMinVersion, dialect.SupportsApplyClause);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server parses CROSS APPLY with correlated derived subqueries once the dialect version supports the native clause.
+    /// PT: Garante que o SQL Server interprete CROSS APPLY com subqueries derivadas correlacionadas quando a versao do dialeto suportar a clausula nativa.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_CrossApplyDerivedSubquery_ShouldFollowVersionSupport(int version)
+    {
+        const string sql = """
+            SELECT u.Id, latest.OrderId
+            FROM Users u
+            CROSS APPLY (
+                SELECT TOP 1 o.OrderId
+                FROM Orders o
+                WHERE o.UserId = u.Id
+                ORDER BY o.OrderId DESC
+            ) latest
+            """;
+
+        if (version < SqlServerDialect.WithCteMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+            Assert.Contains("CROSS APPLY", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        var join = Assert.Single(parsed.Joins);
+        Assert.Equal(SqlJoinType.CrossApply, join.Type);
+        Assert.NotNull(join.Table.Derived);
+        Assert.Equal("latest", join.Table.Alias, ignoreCase: true);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server parses OUTER APPLY with correlated derived subqueries once the dialect version supports the native clause.
+    /// PT: Garante que o SQL Server interprete OUTER APPLY com subqueries derivadas correlacionadas quando a versao do dialeto suportar a clausula nativa.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_OuterApplyDerivedSubquery_ShouldFollowVersionSupport(int version)
+    {
+        const string sql = """
+            SELECT u.Id, latest.OrderId
+            FROM Users u
+            OUTER APPLY (
+                SELECT TOP 1 o.OrderId
+                FROM Orders o
+                WHERE o.UserId = u.Id
+                ORDER BY o.OrderId DESC
+            ) latest
+            """;
+
+        if (version < SqlServerDialect.WithCteMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+            Assert.Contains("OUTER APPLY", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        var join = Assert.Single(parsed.Joins);
+        Assert.Equal(SqlJoinType.OuterApply, join.Type);
+        Assert.NotNull(join.Table.Derived);
+        Assert.Equal("latest", join.Table.Alias, ignoreCase: true);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server parses CROSS APPLY OPENJSON only once the dialect version reaches the SQL Server 2016 JSON feature set.
+    /// PT: Garante que o SQL Server interprete CROSS APPLY OPENJSON apenas quando a versao do dialeto atingir o conjunto JSON do SQL Server 2016.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_CrossApplyOpenJson_ShouldFollowVersionSupport(int version)
+    {
+        const string sql = """
+            SELECT u.Id, j.[value]
+            FROM Users u
+            CROSS APPLY OPENJSON(u.Email) j
+            """;
+
+        if (version < SqlServerDialect.JsonFunctionsMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        var join = Assert.Single(parsed.Joins);
+        Assert.Equal(SqlJoinType.CrossApply, join.Type);
+        Assert.NotNull(join.Table.TableFunction);
+        Assert.Equal("OPENJSON", join.Table.TableFunction!.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server parses OPENJSON WITH explicit schema only once the dialect version reaches the SQL Server 2016 JSON feature set.
+    /// PT: Garante que o SQL Server interprete OPENJSON WITH com schema explicito apenas quando a versao do dialeto atingir o conjunto JSON do SQL Server 2016.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_CrossApplyOpenJsonWithSchema_ShouldFollowVersionSupport(int version)
+    {
+        const string sql = """
+            SELECT u.Id, data.Name, data.Qty
+            FROM Users u
+            CROSS APPLY OPENJSON(u.Email) WITH (
+                Name NVARCHAR(20) '$.Name',
+                Qty INT '$.Qty',
+                PayloadJson NVARCHAR(MAX) '$.Payload' AS JSON,
+                RawJson NVARCHAR(MAX) '$' AS JSON
+            ) data
+            """;
+
+        if (version < SqlServerDialect.JsonFunctionsMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        var join = Assert.Single(parsed.Joins);
+        var withClause = Assert.IsType<SqlOpenJsonWithClause>(join.Table.OpenJsonWithClause);
+        Assert.Equal(4, withClause.Columns.Count);
+        Assert.Equal("Name", withClause.Columns[0].Name, ignoreCase: true);
+        Assert.Equal(DbType.String, withClause.Columns[0].DbType);
+        Assert.Equal("$.Qty", withClause.Columns[1].Path);
+        Assert.Equal(DbType.Int32, withClause.Columns[1].DbType);
+        Assert.True(withClause.Columns[2].AsJson);
+        Assert.Equal("$", withClause.Columns[3].Path);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server parser preserves OPENJSON path modifiers and quoted-key JSON paths in the explicit schema subset.
+    /// PT: Garante que o parser SQL Server preserve modificadores de path do OPENJSON e paths JSON com chave entre aspas no subset de schema explicito.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_CrossApplyOpenJsonWithStrictQuotedPaths_ShouldPreservePaths(int version)
+    {
+        const string sql = """
+            SELECT data.Color
+            FROM Users u
+            CROSS APPLY OPENJSON(u.Email, 'strict $.items[1]') WITH (
+                Color NVARCHAR(20) 'lax $."Name.With.Dot"'
+            ) data
+            """;
+
+        if (version < SqlServerDialect.JsonFunctionsMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        var join = Assert.Single(parsed.Joins);
+        var function = Assert.IsType<FunctionCallExpr>(join.Table.TableFunction);
+        Assert.Equal("strict $.items[1]", Assert.IsType<LiteralExpr>(function.Args[1]).Value);
+        Assert.Equal("lax $.\"Name.With.Dot\"", join.Table.OpenJsonWithClause!.Columns[0].Path);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server parses OUTER APPLY STRING_SPLIT only once the dialect version reaches the SQL Server 2016 function set.
+    /// PT: Garante que o SQL Server interprete OUTER APPLY STRING_SPLIT apenas quando a versao do dialeto atingir o conjunto de funcoes do SQL Server 2016.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_OuterApplyStringSplit_ShouldFollowVersionSupport(int version)
+    {
+        const string sql = """
+            SELECT u.Id, part.value
+            FROM Users u
+            OUTER APPLY STRING_SPLIT(u.Email, ',') part
+            """;
+
+        if (version < SqlServerDialect.JsonFunctionsMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+            Assert.Contains("STRING_SPLIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        var join = Assert.Single(parsed.Joins);
+        Assert.Equal(SqlJoinType.OuterApply, join.Type);
+        Assert.NotNull(join.Table.TableFunction);
+        Assert.Equal("STRING_SPLIT", join.Table.TableFunction!.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server parses STRING_SPLIT enable_ordinal only once the dialect version reaches SQL Server 2022 semantics.
+    /// PT: Garante que o SQL Server interprete STRING_SPLIT com enable_ordinal apenas quando a versao do dialeto atingir a semantica do SQL Server 2022.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_CrossApplyStringSplitWithOrdinal_ShouldFollowVersionSupport(int version)
+    {
+        const string sql = """
+            SELECT u.Id, part.value, part.ordinal
+            FROM Users u
+            CROSS APPLY STRING_SPLIT(u.Email, ',', 1) part
+            """;
+
+        if (version < SqlServerDialect.StringSplitOrdinalMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+            Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        var join = Assert.Single(parsed.Joins);
+        var function = Assert.IsType<FunctionCallExpr>(join.Table.TableFunction);
+        Assert.Equal("STRING_SPLIT", function.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(3, function.Args.Count);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server parses UNPIVOT sources into the shared table-transform AST shape.
+    /// PT: Garante que o SQL Server interprete fontes UNPIVOT no shape compartilhado de transformacao tabular da AST.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_WithUnpivot_ShouldPopulateTableTransform(int version)
+    {
+        const string sql = """
+            SELECT up.Id, up.FieldName, up.FieldValue
+            FROM (SELECT Id, Name, Email FROM Users) src
+            UNPIVOT (FieldValue FOR FieldName IN (Name, Email)) up
+            """;
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        var source = Assert.IsType<SqlTableSource>(parsed.Table);
+        var unpivot = Assert.IsType<SqlUnpivotSpec>(source.Unpivot);
+
+        Assert.Equal("up", source.Alias, ignoreCase: true);
+        Assert.Equal("FieldValue", unpivot.ValueColumnName, ignoreCase: true);
+        Assert.Equal("FieldName", unpivot.NameColumnName, ignoreCase: true);
+        Assert.Equal(2, unpivot.InItems.Count);
+        Assert.Equal("Name", unpivot.InItems[0].SourceColumnName, ignoreCase: true);
+        Assert.Equal("Email", unpivot.InItems[1].SourceColumnName, ignoreCase: true);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server parses FOR JSON PATH only once the dialect version reaches the SQL Server 2016 JSON feature set.
+    /// PT: Garante que o SQL Server interprete FOR JSON PATH apenas quando a versao do dialeto atingir o conjunto JSON do SQL Server 2016.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_ForJsonPath_ShouldFollowVersionSupport(int version)
+    {
+        const string sql = """
+            SELECT u.Id AS [User.Id], u.Name AS [User.Name]
+            FROM Users u
+            ORDER BY u.Id
+            FOR JSON PATH, ROOT('users')
+            """;
+
+        if (version < SqlServerDialect.JsonFunctionsMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+            Assert.Contains("FOR JSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        var forJson = Assert.IsType<SqlForJsonClause>(parsed.ForJson);
+        Assert.Equal(SqlForJsonMode.Path, forJson.Mode);
+        Assert.Equal("users", forJson.RootName, ignoreCase: true);
+        Assert.False(forJson.IncludeNullValues);
+        Assert.False(forJson.WithoutArrayWrapper);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server parses FOR JSON AUTO options into the shared JSON serialization clause shape.
+    /// PT: Garante que o SQL Server interprete opcoes de FOR JSON AUTO no shape compartilhado da clausula de serializacao JSON.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseSelect_ForJsonAutoWithOptions_ShouldPopulateClause(int version)
+    {
+        const string sql = """
+            SELECT u.Id, u.Name, u.Email
+            FROM Users u
+            WHERE u.Id = 1
+            FOR JSON AUTO, INCLUDE_NULL_VALUES, WITHOUT_ARRAY_WRAPPER
+            """;
+
+        if (version < SqlServerDialect.JsonFunctionsMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+            Assert.Contains("FOR JSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, new SqlServerDialect(version)));
+        var forJson = Assert.IsType<SqlForJsonClause>(parsed.ForJson);
+        Assert.Equal(SqlForJsonMode.Auto, forJson.Mode);
+        Assert.True(forJson.IncludeNullValues);
+        Assert.True(forJson.WithoutArrayWrapper);
+        Assert.Null(forJson.RootName);
+    }
+
+    /// <summary>
     /// EN: Ensures SQL Server parser accepts ROWCOUNT() and rejects foreign row-count helper aliases.
     /// PT: Garante que o parser SQL Server aceite ROWCOUNT() e rejeite aliases de row-count de outros bancos.
     /// </summary>

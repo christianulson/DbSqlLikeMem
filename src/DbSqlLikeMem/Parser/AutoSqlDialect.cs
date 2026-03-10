@@ -222,7 +222,13 @@ internal sealed class AutoSqlDialect : SqlDialectBase
     public override bool SupportsWindowFunctions => true;
 
     /// <inheritdoc />
+    public override bool SupportsForJsonClause => true;
+
+    /// <inheritdoc />
     public override bool SupportsPivotClause => true;
+
+    /// <inheritdoc />
+    public override bool SupportsUnpivotClause => true;
 
     /// <inheritdoc />
     public override bool SupportsWithCte => true;

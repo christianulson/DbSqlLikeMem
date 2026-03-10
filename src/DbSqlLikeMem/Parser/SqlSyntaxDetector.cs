@@ -159,6 +159,7 @@ internal static class SqlSyntaxDetector
             ["SQL_CALC_FOUND_ROWS"] = AutoSqlSyntaxFeatures.SqlCalcFoundRows,
             ["ILIKE"] = AutoSqlSyntaxFeatures.Ilike,
             ["PIVOT"] = AutoSqlSyntaxFeatures.Pivot,
+            ["UNPIVOT"] = AutoSqlSyntaxFeatures.Pivot,
             ["WITH"] = AutoSqlSyntaxFeatures.WithCte,
             ["RETURNING"] = AutoSqlSyntaxFeatures.Returning
         };

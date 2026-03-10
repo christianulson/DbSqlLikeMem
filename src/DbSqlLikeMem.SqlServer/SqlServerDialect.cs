@@ -34,6 +34,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
     internal const int JsonFunctionsMinVersion = 2016;
     internal const int SequenceMinVersion = 2012;
     internal const int StringAggMinVersion = 2017;
+    internal const int StringSplitOrdinalMinVersion = 2022;
     internal const int WindowFunctionsMinVersion = 2005;
 
     /// <summary>
@@ -132,6 +133,8 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// PT: Obtém se há suporte a função json_value.
     /// </summary>
     public override bool SupportsJsonValueFunction => Version >= JsonFunctionsMinVersion;
+    /// <inheritdoc />
+    public override bool SupportsForJsonClause => Version >= JsonFunctionsMinVersion;
     /// <summary>
     /// EN: Gets whether open json function is supported.
     /// PT: Obtém se há suporte a função openjson.
@@ -155,6 +158,11 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// PT: Obtém se há suporte a pivot clause.
     /// </summary>
     public override bool SupportsPivotClause => true;
+    /// <inheritdoc />
+    public override bool SupportsUnpivotClause => true;
+    public override bool SupportsApplyClause => Version >= WithCteMinVersion;
+    public override bool SupportsStringSplitFunction => Version >= JsonFunctionsMinVersion;
+    public override bool SupportsStringSplitOrdinalArgument => Version >= StringSplitOrdinalMinVersion;
     /// <summary>
     /// EN: Gets whether sql server table hints is supported.
     /// PT: Obtém se há suporte a sql server table hints.
