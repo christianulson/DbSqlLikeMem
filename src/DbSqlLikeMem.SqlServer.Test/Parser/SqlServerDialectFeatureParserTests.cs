@@ -544,8 +544,8 @@ public sealed class SqlServerDialectFeatureParserTests
     }
 
     /// <summary>
-    /// EN: Ensures SQL Server accepts DROP INDEX ... ON <table> in the pragmatic shared DDL subset.
-    /// PT: Garante que o SQL Server aceite DROP INDEX ... ON <table> no subset DDL pragmático compartilhado.
+    /// EN: Ensures SQL Server accepts DROP INDEX ... ON &lt;table&gt; in the pragmatic shared DDL subset.
+    /// PT: Garante que o SQL Server aceite DROP INDEX ... ON &lt;table&gt; no subset DDL pragmático compartilhado.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]

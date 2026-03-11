@@ -547,8 +547,8 @@ public sealed class NpgsqlDialectFeatureParserTests
     }
 
     /// <summary>
-    /// EN: Ensures PostgreSQL keeps DROP INDEX ... ON <table> blocked because the ON table clause is not part of its shared subset.
-    /// PT: Garante que o PostgreSQL mantenha DROP INDEX ... ON <table> bloqueado porque a clausula ON table nao faz parte do subset compartilhado dele.
+    /// EN: Ensures PostgreSQL keeps DROP INDEX ... ON &lt;table&gt; blocked because the ON table clause is not part of its shared subset.
+    /// PT: Garante que o PostgreSQL mantenha DROP INDEX ... ON &lt;table&gt; bloqueado porque a clausula ON table nao faz parte do subset compartilhado dele.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
