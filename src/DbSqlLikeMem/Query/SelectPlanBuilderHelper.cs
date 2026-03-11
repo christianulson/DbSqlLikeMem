@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 namespace DbSqlLikeMem;
 
 internal static class SelectPlanBuilderHelper
@@ -20,7 +18,9 @@ internal static class SelectPlanBuilderHelper
 
         foreach (var selectItem in query.SelectItems)
         {
+#if DEBUG
             Console.WriteLine($"[SELECT ITEM RAW] '{selectItem.Raw}'  Alias='{selectItem.Alias}'");
+#endif
             var rawInput = selectItem.Raw.Trim();
             var (rawExpression, extractedAlias) = SelectAliasParserHelper.SplitTrailingAsAlias(rawInput, selectItem.Alias);
 
@@ -45,13 +45,13 @@ internal static class SelectPlanBuilderHelper
                 expression,
                 evalExpression);
         }
-
+#if DEBUG
 #pragma warning disable CA1303
         Console.WriteLine("RESULT COLUMNS:");
 #pragma warning restore CA1303
         foreach (var column in columns)
             Console.WriteLine($" - {column.ColumnAlias}");
-
+#endif
         return new SelectPlan { Columns = columns, Evaluators = evaluators, WindowSlots = windowSlots };
     }
 

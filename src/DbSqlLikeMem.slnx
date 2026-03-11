@@ -118,6 +118,8 @@
     <Project Path="DbSqlLikeMem.VisualStudioExtension.XamlHarness/DbSqlLikeMem.VisualStudioExtension.XamlHarness.csproj" />
     <Project Path="DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj" />
   </Folder>
+  <Project Path="../benchmark/DbSqlLikeMem.Benchmarks/DbSqlLikeMem.Benchmarks.csproj" />
+  <Project Path="DbSqlLikeMem.CsvReader/DbSqlLikeMem.CsvReader.csproj" />
   <Project Path="DbSqlLikeMem.Dapper.TestTools/DbSqlLikeMem.Dapper.TestTools.csproj" Id="a4eec2b8-d080-4df9-8969-9c031dddd282" />
   <Project Path="DbSqlLikeMem.EfCore.TestTools/DbSqlLikeMem.EfCore.TestTools.csproj" />
   <Project Path="DbSqlLikeMem.EfCore/DbSqlLikeMem.EfCore.csproj" />
@@ -128,6 +130,5 @@
   <Project Path="DbSqlLikeMem.Test/DbSqlLikeMem.Test.csproj" />
   <Project Path="DbSqlLikeMem.TestTools/DbSqlLikeMem.TestTools.csproj" />
   <Project Path="DbSqlLikeMem.XUnit/DbSqlLikeMem.XUnit.csproj" />
-  <Project Path="DbSqlLikeMem.CsvReader/DbSqlLikeMem.CsvReader.csproj" />
   <Project Path="DbSqlLikeMem/DbSqlLikeMem.csproj" />
 </Solution>
