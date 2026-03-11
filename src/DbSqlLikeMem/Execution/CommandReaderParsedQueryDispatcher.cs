@@ -23,6 +23,9 @@ internal static class CommandReaderParsedQueryDispatcher
             case SqlCreateViewQuery viewQ:
                 connection.ExecuteCreateView(viewQ, pars, connection.ExecutionDialect);
                 break;
+            case SqlCreateIndexQuery createIndexQ:
+                connection.ExecuteCreateIndex(createIndexQ, pars, connection.ExecutionDialect);
+                break;
             case SqlCreateSequenceQuery createSequenceQ:
                 connection.ExecuteCreateSequence(createSequenceQ, pars, connection.ExecutionDialect);
                 break;
@@ -31,6 +34,9 @@ internal static class CommandReaderParsedQueryDispatcher
                 break;
             case SqlDropTableQuery dropTableQ:
                 connection.ExecuteDropTable(dropTableQ, pars, connection.ExecutionDialect);
+                break;
+            case SqlDropIndexQuery dropIndexQ:
+                connection.ExecuteDropIndex(dropIndexQ, pars, connection.ExecutionDialect);
                 break;
             case SqlDropSequenceQuery dropSequenceQ:
                 connection.ExecuteDropSequence(dropSequenceQ, pars, connection.ExecutionDialect);

@@ -308,6 +308,28 @@ public sealed class SqlDialectAutoParserTests
     }
 
     /// <summary>
+    /// EN: Verifies Auto mode parses the pragmatic shared subset of CREATE/DROP INDEX DDL.
+    /// PT: Verifica se o modo Auto interpreta o subset pragmático compartilhado de DDL CREATE/DROP INDEX.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void AutoDialect_ShouldParseIndexDdl()
+    {
+        var create = Assert.IsType<SqlCreateIndexQuery>(SqlQueryParser.ParseAuto(
+            "CREATE UNIQUE INDEX ix_users_name ON sales.users (name, email)"));
+        var drop = Assert.IsType<SqlDropIndexQuery>(SqlQueryParser.ParseAuto(
+            "DROP INDEX IF EXISTS ix_users_name"));
+
+        Assert.True(create.Unique);
+        Assert.Equal("ix_users_name", create.IndexName, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("sales", create.Table?.DbName, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("users", create.Table?.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(new[] { "name", "email" }, create.KeyColumns);
+        Assert.True(drop.IfExists);
+        Assert.Equal("ix_users_name", drop.IndexName, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Verifies Auto mode parses the shared sequence expression families into the existing canonical call nodes.
     /// PT: Verifica se o modo Auto interpreta as familias compartilhadas de expressoes de sequence para os nos canonicos de chamada ja existentes.
     /// </summary>

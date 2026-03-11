@@ -118,6 +118,28 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
+    /// EN: Verifies CREATE INDEX and DROP INDEX ON table mutate table index metadata through ExecuteNonQuery.
+    /// PT: Verifica se CREATE INDEX e DROP INDEX ON table alteram a metadata de indices da tabela via ExecuteNonQuery.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void ExecuteNonQuery_CreateAndDropIndex_ShouldMutateTableIndexes()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "CREATE INDEX IX_Users_Name ON Users (Name)"
+        };
+
+        command.ExecuteNonQuery();
+        _connection.GetTable("users").Indexes.ContainsKey("ix_users_name").Should().BeTrue();
+
+        command.CommandText = "DROP INDEX IX_Users_Name ON Users";
+        command.ExecuteNonQuery();
+
+        _connection.GetTable("users").Indexes.ContainsKey("ix_users_name").Should().BeFalse();
+    }
+
+    /// <summary>
     /// EN: Tests creating a table with an inline primary key and inserting data into it.
     /// PT: Testa a criação de uma tabela com chave primária inline e a inserção de dados nela.
     /// </summary>

@@ -544,6 +544,24 @@ public sealed class SqlServerDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures SQL Server accepts DROP INDEX ... ON <table> in the pragmatic shared DDL subset.
+    /// PT: Garante que o SQL Server aceite DROP INDEX ... ON <table> no subset DDL pragmático compartilhado.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseDropIndex_WithOnTableClause_ShouldParse(int version)
+    {
+        var parsed = Assert.IsType<SqlDropIndexQuery>(SqlQueryParser.Parse(
+            "DROP INDEX IX_Users_Name ON dbo.Users",
+            new SqlServerDialect(version)));
+
+        Assert.Equal("IX_Users_Name", parsed.IndexName, ignoreCase: true);
+        Assert.Equal("dbo", parsed.Table?.DbName, ignoreCase: true);
+        Assert.Equal("Users", parsed.Table?.Name, ignoreCase: true);
+    }
+
+    /// <summary>
     /// EN: Validates OFFSET/FETCH without ORDER BY according to dialect version rules.
     /// PT: Valida OFFSET/FETCH sem ORDER BY conforme as regras de versão do dialeto.
     /// </summary>

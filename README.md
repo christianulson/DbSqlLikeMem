@@ -73,7 +73,7 @@
 ```csharp
 using DbSqlLikeMem.MySql;
 
-var db = new MySqlDbMock(version: 8);
+var db = new MySqlDbMock(version: 80);
 var users = db.AddTable("users");
 users.AddColumn("Id", DbType.Int32, false);
 users.AddColumn("Name", DbType.String, false);
@@ -147,13 +147,16 @@ var plan = cnn.LastExecutionPlan;
 
 | Provider / Provedor | Simulated versions / Versões simuladas |
 | --- | --- |
-| MySQL | 3, 4, 5, 8 |
+| MySQL | 3.0, 4.0, 5.5, 5.6, 5.7, 8.0, 8.4 |
 | SQL Server | 7, 2000, 2005, 2008, 2012, 2014, 2016, 2017, 2019, 2022 |
 | SQL Azure | 100, 110, 120, 130, 140, 150, 160, 170 |
 | Oracle | 7, 8, 9, 10, 11, 12, 18, 19, 21, 23 |
 | PostgreSQL (Npgsql) | 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 |
 | SQLite (Sqlite) | 3 |
 | DB2 | 8, 9, 10, 11 |
+
+For MySQL, documentation uses dotted versions (`8.0`, `8.4`), while the provider API keeps integer values (`80`, `84`).
+Para MySQL, a documentação usa versões com ponto (`8.0`, `8.4`), enquanto a API do provider mantém valores inteiros (`80`, `84`).
 
 ## Runtime provider factory example | Exemplo de factory de provider em runtime
 

@@ -155,7 +155,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     /// Tests a database connection and returns whether it succeeds with a message.
     /// Testa uma conexão com banco e retorna se ela foi bem-sucedida com uma mensagem.
     /// </summary>
-    public async Task<(bool Success, string Message)> TestConnectionAsync(string databaseType, string connectionString)
+    public static async Task<(bool Success, string Message)> TestConnectionAsync(string databaseType, string connectionString)
     {
         try
         {

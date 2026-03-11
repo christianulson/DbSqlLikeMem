@@ -117,6 +117,19 @@ internal sealed record SqlDropTableQuery : SqlQueryBase
     internal TemporaryTableScope Scope { get; init; } = TemporaryTableScope.None;
 }
 
+internal sealed record SqlCreateIndexQuery : SqlQueryBase
+{
+    internal string IndexName { get; init; } = "";
+    internal bool Unique { get; init; }
+    internal IReadOnlyList<string> KeyColumns { get; init; } = [];
+}
+
+internal sealed record SqlDropIndexQuery : SqlQueryBase
+{
+    internal string IndexName { get; init; } = "";
+    internal bool IfExists { get; init; }
+}
+
 internal sealed record SqlCreateSequenceQuery : SqlQueryBase
 {
     internal bool IfNotExists { get; init; }

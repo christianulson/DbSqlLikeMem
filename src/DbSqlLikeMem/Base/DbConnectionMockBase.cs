@@ -849,6 +849,30 @@ public abstract class DbConnectionMockBase(
         Db.DropTable(tableName, ifExists, targetSchema);
     }
 
+    internal void CreateIndex(
+        string indexName,
+        string tableName,
+        IEnumerable<string> keyColumns,
+        bool unique,
+        string? schemaName = null)
+        => Db.CreateIndex(
+            indexName,
+            tableName,
+            keyColumns,
+            unique,
+            schemaName ?? Database);
+
+    internal void DropIndex(
+        string indexName,
+        bool ifExists,
+        string? tableName = null,
+        string? schemaName = null)
+        => Db.DropIndex(
+            indexName,
+            ifExists,
+            tableName,
+            schemaName ?? Database);
+
     #endregion
 
     #region Procedures

@@ -1755,6 +1755,16 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "VIEW"))
             return ParseCreateView(orReplace);
 
+        var uniqueIndex = false;
+        if (IsWord(Peek(), "UNIQUE"))
+        {
+            Consume();
+            uniqueIndex = true;
+        }
+
+        if (IsWord(Peek(), "INDEX"))
+            return ParseCreateIndex(orReplace, uniqueIndex);
+
         if (IsWord(Peek(), "SEQUENCE"))
             return ParseCreateSequence(orReplace);
 
@@ -2075,6 +2085,38 @@ internal sealed class SqlQueryParser
         };
     }
 
+    private SqlCreateIndexQuery ParseCreateIndex(bool orReplace, bool unique)
+    {
+        if (orReplace)
+            throw new InvalidOperationException("CREATE OR REPLACE is only supported for VIEW statements.");
+
+        Consume(); // INDEX
+
+        var indexNameToken = Peek();
+        if (IsEnd(indexNameToken) || IsSymbol(indexNameToken, ";"))
+            throw new InvalidOperationException("CREATE INDEX requires an index name.");
+
+        var indexName = ExpectIdentifier();
+        ExpectWord("ON");
+        var table = ParseTableSource(consumeHints: false, allowFunctionSource: false);
+
+        if (!IsSymbol(Peek(), "("))
+            throw new InvalidOperationException("CREATE INDEX requires a column list.");
+
+        Consume(); // (
+        var keyColumns = ParseIdentifierList("CREATE INDEX column list");
+        ExpectSymbol(")");
+        EnsureStatementEnd("CREATE INDEX");
+
+        return new SqlCreateIndexQuery
+        {
+            IndexName = indexName,
+            Unique = unique,
+            KeyColumns = keyColumns,
+            Table = table
+        };
+    }
+
     private SqlQueryBase ParseDrop()
     {
         ExpectWord("DROP");
@@ -2091,7 +2133,10 @@ internal sealed class SqlQueryParser
             || IsWord(Peek(), "GLOBAL"))
             return ParseDropTable();
 
-        throw new InvalidOperationException("Apenas DROP VIEW, DROP TABLE e DROP SEQUENCE são suportados no mock no momento.");
+        if (IsWord(Peek(), "INDEX"))
+            return ParseDropIndex();
+
+        throw new InvalidOperationException("Apenas DROP VIEW, DROP TABLE, DROP INDEX e DROP SEQUENCE são suportados no mock no momento.");
     }
 
     private SqlDropViewQuery ParseDropView()
@@ -2227,6 +2272,45 @@ internal sealed class SqlQueryParser
         };
     }
 
+    private SqlDropIndexQuery ParseDropIndex()
+    {
+        Consume(); // INDEX
+
+        var ifExists = false;
+        if (IsWord(Peek(), "IF"))
+        {
+            Consume();
+            ExpectWord("EXISTS");
+            ifExists = true;
+        }
+
+        var indexNameToken = Peek();
+        if (IsEnd(indexNameToken) || IsSymbol(indexNameToken, ";"))
+            throw new InvalidOperationException("DROP INDEX requires an index name.");
+
+        var indexName = ExpectIdentifier();
+        SqlTableSource? table = null;
+
+        if (IsWord(Peek(), "ON"))
+        {
+            if (!string.Equals(_dialect.Name, "mysql", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(_dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase))
+                throw SqlUnsupported.ForDialect(_dialect, "DROP INDEX ... ON <table>");
+
+            Consume();
+            table = ParseTableSource(consumeHints: false, allowFunctionSource: false);
+        }
+
+        EnsureStatementEnd("DROP INDEX");
+
+        return new SqlDropIndexQuery
+        {
+            IndexName = indexName,
+            IfExists = ifExists,
+            Table = table
+        };
+    }
+
     private SqlTableSource ParseQualifiedObjectName()
     {
         var first = ExpectIdentifier();
@@ -2248,6 +2332,54 @@ internal sealed class SqlQueryParser
             DerivedSql: null,
             Pivot: null,
             MySqlIndexHints: null);
+    }
+
+    private List<string> ParseIdentifierList(string context)
+    {
+        var identifiers = new List<string>();
+        var expectIdentifier = true;
+
+        while (true)
+        {
+            var token = Peek();
+            if (IsEnd(token))
+                throw new InvalidOperationException($"{context} was not closed correctly.");
+
+            if (IsSymbol(token, ")"))
+            {
+                if (expectIdentifier)
+                    throw new InvalidOperationException($"{context} cannot end with a comma.");
+
+                break;
+            }
+
+            if (expectIdentifier)
+            {
+                if (IsSymbol(token, ","))
+                    throw new InvalidOperationException($"{context} cannot start with a comma.");
+
+                if (token.Kind != SqlTokenKind.Identifier)
+                    throw new InvalidOperationException($"{context} expects a column name, found {token.Kind} '{token.Text}'.");
+
+                identifiers.Add(Consume().Text);
+                expectIdentifier = false;
+                continue;
+            }
+
+            if (IsSymbol(token, ","))
+            {
+                Consume();
+                expectIdentifier = true;
+                continue;
+            }
+
+            throw new InvalidOperationException($"{context} must separate columns with commas.");
+        }
+
+        if (identifiers.Count == 0)
+            throw new InvalidOperationException($"{context} requires at least one column name.");
+
+        return identifiers;
     }
 
     private static void EnsureNoUnexpectedTrailingStatementAfterBody(

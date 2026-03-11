@@ -84,7 +84,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.2.1 Interpretação de comandos DDL
 
-- Implementação estimada: **88%**.
+- Implementação estimada: **90%**.
 - Leitura e processamento de comandos de definição de schema.
 - Suporte a operações estruturais comuns (criação e alteração de entidades).
 - Aplicação de regras específicas por dialeto e versão simulada.
@@ -111,7 +111,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: parser DDL passou a suportar `DROP TABLE` (incluindo `IF EXISTS` e variantes `TEMP/TEMPORARY/GLOBAL TEMPORARY`) com validação de nome obrigatório e boundary de statement.
 - Incremento desta sessão: cobertura de regressão de `DROP TABLE` foi adicionada de forma unificada em SQLite, MySQL, SQL Server, Npgsql, Oracle e Db2, incluindo casos válidos (`IF EXISTS`, `GLOBAL TEMPORARY`) e inválidos (`DROP TABLE IF EXISTS ;`, `DROP GLOBAL TABLE ...`, segundo statement indevido).
 - Incremento desta sessão: corpus de parser por provedor foi alinhado para remover `DROP TABLE` da lista de comandos explicitamente inválidos, refletindo o novo contrato de interpretação DDL.
-- TODO: expandir o subset DDL com `ALTER TABLE` pragmático e `CREATE/DROP INDEX`, mantendo gate explícito por dialeto/versão e sem aceitar DDL avançado fora do contrato real do provider.
+- Incremento desta sessão: parser/executor passaram a suportar o subset pragmático de `CREATE INDEX` e `DROP INDEX`, incluindo `UNIQUE`, lista simples de colunas, `IF EXISTS` em `DROP INDEX` e a variante `DROP INDEX ... ON <table>` nos dialetos que a expõem (`MySQL` e `SQL Server`), com busca única por índice no schema atual quando o `DROP` não informa tabela.
+- TODO: expandir o subset DDL com `ALTER TABLE` pragmático e hardening adicional de `CREATE/DROP INDEX`, mantendo gate explícito por dialeto/versão e sem aceitar DDL avançado fora do contrato real do provider.
 - TODO: revisar a trilha de objetos programáveis (`FUNCTION`/`PROCEDURE`/`TRIGGER` DDL) para deixar explícito no backlog o que será suportado de forma real e o que continuará bloqueado por `NotSupportedException`.
 
 #### 1.2.2 Interpretação de comandos DML
@@ -668,6 +669,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: execution plan também passou a sinalizar `mockRuntimePerturbationActive` quando há latência/falha simulada configurada, deixando explícito que comparações diretas de tempo entre cenários estão contaminadas por perturbação artificial.
 - TODO: propagar o disclaimer de performance para todos os pontos de consumo de telemetria/planos e manter a documentação de entrada alinhada sempre que novas métricas forem expostas.
 - TODO: estruturar uma trilha de benchmark comparativo em ambiente de teste contra bancos reais locais/containerizados, focada em demonstrar ganho de feedback/custo operacional do mock para clientes e não em tuning de produção.
+- TODO: adotar `Testcontainers` como infraestrutura padrão dessa trilha de benchmark comparativo, subindo bancos reais sob demanda no pipeline de medição para comparar a aplicação real contra o `DbSqlLikeMem` com setup reproduzível.
+- TODO: extrair dessa trilha artefatos objetivos de benchmark (tempo total, setup, custo operacional, footprint e notas de limitação) em formato reaproveitável na wiki, para manter uma comparação viva entre bancos reais em container e esta aplicação.
 
 ## 2) Integração ADO.NET e experiência de uso
 
@@ -941,7 +944,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 3.0.2 Inventário funcional pendente por provider
 
-- Implementação estimada: **0%**.
+- Implementação estimada: **17%**.
+- Incremento desta sessão: o inventário pendente passou a registrar explicitamente a convenção documental de versões MySQL em formato humano (`3.0`, `4.0`, `5.5`, `5.6`, `5.7`, `8.0`, `8.4`) com equivalência para os inteiros usados na API (`30`, `40`, `55`, `56`, `57`, `80`, `84`), reduzindo drift entre backlog, código e exemplos.
 - TODO: mapear explicitamente no backlog as famílias nativas do `MySQL` já cobertas/parciais (`LIMIT/OFFSET`, `ON DUPLICATE KEY UPDATE`, `MATCH ... AGAINST`, `SQL_CALC_FOUND_ROWS`/`FOUND_ROWS`, `USE/IGNORE/FORCE INDEX`, `<=>`, `GROUP_CONCAT`, `JSON_EXTRACT`/`->`/`->>`, `WITH RECURSIVE`, window functions) com status por versão simulada.
 - TODO: mapear explicitamente no backlog as famílias nativas de `SQL Server/SqlAzure` (`TOP`, `OFFSET/FETCH`, `OUTPUT`, `MERGE`, `@@ROWCOUNT`, table/query hints `WITH (...)`, `PIVOT/UNPIVOT`, `CROSS APPLY`/`OUTER APPLY`, `JSON_VALUE`/`OPENJSON`, `STRING_AGG`, `STRING_SPLIT`, `FOR JSON`) com status por versão simulada e `compatibility level`.
 - TODO: mapear explicitamente no backlog as famílias nativas do `Oracle` (`ROWNUM`, `FETCH FIRST`, `MERGE`, `seq.NEXTVAL/CURRVAL`, `LISTAGG`, `JSON_VALUE`/`JSON_TABLE`, `PIVOT/UNPIVOT`, `CONNECT BY`/`START WITH`, `MATCH_RECOGNIZE`, `MODEL`) com status por versão simulada.
@@ -954,7 +958,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 #### 3.1.1 Versões simuladas
 
 - Implementação estimada: **100%**.
-- 3, 4, 5, 8.
+- 3.0, 4.0, 5.5, 5.6, 5.7, 8.0, 8.4.
+- Convenção da documentação: usar `3.0`, `4.0`, `5.5`, `5.6`, `5.7`, `8.0` e `8.4`; na API/tipos de teste, os valores equivalentes seguem como `30`, `40`, `55`, `56`, `57`, `80` e `84`.
 
 #### 3.1.2 Recursos relevantes
 
@@ -964,6 +969,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Cobertura de `GROUP_CONCAT` ampliada com regressão para `DISTINCT`, tratamento de `NULL` e ordenação interna pela sintaxe nativa `ORDER BY ... SEPARATOR ...` dentro da função.
 - P7 consolidado: UPSERT por família (`ON DUPLICATE`/`ON CONFLICT`/`MERGE subset`) e mutações avançadas com contracts por strategy tests.
 - Funções-chave do banco: `GROUP_CONCAT`, `IFNULL`, `DATE_ADD` e `JSON_EXTRACT` (subset no mock).
+- Status por versão já explicitado nesta trilha:
+  - `5.0+`: `JSON_EXTRACT`, `->` e `->>`.
+  - `8.0+`: `WITH`/`WITH RECURSIVE` e window functions.
+  - Todas as versões simuladas atuais do mock: `LIMIT/OFFSET`, `ON DUPLICATE KEY UPDATE`, `MATCH ... AGAINST`, `SQL_CALC_FOUND_ROWS`/`FOUND_ROWS`, `USE/IGNORE/FORCE INDEX`, `<=>` e `GROUP_CONCAT` dentro do subset já coberto.
 - TODO: implementar `JSON_TABLE(...)` no parser/executor do MySQL, hoje ainda só com gate explícito de não suportado, apesar de o banco real suportar a função de tabela JSON.
 - TODO: avaliar subset de particionamento lógico por tabela (`PARTITION BY RANGE/LIST`) para aproximar testes de retenção/time-series de capacidades reais do MySQL/InnoDB.
 
@@ -1181,6 +1190,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
   - Providers já mapeados com benchmark viável por container: `MySQL`, `SQL Server`, `PostgreSQL/Npgsql`, `Oracle` e `DB2`.
   - Providers do backlog com benchmark viável por container: `MariaDB`, `Firebird` e `ClickHouse`.
   - Fora desta trilha por enquanto: `SQLite` e `DuckDB` (embedded) e `SqlAzure`/`Snowflake` (sem baseline local/container equivalente no ciclo atual).
+- TODO: padronizar essa trilha em `Testcontainers` para que cada benchmark gere baseline reproduzível por provider e também uma visão consolidada comparando bancos reais em container com o runtime do `DbSqlLikeMem`.
+- TODO: publicar os resultados consolidados dessa trilha na wiki espelhada (`docs/Wiki`) com snapshots/versionamento por rodada, permitindo comparação histórica entre providers reais em container e esta aplicação.
 
 #### 3.7.2 Priorização de gaps
 

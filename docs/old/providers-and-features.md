@@ -6,7 +6,7 @@
 
 | Banco | Projeto | Versões simuladas |
 | --- | --- | --- |
-| MySQL | `DbSqlLikeMem.MySql` | 3, 4, 5, 8 |
+| MySQL | `DbSqlLikeMem.MySql` | 3.0, 4.0, 5.5, 5.6, 5.7, 8.0, 8.4 |
 | SQL Server | `DbSqlLikeMem.SqlServer` | 7, 2000, 2005, 2008, 2012, 2014, 2016, 2017, 2019, 2022 |
 | SQL Azure | `DbSqlLikeMem.SqlAzure` | 100, 110, 120, 130, 140, 150, 160, 170 |
 | Oracle | `DbSqlLikeMem.Oracle` | 7, 8, 9, 10, 11, 12, 18, 19, 21, 23 |
@@ -77,35 +77,45 @@ Notas:
 ## Particularidades por banco
 
 ### MySQL
+
+- Convenção de documentação: `3.0`, `4.0`, `5.5`, `5.6`, `5.7`, `8.0` e `8.4` correspondem aos valores inteiros `30`, `40`, `55`, `56`, `57`, `80` e `84` usados na API do mock.
 - `INSERT ... ON DUPLICATE KEY UPDATE`: suportado.
 - `USE/IGNORE/FORCE INDEX`: parser + semântica inicial no executor para seleção de índice em predicados de igualdade.
   - `FOR JOIN` e sem escopo: afetam candidatos de índice no plano de acesso.
   - `FOR ORDER BY` / `FOR GROUP BY`: comportamento mínimo inicial (parseados, sem otimização dedicada de sort/group no executor).
   - `FORCE INDEX` em escopos `FOR ORDER BY` / `FOR GROUP BY` valida existência de índices quando a query usa a cláusula correspondente (`ORDER BY` / `GROUP BY`), com fail-fast para índice inexistente.
   - Em `FOR ORDER BY` / `FOR GROUP BY`, quando o índice hint existe, o plano de acesso a linhas permanece no modo mínimo atual (sem otimização dedicada de ordenação/agrupamento).
+  - `JSON_EXTRACT`, `->` e `->>`: disponíveis a partir de `5.0+` no contrato atual do mock.
+  - `WITH`/`WITH RECURSIVE` e window functions: disponíveis a partir de `8.0+` no contrato atual do mock.
 
 ### SQL Server
+
 - `NEXT VALUE FOR`: suportado nos fluxos validados de `SELECT` e `INSERT`, incluindo sequences qualificadas por schema.
 - `RELEASE SAVEPOINT`: intencionalmente não suportado.
 
 ### SQL Azure
+
 - `NEXT VALUE FOR`: segue a mesma base de compatibilidade do SQL Server no mock atual, incluindo sequences qualificadas por schema.
 - Regras de transação/savepoint continuam específicas do provider Azure SQL.
 
 ### PostgreSQL (Npgsql)
+
 - `nextval(...)`, `currval(...)`, `setval(...)` e `lastval()`: suportados nos fluxos validados do provider, incluindo sequences qualificadas por schema.
 - `currval(...)` e `lastval()` seguem semântica local da sessão no mock, alinhada ao comportamento esperado após `nextval`/`setval`.
 
 ### Oracle
+
 - `seq.NEXTVAL` e `seq.CURRVAL`: implementados no parser/runtime, incluindo sequences qualificadas por schema.
 
 ### SQLite
+
 - `WITH`/CTE: disponível (>= 3).
 - `ON DUPLICATE KEY UPDATE`: não suportado (SQLite usa `ON CONFLICT`).
 - Operador null-safe `<=>`: não suportado.
 - Operadores JSON `->` e `->>`: suportados pelo parser do dialeto.
 
 ### DB2
+
 - `WITH`/CTE: disponível (>= 8).
 - `MERGE`: disponível (>= 9).
 - `FETCH FIRST`: suportado.
@@ -170,7 +180,6 @@ Decisões de compatibilidade implementadas para cobrir os cenários de relatóri
 - `CAST` numérico ainda não cobre formatações locais complexas, notação científica avançada e tipos de alta precisão específicos por provedor.
 - Data/time cobre unidades comuns (`year/month/day/hour/minute/second`), mas não trata timezone explícito, calendário ISO avançado nem regras específicas de cada engine real.
 - Subquery escalar retorna sempre a primeira célula da primeira linha, sem erro para múltiplas linhas (comportamento simplificado de mock).
-
 
 ## Triggers em tabelas não temporárias
 
@@ -251,7 +260,6 @@ Se a diferença altera **validade sintática** ou **interpretação semântica**
 - Validação explícita de direção de parâmetros obrigatórios (`IN` exige Input/InputOutput).
 - Fluxo compatível com uso via Dapper (`Execute` com `commandType: StoredProcedure`).
 
-
 ### P11 — confiabilidade transacional e concorrência
 
 | Provider | Savepoint | Release savepoint | Isolation (mock simplificado) |
@@ -264,6 +272,7 @@ Se a diferença altera **validade sintática** ou **interpretação semântica**
 | DB2 | ✅ `SAVEPOINT` / `ROLLBACK TO SAVEPOINT` | ✅ | ✅ `ReadCommitted`, `RepeatableRead`, `Serializable` |
 
 Notas do modelo simplificado (determinístico):
+
 - O mock mantém snapshots por savepoint para garantir rollback intermediário consistente em múltiplos comandos DML.
 - `Commit` descarta snapshots ativos; `Rollback` restaura o snapshot inicial da transação.
 - Operações concorrentes continuam protegidas por `Db.SyncRoot` quando `ThreadSafe = true`.

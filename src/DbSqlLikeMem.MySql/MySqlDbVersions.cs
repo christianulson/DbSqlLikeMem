@@ -14,7 +14,11 @@ public static class MySqlDbVersions
     {
         yield return 30;
         yield return 40;
-        yield return 50;
+        yield return 55;
+        yield return 56;
+        yield return 57;
         yield return 80;
+        yield return 84;
+        //yield return 96;
     }
 }

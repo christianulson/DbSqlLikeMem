@@ -228,8 +228,8 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
             return;
         }
 
-        var defaults = viewModel.GetMappingDefaults(selected);
-        var dialog = new MappingDialog(selected.ObjectType!.Value, defaults.FileNamePattern, defaults.OutputDirectory, defaults.Namespace) { Owner = System.Windows.Window.GetWindow(this) };
+        var (FileNamePattern, OutputDirectory, Namespace) = viewModel.GetMappingDefaults(selected);
+        var dialog = new MappingDialog(selected.ObjectType!.Value, FileNamePattern, OutputDirectory, Namespace) { Owner = System.Windows.Window.GetWindow(this) };
 
         if (dialog.ShowDialog() == true)
         {
@@ -581,7 +581,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         }
     }
 
-    private void AddFilesToActiveProject(IEnumerable<string> files)
+    private static void AddFilesToActiveProject(IEnumerable<string> files)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 

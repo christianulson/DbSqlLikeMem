@@ -258,6 +258,22 @@ public abstract class TableMock
         return idx;
     }
 
+    internal void DropIndex(
+        string name,
+        bool ifExists = false)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(name, nameof(name));
+        name = name.NormalizeName();
+
+        if (_indexes.Remove(name))
+            return;
+
+        if (ifExists)
+            return;
+
+        throw new InvalidOperationException($"Index '{name}' does not exist.");
+    }
+
     /// <summary>
     /// EN: Looks up values in the index using the given key.
     /// PT: Procura valores no índice usando a chave informada.
