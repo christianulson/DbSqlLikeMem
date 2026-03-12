@@ -48,6 +48,12 @@ public class SqlServerDialect : ProviderSqlDialect
     /// <summary>
     /// 
     /// </summary>
+    public override string InsertUsers(string tableName, params (int id, string name)[] values) =>
+        $"INSERT INTO {tableName} (Id, Name) VALUES {string.Join(",", values.Select(_ => $"({_.id}, '{_.name}')"))}";
+
+    /// <summary>
+    /// 
+    /// </summary>
     public override string InsertOrder(string tableName, int id, int userId, string note) =>
             $"INSERT INTO {tableName} (Id, UserId, Note) VALUES ({id}, {userId}, '{note}')";
 
@@ -126,4 +132,36 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name);";
     /// </summary>
     public override string DropSequence(string sequenceName) =>
             $"DROP SEQUENCE IF EXISTS {sequenceName}";
+
+
+    public override string StringAggregateOrdered(string tableName) =>
+            $"SELECT STRING_AGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM {tableName}";
+
+    public override string Savepoint(string savepointName) => $"SAVE TRANSACTION {savepointName}";
+
+    public override string RollbackToSavepoint(string savepointName) => $"ROLLBACK TRANSACTION {savepointName}";
+
+    public override string ReleaseSavepoint(string savepointName) => "SELECT 1";
+
+    public override bool SupportsJsonScalarRead => true;
+
+    public override string JsonScalarRead(string jsonLiteral) =>
+            $"SELECT JSON_VALUE('{jsonLiteral}', '$.name')";
+
+
+    public override string StringAggregateDistinct(string tableName) =>
+        $"SELECT STRING_AGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM (SELECT DISTINCT Name FROM {tableName}) t";
+    public override string StringAggregateCustomSeparator(string tableName, string separator) =>
+        $"SELECT STRING_AGG(Name, '{separator}') WITHIN GROUP (ORDER BY Name) FROM {tableName}";
+    public override string StringAggregateLargeGroup(string tableName) =>
+        $"SELECT STRING_AGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM {tableName}";
+    public override string JsonPathRead(string jsonLiteral) =>
+        $"SELECT JSON_VALUE('{jsonLiteral}', '$.user.name')";
+    public override string TemporalDateAdd() =>
+        "SELECT DATEADD(day, 1, CAST('2024-01-01T00:00:00' AS datetime2))";
+    public override string TemporalNowWhere(string tableName) =>
+        $"SELECT COUNT(*) FROM {tableName} WHERE CURRENT_TIMESTAMP IS NOT NULL";
+    public override string TemporalNowOrderBy(string tableName) =>
+        $"SELECT TOP (1) Name FROM {tableName} ORDER BY CURRENT_TIMESTAMP, Name";
+
 }

@@ -42,6 +42,12 @@ public sealed class SqliteDialect : ProviderSqlDialect
     /// <summary>
     /// 
     /// </summary>
+    public override string InsertUsers(string tableName, params (int id, string name)[] values) =>
+        $"INSERT INTO {tableName} (Id, Name) VALUES {(string.Join(",", values.Select(_ => $"({_.id}, '{_.name}')")))}";
+
+    /// <summary>
+    /// 
+    /// </summary>
     public override string InsertOrder(string tableName, int id, int userId, string note) =>
         $"INSERT INTO {tableName} (Id, UserId, Note) VALUES ({id}, {userId}, '{note}')";
 
@@ -98,4 +104,30 @@ public sealed class SqliteDialect : ProviderSqlDialect
     /// </summary>
     public override string DropTable(string tableName) =>
         $"DROP TABLE IF EXISTS {tableName}";
+
+
+    public override string StringAggregateOrdered(string tableName) =>
+        $"SELECT GROUP_CONCAT(Name, ',') FROM (SELECT Name FROM {tableName} ORDER BY Name)";
+
+    public override bool SupportsJsonScalarRead => true;
+
+    public override string JsonScalarRead(string jsonLiteral) =>
+        $"SELECT json_extract('{jsonLiteral}', '$.name')";
+
+
+    public override string StringAggregateDistinct(string tableName) =>
+        $"SELECT GROUP_CONCAT(Name, ',') FROM (SELECT DISTINCT Name FROM {tableName} ORDER BY Name) t";
+    public override string StringAggregateCustomSeparator(string tableName, string separator) =>
+        $"SELECT GROUP_CONCAT(Name, '{separator}') FROM (SELECT Name FROM {tableName} ORDER BY Name) t";
+    public override string StringAggregateLargeGroup(string tableName) =>
+        $"SELECT GROUP_CONCAT(Name, ',') FROM (SELECT Name FROM {tableName} ORDER BY Name) t";
+    public override string JsonPathRead(string jsonLiteral) =>
+        $"SELECT json_extract('{jsonLiteral}', '$.user.name')";
+    public override string TemporalDateAdd() =>
+        "SELECT datetime('2024-01-01 00:00:00', '+1 day')";
+    public override string TemporalNowWhere(string tableName) =>
+        $"SELECT COUNT(*) FROM {tableName} WHERE CURRENT_TIMESTAMP IS NOT NULL";
+    public override string TemporalNowOrderBy(string tableName) =>
+        $"SELECT Name FROM {tableName} ORDER BY CURRENT_TIMESTAMP, Name LIMIT 1";
+
 }
