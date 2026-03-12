@@ -84,6 +84,18 @@ public enum BenchmarkFeatureId
     WindowRowNumber,
     /// <summary>EN: Executes a LAG window query. PT-br: Executa uma consulta de janela com LAG.</summary>
     WindowLag,
+    /// <summary>EN: Executes an EXISTS predicate query. PT-br: Executa uma consulta com predicado EXISTS.</summary>
+    SelectExistsPredicate,
+    /// <summary>EN: Executes a correlated subquery count flow. PT-br: Executa um fluxo com subconsulta correlacionada de contagem.</summary>
+    SelectCorrelatedCount,
+    /// <summary>EN: Executes a GROUP BY HAVING query. PT-br: Executa uma consulta GROUP BY HAVING.</summary>
+    GroupByHaving,
+    /// <summary>EN: Executes a UNION ALL projection query. PT-br: Executa uma consulta de projeção com UNION ALL.</summary>
+    UnionAllProjection,
+    /// <summary>EN: Executes a DISTINCT projection query. PT-br: Executa uma consulta de projeção DISTINCT.</summary>
+    DistinctProjection,
+    /// <summary>EN: Executes a multi-join aggregate query. PT-br: Executa uma consulta agregada com múltiplos joins.</summary>
+    MultiJoinAggregate,
     /// <summary>EN: Reads rowcount after insert. PT-br: Lê a contagem de linhas após insert.</summary>
     RowCountAfterInsert,
     /// <summary>EN: Reads rowcount after update. PT-br: Lê a contagem de linhas após update.</summary>
