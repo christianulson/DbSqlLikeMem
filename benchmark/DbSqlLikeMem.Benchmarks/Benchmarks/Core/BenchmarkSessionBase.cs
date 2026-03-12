@@ -13,7 +13,7 @@ namespace DbSqlLikeMem.Benchmarks.Core;
 /// <param name="dialect">EN: The provider-specific SQL dialect used to generate benchmark commands. PT-br: O dialeto SQL específico do provedor usado para gerar os comandos de benchmark.</param>
 /// <param name="engine">EN: The benchmark engine that identifies the runtime behind the session. PT-br: O mecanismo de benchmark que identifica o runtime por trás da sessão.</param>
 public abstract class BenchmarkSessionBase(
-    ProviderSqlDialect dialect, 
+    ProviderSqlDialect dialect,
     BenchmarkEngine engine
     ) : IBenchmarkSession
 {
@@ -67,6 +67,9 @@ public abstract class BenchmarkSessionBase(
                 break;
             case BenchmarkFeatureId.InsertBatch100:
                 RunInsertBatch100();
+                break;
+            case BenchmarkFeatureId.InsertBatch100Parallel:
+                RunInsertBatch100Parallel();
                 break;
             case BenchmarkFeatureId.SelectByPk:
                 RunSelectByPk();
@@ -229,6 +232,38 @@ public abstract class BenchmarkSessionBase(
             {
                 ExecuteNonQuery(connection, Dialect.InsertUser(users, i, $"User-{i}"));
             }
+
+            var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
+            if (count != 100)
+            {
+                throw new InvalidOperationException($"Expected 100 rows for {Dialect.DisplayName}, got {count}.");
+            }
+            GC.KeepAlive(count);
+        }
+        finally
+        {
+            SafeDropTable(connection, users);
+        }
+    }
+
+    /// <summary>
+    /// EN: Inserts one hundred user rows and validates the final row count.
+    /// PT-br: Insere cem linhas de usuário e valida a contagem final de linhas.
+    /// </summary>
+    /// <exception cref="InvalidOperationException"></exception>
+    protected virtual void RunInsertBatch100Parallel()
+    {
+        var users = NewUsersTableName();
+        using var connection = CreateConnection();
+        connection.Open();
+
+        try
+        {
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            Parallel.For(1, 101, i =>
+            {
+                ExecuteNonQuery(connection, Dialect.InsertUser(users, i, $"User-{i}"));
+            });
 
             var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
             if (count != 100)

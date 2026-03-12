@@ -116,10 +116,10 @@ public sealed class SqlitePerformanceTests : XUnitTestBase
         });
         Assert.Equal(totalRows, deletedRows);
 
-        Console.WriteLine($"[Sqlite][Performance] Inserts: {totalRows} in {insertElapsedMs}ms ({OpsPerSecond(totalRows, insertElapsedMs):F2} ops/s)");
-        Console.WriteLine($"[Sqlite][Performance] Reads: {sampledReads} in {readElapsedMs}ms ({OpsPerSecond(sampledReads, readElapsedMs):F2} ops/s)");
-        Console.WriteLine($"[Sqlite][Performance] Updates: {totalRows} in {updateElapsedMs}ms ({OpsPerSecond(totalRows, updateElapsedMs):F2} ops/s)");
-        Console.WriteLine($"[Sqlite][Performance] Deletes: {totalRows} in {deleteElapsedMs}ms ({OpsPerSecond(totalRows, deleteElapsedMs):F2} ops/s)");
+        Console.WriteLine($"[Sqlite][Performance] Inserts: {totalRows} in {insertElapsedMs}ms ({OpsPerSecond(totalRows, insertElapsedMs):F2} ops/s, {OpsAVG(totalRows, insertElapsedMs):F2} ms/avg)");
+        Console.WriteLine($"[Sqlite][Performance] Reads: {sampledReads} in {readElapsedMs}ms ({OpsPerSecond(sampledReads, readElapsedMs):F2} ops/s, {OpsAVG(sampledReads, readElapsedMs):F2} ms/avg)");
+        Console.WriteLine($"[Sqlite][Performance] Updates: {totalRows} in {updateElapsedMs}ms ({OpsPerSecond(totalRows, updateElapsedMs):F2} ops/s, {OpsAVG(totalRows, updateElapsedMs):F2} ms/avg)");
+        Console.WriteLine($"[Sqlite][Performance] Deletes: {totalRows} in {deleteElapsedMs}ms ({OpsPerSecond(totalRows, deleteElapsedMs):F2} ops/s, {OpsAVG(totalRows, deleteElapsedMs):F2} ms/avg)");
 
         Assert.Empty(_connection.GetTable("users"));
     }
@@ -138,6 +138,14 @@ public sealed class SqlitePerformanceTests : XUnitTestBase
             return operationCount;
 
         return operationCount / (elapsedMs / 1000d);
+    }
+
+    private static double OpsAVG(int operationCount, long elapsedMs)
+    {
+        if (operationCount <= 0)
+            return elapsedMs;
+
+        return (double)elapsedMs / operationCount;
     }
 
     /// <summary>

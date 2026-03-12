@@ -24,6 +24,10 @@ public enum BenchmarkFeatureId
     /// <summary>
     /// 
     /// </summary>
+    InsertBatch100Parallel,
+    /// <summary>
+    /// 
+    /// </summary>
     SelectByPk,
     /// <summary>
     /// 

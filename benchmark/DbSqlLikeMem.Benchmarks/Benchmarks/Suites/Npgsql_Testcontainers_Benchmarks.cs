@@ -45,6 +45,13 @@ public class Npgsql_Testcontainers_Benchmarks : BenchmarkSuiteBase
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
+    public void InsertBatch100Parallel() => Run(BenchmarkFeatureId.InsertBatch100Parallel);
+
+    /// <summary>
+    /// 
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
     public void SelectByPk() => Run(BenchmarkFeatureId.SelectByPk);
 
     /// <summary>

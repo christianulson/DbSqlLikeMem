@@ -17,6 +17,7 @@ public static class FeatureCatalog
         new(BenchmarkFeatureId.CreateSchema, "Create schema", "Core", true, ["1.2.1", "1.4.1"]),
         new(BenchmarkFeatureId.InsertSingle, "Insert single row", "Core", true, ["1.2.2", "1.3.2"]),
         new(BenchmarkFeatureId.InsertBatch100, "Insert batch 100", "Core", true, ["1.2.2", "1.3.2"]),
+        new(BenchmarkFeatureId.InsertBatch100Parallel, "Insert batch 100 Parallel", "Core", true, ["1.2.2", "1.3.2"]),
         new(BenchmarkFeatureId.SelectByPk, "Select by PK", "Core", true, ["1.2.2", "1.3.2"]),
         new(BenchmarkFeatureId.SelectJoin, "Join select", "Core", true, ["1.2.2", "1.3.2"]),
         new(BenchmarkFeatureId.UpdateByPk, "Update by PK", "Core", true, ["1.2.2", "1.3.2"]),

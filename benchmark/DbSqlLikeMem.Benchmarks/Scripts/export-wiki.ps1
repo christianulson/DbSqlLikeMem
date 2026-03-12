@@ -1,33 +1,27 @@
 ﻿param(
-    [string]$ReportsPath = '../../docs/Wiki/BenchmarkResults',
-    [string]$FeatureMapPath = '.\benchmark-feature-map.json',
-    [string]$OutputPath = '../../docs/Wiki/performance-matrix.md'
+    [string] $ArtifactsDir = "../../docs/Wiki/BenchmarkResults/results",
+    [string] $OutFile = "../../docs/Wiki/performance-matrix.md",
+    [string] $CatalogFile = ".\benchmark-feature-map.json"
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-function Resolve-FullPath {
-    param([Parameter(Mandatory)][string]$PathValue)
+if (-not (Test-Path $CatalogFile)) {
+    throw "Catalog file not found: $CatalogFile"
+}
 
-    $parent = Split-Path -Parent $PathValue
-    $leaf = Split-Path -Leaf $PathValue
-
-    if ([string]::IsNullOrWhiteSpace($parent)) { $parent = '.' }
-    if (-not (Test-Path -LiteralPath $parent)) {
-        New-Item -ItemType Directory -Path $parent -Force | Out-Null
-    }
-
-    $resolvedParent = (Resolve-Path -LiteralPath $parent).Path
-    if ([string]::IsNullOrWhiteSpace($leaf)) { return $resolvedParent }
-    return (Join-Path $resolvedParent $leaf)
+if (-not (Test-Path $ArtifactsDir)) {
+    throw "Artifacts directory not found: $ArtifactsDir"
 }
 
 function Read-TextFileSmart {
-    param([Parameter(Mandatory)][string]$PathValue)
+    param([Parameter(Mandatory)] [string] $PathValue)
 
     $bytes = [System.IO.File]::ReadAllBytes($PathValue)
-    if ($bytes.Length -eq 0) { return '' }
+    if ($bytes.Length -eq 0) {
+        return ''
+    }
 
     $utf8Strict = New-Object System.Text.UTF8Encoding($false, $true)
     try {
@@ -39,329 +33,241 @@ function Read-TextFileSmart {
     }
 }
 
-function Read-FeatureMap {
-    param([string]$PathValue)
+function Parse-BenchmarkValue {
+    param([Parameter(Mandatory)] [string] $ValueText)
 
-    if (-not (Test-Path -LiteralPath $PathValue)) { return $null }
-
-    $json = Read-TextFileSmart -PathValue $PathValue
-    if ([string]::IsNullOrWhiteSpace($json)) { return $null }
-
-    return ($json | ConvertFrom-Json)
-}
-
-function Get-ProviderConfig {
-    param($FeatureMap, [string]$ProviderId)
-
-    if ($null -eq $FeatureMap -or $null -eq $FeatureMap.providers) { return $null }
-    foreach ($provider in $FeatureMap.providers) {
-        if ([string]$provider.id -eq $ProviderId) { return $provider }
-    }
-    return $null
-}
-
-function Get-FeatureOrder {
-    param($FeatureMap, [string[]]$DiscoveredFeatures)
-
-    $ordered = New-Object System.Collections.Generic.List[string]
-    $seen = @{}
-
-    if ($null -ne $FeatureMap -and $null -ne $FeatureMap.features) {
-        foreach ($feature in $FeatureMap.features) {
-            $id = [string]$feature.id
-            if (-not [string]::IsNullOrWhiteSpace($id) -and -not $seen.ContainsKey($id)) {
-                [void]$ordered.Add($id)
-                $seen[$id] = $true
-            }
-        }
-    }
-
-    foreach ($featureId in $DiscoveredFeatures) {
-        if (-not [string]::IsNullOrWhiteSpace($featureId) -and -not $seen.ContainsKey($featureId)) {
-            [void]$ordered.Add([string]$featureId)
-            $seen[[string]$featureId] = $true
-        }
-    }
-
-    return $ordered
-}
-
-function Get-SupportedFeatureState {
-    param([string]$FeatureId, [object[]]$SupportedFeatures)
-
-    if ($null -eq $SupportedFeatures -or $SupportedFeatures.Count -eq 0) { return $true }
-    foreach ($item in $SupportedFeatures) {
-        if ([string]$item -eq $FeatureId) { return $true }
-    }
-    return $false
-}
-
-function Normalize-Unit {
-    param([string]$Unit)
-
-    if ([string]::IsNullOrWhiteSpace($Unit)) { return '' }
-
-    $raw = $Unit.Trim().ToLowerInvariant().Replace(' ', '')
-    $ascii = [regex]::Replace($raw, '[^a-z]', '')
-
-    if ($ascii -eq 'ns' -or $raw -match 'ns$') { return 'ns' }
-    if ($ascii -eq 'ms' -or $raw -match 'ms$') { return 'ms' }
-    if ($raw -eq 's') { return 's' }
-    if ($ascii -eq 'us') { return 'us' }
-
-    if ($ascii -eq 's' -and $raw.Length -gt 1) { return 'us' }
-    if ($raw -match 's$') {
-        if ($raw.Length -gt 1) { return 'us' }
-        return 's'
-    }
-
-    return ''
-}
-
-function Convert-ToMicroseconds {
-    param(
-        [Parameter(Mandatory)][double]$Value,
-        [Parameter(Mandatory)][string]$Unit
-    )
-
-    switch (Normalize-Unit $Unit) {
-        'ns' { return $Value / 1000.0 }
-        'us' { return $Value }
-        'ms' { return $Value * 1000.0 }
-        's'  { return $Value * 1000000.0 }
-        default { throw "Unsupported unit '$Unit'." }
-    }
-}
-
-function Format-Number {
-    param(
-        [Parameter(Mandatory)][double]$Value,
-        [int]$Decimals = 3
-    )
-
-    $culture = [System.Globalization.CultureInfo]::GetCultureInfo('pt-BR')
-    $rounded = [math]::Round($Value, $Decimals, [System.MidpointRounding]::AwayFromZero)
-    return $rounded.ToString("N$Decimals", $culture)
-}
-
-function Format-Us {
-    param(
-        [Parameter(Mandatory)][double]$Value,
-        [int]$Decimals = 3
-    )
-
-    return ((Format-Number -Value $Value -Decimals $Decimals) + ' us')
-}
-
-function Parse-MeanText {
-    param([Parameter(Mandatory)][string]$MeanText)
-
-    $clean = $MeanText.Trim()
-    if ($clean -match '^(NA|N/A)$') {
-        return [pscustomobject]@{ Status = 'NA'; MeanUs = $null }
-    }
-
-    $pattern = '^(?<value>[-+]?\d{1,3}(?:,\d{3})*(?:\.\d+)?|[-+]?\d+(?:\.\d+)?)\s*(?<unit>\S+)$'
-    $m = [regex]::Match($clean, $pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-    if (-not $m.Success) {
+    $text = ($ValueText -replace '\*', '').Trim()
+    if ([string]::IsNullOrWhiteSpace($text)) {
         return $null
     }
 
-    $rawValue = $m.Groups['value'].Value.Replace(',', '')
-    $unit = $m.Groups['unit'].Value
-    $value = [double]::Parse($rawValue, [System.Globalization.CultureInfo]::InvariantCulture)
-    return [pscustomobject]@{ Status = 'OK'; MeanUs = (Convert-ToMicroseconds -Value $value -Unit $unit) }
+    if ($text -eq 'NA' -or $text -eq 'N/A') {
+        return $null
+    }
+
+    $normalized = $text.Replace([string][char]0x03BC, 'u').Replace([string][char]0x00B5, 'u')
+    $match = [regex]::Match($normalized, '^(?<value>[\d\.,]+)\s*(?<unit>ns|us|ms|s)$')
+    if (-not $match.Success) {
+        return $null
+    }
+
+    $numberText = $match.Groups['value'].Value.Replace(',', '')
+    $value = [double]::Parse($numberText, [System.Globalization.CultureInfo]::InvariantCulture)
+    $unit = $match.Groups['unit'].Value
+
+    switch ($unit) {
+        'ns' { return $value / 1000.0 }
+        'us' { return $value }
+        'ms' { return $value * 1000.0 }
+        's'  { return $value * 1000000.0 }
+        default { return $null }
+    }
+}
+
+function Get-ExternalEngineLabel {
+    param([Parameter(Mandatory)] [pscustomobject] $Provider)
+
+    if ($Provider.externalEngine -eq 'NativeAdoNet') {
+        return 'Native'
+    }
+
+    if ([string]::IsNullOrWhiteSpace([string]$Provider.externalEngine) -or $Provider.externalEngine -eq 'NotAvailable') {
+        return 'External'
+    }
+
+    return [string]$Provider.externalEngine
+}
+
+function Get-ExternalEngineReportName {
+    param([Parameter(Mandatory)] [pscustomobject] $Provider)
+
+    if ($Provider.id -eq 'Sqlite' -and $Provider.externalEngine -eq 'NativeAdoNet') {
+        return "DbSqlLikeMem.Benchmarks.Suites.$($Provider.id)_Native_Benchmarks-report-github.md"
+    }
+
+    if ([string]::IsNullOrWhiteSpace([string]$Provider.externalEngine) -or $Provider.externalEngine -eq 'NotAvailable') {
+        return $null
+    }
+
+    return "DbSqlLikeMem.Benchmarks.Suites.$($Provider.id)_$((Get-ExternalEngineLabel -Provider $Provider))_Benchmarks-report-github.md"
+}
+
+function Get-DisplayTitle {
+    param([Parameter(Mandatory)] [pscustomobject] $Provider)
+
+    if (-not [string]::IsNullOrWhiteSpace([string]$Provider.displayName)) {
+        return [string]$Provider.displayName
+    }
+
+    return [string]$Provider.id
+}
+
+function Get-PercentText {
+    param(
+        [double] $AppMicroseconds,
+        [double] $OtherMicroseconds
+    )
+
+    if ($OtherMicroseconds -eq 0) {
+        return '-'
+    }
+
+    $percent = (($OtherMicroseconds - $AppMicroseconds) / $OtherMicroseconds) * 100.0
+    $culture = [System.Globalization.CultureInfo]::GetCultureInfo('pt-BR')
+    return ([math]::Round($percent, 2, [System.MidpointRounding]::AwayFromZero).ToString('0.##', $culture)) + '%'
+}
+
+function Get-ResultText {
+    param(
+        [double] $AppMicroseconds,
+        [double] $OtherMicroseconds
+    )
+
+    if ($AppMicroseconds -lt $OtherMicroseconds) {
+        return ':white_check_mark:'
+    }
+
+    if ($AppMicroseconds -gt $OtherMicroseconds) {
+        return ':x:'
+    }
+
+    return '='
 }
 
 function Parse-BenchmarkReport {
-    param([Parameter(Mandatory)][string]$PathValue)
+    param([Parameter(Mandatory)] [string] $PathValue)
 
-    $fileName = [System.IO.Path]::GetFileName($PathValue)
-    $nameMatch = [regex]::Match(
-        $fileName,
-        '^DbSqlLikeMem\.Benchmarks\.Suites\.(?<provider>[^_]+)_(?<engine>[^_]+)_Benchmarks-report-github\.md$',
-        [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
-    )
-    if (-not $nameMatch.Success) { return $null }
-
-    $provider = $nameMatch.Groups['provider'].Value
-    $engine = $nameMatch.Groups['engine'].Value
     $content = Read-TextFileSmart -PathValue $PathValue
-    $content = $content -replace "`r`n", "`n"
+    $lines = $content -split "`r?`n"
+    $results = @{}
+    $headerFound = $false
 
-    $rows = @{}
-    $tableStarted = $false
-
-    foreach ($line in ($content -split "`n")) {
-        if (-not $tableStarted) {
-            if ($line -match '^\|\s*Method\s*\|') { $tableStarted = $true }
+    foreach ($line in $lines) {
+        if (-not $headerFound) {
+            if ($line -match '^\|\s*Method\s*\|') {
+                $headerFound = $true
+            }
             continue
         }
 
-        if ($line -match '^\|\s*-+') { continue }
-        if ($line -notmatch '^\|') { if ($tableStarted) { break } else { continue } }
-
-        $trimmed = $line.Trim().Trim('|')
-        $columns = @($trimmed -split '\|')
-        if ($columns.Count -lt 2) { continue }
-
-        $method = $columns[0].Trim()
-        $meanText = $columns[1].Trim()
-        if ([string]::IsNullOrWhiteSpace($method) -or [string]::IsNullOrWhiteSpace($meanText)) { continue }
-
-        $parsedMean = Parse-MeanText -MeanText $meanText
-        if ($null -eq $parsedMean) { continue }
-
-        if ($parsedMean.Status -eq 'NA') {
-            $rows[$method] = [pscustomobject]@{ Status = 'NA'; MeanUs = $null; SourceFile = $fileName }
+        if ($line -match '^\|\s*-+') {
+            continue
         }
-        else {
-            $rows[$method] = [pscustomobject]@{ Status = 'OK'; MeanUs = [double]$parsedMean.MeanUs; SourceFile = $fileName }
+
+        if ($line -notmatch '^\|') {
+            continue
+        }
+
+        $parts = $line.Trim('|').Split('|') | ForEach-Object { $_.Trim() }
+        if ($parts.Count -lt 2) {
+            continue
+        }
+
+        $method = $parts[0]
+        $mean = $parts[1]
+
+        if ([string]::IsNullOrWhiteSpace($method)) {
+            continue
+        }
+
+        $results[$method] = [pscustomobject]@{
+            Raw = $mean
+            Microseconds = (Parse-BenchmarkValue -ValueText $mean)
         }
     }
 
-    return [pscustomobject]@{
-        Provider = $provider
-        Engine   = $engine
-        Rows     = $rows
-        FileName = $fileName
-    }
+    return $results
 }
 
-function Build-Cell {
-    param([string]$FeatureId, [bool]$Supported, $Rows)
+$catalog = Get-Content $CatalogFile -Raw | ConvertFrom-Json
+$reportFiles = Get-ChildItem -Path $ArtifactsDir -Filter '*-report-github.md' | Sort-Object Name
 
-    if (-not $Supported) {
-        return [pscustomobject]@{ Display = 'N/A'; Status = 'N/A'; MeanUs = $null }
-    }
-
-    if ($null -ne $Rows -and $Rows.ContainsKey($FeatureId)) {
-        $row = $Rows[$FeatureId]
-        if ($row.Status -eq 'NA') {
-            return [pscustomobject]@{ Display = 'NA'; Status = 'NA'; MeanUs = $null }
-        }
-        return [pscustomobject]@{ Display = (Format-Us -Value ([double]$row.MeanUs)); Status = 'OK'; MeanUs = [double]$row.MeanUs }
-    }
-
-    return [pscustomobject]@{ Display = 'pending'; Status = 'pending'; MeanUs = $null }
-}
-
-function Build-DiffAndResult {
-    param($AppCell, $OtherCell)
-
-    if ($AppCell.Status -in @('N/A', 'NA') -or $OtherCell.Status -in @('N/A', 'NA')) {
-        return [pscustomobject]@{ Diff = '-'; Result = '-' }
-    }
-    if ($AppCell.Status -ne 'OK' -or $OtherCell.Status -ne 'OK') {
-        return [pscustomobject]@{ Diff = '-'; Result = '-' }
-    }
-
-    $diff = [double]$OtherCell.MeanUs - [double]$AppCell.MeanUs
-    $result = if ($AppCell.MeanUs -le $OtherCell.MeanUs) { ':white_check_mark:' } else { ':x:' }
-    return [pscustomobject]@{ Diff = (Format-Us -Value $diff); Result = $result }
-}
-
-$reportsRoot = Resolve-FullPath -PathValue $ReportsPath
-$featureMap = Read-FeatureMap -PathValue $FeatureMapPath
-
-$reportFiles = Get-ChildItem -LiteralPath $reportsRoot -File -Filter '*-report-github.md' -Recurse | Sort-Object Name
-$parsedReports = New-Object System.Collections.Generic.List[object]
+$reports = @{}
 foreach ($file in $reportFiles) {
-    $parsed = Parse-BenchmarkReport -PathValue $file.FullName
-    if ($null -ne $parsed) { [void]$parsedReports.Add($parsed) }
-}
-
-$groupedByProvider = @{}
-foreach ($report in $parsedReports) {
-    if (-not $groupedByProvider.ContainsKey($report.Provider)) { $groupedByProvider[$report.Provider] = @{} }
-    $groupedByProvider[$report.Provider][$report.Engine] = $report
-}
-
-$providersInOrder = New-Object System.Collections.Generic.List[string]
-$seenProviders = @{}
-if ($null -ne $featureMap -and $null -ne $featureMap.providers) {
-    foreach ($provider in $featureMap.providers) {
-        $id = [string]$provider.id
-        if (-not $seenProviders.ContainsKey($id)) {
-            [void]$providersInOrder.Add($id)
-            $seenProviders[$id] = $true
-        }
-    }
-}
-foreach ($providerId in ($groupedByProvider.Keys | Sort-Object)) {
-    if (-not $seenProviders.ContainsKey($providerId)) {
-        [void]$providersInOrder.Add([string]$providerId)
-        $seenProviders[[string]$providerId] = $true
-    }
+    $reports[$file.Name] = Parse-BenchmarkReport -PathValue $file.FullName
 }
 
 $lines = New-Object System.Collections.Generic.List[string]
-[void]$lines.Add('# Performance matrix')
-[void]$lines.Add('')
-[void]$lines.Add('> All numeric values are normalized to **us**.')
-[void]$lines.Add('> Diff = OtherEngine - DbSqlLikeMem.')
-[void]$lines.Add('> :white_check_mark: means DbSqlLikeMem is faster. :x: means the external/native engine is faster.')
-[void]$lines.Add('')
+$null = $lines.Add('# Performance matrix')
+$null = $lines.Add('')
+$null = $lines.Add('> Gerado automaticamente a partir dos relatórios `*-report-github.md` do BenchmarkDotNet e do catálogo `benchmark-feature-map.json`.')
+$null = $lines.Add('> Percentual: valor positivo = app mais rápida; valor negativo = banco mais rápido.')
+$null = $lines.Add('')
 
-foreach ($providerId in $providersInOrder) {
-    $providerReports = if ($groupedByProvider.ContainsKey($providerId)) { $groupedByProvider[$providerId] } else { @{} }
-    $providerConfig = Get-ProviderConfig -FeatureMap $featureMap -ProviderId $providerId
-    $providerTitle = if ($null -ne $providerConfig -and -not [string]::IsNullOrWhiteSpace([string]$providerConfig.displayName)) { [string]$providerConfig.displayName } else { $providerId }
-    $appReport = if ($providerReports.ContainsKey('DbSqlLikeMem')) { $providerReports['DbSqlLikeMem'] } else { $null }
+foreach ($provider in $catalog.providers) {
+    $title = Get-DisplayTitle -Provider $provider
+    $externalLabel = Get-ExternalEngineLabel -Provider $provider
 
-    $otherEngineName = $null
-    foreach ($preferredEngine in @('Native', 'Testcontainers')) {
-        if ($providerReports.ContainsKey($preferredEngine)) { $otherEngineName = $preferredEngine; break }
-    }
-    if (-not $otherEngineName) {
-        foreach ($engineName in ($providerReports.Keys | Sort-Object)) {
-            if ($engineName -ne 'DbSqlLikeMem') { $otherEngineName = $engineName; break }
+    $mockReportName = "DbSqlLikeMem.Benchmarks.Suites.$($provider.id)_DbSqlLikeMem_Benchmarks-report-github.md"
+    $externalReportName = Get-ExternalEngineReportName -Provider $provider
+
+    $mockResults = if ($reports.ContainsKey($mockReportName)) { $reports[$mockReportName] } else { @{} }
+    $externalResults = if ($externalReportName -and $reports.ContainsKey($externalReportName)) { $reports[$externalReportName] } else { @{} }
+
+    $null = $lines.Add("## $title")
+    $null = $lines.Add('')
+    $null = $lines.Add("| Feature | DbSqlLikeMem | $externalLabel | Diff | Percent | Result |")
+    $null = $lines.Add("|---|---:|---:|---:|---:|:---:|")
+
+    foreach ($feature in $catalog.features) {
+        $mockSupported = @($provider.supportsMockFeatures) -contains $feature.id
+        $externalSupported = @($provider.supportsExternalFeatures) -contains $feature.id
+
+        $mockCell = 'N/A'
+        $externalCell = 'N/A'
+        $diffCell = '-'
+        $percentCell = '-'
+        $resultCell = '-'
+
+        $mockValue = $null
+        $externalValue = $null
+
+        if ($mockSupported) {
+            if ($mockResults.ContainsKey($feature.id)) {
+                $mockValue = $mockResults[$feature.id]
+                $mockCell = $mockValue.Raw
+            }
+            else {
+                $mockCell = 'pending'
+            }
         }
-    }
-    if (-not $otherEngineName -and $null -ne $providerConfig) {
-        if ([string]$providerConfig.externalEngine -eq 'NativeAdoNet') { $otherEngineName = 'Native' }
-        elseif ([string]$providerConfig.externalEngine -eq 'Testcontainers') { $otherEngineName = 'Testcontainers' }
-        else { $otherEngineName = 'External' }
-    }
-    if (-not $otherEngineName) { $otherEngineName = 'External' }
-    $otherReport = if ($providerReports.ContainsKey($otherEngineName)) { $providerReports[$otherEngineName] } else { $null }
 
-    $discoveredFeatures = New-Object System.Collections.Generic.List[string]
-    if ($null -ne $appReport) { foreach ($featureName in $appReport.Rows.Keys) { [void]$discoveredFeatures.Add([string]$featureName) } }
-    if ($null -ne $otherReport) { foreach ($featureName in $otherReport.Rows.Keys) { [void]$discoveredFeatures.Add([string]$featureName) } }
+        if ($externalSupported) {
+            if ($externalResults.ContainsKey($feature.id)) {
+                $externalValue = $externalResults[$feature.id]
+                $externalCell = $externalValue.Raw
+            }
+            else {
+                $externalCell = 'pending'
+            }
+        }
 
-    $featureOrder = Get-FeatureOrder -FeatureMap $featureMap -DiscoveredFeatures ($discoveredFeatures | Select-Object -Unique)
-    $appSupported = if ($null -ne $providerConfig) { @($providerConfig.supportsMockFeatures) } else { $null }
-    $otherSupported = if ($null -ne $providerConfig) { @($providerConfig.supportsExternalFeatures) } else { $null }
+        if ($mockSupported -and $externalSupported -and $null -ne $mockValue -and $null -ne $externalValue) {
+            if ($null -ne $mockValue.Microseconds -and $null -ne $externalValue.Microseconds) {
+                $diff = [double]$externalValue.Microseconds - [double]$mockValue.Microseconds
+                $culture = [System.Globalization.CultureInfo]::GetCultureInfo('pt-BR')
+                $diffCell = [math]::Round($diff, 3, [System.MidpointRounding]::AwayFromZero).ToString('N3', $culture) + ' us'
+                $percentCell = Get-PercentText -AppMicroseconds ([double]$mockValue.Microseconds) -OtherMicroseconds ([double]$externalValue.Microseconds)
+                $resultCell = Get-ResultText -AppMicroseconds ([double]$mockValue.Microseconds) -OtherMicroseconds ([double]$externalValue.Microseconds)
+            }
+        }
 
-    [void]$lines.Add("## $providerTitle")
-    [void]$lines.Add('')
-    [void]$lines.Add("| Feature | DbSqlLikeMem | $otherEngineName | Diff | Result |")
-    [void]$lines.Add('|---|---:|---:|---:|:---:|')
-
-    foreach ($featureId in $featureOrder) {
-        $supportsApp = Get-SupportedFeatureState -FeatureId $featureId -SupportedFeatures $appSupported
-        $supportsOther = Get-SupportedFeatureState -FeatureId $featureId -SupportedFeatures $otherSupported
-        $appRows = if ($null -ne $appReport) { $appReport.Rows } else { $null }
-        $otherRows = if ($null -ne $otherReport) { $otherReport.Rows } else { $null }
-        $appCell = Build-Cell -FeatureId $featureId -Supported $supportsApp -Rows $appRows
-        $otherCell = Build-Cell -FeatureId $featureId -Supported $supportsOther -Rows $otherRows
-        $comparison = Build-DiffAndResult -AppCell $appCell -OtherCell $otherCell
-        [void]$lines.Add("| $featureId | $($appCell.Display) | $($otherCell.Display) | $($comparison.Diff) | $($comparison.Result) |")
+        $null = $lines.Add("| $($feature.id) | $mockCell | $externalCell | $diffCell | $percentCell | $resultCell |")
     }
 
-    [void]$lines.Add('')
-    [void]$lines.Add('Source files:')
-    if ($null -ne $appReport) {
-        [void]$lines.Add(('- ./BenchmarkResults/' + $appReport.FileName.Replace('-github.md', '.html')))
+    $null = $lines.Add('')
+    $null = $lines.Add('Source files:')
+    $null = $lines.Add("- ./$ArtifactsDir/results/$($mockReportName.Replace('-github.md', '.html'))")
+    if ($externalReportName) {
+        $null = $lines.Add("- ./$ArtifactsDir/results/$($externalReportName.Replace('-github.md', '.html'))")
     }
-    if ($null -ne $otherReport) {
-        [void]$lines.Add(('- ./BenchmarkResults/' + $otherReport.FileName.Replace('-github.md', '.html')))
-    }
-    [void]$lines.Add('')
+    $null = $lines.Add('')
 }
 
-$finalOutputPath = Resolve-FullPath -PathValue $OutputPath
-$utf8Bom = New-Object System.Text.UTF8Encoding($true)
-[System.IO.File]::WriteAllLines($finalOutputPath, $lines, $utf8Bom)
-Write-Host "Wiki exported to: $finalOutputPath"
+$dir = Split-Path -Parent $OutFile
+if ($dir -and -not (Test-Path $dir)) {
+    New-Item -ItemType Directory -Path $dir -Force | Out-Null
+}
+
+Set-Content -Path $OutFile -Value $lines -Encoding UTF8
+Write-Host "Wiki matrix written to $OutFile"
