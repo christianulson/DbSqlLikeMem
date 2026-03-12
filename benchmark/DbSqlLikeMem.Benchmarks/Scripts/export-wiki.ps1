@@ -1,5 +1,5 @@
 ﻿param(
-    [string]$ReportsPath = './BenchmarkDotNet.Artifacts/results',
+    [string]$ReportsPath = '../../docs/Wiki/BenchmarkResults',
     [string]$FeatureMapPath = '.\benchmark-feature-map.json',
     [string]$OutputPath = '../../docs/Wiki/performance-matrix.md'
 )
@@ -350,6 +350,14 @@ foreach ($providerId in $providersInOrder) {
         [void]$lines.Add("| $featureId | $($appCell.Display) | $($otherCell.Display) | $($comparison.Diff) | $($comparison.Result) |")
     }
 
+    [void]$lines.Add('')
+    [void]$lines.Add('Source files:')
+    if ($null -ne $appReport) {
+        [void]$lines.Add(('- ./BenchmarkResults/' + $appReport.FileName.Replace('-github.md', '.html')))
+    }
+    if ($null -ne $otherReport) {
+        [void]$lines.Add(('- ./BenchmarkResults/' + $otherReport.FileName.Replace('-github.md', '.html')))
+    }
     [void]$lines.Add('')
 }
 
