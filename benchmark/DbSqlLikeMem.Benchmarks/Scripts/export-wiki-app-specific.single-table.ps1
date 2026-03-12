@@ -153,14 +153,21 @@ foreach ($provider in $catalog.providers) {
     $providerTitles.Add((Get-DisplayTitle -Provider $provider)) | Out-Null
 }
 
-$header = '| Feature | ' + (($providerTitles | ForEach-Object { $_ }) -join ' | ') + ' |'
-$sep = '|---|' + (($providerTitles | ForEach-Object { '---:' }) -join '|') + '|'
+$header = '| Feature | ' + (($providerTitles | ForEach-Object { $_ }) -join ' | ') + ' | Description |'
+$sep = '|---|' + (($providerTitles | ForEach-Object { '---:' }) -join '|') + '|:---:|'
 $null = $lines.Add($header)
 $null = $lines.Add($sep)
 
-foreach ($feature in $catalog.features) {
+$category = $null
+
+foreach ($feature in ($catalog.features | Sort-Object category, id)) {
+    if ($category -ne $feature.category) {
+        $category = $feature.category
+        $null = $lines.Add("| **$category** |  |  |  |  |  |  |")
+    }
+
     $row = New-Object System.Collections.Generic.List[string]
-    $row.Add([string]$feature.id) | Out-Null
+    $row.Add([string]$feature.displayName) | Out-Null
 
     foreach ($provider in $catalog.providers) {
         $mockReportName = "DbSqlLikeMem.Benchmarks.Suites.$($provider.id)_DbSqlLikeMem_Benchmarks-report-github.md"
@@ -182,7 +189,9 @@ foreach ($feature in $catalog.features) {
         $row.Add($mockCell) | Out-Null
     }
 
-    $null = $lines.Add('| ' + ($row -join ' | ') + ' |')
+    $notes = if ($feature.PSObject.Properties['notes']) { $feature.notes } else { '' }
+
+    $null = $lines.Add('| ' + ($row -join ' | ') + ' | $notes |')
 }
 
 $null = $lines.Add('')

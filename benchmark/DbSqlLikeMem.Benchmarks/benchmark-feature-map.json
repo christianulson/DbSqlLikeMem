@@ -68,7 +68,13 @@
         "RowCountAfterInsert",
         "RowCountAfterUpdate",
         "RowCountAfterSelect",
-        "RowCountInBatch"
+        "RowCountInBatch",
+        "SelectExistsPredicate",
+        "SelectCorrelatedCount",
+        "GroupByHaving",
+        "UnionAllProjection",
+        "DistinctProjection",
+        "MultiJoinAggregate"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
@@ -111,7 +117,13 @@
         "RowCountAfterInsert",
         "RowCountAfterUpdate",
         "RowCountAfterSelect",
-        "RowCountInBatch"
+        "RowCountInBatch",
+        "SelectExistsPredicate",
+        "SelectCorrelatedCount",
+        "GroupByHaving",
+        "UnionAllProjection",
+        "DistinctProjection",
+        "MultiJoinAggregate"
       ],
       "indexRefs": [
         "3.1.1",
@@ -183,7 +195,13 @@
         "ReturningInsert",
         "ReturningUpdate",
         "MergeBasic",
-        "PartitionPruningSelect"
+        "PartitionPruningSelect",
+        "SelectExistsPredicate",
+        "SelectCorrelatedCount",
+        "GroupByHaving",
+        "UnionAllProjection",
+        "DistinctProjection",
+        "MultiJoinAggregate"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
@@ -234,7 +252,13 @@
         "PivotCount",
         "ReturningInsert",
         "ReturningUpdate",
-        "MergeBasic"
+        "MergeBasic",
+        "SelectExistsPredicate",
+        "SelectCorrelatedCount",
+        "GroupByHaving",
+        "UnionAllProjection",
+        "DistinctProjection",
+        "MultiJoinAggregate"
       ],
       "indexRefs": [
         "3.2.1",
@@ -306,7 +330,13 @@
         "ReturningInsert",
         "ReturningUpdate",
         "MergeBasic",
-        "PartitionPruningSelect"
+        "PartitionPruningSelect",
+        "SelectExistsPredicate",
+        "SelectCorrelatedCount",
+        "GroupByHaving",
+        "UnionAllProjection",
+        "DistinctProjection",
+        "MultiJoinAggregate"
       ],
       "supportsExternalFeatures": [],
       "indexRefs": [
@@ -377,7 +407,13 @@
         "WindowLag",
         "ReturningInsert",
         "ReturningUpdate",
-        "PartitionPruningSelect"
+        "PartitionPruningSelect",
+        "SelectExistsPredicate",
+        "SelectCorrelatedCount",
+        "GroupByHaving",
+        "UnionAllProjection",
+        "DistinctProjection",
+        "MultiJoinAggregate"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
@@ -426,7 +462,13 @@
         "WindowRowNumber",
         "WindowLag",
         "ReturningInsert",
-        "ReturningUpdate"
+        "ReturningUpdate",
+        "SelectExistsPredicate",
+        "SelectCorrelatedCount",
+        "GroupByHaving",
+        "UnionAllProjection",
+        "DistinctProjection",
+        "MultiJoinAggregate"
       ],
       "indexRefs": [
         "3.3.1",
@@ -497,7 +539,13 @@
         "ReturningInsert",
         "ReturningUpdate",
         "MergeBasic",
-        "PartitionPruningSelect"
+        "PartitionPruningSelect",
+        "SelectExistsPredicate",
+        "SelectCorrelatedCount",
+        "GroupByHaving",
+        "UnionAllProjection",
+        "DistinctProjection",
+        "MultiJoinAggregate"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
@@ -547,7 +595,13 @@
         "WindowLag",
         "ReturningInsert",
         "ReturningUpdate",
-        "MergeBasic"
+        "MergeBasic",
+        "SelectExistsPredicate",
+        "SelectCorrelatedCount",
+        "GroupByHaving",
+        "UnionAllProjection",
+        "DistinctProjection",
+        "MultiJoinAggregate"
       ],
       "indexRefs": [
         "3.4.1",
@@ -616,7 +670,13 @@
         "WindowLag",
         "ReturningInsert",
         "ReturningUpdate",
-        "PartitionPruningSelect"
+        "PartitionPruningSelect",
+        "SelectExistsPredicate",
+        "SelectCorrelatedCount",
+        "GroupByHaving",
+        "UnionAllProjection",
+        "DistinctProjection",
+        "MultiJoinAggregate"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
@@ -664,7 +724,13 @@
         "WindowRowNumber",
         "WindowLag",
         "ReturningInsert",
-        "ReturningUpdate"
+        "ReturningUpdate",
+        "SelectExistsPredicate",
+        "SelectCorrelatedCount",
+        "GroupByHaving",
+        "UnionAllProjection",
+        "DistinctProjection",
+        "MultiJoinAggregate"
       ],
       "indexRefs": [
         "3.5.1",
@@ -736,7 +802,13 @@
         "ReturningInsert",
         "ReturningUpdate",
         "MergeBasic",
-        "PartitionPruningSelect"
+        "PartitionPruningSelect",
+        "SelectExistsPredicate",
+        "SelectCorrelatedCount",
+        "GroupByHaving",
+        "UnionAllProjection",
+        "DistinctProjection",
+        "MultiJoinAggregate"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
@@ -786,7 +858,13 @@
         "WindowLag",
         "ReturningInsert",
         "ReturningUpdate",
-        "MergeBasic"
+        "MergeBasic",
+        "SelectExistsPredicate",
+        "SelectCorrelatedCount",
+        "GroupByHaving",
+        "UnionAllProjection",
+        "DistinctProjection",
+        "MultiJoinAggregate"
       ],
       "indexRefs": [
         "3.6.1",
@@ -1219,6 +1297,48 @@
       "category": "AdvancedQuery",
       "comparable": true,
       "notes": "Backlog benchmark for LAG/analytic window processing."
+    },
+    {
+      "id": "SelectExistsPredicate",
+      "displayName": "Select EXISTS predicate",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "notes": "Complex comparison benchmark for EXISTS subqueries over users/orders datasets."
+    },
+    {
+      "id": "SelectCorrelatedCount",
+      "displayName": "Select correlated count",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "notes": "Complex comparison benchmark for correlated subquery aggregation."
+    },
+    {
+      "id": "GroupByHaving",
+      "displayName": "Group by HAVING",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "notes": "Complex comparison benchmark for grouped aggregates with HAVING."
+    },
+    {
+      "id": "UnionAllProjection",
+      "displayName": "UNION ALL projection",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "notes": "Complex comparison benchmark for UNION ALL projections."
+    },
+    {
+      "id": "DistinctProjection",
+      "displayName": "Distinct projection",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "notes": "Complex comparison benchmark for DISTINCT projection and deduplication."
+    },
+    {
+      "id": "MultiJoinAggregate",
+      "displayName": "Multi-join aggregate",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "notes": "Complex comparison benchmark for multi-join aggregate workloads."
     },
     {
       "id": "PivotCount",

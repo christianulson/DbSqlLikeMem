@@ -88,8 +88,6 @@ public enum BenchmarkFeatureId
     RowCountAfterInsert,
     /// <summary>EN: Reads rowcount after update. PT-br: Lê a contagem de linhas após update.</summary>
     RowCountAfterUpdate,
-    /// <summary>EN: Publishes the last execution plan. PT-br: Publica o último plano de execução.</summary>
-    ExecutionPlan,
     /// <summary>EN: Benchmark entry for BatchReaderMultiResult. PT-br: Entrada de benchmark para BatchReaderMultiResult.</summary>
     BatchReaderMultiResult,
     /// <summary>EN: Benchmark entry for BatchTransactionControl. PT-br: Entrada de benchmark para BatchTransactionControl.</summary>

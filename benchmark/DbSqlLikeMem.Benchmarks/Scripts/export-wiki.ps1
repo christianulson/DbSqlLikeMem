@@ -206,10 +206,17 @@ foreach ($provider in $catalog.providers) {
 
     $null = $lines.Add("## $title")
     $null = $lines.Add('')
-    $null = $lines.Add("| Feature | DbSqlLikeMem | $externalLabel | Diff | Percent | Result |")
-    $null = $lines.Add("|---|---:|---:|---:|---:|:---:|")
+    $null = $lines.Add("| Feature | DbSqlLikeMem | $externalLabel | Diff | Percent | Result | Description |")
+    $null = $lines.Add("|---|---:|---:|---:|---:|:---:|:---:|")
 
-    foreach ($feature in $catalog.features) {
+    $category = $null
+
+    foreach ($feature in ($catalog.features | Sort-Object category, id)) {
+        if ($category -ne $feature.category) {
+            $category = $feature.category
+            $null = $lines.Add("| **$category** |  |  |  |  |  |  |")
+        }
+
         $mockSupported = @($provider.supportsMockFeatures) -contains $feature.id
         $externalSupported = @($provider.supportsExternalFeatures) -contains $feature.id
 
@@ -252,7 +259,9 @@ foreach ($provider in $catalog.providers) {
             }
         }
 
-        $null = $lines.Add("| $($feature.id) | $mockCell | $externalCell | $diffCell | $percentCell | $resultCell |")
+        $notes = if ($feature.PSObject.Properties['notes']) { $feature.notes } else { '' }
+
+        $null = $lines.Add("| $($feature.displayName) | $mockCell | $externalCell | $diffCell | $percentCell | $resultCell | $notes |")
     }
 
     $null = $lines.Add('')

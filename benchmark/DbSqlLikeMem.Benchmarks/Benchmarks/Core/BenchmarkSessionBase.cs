@@ -302,9 +302,6 @@ public abstract class BenchmarkSessionBase(
             case BenchmarkFeatureId.FluentScenarioCompose:
                 RunFluentScenarioCompose();
                 break;
-            case BenchmarkFeatureId.ExecutionPlan:
-                RunExecutionPlan();
-                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(feature), feature, null);
         }

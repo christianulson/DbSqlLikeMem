@@ -11,6 +11,8 @@
       "id": "MySql",
       "displayName": "MySQL",
       "latestSimulatedVersion": "8.4",
+      "externalEngine": "Testcontainers",
+      "externalImage": "mysql:8.4",
       "supportsAppFeatures": [
         "ExecutionPlanSelect",
         "ExecutionPlanJoin",
@@ -45,6 +47,8 @@
       "id": "SqlServer",
       "displayName": "SQL Server",
       "latestSimulatedVersion": "2022",
+      "externalEngine": "Testcontainers",
+      "externalImage": "mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04",
       "supportsAppFeatures": [
         "ExecutionPlanSelect",
         "ExecutionPlanJoin",
@@ -79,6 +83,8 @@
       "id": "SqlAzure",
       "displayName": "SQL Azure",
       "latestSimulatedVersion": "170",
+      "externalEngine": "NotAvailable",
+      "externalImage": null,
       "supportsAppFeatures": [
         "ExecutionPlanSelect",
         "ExecutionPlanJoin",
@@ -113,6 +119,8 @@
       "id": "Oracle",
       "displayName": "Oracle",
       "latestSimulatedVersion": "23",
+      "externalEngine": "Testcontainers",
+      "externalImage": "gvenzl/oracle-free:23-slim-faststart",
       "supportsAppFeatures": [
         "ExecutionPlanSelect",
         "ExecutionPlanJoin",
@@ -147,6 +155,8 @@
       "id": "Npgsql",
       "displayName": "PostgreSQL / Npgsql",
       "latestSimulatedVersion": "17",
+      "externalEngine": "Testcontainers",
+      "externalImage": "postgres:17",
       "supportsAppFeatures": [
         "ExecutionPlanSelect",
         "ExecutionPlanJoin",
@@ -181,6 +191,8 @@
       "id": "Sqlite",
       "displayName": "SQLite",
       "latestSimulatedVersion": "3",
+      "externalEngine": "NativeAdoNet",
+      "externalImage": null,
       "supportsAppFeatures": [
         "ExecutionPlanSelect",
         "ExecutionPlanJoin",
@@ -216,6 +228,8 @@
       "id": "Db2",
       "displayName": "DB2",
       "latestSimulatedVersion": "11",
+      "externalEngine": "Testcontainers",
+      "externalImage": "icr.io/db2_community/db2:12.1.0.0",
       "supportsAppFeatures": [
         "ExecutionPlanSelect",
         "ExecutionPlanJoin",
