@@ -30,7 +30,7 @@
 		<ProjectReference Include="..\..\src\DbSqlLikeMem.Oracle\DbSqlLikeMem.Oracle.csproj" />
 		<ProjectReference Include="..\..\src\DbSqlLikeMem.SqlAzure\DbSqlLikeMem.SqlAzure.csproj" />
 		<ProjectReference Include="..\..\src\DbSqlLikeMem.Sqlite\DbSqlLikeMem.Sqlite.csproj" />
-		<ProjectReference Include="..\..\src\DbSqlLikeMem.SqlServer\DbSqlLikeMem.SqlServer.csproj"/>
+		<ProjectReference Include="..\..\src\DbSqlLikeMem.SqlServer\DbSqlLikeMem.SqlServer.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -39,5 +39,9 @@
 		<Using Include="DbSqlLikeMem.Benchmarks.Core" />
 		<Using Include="DbSqlLikeMem.Benchmarks.Dialects" />
 		<Using Include="System.Data.Common" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="BenchmarkDotNet.Artifacts\" />
 	</ItemGroup>
 </Project>
