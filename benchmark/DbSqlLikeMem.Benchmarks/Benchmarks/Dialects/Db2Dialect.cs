@@ -102,11 +102,13 @@ public sealed class Db2Dialect : ProviderSqlDialect
     /// 
     /// </summary>
     public override string Upsert(string tableName, int id, string newName) => $@"
-MERGE INTO {tableName} AS target
-USING (VALUES ({id}, '{newName}')) AS source (Id, Name)
+MERGE INTO {tableName} target
+USING (VALUES ({id}, '{newName}')) source (Id, Name)
 ON target.Id = source.Id
-WHEN MATCHED THEN UPDATE SET Name = source.Name
-WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
+WHEN MATCHED THEN
+    UPDATE SET Name = source.Name
+WHEN NOT MATCHED THEN
+    INSERT (Id, Name) VALUES (source.Id, source.Name)";
 
     /// <summary>
     /// 
@@ -144,5 +146,13 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
         $"SELECT COUNT(*) FROM {tableName} WHERE CURRENT TIMESTAMP IS NOT NULL";
     public override string TemporalNowOrderBy(string tableName) =>
         $"SELECT Name FROM {tableName} ORDER BY CURRENT TIMESTAMP, Name FETCH FIRST 1 ROW ONLY";
+
+
+
+    public override string CrossApplyProjection(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {usersTable} u JOIN LATERAL (SELECT o.Note FROM {ordersTable} o WHERE o.UserId = u.Id ORDER BY o.Id DESC FETCH FIRST 1 ROW ONLY) x ON 1 = 1";
+
+    public override string OuterApplyProjection(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {usersTable} u LEFT JOIN LATERAL (SELECT o.Note FROM {ordersTable} o WHERE o.UserId = u.Id ORDER BY o.Id DESC FETCH FIRST 1 ROW ONLY) x ON 1 = 1";
 
 }

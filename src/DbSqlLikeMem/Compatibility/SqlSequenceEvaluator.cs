@@ -15,10 +15,7 @@ internal static class SqlSequenceEvaluator
 
         if (!TryResolveSequenceReference(functionName, args, evalArg, out var sequenceRef))
         {
-            if (TryEvaluateLastVal(connection, functionName, args, out value))
-                return true;
-
-            return false;
+            return TryEvaluateLastVal(connection, functionName, args, out value);
         }
 
         value = functionName.ToUpperInvariant() switch

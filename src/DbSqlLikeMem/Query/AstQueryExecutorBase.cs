@@ -333,12 +333,10 @@ internal abstract class AstQueryExecutorBase(
     }
 
     private SqlPlanMockRuntimeContext BuildPlanMockRuntimeContext()
-    {
-        return new SqlPlanMockRuntimeContext(
+        => new(
             _cnn.SimulatedLatencyMs,
             _cnn.DropProbability,
             _cnn.Db.ThreadSafe);
-    }
 
 
     private IReadOnlyList<SqlIndexRecommendation> BuildIndexRecommendations(

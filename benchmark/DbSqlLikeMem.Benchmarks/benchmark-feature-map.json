@@ -74,7 +74,11 @@
         "GroupByHaving",
         "UnionAllProjection",
         "DistinctProjection",
-        "MultiJoinAggregate"
+        "MultiJoinAggregate",
+        "SelectScalarSubquery",
+        "SelectInSubquery",
+        "CrossApplyProjection",
+        "OuterApplyProjection"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
@@ -123,7 +127,11 @@
         "GroupByHaving",
         "UnionAllProjection",
         "DistinctProjection",
-        "MultiJoinAggregate"
+        "MultiJoinAggregate",
+        "SelectScalarSubquery",
+        "SelectInSubquery",
+        "CrossApplyProjection",
+        "OuterApplyProjection"
       ],
       "indexRefs": [
         "3.1.1",
@@ -201,7 +209,11 @@
         "GroupByHaving",
         "UnionAllProjection",
         "DistinctProjection",
-        "MultiJoinAggregate"
+        "MultiJoinAggregate",
+        "SelectScalarSubquery",
+        "SelectInSubquery",
+        "CrossApplyProjection",
+        "OuterApplyProjection"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
@@ -258,7 +270,11 @@
         "GroupByHaving",
         "UnionAllProjection",
         "DistinctProjection",
-        "MultiJoinAggregate"
+        "MultiJoinAggregate",
+        "SelectScalarSubquery",
+        "SelectInSubquery",
+        "CrossApplyProjection",
+        "OuterApplyProjection"
       ],
       "indexRefs": [
         "3.2.1",
@@ -336,7 +352,11 @@
         "GroupByHaving",
         "UnionAllProjection",
         "DistinctProjection",
-        "MultiJoinAggregate"
+        "MultiJoinAggregate",
+        "SelectScalarSubquery",
+        "SelectInSubquery",
+        "CrossApplyProjection",
+        "OuterApplyProjection"
       ],
       "supportsExternalFeatures": [],
       "indexRefs": [
@@ -413,7 +433,11 @@
         "GroupByHaving",
         "UnionAllProjection",
         "DistinctProjection",
-        "MultiJoinAggregate"
+        "MultiJoinAggregate",
+        "SelectScalarSubquery",
+        "SelectInSubquery",
+        "CrossApplyProjection",
+        "OuterApplyProjection"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
@@ -468,7 +492,11 @@
         "GroupByHaving",
         "UnionAllProjection",
         "DistinctProjection",
-        "MultiJoinAggregate"
+        "MultiJoinAggregate",
+        "SelectScalarSubquery",
+        "SelectInSubquery",
+        "CrossApplyProjection",
+        "OuterApplyProjection"
       ],
       "indexRefs": [
         "3.3.1",
@@ -545,7 +573,11 @@
         "GroupByHaving",
         "UnionAllProjection",
         "DistinctProjection",
-        "MultiJoinAggregate"
+        "MultiJoinAggregate",
+        "SelectScalarSubquery",
+        "SelectInSubquery",
+        "CrossApplyProjection",
+        "OuterApplyProjection"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
@@ -601,7 +633,11 @@
         "GroupByHaving",
         "UnionAllProjection",
         "DistinctProjection",
-        "MultiJoinAggregate"
+        "MultiJoinAggregate",
+        "SelectScalarSubquery",
+        "SelectInSubquery",
+        "CrossApplyProjection",
+        "OuterApplyProjection"
       ],
       "indexRefs": [
         "3.4.1",
@@ -676,7 +712,9 @@
         "GroupByHaving",
         "UnionAllProjection",
         "DistinctProjection",
-        "MultiJoinAggregate"
+        "MultiJoinAggregate",
+        "SelectScalarSubquery",
+        "SelectInSubquery"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
@@ -730,7 +768,9 @@
         "GroupByHaving",
         "UnionAllProjection",
         "DistinctProjection",
-        "MultiJoinAggregate"
+        "MultiJoinAggregate",
+        "SelectScalarSubquery",
+        "SelectInSubquery"
       ],
       "indexRefs": [
         "3.5.1",
@@ -808,7 +848,11 @@
         "GroupByHaving",
         "UnionAllProjection",
         "DistinctProjection",
-        "MultiJoinAggregate"
+        "MultiJoinAggregate",
+        "SelectScalarSubquery",
+        "SelectInSubquery",
+        "CrossApplyProjection",
+        "OuterApplyProjection"
       ],
       "supportsExternalFeatures": [
         "ConnectionOpen",
@@ -864,7 +908,11 @@
         "GroupByHaving",
         "UnionAllProjection",
         "DistinctProjection",
-        "MultiJoinAggregate"
+        "MultiJoinAggregate",
+        "SelectScalarSubquery",
+        "SelectInSubquery",
+        "CrossApplyProjection",
+        "OuterApplyProjection"
       ],
       "indexRefs": [
         "3.6.1",
@@ -883,7 +931,8 @@
       "indexRefs": [
         "1.1.3",
         "2.1.1"
-      ]
+      ],
+      "notes": "Measures the overhead to create and open a fresh provider connection."
     },
     {
       "id": "CreateSchema",
@@ -893,7 +942,8 @@
       "indexRefs": [
         "1.2.1",
         "1.4.1"
-      ]
+      ],
+      "notes": "Measures the cost to create the base benchmark schema and required objects."
     },
     {
       "id": "InsertSingle",
@@ -903,7 +953,8 @@
       "indexRefs": [
         "1.2.2",
         "1.3.2"
-      ]
+      ],
+      "notes": "Measures a single-row insert path end-to-end."
     },
     {
       "id": "InsertBatch10",
@@ -920,7 +971,8 @@
       "indexRefs": [
         "1.2.2",
         "1.3.2"
-      ]
+      ],
+      "notes": "Measures the insertion of one hundred rows in a sequential batch workload."
     },
     {
       "id": "InsertBatch100Parallel",
@@ -937,7 +989,8 @@
       "indexRefs": [
         "1.2.2",
         "1.3.2"
-      ]
+      ],
+      "notes": "Measures point lookup by primary key."
     },
     {
       "id": "SelectJoin",
@@ -947,7 +1000,8 @@
       "indexRefs": [
         "1.2.2",
         "1.3.2"
-      ]
+      ],
+      "notes": "Measures a representative joined read query across benchmark tables."
     },
     {
       "id": "UpdateByPk",
@@ -957,7 +1011,8 @@
       "indexRefs": [
         "1.2.2",
         "1.3.2"
-      ]
+      ],
+      "notes": "Measures updating one row identified by primary key."
     },
     {
       "id": "DeleteByPk",
@@ -967,7 +1022,8 @@
       "indexRefs": [
         "1.2.2",
         "1.3.2"
-      ]
+      ],
+      "notes": "Measures deleting one row identified by primary key."
     },
     {
       "id": "TransactionCommit",
@@ -977,7 +1033,8 @@
       "indexRefs": [
         "1.1.2",
         "1.3.2"
-      ]
+      ],
+      "notes": "Measures transaction commit overhead for a small write workload."
     },
     {
       "id": "TransactionRollback",
@@ -987,7 +1044,8 @@
       "indexRefs": [
         "1.1.2",
         "1.3.2"
-      ]
+      ],
+      "notes": "Measures transaction rollback overhead for a small write workload."
     },
     {
       "id": "SavepointCreate",
@@ -1027,7 +1085,8 @@
         "3.1.2",
         "3.4.2",
         "3.6.2"
-      ]
+      ],
+      "notes": "Measures the provider-specific upsert path."
     },
     {
       "id": "SequenceNextValue",
@@ -1041,7 +1100,8 @@
         "3.3.2",
         "3.4.2",
         "3.6.2"
-      ]
+      ],
+      "notes": "Measures obtaining the next value from a database sequence or equivalent."
     },
     {
       "id": "BatchInsert10",
@@ -1182,7 +1242,8 @@
         "3.4.2",
         "3.5.2",
         "3.6.2"
-      ]
+      ],
+      "notes": "Measures provider string aggregation with default ordering/shape."
     },
     {
       "id": "StringAggregateOrdered",
@@ -1219,7 +1280,8 @@
       "comparable": true,
       "indexRefs": [
         "1.2.6"
-      ]
+      ],
+      "notes": "Measures a representative scalar date/time expression."
     },
     {
       "id": "TemporalCurrentTimestamp",
@@ -1374,6 +1436,34 @@
       "category": "AdvancedQuery",
       "comparable": true,
       "notes": "Backlog benchmark for partition-pruned read paths."
+    },
+    {
+      "id": "SelectScalarSubquery",
+      "displayName": "Select scalar subquery",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "notes": "Complex query benchmark using a scalar sub-select."
+    },
+    {
+      "id": "SelectInSubquery",
+      "displayName": "Select IN subquery",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "notes": "Complex query benchmark using an IN sub-select predicate."
+    },
+    {
+      "id": "CrossApplyProjection",
+      "displayName": "Cross apply projection",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "notes": "Complex query benchmark using CROSS APPLY or LATERAL semantics."
+    },
+    {
+      "id": "OuterApplyProjection",
+      "displayName": "Outer apply projection",
+      "category": "AdvancedQuery",
+      "comparable": true,
+      "notes": "Complex query benchmark using OUTER APPLY or LEFT LATERAL semantics."
     },
     {
       "id": "ExecutionPlan",

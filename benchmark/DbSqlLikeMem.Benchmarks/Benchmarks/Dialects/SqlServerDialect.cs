@@ -164,4 +164,12 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name);";
     public override string TemporalNowOrderBy(string tableName) =>
         $"SELECT TOP (1) Name FROM {tableName} ORDER BY CURRENT_TIMESTAMP, Name";
 
+
+
+    public override string CrossApplyProjection(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {usersTable} u CROSS APPLY (SELECT TOP (1) o.Note FROM {ordersTable} o WHERE o.UserId = u.Id ORDER BY o.Id DESC) x";
+
+    public override string OuterApplyProjection(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {usersTable} u OUTER APPLY (SELECT TOP (1) o.Note FROM {ordersTable} o WHERE o.UserId = u.Id ORDER BY o.Id DESC) x";
+
 }

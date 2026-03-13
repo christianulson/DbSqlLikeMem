@@ -191,7 +191,7 @@ foreach ($feature in ($catalog.features | Sort-Object category, id)) {
 
     $notes = if ($feature.PSObject.Properties['notes']) { $feature.notes } else { '' }
 
-    $null = $lines.Add('| ' + ($row -join ' | ') + ' | $notes |')
+    $null = $lines.Add('| ' + ($row -join ' | ') + ' | ' + $($notes) + ' |')
 }
 
 $null = $lines.Add('')

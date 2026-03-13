@@ -29,3 +29,9 @@ pwsh ./Scripts/export-wiki.ps1 -ArtifactsDir ./BenchmarkDotNet.Artifacts/results
 - `SqlAzure` está como **mock-only**. Para comparação com banco real, use a família `SqlServer` como proxy operacional mais próximo.
 - `Sqlite` usa `Microsoft.Data.Sqlite` em memória no lado real, porque SQLite normalmente não entra via container na mesma ergonomia dos demais provedores.
 - `Db2` ficou com a imagem em uma constante visível no código para você poder piná-la facilmente na família que quiser comparar (11.5.x para proximidade com o mock, ou a tag mais nova do módulo do Testcontainers).
+
+## Scripts build Reports
+
+powershell -ExecutionPolicy Bypass -File .\Scripts\export-wiki.ps1
+
+powershell -ExecutionPolicy Bypass -File .\Scripts\export-wiki-app-specific.single-table.ps1

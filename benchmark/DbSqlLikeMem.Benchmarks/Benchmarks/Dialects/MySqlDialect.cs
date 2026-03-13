@@ -130,4 +130,12 @@ public sealed class MySqlDialect : ProviderSqlDialect
     public override string TemporalNowOrderBy(string tableName) =>
         $"SELECT Name FROM {tableName} ORDER BY CURRENT_TIMESTAMP, Name LIMIT 1";
 
+
+
+    public override string CrossApplyProjection(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {usersTable} u JOIN LATERAL (SELECT o.Note FROM {ordersTable} o WHERE o.UserId = u.Id ORDER BY o.Id DESC LIMIT 1) x ON TRUE";
+
+    public override string OuterApplyProjection(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {usersTable} u LEFT JOIN LATERAL (SELECT o.Note FROM {ordersTable} o WHERE o.UserId = u.Id ORDER BY o.Id DESC LIMIT 1) x ON TRUE";
+
 }

@@ -204,6 +204,67 @@ public abstract class ProviderSqlDialect
     /// <summary>
     /// 
     /// </summary>
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public virtual string SelectExistsPredicate(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {usersTable} u WHERE EXISTS (SELECT 1 FROM {ordersTable} o WHERE o.UserId = u.Id)";
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public virtual string SelectCorrelatedCount(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {usersTable} u WHERE (SELECT COUNT(*) FROM {ordersTable} o WHERE o.UserId = u.Id) > 0";
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public virtual string GroupByHaving(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM (SELECT u.Id FROM {usersTable} u INNER JOIN {ordersTable} o ON o.UserId = u.Id GROUP BY u.Id HAVING COUNT(*) >= 2) q";
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public virtual string UnionAllProjection(string tableName) =>
+        $"SELECT COUNT(*) FROM (SELECT Name FROM {tableName} WHERE Id = 1 UNION ALL SELECT Name FROM {tableName} WHERE Id = 2) q";
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public virtual string DistinctProjection(string tableName) =>
+        $"SELECT COUNT(*) FROM (SELECT DISTINCT Name FROM {tableName}) q";
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public virtual string MultiJoinAggregate(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {usersTable} u INNER JOIN {ordersTable} o1 ON o1.UserId = u.Id INNER JOIN {ordersTable} o2 ON o2.UserId = u.Id WHERE u.Id = 1";
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public virtual string SelectScalarSubquery(string usersTable, string ordersTable) =>
+        $"SELECT (SELECT COUNT(*) FROM {ordersTable} o WHERE o.UserId = 1)";
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public virtual string SelectInSubquery(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {usersTable} WHERE Id IN (SELECT UserId FROM {ordersTable})";
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public virtual string CrossApplyProjection(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {usersTable} u WHERE EXISTS (SELECT 1 FROM {ordersTable} o WHERE o.UserId = u.Id)";
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public virtual string OuterApplyProjection(string usersTable, string ordersTable) =>
+        $"SELECT COUNT(*) FROM {usersTable} u";
+
     public virtual string DropTable(string tableName) => $"DROP TABLE {tableName}";
 
     /// <summary>

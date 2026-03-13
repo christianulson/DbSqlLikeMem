@@ -89,7 +89,6 @@ internal static class SqlUnsupported
         return new NotSupportedException($"SQL não suportado para dialeto '{FormatDialectLabel(dialect)}' (v{dialect.Version}): OPTION(query hints). {hint}");
     }
 
-
     public static InvalidOperationException ForDeleteWithoutFrom(ISqlDialect dialect)
         => new($"DELETE sem FROM não suportado no dialeto '{FormatDialectLabel(dialect)}'. Use DELETE FROM <tabela> ...");
 

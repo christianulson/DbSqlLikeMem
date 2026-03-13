@@ -96,6 +96,14 @@ public enum BenchmarkFeatureId
     DistinctProjection,
     /// <summary>EN: Executes a multi-join aggregate query. PT-br: Executa uma consulta agregada com múltiplos joins.</summary>
     MultiJoinAggregate,
+    /// <summary>EN: Executes a scalar subquery projection. PT-br: Executa uma projeção com subconsulta escalar.</summary>
+    SelectScalarSubquery,
+    /// <summary>EN: Executes an IN subquery predicate. PT-br: Executa um predicado IN com subconsulta.</summary>
+    SelectInSubquery,
+    /// <summary>EN: Executes a CROSS APPLY style projection. PT-br: Executa uma projeção no estilo CROSS APPLY.</summary>
+    CrossApplyProjection,
+    /// <summary>EN: Executes an OUTER APPLY style projection. PT-br: Executa uma projeção no estilo OUTER APPLY.</summary>
+    OuterApplyProjection,
     /// <summary>EN: Reads rowcount after insert. PT-br: Lê a contagem de linhas após insert.</summary>
     RowCountAfterInsert,
     /// <summary>EN: Reads rowcount after update. PT-br: Lê a contagem de linhas após update.</summary>

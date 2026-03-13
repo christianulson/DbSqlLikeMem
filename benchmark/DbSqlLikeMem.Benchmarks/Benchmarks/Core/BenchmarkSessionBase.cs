@@ -1597,6 +1597,224 @@ public abstract class BenchmarkSessionBase(
         }
     }
 
+
+    protected virtual void RunSelectExistsPredicate()
+    {
+        var users = NewUsersTableName();
+        var orders = NewOrdersTableName();
+        using var connection = CreateConnection();
+        connection.Open();
+        try
+        {
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders));
+            SeedUsersAndOrders(connection, users, orders);
+            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.SelectExistsPredicate(users, orders)), CultureInfo.InvariantCulture);
+            GC.KeepAlive(value);
+        }
+        finally
+        {
+            SafeDropTable(connection, orders);
+            SafeDropTable(connection, users);
+        }
+    }
+
+    protected virtual void RunSelectCorrelatedCount()
+    {
+        var users = NewUsersTableName();
+        var orders = NewOrdersTableName();
+        using var connection = CreateConnection();
+        connection.Open();
+        try
+        {
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders));
+            SeedUsersAndOrders(connection, users, orders);
+            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.SelectCorrelatedCount(users, orders)), CultureInfo.InvariantCulture);
+            GC.KeepAlive(value);
+        }
+        finally
+        {
+            SafeDropTable(connection, orders);
+            SafeDropTable(connection, users);
+        }
+    }
+
+    protected virtual void RunGroupByHaving()
+    {
+        var users = NewUsersTableName();
+        var orders = NewOrdersTableName();
+        using var connection = CreateConnection();
+        connection.Open();
+        try
+        {
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders));
+            SeedUsersAndOrders(connection, users, orders);
+            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.GroupByHaving(users, orders)), CultureInfo.InvariantCulture);
+            GC.KeepAlive(value);
+        }
+        finally
+        {
+            SafeDropTable(connection, orders);
+            SafeDropTable(connection, users);
+        }
+    }
+
+    protected virtual void RunUnionAllProjection()
+    {
+        var users = NewUsersTableName();
+        using var connection = CreateConnection();
+        connection.Open();
+        try
+        {
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
+            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Bob"));
+            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.UnionAllProjection(users)), CultureInfo.InvariantCulture);
+            GC.KeepAlive(value);
+        }
+        finally
+        {
+            SafeDropTable(connection, users);
+        }
+    }
+
+    protected virtual void RunDistinctProjection()
+    {
+        var users = NewUsersTableName();
+        using var connection = CreateConnection();
+        connection.Open();
+        try
+        {
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.InsertUser(users, 1, "Alice"));
+            ExecuteNonQuery(connection, Dialect.InsertUser(users, 2, "Alice"));
+            ExecuteNonQuery(connection, Dialect.InsertUser(users, 3, "Bob"));
+            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.DistinctProjection(users)), CultureInfo.InvariantCulture);
+            GC.KeepAlive(value);
+        }
+        finally
+        {
+            SafeDropTable(connection, users);
+        }
+    }
+
+    protected virtual void RunMultiJoinAggregate()
+    {
+        var users = NewUsersTableName();
+        var orders = NewOrdersTableName();
+        using var connection = CreateConnection();
+        connection.Open();
+        try
+        {
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders));
+            SeedUsersAndOrders(connection, users, orders);
+            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.MultiJoinAggregate(users, orders)), CultureInfo.InvariantCulture);
+            GC.KeepAlive(value);
+        }
+        finally
+        {
+            SafeDropTable(connection, orders);
+            SafeDropTable(connection, users);
+        }
+    }
+
+    protected virtual void RunSelectScalarSubquery()
+    {
+        var users = NewUsersTableName();
+        var orders = NewOrdersTableName();
+        using var connection = CreateConnection();
+        connection.Open();
+        try
+        {
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders));
+            SeedUsersAndOrders(connection, users, orders);
+            var value = ExecuteScalar(connection, Dialect.SelectScalarSubquery(users, orders));
+            GC.KeepAlive(value);
+        }
+        finally
+        {
+            SafeDropTable(connection, orders);
+            SafeDropTable(connection, users);
+        }
+    }
+
+    protected virtual void RunSelectInSubquery()
+    {
+        var users = NewUsersTableName();
+        var orders = NewOrdersTableName();
+        using var connection = CreateConnection();
+        connection.Open();
+        try
+        {
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders));
+            SeedUsersAndOrders(connection, users, orders);
+            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.SelectInSubquery(users, orders)), CultureInfo.InvariantCulture);
+            GC.KeepAlive(value);
+        }
+        finally
+        {
+            SafeDropTable(connection, orders);
+            SafeDropTable(connection, users);
+        }
+    }
+
+    protected virtual void RunCrossApplyProjection()
+    {
+        var users = NewUsersTableName();
+        var orders = NewOrdersTableName();
+        using var connection = CreateConnection();
+        connection.Open();
+        try
+        {
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders));
+            SeedUsersAndOrders(connection, users, orders);
+            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.CrossApplyProjection(users, orders)), CultureInfo.InvariantCulture);
+            GC.KeepAlive(value);
+        }
+        finally
+        {
+            SafeDropTable(connection, orders);
+            SafeDropTable(connection, users);
+        }
+    }
+
+    protected virtual void RunOuterApplyProjection()
+    {
+        var users = NewUsersTableName();
+        var orders = NewOrdersTableName();
+        using var connection = CreateConnection();
+        connection.Open();
+        try
+        {
+            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
+            ExecuteNonQuery(connection, Dialect.CreateOrdersTable(orders));
+            SeedUsersAndOrders(connection, users, orders);
+            var value = Convert.ToInt32(ExecuteScalar(connection, Dialect.OuterApplyProjection(users, orders)), CultureInfo.InvariantCulture);
+            GC.KeepAlive(value);
+        }
+        finally
+        {
+            SafeDropTable(connection, orders);
+            SafeDropTable(connection, users);
+        }
+    }
+
+    private void SeedUsersAndOrders(DbConnection connection, string usersTable, string ordersTable)
+    {
+        ExecuteNonQuery(connection, Dialect.InsertUser(usersTable, 1, "Alice"));
+        ExecuteNonQuery(connection, Dialect.InsertUser(usersTable, 2, "Bob"));
+        ExecuteNonQuery(connection, Dialect.InsertUser(usersTable, 3, "Charlie"));
+        ExecuteNonQuery(connection, Dialect.InsertOrder(ordersTable, 1, 1, "o-1"));
+        ExecuteNonQuery(connection, Dialect.InsertOrder(ordersTable, 2, 1, "o-2"));
+        ExecuteNonQuery(connection, Dialect.InsertOrder(ordersTable, 3, 2, "o-3"));
+    }
+
     protected virtual void RunExecutionPlan()
     {
         var users = NewUsersTableName();
