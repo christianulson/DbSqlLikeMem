@@ -148,7 +148,6 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name);";
     public override string JsonScalarRead(string jsonLiteral) =>
             $"SELECT JSON_VALUE('{jsonLiteral}', '$.name')";
 
-
     public override string StringAggregateDistinct(string tableName) =>
         $"SELECT STRING_AGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM (SELECT DISTINCT Name FROM {tableName}) t";
     public override string StringAggregateCustomSeparator(string tableName, string separator) =>
@@ -163,8 +162,6 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name);";
         $"SELECT COUNT(*) FROM {tableName} WHERE CURRENT_TIMESTAMP IS NOT NULL";
     public override string TemporalNowOrderBy(string tableName) =>
         $"SELECT TOP (1) Name FROM {tableName} ORDER BY CURRENT_TIMESTAMP, Name";
-
-
 
     public override string CrossApplyProjection(string usersTable, string ordersTable) =>
         $"SELECT COUNT(*) FROM {usersTable} u CROSS APPLY (SELECT TOP (1) o.Note FROM {ordersTable} o WHERE o.UserId = u.Id ORDER BY o.Id DESC) x";

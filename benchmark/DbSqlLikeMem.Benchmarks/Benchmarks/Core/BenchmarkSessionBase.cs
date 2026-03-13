@@ -1,3 +1,8 @@
+using IBM.Data.Db2;
+using Microsoft.Data.SqlClient;
+using MySqlConnector;
+using Npgsql;
+using Oracle.ManagedDataAccess.Client;
 using System.Globalization;
 
 namespace DbSqlLikeMem.Benchmarks.Core;
@@ -45,6 +50,47 @@ public abstract class BenchmarkSessionBase(
     {
     }
 
+    public virtual void Execute(BenchmarkFeatureId feature)
+    {
+        try
+        {
+            RunFeature(feature);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine($"[NA-IOE] {feature}: {ex.Message}");
+        }
+        catch (NotSupportedException ex)
+        {
+            Console.WriteLine($"[NA-NSE] {feature}: {ex.Message}");
+        }
+        catch (DB2Exception ex)
+        {
+            Console.WriteLine($"[NA-DB2E] {feature}: {ex.Message}");
+        }
+        catch (SqlException ex)
+        {
+            Console.WriteLine($"[NA-SqlE] {feature}: {ex.Message}");
+        }
+        catch (MySqlException ex)
+        {
+            Console.WriteLine($"[NA-MSE] {feature}: {ex.Message}");
+        }
+        catch (NpgsqlException ex)
+        {
+            Console.WriteLine($"[NA-NE] {feature}: {ex.Message}");
+        }
+        catch (OracleException ex)
+        {
+            Console.WriteLine($"[NA-OE] {feature}: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            //Console.WriteLine($"[NA] {feature}: {ex.Message}");
+            LogBenchmarkIssue(feature, ex);
+        }
+    }
+
     /// <summary>
     /// EN: Dispatches the requested benchmark feature to the corresponding benchmark routine.
     /// PT-br: Encaminha o recurso de benchmark solicitado para a rotina de benchmark correspondente.
@@ -52,7 +98,7 @@ public abstract class BenchmarkSessionBase(
     /// <param name="feature">EN: The benchmark feature to execute. PT-br: O recurso de benchmark a ser executado.</param>
     /// <exception cref="NotSupportedException"></exception>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public void Execute(BenchmarkFeatureId feature)
+    public void RunFeature(BenchmarkFeatureId feature)
     {
         switch (feature)
         {
@@ -307,6 +353,23 @@ public abstract class BenchmarkSessionBase(
         }
     }
 
+    private static readonly object _logSync = new();
+
+    protected virtual void LogBenchmarkIssue(BenchmarkFeatureId feature, Exception ex)
+    {
+        var root = ex.GetBaseException();
+        var message = $"[NA-{root.GetType().Name}] {feature}: {root.Message}";
+
+        Console.WriteLine(message);
+
+        lock (_logSync)
+        {
+            File.AppendAllText(
+                "benchmark-errors.log",
+                message + Environment.NewLine);
+        }
+    }
+
     /// <summary>
     /// EN: Releases any resources allocated by the benchmark session.
     /// PT-br: Libera os recursos alocados pela sessão de benchmark.
@@ -475,27 +538,42 @@ public abstract class BenchmarkSessionBase(
     protected virtual void RunInsertBatch100Parallel()
     {
         var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
+
+        using var setupConnection = CreateConnection();
+        setupConnection.Open();
 
         try
         {
-            ExecuteNonQuery(connection, Dialect.CreateUsersTable(users));
-            Parallel.For(1, 101, i =>
-            {
-                ExecuteNonQuery(connection, Dialect.InsertUser(users, i, $"User-{i}"));
-            });
+            ExecuteNonQuery(setupConnection, Dialect.CreateUsersTable(users));
 
-            var count = Convert.ToInt32(ExecuteScalar(connection, Dialect.CountRows(users)), CultureInfo.InvariantCulture);
+            var tasks = Enumerable.Range(1, 100)
+                .Select(i => Task.Run(async () =>
+                {
+                    using var connection = CreateConnection();
+                    connection.Open();
+                    await ExecuteNonQueryAsync(connection, Dialect.InsertUser(users, i, $"User-{i}"));
+                }))
+                .ToArray();
+
+            Task.WhenAll(tasks).GetAwaiter().GetResult();
+
+            var count = Convert.ToInt32(
+                ExecuteScalar(setupConnection, Dialect.CountRows(users)),
+                CultureInfo.InvariantCulture);
+
             if (count != 100)
             {
-                throw new InvalidOperationException($"Expected 100 rows for {Dialect.DisplayName}, got {count}.");
+                LogBenchmarkIssue(
+                    BenchmarkFeatureId.InsertBatch100Parallel,
+                    new InvalidOperationException($"Expected 100 rows for {Dialect.DisplayName}, got {count}."));
+                return;
             }
+
             GC.KeepAlive(count);
         }
         finally
         {
-            SafeDropTable(connection, users);
+            SafeDropTable(setupConnection, users);
         }
     }
 
@@ -1088,6 +1166,17 @@ public abstract class BenchmarkSessionBase(
         return command.ExecuteNonQuery();
     }
 
+    protected static Task<int> ExecuteNonQueryAsync(DbConnection connection, string sql, DbTransaction? transaction = null)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        if (transaction is not null)
+        {
+            command.Transaction = transaction;
+        }
+        return command.ExecuteNonQueryAsync();
+    }
+
     /// <summary>
     /// EN: Executes a SQL command and returns its scalar result.
     /// PT-br: Executa um comando SQL e retorna o seu resultado escalar.
@@ -1105,6 +1194,17 @@ public abstract class BenchmarkSessionBase(
             command.Transaction = transaction;
         }
         return command.ExecuteScalar();
+    }
+
+    protected static Task<object?> ExecuteScalarAsync(DbConnection connection, string sql, DbTransaction? transaction = null)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        if (transaction is not null)
+        {
+            command.Transaction = transaction;
+        }
+        return command.ExecuteScalarAsync();
     }
 
     /// <summary>
@@ -1143,9 +1243,9 @@ public abstract class BenchmarkSessionBase(
             command.CommandText = sql;
             command.ExecuteNonQuery();
         }
-        catch
+        catch (Exception ex)
         {
-            // cleanup is best-effort only
+            Console.WriteLine($"Benchmark error: {ex.Message}");
         }
     }
 

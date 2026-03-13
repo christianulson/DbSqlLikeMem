@@ -6,8 +6,10 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 /// EN: Runs Oracle benchmark scenarios against the in-memory DbSqlLikeMem Oracle mock provider.
 /// PT-br: Executa cenários de benchmark de Oracle contra o provedor mock em memória DbSqlLikeMem de Oracle.
 /// </summary>
-public sealed class OracleDbSqlLikeMemSession() : DbSqlLikeMemBenchmarkSessionBase(new OracleDialect())
+public sealed class OracleDbSqlLikeMemSession()
+    : DbSqlLikeMemBenchmarkSessionBase(new OracleDialect())
 {
+    private readonly OracleDbMock Db = [];
 
     /// <summary>
     /// EN: Creates a new DbSqlLikeMem Oracle mock connection.
@@ -16,6 +18,6 @@ public sealed class OracleDbSqlLikeMemSession() : DbSqlLikeMemBenchmarkSessionBa
     /// <returns>EN: A new DbSqlLikeMem Oracle mock connection. PT-br: Uma nova conexão mock DbSqlLikeMem de Oracle.</returns>
     protected override DbConnection CreateConnection()
     {
-        return new OracleConnectionMock();
+        return new OracleConnectionMock(Db);
     }
 }

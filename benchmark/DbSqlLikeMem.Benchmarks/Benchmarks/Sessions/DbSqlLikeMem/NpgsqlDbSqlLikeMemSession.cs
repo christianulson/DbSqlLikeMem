@@ -6,8 +6,11 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 /// EN: Runs PostgreSQL/Npgsql benchmark scenarios against the in-memory DbSqlLikeMem mock provider.
 /// PT-br: Executa cenários de benchmark de PostgreSQL/Npgsql contra o provedor mock em memória DbSqlLikeMem.
 /// </summary>
-public sealed class NpgsqlDbSqlLikeMemSession() : DbSqlLikeMemBenchmarkSessionBase(new NpgsqlDialect())
+public sealed class NpgsqlDbSqlLikeMemSession()
+    : DbSqlLikeMemBenchmarkSessionBase(new NpgsqlDialect())
 {
+    private readonly NpgsqlDbMock Db = [];
+
     /// <summary>
     /// EN: Creates a new DbSqlLikeMem PostgreSQL/Npgsql mock connection.
     /// PT-br: Cria uma nova conexão mock DbSqlLikeMem de PostgreSQL/Npgsql.
@@ -15,6 +18,6 @@ public sealed class NpgsqlDbSqlLikeMemSession() : DbSqlLikeMemBenchmarkSessionBa
     /// <returns>EN: A new DbSqlLikeMem PostgreSQL/Npgsql mock connection. PT-br: Uma nova conexão mock DbSqlLikeMem de PostgreSQL/Npgsql.</returns>
     protected override DbConnection CreateConnection()
     {
-        return new NpgsqlConnectionMock();
+        return new NpgsqlConnectionMock(Db);
     }
 }

@@ -52,10 +52,47 @@ public sealed class Db2TestcontainersSession()
 
         _container.StartAsync().GetAwaiter().GetResult();
 
-        var connectionString = BuildConnectionString(_container);
-        WaitUntilDb2AcceptsConnections(connectionString);
+        return BuildConnectionString(_container);
+    }
 
-        return connectionString;
+    /// <summary>
+    /// EN: Waits until Db2 can complete a real client roundtrip, not only until the container process is running.
+    /// This avoids SQL30081N recv errors caused by the database still finishing its internal startup sequence.
+    /// PT-br: Aguarda até que o Db2 consiga completar um roundtrip real de cliente, e não apenas até o processo do
+    /// container estar em execução. Isso evita erros SQL30081N recv causados pelo banco ainda estar finalizando a
+    /// sequência interna de inicialização.
+    /// </summary>
+    /// <param name="connectionString">
+    /// EN: The Db2 connection string used for the readiness probe.
+    /// PT-br: A string de conexão do Db2 usada na sonda de prontidão.
+    /// </param>
+    protected override void EnsureExternalRuntimeIsReady(string connectionString)
+    {
+        var deadline = DateTime.UtcNow.AddMinutes(8);
+        Exception? lastError = null;
+
+        while (DateTime.UtcNow < deadline)
+        {
+            try
+            {
+                using var connection = new DB2Connection(connectionString);
+                connection.Open();
+
+                using var command = connection.CreateCommand();
+                command.CommandText = "SELECT 1 FROM SYSIBM.SYSDUMMY1";
+                _ = command.ExecuteScalar();
+                return;
+            }
+            catch (Exception ex)
+            {
+                lastError = ex;
+                Thread.Sleep(TimeSpan.FromSeconds(2));
+            }
+        }
+
+        throw new TimeoutException(
+            "Db2 runtime became reachable, but the database did not become ready for client connections within the expected time.",
+            lastError);
     }
 
     /// <summary>
@@ -81,7 +118,7 @@ public sealed class Db2TestcontainersSession()
     /// EN: Disposes the Db2 test container and releases Docker resources.
     /// PT-br: Descarta o container de teste do Db2 e libera os recursos do Docker.
     /// </summary>
-    public override void Dispose()
+    protected override void DisposeOwnedRuntime()
     {
         if (_container is not null)
         {
@@ -114,45 +151,5 @@ public sealed class Db2TestcontainersSession()
         };
 
         return builder.ConnectionString;
-    }
-
-    /// <summary>
-    /// EN: Waits until Db2 can complete a real client roundtrip, not only until the container process is running.
-    /// This avoids SQL30081N recv errors caused by the database still finishing its internal startup sequence.
-    /// PT-br: Aguarda até que o Db2 consiga completar um roundtrip real de cliente, e não apenas até o processo do
-    /// container estar em execução. Isso evita erros SQL30081N recv causados pelo banco ainda estar finalizando a
-    /// sequência interna de inicialização.
-    /// </summary>
-    /// <param name="connectionString">
-    /// EN: The Db2 connection string used for the readiness probe.
-    /// PT-br: A string de conexão do Db2 usada na sonda de prontidão.
-    /// </param>
-    private static void WaitUntilDb2AcceptsConnections(string connectionString)
-    {
-        var deadline = DateTime.UtcNow.AddMinutes(8);
-        Exception? lastError = null;
-
-        while (DateTime.UtcNow < deadline)
-        {
-            try
-            {
-                using var connection = new DB2Connection(connectionString);
-                connection.Open();
-
-                using var command = connection.CreateCommand();
-                command.CommandText = "SELECT 1 FROM SYSIBM.SYSDUMMY1";
-                _ = command.ExecuteScalar();
-                return;
-            }
-            catch (Exception ex)
-            {
-                lastError = ex;
-                Thread.Sleep(TimeSpan.FromSeconds(2));
-            }
-        }
-
-        throw new TimeoutException(
-            "Db2 container started, but the database did not become ready for client connections within the expected time.",
-            lastError);
     }
 }

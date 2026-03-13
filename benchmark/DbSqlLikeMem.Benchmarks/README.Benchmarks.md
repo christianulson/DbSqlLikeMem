@@ -35,3 +35,26 @@ pwsh ./Scripts/export-wiki.ps1 -ArtifactsDir ./BenchmarkDotNet.Artifacts/results
 powershell -ExecutionPolicy Bypass -File .\Scripts\export-wiki.ps1
 
 powershell -ExecutionPolicy Bypass -File .\Scripts\export-wiki-app-specific.single-table.ps1
+
+
+
+subir os bancos uma vez:
+
+./Scripts/start-benchmark-databases.ps1
+
+rodar benchmarks externos usando os bancos já disponíveis:
+
+./Scripts/run-benchmarks-preprovisioned.ps1 --filter "*Testcontainers*"
+
+se quiser reduzir também o overhead de processo:
+
+./Scripts/run-benchmarks-preprovisioned.ps1 --inprocess --filter "*Testcontainers*"
+
+
+docker compose -f docker-compose.benchmarks.yml down
+docker compose -f docker-compose.benchmarks.yml up -d
+
+
+
+powershell -ExecutionPolicy Bypass -File ./Scripts/start-benchmark-databases.robust.ps1
+powershell -ExecutionPolicy Bypass -File ./Scripts/run-benchmarks-preprovisioned.ps1 --inprocess

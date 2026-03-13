@@ -43,7 +43,7 @@ public sealed class OracleTestcontainersSession()
     /// EN: Disposes the Oracle container when the benchmark session finishes.
     /// PT-br: Libera o contêiner de Oracle quando a sessão de benchmark termina.
     /// </summary>
-    public override void Dispose()
+    protected override void DisposeOwnedRuntime()
     {
         if (_container is not null)
         {

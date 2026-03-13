@@ -11,7 +11,7 @@ namespace DbSqlLikeMem;
 public abstract class TableMock
     : ITableMock
 {
-
+    private const string PRIMARY = "PRIMARY";
     /// <summary>
     /// EN: Initializes the table with name, schema, and columns, with optional rows.
     /// PT: Inicializa a tabela com nome, schema e colunas, com linhas opcionais.
@@ -624,7 +624,7 @@ public abstract class TableMock
             var dupPk = _columns
                 .Where(_ => _primaryKeyIndexes.Contains(_.Value.Index))
                 .Select(_ => $"{_.Key}: {(newRow.TryGetValue(_.Value.Index, out var v) ? v : null)}");
-            throw DuplicateKey(TableName, "PRIMARY", string.Join(",", dupPk));
+            throw DuplicateKey(TableName, PRIMARY, string.Join(",", dupPk));
         }
 
         var pkColumnNames = _columns.ToDictionary(_ => _.Value.Index, _ => _.Key);
@@ -634,14 +634,15 @@ public abstract class TableMock
             foreach (var pkIdx in _primaryKeyIndexes)
             {
                 if (newRow.TryGetValue(pkIdx, out var pkVal)
-                    && this[i].TryGetValue(pkIdx, out var cur)
+                    && Count > i
+                    && this[i]?.TryGetValue(pkIdx, out var cur) == true
                     && Equals(cur, pkVal))
                 {
                     pks.Add($"{pkColumnNames[pkIdx]}: {pkVal}");
                 }
             }
             if (_primaryKeyIndexes.Count == pks.Count)
-                throw DuplicateKey(TableName, "PRIMARY", string.Join(",", pks));
+                throw DuplicateKey(TableName, PRIMARY, string.Join(",", pks));
         }
     }
 
@@ -658,7 +659,7 @@ public abstract class TableMock
             var dupPk = _columns
                 .Where(_ => _primaryKeyIndexes.Contains(_.Value.Index))
                 .Select(_ => $"{_.Key}: {(newRow.TryGetValue(_.Value.Index, out var v) ? v : null)}");
-            conflictIndexName = "PRIMARY";
+            conflictIndexName = PRIMARY;
             conflictKey = string.Join(",", dupPk);
             return conflictByIndex;
         }
@@ -704,7 +705,7 @@ public abstract class TableMock
             if (_primaryKeyIndexes.Count != pks.Count)
                 continue;
 
-            conflictIndexName = "PRIMARY";
+            conflictIndexName = PRIMARY;
             conflictKey = string.Join(",", pks);
             value = i;
             return false;

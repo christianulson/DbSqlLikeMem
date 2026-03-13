@@ -7768,7 +7768,7 @@ private void FillPercentRankOrCumeDist(
                     foreach (var col in ColumnNames)
                     {
                         var idx = Physical.Columns[col].Index;
-                        dict[$"{Alias}.{col}"] = row.TryGetValue(idx, out var v)
+                        dict[$"{Alias}.{col}"] = row?.TryGetValue(idx, out var v) == true
                             ? v
                             : null;
                     }

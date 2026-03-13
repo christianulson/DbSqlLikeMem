@@ -1078,7 +1078,7 @@ internal static class DbInsertStrategy
     // Defaults and uniqueness are handled by TableMock.
 
     private static IReadOnlyDictionary<int, object?> SnapshotRow(IReadOnlyDictionary<int, object?> row)
-        => row.ToDictionary(_ => _.Key, _ => _.Value);
+        => row?.ToDictionary(_ => _.Key, _ => _.Value)??[];
 
     private static void EnsureDialectSupportsSequenceFunction(ISqlDialect dialect, string? functionName)
     {

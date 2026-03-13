@@ -44,7 +44,7 @@ public sealed class NpgsqlTestcontainersSession()
     /// EN: Disposes the PostgreSQL container when the benchmark session finishes.
     /// PT-br: Libera o contêiner de PostgreSQL quando a sessão de benchmark termina.
     /// </summary>
-    public override void Dispose()
+    protected override void DisposeOwnedRuntime()
     {
         if (_container is not null)
         {

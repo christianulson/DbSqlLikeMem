@@ -17,6 +17,9 @@ public abstract class BenchmarkSuiteBase
     /// </summary>
     protected abstract IBenchmarkSession CreateSession();
 
+    private bool _sessionReady;
+    private Exception? _setupException;
+
     /// <summary>
     /// 
     /// </summary>
@@ -24,7 +27,18 @@ public abstract class BenchmarkSuiteBase
     public void GlobalSetup()
     {
         Session = CreateSession();
-        Session.Initialize();
+        try
+        {
+            Session.Initialize();
+            _sessionReady = true;
+            _setupException = null;
+        }
+        catch (Exception ex)
+        {
+            _sessionReady = false;
+            _setupException = ex;
+            LogSetupIssue(ex);
+        }
     }
 
     /// <summary>
@@ -39,9 +53,55 @@ public abstract class BenchmarkSuiteBase
     /// <summary>
     /// 
     /// </summary>
-    protected void Run(BenchmarkFeatureId feature)
+    public void Run(BenchmarkFeatureId feature)
     {
+        if (!_sessionReady)
+        {
+            var reason = _setupException?.GetBaseException()?.ToString() ?? "Session not initialized.";
+            LogBenchmarkIssue(
+                feature,
+                new InvalidOperationException($"Session not initialized. Setup failure: {reason}"));
+            return;
+        }
+
         Session.Execute(feature);
+    }
+
+    private static readonly object _setupLogSync = new();
+    protected void LogSetupIssue(Exception ex)
+    {
+        var root = ex.GetBaseException();
+
+        var message =
+            $"[SETUP-{root.GetType().Name}] {root.ToString()}";
+
+        Console.WriteLine(message);
+
+        var logEntry =
+            $"{DateTime.UtcNow:O} {message}{Environment.NewLine}{root.StackTrace}{Environment.NewLine}{Environment.NewLine}";
+
+        lock (_setupLogSync)
+        {
+            File.AppendAllText(
+                "benchmark-setup-errors.log",
+                logEntry);
+        }
+    }
+
+    private static readonly object _logSync = new();
+    protected virtual void LogBenchmarkIssue(BenchmarkFeatureId feature, Exception ex)
+    {
+        var root = ex.GetBaseException();
+        var message = $"[NA-{root.GetType().Name}] {feature}: {root.Message}";
+
+        Console.WriteLine(message);
+
+        lock (_logSync)
+        {
+            File.AppendAllText(
+                "benchmark-errors.log",
+                message + Environment.NewLine);
+        }
     }
 
     [Benchmark]

@@ -9,6 +9,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 public sealed class SqlAzureDbSqlLikeMemSession()
     : DbSqlLikeMemBenchmarkSessionBase(new SqlAzureDialect())
 {
+    private readonly SqlAzureDbMock Db = [];
     /// <summary>
     /// EN: Creates a new DbSqlLikeMem SQL Azure mock connection.
     /// PT-br: Cria uma nova conexão mock DbSqlLikeMem de SQL Azure.
@@ -16,6 +17,6 @@ public sealed class SqlAzureDbSqlLikeMemSession()
     /// <returns>EN: A new DbSqlLikeMem SQL Azure mock connection. PT-br: Uma nova conexão mock DbSqlLikeMem de SQL Azure.</returns>
     protected override DbConnection CreateConnection()
     {
-        return new SqlAzureConnectionMock();
+        return new SqlAzureConnectionMock(Db);
     }
 }

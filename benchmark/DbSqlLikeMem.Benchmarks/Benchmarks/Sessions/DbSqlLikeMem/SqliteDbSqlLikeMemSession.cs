@@ -8,12 +8,12 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 public sealed class SqliteDbSqlLikeMemSession()
     : DbSqlLikeMemBenchmarkSessionBase(new SqliteDialect())
 {
-
+    private readonly SqliteDbMock Db = [];
     /// <summary>
     /// 
     /// </summary>
     protected override DbConnection CreateConnection()
     {
-        return new SqliteConnectionMock();
+        return new SqliteConnectionMock(Db);
     }
 }

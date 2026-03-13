@@ -1,0 +1,93 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: dbsqllikemem-bench-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: benchmark
+    ports:
+      - "13306:3306"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -proot --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+
+  postgres:
+    image: postgres:17
+    container_name: dbsqllikemem-bench-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: benchmark
+    ports:
+      - "15432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d benchmark"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04
+    container_name: dbsqllikemem-bench-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Your_password123"
+      MSSQL_PID: "Developer"
+    ports:
+      - "11433:1433"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'Your_password123' -Q \"SELECT 1\" || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+
+  oracle:
+    image: gvenzl/oracle-free:23-slim-faststart
+    container_name: dbsqllikemem-bench-oracle
+    environment:
+      ORACLE_PASSWORD: oracle
+      APP_USER: benchmark
+      APP_USER_PASSWORD: benchmark
+    ports:
+      - "15211:1521"
+    healthcheck:
+      test: ["CMD-SHELL", "healthcheck.sh"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+
+  db2:
+    image: icr.io/db2_community/db2:12.1.0.0
+    container_name: dbsqllikemem-bench-db2
+    privileged: true
+    environment:
+      LICENSE: accept
+      DBNAME: BENCH
+      DB2INSTANCE: db2inst1
+      DB2INST1_PASSWORD: db2inst1
+      ENABLE_ORACLE_COMPATIBILITY: "false"
+      UPDATEAVAIL: "NO"
+      TO_CREATE_SAMPLEDB: "false"
+      REPODB: "false"
+      IS_OSXFS: "false"
+      PERSISTENT_HOME: "false"
+      HADR_ENABLED: "false"
+      ETCD_ENDPOINT: ""
+      BLU: "false"
+      ENABLE_TEXT_SEARCH: "false"
+      AUTOCONFIG: "false"
+      ARCHIVE_LOGS: "false"
+    ports:
+      - "15000:50000"
+    healthcheck:
+      test: ["CMD-SHELL", "su - db2inst1 -c 'db2 connect to BENCH user db2inst1 using db2inst1 >/dev/null 2>&1' || exit 1"]
+      interval: 20s
+      timeout: 20s
+      retries: 30
+
+networks:
+  default:
+    name: dbsqllikemembenchmarks_default

@@ -8,12 +8,13 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 public sealed class SqlServerDbSqlLikeMemSession() 
     : DbSqlLikeMemBenchmarkSessionBase(new SqlServerDialect())
 {
+    private readonly SqlServerDbMock Db = [];
 
     /// <summary>
     /// 
     /// </summary>
     protected override DbConnection CreateConnection()
     {
-        return new SqlServerConnectionMock();
+        return new SqlServerConnectionMock(Db);
     }
 }

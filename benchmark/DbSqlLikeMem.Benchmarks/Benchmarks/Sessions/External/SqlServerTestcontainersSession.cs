@@ -42,7 +42,7 @@ public sealed class SqlServerTestcontainersSession()
     /// EN: Disposes the SQL Server container when the benchmark session finishes.
     /// PT-br: Libera o contêiner de SQL Server quando a sessão de benchmark termina.
     /// </summary>
-    public override void Dispose()
+    protected override void DisposeOwnedRuntime()
     {
         if (_container is not null)
         {

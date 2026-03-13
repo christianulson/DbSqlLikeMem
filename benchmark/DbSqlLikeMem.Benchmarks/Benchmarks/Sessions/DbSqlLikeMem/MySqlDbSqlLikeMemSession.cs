@@ -9,6 +9,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 public sealed class MySqlDbSqlLikeMemSession() 
     : DbSqlLikeMemBenchmarkSessionBase(new MySqlDialect())
 {
+    private readonly MySqlDbMock Db = [];
 
     /// <summary>
     /// EN: Creates a new DbSqlLikeMem MySQL mock connection.
@@ -17,6 +18,6 @@ public sealed class MySqlDbSqlLikeMemSession()
     /// <returns>EN: A new DbSqlLikeMem MySQL mock connection. PT-br: Uma nova conexão mock DbSqlLikeMem de MySQL.</returns>
     protected override DbConnection CreateConnection()
     {
-        return new MySqlConnectionMock();
+        return new MySqlConnectionMock(Db);
     }
 }

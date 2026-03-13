@@ -122,6 +122,7 @@ WHEN NOT MATCHED THEN
     public override string NextSequenceValue(string sequenceName) =>
             $"VALUES NEXT VALUE FOR {sequenceName}";
 
+    public override string Savepoint(string savepointName) => $"SAVEPOINT {savepointName} ON ROLLBACK RETAIN CURSORS";
 
     public override string StringAggregateOrdered(string tableName) =>
             $"SELECT LISTAGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM {tableName}";
@@ -130,7 +131,6 @@ WHEN NOT MATCHED THEN
 
     public override string JsonScalarRead(string jsonLiteral) =>
             $"VALUES JSON_VALUE('{jsonLiteral}', 'strict $.name')";
-
 
     public override string StringAggregateDistinct(string tableName) =>
         $"SELECT LISTAGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM (SELECT DISTINCT Name FROM {tableName}) t";
@@ -146,8 +146,6 @@ WHEN NOT MATCHED THEN
         $"SELECT COUNT(*) FROM {tableName} WHERE CURRENT TIMESTAMP IS NOT NULL";
     public override string TemporalNowOrderBy(string tableName) =>
         $"SELECT Name FROM {tableName} ORDER BY CURRENT TIMESTAMP, Name FETCH FIRST 1 ROW ONLY";
-
-
 
     public override string CrossApplyProjection(string usersTable, string ordersTable) =>
         $"SELECT COUNT(*) FROM {usersTable} u JOIN LATERAL (SELECT o.Note FROM {ordersTable} o WHERE o.UserId = u.Id ORDER BY o.Id DESC FETCH FIRST 1 ROW ONLY) x ON 1 = 1";
