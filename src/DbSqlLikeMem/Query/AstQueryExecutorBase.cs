@@ -64,7 +64,10 @@ internal abstract class AstQueryExecutorBase(
         "APPROX_COUNT_DISTINCT","APPROX_COUNT_DISTINCT_AGG","APPROX_COUNT_DISTINCT_DETAIL","APPROX_MEDIAN","APPROX_PERCENTILE","APPROX_PERCENTILE_AGG","APPROX_PERCENTILE_DETAIL",
         "REGR_AVGX","REGR_AVGY","REGR_COUNT","REGR_INTERCEPT","REGR_R2","REGR_SLOPE","REGR_SXX","REGR_SXY","REGR_SYY",
         "STDDEV","STDDEV_POP","STDDEV_SAMP","STATS_BINOMIAL_TEST","STATS_CROSSTAB","STATS_F_TEST","STATS_KS_TEST","STATS_MODE","STATS_MW_TEST","STATS_ONE_WAY_ANOVA",
-        "STATS_T_TEST_INDEP","STATS_T_TEST_INDEPU","STATS_T_TEST_ONE","STATS_T_TEST_PAIRED","STATS_WSR_TEST","XMLAGG","RATIO_TO_REPORT"
+        "STATS_T_TEST_INDEP","STATS_T_TEST_INDEPU","STATS_T_TEST_ONE","STATS_T_TEST_PAIRED","STATS_WSR_TEST","XMLAGG","RATIO_TO_REPORT",
+        "ARRAY_AGG","BOOL_AND","BOOL_OR","EVERY","JSON_AGG","JSONB_AGG",
+        "JSON_OBJECT_AGG","JSON_OBJECT_AGG_STRICT","JSON_OBJECT_AGG_UNIQUE","JSON_OBJECT_AGG_UNIQUE_STRICT",
+        "JSONB_OBJECT_AGG","JSONB_OBJECT_AGG_STRICT","JSONB_OBJECT_AGG_UNIQUE","JSONB_OBJECT_AGG_UNIQUE_STRICT"
     };
     private static readonly HashSet<string> _sqlAliasReservedTokens = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -4247,6 +4250,20 @@ private void FillPercentRankOrCumeDist(
                 return 0;
         }
 
+        if (dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        {
+            if (identifier.Name.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase)
+                || identifier.Name.Equals("USER", StringComparison.OrdinalIgnoreCase))
+                return "postgres";
+            if (identifier.Name.Equals("CURRENT_SCHEMA", StringComparison.OrdinalIgnoreCase))
+                return "public";
+            if (identifier.Name.Equals("CURRENT_DATABASE", StringComparison.OrdinalIgnoreCase)
+                || identifier.Name.Equals("CURRENT_CATALOG", StringComparison.OrdinalIgnoreCase))
+                return "postgres";
+            if (identifier.Name.Equals("CURRENT_ROLE", StringComparison.OrdinalIgnoreCase))
+                return "postgres";
+        }
+
         if (IsSqlServerRowCountIdentifier(identifier.Name, Dialect))
             return _cnn.GetLastFoundRows();
 
@@ -6389,6 +6406,9 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalLnnvlFunction(fn, dialect, EvalArg, out var lnnvlResult))
             return lnnvlResult;
 
+        if (TryEvalLocalTimeFunction(fn, dialect, out var localTimeResult))
+            return localTimeResult;
+
         if (TryEvalLocalTimestampFunction(fn, dialect, out var localTimestampResult))
             return localTimestampResult;
 
@@ -6481,6 +6501,36 @@ private void FillPercentRankOrCumeDist(
 
         if (TryEvalOracleUserFunction(fn, dialect, out var oracleUserResult))
             return oracleUserResult;
+
+        if (TryEvalPostgresSystemFunctions(fn, dialect, EvalArg, out var postgresSystemResult))
+            return postgresSystemResult;
+
+        if (TryEvalPostgresDateFunctions(fn, dialect, EvalArg, out var postgresDateResult))
+            return postgresDateResult;
+
+        if (TryEvalPostgresScalarUtilityFunctions(fn, dialect, EvalArg, out var postgresScalarUtilityResult))
+            return postgresScalarUtilityResult;
+
+        if (TryEvalPostgresTextFunctions(fn, dialect, EvalArg, out var postgresTextResult))
+            return postgresTextResult;
+
+        if (TryEvalPostgresNetworkFunctions(fn, dialect, EvalArg, out var postgresNetworkResult))
+            return postgresNetworkResult;
+
+        if (TryEvalPostgresUnicodeFunctions(fn, dialect, EvalArg, out var postgresUnicodeResult))
+            return postgresUnicodeResult;
+
+        if (TryEvalPostgresRegexFunctions(fn, dialect, EvalArg, out var postgresRegexResult))
+            return postgresRegexResult;
+
+        if (TryEvalPostgresArrayFunctions(fn, dialect, EvalArg, out var postgresArrayResult))
+            return postgresArrayResult;
+
+        if (TryEvalPostgresJsonFunctions(fn, dialect, EvalArg, out var postgresJsonResult))
+            return postgresJsonResult;
+
+        if (TryEvalPostgresUuidFunctions(fn, dialect, out var postgresUuidResult))
+            return postgresUuidResult;
 
         if (TryEvalNumericFunction(fn, EvalArg, out var numericResult))
             return numericResult;
@@ -6590,7 +6640,7 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalLocateFunction(fn, dialect, EvalArg, out var locateResult))
             return locateResult;
 
-        if (TryEvalLogFunctions(fn, EvalArg, out var logResult))
+        if (TryEvalLogFunctions(fn, dialect, EvalArg, out var logResult))
             return logResult;
 
         if (TryEvalInstrFunction(fn, EvalArg, out var instrResult))
@@ -6605,10 +6655,10 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalStrftimeFunction(fn, EvalArg, out var strftimeResult))
             return strftimeResult;
 
-        if (TryEvalPrintfFunction(fn, EvalArg, out var printfResult))
+        if (TryEvalPrintfFunction(fn, dialect, EvalArg, out var printfResult))
             return printfResult;
 
-        if (TryEvalRandomFunctions(fn, EvalArg, out var randomResult))
+        if (TryEvalRandomFunctions(fn, dialect, EvalArg, out var randomResult))
             return randomResult;
 
         if (TryEvalTypeofFunction(fn, EvalArg, out var typeofResult))
@@ -7002,6 +7052,37 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
+        if (dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count != 2)
+                throw new InvalidOperationException("DECODE() no PostgreSQL espera payload e formato.");
+
+            var payload = evalArg(0)?.ToString();
+            var format = evalArg(1)?.ToString();
+            if (string.IsNullOrWhiteSpace(payload) || string.IsNullOrWhiteSpace(format))
+            {
+                result = null;
+                return true;
+            }
+
+            try
+            {
+                result = format!.Trim().ToLowerInvariant() switch
+                {
+                    "hex" when TryNormalizeHexPayload(payload!.Trim(), out var hex) && hex.Length % 2 == 0
+                        => ParseHexBinaryPayload(hex),
+                    "base64" => Convert.FromBase64String(payload),
+                    _ => null
+                };
+                return true;
+            }
+            catch
+            {
+                result = null;
+                return true;
+            }
+        }
+
         if (fn.Args.Count < 3)
             throw new InvalidOperationException("DECODE() espera ao menos 3 argumentos.");
 
@@ -7034,6 +7115,17 @@ private void FillPercentRankOrCumeDist(
             return false;
 
         return left!.EqualsSql(right!, dialect);
+    }
+
+    private static byte[] ParseHexBinaryPayload(string hex)
+    {
+        var buffer = new byte[hex.Length / 2];
+        for (var i = 0; i < hex.Length; i += 2)
+        {
+            buffer[i / 2] = byte.Parse(hex.Substring(i, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+        }
+
+        return buffer;
     }
 
     private static bool TryEvalCoalesceFunction(
@@ -7100,7 +7192,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (fn.Args.Count < 2)
@@ -7148,7 +7240,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         var value = evalArg(0);
@@ -7191,7 +7283,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (fn.Args.Count == 0)
@@ -7241,7 +7333,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (fn.Args.Count < 2)
@@ -7284,7 +7376,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         var value = evalArg(0);
@@ -7347,7 +7439,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         var value = evalArg(0);
@@ -7391,7 +7483,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         var value = evalArg(0);
@@ -7420,7 +7512,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         var value = evalArg(0);
@@ -7448,7 +7540,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         result = "+00:00";
@@ -7470,7 +7562,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         var value = evalArg(0);
@@ -7499,7 +7591,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         result = fn.Name.Equals("EMPTY_BLOB", StringComparison.OrdinalIgnoreCase)
@@ -7523,7 +7615,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         var value = evalArg(0);
@@ -7577,7 +7669,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         var value = evalArg(0);
@@ -8096,13 +8188,36 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!(dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            || dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase)))
         {
             result = null;
             return true;
         }
 
         result = DateTime.Now;
+        return true;
+    }
+
+    private static bool TryEvalLocalTimeFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        out object? result)
+    {
+        if (!fn.Name.Equals("LOCALTIME", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!(dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            || dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase)))
+        {
+            result = null;
+            return true;
+        }
+
+        result = DateTime.Now.TimeOfDay;
         return true;
     }
 
@@ -8600,7 +8715,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (fn.Args.Count == 0)
@@ -8717,7 +8832,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (fn.Args.Count < 2)
@@ -8970,7 +9085,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (fn.Args.Count == 0)
@@ -9260,6 +9375,51 @@ private void FillPercentRankOrCumeDist(
         }
     }
 
+    private static string FormatPostgreSqlNumber(object value, string mask)
+    {
+        if (!TryConvertNumericToDecimal(value, out var number))
+            return value.ToString() ?? string.Empty;
+
+        var normalizedMask = ReplaceInsensitive(mask.ToUpperInvariant(), "FM", string.Empty);
+        var decimalIndex = normalizedMask.IndexOf('D');
+        if (decimalIndex < 0)
+            decimalIndex = normalizedMask.IndexOf('.');
+
+        var integerMask = decimalIndex >= 0 ? normalizedMask[..decimalIndex] : normalizedMask;
+        var fractionalMask = decimalIndex >= 0 ? normalizedMask[(decimalIndex + 1)..] : string.Empty;
+
+        var fractionalDigits = fractionalMask.Count(ch => ch is '9' or '0');
+        var rounded = Math.Round(number, fractionalDigits, MidpointRounding.AwayFromZero);
+        var absText = Math.Abs(rounded).ToString($"F{fractionalDigits}", CultureInfo.InvariantCulture);
+        var absParts = absText.Split('.');
+
+        var integerDigits = absParts[0];
+        var fractionalDigitsText = absParts.Length > 1 ? absParts[1] : string.Empty;
+
+        var integerPlaceholders = integerMask.Count(ch => ch is '9' or '0');
+        if (integerDigits.Length < integerPlaceholders)
+        {
+            var padded = integerDigits.PadLeft(integerPlaceholders, ' ');
+            var chars = padded.ToCharArray();
+            var digitIndex = chars.Length - integerDigits.Length;
+            for (var i = 0; i < integerMask.Length && i < chars.Length; i++)
+            {
+                if (integerMask[i] == '0' && i < digitIndex)
+                    chars[i] = '0';
+            }
+
+            integerDigits = new string(chars);
+        }
+
+        if (fractionalDigits > 0 && fractionalDigitsText.Length < fractionalDigits)
+            fractionalDigitsText = fractionalDigitsText.PadRight(fractionalDigits, '0');
+
+        var sign = rounded < 0m ? "-" : " ";
+        return fractionalDigits > 0
+            ? $"{sign}{integerDigits}.{fractionalDigitsText}"
+            : $"{sign}{integerDigits}";
+    }
+
     private static HashAlgorithm? CreateHashAlgorithm(string algorithm)
     {
         try
@@ -9311,6 +9471,1573 @@ private void FillPercentRankOrCumeDist(
         return sb.ToString();
     }
 
+    private bool TryEvalPostgresSystemFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var name = fn.Name.ToUpperInvariant();
+        if (name is "CURRENT_DATABASE" or "CURRENT_CATALOG")
+        {
+            result = "postgres";
+            return true;
+        }
+
+        if (name is "CURRENT_SCHEMA")
+        {
+            result = "public";
+            return true;
+        }
+
+        if (name is "CURRENT_USER" or "CURRENT_ROLE")
+        {
+            result = "postgres";
+            return true;
+        }
+
+        if (name is "CURRENT_SCHEMAS")
+        {
+            result = new[] { "public" };
+            return true;
+        }
+
+        if (name is "CURRENT_SETTING")
+        {
+            result = null;
+            return true;
+        }
+
+        if (name is "CURRENT_QUERY")
+        {
+            result = _cnn.GetCurrentQueryText();
+            return true;
+        }
+
+        if (name is "CLOCK_TIMESTAMP" or "STATEMENT_TIMESTAMP" or "TRANSACTION_TIMESTAMP")
+        {
+            result = DateTime.Now;
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private static bool TryEvalPostgresDateFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var name = fn.Name.ToUpperInvariant();
+        if (name is "DATE_TRUNC")
+        {
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("DATE_TRUNC() espera unidade e data.");
+
+            var unit = evalArg(0)?.ToString() ?? string.Empty;
+            var value = evalArg(1);
+            if (IsNullish(value) || string.IsNullOrWhiteSpace(unit) || !TryCoerceDateTime(value, out var dateTime))
+            {
+                result = null;
+                return true;
+            }
+
+            result = unit.Trim().ToLowerInvariant() switch
+            {
+                "year" => new DateTime(dateTime.Year, 1, 1),
+                "month" => new DateTime(dateTime.Year, dateTime.Month, 1),
+                "day" => dateTime.Date,
+                "hour" => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, 0, 0),
+                "minute" => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, 0),
+                "second" => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second),
+                _ => dateTime
+            };
+            return true;
+        }
+
+        if (name is "DATE_PART")
+        {
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("DATE_PART() espera unidade e data.");
+
+            var unit = evalArg(0)?.ToString() ?? string.Empty;
+            var value = evalArg(1);
+            if (IsNullish(value) || string.IsNullOrWhiteSpace(unit) || !TryCoerceDateTime(value, out var dateTime))
+            {
+                result = null;
+                return true;
+            }
+
+            result = unit.Trim().ToLowerInvariant() switch
+            {
+                "year" => (double)dateTime.Year,
+                "month" => (double)dateTime.Month,
+                "day" => (double)dateTime.Day,
+                "hour" => (double)dateTime.Hour,
+                "minute" => (double)dateTime.Minute,
+                "second" => (double)dateTime.Second,
+                _ => null
+            };
+            return true;
+        }
+
+        if (name is "AGE")
+        {
+            if (fn.Args.Count == 0)
+            {
+                result = null;
+                return true;
+            }
+
+            var left = evalArg(0);
+            if (IsNullish(left) || !TryCoerceDateTime(left, out var leftDate))
+            {
+                result = null;
+                return true;
+            }
+
+            if (fn.Args.Count == 1)
+            {
+                result = DateTime.Now - leftDate;
+                return true;
+            }
+
+            var right = evalArg(1);
+            if (IsNullish(right) || !TryCoerceDateTime(right, out var rightDate))
+            {
+                result = null;
+                return true;
+            }
+
+            result = leftDate - rightDate;
+            return true;
+        }
+
+        if (name is "MAKE_INTERVAL")
+        {
+            var years = fn.Args.Count > 0 ? Convert.ToInt32(evalArg(0).ToDec()) : 0;
+            var months = fn.Args.Count > 1 ? Convert.ToInt32(evalArg(1).ToDec()) : 0;
+            var weeks = fn.Args.Count > 2 ? Convert.ToInt32(evalArg(2).ToDec()) : 0;
+            var days = fn.Args.Count > 3 ? Convert.ToInt32(evalArg(3).ToDec()) : 0;
+            var hours = fn.Args.Count > 4 ? Convert.ToInt32(evalArg(4).ToDec()) : 0;
+            var mins = fn.Args.Count > 5 ? Convert.ToInt32(evalArg(5).ToDec()) : 0;
+            var secs = fn.Args.Count > 6 ? Convert.ToDouble(evalArg(6), CultureInfo.InvariantCulture) : 0d;
+
+            result = TimeSpan.FromDays((years * 365) + (months * 30) + (weeks * 7) + days)
+                .Add(TimeSpan.FromHours(hours))
+                .Add(TimeSpan.FromMinutes(mins))
+                .Add(TimeSpan.FromSeconds(secs));
+            return true;
+        }
+
+        if (name is "MAKE_DATE")
+        {
+            if (fn.Args.Count < 3)
+                throw new InvalidOperationException("MAKE_DATE() espera ano, mes e dia.");
+
+            var year = Convert.ToInt32(evalArg(0).ToDec());
+            var month = Convert.ToInt32(evalArg(1).ToDec());
+            var day = Convert.ToInt32(evalArg(2).ToDec());
+            result = new DateTime(year, month, day);
+            return true;
+        }
+
+        if (name is "MAKE_TIME")
+        {
+            if (fn.Args.Count < 3)
+                throw new InvalidOperationException("MAKE_TIME() espera hora, minuto e segundo.");
+
+            var hour = Convert.ToInt32(evalArg(0).ToDec());
+            var minute = Convert.ToInt32(evalArg(1).ToDec());
+            var second = Convert.ToInt32(evalArg(2).ToDec());
+            result = new TimeSpan(hour, minute, second);
+            return true;
+        }
+
+        if (name is "MAKE_TIMESTAMP")
+        {
+            if (fn.Args.Count < 6)
+                throw new InvalidOperationException("MAKE_TIMESTAMP() espera data e hora.");
+
+            var year = Convert.ToInt32(evalArg(0).ToDec());
+            var month = Convert.ToInt32(evalArg(1).ToDec());
+            var day = Convert.ToInt32(evalArg(2).ToDec());
+            var hour = Convert.ToInt32(evalArg(3).ToDec());
+            var minute = Convert.ToInt32(evalArg(4).ToDec());
+            var second = Convert.ToInt32(evalArg(5).ToDec());
+            result = new DateTime(year, month, day, hour, minute, second);
+            return true;
+        }
+
+        if (name is "MAKE_TIMESTAMPTZ")
+        {
+            if (fn.Args.Count < 6)
+                throw new InvalidOperationException("MAKE_TIMESTAMPTZ() espera data e hora.");
+
+            var year = Convert.ToInt32(evalArg(0).ToDec());
+            var month = Convert.ToInt32(evalArg(1).ToDec());
+            var day = Convert.ToInt32(evalArg(2).ToDec());
+            var hour = Convert.ToInt32(evalArg(3).ToDec());
+            var minute = Convert.ToInt32(evalArg(4).ToDec());
+            var second = Convert.ToInt32(evalArg(5).ToDec());
+            result = new DateTimeOffset(year, month, day, hour, minute, second, DateTimeOffset.Now.Offset);
+            return true;
+        }
+
+        if (name is "TO_DATE")
+        {
+            if (fn.Args.Count == 0)
+            {
+                result = null;
+                return true;
+            }
+
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (value is DateTime dateValue)
+            {
+                result = dateValue.Date;
+                return true;
+            }
+
+            var textValue = value?.ToString() ?? string.Empty;
+            var maskValue = fn.Args.Count > 1 ? evalArg(1)?.ToString() : null;
+            if (TryParseOracleDateTime(textValue, maskValue, out var parsed))
+            {
+                result = parsed.Date;
+                return true;
+            }
+
+            if (DateTime.TryParse(textValue, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var fallbackParsed))
+            {
+                result = fallbackParsed.Date;
+                return true;
+            }
+
+            result = null;
+            return true;
+        }
+
+        if (name is "TO_CHAR")
+        {
+            if (fn.Args.Count == 0)
+            {
+                result = null;
+                return true;
+            }
+
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (value is DateTime dateValue)
+            {
+                if (fn.Args.Count > 1 && evalArg(1) is string fmt)
+                {
+                    var netFormat = NormalizeOracleFormatMask(fmt, out _);
+                    result = dateValue.ToString(netFormat ?? fmt, CultureInfo.InvariantCulture);
+                }
+                else
+                {
+                    result = dateValue.ToString(CultureInfo.InvariantCulture);
+                }
+
+                return true;
+            }
+
+            if (value is DateTimeOffset dtoValue)
+            {
+                if (fn.Args.Count > 1 && evalArg(1) is string fmt)
+                {
+                    var netFormat = NormalizeOracleFormatMask(fmt, out _);
+                    result = dtoValue.ToString(netFormat ?? fmt, CultureInfo.InvariantCulture);
+                }
+                else
+                {
+                    result = dtoValue.ToString(CultureInfo.InvariantCulture);
+                }
+
+                return true;
+            }
+
+            if (IsNumericValue(value))
+            {
+                var mask = fn.Args.Count > 1 ? evalArg(1)?.ToString() : null;
+                if (!string.IsNullOrWhiteSpace(mask))
+                {
+                    result = FormatPostgreSqlNumber(value!, mask!);
+                    return true;
+                }
+            }
+
+            result = value!.ToString();
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private static bool TryEvalPostgresScalarUtilityFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var name = fn.Name.ToUpperInvariant();
+        if (name is "NUM_NULLS")
+        {
+            result = Enumerable.Range(0, fn.Args.Count).Count(i => IsNullish(evalArg(i)));
+            return true;
+        }
+
+        if (name is "NUM_NONNULLS")
+        {
+            result = Enumerable.Range(0, fn.Args.Count).Count(i => !IsNullish(evalArg(i)));
+            return true;
+        }
+
+        if (name is "LCM")
+        {
+            if (fn.Args.Count < 2)
+            {
+                result = null;
+                return true;
+            }
+
+            var leftValue = evalArg(0);
+            var rightValue = evalArg(1);
+            if (IsNullish(leftValue) || IsNullish(rightValue))
+            {
+                result = null;
+                return true;
+            }
+
+            var left = Math.Abs(Convert.ToInt64(leftValue.ToDec(), CultureInfo.InvariantCulture));
+            var right = Math.Abs(Convert.ToInt64(rightValue.ToDec(), CultureInfo.InvariantCulture));
+            if (left == 0 || right == 0)
+            {
+                result = 0L;
+                return true;
+            }
+
+            result = checked((left / ComputeGreatestCommonDivisor(left, right)) * right);
+            return true;
+        }
+
+        if (name is "MIN_SCALE")
+        {
+            if (fn.Args.Count == 0)
+            {
+                result = null;
+                return true;
+            }
+
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            result = GetMinimumNumericScale(value!);
+            return true;
+        }
+
+        if (name is "PARSE_IDENT")
+        {
+            if (fn.Args.Count == 0)
+            {
+                result = null;
+                return true;
+            }
+
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            var text = value?.ToString() ?? string.Empty;
+            if (!TryParsePostgresIdentifierParts(text, out var parts))
+            {
+                result = null;
+                return true;
+            }
+
+            result = parts.ToArray();
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private static bool TryEvalPostgresTextFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var name = fn.Name.ToUpperInvariant();
+        if (name is "BTRIM")
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            var text = value?.ToString() ?? string.Empty;
+            result = text.Trim();
+            return true;
+        }
+
+        if (name is "INITCAP")
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            var text = value?.ToString() ?? string.Empty;
+            result = CultureInfo.InvariantCulture.TextInfo.ToTitleCase(text.ToLowerInvariant());
+            return true;
+        }
+
+        if (name is "CHR")
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            try
+            {
+                var code = Convert.ToInt32(value.ToDec(), CultureInfo.InvariantCulture);
+                if (code < 0 || code > 0x10FFFF)
+                {
+                    result = null;
+                    return true;
+                }
+
+                result = char.ConvertFromUtf32(code);
+                return true;
+            }
+            catch
+            {
+                result = null;
+                return true;
+            }
+        }
+
+        if (name is "SPLIT_PART")
+        {
+            if (fn.Args.Count < 3)
+                throw new InvalidOperationException("SPLIT_PART() espera texto, separador e indice.");
+
+            var text = evalArg(0)?.ToString() ?? string.Empty;
+            var delimiter = evalArg(1)?.ToString() ?? string.Empty;
+            var index = Convert.ToInt32(evalArg(2).ToDec());
+            if (index <= 0)
+            {
+                result = string.Empty;
+                return true;
+            }
+
+            var parts = text.Split([delimiter], StringSplitOptions.None);
+            result = index <= parts.Length ? parts[index - 1] : string.Empty;
+            return true;
+        }
+
+        if (name is "STRING_TO_ARRAY")
+        {
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("STRING_TO_ARRAY() espera texto e separador.");
+
+            var text = evalArg(0)?.ToString() ?? string.Empty;
+            var delimiter = evalArg(1)?.ToString() ?? string.Empty;
+            result = text.Split([delimiter], StringSplitOptions.None);
+            return true;
+        }
+
+        if (name is "QUOTE_LITERAL")
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            var text = value?.ToString() ?? string.Empty;
+            result = $"'{text.Replace("'", "''")}'";
+            return true;
+        }
+
+        if (name is "QUOTE_IDENT")
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            var text = value?.ToString() ?? string.Empty;
+            result = $"\"{text.Replace("\"", "\"\"")}\"";
+            return true;
+        }
+
+        if (name is "TO_HEX")
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            var number = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+            result = number.ToString("x", CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        if (name is "TRANSLATE")
+        {
+            if (fn.Args.Count < 3)
+            {
+                result = null;
+                return true;
+            }
+
+            var source = evalArg(0)?.ToString() ?? string.Empty;
+            var from = evalArg(1)?.ToString() ?? string.Empty;
+            var to = evalArg(2)?.ToString() ?? string.Empty;
+
+            var builder = new StringBuilder(source.Length);
+            foreach (var ch in source)
+            {
+                var index = from.IndexOf(ch);
+                if (index < 0)
+                {
+                    builder.Append(ch);
+                    continue;
+                }
+
+                if (index < to.Length)
+                    builder.Append(to[index]);
+            }
+
+            result = builder.ToString();
+            return true;
+        }
+
+        if (name is "STARTS_WITH")
+        {
+            if (dialect.Version < 11)
+                throw SqlUnsupported.ForDialect(dialect, "STARTS_WITH");
+
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("STARTS_WITH() espera texto e prefixo.");
+
+            var source = evalArg(0)?.ToString();
+            var prefix = evalArg(1)?.ToString();
+            if (source is null || prefix is null)
+            {
+                result = null;
+                return true;
+            }
+
+            result = source.StartsWith(prefix, StringComparison.Ordinal);
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private static bool TryEvalPostgresNetworkFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("HOST" or "HOSTMASK" or "INET_SAME_FAMILY" or "MASKLEN" or "NETMASK" or "NETWORK"))
+        {
+            result = null;
+            return false;
+        }
+
+        if (name is "INET_SAME_FAMILY")
+        {
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("INET_SAME_FAMILY() espera dois enderecos.");
+
+            var left = evalArg(0);
+            var right = evalArg(1);
+            if (IsNullish(left) || IsNullish(right))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParsePostgresInetValue(left, out var leftAddress, out _)
+                || !TryParsePostgresInetValue(right, out var rightAddress, out _))
+            {
+                result = null;
+                return true;
+            }
+
+            result = leftAddress.AddressFamily == rightAddress.AddressFamily;
+            return true;
+        }
+
+        if (fn.Args.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryParsePostgresInetValue(value, out var address, out var prefixLength))
+        {
+            result = null;
+            return true;
+        }
+
+        var byteLength = address.GetAddressBytes().Length;
+        var maskBytes = BuildPrefixMaskBytes(byteLength, prefixLength);
+
+        result = name switch
+        {
+            "HOST" => address.ToString(),
+            "MASKLEN" => prefixLength,
+            "NETMASK" => new System.Net.IPAddress(maskBytes).ToString(),
+            "HOSTMASK" => new System.Net.IPAddress(maskBytes.Select(static b => (byte)~b).ToArray()).ToString(),
+            "NETWORK" => $"{new System.Net.IPAddress(ApplyNetworkMask(address.GetAddressBytes(), maskBytes))}/{prefixLength}",
+            _ => null
+        };
+        return true;
+    }
+
+    private static bool TryEvalPostgresUnicodeFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("NORMALIZE" or "TO_ASCII"))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        if (name is "NORMALIZE")
+        {
+            var formName = fn.Args.Count > 1
+                ? (evalArg(1)?.ToString() ?? string.Empty).Trim().ToUpperInvariant()
+                : "NFC";
+            var form = formName switch
+            {
+                "" or "NFC" => NormalizationForm.FormC,
+                "NFD" => NormalizationForm.FormD,
+                "NFKC" => NormalizationForm.FormKC,
+                "NFKD" => NormalizationForm.FormKD,
+                _ => NormalizationForm.FormC
+            };
+
+            result = text.Normalize(form);
+            return true;
+        }
+
+        result = ConvertToAscii(text);
+        return true;
+    }
+
+    private static bool TryEvalPostgresRegexFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("REGEXP_COUNT" or "REGEXP_INSTR" or "REGEXP_LIKE" or "REGEXP_MATCH" or "REGEXP_REPLACE" or "REGEXP_SPLIT_TO_ARRAY" or "REGEXP_SUBSTR"))
+        {
+            result = null;
+            return false;
+        }
+
+        var minVersion = name switch
+        {
+            "REGEXP_MATCH" => 10,
+            "REGEXP_REPLACE" or "REGEXP_SPLIT_TO_ARRAY" => 9,
+            _ => 15
+        };
+        if (dialect.Version < minVersion)
+            throw SqlUnsupported.ForDialect(dialect, name);
+
+        if (fn.Args.Count < 2)
+        {
+            result = null;
+            return true;
+        }
+
+        var source = evalArg(0)?.ToString();
+        var pattern = evalArg(1)?.ToString();
+        if (source is null || pattern is null)
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var regexOptions = RegexOptions.CultureInvariant;
+            var flags = TryGetPostgresRegexFlags(fn, evalArg, out var start, out var occurrence);
+            if (HasRegexFlag(flags, 'i'))
+                regexOptions |= RegexOptions.IgnoreCase;
+            if (HasRegexFlag(flags, 'm'))
+                regexOptions |= RegexOptions.Multiline;
+            if (HasRegexFlag(flags, 'n')
+                || HasRegexFlag(flags, 's'))
+            {
+                regexOptions |= RegexOptions.Singleline;
+            }
+
+            var startIndex = Math.Min(source.Length, Math.Max(0, start - 1));
+            var segment = source[startIndex..];
+            var regex = new Regex(pattern, regexOptions);
+
+            if (name == "REGEXP_REPLACE")
+            {
+                var replacement = fn.Args.Count >= 3 ? evalArg(2)?.ToString() ?? string.Empty : string.Empty;
+                var replaceAll = HasRegexFlag(flags, 'g');
+                result = regex.Replace(source, replacement, replaceAll ? int.MaxValue : 1, 0);
+                return true;
+            }
+
+            if (name == "REGEXP_SPLIT_TO_ARRAY")
+            {
+                result = regex.Split(source);
+                return true;
+            }
+
+            var matches = regex.Matches(segment);
+            if (name == "REGEXP_COUNT")
+            {
+                result = matches.Count;
+                return true;
+            }
+
+            if (name == "REGEXP_LIKE")
+            {
+                result = matches.Count > 0;
+                return true;
+            }
+
+            if (matches.Count == 0)
+            {
+                result = name == "REGEXP_INSTR" ? 0 : null;
+                return true;
+            }
+
+            var index = Math.Min(Math.Max(1, occurrence) - 1, matches.Count - 1);
+            var match = matches[index];
+
+            if (name == "REGEXP_INSTR")
+            {
+                result = startIndex + match.Index + 1;
+                return true;
+            }
+
+            if (name == "REGEXP_SUBSTR")
+            {
+                result = match.Value;
+                return true;
+            }
+
+            var captureValues = match.Groups.Count > 1
+                ? match.Groups.Cast<Group>().Skip(1).Select(static g => g.Value).ToArray()
+                : [match.Value];
+            result = captureValues;
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static string TryGetPostgresRegexFlags(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out int start,
+        out int occurrence)
+    {
+        start = 1;
+        occurrence = 1;
+
+        if (fn.Args.Count < 3 || IsNullish(evalArg(2)))
+            return string.Empty;
+
+        var third = evalArg(2);
+        if (third is string flagText && !int.TryParse(flagText, NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
+            return flagText;
+
+        start = Math.Max(1, Convert.ToInt32(third!.ToDec(), CultureInfo.InvariantCulture));
+
+        if (fn.Args.Count >= 4 && !IsNullish(evalArg(3)))
+        {
+            var fourth = evalArg(3);
+            if (fourth is string fourthFlags && !int.TryParse(fourthFlags, NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
+                return fourthFlags;
+
+            occurrence = Math.Max(1, Convert.ToInt32(fourth!.ToDec(), CultureInfo.InvariantCulture));
+        }
+
+        if (fn.Args.Count >= 5 && !IsNullish(evalArg(4)))
+            return evalArg(4)?.ToString() ?? string.Empty;
+
+        return string.Empty;
+    }
+
+    private static bool HasRegexFlag(string flags, char flag)
+    {
+        if (string.IsNullOrEmpty(flags))
+            return false;
+
+        var upperFlag = char.ToUpperInvariant(flag);
+        foreach (var current in flags)
+        {
+            if (char.ToUpperInvariant(current) == upperFlag)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryEvalPostgresArrayFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var name = fn.Name.ToUpperInvariant();
+        if (name is "ARRAY_TO_STRING")
+        {
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("ARRAY_TO_STRING() espera array e separador.");
+
+            var value = evalArg(0);
+            var separator = evalArg(1)?.ToString() ?? string.Empty;
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (value is IEnumerable enumerable)
+            {
+                var items = new List<string>();
+                foreach (var item in enumerable)
+                    items.Add(item?.ToString() ?? string.Empty);
+                result = string.Join(separator, items);
+                return true;
+            }
+        }
+
+        if (name is "ARRAY_LENGTH" or "ARRAY_UPPER" or "ARRAY_LOWER")
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            var list = value is IEnumerable enumerable
+                ? enumerable.Cast<object?>().ToList()
+                : [];
+
+            if (list.Count == 0)
+            {
+                result = null;
+                return true;
+            }
+
+            result = name switch
+            {
+                "ARRAY_LENGTH" => list.Count,
+                "ARRAY_UPPER" => list.Count,
+                _ => 1
+            };
+            return true;
+        }
+
+        if (name is "ARRAY_DIMS" or "ARRAY_NDIMS")
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            var list = value is IEnumerable enumerable
+                ? enumerable.Cast<object?>().ToList()
+                : [];
+
+            if (list.Count == 0)
+            {
+                result = null;
+                return true;
+            }
+
+            result = name == "ARRAY_DIMS"
+                ? $"[1:{list.Count}]"
+                : 1;
+            return true;
+        }
+
+        if (name is "ARRAY_POSITION")
+        {
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("ARRAY_POSITION() espera array e valor.");
+
+            var value = evalArg(0);
+            var target = evalArg(1);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            var list = value is IEnumerable enumerable
+                ? enumerable.Cast<object?>().ToList()
+                : [];
+            var index = list.FindIndex(item => Equals(item, target));
+            result = index >= 0 ? index + 1 : (object?)null;
+            return true;
+        }
+
+        if (name is "ARRAY_POSITIONS")
+        {
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("ARRAY_POSITIONS() espera array e valor.");
+
+            var value = evalArg(0);
+            var target = evalArg(1);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            var list = value is IEnumerable enumerable
+                ? enumerable.Cast<object?>().ToList()
+                : [];
+
+            var matches = new List<object?>();
+            for (var i = 0; i < list.Count; i++)
+            {
+                if (Equals(list[i], target))
+                    matches.Add(i + 1);
+            }
+
+            result = matches.ToArray();
+            return true;
+        }
+
+        if (name is "ARRAY_TO_JSON")
+        {
+            if (fn.Args.Count == 0)
+                throw new InvalidOperationException("ARRAY_TO_JSON() espera array.");
+
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            var list = value is IEnumerable enumerable
+                ? enumerable.Cast<object?>().ToList()
+                : [];
+
+            var writeIndented = fn.Args.Count > 1 && Convert.ToBoolean(evalArg(1), CultureInfo.InvariantCulture);
+            var options = writeIndented
+                ? new System.Text.Json.JsonSerializerOptions { WriteIndented = true }
+                : null;
+            result = System.Text.Json.JsonSerializer.Serialize(list, options);
+            return true;
+        }
+
+        if (name is "ARRAY_APPEND" or "ARRAY_PREPEND" or "ARRAY_CAT" or "ARRAY_REMOVE" or "ARRAY_REPLACE")
+        {
+            var list = new List<object?>();
+            var left = name is "ARRAY_PREPEND" ? evalArg(1) : evalArg(0);
+            if (!IsNullish(left) && left is IEnumerable enumerable)
+                list.AddRange(enumerable.Cast<object?>());
+
+            if (name is "ARRAY_CAT")
+            {
+                var right = evalArg(1);
+                if (!IsNullish(right) && right is IEnumerable rightEnum)
+                    list.AddRange(rightEnum.Cast<object?>());
+                result = list.ToArray();
+                return true;
+            }
+
+            if (name is "ARRAY_APPEND")
+            {
+                list.Add(evalArg(1));
+                result = list.ToArray();
+                return true;
+            }
+
+            if (name is "ARRAY_PREPEND")
+            {
+                list.Insert(0, evalArg(0));
+                result = list.ToArray();
+                return true;
+            }
+
+            if (name is "ARRAY_REMOVE")
+            {
+                var target = evalArg(1);
+                list = list.Where(item => !Equals(item, target)).ToList();
+                result = list.ToArray();
+                return true;
+            }
+
+            if (name is "ARRAY_REPLACE")
+            {
+                var target = evalArg(1);
+                var replacement = evalArg(2);
+                for (var i = 0; i < list.Count; i++)
+                {
+                    if (Equals(list[i], target))
+                        list[i] = replacement;
+                }
+                result = list.ToArray();
+                return true;
+            }
+        }
+
+        result = null;
+        return false;
+    }
+
+    private static bool TryEvalPostgresJsonFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var name = fn.Name.ToUpperInvariant();
+        if (name is "TO_JSON" or "TO_JSONB" or "ROW_TO_JSON")
+        {
+            var value = evalArg(0);
+            result = IsNullish(value) ? null : System.Text.Json.JsonSerializer.Serialize(value);
+            return true;
+        }
+
+        if (name is "JSON_SCALAR" or "JSON_SERIALIZE")
+        {
+            if (dialect.Version < 17)
+                throw SqlUnsupported.ForDialect(dialect, name);
+
+            if (fn.Args.Count == 0)
+            {
+                result = null;
+                return true;
+            }
+
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParseJsonCandidate(value!, out var candidate))
+            {
+                result = null;
+                return true;
+            }
+
+            result = candidate.GetRawText();
+            return true;
+        }
+
+        if (name is "JSONB_PATH_EXISTS" or "JSONB_PATH_QUERY_ARRAY")
+        {
+            if (dialect.Version < 12)
+                throw SqlUnsupported.ForDialect(dialect, name);
+
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException($"{name}() espera JSONB e jsonpath.");
+
+            var value = evalArg(0);
+            var path = evalArg(1)?.ToString();
+            if (IsNullish(value) || string.IsNullOrWhiteSpace(path))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParseJsonElement(value!, out var element))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryReadPostgresJsonPath(element, path!, out var target))
+            {
+                result = name == "JSONB_PATH_EXISTS" ? false : "[]";
+                return true;
+            }
+
+            if (name == "JSONB_PATH_EXISTS")
+            {
+                result = true;
+                return true;
+            }
+
+            result = BuildJsonArray(new object?[] { target });
+            return true;
+        }
+
+        if (name is "JSON_TYPEOF" or "JSONB_TYPEOF")
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParseJsonElement(value!, out var element))
+            {
+                result = null;
+                return true;
+            }
+
+            result = element.ValueKind switch
+            {
+                System.Text.Json.JsonValueKind.Object => "object",
+                System.Text.Json.JsonValueKind.Array => "array",
+                System.Text.Json.JsonValueKind.String => "string",
+                System.Text.Json.JsonValueKind.Number => "number",
+                System.Text.Json.JsonValueKind.True => "boolean",
+                System.Text.Json.JsonValueKind.False => "boolean",
+                System.Text.Json.JsonValueKind.Null => "null",
+                _ => null
+            };
+            return true;
+        }
+
+        if (name is "JSON_ARRAY_LENGTH" or "JSONB_ARRAY_LENGTH")
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParseJsonElement(value!, out var element)
+                || element.ValueKind != System.Text.Json.JsonValueKind.Array)
+            {
+                result = null;
+                return true;
+            }
+
+            result = element.GetArrayLength();
+            return true;
+        }
+
+        if (name is "JSON_BUILD_ARRAY" or "JSONB_BUILD_ARRAY")
+        {
+            var values = new object?[fn.Args.Count];
+            for (var i = 0; i < fn.Args.Count; i++)
+                values[i] = evalArg(i);
+
+            result = BuildJsonArray(values);
+            return true;
+        }
+
+        if (name is "JSON_BUILD_OBJECT" or "JSONB_BUILD_OBJECT")
+        {
+            if (fn.Args.Count % 2 != 0)
+                throw new InvalidOperationException($"{name}() espera um numero par de argumentos.");
+
+            var pairs = new List<(string Key, object? Value)>();
+            for (var i = 0; i < fn.Args.Count; i += 2)
+            {
+                var key = evalArg(i)?.ToString() ?? string.Empty;
+                var val = evalArg(i + 1);
+                pairs.Add((key, val));
+            }
+
+            result = BuildJsonObject(pairs);
+            return true;
+        }
+
+        if (name is "JSON_EXTRACT_PATH" or "JSONB_EXTRACT_PATH" or "JSON_EXTRACT_PATH_TEXT" or "JSONB_EXTRACT_PATH_TEXT")
+        {
+            if (fn.Args.Count == 0)
+            {
+                result = null;
+                return true;
+            }
+
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParseJsonElement(value!, out var element))
+            {
+                result = null;
+                return true;
+            }
+
+            for (var i = 1; i < fn.Args.Count; i++)
+            {
+                var pathSegment = evalArg(i)?.ToString();
+                System.Text.Json.JsonElement nextElement;
+                if (string.IsNullOrEmpty(pathSegment)
+                    || !TryReadPostgresJsonPathElement(element, pathSegment!, out nextElement))
+                {
+                    result = null;
+                    return true;
+                }
+
+                element = nextElement;
+            }
+
+            if (name.EndsWith("_TEXT", StringComparison.Ordinal))
+            {
+                result = element.ValueKind switch
+                {
+                    System.Text.Json.JsonValueKind.String => element.GetString(),
+                    System.Text.Json.JsonValueKind.Null => null,
+                    _ => element.GetRawText()
+                };
+                return true;
+            }
+
+            result = element.GetRawText();
+            return true;
+        }
+
+        if (name is "JSON_STRIP_NULLS" or "JSONB_STRIP_NULLS")
+        {
+            if (fn.Args.Count == 0)
+            {
+                result = null;
+                return true;
+            }
+
+            var value = evalArg(0);
+            if (IsNullish(value) || !TryParseJsonNode(value!, out var root) || root is null)
+            {
+                result = null;
+                return true;
+            }
+
+            var normalized = CloneJsonNode(root);
+            StripJsonNullProperties(normalized);
+            result = normalized.ToJsonString();
+            return true;
+        }
+
+        if (name is "JSONB_OBJECT")
+        {
+            if (fn.Args.Count == 1)
+            {
+                if (!TryReadPostgresTextArray(evalArg(0), out var entries) || entries.Count % 2 != 0)
+                {
+                    result = null;
+                    return true;
+                }
+
+                var pairs = new List<(string Key, object? Value)>();
+                for (var i = 0; i < entries.Count; i += 2)
+                    pairs.Add((entries[i], entries[i + 1]));
+
+                result = BuildJsonObject(pairs);
+                return true;
+            }
+
+            if (fn.Args.Count == 2)
+            {
+                if (!TryReadPostgresTextArray(evalArg(0), out var keys)
+                    || !TryReadPostgresTextArray(evalArg(1), out var values)
+                    || keys.Count != values.Count)
+                {
+                    result = null;
+                    return true;
+                }
+
+                var pairs = new List<(string Key, object? Value)>();
+                for (var i = 0; i < keys.Count; i++)
+                    pairs.Add((keys[i], values[i]));
+
+                result = BuildJsonObject(pairs);
+                return true;
+            }
+
+            result = null;
+            return true;
+        }
+
+        if (name is "JSONB_SET" or "JSONB_SET_LAX")
+        {
+            if (fn.Args.Count < 3)
+                throw new InvalidOperationException($"{name}() espera JSON, caminho e novo valor.");
+
+            var json = evalArg(0);
+            var pathValue = evalArg(1);
+            var newValue = evalArg(2);
+            if (IsNullish(json) || IsNullish(pathValue) || !TryParseJsonNode(json!, out var root) || root is null)
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParsePostgresJsonPathTokens(pathValue!, out var tokens))
+            {
+                result = null;
+                return true;
+            }
+
+            if (name is "JSONB_SET_LAX" && IsNullish(newValue))
+            {
+                var createIfMissingLax = fn.Args.Count < 4 || Convert.ToBoolean(evalArg(3), CultureInfo.InvariantCulture);
+                var treatment = fn.Args.Count > 4
+                    ? (evalArg(4)?.ToString() ?? "use_json_null").Trim().ToLowerInvariant()
+                    : "use_json_null";
+
+                if (treatment == "return_target")
+                {
+                    result = root.ToJsonString();
+                    return true;
+                }
+
+                if (treatment == "delete_key")
+                {
+                    if (tokens.Count > 0)
+                    {
+                        if (createIfMissingLax || TryGetJsonNodeAtPath(root, tokens, out _))
+                            TryRemoveJsonPathValue(root, tokens);
+                    }
+
+                    result = root.ToJsonString();
+                    return true;
+                }
+
+                if (treatment == "raise_exception")
+                    throw new InvalidOperationException("JSONB_SET_LAX() recebeu null com tratamento raise_exception.");
+
+                newValue = null;
+            }
+
+            var createIfMissing = fn.Args.Count < 4 || Convert.ToBoolean(evalArg(3), CultureInfo.InvariantCulture);
+            if (!createIfMissing && !TryGetJsonNodeAtPath(root, tokens, out _))
+            {
+                result = root.ToJsonString();
+                return true;
+            }
+
+            if (!TrySetJsonPathValue(ref root, tokens, newValue))
+            {
+                result = null;
+                return true;
+            }
+
+            result = root.ToJsonString();
+            return true;
+        }
+
+        if (name is "JSONB_INSERT")
+        {
+            if (fn.Args.Count < 3)
+                throw new InvalidOperationException("JSONB_INSERT() espera JSON, caminho e novo valor.");
+
+            var json = evalArg(0);
+            var pathValue = evalArg(1);
+            var newValue = evalArg(2);
+            var insertAfter = fn.Args.Count > 3 && Convert.ToBoolean(evalArg(3), CultureInfo.InvariantCulture);
+            if (IsNullish(json) || IsNullish(pathValue) || !TryParseJsonNode(json!, out var root) || root is null)
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParsePostgresJsonPathTokens(pathValue!, out var tokens)
+                || tokens.Count == 0)
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryInsertJsonPathValue(root, tokens, newValue, insertAfter))
+            {
+                result = null;
+                return true;
+            }
+
+            result = root.ToJsonString();
+            return true;
+        }
+
+        if (name is "JSONB_PRETTY")
+        {
+            if (fn.Args.Count == 0)
+            {
+                result = null;
+                return true;
+            }
+
+            var value = evalArg(0);
+            if (IsNullish(value) || !TryParseJsonElement(value!, out var element))
+            {
+                result = null;
+                return true;
+            }
+
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+            result = System.Text.Json.JsonSerializer.Serialize(element, options)
+                .Replace("\r\n", "\n");
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private static bool TryEvalPostgresUuidFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        out object? result)
+    {
+        if (!dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!fn.Name.Equals("GEN_RANDOM_UUID", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        result = Guid.NewGuid().ToString("D");
+        return true;
+    }
+
     private static bool TryEvalOracleTranslateFunctions(
         FunctionCallExpr fn,
         ISqlDialect dialect,
@@ -9327,7 +11054,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (fn.Args.Count < 3)
@@ -9847,6 +11574,7 @@ private void FillPercentRankOrCumeDist(
         if (name.Equals("ACOS", StringComparison.OrdinalIgnoreCase)
             || name.Equals("ASIN", StringComparison.OrdinalIgnoreCase)
             || name.Equals("ATAN", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("CBRT", StringComparison.OrdinalIgnoreCase)
             || name.Equals("COS", StringComparison.OrdinalIgnoreCase)
             || name.Equals("COT", StringComparison.OrdinalIgnoreCase)
             || name.Equals("SIN", StringComparison.OrdinalIgnoreCase)
@@ -9873,6 +11601,8 @@ private void FillPercentRankOrCumeDist(
                         ? Math.Asin(arg)
                     : name.Equals("ATAN", StringComparison.OrdinalIgnoreCase)
                         ? Math.Atan(arg)
+                            : name.Equals("CBRT", StringComparison.OrdinalIgnoreCase)
+                                ? Cbrt(arg)
                             : name.Equals("COS", StringComparison.OrdinalIgnoreCase)
                                 ? Math.Cos(arg)
                                 : name.Equals("SIN", StringComparison.OrdinalIgnoreCase)
@@ -10072,6 +11802,11 @@ private void FillPercentRankOrCumeDist(
     private static double Atanh(double value)
         => 0.5d * Math.Log((1d + value) / (1d - value));
 
+    private static double Cbrt(double value)
+        => value < 0d
+            ? -Math.Pow(-value, 1d / 3d)
+            : Math.Pow(value, 1d / 3d);
+
     private static double Log2(double value)
         => Math.Log(value, 2d);
 
@@ -10081,6 +11816,12 @@ private void FillPercentRankOrCumeDist(
         lock (_randomLock)
             _sharedRandom.NextBytes(buffer);
         return BitConverter.ToInt64(buffer, 0);
+    }
+
+    private static double NextRandomDouble()
+    {
+        lock (_randomLock)
+            return _sharedRandom.NextDouble();
     }
 
     private static bool TryEvalAppNameFunction(
@@ -11687,6 +13428,7 @@ private void FillPercentRankOrCumeDist(
 
     private static bool TryEvalLogFunctions(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -11766,7 +13508,10 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        result = Math.Log(number);
+        var isPostgreSql = dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase);
+        result = isLog && isPostgreSql
+            ? Math.Log10(number)
+            : Math.Log(number);
         return true;
     }
 
@@ -12007,6 +13752,7 @@ private void FillPercentRankOrCumeDist(
 
     private static bool TryEvalPrintfFunction(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -12022,6 +13768,13 @@ private void FillPercentRankOrCumeDist(
         var args = new object?[Math.Max(0, fn.Args.Count - 1)];
         for (var i = 1; i < fn.Args.Count; i++)
             args[i - 1] = evalArg(i);
+
+        if (fn.Name.Equals("FORMAT", StringComparison.OrdinalIgnoreCase)
+            && dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = FormatPostgreSql(format, args);
+            return true;
+        }
 
         result = FormatPrintf(format, args);
         return true;
@@ -12064,14 +13817,65 @@ private void FillPercentRankOrCumeDist(
         return builder.ToString();
     }
 
+    private static string FormatPostgreSql(string format, IReadOnlyList<object?> args)
+    {
+        var builder = new StringBuilder();
+        var argIndex = 0;
+        for (var i = 0; i < format.Length; i++)
+        {
+            var ch = format[i];
+            if (ch != '%' || i + 1 >= format.Length)
+            {
+                builder.Append(ch);
+                continue;
+            }
+
+            var token = format[++i];
+            if (token == '%')
+            {
+                builder.Append('%');
+                continue;
+            }
+
+            var value = argIndex < args.Count ? args[argIndex++] : null;
+            builder.Append(token switch
+            {
+                's' => value?.ToString() ?? string.Empty,
+                'I' => QuoteFormatIdentifier(value),
+                'L' => QuoteFormatLiteral(value),
+                _ => value?.ToString() ?? string.Empty
+            });
+        }
+
+        return builder.ToString();
+    }
+
+    private static string QuoteFormatIdentifier(object? value)
+    {
+        var text = value?.ToString() ?? string.Empty;
+        return $"\"{text.Replace("\"", "\"\"")}\"";
+    }
+
+    private static string QuoteFormatLiteral(object? value)
+    {
+        if (value is null || value is DBNull)
+            return "NULL";
+
+        var text = value.ToString() ?? string.Empty;
+        return $"'{text.Replace("'", "''")}'";
+    }
+
     private static bool TryEvalRandomFunctions(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (fn.Name.Equals("RANDOM", StringComparison.OrdinalIgnoreCase))
         {
-            result = NextRandomInt64();
+            result = dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase)
+                ? NextRandomDouble()
+                : NextRandomInt64();
             return true;
         }
 
@@ -12250,6 +14054,181 @@ private void FillPercentRankOrCumeDist(
         }
 
         return builder.ToString();
+    }
+
+    private static bool TryParsePostgresInetValue(
+        object? value,
+        out System.Net.IPAddress address,
+        out int prefixLength)
+    {
+        address = System.Net.IPAddress.None;
+        prefixLength = 0;
+
+        var text = value?.ToString()?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(text))
+            return false;
+
+        var slashIndex = text.IndexOf('/');
+        var addressText = slashIndex >= 0 ? text[..slashIndex] : text;
+        if (!System.Net.IPAddress.TryParse(addressText, out var parsedAddress))
+            return false;
+
+        address = parsedAddress;
+
+        var maxPrefix = address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 32 : 128;
+        if (slashIndex < 0)
+        {
+            prefixLength = maxPrefix;
+            return true;
+        }
+
+        var prefixText = text[(slashIndex + 1)..];
+        if (!int.TryParse(prefixText, NumberStyles.Integer, CultureInfo.InvariantCulture, out prefixLength))
+            return false;
+
+        return prefixLength >= 0 && prefixLength <= maxPrefix;
+    }
+
+    private static byte[] BuildPrefixMaskBytes(int byteLength, int prefixLength)
+    {
+        var mask = new byte[byteLength];
+        for (var i = 0; i < byteLength; i++)
+        {
+            var remainingBits = prefixLength - (i * 8);
+            mask[i] = remainingBits switch
+            {
+                >= 8 => 0xFF,
+                <= 0 => 0x00,
+                _ => (byte)(0xFF << (8 - remainingBits))
+            };
+        }
+
+        return mask;
+    }
+
+    private static byte[] ApplyNetworkMask(byte[] addressBytes, byte[] maskBytes)
+    {
+        var networkBytes = new byte[addressBytes.Length];
+        for (var i = 0; i < addressBytes.Length; i++)
+            networkBytes[i] = (byte)(addressBytes[i] & maskBytes[i]);
+
+        return networkBytes;
+    }
+
+    private static long ComputeGreatestCommonDivisor(long left, long right)
+    {
+        while (right != 0)
+        {
+            var remainder = left % right;
+            left = right;
+            right = remainder;
+        }
+
+        return Math.Abs(left);
+    }
+
+    private static int GetMinimumNumericScale(object value)
+    {
+        var text = value switch
+        {
+            decimal dec => dec.ToString(CultureInfo.InvariantCulture),
+            double dbl => dbl.ToString("G17", CultureInfo.InvariantCulture),
+            float flt => flt.ToString("G9", CultureInfo.InvariantCulture),
+            _ => value.ToString() ?? string.Empty
+        };
+
+        var exponentIndex = text.IndexOfAny(['e', 'E']);
+        if (exponentIndex >= 0)
+        {
+            if (decimal.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedDecimal))
+                text = parsedDecimal.ToString(CultureInfo.InvariantCulture);
+            else
+                text = text[..exponentIndex];
+        }
+
+        var dotIndex = text.IndexOf('.');
+        if (dotIndex < 0)
+            return 0;
+
+        var fractional = text[(dotIndex + 1)..].TrimEnd('0');
+        return fractional.Length;
+    }
+
+    private static bool TryParsePostgresIdentifierParts(string text, out List<string> parts)
+    {
+        parts = [];
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+
+        var current = new StringBuilder();
+        var insideQuotes = false;
+        for (var i = 0; i < text.Length; i++)
+        {
+            var ch = text[i];
+            if (insideQuotes)
+            {
+                if (ch == '"')
+                {
+                    if (i + 1 < text.Length && text[i + 1] == '"')
+                    {
+                        current.Append('"');
+                        i++;
+                        continue;
+                    }
+
+                    insideQuotes = false;
+                    continue;
+                }
+
+                current.Append(ch);
+                continue;
+            }
+
+            if (ch == '"')
+            {
+                insideQuotes = true;
+                continue;
+            }
+
+            if (ch == '.')
+            {
+                parts.Add(current.ToString().Trim());
+                current.Clear();
+                continue;
+            }
+
+            current.Append(ch);
+        }
+
+        if (insideQuotes)
+            return false;
+
+        parts.Add(current.ToString().Trim());
+        return parts.Count > 0 && parts.All(static part => part.Length > 0);
+    }
+
+    private static string ConvertToAscii(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+
+        var decomposed = text.Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(decomposed.Length);
+        foreach (var ch in decomposed)
+        {
+            var category = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch);
+            if (category is System.Globalization.UnicodeCategory.NonSpacingMark
+                or System.Globalization.UnicodeCategory.SpacingCombiningMark
+                or System.Globalization.UnicodeCategory.EnclosingMark)
+            {
+                continue;
+            }
+
+            if (ch <= 0x7F)
+                builder.Append(ch);
+        }
+
+        return builder.ToString().Normalize(NormalizationForm.FormC);
     }
 
     private bool TryEvalSqliteSystemFunctions(
@@ -12517,6 +14496,36 @@ private void FillPercentRankOrCumeDist(
         }
 
         baseNode = CloneJsonNode(patchNode);
+    }
+
+    private static void StripJsonNullProperties(System.Text.Json.Nodes.JsonNode node)
+    {
+        if (node is System.Text.Json.Nodes.JsonObject obj)
+        {
+            var propertyNames = obj.Select(static pair => pair.Key).ToList();
+            foreach (var propertyName in propertyNames)
+            {
+                var child = obj[propertyName];
+                if (child is null)
+                {
+                    obj.Remove(propertyName);
+                    continue;
+                }
+
+                StripJsonNullProperties(child);
+            }
+
+            return;
+        }
+
+        if (node is System.Text.Json.Nodes.JsonArray array)
+        {
+            foreach (var child in array)
+            {
+                if (child is not null)
+                    StripJsonNullProperties(child);
+            }
+        }
     }
 
     private static System.Text.Json.Nodes.JsonNode CloneJsonNode(System.Text.Json.Nodes.JsonNode node)
@@ -12862,6 +14871,74 @@ private void FillPercentRankOrCumeDist(
         };
     }
 
+    private static bool TryReadPostgresJsonPathElement(
+        System.Text.Json.JsonElement element,
+        string pathSegment,
+        out System.Text.Json.JsonElement target)
+    {
+        target = default;
+        if (string.IsNullOrEmpty(pathSegment))
+            return false;
+
+        if (element.ValueKind == System.Text.Json.JsonValueKind.Object)
+        {
+            if (element.TryGetProperty(pathSegment, out target))
+                return true;
+
+            return false;
+        }
+
+        if (element.ValueKind == System.Text.Json.JsonValueKind.Array
+            && int.TryParse(pathSegment, NumberStyles.Integer, CultureInfo.InvariantCulture, out var index)
+            && index >= 0)
+        {
+            var currentIndex = 0;
+            foreach (var item in element.EnumerateArray())
+            {
+                if (currentIndex == index)
+                {
+                    target = item;
+                    return true;
+                }
+
+                currentIndex++;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryReadPostgresJsonPath(
+        System.Text.Json.JsonElement element,
+        string path,
+        out System.Text.Json.JsonElement target)
+    {
+        target = default;
+        if (!TryParseJsonPathTokens(path, out var tokens))
+            return false;
+
+        var current = element;
+        foreach (var token in tokens)
+        {
+            if (token.Kind == JsonPathTokenKind.Property)
+            {
+                if (!TryReadPostgresJsonPathElement(current, token.PropertyName ?? string.Empty, out current))
+                    return false;
+
+                continue;
+            }
+
+            if (token.Kind == JsonPathTokenKind.ArrayIndex)
+            {
+                if (!TryReadPostgresJsonPathElement(current, (token.ArrayIndex ?? 0).ToString(CultureInfo.InvariantCulture), out current))
+                    return false;
+            }
+        }
+
+        target = current;
+        return true;
+    }
+
     private static void CollectJsonSearchMatches(
         System.Text.Json.JsonElement element,
         string currentPath,
@@ -13050,6 +15127,44 @@ private void FillPercentRankOrCumeDist(
             node = null;
             return false;
         }
+    }
+
+    private static bool TryReadPostgresTextArray(object? value, out List<string> items)
+    {
+        items = [];
+        if (IsNullish(value))
+            return false;
+
+        if (value is IEnumerable enumerable && value is not string)
+        {
+            foreach (var item in enumerable)
+                items.Add(item?.ToString() ?? string.Empty);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryParsePostgresJsonPathTokens(object value, out List<JsonPathToken> tokens)
+    {
+        tokens = [];
+        if (!TryReadPostgresTextArray(value, out var segments))
+            return false;
+
+        foreach (var segment in segments)
+        {
+            if (int.TryParse(segment, NumberStyles.Integer, CultureInfo.InvariantCulture, out var index)
+                && index >= 0)
+            {
+                tokens.Add(new JsonPathToken(JsonPathTokenKind.ArrayIndex, null, index));
+                continue;
+            }
+
+            tokens.Add(new JsonPathToken(JsonPathTokenKind.Property, segment, null));
+        }
+
+        return tokens.Count > 0;
     }
 
     private static System.Text.Json.Nodes.JsonNode CreateJsonNodeFromValue(object? value)
@@ -13304,6 +15419,75 @@ private void FillPercentRankOrCumeDist(
         return true;
     }
 
+    private static bool TryInsertJsonPathValue(
+        System.Text.Json.Nodes.JsonNode root,
+        IReadOnlyList<JsonPathToken> tokens,
+        object? value,
+        bool insertAfter)
+    {
+        if (tokens.Count == 0)
+            return false;
+
+        if (tokens.Count == 1)
+        {
+            var targetToken = tokens[0];
+            if (targetToken.Kind == JsonPathTokenKind.Property && root is System.Text.Json.Nodes.JsonObject rootObject)
+            {
+                if (rootObject[targetToken.PropertyName!] is not null)
+                    return true;
+
+                rootObject[targetToken.PropertyName!] = CreateJsonNodeFromValue(value);
+                return true;
+            }
+
+            if (targetToken.Kind == JsonPathTokenKind.ArrayIndex && root is System.Text.Json.Nodes.JsonArray rootArray)
+            {
+                var insertIndex = targetToken.ArrayIndex ?? 0;
+                if (insertAfter)
+                    insertIndex++;
+
+                insertIndex = Math.Max(0, Math.Min(insertIndex, rootArray.Count));
+                rootArray.Insert(insertIndex, CreateJsonNodeFromValue(value));
+                return true;
+            }
+
+            return false;
+        }
+
+        var parentTokens = tokens.Take(tokens.Count - 1).ToList();
+        if (!TryGetJsonNodeAtPath(root, parentTokens, out var parent) || parent is null)
+            return false;
+
+        var lastToken = tokens[^1];
+        if (lastToken.Kind == JsonPathTokenKind.Property)
+        {
+            if (parent is not System.Text.Json.Nodes.JsonObject obj)
+                return false;
+
+            if (obj[lastToken.PropertyName!] is not null)
+                return true;
+
+            obj[lastToken.PropertyName!] = CreateJsonNodeFromValue(value);
+            return true;
+        }
+
+        if (lastToken.Kind == JsonPathTokenKind.ArrayIndex)
+        {
+            if (parent is not System.Text.Json.Nodes.JsonArray array)
+                return false;
+
+            var insertIndex = lastToken.ArrayIndex ?? 0;
+            if (insertAfter)
+                insertIndex++;
+
+            insertIndex = Math.Max(0, Math.Min(insertIndex, array.Count));
+            array.Insert(insertIndex, CreateJsonNodeFromValue(value));
+            return true;
+        }
+
+        return false;
+    }
+
     private static bool TryEvalDateConstructionFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
@@ -13437,6 +15621,7 @@ private void FillPercentRankOrCumeDist(
 
         if (fn.Name.Equals("LENGTH", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("CHAR_LENGTH", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("CHARACTER_LENGTH", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("LEN", StringComparison.OrdinalIgnoreCase))
         {
             result = IsNullish(value) ? null : (long)(value!.ToString()!.Length);
@@ -16216,6 +18401,10 @@ private void FillPercentRankOrCumeDist(
         if (name is "JSON_GROUP_OBJECT" or "JSON_OBJECTAGG")
             return EvalJsonGroupObjectAggregate(fn, group, ctes);
 
+        if (name is "JSON_OBJECT_AGG" or "JSON_OBJECT_AGG_STRICT" or "JSON_OBJECT_AGG_UNIQUE" or "JSON_OBJECT_AGG_UNIQUE_STRICT"
+            or "JSONB_OBJECT_AGG" or "JSONB_OBJECT_AGG_STRICT" or "JSONB_OBJECT_AGG_UNIQUE" or "JSONB_OBJECT_AGG_UNIQUE_STRICT")
+            return EvalJsonGroupObjectAggregate(fn, group, ctes);
+
         if (name is "CORR" or "CORR_K" or "CORR_S" or "COVAR_POP" or "COVAR_SAMP")
             return EvalCorrelationAggregate(fn, group, ctes, name);
 
@@ -16275,6 +18464,12 @@ private void FillPercentRankOrCumeDist(
             "BIT_OR" => AggregateBitwiseValues(values, BitwiseAggregateOperation.Or),
             "BIT_XOR" => AggregateBitwiseValues(values, BitwiseAggregateOperation.Xor),
             "JSON_ARRAYAGG" => EvalJsonArrayAggregate(values),
+            "JSON_AGG" => EvalJsonArrayAggregate(values),
+            "JSONB_AGG" => EvalJsonArrayAggregate(values),
+            "ARRAY_AGG" => AggregateCollect(values),
+            "BOOL_AND" => AggregateBoolValues(values, useAnd: true),
+            "EVERY" => AggregateBoolValues(values, useAnd: true),
+            "BOOL_OR" => AggregateBoolValues(values, useAnd: false),
             "COLLECT" => AggregateCollect(values),
             "TOTAL" => AggregateTotal(values),
             "VAR_POP" => AggregateVariance(values, sample: false),
@@ -16662,6 +18857,24 @@ private void FillPercentRankOrCumeDist(
 
         var stdDev = Math.Sqrt(variance);
         return stdDev / mean;
+    }
+
+    private static object? AggregateBoolValues(IReadOnlyList<object?> values, bool useAnd)
+    {
+        var hasValue = false;
+        var acc = useAnd;
+
+        foreach (var value in values)
+        {
+            if (IsNullish(value))
+                continue;
+
+            hasValue = true;
+            var current = value!.ToBool();
+            acc = useAnd ? acc && current : acc || current;
+        }
+
+        return hasValue ? acc : null;
     }
 
     private static object? AggregateNumericValues(IReadOnlyList<object?> values, AggregateNumericOperation operation)

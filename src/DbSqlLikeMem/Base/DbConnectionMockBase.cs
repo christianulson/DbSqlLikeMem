@@ -65,6 +65,7 @@ public abstract class DbConnectionMockBase(
     private readonly Dictionary<string, long> _sessionSequenceValues =
         new(StringComparer.OrdinalIgnoreCase);
     private string? _lastSessionSequenceKey;
+    private string? _currentQueryText;
 
     internal void ClearExecutionPlans()
     {
@@ -81,6 +82,12 @@ public abstract class DbConnectionMockBase(
         LastExecutionPlan = executionPlan;
         _lastExecutionPlans.Add(executionPlan);
     }
+
+    internal string? GetCurrentQueryText()
+        => _currentQueryText;
+
+    internal IDisposable BeginCurrentQueryScope(string? sql)
+        => new CurrentQueryScope(this, sql);
 
     /// <summary>
     /// EN: Last runtime query debug trace captured for this connection.
@@ -481,6 +488,28 @@ public abstract class DbConnectionMockBase(
                 return;
 
             _connection._debugTraceCaptureDepth = Math.Max(0, _connection._debugTraceCaptureDepth - 1);
+            _connection = null;
+        }
+    }
+
+    private sealed class CurrentQueryScope : IDisposable
+    {
+        private DbConnectionMockBase? _connection;
+        private readonly string? _previousQueryText;
+
+        public CurrentQueryScope(DbConnectionMockBase connection, string? sql)
+        {
+            _connection = connection;
+            _previousQueryText = connection._currentQueryText;
+            connection._currentQueryText = sql;
+        }
+
+        public void Dispose()
+        {
+            if (_connection is null)
+                return;
+
+            _connection._currentQueryText = _previousQueryText;
             _connection = null;
         }
     }
