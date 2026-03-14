@@ -578,7 +578,7 @@ internal sealed class SqlExpressionParser(
     private bool TryParseAddSubInfix(ref SqlExpr left, int minBp)
     {
         var t = Peek();
-        if (t.Kind != SqlTokenKind.Operator || (t.Text != "+" && t.Text != "-"))
+        if (t.Kind != SqlTokenKind.Operator || (t.Text != "+" && t.Text != "-" && t.Text != "||"))
             return false;
 
         var (lbp, rbp) = (60, 61);
@@ -586,9 +586,14 @@ internal sealed class SqlExpressionParser(
 
         Consume(); // + or -
         var right = ParseExpression(rbp);
-        right = TryAttachCompactIntervalUnit(right);
+        var op = t.Text == "+"
+            ? SqlBinaryOp.Add
+            : t.Text == "-"
+                ? SqlBinaryOp.Subtract
+                : SqlBinaryOp.Concat;
 
-        var op = t.Text == "+" ? SqlBinaryOp.Add : SqlBinaryOp.Subtract;
+        if (op is SqlBinaryOp.Add or SqlBinaryOp.Subtract)
+            right = TryAttachCompactIntervalUnit(right);
         left = new BinaryExpr(op, left, right);
         return true;
     }
@@ -740,6 +745,7 @@ internal sealed class SqlExpressionParser(
     {
         var t = Peek();
 
+        if (TryParseTypedDateTimeLiteral(t, out var typedLiteral)) return typedLiteral;
         if (TryParseExists(t, out var ex)) return ex;
         if (TryParseCase(t, out var cs)) return cs;
         if (TryParseNot(t, out var nt)) return nt;
@@ -756,6 +762,25 @@ internal sealed class SqlExpressionParser(
         if (TryParseIdentifierOrCall(t, out var id)) return id;
 
         throw Error($"Token inesperado no prefix: {t.Kind} '{t.Text}'", t);
+    }
+
+    private bool TryParseTypedDateTimeLiteral(SqlToken t, out SqlExpr expr)
+    {
+        expr = default!;
+
+        if (!IsKeywordOrIdentifierWord(t, "DATE")
+            && !IsKeywordOrIdentifierWord(t, "TIMESTAMP"))
+            return false;
+
+        if (Peek(1).Kind != SqlTokenKind.String)
+            return false;
+
+        Consume(); // DATE or TIMESTAMP
+        var literalToken = Peek();
+        Consume();
+
+        expr = new LiteralExpr(literalToken.Text);
+        return true;
     }
 
     #region PARSE PREFIX
@@ -1127,6 +1152,7 @@ internal sealed class SqlExpressionParser(
                 return true;
             }
             call = ParseWithinGroupOrderByIfPresent(call);
+            call = ParseAggregateFilterIfPresent(call);
 
             // ✅ Window function: ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)
             if (IsKeywordOrIdentifierWord(Peek(), "OVER"))
@@ -1509,6 +1535,7 @@ internal sealed class SqlExpressionParser(
         }
 
         if ((name.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("ADDDATE", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("DATEADD", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase))
             && !_dialect.SupportsDateAddFunction(name))
@@ -1543,6 +1570,38 @@ internal sealed class SqlExpressionParser(
         }
 
         Consume(); // '('
+
+        // ================================
+        // EXTRACT(field FROM expr) — sintaxe especial
+        // ================================
+        if (name.Equals("EXTRACT", StringComparison.OrdinalIgnoreCase))
+        {
+            var unitTok = Peek();
+            if (unitTok.Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword))
+                throw Error("EXTRACT requires a unit", unitTok);
+
+            Consume(); // unit
+
+            if (!IsKeywordOrIdentifierWord(Peek(), "FROM"))
+                throw Error("EXTRACT requires FROM", Peek());
+
+            Consume(); // FROM
+
+            SqlExpr inner;
+            if (IsSymbol(Peek(), "("))
+            {
+                Consume(); // optional '('
+                inner = ParseExpression(0);
+                ExpectSymbol(")");
+            }
+            else
+            {
+                inner = ParseExpression(0);
+            }
+
+            ExpectSymbol(")");
+            return new CallExpr("EXTRACT", [new RawSqlExpr(unitTok.Text), inner]);
+        }
 
         // ================================
         // CAST(expr AS TYPE) — sintaxe especial
@@ -1892,6 +1951,28 @@ internal sealed class SqlExpressionParser(
 
         ExpectSymbol(")");
         return call with { WithinGroupOrderBy = orderBy };
+    }
+
+    private CallExpr ParseAggregateFilterIfPresent(CallExpr call)
+    {
+        if (!IsKeywordOrIdentifierWord(Peek(), "FILTER"))
+            return call;
+
+        Consume(); // FILTER
+        ExpectSymbol("(");
+
+        if (!IsKeywordOrIdentifierWord(Peek(), "WHERE"))
+            throw Error("FILTER requires WHERE", Peek());
+
+        Consume(); // WHERE
+        var filterSql = ReadRawUntilMatchingParen();
+        ExpectSymbol(")");
+
+        if (string.IsNullOrWhiteSpace(filterSql))
+            throw Error("FILTER requires an expression", Peek());
+
+        var filterExpr = ParseWhere(filterSql, _dialect, _parameters);
+        return call with { Filter = filterExpr };
     }
 
     private List<WindowOrderItem> ParseStringAggregateOrderByItems(string context, bool allowSeparatorTerminator = false)

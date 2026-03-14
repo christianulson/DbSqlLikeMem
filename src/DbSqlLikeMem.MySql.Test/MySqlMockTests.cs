@@ -368,6 +368,649 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
+    /// EN: Ensures common numeric functions return expected results in MySQL.
+    /// PT: Garante que funcoes numericas comuns retornem resultados esperados no MySQL.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_NumericFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT ABS(-10)"
+        };
+        Assert.Equal(10, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT ACOS(1)";
+        Assert.Equal(0d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT ASIN(0)";
+        Assert.Equal(0d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT ATAN(0)";
+        Assert.Equal(0d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT ATAN2(0, 1)";
+        Assert.Equal(0d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT CEIL(1.2)";
+        Assert.Equal(2, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT CEILING(1.1)";
+        Assert.Equal(2, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT BIN(12)";
+        Assert.Equal("1100", command.ExecuteScalar());
+
+        command.CommandText = "SELECT BIT_COUNT(7)";
+        Assert.Equal(3, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT BIT_LENGTH('abc')";
+        Assert.Equal(24, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT ASCII('A')";
+        Assert.Equal(65, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures ADDDATE and ADDTIME behave for literal arguments.
+    /// PT: Garante que ADDDATE e ADDTIME se comportem com argumentos literais.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_DateArithmeticFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT ADDDATE('2020-01-01', 1)"
+        };
+        Assert.Equal(new DateTime(2020, 1, 2), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT ADDDATE('2020-01-01', INTERVAL 2 DAY)";
+        Assert.Equal(new DateTime(2020, 1, 3), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT ADDTIME('2020-01-01 10:00:00', '02:30:00')";
+        Assert.Equal(new DateTime(2020, 1, 1, 12, 30, 0), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures ANY_VALUE and BIT_ aggregates return expected values.
+    /// PT: Garante que agregados ANY_VALUE e BIT_ retornem valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_AggregateBitwiseFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL)"
+        };
+        command.ExecuteNonQuery();
+
+        command.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (2, 'Ana', NULL)";
+        command.ExecuteNonQuery();
+
+        command.CommandText = "SELECT ANY_VALUE(Name) FROM Users";
+        Assert.Equal("Ana", command.ExecuteScalar());
+
+        command.CommandText = "SELECT BIT_AND(Id) FROM Users";
+        Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT BIT_OR(Id) FROM Users";
+        Assert.Equal(3, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT BIT_XOR(Id) FROM Users";
+        Assert.Equal(3, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures IPv4/IPv6 predicate helpers report expected results.
+    /// PT: Garante que validacoes de IPv4/IPv6 retornem resultados esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_IpFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT IS_IPV4('192.168.0.1')"
+        };
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT IS_IPV4('::1')";
+        Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT IS_IPV6('::1')";
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT IS_IPV6('192.168.0.1')";
+        Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT IS_IPV4_COMPAT('::192.168.0.1')";
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT IS_IPV4_MAPPED('::ffff:192.168.0.1')";
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT IS_IPV4_MAPPED('::192.168.0.1')";
+        Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures UUID and JSON helper functions return expected results.
+    /// PT: Garante que funcoes auxiliares de UUID e JSON retornem resultados esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_UuidAndJsonFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT IS_UUID('550e8400-e29b-41d4-a716-446655440000')"
+        };
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT IS_UUID('invalid')";
+        Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT JSON_ARRAY(1, 'a', NULL)";
+        Assert.Equal("[1,\"a\",null]", command.ExecuteScalar());
+
+        command.CommandText = "SELECT JSON_DEPTH('{\"a\": [1, 2]}')";
+        Assert.Equal(3, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL)";
+        command.ExecuteNonQuery();
+
+        command.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bob', NULL)";
+        command.ExecuteNonQuery();
+
+        command.CommandText = "SELECT JSON_ARRAYAGG(Name) FROM Users";
+        Assert.Equal("[\"Ana\",\"Bob\"]", command.ExecuteScalar());
+    }
+
+    /// <summary>
+    /// EN: Ensures JSON utility helpers return expected results for common inputs.
+    /// PT: Garante que utilitarios JSON retornem resultados esperados para entradas comuns.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_JsonUtilityFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT JSON_VALID('{\"a\":1}')"
+        };
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT JSON_VALID('invalid')";
+        Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT JSON_TYPE('{\"a\":1}')";
+        Assert.Equal("OBJECT", command.ExecuteScalar());
+
+        command.CommandText = "SELECT JSON_TYPE('[1,2]')";
+        Assert.Equal("ARRAY", command.ExecuteScalar());
+
+        command.CommandText = "SELECT JSON_LENGTH('[1,2,3]')";
+        Assert.Equal(3, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT JSON_LENGTH('{\"a\":1,\"b\":2}')";
+        Assert.Equal(2, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT JSON_OBJECT('a', 1, 'b', 'x')";
+        Assert.Equal("{\"a\":1,\"b\":\"x\"}", command.ExecuteScalar());
+
+        command.CommandText = "SELECT JSON_QUOTE('text')";
+        Assert.Equal("\"text\"", command.ExecuteScalar());
+
+        command.CommandText = "SELECT JSON_PRETTY('{\"a\":1}')";
+        Assert.Equal("{\n  \"a\": 1\n}", command.ExecuteScalar());
+
+        command.CommandText = "SELECT JSON_KEYS('{\"a\":1,\"b\":2}')";
+        Assert.Equal("[\"a\",\"b\"]", command.ExecuteScalar());
+
+        command.CommandText = "SELECT JSON_KEYS('{\"a\":{\"b\":1}}', '$.a')";
+        Assert.Equal("[\"b\"]", command.ExecuteScalar());
+
+        command.CommandText = "SELECT JSON_SET('{\"a\":1}', '$.b', 2)";
+        Assert.Equal("{\"a\":1,\"b\":2}", command.ExecuteScalar());
+
+        command.CommandText = "SELECT JSON_SET('{\"a\":1}', '$.a', 3)";
+        Assert.Equal("{\"a\":3}", command.ExecuteScalar());
+
+        command.CommandText = "SELECT JSON_SET('{\"a\":1}', '$.c.d', 4)";
+        Assert.Equal("{\"a\":1,\"c\":{\"d\":4}}", command.ExecuteScalar());
+
+        command.CommandText = "SELECT JSON_REMOVE('{\"a\":1,\"b\":2}', '$.a')";
+        Assert.Equal("{\"b\":2}", command.ExecuteScalar());
+
+        command.CommandText = "SELECT JSON_REMOVE('{\"a\":{\"b\":1},\"c\":2}', '$.a.b')";
+        Assert.Equal("{\"a\":{},\"c\":2}", command.ExecuteScalar());
+
+        command.CommandText = "SELECT JSON_CONTAINS('{\"a\":1,\"b\":2}', '1', '$.a')";
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT JSON_CONTAINS('{\"a\":1,\"b\":2}', '3', '$.a')";
+        Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT JSON_CONTAINS_PATH('{\"a\":1,\"b\":2}', 'one', '$.a', '$.c')";
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT JSON_CONTAINS_PATH('{\"a\":1,\"b\":2}', 'all', '$.a', '$.c')";
+        Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT JSON_SEARCH('{\"a\":\"foo\",\"b\":\"bar\"}', 'one', 'ba')";
+        Assert.Equal("$.b", command.ExecuteScalar());
+
+        command.CommandText = "SELECT JSON_SEARCH('[\"foo\",\"bar\"]', 'all', 'o')";
+        Assert.Equal("[\"$[0]\"]", command.ExecuteScalar());
+
+        command.CommandText = "SELECT JSON_INSERT('{\"a\":1}', '$.b', 2)";
+        Assert.Equal("{\"a\":1,\"b\":2}", command.ExecuteScalar());
+
+        command.CommandText = "SELECT JSON_INSERT('{\"a\":1}', '$.a', 3)";
+        Assert.Equal("{\"a\":1}", command.ExecuteScalar());
+
+        command.CommandText = "SELECT JSON_REPLACE('{\"a\":1}', '$.a', 5)";
+        Assert.Equal("{\"a\":5}", command.ExecuteScalar());
+
+        command.CommandText = "SELECT JSON_REPLACE('{\"a\":1}', '$.b', 5)";
+        Assert.Equal("{\"a\":1}", command.ExecuteScalar());
+    }
+
+    /// <summary>
+    /// EN: Ensures LAST_DAY, LAST_INSERT_ID, and LEAST return expected values.
+    /// PT: Garante que LAST_DAY, LAST_INSERT_ID e LEAST retornem valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_CommonUtilityFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT LAST_DAY('2020-02-10')"
+        };
+        Assert.Equal(new DateTime(2020, 2, 29), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT LAST_INSERT_ID()";
+        Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT LAST_INSERT_ID(15)";
+        Assert.Equal(15, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT LAST_INSERT_ID()";
+        Assert.Equal(15, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT LEAST(5, 2, 9)";
+        Assert.Equal(2, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures LOCATE, LOG and LPAD return expected values.
+    /// PT: Garante que LOCATE, LOG e LPAD retornem valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_MathAndLocateFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT LOCATE('bar', 'foobar')"
+        };
+        Assert.Equal(4, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT LOCATE('bar', 'foobar', 5)";
+        Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT LN(1)";
+        Assert.Equal(0d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT LOG(10)";
+        Assert.True(Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture) > 2.0);
+
+        command.CommandText = "SELECT LOG(10, 100)";
+        Assert.Equal(2d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT LOG10(1000)";
+        Assert.Equal(3d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT LOG2(8)";
+        Assert.Equal(3d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT LPAD('abc', 5, '0')";
+        Assert.Equal("00abc", command.ExecuteScalar());
+    }
+
+    /// <summary>
+    /// EN: Ensures MAKEDATE, MAKETIME, MICROSECOND, and MD5 return expected values.
+    /// PT: Garante que MAKEDATE, MAKETIME, MICROSECOND e MD5 retornem valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_DateTimeAndHashFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT MAKEDATE(2020, 60)"
+        };
+        Assert.Equal(new DateTime(2020, 2, 29), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT MAKETIME(12, 30, 15)";
+        Assert.Equal(new TimeSpan(12, 30, 15), (TimeSpan)command.ExecuteScalar()!);
+
+        command.CommandText = "SELECT MICROSECOND('2020-01-01 10:00:00.123456')";
+        Assert.Equal(123456, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT MD5('abc')";
+        Assert.Equal("900150983cd24fb0d6963f7d28e17f72", command.ExecuteScalar());
+    }
+
+    /// <summary>
+    /// EN: Ensures MID, MOD, and MONTHNAME return expected values.
+    /// PT: Garante que MID, MOD e MONTHNAME retornem valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_TextMathAndMonthFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT MID('abcdef', 2, 3)"
+        };
+        Assert.Equal("bcd", command.ExecuteScalar());
+
+        command.CommandText = "SELECT MOD(10, 3)";
+        Assert.Equal(1m, Convert.ToDecimal(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT MONTHNAME('2020-03-15')";
+        Assert.Equal("March", command.ExecuteScalar());
+    }
+
+    /// <summary>
+    /// EN: Ensures OCT, OCTET_LENGTH, and NAME_CONST return expected values.
+    /// PT: Garante que OCT, OCTET_LENGTH e NAME_CONST retornem valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_OctFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT OCT(8)"
+        };
+        Assert.Equal("10", command.ExecuteScalar());
+
+        command.CommandText = "SELECT OCTET_LENGTH('á')";
+        Assert.Equal(2, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT NAME_CONST('a', 10)";
+        Assert.Equal(10, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures ORD, POSITION, PI, POWER, and PERIOD_* functions return expected values.
+    /// PT: Garante que ORD, POSITION, PI, POWER e PERIOD_* retornem valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_PeriodAndPowerFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT ORD('A')"
+        };
+        Assert.Equal(65, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT POSITION('bar', 'foobar')";
+        Assert.Equal(4, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT PI()";
+        Assert.Equal(Math.PI, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT POWER(2, 3)";
+        Assert.Equal(8d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT POW(2, 3)";
+        Assert.Equal(8d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT PERIOD_ADD(202001, 2)";
+        Assert.Equal(202003, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT PERIOD_DIFF(202003, 202001)";
+        Assert.Equal(2, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures common date, math, and string helpers return expected values.
+    /// PT: Garante que helpers comuns de data, matematica e string retornem valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_CommonStringMathFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT QUARTER('2020-05-01')"
+        };
+        Assert.Equal(2, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT QUOTE(\"O'Reilly\")";
+        Assert.Equal("'O\\'Reilly'", command.ExecuteScalar());
+
+        command.CommandText = "SELECT RADIANS(180)";
+        Assert.Equal(Math.PI, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT RAND(1)";
+        var seeded1 = Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+        command.CommandText = "SELECT RAND(1)";
+        var seeded2 = Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+        Assert.Equal(seeded1, seeded2);
+
+        command.CommandText = "SELECT REPEAT('ab', 3)";
+        Assert.Equal("ababab", command.ExecuteScalar());
+
+        command.CommandText = "SELECT REVERSE('abc')";
+        Assert.Equal("cba", command.ExecuteScalar());
+
+        command.CommandText = "SELECT RIGHT('abcdef', 2)";
+        Assert.Equal("ef", command.ExecuteScalar());
+    }
+
+    /// <summary>
+    /// EN: Ensures ROUND, RPAD, SEC_TO_TIME, SHA*, SIN, and SOUNDEX return expected values.
+    /// PT: Garante que ROUND, RPAD, SEC_TO_TIME, SHA*, SIN e SOUNDEX retornem valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_StringHashAndTimeFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT ROUND(1.234, 2)"
+        };
+        Assert.Equal(1.23m, Convert.ToDecimal(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT RPAD('abc', 5, '0')";
+        Assert.Equal("abc00", command.ExecuteScalar());
+
+        command.CommandText = "SELECT SEC_TO_TIME(3661)";
+        Assert.Equal(new TimeSpan(1, 1, 1), (TimeSpan)command.ExecuteScalar()!);
+
+        command.CommandText = "SELECT SHA('abc')";
+        Assert.Equal("a9993e364706816aba3e25717850c26c9cd0d89d", command.ExecuteScalar());
+
+        command.CommandText = "SELECT SHA1('abc')";
+        Assert.Equal("a9993e364706816aba3e25717850c26c9cd0d89d", command.ExecuteScalar());
+
+        command.CommandText = "SELECT SHA2('abc', 256)";
+        Assert.Equal("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", command.ExecuteScalar());
+
+        command.CommandText = "SELECT SIN(0)";
+        Assert.Equal(0d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT SOUNDEX('Robert')";
+        Assert.Equal("R163", command.ExecuteScalar());
+    }
+
+    /// <summary>
+    /// EN: Ensures SPACE and SQRT return expected values.
+    /// PT: Garante que SPACE e SQRT retornem valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_SpaceAndSqrtFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT SPACE(3)"
+        };
+        Assert.Equal("   ", command.ExecuteScalar());
+
+        command.CommandText = "SELECT SQRT(9)";
+        Assert.Equal(3d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures common time and string helpers return expected values.
+    /// PT: Garante que helpers comuns de tempo e string retornem valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_TimeAndSubstringFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT SUBDATE('2020-01-10', 2)"
+        };
+        Assert.Equal(new DateTime(2020, 1, 8), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT SUBTIME('10:00:00', '01:30:00')";
+        Assert.Equal(new TimeSpan(8, 30, 0), (TimeSpan)command.ExecuteScalar()!);
+
+        command.CommandText = "SELECT SUBSTRING_INDEX('a,b,c', ',', 2)";
+        Assert.Equal("a,b", command.ExecuteScalar());
+
+        command.CommandText = "SELECT SUBSTRING_INDEX('a,b,c', ',', -1)";
+        Assert.Equal("c", command.ExecuteScalar());
+
+        command.CommandText = "SELECT TIME_FORMAT('10:05:06', '%H:%i:%s')";
+        Assert.Equal("10:05:06", command.ExecuteScalar());
+
+        command.CommandText = "SELECT TIME_TO_SEC('01:02:03')";
+        Assert.Equal(3723, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT TIMEDIFF('10:10:10', '09:00:00')";
+        Assert.Equal(new TimeSpan(1, 10, 10), (TimeSpan)command.ExecuteScalar()!);
+
+        command.CommandText = "SELECT TAN(0)";
+        Assert.Equal(0d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT SYSTEM_USER()";
+        Assert.Equal("root@localhost", command.ExecuteScalar());
+    }
+
+    /// <summary>
+    /// EN: Ensures common date conversion helpers return expected values.
+    /// PT: Garante que helpers comuns de conversao de data retornem valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_DateConversionFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT TIMESTAMPDIFF(DAY, '2020-01-01', '2020-01-03')"
+        };
+        Assert.Equal(2, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT TO_DAYS('2020-01-01')";
+        var days = Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+        Assert.True(days > 0);
+
+        command.CommandText = "SELECT TO_SECONDS('2020-01-01 00:00:01')";
+        var seconds = Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+        Assert.True(seconds > 0);
+
+        command.CommandText = "SELECT TRUNCATE(12.3456, 2)";
+        Assert.Equal(12.34m, Convert.ToDecimal(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT UNIX_TIMESTAMP('1970-01-01 00:00:00')";
+        Assert.Equal(0L, Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT USER()";
+        Assert.Equal("root@localhost", command.ExecuteScalar());
+
+        command.CommandText = "SELECT UTC_DATE()";
+        Assert.IsType<DateTime>(command.ExecuteScalar());
+
+        command.CommandText = "SELECT UTC_TIME()";
+        Assert.IsType<TimeSpan>(command.ExecuteScalar());
+    }
+
+    /// <summary>
+    /// EN: Ensures UTC_TIMESTAMP, UUID_SHORT, and week helpers return expected values.
+    /// PT: Garante que UTC_TIMESTAMP, UUID_SHORT e helpers de semana retornem valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_UtcAndWeekFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "SELECT UTC_TIMESTAMP()"
+        };
+        Assert.IsType<DateTime>(command.ExecuteScalar());
+
+        command.CommandText = "SELECT UUID_SHORT()";
+        var first = Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+        command.CommandText = "SELECT UUID_SHORT()";
+        var second = Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+        Assert.True(second > first);
+
+        command.CommandText = "SELECT WEEKDAY('2020-01-01')";
+        Assert.Equal(2, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT WEEK('2020-01-01')";
+        var week = Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+        Assert.True(week >= 0);
+
+        command.CommandText = "SELECT WEEKOFYEAR('2020-01-01')";
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT YEARWEEK('2020-01-01')";
+        Assert.Equal(202001, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures variance aggregates return expected values.
+    /// PT: Garante que agregados de variancia retornem valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "MySqlMock")]
+    public void TestSelect_VarianceFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new MySqlCommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Orders (OrderId, UserId, Amount) VALUES (10, 1, 10)"
+        };
+        command.ExecuteNonQuery();
+        command.CommandText = "INSERT INTO Orders (OrderId, UserId, Amount) VALUES (11, 1, 20)";
+        command.ExecuteNonQuery();
+        command.CommandText = "INSERT INTO Orders (OrderId, UserId, Amount) VALUES (12, 1, 30)";
+        command.ExecuteNonQuery();
+
+        command.CommandText = "SELECT VAR_POP(Amount) FROM Orders";
+        Assert.Equal(66.66666666666667d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT VAR_SAMP(Amount) FROM Orders";
+        Assert.Equal(100d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT VARIANCE(Amount) FROM Orders";
+        Assert.Equal(66.66666666666667d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
     /// EN: Ensures TRY_CAST follows MySQL mock behavior and returns DBNull on non-convertible values in ExecuteScalar.
     /// PT: Garante que TRY_CAST siga o comportamento do mock MySQL e retorne DBNull no ExecuteScalar para valores não conversíveis.
     /// </summary>

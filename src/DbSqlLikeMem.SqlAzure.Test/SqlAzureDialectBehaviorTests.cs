@@ -239,7 +239,7 @@ public sealed class SqlAzureDialectBehaviorTests
         Assert.True(reader.IsDBNull(reader.GetOrdinal("LastOrderId")));
         Assert.Equal(0m, Convert.ToDecimal(reader.GetValue(reader.GetOrdinal("LastAmount"))));
         Assert.False(Convert.ToBoolean(reader.GetValue(reader.GetOrdinal("HasBigOrder"))));
-        Assert.Equal(3L, Convert.ToInt64(reader.GetValue(reader.GetOrdinal("Rn"))));
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(reader.GetOrdinal("Rn"))));
         Assert.False(reader.Read());
     }
 

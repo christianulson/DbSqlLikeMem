@@ -24,7 +24,8 @@ internal sealed class Db2Dialect : SqlDialectBase
         ],
         operators:
         [
-            ">=", "<=", "<>", "!="
+            ">=", "<=", "<>", "!=",
+            "||"
         ])
     { }
 

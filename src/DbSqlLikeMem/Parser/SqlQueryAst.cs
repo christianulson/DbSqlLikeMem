@@ -160,7 +160,8 @@ internal sealed record SqlTableSource(
     IReadOnlyList<SqlMySqlIndexHint>? MySqlIndexHints = null,
     FunctionCallExpr? TableFunction = null,
     SqlOpenJsonWithClause? OpenJsonWithClause = null,
-    SqlUnpivotSpec? Unpivot = null
+    SqlUnpivotSpec? Unpivot = null,
+    bool IsLateral = false
 );
 
 internal sealed record SqlOpenJsonWithClause(

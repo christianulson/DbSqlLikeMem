@@ -233,6 +233,208 @@ public sealed class SqlServerMockTests
     }
 
     /// <summary>
+    /// EN: Ensures common scalar functions return expected SQL Server values.
+    /// PT: Garante que funcoes escalares comuns retornem valores esperados no SQL Server.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestSelect_CommonScalarFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "SELECT APP_NAME()"
+        };
+        Assert.Equal("DbSqlLikeMem", command.ExecuteScalar());
+
+        command.CommandText = "SELECT CHARINDEX('bar', 'foobar')";
+        Assert.Equal(4, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT ABS(-10)";
+        Assert.Equal(10, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT CEILING(1.2)";
+        Assert.Equal(2, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT ATN2(0, 1)";
+        Assert.Equal(0d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT COS(0)";
+        Assert.Equal(1d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT COT(1)";
+        var cotValue = Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+        Assert.True(cotValue > 0);
+
+        command.CommandText = "SELECT ASCII('A')";
+        Assert.Equal(65, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server date and metadata helpers return expected values.
+    /// PT: Garante que helpers de data e metadados do SQL Server retornem valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestSelect_DateHelpers_ShouldReturnExpectedValues()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "SELECT CURRENT_USER"
+        };
+        Assert.Equal("dbo", command.ExecuteScalar());
+
+        command.CommandText = "SELECT DATALENGTH('AB')";
+        Assert.Equal(4, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATENAME(month, '2020-02-10')";
+        Assert.Equal("February", command.ExecuteScalar());
+
+        command.CommandText = "SELECT DATEPART(month, '2020-02-10')";
+        Assert.Equal(2, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATEDIFF(day, '2020-01-01', '2020-01-03')";
+        Assert.Equal(2, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DEGREES(PI())";
+        Assert.Equal(180d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server date part constructors return expected values.
+    /// PT: Garante que construtores de data do SQL Server retornem valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestSelect_DatePartConstructors_ShouldReturnExpectedValues()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "SELECT DATEFROMPARTS(2020, 2, 29)"
+        };
+        Assert.Equal(new DateTime(2020, 2, 29), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATETIMEFROMPARTS(2020, 2, 29, 10, 11, 12)";
+        Assert.Equal(new DateTime(2020, 2, 29, 10, 11, 12), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATETIME2FROMPARTS(2020, 2, 29, 10, 11, 12, 1234567)";
+        Assert.Equal(new DateTime(2020, 2, 29, 10, 11, 12).AddTicks(1234567 * 10L), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATETIMEOFFSETFROMPARTS(2020, 2, 29, 10, 11, 12, 1234567, 60)";
+        var offset = (DateTimeOffset)command.ExecuteScalar()!;
+        Assert.Equal(new DateTimeOffset(new DateTime(2020, 2, 29, 10, 11, 12).AddTicks(1234567 * 10L), TimeSpan.FromMinutes(60)), offset);
+
+        command.CommandText = "SELECT DATEDIFF_BIG(day, '2020-01-01', '2020-01-03')";
+        Assert.Equal(2L, Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT EOMONTH('2020-02-15')";
+        Assert.Equal(new DateTime(2020, 2, 29), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server math and error helpers return expected values.
+    /// PT: Garante que helpers matematicos e de erro do SQL Server retornem valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestSelect_MathAndErrorFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "SELECT EXP(1)"
+        };
+        var exp = Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+        Assert.True(exp > 2.7 && exp < 2.8);
+
+        command.CommandText = "SELECT FLOOR(1.9)";
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT GETUTCDATE()";
+        Assert.IsType<DateTime>(command.ExecuteScalar());
+
+        command.CommandText = "SELECT ERROR_LINE()";
+        Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT ERROR_MESSAGE()";
+        Assert.Equal(string.Empty, command.ExecuteScalar());
+
+        command.CommandText = "SELECT ERROR_NUMBER()";
+        Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DIFFERENCE('Robert', 'Rupert')";
+        Assert.Equal(4, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures common SQL Server metadata and validation helpers return expected values.
+    /// PT: Garante que helpers de metadados e validacao do SQL Server retornem valores esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestSelect_MetadataHelpers_ShouldReturnExpectedValues()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "SELECT GETANSINULL()"
+        };
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT GROUPING(1)";
+        Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT GROUPING_ID(1, 2)";
+        Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT HOST_ID()";
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT HOST_NAME()";
+        Assert.Equal("localhost", command.ExecuteScalar());
+
+        command.CommandText = "SELECT ISDATE('2020-01-01')";
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT ISDATE('invalid')";
+        Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT ISJSON('{\"a\":1}')";
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT ISJSON('invalid')";
+        Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT ISNUMERIC('10.5')";
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT ISNUMERIC('abc')";
+        Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures common string and math functions return expected SQL Server values.
+    /// PT: Garante que funcoes comuns de string e matematica retornem valores esperados no SQL Server.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void TestSelect_StringAndLogFunctions_ShouldReturnExpectedValues()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = "SELECT LEN('abcd')"
+        };
+        Assert.Equal(4, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT LTRIM('  abc')";
+        Assert.Equal("abc", command.ExecuteScalar());
+
+        command.CommandText = "SELECT LOG(10)";
+        var log = Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+        Assert.True(log > 2.3 && log < 2.4);
+
+        command.CommandText = "SELECT LOG10(1000)";
+        Assert.Equal(3d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
     /// EN: Disposes test resources.
     /// PT: Descarta os recursos do teste.
     /// </summary>

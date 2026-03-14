@@ -213,6 +213,7 @@ internal sealed class MySqlDialect : SqlDialectBase
     /// </returns>
     public override bool SupportsDateAddFunction(string functionName)
         => functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)
+        || functionName.Equals("ADDDATE", StringComparison.OrdinalIgnoreCase)
         || functionName.Equals("TIMESTAMPADD", StringComparison.OrdinalIgnoreCase);
 
     public override bool SupportsStringAggregateFunction(string functionName)

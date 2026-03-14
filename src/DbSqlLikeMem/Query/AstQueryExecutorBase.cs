@@ -55,7 +55,7 @@ internal abstract class AstQueryExecutorBase(
 
     private static readonly HashSet<string> _aggFns = new(StringComparer.OrdinalIgnoreCase)
     {
-        "COUNT","SUM","MIN","MAX","AVG","GROUP_CONCAT","STRING_AGG","LISTAGG"
+        "COUNT","SUM","MIN","MAX","AVG","GROUP_CONCAT","STRING_AGG","LISTAGG","ANY_VALUE","BIT_AND","BIT_OR","BIT_XOR","JSON_ARRAYAGG","VAR_POP","VAR_SAMP","VARIANCE"
     };
     private static readonly HashSet<string> _sqlAliasReservedTokens = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -1898,6 +1898,17 @@ internal abstract class AstQueryExecutorBase(
             yield break;
         }
 
+        if (join.Table.IsLateral)
+        {
+            foreach (var leftRow in leftRows)
+            {
+                foreach (var lateralRow in ApplyLateralJoin(join, ctes, leftRow, isLeft: jt == SqlJoinType.Left))
+                    yield return lateralRow;
+            }
+
+            yield break;
+        }
+
         var rightSrc = ResolveSource(join.Table, ctes);
 
         if (rightSrc.Physical is not null)
@@ -1998,6 +2009,38 @@ internal abstract class AstQueryExecutorBase(
             var merged = l.CloneRow();
             merged.AddSource(rightSrc);
             // add nulls for right columns
+            foreach (var c in rightSrc.ColumnNames)
+                merged.Fields[$"{rightSrc.Alias}.{c}"] = null;
+            yield return merged;
+        }
+    }
+
+    private IEnumerable<EvalRow> ApplyLateralJoin(
+        SqlJoin join,
+        IDictionary<string, Source> ctes,
+        EvalRow leftRow,
+        bool isLeft)
+    {
+        var rightSrc = ResolveSource(join.Table, ctes, leftRow);
+        var matched = false;
+
+        foreach (var rr in rightSrc.Rows())
+        {
+            var merged = leftRow.CloneRow();
+            merged.AddSource(rightSrc);
+            merged.AddFields(rr);
+
+            if (!Eval(join.On, merged, group: null, ctes).ToBool())
+                continue;
+
+            matched = true;
+            yield return merged;
+        }
+
+        if (isLeft && !matched)
+        {
+            var merged = leftRow.CloneRow();
+            merged.AddSource(rightSrc);
             foreach (var c in rightSrc.ColumnNames)
                 merged.Fields[$"{rightSrc.Alias}.{c}"] = null;
             yield return merged;
@@ -4273,6 +4316,9 @@ private void FillPercentRankOrCumeDist(
         var l = Eval(b.Left, row, group, ctes);
         var r = Eval(b.Right, row, group, ctes);
 
+        if (TryEvalConcatBinary(b.Op, l, r, out var concatResult))
+            return concatResult;
+
         if (TryEvalArithmeticBinary(b.Op, l, r, out var arithmeticResult))
             return arithmeticResult;
 
@@ -4341,25 +4387,89 @@ private void FillPercentRankOrCumeDist(
         return true;
     }
 
+    private bool TryEvalConcatBinary(
+        SqlBinaryOp op,
+        object? left,
+        object? right,
+        out object? result)
+    {
+        if (op != SqlBinaryOp.Concat)
+        {
+            result = null;
+            return false;
+        }
+
+        var nullInputReturnsNull = Dialect?.ConcatReturnsNullOnNullInput ?? true;
+        if (left is null or DBNull || right is null or DBNull)
+        {
+            if (nullInputReturnsNull)
+            {
+                result = null;
+                return true;
+            }
+        }
+
+        var leftText = left is null or DBNull ? string.Empty : left.ToString() ?? string.Empty;
+        var rightText = right is null or DBNull ? string.Empty : right.ToString() ?? string.Empty;
+        result = string.Concat(leftText, rightText);
+        return true;
+    }
+
     private static bool TryEvalDateIntervalArithmeticBinary(
         SqlBinaryOp op,
         object left,
         object right,
         out object? result)
     {
-        if (left is not DateTime dateTime || right is not IntervalValue interval)
-        {
-            result = null;
+        result = null;
+
+        if (left is not DateTime dateTime)
             return false;
+
+        if (right is IntervalValue interval)
+        {
+            result = op switch
+            {
+                SqlBinaryOp.Add => dateTime.Add(interval.Span),
+                SqlBinaryOp.Subtract => dateTime.Subtract(interval.Span),
+                _ => throw new InvalidOperationException("op aritmético inválido")
+            };
+            return true;
         }
+
+        if (TryCoerceDateTime(right, out var rightDateTime) && op == SqlBinaryOp.Subtract)
+        {
+            result = (decimal)(dateTime.Date - rightDateTime.Date).TotalDays;
+            return true;
+        }
+
+        if (!TryConvertNumericToDouble(right, out var dayOffset))
+            return false;
 
         result = op switch
         {
-            SqlBinaryOp.Add => dateTime.Add(interval.Span),
-            SqlBinaryOp.Subtract => dateTime.Subtract(interval.Span),
+            SqlBinaryOp.Add => dateTime.AddDays(dayOffset),
+            SqlBinaryOp.Subtract => dateTime.AddDays(-dayOffset),
             _ => throw new InvalidOperationException("op aritmético inválido")
         };
         return true;
+    }
+
+    private static bool TryConvertNumericToDouble(object? value, out double result)
+    {
+        result = 0d;
+        if (value is null || value is DBNull)
+            return false;
+
+        try
+        {
+            result = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static decimal ConvertBinaryArithmeticOperandToDecimal(object value)
@@ -6135,11 +6245,272 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalNullSubstituteFunction(fn, dialect, EvalArg, out var nullSubstituteResult))
             return nullSubstituteResult;
 
+        if (TryEvalNvl2Function(fn, EvalArg, out var nvl2Result))
+            return nvl2Result;
+
+        if (TryEvalDecodeFunction(fn, dialect, EvalArg, out var decodeResult))
+            return decodeResult;
+
         if (TryEvalCoalesceFunction(fn, EvalArg, out var coalesceResult))
             return coalesceResult;
 
         if (TryEvalNullIfFunction(fn, dialect, EvalArg, out var nullIfResult))
             return nullIfResult;
+
+        if (TryEvalNumericFunction(fn, EvalArg, out var numericResult))
+            return numericResult;
+
+        if (TryEvalAppNameFunction(fn, out var appNameResult))
+            return appNameResult;
+
+        if (TryEvalCharIndexFunction(fn, EvalArg, out var charIndexResult))
+            return charIndexResult;
+
+        if (TryEvalCurrentUserFunction(fn, out var currentUserResult))
+            return currentUserResult;
+
+        if (TryEvalDataLengthFunction(fn, EvalArg, out var dataLengthResult))
+            return dataLengthResult;
+
+        if (TryEvalDateNameFunction(fn, row, group, ctes, EvalArg, out var dateNameResult))
+            return dateNameResult;
+
+        if (TryEvalDatePartFunction(fn, row, group, ctes, EvalArg, out var datePartResult))
+            return datePartResult;
+
+        if (TryEvalDegreesFunction(fn, EvalArg, out var degreesResult))
+            return degreesResult;
+
+        if (TryEvalDateDiffBigFunction(fn, row, group, ctes, EvalArg, out var dateDiffBigResult))
+            return dateDiffBigResult;
+
+        if (TryEvalDateFromPartsFunction(fn, EvalArg, out var dateFromPartsResult))
+            return dateFromPartsResult;
+
+        if (TryEvalDateTimeFromPartsFunction(fn, EvalArg, out var dateTimeFromPartsResult))
+            return dateTimeFromPartsResult;
+
+        if (TryEvalDateTime2FromPartsFunction(fn, EvalArg, out var dateTime2FromPartsResult))
+            return dateTime2FromPartsResult;
+
+        if (TryEvalDateTimeOffsetFromPartsFunction(fn, EvalArg, out var dateTimeOffsetFromPartsResult))
+            return dateTimeOffsetFromPartsResult;
+
+        if (TryEvalEomonthFunction(fn, EvalArg, out var eomonthResult))
+            return eomonthResult;
+
+        if (TryEvalDifferenceFunction(fn, EvalArg, out var differenceResult))
+            return differenceResult;
+
+        if (TryEvalErrorFunctions(fn, out var errorResult))
+            return errorResult;
+
+        if (TryEvalExpFunction(fn, EvalArg, out var expResult))
+            return expResult;
+
+        if (TryEvalFloorFunction(fn, EvalArg, out var floorResult))
+            return floorResult;
+
+        if (TryEvalGetUtcDateFunction(fn, out var getUtcDateResult))
+            return getUtcDateResult;
+
+        if (TryEvalGetAnsiNullFunction(fn, out var getAnsiNullResult))
+            return getAnsiNullResult;
+
+        if (TryEvalGroupingFunctions(fn, EvalArg, out var groupingResult))
+            return groupingResult;
+
+        if (TryEvalHostFunctions(fn, out var hostResult))
+            return hostResult;
+
+        if (TryEvalIsDateFunction(fn, EvalArg, out var isDateResult))
+            return isDateResult;
+
+        if (TryEvalIsJsonFunction(fn, EvalArg, out var isJsonResult))
+            return isJsonResult;
+
+        if (TryEvalIsNumericFunction(fn, EvalArg, out var isNumericResult))
+            return isNumericResult;
+
+        if (TryEvalAddDateFunction(fn, row, group, ctes, EvalArg, out var addDateResult))
+            return addDateResult;
+
+        if (TryEvalAddTimeFunction(fn, EvalArg, out var addTimeResult))
+            return addTimeResult;
+
+        if (TryEvalIpFunctions(fn, EvalArg, out var ipResult))
+            return ipResult;
+
+        if (TryEvalIsUuidFunction(fn, EvalArg, out var uuidResult))
+            return uuidResult;
+
+        if (TryEvalJsonArrayFunction(fn, EvalArg, out var jsonArrayResult))
+            return jsonArrayResult;
+
+        if (TryEvalJsonDepthFunction(fn, EvalArg, out var jsonDepthResult))
+            return jsonDepthResult;
+
+        if (TryEvalJsonUtilityFunctions(fn, EvalArg, out var jsonUtilityResult))
+            return jsonUtilityResult;
+
+        if (TryEvalMinMaxFunctions(fn, dialect, EvalArg, out var minMaxResult))
+            return minMaxResult;
+
+        if (TryEvalLastDayFunction(fn, EvalArg, out var lastDayResult))
+            return lastDayResult;
+
+        if (TryEvalLastInsertIdFunction(fn, EvalArg, out var lastInsertIdResult))
+            return lastInsertIdResult;
+
+        if (TryEvalLocateFunction(fn, dialect, EvalArg, out var locateResult))
+            return locateResult;
+
+        if (TryEvalLogFunctions(fn, EvalArg, out var logResult))
+            return logResult;
+
+        if (TryEvalPadFunctions(fn, EvalArg, out var padResult))
+            return padResult;
+
+        if (TryEvalMakeDateFunction(fn, EvalArg, out var makeDateResult))
+            return makeDateResult;
+
+        if (TryEvalMakeTimeFunction(fn, EvalArg, out var makeTimeResult))
+            return makeTimeResult;
+
+        if (TryEvalMicrosecondFunction(fn, EvalArg, out var microsecondResult))
+            return microsecondResult;
+
+        if (TryEvalMd5Function(fn, EvalArg, out var md5Result))
+            return md5Result;
+
+        if (TryEvalModFunction(fn, EvalArg, out var modResult))
+            return modResult;
+
+        if (TryEvalMonthNameFunction(fn, EvalArg, out var monthNameResult))
+            return monthNameResult;
+
+        if (TryEvalOctFunction(fn, EvalArg, out var octResult))
+            return octResult;
+
+        if (TryEvalOctetLengthFunction(fn, EvalArg, out var octetLengthResult))
+            return octetLengthResult;
+
+        if (TryEvalNameConstFunction(fn, EvalArg, out var nameConstResult))
+            return nameConstResult;
+
+        if (TryEvalOrdFunction(fn, EvalArg, out var ordResult))
+            return ordResult;
+
+        if (TryEvalPositionFunction(fn, EvalArg, out var positionResult))
+            return positionResult;
+
+        if (TryEvalPiFunction(fn, out var piResult))
+            return piResult;
+
+        if (TryEvalPowerFunctions(fn, EvalArg, out var powerResult))
+            return powerResult;
+
+        if (TryEvalPeriodFunctions(fn, EvalArg, out var periodResult))
+            return periodResult;
+
+        if (TryEvalQuarterFunction(fn, EvalArg, out var quarterResult))
+            return quarterResult;
+
+        if (TryEvalQuoteFunction(fn, EvalArg, out var quoteResult))
+            return quoteResult;
+
+        if (TryEvalRadiansFunction(fn, EvalArg, out var radiansResult))
+            return radiansResult;
+
+        if (TryEvalRandFunction(fn, EvalArg, out var randResult))
+            return randResult;
+
+        if (TryEvalRepeatFunction(fn, EvalArg, out var repeatResult))
+            return repeatResult;
+
+        if (TryEvalReverseFunction(fn, EvalArg, out var reverseResult))
+            return reverseResult;
+
+        if (TryEvalRightFunction(fn, EvalArg, out var rightResult))
+            return rightResult;
+
+        if (TryEvalRoundFunction(fn, EvalArg, out var roundResult))
+            return roundResult;
+
+        if (TryEvalPadRightFunction(fn, EvalArg, out var padRightResult))
+            return padRightResult;
+
+        if (TryEvalSecToTimeFunction(fn, EvalArg, out var secToTimeResult))
+            return secToTimeResult;
+
+        if (TryEvalShaFunctions(fn, EvalArg, out var shaResult))
+            return shaResult;
+
+        if (TryEvalSinFunction(fn, EvalArg, out var sinResult))
+            return sinResult;
+
+        if (TryEvalSoundexFunction(fn, EvalArg, out var soundexResult))
+            return soundexResult;
+
+        if (TryEvalSpaceFunction(fn, EvalArg, out var spaceResult))
+            return spaceResult;
+
+        if (TryEvalSqrtFunction(fn, EvalArg, out var sqrtResult))
+            return sqrtResult;
+
+        if (TryEvalSubDateFunction(fn, row, group, ctes, EvalArg, out var subDateResult))
+            return subDateResult;
+
+        if (TryEvalSubTimeFunction(fn, EvalArg, out var subTimeResult))
+            return subTimeResult;
+
+        if (TryEvalSubstringIndexFunction(fn, EvalArg, out var substringIndexResult))
+            return substringIndexResult;
+
+        if (TryEvalTanFunction(fn, EvalArg, out var tanResult))
+            return tanResult;
+
+        if (TryEvalTimeFormatFunction(fn, EvalArg, out var timeFormatResult))
+            return timeFormatResult;
+
+        if (TryEvalTimeToSecFunction(fn, EvalArg, out var timeToSecResult))
+            return timeToSecResult;
+
+        if (TryEvalTimeDiffFunction(fn, EvalArg, out var timeDiffResult))
+            return timeDiffResult;
+
+        if (TryEvalSystemUserFunction(fn, out var systemUserResult))
+            return systemUserResult;
+
+        if (TryEvalToDaysFunction(fn, EvalArg, out var toDaysResult))
+            return toDaysResult;
+
+        if (TryEvalToSecondsFunction(fn, EvalArg, out var toSecondsResult))
+            return toSecondsResult;
+
+        if (TryEvalTruncateFunction(fn, EvalArg, out var truncateResult))
+            return truncateResult;
+
+        if (TryEvalUnixTimestampFunction(fn, EvalArg, out var unixTimestampResult))
+            return unixTimestampResult;
+
+        if (TryEvalUserFunction(fn, out var userResult))
+            return userResult;
+
+        if (TryEvalUtcDateFunction(fn, out var utcDateResult))
+            return utcDateResult;
+
+        if (TryEvalUtcTimeFunction(fn, out var utcTimeResult))
+            return utcTimeResult;
+
+        if (TryEvalUtcTimestampFunction(fn, out var utcTimestampResult))
+            return utcTimestampResult;
+
+        if (TryEvalUuidShortFunction(fn, out var uuidShortResult))
+            return uuidShortResult;
+
+        if (TryEvalWeekFunctions(fn, EvalArg, out var weekResult))
+            return weekResult;
 
         EnsureDialectSupportsSequenceFunction(fn.Name);
         if (SqlSequenceEvaluator.TryEvaluateCall(_cnn, fn.Name, fn.Args, expr => Eval(expr, row, group, ctes), out var sequenceValue))
@@ -6169,6 +6540,14 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalReplaceFunction(fn, EvalArg, out var replaceResult))
             return replaceResult;
 
+        if (TryEvalDaysFunction(fn, EvalArg, out var daysResult))
+            return daysResult;
+
+        if (TryEvalDateDiffFunction(fn, row, group, ctes, EvalArg, out var dateDiffResult))
+            return dateDiffResult;
+
+        if (TryEvalTimestampDiffFunction(fn, row, group, ctes, EvalArg, out var timestampDiffResult))
+            return timestampDiffResult;
 
         var dateAddResult = TryEvalDateAddFunction(fn, row, group, ctes, EvalArg, out var handledDateAdd);
         if (handledDateAdd)
@@ -6176,6 +6555,15 @@ private void FillPercentRankOrCumeDist(
 
         if (TryEvalDateConstructionFunction(fn, EvalArg, out var dateConstructionResult))
             return dateConstructionResult;
+
+        if (TryEvalJulianDayFunction(fn, EvalArg, out var julianDayResult))
+            return julianDayResult;
+
+        if (TryEvalTruncFunction(fn, EvalArg, out var truncResult))
+            return truncResult;
+
+        if (TryEvalExtractFunction(fn, row, group, ctes, EvalArg, out var extractResult))
+            return extractResult;
 
         if (TryEvalFieldFunction(fn, dialect, EvalArg, out var fieldResult))
             return fieldResult;
@@ -6319,6 +6707,71 @@ private void FillPercentRankOrCumeDist(
         return true;
     }
 
+    private static bool TryEvalNvl2Function(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("NVL2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 3)
+            throw new InvalidOperationException("NVL2() espera 3 argumentos.");
+
+        var value = evalArg(0);
+        result = IsNullish(value) ? evalArg(2) : evalArg(1);
+        return true;
+    }
+
+    private static bool TryEvalDecodeFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DECODE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 3)
+            throw new InvalidOperationException("DECODE() espera ao menos 3 argumentos.");
+
+        var expr = evalArg(0);
+        var pairCount = (fn.Args.Count - 1) / 2;
+        var hasDefault = (fn.Args.Count - 1) % 2 == 1;
+
+        for (int i = 0; i < pairCount; i++)
+        {
+            var search = evalArg(1 + i * 2);
+            var resultValue = evalArg(2 + i * 2);
+
+            if (DecodeEquals(expr, search, dialect))
+            {
+                result = resultValue;
+                return true;
+            }
+        }
+
+        result = hasDefault ? evalArg(fn.Args.Count - 1) : null;
+        return true;
+    }
+
+    private static bool DecodeEquals(object? left, object? right, ISqlDialect dialect)
+    {
+        if (IsNullish(left) && IsNullish(right))
+            return true;
+
+        if (IsNullish(left) || IsNullish(right))
+            return false;
+
+        return left!.EqualsSql(right!, dialect);
+    }
+
     private static bool TryEvalCoalesceFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
@@ -6365,6 +6818,2690 @@ private void FillPercentRankOrCumeDist(
         }
 
         result = left!.Compare(right!, dialect) == 0 ? null : left;
+        return true;
+    }
+
+    private static bool TryEvalNumericFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var name = fn.Name;
+        var value = evalArg(0);
+
+        if (name.Equals("ABS", StringComparison.OrdinalIgnoreCase))
+        {
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            try
+            {
+                if (value is decimal dec)
+                {
+                    result = Math.Abs(dec);
+                    return true;
+                }
+
+                if (value is float or double)
+                {
+                    result = Math.Abs(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+                    return true;
+                }
+
+                result = Math.Abs(Convert.ToDecimal(value, CultureInfo.InvariantCulture));
+                return true;
+            }
+            catch
+            {
+                result = null;
+                return true;
+            }
+        }
+
+        if (name.Equals("ACOS", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("ASIN", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("ATAN", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("COS", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("COT", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("SIN", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("TAN", StringComparison.OrdinalIgnoreCase))
+        {
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            try
+            {
+                var arg = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+                result = name.Equals("ACOS", StringComparison.OrdinalIgnoreCase)
+                    ? Math.Acos(arg)
+                    : name.Equals("ASIN", StringComparison.OrdinalIgnoreCase)
+                        ? Math.Asin(arg)
+                        : name.Equals("ATAN", StringComparison.OrdinalIgnoreCase)
+                            ? Math.Atan(arg)
+                            : name.Equals("COS", StringComparison.OrdinalIgnoreCase)
+                                ? Math.Cos(arg)
+                                : name.Equals("SIN", StringComparison.OrdinalIgnoreCase)
+                                    ? Math.Sin(arg)
+                                    : name.Equals("TAN", StringComparison.OrdinalIgnoreCase)
+                                        ? Math.Tan(arg)
+                                        : 1d / Math.Tan(arg);
+                return true;
+            }
+            catch
+            {
+                result = null;
+                return true;
+            }
+        }
+
+        if (name.Equals("ATAN2", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("ATN2", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("ATAN2() espera 2 argumentos.");
+
+            var y = evalArg(0);
+            var x = evalArg(1);
+            if (IsNullish(y) || IsNullish(x))
+            {
+                result = null;
+                return true;
+            }
+
+            try
+            {
+                result = Math.Atan2(
+                    Convert.ToDouble(y, CultureInfo.InvariantCulture),
+                    Convert.ToDouble(x, CultureInfo.InvariantCulture));
+                return true;
+            }
+            catch
+            {
+                result = null;
+                return true;
+            }
+        }
+
+        if (name.Equals("CEIL", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("CEILING", StringComparison.OrdinalIgnoreCase))
+        {
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            try
+            {
+                if (value is decimal dec)
+                {
+                    result = Math.Ceiling(dec);
+                    return true;
+                }
+
+                result = Math.Ceiling(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+                return true;
+            }
+            catch
+            {
+                result = null;
+                return true;
+            }
+        }
+
+        if (name.Equals("BIN", StringComparison.OrdinalIgnoreCase))
+        {
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            try
+            {
+                var number = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+                result = Convert.ToString(number, 2);
+                return true;
+            }
+            catch
+            {
+                result = null;
+                return true;
+            }
+        }
+
+        if (name.Equals("BIT_COUNT", StringComparison.OrdinalIgnoreCase))
+        {
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            try
+            {
+                var number = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+                var bits = unchecked((ulong)number);
+                var count = 0;
+                while (bits != 0)
+                {
+                    count += (int)(bits & 1UL);
+                    bits >>= 1;
+                }
+
+                result = count;
+                return true;
+            }
+            catch
+            {
+                result = null;
+                return true;
+            }
+        }
+
+        if (name.Equals("BIT_LENGTH", StringComparison.OrdinalIgnoreCase))
+        {
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (value is byte[] bytes)
+            {
+                result = bytes.Length * 8;
+                return true;
+            }
+
+            var text = value?.ToString() ?? string.Empty;
+            result = text.Length * 8;
+            return true;
+        }
+
+        if (name.Equals("ASCII", StringComparison.OrdinalIgnoreCase))
+        {
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            var text = value?.ToString() ?? string.Empty;
+            result = text.Length == 0 ? 0 : (int)text[0];
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private static bool TryEvalAppNameFunction(
+        FunctionCallExpr fn,
+        out object? result)
+    {
+        if (!fn.Name.Equals("APP_NAME", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        result = "DbSqlLikeMem";
+        return true;
+    }
+
+    private static bool TryEvalCharIndexFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("CHARINDEX", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var needle = evalArg(0)?.ToString() ?? string.Empty;
+        var haystack = evalArg(1)?.ToString() ?? string.Empty;
+        var start = fn.Args.Count > 2 ? evalArg(2) : null;
+        var startIndex = 0;
+
+        if (!IsNullish(start))
+        {
+            startIndex = Convert.ToInt32(start.ToDec()) - 1;
+            if (startIndex < 0)
+            {
+                result = 0;
+                return true;
+            }
+        }
+
+        if (needle.Length == 0)
+        {
+            result = startIndex + 1;
+            return true;
+        }
+
+        var index = haystack.IndexOf(needle, startIndex, StringComparison.Ordinal);
+        result = index < 0 ? 0 : index + 1;
+        return true;
+    }
+
+    private static bool TryEvalCurrentUserFunction(
+        FunctionCallExpr fn,
+        out object? result)
+    {
+        if (!fn.Name.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        result = "dbo";
+        return true;
+    }
+
+    private static bool TryEvalDataLengthFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DATALENGTH", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (value is byte[] bytes)
+        {
+            result = bytes.Length;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        result = System.Text.Encoding.Unicode.GetByteCount(text);
+        return true;
+    }
+
+    private static bool TryEvalDateNameFunction(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DATENAME", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("DATENAME() espera 2 argumentos.");
+
+        var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
+        var value = evalArg(1);
+        if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        result = unit switch
+        {
+            "YEAR" or "YEARS" => dateTime.Year.ToString(CultureInfo.InvariantCulture),
+            "MONTH" or "MONTHS" => dateTime.ToString("MMMM", CultureInfo.InvariantCulture),
+            "DAY" or "DAYS" => dateTime.Day.ToString(CultureInfo.InvariantCulture),
+            "HOUR" or "HOURS" => dateTime.Hour.ToString(CultureInfo.InvariantCulture),
+            "MINUTE" or "MINUTES" => dateTime.Minute.ToString(CultureInfo.InvariantCulture),
+            "SECOND" or "SECONDS" => dateTime.Second.ToString(CultureInfo.InvariantCulture),
+            _ => null
+        };
+        return true;
+    }
+
+    private static bool TryEvalDatePartFunction(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DATEPART", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("DATEPART() espera 2 argumentos.");
+
+        var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
+        var value = evalArg(1);
+        if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        result = unit switch
+        {
+            "YEAR" or "YEARS" => dateTime.Year,
+            "MONTH" or "MONTHS" => dateTime.Month,
+            "DAY" or "DAYS" => dateTime.Day,
+            "HOUR" or "HOURS" => dateTime.Hour,
+            "MINUTE" or "MINUTES" => dateTime.Minute,
+            "SECOND" or "SECONDS" => dateTime.Second,
+            _ => null
+        };
+        return true;
+    }
+
+    private static bool TryEvalDegreesFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DEGREES", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var radians = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            result = radians * (180d / Math.PI);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalDateDiffBigFunction(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DATEDIFF_BIG", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count != 3)
+            throw new InvalidOperationException("DATEDIFF_BIG() espera 3 argumentos.");
+
+        var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
+        var startValue = evalArg(1);
+        var endValue = evalArg(2);
+        if (IsNullish(startValue) || IsNullish(endValue)
+            || !TryCoerceDateTime(startValue, out var start)
+            || !TryCoerceDateTime(endValue, out var end))
+        {
+            result = null;
+            return true;
+        }
+
+        result = unit switch
+        {
+            "DAY" or "DAYS" => (long)(end.Date - start.Date).TotalDays,
+            "HOUR" or "HOURS" => (long)(end - start).TotalHours,
+            "MINUTE" or "MINUTES" => (long)(end - start).TotalMinutes,
+            "SECOND" or "SECONDS" => (long)(end - start).TotalSeconds,
+            "MONTH" or "MONTHS" => (long)DiffMonths(start, end),
+            "YEAR" or "YEARS" => (long)DiffYears(start, end),
+            _ => null
+        };
+        return true;
+    }
+
+    private static bool TryEvalDateFromPartsFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DATEFROMPARTS", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 3)
+            throw new InvalidOperationException("DATEFROMPARTS() espera ano, mês e dia.");
+
+        var yearValue = evalArg(0);
+        var monthValue = evalArg(1);
+        var dayValue = evalArg(2);
+        if (IsNullish(yearValue) || IsNullish(monthValue) || IsNullish(dayValue))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            result = new DateTime(
+                Convert.ToInt32(yearValue.ToDec()),
+                Convert.ToInt32(monthValue.ToDec()),
+                Convert.ToInt32(dayValue.ToDec()));
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalDateTimeFromPartsFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DATETIMEFROMPARTS", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 6)
+            throw new InvalidOperationException("DATETIMEFROMPARTS() espera ao menos 6 argumentos.");
+
+        var values = new object?[6];
+        for (var i = 0; i < 6; i++)
+            values[i] = evalArg(i);
+
+        if (values.Any(IsNullish))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var year = Convert.ToInt32(values[0]!.ToDec());
+            var month = Convert.ToInt32(values[1]!.ToDec());
+            var day = Convert.ToInt32(values[2]!.ToDec());
+            var hour = Convert.ToInt32(values[3]!.ToDec());
+            var minute = Convert.ToInt32(values[4]!.ToDec());
+            var second = Convert.ToInt32(values[5]!.ToDec());
+            result = new DateTime(year, month, day, hour, minute, second);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalDateTime2FromPartsFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DATETIME2FROMPARTS", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 7)
+            throw new InvalidOperationException("DATETIME2FROMPARTS() espera ao menos 7 argumentos.");
+
+        var values = new object?[7];
+        for (var i = 0; i < 7; i++)
+            values[i] = evalArg(i);
+
+        if (values.Any(IsNullish))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var year = Convert.ToInt32(values[0]!.ToDec());
+            var month = Convert.ToInt32(values[1]!.ToDec());
+            var day = Convert.ToInt32(values[2]!.ToDec());
+            var hour = Convert.ToInt32(values[3]!.ToDec());
+            var minute = Convert.ToInt32(values[4]!.ToDec());
+            var second = Convert.ToInt32(values[5]!.ToDec());
+            var fraction = Convert.ToInt32(values[6]!.ToDec());
+            result = new DateTime(year, month, day, hour, minute, second)
+                .AddTicks(fraction * 10L);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalDateTimeOffsetFromPartsFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DATETIMEOFFSETFROMPARTS", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 8)
+            throw new InvalidOperationException("DATETIMEOFFSETFROMPARTS() espera ao menos 8 argumentos.");
+
+        var values = new object?[8];
+        for (var i = 0; i < 8; i++)
+            values[i] = evalArg(i);
+
+        if (values.Any(IsNullish))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var year = Convert.ToInt32(values[0]!.ToDec());
+            var month = Convert.ToInt32(values[1]!.ToDec());
+            var day = Convert.ToInt32(values[2]!.ToDec());
+            var hour = Convert.ToInt32(values[3]!.ToDec());
+            var minute = Convert.ToInt32(values[4]!.ToDec());
+            var second = Convert.ToInt32(values[5]!.ToDec());
+            var fraction = Convert.ToInt32(values[6]!.ToDec());
+            var offsetMinutes = Convert.ToInt32(values[7]!.ToDec());
+            var offset = TimeSpan.FromMinutes(offsetMinutes);
+            result = new DateTimeOffset(new DateTime(year, month, day, hour, minute, second).AddTicks(fraction * 10L), offset);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalEomonthFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("EOMONTH", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 1)
+            throw new InvalidOperationException("EOMONTH() espera ao menos 1 argumento.");
+
+        var value = evalArg(0);
+        if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        var monthOffset = fn.Args.Count > 1 ? evalArg(1) : null;
+        if (!IsNullish(monthOffset))
+        {
+            dateTime = dateTime.AddMonths(Convert.ToInt32(monthOffset!.ToDec()));
+        }
+
+        var lastDay = DateTime.DaysInMonth(dateTime.Year, dateTime.Month);
+        result = new DateTime(dateTime.Year, dateTime.Month, lastDay);
+        return true;
+    }
+
+    private static bool TryEvalDifferenceFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DIFFERENCE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var first = evalArg(0)?.ToString() ?? string.Empty;
+        var second = evalArg(1)?.ToString() ?? string.Empty;
+        var soundex1 = ComputeSoundex(first);
+        var soundex2 = ComputeSoundex(second);
+        var score = 0;
+        for (var i = 0; i < Math.Min(soundex1.Length, soundex2.Length); i++)
+        {
+            if (soundex1[i] == soundex2[i])
+                score++;
+        }
+
+        result = score;
+        return true;
+    }
+
+    private static bool TryEvalErrorFunctions(
+        FunctionCallExpr fn,
+        out object? result)
+    {
+        var name = fn.Name;
+        if (!(name.Equals("ERROR_LINE", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("ERROR_MESSAGE", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("ERROR_NUMBER", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("ERROR_PROCEDURE", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("ERROR_SEVERITY", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("ERROR_STATE", StringComparison.OrdinalIgnoreCase)))
+        {
+            result = null;
+            return false;
+        }
+
+        result = name.Equals("ERROR_MESSAGE", StringComparison.OrdinalIgnoreCase)
+            ? string.Empty
+            : 0;
+        return true;
+    }
+
+    private static bool TryEvalExpFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("EXP", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            result = Math.Exp(number);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalFloorFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("FLOOR", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            if (value is decimal dec)
+            {
+                result = Math.Floor(dec);
+                return true;
+            }
+
+            result = Math.Floor(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalGetUtcDateFunction(
+        FunctionCallExpr fn,
+        out object? result)
+    {
+        if (!fn.Name.Equals("GETUTCDATE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        result = DateTime.UtcNow;
+        return true;
+    }
+
+    private static bool TryEvalGetAnsiNullFunction(
+        FunctionCallExpr fn,
+        out object? result)
+    {
+        if (!fn.Name.Equals("GETANSINULL", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        result = 1;
+        return true;
+    }
+
+    private static bool TryEvalGroupingFunctions(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!(fn.Name.Equals("GROUPING", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("GROUPING_ID", StringComparison.OrdinalIgnoreCase)))
+        {
+            result = null;
+            return false;
+        }
+
+        result = 0;
+        return true;
+    }
+
+    private static bool TryEvalHostFunctions(
+        FunctionCallExpr fn,
+        out object? result)
+    {
+        if (!(fn.Name.Equals("HOST_ID", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("HOST_NAME", StringComparison.OrdinalIgnoreCase)))
+        {
+            result = null;
+            return false;
+        }
+
+        result = fn.Name.Equals("HOST_ID", StringComparison.OrdinalIgnoreCase)
+            ? 1
+            : "localhost";
+        return true;
+    }
+
+    private static bool TryEvalIsDateFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("ISDATE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = 0;
+            return true;
+        }
+
+        result = DateTime.TryParse(value?.ToString(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out _)
+            ? 1
+            : 0;
+        return true;
+    }
+
+    private static bool TryEvalIsJsonFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("ISJSON", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = 0;
+            return true;
+        }
+
+        try
+        {
+            using var _ = System.Text.Json.JsonDocument.Parse(value?.ToString() ?? string.Empty);
+            result = 1;
+        }
+        catch
+        {
+            result = 0;
+        }
+
+        return true;
+    }
+
+    private static bool TryEvalIsNumericFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("ISNUMERIC", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = 0;
+            return true;
+        }
+
+        result = double.TryParse(value?.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out _)
+            ? 1
+            : 0;
+        return true;
+    }
+
+    private static string ComputeSoundex(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        var firstLetter = char.ToUpperInvariant(value[0]);
+        var codes = new StringBuilder();
+
+        char? lastCode = null;
+        foreach (var ch in value.Skip(1))
+        {
+            var code = GetSoundexCode(ch);
+            if (code is null)
+            {
+                lastCode = null;
+                continue;
+            }
+
+            if (lastCode.HasValue && lastCode.Value == code.Value)
+                continue;
+
+            codes.Append(code.Value);
+            lastCode = code.Value;
+        }
+
+        var soundex = new StringBuilder(4);
+        soundex.Append(firstLetter);
+        soundex.Append(codes);
+        while (soundex.Length < 4)
+            soundex.Append('0');
+
+        if (soundex.Length > 4)
+            soundex.Length = 4;
+
+        return soundex.ToString();
+    }
+
+    private static bool TryEvalAddDateFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("ADDDATE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("ADDDATE() espera 2 argumentos.");
+
+        var baseValue = evalArg(0);
+        if (IsNullish(baseValue) || !TryCoerceDateTime(baseValue, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        var addValue = evalArg(1);
+        if (addValue is IntervalValue interval)
+        {
+            result = dateTime.Add(interval.Span);
+            return true;
+        }
+
+        if (TryConvertNumericToDouble(addValue, out var dayOffset))
+        {
+            result = dateTime.AddDays(dayOffset);
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalAddTimeFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("ADDTIME", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("ADDTIME() espera 2 argumentos.");
+
+        var baseValue = evalArg(0);
+        var addValue = evalArg(1);
+        if (IsNullish(baseValue) || IsNullish(addValue))
+        {
+            result = null;
+            return true;
+        }
+
+        if (TryCoerceDateTime(baseValue, out var dateTime) && TryCoerceTimeSpan(addValue, out var addSpan))
+        {
+            result = dateTime.Add(addSpan);
+            return true;
+        }
+
+        if (TryCoerceTimeSpan(baseValue, out var baseSpan) && TryCoerceTimeSpan(addValue, out var addSpan2))
+        {
+            result = baseSpan.Add(addSpan2);
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalIpFunctions(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var name = fn.Name;
+        if (!(name.Equals("IS_IPV4", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("IS_IPV4_COMPAT", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("IS_IPV4_MAPPED", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("IS_IPV6", StringComparison.OrdinalIgnoreCase)))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        if (!System.Net.IPAddress.TryParse(text, out var ip))
+        {
+            result = 0;
+            return true;
+        }
+
+        if (name.Equals("IS_IPV4", StringComparison.OrdinalIgnoreCase))
+        {
+            result = ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 1 : 0;
+            return true;
+        }
+
+        if (name.Equals("IS_IPV6", StringComparison.OrdinalIgnoreCase))
+        {
+            result = ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 ? 1 : 0;
+            return true;
+        }
+
+        if (ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetworkV6)
+        {
+            result = 0;
+            return true;
+        }
+
+        var bytes = ip.GetAddressBytes();
+        if (bytes.Length != 16)
+        {
+            result = 0;
+            return true;
+        }
+
+        if (name.Equals("IS_IPV4_COMPAT", StringComparison.OrdinalIgnoreCase))
+        {
+            var isCompat = bytes.Take(12).All(static b => b == 0);
+            result = isCompat ? 1 : 0;
+            return true;
+        }
+
+        if (name.Equals("IS_IPV4_MAPPED", StringComparison.OrdinalIgnoreCase))
+        {
+            var isMapped = bytes.Take(10).All(static b => b == 0)
+                && bytes[10] == 0xFF
+                && bytes[11] == 0xFF;
+            result = isMapped ? 1 : 0;
+            return true;
+        }
+
+        result = 0;
+        return true;
+    }
+
+    private static bool TryEvalIsUuidFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("IS_UUID", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        result = Guid.TryParse(text, out _) ? 1 : 0;
+        return true;
+    }
+
+    private static bool TryEvalJsonArrayFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("JSON_ARRAY", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var values = new object?[fn.Args.Count];
+        for (var i = 0; i < fn.Args.Count; i++)
+            values[i] = evalArg(i);
+
+        result = BuildJsonArray(values);
+        return true;
+    }
+
+    private static bool TryEvalJsonDepthFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("JSON_DEPTH", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (value is System.Text.Json.JsonElement element)
+        {
+            result = GetJsonDepth(element);
+            return true;
+        }
+
+        var text = value?.ToString();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(text);
+            result = GetJsonDepth(doc.RootElement);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static int GetJsonDepth(System.Text.Json.JsonElement element)
+    {
+        if (element.ValueKind is System.Text.Json.JsonValueKind.Object)
+        {
+            var maxDepth = 0;
+            foreach (var property in element.EnumerateObject())
+                maxDepth = Math.Max(maxDepth, GetJsonDepth(property.Value));
+
+            return 1 + maxDepth;
+        }
+
+        if (element.ValueKind is System.Text.Json.JsonValueKind.Array)
+        {
+            var maxDepth = 0;
+            foreach (var item in element.EnumerateArray())
+                maxDepth = Math.Max(maxDepth, GetJsonDepth(item));
+
+            return 1 + maxDepth;
+        }
+
+        return 1;
+    }
+
+    private static bool TryEvalJsonUtilityFunctions(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (fn.Name.Equals("JSON_VALID", StringComparison.OrdinalIgnoreCase))
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            var text = value?.ToString();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                result = 0;
+                return true;
+            }
+
+            try
+            {
+                using var _ = System.Text.Json.JsonDocument.Parse(text);
+                result = 1;
+            }
+            catch
+            {
+                result = 0;
+            }
+
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_TYPE", StringComparison.OrdinalIgnoreCase))
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParseJsonElement(value, out var element))
+            {
+                result = null;
+                return true;
+            }
+
+            result = element.ValueKind switch
+            {
+                System.Text.Json.JsonValueKind.Object => "OBJECT",
+                System.Text.Json.JsonValueKind.Array => "ARRAY",
+                System.Text.Json.JsonValueKind.String => "STRING",
+                System.Text.Json.JsonValueKind.Number => element.TryGetInt64(out _)
+                    ? "INTEGER"
+                    : "DOUBLE",
+                System.Text.Json.JsonValueKind.True => "BOOLEAN",
+                System.Text.Json.JsonValueKind.False => "BOOLEAN",
+                System.Text.Json.JsonValueKind.Null => "NULL",
+                _ => null
+            };
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_LENGTH", StringComparison.OrdinalIgnoreCase))
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParseJsonElement(value, out var element))
+            {
+                result = null;
+                return true;
+            }
+
+            if (fn.Args.Count > 1)
+            {
+                var path = evalArg(1)?.ToString();
+                if (!string.IsNullOrWhiteSpace(path)
+                    && QueryJsonFunctionHelper.TryReadJsonPathElement(element, path!, out var pathElement))
+                {
+                    element = pathElement;
+                }
+                else if (!string.IsNullOrWhiteSpace(path))
+                {
+                    result = null;
+                    return true;
+                }
+            }
+
+            result = element.ValueKind switch
+            {
+                System.Text.Json.JsonValueKind.Array => element.GetArrayLength(),
+                System.Text.Json.JsonValueKind.Object => element.EnumerateObject().Count(),
+                _ => 1
+            };
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_OBJECT", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count % 2 != 0)
+                throw new InvalidOperationException("JSON_OBJECT() espera um número par de argumentos.");
+
+            var pairs = new List<(string Key, object? Value)>();
+            for (var i = 0; i < fn.Args.Count; i += 2)
+            {
+                var key = evalArg(i)?.ToString() ?? string.Empty;
+                var val = evalArg(i + 1);
+                pairs.Add((key, val));
+            }
+
+            result = BuildJsonObject(pairs);
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_QUOTE", StringComparison.OrdinalIgnoreCase))
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            var text = value?.ToString() ?? string.Empty;
+            result = System.Text.Json.JsonSerializer.Serialize(text);
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_PRETTY", StringComparison.OrdinalIgnoreCase))
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParseJsonElement(value!, out var element))
+            {
+                result = null;
+                return true;
+            }
+
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+            result = System.Text.Json.JsonSerializer.Serialize(element, options);
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_KEYS", StringComparison.OrdinalIgnoreCase))
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParseJsonElement(value!, out var element))
+            {
+                result = null;
+                return true;
+            }
+
+            if (fn.Args.Count > 1)
+            {
+                var path = evalArg(1)?.ToString();
+                if (!string.IsNullOrWhiteSpace(path)
+                    && QueryJsonFunctionHelper.TryReadJsonPathElement(element, path!, out var pathElement))
+                {
+                    element = pathElement;
+                }
+                else if (!string.IsNullOrWhiteSpace(path))
+                {
+                    result = null;
+                    return true;
+                }
+            }
+
+            if (element.ValueKind != System.Text.Json.JsonValueKind.Object)
+            {
+                result = null;
+                return true;
+            }
+
+            var keys = element.EnumerateObject().Select(static prop => (object?)prop.Name).ToArray();
+            result = BuildJsonArray(keys);
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_SET", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count < 3 || fn.Args.Count % 2 == 0)
+                throw new InvalidOperationException("JSON_SET() espera um JSON seguido de pares path/valor.");
+
+            var json = evalArg(0);
+            if (IsNullish(json) || !TryParseJsonNode(json!, out var root) || root is null)
+            {
+                result = null;
+                return true;
+            }
+
+            for (var i = 1; i < fn.Args.Count; i += 2)
+            {
+                var path = evalArg(i)?.ToString();
+                if (string.IsNullOrWhiteSpace(path) || !TryParseJsonPathTokens(path!, out var tokens))
+                {
+                    result = null;
+                    return true;
+                }
+
+                var value = evalArg(i + 1);
+                if (!TrySetJsonPathValue(ref root, tokens, value))
+                {
+                    result = null;
+                    return true;
+                }
+            }
+
+            result = root.ToJsonString();
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_REMOVE", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("JSON_REMOVE() espera um JSON e ao menos um path.");
+
+            var json = evalArg(0);
+            if (IsNullish(json) || !TryParseJsonNode(json!, out var root) || root is null)
+            {
+                result = null;
+                return true;
+            }
+
+            for (var i = 1; i < fn.Args.Count; i++)
+            {
+                var path = evalArg(i)?.ToString();
+                if (string.IsNullOrWhiteSpace(path) || !TryParseJsonPathTokens(path!, out var tokens))
+                {
+                    result = null;
+                    return true;
+                }
+
+                TryRemoveJsonPathValue(root, tokens);
+            }
+
+            result = root.ToJsonString();
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_INSERT", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("JSON_REPLACE", StringComparison.OrdinalIgnoreCase))
+        {
+            var isInsert = fn.Name.Equals("JSON_INSERT", StringComparison.OrdinalIgnoreCase);
+            if (fn.Args.Count < 3 || fn.Args.Count % 2 == 0)
+                throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() espera um JSON seguido de pares path/valor.");
+
+            var json = evalArg(0);
+            if (IsNullish(json) || !TryParseJsonNode(json!, out var root) || root is null)
+            {
+                result = null;
+                return true;
+            }
+
+            for (var i = 1; i < fn.Args.Count; i += 2)
+            {
+                var path = evalArg(i)?.ToString();
+                if (string.IsNullOrWhiteSpace(path) || !TryParseJsonPathTokens(path!, out var tokens))
+                {
+                    result = null;
+                    return true;
+                }
+
+                var value = evalArg(i + 1);
+                var exists = TryGetJsonNodeAtPath(root, tokens, out _);
+                if (isInsert && exists)
+                    continue;
+
+                if (!isInsert && !exists)
+                    continue;
+
+                if (!TrySetJsonPathValue(ref root, tokens, value))
+                {
+                    result = null;
+                    return true;
+                }
+            }
+
+            result = root.ToJsonString();
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_CONTAINS", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("JSON_CONTAINS() espera um JSON e um candidato.");
+
+            var targetValue = evalArg(0);
+            var candidateValue = evalArg(1);
+            if (IsNullish(targetValue) || IsNullish(candidateValue))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParseJsonElement(targetValue!, out var targetElement)
+                || !TryParseJsonCandidate(candidateValue!, out var candidateElement))
+            {
+                result = null;
+                return true;
+            }
+
+            if (fn.Args.Count > 2)
+            {
+                var path = evalArg(2)?.ToString();
+                if (string.IsNullOrWhiteSpace(path)
+                    || !QueryJsonFunctionHelper.TryReadJsonPathElement(targetElement, path!, out var pathElement))
+                {
+                    result = 0;
+                    return true;
+                }
+
+                result = JsonContains(pathElement, candidateElement) ? 1 : 0;
+                return true;
+            }
+
+            result = JsonContains(targetElement, candidateElement) ? 1 : 0;
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_CONTAINS_PATH", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count < 3)
+                throw new InvalidOperationException("JSON_CONTAINS_PATH() espera um JSON, modo e paths.");
+
+            var json = evalArg(0);
+            var mode = evalArg(1)?.ToString() ?? string.Empty;
+            if (IsNullish(json))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParseJsonElement(json!, out var element))
+            {
+                result = null;
+                return true;
+            }
+
+            var requireAll = mode.Equals("all", StringComparison.OrdinalIgnoreCase);
+            var requireOne = mode.Equals("one", StringComparison.OrdinalIgnoreCase);
+            if (!requireAll && !requireOne)
+            {
+                result = null;
+                return true;
+            }
+
+            var anyFound = false;
+            for (var i = 2; i < fn.Args.Count; i++)
+            {
+                var path = evalArg(i)?.ToString();
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    if (requireAll)
+                    {
+                        result = 0;
+                        return true;
+                    }
+
+                    continue;
+                }
+
+                var found = QueryJsonFunctionHelper.TryReadJsonPathElement(element, path!, out _);
+                if (found)
+                    anyFound = true;
+
+                if (requireAll && !found)
+                {
+                    result = 0;
+                    return true;
+                }
+
+                if (requireOne && found)
+                {
+                    result = 1;
+                    return true;
+                }
+            }
+
+            result = requireAll ? 1 : (anyFound ? 1 : 0);
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_SEARCH", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count < 3)
+                throw new InvalidOperationException("JSON_SEARCH() espera JSON, modo e termo.");
+
+            var json = evalArg(0);
+            var mode = evalArg(1)?.ToString() ?? string.Empty;
+            var search = evalArg(2)?.ToString() ?? string.Empty;
+            if (IsNullish(json) || string.IsNullOrWhiteSpace(search))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParseJsonElement(json!, out var element))
+            {
+                result = null;
+                return true;
+            }
+
+            var requireAll = mode.Equals("all", StringComparison.OrdinalIgnoreCase);
+            var requireOne = mode.Equals("one", StringComparison.OrdinalIgnoreCase);
+            if (!requireAll && !requireOne)
+            {
+                result = null;
+                return true;
+            }
+
+            var pathStart = 3;
+            if (fn.Args.Count > 4)
+            {
+                var escapeCandidate = evalArg(3)?.ToString();
+                if (!string.IsNullOrEmpty(escapeCandidate) && escapeCandidate.Length == 1)
+                    pathStart = 4;
+            }
+
+            var results = new List<string>();
+            if (fn.Args.Count > pathStart)
+            {
+                for (var i = pathStart; i < fn.Args.Count; i++)
+                {
+                    var path = evalArg(i)?.ToString();
+                    if (string.IsNullOrWhiteSpace(path))
+                        continue;
+
+                    if (QueryJsonFunctionHelper.TryReadJsonPathElement(element, path!, out var scoped))
+                        CollectJsonSearchMatches(scoped, path!, search, results);
+                }
+            }
+            else
+            {
+                CollectJsonSearchMatches(element, "$", search, results);
+            }
+
+            if (results.Count == 0)
+            {
+                result = null;
+                return true;
+            }
+
+            result = requireOne ? results[0] : BuildJsonArray(results.Cast<object?>());
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private static bool TryEvalMinMaxFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var isGreatest = fn.Name.Equals("GREATEST", StringComparison.OrdinalIgnoreCase);
+        var isLeast = fn.Name.Equals("LEAST", StringComparison.OrdinalIgnoreCase);
+        if (!isGreatest && !isLeast)
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        object? current = null;
+        foreach (var index in Enumerable.Range(0, fn.Args.Count))
+        {
+            var value = evalArg(index);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (current is null)
+            {
+                current = value;
+                continue;
+            }
+
+            var comparison = current.Compare(value!, dialect);
+            if (isGreatest && comparison < 0)
+                current = value;
+            else if (isLeast && comparison > 0)
+                current = value;
+        }
+
+        result = current;
+        return true;
+    }
+
+    private static bool TryEvalLastDayFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("LAST_DAY", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        var lastDay = DateTime.DaysInMonth(dateTime.Year, dateTime.Month);
+        result = new DateTime(dateTime.Year, dateTime.Month, lastDay);
+        return true;
+    }
+
+    private object? _lastInsertId;
+    private long? _uuidShortCounter;
+
+    private bool TryEvalLastInsertIdFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("LAST_INSERT_ID", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count > 0)
+        {
+            _lastInsertId = evalArg(0);
+            result = _lastInsertId;
+            return true;
+        }
+
+        result = _lastInsertId ?? 0;
+        return true;
+    }
+
+    private static bool TryEvalLocateFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("LOCATE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var needle = evalArg(0)?.ToString() ?? string.Empty;
+        var haystack = evalArg(1)?.ToString() ?? string.Empty;
+        var startPosition = fn.Args.Count > 2 ? evalArg(2) : null;
+        var startIndex = 0;
+
+        if (!IsNullish(startPosition))
+        {
+            startIndex = Convert.ToInt32(startPosition.ToDec()) - 1;
+            if (startIndex < 0)
+            {
+                result = 0;
+                return true;
+            }
+        }
+
+        if (needle.Length == 0)
+        {
+            result = startIndex + 1;
+            return true;
+        }
+
+        var index = haystack.IndexOf(needle, startIndex, dialect.TextComparison);
+        result = index < 0 ? 0 : index + 1;
+        return true;
+    }
+
+    private static bool TryEvalLogFunctions(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var isLn = fn.Name.Equals("LN", StringComparison.OrdinalIgnoreCase);
+        var isLog = fn.Name.Equals("LOG", StringComparison.OrdinalIgnoreCase);
+        var isLog10 = fn.Name.Equals("LOG10", StringComparison.OrdinalIgnoreCase);
+        var isLog2 = fn.Name.Equals("LOG2", StringComparison.OrdinalIgnoreCase);
+        if (!isLn && !isLog && !isLog10 && !isLog2)
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(isLog && fn.Args.Count > 1 ? 1 : 0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        double number;
+        try
+        {
+            number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+
+        if (number <= 0)
+        {
+            result = null;
+            return true;
+        }
+
+        if (isLog10)
+        {
+            result = Math.Log10(number);
+            return true;
+        }
+
+        if (isLog2)
+        {
+            result = Math.Log2(number);
+            return true;
+        }
+
+        if (isLog && fn.Args.Count > 1)
+        {
+            var baseValue = evalArg(0);
+            if (IsNullish(baseValue))
+            {
+                result = null;
+                return true;
+            }
+
+            double baseNumber;
+            try
+            {
+                baseNumber = Convert.ToDouble(baseValue, CultureInfo.InvariantCulture);
+            }
+            catch
+            {
+                result = null;
+                return true;
+            }
+
+            if (baseNumber <= 0 || baseNumber == 1)
+            {
+                result = null;
+                return true;
+            }
+
+            result = Math.Log(number, baseNumber);
+            return true;
+        }
+
+        result = Math.Log(number);
+        return true;
+    }
+
+    private static bool TryEvalPadFunctions(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("LPAD", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        var lenValue = evalArg(1);
+        var padValue = fn.Args.Count > 2 ? evalArg(2) : " ";
+
+        if (IsNullish(value) || IsNullish(lenValue) || IsNullish(padValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        var padText = padValue?.ToString() ?? string.Empty;
+        var len = Convert.ToInt32(lenValue.ToDec());
+
+        if (len < 0 || padText.Length == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        if (len == 0)
+        {
+            result = string.Empty;
+            return true;
+        }
+
+        if (text.Length >= len)
+        {
+            result = text.Substring(0, len);
+            return true;
+        }
+
+        var padNeeded = len - text.Length;
+        var sb = new StringBuilder(len);
+        while (sb.Length < padNeeded)
+            sb.Append(padText);
+
+        var prefix = sb.ToString().Substring(0, padNeeded);
+        result = prefix + text;
+        return true;
+    }
+
+    private static bool TryEvalMakeDateFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("MAKEDATE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("MAKEDATE() espera ano e dia do ano.");
+
+        var yearValue = evalArg(0);
+        var dayValue = evalArg(1);
+        if (IsNullish(yearValue) || IsNullish(dayValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var year = Convert.ToInt32(yearValue.ToDec());
+        var dayOfYear = Convert.ToInt32(dayValue.ToDec());
+        if (dayOfYear <= 0)
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            result = new DateTime(year, 1, 1).AddDays(dayOfYear - 1);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalMakeTimeFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("MAKETIME", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 3)
+            throw new InvalidOperationException("MAKETIME() espera hora, minuto e segundo.");
+
+        var hourValue = evalArg(0);
+        var minuteValue = evalArg(1);
+        var secondValue = evalArg(2);
+        if (IsNullish(hourValue) || IsNullish(minuteValue) || IsNullish(secondValue))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var hours = Convert.ToInt32(hourValue.ToDec());
+            var minutes = Convert.ToInt32(minuteValue.ToDec());
+            var seconds = Convert.ToDouble(secondValue, CultureInfo.InvariantCulture);
+            var secondsInt = (int)Math.Truncate(seconds);
+            var microseconds = (int)Math.Round((seconds - secondsInt) * 1_000_000d);
+            var time = new TimeSpan(0, hours, minutes, secondsInt, 0)
+                .Add(TimeSpan.FromTicks(microseconds * 10L));
+            result = time;
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalMicrosecondFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("MICROSECOND", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (TryCoerceDateTime(value, out var dateTime))
+        {
+            var micro = (int)((dateTime.Ticks % TimeSpan.TicksPerSecond) / 10);
+            result = micro;
+            return true;
+        }
+
+        if (TryCoerceTimeSpan(value, out var span))
+        {
+            var micro = (int)((span.Ticks % TimeSpan.TicksPerSecond) / 10);
+            result = micro;
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalMd5Function(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("MD5", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        var bytes = System.Text.Encoding.UTF8.GetBytes(text);
+        var hash = System.Security.Cryptography.MD5.HashData(bytes);
+        var sb = new StringBuilder(hash.Length * 2);
+        foreach (var b in hash)
+            sb.Append(b.ToString("x2", CultureInfo.InvariantCulture));
+
+        result = sb.ToString();
+        return true;
+    }
+
+    private static bool TryParseJsonElement(object value, out System.Text.Json.JsonElement element)
+    {
+        if (value is System.Text.Json.JsonElement jsonElement)
+        {
+            element = jsonElement;
+            return true;
+        }
+
+        var text = value.ToString();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            element = default;
+            return false;
+        }
+
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(text);
+            element = document.RootElement.Clone();
+            return true;
+        }
+        catch
+        {
+            element = default;
+            return false;
+        }
+    }
+
+    private static bool TryParseJsonCandidate(object value, out System.Text.Json.JsonElement element)
+    {
+        if (value is System.Text.Json.JsonElement jsonElement)
+        {
+            element = jsonElement;
+            return true;
+        }
+
+        var text = value.ToString();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            element = default;
+            return false;
+        }
+
+        if (text.TrimStart().StartsWith("{", StringComparison.Ordinal)
+            || text.TrimStart().StartsWith("[", StringComparison.Ordinal)
+            || text.TrimStart().StartsWith("\"", StringComparison.Ordinal)
+            || text.TrimStart().StartsWith("true", StringComparison.OrdinalIgnoreCase)
+            || text.TrimStart().StartsWith("false", StringComparison.OrdinalIgnoreCase)
+            || text.TrimStart().StartsWith("null", StringComparison.OrdinalIgnoreCase)
+            || text.TrimStart().StartsWith("-", StringComparison.Ordinal)
+            || char.IsDigit(text.TrimStart()[0]))
+        {
+            try
+            {
+                using var document = System.Text.Json.JsonDocument.Parse(text);
+                element = document.RootElement.Clone();
+                return true;
+            }
+            catch
+            {
+                // fallthrough to treat as string
+            }
+        }
+
+        var quoted = System.Text.Json.JsonSerializer.Serialize(text);
+        using (var document = System.Text.Json.JsonDocument.Parse(quoted))
+        {
+            element = document.RootElement.Clone();
+            return true;
+        }
+    }
+
+    private static bool JsonContains(System.Text.Json.JsonElement target, System.Text.Json.JsonElement candidate)
+    {
+        if (candidate.ValueKind == System.Text.Json.JsonValueKind.Object)
+        {
+            if (target.ValueKind != System.Text.Json.JsonValueKind.Object)
+                return false;
+
+            foreach (var prop in candidate.EnumerateObject())
+            {
+                if (!target.TryGetProperty(prop.Name, out var targetProp))
+                    return false;
+
+                if (!JsonContains(targetProp, prop.Value))
+                    return false;
+            }
+
+            return true;
+        }
+
+        if (candidate.ValueKind == System.Text.Json.JsonValueKind.Array)
+        {
+            if (target.ValueKind != System.Text.Json.JsonValueKind.Array)
+                return false;
+
+            var targetItems = target.EnumerateArray().ToArray();
+            foreach (var candidateItem in candidate.EnumerateArray())
+            {
+                if (!targetItems.Any(item => JsonContains(item, candidateItem)))
+                    return false;
+            }
+
+            return true;
+        }
+
+        return JsonElementEquals(target, candidate);
+    }
+
+    private static bool JsonElementEquals(System.Text.Json.JsonElement left, System.Text.Json.JsonElement right)
+    {
+        if (left.ValueKind != right.ValueKind)
+        {
+            if (left.ValueKind == System.Text.Json.JsonValueKind.Number
+                && right.ValueKind == System.Text.Json.JsonValueKind.Number)
+            {
+                if (left.TryGetDecimal(out var ldec) && right.TryGetDecimal(out var rdec))
+                    return ldec == rdec;
+                return left.GetDouble().Equals(right.GetDouble());
+            }
+
+            return false;
+        }
+
+        return left.ValueKind switch
+        {
+            System.Text.Json.JsonValueKind.String => left.GetString() == right.GetString(),
+            System.Text.Json.JsonValueKind.Number => left.TryGetDecimal(out var ldec) && right.TryGetDecimal(out var rdec)
+                ? ldec == rdec
+                : left.GetDouble().Equals(right.GetDouble()),
+            System.Text.Json.JsonValueKind.True => right.ValueKind == System.Text.Json.JsonValueKind.True,
+            System.Text.Json.JsonValueKind.False => right.ValueKind == System.Text.Json.JsonValueKind.False,
+            System.Text.Json.JsonValueKind.Null => true,
+            _ => left.GetRawText() == right.GetRawText()
+        };
+    }
+
+    private static void CollectJsonSearchMatches(
+        System.Text.Json.JsonElement element,
+        string currentPath,
+        string search,
+        List<string> results)
+    {
+        if (element.ValueKind == System.Text.Json.JsonValueKind.String)
+        {
+            var text = element.GetString() ?? string.Empty;
+            if (text.Contains(search, StringComparison.Ordinal))
+                results.Add(currentPath);
+            return;
+        }
+
+        if (element.ValueKind == System.Text.Json.JsonValueKind.Array)
+        {
+            var index = 0;
+            foreach (var item in element.EnumerateArray())
+            {
+                CollectJsonSearchMatches(item, $"{currentPath}[{index}]", search, results);
+                index++;
+            }
+
+            return;
+        }
+
+        if (element.ValueKind == System.Text.Json.JsonValueKind.Object)
+        {
+            foreach (var prop in element.EnumerateObject())
+            {
+                CollectJsonSearchMatches(prop.Value, $"{currentPath}.{prop.Name}", search, results);
+            }
+        }
+    }
+
+    private static string BuildJsonArray(IEnumerable<object?> values)
+    {
+        var parts = values.Select(static value =>
+        {
+            if (value is null or DBNull)
+                return "null";
+
+            if (value is System.Text.Json.JsonElement element)
+                return element.GetRawText();
+
+            return System.Text.Json.JsonSerializer.Serialize(value);
+        });
+
+        return "[" + string.Join(",", parts) + "]";
+    }
+
+    private static string BuildJsonObject(IEnumerable<(string Key, object? Value)> pairs)
+    {
+        var parts = pairs.Select(static pair =>
+        {
+            var key = System.Text.Json.JsonSerializer.Serialize(pair.Key ?? string.Empty);
+            var value = pair.Value;
+            if (value is null or DBNull)
+                return $"{key}:null";
+
+            if (value is System.Text.Json.JsonElement element)
+                return $"{key}:{element.GetRawText()}";
+
+            return $"{key}:{System.Text.Json.JsonSerializer.Serialize(value)}";
+        });
+
+        return "{" + string.Join(",", parts) + "}";
+    }
+
+    private enum JsonPathTokenKind
+    {
+        Property,
+        ArrayIndex
+    }
+
+    private readonly record struct JsonPathToken(JsonPathTokenKind Kind, string? PropertyName, int? ArrayIndex);
+
+    private static bool TryParseJsonPathTokens(string path, out List<JsonPathToken> tokens)
+    {
+        tokens = [];
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+
+        var trimmed = path.Trim();
+        if (trimmed.StartsWith("lax ", StringComparison.OrdinalIgnoreCase))
+            trimmed = trimmed[4..].TrimStart();
+        else if (trimmed.StartsWith("strict ", StringComparison.OrdinalIgnoreCase))
+            trimmed = trimmed[7..].TrimStart();
+
+        if (trimmed.Length == 0 || trimmed[0] != '$')
+            return false;
+
+        var i = 1;
+        while (i < trimmed.Length)
+        {
+            while (i < trimmed.Length && char.IsWhiteSpace(trimmed[i]))
+                i++;
+
+            if (i >= trimmed.Length)
+                break;
+
+            if (trimmed[i] == '.')
+            {
+                i++;
+                var start = i;
+                while (i < trimmed.Length && (char.IsLetterOrDigit(trimmed[i]) || trimmed[i] == '_'))
+                    i++;
+
+                if (i == start)
+                    return false;
+
+                var property = trimmed[start..i];
+                tokens.Add(new JsonPathToken(JsonPathTokenKind.Property, property, null));
+                continue;
+            }
+
+            if (trimmed[i] == '[')
+            {
+                i++;
+                if (i >= trimmed.Length)
+                    return false;
+
+                if (trimmed[i] is '"' or '\'')
+                {
+                    var quote = trimmed[i];
+                    i++;
+                    var start = i;
+                    while (i < trimmed.Length && trimmed[i] != quote)
+                        i++;
+
+                    if (i >= trimmed.Length)
+                        return false;
+
+                    var property = trimmed[start..i];
+                    i++; // closing quote
+                    if (i >= trimmed.Length || trimmed[i] != ']')
+                        return false;
+                    i++; // closing bracket
+                    tokens.Add(new JsonPathToken(JsonPathTokenKind.Property, property, null));
+                    continue;
+                }
+
+                var indexStart = i;
+                while (i < trimmed.Length && char.IsDigit(trimmed[i]))
+                    i++;
+
+                if (i == indexStart || i >= trimmed.Length || trimmed[i] != ']')
+                    return false;
+
+                if (!int.TryParse(trimmed[indexStart..i], NumberStyles.Integer, CultureInfo.InvariantCulture, out var index))
+                    return false;
+
+                i++; // closing bracket
+                tokens.Add(new JsonPathToken(JsonPathTokenKind.ArrayIndex, null, index));
+                continue;
+            }
+
+            return false;
+        }
+
+        return tokens.Count > 0;
+    }
+
+    private static bool TryParseJsonNode(object json, out System.Text.Json.Nodes.JsonNode? node)
+    {
+        if (json is System.Text.Json.Nodes.JsonNode jsonNode)
+        {
+            node = jsonNode;
+            return true;
+        }
+
+        var text = json.ToString();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            node = null;
+            return false;
+        }
+
+        try
+        {
+            node = System.Text.Json.Nodes.JsonNode.Parse(text);
+            return node is not null;
+        }
+        catch
+        {
+            node = null;
+            return false;
+        }
+    }
+
+    private static System.Text.Json.Nodes.JsonNode CreateJsonNodeFromValue(object? value)
+    {
+        if (value is null or DBNull)
+        {
+            return System.Text.Json.Nodes.JsonValue.Create((string?)null)
+                ?? System.Text.Json.Nodes.JsonNode.Parse("null")!;
+        }
+
+        if (value is System.Text.Json.JsonElement element)
+            return System.Text.Json.Nodes.JsonNode.Parse(element.GetRawText())!;
+
+        if (value is System.Text.Json.Nodes.JsonNode node)
+            return node;
+
+        return System.Text.Json.Nodes.JsonValue.Create(value)
+            ?? System.Text.Json.Nodes.JsonNode.Parse(System.Text.Json.JsonSerializer.Serialize(value))!;
+    }
+
+    private static System.Text.Json.Nodes.JsonNode CreateJsonContainer(JsonPathToken nextToken)
+        => nextToken.Kind == JsonPathTokenKind.ArrayIndex
+            ? new System.Text.Json.Nodes.JsonArray()
+            : new System.Text.Json.Nodes.JsonObject();
+
+    private static bool TrySetJsonPathValue(
+        ref System.Text.Json.Nodes.JsonNode root,
+        IReadOnlyList<JsonPathToken> tokens,
+        object? value)
+    {
+        if (tokens.Count == 0)
+            return false;
+
+        System.Text.Json.Nodes.JsonNode? current = root;
+        System.Text.Json.Nodes.JsonNode? parent = null;
+        JsonPathToken? parentToken = null;
+
+        for (var i = 0; i < tokens.Count; i++)
+        {
+            var token = tokens[i];
+            var isLast = i == tokens.Count - 1;
+
+            if (token.Kind == JsonPathTokenKind.Property)
+            {
+                if (current is not System.Text.Json.Nodes.JsonObject obj)
+                {
+                    if (current is null or System.Text.Json.Nodes.JsonValue)
+                    {
+                        obj = new System.Text.Json.Nodes.JsonObject();
+                        AssignJsonChild(ref root, parent, parentToken, obj);
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
+                if (isLast)
+                {
+                    obj[token.PropertyName!] = CreateJsonNodeFromValue(value);
+                    return true;
+                }
+
+                var child = obj[token.PropertyName!];
+                if (child is null)
+                {
+                    child = CreateJsonContainer(tokens[i + 1]);
+                    obj[token.PropertyName!] = child;
+                }
+
+                parent = obj;
+                parentToken = token;
+                current = child;
+                continue;
+            }
+
+            if (token.Kind == JsonPathTokenKind.ArrayIndex)
+            {
+                if (current is not System.Text.Json.Nodes.JsonArray array)
+                {
+                    if (current is null or System.Text.Json.Nodes.JsonValue)
+                    {
+                        array = new System.Text.Json.Nodes.JsonArray();
+                        AssignJsonChild(ref root, parent, parentToken, array);
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
+                var index = token.ArrayIndex ?? 0;
+                while (array.Count <= index)
+                    array.Add(null);
+
+                if (isLast)
+                {
+                    array[index] = CreateJsonNodeFromValue(value);
+                    return true;
+                }
+
+                var child = array[index];
+                if (child is null)
+                {
+                    child = CreateJsonContainer(tokens[i + 1]);
+                    array[index] = child;
+                }
+
+                parent = array;
+                parentToken = token;
+                current = child;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryGetJsonNodeAtPath(
+        System.Text.Json.Nodes.JsonNode root,
+        IReadOnlyList<JsonPathToken> tokens,
+        out System.Text.Json.Nodes.JsonNode? node)
+    {
+        node = root;
+        foreach (var token in tokens)
+        {
+            if (token.Kind == JsonPathTokenKind.Property)
+            {
+                if (node is not System.Text.Json.Nodes.JsonObject obj)
+                {
+                    node = null;
+                    return false;
+                }
+
+                if (!obj.TryGetPropertyValue(token.PropertyName!, out var child))
+                {
+                    node = null;
+                    return false;
+                }
+
+                node = child;
+                continue;
+            }
+
+            if (token.Kind == JsonPathTokenKind.ArrayIndex)
+            {
+                if (node is not System.Text.Json.Nodes.JsonArray array)
+                {
+                    node = null;
+                    return false;
+                }
+
+                var index = token.ArrayIndex ?? 0;
+                if (index < 0 || index >= array.Count)
+                {
+                    node = null;
+                    return false;
+                }
+
+                node = array[index];
+            }
+        }
+
+        return node is not null;
+    }
+
+    private static void AssignJsonChild(
+        ref System.Text.Json.Nodes.JsonNode root,
+        System.Text.Json.Nodes.JsonNode? parent,
+        JsonPathToken? parentToken,
+        System.Text.Json.Nodes.JsonNode child)
+    {
+        if (parent is null)
+        {
+            root = child;
+            return;
+        }
+
+        if (parent is System.Text.Json.Nodes.JsonObject obj && parentToken?.Kind == JsonPathTokenKind.Property)
+        {
+            obj[parentToken.Value.PropertyName!] = child;
+            return;
+        }
+
+        if (parent is System.Text.Json.Nodes.JsonArray array && parentToken?.Kind == JsonPathTokenKind.ArrayIndex)
+        {
+            var index = parentToken.Value.ArrayIndex ?? 0;
+            while (array.Count <= index)
+                array.Add(null);
+            array[index] = child;
+        }
+    }
+
+    private static bool TryRemoveJsonPathValue(
+        System.Text.Json.Nodes.JsonNode root,
+        IReadOnlyList<JsonPathToken> tokens)
+    {
+        if (tokens.Count == 0)
+            return false;
+
+        System.Text.Json.Nodes.JsonNode? current = root;
+        for (var i = 0; i < tokens.Count - 1; i++)
+        {
+            var token = tokens[i];
+            if (token.Kind == JsonPathTokenKind.Property)
+            {
+                if (current is not System.Text.Json.Nodes.JsonObject obj)
+                    return true;
+
+                current = obj[token.PropertyName!];
+                if (current is null)
+                    return true;
+                continue;
+            }
+
+            if (token.Kind == JsonPathTokenKind.ArrayIndex)
+            {
+                if (current is not System.Text.Json.Nodes.JsonArray array)
+                    return true;
+
+                var index = token.ArrayIndex ?? 0;
+                if (index < 0 || index >= array.Count)
+                    return true;
+                current = array[index];
+                if (current is null)
+                    return true;
+            }
+        }
+
+        var lastToken = tokens[^1];
+        if (lastToken.Kind == JsonPathTokenKind.Property)
+        {
+            if (current is not System.Text.Json.Nodes.JsonObject obj)
+                return true;
+
+            obj.Remove(lastToken.PropertyName!);
+            return true;
+        }
+
+        if (lastToken.Kind == JsonPathTokenKind.ArrayIndex)
+        {
+            if (current is not System.Text.Json.Nodes.JsonArray array)
+                return true;
+
+            var index = lastToken.ArrayIndex ?? 0;
+            if (index < 0 || index >= array.Count)
+                return true;
+
+            array.RemoveAt(index);
+            return true;
+        }
+
         return true;
     }
 
@@ -6468,8 +9605,33 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
+        if (fn.Name.Equals("RTRIM", StringComparison.OrdinalIgnoreCase))
+        {
+            result = IsNullish(value) ? null : value!.ToString()!.TrimEnd();
+            return true;
+        }
+
+        if (fn.Name.Equals("LTRIM", StringComparison.OrdinalIgnoreCase))
+        {
+            result = IsNullish(value) ? null : value!.ToString()!.TrimStart();
+            return true;
+        }
+
+        if (fn.Name.Equals("CHAR", StringComparison.OrdinalIgnoreCase))
+        {
+            result = IsNullish(value) ? null : value!.ToString() ?? string.Empty;
+            return true;
+        }
+
+        if (fn.Name.Equals("TO_CHAR", StringComparison.OrdinalIgnoreCase))
+        {
+            result = IsNullish(value) ? null : value!.ToString() ?? string.Empty;
+            return true;
+        }
+
         if (fn.Name.Equals("LENGTH", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("CHAR_LENGTH", StringComparison.OrdinalIgnoreCase))
+            || fn.Name.Equals("CHAR_LENGTH", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("LEN", StringComparison.OrdinalIgnoreCase))
         {
             result = IsNullish(value) ? null : (long)(value!.ToString()!.Length);
             return true;
@@ -6485,7 +9647,8 @@ private void FillPercentRankOrCumeDist(
         out object? result)
     {
         if (!(fn.Name.Equals("SUBSTRING", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("SUBSTR", StringComparison.OrdinalIgnoreCase)))
+            || fn.Name.Equals("SUBSTR", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("MID", StringComparison.OrdinalIgnoreCase)))
         {
             result = null;
             return false;
@@ -6535,6 +9698,1436 @@ private void FillPercentRankOrCumeDist(
 
         result = text.Substring(start, length);
         return true;
+    }
+
+    private static bool TryEvalModFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("MOD", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("MOD() espera 2 argumentos.");
+
+        var left = evalArg(0);
+        var right = evalArg(1);
+        if (IsNullish(left) || IsNullish(right))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var l = Convert.ToDecimal(left, CultureInfo.InvariantCulture);
+            var r = Convert.ToDecimal(right, CultureInfo.InvariantCulture);
+            if (r == 0)
+            {
+                result = null;
+                return true;
+            }
+
+            result = l % r;
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalMonthNameFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("MONTHNAME", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        result = dateTime.ToString("MMMM", CultureInfo.InvariantCulture);
+        return true;
+    }
+
+    private static bool TryEvalOctFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("OCT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var number = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+            result = Convert.ToString(number, 8);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalOctetLengthFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("OCTET_LENGTH", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (value is byte[] bytes)
+        {
+            result = bytes.Length;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        result = System.Text.Encoding.UTF8.GetByteCount(text);
+        return true;
+    }
+
+    private static bool TryEvalNameConstFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("NAME_CONST", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var nameValue = evalArg(0);
+        var value = evalArg(1);
+        if (IsNullish(nameValue))
+        {
+            result = null;
+            return true;
+        }
+
+        result = value;
+        return true;
+    }
+
+    private static bool TryEvalOrdFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("ORD", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        if (text.Length == 0)
+        {
+            result = 0;
+            return true;
+        }
+
+        var bytes = System.Text.Encoding.UTF8.GetBytes(text);
+        result = bytes[0];
+        return true;
+    }
+
+    private static bool TryEvalPositionFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("POSITION", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var needle = evalArg(0)?.ToString() ?? string.Empty;
+        var haystack = evalArg(1)?.ToString() ?? string.Empty;
+        if (needle.Length == 0)
+        {
+            result = 1;
+            return true;
+        }
+
+        var index = haystack.IndexOf(needle, StringComparison.Ordinal);
+        result = index < 0 ? 0 : index + 1;
+        return true;
+    }
+
+    private static bool TryEvalPiFunction(
+        FunctionCallExpr fn,
+        out object? result)
+    {
+        if (!fn.Name.Equals("PI", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        result = Math.PI;
+        return true;
+    }
+
+    private static bool TryEvalPowerFunctions(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var isPower = fn.Name.Equals("POWER", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("POW", StringComparison.OrdinalIgnoreCase);
+        if (!isPower)
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("POWER() espera base e expoente.");
+
+        var baseValue = evalArg(0);
+        var expValue = evalArg(1);
+        if (IsNullish(baseValue) || IsNullish(expValue))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var baseNumber = Convert.ToDouble(baseValue, CultureInfo.InvariantCulture);
+            var expNumber = Convert.ToDouble(expValue, CultureInfo.InvariantCulture);
+            result = Math.Pow(baseNumber, expNumber);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalPeriodFunctions(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var isAdd = fn.Name.Equals("PERIOD_ADD", StringComparison.OrdinalIgnoreCase);
+        var isDiff = fn.Name.Equals("PERIOD_DIFF", StringComparison.OrdinalIgnoreCase);
+        if (!isAdd && !isDiff)
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() espera dois argumentos.");
+
+        var periodValue = evalArg(0);
+        var secondValue = evalArg(1);
+        if (IsNullish(periodValue) || IsNullish(secondValue))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryParsePeriodValue(periodValue, out var year, out var month))
+        {
+            result = null;
+            return true;
+        }
+
+        if (isAdd)
+        {
+            var delta = Convert.ToInt32(secondValue.ToDec());
+            var totalMonths = year * 12 + (month - 1) + delta;
+            var newYear = totalMonths / 12;
+            var newMonth = (totalMonths % 12) + 1;
+            result = newYear * 100 + newMonth;
+            return true;
+        }
+
+        if (!TryParsePeriodValue(secondValue, out var otherYear, out var otherMonth))
+        {
+            result = null;
+            return true;
+        }
+
+        var diff = (year * 12 + (month - 1)) - (otherYear * 12 + (otherMonth - 1));
+        result = diff;
+        return true;
+    }
+
+    private static bool TryParsePeriodValue(object value, out int year, out int month)
+    {
+        year = 0;
+        month = 0;
+
+        try
+        {
+            var num = Convert.ToInt32(value, CultureInfo.InvariantCulture);
+            var abs = Math.Abs(num);
+            year = abs / 100;
+            month = abs % 100;
+            if (month is < 1 or > 12)
+                return false;
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool TryEvalQuarterFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("QUARTER", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        result = ((dateTime.Month - 1) / 3) + 1;
+        return true;
+    }
+
+    private static bool TryEvalQuoteFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("QUOTE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = "NULL";
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        var escaped = text.Replace("\\", "\\\\").Replace("'", "\\'");
+        result = $"'{escaped}'";
+        return true;
+    }
+
+    private static bool TryEvalRadiansFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("RADIANS", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var degrees = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            result = degrees * (Math.PI / 180d);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalRandFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("RAND", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var seedValue = fn.Args.Count > 0 ? evalArg(0) : null;
+        var random = IsNullish(seedValue)
+            ? Random.Shared
+            : new Random(Convert.ToInt32(seedValue.ToDec()));
+
+        result = random.NextDouble();
+        return true;
+    }
+
+    private static bool TryEvalRepeatFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("REPEAT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var textValue = evalArg(0);
+        var countValue = evalArg(1);
+        if (IsNullish(textValue) || IsNullish(countValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = textValue?.ToString() ?? string.Empty;
+        var count = Convert.ToInt32(countValue.ToDec());
+        if (count <= 0)
+        {
+            result = string.Empty;
+            return true;
+        }
+
+        var sb = new StringBuilder(text.Length * count);
+        for (var i = 0; i < count; i++)
+            sb.Append(text);
+        result = sb.ToString();
+        return true;
+    }
+
+    private static bool TryEvalReverseFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("REVERSE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        var chars = text.ToCharArray();
+        Array.Reverse(chars);
+        result = new string(chars);
+        return true;
+    }
+
+    private static bool TryEvalRightFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("RIGHT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var textValue = evalArg(0);
+        var lengthValue = evalArg(1);
+        if (IsNullish(textValue) || IsNullish(lengthValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = textValue?.ToString() ?? string.Empty;
+        var length = Convert.ToInt32(lengthValue.ToDec());
+        if (length <= 0)
+        {
+            result = string.Empty;
+            return true;
+        }
+
+        if (length >= text.Length)
+        {
+            result = text;
+            return true;
+        }
+
+        result = text[^length..];
+        return true;
+    }
+
+    private static bool TryEvalRoundFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("ROUND", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var decimals = fn.Args.Count > 1 ? evalArg(1) : null;
+        try
+        {
+            var number = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+            if (IsNullish(decimals))
+            {
+                result = Math.Round(number, 0, MidpointRounding.AwayFromZero);
+                return true;
+            }
+
+            var digits = Convert.ToInt32(decimals.ToDec());
+            result = Math.Round(number, digits, MidpointRounding.AwayFromZero);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalPadRightFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("RPAD", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        var lenValue = evalArg(1);
+        var padValue = fn.Args.Count > 2 ? evalArg(2) : " ";
+
+        if (IsNullish(value) || IsNullish(lenValue) || IsNullish(padValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        var padText = padValue?.ToString() ?? string.Empty;
+        var len = Convert.ToInt32(lenValue.ToDec());
+
+        if (len < 0 || padText.Length == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        if (len == 0)
+        {
+            result = string.Empty;
+            return true;
+        }
+
+        if (text.Length >= len)
+        {
+            result = text.Substring(0, len);
+            return true;
+        }
+
+        var padNeeded = len - text.Length;
+        var sb = new StringBuilder(len);
+        sb.Append(text);
+        while (sb.Length < len)
+            sb.Append(padText);
+
+        result = sb.ToString().Substring(0, len);
+        return true;
+    }
+
+    private static bool TryEvalSecToTimeFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("SEC_TO_TIME", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var seconds = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            result = TimeSpan.FromSeconds(seconds);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalShaFunctions(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var name = fn.Name;
+        if (!(name.Equals("SHA", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("SHA1", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("SHA2", StringComparison.OrdinalIgnoreCase)))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        var bytes = System.Text.Encoding.UTF8.GetBytes(text);
+
+        if (name.Equals("SHA2", StringComparison.OrdinalIgnoreCase))
+        {
+            var lengthArg = fn.Args.Count > 1 ? evalArg(1) : null;
+            var length = IsNullish(lengthArg) ? 256 : Convert.ToInt32(lengthArg.ToDec());
+            byte[] hash = length switch
+            {
+                224 => System.Security.Cryptography.SHA256.HashData(bytes),
+                256 => System.Security.Cryptography.SHA256.HashData(bytes),
+                384 => System.Security.Cryptography.SHA384.HashData(bytes),
+                512 => System.Security.Cryptography.SHA512.HashData(bytes),
+                _ => System.Security.Cryptography.SHA256.HashData(bytes)
+            };
+
+            result = BytesToHex(hash);
+            return true;
+        }
+
+        var sha = System.Security.Cryptography.SHA1.HashData(bytes);
+        result = BytesToHex(sha);
+        return true;
+    }
+
+    private static bool TryEvalSinFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("SIN", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var radians = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            result = Math.Sin(radians);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalSoundexFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("SOUNDEX", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        if (text.Length == 0)
+        {
+            result = string.Empty;
+            return true;
+        }
+
+        var firstLetter = char.ToUpperInvariant(text[0]);
+        var codes = new StringBuilder();
+
+        char? lastCode = null;
+        foreach (var ch in text.Skip(1))
+        {
+            var code = GetSoundexCode(ch);
+            if (code is null)
+            {
+                lastCode = null;
+                continue;
+            }
+
+            if (lastCode.HasValue && lastCode.Value == code.Value)
+                continue;
+
+            codes.Append(code.Value);
+            lastCode = code.Value;
+        }
+
+        var soundex = new StringBuilder(4);
+        soundex.Append(firstLetter);
+        soundex.Append(codes);
+        while (soundex.Length < 4)
+            soundex.Append('0');
+
+        if (soundex.Length > 4)
+            soundex.Length = 4;
+
+        result = soundex.ToString();
+        return true;
+    }
+
+    private static char? GetSoundexCode(char ch)
+    {
+        ch = char.ToUpperInvariant(ch);
+        if (ch is 'A' or 'E' or 'I' or 'O' or 'U' or 'Y' or 'H' or 'W')
+            return null;
+
+        return ch switch
+        {
+            'B' or 'F' or 'P' or 'V' => '1',
+            'C' or 'G' or 'J' or 'K' or 'Q' or 'S' or 'X' or 'Z' => '2',
+            'D' or 'T' => '3',
+            'L' => '4',
+            'M' or 'N' => '5',
+            'R' => '6',
+            _ => null
+        };
+    }
+
+    private static bool TryEvalSpaceFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("SPACE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var count = Convert.ToInt32(value.ToDec());
+        if (count <= 0)
+        {
+            result = string.Empty;
+            return true;
+        }
+
+        result = new string(' ', count);
+        return true;
+    }
+
+    private static bool TryEvalSqrtFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("SQRT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            if (number < 0)
+            {
+                result = null;
+                return true;
+            }
+
+            result = Math.Sqrt(number);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private bool TryEvalSubDateFunction(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("SUBDATE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("SUBDATE() espera data e intervalo.");
+
+        var baseValue = evalArg(0);
+        if (IsNullish(baseValue) || !TryCoerceDateTime(baseValue, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        var intervalExpr = fn.Args[1];
+        if (intervalExpr is CallExpr intervalCall && intervalCall.Name.Equals("INTERVAL", StringComparison.OrdinalIgnoreCase))
+        {
+            var intervalValue = ParseIntervalValue(intervalCall, row, group, ctes);
+            if (intervalValue is null)
+            {
+                result = null;
+                return true;
+            }
+
+            result = dateTime.Subtract(intervalValue.Span);
+            return true;
+        }
+
+        var value = evalArg(1);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (TryConvertNumericToDouble(value, out var dayOffset))
+        {
+            result = dateTime.AddDays(-dayOffset);
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalSubTimeFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("SUBTIME", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("SUBTIME() espera base e intervalo.");
+
+        var baseValue = evalArg(0);
+        var intervalValue = evalArg(1);
+        if (IsNullish(baseValue) || IsNullish(intervalValue))
+        {
+            result = null;
+            return true;
+        }
+
+        if (TryCoerceDateTime(baseValue, out var dateTime) && TryCoerceTimeSpan(intervalValue, out var span))
+        {
+            result = dateTime.Subtract(span);
+            return true;
+        }
+
+        if (TryCoerceTimeSpan(baseValue, out var baseSpan) && TryCoerceTimeSpan(intervalValue, out var span2))
+        {
+            result = baseSpan.Subtract(span2);
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalSubstringIndexFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("SUBSTRING_INDEX", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var textValue = evalArg(0);
+        var delimValue = evalArg(1);
+        var countValue = evalArg(2);
+        if (IsNullish(textValue) || IsNullish(delimValue) || IsNullish(countValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = textValue?.ToString() ?? string.Empty;
+        var delim = delimValue?.ToString() ?? string.Empty;
+        var count = Convert.ToInt32(countValue.ToDec());
+        if (count == 0 || delim.Length == 0)
+        {
+            result = string.Empty;
+            return true;
+        }
+
+        var parts = text.Split([delim], StringSplitOptions.None);
+        if (Math.Abs(count) >= parts.Length)
+        {
+            result = text;
+            return true;
+        }
+
+        if (count > 0)
+        {
+            result = string.Join(delim, parts.Take(count));
+            return true;
+        }
+
+        var take = Math.Abs(count);
+        result = string.Join(delim, parts.Skip(parts.Length - take));
+        return true;
+    }
+
+    private static bool TryEvalTanFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("TAN", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var radians = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            result = Math.Tan(radians);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalTimeFormatFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("TIME_FORMAT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        var format = evalArg(1)?.ToString() ?? string.Empty;
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryCoerceDateTime(value, out var dateTime) && !TryCoerceTimeSpan(value, out var timeSpan))
+        {
+            result = null;
+            return true;
+        }
+
+        var formatNet = ConvertMySqlTimeFormat(format);
+        var formatted = TryCoerceDateTime(value, out dateTime)
+            ? dateTime.ToString(formatNet, CultureInfo.InvariantCulture)
+            : DateTime.Today.Add(timeSpan).ToString(formatNet, CultureInfo.InvariantCulture);
+
+        result = formatted;
+        return true;
+    }
+
+    private static string ConvertMySqlTimeFormat(string format)
+    {
+        if (string.IsNullOrEmpty(format))
+            return format;
+
+        var sb = new StringBuilder();
+        for (var i = 0; i < format.Length; i++)
+        {
+            var ch = format[i];
+            if (ch != '%' || i + 1 >= format.Length)
+            {
+                sb.Append(ch);
+                continue;
+            }
+
+            var token = format[i + 1];
+            i++;
+            sb.Append(token switch
+            {
+                'H' => "HH",
+                'k' => "H",
+                'h' => "hh",
+                'I' => "hh",
+                'l' => "h",
+                'i' => "mm",
+                's' => "ss",
+                'S' => "ss",
+                'f' => "ffffff",
+                'p' => "tt",
+                'r' => "hh:mm:ss tt",
+                'T' => "HH:mm:ss",
+                _ => $"%{token}"
+            });
+        }
+
+        return sb.ToString();
+    }
+
+    private static bool TryEvalTimeToSecFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("TIME_TO_SEC", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (TryCoerceTimeSpan(value, out var span))
+        {
+            result = (long)span.TotalSeconds;
+            return true;
+        }
+
+        if (TryCoerceDateTime(value, out var dateTime))
+        {
+            result = (long)dateTime.TimeOfDay.TotalSeconds;
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalTimeDiffFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("TIMEDIFF", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var left = evalArg(0);
+        var right = evalArg(1);
+        if (IsNullish(left) || IsNullish(right))
+        {
+            result = null;
+            return true;
+        }
+
+        if (TryCoerceDateTime(left, out var leftDate) && TryCoerceDateTime(right, out var rightDate))
+        {
+            result = leftDate - rightDate;
+            return true;
+        }
+
+        if (TryCoerceTimeSpan(left, out var leftSpan) && TryCoerceTimeSpan(right, out var rightSpan))
+        {
+            result = leftSpan - rightSpan;
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalSystemUserFunction(
+        FunctionCallExpr fn,
+        out object? result)
+    {
+        if (!fn.Name.Equals("SYSTEM_USER", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        result = "root@localhost";
+        return true;
+    }
+
+    private static bool TryEvalToDaysFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("TO_DAYS", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        var days = (int)(dateTime.Date - DateTime.MinValue.Date).TotalDays + 1;
+        result = days;
+        return true;
+    }
+
+    private static bool TryEvalToSecondsFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("TO_SECONDS", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        var seconds = (long)(dateTime.ToUniversalTime() - DateTime.MinValue.ToUniversalTime()).TotalSeconds + 1;
+        result = seconds;
+        return true;
+    }
+
+    private static bool TryEvalTruncateFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("TRUNCATE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        var decimalsValue = evalArg(1);
+        if (IsNullish(value) || IsNullish(decimalsValue))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var number = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+            var decimals = Convert.ToInt32(decimalsValue.ToDec());
+            var factor = (decimal)Math.Pow(10d, decimals);
+            result = Math.Truncate(number * factor) / factor;
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalUnixTimestampFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("UNIX_TIMESTAMP", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = fn.Args.Count > 0 ? evalArg(0) : null;
+        if (IsNullish(value))
+        {
+            result = (long)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            return true;
+        }
+
+        if (!TryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        result = new DateTimeOffset(dateTime.ToUniversalTime()).ToUnixTimeSeconds();
+        return true;
+    }
+
+    private static bool TryEvalUserFunction(
+        FunctionCallExpr fn,
+        out object? result)
+    {
+        if (!fn.Name.Equals("USER", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        result = "root@localhost";
+        return true;
+    }
+
+    private static bool TryEvalUtcDateFunction(
+        FunctionCallExpr fn,
+        out object? result)
+    {
+        if (!fn.Name.Equals("UTC_DATE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        result = DateTime.UtcNow.Date;
+        return true;
+    }
+
+    private static bool TryEvalUtcTimeFunction(
+        FunctionCallExpr fn,
+        out object? result)
+    {
+        if (!fn.Name.Equals("UTC_TIME", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        result = DateTime.UtcNow.TimeOfDay;
+        return true;
+    }
+
+    private static bool TryEvalUtcTimestampFunction(
+        FunctionCallExpr fn,
+        out object? result)
+    {
+        if (!fn.Name.Equals("UTC_TIMESTAMP", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        result = DateTime.UtcNow;
+        return true;
+    }
+
+    private bool TryEvalUuidShortFunction(
+        FunctionCallExpr fn,
+        out object? result)
+    {
+        if (!fn.Name.Equals("UUID_SHORT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count > 0)
+            throw new InvalidOperationException("UUID_SHORT() não aceita argumentos.");
+
+        if (!_uuidShortCounter.HasValue)
+            _uuidShortCounter = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000L;
+
+        _uuidShortCounter++;
+        result = _uuidShortCounter.Value;
+        return true;
+    }
+
+    private static bool TryEvalWeekFunctions(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var name = fn.Name;
+        if (!(name.Equals("WEEK", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("WEEKDAY", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("WEEKOFYEAR", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("YEARWEEK", StringComparison.OrdinalIgnoreCase)))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        if (name.Equals("WEEKDAY", StringComparison.OrdinalIgnoreCase))
+        {
+            var weekday = ((int)dateTime.DayOfWeek + 6) % 7;
+            result = weekday;
+            return true;
+        }
+
+        if (name.Equals("WEEKOFYEAR", StringComparison.OrdinalIgnoreCase))
+        {
+            var week = System.Globalization.ISOWeek.GetWeekOfYear(dateTime);
+            result = week;
+            return true;
+        }
+
+        if (name.Equals("YEARWEEK", StringComparison.OrdinalIgnoreCase))
+        {
+            var week = System.Globalization.ISOWeek.GetWeekOfYear(dateTime);
+            var year = System.Globalization.ISOWeek.GetYear(dateTime);
+            result = year * 100 + week;
+            return true;
+        }
+
+        var calendar = CultureInfo.InvariantCulture.Calendar;
+        var weekNumber = calendar.GetWeekOfYear(dateTime, CalendarWeekRule.FirstDay, DayOfWeek.Sunday);
+        result = weekNumber;
+        return true;
+    }
+
+    private static string BytesToHex(byte[] hash)
+    {
+        var sb = new StringBuilder(hash.Length * 2);
+        foreach (var b in hash)
+            sb.Append(b.ToString("x2", CultureInfo.InvariantCulture));
+        return sb.ToString();
     }
 
     private static bool TryEvalReplaceFunction(
@@ -6679,6 +11272,14 @@ private void FillPercentRankOrCumeDist(
                 return null;
             }
 
+            if (type.StartsWith("DATE", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("DATETIME", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("SMALLDATETIME", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("TIMESTAMP", StringComparison.OrdinalIgnoreCase))
+            {
+                return TryCoerceDateTime(v, out var dt) ? dt : null;
+            }
+
             return v!.ToString();
         }
         catch
@@ -6727,6 +11328,14 @@ private void FillPercentRankOrCumeDist(
                 if (v is decimal ddx) return (double)ddx;
                 if (double.TryParse(v!.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var fx)) return fx;
                 return 0d;
+            }
+
+            if (type.StartsWith("DATE", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("DATETIME", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("SMALLDATETIME", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("TIMESTAMP", StringComparison.OrdinalIgnoreCase))
+            {
+                return TryCoerceDateTime(v, out var dt) ? dt : null;
             }
 
             if (type.Equals("JSON", StringComparison.OrdinalIgnoreCase))
@@ -7188,6 +11797,40 @@ private void FillPercentRankOrCumeDist(
             out dt);
     }
 
+    private static bool TryCoerceTimeSpan(object? baseVal, out TimeSpan span)
+    {
+        span = default;
+
+        if (baseVal is null || baseVal is DBNull)
+            return false;
+
+        if (baseVal is TimeSpan ts)
+        {
+            span = ts;
+            return true;
+        }
+
+        if (baseVal is DateTime dt)
+        {
+            span = dt.TimeOfDay;
+            return true;
+        }
+
+        if (TimeSpan.TryParse(baseVal.ToString(), CultureInfo.InvariantCulture, out var parsed))
+        {
+            span = parsed;
+            return true;
+        }
+
+        if (DateTime.TryParse(baseVal.ToString(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var parsedDate))
+        {
+            span = parsedDate.TimeOfDay;
+            return true;
+        }
+
+        return false;
+    }
+
     private static DateTime ApplyDateDelta(DateTime dt, string unit, int amount)
     {
         var normalized = unit.Trim().ToUpperInvariant();
@@ -7268,6 +11911,12 @@ private void FillPercentRankOrCumeDist(
         if (fn.Args.Count == 0)
             return null;
 
+        if (TryParseSplitIntervalArguments(fn, row, group, ctes, out var splitValue, out var splitUnit))
+        {
+            var splitSpan = TryConvertIntervalToTimeSpan(splitValue, splitUnit);
+            return splitSpan is null ? null : new IntervalValue(splitSpan.Value);
+        }
+
         var raw = Eval(fn.Args[0], row, group, ctes)?.ToString();
         if (string.IsNullOrWhiteSpace(raw))
             return null;
@@ -7278,6 +11927,289 @@ private void FillPercentRankOrCumeDist(
         var span = TryConvertIntervalToTimeSpan(value, unit);
         return span is null ? null : new IntervalValue(span.Value);
     }
+
+    private bool TryParseSplitIntervalArguments(
+        CallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        out decimal value,
+        out string unit)
+    {
+        value = 0m;
+        unit = string.Empty;
+
+        if (fn.Args.Count < 2)
+            return false;
+
+        unit = TryGetUnitText(fn.Args[1], row, group, ctes);
+        if (string.IsNullOrWhiteSpace(unit))
+            return false;
+
+        var rawValue = Eval(fn.Args[0], row, group, ctes);
+        if (rawValue is null || rawValue is DBNull)
+            return false;
+
+        if (rawValue is decimal dec)
+        {
+            value = dec;
+            return true;
+        }
+
+        if (!decimal.TryParse(rawValue.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out value))
+            return false;
+
+        return true;
+    }
+
+    private static bool TryEvalTruncFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("TRUNC", StringComparison.OrdinalIgnoreCase)
+            || fn.Args.Count < 1)
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (TryCoerceDateTime(value, out var dateTime))
+        {
+            result = dateTime.Date;
+            return true;
+        }
+
+        try
+        {
+            var dec = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+            result = Math.Truncate(dec);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalJulianDayFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("JULIANDAY", StringComparison.OrdinalIgnoreCase)
+            || fn.Args.Count < 1)
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        var julianDay = dateTime.ToOADate() + 2415018.5d;
+        result = julianDay;
+        return true;
+    }
+
+    private bool TryEvalExtractFunction(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("EXTRACT", StringComparison.OrdinalIgnoreCase)
+            || fn.Args.Count < 2)
+        {
+            result = null;
+            return false;
+        }
+
+        var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
+        var value = evalArg(1);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (TryCoerceDateTime(value, out var dateTime))
+        {
+            result = unit switch
+            {
+                "DAY" or "DAYS" => dateTime.Day,
+                "MONTH" or "MONTHS" => dateTime.Month,
+                "YEAR" or "YEARS" => dateTime.Year,
+                "HOUR" or "HOURS" => dateTime.Hour,
+                "MINUTE" or "MINUTES" => dateTime.Minute,
+                "SECOND" or "SECONDS" => dateTime.Second,
+                _ => null
+            };
+            return true;
+        }
+
+        if (TryConvertNumericToDouble(value, out var numeric))
+        {
+            result = unit switch
+            {
+                "DAY" or "DAYS" => (int)Math.Truncate(numeric),
+                _ => null
+            };
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalDaysFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DAYS", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count != 1)
+            throw new InvalidOperationException("DAYS() espera 1 argumento.");
+
+        var baseValue = evalArg(0);
+        if (IsNullish(baseValue) || !TryCoerceDateTime(baseValue, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        var days = (int)(dateTime.Date - DateTime.MinValue.Date).TotalDays + 1;
+        result = days;
+        return true;
+    }
+
+    private bool TryEvalTimestampDiffFunction(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("TIMESTAMPDIFF", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count != 3)
+            throw new InvalidOperationException("TIMESTAMPDIFF() espera 3 argumentos.");
+
+        var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
+        var startValue = evalArg(1);
+        var endValue = evalArg(2);
+
+        if (IsNullish(startValue) || IsNullish(endValue)
+            || !TryCoerceDateTime(startValue, out var start)
+            || !TryCoerceDateTime(endValue, out var end))
+        {
+            result = null;
+            return true;
+        }
+
+        result = unit switch
+        {
+            "DAY" or "DAYS" => (int)(end.Date - start.Date).TotalDays,
+            "HOUR" or "HOURS" => (int)(end - start).TotalHours,
+            "MINUTE" or "MINUTES" => (int)(end - start).TotalMinutes,
+            "SECOND" or "SECONDS" => (int)(end - start).TotalSeconds,
+            "MONTH" or "MONTHS" => DiffMonths(start, end),
+            "YEAR" or "YEARS" => DiffYears(start, end),
+            _ => null
+        };
+
+        return true;
+    }
+
+    private bool TryEvalDateDiffFunction(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DATEDIFF", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count != 3)
+            throw new InvalidOperationException("DATEDIFF() espera 3 argumentos.");
+
+        var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
+        var startValue = evalArg(1);
+        var endValue = evalArg(2);
+
+        if (IsNullish(startValue) || IsNullish(endValue)
+            || !TryCoerceDateTime(startValue, out var start)
+            || !TryCoerceDateTime(endValue, out var end))
+        {
+            result = null;
+            return true;
+        }
+
+        result = unit switch
+        {
+            "DAY" or "DAYS" => (int)(end.Date - start.Date).TotalDays,
+            "HOUR" or "HOURS" => (int)(end - start).TotalHours,
+            "MINUTE" or "MINUTES" => (int)(end - start).TotalMinutes,
+            "SECOND" or "SECONDS" => (int)(end - start).TotalSeconds,
+            "MONTH" or "MONTHS" => DiffMonths(start, end),
+            "YEAR" or "YEARS" => DiffYears(start, end),
+            _ => null
+        };
+
+        return true;
+    }
+
+    private static int DiffMonths(DateTime start, DateTime end)
+    {
+        var months = (end.Year - start.Year) * 12 + (end.Month - start.Month);
+        if (end.Day < start.Day)
+            months -= 1;
+        return months;
+    }
+
+    private static int DiffYears(DateTime start, DateTime end)
+    {
+        var years = end.Year - start.Year;
+        if (end.Month < start.Month || (end.Month == start.Month && end.Day < start.Day))
+            years -= 1;
+        return years;
+    }
+
+    private string TryGetUnitText(
+        SqlExpr expr,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+        => GetDateAddUnit(expr, row, group, ctes);
 
     private static bool TryParseIntervalLiteral(string raw, out decimal value, out string unit)
     {
@@ -7349,8 +12281,88 @@ private void FillPercentRankOrCumeDist(
             "GROUP_CONCAT" => EvalStringAggregate(values, separator, ","),
             "STRING_AGG" => EvalStringAggregate(values, separator, ","),
             "LISTAGG" => EvalStringAggregate(values, separator, string.Empty),
+            "ANY_VALUE" => AggregateAnyValue(values),
+            "BIT_AND" => AggregateBitwiseValues(values, BitwiseAggregateOperation.And),
+            "BIT_OR" => AggregateBitwiseValues(values, BitwiseAggregateOperation.Or),
+            "BIT_XOR" => AggregateBitwiseValues(values, BitwiseAggregateOperation.Xor),
+            "JSON_ARRAYAGG" => EvalJsonArrayAggregate(values),
+            "VAR_POP" => AggregateVariance(values, sample: false),
+            "VARIANCE" => AggregateVariance(values, sample: false),
+            "VAR_SAMP" => AggregateVariance(values, sample: true),
             _ => null
         };
+    }
+
+    private static object? AggregateAnyValue(IReadOnlyList<object?> values)
+    {
+        foreach (var value in values)
+        {
+            if (!IsNullish(value))
+                return value;
+        }
+
+        return null;
+    }
+
+    private enum BitwiseAggregateOperation
+    {
+        And,
+        Or,
+        Xor
+    }
+
+    private static object? AggregateBitwiseValues(IReadOnlyList<object?> values, BitwiseAggregateOperation operation)
+    {
+        var filtered = values.Where(static value => !IsNullish(value)).ToList();
+        if (filtered.Count == 0)
+            return null;
+
+        var acc = Convert.ToInt64(filtered[0], CultureInfo.InvariantCulture);
+        for (var i = 1; i < filtered.Count; i++)
+        {
+            var next = Convert.ToInt64(filtered[i], CultureInfo.InvariantCulture);
+            acc = operation switch
+            {
+                BitwiseAggregateOperation.And => acc & next,
+                BitwiseAggregateOperation.Or => acc | next,
+                BitwiseAggregateOperation.Xor => acc ^ next,
+                _ => acc
+            };
+        }
+
+        return acc;
+    }
+
+    private static object? EvalJsonArrayAggregate(IReadOnlyList<object?> values)
+    {
+        if (values.Count == 0)
+            return null;
+
+        return BuildJsonArray(values);
+    }
+
+    private static object? AggregateVariance(IReadOnlyList<object?> values, bool sample)
+    {
+        var numeric = values
+            .Where(static value => !IsNullish(value))
+            .Select(static value => Convert.ToDouble(value, CultureInfo.InvariantCulture))
+            .ToArray();
+
+        if (numeric.Length == 0)
+            return null;
+
+        if (sample && numeric.Length < 2)
+            return null;
+
+        var mean = numeric.Average();
+        var sumSq = numeric.Sum(v =>
+        {
+            var diff = v - mean;
+            return diff * diff;
+        });
+
+        var divisor = sample ? numeric.Length - 1 : numeric.Length;
+        return sumSq / divisor;
     }
 
     private static object? AggregateNumericValues(IReadOnlyList<object?> values, AggregateNumericOperation operation)
@@ -7406,22 +12418,37 @@ private void FillPercentRankOrCumeDist(
     {
         var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
         var name = fn.Name.ToUpperInvariant();
+        var filteredGroup = ApplyAggregateFilter(fn, group, ctes);
 
         // COUNT(DISTINCT ...)
         if (name == "COUNT" && fn.Distinct)
-            return EvalCountDistinct(fn, group, ctes);
+            return EvalCountDistinct(fn, filteredGroup, ctes);
 
         if (name is "GROUP_CONCAT" or "STRING_AGG" or "LISTAGG")
         {
             if (!dialect.SupportsStringAggregateFunction(name))
                 throw SqlUnsupported.ForDialect(dialect, name);
 
-            return EvalStringAggregateForCallExpr(fn, group, ctes, name);
+            return EvalStringAggregateForCallExpr(fn, filteredGroup, ctes, name);
         }
 
         // para os outros casos (sem DISTINCT), reaproveita o existente
         var shim = new FunctionCallExpr(fn.Name, fn.Args);
-        return EvalAggregate(shim, group, ctes);
+        return EvalAggregate(shim, filteredGroup, ctes);
+    }
+
+    private EvalGroup ApplyAggregateFilter(
+        CallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes)
+    {
+        if (fn.Filter is null)
+            return group;
+
+        var filteredRows = group.Rows
+            .Where(row => Eval(fn.Filter, row, null, ctes).ToBool())
+            .ToList();
+        return new EvalGroup(filteredRows);
     }
 
     private long EvalCountDistinct(CallExpr fn, EvalGroup group, IDictionary<string, Source> ctes)

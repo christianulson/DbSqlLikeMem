@@ -632,6 +632,7 @@ internal static class DbInsertStrategy
                     SqlBinaryOp.Subtract => (Convert.ToDecimal(Eval(b.Left) ?? 0m) - Convert.ToDecimal(Eval(b.Right) ?? 0m)),
                     SqlBinaryOp.Multiply => (Convert.ToDecimal(Eval(b.Left) ?? 0m) * Convert.ToDecimal(Eval(b.Right) ?? 0m)),
                     SqlBinaryOp.Divide => (Convert.ToDecimal(Eval(b.Left) ?? 0m) / Convert.ToDecimal(Eval(b.Right) ?? 0m)),
+                    SqlBinaryOp.Concat => EvalConcat(Eval(b.Left), Eval(b.Right)),
                     SqlBinaryOp.Eq => Equals(Eval(b.Left), Eval(b.Right)),
                     SqlBinaryOp.Neq => !Equals(Eval(b.Left), Eval(b.Right)),
                     SqlBinaryOp.And => Convert.ToBoolean(Eval(b.Left) ?? false) && Convert.ToBoolean(Eval(b.Right) ?? false),
@@ -642,6 +643,20 @@ internal static class DbInsertStrategy
                 FunctionCallExpr fn => EvalFunction(fn),
                 _ => throw new NotSupportedException($"Expressão não suportada em ON DUPLICATE: {expr.GetType().Name}")
             };
+        }
+
+        object? EvalConcat(object? left, object? right)
+        {
+            var nullInputReturnsNull = dialect.ConcatReturnsNullOnNullInput;
+            if (left is null or DBNull || right is null or DBNull)
+            {
+                if (nullInputReturnsNull)
+                    return null;
+            }
+
+            var leftText = left is null or DBNull ? string.Empty : left.ToString() ?? string.Empty;
+            var rightText = right is null or DBNull ? string.Empty : right.ToString() ?? string.Empty;
+            return string.Concat(leftText, rightText);
         }
 
         object? EvalFunction(FunctionCallExpr fn)
@@ -805,6 +820,7 @@ internal static class DbInsertStrategy
                     SqlBinaryOp.Subtract => (Convert.ToDecimal(Eval(b.Left) ?? 0m) - Convert.ToDecimal(Eval(b.Right) ?? 0m)),
                     SqlBinaryOp.Multiply => (Convert.ToDecimal(Eval(b.Left) ?? 0m) * Convert.ToDecimal(Eval(b.Right) ?? 0m)),
                     SqlBinaryOp.Divide => (Convert.ToDecimal(Eval(b.Left) ?? 0m) / Convert.ToDecimal(Eval(b.Right) ?? 0m)),
+                    SqlBinaryOp.Concat => EvalConcat(Eval(b.Left), Eval(b.Right)),
                     SqlBinaryOp.Eq => Equals(Eval(b.Left), Eval(b.Right)),
                     SqlBinaryOp.Neq => !Equals(Eval(b.Left), Eval(b.Right)),
                     SqlBinaryOp.And => Convert.ToBoolean(Eval(b.Left) ?? false) && Convert.ToBoolean(Eval(b.Right) ?? false),
@@ -816,6 +832,20 @@ internal static class DbInsertStrategy
                 RawSqlExpr raw => throw new InvalidOperationException($"Expressão não suportada no ON DUPLICATE: {raw.Sql}"),
                 _ => throw new InvalidOperationException($"Expressão não suportada no ON DUPLICATE: {expr.GetType().Name}")
             };
+        }
+
+        object? EvalConcat(object? left, object? right)
+        {
+            var nullInputReturnsNull = dialect.ConcatReturnsNullOnNullInput;
+            if (left is null or DBNull || right is null or DBNull)
+            {
+                if (nullInputReturnsNull)
+                    return null;
+            }
+
+            var leftText = left is null or DBNull ? string.Empty : left.ToString() ?? string.Empty;
+            var rightText = right is null or DBNull ? string.Empty : right.ToString() ?? string.Empty;
+            return string.Concat(leftText, rightText);
         }
 
         bool TryGetExcludedValueFromName(string rawName, out object? value)

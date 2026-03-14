@@ -393,7 +393,8 @@ internal abstract class SqlDialectBase : ISqlDialect
             || typeName.StartsWith("INTEGER", StringComparison.OrdinalIgnoreCase)
             || typeName.StartsWith("BIGINT", StringComparison.OrdinalIgnoreCase)
             || typeName.StartsWith("SMALLINT", StringComparison.OrdinalIgnoreCase)
-            || typeName.StartsWith("TINYINT", StringComparison.OrdinalIgnoreCase);
+            || typeName.StartsWith("TINYINT", StringComparison.OrdinalIgnoreCase)
+            || typeName.Equals("BIT", StringComparison.OrdinalIgnoreCase);
     }
 
     public virtual bool SupportsDateAddFunction(string functionName)

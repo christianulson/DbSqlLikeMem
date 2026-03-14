@@ -71,6 +71,11 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     public override bool SupportsWithinGroupStringAggregateFunction(string functionName)
         => functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase);
 
+    public override bool SupportsAggregateOrderByForStringAggregates => true;
+
+    public override bool SupportsAggregateOrderByStringAggregateFunction(string functionName)
+        => functionName.Equals("STRING_AGG", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>
     /// EN: Gets whether fetch first is supported.
     /// PT: Obtém se há suporte a fetch first.

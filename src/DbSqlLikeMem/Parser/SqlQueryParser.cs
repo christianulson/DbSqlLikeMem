@@ -3580,7 +3580,16 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "OUTER")) Consume();
         ExpectWord("JOIN");
 
+        var isLateral = false;
+        if (IsWord(Peek(), "LATERAL"))
+        {
+            Consume();
+            isLateral = true;
+        }
+
         var table = TryParseTableTransforms(ParseTableSource());
+        if (isLateral)
+            table = table with { IsLateral = true };
         SqlExpr onExpr = new LiteralExpr(true);
 
         if (type != SqlJoinType.Cross)
