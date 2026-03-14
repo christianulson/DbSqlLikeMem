@@ -60,6 +60,7 @@ public abstract class DbConnectionMockBase(
     private readonly List<QueryDebugTrace> _lastDebugTraces = [];
     private int _debugTraceCaptureDepth;
     private long _lastFoundRows;
+    private object? _lastInsertId;
     private readonly AutoSqlDialect _autoSqlDialect = new();
     private readonly Dictionary<string, long> _sessionSequenceValues =
         new(StringComparer.OrdinalIgnoreCase);
@@ -489,6 +490,12 @@ public abstract class DbConnectionMockBase(
 
     internal long GetLastFoundRows()
         => _lastFoundRows;
+
+    internal void SetLastInsertId(object? value)
+        => _lastInsertId = value;
+
+    internal object? GetLastInsertId()
+        => _lastInsertId;
 
     /// <summary>
     /// EN: Simulated latency in milliseconds for each operation.

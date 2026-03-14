@@ -17,6 +17,7 @@
 	<ItemGroup>
 		<Using Include="DbSqlLikeMem.Oracle" />
 		<Using Include="Oracle.ManagedDataAccess.Client" />
+		<Using Include="System.Text.Json" />
 	</ItemGroup>
 	
 </Project>

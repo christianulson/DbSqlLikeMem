@@ -3852,7 +3852,7 @@ internal sealed class SqlQueryParser
         {
             var text = t.Kind switch
             {
-                SqlTokenKind.String => $"'{t.Text}'", // tokenizer entrega sem aspas
+                SqlTokenKind.String => $"'{EscapeStringLiteral(t.Text)}'", // tokenizer entrega sem aspas
                 SqlTokenKind.Identifier => NeedsIdentifierQuoting(t.Text) ? QuoteIdentifier(t.Text) : t.Text,
                 _ => t.Text
             };
@@ -3865,6 +3865,18 @@ internal sealed class SqlQueryParser
         }
 
         return sb.ToString().Trim();
+
+        string EscapeStringLiteral(string value)
+        {
+            if (_dialect.StringEscapeStyle == SqlStringEscapeStyle.backslash)
+            {
+                return value
+                    .Replace("\\", "\\\\")
+                    .Replace("'", "\\'");
+            }
+
+            return value.Replace("'", "''");
+        }
 
         bool NeedsIdentifierQuoting(string ident)
         {
