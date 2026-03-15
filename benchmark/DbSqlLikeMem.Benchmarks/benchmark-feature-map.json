@@ -38,7 +38,6 @@
         "StringAggregateCustomSeparator",
         "StringAggregateLargeGroup",
         "DateScalar",
-        "ExecutionPlan",
         "BatchInsert10",
         "BatchInsert100",
         "BatchMixedReadWrite",
@@ -165,7 +164,6 @@
         "StringAggregateCustomSeparator",
         "StringAggregateLargeGroup",
         "DateScalar",
-        "ExecutionPlan",
         "BatchInsert10",
         "BatchInsert100",
         "BatchMixedReadWrite",
@@ -308,7 +306,6 @@
         "StringAggregateCustomSeparator",
         "StringAggregateLargeGroup",
         "DateScalar",
-        "ExecutionPlan",
         "BatchInsert10",
         "BatchInsert100",
         "BatchMixedReadWrite",
@@ -391,7 +388,6 @@
         "StringAggregateCustomSeparator",
         "StringAggregateLargeGroup",
         "DateScalar",
-        "ExecutionPlan",
         "BatchInsert10",
         "BatchInsert100",
         "BatchMixedReadWrite",
@@ -530,7 +526,6 @@
         "StringAggregateCustomSeparator",
         "StringAggregateLargeGroup",
         "DateScalar",
-        "ExecutionPlan",
         "BatchInsert10",
         "BatchInsert100",
         "BatchMixedReadWrite",
@@ -670,7 +665,6 @@
         "StringAggregateCustomSeparator",
         "StringAggregateLargeGroup",
         "DateScalar",
-        "ExecutionPlan",
         "BatchInsert10",
         "BatchInsert100",
         "BatchMixedReadWrite",
@@ -805,7 +799,6 @@
         "StringAggregateCustomSeparator",
         "StringAggregateLargeGroup",
         "DateScalar",
-        "ExecutionPlan",
         "BatchInsert10",
         "BatchInsert100",
         "BatchMixedReadWrite",
@@ -1464,18 +1457,6 @@
       "category": "AdvancedQuery",
       "comparable": true,
       "notes": "Complex query benchmark using OUTER APPLY or LEFT LATERAL semantics."
-    },
-    {
-      "id": "ExecutionPlan",
-      "displayName": "Execution plan / LastExecutionPlan",
-      "category": "Diagnostics",
-      "comparable": false,
-      "indexRefs": [
-        "1.5.1",
-        "1.5.2",
-        "1.5.3"
-      ],
-      "notes": "Mock-only backlog seed for the wiki matrix."
     }
   ]
 }

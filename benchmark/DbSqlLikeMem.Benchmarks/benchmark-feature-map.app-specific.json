@@ -14,6 +14,7 @@
       "externalEngine": "Testcontainers",
       "externalImage": "mysql:8.4",
       "supportsAppFeatures": [
+        "ExecutionPlan",
         "ExecutionPlanSelect",
         "ExecutionPlanJoin",
         "ExecutionPlanDml",
@@ -50,6 +51,7 @@
       "externalEngine": "Testcontainers",
       "externalImage": "mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04",
       "supportsAppFeatures": [
+        "ExecutionPlan",
         "ExecutionPlanSelect",
         "ExecutionPlanJoin",
         "ExecutionPlanDml",
@@ -86,6 +88,7 @@
       "externalEngine": "NotAvailable",
       "externalImage": null,
       "supportsAppFeatures": [
+        "ExecutionPlan",
         "ExecutionPlanSelect",
         "ExecutionPlanJoin",
         "ExecutionPlanDml",
@@ -122,6 +125,7 @@
       "externalEngine": "Testcontainers",
       "externalImage": "gvenzl/oracle-free:23-slim-faststart",
       "supportsAppFeatures": [
+        "ExecutionPlan",
         "ExecutionPlanSelect",
         "ExecutionPlanJoin",
         "ExecutionPlanDml",
@@ -158,6 +162,7 @@
       "externalEngine": "Testcontainers",
       "externalImage": "postgres:17",
       "supportsAppFeatures": [
+        "ExecutionPlan",
         "ExecutionPlanSelect",
         "ExecutionPlanJoin",
         "ExecutionPlanDml",
@@ -194,6 +199,7 @@
       "externalEngine": "NativeAdoNet",
       "externalImage": null,
       "supportsAppFeatures": [
+        "ExecutionPlan",
         "ExecutionPlanSelect",
         "ExecutionPlanJoin",
         "ExecutionPlanDml",
@@ -231,6 +237,7 @@
       "externalEngine": "Testcontainers",
       "externalImage": "icr.io/db2_community/db2:12.1.0.0",
       "supportsAppFeatures": [
+        "ExecutionPlan",
         "ExecutionPlanSelect",
         "ExecutionPlanJoin",
         "ExecutionPlanDml",
@@ -264,6 +271,18 @@
     }
   ],
   "features": [
+    {
+      "id": "ExecutionPlan",
+      "displayName": "Execution plan / LastExecutionPlan",
+      "category": "Diagnostics",
+      "comparable": false,
+      "indexRefs": [
+        "1.5.1",
+        "1.5.2",
+        "1.5.3"
+      ],
+      "notes": "Mock-only backlog seed for the wiki matrix."
+    },
     {
       "id": "ExecutionPlanSelect",
       "displayName": "Execution plan select",
