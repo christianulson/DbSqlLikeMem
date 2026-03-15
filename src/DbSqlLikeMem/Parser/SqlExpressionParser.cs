@@ -1563,8 +1563,93 @@ internal sealed class SqlExpressionParser(
         if ((name.Equals("FOUND_ROWS", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("CHANGES", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("ROWCOUNT", StringComparison.OrdinalIgnoreCase))
+                || name.Equals("ROWCOUNT", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("ROWCOUNT_BIG", StringComparison.OrdinalIgnoreCase))
             && !_dialect.SupportsLastFoundRowsFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if (name.Equals("TRY_CAST", StringComparison.OrdinalIgnoreCase)
+            && !_dialect.SupportsTryCastFunction)
+        {
+            throw SqlUnsupported.ForDialect(_dialect, "TRY_CAST");
+        }
+
+        if (name.Equals("TRY_CONVERT", StringComparison.OrdinalIgnoreCase)
+            && !_dialect.SupportsTryConvertFunction)
+        {
+            throw SqlUnsupported.ForDialect(_dialect, "TRY_CONVERT");
+        }
+
+        if (name.Equals("EOMONTH", StringComparison.OrdinalIgnoreCase)
+            && !_dialect.SupportsEomonthFunction)
+        {
+            throw SqlUnsupported.ForDialect(_dialect, "EOMONTH");
+        }
+
+        if (name.Equals("GETUTCDATE", StringComparison.OrdinalIgnoreCase)
+            && !_dialect.SupportsGetUtcDateFunction)
+        {
+            throw SqlUnsupported.ForDialect(_dialect, "GETUTCDATE");
+        }
+
+        if ((name.Equals("DB_ID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("DB_NAME", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SCHEMA_ID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SCHEMA_NAME", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SERVERPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SESSION_ID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SUSER_ID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SUSER_NAME", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SUSER_SNAME", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("USER_ID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("USER_NAME", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("XACT_STATE", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsSqlServerMetadataFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if ((name.Equals("COT", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("DEGREES", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("DIFFERENCE", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("EXP", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("FLOOR", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("LEN", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("LOG", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("LOG10", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("PI", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("POWER", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("RADIANS", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("RAND", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("ROUND", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SIN", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SQUARE", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TAN", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("LTRIM", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("PARSENAME", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("QUOTENAME", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("REPLICATE", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("REVERSE", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("RTRIM", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SOUNDEX", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SPACE", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SQRT", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("STUFF", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("UNICODE", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsSqlServerScalarFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if ((name.Equals("DATEFROMPARTS", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("DATETIMEFROMPARTS", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("DATETIME2FROMPARTS", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("DATETIMEOFFSETFROMPARTS", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TIMEFROMPARTS", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SMALLDATETIMEFROMPARTS", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsSqlServerFromPartsFunction(name))
         {
             throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
         }
@@ -1694,6 +1779,59 @@ internal sealed class SqlExpressionParser(
 
             var typeSql = string.Join(" ", typeToks.Select(TokenToSql)).Trim();
             return new CallExpr("TRY_CAST", [inner, new RawSqlExpr(typeSql)]);
+        }
+
+        // ================================
+        // TRY_CONVERT(TYPE, expr[, style]) — sintaxe especial
+        // ================================
+        if (name.Equals("TRY_CONVERT", StringComparison.OrdinalIgnoreCase))
+        {
+            var typeToks = new List<SqlToken>();
+            int depth = 0;
+
+            while (true)
+            {
+                var t = Peek();
+
+                if (t.Kind == SqlTokenKind.EndOfFile)
+                    throw Error("TRY_CONVERT type not closed", t);
+
+                if (t.Kind == SqlTokenKind.Symbol && t.Text == "(")
+                    depth++;
+
+                if (t.Kind == SqlTokenKind.Symbol && t.Text == ")")
+                {
+                    if (depth == 0)
+                        throw Error("TRY_CONVERT requires an expression argument", t);
+                    depth--;
+                }
+
+                if (t.Kind == SqlTokenKind.Symbol && t.Text == "," && depth == 0)
+                    break;
+
+                typeToks.Add(Consume());
+            }
+
+            if (typeToks.Count == 0)
+                throw Error("TRY_CONVERT requires a target type", Peek());
+
+            ExpectSymbol(",");
+
+            var inner = ParseExpression(0);
+            var args = new List<SqlExpr>
+            {
+                inner,
+                new RawSqlExpr(string.Join(" ", typeToks.Select(TokenToSql)).Trim())
+            };
+
+            if (IsSymbol(Peek(), ","))
+            {
+                Consume();
+                args.Add(ParseExpression(0));
+            }
+
+            ExpectSymbol(")");
+            return new CallExpr("TRY_CONVERT", [.. args]);
         }
 
         // ================================
@@ -2296,6 +2434,15 @@ internal sealed class SqlExpressionParser(
 
         if (TryBuildSequenceDotCall(parts, out var sequenceCall))
             return sequenceCall;
+
+        if (parts.Count == 1
+            && (parts[0].Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase)
+                || parts[0].Equals("SESSION_USER", StringComparison.OrdinalIgnoreCase)
+                || parts[0].Equals("SYSTEM_USER", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsSqlServerMetadataIdentifier(parts[0]))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, parts[0].ToUpperInvariant());
+        }
 
         return parts.Count switch
         {

@@ -425,12 +425,184 @@ public sealed class SqlServerDialectFeatureParserTests
         var dialect = new SqlServerDialect(version);
 
         Assert.Equal("ROWCOUNT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROWCOUNT()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ROWCOUNT_BIG", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROWCOUNT_BIG()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
 
         var foundRowsEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("FOUND_ROWS()", dialect));
         Assert.Contains("FOUND_ROWS", foundRowsEx.Message, StringComparison.OrdinalIgnoreCase);
 
         var rowCountEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_COUNT()", dialect));
         Assert.Contains("ROW_COUNT", rowCountEx.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server metadata and session scalar helpers are exposed through an explicit dialect capability.
+    /// PT: Garante que helpers escalares de metadados e sessao do SQL Server sejam expostos por uma capability explicita do dialeto.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void MetadataFunctionCapability_ShouldExposeSqlServerContract(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        Assert.True(dialect.SupportsSqlServerMetadataFunction("DB_ID"));
+        Assert.True(dialect.SupportsSqlServerMetadataFunction("DB_NAME"));
+        Assert.True(dialect.SupportsSqlServerMetadataFunction("SCHEMA_ID"));
+        Assert.True(dialect.SupportsSqlServerMetadataFunction("SCHEMA_NAME"));
+        Assert.True(dialect.SupportsSqlServerMetadataFunction("SERVERPROPERTY"));
+        Assert.True(dialect.SupportsSqlServerMetadataFunction("SESSION_ID"));
+        Assert.True(dialect.SupportsSqlServerMetadataFunction("SUSER_ID"));
+        Assert.True(dialect.SupportsSqlServerMetadataFunction("SUSER_NAME"));
+        Assert.True(dialect.SupportsSqlServerMetadataFunction("SUSER_SNAME"));
+        Assert.True(dialect.SupportsSqlServerMetadataFunction("USER_ID"));
+        Assert.True(dialect.SupportsSqlServerMetadataFunction("USER_NAME"));
+        Assert.True(dialect.SupportsSqlServerMetadataFunction("XACT_STATE"));
+        Assert.False(dialect.SupportsSqlServerMetadataFunction("FOUND_ROWS"));
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server parser accepts metadata and session helpers only through the explicit shared metadata capability.
+    /// PT: Garante que o parser SQL Server aceite helpers de metadados e sessao apenas pela capability explicita compartilhada de metadados.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_MetadataFunctions_ShouldFollowDialectCapability(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        Assert.Equal("DB_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DB_ID()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DB_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DB_NAME()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SCHEMA_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SCHEMA_ID()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SCHEMA_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SCHEMA_NAME()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SERVERPROPERTY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SERVERPROPERTY('ProductVersion')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SESSION_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SESSION_ID()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SUSER_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SUSER_ID()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SUSER_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SUSER_NAME()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SUSER_SNAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SUSER_SNAME()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("USER_ID", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("USER_ID()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("USER_NAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("USER_NAME()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("XACT_STATE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("XACT_STATE()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server session and user identifiers are exposed through an explicit dialect capability.
+    /// PT: Garante que identificadores de sessao e usuario do SQL Server sejam expostos por uma capability explicita do dialeto.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void MetadataIdentifierCapability_ShouldExposeSqlServerContract(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        Assert.True(dialect.SupportsSqlServerMetadataIdentifier("CURRENT_USER"));
+        Assert.True(dialect.SupportsSqlServerMetadataIdentifier("SESSION_USER"));
+        Assert.True(dialect.SupportsSqlServerMetadataIdentifier("SYSTEM_USER"));
+        Assert.False(dialect.SupportsSqlServerMetadataIdentifier("CURRENT_ROLE"));
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server parser accepts identifier-style session and user tokens only through the explicit metadata-identifier capability.
+    /// PT: Garante que o parser SQL Server aceite tokens de sessao e usuario em estilo identificador apenas pela capability explicita de identificador de metadados.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_MetadataIdentifiers_ShouldFollowDialectCapability(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        Assert.Equal("CURRENT_USER", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("CURRENT_USER", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SESSION_USER", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("SESSION_USER", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SYSTEM_USER", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("SYSTEM_USER", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server string and scalar helpers are exposed through an explicit dialect capability.
+    /// PT: Garante que helpers de string e escalares do SQL Server sejam expostos por uma capability explicita do dialeto.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void SqlServerScalarFunctionCapability_ShouldExposeContract(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        Assert.True(dialect.SupportsSqlServerScalarFunction("COT"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("DEGREES"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("DIFFERENCE"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("EXP"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("FLOOR"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("LEN"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("LOG"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("LOG10"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("PI"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("POWER"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("RADIANS"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("RAND"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("ROUND"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("SIN"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("SQUARE"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("TAN"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("LTRIM"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("PARSENAME"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("QUOTENAME"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("REPLICATE"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("REVERSE"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("RTRIM"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("SOUNDEX"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("SPACE"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("SQRT"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("STUFF"));
+        Assert.True(dialect.SupportsSqlServerScalarFunction("UNICODE"));
+        Assert.False(dialect.SupportsSqlServerScalarFunction("JSON_VALUE"));
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server parser accepts selected string and scalar helpers only through the explicit SQL Server scalar-function capability.
+    /// PT: Garante que o parser SQL Server aceite helpers selecionados de string e escalares apenas pela capability explicita de funcoes escalares do SQL Server.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_SqlServerScalarHelpers_ShouldFollowDialectCapability(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        Assert.Equal("COT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("COT(1)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DEGREES", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DEGREES(PI())", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DIFFERENCE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DIFFERENCE('Robert', 'Rupert')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("EXP", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("EXP(1)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("FLOOR", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("FLOOR(1.9)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("LEN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LEN('Ana')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("LOG", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LOG(10, 100)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("LOG10", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LOG10(100)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("PI", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("PI()", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("POWER", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("POWER(2, 3)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("RADIANS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("RADIANS(180)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("RAND", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("RAND(7)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ROUND", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROUND(1.235, 2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SIN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SIN(1.5707963267948966)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SQUARE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SQUARE(3)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("TAN", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("TAN(0)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("LTRIM", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("LTRIM('  Ana')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("PARSENAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("PARSENAME('server.database.dbo.Users', 2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("QUOTENAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("QUOTENAME('Ana')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("REPLICATE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("REPLICATE('Na', 2)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("REVERSE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("REVERSE('Ana')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("RTRIM", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("RTRIM('Ana  ')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SOUNDEX", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SOUNDEX('Robert')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SPACE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SPACE(3)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SQRT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("SQRT(9)", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("STUFF", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("STUFF('Ana', 2, 1, 'xx')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("UNICODE", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("UNICODE('A')", dialect)).Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -713,6 +885,154 @@ public sealed class SqlServerDialectFeatureParserTests
 
         var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
         Assert.Equal("JSON_QUERY", call.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server exposes high-precision temporal calls only for versions that support them natively.
+    /// PT: Garante que o SQL Server exponha chamadas temporais de alta precisão apenas para versões que as suportam nativamente.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void TemporalCapabilities_ShouldFollowSqlServerVersionSupport(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+        var supported = version >= SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion;
+
+        Assert.True(dialect.SupportsGetUtcDateFunction);
+        Assert.Contains("GETUTCDATE", dialect.TemporalFunctionCallNames, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(supported, dialect.TemporalFunctionCallNames.Contains("SYSDATETIME", StringComparer.OrdinalIgnoreCase));
+        Assert.Equal(supported, dialect.TemporalFunctionCallNames.Contains("SYSDATETIMEOFFSET", StringComparer.OrdinalIgnoreCase));
+        Assert.Equal(supported, dialect.TemporalFunctionCallNames.Contains("SYSUTCDATETIME", StringComparer.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server FROMPARTS constructors are gated by the native 2012+ feature boundary.
+    /// PT: Garante que os construtores FROMPARTS do SQL Server sejam controlados pelo limite nativo do recurso 2012+.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_FromPartsFunctions_ShouldFollowSqlServerVersionSupport(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+        const string timeSql = "TIMEFROMPARTS(10, 11, 12, 1234567, 7)";
+        const string smallDateTimeSql = "SMALLDATETIMEFROMPARTS(2020, 2, 29, 10, 11)";
+
+        if (version < SqlServerDialect.FromPartsMinVersion)
+        {
+            var timeEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(timeSql, dialect));
+            Assert.Contains("TIMEFROMPARTS", timeEx.Message, StringComparison.OrdinalIgnoreCase);
+
+            var smallDateTimeEx = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(smallDateTimeSql, dialect));
+            Assert.Contains("SMALLDATETIMEFROMPARTS", smallDateTimeEx.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        Assert.Equal("TIMEFROMPARTS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(timeSql, dialect)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("SMALLDATETIMEFROMPARTS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(smallDateTimeSql, dialect)).Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server TRY_CAST is gated by the native 2012+ feature boundary and preserves the target type as raw SQL.
+    /// PT: Garante que TRY_CAST no SQL Server seja controlado pelo limite nativo do recurso 2012+ e preserve o tipo de destino como SQL bruto.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_TryCast_ShouldFollowSqlServerVersionSupport(int version)
+    {
+        const string sql = "TRY_CAST('42' AS INT)";
+        var dialect = new SqlServerDialect(version);
+
+        Assert.Equal(version >= SqlServerDialect.TryCastMinVersion, dialect.SupportsTryCastFunction);
+
+        if (version < SqlServerDialect.TryCastMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            Assert.Contains("TRY_CAST", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
+        Assert.Equal("TRY_CAST", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("INT", Assert.IsType<RawSqlExpr>(call.Args[1]).Sql, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures TRY_CONVERT follows SQL Server version support starting in 2012 and keeps the target type as raw SQL.
+    /// PT: Garante que TRY_CONVERT siga o suporte por versão do SQL Server a partir de 2012 e mantenha o tipo de destino como SQL bruto.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_TryConvert_ShouldFollowSqlServerVersionSupport(int version)
+    {
+        const string sql = "TRY_CONVERT(INT, '42')";
+        var dialect = new SqlServerDialect(version);
+
+        Assert.Equal(version >= SqlServerDialect.TryConvertMinVersion, dialect.SupportsTryConvertFunction);
+
+        if (version < SqlServerDialect.TryConvertMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            Assert.Contains("TRY_CONVERT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
+        Assert.Equal("TRY_CONVERT", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.IsType<RawSqlExpr>(call.Args[1]);
+        Assert.Equal("INT", Assert.IsType<RawSqlExpr>(call.Args[1]).Sql, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures EOMONTH follows SQL Server version support starting in 2012.
+    /// PT: Garante que EOMONTH siga o suporte por versão do SQL Server a partir de 2012.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_Eomonth_ShouldFollowSqlServerVersionSupport(int version)
+    {
+        const string sql = "EOMONTH('2020-02-15')";
+        var dialect = new SqlServerDialect(version);
+
+        Assert.Equal(version >= SqlServerDialect.EomonthMinVersion, dialect.SupportsEomonthFunction);
+
+        if (version < SqlServerDialect.EomonthMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(sql, dialect));
+            Assert.Contains("EOMONTH", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
+        Assert.Equal("EOMONTH", call.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures GETUTCDATE remains available as a zero-argument SQL Server temporal call across supported versions.
+    /// PT: Garante que GETUTCDATE permaneça disponivel como chamada temporal sem argumentos do SQL Server em todas as versões suportadas.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ParseScalar_GetUtcDate_ShouldRemainAvailableAcrossSqlServerVersions(int version)
+    {
+        const string sql = "GETUTCDATE()";
+        var dialect = new SqlServerDialect(version);
+
+        Assert.True(dialect.SupportsGetUtcDateFunction);
+
+        var call = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar(sql, dialect));
+        Assert.Equal("GETUTCDATE", call.Name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>

@@ -11,7 +11,10 @@ internal static class SqlTemporalFunctionEvaluator
         "SYSDATE",
         "SYSTEMDATE",
         "GETDATE",
+        "GETUTCDATE",
         "SYSDATETIME",
+        "SYSDATETIMEOFFSET",
+        "SYSUTCDATETIME",
         "SYSTIMESTAMP",
     };
 
@@ -62,6 +65,7 @@ internal static class SqlTemporalFunctionEvaluator
         {
             SqlTemporalFunctionKind.Date => utcNow.Date,
             SqlTemporalFunctionKind.Time => utcNow.TimeOfDay,
+            SqlTemporalFunctionKind.DateTimeOffset => DateTimeOffset.Now,
             _ => utcNow,
         };
 

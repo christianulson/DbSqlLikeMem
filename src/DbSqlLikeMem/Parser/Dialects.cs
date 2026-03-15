@@ -18,7 +18,8 @@ internal enum SqlTemporalFunctionKind
 {
     Date,
     Time,
-    DateTime
+    DateTime,
+    DateTimeOffset
 }
 
 /// <summary>
@@ -172,6 +173,14 @@ internal interface ISqlDialect
     bool SupportsApplyClause { get; }
     bool SupportsStringSplitFunction { get; }
     bool SupportsStringSplitOrdinalArgument { get; }
+    bool SupportsTryCastFunction { get; }
+    bool SupportsTryConvertFunction { get; }
+    bool SupportsEomonthFunction { get; }
+    bool SupportsGetUtcDateFunction { get; }
+    bool SupportsSqlServerMetadataFunction(string functionName);
+    bool SupportsSqlServerMetadataIdentifier(string identifier);
+    bool SupportsSqlServerScalarFunction(string functionName);
+    bool SupportsSqlServerFromPartsFunction(string functionName);
     DbType InferWindowFunctionDbType(WindowFunctionExpr windowFunctionExpr, Func<SqlExpr, DbType> inferArgDbType);
 }
 
@@ -465,6 +474,14 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual bool SupportsApplyClause => false;
     public virtual bool SupportsStringSplitFunction => false;
     public virtual bool SupportsStringSplitOrdinalArgument => false;
+    public virtual bool SupportsTryCastFunction => false;
+    public virtual bool SupportsTryConvertFunction => false;
+    public virtual bool SupportsEomonthFunction => false;
+    public virtual bool SupportsGetUtcDateFunction => false;
+    public virtual bool SupportsSqlServerMetadataFunction(string functionName) => false;
+    public virtual bool SupportsSqlServerMetadataIdentifier(string identifier) => false;
+    public virtual bool SupportsSqlServerScalarFunction(string functionName) => false;
+    public virtual bool SupportsSqlServerFromPartsFunction(string functionName) => false;
 
     public virtual bool IsRowNumberWindowFunction(string functionName)
         => functionName.Equals("ROW_NUMBER", StringComparison.OrdinalIgnoreCase);

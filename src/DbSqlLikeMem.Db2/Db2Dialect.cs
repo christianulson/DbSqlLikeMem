@@ -32,6 +32,7 @@ internal sealed class Db2Dialect : SqlDialectBase
  
     internal const int WithCteMinVersion = 8;
     internal const int MergeMinVersion = 9;
+    internal const int JsonFunctionsMinVersion = 11;
     internal const int WindowFunctionsMinVersion = 8;
             
     /// <summary>
@@ -110,6 +111,8 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// PT: Obtém se há suporte a merge.
     /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
+    public override bool SupportsJsonQueryFunction => Version >= JsonFunctionsMinVersion;
+    public override bool SupportsJsonValueFunction => Version >= JsonFunctionsMinVersion;
     public override bool SupportsSequenceDdl => true;
     public override bool SupportsNextValueForSequenceExpression => true;
     public override bool SupportsPreviousValueForSequenceExpression => true;

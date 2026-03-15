@@ -35,6 +35,11 @@ internal sealed class SqlServerDialect : SqlDialectBase
     internal const int SequenceMinVersion = 2012;
     internal const int StringAggMinVersion = 2017;
     internal const int StringSplitOrdinalMinVersion = 2022;
+    internal const int HighPrecisionTemporalFunctionsMinVersion = 2008;
+    internal const int EomonthMinVersion = 2012;
+    internal const int FromPartsMinVersion = 2012;
+    internal const int TryCastMinVersion = 2012;
+    internal const int TryConvertMinVersion = 2012;
     internal const int WindowFunctionsMinVersion = 2005;
 
     /// <summary>
@@ -155,7 +160,8 @@ internal sealed class SqlServerDialect : SqlDialectBase
     public override bool SupportsPreviousValueForSequenceExpression => false;
     public override bool SupportsDoubleAtIdentifierSyntax => true;
     public override bool SupportsLastFoundRowsFunction(string functionName)
-        => functionName.Equals("ROWCOUNT", StringComparison.OrdinalIgnoreCase);
+        => functionName.Equals("ROWCOUNT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ROWCOUNT_BIG", StringComparison.OrdinalIgnoreCase);
     public override bool SupportsLastFoundRowsIdentifier(string identifier)
         => identifier.Equals("@@ROWCOUNT", StringComparison.OrdinalIgnoreCase);
     /// <summary>
@@ -168,6 +174,63 @@ internal sealed class SqlServerDialect : SqlDialectBase
     public override bool SupportsApplyClause => Version >= WithCteMinVersion;
     public override bool SupportsStringSplitFunction => Version >= JsonFunctionsMinVersion;
     public override bool SupportsStringSplitOrdinalArgument => Version >= StringSplitOrdinalMinVersion;
+    public override bool SupportsTryCastFunction => Version >= TryCastMinVersion;
+    public override bool SupportsTryConvertFunction => Version >= TryConvertMinVersion;
+    public override bool SupportsEomonthFunction => Version >= EomonthMinVersion;
+    public override bool SupportsGetUtcDateFunction => true;
+    public override bool SupportsSqlServerMetadataFunction(string functionName)
+        => functionName.Equals("DB_ID", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("DB_NAME", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SCHEMA_ID", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SCHEMA_NAME", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SERVERPROPERTY", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SESSION_ID", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SUSER_ID", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SUSER_NAME", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SUSER_SNAME", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("USER_ID", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("USER_NAME", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("XACT_STATE", StringComparison.OrdinalIgnoreCase);
+    public override bool SupportsSqlServerMetadataIdentifier(string identifier)
+        => identifier.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase)
+            || identifier.Equals("SESSION_USER", StringComparison.OrdinalIgnoreCase)
+            || identifier.Equals("SYSTEM_USER", StringComparison.OrdinalIgnoreCase);
+    public override bool SupportsSqlServerScalarFunction(string functionName)
+        => functionName.Equals("COT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("DEGREES", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("DIFFERENCE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("EXP", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("FLOOR", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LEN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LOG", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LOG10", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("PI", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("POWER", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("RADIANS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("RAND", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ROUND", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SIN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SQUARE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("TAN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LTRIM", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("PARSENAME", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("QUOTENAME", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("REPLICATE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("REVERSE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("RTRIM", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SOUNDEX", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SPACE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SQRT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("STUFF", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("UNICODE", StringComparison.OrdinalIgnoreCase);
+    public override bool SupportsSqlServerFromPartsFunction(string functionName)
+        => Version >= FromPartsMinVersion
+            && (functionName.Equals("DATEFROMPARTS", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("DATETIMEFROMPARTS", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("DATETIME2FROMPARTS", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("DATETIMEOFFSETFROMPARTS", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("TIMEFROMPARTS", StringComparison.OrdinalIgnoreCase)
+                || functionName.Equals("SMALLDATETIMEFROMPARTS", StringComparison.OrdinalIgnoreCase));
     /// <summary>
     /// EN: Gets whether sql server table hints is supported.
     /// PT: Obtém se há suporte a sql server table hints.
@@ -184,19 +247,46 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// </summary>
         public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["ISNULL"];
     public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
-        => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
+    {
+        get
         {
-            ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
-            ["GETDATE"] = SqlTemporalFunctionKind.DateTime,
-            ["SYSDATETIME"] = SqlTemporalFunctionKind.DateTime,
-            ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
-        };
+            var names = new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
+                ["GETDATE"] = SqlTemporalFunctionKind.DateTime,
+                ["GETUTCDATE"] = SqlTemporalFunctionKind.DateTime,
+                ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
+            };
+
+            if (Version >= HighPrecisionTemporalFunctionsMinVersion)
+            {
+                names["SYSDATETIME"] = SqlTemporalFunctionKind.DateTime;
+                names["SYSDATETIMEOFFSET"] = SqlTemporalFunctionKind.DateTimeOffset;
+                names["SYSUTCDATETIME"] = SqlTemporalFunctionKind.DateTime;
+            }
+
+            return names;
+        }
+    }
 
     public override IReadOnlyCollection<string> TemporalFunctionIdentifierNames
         => ["CURRENT_TIMESTAMP"];
 
     public override IReadOnlyCollection<string> TemporalFunctionCallNames
-        => ["GETDATE", "SYSDATETIME"];
+    {
+        get
+        {
+            var names = new List<string> { "GETDATE", "GETUTCDATE" };
+            if (Version >= HighPrecisionTemporalFunctionsMinVersion)
+            {
+                names.Add("SYSDATETIME");
+                names.Add("SYSDATETIMEOFFSET");
+                names.Add("SYSUTCDATETIME");
+            }
+
+            return names;
+        }
+    }
 
     /// <summary>
     /// EN: Gets or sets concat returns null on null input.

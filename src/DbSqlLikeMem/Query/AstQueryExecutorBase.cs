@@ -4234,11 +4234,25 @@ private void FillPercentRankOrCumeDist(
         if (SqlTemporalFunctionEvaluator.TryEvaluateZeroArgIdentifier(dialect, identifier.Name, out var temporalIdentifierValue))
             return temporalIdentifierValue;
 
+        if ((identifier.Name.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase)
+                || identifier.Name.Equals("SESSION_USER", StringComparison.OrdinalIgnoreCase)
+                || identifier.Name.Equals("SYSTEM_USER", StringComparison.OrdinalIgnoreCase))
+            && !dialect.SupportsSqlServerMetadataIdentifier(identifier.Name))
+        {
+            throw SqlUnsupported.ForDialect(dialect, identifier.Name.ToUpperInvariant());
+        }
+
         if (identifier.Name.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase)
             && dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-        {
             return "dbo";
-        }
+
+        if (identifier.Name.Equals("SESSION_USER", StringComparison.OrdinalIgnoreCase)
+            && dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return "dbo";
+
+        if (identifier.Name.Equals("SYSTEM_USER", StringComparison.OrdinalIgnoreCase)
+            && dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return "sa";
 
         if (dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
@@ -6544,6 +6558,67 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalCurrentUserFunction(fn, out var currentUserResult))
             return currentUserResult;
 
+        if ((fn.Name.Equals("DB_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DB_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SCHEMA_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SCHEMA_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SERVERPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SESSION_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SUSER_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SUSER_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SUSER_SNAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("USER_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("USER_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("XACT_STATE", StringComparison.OrdinalIgnoreCase))
+            && !dialect.SupportsSqlServerMetadataFunction(fn.Name))
+        {
+            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
+        }
+
+        if ((fn.Name.Equals("COT", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DEGREES", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DIFFERENCE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("EXP", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FLOOR", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("LEN", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("LOG", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("LOG10", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("PI", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("POWER", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("RADIANS", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("RAND", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ROUND", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SIN", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SQUARE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("TAN", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("LTRIM", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("PARSENAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("QUOTENAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("REPLICATE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("REVERSE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("RTRIM", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SOUNDEX", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SPACE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SQRT", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("STUFF", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("UNICODE", StringComparison.OrdinalIgnoreCase))
+            && !dialect.SupportsSqlServerScalarFunction(fn.Name))
+        {
+            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
+        }
+
+        if (TryEvalSqlServerDatabaseFunctions(fn, dialect, out var sqlServerDatabaseResult))
+            return sqlServerDatabaseResult;
+
+        if (TryEvalSqlServerSessionFunctions(fn, dialect, out var sqlServerSessionResult))
+            return sqlServerSessionResult;
+
+        if (TryEvalSqlServerServerPropertyFunction(fn, dialect, EvalArg, out var sqlServerServerPropertyResult))
+            return sqlServerServerPropertyResult;
+
+        if (TryEvalSqlServerIdentityFunctions(fn, dialect, out var sqlServerIdentityResult))
+            return sqlServerIdentityResult;
+
         if (TryEvalDataLengthFunction(fn, EvalArg, out var dataLengthResult))
             return dataLengthResult;
 
@@ -6552,6 +6627,9 @@ private void FillPercentRankOrCumeDist(
 
         if (TryEvalDatePartFunction(fn, row, group, ctes, EvalArg, out var datePartResult))
             return datePartResult;
+
+        if (TryEvalDb2DateAliasFunction(fn, dialect, EvalArg, out var db2DateAliasResult))
+            return db2DateAliasResult;
 
         if (TryEvalDegreesFunction(fn, EvalArg, out var degreesResult))
             return degreesResult;
@@ -6571,6 +6649,16 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalDateTimeOffsetFromPartsFunction(fn, EvalArg, out var dateTimeOffsetFromPartsResult))
             return dateTimeOffsetFromPartsResult;
 
+        if (TryEvalTimeFromPartsFunction(fn, EvalArg, out var timeFromPartsResult))
+            return timeFromPartsResult;
+
+        if (TryEvalSmallDateTimeFromPartsFunction(fn, EvalArg, out var smallDateTimeFromPartsResult))
+            return smallDateTimeFromPartsResult;
+
+        if (fn.Name.Equals("EOMONTH", StringComparison.OrdinalIgnoreCase)
+            && !dialect.SupportsEomonthFunction)
+            throw SqlUnsupported.ForDialect(dialect, "EOMONTH");
+
         if (TryEvalEomonthFunction(fn, EvalArg, out var eomonthResult))
             return eomonthResult;
 
@@ -6585,6 +6673,10 @@ private void FillPercentRankOrCumeDist(
 
         if (TryEvalFloorFunction(fn, EvalArg, out var floorResult))
             return floorResult;
+
+        if (fn.Name.Equals("GETUTCDATE", StringComparison.OrdinalIgnoreCase)
+            && !dialect.SupportsGetUtcDateFunction)
+            throw SqlUnsupported.ForDialect(dialect, "GETUTCDATE");
 
         if (TryEvalGetUtcDateFunction(fn, out var getUtcDateResult))
             return getUtcDateResult;
@@ -6733,6 +6825,9 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalQuoteFunction(fn, EvalArg, out var quoteResult))
             return quoteResult;
 
+        if (TryEvalSqlServerScalarFunctions(fn, dialect, EvalArg, out var sqlServerScalarResult))
+            return sqlServerScalarResult;
+
         if (TryEvalRadiansFunction(fn, EvalArg, out var radiansResult))
             return radiansResult;
 
@@ -6793,7 +6888,10 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalTimeDiffFunction(fn, EvalArg, out var timeDiffResult))
             return timeDiffResult;
 
-        if (TryEvalSystemUserFunction(fn, out var systemUserResult))
+        if (TryEvalSessionUserFunction(fn, dialect, out var sessionUserResult))
+            return sessionUserResult;
+
+        if (TryEvalSystemUserFunction(fn, dialect, out var systemUserResult))
             return systemUserResult;
 
         if (TryEvalToDaysFunction(fn, EvalArg, out var toDaysResult))
@@ -6836,7 +6934,21 @@ private void FillPercentRankOrCumeDist(
 
         // TRY_CAST(x AS TYPE) - similar ao CAST, mas retorna null em falha
         if (fn.Name.Equals("TRY_CAST", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!dialect.SupportsTryCastFunction)
+                throw SqlUnsupported.ForDialect(dialect, "TRY_CAST");
+
             return EvalTryCast(fn, EvalArg);
+        }
+
+        // TRY_CONVERT(TYPE, x[, style]) - sintaxe do SQL Server, normalizada pelo parser
+        if (fn.Name.Equals("TRY_CONVERT", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!dialect.SupportsTryConvertFunction)
+                throw SqlUnsupported.ForDialect(dialect, "TRY_CONVERT");
+
+            return EvalTryCast(fn, EvalArg);
+        }
 
         // CAST(x AS TYPE) - aqui chega como CallExpr("CAST", [expr, RawSqlExpr("SIGNED")]) via parser
         if (fn.Name.Equals("CAST", StringComparison.OrdinalIgnoreCase))
@@ -6844,6 +6956,12 @@ private void FillPercentRankOrCumeDist(
         var concatResult = TryEvalConcatFunctions(fn, EvalArg, out var handledConcat);
         if (handledConcat)
             return concatResult;
+
+        if (TryEvalCharFunction(fn, dialect, EvalArg, out var charResult))
+            return charResult;
+
+        if (TryEvalDialectSpecificCastFunction(fn, dialect, EvalArg, out var dialectSpecificCastResult))
+            return dialectSpecificCastResult;
 
         if (TryEvalBasicStringFunction(fn, EvalArg, out var basicStringResult))
             return basicStringResult;
@@ -6890,6 +7008,45 @@ private void FillPercentRankOrCumeDist(
         return null;
 
         object? EvalArg(int i) => i < fn.Args.Count ? Eval(fn.Args[i], row, group, ctes) : null;
+    }
+
+    private static bool TryEvalCharFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("CHAR", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        // SQL Server/MySQL CHAR(n) returns the character represented by the numeric code.
+        if (dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+            || dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                var codePoint = Convert.ToInt32(value, CultureInfo.InvariantCulture);
+                result = char.ConvertFromUtf32(codePoint);
+                return true;
+            }
+            catch
+            {
+                // Fall back to textual conversion when the argument is not numeric.
+            }
+        }
+
+        result = value.ToString() ?? string.Empty;
+        return true;
     }
 
     private bool TryEvalFindInSetFunction(
@@ -7777,6 +7934,160 @@ private void FillPercentRankOrCumeDist(
         }
 
         return true;
+    }
+
+    private static bool TryEvalDialectSpecificCastFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        result = null;
+
+        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var normalizedName = fn.Name.ToUpperInvariant();
+        if (normalizedName is not ("BIGINT" or "DECIMAL" or "DOUBLE" or "FLOAT" or "INT" or "INTEGER" or "REAL" or "SMALLINT" or "VARCHAR"))
+            return false;
+
+        if (fn.Args.Count == 0)
+            return false;
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+            return true;
+
+        try
+        {
+            result = normalizedName switch
+            {
+                "BIGINT" => CoerceToInt64(value),
+                "SMALLINT" => CoerceToInt16(value),
+                "INT" or "INTEGER" => CoerceToInt32(value),
+                "DECIMAL" => CoerceToDecimal(value),
+                "DOUBLE" or "FLOAT" or "REAL" => CoerceToDouble(value),
+                "VARCHAR" => value?.ToString(),
+                _ => null
+            };
+        }
+#pragma warning disable CA1031
+        catch (Exception e)
+        {
+            LogFunctionEvaluationFailure(e);
+            result = null;
+        }
+#pragma warning restore CA1031
+
+        return true;
+    }
+
+    private static long CoerceToInt64(object value)
+    {
+        if (value is long longValue)
+            return longValue;
+
+        if (value is int intValue)
+            return intValue;
+
+        if (value is short shortValue)
+            return shortValue;
+
+        if (value is decimal decimalValue)
+            return (long)decimalValue;
+
+        var text = value.ToString()?.Trim() ?? string.Empty;
+        if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedLong))
+            return parsedLong;
+
+        if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedDecimal))
+            return (long)parsedDecimal;
+
+        return 0L;
+    }
+
+    private static int CoerceToInt32(object value)
+    {
+        if (value is int intValue)
+            return intValue;
+
+        if (value is long longValue)
+            return (int)longValue;
+
+        if (value is short shortValue)
+            return shortValue;
+
+        if (value is decimal decimalValue)
+            return (int)decimalValue;
+
+        var text = value.ToString()?.Trim() ?? string.Empty;
+        if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedInt))
+            return parsedInt;
+
+        if (long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedLong))
+            return (int)parsedLong;
+
+        if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedDecimal))
+            return (int)parsedDecimal;
+
+        return 0;
+    }
+
+    private static short CoerceToInt16(object value)
+    {
+        if (value is short shortValue)
+            return shortValue;
+
+        if (value is int intValue)
+            return (short)intValue;
+
+        if (value is long longValue)
+            return (short)longValue;
+
+        if (value is decimal decimalValue)
+            return (short)decimalValue;
+
+        var text = value.ToString()?.Trim() ?? string.Empty;
+        if (short.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedShort))
+            return parsedShort;
+
+        if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedInt))
+            return (short)parsedInt;
+
+        if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedDecimal))
+            return (short)parsedDecimal;
+
+        return 0;
+    }
+
+    private static decimal CoerceToDecimal(object value)
+    {
+        if (value is decimal decimalValue)
+            return decimalValue;
+
+        var text = value.ToString()?.Trim() ?? string.Empty;
+        if (decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedDecimal))
+            return parsedDecimal;
+
+        return 0m;
+    }
+
+    private static double CoerceToDouble(object value)
+    {
+        if (value is double doubleValue)
+            return doubleValue;
+
+        if (value is float floatValue)
+            return floatValue;
+
+        if (value is decimal decimalValue)
+            return (double)decimalValue;
+
+        var text = value.ToString()?.Trim() ?? string.Empty;
+        if (double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedDouble))
+            return parsedDouble;
+
+        return 0d;
     }
 
     private static bool TryEvalCubeTableFunction(
@@ -9502,6 +9813,12 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
+        if (name is "VERSION")
+        {
+            result = $"PostgreSQL {dialect.Version}";
+            return true;
+        }
+
         if (name is "CURRENT_SCHEMAS")
         {
             result = new[] { "public" };
@@ -9510,7 +9827,27 @@ private void FillPercentRankOrCumeDist(
 
         if (name is "CURRENT_SETTING")
         {
-            result = null;
+            if (fn.Args.Count == 0)
+            {
+                result = null;
+                return true;
+            }
+
+            var settingName = evalArg(0)?.ToString();
+            if (string.IsNullOrWhiteSpace(settingName))
+            {
+                result = null;
+                return true;
+            }
+
+            result = settingName.Trim().ToLowerInvariant() switch
+            {
+                "application_name" => "DbSqlLikeMem",
+                "search_path" => "\"$user\", public",
+                "server_version" => dialect.Version.ToString(CultureInfo.InvariantCulture),
+                "server_version_num" => (dialect.Version * 10000).ToString(CultureInfo.InvariantCulture),
+                _ => null
+            };
             return true;
         }
 
@@ -11889,6 +12226,98 @@ private void FillPercentRankOrCumeDist(
         return true;
     }
 
+    private static bool TryEvalSqlServerIdentityFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        out object? result)
+    {
+        result = null;
+
+        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var name = fn.Name.ToUpperInvariant();
+        result = name switch
+        {
+            "SCHEMA_ID" => 1,
+            "SCHEMA_NAME" => "dbo",
+            "SUSER_ID" => 1,
+            "SUSER_NAME" or "SUSER_SNAME" => "sa",
+            "USER_ID" => 1,
+            "USER_NAME" => "dbo",
+            _ => null
+        };
+
+        return result is not null;
+    }
+
+    private bool TryEvalSqlServerDatabaseFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        out object? result)
+    {
+        result = null;
+
+        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var name = fn.Name.ToUpperInvariant();
+        result = name switch
+        {
+            "DB_ID" => 1,
+            "DB_NAME" => _cnn.Database,
+            _ => null
+        };
+
+        return result is not null;
+    }
+
+    private bool TryEvalSqlServerServerPropertyFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        result = null;
+
+        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+            || !fn.Name.Equals("SERVERPROPERTY", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var propertyName = evalArg(0)?.ToString();
+        if (string.IsNullOrWhiteSpace(propertyName))
+            return true;
+
+        result = propertyName.Trim().ToUpperInvariant() switch
+        {
+            "PRODUCTVERSION" => _cnn.Db.Version.ToString(CultureInfo.InvariantCulture),
+            "SERVERNAME" => "DbSqlLikeMem",
+            _ => null
+        };
+
+        return true;
+    }
+
+    private bool TryEvalSqlServerSessionFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        out object? result)
+    {
+        result = null;
+
+        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        result = fn.Name.ToUpperInvariant() switch
+        {
+            "SESSION_ID" => 1,
+            "XACT_STATE" => _cnn.HasActiveTransaction ? 1 : 0,
+            _ => null
+        };
+
+        return result is not null;
+    }
+
     private static bool TryEvalDataLengthFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
@@ -11989,6 +12418,38 @@ private void FillPercentRankOrCumeDist(
             "HOUR" or "HOURS" => dateTime.Hour,
             "MINUTE" or "MINUTES" => dateTime.Minute,
             "SECOND" or "SECONDS" => dateTime.Second,
+            _ => null
+        };
+        return true;
+    }
+
+    private static bool TryEvalDb2DateAliasFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        result = null;
+
+        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("DAYNAME" or "DAYOFMONTH" or "DAYOFWEEK" or "DAYOFWEEK_ISO" or "DAYOFYEAR" or "WEEK_ISO"))
+            return false;
+
+        var value = evalArg(0);
+        if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
+            return true;
+
+        result = name switch
+        {
+            "DAYNAME" => dateTime.ToString("dddd", CultureInfo.InvariantCulture),
+            "DAYOFMONTH" => dateTime.Day,
+            "DAYOFWEEK" => (int)dateTime.DayOfWeek + 1,
+            "DAYOFWEEK_ISO" => ((int)dateTime.DayOfWeek + 6) % 7 + 1,
+            "DAYOFYEAR" => dateTime.DayOfYear,
+            "WEEK_ISO" => GetIsoWeekOfYear(dateTime),
             _ => null
         };
         return true;
@@ -12226,6 +12687,88 @@ private void FillPercentRankOrCumeDist(
             var offsetMinutes = Convert.ToInt32(values[7]!.ToDec());
             var offset = TimeSpan.FromMinutes(offsetMinutes);
             result = new DateTimeOffset(new DateTime(year, month, day, hour, minute, second).AddTicks(fraction * 10L), offset);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalTimeFromPartsFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("TIMEFROMPARTS", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 5)
+            throw new InvalidOperationException("TIMEFROMPARTS() espera ao menos 5 argumentos.");
+
+        var values = new object?[5];
+        for (var i = 0; i < 5; i++)
+            values[i] = evalArg(i);
+
+        if (values.Any(IsNullish))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var hour = Convert.ToInt32(values[0]!.ToDec());
+            var minute = Convert.ToInt32(values[1]!.ToDec());
+            var second = Convert.ToInt32(values[2]!.ToDec());
+            var fractions = Convert.ToInt32(values[3]!.ToDec());
+            _ = Convert.ToInt32(values[4]!.ToDec());
+            result = new TimeSpan(0, hour, minute, second).Add(TimeSpan.FromTicks(fractions * 10L));
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalSmallDateTimeFromPartsFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("SMALLDATETIMEFROMPARTS", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 5)
+            throw new InvalidOperationException("SMALLDATETIMEFROMPARTS() espera ao menos 5 argumentos.");
+
+        var values = new object?[5];
+        for (var i = 0; i < 5; i++)
+            values[i] = evalArg(i);
+
+        if (values.Any(IsNullish))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var year = Convert.ToInt32(values[0]!.ToDec());
+            var month = Convert.ToInt32(values[1]!.ToDec());
+            var day = Convert.ToInt32(values[2]!.ToDec());
+            var hour = Convert.ToInt32(values[3]!.ToDec());
+            var minute = Convert.ToInt32(values[4]!.ToDec());
+            result = new DateTime(year, month, day, hour, minute, 0);
             return true;
         }
         catch
@@ -15494,6 +16037,7 @@ private void FillPercentRankOrCumeDist(
         out object? result)
     {
         if (!(fn.Name.Equals("DATE", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("TIMESTAMP", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("DATETIME", StringComparison.OrdinalIgnoreCase)
             || fn.Name.Equals("TIME", StringComparison.OrdinalIgnoreCase))
             || fn.Args.Count < 1)
@@ -15604,12 +16148,6 @@ private void FillPercentRankOrCumeDist(
         if (fn.Name.Equals("LTRIM", StringComparison.OrdinalIgnoreCase))
         {
             result = IsNullish(value) ? null : value!.ToString()!.TrimStart();
-            return true;
-        }
-
-        if (fn.Name.Equals("CHAR", StringComparison.OrdinalIgnoreCase))
-        {
-            result = IsNullish(value) ? null : value!.ToString() ?? string.Empty;
             return true;
         }
 
@@ -16130,6 +16668,149 @@ private void FillPercentRankOrCumeDist(
         var escaped = text.Replace("\\", "\\\\").Replace("'", "\\'");
         result = $"'{escaped}'";
         return true;
+    }
+
+    private static bool TryEvalSqlServerScalarFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        result = null;
+
+        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var name = fn.Name.ToUpperInvariant();
+        switch (name)
+        {
+            case "QUOTENAME":
+            {
+                var value = evalArg(0);
+                if (IsNullish(value))
+                {
+                    result = null;
+                    return true;
+                }
+
+                var text = value?.ToString() ?? string.Empty;
+                var delimiter = fn.Args.Count > 1 ? evalArg(1)?.ToString() : null;
+                var quoteChar = string.IsNullOrEmpty(delimiter) ? "[" : delimiter![0].ToString();
+                var closingChar = quoteChar switch
+                {
+                    "[" => "]",
+                    "(" => ")",
+                    "<" => ">",
+                    "{" => "}",
+                    _ => quoteChar
+                };
+                var escaped = text.Replace(closingChar, closingChar + closingChar, StringComparison.Ordinal);
+                result = quoteChar + escaped + closingChar;
+                return true;
+            }
+            case "REPLICATE":
+            {
+                var textValue = evalArg(0);
+                var countValue = evalArg(1);
+                if (IsNullish(textValue) || IsNullish(countValue))
+                {
+                    result = null;
+                    return true;
+                }
+
+                var text = textValue?.ToString() ?? string.Empty;
+                var count = Convert.ToInt32(countValue.ToDec());
+                if (count <= 0)
+                {
+                    result = string.Empty;
+                    return true;
+                }
+
+                var sb = new StringBuilder(text.Length * count);
+                for (var i = 0; i < count; i++)
+                    sb.Append(text);
+                result = sb.ToString();
+                return true;
+            }
+            case "SQUARE":
+            {
+                var value = evalArg(0);
+                if (IsNullish(value))
+                {
+                    result = null;
+                    return true;
+                }
+
+                try
+                {
+                    var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+                    result = number * number;
+                    return true;
+                }
+                catch
+                {
+                    result = null;
+                    return true;
+                }
+            }
+            case "STUFF":
+            {
+                if (fn.Args.Count < 4)
+                    throw new InvalidOperationException("STUFF() espera 4 argumentos.");
+
+                var sourceValue = evalArg(0);
+                var startValue = evalArg(1);
+                var lengthValue = evalArg(2);
+                var replaceValue = evalArg(3);
+                if (IsNullish(sourceValue) || IsNullish(startValue) || IsNullish(lengthValue) || IsNullish(replaceValue))
+                {
+                    result = null;
+                    return true;
+                }
+
+                var source = sourceValue?.ToString() ?? string.Empty;
+                var start = Convert.ToInt32(startValue.ToDec());
+                var length = Convert.ToInt32(lengthValue.ToDec());
+                var replacement = replaceValue?.ToString() ?? string.Empty;
+                if (start <= 0 || length < 0 || start > source.Length + 1)
+                {
+                    result = null;
+                    return true;
+                }
+
+                var zeroBasedStart = start - 1;
+                var safeLength = Math.Min(length, source.Length - zeroBasedStart);
+                result = source.Remove(zeroBasedStart, safeLength).Insert(zeroBasedStart, replacement);
+                return true;
+            }
+            case "PARSENAME":
+            {
+                var objectNameValue = evalArg(0);
+                var pieceValue = evalArg(1);
+                if (IsNullish(objectNameValue) || IsNullish(pieceValue))
+                {
+                    result = null;
+                    return true;
+                }
+
+                var objectName = objectNameValue?.ToString() ?? string.Empty;
+                var piece = Convert.ToInt32(pieceValue.ToDec());
+                if (piece is < 1 or > 4)
+                {
+                    result = null;
+                    return true;
+                }
+
+                var parts = objectName.Split('.');
+                var indexFromEnd = piece - 1;
+                result = indexFromEnd < parts.Length
+                    ? parts[^(indexFromEnd + 1)]
+                    : null;
+                return true;
+            }
+            default:
+                return false;
+        }
     }
 
     private static bool TryEvalRadiansFunction(
@@ -16959,8 +17640,26 @@ private void FillPercentRankOrCumeDist(
         return true;
     }
 
+    private static bool TryEvalSessionUserFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        out object? result)
+    {
+        if (!fn.Name.Equals("SESSION_USER", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        result = dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+            ? "dbo"
+            : null;
+        return true;
+    }
+
     private static bool TryEvalSystemUserFunction(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
         out object? result)
     {
         if (!fn.Name.Equals("SYSTEM_USER", StringComparison.OrdinalIgnoreCase))
@@ -16969,7 +17668,9 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        result = "root@localhost";
+        result = dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+            ? "sa"
+            : "root@localhost";
         return true;
     }
 
