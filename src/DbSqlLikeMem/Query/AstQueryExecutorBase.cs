@@ -1,8 +1,10 @@
 using DbSqlLikeMem.Interfaces;
 using System.Diagnostics;
+using System.IO.Compression;
 using DbSqlLikeMem.Models;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 namespace DbSqlLikeMem;
 
@@ -59,8 +61,9 @@ internal abstract class AstQueryExecutorBase(
 
     private static readonly HashSet<string> _aggFns = new(StringComparer.OrdinalIgnoreCase)
     {
-        "COUNT","SUM","MIN","MAX","AVG","GROUP_CONCAT","STRING_AGG","LISTAGG","ANY_VALUE","BIT_AND","BIT_OR","BIT_XOR","JSON_ARRAYAGG","JSON_GROUP_OBJECT","TOTAL","MEDIAN","PERCENTILE","PERCENTILE_CONT","PERCENTILE_DISC","VAR_POP","VAR_SAMP","VARIANCE",
+        "COUNT","COUNT_BIG","SUM","MIN","MAX","AVG","GROUP_CONCAT","STRING_AGG","LISTAGG","ANY_VALUE","BIT_AND","BIT_OR","BIT_XOR","JSON_ARRAYAGG","JSON_GROUP_OBJECT","TOTAL","MEDIAN","PERCENTILE","PERCENTILE_CONT","PERCENTILE_DISC","VAR_POP","VAR_SAMP","VARIANCE","VAR","VARP",
         "COLLECT","CORR","CORR_K","CORR_S","COVAR_POP","COVAR_SAMP","CV","JSON_OBJECTAGG","GROUP_ID",
+        "CHECKSUM_AGG","STDEV","STDEVP",
         "APPROX_COUNT_DISTINCT","APPROX_COUNT_DISTINCT_AGG","APPROX_COUNT_DISTINCT_DETAIL","APPROX_MEDIAN","APPROX_PERCENTILE","APPROX_PERCENTILE_AGG","APPROX_PERCENTILE_DETAIL",
         "REGR_AVGX","REGR_AVGY","REGR_COUNT","REGR_INTERCEPT","REGR_R2","REGR_SLOPE","REGR_SXX","REGR_SXY","REGR_SYY",
         "STDDEV","STDDEV_POP","STDDEV_SAMP","STATS_BINOMIAL_TEST","STATS_CROSSTAB","STATS_F_TEST","STATS_KS_TEST","STATS_MODE","STATS_MW_TEST","STATS_ONE_WAY_ANOVA",
@@ -80,6 +83,12 @@ internal abstract class AstQueryExecutorBase(
     {
         var dialectInstance = (object)(Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para parse de expressão."));
         return SqlExpressionParserResolver.ParseWhere(raw, dialectInstance);
+    }
+
+    private SqlExpr ParseScalarExpr(string raw)
+    {
+        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para parse de expressão escalar.");
+        return SqlExpressionParser.ParseScalar(raw, dialect, _pars);
     }
 
     /// <summary>
@@ -3678,7 +3687,7 @@ private void FillPercentRankOrCumeDist(
             sampleRows,
             ctes,
             Dialect,
-            ParseExpr,
+            ParseScalarExpr,
             Eval,
             ResolveColumn);
 
@@ -4235,12 +4244,27 @@ private void FillPercentRankOrCumeDist(
             return temporalIdentifierValue;
 
         if ((identifier.Name.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase)
+                || identifier.Name.Equals("@@DATEFIRST", StringComparison.OrdinalIgnoreCase)
+                || identifier.Name.Equals("@@IDENTITY", StringComparison.OrdinalIgnoreCase)
+                || identifier.Name.Equals("@@MAX_PRECISION", StringComparison.OrdinalIgnoreCase)
                 || identifier.Name.Equals("SESSION_USER", StringComparison.OrdinalIgnoreCase)
                 || identifier.Name.Equals("SYSTEM_USER", StringComparison.OrdinalIgnoreCase))
             && !dialect.SupportsSqlServerMetadataIdentifier(identifier.Name))
         {
             throw SqlUnsupported.ForDialect(dialect, identifier.Name.ToUpperInvariant());
         }
+
+        if (identifier.Name.Equals("@@DATEFIRST", StringComparison.OrdinalIgnoreCase)
+            && dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return 7;
+
+        if (identifier.Name.Equals("@@IDENTITY", StringComparison.OrdinalIgnoreCase)
+            && dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return _cnn.GetLastInsertId();
+
+        if (identifier.Name.Equals("@@MAX_PRECISION", StringComparison.OrdinalIgnoreCase)
+            && dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return 38;
 
         if (identifier.Name.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase)
             && dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
@@ -6486,7 +6510,7 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalOracleToCharFunctions(fn, dialect, EvalArg, out var toCharResult))
             return toCharResult;
 
-        if (TryEvalOracleTranslateFunctions(fn, dialect, EvalArg, out var translateResult))
+        if (TryEvalTranslateFunctions(fn, dialect, EvalArg, out var translateResult))
             return translateResult;
 
         if (TryEvalOracleUserEnvFunctions(fn, dialect, EvalArg, out var userEnvResult))
@@ -6558,15 +6582,40 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalCurrentUserFunction(fn, out var currentUserResult))
             return currentUserResult;
 
-        if ((fn.Name.Equals("DB_ID", StringComparison.OrdinalIgnoreCase)
+        if (dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+            && (fn.Name.Equals("DB_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CURRENT_REQUEST_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CURRENT_TRANSACTION_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CONTEXT_INFO", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DATABASE_PRINCIPAL_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DATABASEPROPERTYEX", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CONNECTIONPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("COLUMNPROPERTY", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("DB_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("COL_LENGTH", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("COL_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("OBJECT_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("OBJECTPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("OBJECTPROPERTYEX", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("OBJECT_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("OBJECT_SCHEMA_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("IS_MEMBER", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("IS_ROLEMEMBER", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("IS_SRVROLEMEMBER", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ORIGINAL_DB_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ORIGINAL_LOGIN", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("SCHEMA_ID", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("SCHEMA_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SESSION_CONTEXT", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("SERVERPROPERTY", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("SESSION_ID", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("SUSER_ID", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("SUSER_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SUSER_SID", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("SUSER_SNAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("TYPE_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("TYPE_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("TYPEPROPERTY", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("USER_ID", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("USER_NAME", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("XACT_STATE", StringComparison.OrdinalIgnoreCase))
@@ -6575,24 +6624,77 @@ private void FillPercentRankOrCumeDist(
             throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
         }
 
-        if ((fn.Name.Equals("COT", StringComparison.OrdinalIgnoreCase)
+        if (dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+            && (fn.Name.Equals("DATEDIFF", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DATENAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DATEPART", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DAY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("MONTH", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("YEAR", StringComparison.OrdinalIgnoreCase))
+            && !dialect.SupportsSqlServerDateFunction(fn.Name))
+        {
+            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
+        }
+
+        if (dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+            && (fn.Name.Equals("ABS", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ACOS", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ASCII", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ASIN", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ATAN", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ATN2", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("BINARY_CHECKSUM", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CEILING", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CHARINDEX", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CHECKSUM", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("COS", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("COMPRESS", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DECOMPRESS", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("COT", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("DEGREES", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("DIFFERENCE", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("EXP", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("FLOOR", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FORMAT", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FORMATMESSAGE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DATALENGTH", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DATEDIFF_BIG", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("GROUPING", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("GROUPING_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ISDATE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ISJSON", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ISNUMERIC", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CHAR", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CONCAT", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CONCAT_WS", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("LEN", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("LEFT", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("LOG", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("LOG10", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("LOWER", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("PI", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("POWER", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("RADIANS", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("RAND", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("NCHAR", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("JSON_MODIFY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("NEWID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("REPLACE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("RIGHT", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("ROUND", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SIGN", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("SIN", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("SQUARE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("STR", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("SUBSTRING", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("TAN", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("STRING_ESCAPE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("TRANSLATE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("TRIM", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("UPPER", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("LTRIM", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("PARSENAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("PATINDEX", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("QUOTENAME", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("REPLICATE", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("REVERSE", StringComparison.OrdinalIgnoreCase)
@@ -6607,16 +6709,22 @@ private void FillPercentRankOrCumeDist(
             throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
         }
 
-        if (TryEvalSqlServerDatabaseFunctions(fn, dialect, out var sqlServerDatabaseResult))
+        if (TryEvalSqlServerDatabaseFunctions(fn, dialect, EvalArg, out var sqlServerDatabaseResult))
             return sqlServerDatabaseResult;
-
-        if (TryEvalSqlServerSessionFunctions(fn, dialect, out var sqlServerSessionResult))
-            return sqlServerSessionResult;
 
         if (TryEvalSqlServerServerPropertyFunction(fn, dialect, EvalArg, out var sqlServerServerPropertyResult))
             return sqlServerServerPropertyResult;
 
-        if (TryEvalSqlServerIdentityFunctions(fn, dialect, out var sqlServerIdentityResult))
+        if (TryEvalSqlServerConnectionPropertyFunction(fn, dialect, EvalArg, out var sqlServerConnectionPropertyResult))
+            return sqlServerConnectionPropertyResult;
+
+        if (TryEvalSqlServerContextInfoFunction(fn, dialect, out var sqlServerContextInfoResult))
+            return sqlServerContextInfoResult;
+
+        if (TryEvalSqlServerSessionFunctions(fn, dialect, EvalArg, out var sqlServerSessionResult))
+            return sqlServerSessionResult;
+
+        if (TryEvalSqlServerIdentityFunctions(fn, dialect, EvalArg, out var sqlServerIdentityResult))
             return sqlServerIdentityResult;
 
         if (TryEvalDataLengthFunction(fn, EvalArg, out var dataLengthResult))
@@ -6674,6 +6782,21 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalFloorFunction(fn, EvalArg, out var floorResult))
             return floorResult;
 
+        if (TryEvalSqlServerFormatFunction(fn, dialect, EvalArg, out var sqlServerFormatResult))
+            return sqlServerFormatResult;
+
+        if (TryEvalSqlServerFormatMessageFunction(fn, EvalArg, out var sqlServerFormatMessageResult))
+            return sqlServerFormatMessageResult;
+
+        if (TryEvalSqlServerCompressFunction(fn, EvalArg, out var sqlServerCompressResult))
+            return sqlServerCompressResult;
+
+        if (TryEvalSqlServerDecompressFunction(fn, EvalArg, out var sqlServerDecompressResult))
+            return sqlServerDecompressResult;
+
+        if (TryEvalSqlServerChecksumFunction(fn, EvalArg, out var sqlServerChecksumResult))
+            return sqlServerChecksumResult;
+
         if (fn.Name.Equals("GETUTCDATE", StringComparison.OrdinalIgnoreCase)
             && !dialect.SupportsGetUtcDateFunction)
             throw SqlUnsupported.ForDialect(dialect, "GETUTCDATE");
@@ -6689,6 +6812,21 @@ private void FillPercentRankOrCumeDist(
 
         if (TryEvalHostFunctions(fn, out var hostResult))
             return hostResult;
+
+        if (TryEvalSessionContextFunction(fn, EvalArg, out var sessionContextResult))
+            return sessionContextResult;
+
+        if (TryEvalSqlServerGuidFunctions(fn, out var sqlServerGuidResult))
+            return sqlServerGuidResult;
+
+        if (TryEvalSqlServerStringEscapeFunction(fn, EvalArg, out var sqlServerStringEscapeResult))
+            return sqlServerStringEscapeResult;
+
+        if (TryEvalSqlServerStrFunction(fn, EvalArg, out var sqlServerStrResult))
+            return sqlServerStrResult;
+
+        if (TryEvalSqlServerDateTimeOffsetFunctions(fn, EvalArg, out var sqlServerDateTimeOffsetResult))
+            return sqlServerDateTimeOffsetResult;
 
         if (TryEvalIsDateFunction(fn, EvalArg, out var isDateResult))
             return isDateResult;
@@ -6743,6 +6881,9 @@ private void FillPercentRankOrCumeDist(
 
         if (TryEvalLikeFunction(fn, dialect, EvalArg, out var likeResult))
             return likeResult;
+
+        if (TryEvalPatIndexFunction(fn, dialect, EvalArg, out var patIndexResult))
+            return patIndexResult;
 
         if (TryEvalStrftimeFunction(fn, EvalArg, out var strftimeResult))
             return strftimeResult;
@@ -6840,6 +6981,9 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalReverseFunction(fn, EvalArg, out var reverseResult))
             return reverseResult;
 
+        if (TryEvalLeftFunction(fn, EvalArg, out var leftResult))
+            return leftResult;
+
         if (TryEvalRightFunction(fn, EvalArg, out var rightResult))
             return rightResult;
 
@@ -6921,7 +7065,7 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalUuidShortFunction(fn, out var uuidShortResult))
             return uuidShortResult;
 
-        if (TryEvalWeekFunctions(fn, EvalArg, out var weekResult))
+        if (TryEvalWeekFunctions(fn, dialect, EvalArg, out var weekResult))
             return weekResult;
 
         EnsureDialectSupportsSequenceFunction(fn.Name);
@@ -6948,6 +7092,22 @@ private void FillPercentRankOrCumeDist(
                 throw SqlUnsupported.ForDialect(dialect, "TRY_CONVERT");
 
             return EvalTryCast(fn, EvalArg);
+        }
+
+        if (fn.Name.Equals("PARSE", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!dialect.SupportsParseFunction)
+                throw SqlUnsupported.ForDialect(dialect, "PARSE");
+
+            return EvalParseFunction(fn, EvalArg, false);
+        }
+
+        if (fn.Name.Equals("TRY_PARSE", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!dialect.SupportsTryParseFunction)
+                throw SqlUnsupported.ForDialect(dialect, "TRY_PARSE");
+
+            return EvalParseFunction(fn, EvalArg, true);
         }
 
         // CAST(x AS TYPE) - aqui chega como CallExpr("CAST", [expr, RawSqlExpr("SIGNED")]) via parser
@@ -7016,7 +7176,8 @@ private void FillPercentRankOrCumeDist(
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("CHAR", StringComparison.OrdinalIgnoreCase))
+        if (!fn.Name.Equals("CHAR", StringComparison.OrdinalIgnoreCase)
+            && !fn.Name.Equals("NCHAR", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -7029,7 +7190,7 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        // SQL Server/MySQL CHAR(n) returns the character represented by the numeric code.
+        // SQL Server/MySQL CHAR(n) and SQL Server NCHAR(n) return the character represented by the numeric code.
         if (dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
             || dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
@@ -7045,7 +7206,7 @@ private void FillPercentRankOrCumeDist(
             }
         }
 
-        result = value.ToString() ?? string.Empty;
+        result = value!.ToString() ?? string.Empty;
         return true;
     }
 
@@ -7962,11 +8123,11 @@ private void FillPercentRankOrCumeDist(
         {
             result = normalizedName switch
             {
-                "BIGINT" => CoerceToInt64(value),
-                "SMALLINT" => CoerceToInt16(value),
-                "INT" or "INTEGER" => CoerceToInt32(value),
-                "DECIMAL" => CoerceToDecimal(value),
-                "DOUBLE" or "FLOAT" or "REAL" => CoerceToDouble(value),
+                "BIGINT" => CoerceToInt64(value!),
+                "SMALLINT" => CoerceToInt16(value!),
+                "INT" or "INTEGER" => CoerceToInt32(value!),
+                "DECIMAL" => CoerceToDecimal(value!),
+                "DOUBLE" or "FLOAT" or "REAL" => CoerceToDouble(value!),
                 "VARCHAR" => value?.ToString(),
                 _ => null
             };
@@ -9840,7 +10001,7 @@ private void FillPercentRankOrCumeDist(
                 return true;
             }
 
-            result = settingName.Trim().ToLowerInvariant() switch
+            result = settingName!.Trim().ToLowerInvariant() switch
             {
                 "application_name" => "DbSqlLikeMem",
                 "search_path" => "\"$user\", public",
@@ -11375,7 +11536,7 @@ private void FillPercentRankOrCumeDist(
         return true;
     }
 
-    private static bool TryEvalOracleTranslateFunctions(
+    private static bool TryEvalTranslateFunctions(
         FunctionCallExpr fn,
         ISqlDialect dialect,
         Func<int, object?> evalArg,
@@ -11388,7 +11549,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -11775,6 +11937,20 @@ private void FillPercentRankOrCumeDist(
 
         if (TimeSpan.TryParse(trimmed, CultureInfo.InvariantCulture, out offset))
             return true;
+
+        if (trimmed.Length == 6
+            && (trimmed[0] == '+' || trimmed[0] == '-')
+            && trimmed[3] == ':')
+        {
+            if (int.TryParse(trimmed[1..3], out var hours)
+                && int.TryParse(trimmed[4..6], out var minutes))
+            {
+                offset = new TimeSpan(hours, minutes, 0);
+                if (trimmed[0] == '-')
+                    offset = -offset;
+                return true;
+            }
+        }
 
         if (trimmed.Length == 5 && (trimmed[0] == '+' || trimmed[0] == '-'))
         {
@@ -12226,9 +12402,100 @@ private void FillPercentRankOrCumeDist(
         return true;
     }
 
-    private static bool TryEvalSqlServerIdentityFunctions(
+    private bool TryEvalSqlServerIdentityFunctions(
         FunctionCallExpr fn,
         ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        result = null;
+
+        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("SCHEMA_ID" or "SCHEMA_NAME" or "SCOPE_IDENTITY" or "SUSER_ID" or "SUSER_SID" or "SUSER_NAME" or "SUSER_SNAME" or "TYPE_ID" or "TYPE_NAME" or "USER_ID" or "USER_NAME"))
+            return false;
+
+        result = name switch
+        {
+            "SCHEMA_ID" => 1,
+            "SCHEMA_NAME" => "dbo",
+            "SCOPE_IDENTITY" => _cnn.GetLastInsertId(),
+            "SUSER_ID" => 1,
+            "SUSER_SID" => new byte[] { 0x01 },
+            "SUSER_NAME" or "SUSER_SNAME" => "sa",
+            "TYPE_ID" => TryResolveSqlServerSystemTypeId(evalArg(0)?.ToString()),
+            "TYPE_NAME" => TryResolveSqlServerSystemTypeName(evalArg(0)),
+            "USER_ID" => 1,
+            "USER_NAME" => "dbo",
+            _ => null
+        };
+
+        return true;
+    }
+
+    private static int? TryResolveSqlServerSystemTypeId(string? typeName)
+    {
+        if (string.IsNullOrWhiteSpace(typeName))
+            return null;
+
+        return typeName!.Trim().ToUpperInvariant() switch
+        {
+            "BIGINT" => 127,
+            "BIT" => 104,
+            "DATE" => 40,
+            "DATETIME" => 61,
+            "DATETIME2" => 42,
+            "DATETIMEOFFSET" => 43,
+            "DECIMAL" or "NUMERIC" => 106,
+            "FLOAT" => 62,
+            "INT" => 56,
+            "NCHAR" => 239,
+            "NVARCHAR" => 231,
+            "REAL" => 59,
+            "SMALLINT" => 52,
+            "TIME" => 41,
+            "TINYINT" => 48,
+            "UNIQUEIDENTIFIER" => 36,
+            "VARCHAR" => 167,
+            _ => null
+        };
+    }
+
+    private static string? TryResolveSqlServerSystemTypeName(object? typeIdValue)
+    {
+        if (IsNullish(typeIdValue))
+            return null;
+
+        var typeId = Convert.ToInt32(typeIdValue, CultureInfo.InvariantCulture);
+        return typeId switch
+        {
+            36 => "uniqueidentifier",
+            40 => "date",
+            41 => "time",
+            42 => "datetime2",
+            43 => "datetimeoffset",
+            48 => "tinyint",
+            52 => "smallint",
+            56 => "int",
+            59 => "real",
+            61 => "datetime",
+            62 => "float",
+            104 => "bit",
+            106 => "decimal",
+            127 => "bigint",
+            167 => "varchar",
+            231 => "nvarchar",
+            239 => "nchar",
+            _ => null
+        };
+    }
+
+    private bool TryEvalSqlServerDatabaseFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
         out object? result)
     {
         result = null;
@@ -12239,37 +12506,269 @@ private void FillPercentRankOrCumeDist(
         var name = fn.Name.ToUpperInvariant();
         result = name switch
         {
-            "SCHEMA_ID" => 1,
-            "SCHEMA_NAME" => "dbo",
-            "SUSER_ID" => 1,
-            "SUSER_NAME" or "SUSER_SNAME" => "sa",
-            "USER_ID" => 1,
-            "USER_NAME" => "dbo",
+            "DATABASEPROPERTYEX" => TryResolveSqlServerDatabaseProperty(evalArg(0)?.ToString(), evalArg(1)?.ToString()),
+            "DATABASE_PRINCIPAL_ID" => TryResolveSqlServerDatabasePrincipalId(evalArg(0)?.ToString()),
+            "COLUMNPROPERTY" => TryResolveSqlServerColumnProperty(evalArg(0), evalArg(1)?.ToString(), evalArg(2)?.ToString()),
+            "COL_LENGTH" => TryResolveSqlServerColumnLength(evalArg(0)?.ToString(), evalArg(1)?.ToString()),
+            "COL_NAME" => TryResolveSqlServerColumnName(evalArg(0), evalArg(1)),
+            "DB_ID" => 1,
+            "DB_NAME" => _cnn.Database,
+            "OBJECT_ID" => TryResolveSqlServerObjectId(evalArg(0)?.ToString()),
+            "OBJECTPROPERTY" => TryResolveSqlServerObjectProperty(evalArg(0), evalArg(1)?.ToString()),
+            "OBJECTPROPERTYEX" => TryResolveSqlServerObjectProperty(evalArg(0), evalArg(1)?.ToString()),
+            "OBJECT_NAME" => TryResolveSqlServerObjectName(evalArg(0)),
+            "OBJECT_SCHEMA_NAME" => TryResolveSqlServerObjectSchemaName(evalArg(0)),
+            "ORIGINAL_DB_NAME" => _cnn.Database,
+            "TYPEPROPERTY" => TryResolveSqlServerTypeProperty(evalArg(0)?.ToString(), evalArg(1)?.ToString()),
             _ => null
         };
 
         return result is not null;
     }
 
-    private bool TryEvalSqlServerDatabaseFunctions(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        out object? result)
+    private static int? TryResolveSqlServerDatabasePrincipalId(string? principalName)
     {
-        result = null;
+        if (string.IsNullOrWhiteSpace(principalName))
+            return null;
 
-        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        var name = fn.Name.ToUpperInvariant();
-        result = name switch
+        return principalName!.Trim().ToUpperInvariant() switch
         {
-            "DB_ID" => 1,
-            "DB_NAME" => _cnn.Database,
+            "DBO" => 1,
+            "GUEST" => 2,
+            "PUBLIC" => 0,
             _ => null
         };
+    }
 
-        return result is not null;
+    private static object? TryResolveSqlServerTypeProperty(string? typeName, string? propertyName)
+    {
+        if (string.IsNullOrWhiteSpace(typeName) || string.IsNullOrWhiteSpace(propertyName))
+            return null;
+
+        var normalizedType = typeName!.Trim().ToUpperInvariant();
+        return propertyName!.Trim().ToUpperInvariant() switch
+        {
+            "OWNERID" => TryResolveSqlServerSystemTypeId(normalizedType) is null ? null : 1,
+            "PRECISION" => normalizedType switch
+            {
+                "BIGINT" => 19,
+                "BIT" => 1,
+                "DATE" => 10,
+                "DATETIME" => 23,
+                "DATETIME2" => 27,
+                "DATETIMEOFFSET" => 34,
+                "DECIMAL" or "NUMERIC" => 38,
+                "FLOAT" => 53,
+                "INT" => 10,
+                "REAL" => 24,
+                "SMALLINT" => 5,
+                "TIME" => 16,
+                "TINYINT" => 3,
+                _ => null
+            },
+            _ => null
+        };
+    }
+
+    private object? TryResolveSqlServerDatabaseProperty(string? databaseName, string? propertyName)
+    {
+        if (string.IsNullOrWhiteSpace(databaseName) || string.IsNullOrWhiteSpace(propertyName))
+            return null;
+
+        var normalizedDatabase = databaseName!.Trim().Trim('[', ']').NormalizeName();
+        if (!string.Equals(normalizedDatabase, _cnn.Database.NormalizeName(), StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        return propertyName!.Trim().ToUpperInvariant() switch
+        {
+            "STATUS" => "ONLINE",
+            "UPDATEABILITY" => "READ_WRITE",
+            "VERSION" => _cnn.Db.Version,
+            _ => null
+        };
+    }
+
+    private object? TryResolveSqlServerColumnProperty(
+        object? objectIdValue,
+        string? columnName,
+        string? propertyName)
+    {
+        if (IsNullish(objectIdValue) || string.IsNullOrWhiteSpace(columnName) || string.IsNullOrWhiteSpace(propertyName))
+            return null;
+
+        ITableMock? table = objectIdValue switch
+        {
+            string objectName => TryResolveSqlServerTable(objectName, out var tableByName) ? tableByName : null,
+            _ => TryResolveSqlServerTableByObjectId(Convert.ToInt32(objectIdValue, CultureInfo.InvariantCulture))
+        };
+
+        if (table is null)
+            return null;
+
+        var column = table.GetColumn(columnName!);
+        return propertyName!.Trim().ToUpperInvariant() switch
+        {
+            "ALLOWSNULL" => column.Nullable ? 1 : 0,
+            "COLUMNID" => column.Index + 1,
+            "ISIDENTITY" => column.Identity ? 1 : 0,
+            _ => null
+        };
+    }
+
+    private int? TryResolveSqlServerColumnLength(string? objectName, string? columnName)
+    {
+        if (!TryResolveSqlServerTable(objectName, out var table) || table is null || string.IsNullOrWhiteSpace(columnName))
+            return null;
+
+        var column = table!.GetColumn(columnName!);
+        return column.DbType switch
+        {
+            DbType.Boolean => 1,
+            DbType.Byte or DbType.SByte => 1,
+            DbType.Int16 or DbType.UInt16 => 2,
+            DbType.Int32 or DbType.UInt32 => 4,
+            DbType.Int64 or DbType.UInt64 => 8,
+            DbType.Single => 4,
+            DbType.Double => 8,
+            DbType.Decimal or DbType.Currency or DbType.VarNumeric => 17,
+            DbType.Guid => 16,
+            DbType.Date => 3,
+            DbType.Time => 5,
+            DbType.DateTime => 8,
+            DbType.DateTime2 => 8,
+            DbType.DateTimeOffset => 10,
+            DbType.Binary => column.Size,
+            DbType.String or DbType.StringFixedLength => column.Size,
+            DbType.AnsiString or DbType.AnsiStringFixedLength => column.Size,
+            _ => column.Size
+        };
+    }
+
+    private string? TryResolveSqlServerColumnName(object? objectIdValue, object? columnIdValue)
+    {
+        if (IsNullish(objectIdValue) || IsNullish(columnIdValue))
+            return null;
+
+        var table = TryResolveSqlServerTableByObjectId(Convert.ToInt32(objectIdValue, CultureInfo.InvariantCulture));
+        if (table is null)
+            return null;
+
+        var columnId = Convert.ToInt32(columnIdValue, CultureInfo.InvariantCulture);
+        if (columnId <= 0)
+            return null;
+
+        return table.Columns.Values
+            .FirstOrDefault(col => col.Index == columnId - 1)
+            ?.Name;
+    }
+
+    private bool TryResolveSqlServerTable(string? objectName, out ITableMock? table)
+    {
+        table = null;
+        if (string.IsNullOrWhiteSpace(objectName))
+            return false;
+
+        var normalizedInput = objectName!.Trim().Trim('[', ']').NormalizeName();
+        var objectEntry = EnumerateSqlServerObjects()
+            .Where(item => item.FullName.Equals(normalizedInput, StringComparison.OrdinalIgnoreCase)
+                || item.TableName.Equals(normalizedInput, StringComparison.OrdinalIgnoreCase))
+            .Take(2)
+            .ToList();
+
+        if (objectEntry.Count != 1)
+            return false;
+
+        return _cnn.TryGetTable(objectEntry[0].TableName, out table, objectEntry[0].SchemaName);
+    }
+
+    private ITableMock? TryResolveSqlServerTableByObjectId(int objectId)
+    {
+        var objectEntry = EnumerateSqlServerObjects().FirstOrDefault(item => item.ObjectId == objectId);
+        if (objectEntry == default)
+            return null;
+
+        return _cnn.TryGetTable(objectEntry.TableName, out var table, objectEntry.SchemaName)
+            ? table
+            : null;
+    }
+
+    private int? TryResolveSqlServerObjectId(string? objectName)
+    {
+        if (string.IsNullOrWhiteSpace(objectName))
+            return null;
+
+        var normalizedInput = objectName!.Trim().Trim('[', ']').NormalizeName();
+        var matches = EnumerateSqlServerObjects()
+            .Where(item => item.FullName.Equals(normalizedInput, StringComparison.OrdinalIgnoreCase)
+                || item.TableName.Equals(normalizedInput, StringComparison.OrdinalIgnoreCase))
+            .Take(2)
+            .ToList();
+
+        if (matches.Count != 1)
+            return null;
+
+        return matches[0].ObjectId;
+    }
+
+    private object? TryResolveSqlServerObjectProperty(object? objectIdValue, string? propertyName)
+    {
+        if (IsNullish(objectIdValue) || string.IsNullOrWhiteSpace(propertyName))
+            return null;
+
+        var objectId = Convert.ToInt32(objectIdValue, CultureInfo.InvariantCulture);
+        var entry = EnumerateSqlServerObjects().FirstOrDefault(item => item.ObjectId == objectId);
+        if (entry == default)
+            return null;
+
+        return propertyName!.Trim().ToUpperInvariant() switch
+        {
+            "ISTABLE" => entry.ObjectKind == "TABLE" ? 1 : 0,
+            "ISPROCEDURE" => entry.ObjectKind == "PROCEDURE" ? 1 : 0,
+            _ => null
+        };
+    }
+
+    private string? TryResolveSqlServerObjectName(object? objectIdValue)
+    {
+        if (IsNullish(objectIdValue))
+            return null;
+
+        var objectId = Convert.ToInt32(objectIdValue, CultureInfo.InvariantCulture);
+        var match = EnumerateSqlServerObjects()
+            .FirstOrDefault(item => item.ObjectId == objectId);
+        return match.ObjectId == 0 ? null : match.TableName;
+    }
+
+    private string? TryResolveSqlServerObjectSchemaName(object? objectIdValue)
+    {
+        if (IsNullish(objectIdValue))
+            return null;
+
+        var objectId = Convert.ToInt32(objectIdValue, CultureInfo.InvariantCulture);
+        var match = EnumerateSqlServerObjects()
+            .FirstOrDefault(item => item.ObjectId == objectId);
+        return match.ObjectId == 0 ? null : match.SchemaName;
+    }
+
+    private List<(int ObjectId, string SchemaName, string TableName, string FullName, string ObjectKind)> EnumerateSqlServerObjects()
+    {
+        var objects = new List<(int ObjectId, string SchemaName, string TableName, string FullName, string ObjectKind)>();
+        var nextId = 1;
+
+        foreach (var schema in _cnn.Db.Values.OrderBy(static s => s.SchemaName, StringComparer.OrdinalIgnoreCase))
+        {
+            foreach (var table in schema.Tables.Values.OrderBy(static t => t.TableName, StringComparer.OrdinalIgnoreCase))
+            {
+                objects.Add((nextId++, schema.SchemaName, table.TableName, $"{schema.SchemaName}.{table.TableName}", "TABLE"));
+            }
+
+            foreach (var procedure in schema.Procedures.Keys.OrderBy(static p => p, StringComparer.OrdinalIgnoreCase))
+            {
+                objects.Add((nextId++, schema.SchemaName, procedure, $"{schema.SchemaName}.{procedure}", "PROCEDURE"));
+            }
+        }
+
+        return objects;
     }
 
     private bool TryEvalSqlServerServerPropertyFunction(
@@ -12288,7 +12787,7 @@ private void FillPercentRankOrCumeDist(
         if (string.IsNullOrWhiteSpace(propertyName))
             return true;
 
-        result = propertyName.Trim().ToUpperInvariant() switch
+        result = propertyName!.Trim().ToUpperInvariant() switch
         {
             "PRODUCTVERSION" => _cnn.Db.Version.ToString(CultureInfo.InvariantCulture),
             "SERVERNAME" => "DbSqlLikeMem",
@@ -12298,9 +12797,52 @@ private void FillPercentRankOrCumeDist(
         return true;
     }
 
+    private bool TryEvalSqlServerConnectionPropertyFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        result = null;
+
+        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+            || !fn.Name.Equals("CONNECTIONPROPERTY", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var propertyName = evalArg(0)?.ToString();
+        if (string.IsNullOrWhiteSpace(propertyName))
+            return true;
+
+        result = propertyName!.Trim().ToUpperInvariant() switch
+        {
+            "NET_TRANSPORT" => "TCP",
+            "PROTOCOL_TYPE" => "TSQL",
+            "LOCAL_NET_ADDRESS" => "127.0.0.1",
+            _ => null
+        };
+
+        return true;
+    }
+
+    private bool TryEvalSqlServerContextInfoFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        out object? result)
+    {
+        result = null;
+
+        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+            || !fn.Name.Equals("CONTEXT_INFO", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        result = _cnn.GetContextInfo();
+        return true;
+    }
+
     private bool TryEvalSqlServerSessionFunctions(
         FunctionCallExpr fn,
         ISqlDialect dialect,
+        Func<int, object?> evalArg,
         out object? result)
     {
         result = null;
@@ -12310,12 +12852,46 @@ private void FillPercentRankOrCumeDist(
 
         result = fn.Name.ToUpperInvariant() switch
         {
+            "CURRENT_REQUEST_ID" => 1,
+            "CURRENT_TRANSACTION_ID" => _cnn.HasActiveTransaction ? 1L : null,
+            "IS_MEMBER" => TryResolveSqlServerRoleMembership(evalArg(0)?.ToString()),
+            "IS_ROLEMEMBER" => TryResolveSqlServerRoleMembership(evalArg(0)?.ToString()),
+            "IS_SRVROLEMEMBER" => TryResolveSqlServerServerRoleMembership(evalArg(0)?.ToString()),
+            "ORIGINAL_LOGIN" => "sa",
             "SESSION_ID" => 1,
             "XACT_STATE" => _cnn.HasActiveTransaction ? 1 : 0,
             _ => null
         };
 
         return result is not null;
+    }
+
+    private static int? TryResolveSqlServerRoleMembership(string? roleName)
+    {
+        if (string.IsNullOrWhiteSpace(roleName))
+            return null;
+
+        return roleName!.Trim().ToUpperInvariant() switch
+        {
+            "DB_OWNER" => 1,
+            "PUBLIC" => 1,
+            "DB_DATAREADER" => 0,
+            "DB_DATAWRITER" => 0,
+            _ => null
+        };
+    }
+
+    private static int? TryResolveSqlServerServerRoleMembership(string? roleName)
+    {
+        if (string.IsNullOrWhiteSpace(roleName))
+            return null;
+
+        return roleName!.Trim().ToUpperInvariant() switch
+        {
+            "SYSADMIN" => 1,
+            "SERVERADMIN" => 0,
+            _ => null
+        };
     }
 
     private static bool TryEvalDataLengthFunction(
@@ -12393,17 +12969,18 @@ private void FillPercentRankOrCumeDist(
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("DATEPART", StringComparison.OrdinalIgnoreCase))
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("DATEPART" or "DAY" or "MONTH" or "YEAR" or "HOUR" or "MINUTE" or "SECOND"))
         {
             result = null;
             return false;
         }
 
-        if (fn.Args.Count < 2)
+        if (name == "DATEPART" && fn.Args.Count < 2)
             throw new InvalidOperationException("DATEPART() espera 2 argumentos.");
 
-        var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
-        var value = evalArg(1);
+        var unit = name == "DATEPART" ? GetDateAddUnit(fn.Args[0], row, group, ctes) : name;
+        var value = evalArg(name == "DATEPART" ? 1 : 0);
         if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
         {
             result = null;
@@ -12853,6 +13430,7 @@ private void FillPercentRankOrCumeDist(
         }
 
         result = name.Equals("ERROR_MESSAGE", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("ERROR_PROCEDURE", StringComparison.OrdinalIgnoreCase)
             ? string.Empty
             : 0;
         return true;
@@ -12925,6 +13503,178 @@ private void FillPercentRankOrCumeDist(
         }
     }
 
+    private static bool TryEvalSqlServerFormatFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("FORMAT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("sqlazure", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("FORMAT() espera valor e máscara.");
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var format = evalArg(1)?.ToString();
+        var cultureName = fn.Args.Count > 2 ? evalArg(2)?.ToString() : null;
+        var culture = string.IsNullOrWhiteSpace(cultureName)
+            ? CultureInfo.InvariantCulture
+            : CultureInfo.GetCultureInfo(cultureName!);
+
+        result = value is IFormattable formattable
+            ? formattable.ToString(format, culture)
+            : value!.ToString();
+        return true;
+    }
+
+    private static bool TryEvalSqlServerFormatMessageFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("FORMATMESSAGE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException("FORMATMESSAGE() espera ao menos a mensagem.");
+
+        result = FormatPrintf(
+            evalArg(0)?.ToString() ?? string.Empty,
+            Enumerable.Range(1, Math.Max(0, fn.Args.Count - 1))
+                .Select(evalArg)
+                .ToArray());
+        return true;
+    }
+
+    private static bool TryEvalSqlServerCompressFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("COMPRESS", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var input = value switch
+        {
+            byte[] bytes => bytes,
+            _ => Encoding.Unicode.GetBytes(value!.ToString() ?? string.Empty)
+        };
+
+        using var output = new MemoryStream();
+        using (var gzip = new GZipStream(output, CompressionLevel.Optimal, leaveOpen: true))
+            gzip.Write(input, 0, input.Length);
+
+        result = output.ToArray();
+        return true;
+    }
+
+    private static bool TryEvalSqlServerDecompressFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DECOMPRESS", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (value is not byte[] bytes)
+        {
+            result = null;
+            return true;
+        }
+
+        using var input = new MemoryStream(bytes);
+        using var gzip = new GZipStream(input, CompressionMode.Decompress);
+        using var output = new MemoryStream();
+        gzip.CopyTo(output);
+        result = output.ToArray();
+        return true;
+    }
+
+    private static bool TryEvalSqlServerChecksumFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var isChecksum = fn.Name.Equals("CHECKSUM", StringComparison.OrdinalIgnoreCase);
+        var isBinaryChecksum = fn.Name.Equals("BINARY_CHECKSUM", StringComparison.OrdinalIgnoreCase);
+        if (!isChecksum && !isBinaryChecksum)
+        {
+            result = null;
+            return false;
+        }
+
+        var hash = new HashCode();
+        for (var i = 0; i < fn.Args.Count; i++)
+        {
+            var value = evalArg(i);
+            if (value is null or DBNull)
+            {
+                hash.Add(0);
+                continue;
+            }
+
+            if (value is byte[] bytes)
+            {
+                foreach (var b in bytes)
+                    hash.Add(b);
+                continue;
+            }
+
+            if (value is string text)
+            {
+                var normalized = isChecksum ? text.ToUpperInvariant() : text;
+                foreach (var ch in normalized)
+                    hash.Add(ch);
+                continue;
+            }
+
+            hash.Add(value);
+        }
+
+        result = hash.ToHashCode();
+        return true;
+    }
+
     private static bool TryEvalGetUtcDateFunction(
         FunctionCallExpr fn,
         out object? result)
@@ -12983,6 +13733,198 @@ private void FillPercentRankOrCumeDist(
         result = fn.Name.Equals("HOST_ID", StringComparison.OrdinalIgnoreCase)
             ? 1
             : "localhost";
+        return true;
+    }
+
+    private bool TryEvalSessionContextFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("SESSION_CONTEXT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException("SESSION_CONTEXT() expects a key.");
+
+        var key = evalArg(0)?.ToString();
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            result = null;
+            return true;
+        }
+
+        _cnn.TryGetSessionContextValue(key!, out result);
+        return true;
+    }
+
+    private static bool TryEvalSqlServerGuidFunctions(
+        FunctionCallExpr fn,
+        out object? result)
+    {
+        if (!fn.Name.Equals("NEWID", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        result = Guid.NewGuid().ToString("D");
+        return true;
+    }
+
+    private static bool TryEvalSqlServerStringEscapeFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("STRING_ESCAPE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("STRING_ESCAPE() espera texto e tipo.");
+
+        var textValue = evalArg(0);
+        if (IsNullish(textValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var typeValue = evalArg(1)?.ToString() ?? string.Empty;
+        if (!typeValue.Equals("json", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("STRING_ESCAPE() currently supports only 'json' in the mock.");
+
+        result = EscapeSqlServerJsonString(textValue?.ToString() ?? string.Empty);
+        return true;
+    }
+
+    private static string EscapeSqlServerJsonString(string text)
+    {
+        var builder = new StringBuilder(text.Length);
+        foreach (var ch in text)
+        {
+            builder.Append(ch switch
+            {
+                '"' => "\\\"",
+                '\\' => "\\\\",
+                '\b' => "\\b",
+                '\f' => "\\f",
+                '\n' => "\\n",
+                '\r' => "\\r",
+                '\t' => "\\t",
+                _ when ch < 0x20 => $"\\u{(int)ch:x4}",
+                _ => ch.ToString()
+            });
+        }
+
+        return builder.ToString();
+    }
+
+    private static bool TryEvalSqlServerStrFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("STR", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryConvertNumericToDecimal(value, out var number))
+        {
+            result = null;
+            return true;
+        }
+
+        var length = fn.Args.Count > 1 ? Convert.ToInt32(evalArg(1).ToDec(), CultureInfo.InvariantCulture) : 10;
+        var decimals = fn.Args.Count > 2 ? Convert.ToInt32(evalArg(2).ToDec(), CultureInfo.InvariantCulture) : 0;
+        decimals = Math.Min(16, Math.Max(0, decimals));
+
+        if (length <= 0)
+        {
+            result = string.Empty;
+            return true;
+        }
+
+        var rounded = Math.Round(number, decimals, MidpointRounding.AwayFromZero);
+        var text = rounded.ToString($"F{decimals}", CultureInfo.InvariantCulture);
+        if (text.Length > length)
+        {
+            result = new string('*', length);
+            return true;
+        }
+
+        result = text.PadLeft(length, ' ');
+        return true;
+    }
+
+    private static bool TryEvalSqlServerDateTimeOffsetFunctions(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("TODATETIMEOFFSET" or "SWITCHOFFSET"))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException($"{fn.Name}() expects value and offset.");
+
+        var baseValue = evalArg(0);
+        if (IsNullish(baseValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var offsetText = evalArg(1)?.ToString() ?? string.Empty;
+        if (!TryParseOffset(offsetText, out var offset))
+        {
+            result = null;
+            return true;
+        }
+
+        if (name == "TODATETIMEOFFSET")
+        {
+            if (!TryCoerceDateTime(baseValue, out var dateTime))
+            {
+                result = null;
+                return true;
+            }
+
+            result = new DateTimeOffset(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified), offset);
+            return true;
+        }
+
+        DateTimeOffset dto;
+        if (baseValue is DateTimeOffset directDto)
+        {
+            dto = directDto;
+        }
+        else if (!DateTimeOffset.TryParse(baseValue!.ToString(), CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out dto))
+        {
+            result = null;
+            return true;
+        }
+
+        result = dto.ToOffset(offset);
         return true;
     }
 
@@ -14140,6 +15082,30 @@ private void FillPercentRankOrCumeDist(
         var escapeText = string.IsNullOrEmpty(escape) ? null : escape![0].ToString();
         var matches = value!.ToString()!.Like(pattern!.ToString()!, dialect, escapeText);
         result = matches ? 1 : 0;
+        return true;
+    }
+
+    private static bool TryEvalPatIndexFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("PATINDEX", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var pattern = evalArg(0);
+        var value = evalArg(1);
+        if (IsNullish(pattern) || IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        result = value!.ToString()!.PatIndex(pattern!.ToString()!, dialect);
         return true;
     }
 
@@ -15645,6 +16611,29 @@ private void FillPercentRankOrCumeDist(
         return tokens.Count > 0;
     }
 
+    private static bool TryParseSqlServerJsonModifyPath(
+        string path,
+        out List<JsonPathToken> tokens,
+        out bool append,
+        out bool strict)
+    {
+        tokens = [];
+        append = false;
+        strict = false;
+
+        var trimmed = path.Trim();
+        if (trimmed.StartsWith("append ", StringComparison.OrdinalIgnoreCase))
+        {
+            append = true;
+            trimmed = trimmed[7..].TrimStart();
+        }
+
+        if (trimmed.StartsWith("strict ", StringComparison.OrdinalIgnoreCase))
+            strict = true;
+
+        return TryParseJsonPathTokens(trimmed, out tokens);
+    }
+
     private static bool TryParseJsonNode(object json, out System.Text.Json.Nodes.JsonNode? node)
     {
         if (json is System.Text.Json.Nodes.JsonNode jsonNode)
@@ -16704,7 +17693,7 @@ private void FillPercentRankOrCumeDist(
                     "{" => "}",
                     _ => quoteChar
                 };
-                var escaped = text.Replace(closingChar, closingChar + closingChar, StringComparison.Ordinal);
+                var escaped = text.Replace(closingChar, closingChar + closingChar);
                 result = quoteChar + escaped + closingChar;
                 return true;
             }
@@ -16928,6 +17917,43 @@ private void FillPercentRankOrCumeDist(
         var chars = text.ToCharArray();
         Array.Reverse(chars);
         result = new string(chars);
+        return true;
+    }
+
+    private static bool TryEvalLeftFunction(
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("LEFT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var textValue = evalArg(0);
+        var lengthValue = evalArg(1);
+        if (IsNullish(textValue) || IsNullish(lengthValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = textValue?.ToString() ?? string.Empty;
+        var length = Convert.ToInt32(lengthValue.ToDec());
+        if (length <= 0)
+        {
+            result = string.Empty;
+            return true;
+        }
+
+        if (length >= text.Length)
+        {
+            result = text;
+            return true;
+        }
+
+        result = text[..length];
         return true;
     }
 
@@ -17878,6 +18904,7 @@ private void FillPercentRankOrCumeDist(
 
     private static bool TryEvalWeekFunctions(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -17920,9 +18947,17 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        var calendar = CultureInfo.InvariantCulture.Calendar;
-        var weekNumber = calendar.GetWeekOfYear(dateTime, CalendarWeekRule.FirstDay, DayOfWeek.Sunday);
-        result = weekNumber;
+        if (dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = GetIsoWeekOfYear(dateTime);
+            return true;
+        }
+
+        // MySQL WEEK(date) default mode is 0: Sunday-first, range 0-53.
+        var firstDayOfYear = new DateTime(dateTime.Year, 1, 1);
+        var dayOffset = (int)firstDayOfYear.DayOfWeek;
+        var dayOfYearZeroBased = dateTime.DayOfYear - 1;
+        result = (dayOfYearZeroBased + dayOffset) / 7;
         return true;
     }
 
@@ -18118,6 +19153,68 @@ private void FillPercentRankOrCumeDist(
         catch
         {
             return null;
+        }
+    }
+
+    private object? EvalParseFunction(FunctionCallExpr fn, Func<int, object?> evalArg, bool swallowErrors)
+    {
+        if (fn.Args.Count < 2)
+            return swallowErrors ? null : throw new InvalidOperationException($"{fn.Name}() requires value and target type.");
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+            return null;
+
+        var type = fn.Args[1] is RawSqlExpr rx ? rx.Sql : (evalArg(1)?.ToString() ?? string.Empty);
+        type = type.Trim();
+        var cultureName = fn.Args.Count > 2 ? evalArg(2)?.ToString() : null;
+
+        try
+        {
+            var culture = string.IsNullOrWhiteSpace(cultureName)
+                ? CultureInfo.InvariantCulture
+                : CultureInfo.GetCultureInfo(cultureName!);
+
+            if ((Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para PARSE.")).IsIntegerCastTypeName(type))
+            {
+                if (int.TryParse(value!.ToString(), NumberStyles.Integer, culture, out var parsedInt))
+                    return parsedInt;
+                return null;
+            }
+
+            if (type.StartsWith("DECIMAL", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase))
+            {
+                if (decimal.TryParse(value!.ToString(), NumberStyles.Any, culture, out var parsedDecimal))
+                    return parsedDecimal;
+                return null;
+            }
+
+            if (type.StartsWith("FLOAT", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("REAL", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("DOUBLE", StringComparison.OrdinalIgnoreCase))
+            {
+                if (double.TryParse(value!.ToString(), NumberStyles.Any, culture, out var parsedDouble))
+                    return parsedDouble;
+                return null;
+            }
+
+            if (type.StartsWith("DATE", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("DATETIME", StringComparison.OrdinalIgnoreCase)
+                || type.StartsWith("SMALLDATETIME", StringComparison.OrdinalIgnoreCase))
+            {
+                if (DateTime.TryParse(value!.ToString(), culture, DateTimeStyles.AllowWhiteSpaces, out var parsedDate))
+                    return parsedDate;
+                return null;
+            }
+
+            return value!.ToString();
+        }
+        catch
+        {
+            if (swallowErrors)
+                return null;
+            throw;
         }
     }
 
@@ -18320,6 +19417,9 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalJsonExtractionFunction(fn, dialect, evalArg, out var jsonExtractionResult))
             return jsonExtractionResult;
 
+        if (TryEvalSqlServerJsonModifyFunction(fn, dialect, evalArg, out var jsonModifyResult))
+            return jsonModifyResult;
+
         if (TryEvalOpenJsonFunction(fn, dialect, evalArg, out var openJsonResult))
             return openJsonResult;
 
@@ -18331,6 +19431,94 @@ private void FillPercentRankOrCumeDist(
 
         handled = false;
         return null;
+    }
+
+    private static bool TryEvalSqlServerJsonModifyFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("JSON_MODIFY", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.SupportsSqlServerScalarFunction(fn.Name))
+            throw SqlUnsupported.ForDialect(dialect, "JSON_MODIFY");
+
+        if (fn.Args.Count < 3)
+            throw new InvalidOperationException("JSON_MODIFY() espera JSON, path e novo valor.");
+
+        var json = evalArg(0);
+        var pathValue = evalArg(1)?.ToString();
+        var newValue = evalArg(2);
+        if (IsNullish(json) || string.IsNullOrWhiteSpace(pathValue) || !TryParseJsonNode(json!, out var root) || root is null)
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryParseSqlServerJsonModifyPath(pathValue!, out var tokens, out var append, out var strict))
+        {
+            result = null;
+            return true;
+        }
+
+        var exists = TryGetJsonNodeAtPath(root, tokens, out var existingNode);
+        if (append)
+        {
+            if (!exists || existingNode is not System.Text.Json.Nodes.JsonArray array)
+            {
+                if (strict)
+                    throw new InvalidOperationException($"JSON_MODIFY strict path '{pathValue}' was not found in the JSON payload.");
+
+                result = root.ToJsonString();
+                return true;
+            }
+
+            array.Add(CreateJsonNodeFromValue(newValue));
+            result = root.ToJsonString();
+            return true;
+        }
+
+        if (IsNullish(newValue))
+        {
+            if (strict)
+            {
+                if (!exists)
+                    throw new InvalidOperationException($"JSON_MODIFY strict path '{pathValue}' was not found in the JSON payload.");
+
+                if (!TrySetJsonPathValue(ref root, tokens, null))
+                {
+                    result = null;
+                    return true;
+                }
+            }
+            else if (exists)
+            {
+                TryRemoveJsonPathValue(root, tokens);
+            }
+
+            result = root.ToJsonString();
+            return true;
+        }
+
+        if (strict && !exists)
+            throw new InvalidOperationException($"JSON_MODIFY strict path '{pathValue}' was not found in the JSON payload.");
+
+        if (!TrySetJsonPathValue(ref root, tokens, newValue))
+        {
+            if (strict)
+                throw new InvalidOperationException($"JSON_MODIFY strict path '{pathValue}' was not found in the JSON payload.");
+
+            result = root.ToJsonString();
+            return true;
+        }
+
+        result = root.ToJsonString();
+        return true;
     }
 
     private static bool TryEvalJsonAccessShimFunction(
@@ -18558,15 +19746,15 @@ private void FillPercentRankOrCumeDist(
         return !IsNullish(json) && !string.IsNullOrWhiteSpace(path);
     }
 
-    private void LogFunctionEvaluationFailure(Exception exception)
+    private static void LogFunctionEvaluationFailure(Exception exception)
     {
 #pragma warning disable CA1303 // Do not pass literals as localized parameters
-        Console.WriteLine($"{GetType().Name}.{nameof(EvalFunction)}");
+        Console.WriteLine($"{nameof(AstQueryExecutorBase)}.{nameof(EvalFunction)}");
 #pragma warning restore CA1303 // Do not pass literals as localized parameters
         Console.WriteLine(exception);
     }
 
-    private object? ApplyJsonValueReturningClause(FunctionCallExpr fn, object? value)
+    private static object? ApplyJsonValueReturningClause(FunctionCallExpr fn, object? value)
         => QueryJsonFunctionHelper.ApplyJsonValueReturningClause(fn, value);
 
     private object? TryEvalConcatFunctions(
@@ -18829,8 +20017,9 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        if (TryCoerceDateTime(value, out var dateTime))
+        if (value is DateTime or DateTimeOffset)
         {
+            TryCoerceDateTime(value, out var dateTime);
             result = dateTime.Date;
             return true;
         }
@@ -19130,6 +20319,13 @@ private void FillPercentRankOrCumeDist(
         if (name is "MEDIAN" or "PERCENTILE" or "PERCENTILE_CONT" or "PERCENTILE_DISC")
             return EvalPercentileAggregate(fn, group, ctes, name);
 
+        if (name is "CHECKSUM_AGG")
+        {
+            var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
+            if (!dialect.SupportsSqlServerAggregateFunction(name))
+                throw SqlUnsupported.ForDialect(dialect, name);
+        }
+
         var values = TryGetAggregateValues(fn, group, ctes);
         if (values is null)
             return null;
@@ -19157,6 +20353,7 @@ private void FillPercentRankOrCumeDist(
             "AVG" => AggregateNumericValues(values, AggregateNumericOperation.Average),
             "MIN" => AggregateNumericValues(values, AggregateNumericOperation.Min),
             "MAX" => AggregateNumericValues(values, AggregateNumericOperation.Max),
+            "CHECKSUM_AGG" => AggregateChecksumValues(values, binary: false),
             "GROUP_CONCAT" => EvalStringAggregate(values, separator, ","),
             "STRING_AGG" => EvalStringAggregate(values, separator, ","),
             "LISTAGG" => EvalStringAggregate(values, separator, string.Empty),
@@ -19173,12 +20370,46 @@ private void FillPercentRankOrCumeDist(
             "BOOL_OR" => AggregateBoolValues(values, useAnd: false),
             "COLLECT" => AggregateCollect(values),
             "TOTAL" => AggregateTotal(values),
+            "STDEV" => AggregateVariance(values, sample: true) is double stdev ? Math.Sqrt(stdev) : null,
+            "STDEVP" => AggregateVariance(values, sample: false) is double stdevp ? Math.Sqrt(stdevp) : null,
+            "VAR" => AggregateVariance(values, sample: true),
+            "VARP" => AggregateVariance(values, sample: false),
             "VAR_POP" => AggregateVariance(values, sample: false),
             "VARIANCE" => AggregateVariance(values, sample: false),
             "VAR_SAMP" => AggregateVariance(values, sample: true),
             "CV" => AggregateCoefficientOfVariation(values),
             _ => null
         };
+    }
+
+    private static int? AggregateChecksumValues(IReadOnlyList<object?> values, bool binary)
+    {
+        var filtered = values.Where(static value => !IsNullish(value)).ToArray();
+        if (filtered.Length == 0)
+            return null;
+
+        var hash = new HashCode();
+        foreach (var value in filtered)
+        {
+            if (value is byte[] bytes)
+            {
+                foreach (var b in bytes)
+                    hash.Add(b);
+                continue;
+            }
+
+            if (value is string text)
+            {
+                var normalized = binary ? text : text.ToUpperInvariant();
+                foreach (var ch in normalized)
+                    hash.Add(ch);
+                continue;
+            }
+
+            hash.Add(value);
+        }
+
+        return hash.ToHashCode();
     }
 
     private static object? AggregateTotal(IReadOnlyList<object?> values)
@@ -19804,7 +21035,7 @@ private void FillPercentRankOrCumeDist(
         string name,
         out object? value)
     {
-        if (name != "COUNT")
+        if (name != "COUNT" && name != "COUNT_BIG")
         {
             value = null;
             return false;
@@ -19865,13 +21096,16 @@ private void FillPercentRankOrCumeDist(
 
     private bool SelectItemContainsAggregate(string exprRaw)
     {
+        var looksAggregatedOutsideSubqueries = LooksLikeAggregateExpression(exprRaw)
+            || ContainsAggregateFunctionName(exprRaw);
+        if (!looksAggregatedOutsideSubqueries)
+            return false;
+
 #pragma warning disable CA1031 // Do not catch general exception types
         try
         {
-            var parsedExpression = ParseExpr(exprRaw);
-            return WalkHasAggregate(parsedExpression)
-                || LooksLikeAggregateExpression(exprRaw)
-                || ContainsAggregateFunctionName(exprRaw);
+            var parsedExpression = ParseScalarExpr(exprRaw);
+            return WalkHasAggregate(parsedExpression);
         }
         catch (Exception e)
         {
@@ -19889,12 +21123,13 @@ private void FillPercentRankOrCumeDist(
 
     private static bool ContainsAggregateFunctionName(string exprRaw)
     {
-        if (string.IsNullOrWhiteSpace(exprRaw))
+        var sanitized = AggregateExpressionInspector.RemoveSubqueryBodies(exprRaw);
+        if (string.IsNullOrWhiteSpace(sanitized))
             return false;
 
         foreach (var fn in _aggFns)
         {
-            if (exprRaw.IndexOf(fn + "(", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (sanitized.IndexOf(fn + "(", StringComparison.OrdinalIgnoreCase) >= 0)
                 return true;
         }
 

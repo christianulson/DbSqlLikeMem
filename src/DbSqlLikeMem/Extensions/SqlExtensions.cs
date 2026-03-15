@@ -102,6 +102,27 @@ internal static class SqlExtensions
         return Regex.IsMatch(input, sb.ToString(), options);
     }
 
+    internal static int PatIndex(this string input, string pattern, ISqlDialect? dialect = null, string? escape = null)
+    {
+        input ??= "";
+        pattern ??= "";
+
+        if (input.Length == 0 || pattern.Length == 0)
+            return 0;
+
+        var searchPattern = TrimLeadingLikePercents(pattern, ResolveLikeEscapeCharacter(dialect, escape));
+        if (searchPattern.Length == 0)
+            return 1;
+
+        for (var i = 0; i < input.Length; i++)
+        {
+            if (input[i..].Like(searchPattern, dialect, escape))
+                return i + 1;
+        }
+
+        return 0;
+    }
+
     private static char? ResolveLikeEscapeCharacter(ISqlDialect? dialect, string? explicitEscape)
     {
         if (explicitEscape is not null)
@@ -126,6 +147,24 @@ internal static class SqlExtensions
             sb.Append('\\');
 
         sb.Append(ch);
+    }
+
+    private static string TrimLeadingLikePercents(string pattern, char? escapeChar)
+    {
+        var index = 0;
+        while (index < pattern.Length)
+        {
+            var ch = pattern[index];
+            if (escapeChar.HasValue && ch == escapeChar.Value)
+                break;
+
+            if (ch != '%')
+                break;
+
+            index++;
+        }
+
+        return pattern[index..];
     }
 
     internal static int Compare(this object a, object b, ISqlDialect? dialect = null)

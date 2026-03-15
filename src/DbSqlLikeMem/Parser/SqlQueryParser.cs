@@ -4088,6 +4088,11 @@ internal sealed class SqlQueryParser
             return null;
         if (Regex.IsMatch(lastLeft, @"\b(NEXT|PREVIOUS)\s+VALUE\s+FOR\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
             return null;
+
+        var compositeTemporalIdentifier = $"{lastLeft} {right}";
+        if (dialect.TemporalFunctionIdentifierNames.Any(name => name.Equals(compositeTemporalIdentifier, StringComparison.OrdinalIgnoreCase)))
+            return null;
+
         if (!LooksLikeAliasToken(right, options))
             return null;
 

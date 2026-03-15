@@ -33,6 +33,7 @@ internal sealed class OracleDialect : SqlDialectBase
     internal const int WindowFunctionsMinVersion = 8;
     internal const int OffsetFetchMinVersion = 12;
     internal const int FetchFirstMinVersion = 12;
+    internal const int ApproxCountDistinctMinVersion = 12;
 
     /// <summary>
     /// EN: Gets or sets identifier escape style.
@@ -169,6 +170,10 @@ internal sealed class OracleDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsDateAddFunction(string functionName)
         => false;
+
+    public override bool SupportsSqlServerAggregateFunction(string functionName)
+        => functionName.Equals("APPROX_COUNT_DISTINCT", StringComparison.OrdinalIgnoreCase)
+            && Version >= ApproxCountDistinctMinVersion;
 
     public override bool SupportsLastFoundRowsFunction(string functionName)
         => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase);

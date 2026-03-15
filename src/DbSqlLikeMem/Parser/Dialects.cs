@@ -175,10 +175,14 @@ internal interface ISqlDialect
     bool SupportsStringSplitOrdinalArgument { get; }
     bool SupportsTryCastFunction { get; }
     bool SupportsTryConvertFunction { get; }
+    bool SupportsParseFunction { get; }
+    bool SupportsTryParseFunction { get; }
     bool SupportsEomonthFunction { get; }
     bool SupportsGetUtcDateFunction { get; }
     bool SupportsSqlServerMetadataFunction(string functionName);
     bool SupportsSqlServerMetadataIdentifier(string identifier);
+    bool SupportsSqlServerDateFunction(string functionName);
+    bool SupportsSqlServerAggregateFunction(string functionName);
     bool SupportsSqlServerScalarFunction(string functionName);
     bool SupportsSqlServerFromPartsFunction(string functionName);
     DbType InferWindowFunctionDbType(WindowFunctionExpr windowFunctionExpr, Func<SqlExpr, DbType> inferArgDbType);
@@ -476,10 +480,14 @@ internal abstract class SqlDialectBase : ISqlDialect
     public virtual bool SupportsStringSplitOrdinalArgument => false;
     public virtual bool SupportsTryCastFunction => false;
     public virtual bool SupportsTryConvertFunction => false;
+    public virtual bool SupportsParseFunction => false;
+    public virtual bool SupportsTryParseFunction => false;
     public virtual bool SupportsEomonthFunction => false;
     public virtual bool SupportsGetUtcDateFunction => false;
     public virtual bool SupportsSqlServerMetadataFunction(string functionName) => false;
     public virtual bool SupportsSqlServerMetadataIdentifier(string identifier) => false;
+    public virtual bool SupportsSqlServerDateFunction(string functionName) => false;
+    public virtual bool SupportsSqlServerAggregateFunction(string functionName) => false;
     public virtual bool SupportsSqlServerScalarFunction(string functionName) => false;
     public virtual bool SupportsSqlServerFromPartsFunction(string functionName) => false;
 

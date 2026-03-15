@@ -28,11 +28,22 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
     /// EN: Tests OffsetFetch_ShouldWork behavior.
     /// PT: Testa o comportamento de OffsetFetch_ShouldWork.
     /// </summary>
-    [Fact]
+    [Theory]
+    [MemberDataOracleVersion]
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
-    public void OffsetFetch_ShouldWork()
+    public void OffsetFetch_ShouldWork(int version)
     {
-        var rows = Connection.Query<dynamic>("SELECT id FROM t ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY").ToList();
+        using var connection = CreateOpenConnection(version);
+
+        if (version < OracleDialect.OffsetFetchMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() =>
+                connection.Query<dynamic>("SELECT id FROM t ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY").ToList());
+            Assert.Contains("OFFSET", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var rows = connection.Query<dynamic>("SELECT id FROM t ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY").ToList();
         Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id)]);
     }
 

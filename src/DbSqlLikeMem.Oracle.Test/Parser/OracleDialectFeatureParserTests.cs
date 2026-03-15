@@ -258,6 +258,36 @@ public sealed class OracleDialectFeatureParserTests
         Assert.Equal("RETURNING NUMBER", Assert.IsType<RawSqlExpr>(parsed.Args[2]).Sql, ignoreCase: true);
     }
 
+    /// <summary>
+    /// EN: Ensures APPROX_COUNT_DISTINCT parsing follows the explicit Oracle dialect capability by version.
+    /// PT: Garante que o parsing de APPROX_COUNT_DISTINCT siga a capability explicita do dialeto Oracle por versao.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseScalar_ApproxCountDistinct_ShouldFollowDialectCapability(int version)
+    {
+        var dialect = new OracleDialect(version);
+
+        Assert.Equal(
+            version >= OracleDialect.ApproxCountDistinctMinVersion,
+            dialect.SupportsSqlServerAggregateFunction("APPROX_COUNT_DISTINCT"));
+
+        if (version < OracleDialect.ApproxCountDistinctMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar("APPROX_COUNT_DISTINCT(amount)", dialect));
+            Assert.Contains("APPROX_COUNT_DISTINCT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        Assert.Equal(
+            "APPROX_COUNT_DISTINCT",
+            Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("APPROX_COUNT_DISTINCT(amount)", dialect)).Name,
+            StringComparer.OrdinalIgnoreCase);
+    }
+
 
 
     /// <summary>

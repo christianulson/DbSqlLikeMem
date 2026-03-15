@@ -124,13 +124,16 @@ internal sealed class Db2Dialect : SqlDialectBase
     /// EN: Gets the null substitute function names supported by DB2 compatibility behavior.
     /// PT: Obtém os nomes de funções de substituição de nulos suportados pelo comportamento de compatibilidade do DB2.
     /// </summary>
-    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["COALESCE", "VALUE", "IFNULL"];
+    public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["COALESCE", "VALUE", "IFNULL", "NVL"];
     public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
         => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
         {
             ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
+            ["CURRENT DATE"] = SqlTemporalFunctionKind.Date,
             ["CURRENT_TIME"] = SqlTemporalFunctionKind.Time,
+            ["CURRENT TIME"] = SqlTemporalFunctionKind.Time,
             ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
+            ["CURRENT TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
             ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
         };
 

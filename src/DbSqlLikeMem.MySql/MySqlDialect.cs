@@ -219,6 +219,44 @@ internal sealed class MySqlDialect : SqlDialectBase
     public override bool SupportsStringAggregateFunction(string functionName)
         => functionName.Equals("GROUP_CONCAT", StringComparison.OrdinalIgnoreCase);
 
+    /// <inheritdoc />
+    public override bool SupportsTryCastFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsSqlServerScalarFunction(string functionName)
+        => functionName.Equals("ABS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ACOS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ASIN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ATAN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ATN2", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ASCII", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("CEIL", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("CEILING", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("CONCAT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("CONCAT_WS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LOCATE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LOG", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LOG10", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LOG2", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LOWER", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("MOD", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("PI", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("POW", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("POWER", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("RADIANS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("RAND", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("REVERSE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("RIGHT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ROUND", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SIN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SPACE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SQRT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SUBSTRING", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("TAN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("TRIM", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("UPPER", StringComparison.OrdinalIgnoreCase);
+
     public override bool SupportsAggregateOrderByForStringAggregates => true;
 
     public override bool SupportsAggregateOrderByStringAggregateFunction(string functionName)

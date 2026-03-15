@@ -16,20 +16,7 @@ public sealed class Db2FunctionTests
     public Db2FunctionTests(ITestOutputHelper helper)
         : base(helper)
     {
-        var db = new Db2DbMock();
-        db.AddSequence("seq_users");
-        db.AddTable("Users",
-        [
-            new("Id", DbType.Int32, false),
-            new("Name", DbType.String, false),
-            new("Email", DbType.String, true),
-        ]);
-
-        _connection = new Db2ConnectionMock(db);
-        _connection.Open();
-
-        ExecuteNonQuery("INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', '{\"profile\":{\"active\":true,\"name\":\"Ana\"}}')");
-        ExecuteNonQuery("INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bob', '{\"profile\":{\"active\":false,\"name\":\"Bob\"}}')");
+        _connection = CreateOpenConnection();
     }
 
     /// <summary>
@@ -58,7 +45,7 @@ public sealed class Db2FunctionTests
         Assert.Equal("yes", ExecuteScalar("SELECT IIF(Id = 1, 'yes', 'no') FROM Users WHERE Id = 1"));
         Assert.Equal("Ana", ExecuteScalar("SELECT COALESCE(Name, 'fallback') FROM Users WHERE Id = 1"));
         Assert.Equal("fallback", ExecuteScalar("SELECT NVL(NULL, 'fallback') FROM Users WHERE Id = 1"));
-        Assert.Null(ExecuteScalar("SELECT NULLIF('Ana', 'Ana') FROM Users WHERE Id = 1"));
+        Assert.Equal(DBNull.Value, ExecuteScalar("SELECT NULLIF('Ana', 'Ana') FROM Users WHERE Id = 1"));
         Assert.Equal("65", ExecuteScalar("SELECT CHAR(65) FROM Users WHERE Id = 1"));
         Assert.Equal(42L, Convert.ToInt64(ExecuteScalar("SELECT BIGINT('42') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(12.5m, Convert.ToDecimal(ExecuteScalar("SELECT DECIMAL('12.5') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
@@ -165,10 +152,10 @@ public sealed class Db2FunctionTests
         Assert.Equal([1L, 1L], denseRanks);
 
         var lagValues = ExecuteColumn("SELECT LAG(Name) OVER (ORDER BY Id) FROM Users ORDER BY Id");
-        Assert.Equal([null, "Ana"], lagValues);
+        Assert.Equal([DBNull.Value, "Ana"], lagValues);
 
         var leadValues = ExecuteColumn("SELECT LEAD(Name) OVER (ORDER BY Id) FROM Users ORDER BY Id");
-        Assert.Equal(["Bob", null], leadValues);
+        Assert.Equal(["Bob", DBNull.Value], leadValues);
 
         var firstValues = ExecuteColumn("SELECT FIRST_VALUE(Name) OVER (ORDER BY Id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM Users ORDER BY Id");
         Assert.Equal(["Ana", "Ana"], firstValues);
@@ -190,12 +177,22 @@ public sealed class Db2FunctionTests
     /// EN: Ensures DB2 JSON scalar extraction helpers return expected values when supported by the dialect version.
     /// PT: Garante que helpers escalares de extracao JSON do DB2 retornem valores esperados quando suportados pela versao do dialeto.
     /// </summary>
-    [Fact]
+    [Theory]
+    [MemberDataDb2Version]
     [Trait("Category", "Db2Mock")]
-    public void JsonFunctions_ShouldReturnExpectedValues()
+    public void JsonFunctions_ShouldReturnExpectedValues(int version)
     {
-        Assert.Equal("{\"active\":true,\"name\":\"Ana\"}", ExecuteScalar("SELECT JSON_QUERY(Email, '$.profile') FROM Users WHERE Id = 1"));
-        Assert.Equal("Ana", ExecuteScalar("SELECT JSON_VALUE(Email, '$.profile.name') FROM Users WHERE Id = 1"));
+        using var connection = CreateOpenConnection(version);
+
+        if (version < Db2Dialect.JsonFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT JSON_QUERY(Email, '$.profile') FROM Users WHERE Id = 1"));
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT JSON_VALUE(Email, '$.profile.name') FROM Users WHERE Id = 1"));
+            return;
+        }
+
+        Assert.Equal("{\"active\":true,\"name\":\"Ana\"}", ExecuteScalar(connection, "SELECT JSON_QUERY(Email, '$.profile') FROM Users WHERE Id = 1"));
+        Assert.Equal("Ana", ExecuteScalar(connection, "SELECT JSON_VALUE(Email, '$.profile.name') FROM Users WHERE Id = 1"));
     }
 
     /// <summary>
@@ -211,9 +208,31 @@ public sealed class Db2FunctionTests
         Assert.Equal(2L, Convert.ToInt64(ExecuteScalar("SELECT NEXT VALUE FOR seq_users FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
     }
 
-    private object? ExecuteScalar(string sql)
+    private static Db2ConnectionMock CreateOpenConnection(int? version = null)
     {
-        using var command = new Db2CommandMock(_connection)
+        var db = new Db2DbMock(version);
+        db.AddSequence("seq_users");
+        db.AddTable("Users",
+        [
+            new("Id", DbType.Int32, false),
+            new("Name", DbType.String, false),
+            new("Email", DbType.String, true),
+        ]);
+
+        var connection = new Db2ConnectionMock(db);
+        connection.Open();
+
+        ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', '{\"profile\":{\"active\":true,\"name\":\"Ana\"}}')");
+        ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bob', '{\"profile\":{\"active\":false,\"name\":\"Bob\"}}')");
+        return connection;
+    }
+
+    private object? ExecuteScalar(string sql)
+        => ExecuteScalar(_connection, sql);
+
+    private static object? ExecuteScalar(Db2ConnectionMock connection, string sql)
+    {
+        using var command = new Db2CommandMock(connection)
         {
             CommandText = sql
         };
@@ -235,8 +254,11 @@ public sealed class Db2FunctionTests
     }
 
     private void ExecuteNonQuery(string sql)
+        => ExecuteNonQuery(_connection, sql);
+
+    private static void ExecuteNonQuery(Db2ConnectionMock connection, string sql)
     {
-        using var command = new Db2CommandMock(_connection)
+        using var command = new Db2CommandMock(connection)
         {
             CommandText = sql
         };

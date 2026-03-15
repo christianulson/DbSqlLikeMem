@@ -130,6 +130,10 @@ internal sealed class NpgsqlDialect : SqlDialectBase
     /// </summary>
     public override bool SupportsJsonArrowOperators => Version >= JsonbMinVersion;
 
+    public override bool SupportsJsonQueryFunction => false;
+
+    public override bool SupportsJsonValueFunction => false;
+
     /// <summary>
     /// EN: Gets or sets allows parser cross dialect json operators.
     /// PT: Obtém ou define allows parser cross dialect json operators.
@@ -180,6 +184,9 @@ internal sealed class NpgsqlDialect : SqlDialectBase
 
     public override IReadOnlyCollection<string> TemporalFunctionCallNames
         => ["NOW"];
+
+    public override bool SupportsSqlServerMetadataIdentifier(string identifier)
+        => identifier.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// EN: Gets or sets concat returns null on null input.

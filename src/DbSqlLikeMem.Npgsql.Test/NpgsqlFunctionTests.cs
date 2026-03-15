@@ -16,54 +16,45 @@ public sealed class NpgsqlFunctionTests
     public NpgsqlFunctionTests(ITestOutputHelper helper)
         : base(helper)
     {
-        var db = new NpgsqlDbMock();
-        db.AddSequence("seq_users");
-        db.AddTable("Users",
-        [
-            new("Id", DbType.Int32, false),
-            new("Name", DbType.String, false),
-        ]);
-
-        _connection = new NpgsqlConnectionMock(db);
-        _connection.Open();
-
-        ExecuteNonQuery("INSERT INTO Users (Id, Name) VALUES (1, 'Ana')");
-        ExecuteNonQuery("INSERT INTO Users (Id, Name) VALUES (2, 'Bob')");
+        _connection = CreateOpenConnection();
     }
 
     /// <summary>
     /// EN: Ensures PostgreSQL system functions return expected values.
     /// PT: Garante que funcoes de sistema do PostgreSQL retornem valores esperados.
     /// </summary>
-    [Fact]
+    [Theory]
+    [MemberDataNpgsqlVersion]
     [Trait("Category", "PostgreSqlMock")]
-    public void SystemFunctions_ShouldReturnExpectedValues()
+    public void SystemFunctions_ShouldReturnExpectedValues(int version)
     {
-        Assert.Equal("postgres", ExecuteScalar("SELECT CURRENT_USER FROM Users WHERE Id = 1"));
-        Assert.Equal("postgres", ExecuteScalar("SELECT CURRENT_ROLE() FROM Users WHERE Id = 1"));
-        Assert.Equal("postgres", ExecuteScalar("SELECT CURRENT_DATABASE() FROM Users WHERE Id = 1"));
-        Assert.Equal("postgres", ExecuteScalar("SELECT CURRENT_CATALOG() FROM Users WHERE Id = 1"));
-        Assert.Equal("public", ExecuteScalar("SELECT CURRENT_SCHEMA() FROM Users WHERE Id = 1"));
-        Assert.Equal("\"$user\", public", ExecuteScalar("SELECT CURRENT_SETTING('search_path') FROM Users WHERE Id = 1"));
-        Assert.Equal("DbSqlLikeMem", ExecuteScalar("SELECT CURRENT_SETTING('application_name') FROM Users WHERE Id = 1"));
-        Assert.Equal("17", ExecuteScalar("SELECT CURRENT_SETTING('server_version') FROM Users WHERE Id = 1"));
-        Assert.Equal("170000", ExecuteScalar("SELECT CURRENT_SETTING('server_version_num') FROM Users WHERE Id = 1"));
-        Assert.Equal("PostgreSQL 17", ExecuteScalar("SELECT VERSION() FROM Users WHERE Id = 1"));
-        Assert.Equal("SELECT CURRENT_QUERY() FROM Users WHERE Id = 1", ExecuteScalar("SELECT CURRENT_QUERY() FROM Users WHERE Id = 1"));
+        using var connection = CreateOpenConnection(version);
 
-        var schemas = ExecuteScalar("SELECT CURRENT_SCHEMAS() FROM Users WHERE Id = 1");
+        Assert.Equal("postgres", ExecuteScalar(connection, "SELECT CURRENT_USER FROM Users WHERE Id = 1"));
+        Assert.Equal("postgres", ExecuteScalar(connection, "SELECT CURRENT_ROLE() FROM Users WHERE Id = 1"));
+        Assert.Equal("postgres", ExecuteScalar(connection, "SELECT CURRENT_DATABASE() FROM Users WHERE Id = 1"));
+        Assert.Equal("postgres", ExecuteScalar(connection, "SELECT CURRENT_CATALOG() FROM Users WHERE Id = 1"));
+        Assert.Equal("public", ExecuteScalar(connection, "SELECT CURRENT_SCHEMA() FROM Users WHERE Id = 1"));
+        Assert.Equal("\"$user\", public", ExecuteScalar(connection, "SELECT CURRENT_SETTING('search_path') FROM Users WHERE Id = 1"));
+        Assert.Equal("DbSqlLikeMem", ExecuteScalar(connection, "SELECT CURRENT_SETTING('application_name') FROM Users WHERE Id = 1"));
+        Assert.Equal(version.ToString(CultureInfo.InvariantCulture), ExecuteScalar(connection, "SELECT CURRENT_SETTING('server_version') FROM Users WHERE Id = 1"));
+        Assert.Equal($"{version}0000", ExecuteScalar(connection, "SELECT CURRENT_SETTING('server_version_num') FROM Users WHERE Id = 1"));
+        Assert.Equal($"PostgreSQL {version}", ExecuteScalar(connection, "SELECT VERSION() FROM Users WHERE Id = 1"));
+        Assert.Equal("SELECT CURRENT_QUERY() FROM Users WHERE Id = 1", ExecuteScalar(connection, "SELECT CURRENT_QUERY() FROM Users WHERE Id = 1"));
+
+        var schemas = ExecuteScalar(connection, "SELECT CURRENT_SCHEMAS() FROM Users WHERE Id = 1");
         var schemaList = Assert.IsType<string[]>(schemas);
         Assert.Contains("public", schemaList);
 
-        Assert.Equal(new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.UtcNow.Day), ((DateTime)ExecuteScalar("SELECT CURRENT_DATE FROM Users WHERE Id = 1")!).Date);
-        Assert.IsType<TimeSpan>(ExecuteScalar("SELECT CURRENT_TIME FROM Users WHERE Id = 1"));
-        Assert.IsType<DateTime>(ExecuteScalar("SELECT CURRENT_TIMESTAMP FROM Users WHERE Id = 1"));
-        Assert.IsType<DateTime>(ExecuteScalar("SELECT NOW() FROM Users WHERE Id = 1"));
-        Assert.IsType<DateTime>(ExecuteScalar("SELECT CLOCK_TIMESTAMP() FROM Users WHERE Id = 1"));
-        Assert.IsType<DateTime>(ExecuteScalar("SELECT STATEMENT_TIMESTAMP() FROM Users WHERE Id = 1"));
-        Assert.IsType<DateTime>(ExecuteScalar("SELECT TRANSACTION_TIMESTAMP() FROM Users WHERE Id = 1"));
-        Assert.IsType<TimeSpan>(ExecuteScalar("SELECT LOCALTIME() FROM Users WHERE Id = 1"));
-        Assert.IsType<DateTime>(ExecuteScalar("SELECT LOCALTIMESTAMP() FROM Users WHERE Id = 1"));
+        Assert.Equal(new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.UtcNow.Day), ((DateTime)ExecuteScalar(connection, "SELECT CURRENT_DATE FROM Users WHERE Id = 1")!).Date);
+        Assert.IsType<TimeSpan>(ExecuteScalar(connection, "SELECT CURRENT_TIME FROM Users WHERE Id = 1"));
+        Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT CURRENT_TIMESTAMP FROM Users WHERE Id = 1"));
+        Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT NOW() FROM Users WHERE Id = 1"));
+        Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT CLOCK_TIMESTAMP() FROM Users WHERE Id = 1"));
+        Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT STATEMENT_TIMESTAMP() FROM Users WHERE Id = 1"));
+        Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT TRANSACTION_TIMESTAMP() FROM Users WHERE Id = 1"));
+        Assert.IsType<TimeSpan>(ExecuteScalar(connection, "SELECT LOCALTIME() FROM Users WHERE Id = 1"));
+        Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT LOCALTIMESTAMP() FROM Users WHERE Id = 1"));
     }
 
     /// <summary>
@@ -180,7 +171,7 @@ public sealed class NpgsqlFunctionTests
         Assert.Equal("An", ExecuteScalar("SELECT LEFT('Ana', 2) FROM Users WHERE Id = 1"));
         Assert.Equal(3, Convert.ToInt32(ExecuteScalar("SELECT LENGTH('Ana') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal("ana", ExecuteScalar("SELECT LOWER('Ana') FROM Users WHERE Id = 1"));
-        Assert.Null(ExecuteScalar("SELECT NULLIF('Ana', 'Ana') FROM Users WHERE Id = 1"));
+        Assert.Equal(DBNull.Value, ExecuteScalar("SELECT NULLIF('Ana', 'Ana') FROM Users WHERE Id = 1"));
         Assert.Equal("na", ExecuteScalar("SELECT RIGHT('Ana', 2) FROM Users WHERE Id = 1"));
         Assert.Equal("na", ExecuteScalar("SELECT SUBSTR('Ana', 2) FROM Users WHERE Id = 1"));
         Assert.Equal("An", ExecuteScalar("SELECT SUBSTRING('Ana', 1, 2) FROM Users WHERE Id = 1"));
@@ -394,10 +385,10 @@ public sealed class NpgsqlFunctionTests
         Assert.Equal("1", ExecuteScalar("SELECT TO_JSON(1) FROM Users WHERE Id = 1"));
         Assert.Equal("\"Ana\"", ExecuteScalar("SELECT TO_JSONB('Ana') FROM Users WHERE Id = 1"));
         Assert.Equal("\"Ana\"", ExecuteScalar("SELECT ROW_TO_JSON('Ana') FROM Users WHERE Id = 1"));
-        Assert.Equal("{\"name\":\"Ana\"}", ExecuteScalar("SELECT JSON_QUERY('{\"user\":{\"name\":\"Ana\"}}', '$.user') FROM Users WHERE Id = 1"));
         Assert.Equal("123", ExecuteScalar("SELECT JSON_SCALAR(123) FROM Users WHERE Id = 1"));
         Assert.Equal("\"Ana\"", ExecuteScalar("SELECT JSON_SERIALIZE('Ana') FROM Users WHERE Id = 1"));
-        Assert.Equal("Ana", ExecuteScalar("SELECT JSON_VALUE('{\"user\":{\"name\":\"Ana\"}}', '$.user.name') FROM Users WHERE Id = 1"));
+        Assert.Throws<NotSupportedException>(() => ExecuteScalar("SELECT JSON_QUERY('{\"user\":{\"name\":\"Ana\"}}', '$.user') FROM Users WHERE Id = 1"));
+        Assert.Throws<NotSupportedException>(() => ExecuteScalar("SELECT JSON_VALUE('{\"user\":{\"name\":\"Ana\"}}', '$.user.name') FROM Users WHERE Id = 1"));
         Assert.Equal(true, ExecuteScalar("SELECT JSONB_PATH_EXISTS('{\"user\":{\"name\":\"Ana\"}}', '$.user.name') FROM Users WHERE Id = 1"));
         Assert.Equal("[\"Ana\"]", ExecuteScalar("SELECT JSONB_PATH_QUERY_ARRAY('{\"user\":{\"name\":\"Ana\"}}', '$.user.name') FROM Users WHERE Id = 1"));
         Assert.Equal("[1,\"Ana\",null]", ExecuteScalar("SELECT JSON_ARRAY(1, 'Ana', NULL) FROM Users WHERE Id = 1"));
@@ -501,41 +492,50 @@ public sealed class NpgsqlFunctionTests
     /// EN: Ensures PostgreSQL window functions return expected values for ordered partitions.
     /// PT: Garante que funcoes de janela do PostgreSQL retornem valores esperados para particoes ordenadas.
     /// </summary>
-    [Fact]
+    [Theory]
+    [MemberDataNpgsqlVersion]
     [Trait("Category", "PostgreSqlMock")]
-    public void WindowFunctions_ShouldReturnExpectedValues()
+    public void WindowFunctions_ShouldReturnExpectedValues(int version)
     {
-        var rowNumbers = ExecuteColumn("SELECT ROW_NUMBER() OVER (ORDER BY Id) FROM Users ORDER BY Id");
+        using var connection = CreateOpenConnection(version);
+
+        if (version < NpgsqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => ExecuteColumn(connection, "SELECT ROW_NUMBER() OVER (ORDER BY Id) FROM Users ORDER BY Id"));
+            return;
+        }
+
+        var rowNumbers = ExecuteColumn(connection, "SELECT ROW_NUMBER() OVER (ORDER BY Id) FROM Users ORDER BY Id");
         Assert.Equal([1L, 2L], rowNumbers);
 
-        var ranks = ExecuteColumn("SELECT RANK() OVER (ORDER BY LENGTH(Name)) FROM Users ORDER BY Id");
+        var ranks = ExecuteColumn(connection, "SELECT RANK() OVER (ORDER BY LENGTH(Name)) FROM Users ORDER BY Id");
         Assert.Equal([1L, 1L], ranks);
 
-        var denseRanks = ExecuteColumn("SELECT DENSE_RANK() OVER (ORDER BY LENGTH(Name)) FROM Users ORDER BY Id");
+        var denseRanks = ExecuteColumn(connection, "SELECT DENSE_RANK() OVER (ORDER BY LENGTH(Name)) FROM Users ORDER BY Id");
         Assert.Equal([1L, 1L], denseRanks);
 
-        var lags = ExecuteColumn("SELECT LAG(Name) OVER (ORDER BY Id) FROM Users ORDER BY Id");
-        Assert.Equal([null, "Ana"], lags);
+        var lags = ExecuteColumn(connection, "SELECT LAG(Name) OVER (ORDER BY Id) FROM Users ORDER BY Id");
+        Assert.Equal([DBNull.Value, "Ana"], lags);
 
-        var leads = ExecuteColumn("SELECT LEAD(Name) OVER (ORDER BY Id) FROM Users ORDER BY Id");
-        Assert.Equal(["Bob", null], leads);
+        var leads = ExecuteColumn(connection, "SELECT LEAD(Name) OVER (ORDER BY Id) FROM Users ORDER BY Id");
+        Assert.Equal(["Bob", DBNull.Value], leads);
 
-        var firstValues = ExecuteColumn("SELECT FIRST_VALUE(Name) OVER (ORDER BY Id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM Users ORDER BY Id");
+        var firstValues = ExecuteColumn(connection, "SELECT FIRST_VALUE(Name) OVER (ORDER BY Id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM Users ORDER BY Id");
         Assert.Equal(["Ana", "Ana"], firstValues);
 
-        var lastValues = ExecuteColumn("SELECT LAST_VALUE(Name) OVER (ORDER BY Id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM Users ORDER BY Id");
+        var lastValues = ExecuteColumn(connection, "SELECT LAST_VALUE(Name) OVER (ORDER BY Id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM Users ORDER BY Id");
         Assert.Equal(["Bob", "Bob"], lastValues);
 
-        var nthValues = ExecuteColumn("SELECT NTH_VALUE(Name, 2) OVER (ORDER BY Id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM Users ORDER BY Id");
+        var nthValues = ExecuteColumn(connection, "SELECT NTH_VALUE(Name, 2) OVER (ORDER BY Id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM Users ORDER BY Id");
         Assert.Equal(["Bob", "Bob"], nthValues);
 
-        var ntile = ExecuteColumn("SELECT NTILE(2) OVER (ORDER BY Id) FROM Users ORDER BY Id");
+        var ntile = ExecuteColumn(connection, "SELECT NTILE(2) OVER (ORDER BY Id) FROM Users ORDER BY Id");
         Assert.Equal([1L, 2L], ntile);
 
-        var percentRanks = ExecuteColumn("SELECT PERCENT_RANK() OVER (ORDER BY Id) FROM Users ORDER BY Id");
+        var percentRanks = ExecuteColumn(connection, "SELECT PERCENT_RANK() OVER (ORDER BY Id) FROM Users ORDER BY Id");
         Assert.Equal([0d, 1d], percentRanks);
 
-        var cumeDist = ExecuteColumn("SELECT CUME_DIST() OVER (ORDER BY Id) FROM Users ORDER BY Id");
+        var cumeDist = ExecuteColumn(connection, "SELECT CUME_DIST() OVER (ORDER BY Id) FROM Users ORDER BY Id");
         Assert.Equal([0.5d, 1d], cumeDist);
     }
 
@@ -568,9 +568,30 @@ public sealed class NpgsqlFunctionTests
         Assert.Equal(6L, Convert.ToInt64(ExecuteScalar("SELECT NEXTVAL('seq_users') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
     }
 
-    private object? ExecuteScalar(string sql)
+    private static NpgsqlConnectionMock CreateOpenConnection(int? version = null)
     {
-        using var command = new NpgsqlCommandMock(_connection)
+        var db = new NpgsqlDbMock(version);
+        db.AddSequence("seq_users");
+        db.AddTable("Users",
+        [
+            new("Id", DbType.Int32, false),
+            new("Name", DbType.String, false),
+        ]);
+
+        var connection = new NpgsqlConnectionMock(db);
+        connection.Open();
+
+        ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name) VALUES (1, 'Ana')");
+        ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name) VALUES (2, 'Bob')");
+        return connection;
+    }
+
+    private object? ExecuteScalar(string sql)
+        => ExecuteScalar(_connection, sql);
+
+    private static object? ExecuteScalar(NpgsqlConnectionMock connection, string sql)
+    {
+        using var command = new NpgsqlCommandMock(connection)
         {
             CommandText = sql
         };
@@ -578,8 +599,11 @@ public sealed class NpgsqlFunctionTests
     }
 
     private List<object?> ExecuteColumn(string sql)
+        => ExecuteColumn(_connection, sql);
+
+    private static List<object?> ExecuteColumn(NpgsqlConnectionMock connection, string sql)
     {
-        using var command = new NpgsqlCommandMock(_connection)
+        using var command = new NpgsqlCommandMock(connection)
         {
             CommandText = sql
         };
@@ -592,8 +616,11 @@ public sealed class NpgsqlFunctionTests
     }
 
     private void ExecuteNonQuery(string sql)
+        => ExecuteNonQuery(_connection, sql);
+
+    private static void ExecuteNonQuery(NpgsqlConnectionMock connection, string sql)
     {
-        using var command = new NpgsqlCommandMock(_connection)
+        using var command = new NpgsqlCommandMock(connection)
         {
             CommandText = sql
         };

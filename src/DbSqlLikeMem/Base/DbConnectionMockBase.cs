@@ -64,6 +64,9 @@ public abstract class DbConnectionMockBase(
     private readonly AutoSqlDialect _autoSqlDialect = new();
     private readonly Dictionary<string, long> _sessionSequenceValues =
         new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, object?> _sessionContextValues =
+        new(StringComparer.OrdinalIgnoreCase);
+    private byte[]? _contextInfo;
     private string? _lastSessionSequenceKey;
     private string? _currentQueryText;
 
@@ -1052,6 +1055,23 @@ public abstract class DbConnectionMockBase(
             && _sessionSequenceValues.TryGetValue(_lastSessionSequenceKey, out value);
     }
 
+    internal void SetSessionContextValue(string key, object? value)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return;
+
+        _sessionContextValues[key] = value;
+    }
+
+    internal bool TryGetSessionContextValue(string key, out object? value)
+        => _sessionContextValues.TryGetValue(key, out value);
+
+    internal void SetContextInfo(byte[]? value)
+        => _contextInfo = value;
+
+    internal byte[]? GetContextInfo()
+        => _contextInfo;
+
     private string BuildSessionSequenceKey(
         string sequenceName,
         string? schemaName)
@@ -1148,6 +1168,8 @@ public abstract class DbConnectionMockBase(
 
         _temporaryTables.Clear();
         _sessionSequenceValues.Clear();
+        _sessionContextValues.Clear();
+        _contextInfo = null;
         _lastSessionSequenceKey = null;
         SetLastFoundRows(0);
         ClearExecutionPlans();

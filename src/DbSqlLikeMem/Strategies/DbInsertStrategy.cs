@@ -62,7 +62,9 @@ internal static class DbInsertStrategy
                 tableMock.ValidateForeignKeysOnRow(newRow);
                 TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, SnapshotRow(newRow));
                 table.Add(newRow);
-                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, SnapshotRow(table[table.Count - 1]));
+                var insertedRow = table[table.Count - 1];
+                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, SnapshotRow(insertedRow));
+                TrySetLastInsertId(connection, table, insertedRow);
                 insertedCount++;
                 continue;
             }
@@ -75,7 +77,9 @@ internal static class DbInsertStrategy
                 tableMock.ValidateForeignKeysOnRow(newRow);
                 TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, SnapshotRow(newRow));
                 table.Add(newRow);
-                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, SnapshotRow(table[table.Count - 1]));
+                var insertedRow = table[table.Count - 1];
+                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, SnapshotRow(insertedRow));
+                TrySetLastInsertId(connection, table, insertedRow);
                 insertedCount++;
             }
             else
@@ -132,6 +136,18 @@ internal static class DbInsertStrategy
             new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
         connection.RegisterExecutionPlan(plan);
         return affected;
+    }
+
+    private static void TrySetLastInsertId(DbConnectionMockBase connection, ITableMock table, IReadOnlyDictionary<int, object?> insertedRow)
+    {
+        var identityColumn = table.Columns.Values.FirstOrDefault(c => c.Identity);
+        if (identityColumn is null)
+            return;
+
+        if (!insertedRow.TryGetValue(identityColumn.Index, out var value))
+            return;
+
+        connection.SetLastInsertId(value);
     }
 
     private static int CountInputTables(SqlSelectQuery query)
