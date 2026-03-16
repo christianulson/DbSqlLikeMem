@@ -81,6 +81,40 @@ public sealed class SqlServerFunctionTests
     }
 
     /// <summary>
+    /// EN: Ensures @@TEXTSIZE returns the default mock value across SQL Server versions.
+    /// PT: Garante que @@TEXTSIZE retorne o valor padrao do mock em todas as versoes do SQL Server.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [MemberDataSqlServerVersion]
+    [Trait("Category", "SqlServerMock")]
+    public void TextSizeIdentifier_ShouldReturnDefaultValue(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        var value = ExecuteScalar(connection, "SELECT @@TEXTSIZE FROM Users WHERE Id = 1");
+
+        Assert.Equal(4096, Convert.ToInt32(value, CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures NEWSEQUENTIALID returns a GUID across SQL Server versions.
+    /// PT: Garante que NEWSEQUENTIALID retorne um GUID em todas as versoes do SQL Server.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [MemberDataSqlServerVersion]
+    [Trait("Category", "SqlServerMock")]
+    public void NewSequentialId_ShouldReturnGuid(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        var value = ExecuteScalar(connection, "SELECT NEWSEQUENTIALID() FROM Users WHERE Id = 1");
+
+        Assert.True(Guid.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), out _));
+    }
+
+    /// <summary>
     /// EN: Ensures SQL Server transaction-state helpers reflect active transactions.
     /// PT: Garante que helpers de estado de transacao do SQL Server reflitam transacoes ativas.
     /// </summary>
@@ -219,6 +253,32 @@ public sealed class SqlServerFunctionTests
         }
 
         Assert.Equal(2L, Convert.ToInt64(ExecuteScalar(connection, "SELECT DATEDIFF_BIG(day, '2020-01-01', '2020-01-03') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures PERCENTILE_CONT and PERCENTILE_DISC aggregate helpers return deterministic values.
+    /// PT: Garante que os agregados PERCENTILE_CONT e PERCENTILE_DISC retornem valores determinísticos.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [MemberDataSqlServerVersion]
+    [Trait("Category", "SqlServerMock")]
+    public void PercentileAggregates_ShouldReturnExpectedValues(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 2012)
+        {
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT PERCENTILE_CONT(Id, 0.5) FROM Users"));
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT PERCENTILE_DISC(Id, 0.5) FROM Users"));
+            return;
+        }
+
+        var continuous = Convert.ToDouble(ExecuteScalar(connection, "SELECT PERCENTILE_CONT(Id, 0.5) FROM Users"), CultureInfo.InvariantCulture);
+        var discrete = Convert.ToDouble(ExecuteScalar(connection, "SELECT PERCENTILE_DISC(Id, 0.5) FROM Users"), CultureInfo.InvariantCulture);
+
+        Assert.Equal(1.5d, continuous, 8);
+        Assert.Equal(1d, discrete, 8);
     }
 
     /// <summary>

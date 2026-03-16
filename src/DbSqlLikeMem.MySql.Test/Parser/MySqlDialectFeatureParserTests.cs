@@ -108,6 +108,27 @@ public sealed class MySqlDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures CURDATE/CURTIME temporal functions are exposed by the dialect across all MySQL versions.
+    /// PT: Garante que as funcoes temporais CURDATE/CURTIME sejam expostas pelo dialeto em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void TemporalFunctions_ShouldExposeCurDateAndCurTime(int version)
+    {
+        var dialect = new MySqlDialect(version);
+
+        Assert.True(dialect.TemporalFunctionNames.ContainsKey("CURDATE"));
+        Assert.True(dialect.TemporalFunctionNames.ContainsKey("CURTIME"));
+        Assert.Contains("CURDATE", dialect.TemporalFunctionCallNames);
+        Assert.Contains("CURTIME", dialect.TemporalFunctionCallNames);
+
+        Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CURDATE()", dialect));
+        Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CURTIME()", dialect));
+    }
+
+    /// <summary>
     /// EN: Ensures MySQL parser/tokenizer still rejects SQL Server double-at system identifiers.
     /// PT: Garante que o parser/tokenizer MySQL continue rejeitando identificadores de sistema com double-at do SQL Server.
     /// </summary>

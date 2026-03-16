@@ -121,6 +121,10 @@ jobs:
               echo "Skipping Visual Studio extension symbol package: $symbol_name"
               continue
             fi
+            if [[ "$symbol_name" == DbSqlLikeMem.Benchmarks.*.snupkg ]]; then
+              echo "Skipping Benchmarks symbol package: $symbol_name"
+              continue
+            fi
 
             echo "Publishing symbols $symbol_name to NuGet.org"
             dotnet nuget push "$symbol" --api-key "$NUGET_API_KEY" --source "https://api.nuget.org/v3/index.json" --skip-duplicate

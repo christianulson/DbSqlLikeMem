@@ -158,6 +158,8 @@ internal sealed class MySqlDialect : SqlDialectBase
     public override IReadOnlyDictionary<string, SqlTemporalFunctionKind> TemporalFunctionNames
         => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
         {
+            ["CURDATE"] = SqlTemporalFunctionKind.Date,
+            ["CURTIME"] = SqlTemporalFunctionKind.Time,
             ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
             ["CURRENT_TIME"] = SqlTemporalFunctionKind.Time,
             ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
@@ -171,7 +173,7 @@ internal sealed class MySqlDialect : SqlDialectBase
         => ["CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP", "SYSTEMDATE"];
 
     public override IReadOnlyCollection<string> TemporalFunctionCallNames
-        => ["NOW", "SYSDATE"];
+        => ["CURDATE", "CURTIME", "NOW", "SYSDATE"];
 
     /// <summary>
     /// EN: Indicates whether string concatenation returns <c>NULL</c> when any operand is <c>NULL</c>.

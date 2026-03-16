@@ -1312,6 +1312,1415 @@ public sealed class MySqlMockTests
     }
 
     /// <summary>
+    /// EN: Verifies CURDATE and CURTIME return date and time values across MySQL versions.
+    /// PT: Verifica se CURDATE e CURTIME retornam valores de data e hora em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void CurDateAndCurTime_ShouldReturnExpectedTypes(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        using var command = new MySqlCommandMock(connection)
+        {
+            CommandText = "SELECT CURDATE(), CURTIME() FROM Users WHERE CURDATE() IS NOT NULL LIMIT 1"
+        };
+
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.IsType<DateTime>(reader.GetValue(0));
+        Assert.IsType<TimeSpan>(reader.GetValue(1));
+    }
+
+    /// <summary>
+    /// EN: Verifies STRCMP returns expected comparison results across MySQL versions.
+    /// PT: Verifica se STRCMP retorna os resultados de comparacao esperados em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void StrCmp_ShouldReturnExpectedValues(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(-1, Convert.ToInt32(ExecuteScalar(connection, "SELECT STRCMP('a','b') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT STRCMP('a','a') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT STRCMP('b','a') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT STRCMP(NULL,'a') FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies EXTRACT returns expected date parts across MySQL versions.
+    /// PT: Verifica se EXTRACT retorna as partes de data esperadas em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void Extract_ShouldReturnExpectedDateParts(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(2020, Convert.ToInt32(ExecuteScalar(connection, "SELECT EXTRACT(YEAR FROM '2020-02-29') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(2, Convert.ToInt32(ExecuteScalar(connection, "SELECT EXTRACT(MONTH FROM '2020-02-29') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(29, Convert.ToInt32(ExecuteScalar(connection, "SELECT EXTRACT(DAY FROM '2020-02-29') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(10, Convert.ToInt32(ExecuteScalar(connection, "SELECT EXTRACT(HOUR FROM '2020-02-29 10:05:06') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies RANDOM_BYTES follows version support rules.
+    /// PT: Verifica se RANDOM_BYTES segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void RandomBytes_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 56 || version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT RANDOM_BYTES(4) FROM Users LIMIT 1"));
+            return;
+        }
+
+        var value = ExecuteScalar(connection, "SELECT RANDOM_BYTES(4) FROM Users LIMIT 1");
+        Assert.Equal(4, Assert.IsType<byte[]>(value).Length);
+    }
+
+    /// <summary>
+    /// EN: Verifies COMPRESS/UNCOMPRESS/UNCOMPRESSED_LENGTH follow version support rules.
+    /// PT: Verifica se COMPRESS/UNCOMPRESS/UNCOMPRESSED_LENGTH seguem as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void CompressFunctions_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT COMPRESS('hello') FROM Users LIMIT 1"));
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT UNCOMPRESS(COMPRESS('hello')) FROM Users LIMIT 1"));
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT UNCOMPRESSED_LENGTH(COMPRESS('hello')) FROM Users LIMIT 1"));
+            return;
+        }
+
+        var compressed = ExecuteScalar(connection, "SELECT COMPRESS('hello') FROM Users LIMIT 1");
+        Assert.NotNull(compressed);
+
+        var uncompressed = ExecuteScalar(connection, "SELECT UNCOMPRESS(COMPRESS('hello')) FROM Users LIMIT 1");
+        var uncompressedBytes = Assert.IsType<byte[]>(uncompressed);
+        Assert.Equal("hello", System.Text.Encoding.UTF8.GetString(uncompressedBytes));
+
+        var length = ExecuteScalar(connection, "SELECT UNCOMPRESSED_LENGTH(COMPRESS('hello')) FROM Users LIMIT 1");
+        Assert.Equal(5L, Convert.ToInt64(length, CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies FORMAT_BYTES follows version support rules.
+    /// PT: Verifica se FORMAT_BYTES segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void FormatBytes_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 80 || version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT FORMAT_BYTES(1024) FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal("512 bytes", ExecuteScalar(connection, "SELECT FORMAT_BYTES(512) FROM Users LIMIT 1"));
+        Assert.Equal("1.00 KiB", ExecuteScalar(connection, "SELECT FORMAT_BYTES(1024) FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies FORMAT_PICO_TIME follows version support rules.
+    /// PT: Verifica se FORMAT_PICO_TIME segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void FormatPicoTime_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 80)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT FORMAT_PICO_TIME(1000) FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal("1.00 ns", ExecuteScalar(connection, "SELECT FORMAT_PICO_TIME(1000) FROM Users LIMIT 1"));
+        Assert.Equal("1.00 s", ExecuteScalar(connection, "SELECT FORMAT_PICO_TIME(1000000000000) FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies GROUPING follows MySQL version support rules.
+    /// PT: Verifica se GROUPING segue as regras de versao do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void Grouping_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 80)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT GROUPING(1) FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT GROUPING(1) FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies EXTRACTVALUE follows version support rules.
+    /// PT: Verifica se EXTRACTVALUE segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void ExtractValue_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT EXTRACTVALUE('<root/>', '/root') FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT EXTRACTVALUE('<root/>', '/root') FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies UPDATEXML follows version support rules.
+    /// PT: Verifica se UPDATEXML segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void UpdateXml_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT UPDATEXML('<root/>', '/root', '<x/>') FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT UPDATEXML('<root/>', '/root', '<x/>') FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies REGEXP_INSTR and REGEXP_REPLACE follow version support rules.
+    /// PT: Verifica se REGEXP_INSTR e REGEXP_REPLACE seguem as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void RegexInstrAndReplace_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 80)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT REGEXP_INSTR('abc123', '[0-9]+') FROM Users LIMIT 1"));
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT REGEXP_REPLACE('abc123', '[0-9]+', 'X') FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal(4, Convert.ToInt32(ExecuteScalar(connection, "SELECT REGEXP_INSTR('abc123', '[0-9]+') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("abcX", ExecuteScalar(connection, "SELECT REGEXP_REPLACE('abc123', '[0-9]+', 'X') FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies REGEXP_LIKE and REGEXP_SUBSTR follow version support rules.
+    /// PT: Verifica se REGEXP_LIKE e REGEXP_SUBSTR seguem as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void RegexLikeAndSubstr_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 80 || version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT REGEXP_LIKE('abc123', '[0-9]+') FROM Users LIMIT 1"));
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT REGEXP_SUBSTR('abc123', '[0-9]+') FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT REGEXP_LIKE('abc123', '[0-9]+') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("123", ExecuteScalar(connection, "SELECT REGEXP_SUBSTR('abc123', '[0-9]+') FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies JSON_STORAGE_SIZE follows version support rules.
+    /// PT: Verifica se JSON_STORAGE_SIZE segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void JsonStorageSize_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 80)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT JSON_STORAGE_SIZE('{\"a\":1}') FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal(7L, Convert.ToInt64(ExecuteScalar(connection, "SELECT JSON_STORAGE_SIZE('{\"a\":1}') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies JSON_OVERLAPS follows version support rules.
+    /// PT: Verifica se JSON_OVERLAPS segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void JsonOverlaps_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 80)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT JSON_OVERLAPS('[1,2,3]', '2') FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT JSON_OVERLAPS('[1,2,3]', '2') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT JSON_OVERLAPS('{\"a\":1}', '{\"a\":2}') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies JSON_APPEND follows version support rules.
+    /// PT: Verifica se JSON_APPEND segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void JsonAppend_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 56 || version >= 80)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT JSON_APPEND('[1]', '$', 2) FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal("[1,2]", ExecuteScalar(connection, "SELECT JSON_APPEND('[1]', '$', 2) FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies JSON_ARRAY_APPEND follows version support rules.
+    /// PT: Verifica se JSON_ARRAY_APPEND segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void JsonArrayAppend_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 56 || version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT JSON_ARRAY_APPEND('[1]', '$', 2) FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal("[1,2]", ExecuteScalar(connection, "SELECT JSON_ARRAY_APPEND('[1]', '$', 2) FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies JSON_ARRAY_INSERT follows version support rules.
+    /// PT: Verifica se JSON_ARRAY_INSERT segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void JsonArrayInsert_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 56)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT JSON_ARRAY_INSERT('[1,3]', '$[1]', 2) FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal("[1,2,3]", ExecuteScalar(connection, "SELECT JSON_ARRAY_INSERT('[1,3]', '$[1]', 2) FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies JSON_MERGE follows version support rules.
+    /// PT: Verifica se JSON_MERGE segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void JsonMerge_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 56 || version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT JSON_MERGE('{\"a\":1}', '{\"b\":2}') FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal("{\"a\":1,\"b\":2}", ExecuteScalar(connection, "SELECT JSON_MERGE('{\"a\":1}', '{\"b\":2}') FROM Users LIMIT 1"));
+        Assert.Equal("[1,2]", ExecuteScalar(connection, "SELECT JSON_MERGE('[1]', '[2]') FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies JSON_MERGE_PRESERVE follows version support rules.
+    /// PT: Verifica se JSON_MERGE_PRESERVE segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void JsonMergePreserve_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 56 || version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT JSON_MERGE_PRESERVE('{\"a\":1}', '{\"b\":2}') FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal("{\"a\":1,\"b\":2}", ExecuteScalar(connection, "SELECT JSON_MERGE_PRESERVE('{\"a\":1}', '{\"b\":2}') FROM Users LIMIT 1"));
+        Assert.Equal("[1,2]", ExecuteScalar(connection, "SELECT JSON_MERGE_PRESERVE('[1]', '[2]') FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies JSON_MERGE_PATCH follows version support rules.
+    /// PT: Verifica se JSON_MERGE_PATCH segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void JsonMergePatch_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 56)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT JSON_MERGE_PATCH('{\"a\":1}', '{\"a\":2}') FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal("{\"a\":2}", ExecuteScalar(connection, "SELECT JSON_MERGE_PATCH('{\"a\":1}', '{\"a\":2}') FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies JSON_OBJECTAGG follows version support rules.
+    /// PT: Verifica se JSON_OBJECTAGG segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void JsonObjectAgg_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        ExecuteScalar(connection, "INSERT INTO Users (Id, Name, Email) VALUES (201, 'Ana', NULL)");
+        ExecuteScalar(connection, "INSERT INTO Users (Id, Name, Email) VALUES (202, 'Bia', NULL)");
+
+        if (version < 56 || version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT JSON_OBJECTAGG(Id, Name) FROM Users"));
+            return;
+        }
+
+        var value = Convert.ToString(ExecuteScalar(connection, "SELECT JSON_OBJECTAGG(Id, Name) FROM Users"), CultureInfo.InvariantCulture);
+        using var doc = System.Text.Json.JsonDocument.Parse(value!);
+        Assert.Equal("Ana", doc.RootElement.GetProperty("201").GetString());
+        Assert.Equal("Bia", doc.RootElement.GetProperty("202").GetString());
+    }
+
+    /// <summary>
+    /// EN: Verifies AES_ENCRYPT/AES_DECRYPT follow version support rules.
+    /// PT: Verifica se AES_ENCRYPT/AES_DECRYPT seguem as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void AesEncryptDecrypt_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT AES_ENCRYPT('hello', 'key') FROM Users LIMIT 1"));
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT AES_DECRYPT(AES_ENCRYPT('hello', 'key'), 'key') FROM Users LIMIT 1"));
+            return;
+        }
+
+        var roundTrip = ExecuteScalar(connection, "SELECT AES_DECRYPT(AES_ENCRYPT('hello', 'key'), 'key') FROM Users LIMIT 1");
+        Assert.Equal("hello", Convert.ToString(roundTrip, CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies DES_ENCRYPT/DES_DECRYPT follow version support rules.
+    /// PT: Verifica se DES_ENCRYPT/DES_DECRYPT seguem as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void DesEncryptDecrypt_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version >= 80)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT DES_ENCRYPT('hello', 'key') FROM Users LIMIT 1"));
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT DES_DECRYPT(DES_ENCRYPT('hello', 'key'), 'key') FROM Users LIMIT 1"));
+            return;
+        }
+
+        var roundTrip = ExecuteScalar(connection, "SELECT DES_DECRYPT(DES_ENCRYPT('hello', 'key'), 'key') FROM Users LIMIT 1");
+        Assert.Equal("hello", Convert.ToString(roundTrip, CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies ENCODE/DECODE follow version support rules.
+    /// PT: Verifica se ENCODE/DECODE seguem as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void EncodeDecode_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version >= 80)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT ENCODE('hello', 'key') FROM Users LIMIT 1"));
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT DECODE(ENCODE('hello', 'key'), 'key') FROM Users LIMIT 1"));
+            return;
+        }
+
+        var roundTrip = ExecuteScalar(connection, "SELECT DECODE(ENCODE('hello', 'key'), 'key') FROM Users LIMIT 1");
+        Assert.Equal("hello", Convert.ToString(roundTrip, CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies ENCRYPT follows version support rules.
+    /// PT: Verifica se ENCRYPT segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void Encrypt_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version >= 80)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT ENCRYPT('hello', 'ab') FROM Users LIMIT 1"));
+            return;
+        }
+
+        var value = Convert.ToString(ExecuteScalar(connection, "SELECT ENCRYPT('hello', 'ab') FROM Users LIMIT 1"), CultureInfo.InvariantCulture);
+        Assert.False(string.IsNullOrWhiteSpace(value));
+    }
+
+    /// <summary>
+    /// EN: Verifies DEFAULT returns the column default value across MySQL versions.
+    /// PT: Verifica se DEFAULT retorna o valor padrao da coluna em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void Default_ShouldReturnColumnDefault(int version)
+    {
+        var db = new MySqlDbMock(version);
+        db.AddTable("Defaults", [
+            new("Id", DbType.Int32, false),
+            new("Name", DbType.String, false, defaultValue: "anon")
+        ]);
+
+        using var connection = new MySqlConnectionMock(db);
+        connection.Open();
+        ExecuteScalar(connection, "INSERT INTO Defaults (Id, Name) VALUES (1, 'bob')");
+
+        var value = ExecuteScalar(connection, "SELECT DEFAULT(Name) FROM Defaults LIMIT 1");
+        Assert.Equal("anon", Convert.ToString(value, CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies IS NOT NULL follows MySQL version support rules.
+    /// PT: Verifica se IS NOT NULL segue as regras de versao do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void IsNotNull_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 56)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT 1 WHERE 1 IS NOT NULL"));
+            return;
+        }
+
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT 1 WHERE 1 IS NOT NULL"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies NOT EXISTS follows MySQL version support rules.
+    /// PT: Verifica se NOT EXISTS segue as regras de versao do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void NotExists_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 56)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT 1 WHERE NOT EXISTS (SELECT 1 WHERE 1 = 0)"));
+            return;
+        }
+
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT 1 WHERE NOT EXISTS (SELECT 1 WHERE 1 = 0)"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies MEMBER OF follows MySQL version support rules.
+    /// PT: Verifica se MEMBER OF segue as regras de versao do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void MemberOf_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 80)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT 'a' MEMBER OF ('[\"a\",\"b\"]') FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT 'a' MEMBER OF ('[\"a\",\"b\"]') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT 'z' MEMBER OF ('[\"a\",\"b\"]') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies SLEEP follows version support rules.
+    /// PT: Verifica se SLEEP segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void Sleep_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT SLEEP(0.01) FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT SLEEP(0.01) FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT SLEEP(NULL) FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies STD/STDDEV aggregates follow version support rules.
+    /// PT: Verifica se agregacoes STD/STDDEV seguem as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void StdDevAggregates_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        ExecuteScalar(connection, "INSERT INTO Orders (OrderId, UserId, Amount) VALUES (10, 1, 1)");
+        ExecuteScalar(connection, "INSERT INTO Orders (OrderId, UserId, Amount) VALUES (11, 1, 3)");
+
+        Assert.Equal(1d, Convert.ToDouble(ExecuteScalar(connection, "SELECT STDDEV(Amount) FROM Orders"), CultureInfo.InvariantCulture), 9);
+        Assert.Equal(Math.Sqrt(2), Convert.ToDouble(ExecuteScalar(connection, "SELECT STDDEV_SAMP(Amount) FROM Orders"), CultureInfo.InvariantCulture), 9);
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT STD(Amount) FROM Orders"));
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT STDDEV_POP(Amount) FROM Orders"));
+            return;
+        }
+
+        Assert.Equal(1d, Convert.ToDouble(ExecuteScalar(connection, "SELECT STD(Amount) FROM Orders"), CultureInfo.InvariantCulture), 9);
+        Assert.Equal(1d, Convert.ToDouble(ExecuteScalar(connection, "SELECT STDDEV_POP(Amount) FROM Orders"), CultureInfo.InvariantCulture), 9);
+    }
+
+    /// <summary>
+    /// EN: Verifies GREATEST returns the maximum value across MySQL versions.
+    /// PT: Verifica se GREATEST retorna o maior valor em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void Greatest_ShouldReturnMaxValue(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(5, Convert.ToInt32(ExecuteScalar(connection, "SELECT GREATEST(1, 5, 3) FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("c", ExecuteScalar(connection, "SELECT GREATEST('a', 'c', 'b') FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies INSTR returns the expected position across MySQL versions.
+    /// PT: Verifica se INSTR retorna a posicao esperada em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void Instr_ShouldReturnExpectedPosition(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(4, Convert.ToInt32(ExecuteScalar(connection, "SELECT INSTR('foobar', 'bar') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT INSTR('foobar', 'baz') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT INSTR('foobar', '') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies RTRIM removes trailing spaces across MySQL versions.
+    /// PT: Verifica se RTRIM remove espacos finais em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void Rtrim_ShouldRemoveTrailingSpaces(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal("abc", ExecuteScalar(connection, "SELECT RTRIM('abc   ') FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies FORMAT returns the formatted number across MySQL versions.
+    /// PT: Verifica se FORMAT retorna o numero formatado em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void Format_ShouldReturnFormattedNumber(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        var formatted = ExecuteScalar(connection, "SELECT FORMAT(1234.567, 2) FROM Users LIMIT 1");
+        Assert.Equal("1,234.57", Convert.ToString(formatted, CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies HEX and UNHEX follow version support rules.
+    /// PT: Verifica se HEX e UNHEX seguem as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void HexFunctions_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT HEX('abc') FROM Users LIMIT 1"));
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT UNHEX('414243') FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal("616263", ExecuteScalar(connection, "SELECT HEX('abc') FROM Users LIMIT 1"));
+        var unhex = ExecuteScalar(connection, "SELECT UNHEX('414243') FROM Users LIMIT 1");
+        Assert.Equal(new byte[] { 0x41, 0x42, 0x43 }, Assert.IsType<byte[]>(unhex));
+    }
+
+    /// <summary>
+    /// EN: Verifies CRC32 returns the expected checksum across MySQL versions.
+    /// PT: Verifica se CRC32 retorna o checksum esperado em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void Crc32_ShouldReturnExpectedChecksum(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(3259397556L, Convert.ToInt64(ExecuteScalar(connection, "SELECT CRC32('MySQL') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT CRC32(NULL) FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies INET_ATON/INET_NTOA follow version support rules.
+    /// PT: Verifica se INET_ATON/INET_NTOA seguem as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void InetFunctions_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT INET_ATON('127.0.0.1') FROM Users LIMIT 1"));
+        }
+        else
+        {
+            Assert.Equal(2130706433L, Convert.ToInt64(ExecuteScalar(connection, "SELECT INET_ATON('127.0.0.1') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        }
+
+        Assert.Equal("127.0.0.1", ExecuteScalar(connection, "SELECT INET_NTOA(2130706433) FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies INET6_ATON/INET6_NTOA follow version support rules.
+    /// PT: Verifica se INET6_ATON/INET6_NTOA seguem as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void Inet6Functions_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 56 || version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT INET6_ATON('::1') FROM Users LIMIT 1"));
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT INET6_NTOA(FROM_BASE64('AAECAwQFBgcICQoLDA0ODw==')) FROM Users LIMIT 1"));
+            return;
+        }
+
+        var bytes = Assert.IsType<byte[]>(ExecuteScalar(connection, "SELECT INET6_ATON('::1') FROM Users LIMIT 1"));
+        Assert.Equal(16, bytes.Length);
+        Assert.Equal("::1", ExecuteScalar(connection, "SELECT INET6_NTOA(INET6_ATON('::1')) FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies UUID_TO_BIN/BIN_TO_UUID follow version support rules and preserve values.
+    /// PT: Verifica se UUID_TO_BIN/BIN_TO_UUID seguem as regras de versao e preservam valores.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void UuidBinaryFunctions_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        const string uuid = "00112233-4455-6677-8899-aabbccddeeff";
+
+        if (version < 80)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, $"SELECT UUID_TO_BIN('{uuid}') FROM Users LIMIT 1"));
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT BIN_TO_UUID(FROM_BASE64('ABEiM0RVZneImaq7zN3u/w==')) FROM Users LIMIT 1"));
+            return;
+        }
+
+        var binToUuid = ExecuteScalar(connection, "SELECT BIN_TO_UUID(FROM_BASE64('ABEiM0RVZneImaq7zN3u/w==')) FROM Users LIMIT 1");
+        Assert.Equal(uuid, Convert.ToString(binToUuid, CultureInfo.InvariantCulture));
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, $"SELECT UUID_TO_BIN('{uuid}') FROM Users LIMIT 1"));
+            return;
+        }
+
+        var roundTrip = ExecuteScalar(connection, $"SELECT BIN_TO_UUID(UUID_TO_BIN('{uuid}', 1), 1) FROM Users LIMIT 1");
+        Assert.Equal(uuid, Convert.ToString(roundTrip, CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies FROM_BASE64 follows version support rules and returns decoded bytes when available.
+    /// PT: Verifica se FROM_BASE64 segue as regras de versao e retorna bytes decodificados quando disponivel.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void FromBase64_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 56)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT FROM_BASE64('QQ==') FROM Users LIMIT 1"));
+            return;
+        }
+
+        var value = ExecuteScalar(connection, "SELECT FROM_BASE64('QQ==') FROM Users LIMIT 1");
+        Assert.Equal(new byte[] { 0x41 }, Assert.IsType<byte[]>(value));
+    }
+
+    /// <summary>
+    /// EN: Verifies TO_BASE64 follows version support rules and returns encoded text when available.
+    /// PT: Verifica se TO_BASE64 segue as regras de versao e retorna o texto codificado quando disponivel.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void ToBase64_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < 56 || version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT TO_BASE64('A') FROM Users LIMIT 1"));
+            return;
+        }
+
+        var value = ExecuteScalar(connection, "SELECT TO_BASE64('A') FROM Users LIMIT 1");
+        Assert.Equal("QQ==", Convert.ToString(value, CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies DATE_FORMAT returns formatted output across MySQL versions.
+    /// PT: Verifica se DATE_FORMAT retorna o texto formatado em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void DateFormat_ShouldReturnExpectedText(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        var value = ExecuteScalar(connection, "SELECT DATE_FORMAT('2020-02-29 10:05:06', '%Y-%m-%d %H:%i:%s') FROM Users LIMIT 1");
+        Assert.Equal("2020-02-29 10:05:06", Convert.ToString(value, CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies STR_TO_DATE follows version support rules.
+    /// PT: Verifica se STR_TO_DATE segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void StrToDate_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT STR_TO_DATE('2020-02-29 10:05:06', '%Y-%m-%d %H:%i:%s') FROM Users LIMIT 1"));
+            return;
+        }
+
+        var value = ExecuteScalar(connection, "SELECT STR_TO_DATE('2020-02-29 10:05:06', '%Y-%m-%d %H:%i:%s') FROM Users LIMIT 1");
+        Assert.Equal(new DateTime(2020, 2, 29, 10, 5, 6), Convert.ToDateTime(value, CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies FROM_UNIXTIME returns the expected date across MySQL versions.
+    /// PT: Verifica se FROM_UNIXTIME retorna a data esperada em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void FromUnixTime_ShouldReturnExpectedDate(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        var value = ExecuteScalar(connection, "SELECT FROM_UNIXTIME(0) FROM Users LIMIT 1");
+        Assert.Equal(new DateTime(1970, 1, 1, 0, 0, 0), Convert.ToDateTime(value, CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies FROM_DAYS follows version support rules.
+    /// PT: Verifica se FROM_DAYS segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void FromDays_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT FROM_DAYS(1) FROM Users LIMIT 1"));
+            return;
+        }
+
+        var value = ExecuteScalar(connection, "SELECT FROM_DAYS(1) FROM Users LIMIT 1");
+        Assert.Equal(new DateTime(1, 1, 1), Convert.ToDateTime(value, CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies DATE_SUB follows version support rules.
+    /// PT: Verifica se DATE_SUB segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void DateSub_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT DATE_SUB('2020-01-05', INTERVAL 2 DAY) FROM Users LIMIT 1"));
+            return;
+        }
+
+        var value = ExecuteScalar(connection, "SELECT DATE_SUB('2020-01-05', INTERVAL 2 DAY) FROM Users LIMIT 1");
+        Assert.Equal(new DateTime(2020, 1, 3), Convert.ToDateTime(value, CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies GET_FORMAT returns expected patterns across MySQL versions.
+    /// PT: Verifica se GET_FORMAT retorna os formatos esperados em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void GetFormat_ShouldReturnExpectedPatterns(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal("%Y-%m-%d", ExecuteScalar(connection, "SELECT GET_FORMAT(DATE, 'ISO') FROM Users LIMIT 1"));
+        Assert.Equal("%H:%i:%s", ExecuteScalar(connection, "SELECT GET_FORMAT(TIME, 'ISO') FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies CONVERT_TZ follows version support rules.
+    /// PT: Verifica se CONVERT_TZ segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void ConvertTimeZone_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT CONVERT_TZ('2020-01-01 00:00:00', '+00:00', '+02:00') FROM Users LIMIT 1"));
+            return;
+        }
+
+        var value = ExecuteScalar(connection, "SELECT CONVERT_TZ('2020-01-01 00:00:00', '+00:00', '+02:00') FROM Users LIMIT 1");
+        Assert.Equal(new DateTime(2020, 1, 1, 2, 0, 0), Convert.ToDateTime(value, CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies ELT returns the selected element across MySQL versions.
+    /// PT: Verifica se ELT retorna o elemento selecionado em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void Elt_ShouldReturnSelectedElement(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal("b", ExecuteScalar(connection, "SELECT ELT(2, 'a', 'b', 'c') FROM Users LIMIT 1"));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT ELT(0, 'a', 'b') FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies MAKE_SET returns comma-separated values across MySQL versions.
+    /// PT: Verifica se MAKE_SET retorna valores separados por virgula em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void MakeSet_ShouldReturnExpectedValues(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal("a,c", ExecuteScalar(connection, "SELECT MAKE_SET(5, 'a', 'b', 'c') FROM Users LIMIT 1"));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT MAKE_SET(0, 'a', 'b') FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies EXPORT_SET follows version support rules.
+    /// PT: Verifica se EXPORT_SET segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void ExportSet_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT EXPORT_SET(5, 'Y', 'N') FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal("Y,N,Y,N,N,N,N,N", ExecuteScalar(connection, "SELECT EXPORT_SET(5, 'Y', 'N', ',', 8) FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies CHARACTER_LENGTH returns the expected length across MySQL versions.
+    /// PT: Verifica se CHARACTER_LENGTH retorna o tamanho esperado em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void CharacterLength_ShouldReturnExpectedValue(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(3L, Convert.ToInt64(ExecuteScalar(connection, "SELECT CHARACTER_LENGTH('abc') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies CONVERT returns string output across MySQL versions.
+    /// PT: Verifica se CONVERT retorna texto em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void Convert_ShouldReturnString(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal("abc", ExecuteScalar(connection, "SELECT CONVERT('abc', CHAR) FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies CONV follows version support rules.
+    /// PT: Verifica se CONV segue as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void Conv_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT CONV(15, 10, 16) FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal("F", ExecuteScalar(connection, "SELECT CONV(15, 10, 16) FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies DATEDIFF uses the MySQL 2-argument signature across versions.
+    /// PT: Verifica se DATEDIFF usa a assinatura de 2 argumentos do MySQL em todas as versoes.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void DateDiff_ShouldReturnDaysDifference(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(2, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEDIFF('2020-01-03', '2020-01-01') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies day helper functions follow version support rules.
+    /// PT: Verifica se os helpers de dia seguem as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void DayFunctions_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal("Saturday", ExecuteScalar(connection, "SELECT DAYNAME('2020-02-29') FROM Users LIMIT 1"));
+        Assert.Equal(7, Convert.ToInt32(ExecuteScalar(connection, "SELECT DAYOFWEEK('2020-02-29') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT DAYOFMONTH('2020-02-29') FROM Users LIMIT 1"));
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT DAYOFYEAR('2020-02-29') FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal(29, Convert.ToInt32(ExecuteScalar(connection, "SELECT DAYOFMONTH('2020-02-29') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(60, Convert.ToInt32(ExecuteScalar(connection, "SELECT DAYOFYEAR('2020-02-29') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies DATABASE and SCHEMA follow version support rules.
+    /// PT: Verifica se DATABASE e SCHEMA seguem as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void DatabaseFunctions_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT DATABASE() FROM Users LIMIT 1"));
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT SCHEMA() FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal("DefaultSchema", ExecuteScalar(connection, "SELECT DATABASE() FROM Users LIMIT 1"));
+        Assert.Equal("DefaultSchema", ExecuteScalar(connection, "SELECT SCHEMA() FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies CONNECTION_ID returns a stable identifier across MySQL versions.
+    /// PT: Verifica se CONNECTION_ID retorna um identificador estavel em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void ConnectionId_ShouldReturnStableValue(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(1L, Convert.ToInt64(ExecuteScalar(connection, "SELECT CONNECTION_ID() FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies SESSION_USER and CURRENT_USER follow version support rules.
+    /// PT: Verifica se SESSION_USER e CURRENT_USER seguem as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void UserFunctions_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal("root@localhost", ExecuteScalar(connection, "SELECT SESSION_USER() FROM Users LIMIT 1"));
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT CURRENT_USER() FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal("root@localhost", ExecuteScalar(connection, "SELECT CURRENT_USER() FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies LOCALTIME and LOCALTIMESTAMP follow version support rules.
+    /// PT: Verifica se LOCALTIME e LOCALTIMESTAMP seguem as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void LocalTimeFunctions_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT LOCALTIME() FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT LOCALTIME() FROM Users LIMIT 1"));
+        Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT LOCALTIMESTAMP() FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies CHARSET and COERCIBILITY follow version support rules.
+    /// PT: Verifica se CHARSET e COERCIBILITY seguem as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void CharsetAndCoercibility_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT CHARSET('abc') FROM Users LIMIT 1"));
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT COERCIBILITY('abc') FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.Equal("utf8mb4", ExecuteScalar(connection, "SELECT CHARSET('abc') FROM Users LIMIT 1"));
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT COERCIBILITY('abc') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies COLLATION returns a default collation across MySQL versions.
+    /// PT: Verifica se COLLATION retorna uma collation padrao em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void Collation_ShouldReturnDefaultValue(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal("utf8mb4_general_ci", ExecuteScalar(connection, "SELECT COLLATION('abc') FROM Users LIMIT 1"));
+    }
+
+    /// <summary>
+    /// EN: Verifies numeric helpers follow version support rules.
+    /// PT: Verifica se helpers numericos seguem as regras de versao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "MySqlMock")]
+    [MemberDataMySqlVersion]
+    public void NumericFunctions_ShouldFollowVersionSupport(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(0d, Convert.ToDouble(ExecuteScalar(connection, "SELECT COS(0) FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.True(Convert.ToDouble(ExecuteScalar(connection, "SELECT EXP(1) FROM Users LIMIT 1"), CultureInfo.InvariantCulture) > 2d);
+
+        if (version >= 84)
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT COT(1) FROM Users LIMIT 1"));
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT DEGREES(3.141592653589793) FROM Users LIMIT 1"));
+            Assert.Throws<NotSupportedException>(() =>
+                ExecuteScalar(connection, "SELECT FLOOR(1.9) FROM Users LIMIT 1"));
+            return;
+        }
+
+        Assert.True(Convert.ToDouble(ExecuteScalar(connection, "SELECT COT(1) FROM Users LIMIT 1"), CultureInfo.InvariantCulture) > 0d);
+        Assert.Equal(180d, Convert.ToDouble(ExecuteScalar(connection, "SELECT DEGREES(3.141592653589793) FROM Users LIMIT 1"), CultureInfo.InvariantCulture), 9);
+        Assert.Equal(1d, Convert.ToDouble(ExecuteScalar(connection, "SELECT FLOOR(1.9) FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
     /// EN: Ensures DbMock implements IReadOnlyDictionary indexer for existing schemas.
     /// PT: Garante que DbMock implemente o indexador de IReadOnlyDictionary para schemas existentes.
     /// </summary>
@@ -1769,6 +3178,34 @@ public sealed class MySqlMockTests
         Assert.Equal(2, rows[1].ChunkId);
         Assert.Equal(1, rows[1].LexicalScore);
         Assert.All(rows, row => Assert.Equal("lexical", row.CandidateSource));
+    }
+
+    private static MySqlConnectionMock CreateOpenConnection(int? version = null)
+    {
+        var db = new MySqlDbMock(version);
+        db.AddTable("Users", [
+            new("Id", DbType.Int32, false),
+            new("Name", DbType.String, false) ,
+            new ("Email", DbType.String, true)
+        ]);
+        db.AddTable("Orders", [
+            new("OrderId",  DbType.Int32, false),
+            new("UserId",  DbType.Int32, false),
+            new("Amount",  DbType.Decimal, false, decimalPlaces : 2)
+        ]);
+
+        var connection = new MySqlConnectionMock(db);
+        connection.Open();
+        return connection;
+    }
+
+    private static object? ExecuteScalar(MySqlConnectionMock connection, string sql)
+    {
+        using var command = new MySqlCommandMock(connection)
+        {
+            CommandText = sql
+        };
+        return command.ExecuteScalar();
     }
 
 }

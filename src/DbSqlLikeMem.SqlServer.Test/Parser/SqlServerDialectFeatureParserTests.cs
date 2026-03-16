@@ -88,6 +88,80 @@ public sealed class SqlServerDialectFeatureParserTests
     }
 
     /// <summary>
+    /// EN: Ensures SQL Server metadata functions added to the mock remain enabled for every supported version.
+    /// PT: Garante que as funcoes de metadados do SQL Server adicionadas ao mock permaneçam habilitadas para todas as versoes suportadas.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void MetadataFunctions_ShouldBeEnabledForAllVersions(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+        var functions = new[]
+        {
+            "APPLOCK_MODE",
+            "APPLOCK_TEST",
+            "ASSEMBLYPROPERTY",
+            "CERTENCODED",
+            "CERTPRIVATEKEY",
+            "CURSOR_STATUS",
+            "FILE_ID",
+            "FILE_IDEX",
+            "FILE_NAME",
+            "FILEGROUP_ID",
+            "FILEGROUP_NAME",
+            "FILEGROUPPROPERTY",
+            "FILEPROPERTY",
+            "FULLTEXTCATALOGPROPERTY",
+            "FULLTEXTSERVICEPROPERTY",
+            "GET_FILESTREAM_TRANSACTION_CONTEXT",
+            "HAS_PERMS_BY_NAME",
+            "INDEX_COL",
+            "INDEXKEY_PROPERTY",
+            "INDEXPROPERTY",
+            "MIN_ACTIVE_ROWVERSION",
+            "OBJECT_DEFINITION",
+            "PWDCOMPARE",
+            "PWDENCRYPT",
+            "STATS_DATE",
+        };
+
+        foreach (var name in functions)
+            Assert.True(dialect.SupportsSqlServerMetadataFunction(name), name);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server metadata identifiers include @@TEXTSIZE for every supported version.
+    /// PT: Garante que os identificadores de metadados do SQL Server incluam @@TEXTSIZE para todas as versoes suportadas.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void MetadataIdentifiers_ShouldIncludeTextSize(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        Assert.True(dialect.SupportsSqlServerMetadataIdentifier("@@TEXTSIZE"));
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server scalar functions include NEWSEQUENTIALID for every supported version.
+    /// PT: Garante que funcoes escalares do SQL Server incluam NEWSEQUENTIALID para todas as versoes suportadas.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void ScalarFunctions_ShouldIncludeNewSequentialId(int version)
+    {
+        var dialect = new SqlServerDialect(version);
+
+        Assert.True(dialect.SupportsSqlServerScalarFunction("NEWSEQUENTIALID"));
+    }
+
+    /// <summary>
     /// EN: Ensures SQL Server parses CROSS APPLY with correlated derived subqueries once the dialect version supports the native clause.
     /// PT: Garante que o SQL Server interprete CROSS APPLY com subqueries derivadas correlacionadas quando a versao do dialeto suportar a clausula nativa.
     /// </summary>

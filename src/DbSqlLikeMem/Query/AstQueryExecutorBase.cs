@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO.Compression;
 using DbSqlLikeMem.Models;
 using System.Security.Cryptography;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -68,7 +69,7 @@ internal abstract class AstQueryExecutorBase(
         "CHECKSUM_AGG","STDEV","STDEVP",
         "APPROX_COUNT_DISTINCT","APPROX_COUNT_DISTINCT_AGG","APPROX_COUNT_DISTINCT_DETAIL","APPROX_MEDIAN","APPROX_PERCENTILE","APPROX_PERCENTILE_AGG","APPROX_PERCENTILE_DETAIL",
         "REGR_AVGX","REGR_AVGY","REGR_COUNT","REGR_INTERCEPT","REGR_R2","REGR_SLOPE","REGR_SXX","REGR_SXY","REGR_SYY",
-        "STDDEV","STDDEV_POP","STDDEV_SAMP","STATS_BINOMIAL_TEST","STATS_CROSSTAB","STATS_F_TEST","STATS_KS_TEST","STATS_MODE","STATS_MW_TEST","STATS_ONE_WAY_ANOVA",
+        "STD","STDDEV","STDDEV_POP","STDDEV_SAMP","STATS_BINOMIAL_TEST","STATS_CROSSTAB","STATS_F_TEST","STATS_KS_TEST","STATS_MODE","STATS_MW_TEST","STATS_ONE_WAY_ANOVA",
         "STATS_T_TEST_INDEP","STATS_T_TEST_INDEPU","STATS_T_TEST_ONE","STATS_T_TEST_PAIRED","STATS_WSR_TEST","XMLAGG","RATIO_TO_REPORT",
         "ARRAY_AGG","BOOL_AND","BOOL_OR","EVERY","JSON_AGG","JSONB_AGG",
         "JSON_OBJECT_AGG","JSON_OBJECT_AGG_STRICT","JSON_OBJECT_AGG_UNIQUE","JSON_OBJECT_AGG_UNIQUE_STRICT",
@@ -4249,6 +4250,7 @@ private void FillPercentRankOrCumeDist(
                 || identifier.Name.Equals("@@DATEFIRST", StringComparison.OrdinalIgnoreCase)
                 || identifier.Name.Equals("@@IDENTITY", StringComparison.OrdinalIgnoreCase)
                 || identifier.Name.Equals("@@MAX_PRECISION", StringComparison.OrdinalIgnoreCase)
+                || identifier.Name.Equals("@@TEXTSIZE", StringComparison.OrdinalIgnoreCase)
                 || identifier.Name.Equals("SESSION_USER", StringComparison.OrdinalIgnoreCase)
                 || identifier.Name.Equals("SYSTEM_USER", StringComparison.OrdinalIgnoreCase))
             && !dialect.SupportsSqlServerMetadataIdentifier(identifier.Name))
@@ -4267,6 +4269,10 @@ private void FillPercentRankOrCumeDist(
         if (identifier.Name.Equals("@@MAX_PRECISION", StringComparison.OrdinalIgnoreCase)
             && dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
             return 38;
+
+        if (identifier.Name.Equals("@@TEXTSIZE", StringComparison.OrdinalIgnoreCase)
+            && dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            return 4096;
 
         if (identifier.Name.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase)
             && dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
@@ -6350,6 +6356,90 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalDecodeFunction(fn, dialect, EvalArg, out var decodeResult))
             return decodeResult;
 
+        if (TryEvalMySqlBase64Functions(fn, dialect, EvalArg, out var base64Result))
+            return base64Result;
+
+        if (TryEvalMySqlStringCompareFunction(fn, dialect, EvalArg, out var stringCompareResult))
+            return stringCompareResult;
+
+        if (TryEvalMySqlChecksumFunction(fn, dialect, EvalArg, out var checksumResult))
+            return checksumResult;
+
+        if (TryEvalMySqlNetworkFunctions(fn, dialect, EvalArg, out var networkResult))
+            return networkResult;
+
+        if (TryEvalMySqlUuidFunctions(fn, dialect, EvalArg, out var uuidResult))
+            return uuidResult;
+
+        if (TryEvalMySqlDateFormatFunction(fn, dialect, EvalArg, out var dateFormatResult))
+            return dateFormatResult;
+
+        if (TryEvalMySqlStrToDateFunction(fn, dialect, EvalArg, out var strToDateResult))
+            return strToDateResult;
+
+        if (TryEvalMySqlFromUnixTimeFunction(fn, dialect, EvalArg, out var fromUnixTimeResult))
+            return fromUnixTimeResult;
+
+        if (TryEvalMySqlFromDaysFunction(fn, dialect, EvalArg, out var fromDaysResult))
+            return fromDaysResult;
+
+        if (TryEvalMySqlDateSubFunction(fn, dialect, row, group, ctes, EvalArg, out var dateSubResult))
+            return dateSubResult;
+
+        if (TryEvalMySqlGetFormatFunction(fn, dialect, EvalArg, out var getFormatResult))
+            return getFormatResult;
+
+        if (TryEvalMySqlConvertTzFunction(fn, dialect, EvalArg, out var convertTzResult))
+            return convertTzResult;
+
+        if (TryEvalMySqlConvFunction(fn, dialect, EvalArg, out var convResult))
+            return convResult;
+
+        if (TryEvalMySqlDayFunctions(fn, dialect, EvalArg, out var dayResult))
+            return dayResult;
+
+        if (TryEvalMySqlDatabaseFunctions(fn, dialect, EvalArg, out var databaseResult))
+            return databaseResult;
+
+        if (TryEvalMySqlStringMetadataFunctions(fn, dialect, EvalArg, out var stringMetadataResult))
+            return stringMetadataResult;
+
+        if (TryEvalMySqlSetFunctions(fn, dialect, EvalArg, out var setResult))
+            return setResult;
+
+        if (TryEvalMySqlHexFunctions(fn, dialect, EvalArg, out var hexResult))
+            return hexResult;
+
+        if (TryEvalMySqlFormatFunction(fn, dialect, EvalArg, out var mysqlFormatResult))
+            return mysqlFormatResult;
+
+        if (TryEvalMySqlRandomBytesFunction(fn, dialect, EvalArg, out var randomBytesResult))
+            return randomBytesResult;
+
+        if (TryEvalMySqlSleepFunction(fn, dialect, EvalArg, out var sleepResult))
+            return sleepResult;
+
+        if (TryEvalMySqlCompressFunctions(fn, dialect, EvalArg, out var compressResult))
+            return compressResult;
+
+        if (TryEvalMySqlFormatBytesFunction(fn, dialect, EvalArg, out var formatBytesResult))
+            return formatBytesResult;
+
+        if (TryEvalMySqlFormatPicoTimeFunction(fn, dialect, EvalArg, out var formatPicoTimeResult))
+            return formatPicoTimeResult;
+
+        if (TryEvalMySqlXmlFunctions(fn, dialect, EvalArg, out var mysqlXmlResult))
+            return mysqlXmlResult;
+
+        if (TryEvalMySqlCryptoFunctions(fn, dialect, EvalArg, out var mysqlCryptoResult))
+            return mysqlCryptoResult;
+
+        if (TryEvalMySqlDefaultFunction(fn, dialect, row, EvalArg, out var mysqlDefaultResult))
+            return mysqlDefaultResult;
+
+        if (TryEvalMySqlMemberOfFunction(fn, dialect, EvalArg, out var mysqlMemberOfResult))
+            return mysqlMemberOfResult;
+
         if (TryEvalCoalesceFunction(fn, EvalArg, out var coalesceResult))
             return coalesceResult;
 
@@ -6494,6 +6584,9 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalOracleRawFunctions(fn, dialect, EvalArg, out var rawResult))
             return rawResult;
 
+        if (TryEvalMySqlRegexFunctions(fn, dialect, EvalArg, out var mysqlRegexResult))
+            return mysqlRegexResult;
+
         if (TryEvalOracleRegexFunctions(fn, dialect, EvalArg, out var regexResult))
             return regexResult;
 
@@ -6572,8 +6665,20 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalPostgresUuidFunctions(fn, dialect, out var postgresUuidResult))
             return postgresUuidResult;
 
-        if (TryEvalNumericFunction(fn, EvalArg, out var numericResult))
+        var numericResult = TryEvalNumericFunction(fn, EvalArg, out var handledNumeric);
+        if (handledNumeric)
+        {
+            if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
+                && (fn.Name.Equals("COT", StringComparison.OrdinalIgnoreCase)
+                    || fn.Name.Equals("DEGREES", StringComparison.OrdinalIgnoreCase)
+                    || fn.Name.Equals("FLOOR", StringComparison.OrdinalIgnoreCase))
+                && dialect.Version >= 84)
+            {
+                throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
+            }
+
             return numericResult;
+        }
 
         if (TryEvalAppNameFunction(fn, out var appNameResult))
             return appNameResult;
@@ -6581,11 +6686,18 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalCharIndexFunction(fn, EvalArg, out var charIndexResult))
             return charIndexResult;
 
-        if (TryEvalCurrentUserFunction(fn, out var currentUserResult))
+        if (TryEvalCurrentUserFunction(fn, dialect, out var currentUserResult))
             return currentUserResult;
 
         if (dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
-            && (fn.Name.Equals("DB_ID", StringComparison.OrdinalIgnoreCase)
+            && (fn.Name.Equals("APP_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("APPLOCK_MODE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("APPLOCK_TEST", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("ASSEMBLYPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CERTENCODED", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CERTPRIVATEKEY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("CURSOR_STATUS", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("DB_ID", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("CURRENT_REQUEST_ID", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("CURRENT_TRANSACTION_ID", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("CONTEXT_INFO", StringComparison.OrdinalIgnoreCase)
@@ -6597,6 +6709,22 @@ private void FillPercentRankOrCumeDist(
                 || fn.Name.Equals("COL_LENGTH", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("COL_NAME", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("OBJECT_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FILE_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FILE_IDEX", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FILE_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FILEGROUP_ID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FILEGROUP_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FILEGROUPPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FILEPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FULLTEXTCATALOGPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("FULLTEXTSERVICEPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("GET_FILESTREAM_TRANSACTION_CONTEXT", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("HAS_PERMS_BY_NAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("INDEX_COL", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("INDEXKEY_PROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("INDEXPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("MIN_ACTIVE_ROWVERSION", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("OBJECT_DEFINITION", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("OBJECTPROPERTY", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("OBJECTPROPERTYEX", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("OBJECT_NAME", StringComparison.OrdinalIgnoreCase)
@@ -6606,6 +6734,8 @@ private void FillPercentRankOrCumeDist(
                 || fn.Name.Equals("IS_SRVROLEMEMBER", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("ORIGINAL_DB_NAME", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("ORIGINAL_LOGIN", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("PWDCOMPARE", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("PWDENCRYPT", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("SCHEMA_ID", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("SCHEMA_NAME", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("SESSION_CONTEXT", StringComparison.OrdinalIgnoreCase)
@@ -6615,6 +6745,7 @@ private void FillPercentRankOrCumeDist(
                 || fn.Name.Equals("SUSER_NAME", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("SUSER_SID", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("SUSER_SNAME", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("STATS_DATE", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("TYPE_ID", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("TYPE_NAME", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("TYPEPROPERTY", StringComparison.OrdinalIgnoreCase)
@@ -6681,6 +6812,7 @@ private void FillPercentRankOrCumeDist(
                 || fn.Name.Equals("NCHAR", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("JSON_MODIFY", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("NEWID", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("NEWSEQUENTIALID", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("REPLACE", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("RIGHT", StringComparison.OrdinalIgnoreCase)
                 || fn.Name.Equals("ROUND", StringComparison.OrdinalIgnoreCase)
@@ -6809,7 +6941,7 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalGetAnsiNullFunction(fn, out var getAnsiNullResult))
             return getAnsiNullResult;
 
-        if (TryEvalGroupingFunctions(fn, EvalArg, out var groupingResult))
+        if (TryEvalGroupingFunctions(fn, dialect, EvalArg, out var groupingResult))
             return groupingResult;
 
         if (TryEvalHostFunctions(fn, out var hostResult))
@@ -6857,7 +6989,7 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalJsonDepthFunction(fn, EvalArg, out var jsonDepthResult))
             return jsonDepthResult;
 
-        if (TryEvalJsonUtilityFunctions(fn, EvalArg, out var jsonUtilityResult))
+        if (TryEvalJsonUtilityFunctions(fn, dialect, EvalArg, out var jsonUtilityResult))
             return jsonUtilityResult;
 
         if (TryEvalMinMaxFunctions(fn, dialect, EvalArg, out var minMaxResult))
@@ -7829,6 +7961,22 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
+        if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count == 0)
+                throw new InvalidOperationException("CONVERT() espera ao menos um argumento.");
+
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            result = value is string text ? text : value!.ToString();
+            return true;
+        }
+
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
@@ -8028,6 +8176,2047 @@ private void FillPercentRankOrCumeDist(
         // Data mining functions are not simulated: return null consistently.
         result = null;
         return true;
+    }
+
+    private static bool TryEvalMySqlBase64Functions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!(fn.Name.Equals("FROM_BASE64", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("TO_BASE64", StringComparison.OrdinalIgnoreCase)))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        var isToBase64 = fn.Name.Equals("TO_BASE64", StringComparison.OrdinalIgnoreCase);
+        var minSupportedVersion = 56;
+        if (dialect.Version < minSupportedVersion
+            || (isToBase64 && dialect.Version >= 84))
+        {
+            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
+        }
+
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() espera ao menos um argumento.");
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (isToBase64)
+        {
+            var bytes = value as byte[]
+                ?? Encoding.UTF8.GetBytes(value.ToString() ?? string.Empty);
+            result = Convert.ToBase64String(bytes);
+            return true;
+        }
+
+        var payload = value.ToString();
+        if (string.IsNullOrWhiteSpace(payload))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            result = Convert.FromBase64String(payload);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalMySqlStringCompareFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("STRCMP", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("STRCMP() espera dois argumentos.");
+
+        var left = evalArg(0);
+        var right = evalArg(1);
+        if (IsNullish(left) || IsNullish(right))
+        {
+            result = null;
+            return true;
+        }
+
+        var comparison = string.Compare(
+            Convert.ToString(left, CultureInfo.InvariantCulture),
+            Convert.ToString(right, CultureInfo.InvariantCulture),
+            StringComparison.Ordinal);
+
+        result = comparison < 0 ? -1 : comparison > 0 ? 1 : 0;
+        return true;
+    }
+
+    private static bool TryEvalMySqlChecksumFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("CRC32", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException("CRC32() espera um argumento.");
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var bytes = value as byte[]
+            ?? Encoding.UTF8.GetBytes(Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty);
+        var crc = ComputeCrc32(bytes);
+        result = (long)crc;
+        return true;
+    }
+
+    private static bool TryEvalMySqlNetworkFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("INET_ATON" or "INET_NTOA" or "INET6_ATON" or "INET6_NTOA"))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (fn.Args.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        if (name is "INET_ATON" or "INET6_ATON")
+        {
+            if (fn.Args.Count == 0)
+                throw new InvalidOperationException($"{name}() espera um argumento.");
+        }
+
+        if (name is "INET_ATON")
+        {
+            if (dialect.Version >= 84)
+                throw SqlUnsupported.ForDialect(dialect, "INET_ATON");
+
+            var textValue = evalArg(0);
+            if (IsNullish(textValue))
+            {
+                result = null;
+                return true;
+            }
+
+            var text = Convert.ToString(textValue, CultureInfo.InvariantCulture) ?? string.Empty;
+            if (!IPAddress.TryParse(text, out var address) || address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
+            {
+                result = null;
+                return true;
+            }
+
+            var bytes = address.GetAddressBytes();
+            var numeric = ((uint)bytes[0] << 24) | ((uint)bytes[1] << 16) | ((uint)bytes[2] << 8) | bytes[3];
+            result = (long)numeric;
+            return true;
+        }
+
+        if (name is "INET_NTOA")
+        {
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryConvertNumericToUInt64(value, out var numeric) || numeric > uint.MaxValue)
+            {
+                result = null;
+                return true;
+            }
+
+            var bytes = new[]
+            {
+                (byte)((numeric >> 24) & 0xFF),
+                (byte)((numeric >> 16) & 0xFF),
+                (byte)((numeric >> 8) & 0xFF),
+                (byte)(numeric & 0xFF)
+            };
+            result = new IPAddress(bytes).ToString();
+            return true;
+        }
+
+        if (name is "INET6_ATON")
+        {
+            if (dialect.Version < 56 || dialect.Version >= 84)
+                throw SqlUnsupported.ForDialect(dialect, "INET6_ATON");
+
+            var textValue = evalArg(0);
+            if (IsNullish(textValue))
+            {
+                result = null;
+                return true;
+            }
+
+            var text = Convert.ToString(textValue, CultureInfo.InvariantCulture) ?? string.Empty;
+            if (!IPAddress.TryParse(text, out var address))
+            {
+                result = null;
+                return true;
+            }
+
+            result = address.GetAddressBytes();
+            return true;
+        }
+
+        if (name is "INET6_NTOA")
+        {
+            if (dialect.Version < 56 || dialect.Version >= 84)
+                throw SqlUnsupported.ForDialect(dialect, "INET6_NTOA");
+
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (value is not byte[] bytes || (bytes.Length != 4 && bytes.Length != 16))
+            {
+                result = null;
+                return true;
+            }
+
+            result = new IPAddress(bytes).ToString();
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalMySqlUuidFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("UUID_TO_BIN" or "BIN_TO_UUID"))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException($"{name}() espera ao menos um argumento.");
+
+        var swapFlag = false;
+        if (fn.Args.Count > 1)
+        {
+            var flagValue = evalArg(1);
+            if (!IsNullish(flagValue) && TryConvertNumericToInt64(flagValue, out var numericFlag))
+                swapFlag = numericFlag != 0;
+        }
+
+        if (name == "UUID_TO_BIN")
+        {
+            if (dialect.Version < 80 || dialect.Version >= 84)
+                throw SqlUnsupported.ForDialect(dialect, "UUID_TO_BIN");
+
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (value is byte[] byteValue)
+            {
+                if (byteValue.Length != 16)
+                {
+                    result = null;
+                    return true;
+                }
+
+                result = swapFlag ? ApplyMySqlUuidSwap(byteValue) : byteValue.ToArray();
+                return true;
+            }
+
+            var text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+            if (!TryParseUuidHex(text, out var bytes))
+            {
+                result = null;
+                return true;
+            }
+
+            result = swapFlag ? ApplyMySqlUuidSwap(bytes) : bytes;
+            return true;
+        }
+
+        if (dialect.Version < 80)
+            throw SqlUnsupported.ForDialect(dialect, "BIN_TO_UUID");
+
+        var binValue = evalArg(0);
+        if (IsNullish(binValue))
+        {
+            result = null;
+            return true;
+        }
+
+        if (binValue is not byte[] binBytes || binBytes.Length != 16)
+        {
+            result = null;
+            return true;
+        }
+
+        var normalized = swapFlag ? ApplyMySqlUuidUnswap(binBytes) : binBytes.ToArray();
+        result = FormatUuid(normalized);
+        return true;
+    }
+
+    private static bool TryConvertNumericToUInt64(object value, out ulong numeric)
+    {
+        numeric = 0;
+        switch (value)
+        {
+            case byte b:
+                numeric = b;
+                return true;
+            case sbyte sb:
+                if (sb < 0) return false;
+                numeric = (ulong)sb;
+                return true;
+            case short s:
+                if (s < 0) return false;
+                numeric = (ulong)s;
+                return true;
+            case ushort us:
+                numeric = us;
+                return true;
+            case int i:
+                if (i < 0) return false;
+                numeric = (ulong)i;
+                return true;
+            case uint ui:
+                numeric = ui;
+                return true;
+            case long l:
+                if (l < 0) return false;
+                numeric = (ulong)l;
+                return true;
+            case ulong ul:
+                numeric = ul;
+                return true;
+        }
+
+        var text = Convert.ToString(value, CultureInfo.InvariantCulture);
+        return ulong.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out numeric);
+    }
+
+    private static bool TryConvertNumericToInt64(object value, out long numeric)
+    {
+        switch (value)
+        {
+            case sbyte sb:
+                numeric = sb;
+                return true;
+            case byte b:
+                numeric = b;
+                return true;
+            case short s:
+                numeric = s;
+                return true;
+            case ushort us:
+                numeric = us;
+                return true;
+            case int i:
+                numeric = i;
+                return true;
+            case uint ui:
+                numeric = ui;
+                return true;
+            case long l:
+                numeric = l;
+                return true;
+            case ulong ul when ul <= long.MaxValue:
+                numeric = (long)ul;
+                return true;
+        }
+
+        return long.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), NumberStyles.Integer, CultureInfo.InvariantCulture, out numeric);
+    }
+
+    private static uint ComputeCrc32(byte[] bytes)
+    {
+        var table = Crc32Table.Value;
+        var crc = uint.MaxValue;
+        foreach (var b in bytes)
+        {
+            var index = (crc ^ b) & 0xFF;
+            crc = (crc >> 8) ^ table[index];
+        }
+
+        return crc ^ uint.MaxValue;
+    }
+
+    private static readonly Lazy<uint[]> Crc32Table = new(static () =>
+    {
+        var table = new uint[256];
+        for (var i = 0; i < table.Length; i++)
+        {
+            var crc = (uint)i;
+            for (var bit = 0; bit < 8; bit++)
+            {
+                crc = (crc & 1) != 0
+                    ? (crc >> 1) ^ 0xEDB88320u
+                    : crc >> 1;
+            }
+
+            table[i] = crc;
+        }
+
+        return table;
+    });
+
+    private static bool TryParseUuidHex(string text, out byte[] bytes)
+    {
+        bytes = Array.Empty<byte>();
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+
+        var normalized = text.Trim().Trim('{', '}').Replace("-", string.Empty, StringComparison.Ordinal);
+        if (normalized.Length != 32)
+            return false;
+
+        bytes = new byte[16];
+        for (var i = 0; i < 16; i++)
+        {
+            if (!byte.TryParse(normalized.AsSpan(i * 2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out bytes[i]))
+                return false;
+        }
+
+        return true;
+    }
+
+    private static byte[] ApplyMySqlUuidSwap(byte[] bytes)
+    {
+        var swapped = new byte[16];
+        var map = new[] { 6, 7, 4, 5, 0, 1, 2, 3, 8, 9, 10, 11, 12, 13, 14, 15 };
+        for (var i = 0; i < swapped.Length; i++)
+            swapped[i] = bytes[map[i]];
+        return swapped;
+    }
+
+    private static byte[] ApplyMySqlUuidUnswap(byte[] bytes)
+    {
+        var swapped = new byte[16];
+        var map = new[] { 4, 5, 6, 7, 2, 3, 0, 1, 8, 9, 10, 11, 12, 13, 14, 15 };
+        for (var i = 0; i < swapped.Length; i++)
+            swapped[i] = bytes[map[i]];
+        return swapped;
+    }
+
+    private static string FormatUuid(byte[] bytes)
+        => $"{bytes[0]:x2}{bytes[1]:x2}{bytes[2]:x2}{bytes[3]:x2}-{bytes[4]:x2}{bytes[5]:x2}-{bytes[6]:x2}{bytes[7]:x2}-{bytes[8]:x2}{bytes[9]:x2}-{bytes[10]:x2}{bytes[11]:x2}{bytes[12]:x2}{bytes[13]:x2}{bytes[14]:x2}{bytes[15]:x2}";
+
+    private static bool TryEvalMySqlDateFormatFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DATE_FORMAT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("DATE_FORMAT() espera data e formato.");
+
+        var value = evalArg(0);
+        var formatValue = evalArg(1)?.ToString();
+        if (IsNullish(value) || string.IsNullOrWhiteSpace(formatValue) || !TryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        var dotNetFormat = ConvertMySqlDateFormatToDotNet(formatValue!);
+        result = dateTime.ToString(dotNetFormat, CultureInfo.InvariantCulture);
+        return true;
+    }
+
+    private static bool TryEvalMySqlStrToDateFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("STR_TO_DATE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (dialect.Version >= 84)
+            throw SqlUnsupported.ForDialect(dialect, "STR_TO_DATE");
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("STR_TO_DATE() espera texto e formato.");
+
+        var textValue = evalArg(0)?.ToString();
+        var formatValue = evalArg(1)?.ToString();
+        if (string.IsNullOrWhiteSpace(textValue) || string.IsNullOrWhiteSpace(formatValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var dotNetFormat = ConvertMySqlDateFormatToDotNet(formatValue!);
+        if (DateTime.TryParseExact(textValue, dotNetFormat, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var parsed))
+        {
+            result = parsed;
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalMySqlFromUnixTimeFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("FROM_UNIXTIME", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException("FROM_UNIXTIME() espera um argumento.");
+
+        var value = evalArg(0);
+        if (IsNullish(value) || !TryConvertNumericToDouble(value, out var seconds))
+        {
+            result = null;
+            return true;
+        }
+
+        var dateTime = DateTime.UnixEpoch.AddSeconds(seconds);
+        if (fn.Args.Count > 1)
+        {
+            var formatValue = evalArg(1)?.ToString();
+            if (string.IsNullOrWhiteSpace(formatValue))
+            {
+                result = null;
+                return true;
+            }
+
+            var dotNetFormat = ConvertMySqlDateFormatToDotNet(formatValue!);
+            result = dateTime.ToString(dotNetFormat, CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        result = dateTime;
+        return true;
+    }
+
+    private static bool TryEvalMySqlFromDaysFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("FROM_DAYS", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (dialect.Version >= 84)
+            throw SqlUnsupported.ForDialect(dialect, "FROM_DAYS");
+
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException("FROM_DAYS() espera um argumento.");
+
+        var value = evalArg(0);
+        if (IsNullish(value) || !TryConvertNumericToInt64(value, out var days) || days < 1)
+        {
+            result = null;
+            return true;
+        }
+
+        result = new DateTime(1, 1, 1).AddDays(days - 1);
+        return true;
+    }
+
+    private static bool TryEvalMySqlDateSubFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DATE_SUB", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (dialect.Version >= 84)
+            throw SqlUnsupported.ForDialect(dialect, "DATE_SUB");
+
+        var baseValue = evalArg(0);
+        if (IsNullish(baseValue) || !TryCoerceDateTime(baseValue, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        var intervalExpression = fn.Args.Count > 1 ? fn.Args[1] : null;
+        if (intervalExpression is not CallExpr intervalCall
+            || !intervalCall.Name.Equals("INTERVAL", StringComparison.OrdinalIgnoreCase)
+            || intervalCall.Args.Count < 2)
+        {
+            result = dateTime;
+            return true;
+        }
+
+        var amountObject = Eval(intervalCall.Args[0], row, group, ctes);
+        var unit = intervalCall.Args[1] is RawSqlExpr raw
+            ? raw.Sql
+            : Eval(intervalCall.Args[1], row, group, ctes)?.ToString() ?? "DAY";
+        result = ApplyDateDelta(dateTime, unit, -Convert.ToInt32((amountObject ?? 0m).ToDec()));
+        return true;
+    }
+
+    private static bool TryEvalMySqlGetFormatFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("GET_FORMAT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("GET_FORMAT() espera tipo e formato.");
+
+        var typeValue = evalArg(0)?.ToString();
+        var formatValue = evalArg(1)?.ToString();
+        if (string.IsNullOrWhiteSpace(typeValue) || string.IsNullOrWhiteSpace(formatValue))
+        {
+            result = null;
+            return true;
+        }
+
+        result = ResolveMySqlGetFormatPattern(typeValue!, formatValue!);
+        return true;
+    }
+
+    private static bool TryEvalMySqlConvertTzFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("CONVERT_TZ", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (dialect.Version >= 84)
+            throw SqlUnsupported.ForDialect(dialect, "CONVERT_TZ");
+
+        if (fn.Args.Count < 3)
+            throw new InvalidOperationException("CONVERT_TZ() espera data e dois fusos.");
+
+        var value = evalArg(0);
+        var fromValue = evalArg(1)?.ToString();
+        var toValue = evalArg(2)?.ToString();
+        if (IsNullish(value) || string.IsNullOrWhiteSpace(fromValue) || string.IsNullOrWhiteSpace(toValue) || !TryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryParseMySqlTimeZoneOffset(fromValue!, out var fromOffset)
+            || !TryParseMySqlTimeZoneOffset(toValue!, out var toOffset))
+        {
+            result = null;
+            return true;
+        }
+
+        result = dateTime - fromOffset + toOffset;
+        return true;
+    }
+
+    private static string ConvertMySqlDateFormatToDotNet(string format)
+    {
+        var builder = new StringBuilder();
+        for (var i = 0; i < format.Length; i++)
+        {
+            var ch = format[i];
+            if (ch != '%')
+            {
+                builder.Append(ch);
+                continue;
+            }
+
+            if (i + 1 >= format.Length)
+                break;
+
+            i++;
+            builder.Append(format[i] switch
+            {
+                'Y' => "yyyy",
+                'y' => "yy",
+                'm' => "MM",
+                'c' => "M",
+                'd' => "dd",
+                'e' => "d",
+                'H' => "HH",
+                'k' => "H",
+                'h' or 'I' => "hh",
+                'l' => "h",
+                'i' => "mm",
+                's' or 'S' => "ss",
+                'f' => "ffffff",
+                'p' => "tt",
+                'T' => "HH:mm:ss",
+                'r' => "hh:mm:ss tt",
+                'b' => "MMM",
+                'M' => "MMMM",
+                'a' => "ddd",
+                'W' => "dddd",
+                '%' => "%",
+                _ => format[i].ToString()
+            });
+        }
+
+        return builder.ToString();
+    }
+
+    private static string? ResolveMySqlGetFormatPattern(string type, string format)
+    {
+        var typeKey = type.Trim().ToUpperInvariant();
+        var formatKey = format.Trim().ToUpperInvariant();
+        return typeKey switch
+        {
+            "DATE" => formatKey switch
+            {
+                "USA" => "%m.%d.%Y",
+                "JIS" or "ISO" => "%Y-%m-%d",
+                "EUR" => "%d.%m.%Y",
+                "INTERNAL" => "%Y%m%d",
+                _ => null
+            },
+            "TIME" => formatKey switch
+            {
+                "USA" => "%h:%i:%s %p",
+                "JIS" or "ISO" => "%H:%i:%s",
+                "EUR" => "%H.%i.%s",
+                "INTERNAL" => "%H%i%s",
+                _ => null
+            },
+            "DATETIME" or "TIMESTAMP" => formatKey switch
+            {
+                "USA" => "%m.%d.%Y %h:%i:%s %p",
+                "JIS" or "ISO" => "%Y-%m-%d %H:%i:%s",
+                "EUR" => "%d.%m.%Y %H.%i.%s",
+                "INTERNAL" => "%Y%m%d%H%i%s",
+                _ => null
+            },
+            _ => null
+        };
+    }
+
+    private static bool TryParseMySqlTimeZoneOffset(string text, out TimeSpan offset)
+    {
+        offset = TimeSpan.Zero;
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+
+        var normalized = text.Trim().ToUpperInvariant();
+        if (normalized is "UTC" or "GMT" or "SYSTEM")
+        {
+            offset = TimeSpan.Zero;
+            return true;
+        }
+
+        if (normalized.Length == 6 && (normalized[0] == '+' || normalized[0] == '-') && normalized[3] == ':')
+        {
+            if (int.TryParse(normalized.AsSpan(1, 2), NumberStyles.Integer, CultureInfo.InvariantCulture, out var hours)
+                && int.TryParse(normalized.AsSpan(4, 2), NumberStyles.Integer, CultureInfo.InvariantCulture, out var minutes))
+            {
+                offset = new TimeSpan(hours, minutes, 0);
+                if (normalized[0] == '-')
+                    offset = -offset;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryEvalMySqlSetFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("ELT" or "MAKE_SET" or "EXPORT_SET"))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (name == "EXPORT_SET" && dialect.Version >= 84)
+            throw SqlUnsupported.ForDialect(dialect, "EXPORT_SET");
+
+        if (name == "ELT")
+        {
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("ELT() espera indice e valores.");
+
+            var indexValue = evalArg(0);
+            if (IsNullish(indexValue))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryConvertNumericToInt64(indexValue!, out var index) || index <= 0)
+            {
+                result = null;
+                return true;
+            }
+
+            var position = (int)index;
+            if (position >= fn.Args.Count)
+            {
+                result = null;
+                return true;
+            }
+
+            var value = evalArg(position);
+            result = IsNullish(value) ? null : value;
+            return true;
+        }
+
+        if (name == "MAKE_SET")
+        {
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("MAKE_SET() espera bits e valores.");
+
+            var bitsValue = evalArg(0);
+            if (IsNullish(bitsValue) || !TryConvertNumericToInt64(bitsValue!, out var bits))
+            {
+                result = null;
+                return true;
+            }
+
+            var selected = new List<string>();
+            for (var i = 1; i < fn.Args.Count; i++)
+            {
+                if ((bits & (1L << (i - 1))) == 0)
+                    continue;
+
+                var value = evalArg(i);
+                if (IsNullish(value))
+                    continue;
+
+                selected.Add(Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty);
+            }
+
+            result = selected.Count == 0 ? null : string.Join(",", selected);
+            return true;
+        }
+
+        if (fn.Args.Count < 3)
+            throw new InvalidOperationException("EXPORT_SET() espera bits, on, off.");
+
+        var bitsExportValue = evalArg(0);
+        if (IsNullish(bitsExportValue) || !TryConvertNumericToInt64(bitsExportValue!, out var bitsExport))
+        {
+            result = null;
+            return true;
+        }
+
+        var onValue = evalArg(1);
+        var offValue = evalArg(2);
+        var separatorValue = fn.Args.Count > 3 ? evalArg(3) : ",";
+        var limitValue = fn.Args.Count > 4 ? evalArg(4) : null;
+
+        var onText = Convert.ToString(onValue, CultureInfo.InvariantCulture) ?? string.Empty;
+        var offText = Convert.ToString(offValue, CultureInfo.InvariantCulture) ?? string.Empty;
+        var separator = Convert.ToString(separatorValue, CultureInfo.InvariantCulture) ?? ",";
+        var limit = 64;
+        if (!IsNullish(limitValue) && TryConvertNumericToInt64(limitValue!, out var limitParsed) && limitParsed > 0)
+            limit = (int)limitParsed;
+
+        var pieces = new string[limit];
+        for (var i = 0; i < limit; i++)
+        {
+            pieces[i] = (bitsExport & (1L << i)) != 0 ? onText : offText;
+        }
+
+        result = string.Join(separator, pieces);
+        return true;
+    }
+
+    private static bool TryEvalMySqlHexFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("HEX" or "UNHEX"))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (dialect.Version >= 84)
+            throw SqlUnsupported.ForDialect(dialect, name);
+
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException($"{name}() espera ao menos um argumento.");
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (name == "HEX")
+        {
+            if (value is byte[] bytes)
+            {
+                result = Convert.ToHexString(bytes);
+                return true;
+            }
+
+            if (value is string text)
+            {
+                result = Convert.ToHexString(Encoding.UTF8.GetBytes(text));
+                return true;
+            }
+
+            try
+            {
+                var number = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+                result = number.ToString("X", CultureInfo.InvariantCulture);
+                return true;
+            }
+            catch
+            {
+                result = null;
+                return true;
+            }
+        }
+
+        var payload = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        if (payload.Length == 0)
+        {
+            result = Array.Empty<byte>();
+            return true;
+        }
+
+        if (payload.Length % 2 == 1)
+            payload = "0" + payload;
+
+        var output = new byte[payload.Length / 2];
+        for (var i = 0; i < output.Length; i++)
+        {
+            if (!byte.TryParse(payload.AsSpan(i * 2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var parsed))
+            {
+                result = null;
+                return true;
+            }
+
+            output[i] = parsed;
+        }
+
+        result = output;
+        return true;
+    }
+
+    private static bool TryEvalMySqlFormatFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("FORMAT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("FORMAT() espera valor e casas decimais.");
+
+        var value = evalArg(0);
+        var decimalsValue = evalArg(1);
+        if (IsNullish(value) || IsNullish(decimalsValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var locale = fn.Args.Count > 2 ? evalArg(2)?.ToString() : null;
+        var cultureName = string.IsNullOrWhiteSpace(locale) ? string.Empty : locale!.Replace('_', '-');
+        var culture = string.IsNullOrWhiteSpace(cultureName)
+            ? CultureInfo.InvariantCulture
+            : CultureInfo.GetCultureInfo(cultureName);
+
+        if (!TryConvertNumericToInt64(decimalsValue!, out var decimalsParsed))
+        {
+            result = null;
+            return true;
+        }
+
+        var decimals = (int)Math.Max(0, decimalsParsed);
+        try
+        {
+            var numeric = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+            result = numeric.ToString("N" + decimals, culture);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalMySqlRandomBytesFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("RANDOM_BYTES", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (dialect.Version < 56 || dialect.Version >= 84)
+            throw SqlUnsupported.ForDialect(dialect, "RANDOM_BYTES");
+
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException("RANDOM_BYTES() espera o tamanho em bytes.");
+
+        var lengthValue = evalArg(0);
+        if (IsNullish(lengthValue))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryConvertNumericToInt64(lengthValue!, out var length) || length < 0 || length > int.MaxValue)
+        {
+            result = null;
+            return true;
+        }
+
+        if (length == 0)
+        {
+            result = Array.Empty<byte>();
+            return true;
+        }
+
+        var buffer = new byte[length];
+        RandomNumberGenerator.Fill(buffer);
+        result = buffer;
+        return true;
+    }
+
+    private static bool TryEvalMySqlSleepFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("SLEEP", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (dialect.Version >= 84)
+            throw SqlUnsupported.ForDialect(dialect, "SLEEP");
+
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException("SLEEP() espera o tempo em segundos.");
+
+        var secondsValue = evalArg(0);
+        if (IsNullish(secondsValue))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryConvertNumericToDouble(secondsValue!, out var seconds) || seconds < 0d)
+        {
+            result = null;
+            return true;
+        }
+
+        // Avoid real delays; return the same success code as a completed sleep.
+        result = 0;
+        return true;
+    }
+
+    private static bool TryEvalMySqlCompressFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("COMPRESS" or "UNCOMPRESS" or "UNCOMPRESSED_LENGTH"))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (dialect.Version >= 84)
+            throw SqlUnsupported.ForDialect(dialect, name);
+
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException($"{name}() espera ao menos um argumento.");
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (name == "COMPRESS")
+        {
+            var input = value is byte[] bytes
+                ? bytes
+                : Encoding.UTF8.GetBytes(value.ToString() ?? string.Empty);
+
+            using var output = new MemoryStream();
+            using (var deflate = new DeflateStream(output, CompressionLevel.Optimal, leaveOpen: true))
+                deflate.Write(input, 0, input.Length);
+
+            result = output.ToArray();
+            return true;
+        }
+
+        if (value is not byte[] compressed)
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            using var input = new MemoryStream(compressed);
+            using var deflate = new DeflateStream(input, CompressionMode.Decompress);
+            using var output = new MemoryStream();
+            deflate.CopyTo(output);
+            var decompressed = output.ToArray();
+
+            result = name == "UNCOMPRESSED_LENGTH"
+                ? decompressed.LongLength
+                : decompressed;
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalMySqlFormatBytesFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("FORMAT_BYTES", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (dialect.Version < 80 || dialect.Version >= 84)
+            throw SqlUnsupported.ForDialect(dialect, "FORMAT_BYTES");
+
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException("FORMAT_BYTES() espera um valor numerico.");
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryConvertNumericToDouble(value!, out var bytes) || bytes < 0d)
+        {
+            result = null;
+            return true;
+        }
+
+        if (bytes < 1024d)
+        {
+            result = $"{Math.Truncate(bytes)} bytes";
+            return true;
+        }
+
+        var units = new[] { "KiB", "MiB", "GiB", "TiB", "PiB", "EiB" };
+        var unitIndex = 0;
+        var scaled = bytes;
+        while (scaled >= 1024d && unitIndex < units.Length - 1)
+        {
+            scaled /= 1024d;
+            unitIndex++;
+        }
+
+        result = $"{scaled:0.00} {units[unitIndex]}";
+        return true;
+    }
+
+    private static bool TryEvalMySqlFormatPicoTimeFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("FORMAT_PICO_TIME", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (dialect.Version < 80)
+            throw SqlUnsupported.ForDialect(dialect, "FORMAT_PICO_TIME");
+
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException("FORMAT_PICO_TIME() espera um valor numerico.");
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryConvertNumericToDouble(value!, out var pico) || pico < 0d)
+        {
+            result = null;
+            return true;
+        }
+
+        var units = new[]
+        {
+            ("ps", 1000d),
+            ("ns", 1000d),
+            ("us", 1000d),
+            ("ms", 1000d),
+            ("s", 60d),
+            ("min", 60d),
+            ("h", 24d),
+            ("d", double.PositiveInfinity)
+        };
+
+        var scaled = pico;
+        var unit = "ps";
+        foreach (var (candidate, factor) in units)
+        {
+            unit = candidate;
+            if (scaled < factor)
+                break;
+            if (double.IsInfinity(factor))
+                break;
+            scaled /= factor;
+        }
+
+        result = $"{scaled:0.00} {unit}";
+        return true;
+    }
+
+    private static bool TryEvalMySqlXmlFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("EXTRACTVALUE" or "UPDATEXML"))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (dialect.Version >= 84)
+            throw SqlUnsupported.ForDialect(dialect, name);
+
+        if (name == "EXTRACTVALUE" && fn.Args.Count < 2)
+            throw new InvalidOperationException("EXTRACTVALUE() espera xml e xpath.");
+
+        if (name == "UPDATEXML" && fn.Args.Count < 3)
+            throw new InvalidOperationException("UPDATEXML() espera xml, xpath e novo xml.");
+
+        // XML helpers are not simulated: return null consistently.
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalMySqlCryptoFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("AES_ENCRYPT" or "AES_DECRYPT" or "DES_ENCRYPT" or "DES_DECRYPT" or "ENCODE" or "DECODE" or "ENCRYPT"))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (name is "AES_ENCRYPT" or "AES_DECRYPT")
+        {
+            if (dialect.Version >= 84)
+                throw SqlUnsupported.ForDialect(dialect, name);
+        }
+        else if (dialect.Version >= 80)
+        {
+            throw SqlUnsupported.ForDialect(dialect, name);
+        }
+
+        if (name == "ENCRYPT")
+        {
+            if (fn.Args.Count == 0)
+                throw new InvalidOperationException("ENCRYPT() espera texto.");
+
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            var saltValue = fn.Args.Count > 1 ? evalArg(1)?.ToString() ?? string.Empty : string.Empty;
+            var text = value?.ToString() ?? string.Empty;
+            var payload = Encoding.UTF8.GetBytes(saltValue + text);
+            using var sha = SHA256.Create();
+            var hash = sha.ComputeHash(payload);
+            var sb = new StringBuilder(hash.Length * 2);
+            foreach (var b in hash)
+                sb.Append(b.ToString("x2", CultureInfo.InvariantCulture));
+            result = sb.ToString();
+            return true;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException($"{name}() espera payload e chave.");
+
+        var payloadValue = evalArg(0);
+        var keyValue = evalArg(1);
+        if (IsNullish(payloadValue) || IsNullish(keyValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var keyText = keyValue?.ToString() ?? string.Empty;
+
+        if (name is "AES_ENCRYPT" or "AES_DECRYPT")
+        {
+            var payload = payloadValue is byte[] bytes
+                ? bytes
+                : Encoding.UTF8.GetBytes(payloadValue?.ToString() ?? string.Empty);
+            var key = BuildXorKeyBytes(Encoding.UTF8.GetBytes(keyText), 16);
+            var aes = Aes.Create();
+            aes.Mode = CipherMode.ECB;
+            aes.Padding = PaddingMode.PKCS7;
+            aes.Key = key;
+            aes.IV = new byte[aes.BlockSize / 8];
+
+            if (name == "AES_ENCRYPT")
+            {
+                using var encryptor = aes.CreateEncryptor();
+                result = encryptor.TransformFinalBlock(payload, 0, payload.Length);
+                return true;
+            }
+
+            try
+            {
+                using var decryptor = aes.CreateDecryptor();
+                var decrypted = decryptor.TransformFinalBlock(payload, 0, payload.Length);
+                result = Encoding.UTF8.GetString(decrypted);
+                return true;
+            }
+            catch
+            {
+                result = null;
+                return true;
+            }
+        }
+
+        if (name is "DES_ENCRYPT" or "DES_DECRYPT")
+        {
+            var payload = payloadValue is byte[] bytes
+                ? bytes
+                : Encoding.UTF8.GetBytes(payloadValue?.ToString() ?? string.Empty);
+            var key = BuildXorKeyBytes(Encoding.UTF8.GetBytes(keyText), 8);
+            using var des = DES.Create();
+            des.Mode = CipherMode.ECB;
+            des.Padding = PaddingMode.PKCS7;
+            des.Key = key;
+            des.IV = new byte[des.BlockSize / 8];
+
+            if (name == "DES_ENCRYPT")
+            {
+                using var encryptor = des.CreateEncryptor();
+                result = encryptor.TransformFinalBlock(payload, 0, payload.Length);
+                return true;
+            }
+
+            try
+            {
+                using var decryptor = des.CreateDecryptor();
+                var decrypted = decryptor.TransformFinalBlock(payload, 0, payload.Length);
+                result = Encoding.UTF8.GetString(decrypted);
+                return true;
+            }
+            catch
+            {
+                result = null;
+                return true;
+            }
+        }
+
+        var keyBytes = Encoding.UTF8.GetBytes(keyText);
+        if (keyBytes.Length == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        if (payloadValue is not byte[] inputBytes)
+            inputBytes = Encoding.UTF8.GetBytes(payloadValue?.ToString() ?? string.Empty);
+
+        var output = new byte[inputBytes.Length];
+        for (var i = 0; i < inputBytes.Length; i++)
+            output[i] = (byte)(inputBytes[i] ^ keyBytes[i % keyBytes.Length]);
+
+        if (name == "DECODE")
+        {
+            result = Encoding.UTF8.GetString(output);
+            return true;
+        }
+
+        result = output;
+        return true;
+    }
+
+    private static byte[] BuildXorKeyBytes(byte[] key, int length)
+    {
+        var output = new byte[length];
+        if (key.Length == 0)
+            return output;
+
+        for (var i = 0; i < key.Length; i++)
+            output[i % length] ^= key[i];
+
+        return output;
+    }
+
+    private static bool TryEvalMySqlDefaultFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        EvalRow row,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DEFAULT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count != 1)
+            throw new InvalidOperationException("DEFAULT() espera um argumento.");
+
+        var arg = fn.Args[0];
+        string? qualifier = null;
+        string? columnName = null;
+
+        if (arg is ColumnExpr columnExpr)
+        {
+            qualifier = columnExpr.Qualifier;
+            columnName = columnExpr.Name;
+        }
+        else if (arg is IdentifierExpr identifierExpr)
+        {
+            var name = identifierExpr.Name;
+            var dot = name.IndexOf('.');
+            if (dot > 0)
+            {
+                qualifier = name[..dot];
+                columnName = name[(dot + 1)..];
+            }
+            else
+            {
+                columnName = name;
+            }
+        }
+        else
+        {
+            var value = evalArg(0);
+            result = IsNullish(value) ? null : value;
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(columnName))
+        {
+            result = null;
+            return true;
+        }
+
+        if (TryResolveDefaultValue(row, qualifier, columnName!, out var defaultValue))
+        {
+            result = defaultValue;
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryResolveDefaultValue(
+        EvalRow row,
+        string? qualifier,
+        string columnName,
+        out object? defaultValue)
+    {
+        defaultValue = null;
+        if (row.Sources.Count == 0)
+            return false;
+
+        if (!string.IsNullOrWhiteSpace(qualifier))
+        {
+            if (!row.Sources.TryGetValue(qualifier, out var source))
+                return false;
+
+            if (source.Physical is null)
+                return false;
+
+            if (!source.Physical.Columns.TryGetValue(columnName, out var column))
+                return false;
+
+            defaultValue = column.DefaultValue;
+            return true;
+        }
+
+        foreach (var source in row.Sources.Values)
+        {
+            if (source.Physical is null)
+                continue;
+
+            if (source.Physical.Columns.TryGetValue(columnName, out var column))
+            {
+                defaultValue = column.DefaultValue;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryEvalMySqlMemberOfFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("MEMBER_OF", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (dialect.Version < 80)
+            throw SqlUnsupported.ForDialect(dialect, "MEMBER OF");
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("MEMBER OF espera dois argumentos.");
+
+        var candidateValue = evalArg(0);
+        var jsonValue = evalArg(1);
+        if (IsNullish(candidateValue) || IsNullish(jsonValue))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryParseJsonCandidate(candidateValue!, out var candidateElement)
+            || !TryParseJsonElement(jsonValue!, out var jsonElement))
+        {
+            result = null;
+            return true;
+        }
+
+        if (jsonElement.ValueKind != System.Text.Json.JsonValueKind.Array)
+        {
+            result = null;
+            return true;
+        }
+
+        foreach (var item in jsonElement.EnumerateArray())
+        {
+            if (JsonElementEquals(item, candidateElement))
+            {
+                result = 1;
+                return true;
+            }
+        }
+
+        result = 0;
+        return true;
+    }
+
+    private static bool TryEvalMySqlConvFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("CONV", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (dialect.Version >= 84)
+            throw SqlUnsupported.ForDialect(dialect, "CONV");
+
+        if (fn.Args.Count < 3)
+            throw new InvalidOperationException("CONV() espera valor, base origem e base destino.");
+
+        var value = evalArg(0);
+        var fromBaseValue = evalArg(1);
+        var toBaseValue = evalArg(2);
+        if (IsNullish(value) || IsNullish(fromBaseValue) || IsNullish(toBaseValue))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryConvertNumericToInt64(fromBaseValue!, out var fromBase)
+            || !TryConvertNumericToInt64(toBaseValue!, out var toBase))
+        {
+            result = null;
+            return true;
+        }
+
+        var sourceBase = Math.Clamp((int)Math.Abs(fromBase), 2, 36);
+        var targetBase = Math.Clamp((int)Math.Abs(toBase), 2, 36);
+        var textValue = Convert.ToString(value, CultureInfo.InvariantCulture);
+        if (string.IsNullOrWhiteSpace(textValue))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryParseBaseN(textValue!.Trim(), sourceBase, out var parsed))
+        {
+            result = null;
+            return true;
+        }
+
+        result = ConvertToBaseN(parsed, targetBase);
+        return true;
+    }
+
+    private static bool TryEvalMySqlDayFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("DAYNAME" or "DAYOFMONTH" or "DAYOFWEEK" or "DAYOFYEAR"))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if ((name is "DAYOFMONTH" or "DAYOFYEAR") && dialect.Version >= 84)
+            throw SqlUnsupported.ForDialect(dialect, name);
+
+        if (fn.Args.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value) || !TryCoerceDateTime(value!, out var date))
+        {
+            result = null;
+            return true;
+        }
+
+        result = name switch
+        {
+            "DAYNAME" => CultureInfo.InvariantCulture.DateTimeFormat.GetDayName(date.DayOfWeek),
+            "DAYOFMONTH" => date.Day,
+            "DAYOFWEEK" => ((int)date.DayOfWeek + 1),
+            "DAYOFYEAR" => date.DayOfYear,
+            _ => null
+        };
+        return true;
+    }
+
+    private static bool TryEvalMySqlDatabaseFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("DATABASE" or "SCHEMA" or "SESSION_USER" or "CURRENT_USER" or "LOCALTIME" or "LOCALTIMESTAMP" or "CONNECTION_ID"))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (dialect.Version >= 84
+            && name is "DATABASE" or "SCHEMA" or "CURRENT_USER" or "LOCALTIME")
+        {
+            throw SqlUnsupported.ForDialect(dialect, name);
+        }
+
+        if (fn.Args.Count != 0)
+            throw new InvalidOperationException($"{name}() nao aceita argumentos.");
+
+        result = name switch
+        {
+            "DATABASE" or "SCHEMA" => "DefaultSchema",
+            "SESSION_USER" => "root@localhost",
+            "CURRENT_USER" => "root@localhost",
+            "LOCALTIME" => DateTime.Now,
+            "LOCALTIMESTAMP" => DateTime.Now,
+            "CONNECTION_ID" => 1L,
+            _ => null
+        };
+        return true;
+    }
+
+    private static bool TryEvalMySqlStringMetadataFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("CHARSET" or "COLLATION" or "COERCIBILITY"))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return true;
+        }
+
+        if (dialect.Version >= 84 && name is "CHARSET" or "COERCIBILITY")
+            throw SqlUnsupported.ForDialect(dialect, name);
+
+        if (fn.Args.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        result = name switch
+        {
+            "CHARSET" => "utf8mb4",
+            "COLLATION" => "utf8mb4_general_ci",
+            "COERCIBILITY" => 0,
+            _ => null
+        };
+        return true;
+    }
+
+    private static bool TryParseBaseN(string text, int radix, out long value)
+    {
+        value = 0;
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+
+        var negative = text[0] == '-';
+        var start = negative ? 1 : 0;
+        long resultValue = 0;
+
+        for (var i = start; i < text.Length; i++)
+        {
+            var ch = char.ToUpperInvariant(text[i]);
+            int digit;
+            if (ch >= '0' && ch <= '9')
+                digit = ch - '0';
+            else if (ch >= 'A' && ch <= 'Z')
+                digit = ch - 'A' + 10;
+            else
+                return false;
+
+            if (digit >= radix)
+                return false;
+
+            resultValue = checked(resultValue * radix + digit);
+        }
+
+        value = negative ? -resultValue : resultValue;
+        return true;
+    }
+
+    private static string ConvertToBaseN(long value, int radix)
+    {
+        if (value == 0)
+            return "0";
+
+        var negative = value < 0;
+        var working = Math.Abs(value);
+        var chars = new List<char>();
+        const string digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+        while (working > 0)
+        {
+            var rem = (int)(working % radix);
+            chars.Add(digits[rem]);
+            working /= radix;
+        }
+
+        if (negative)
+            chars.Add('-');
+
+        chars.Reverse();
+        return new string(chars.ToArray());
     }
 
     private static bool TryEvalCollationFunction(
@@ -9303,6 +11492,141 @@ private void FillPercentRankOrCumeDist(
         var hex = ToHexString(bytes);
         result = hex;
         return true;
+    }
+
+    private static bool TryEvalMySqlRegexFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("REGEXP_INSTR" or "REGEXP_REPLACE" or "REGEXP_SUBSTR" or "REGEXP_LIKE"))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        var minVersion = 80;
+        if (dialect.Version < minVersion)
+            throw SqlUnsupported.ForDialect(dialect, name);
+
+        if ((name is "REGEXP_LIKE" or "REGEXP_SUBSTR") && dialect.Version >= 84)
+            throw SqlUnsupported.ForDialect(dialect, name);
+
+        if (fn.Args.Count < 2)
+        {
+            result = null;
+            return true;
+        }
+
+        var source = evalArg(0)?.ToString() ?? string.Empty;
+        var pattern = evalArg(1)?.ToString() ?? string.Empty;
+        if (string.IsNullOrEmpty(pattern))
+        {
+            result = null;
+            return true;
+        }
+
+        var position = 1;
+        if (fn.Args.Count >= 3 && !IsNullish(evalArg(2)))
+            position = Math.Max(1, Convert.ToInt32(evalArg(2)!.ToDec()));
+
+        var occurrence = 1;
+        if (fn.Args.Count >= 4 && !IsNullish(evalArg(3)))
+            occurrence = Math.Max(1, Convert.ToInt32(evalArg(3)!.ToDec()));
+
+        var returnOption = 0;
+        if (fn.Args.Count >= 5 && !IsNullish(evalArg(4)))
+            returnOption = Convert.ToInt32(evalArg(4)!.ToDec());
+
+        var matchType = fn.Args.Count >= 6 ? evalArg(5)?.ToString() ?? string.Empty : string.Empty;
+        var options = RegexOptions.CultureInvariant;
+        if (dialect.RegexIsCaseInsensitive)
+            options |= RegexOptions.IgnoreCase;
+
+        if (!string.IsNullOrWhiteSpace(matchType))
+        {
+            if (matchType.Contains('c', StringComparison.OrdinalIgnoreCase))
+                options &= ~RegexOptions.IgnoreCase;
+            if (matchType.Contains('i', StringComparison.OrdinalIgnoreCase))
+                options |= RegexOptions.IgnoreCase;
+            if (matchType.Contains('m', StringComparison.OrdinalIgnoreCase))
+                options |= RegexOptions.Multiline;
+            if (matchType.Contains('n', StringComparison.OrdinalIgnoreCase))
+                options |= RegexOptions.Singleline;
+        }
+
+        var startIndex = Math.Min(source.Length, Math.Max(0, position - 1));
+        var scoped = source[startIndex..];
+
+        try
+        {
+            if (name == "REGEXP_LIKE")
+            {
+                result = Regex.IsMatch(scoped, pattern, options) ? 1 : 0;
+                return true;
+            }
+
+            if (name == "REGEXP_REPLACE")
+            {
+                var replacement = fn.Args.Count >= 3 ? evalArg(2)?.ToString() ?? string.Empty : string.Empty;
+                if (fn.Args.Count >= 4 && !IsNullish(evalArg(3)) && occurrence > 0)
+                {
+                    var matches = Regex.Matches(scoped, pattern, options);
+                    if (matches.Count == 0)
+                    {
+                        result = scoped;
+                        return true;
+                    }
+
+                    var idx = Math.Min(occurrence - 1, matches.Count - 1);
+                    var match = matches[idx];
+                    result = string.Concat(
+                        scoped.AsSpan(0, match.Index),
+                        replacement,
+                        scoped.AsSpan(match.Index + match.Length));
+                    return true;
+                }
+
+                result = Regex.Replace(scoped, pattern, replacement, options);
+                return true;
+            }
+
+            var matchesForInstr = Regex.Matches(scoped, pattern, options);
+            if (matchesForInstr.Count == 0)
+            {
+                result = name == "REGEXP_SUBSTR" ? null : 0;
+                return true;
+            }
+
+            var index = Math.Min(occurrence - 1, matchesForInstr.Count - 1);
+            var match = matchesForInstr[index];
+
+            if (name == "REGEXP_INSTR")
+            {
+                var positionValue = returnOption == 1
+                    ? startIndex + match.Index + match.Length
+                    : startIndex + match.Index + 1;
+                result = positionValue;
+                return true;
+            }
+
+            // REGEXP_SUBSTR
+            result = match.Value;
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
     }
 
     private static bool TryEvalOracleRegexFunctions(
@@ -12443,6 +14767,7 @@ private void FillPercentRankOrCumeDist(
 
     private static bool TryEvalCurrentUserFunction(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
         out object? result)
     {
         if (!fn.Name.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase))
@@ -12451,7 +14776,9 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        result = "dbo";
+        result = dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
+            ? "root@localhost"
+            : "dbo";
         return true;
     }
 
@@ -13758,6 +16085,7 @@ private void FillPercentRankOrCumeDist(
 
     private static bool TryEvalGroupingFunctions(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -13766,6 +16094,12 @@ private void FillPercentRankOrCumeDist(
         {
             result = null;
             return false;
+        }
+
+        if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
+            && dialect.Version < 80)
+        {
+            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
         }
 
         result = 0;
@@ -13818,7 +16152,8 @@ private void FillPercentRankOrCumeDist(
         FunctionCallExpr fn,
         out object? result)
     {
-        if (!fn.Name.Equals("NEWID", StringComparison.OrdinalIgnoreCase))
+        if (!(fn.Name.Equals("NEWID", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("NEWSEQUENTIALID", StringComparison.OrdinalIgnoreCase)))
         {
             result = null;
             return false;
@@ -14358,6 +16693,7 @@ private void FillPercentRankOrCumeDist(
 
     private static bool TryEvalJsonUtilityFunctions(
         FunctionCallExpr fn,
+        ISqlDialect dialect,
         Func<int, object?> evalArg,
         out object? result)
     {
@@ -14457,6 +16793,71 @@ private void FillPercentRankOrCumeDist(
                 System.Text.Json.JsonValueKind.Object => element.EnumerateObject().Count(),
                 _ => 1
             };
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_STORAGE_SIZE", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+            {
+                result = null;
+                return false;
+            }
+
+            if (dialect.Version < 80)
+                throw SqlUnsupported.ForDialect(dialect, "JSON_STORAGE_SIZE");
+
+            if (fn.Args.Count == 0)
+                throw new InvalidOperationException("JSON_STORAGE_SIZE() espera um JSON.");
+
+            var value = evalArg(0);
+            if (IsNullish(value))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParseJsonElement(value!, out var element))
+            {
+                result = null;
+                return true;
+            }
+
+            var raw = element.GetRawText();
+            result = (long)Encoding.UTF8.GetByteCount(raw);
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_OVERLAPS", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+            {
+                result = null;
+                return false;
+            }
+
+            if (dialect.Version < 80)
+                throw SqlUnsupported.ForDialect(dialect, "JSON_OVERLAPS");
+
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("JSON_OVERLAPS() espera dois JSONs.");
+
+            var leftValue = evalArg(0);
+            var rightValue = evalArg(1);
+            if (IsNullish(leftValue) || IsNullish(rightValue))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParseJsonElement(leftValue!, out var leftElement)
+                || !TryParseJsonElement(rightValue!, out var rightElement))
+            {
+                result = null;
+                return true;
+            }
+
+            result = JsonOverlaps(leftElement, rightElement) ? 1 : 0;
             return true;
         }
 
@@ -15984,10 +18385,198 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
+        if (fn.Name.Equals("JSON_MERGE_PATCH", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+            {
+                result = null;
+                return false;
+            }
+
+            if (dialect.Version < 56)
+                throw SqlUnsupported.ForDialect(dialect, "JSON_MERGE_PATCH");
+
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException("JSON_MERGE_PATCH() espera dois JSONs.");
+
+            var baseValue = evalArg(0);
+            if (IsNullish(baseValue))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParseJsonNode(baseValue!, out var baseNode) || baseNode is null)
+            {
+                result = null;
+                return true;
+            }
+
+            for (var i = 1; i < fn.Args.Count; i++)
+            {
+                var patchValue = evalArg(i);
+                if (IsNullish(patchValue))
+                {
+                    result = null;
+                    return true;
+                }
+
+                if (!TryParseJsonNode(patchValue!, out var patchNode) || patchNode is null)
+                {
+                    result = null;
+                    return true;
+                }
+
+                ApplyJsonMergePatch(ref baseNode, patchNode);
+            }
+
+            result = baseNode.ToJsonString();
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_MERGE", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("JSON_MERGE_PRESERVE", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+            {
+                result = null;
+                return false;
+            }
+
+            if (dialect.Version < 56 || (dialect.Version >= 84 && fn.Name.Equals("JSON_MERGE", StringComparison.OrdinalIgnoreCase)))
+                throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
+
+            if (dialect.Version >= 84 && fn.Name.Equals("JSON_MERGE_PRESERVE", StringComparison.OrdinalIgnoreCase))
+                throw SqlUnsupported.ForDialect(dialect, "JSON_MERGE_PRESERVE");
+
+            if (fn.Args.Count < 2)
+                throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() espera dois JSONs.");
+
+            var firstValue = evalArg(0);
+            if (IsNullish(firstValue))
+            {
+                result = null;
+                return true;
+            }
+
+            if (!TryParseJsonNode(firstValue!, out var merged) || merged is null)
+            {
+                result = null;
+                return true;
+            }
+
+            for (var i = 1; i < fn.Args.Count; i++)
+            {
+                var nextValue = evalArg(i);
+                if (IsNullish(nextValue))
+                {
+                    result = null;
+                    return true;
+                }
+
+                if (!TryParseJsonNode(nextValue!, out var nextNode) || nextNode is null)
+                {
+                    result = null;
+                    return true;
+                }
+
+                merged = MergeJsonPreserve(merged, nextNode);
+            }
+
+            result = merged.ToJsonString();
+            return true;
+        }
+
+        if (fn.Name.Equals("JSON_APPEND", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("JSON_ARRAY_APPEND", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+            {
+                result = null;
+                return false;
+            }
+
+            if (fn.Name.Equals("JSON_APPEND", StringComparison.OrdinalIgnoreCase))
+            {
+                if (dialect.Version < 56 || dialect.Version >= 80)
+                    throw SqlUnsupported.ForDialect(dialect, "JSON_APPEND");
+            }
+            else if (dialect.Version < 56 || dialect.Version >= 84)
+            {
+                throw SqlUnsupported.ForDialect(dialect, "JSON_ARRAY_APPEND");
+            }
+
+            if (fn.Args.Count < 3 || fn.Args.Count % 2 == 0)
+                throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() espera um JSON seguido de pares path/valor.");
+
+            var json = evalArg(0);
+            if (IsNullish(json) || !TryParseJsonNode(json!, out var root) || root is null)
+            {
+                result = null;
+                return true;
+            }
+
+            for (var i = 1; i < fn.Args.Count; i += 2)
+            {
+                var path = evalArg(i)?.ToString();
+                if (string.IsNullOrWhiteSpace(path) || !TryParseJsonPathTokens(path!, out var tokens))
+                {
+                    result = null;
+                    return true;
+                }
+
+                var value = evalArg(i + 1);
+                if (!TryAppendJsonPathValue(ref root, tokens, value))
+                {
+                    result = null;
+                    return true;
+                }
+            }
+
+            result = root.ToJsonString();
+            return true;
+        }
+
         if (fn.Name.Equals("JSON_ARRAY_INSERT", StringComparison.OrdinalIgnoreCase))
         {
+            if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase) && dialect.Version < 56)
+                throw SqlUnsupported.ForDialect(dialect, "JSON_ARRAY_INSERT");
+
+            if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+            {
+                if (fn.Args.Count < 3 || fn.Args.Count % 2 == 0)
+                    throw new InvalidOperationException("JSON_ARRAY_INSERT() espera um JSON seguido de pares path/valor.");
+
+                var json = evalArg(0);
+                if (IsNullish(json) || !TryParseJsonNode(json!, out var root) || root is null)
+                {
+                    result = null;
+                    return true;
+                }
+
+                for (var i = 1; i < fn.Args.Count; i += 2)
+                {
+                    var path = evalArg(i)?.ToString();
+                    if (string.IsNullOrWhiteSpace(path) || !TryParseJsonPathTokens(path!, out var tokens))
+                    {
+                        result = null;
+                        return true;
+                    }
+
+                    var value = evalArg(i + 1);
+                    if (!TryInsertJsonPathValue(ref root, tokens, value))
+                    {
+                        result = null;
+                        return true;
+                    }
+                }
+
+                result = root.ToJsonString();
+                return true;
+            }
+
             var shim = new FunctionCallExpr("JSON_INSERT", fn.Args);
-            result = TryEvalJsonUtilityFunctions(shim, evalArg, out var jsonInsertResult)
+            result = TryEvalJsonUtilityFunctions(shim, dialect, evalArg, out var jsonInsertResult)
                 ? jsonInsertResult
                 : null;
             return true;
@@ -16430,6 +19019,157 @@ private void FillPercentRankOrCumeDist(
             System.Text.Json.JsonValueKind.Null => true,
             _ => left.GetRawText() == right.GetRawText()
         };
+    }
+
+    private static bool JsonOverlaps(System.Text.Json.JsonElement left, System.Text.Json.JsonElement right)
+    {
+        if (left.ValueKind == System.Text.Json.JsonValueKind.Array)
+        {
+            foreach (var item in left.EnumerateArray())
+            {
+                if (JsonOverlaps(item, right))
+                    return true;
+            }
+
+            return false;
+        }
+
+        if (right.ValueKind == System.Text.Json.JsonValueKind.Array)
+        {
+            foreach (var item in right.EnumerateArray())
+            {
+                if (JsonOverlaps(left, item))
+                    return true;
+            }
+
+            return false;
+        }
+
+        if (left.ValueKind == System.Text.Json.JsonValueKind.Object
+            && right.ValueKind == System.Text.Json.JsonValueKind.Object)
+        {
+            foreach (var prop in left.EnumerateObject())
+            {
+                if (right.TryGetProperty(prop.Name, out var rightProp)
+                    && JsonOverlaps(prop.Value, rightProp))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if (left.ValueKind == System.Text.Json.JsonValueKind.Object
+            || right.ValueKind == System.Text.Json.JsonValueKind.Object)
+            return false;
+
+        return JsonElementEquals(left, right);
+    }
+
+    private static System.Text.Json.Nodes.JsonNode MergeJsonPreserve(
+        System.Text.Json.Nodes.JsonNode left,
+        System.Text.Json.Nodes.JsonNode right)
+    {
+        if (left is System.Text.Json.Nodes.JsonObject leftObj
+            && right is System.Text.Json.Nodes.JsonObject rightObj)
+        {
+            var merged = new System.Text.Json.Nodes.JsonObject();
+            foreach (var pair in leftObj)
+                merged[pair.Key] = pair.Value is null ? null : CloneJsonNode(pair.Value);
+
+            foreach (var pair in rightObj)
+            {
+                if (merged.TryGetPropertyValue(pair.Key, out var existing) && existing is not null && pair.Value is not null)
+                {
+                    merged[pair.Key] = MergeJsonPreserve(existing, pair.Value);
+                    continue;
+                }
+
+                merged[pair.Key] = pair.Value is null ? null : CloneJsonNode(pair.Value);
+            }
+
+            return merged;
+        }
+
+        if (left is System.Text.Json.Nodes.JsonArray leftArray
+            && right is System.Text.Json.Nodes.JsonArray rightArray)
+        {
+            var merged = new System.Text.Json.Nodes.JsonArray();
+            foreach (var item in leftArray)
+                merged.Add(item is null ? null : CloneJsonNode(item));
+            foreach (var item in rightArray)
+                merged.Add(item is null ? null : CloneJsonNode(item));
+            return merged;
+        }
+
+        return new System.Text.Json.Nodes.JsonArray
+        {
+            left is null ? null : CloneJsonNode(left),
+            right is null ? null : CloneJsonNode(right)
+        };
+    }
+
+    private static bool TryAppendJsonPathValue(
+        ref System.Text.Json.Nodes.JsonNode root,
+        IReadOnlyList<JsonPathToken> tokens,
+        object? value)
+    {
+        if (!TryGetJsonNodeAtPath(root, tokens, out var node))
+            return false;
+
+        if (node is System.Text.Json.Nodes.JsonArray array)
+        {
+            array.Add(CreateJsonNodeFromValue(value));
+            return true;
+        }
+
+        var newArray = new System.Text.Json.Nodes.JsonArray
+        {
+            node is null ? null : CloneJsonNode(node),
+            CreateJsonNodeFromValue(value)
+        };
+
+        return TrySetJsonPathValue(ref root, tokens, newArray);
+    }
+
+    private static bool TryInsertJsonPathValue(
+        ref System.Text.Json.Nodes.JsonNode root,
+        IReadOnlyList<JsonPathToken> tokens,
+        object? value)
+    {
+        if (tokens.Count == 0)
+            return false;
+
+        var last = tokens[^1];
+        if (last.Kind == JsonPathTokenKind.ArrayIndex)
+        {
+            var parentTokens = tokens.Take(tokens.Count - 1).ToList();
+            if (parentTokens.Count == 0)
+            {
+                if (root is not System.Text.Json.Nodes.JsonArray rootArray)
+                    return false;
+
+                var index = Math.Max(0, last.ArrayIndex ?? 0);
+                var insertIndex = Math.Min(index, rootArray.Count);
+                rootArray.Insert(insertIndex, CreateJsonNodeFromValue(value));
+                return true;
+            }
+
+            if (!TryGetJsonNodeAtPath(root, parentTokens, out var parent) || parent is not System.Text.Json.Nodes.JsonArray parentArray)
+                return false;
+
+            var parentIndex = Math.Max(0, last.ArrayIndex ?? 0);
+            var targetIndex = Math.Min(parentIndex, parentArray.Count);
+            parentArray.Insert(targetIndex, CreateJsonNodeFromValue(value));
+            return true;
+        }
+
+        if (!TryGetJsonNodeAtPath(root, tokens, out var node) || node is not System.Text.Json.Nodes.JsonArray array)
+            return false;
+
+        array.Add(CreateJsonNodeFromValue(value));
+        return true;
     }
 
     private static bool TryReadPostgresJsonPathElement(
@@ -20252,6 +22992,27 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
+        var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para operações de data.");
+
+        if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fn.Args.Count != 2)
+                throw new InvalidOperationException("DATEDIFF() no MySQL espera 2 argumentos.");
+
+            var startValue = evalArg(0);
+            var endValue = evalArg(1);
+            if (IsNullish(startValue) || IsNullish(endValue)
+                || !TryCoerceDateTime(startValue, out var start)
+                || !TryCoerceDateTime(endValue, out var end))
+            {
+                result = null;
+                return true;
+            }
+
+            result = (int)(end.Date - start.Date).TotalDays;
+            return true;
+        }
+
         if (fn.Args.Count != 3)
             throw new InvalidOperationException("DATEDIFF() espera 3 argumentos.");
 
@@ -20345,7 +23106,17 @@ private void FillPercentRankOrCumeDist(
             return countValue;
 
         if (name is "JSON_GROUP_OBJECT" or "JSON_OBJECTAGG")
+        {
+            var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
+            if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
+                && (dialect.Version < 56 || dialect.Version >= 84)
+                && name == "JSON_OBJECTAGG")
+            {
+                throw SqlUnsupported.ForDialect(dialect, name);
+            }
+
             return EvalJsonGroupObjectAggregate(fn, group, ctes);
+        }
 
         if (name is "JSON_OBJECT_AGG" or "JSON_OBJECT_AGG_STRICT" or "JSON_OBJECT_AGG_UNIQUE" or "JSON_OBJECT_AGG_UNIQUE_STRICT"
             or "JSONB_OBJECT_AGG" or "JSONB_OBJECT_AGG_STRICT" or "JSONB_OBJECT_AGG_UNIQUE" or "JSONB_OBJECT_AGG_UNIQUE_STRICT")
@@ -20372,14 +23143,35 @@ private void FillPercentRankOrCumeDist(
         if (name.StartsWith("STATS_", StringComparison.OrdinalIgnoreCase))
             return null;
 
-        if (name is "STDDEV" or "STDDEV_POP" or "STDDEV_SAMP")
-            return EvalStdDevAggregate(fn, group, ctes, name);
+        if (name is "STD" or "STDDEV" or "STDDEV_POP" or "STDDEV_SAMP")
+        {
+            var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
+            if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
+                && (name is "STD" or "STDDEV_POP")
+                && dialect.Version >= 84)
+            {
+                throw SqlUnsupported.ForDialect(dialect, name);
+            }
+
+            var normalizedName = name == "STD" ? "STDDEV_POP" : name;
+            return EvalStdDevAggregate(fn, group, ctes, normalizedName);
+        }
 
         if (name is "RATIO_TO_REPORT")
             return null;
 
         if (name is "MEDIAN" or "PERCENTILE" or "PERCENTILE_CONT" or "PERCENTILE_DISC")
+        {
+            var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
+            if (dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+                && (name is "PERCENTILE_CONT" or "PERCENTILE_DISC")
+                && dialect.Version < 2012)
+            {
+                throw SqlUnsupported.ForDialect(dialect, name);
+            }
+
             return EvalPercentileAggregate(fn, group, ctes, name);
+        }
 
         if (name is "CHECKSUM_AGG")
         {
@@ -21625,46 +24417,6 @@ private void FillPercentRankOrCumeDist(
             return StringComparer.OrdinalIgnoreCase.Compare(x.ToString(), y.ToString());
         }
     }
-
-    //private sealed class ArrayObjectEqualityComparer : IEqualityComparer<object?[]>
-    //{
-    //    /// <summary>
-    //    /// Auto-generated summary.
-    //    /// </summary>
-    //    public static readonly ArrayObjectEqualityComparer Instance = new();
-
-    //    /// <summary>
-    //    /// Auto-generated summary.
-    //    /// </summary>
-    //    public bool Equals(object?[]? x, object?[]? y)
-    //    {
-    //        if (ReferenceEquals(x, y)) return true;
-    //        if (x is null || y is null) return false;
-    //        if (x.Length != y.Length) return false;
-
-    //        for (int i = 0; i < x.Length; i++)
-    //        {
-    //            if (!Equals(x[i], y[i])) return false;
-    //        }
-    //        return true;
-    //    }
-
-    //    /// <summary>
-    //    /// Auto-generated summary.
-    //    /// </summary>
-    //    public int GetHashCode(object?[] obj)
-    //    {
-    //        unchecked
-    //        {
-    //            int h = 17;
-    //            for (int i = 0; i < obj.Length; i++)
-    //                h = (h * 31) + (obj[i]?.GetHashCode() ?? 0);
-    //            return h;
-    //        }
-    //    }
-    //}
-
-
 
     private static bool IsSqlServerRowCountIdentifier(string identifier, ISqlDialect? dialect)
         => dialect is not null

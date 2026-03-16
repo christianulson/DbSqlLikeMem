@@ -147,6 +147,9 @@ internal sealed class SqlExpressionParser(
             // BETWEEN / NOT BETWEEN (NOT BETWEEN é coberto no TryParseNotInfix)
             if (TryParseBetweenInfix(ref left, minBp)) continue;
 
+            // MEMBER OF
+            if (TryParseMemberOfInfix(ref left, minBp)) continue;
+
             // comparações: = != <> >= <= > <
             if (TryParseComparisonInfix(ref left, minBp)) continue;
 
@@ -187,6 +190,12 @@ internal sealed class SqlExpressionParser(
         if (IsKeyword(Peek(), "NULL"))
         {
             Consume();
+            if (neg
+                && _dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
+                && _dialect.Version < 56)
+            {
+                throw SqlUnsupported.ForDialect(_dialect, "IS NOT");
+            }
             left = new IsNullExpr(left, neg);
             return true;
         }
@@ -651,6 +660,29 @@ internal sealed class SqlExpressionParser(
         return true;
     }
 
+    private bool TryParseMemberOfInfix(ref SqlExpr left, int minBp)
+    {
+        var t = Peek();
+        if (!IsKeywordOrIdentifierWord(t, "MEMBER"))
+            return false;
+
+        var (lbp, rbp) = (50, 51);
+        if (lbp < minBp) return false;
+
+        if (!_dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
+            || _dialect.Version < 80)
+        {
+            throw SqlUnsupported.ForDialect(_dialect, "MEMBER OF");
+        }
+
+        Consume(); // MEMBER
+        ExpectWord("OF");
+
+        var right = ParseExpression(rbp);
+        left = new FunctionCallExpr("MEMBER_OF", [left, right]);
+        return true;
+    }
+
     private bool TryParseAndOrInfix(ref SqlExpr left, int minBp)
     {
         var t = Peek();
@@ -851,6 +883,13 @@ internal sealed class SqlExpressionParser(
 
         if (!IsKeyword(t, "NOT"))
             return false;
+
+        if (_dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
+            && _dialect.Version < 56
+            && IsKeywordOrIdentifierWord(Peek(1), "EXISTS"))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, "NOT EXISTS");
+        }
 
         Consume();
         var rhs = ParseExpression(60);
@@ -1824,7 +1863,14 @@ internal sealed class SqlExpressionParser(
         }
 
         if (_dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
-            && (name.Equals("DB_ID", StringComparison.OrdinalIgnoreCase)
+            && (name.Equals("APP_NAME", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("APPLOCK_MODE", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("APPLOCK_TEST", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("ASSEMBLYPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("CERTENCODED", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("CERTPRIVATEKEY", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("CURSOR_STATUS", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("DB_ID", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("CURRENT_REQUEST_ID", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("CURRENT_TRANSACTION_ID", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("CONTEXT_INFO", StringComparison.OrdinalIgnoreCase)
@@ -1836,6 +1882,22 @@ internal sealed class SqlExpressionParser(
                 || name.Equals("COL_LENGTH", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("COL_NAME", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("OBJECT_ID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("FILE_ID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("FILE_IDEX", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("FILE_NAME", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("FILEGROUP_ID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("FILEGROUP_NAME", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("FILEGROUPPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("FILEPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("FULLTEXTCATALOGPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("FULLTEXTSERVICEPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("GET_FILESTREAM_TRANSACTION_CONTEXT", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("HAS_PERMS_BY_NAME", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("INDEX_COL", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("INDEXKEY_PROPERTY", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("INDEXPROPERTY", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("MIN_ACTIVE_ROWVERSION", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("OBJECT_DEFINITION", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("OBJECTPROPERTY", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("OBJECTPROPERTYEX", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("OBJECT_NAME", StringComparison.OrdinalIgnoreCase)
@@ -1845,6 +1907,8 @@ internal sealed class SqlExpressionParser(
                 || name.Equals("IS_SRVROLEMEMBER", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("ORIGINAL_DB_NAME", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("ORIGINAL_LOGIN", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("PWDCOMPARE", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("PWDENCRYPT", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("SCHEMA_ID", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("SCHEMA_NAME", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("SESSION_CONTEXT", StringComparison.OrdinalIgnoreCase)
@@ -1855,6 +1919,7 @@ internal sealed class SqlExpressionParser(
                 || name.Equals("SUSER_NAME", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("SUSER_SID", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("SUSER_SNAME", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("STATS_DATE", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("TYPE_ID", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("TYPE_NAME", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("TYPEPROPERTY", StringComparison.OrdinalIgnoreCase)
@@ -1921,6 +1986,7 @@ internal sealed class SqlExpressionParser(
                 || name.Equals("NCHAR", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("JSON_MODIFY", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("NEWID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("NEWSEQUENTIALID", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("REPLACE", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("RIGHT", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("ROUND", StringComparison.OrdinalIgnoreCase)
@@ -2794,6 +2860,7 @@ internal sealed class SqlExpressionParser(
             && (parts[0].Equals("@@DATEFIRST", StringComparison.OrdinalIgnoreCase)
                 || parts[0].Equals("@@IDENTITY", StringComparison.OrdinalIgnoreCase)
                 || parts[0].Equals("@@MAX_PRECISION", StringComparison.OrdinalIgnoreCase)
+                || parts[0].Equals("@@TEXTSIZE", StringComparison.OrdinalIgnoreCase)
                 || parts[0].Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase)
                 || parts[0].Equals("SESSION_USER", StringComparison.OrdinalIgnoreCase)
                 || parts[0].Equals("SYSTEM_USER", StringComparison.OrdinalIgnoreCase))
