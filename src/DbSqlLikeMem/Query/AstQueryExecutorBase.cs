@@ -64,11 +64,11 @@ internal abstract class AstQueryExecutorBase(
 
     private static readonly HashSet<string> _aggFns = new(StringComparer.OrdinalIgnoreCase)
     {
-        "COUNT","COUNT_BIG","SUM","MIN","MAX","AVG","GROUP_CONCAT","STRING_AGG","LISTAGG","ANY_VALUE","BIT_AND","BIT_OR","BIT_XOR","JSON_ARRAYAGG","JSON_GROUP_OBJECT","TOTAL","MEDIAN","PERCENTILE","PERCENTILE_CONT","PERCENTILE_DISC","VAR_POP","VAR_SAMP","VARIANCE","VAR","VARP",
-        "COLLECT","CORR","CORR_K","CORR_S","COVAR_POP","COVAR_SAMP","CV","JSON_OBJECTAGG","GROUP_ID",
+        "COUNT","COUNT_BIG","SUM","MIN","MAX","AVG","GROUP_CONCAT","STRING_AGG","LISTAGG","ANY_VALUE","BIT_AND","BIT_OR","BIT_XOR","JSON_ARRAYAGG","JSON_GROUP_OBJECT","TOTAL","MEDIAN","PERCENTILE","PERCENTILE_CONT","PERCENTILE_DISC","VAR_POP","VAR_SAMP","VARIANCE","VARIANCE_SAMP","VAR","VARP",
+        "COLLECT","CORR","CORR_K","CORR_S","CORRELATION","COVAR_POP","COVAR_SAMP","COVARIANCE","COVARIANCE_SAMP","CV","JSON_OBJECTAGG","GROUP_ID",
         "CHECKSUM_AGG","STDEV","STDEVP",
         "APPROX_COUNT_DISTINCT","APPROX_COUNT_DISTINCT_AGG","APPROX_COUNT_DISTINCT_DETAIL","APPROX_MEDIAN","APPROX_PERCENTILE","APPROX_PERCENTILE_AGG","APPROX_PERCENTILE_DETAIL",
-        "REGR_AVGX","REGR_AVGY","REGR_COUNT","REGR_INTERCEPT","REGR_R2","REGR_SLOPE","REGR_SXX","REGR_SXY","REGR_SYY",
+        "REGR_AVGX","REGR_AVGY","REGR_COUNT","REGR_INTERCEPT","REGR_ICPT","REGR_R2","REGR_SLOPE","REGR_SXX","REGR_SXY","REGR_SYY",
         "STD","STDDEV","STDDEV_POP","STDDEV_SAMP","STATS_BINOMIAL_TEST","STATS_CROSSTAB","STATS_F_TEST","STATS_KS_TEST","STATS_MODE","STATS_MW_TEST","STATS_ONE_WAY_ANOVA",
         "STATS_T_TEST_INDEP","STATS_T_TEST_INDEPU","STATS_T_TEST_ONE","STATS_T_TEST_PAIRED","STATS_WSR_TEST","XMLAGG","RATIO_TO_REPORT",
         "ARRAY_AGG","BOOL_AND","BOOL_OR","EVERY","JSON_AGG","JSONB_AGG",
@@ -6687,18 +6687,7 @@ private void FillPercentRankOrCumeDist(
             return postgresUuidResult;
 
         if (TryEvalNumericFunction(fn, EvalArg, out var numericResult))
-        {
-            if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
-                && (fn.Name.Equals("COT", StringComparison.OrdinalIgnoreCase)
-                    || fn.Name.Equals("DEGREES", StringComparison.OrdinalIgnoreCase)
-                    || fn.Name.Equals("FLOOR", StringComparison.OrdinalIgnoreCase))
-                && dialect.Version >= 84)
-            {
-                throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
-            }
-
             return numericResult;
-        }
 
         if (TryEvalAppNameFunction(fn, out var appNameResult))
             return appNameResult;
@@ -7522,6 +7511,12 @@ private void FillPercentRankOrCumeDist(
         out object? result)
     {
         if (!fn.Name.Equals("DECODE", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -8376,7 +8371,7 @@ private void FillPercentRankOrCumeDist(
             && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (!dialect.SupportsOracleClusterFunction(name))
@@ -8408,8 +8403,7 @@ private void FillPercentRankOrCumeDist(
 
         var isToBase64 = fn.Name.Equals("TO_BASE64", StringComparison.OrdinalIgnoreCase);
         var minSupportedVersion = 56;
-        if (dialect.Version < minSupportedVersion
-            || (isToBase64 && dialect.Version >= 84))
+        if (dialect.Version < minSupportedVersion)
         {
             throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
         }
@@ -8557,9 +8551,6 @@ private void FillPercentRankOrCumeDist(
 
         if (name is "INET_ATON")
         {
-            if (dialect.Version >= 84)
-                throw SqlUnsupported.ForDialect(dialect, "INET_ATON");
-
             var textValue = evalArg(0);
             if (IsNullish(textValue))
             {
@@ -8687,7 +8678,7 @@ private void FillPercentRankOrCumeDist(
 
         if (name == "UUID_TO_BIN")
         {
-            if (dialect.Version < 80 || dialect.Version >= 84)
+            if (dialect.Version < 80)
                 throw SqlUnsupported.ForDialect(dialect, "UUID_TO_BIN");
 
             var value = evalArg(0);
@@ -8939,9 +8930,6 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (dialect.Version >= 84)
-            throw SqlUnsupported.ForDialect(dialect, "STR_TO_DATE");
-
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("STR_TO_DATE() espera texto e formato.");
 
@@ -9029,9 +9017,6 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (dialect.Version >= 84)
-            throw SqlUnsupported.ForDialect(dialect, "FROM_DAYS");
-
         if (fn.Args.Count == 0)
             throw new InvalidOperationException("FROM_DAYS() espera um argumento.");
 
@@ -9066,9 +9051,6 @@ private void FillPercentRankOrCumeDist(
             result = null;
             return false;
         }
-
-        if (dialect.Version >= 84)
-            throw SqlUnsupported.ForDialect(dialect, "DATE_SUB");
 
         var baseValue = evalArg(0);
         if (IsNullish(baseValue) || !TryCoerceDateTime(baseValue, out var dateTime))
@@ -9116,7 +9098,26 @@ private void FillPercentRankOrCumeDist(
             throw new InvalidOperationException("GET_FORMAT() espera tipo e formato.");
 
         var typeValue = evalArg(0)?.ToString();
+        if (string.IsNullOrWhiteSpace(typeValue))
+        {
+            typeValue = fn.Args[0] switch
+            {
+                IdentifierExpr id => id.Name,
+                RawSqlExpr raw => raw.Sql,
+                _ => null
+            };
+        }
+
         var formatValue = evalArg(1)?.ToString();
+        if (string.IsNullOrWhiteSpace(formatValue))
+        {
+            formatValue = fn.Args[1] switch
+            {
+                IdentifierExpr id => id.Name,
+                RawSqlExpr raw => raw.Sql,
+                _ => null
+            };
+        }
         if (string.IsNullOrWhiteSpace(typeValue) || string.IsNullOrWhiteSpace(formatValue))
         {
             result = null;
@@ -9144,9 +9145,6 @@ private void FillPercentRankOrCumeDist(
             result = null;
             return false;
         }
-
-        if (dialect.Version >= 84)
-            throw SqlUnsupported.ForDialect(dialect, "CONVERT_TZ");
 
         if (fn.Args.Count < 3)
             throw new InvalidOperationException("CONVERT_TZ() espera data e dois fusos.");
@@ -9300,9 +9298,6 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (name == "EXPORT_SET" && dialect.Version >= 84)
-            throw SqlUnsupported.ForDialect(dialect, "EXPORT_SET");
-
         if (name == "ELT")
         {
             if (fn.Args.Count < 2)
@@ -9412,9 +9407,6 @@ private void FillPercentRankOrCumeDist(
             result = null;
             return false;
         }
-
-        if (dialect.Version >= 84)
-            throw SqlUnsupported.ForDialect(dialect, name);
 
         if (fn.Args.Count == 0)
             throw new InvalidOperationException($"{name}() espera ao menos um argumento.");
@@ -9553,7 +9545,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (dialect.Version < 56 || dialect.Version >= 84)
+        if (dialect.Version < 56)
             throw SqlUnsupported.ForDialect(dialect, "RANDOM_BYTES");
 
         if (fn.Args.Count == 0)
@@ -9603,9 +9595,6 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (dialect.Version >= 84)
-            throw SqlUnsupported.ForDialect(dialect, "SLEEP");
-
         if (fn.Args.Count == 0)
             throw new InvalidOperationException("SLEEP() espera o tempo em segundos.");
 
@@ -9645,9 +9634,6 @@ private void FillPercentRankOrCumeDist(
             result = null;
             return false;
         }
-
-        if (dialect.Version >= 84)
-            throw SqlUnsupported.ForDialect(dialect, name);
 
         if (fn.Args.Count == 0)
             throw new InvalidOperationException($"{name}() espera ao menos um argumento.");
@@ -9715,10 +9701,10 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
-        if (dialect.Version < 80 || dialect.Version >= 84)
+        if (dialect.Version < 80)
             throw SqlUnsupported.ForDialect(dialect, "FORMAT_BYTES");
 
         if (fn.Args.Count == 0)
@@ -9745,14 +9731,14 @@ private void FillPercentRankOrCumeDist(
 
         var units = new[] { "KiB", "MiB", "GiB", "TiB", "PiB", "EiB" };
         var unitIndex = 0;
-        var scaled = bytes;
+        var scaled = bytes / 1024d;
         while (scaled >= 1024d && unitIndex < units.Length - 1)
         {
             scaled /= 1024d;
             unitIndex++;
         }
 
-        result = $"{scaled:0.00} {units[unitIndex]}";
+        result = $"{scaled.ToString("0.00", CultureInfo.InvariantCulture)} {units[unitIndex]}";
         return true;
     }
 
@@ -9771,7 +9757,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (dialect.Version < 80)
@@ -9817,7 +9803,7 @@ private void FillPercentRankOrCumeDist(
             scaled /= factor;
         }
 
-        result = $"{scaled:0.00} {unit}";
+        result = string.Format(CultureInfo.InvariantCulture, "{0:0.00} {1}", scaled, unit);
         return true;
     }
 
@@ -9837,11 +9823,8 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
-
-        if (dialect.Version >= 84)
-            throw SqlUnsupported.ForDialect(dialect, name);
 
         if (name == "EXTRACTVALUE" && fn.Args.Count < 2)
             throw new InvalidOperationException("EXTRACTVALUE() espera xml e xpath.");
@@ -9873,12 +9856,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (name is "AES_ENCRYPT" or "AES_DECRYPT")
-        {
-            if (dialect.Version >= 84)
-                throw SqlUnsupported.ForDialect(dialect, name);
-        }
-        else if (dialect.Version >= 80)
+        if (name is not ("AES_ENCRYPT" or "AES_DECRYPT") && dialect.Version >= 80)
         {
             throw SqlUnsupported.ForDialect(dialect, name);
         }
@@ -9926,20 +9904,20 @@ private void FillPercentRankOrCumeDist(
                 ? payloadBytes
                 : Encoding.UTF8.GetBytes(payloadValue?.ToString() ?? string.Empty);
             var key = BuildXorKeyBytes(Encoding.UTF8.GetBytes(keyText), 16);
-            var output = new byte[payload.Length];
+            var output1 = new byte[payload.Length];
             if (key.Length > 0)
             {
                 for (var i = 0; i < payload.Length; i++)
-                    output[i] = (byte)(payload[i] ^ key[i % key.Length]);
+                    output1[i] = (byte)(payload[i] ^ key[i % key.Length]);
             }
 
             if (name == "AES_ENCRYPT")
             {
-                result = output;
+                result = output1;
                 return true;
             }
 
-            result = Encoding.UTF8.GetString(output);
+            result = Encoding.UTF8.GetString(output1);
             return true;
         }
 
@@ -10223,11 +10201,8 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
-
-        if (dialect.Version >= 84)
-            throw SqlUnsupported.ForDialect(dialect, "CONV");
 
         if (fn.Args.Count < 3)
             throw new InvalidOperationException("CONV() espera valor, base origem e base destino.");
@@ -10292,11 +10267,8 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
-
-        if ((name is "DAYOFMONTH" or "DAYOFYEAR") && dialect.Version >= 84)
-            throw SqlUnsupported.ForDialect(dialect, name);
 
         if (fn.Args.Count == 0)
         {
@@ -10338,13 +10310,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
-        }
-
-        if (dialect.Version >= 84
-            && name is "DATABASE" or "SCHEMA" or "CURRENT_USER" or "LOCALTIME")
-        {
-            throw SqlUnsupported.ForDialect(dialect, name);
+            return false;
         }
 
         if (fn.Args.Count != 0)
@@ -10379,11 +10345,8 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
-
-        if (dialect.Version >= 84 && name is "CHARSET" or "COERCIBILITY")
-            throw SqlUnsupported.ForDialect(dialect, name);
 
         if (fn.Args.Count == 0)
         {
@@ -10480,7 +10443,7 @@ private void FillPercentRankOrCumeDist(
             && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (!dialect.SupportsOracleCollationFunction(name))
@@ -11132,7 +11095,7 @@ private void FillPercentRankOrCumeDist(
             || dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase)))
         {
             result = null;
-            return true;
+            return false;
         }
 
         result = DateTime.Now;
@@ -11154,7 +11117,7 @@ private void FillPercentRankOrCumeDist(
             || dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase)))
         {
             result = null;
-            return true;
+            return false;
         }
 
         result = DateTime.Now.TimeOfDay;
@@ -11896,9 +11859,6 @@ private void FillPercentRankOrCumeDist(
 
         var minVersion = 80;
         if (dialect.Version < minVersion)
-            throw SqlUnsupported.ForDialect(dialect, name);
-
-        if ((name is "REGEXP_LIKE" or "REGEXP_SUBSTR") && dialect.Version >= 84)
             throw SqlUnsupported.ForDialect(dialect, name);
 
         if (fn.Args.Count < 2)
@@ -15607,9 +15567,32 @@ private void FillPercentRankOrCumeDist(
         if (string.IsNullOrWhiteSpace(propertyName))
             return true;
 
-        result = propertyName!.Trim().ToUpperInvariant() switch
+        var normalizedName = propertyName!.Trim().ToUpperInvariant();
+        if (normalizedName == "PRODUCTVERSION")
         {
-            "PRODUCTVERSION" => dialect.Version.ToString(CultureInfo.InvariantCulture),
+            var version = dialect.Version;
+            if (version is >= 100 and <= 170)
+            {
+                version = version switch
+                {
+                    100 => 2008,
+                    110 => 2012,
+                    120 => 2014,
+                    130 => 2016,
+                    140 => 2017,
+                    150 => 2019,
+                    160 => 2022,
+                    170 => 2025,
+                    _ => version
+                };
+            }
+
+            result = version.ToString(CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        result = normalizedName switch
+        {
             "SERVERNAME" => "DbSqlLikeMem",
             _ => null
         };
@@ -18948,11 +18931,8 @@ private void FillPercentRankOrCumeDist(
                 return false;
             }
 
-            if (dialect.Version < 56 || (dialect.Version >= 84 && fn.Name.Equals("JSON_MERGE", StringComparison.OrdinalIgnoreCase)))
+            if (dialect.Version < 56)
                 throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
-
-            if (dialect.Version >= 84 && fn.Name.Equals("JSON_MERGE_PRESERVE", StringComparison.OrdinalIgnoreCase))
-                throw SqlUnsupported.ForDialect(dialect, "JSON_MERGE_PRESERVE");
 
             if (fn.Args.Count < 2)
                 throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() espera dois JSONs.");
@@ -19006,7 +18986,7 @@ private void FillPercentRankOrCumeDist(
                 if (dialect.Version < 56 || dialect.Version >= 80)
                     throw SqlUnsupported.ForDialect(dialect, "JSON_APPEND");
             }
-            else if (dialect.Version < 56 || dialect.Version >= 84)
+            else if (dialect.Version < 56)
             {
                 throw SqlUnsupported.ForDialect(dialect, "JSON_ARRAY_APPEND");
             }
@@ -19620,6 +19600,22 @@ private void FillPercentRankOrCumeDist(
         IReadOnlyList<JsonPathToken> tokens,
         object? value)
     {
+        if (tokens.Count == 0)
+        {
+            if (root is System.Text.Json.Nodes.JsonArray rootArray)
+            {
+                rootArray.Add(CreateJsonNodeFromValue(value));
+                return true;
+            }
+
+            root = new System.Text.Json.Nodes.JsonArray
+            {
+                root is null ? null : CloneJsonNode(root),
+                CreateJsonNodeFromValue(value)
+            };
+            return true;
+        }
+
         if (!TryGetJsonNodeAtPath(root, tokens, out var node))
             return false;
 
@@ -19905,7 +19901,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        return tokens.Count > 0;
+        return true;
     }
 
     private static bool TryParseSqlServerJsonModifyPath(
@@ -23515,7 +23511,7 @@ private void FillPercentRankOrCumeDist(
                 return true;
             }
 
-            result = (int)(endMySql.Date - startMySql.Date).TotalDays;
+            result = (int)(startMySql.Date - endMySql.Date).TotalDays;
             return true;
         }
 
@@ -23615,7 +23611,7 @@ private void FillPercentRankOrCumeDist(
         {
             var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
             if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
-                && (dialect.Version < 56 || dialect.Version >= 84)
+                && dialect.Version < 56
                 && name == "JSON_OBJECTAGG")
             {
                 throw SqlUnsupported.ForDialect(dialect, name);
@@ -23661,13 +23657,6 @@ private void FillPercentRankOrCumeDist(
         if (name is "STD" or "STDDEV" or "STDDEV_POP" or "STDDEV_SAMP")
         {
             var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
-            if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
-                && (name is "STD" or "STDDEV_POP")
-                && dialect.Version >= 84)
-            {
-                throw SqlUnsupported.ForDialect(dialect, name);
-            }
-
             var normalizedName = name == "STD" ? "STDDEV_POP" : name;
             return EvalStdDevAggregate(fn, group, ctes, normalizedName);
         }

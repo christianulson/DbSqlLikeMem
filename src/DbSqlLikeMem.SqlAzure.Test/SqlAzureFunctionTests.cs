@@ -11,6 +11,17 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 public sealed class SqlAzureFunctionTests
     : XUnitTestBase
 {
+    private const int FromPartsMinVersion = 2012;
+    private const int DateDiffBigMinVersion = 2016;
+    private const int SessionContextMinVersion = 2016;
+    private const int JsonFunctionsMinVersion = 2016;
+    private const int ApproxCountDistinctMinVersion = 2019;
+    private const int FormatMinVersion = 2012;
+    private const int ParseMinVersion = 2012;
+    private const int StringEscapeMinVersion = 2016;
+    private const int TranslateMinVersion = 2017;
+    private const int CompressionFunctionsMinVersion = 2016;
+
     private readonly SqlAzureConnectionMock _connection;
 
     /// <summary>
@@ -147,7 +158,7 @@ public sealed class SqlAzureFunctionTests
         Assert.Equal("February", ExecuteScalar(connection, "SELECT DATENAME(month, '2020-02-10') FROM Users WHERE Id = 1"));
         Assert.Equal(2, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(month, '2020-02-10') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
 
-        if (sqlVersion < SqlServerDialect.FromPartsMinVersion)
+        if (sqlVersion < FromPartsMinVersion)
         {
             Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATEFROMPARTS(2020, 2, 29) FROM Users WHERE Id = 1"));
             Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATETIMEFROMPARTS(2020, 2, 29, 10, 11, 12) FROM Users WHERE Id = 1"));
@@ -172,7 +183,7 @@ public sealed class SqlAzureFunctionTests
         Assert.Equal(new DateTimeOffset(new DateTime(2020, 2, 29, 10, 11, 12), TimeSpan.FromHours(2)), Assert.IsType<DateTimeOffset>(ExecuteScalar(connection, "SELECT TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00') FROM Users WHERE Id = 1")));
         Assert.Equal(new DateTimeOffset(new DateTime(2020, 2, 29, 9, 11, 12), TimeSpan.Zero), Assert.IsType<DateTimeOffset>(ExecuteScalar(connection, "SELECT SWITCHOFFSET('2020-02-29T10:11:12+01:00', '+00:00') FROM Users WHERE Id = 1")));
 
-        if (sqlVersion < SqlServerDialect.DateDiffBigMinVersion)
+        if (sqlVersion < DateDiffBigMinVersion)
         {
             Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATEDIFF_BIG(day, '2020-01-01', '2020-01-03') FROM Users WHERE Id = 1"));
             return;
@@ -211,7 +222,7 @@ public sealed class SqlAzureFunctionTests
         Assert.Equal(5, Convert.ToInt32(ExecuteScalar(connection, "SELECT PATINDEX('%Bob%', 'Ana Bob') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT PATINDEX('%Z%', 'Ana Bob') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
 
-        if (sqlVersion < SqlServerDialect.SessionContextMinVersion)
+        if (sqlVersion < SessionContextMinVersion)
         {
             Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT SESSION_CONTEXT(N'tenant_id') FROM Users WHERE Id = 1"));
             return;
@@ -234,7 +245,7 @@ public sealed class SqlAzureFunctionTests
         using var connection = CreateOpenConnection(compatibilityLevel);
         var sqlVersion = ToSqlServerVersion(compatibilityLevel);
 
-        if (sqlVersion < SqlServerDialect.JsonFunctionsMinVersion)
+        if (sqlVersion < JsonFunctionsMinVersion)
         {
             Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT ISJSON('{\"a\":1}') FROM Users WHERE Id = 1"));
             Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT JSON_MODIFY('{\"profile\":{\"active\":true,\"name\":\"Ana\"}}', '$.profile.name', 'Bia') FROM Users WHERE Id = 1"));
@@ -262,7 +273,7 @@ public sealed class SqlAzureFunctionTests
             Convert.ToInt32(ExecuteScalar(connection, "SELECT CHECKSUM('Ana') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture),
             Convert.ToInt32(ExecuteScalar(connection, "SELECT CHECKSUM_AGG(Name) FROM Users"), CultureInfo.InvariantCulture));
 
-        if (sqlVersion < SqlServerDialect.ApproxCountDistinctMinVersion)
+        if (sqlVersion < ApproxCountDistinctMinVersion)
         {
             Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT APPROX_COUNT_DISTINCT(Name) FROM Users"));
             return;
@@ -284,7 +295,7 @@ public sealed class SqlAzureFunctionTests
         using var connection = CreateOpenConnection(compatibilityLevel);
         var sqlVersion = ToSqlServerVersion(compatibilityLevel);
 
-        if (sqlVersion < SqlServerDialect.FormatMinVersion)
+        if (sqlVersion < FormatMinVersion)
         {
             Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT FORMAT(42, 'D4') FROM Users WHERE Id = 1"));
         }
@@ -293,7 +304,7 @@ public sealed class SqlAzureFunctionTests
             Assert.Equal("0042", ExecuteScalar(connection, "SELECT FORMAT(42, 'D4') FROM Users WHERE Id = 1"));
         }
 
-        if (sqlVersion < SqlServerDialect.ParseMinVersion)
+        if (sqlVersion < ParseMinVersion)
         {
             Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT PARSE('42' AS INT) FROM Users WHERE Id = 1"));
             Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT TRY_CONVERT(INT, '42') FROM Users WHERE Id = 1"));
@@ -306,16 +317,16 @@ public sealed class SqlAzureFunctionTests
             Assert.Equal(42, Convert.ToInt32(ExecuteScalar(connection, "SELECT TRY_PARSE('42' AS INT) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         }
 
-        if (sqlVersion < SqlServerDialect.StringEscapeMinVersion)
+        if (sqlVersion < StringEscapeMinVersion)
         {
-            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT STRING_ESCAPE('\\\"Ana\\nBob\\\"', 'json') FROM Users WHERE Id = 1"));
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT STRING_ESCAPE('\"Ana\nBob\"', 'json') FROM Users WHERE Id = 1"));
         }
         else
         {
-            Assert.Equal("\\\"Ana\\nBob\\\"", ExecuteScalar(connection, "SELECT STRING_ESCAPE('\\\"Ana\\nBob\\\"', 'json') FROM Users WHERE Id = 1"));
+            Assert.Equal("\\\"Ana\\nBob\\\"", ExecuteScalar(connection, "SELECT STRING_ESCAPE('\"Ana\nBob\"', 'json') FROM Users WHERE Id = 1"));
         }
 
-        if (sqlVersion < SqlServerDialect.TranslateMinVersion)
+        if (sqlVersion < TranslateMinVersion)
         {
             Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT TRANSLATE('abc', 'ab', 'xy') FROM Users WHERE Id = 1"));
         }
@@ -324,7 +335,7 @@ public sealed class SqlAzureFunctionTests
             Assert.Equal("xyc", ExecuteScalar(connection, "SELECT TRANSLATE('abc', 'ab', 'xy') FROM Users WHERE Id = 1"));
         }
 
-        if (sqlVersion < SqlServerDialect.CompressionFunctionsMinVersion)
+        if (sqlVersion < CompressionFunctionsMinVersion)
         {
             Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT COMPRESS('Ana') FROM Users WHERE Id = 1"));
             Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DECOMPRESS(COMPRESS('Ana')) FROM Users WHERE Id = 1"));
@@ -466,4 +477,8 @@ public sealed class SqlAzureFunctionTests
     private void ExecuteNonQuery(string sql)
         => ExecuteNonQuery(_connection, sql);
 }
+
+
+
+
 

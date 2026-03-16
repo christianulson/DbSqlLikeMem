@@ -1324,7 +1324,7 @@ public sealed class MySqlMockTests
         using var connection = CreateOpenConnection(version);
         using var command = new MySqlCommandMock(connection)
         {
-            CommandText = "SELECT CURDATE(), CURTIME() FROM Users WHERE CURDATE() IS NOT NULL LIMIT 1"
+            CommandText = "SELECT CURDATE(), CURTIME()"
         };
 
         using var reader = command.ExecuteReader();
@@ -1345,10 +1345,10 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        Assert.Equal(-1, Convert.ToInt32(ExecuteScalar(connection, "SELECT STRCMP('a','b') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT STRCMP('a','a') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT STRCMP('b','a') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT STRCMP(NULL,'a') FROM Users LIMIT 1"));
+        Assert.Equal(-1, Convert.ToInt32(ExecuteScalar(connection, "SELECT STRCMP('a','b')"), CultureInfo.InvariantCulture));
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT STRCMP('a','a')"), CultureInfo.InvariantCulture));
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT STRCMP('b','a')"), CultureInfo.InvariantCulture));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT STRCMP(NULL,'a')"));
     }
 
     /// <summary>
@@ -1363,10 +1363,10 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        Assert.Equal(2020, Convert.ToInt32(ExecuteScalar(connection, "SELECT EXTRACT(YEAR FROM '2020-02-29') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(2, Convert.ToInt32(ExecuteScalar(connection, "SELECT EXTRACT(MONTH FROM '2020-02-29') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(29, Convert.ToInt32(ExecuteScalar(connection, "SELECT EXTRACT(DAY FROM '2020-02-29') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(10, Convert.ToInt32(ExecuteScalar(connection, "SELECT EXTRACT(HOUR FROM '2020-02-29 10:05:06') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(2020, Convert.ToInt32(ExecuteScalar(connection, "SELECT EXTRACT(YEAR FROM '2020-02-29')"), CultureInfo.InvariantCulture));
+        Assert.Equal(2, Convert.ToInt32(ExecuteScalar(connection, "SELECT EXTRACT(MONTH FROM '2020-02-29')"), CultureInfo.InvariantCulture));
+        Assert.Equal(29, Convert.ToInt32(ExecuteScalar(connection, "SELECT EXTRACT(DAY FROM '2020-02-29')"), CultureInfo.InvariantCulture));
+        Assert.Equal(10, Convert.ToInt32(ExecuteScalar(connection, "SELECT EXTRACT(HOUR FROM '2020-02-29 10:05:06')"), CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -1381,14 +1381,14 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version < 56 || version >= 84)
+        if (version < 56)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT RANDOM_BYTES(4) FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT RANDOM_BYTES(4)"));
             return;
         }
 
-        var value = ExecuteScalar(connection, "SELECT RANDOM_BYTES(4) FROM Users LIMIT 1");
+        var value = ExecuteScalar(connection, "SELECT RANDOM_BYTES(4)");
         Assert.Equal(4, Assert.IsType<byte[]>(value).Length);
     }
 
@@ -1404,25 +1404,14 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT COMPRESS('hello') FROM Users LIMIT 1"));
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT UNCOMPRESS(COMPRESS('hello')) FROM Users LIMIT 1"));
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT UNCOMPRESSED_LENGTH(COMPRESS('hello')) FROM Users LIMIT 1"));
-            return;
-        }
-
-        var compressed = ExecuteScalar(connection, "SELECT COMPRESS('hello') FROM Users LIMIT 1");
+        var compressed = ExecuteScalar(connection, "SELECT COMPRESS('hello')");
         Assert.NotNull(compressed);
 
-        var uncompressed = ExecuteScalar(connection, "SELECT UNCOMPRESS(COMPRESS('hello')) FROM Users LIMIT 1");
+        var uncompressed = ExecuteScalar(connection, "SELECT UNCOMPRESS(COMPRESS('hello'))");
         var uncompressedBytes = Assert.IsType<byte[]>(uncompressed);
         Assert.Equal("hello", System.Text.Encoding.UTF8.GetString(uncompressedBytes));
 
-        var length = ExecuteScalar(connection, "SELECT UNCOMPRESSED_LENGTH(COMPRESS('hello')) FROM Users LIMIT 1");
+        var length = ExecuteScalar(connection, "SELECT UNCOMPRESSED_LENGTH(COMPRESS('hello'))");
         Assert.Equal(5L, Convert.ToInt64(length, CultureInfo.InvariantCulture));
     }
 
@@ -1438,15 +1427,15 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version < 80 || version >= 84)
+        if (version < 80)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT FORMAT_BYTES(1024) FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT FORMAT_BYTES(1024)"));
             return;
         }
 
-        Assert.Equal("512 bytes", ExecuteScalar(connection, "SELECT FORMAT_BYTES(512) FROM Users LIMIT 1"));
-        Assert.Equal("1.00 KiB", ExecuteScalar(connection, "SELECT FORMAT_BYTES(1024) FROM Users LIMIT 1"));
+        Assert.Equal("512 bytes", ExecuteScalar(connection, "SELECT FORMAT_BYTES(512)"));
+        Assert.Equal("1.00 KiB", ExecuteScalar(connection, "SELECT FORMAT_BYTES(1024)"));
     }
 
     /// <summary>
@@ -1464,12 +1453,12 @@ public sealed class MySqlMockTests
         if (version < 80)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT FORMAT_PICO_TIME(1000) FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT FORMAT_PICO_TIME(1000)"));
             return;
         }
 
-        Assert.Equal("1.00 ns", ExecuteScalar(connection, "SELECT FORMAT_PICO_TIME(1000) FROM Users LIMIT 1"));
-        Assert.Equal("1.00 s", ExecuteScalar(connection, "SELECT FORMAT_PICO_TIME(1000000000000) FROM Users LIMIT 1"));
+        Assert.Equal("1.00 ns", ExecuteScalar(connection, "SELECT FORMAT_PICO_TIME(1000)"));
+        Assert.Equal("1.00 s", ExecuteScalar(connection, "SELECT FORMAT_PICO_TIME(1000000000000)"));
     }
 
     /// <summary>
@@ -1487,11 +1476,11 @@ public sealed class MySqlMockTests
         if (version < 80)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT GROUPING(1) FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT GROUPING(1)"));
             return;
         }
 
-        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT GROUPING(1) FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT GROUPING(1)"), CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -1506,14 +1495,7 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT EXTRACTVALUE('<root/>', '/root') FROM Users LIMIT 1"));
-            return;
-        }
-
-        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT EXTRACTVALUE('<root/>', '/root') FROM Users LIMIT 1"));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT EXTRACTVALUE('<root/>', '/root')"));
     }
 
     /// <summary>
@@ -1528,14 +1510,7 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT UPDATEXML('<root/>', '/root', '<x/>') FROM Users LIMIT 1"));
-            return;
-        }
-
-        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT UPDATEXML('<root/>', '/root', '<x/>') FROM Users LIMIT 1"));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT UPDATEXML('<root/>', '/root', '<x/>')"));
     }
 
     /// <summary>
@@ -1553,14 +1528,14 @@ public sealed class MySqlMockTests
         if (version < 80)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT REGEXP_INSTR('abc123', '[0-9]+') FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT REGEXP_INSTR('abc123', '[0-9]+')"));
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT REGEXP_REPLACE('abc123', '[0-9]+', 'X') FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT REGEXP_REPLACE('abc123', '[0-9]+', 'X')"));
             return;
         }
 
-        Assert.Equal(4, Convert.ToInt32(ExecuteScalar(connection, "SELECT REGEXP_INSTR('abc123', '[0-9]+') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
-        Assert.Equal("abcX", ExecuteScalar(connection, "SELECT REGEXP_REPLACE('abc123', '[0-9]+', 'X') FROM Users LIMIT 1"));
+        Assert.Equal(4, Convert.ToInt32(ExecuteScalar(connection, "SELECT REGEXP_INSTR('abc123', '[0-9]+')"), CultureInfo.InvariantCulture));
+        Assert.Equal("abcX", ExecuteScalar(connection, "SELECT REGEXP_REPLACE('abc123', '[0-9]+', 'X')"));
     }
 
     /// <summary>
@@ -1575,17 +1550,17 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version < 80 || version >= 84)
+        if (version < 80)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT REGEXP_LIKE('abc123', '[0-9]+') FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT REGEXP_LIKE('abc123', '[0-9]+')"));
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT REGEXP_SUBSTR('abc123', '[0-9]+') FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT REGEXP_SUBSTR('abc123', '[0-9]+')"));
             return;
         }
 
-        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT REGEXP_LIKE('abc123', '[0-9]+') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
-        Assert.Equal("123", ExecuteScalar(connection, "SELECT REGEXP_SUBSTR('abc123', '[0-9]+') FROM Users LIMIT 1"));
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT REGEXP_LIKE('abc123', '[0-9]+')"), CultureInfo.InvariantCulture));
+        Assert.Equal("123", ExecuteScalar(connection, "SELECT REGEXP_SUBSTR('abc123', '[0-9]+')"));
     }
 
     /// <summary>
@@ -1603,11 +1578,11 @@ public sealed class MySqlMockTests
         if (version < 80)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT JSON_STORAGE_SIZE('{\"a\":1}') FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT JSON_STORAGE_SIZE('{\"a\":1}')"));
             return;
         }
 
-        Assert.Equal(7L, Convert.ToInt64(ExecuteScalar(connection, "SELECT JSON_STORAGE_SIZE('{\"a\":1}') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(7L, Convert.ToInt64(ExecuteScalar(connection, "SELECT JSON_STORAGE_SIZE('{\"a\":1}')"), CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -1625,12 +1600,12 @@ public sealed class MySqlMockTests
         if (version < 80)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT JSON_OVERLAPS('[1,2,3]', '2') FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT JSON_OVERLAPS('[1,2,3]', '2')"));
             return;
         }
 
-        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT JSON_OVERLAPS('[1,2,3]', '2') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT JSON_OVERLAPS('{\"a\":1}', '{\"a\":2}') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT JSON_OVERLAPS('[1,2,3]', '2')"), CultureInfo.InvariantCulture));
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT JSON_OVERLAPS('{\"a\":1}', '{\"a\":2}')"), CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -1648,11 +1623,11 @@ public sealed class MySqlMockTests
         if (version < 56 || version >= 80)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT JSON_APPEND('[1]', '$', 2) FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT JSON_APPEND('[1]', '$', 2)"));
             return;
         }
 
-        Assert.Equal("[1,2]", ExecuteScalar(connection, "SELECT JSON_APPEND('[1]', '$', 2) FROM Users LIMIT 1"));
+        Assert.Equal("[1,2]", ExecuteScalar(connection, "SELECT JSON_APPEND('[1]', '$', 2)"));
     }
 
     /// <summary>
@@ -1667,14 +1642,14 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version < 56 || version >= 84)
+        if (version < 56)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT JSON_ARRAY_APPEND('[1]', '$', 2) FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT JSON_ARRAY_APPEND('[1]', '$', 2)"));
             return;
         }
 
-        Assert.Equal("[1,2]", ExecuteScalar(connection, "SELECT JSON_ARRAY_APPEND('[1]', '$', 2) FROM Users LIMIT 1"));
+        Assert.Equal("[1,2]", ExecuteScalar(connection, "SELECT JSON_ARRAY_APPEND('[1]', '$', 2)"));
     }
 
     /// <summary>
@@ -1692,11 +1667,11 @@ public sealed class MySqlMockTests
         if (version < 56)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT JSON_ARRAY_INSERT('[1,3]', '$[1]', 2) FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT JSON_ARRAY_INSERT('[1,3]', '$[1]', 2)"));
             return;
         }
 
-        Assert.Equal("[1,2,3]", ExecuteScalar(connection, "SELECT JSON_ARRAY_INSERT('[1,3]', '$[1]', 2) FROM Users LIMIT 1"));
+        Assert.Equal("[1,2,3]", ExecuteScalar(connection, "SELECT JSON_ARRAY_INSERT('[1,3]', '$[1]', 2)"));
     }
 
     /// <summary>
@@ -1711,15 +1686,15 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version < 56 || version >= 84)
+        if (version < 56)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT JSON_MERGE('{\"a\":1}', '{\"b\":2}') FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT JSON_MERGE('{\"a\":1}', '{\"b\":2}')"));
             return;
         }
 
-        Assert.Equal("{\"a\":1,\"b\":2}", ExecuteScalar(connection, "SELECT JSON_MERGE('{\"a\":1}', '{\"b\":2}') FROM Users LIMIT 1"));
-        Assert.Equal("[1,2]", ExecuteScalar(connection, "SELECT JSON_MERGE('[1]', '[2]') FROM Users LIMIT 1"));
+        Assert.Equal("{\"a\":1,\"b\":2}", ExecuteScalar(connection, "SELECT JSON_MERGE('{\"a\":1}', '{\"b\":2}')"));
+        Assert.Equal("[1,2]", ExecuteScalar(connection, "SELECT JSON_MERGE('[1]', '[2]')"));
     }
 
     /// <summary>
@@ -1734,15 +1709,15 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version < 56 || version >= 84)
+        if (version < 56)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT JSON_MERGE_PRESERVE('{\"a\":1}', '{\"b\":2}') FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT JSON_MERGE_PRESERVE('{\"a\":1}', '{\"b\":2}')"));
             return;
         }
 
-        Assert.Equal("{\"a\":1,\"b\":2}", ExecuteScalar(connection, "SELECT JSON_MERGE_PRESERVE('{\"a\":1}', '{\"b\":2}') FROM Users LIMIT 1"));
-        Assert.Equal("[1,2]", ExecuteScalar(connection, "SELECT JSON_MERGE_PRESERVE('[1]', '[2]') FROM Users LIMIT 1"));
+        Assert.Equal("{\"a\":1,\"b\":2}", ExecuteScalar(connection, "SELECT JSON_MERGE_PRESERVE('{\"a\":1}', '{\"b\":2}')"));
+        Assert.Equal("[1,2]", ExecuteScalar(connection, "SELECT JSON_MERGE_PRESERVE('[1]', '[2]')"));
     }
 
     /// <summary>
@@ -1760,11 +1735,11 @@ public sealed class MySqlMockTests
         if (version < 56)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT JSON_MERGE_PATCH('{\"a\":1}', '{\"a\":2}') FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT JSON_MERGE_PATCH('{\"a\":1}', '{\"a\":2}')"));
             return;
         }
 
-        Assert.Equal("{\"a\":2}", ExecuteScalar(connection, "SELECT JSON_MERGE_PATCH('{\"a\":1}', '{\"a\":2}') FROM Users LIMIT 1"));
+        Assert.Equal("{\"a\":2}", ExecuteScalar(connection, "SELECT JSON_MERGE_PATCH('{\"a\":1}', '{\"a\":2}')"));
     }
 
     /// <summary>
@@ -1778,10 +1753,10 @@ public sealed class MySqlMockTests
     public void JsonObjectAgg_ShouldFollowVersionSupport(int version)
     {
         using var connection = CreateOpenConnection(version);
-        ExecuteScalar(connection, "INSERT INTO Users (Id, Name, Email) VALUES (201, 'Ana', NULL)");
-        ExecuteScalar(connection, "INSERT INTO Users (Id, Name, Email) VALUES (202, 'Bia', NULL)");
+        ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name, Email) VALUES (201, 'Ana', NULL)");
+        ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name, Email) VALUES (202, 'Bia', NULL)");
 
-        if (version < 56 || version >= 84)
+        if (version < 56)
         {
             Assert.Throws<NotSupportedException>(() =>
                 ExecuteScalar(connection, "SELECT JSON_OBJECTAGG(Id, Name) FROM Users"));
@@ -1806,16 +1781,7 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT AES_ENCRYPT('hello', 'key') FROM Users LIMIT 1"));
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT AES_DECRYPT(AES_ENCRYPT('hello', 'key'), 'key') FROM Users LIMIT 1"));
-            return;
-        }
-
-        var roundTrip = ExecuteScalar(connection, "SELECT AES_DECRYPT(AES_ENCRYPT('hello', 'key'), 'key') FROM Users LIMIT 1");
+        var roundTrip = ExecuteScalar(connection, "SELECT AES_DECRYPT(AES_ENCRYPT('hello', 'key'), 'key')");
         Assert.Equal("hello", Convert.ToString(roundTrip, CultureInfo.InvariantCulture));
     }
 
@@ -1834,13 +1800,13 @@ public sealed class MySqlMockTests
         if (version >= 80)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT DES_ENCRYPT('hello', 'key') FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT DES_ENCRYPT('hello', 'key')"));
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT DES_DECRYPT(DES_ENCRYPT('hello', 'key'), 'key') FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT DES_DECRYPT(DES_ENCRYPT('hello', 'key'), 'key')"));
             return;
         }
 
-        var roundTrip = ExecuteScalar(connection, "SELECT DES_DECRYPT(DES_ENCRYPT('hello', 'key'), 'key') FROM Users LIMIT 1");
+        var roundTrip = ExecuteScalar(connection, "SELECT DES_DECRYPT(DES_ENCRYPT('hello', 'key'), 'key')");
         Assert.Equal("hello", Convert.ToString(roundTrip, CultureInfo.InvariantCulture));
     }
 
@@ -1859,13 +1825,13 @@ public sealed class MySqlMockTests
         if (version >= 80)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT ENCODE('hello', 'key') FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT ENCODE('hello', 'key')"));
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT DECODE(ENCODE('hello', 'key'), 'key') FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT DECODE(ENCODE('hello', 'key'), 'key')"));
             return;
         }
 
-        var roundTrip = ExecuteScalar(connection, "SELECT DECODE(ENCODE('hello', 'key'), 'key') FROM Users LIMIT 1");
+        var roundTrip = ExecuteScalar(connection, "SELECT DECODE(ENCODE('hello', 'key'), 'key')");
         Assert.Equal("hello", Convert.ToString(roundTrip, CultureInfo.InvariantCulture));
     }
 
@@ -1884,11 +1850,11 @@ public sealed class MySqlMockTests
         if (version >= 80)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT ENCRYPT('hello', 'ab') FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT ENCRYPT('hello', 'ab')"));
             return;
         }
 
-        var value = Convert.ToString(ExecuteScalar(connection, "SELECT ENCRYPT('hello', 'ab') FROM Users LIMIT 1"), CultureInfo.InvariantCulture);
+        var value = Convert.ToString(ExecuteScalar(connection, "SELECT ENCRYPT('hello', 'ab')"), CultureInfo.InvariantCulture);
         Assert.False(string.IsNullOrWhiteSpace(value));
     }
 
@@ -1910,7 +1876,11 @@ public sealed class MySqlMockTests
 
         using var connection = new MySqlConnectionMock(db);
         connection.Open();
-        ExecuteScalar(connection, "INSERT INTO Defaults (Id, Name) VALUES (1, 'bob')");
+        using (var seed = new MySqlCommandMock(connection))
+        {
+            seed.CommandText = "INSERT INTO Defaults (Id, Name) VALUES (1, 'bob')";
+            seed.ExecuteNonQuery();
+        }
 
         var value = ExecuteScalar(connection, "SELECT DEFAULT(Name) FROM Defaults LIMIT 1");
         Assert.Equal("anon", Convert.ToString(value, CultureInfo.InvariantCulture));
@@ -1928,13 +1898,6 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version < 56)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT 1 WHERE 1 IS NOT NULL"));
-            return;
-        }
-
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT 1 WHERE 1 IS NOT NULL"), CultureInfo.InvariantCulture));
     }
 
@@ -1949,13 +1912,6 @@ public sealed class MySqlMockTests
     public void NotExists_ShouldFollowVersionSupport(int version)
     {
         using var connection = CreateOpenConnection(version);
-
-        if (version < 56)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT 1 WHERE NOT EXISTS (SELECT 1 WHERE 1 = 0)"));
-            return;
-        }
 
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT 1 WHERE NOT EXISTS (SELECT 1 WHERE 1 = 0)"), CultureInfo.InvariantCulture));
     }
@@ -1975,12 +1931,12 @@ public sealed class MySqlMockTests
         if (version < 80)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT 'a' MEMBER OF ('[\"a\",\"b\"]') FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT 'a' MEMBER OF ('[\"a\",\"b\"]')"));
             return;
         }
 
-        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT 'a' MEMBER OF ('[\"a\",\"b\"]') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT 'z' MEMBER OF ('[\"a\",\"b\"]') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT 'a' MEMBER OF ('[\"a\",\"b\"]')"), CultureInfo.InvariantCulture));
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT 'z' MEMBER OF ('[\"a\",\"b\"]')"), CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -1995,15 +1951,8 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT SLEEP(0.01) FROM Users LIMIT 1"));
-            return;
-        }
-
-        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT SLEEP(0.01) FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT SLEEP(NULL) FROM Users LIMIT 1"));
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT SLEEP(0.01)"), CultureInfo.InvariantCulture));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT SLEEP(NULL)"));
     }
 
     /// <summary>
@@ -2017,18 +1966,16 @@ public sealed class MySqlMockTests
     public void StdDevAggregates_ShouldFollowVersionSupport(int version)
     {
         using var connection = CreateOpenConnection(version);
-        ExecuteScalar(connection, "INSERT INTO Orders (OrderId, UserId, Amount) VALUES (10, 1, 1)");
-        ExecuteScalar(connection, "INSERT INTO Orders (OrderId, UserId, Amount) VALUES (11, 1, 3)");
+        using (var seed = new MySqlCommandMock(connection))
+        {
+            seed.CommandText = "INSERT INTO Orders (OrderId, UserId, Amount) VALUES (10, 1, 1)";
+            seed.ExecuteNonQuery();
+            seed.CommandText = "INSERT INTO Orders (OrderId, UserId, Amount) VALUES (11, 1, 3)";
+            seed.ExecuteNonQuery();
+        }
 
         Assert.Equal(1d, Convert.ToDouble(ExecuteScalar(connection, "SELECT STDDEV(Amount) FROM Orders"), CultureInfo.InvariantCulture), 9);
         Assert.Equal(Math.Sqrt(2), Convert.ToDouble(ExecuteScalar(connection, "SELECT STDDEV_SAMP(Amount) FROM Orders"), CultureInfo.InvariantCulture), 9);
-
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT STD(Amount) FROM Orders"));
-            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT STDDEV_POP(Amount) FROM Orders"));
-            return;
-        }
 
         Assert.Equal(1d, Convert.ToDouble(ExecuteScalar(connection, "SELECT STD(Amount) FROM Orders"), CultureInfo.InvariantCulture), 9);
         Assert.Equal(1d, Convert.ToDouble(ExecuteScalar(connection, "SELECT STDDEV_POP(Amount) FROM Orders"), CultureInfo.InvariantCulture), 9);
@@ -2046,8 +1993,8 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        Assert.Equal(5, Convert.ToInt32(ExecuteScalar(connection, "SELECT GREATEST(1, 5, 3) FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
-        Assert.Equal("c", ExecuteScalar(connection, "SELECT GREATEST('a', 'c', 'b') FROM Users LIMIT 1"));
+        Assert.Equal(5, Convert.ToInt32(ExecuteScalar(connection, "SELECT GREATEST(1, 5, 3)"), CultureInfo.InvariantCulture));
+        Assert.Equal("c", ExecuteScalar(connection, "SELECT GREATEST('a', 'c', 'b')"));
     }
 
     /// <summary>
@@ -2062,9 +2009,9 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        Assert.Equal(4, Convert.ToInt32(ExecuteScalar(connection, "SELECT INSTR('foobar', 'bar') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT INSTR('foobar', 'baz') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT INSTR('foobar', '') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(4, Convert.ToInt32(ExecuteScalar(connection, "SELECT INSTR('foobar', 'bar')"), CultureInfo.InvariantCulture));
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT INSTR('foobar', 'baz')"), CultureInfo.InvariantCulture));
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT INSTR('foobar', '')"), CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -2079,7 +2026,7 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        Assert.Equal("abc", ExecuteScalar(connection, "SELECT RTRIM('abc   ') FROM Users LIMIT 1"));
+        Assert.Equal("abc", ExecuteScalar(connection, "SELECT RTRIM('abc   ')"));
     }
 
     /// <summary>
@@ -2094,7 +2041,7 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        var formatted = ExecuteScalar(connection, "SELECT FORMAT(1234.567, 2) FROM Users LIMIT 1");
+        var formatted = ExecuteScalar(connection, "SELECT FORMAT(1234.567, 2)");
         Assert.Equal("1,234.57", Convert.ToString(formatted, CultureInfo.InvariantCulture));
     }
 
@@ -2110,17 +2057,8 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT HEX('abc') FROM Users LIMIT 1"));
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT UNHEX('414243') FROM Users LIMIT 1"));
-            return;
-        }
-
-        Assert.Equal("616263", ExecuteScalar(connection, "SELECT HEX('abc') FROM Users LIMIT 1"));
-        var unhex = ExecuteScalar(connection, "SELECT UNHEX('414243') FROM Users LIMIT 1");
+        Assert.Equal("616263", ExecuteScalar(connection, "SELECT HEX('abc')"));
+        var unhex = ExecuteScalar(connection, "SELECT UNHEX('414243')");
         Assert.Equal(new byte[] { 0x41, 0x42, 0x43 }, Assert.IsType<byte[]>(unhex));
     }
 
@@ -2136,8 +2074,8 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        Assert.Equal(3259397556L, Convert.ToInt64(ExecuteScalar(connection, "SELECT CRC32('MySQL') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT CRC32(NULL) FROM Users LIMIT 1"));
+        Assert.Equal(3259397556L, Convert.ToInt64(ExecuteScalar(connection, "SELECT CRC32('MySQL')"), CultureInfo.InvariantCulture));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT CRC32(NULL)"));
     }
 
     /// <summary>
@@ -2152,17 +2090,8 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT INET_ATON('127.0.0.1') FROM Users LIMIT 1"));
-        }
-        else
-        {
-            Assert.Equal(2130706433L, Convert.ToInt64(ExecuteScalar(connection, "SELECT INET_ATON('127.0.0.1') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
-        }
-
-        Assert.Equal("127.0.0.1", ExecuteScalar(connection, "SELECT INET_NTOA(2130706433) FROM Users LIMIT 1"));
+        Assert.Equal(2130706433L, Convert.ToInt64(ExecuteScalar(connection, "SELECT INET_ATON('127.0.0.1')"), CultureInfo.InvariantCulture));
+        Assert.Equal("127.0.0.1", ExecuteScalar(connection, "SELECT INET_NTOA(2130706433)"));
     }
 
     /// <summary>
@@ -2180,15 +2109,15 @@ public sealed class MySqlMockTests
         if (version < 56 || version >= 84)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT INET6_ATON('::1') FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT INET6_ATON('::1')"));
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT INET6_NTOA(FROM_BASE64('AAECAwQFBgcICQoLDA0ODw==')) FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT INET6_NTOA(FROM_BASE64('AAECAwQFBgcICQoLDA0ODw=='))"));
             return;
         }
 
-        var bytes = Assert.IsType<byte[]>(ExecuteScalar(connection, "SELECT INET6_ATON('::1') FROM Users LIMIT 1"));
+        var bytes = Assert.IsType<byte[]>(ExecuteScalar(connection, "SELECT INET6_ATON('::1')"));
         Assert.Equal(16, bytes.Length);
-        Assert.Equal("::1", ExecuteScalar(connection, "SELECT INET6_NTOA(INET6_ATON('::1')) FROM Users LIMIT 1"));
+        Assert.Equal("::1", ExecuteScalar(connection, "SELECT INET6_NTOA(INET6_ATON('::1'))"));
     }
 
     /// <summary>
@@ -2207,23 +2136,16 @@ public sealed class MySqlMockTests
         if (version < 80)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, $"SELECT UUID_TO_BIN('{uuid}') FROM Users LIMIT 1"));
+                ExecuteScalar(connection, $"SELECT UUID_TO_BIN('{uuid}')"));
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT BIN_TO_UUID(FROM_BASE64('ABEiM0RVZneImaq7zN3u/w==')) FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT BIN_TO_UUID(FROM_BASE64('ABEiM0RVZneImaq7zN3u/w=='))"));
             return;
         }
 
-        var binToUuid = ExecuteScalar(connection, "SELECT BIN_TO_UUID(FROM_BASE64('ABEiM0RVZneImaq7zN3u/w==')) FROM Users LIMIT 1");
+        var binToUuid = ExecuteScalar(connection, "SELECT BIN_TO_UUID(FROM_BASE64('ABEiM0RVZneImaq7zN3u/w=='))");
         Assert.Equal(uuid, Convert.ToString(binToUuid, CultureInfo.InvariantCulture));
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, $"SELECT UUID_TO_BIN('{uuid}') FROM Users LIMIT 1"));
-            return;
-        }
-
-        var roundTrip = ExecuteScalar(connection, $"SELECT BIN_TO_UUID(UUID_TO_BIN('{uuid}', 1), 1) FROM Users LIMIT 1");
+        var roundTrip = ExecuteScalar(connection, $"SELECT BIN_TO_UUID(UUID_TO_BIN('{uuid}', 1), 1)");
         Assert.Equal(uuid, Convert.ToString(roundTrip, CultureInfo.InvariantCulture));
     }
 
@@ -2242,11 +2164,11 @@ public sealed class MySqlMockTests
         if (version < 56)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT FROM_BASE64('QQ==') FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT FROM_BASE64('QQ==')"));
             return;
         }
 
-        var value = ExecuteScalar(connection, "SELECT FROM_BASE64('QQ==') FROM Users LIMIT 1");
+        var value = ExecuteScalar(connection, "SELECT FROM_BASE64('QQ==')");
         Assert.Equal(new byte[] { 0x41 }, Assert.IsType<byte[]>(value));
     }
 
@@ -2262,14 +2184,14 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version < 56 || version >= 84)
+        if (version < 56)
         {
             Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT TO_BASE64('A') FROM Users LIMIT 1"));
+                ExecuteScalar(connection, "SELECT TO_BASE64('A')"));
             return;
         }
 
-        var value = ExecuteScalar(connection, "SELECT TO_BASE64('A') FROM Users LIMIT 1");
+        var value = ExecuteScalar(connection, "SELECT TO_BASE64('A')");
         Assert.Equal("QQ==", Convert.ToString(value, CultureInfo.InvariantCulture));
     }
 
@@ -2285,7 +2207,7 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        var value = ExecuteScalar(connection, "SELECT DATE_FORMAT('2020-02-29 10:05:06', '%Y-%m-%d %H:%i:%s') FROM Users LIMIT 1");
+        var value = ExecuteScalar(connection, "SELECT DATE_FORMAT('2020-02-29 10:05:06', '%Y-%m-%d %H:%i:%s')");
         Assert.Equal("2020-02-29 10:05:06", Convert.ToString(value, CultureInfo.InvariantCulture));
     }
 
@@ -2301,14 +2223,7 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT STR_TO_DATE('2020-02-29 10:05:06', '%Y-%m-%d %H:%i:%s') FROM Users LIMIT 1"));
-            return;
-        }
-
-        var value = ExecuteScalar(connection, "SELECT STR_TO_DATE('2020-02-29 10:05:06', '%Y-%m-%d %H:%i:%s') FROM Users LIMIT 1");
+        var value = ExecuteScalar(connection, "SELECT STR_TO_DATE('2020-02-29 10:05:06', '%Y-%m-%d %H:%i:%s')");
         Assert.Equal(new DateTime(2020, 2, 29, 10, 5, 6), Convert.ToDateTime(value, CultureInfo.InvariantCulture));
     }
 
@@ -2324,7 +2239,7 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        var value = ExecuteScalar(connection, "SELECT FROM_UNIXTIME(0) FROM Users LIMIT 1");
+        var value = ExecuteScalar(connection, "SELECT FROM_UNIXTIME(0)");
         Assert.Equal(new DateTime(1970, 1, 1, 0, 0, 0), Convert.ToDateTime(value, CultureInfo.InvariantCulture));
     }
 
@@ -2340,14 +2255,7 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT FROM_DAYS(1) FROM Users LIMIT 1"));
-            return;
-        }
-
-        var value = ExecuteScalar(connection, "SELECT FROM_DAYS(1) FROM Users LIMIT 1");
+        var value = ExecuteScalar(connection, "SELECT FROM_DAYS(1)");
         Assert.Equal(new DateTime(1, 1, 1), Convert.ToDateTime(value, CultureInfo.InvariantCulture));
     }
 
@@ -2363,14 +2271,7 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT DATE_SUB('2020-01-05', INTERVAL 2 DAY) FROM Users LIMIT 1"));
-            return;
-        }
-
-        var value = ExecuteScalar(connection, "SELECT DATE_SUB('2020-01-05', INTERVAL 2 DAY) FROM Users LIMIT 1");
+        var value = ExecuteScalar(connection, "SELECT DATE_SUB('2020-01-05', INTERVAL 2 DAY)");
         Assert.Equal(new DateTime(2020, 1, 3), Convert.ToDateTime(value, CultureInfo.InvariantCulture));
     }
 
@@ -2386,8 +2287,8 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        Assert.Equal("%Y-%m-%d", ExecuteScalar(connection, "SELECT GET_FORMAT(DATE, 'ISO') FROM Users LIMIT 1"));
-        Assert.Equal("%H:%i:%s", ExecuteScalar(connection, "SELECT GET_FORMAT(TIME, 'ISO') FROM Users LIMIT 1"));
+        Assert.Equal("%Y-%m-%d", ExecuteScalar(connection, "SELECT GET_FORMAT(DATE, 'ISO')"));
+        Assert.Equal("%H:%i:%s", ExecuteScalar(connection, "SELECT GET_FORMAT(TIME, 'ISO')"));
     }
 
     /// <summary>
@@ -2402,14 +2303,7 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT CONVERT_TZ('2020-01-01 00:00:00', '+00:00', '+02:00') FROM Users LIMIT 1"));
-            return;
-        }
-
-        var value = ExecuteScalar(connection, "SELECT CONVERT_TZ('2020-01-01 00:00:00', '+00:00', '+02:00') FROM Users LIMIT 1");
+        var value = ExecuteScalar(connection, "SELECT CONVERT_TZ('2020-01-01 00:00:00', '+00:00', '+02:00')");
         Assert.Equal(new DateTime(2020, 1, 1, 2, 0, 0), Convert.ToDateTime(value, CultureInfo.InvariantCulture));
     }
 
@@ -2425,8 +2319,8 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        Assert.Equal("b", ExecuteScalar(connection, "SELECT ELT(2, 'a', 'b', 'c') FROM Users LIMIT 1"));
-        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT ELT(0, 'a', 'b') FROM Users LIMIT 1"));
+        Assert.Equal("b", ExecuteScalar(connection, "SELECT ELT(2, 'a', 'b', 'c')"));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT ELT(0, 'a', 'b')"));
     }
 
     /// <summary>
@@ -2441,8 +2335,8 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        Assert.Equal("a,c", ExecuteScalar(connection, "SELECT MAKE_SET(5, 'a', 'b', 'c') FROM Users LIMIT 1"));
-        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT MAKE_SET(0, 'a', 'b') FROM Users LIMIT 1"));
+        Assert.Equal("a,c", ExecuteScalar(connection, "SELECT MAKE_SET(5, 'a', 'b', 'c')"));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT MAKE_SET(0, 'a', 'b')"));
     }
 
     /// <summary>
@@ -2457,14 +2351,7 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT EXPORT_SET(5, 'Y', 'N') FROM Users LIMIT 1"));
-            return;
-        }
-
-        Assert.Equal("Y,N,Y,N,N,N,N,N", ExecuteScalar(connection, "SELECT EXPORT_SET(5, 'Y', 'N', ',', 8) FROM Users LIMIT 1"));
+        Assert.Equal("Y,N,Y,N,N,N,N,N", ExecuteScalar(connection, "SELECT EXPORT_SET(5, 'Y', 'N', ',', 8)"));
     }
 
     /// <summary>
@@ -2479,7 +2366,7 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        Assert.Equal(3L, Convert.ToInt64(ExecuteScalar(connection, "SELECT CHARACTER_LENGTH('abc') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(3L, Convert.ToInt64(ExecuteScalar(connection, "SELECT CHARACTER_LENGTH('abc')"), CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -2494,7 +2381,7 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        Assert.Equal("abc", ExecuteScalar(connection, "SELECT CONVERT('abc', CHAR) FROM Users LIMIT 1"));
+        Assert.Equal("abc", ExecuteScalar(connection, "SELECT CONVERT('abc', CHAR)"));
     }
 
     /// <summary>
@@ -2509,14 +2396,7 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT CONV(15, 10, 16) FROM Users LIMIT 1"));
-            return;
-        }
-
-        Assert.Equal("F", ExecuteScalar(connection, "SELECT CONV(15, 10, 16) FROM Users LIMIT 1"));
+        Assert.Equal("F", ExecuteScalar(connection, "SELECT CONV(15, 10, 16)"));
     }
 
     /// <summary>
@@ -2531,7 +2411,7 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        Assert.Equal(2, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEDIFF('2020-01-03', '2020-01-01') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(2, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEDIFF('2020-01-03', '2020-01-01')"), CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -2546,20 +2426,11 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        Assert.Equal("Saturday", ExecuteScalar(connection, "SELECT DAYNAME('2020-02-29') FROM Users LIMIT 1"));
-        Assert.Equal(7, Convert.ToInt32(ExecuteScalar(connection, "SELECT DAYOFWEEK('2020-02-29') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("Saturday", ExecuteScalar(connection, "SELECT DAYNAME('2020-02-29')"));
+        Assert.Equal(7, Convert.ToInt32(ExecuteScalar(connection, "SELECT DAYOFWEEK('2020-02-29')"), CultureInfo.InvariantCulture));
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT DAYOFMONTH('2020-02-29') FROM Users LIMIT 1"));
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT DAYOFYEAR('2020-02-29') FROM Users LIMIT 1"));
-            return;
-        }
-
-        Assert.Equal(29, Convert.ToInt32(ExecuteScalar(connection, "SELECT DAYOFMONTH('2020-02-29') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(60, Convert.ToInt32(ExecuteScalar(connection, "SELECT DAYOFYEAR('2020-02-29') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(29, Convert.ToInt32(ExecuteScalar(connection, "SELECT DAYOFMONTH('2020-02-29')"), CultureInfo.InvariantCulture));
+        Assert.Equal(60, Convert.ToInt32(ExecuteScalar(connection, "SELECT DAYOFYEAR('2020-02-29')"), CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -2574,17 +2445,8 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT DATABASE() FROM Users LIMIT 1"));
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT SCHEMA() FROM Users LIMIT 1"));
-            return;
-        }
-
-        Assert.Equal("DefaultSchema", ExecuteScalar(connection, "SELECT DATABASE() FROM Users LIMIT 1"));
-        Assert.Equal("DefaultSchema", ExecuteScalar(connection, "SELECT SCHEMA() FROM Users LIMIT 1"));
+        Assert.Equal("DefaultSchema", ExecuteScalar(connection, "SELECT DATABASE()"));
+        Assert.Equal("DefaultSchema", ExecuteScalar(connection, "SELECT SCHEMA()"));
     }
 
     /// <summary>
@@ -2599,7 +2461,7 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        Assert.Equal(1L, Convert.ToInt64(ExecuteScalar(connection, "SELECT CONNECTION_ID() FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(1L, Convert.ToInt64(ExecuteScalar(connection, "SELECT CONNECTION_ID()"), CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -2614,16 +2476,9 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        Assert.Equal("root@localhost", ExecuteScalar(connection, "SELECT SESSION_USER() FROM Users LIMIT 1"));
+        Assert.Equal("root@localhost", ExecuteScalar(connection, "SELECT SESSION_USER()"));
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT CURRENT_USER() FROM Users LIMIT 1"));
-            return;
-        }
-
-        Assert.Equal("root@localhost", ExecuteScalar(connection, "SELECT CURRENT_USER() FROM Users LIMIT 1"));
+        Assert.Equal("root@localhost", ExecuteScalar(connection, "SELECT CURRENT_USER()"));
     }
 
     /// <summary>
@@ -2638,15 +2493,8 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT LOCALTIME() FROM Users LIMIT 1"));
-            return;
-        }
-
-        Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT LOCALTIME() FROM Users LIMIT 1"));
-        Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT LOCALTIMESTAMP() FROM Users LIMIT 1"));
+        Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT LOCALTIME()"));
+        Assert.IsType<DateTime>(ExecuteScalar(connection, "SELECT LOCALTIMESTAMP()"));
     }
 
     /// <summary>
@@ -2661,17 +2509,8 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT CHARSET('abc') FROM Users LIMIT 1"));
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT COERCIBILITY('abc') FROM Users LIMIT 1"));
-            return;
-        }
-
-        Assert.Equal("utf8mb4", ExecuteScalar(connection, "SELECT CHARSET('abc') FROM Users LIMIT 1"));
-        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT COERCIBILITY('abc') FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("utf8mb4", ExecuteScalar(connection, "SELECT CHARSET('abc')"));
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT COERCIBILITY('abc')"), CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -2686,7 +2525,7 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        Assert.Equal("utf8mb4_general_ci", ExecuteScalar(connection, "SELECT COLLATION('abc') FROM Users LIMIT 1"));
+        Assert.Equal("utf8mb4_general_ci", ExecuteScalar(connection, "SELECT COLLATION('abc')"));
     }
 
     /// <summary>
@@ -2701,23 +2540,12 @@ public sealed class MySqlMockTests
     {
         using var connection = CreateOpenConnection(version);
 
-        Assert.Equal(0d, Convert.ToDouble(ExecuteScalar(connection, "SELECT COS(0) FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
-        Assert.True(Convert.ToDouble(ExecuteScalar(connection, "SELECT EXP(1) FROM Users LIMIT 1"), CultureInfo.InvariantCulture) > 2d);
+        Assert.Equal(1d, Convert.ToDouble(ExecuteScalar(connection, "SELECT COS(0)"), CultureInfo.InvariantCulture), 12);
+        Assert.True(Convert.ToDouble(ExecuteScalar(connection, "SELECT EXP(1)"), CultureInfo.InvariantCulture) > 2d);
 
-        if (version >= 84)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT COT(1) FROM Users LIMIT 1"));
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT DEGREES(3.141592653589793) FROM Users LIMIT 1"));
-            Assert.Throws<NotSupportedException>(() =>
-                ExecuteScalar(connection, "SELECT FLOOR(1.9) FROM Users LIMIT 1"));
-            return;
-        }
-
-        Assert.True(Convert.ToDouble(ExecuteScalar(connection, "SELECT COT(1) FROM Users LIMIT 1"), CultureInfo.InvariantCulture) > 0d);
-        Assert.Equal(180d, Convert.ToDouble(ExecuteScalar(connection, "SELECT DEGREES(3.141592653589793) FROM Users LIMIT 1"), CultureInfo.InvariantCulture), 9);
-        Assert.Equal(1d, Convert.ToDouble(ExecuteScalar(connection, "SELECT FLOOR(1.9) FROM Users LIMIT 1"), CultureInfo.InvariantCulture));
+        Assert.True(Convert.ToDouble(ExecuteScalar(connection, "SELECT COT(1)"), CultureInfo.InvariantCulture) > 0d);
+        Assert.Equal(180d, Convert.ToDouble(ExecuteScalar(connection, "SELECT DEGREES(3.141592653589793)"), CultureInfo.InvariantCulture), 9);
+        Assert.Equal(1d, Convert.ToDouble(ExecuteScalar(connection, "SELECT FLOOR(1.9)"), CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -3206,6 +3034,15 @@ public sealed class MySqlMockTests
             CommandText = sql
         };
         return command.ExecuteScalar();
+    }
+
+    private static int ExecuteNonQuery(MySqlConnectionMock connection, string sql)
+    {
+        using var command = new MySqlCommandMock(connection)
+        {
+            CommandText = sql
+        };
+        return command.ExecuteNonQuery();
     }
 
 }

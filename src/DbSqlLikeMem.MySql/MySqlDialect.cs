@@ -31,6 +31,14 @@ internal sealed class MySqlDialect : SqlDialectBase
         ])
     { }
 
+    /// <inheritdoc />
+    public override bool SupportsOracleCollationFunction(string functionName)
+        => functionName.Equals("COLLATION", StringComparison.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public override bool SupportsOracleTimeFunction(string functionName)
+        => functionName.Equals("LOCALTIMESTAMP", StringComparison.OrdinalIgnoreCase);
+
 
     internal const int WithCteMinVersion = 80;
     internal const int MergeMinVersion = int.MaxValue;
