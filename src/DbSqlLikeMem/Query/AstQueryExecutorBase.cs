@@ -6368,8 +6368,8 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalMySqlNetworkFunctions(fn, dialect, EvalArg, out var networkResult))
             return networkResult;
 
-        if (TryEvalMySqlUuidFunctions(fn, dialect, EvalArg, out var uuidResult))
-            return uuidResult;
+        if (TryEvalMySqlUuidFunctions(fn, dialect, EvalArg, out var mysqlUuidResult))
+            return mysqlUuidResult;
 
         if (TryEvalMySqlDateFormatFunction(fn, dialect, EvalArg, out var dateFormatResult))
             return dateFormatResult;
@@ -6407,8 +6407,8 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalMySqlSetFunctions(fn, dialect, EvalArg, out var setResult))
             return setResult;
 
-        if (TryEvalMySqlHexFunctions(fn, dialect, EvalArg, out var hexResult))
-            return hexResult;
+        if (TryEvalMySqlHexFunctions(fn, dialect, EvalArg, out var mysqlHexResult))
+            return mysqlHexResult;
 
         if (TryEvalMySqlFormatFunction(fn, dialect, EvalArg, out var mysqlFormatResult))
             return mysqlFormatResult;
@@ -6457,6 +6457,18 @@ private void FillPercentRankOrCumeDist(
 
         if (TryEvalBitAndFunction(fn, dialect, EvalArg, out var bitAndResult))
             return bitAndResult;
+
+        if (TryEvalBitOrFunction(fn, dialect, EvalArg, out var bitOrResult))
+            return bitOrResult;
+
+        if (TryEvalBitXorFunction(fn, dialect, EvalArg, out var bitXorResult))
+            return bitXorResult;
+
+        if (TryEvalBitNotFunction(fn, dialect, EvalArg, out var bitNotResult))
+            return bitNotResult;
+
+        if (TryEvalBitAndNotFunction(fn, dialect, EvalArg, out var bitAndNotResult))
+            return bitAndNotResult;
 
         if (TryEvalCardinalityFunction(fn, dialect, EvalArg, out var cardinalityResult))
             return cardinalityResult;
@@ -6548,11 +6560,17 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalLtrimFunction(fn, dialect, EvalArg, out var ltrimResult))
             return ltrimResult;
 
+        if (TryEvalDivFunction(fn, dialect, EvalArg, out var divResult))
+            return divResult;
+
         if (TryEvalModFunction(fn, dialect, EvalArg, out var modResult))
             return modResult;
 
         if (TryEvalMonthsBetweenFunction(fn, dialect, EvalArg, out var monthsBetweenResult))
             return monthsBetweenResult;
+
+        if (TryEvalMidnightSecondsFunction(fn, dialect, EvalArg, out var midnightSecondsResult))
+            return midnightSecondsResult;
 
         if (TryEvalNanvlFunction(fn, dialect, EvalArg, out var nanvlResult))
             return nanvlResult;
@@ -6641,6 +6659,9 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalPostgresDateFunctions(fn, dialect, EvalArg, out var postgresDateResult))
             return postgresDateResult;
 
+        if (TryEvalDb2DateTruncFunction(fn, dialect, EvalArg, out var db2DateTruncResult))
+            return db2DateTruncResult;
+
         if (TryEvalPostgresScalarUtilityFunctions(fn, dialect, EvalArg, out var postgresScalarUtilityResult))
             return postgresScalarUtilityResult;
 
@@ -6665,8 +6686,7 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalPostgresUuidFunctions(fn, dialect, out var postgresUuidResult))
             return postgresUuidResult;
 
-        var numericResult = TryEvalNumericFunction(fn, EvalArg, out var handledNumeric);
-        if (handledNumeric)
+        if (TryEvalNumericFunction(fn, EvalArg, out var numericResult))
         {
             if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
                 && (fn.Name.Equals("COT", StringComparison.OrdinalIgnoreCase)
@@ -6873,6 +6893,9 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalDb2DateAliasFunction(fn, dialect, EvalArg, out var db2DateAliasResult))
             return db2DateAliasResult;
 
+        if (TryEvalDb2DateAddAliasFunction(fn, dialect, EvalArg, out var db2DateAddAliasResult))
+            return db2DateAddAliasResult;
+
         if (TryEvalDegreesFunction(fn, EvalArg, out var degreesResult))
             return degreesResult;
 
@@ -6980,8 +7003,8 @@ private void FillPercentRankOrCumeDist(
         if (TryEvalIpFunctions(fn, EvalArg, out var ipResult))
             return ipResult;
 
-        if (TryEvalIsUuidFunction(fn, EvalArg, out var uuidResult))
-            return uuidResult;
+        if (TryEvalIsUuidFunction(fn, EvalArg, out var isUuidResult))
+            return isUuidResult;
 
         if (TryEvalJsonArrayFunction(fn, EvalArg, out var jsonArrayResult))
             return jsonArrayResult;
@@ -7641,7 +7664,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -7689,7 +7713,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -7732,7 +7757,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -7782,7 +7808,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -7813,6 +7840,176 @@ private void FillPercentRankOrCumeDist(
         }
     }
 
+    private static bool TryEvalBitOrFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("BITOR", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("BITOR() espera 2 argumentos.");
+
+        var left = evalArg(0);
+        var right = evalArg(1);
+        if (IsNullish(left) || IsNullish(right))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var l = Convert.ToInt64(left, CultureInfo.InvariantCulture);
+            var r = Convert.ToInt64(right, CultureInfo.InvariantCulture);
+            result = l | r;
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalBitXorFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("BITXOR", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("BITXOR() espera 2 argumentos.");
+
+        var left = evalArg(0);
+        var right = evalArg(1);
+        if (IsNullish(left) || IsNullish(right))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var l = Convert.ToInt64(left, CultureInfo.InvariantCulture);
+            var r = Convert.ToInt64(right, CultureInfo.InvariantCulture);
+            result = l ^ r;
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalBitNotFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("BITNOT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 1)
+            throw new InvalidOperationException("BITNOT() espera 1 argumento.");
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var v = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+            result = ~v;
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalBitAndNotFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("BITANDNOT", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("BITANDNOT() espera 2 argumentos.");
+
+        var left = evalArg(0);
+        var right = evalArg(1);
+        if (IsNullish(left) || IsNullish(right))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var l = Convert.ToInt64(left, CultureInfo.InvariantCulture);
+            var r = Convert.ToInt64(right, CultureInfo.InvariantCulture);
+            result = l & ~r;
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
     private static bool TryEvalCardinalityFunction(
         FunctionCallExpr fn,
         ISqlDialect dialect,
@@ -7825,7 +8022,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -7888,7 +8086,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -7932,7 +8131,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -7966,18 +8166,19 @@ private void FillPercentRankOrCumeDist(
             if (fn.Args.Count == 0)
                 throw new InvalidOperationException("CONVERT() espera ao menos um argumento.");
 
-            var value = evalArg(0);
-            if (IsNullish(value))
+            var value1 = evalArg(0);
+            if (IsNullish(value1))
             {
                 result = null;
                 return true;
             }
 
-            result = value is string text ? text : value!.ToString();
+            result = value1 is string text2 ? text2 : value1!.ToString();
             return true;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -8005,7 +8206,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -8027,7 +8229,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -8050,13 +8253,16 @@ private void FillPercentRankOrCumeDist(
         out object? result)
     {
         if (!(fn.Name.Equals("EMPTY_BLOB", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("EMPTY_CLOB", StringComparison.OrdinalIgnoreCase)))
+            || fn.Name.Equals("EMPTY_CLOB", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("EMPTY_DBCLOB", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("EMPTY_NCLOB", StringComparison.OrdinalIgnoreCase)))
         {
             result = null;
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -8080,7 +8286,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -8134,7 +8341,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -8164,7 +8372,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -8194,7 +8403,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         var isToBase64 = fn.Name.Equals("TO_BASE64", StringComparison.OrdinalIgnoreCase);
@@ -8218,12 +8427,12 @@ private void FillPercentRankOrCumeDist(
         if (isToBase64)
         {
             var bytes = value as byte[]
-                ?? Encoding.UTF8.GetBytes(value.ToString() ?? string.Empty);
+                ?? Encoding.UTF8.GetBytes(value!.ToString() ?? string.Empty);
             result = Convert.ToBase64String(bytes);
             return true;
         }
 
-        var payload = value.ToString();
+        var payload = value!.ToString();
         if (string.IsNullOrWhiteSpace(payload))
         {
             result = null;
@@ -8257,7 +8466,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (fn.Args.Count < 2)
@@ -8295,7 +8504,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (fn.Args.Count == 0)
@@ -8331,7 +8540,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (fn.Args.Count == 0)
@@ -8380,7 +8589,7 @@ private void FillPercentRankOrCumeDist(
                 return true;
             }
 
-            if (!TryConvertNumericToUInt64(value, out var numeric) || numeric > uint.MaxValue)
+            if (!TryConvertNumericToUInt64(value!, out var numeric) || numeric > uint.MaxValue)
             {
                 result = null;
                 return true;
@@ -8462,7 +8671,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (fn.Args.Count == 0)
@@ -8472,7 +8681,7 @@ private void FillPercentRankOrCumeDist(
         if (fn.Args.Count > 1)
         {
             var flagValue = evalArg(1);
-            if (!IsNullish(flagValue) && TryConvertNumericToInt64(flagValue, out var numericFlag))
+            if (!IsNullish(flagValue) && TryConvertNumericToInt64(flagValue!, out var numericFlag))
                 swapFlag = numericFlag != 0;
         }
 
@@ -8642,14 +8851,15 @@ private void FillPercentRankOrCumeDist(
         if (string.IsNullOrWhiteSpace(text))
             return false;
 
-        var normalized = text.Trim().Trim('{', '}').Replace("-", string.Empty, StringComparison.Ordinal);
+        var normalized = text.Trim().Trim('{', '}').Replace("-", string.Empty);
         if (normalized.Length != 32)
             return false;
 
         bytes = new byte[16];
         for (var i = 0; i < 16; i++)
         {
-            if (!byte.TryParse(normalized.AsSpan(i * 2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out bytes[i]))
+            var slice = normalized.Substring(i * 2, 2);
+            if (!byte.TryParse(slice, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out bytes[i]))
                 return false;
         }
 
@@ -8692,7 +8902,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (fn.Args.Count < 2)
@@ -8726,7 +8936,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (dialect.Version >= 84)
@@ -8769,7 +8979,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (fn.Args.Count == 0)
@@ -8782,7 +8992,7 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        var dateTime = DateTime.UnixEpoch.AddSeconds(seconds);
+        var dateTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(seconds);
         if (fn.Args.Count > 1)
         {
             var formatValue = evalArg(1)?.ToString();
@@ -8816,7 +9026,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (dialect.Version >= 84)
@@ -8826,7 +9036,7 @@ private void FillPercentRankOrCumeDist(
             throw new InvalidOperationException("FROM_DAYS() espera um argumento.");
 
         var value = evalArg(0);
-        if (IsNullish(value) || !TryConvertNumericToInt64(value, out var days) || days < 1)
+        if (IsNullish(value) || !TryConvertNumericToInt64(value!, out var days) || days < 1)
         {
             result = null;
             return true;
@@ -8836,7 +9046,7 @@ private void FillPercentRankOrCumeDist(
         return true;
     }
 
-    private static bool TryEvalMySqlDateSubFunction(
+    private bool TryEvalMySqlDateSubFunction(
         FunctionCallExpr fn,
         ISqlDialect dialect,
         EvalRow row,
@@ -8854,7 +9064,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (dialect.Version >= 84)
@@ -8899,7 +9109,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (fn.Args.Count < 2)
@@ -8932,7 +9142,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (dialect.Version >= 84)
@@ -9056,8 +9266,10 @@ private void FillPercentRankOrCumeDist(
 
         if (normalized.Length == 6 && (normalized[0] == '+' || normalized[0] == '-') && normalized[3] == ':')
         {
-            if (int.TryParse(normalized.AsSpan(1, 2), NumberStyles.Integer, CultureInfo.InvariantCulture, out var hours)
-                && int.TryParse(normalized.AsSpan(4, 2), NumberStyles.Integer, CultureInfo.InvariantCulture, out var minutes))
+            var hoursText = normalized.Substring(1, 2);
+            var minutesText = normalized.Substring(4, 2);
+            if (int.TryParse(hoursText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var hours)
+                && int.TryParse(minutesText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var minutes))
             {
                 offset = new TimeSpan(hours, minutes, 0);
                 if (normalized[0] == '-')
@@ -9085,7 +9297,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (name == "EXPORT_SET" && dialect.Version >= 84)
@@ -9198,7 +9410,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (dialect.Version >= 84)
@@ -9218,13 +9430,13 @@ private void FillPercentRankOrCumeDist(
         {
             if (value is byte[] bytes)
             {
-                result = Convert.ToHexString(bytes);
+                result = ToHexString(bytes);
                 return true;
             }
 
             if (value is string text)
             {
-                result = Convert.ToHexString(Encoding.UTF8.GetBytes(text));
+                result = ToHexString(Encoding.UTF8.GetBytes(text));
                 return true;
             }
 
@@ -9254,7 +9466,8 @@ private void FillPercentRankOrCumeDist(
         var output = new byte[payload.Length / 2];
         for (var i = 0; i < output.Length; i++)
         {
-            if (!byte.TryParse(payload.AsSpan(i * 2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var parsed))
+            var slice = payload.Substring(i * 2, 2);
+            if (!byte.TryParse(slice, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var parsed))
             {
                 result = null;
                 return true;
@@ -9282,7 +9495,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (fn.Args.Count < 2)
@@ -9337,7 +9550,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (dialect.Version < 56 || dialect.Version >= 84)
@@ -9366,7 +9579,8 @@ private void FillPercentRankOrCumeDist(
         }
 
         var buffer = new byte[length];
-        RandomNumberGenerator.Fill(buffer);
+        using (var rng = RandomNumberGenerator.Create())
+            rng.GetBytes(buffer);
         result = buffer;
         return true;
     }
@@ -9386,7 +9600,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (dialect.Version >= 84)
@@ -9429,7 +9643,7 @@ private void FillPercentRankOrCumeDist(
         if (!dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
-            return true;
+            return false;
         }
 
         if (dialect.Version >= 84)
@@ -9447,9 +9661,10 @@ private void FillPercentRankOrCumeDist(
 
         if (name == "COMPRESS")
         {
+            var text = value?.ToString() ?? string.Empty;
             var input = value is byte[] bytes
                 ? bytes
-                : Encoding.UTF8.GetBytes(value.ToString() ?? string.Empty);
+                : Encoding.UTF8.GetBytes(text);
 
             using var output = new MemoryStream();
             using (var deflate = new DeflateStream(output, CompressionLevel.Optimal, leaveOpen: true))
@@ -9707,44 +9922,39 @@ private void FillPercentRankOrCumeDist(
 
         if (name is "AES_ENCRYPT" or "AES_DECRYPT")
         {
-            var payload = payloadValue is byte[] bytes
-                ? bytes
+            var payload = TryGetBinaryPayload(payloadValue, out var payloadBytes)
+                ? payloadBytes
                 : Encoding.UTF8.GetBytes(payloadValue?.ToString() ?? string.Empty);
             var key = BuildXorKeyBytes(Encoding.UTF8.GetBytes(keyText), 16);
-            var aes = Aes.Create();
-            aes.Mode = CipherMode.ECB;
-            aes.Padding = PaddingMode.PKCS7;
-            aes.Key = key;
-            aes.IV = new byte[aes.BlockSize / 8];
+            var output = new byte[payload.Length];
+            if (key.Length > 0)
+            {
+                for (var i = 0; i < payload.Length; i++)
+                    output[i] = (byte)(payload[i] ^ key[i % key.Length]);
+            }
 
             if (name == "AES_ENCRYPT")
             {
-                using var encryptor = aes.CreateEncryptor();
-                result = encryptor.TransformFinalBlock(payload, 0, payload.Length);
+                result = output;
                 return true;
             }
 
-            try
-            {
-                using var decryptor = aes.CreateDecryptor();
-                var decrypted = decryptor.TransformFinalBlock(payload, 0, payload.Length);
-                result = Encoding.UTF8.GetString(decrypted);
-                return true;
-            }
-            catch
-            {
-                result = null;
-                return true;
-            }
+            result = Encoding.UTF8.GetString(output);
+            return true;
         }
 
         if (name is "DES_ENCRYPT" or "DES_DECRYPT")
         {
-            var payload = payloadValue is byte[] bytes
-                ? bytes
+            var payload = TryGetBinaryPayload(payloadValue, out var payloadBytes)
+                ? payloadBytes
                 : Encoding.UTF8.GetBytes(payloadValue?.ToString() ?? string.Empty);
             var key = BuildXorKeyBytes(Encoding.UTF8.GetBytes(keyText), 8);
             using var des = DES.Create();
+            if (des == null)
+            {
+                result = null;
+                return true;
+            }
             des.Mode = CipherMode.ECB;
             des.Padding = PaddingMode.PKCS7;
             des.Key = key;
@@ -9805,6 +10015,31 @@ private void FillPercentRankOrCumeDist(
             output[i % length] ^= key[i];
 
         return output;
+    }
+
+    private static bool TryGetBinaryPayload(object? value, out byte[] bytes)
+    {
+        switch (value)
+        {
+            case byte[] buffer:
+                bytes = buffer;
+                return true;
+            case ArraySegment<byte> segment:
+                bytes = segment.ToArray();
+                return true;
+            case ReadOnlyMemory<byte> readOnlyMemory:
+                bytes = readOnlyMemory.ToArray();
+                return true;
+            case Memory<byte> memory:
+                bytes = memory.ToArray();
+                return true;
+            case IEnumerable<byte> sequence:
+                bytes = sequence.ToArray();
+                return true;
+            default:
+                bytes = Array.Empty<byte>();
+                return false;
+        }
     }
 
     private static bool TryEvalMySqlDefaultFunction(
@@ -9887,7 +10122,7 @@ private void FillPercentRankOrCumeDist(
 
         if (!string.IsNullOrWhiteSpace(qualifier))
         {
-            if (!row.Sources.TryGetValue(qualifier, out var source))
+            if (!row.Sources.TryGetValue(qualifier!, out var source))
                 return false;
 
             if (source.Physical is null)
@@ -10013,8 +10248,17 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        var sourceBase = Math.Clamp((int)Math.Abs(fromBase), 2, 36);
-        var targetBase = Math.Clamp((int)Math.Abs(toBase), 2, 36);
+        var sourceBase = (int)Math.Abs(fromBase);
+        if (sourceBase < 2)
+            sourceBase = 2;
+        else if (sourceBase > 36)
+            sourceBase = 36;
+
+        var targetBase = (int)Math.Abs(toBase);
+        if (targetBase < 2)
+            targetBase = 2;
+        else if (targetBase > 36)
+            targetBase = 36;
         var textValue = Convert.ToString(value, CultureInfo.InvariantCulture);
         if (string.IsNullOrWhiteSpace(textValue))
         {
@@ -10232,7 +10476,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -10265,7 +10510,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -10305,7 +10551,7 @@ private void FillPercentRankOrCumeDist(
             return false;
 
         var normalizedName = fn.Name.ToUpperInvariant();
-        if (normalizedName is not ("BIGINT" or "DECIMAL" or "DOUBLE" or "FLOAT" or "INT" or "INTEGER" or "REAL" or "SMALLINT" or "VARCHAR"))
+        if (normalizedName is not ("BIGINT" or "BPCHAR" or "DBCLOB" or "DEC" or "DECIMAL" or "DOUBLE" or "DOUBLE_PRECISION" or "FLOAT" or "FLOAT4" or "FLOAT8" or "GRAPHIC" or "INT" or "INTEGER" or "REAL" or "SMALLINT" or "VARGRAPHIC" or "VARCHAR"))
             return false;
 
         if (fn.Args.Count == 0)
@@ -10322,8 +10568,9 @@ private void FillPercentRankOrCumeDist(
                 "BIGINT" => CoerceToInt64(value!),
                 "SMALLINT" => CoerceToInt16(value!),
                 "INT" or "INTEGER" => CoerceToInt32(value!),
-                "DECIMAL" => CoerceToDecimal(value!),
-                "DOUBLE" or "FLOAT" or "REAL" => CoerceToDouble(value!),
+                "DEC" or "DECIMAL" => CoerceToDecimal(value!),
+                "DOUBLE" or "DOUBLE_PRECISION" or "FLOAT" or "FLOAT4" or "FLOAT8" or "REAL" => CoerceToDouble(value!),
+                "BPCHAR" or "DBCLOB" or "GRAPHIC" or "VARGRAPHIC" => value?.ToString(),
                 "VARCHAR" => value?.ToString(),
                 _ => null
             };
@@ -10459,7 +10706,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -10488,7 +10736,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -10511,7 +10760,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -10533,7 +10783,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -10562,7 +10813,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -10584,7 +10836,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -10614,7 +10867,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -10643,7 +10897,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -10687,7 +10942,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -10709,7 +10965,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -10755,7 +11012,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -10777,7 +11035,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -10807,7 +11066,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -10839,7 +11099,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -10983,6 +11244,49 @@ private void FillPercentRankOrCumeDist(
         }
     }
 
+    private static bool TryEvalDivFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DIV", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("DIV() espera 2 argumentos.");
+
+        var left = evalArg(0);
+        var right = evalArg(1);
+        if (IsNullish(left) || IsNullish(right))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var l = Convert.ToDecimal(left, CultureInfo.InvariantCulture);
+            var r = Convert.ToDecimal(right, CultureInfo.InvariantCulture);
+            result = r == 0m ? null : decimal.Truncate(l / r);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
     private static bool TryEvalMonthsBetweenFunction(
         FunctionCallExpr fn,
         ISqlDialect dialect,
@@ -10995,7 +11299,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -11026,6 +11331,72 @@ private void FillPercentRankOrCumeDist(
         return true;
     }
 
+    private static bool TryEvalMidnightSecondsFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("MIDNIGHT_SECONDS", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (value is TimeSpan timeSpan)
+        {
+            result = (int)timeSpan.TotalSeconds;
+            return true;
+        }
+
+        if (value is DateTime dateTime)
+        {
+            result = (int)dateTime.TimeOfDay.TotalSeconds;
+            return true;
+        }
+
+        if (value is DateTimeOffset dto)
+        {
+            result = (int)dto.TimeOfDay.TotalSeconds;
+            return true;
+        }
+
+        var text = value?.ToString() ?? string.Empty;
+        if (TimeSpan.TryParse(text, CultureInfo.InvariantCulture, out var parsedTime))
+        {
+            result = (int)parsedTime.TotalSeconds;
+            return true;
+        }
+
+        if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var parsedDate))
+        {
+            result = (int)parsedDate.TimeOfDay.TotalSeconds;
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
     private static bool TryEvalNanvlFunction(
         FunctionCallExpr fn,
         ISqlDialect dialect,
@@ -11038,7 +11409,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -11072,7 +11444,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -11119,7 +11492,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -11171,7 +11545,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -11247,7 +11622,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -11301,7 +11677,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -11331,7 +11708,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -11353,7 +11731,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -11387,7 +11766,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -11457,7 +11837,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -11553,13 +11934,13 @@ private void FillPercentRankOrCumeDist(
 
         if (!string.IsNullOrWhiteSpace(matchType))
         {
-            if (matchType.Contains('c', StringComparison.OrdinalIgnoreCase))
+            if (matchType.IndexOf("c", StringComparison.OrdinalIgnoreCase) >= 0)
                 options &= ~RegexOptions.IgnoreCase;
-            if (matchType.Contains('i', StringComparison.OrdinalIgnoreCase))
+            if (matchType.IndexOf("i", StringComparison.OrdinalIgnoreCase) >= 0)
                 options |= RegexOptions.IgnoreCase;
-            if (matchType.Contains('m', StringComparison.OrdinalIgnoreCase))
+            if (matchType.IndexOf("m", StringComparison.OrdinalIgnoreCase) >= 0)
                 options |= RegexOptions.Multiline;
-            if (matchType.Contains('n', StringComparison.OrdinalIgnoreCase))
+            if (matchType.IndexOf("n", StringComparison.OrdinalIgnoreCase) >= 0)
                 options |= RegexOptions.Singleline;
         }
 
@@ -11587,11 +11968,10 @@ private void FillPercentRankOrCumeDist(
                     }
 
                     var idx = Math.Min(occurrence - 1, matches.Count - 1);
-                    var match = matches[idx];
-                    result = string.Concat(
-                        scoped.AsSpan(0, match.Index),
-                        replacement,
-                        scoped.AsSpan(match.Index + match.Length));
+                    var replacementMatch = matches[idx];
+                    result = scoped.Substring(0, replacementMatch.Index)
+                        + replacement
+                        + scoped.Substring(replacementMatch.Index + replacementMatch.Length);
                     return true;
                 }
 
@@ -11607,19 +11987,19 @@ private void FillPercentRankOrCumeDist(
             }
 
             var index = Math.Min(occurrence - 1, matchesForInstr.Count - 1);
-            var match = matchesForInstr[index];
+            var instrMatch = matchesForInstr[index];
 
             if (name == "REGEXP_INSTR")
             {
                 var positionValue = returnOption == 1
-                    ? startIndex + match.Index + match.Length
-                    : startIndex + match.Index + 1;
+                    ? startIndex + instrMatch.Index + instrMatch.Length
+                    : startIndex + instrMatch.Index + 1;
                 result = positionValue;
                 return true;
             }
 
             // REGEXP_SUBSTR
-            result = match.Value;
+            result = instrMatch.Value;
             return true;
         }
         catch
@@ -11642,7 +12022,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -11728,7 +12109,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -11770,7 +12152,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -11801,7 +12184,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -11826,7 +12210,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -11901,7 +12286,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -12097,10 +12483,10 @@ private void FillPercentRankOrCumeDist(
             return null;
 
         var upper = ReplaceInsensitive(mask!.Trim().ToUpperInvariant(), "FM", string.Empty);
-        hasTimeZone = upper.Contains("TZH", StringComparison.OrdinalIgnoreCase)
-            || upper.Contains("TZM", StringComparison.OrdinalIgnoreCase)
-            || upper.Contains("TZR", StringComparison.OrdinalIgnoreCase)
-            || upper.Contains("TZD", StringComparison.OrdinalIgnoreCase);
+        hasTimeZone = upper.IndexOf("TZH", StringComparison.OrdinalIgnoreCase) >= 0
+            || upper.IndexOf("TZM", StringComparison.OrdinalIgnoreCase) >= 0
+            || upper.IndexOf("TZR", StringComparison.OrdinalIgnoreCase) >= 0
+            || upper.IndexOf("TZD", StringComparison.OrdinalIgnoreCase) >= 0;
 
         var net = upper;
 
@@ -13091,6 +13477,48 @@ private void FillPercentRankOrCumeDist(
         return true;
     }
 
+    private static bool TryEvalDb2DateTruncFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!fn.Name.Equals("DATE_TRUNC", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+        {
+            result = null;
+            return false;
+        }
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("DATE_TRUNC() espera unidade e data.");
+
+        var unit = evalArg(0)?.ToString() ?? string.Empty;
+        var value = evalArg(1);
+        if (IsNullish(value) || string.IsNullOrWhiteSpace(unit) || !TryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        result = unit.Trim().ToLowerInvariant() switch
+        {
+            "year" => new DateTime(dateTime.Year, 1, 1),
+            "month" => new DateTime(dateTime.Year, dateTime.Month, 1),
+            "day" => dateTime.Date,
+            "hour" => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, 0, 0),
+            "minute" => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, 0),
+            "second" => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second),
+            _ => dateTime
+        };
+        return true;
+    }
+
     private static bool TryEvalPostgresRegexFunctions(
         FunctionCallExpr fn,
         ISqlDialect dialect,
@@ -13871,7 +14299,8 @@ private void FillPercentRankOrCumeDist(
                 WriteIndented = true
             };
             result = System.Text.Json.JsonSerializer.Serialize(element, options)
-                .Replace("\r\n", "\n");
+                .Replace(@"
+", "\n");
             return true;
         }
 
@@ -13914,7 +14343,8 @@ private void FillPercentRankOrCumeDist(
         }
 
         if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
+            && !dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -13961,7 +14391,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -14012,7 +14443,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -14067,7 +14499,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -14103,7 +14536,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -14169,7 +14603,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -14195,7 +14630,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -14226,7 +14662,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -14271,7 +14708,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return true;
@@ -14292,7 +14730,8 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase))
+        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -14429,7 +14868,7 @@ private void FillPercentRankOrCumeDist(
         var name = fn.Name;
         var value = evalArg(0);
 
-        if (name.Equals("ABS", StringComparison.OrdinalIgnoreCase))
+        if (((name.Equals("ABS", StringComparison.OrdinalIgnoreCase)) || (name.Equals("ABSVAL", StringComparison.OrdinalIgnoreCase))))
         {
             if (IsNullish(value))
             {
@@ -15160,6 +15599,7 @@ private void FillPercentRankOrCumeDist(
         result = null;
 
         if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+            && !dialect.Name.Equals("sqlazure", StringComparison.OrdinalIgnoreCase)
             || !fn.Name.Equals("SERVERPROPERTY", StringComparison.OrdinalIgnoreCase))
             return false;
 
@@ -15169,7 +15609,7 @@ private void FillPercentRankOrCumeDist(
 
         result = propertyName!.Trim().ToUpperInvariant() switch
         {
-            "PRODUCTVERSION" => _cnn.Db.Version.ToString(CultureInfo.InvariantCulture),
+            "PRODUCTVERSION" => dialect.Version.ToString(CultureInfo.InvariantCulture),
             "SERVERNAME" => "DbSqlLikeMem",
             _ => null
         };
@@ -15412,6 +15852,59 @@ private void FillPercentRankOrCumeDist(
         return true;
     }
 
+    private static bool TryEvalDb2DateAddAliasFunction(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        result = null;
+
+        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("ADD_DAYS" or "ADD_HOURS" or "ADD_MINUTES" or "ADD_SECONDS" or "ADD_MONTHS" or "ADD_YEARS"))
+            return false;
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() espera data e quantidade.");
+
+        var baseValue = evalArg(0);
+        var amountValue = evalArg(1);
+        if (IsNullish(baseValue) || IsNullish(amountValue))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryCoerceDateTime(baseValue, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var amount = Convert.ToInt32(amountValue.ToDec());
+            result = name switch
+            {
+                "ADD_DAYS" => dateTime.AddDays(amount),
+                "ADD_HOURS" => dateTime.AddHours(amount),
+                "ADD_MINUTES" => dateTime.AddMinutes(amount),
+                "ADD_SECONDS" => dateTime.AddSeconds(amount),
+                "ADD_MONTHS" => dateTime.AddMonths(amount),
+                "ADD_YEARS" => dateTime.AddYears(amount),
+                _ => null
+            };
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
     private static bool TryEvalDegreesFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
@@ -16912,7 +17405,8 @@ private void FillPercentRankOrCumeDist(
                 WriteIndented = true
             };
             result = System.Text.Json.JsonSerializer.Serialize(element, options)
-                .Replace("\r\n", "\n");
+                .Replace(@"
+", "\n");
             return true;
         }
 
@@ -17283,7 +17777,8 @@ private void FillPercentRankOrCumeDist(
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("LAST_DAY", StringComparison.OrdinalIgnoreCase))
+        if (!(fn.Name.Equals("LAST_DAY", StringComparison.OrdinalIgnoreCase)
+            || fn.Name.Equals("EOMONTH", StringComparison.OrdinalIgnoreCase)))
         {
             result = null;
             return false;
@@ -17294,6 +17789,16 @@ private void FillPercentRankOrCumeDist(
         {
             result = null;
             return true;
+        }
+
+        if (fn.Name.Equals("EOMONTH", StringComparison.OrdinalIgnoreCase) && fn.Args.Count > 1)
+        {
+            var offsetValue = evalArg(1);
+            if (!IsNullish(offsetValue))
+            {
+                var offset = Convert.ToInt32(offsetValue.ToDec(), CultureInfo.InvariantCulture);
+                dateTime = dateTime.AddMonths(offset);
+            }
         }
 
         var lastDay = DateTime.DaysInMonth(dateTime.Year, dateTime.Month);
@@ -19249,7 +19754,7 @@ private void FillPercentRankOrCumeDist(
         if (element.ValueKind == System.Text.Json.JsonValueKind.String)
         {
             var text = element.GetString() ?? string.Empty;
-            if (text.Contains(search, StringComparison.Ordinal))
+            if (text.IndexOf(search, StringComparison.Ordinal) >= 0)
                 results.Add(currentPath);
             return;
         }
@@ -21470,6 +21975,7 @@ private void FillPercentRankOrCumeDist(
         }
 
         result = dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+            || dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase)
             ? "dbo"
             : null;
         return true;
@@ -22999,17 +23505,17 @@ private void FillPercentRankOrCumeDist(
             if (fn.Args.Count != 2)
                 throw new InvalidOperationException("DATEDIFF() no MySQL espera 2 argumentos.");
 
-            var startValue = evalArg(0);
-            var endValue = evalArg(1);
-            if (IsNullish(startValue) || IsNullish(endValue)
-                || !TryCoerceDateTime(startValue, out var start)
-                || !TryCoerceDateTime(endValue, out var end))
+            var startValueMySql = evalArg(0);
+            var endValueMySql = evalArg(1);
+            if (IsNullish(startValueMySql) || IsNullish(endValueMySql)
+                || !TryCoerceDateTime(startValueMySql, out var startMySql)
+                || !TryCoerceDateTime(endValueMySql, out var endMySql))
             {
                 result = null;
                 return true;
             }
 
-            result = (int)(end.Date - start.Date).TotalDays;
+            result = (int)(endMySql.Date - startMySql.Date).TotalDays;
             return true;
         }
 
@@ -23122,8 +23628,17 @@ private void FillPercentRankOrCumeDist(
             or "JSONB_OBJECT_AGG" or "JSONB_OBJECT_AGG_STRICT" or "JSONB_OBJECT_AGG_UNIQUE" or "JSONB_OBJECT_AGG_UNIQUE_STRICT")
             return EvalJsonGroupObjectAggregate(fn, group, ctes);
 
-        if (name is "CORR" or "CORR_K" or "CORR_S" or "COVAR_POP" or "COVAR_SAMP")
-            return EvalCorrelationAggregate(fn, group, ctes, name);
+        if (name is "CORR" or "CORR_K" or "CORR_S" or "COVAR_POP" or "COVAR_SAMP" or "COVARIANCE" or "COVARIANCE_SAMP" or "CORRELATION")
+        {
+            var normalized = name switch
+            {
+                "COVARIANCE" => "COVAR_POP",
+                "COVARIANCE_SAMP" => "COVAR_SAMP",
+                "CORRELATION" => "CORR",
+                _ => name
+            };
+            return EvalCorrelationAggregate(fn, group, ctes, normalized);
+        }
 
         if (name is "GROUP_ID")
             return 0;
@@ -23230,6 +23745,7 @@ private void FillPercentRankOrCumeDist(
             "VARP" => AggregateVariance(values, sample: false),
             "VAR_POP" => AggregateVariance(values, sample: false),
             "VARIANCE" => AggregateVariance(values, sample: false),
+            "VARIANCE_SAMP" => AggregateVariance(values, sample: true),
             "VAR_SAMP" => AggregateVariance(values, sample: true),
             "CV" => AggregateCoefficientOfVariation(values),
             _ => null
@@ -23508,6 +24024,7 @@ private void FillPercentRankOrCumeDist(
             "REGR_SXY" => sumXY,
             "REGR_SLOPE" => sumXX == 0 ? null : sumXY / sumXX,
             "REGR_INTERCEPT" => sumXX == 0 ? null : meanY - (sumXY / sumXX) * meanX,
+            "REGR_ICPT" => sumXX == 0 ? null : meanY - (sumXY / sumXX) * meanX,
             "REGR_R2" => (sumXX == 0 || sumYY == 0) ? null : (sumXY * sumXY) / (sumXX * sumYY),
             _ => null
         };
@@ -24435,3 +24952,13 @@ private void FillPercentRankOrCumeDist(
            && !string.IsNullOrWhiteSpace(query.RawSql)
            && _sqlCalcFoundRowsRegex.IsMatch(query.RawSql);
 }
+
+
+
+
+
+
+
+
+
+

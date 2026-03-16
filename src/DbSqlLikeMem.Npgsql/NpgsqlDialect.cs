@@ -178,6 +178,8 @@ internal sealed class NpgsqlDialect : SqlDialectBase
             ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
             ["CURRENT_TIME"] = SqlTemporalFunctionKind.Time,
             ["CURRENT_TIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
+            ["LOCALTIME"] = SqlTemporalFunctionKind.Time,
+            ["LOCALTIMESTAMP"] = SqlTemporalFunctionKind.DateTime,
             ["NOW"] = SqlTemporalFunctionKind.DateTime,
             ["SYSTEMDATE"] = SqlTemporalFunctionKind.DateTime,
         };
@@ -187,7 +189,7 @@ internal sealed class NpgsqlDialect : SqlDialectBase
         => ["CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP", "SYSTEMDATE"];
 
     public override IReadOnlyCollection<string> TemporalFunctionCallNames
-        => ["NOW"];
+        => ["NOW", "LOCALTIME", "LOCALTIMESTAMP"];
 
     public override bool SupportsSqlServerMetadataIdentifier(string identifier)
         => identifier.Equals("CURRENT_USER", StringComparison.OrdinalIgnoreCase);

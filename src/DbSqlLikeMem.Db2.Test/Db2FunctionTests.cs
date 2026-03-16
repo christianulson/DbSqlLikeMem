@@ -195,6 +195,324 @@ public sealed class Db2FunctionTests
         Assert.Equal("Ana", ExecuteScalar(connection, "SELECT JSON_VALUE(Email, '$.profile.name') FROM Users WHERE Id = 1"));
     }
 
+
+    /// <summary>
+    /// EN: Ensures DB2 date-add alias functions return expected values across versions.
+    /// PT: Garante que as funcoes de alias de data do DB2 retornem valores esperados em todas as versoes.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [MemberDataDb2Version]
+    [Trait("Category", "Db2Mock")]
+    public void DateAddAliasFunctions_ShouldReturnExpectedValues(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(new DateTime(2020, 2, 16), Convert.ToDateTime(ExecuteScalar(connection, "SELECT ADD_DAYS('2020-02-14', 2) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(new DateTime(2020, 2, 14, 15, 11, 12), Convert.ToDateTime(ExecuteScalar(connection, "SELECT ADD_HOURS('2020-02-14 10:11:12', 5) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(new DateTime(2020, 2, 14, 10, 41, 12), Convert.ToDateTime(ExecuteScalar(connection, "SELECT ADD_MINUTES('2020-02-14 10:11:12', 30) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(new DateTime(2020, 2, 14, 10, 11, 42), Convert.ToDateTime(ExecuteScalar(connection, "SELECT ADD_SECONDS('2020-02-14 10:11:12', 30) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(new DateTime(2020, 3, 14), Convert.ToDateTime(ExecuteScalar(connection, "SELECT ADD_MONTHS('2020-02-14', 1) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(new DateTime(2021, 2, 14), Convert.ToDateTime(ExecuteScalar(connection, "SELECT ADD_YEARS('2020-02-14', 1) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures DB2 ABSVAL, CHR, and CURDATE return expected values across versions.
+    /// PT: Garante que ABSVAL, CHR e CURDATE do DB2 retornem valores esperados em todas as versoes.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [MemberDataDb2Version]
+    [Trait("Category", "Db2Mock")]
+    public void AbsValChrAndCurDateFunctions_ShouldReturnExpectedValues(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(10m, Convert.ToDecimal(ExecuteScalar(connection, "SELECT ABSVAL(-10) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("A", ExecuteScalar(connection, "SELECT CHR(65) FROM Users WHERE Id = 1"));
+
+        var curDate = (DateTime)ExecuteScalar(connection, "SELECT CURDATE FROM Users WHERE Id = 1")!;
+        Assert.Equal(DateTime.UtcNow.Date, curDate.Date);
+    }
+
+    /// <summary>
+    /// EN: Ensures DB2 bitwise helpers return expected values across versions.
+    /// PT: Garante que helpers bitwise do DB2 retornem valores esperados em todas as versoes.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [MemberDataDb2Version]
+    [Trait("Category", "Db2Mock")]
+    public void BitwiseFunctions_ShouldReturnExpectedValues(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(2L, Convert.ToInt64(ExecuteScalar(connection, "SELECT BITAND(6, 3) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(7L, Convert.ToInt64(ExecuteScalar(connection, "SELECT BITOR(6, 3) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(5L, Convert.ToInt64(ExecuteScalar(connection, "SELECT BITXOR(6, 3) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(-7L, Convert.ToInt64(ExecuteScalar(connection, "SELECT BITNOT(6) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(4L, Convert.ToInt64(ExecuteScalar(connection, "SELECT BITANDNOT(6, 3) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures DB2 hyperbolic helpers return expected values across versions.
+    /// PT: Garante que helpers hiperbolicos do DB2 retornem valores esperados em todas as versoes.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [MemberDataDb2Version]
+    [Trait("Category", "Db2Mock")]
+    public void HyperbolicFunctions_ShouldReturnExpectedValues(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(1d, Convert.ToDouble(ExecuteScalar(connection, "SELECT COSH(0) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(0d, Convert.ToDouble(ExecuteScalar(connection, "SELECT SINH(0) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(0d, Convert.ToDouble(ExecuteScalar(connection, "SELECT TANH(0) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
+    }
+
+    /// <summary>
+    /// EN: Ensures DB2 DECODE and DEC functions return expected values across versions.
+    /// PT: Garante que DECODE e DEC do DB2 retornem valores esperados em todas as versoes.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [MemberDataDb2Version]
+    [Trait("Category", "Db2Mock")]
+    public void DecodeAndDecFunctions_ShouldReturnExpectedValues(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal("match", ExecuteScalar(connection, "SELECT DECODE('A', 'A', 'match', 'miss') FROM Users WHERE Id = 1"));
+        Assert.Equal("miss", ExecuteScalar(connection, "SELECT DECODE('B', 'A', 'match', 'miss') FROM Users WHERE Id = 1"));
+        Assert.Equal(12.5m, Convert.ToDecimal(ExecuteScalar(connection, "SELECT DEC('12.5') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures DB2 empty LOB helpers return provider-compatible values across versions.
+    /// PT: Garante que helpers de LOB vazios do DB2 retornem valores compativeis com o provedor em todas as versoes.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [MemberDataDb2Version]
+    [Trait("Category", "Db2Mock")]
+    public void EmptyLobFunctions_ShouldReturnExpectedValues(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        var emptyBlob = (byte[]?)ExecuteScalar(connection, "SELECT EMPTY_BLOB() FROM Users WHERE Id = 1");
+        Assert.NotNull(emptyBlob);
+        Assert.Empty(emptyBlob!);
+
+        Assert.Equal(string.Empty, ExecuteScalar(connection, "SELECT EMPTY_CLOB() FROM Users WHERE Id = 1"));
+    }
+
+    /// <summary>
+    /// EN: Ensures DB2 LOB, cast alias, and end-of-month helpers return expected values across versions.
+    /// PT: Garante que helpers de LOB, alias de cast e fim de mes do DB2 retornem valores esperados em todas as versoes.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [MemberDataDb2Version]
+    [Trait("Category", "Db2Mock")]
+    public void LobCastAliasAndEomonthFunctions_ShouldReturnExpectedValues(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(string.Empty, ExecuteScalar(connection, "SELECT EMPTY_DBCLOB() FROM Users WHERE Id = 1"));
+        Assert.Equal(string.Empty, ExecuteScalar(connection, "SELECT EMPTY_NCLOB() FROM Users WHERE Id = 1"));
+
+        Assert.Equal("Ana", ExecuteScalar(connection, "SELECT BPCHAR('Ana') FROM Users WHERE Id = 1"));
+        Assert.Equal("Ana", ExecuteScalar(connection, "SELECT DBCLOB('Ana') FROM Users WHERE Id = 1"));
+        Assert.Equal("Ana", ExecuteScalar(connection, "SELECT GRAPHIC('Ana') FROM Users WHERE Id = 1"));
+        Assert.Equal("Ana", ExecuteScalar(connection, "SELECT VARGRAPHIC('Ana') FROM Users WHERE Id = 1"));
+        Assert.Equal(12.5d, Convert.ToDouble(ExecuteScalar(connection, "SELECT DOUBLE_PRECISION('12.5') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(12.5d, Convert.ToDouble(ExecuteScalar(connection, "SELECT FLOAT4('12.5') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(12.5d, Convert.ToDouble(ExecuteScalar(connection, "SELECT FLOAT8('12.5') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
+
+        Assert.Equal(new DateTime(2020, 2, 29), Convert.ToDateTime(ExecuteScalar(connection, "SELECT EOMONTH('2020-02-14') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(new DateTime(2020, 3, 31), Convert.ToDateTime(ExecuteScalar(connection, "SELECT EOMONTH('2020-02-14', 1) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures DB2 monthly, next-day, NVL2, and RAND helpers return expected values across versions.
+    /// PT: Garante que helpers mensais, next-day, NVL2 e RAND do DB2 retornem valores esperados em todas as versoes.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [MemberDataDb2Version]
+    [Trait("Category", "Db2Mock")]
+    public void MonthsBetweenNextDayNvl2AndRandFunctions_ShouldReturnExpectedValues(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(1m, Convert.ToDecimal(ExecuteScalar(connection, "SELECT MONTHS_BETWEEN('2020-03-14', '2020-02-14') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(new DateTime(2020, 2, 17), Convert.ToDateTime(ExecuteScalar(connection, "SELECT NEXT_DAY('2020-02-14', 'monday') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("no", ExecuteScalar(connection, "SELECT NVL2(NULL, 'yes', 'no') FROM Users WHERE Id = 1"));
+        Assert.Equal("yes", ExecuteScalar(connection, "SELECT NVL2('Ana', 'yes', 'no') FROM Users WHERE Id = 1"));
+
+        var randValue = Convert.ToDouble(ExecuteScalar(connection, "SELECT RAND() FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture);
+        Assert.InRange(randValue, 0d, 1d);
+        var randSeeded = Convert.ToDouble(ExecuteScalar(connection, "SELECT RAND(1) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture);
+        Assert.InRange(randSeeded, 0d, 1d);
+    }
+
+    /// <summary>
+    /// EN: Ensures DB2 conversion, log, and timestamp diff helpers return expected values across versions.
+    /// PT: Garante que helpers de conversao, log e diferenca de timestamps do DB2 retornem valores esperados em todas as versoes.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [MemberDataDb2Version]
+    [Trait("Category", "Db2Mock")]
+    public void ConversionLogAndTimestampDiffFunctions_ShouldReturnExpectedValues(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(0d, Convert.ToDouble(ExecuteScalar(connection, "SELECT LOG(1) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(2, Convert.ToInt32(ExecuteScalar(connection, "SELECT TIMESTAMPDIFF(DAY, '2020-02-14', '2020-02-16') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+
+        Assert.Equal(new DateTime(2020, 2, 14), Convert.ToDateTime(ExecuteScalar(connection, "SELECT TO_DATE('2020-02-14') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(new DateTime(2020, 2, 14, 10, 11, 12), Convert.ToDateTime(ExecuteScalar(connection, "SELECT TO_TIMESTAMP('2020-02-14 10:11:12') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+
+        Assert.Equal("Ana", ExecuteScalar(connection, "SELECT TO_CLOB('Ana') FROM Users WHERE Id = 1"));
+        Assert.Equal("Ana", ExecuteScalar(connection, "SELECT TO_NCHAR('Ana') FROM Users WHERE Id = 1"));
+        Assert.Equal("Ana", ExecuteScalar(connection, "SELECT TO_NCLOB('Ana') FROM Users WHERE Id = 1"));
+    }
+
+    /// <summary>
+    /// EN: Ensures DB2 CARDINALITY, TRANSLATE, GROUPING, and RATIO_TO_REPORT helpers return expected values across versions.
+    /// PT: Garante que CARDINALITY, TRANSLATE, GROUPING e RATIO_TO_REPORT do DB2 retornem valores esperados em todas as versoes.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [MemberDataDb2Version]
+    [Trait("Category", "Db2Mock")]
+    public void CardinalityTranslateGroupingAndRatioFunctions_ShouldReturnExpectedValues(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        connection.Db.AddTable("TagSamples",
+        [
+            new("Id", DbType.Int32, false),
+            new("Tags", DbType.Object, true),
+        ],
+        [
+            new Dictionary<int, object?> { [0] = 1, [1] = new[] { "a", "b", "c" } }
+        ]);
+
+        Assert.Equal(3, Convert.ToInt32(ExecuteScalar(connection, "SELECT CARDINALITY(Tags) FROM TagSamples WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("xyc", ExecuteScalar(connection, "SELECT TRANSLATE('abc', 'ab', 'xy') FROM Users WHERE Id = 1"));
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT GROUPING(1) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        var ratio = ExecuteScalar(connection, "SELECT RATIO_TO_REPORT(1) FROM Users WHERE Id = 1");
+        Assert.True(ratio is null || ratio is DBNull || (ratio is string text && string.IsNullOrWhiteSpace(text)));
+    }
+
+    /// <summary>
+    /// EN: Ensures DB2 DIV performs integer-style division across versions.
+    /// PT: Garante que DIV do DB2 executa divisao no estilo inteiro em todas as versoes.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [MemberDataDb2Version]
+    [Trait("Category", "Db2Mock")]
+    public void DivFunction_ShouldReturnExpectedValues(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(3m, Convert.ToDecimal(ExecuteScalar(connection, "SELECT DIV(10, 3) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        var divByZero = ExecuteScalar(connection, "SELECT DIV(10, 0) FROM Users WHERE Id = 1");
+        Assert.True(divByZero is null || divByZero is DBNull || (divByZero is string text && string.IsNullOrWhiteSpace(text)));
+    }
+
+    /// <summary>
+    /// EN: Ensures DB2 MIDNIGHT_SECONDS returns expected seconds since midnight across versions.
+    /// PT: Garante que MIDNIGHT_SECONDS do DB2 retorna os segundos desde meia-noite em todas as versoes.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [MemberDataDb2Version]
+    [Trait("Category", "Db2Mock")]
+    public void MidnightSecondsFunction_ShouldReturnExpectedValues(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(36672, Convert.ToInt32(ExecuteScalar(connection, "SELECT MIDNIGHT_SECONDS('2020-02-14 10:11:12') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures DB2 DATE_TRUNC truncates dates to the requested unit across versions.
+    /// PT: Garante que DATE_TRUNC do DB2 trunca datas para a unidade solicitada em todas as versoes.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [MemberDataDb2Version]
+    [Trait("Category", "Db2Mock")]
+    public void DateTruncFunction_ShouldReturnExpectedValues(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(new DateTime(2020, 2, 1), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATE_TRUNC('month', '2020-02-14') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(new DateTime(2020, 1, 1), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATE_TRUNC('year', '2020-02-14') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Ensures DB2 statistical aggregates return expected values across versions.
+    /// PT: Garante que agregados estatisticos do DB2 retornem valores esperados em todas as versoes.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [MemberDataDb2Version]
+    [Trait("Category", "Db2Mock")]
+    public void StatisticalAggregateFunctions_ShouldReturnExpectedValues(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal(1.5d, Convert.ToDouble(ExecuteScalar(connection, "SELECT MEDIAN(Id) FROM Users"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(1.5d, Convert.ToDouble(ExecuteScalar(connection, "SELECT PERCENTILE_CONT(Id, 0.5) FROM Users"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(1d, Convert.ToDouble(ExecuteScalar(connection, "SELECT PERCENTILE_DISC(Id, 0.5) FROM Users"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(0.5d, Convert.ToDouble(ExecuteScalar(connection, "SELECT STDDEV(Id) FROM Users"), CultureInfo.InvariantCulture), 12);
+        var stddevSamp = ExecuteScalar(connection, "SELECT STDDEV_SAMP(Id) FROM Users");
+        if (stddevSamp is null || stddevSamp is DBNull || (stddevSamp is string stddevSampText && string.IsNullOrWhiteSpace(stddevSampText)))
+        {
+            Assert.Null(stddevSamp);
+        }
+        else
+        {
+            Assert.Equal(0.7071067811865476d, Convert.ToDouble(stddevSamp, CultureInfo.InvariantCulture), 12);
+        }
+        Assert.Equal(0.25d, Convert.ToDouble(ExecuteScalar(connection, "SELECT VARIANCE(Id) FROM Users"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(0.5d, Convert.ToDouble(ExecuteScalar(connection, "SELECT VARIANCE_SAMP(Id) FROM Users"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(0.25d, Convert.ToDouble(ExecuteScalar(connection, "SELECT COVARIANCE(Id, Id) FROM Users"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(0.5d, Convert.ToDouble(ExecuteScalar(connection, "SELECT COVARIANCE_SAMP(Id, Id) FROM Users"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(1d, Convert.ToDouble(ExecuteScalar(connection, "SELECT CORRELATION(Id, Id) FROM Users"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(2, Convert.ToInt32(ExecuteScalar(connection, "SELECT REGR_COUNT(Id, Id) FROM Users"), CultureInfo.InvariantCulture));
+        Assert.Equal(1.5d, Convert.ToDouble(ExecuteScalar(connection, "SELECT REGR_AVGX(Id, Id) FROM Users"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(1.5d, Convert.ToDouble(ExecuteScalar(connection, "SELECT REGR_AVGY(Id, Id) FROM Users"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(0.5d, Convert.ToDouble(ExecuteScalar(connection, "SELECT REGR_SXX(Id, Id) FROM Users"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(0.5d, Convert.ToDouble(ExecuteScalar(connection, "SELECT REGR_SYY(Id, Id) FROM Users"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(0.5d, Convert.ToDouble(ExecuteScalar(connection, "SELECT REGR_SXY(Id, Id) FROM Users"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(1d, Convert.ToDouble(ExecuteScalar(connection, "SELECT REGR_SLOPE(Id, Id) FROM Users"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(0d, Convert.ToDouble(ExecuteScalar(connection, "SELECT REGR_INTERCEPT(Id, Id) FROM Users"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(0d, Convert.ToDouble(ExecuteScalar(connection, "SELECT REGR_ICPT(Id, Id) FROM Users"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(1d, Convert.ToDouble(ExecuteScalar(connection, "SELECT REGR_R2(Id, Id) FROM Users"), CultureInfo.InvariantCulture), 12);
+    }
+
+    /// <summary>
+    /// EN: Ensures DB2 SESSION_USER returns a provider-compatible identifier across versions.
+    /// PT: Garante que SESSION_USER do DB2 retorna um identificador compativel com o provedor em todas as versoes.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [MemberDataDb2Version]
+    [Trait("Category", "Db2Mock")]
+    public void SessionUserFunction_ShouldReturnExpectedValues(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        Assert.Equal("dbo", ExecuteScalar(connection, "SELECT SESSION_USER() FROM Users WHERE Id = 1"));
+    }
+
     /// <summary>
     /// EN: Ensures DB2 sequence expressions expose both next and previous values in the session.
     /// PT: Garante que expressoes de sequence do DB2 exponham valores next e previous na sessao.
@@ -265,3 +583,5 @@ public sealed class Db2FunctionTests
         command.ExecuteNonQuery();
     }
 }
+
+

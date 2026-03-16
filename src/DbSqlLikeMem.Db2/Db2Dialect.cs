@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Db2;
+namespace DbSqlLikeMem.Db2;
 
 internal sealed class Db2Dialect : SqlDialectBase
 {
@@ -116,9 +116,57 @@ internal sealed class Db2Dialect : SqlDialectBase
     public override bool SupportsSequenceDdl => true;
     public override bool SupportsNextValueForSequenceExpression => true;
     public override bool SupportsPreviousValueForSequenceExpression => true;
+    public override bool SupportsEomonthFunction => true;
 
     public override bool SupportsStringAggregateFunction(string functionName)
         => functionName.Equals("LISTAGG", StringComparison.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public override bool SupportsOracleSpecificConversionFunction(string functionName)
+        => functionName.Equals("TO_CLOB", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("TO_NCHAR", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("TO_NCLOB", StringComparison.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public override bool SupportsOracleAnalyticsFunction(string functionName)
+        => functionName.Equals("RATIO_TO_REPORT", StringComparison.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public override bool SupportsOracleTimeFunction(string functionName)
+        => functionName.Equals("NEXT_DAY", StringComparison.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public override bool SupportsSqlServerScalarFunction(string functionName)
+        => functionName.Equals("ABS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ACOS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ASIN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ATAN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("CHAR", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("COT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("DEGREES", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("EXP", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("FLOOR", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("GROUPING", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LOG", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LOG10", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LOWER", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("POWER", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("RADIANS", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("RAND", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("REPLACE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("RIGHT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("ROUND", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SIGN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SIN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SPACE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SQRT", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("SUBSTRING", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("TAN", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("TRANSLATE", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("TRIM", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("UPPER", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LTRIM", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("RTRIM", StringComparison.OrdinalIgnoreCase);
     
     /// <summary>
     /// EN: Gets the null substitute function names supported by DB2 compatibility behavior.
@@ -129,6 +177,7 @@ internal sealed class Db2Dialect : SqlDialectBase
         => new Dictionary<string, SqlTemporalFunctionKind>(StringComparer.OrdinalIgnoreCase)
         {
             ["CURRENT_DATE"] = SqlTemporalFunctionKind.Date,
+            ["CURDATE"] = SqlTemporalFunctionKind.Date,
             ["CURRENT DATE"] = SqlTemporalFunctionKind.Date,
             ["CURRENT_TIME"] = SqlTemporalFunctionKind.Time,
             ["CURRENT TIME"] = SqlTemporalFunctionKind.Time,
@@ -139,7 +188,7 @@ internal sealed class Db2Dialect : SqlDialectBase
 
 
     public override IReadOnlyCollection<string> TemporalFunctionCallNames
-        => [];
+        => ["CURDATE"];
 
     /// <summary>
     /// EN: Gets or sets allows parser limit offset compatibility.
@@ -164,3 +213,8 @@ internal sealed class Db2Dialect : SqlDialectBase
     public override bool SupportsLastFoundRowsFunction(string functionName)
         => functionName.Equals("ROW_COUNT", StringComparison.OrdinalIgnoreCase);
 }
+
+
+
+
+

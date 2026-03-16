@@ -5,6 +5,7 @@ internal static class SqlTemporalFunctionEvaluator
     private static readonly HashSet<string> KnownTemporalFunctionNames = new(StringComparer.OrdinalIgnoreCase)
     {
         "CURRENT_DATE",
+        "CURDATE",
         "CURRENT_TIME",
         "CURRENT_TIMESTAMP",
         "NOW",
@@ -72,3 +73,5 @@ internal static class SqlTemporalFunctionEvaluator
         return true;
     }
 }
+
+

@@ -190,12 +190,6 @@ internal sealed class SqlExpressionParser(
         if (IsKeyword(Peek(), "NULL"))
         {
             Consume();
-            if (neg
-                && _dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
-                && _dialect.Version < 56)
-            {
-                throw SqlUnsupported.ForDialect(_dialect, "IS NOT");
-            }
             left = new IsNullExpr(left, neg);
             return true;
         }
@@ -883,13 +877,6 @@ internal sealed class SqlExpressionParser(
 
         if (!IsKeyword(t, "NOT"))
             return false;
-
-        if (_dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
-            && _dialect.Version < 56
-            && IsKeywordOrIdentifierWord(Peek(1), "EXISTS"))
-        {
-            throw SqlUnsupported.ForDialect(_dialect, "NOT EXISTS");
-        }
 
         Consume();
         var rhs = ParseExpression(60);
