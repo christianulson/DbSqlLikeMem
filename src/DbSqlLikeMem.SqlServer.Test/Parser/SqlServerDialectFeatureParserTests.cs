@@ -608,8 +608,8 @@ public sealed class SqlServerDialectFeatureParserTests
     }
 
     /// <summary>
-    /// EN: Ensures SQL Server aggregate helpers are exposed through an explicit dialect capability.
-    /// PT: Garante que helpers de agregacao do SQL Server sejam expostos por uma capability explicita do dialeto.
+    /// EN: Ensures SQL Server aggregate helpers are exposed through explicit dialect capabilities.
+    /// PT: Garante que helpers de agregacao do SQL Server sejam expostos por capabilities explicitas do dialeto.
     /// </summary>
     /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]
@@ -619,14 +619,15 @@ public sealed class SqlServerDialectFeatureParserTests
     {
         var dialect = new SqlServerDialect(version);
 
-        Assert.Equal(version >= SqlServerDialect.ApproxCountDistinctMinVersion, dialect.SupportsSqlServerAggregateFunction("APPROX_COUNT_DISTINCT"));
+        Assert.Equal(version >= SqlServerDialect.ApproxCountDistinctMinVersion, dialect.SupportsApproximateAggregateFunction("APPROX_COUNT_DISTINCT"));
+        Assert.False(dialect.SupportsSqlServerAggregateFunction("APPROX_COUNT_DISTINCT"));
         Assert.True(dialect.SupportsSqlServerAggregateFunction("CHECKSUM_AGG"));
         Assert.False(dialect.SupportsSqlServerAggregateFunction("SUM"));
     }
 
     /// <summary>
-    /// EN: Ensures SQL Server parser accepts aggregate helpers only through the explicit SQL Server aggregate-function capability.
-    /// PT: Garante que o parser SQL Server aceite helpers de agregacao apenas pela capability explicita de funcoes de agregacao do SQL Server.
+    /// EN: Ensures SQL Server parser accepts approximate and checksum aggregate helpers only through explicit dialect capabilities.
+    /// PT: Garante que o parser SQL Server aceite helpers aproximados e de checksum apenas por capabilities explicitas do dialeto.
     /// </summary>
     /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
     [Theory]

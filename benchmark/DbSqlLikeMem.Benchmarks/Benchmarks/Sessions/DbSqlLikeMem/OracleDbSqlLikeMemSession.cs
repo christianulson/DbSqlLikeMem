@@ -9,7 +9,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 public sealed class OracleDbSqlLikeMemSession()
     : DbSqlLikeMemBenchmarkSessionBase(new OracleDialect())
 {
-    private readonly OracleDbMock Db = [];
+    private readonly OracleDbMock Db = new() { ThreadSafe = true };
 
     /// <summary>
     /// EN: Creates a new DbSqlLikeMem Oracle mock connection.

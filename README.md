@@ -16,6 +16,8 @@
 
 - [Documentation overview | Visão geral da documentação](docs/README.md)
 - [Getting started (installation and usage) | Começando rápido (instalação e uso)](docs/getting-started.md)
+- [EN: .NET Fiddle quick start (all providers) | Test DbSqlLikeMem in the browser](docs/Wiki/DotNet-Fiddle-Quick-Start.md)
+- [PT-BR: Começando no .NET Fiddle (todos os provedores) | Teste o DbSqlLikeMem no navegador](docs/Wiki/DotNet-Fiddle-Quick-Start.pt-BR.md)
 - [Providers, versions, and SQL compatibility | Provedores, versões e compatibilidade SQL](docs/old/providers-and-features.md)
 - [AI playbook for external repository/integration tests | Playbook de IA para testes de repositório/integração](docs/ai-nuget-test-projects-playbook.md)
 - [Publishing (NuGet, VSIX, and VS Code) | Publicação (NuGet, VSIX e VS Code)](docs/publishing.md)
@@ -194,6 +196,8 @@ public static class DbSqlLikeMemFactory
 **PT-BR:** Consulte o guia dedicado de início rápido:
 
 - [docs/getting-started.md](docs/getting-started.md)
+- [EN: .NET Fiddle quick start (all providers) | Test DbSqlLikeMem in the browser](docs/Wiki/DotNet-Fiddle-Quick-Start.md)
+- [PT-BR: Começando no .NET Fiddle (todos os provedores) | Teste o DbSqlLikeMem no navegador](docs/Wiki/DotNet-Fiddle-Quick-Start.pt-BR.md)
 
 **EN:** The guide includes:  
 **PT-BR:** O guia inclui:

@@ -8,7 +8,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 public sealed class SqlServerDbSqlLikeMemSession() 
     : DbSqlLikeMemBenchmarkSessionBase(new SqlServerDialect())
 {
-    private readonly SqlServerDbMock Db = [];
+    private readonly SqlServerDbMock Db = new() { ThreadSafe = true };
 
     /// <summary>
     /// 

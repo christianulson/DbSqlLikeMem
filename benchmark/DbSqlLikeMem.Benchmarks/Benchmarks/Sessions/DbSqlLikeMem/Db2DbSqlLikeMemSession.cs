@@ -9,7 +9,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 public sealed class Db2DbSqlLikeMemSession()
     : DbSqlLikeMemBenchmarkSessionBase(new Db2Dialect())
 {
-    private readonly Db2DbMock Db = [];
+    private readonly Db2DbMock Db = new() { ThreadSafe = true };
 
     /// <summary>
     /// EN: Creates a new DbSqlLikeMem DB2 mock connection.

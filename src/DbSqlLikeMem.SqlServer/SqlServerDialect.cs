@@ -252,10 +252,13 @@ internal sealed class SqlServerDialect : SqlDialectBase
             || functionName.Equals("DAY", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("MONTH", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("YEAR", StringComparison.OrdinalIgnoreCase);
+    /// <inheritdoc />
+    public override bool SupportsApproximateAggregateFunction(string functionName)
+        => Version >= ApproxCountDistinctMinVersion
+            && functionName.Equals("APPROX_COUNT_DISTINCT", StringComparison.OrdinalIgnoreCase);
+    /// <inheritdoc />
     public override bool SupportsSqlServerAggregateFunction(string functionName)
-        => functionName.Equals("CHECKSUM_AGG", StringComparison.OrdinalIgnoreCase)
-            || (Version >= ApproxCountDistinctMinVersion
-                && functionName.Equals("APPROX_COUNT_DISTINCT", StringComparison.OrdinalIgnoreCase));
+        => functionName.Equals("CHECKSUM_AGG", StringComparison.OrdinalIgnoreCase);
     public override bool SupportsSqlServerScalarFunction(string functionName)
         => functionName.Equals("ABS", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("ACOS", StringComparison.OrdinalIgnoreCase)

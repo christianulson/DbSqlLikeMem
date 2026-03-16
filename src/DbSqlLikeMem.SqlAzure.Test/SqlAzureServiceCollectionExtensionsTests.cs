@@ -21,8 +21,9 @@ public sealed class SqlAzureServiceCollectionExtensionsTests
     /// EN: Ensures singleton registration keeps one instance and applies configuration callback.
     /// PT: Garante que o registro singleton mantenha uma instância e aplique o callback de configuração.
     /// </summary>
-    [Fact]
-    public void AddSqlAzureDbMockSingleton_ShouldRegisterSingleConfiguredInstance()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void AddSqlAzureDbMockSingleton_ShouldRegisterSingleConfiguredInstance(int compatibilityLevel)
     {
         IServiceCollection services = new ServiceCollectionStub();
         services.AddSqlAzureDbMockSingleton(
@@ -32,7 +33,7 @@ public sealed class SqlAzureServiceCollectionExtensionsTests
                 table.AddColumn("Id", DbType.Int32, false);
                 table.Add(new Dictionary<int, object?> { [0] = 1 });
             },
-            compatibilityLevel: SqlAzureDbCompatibilityLevels.SqlServer2019);
+            compatibilityLevel: compatibilityLevel);
         services.Should().ContainSingle();
 
         var descriptor = services.Single();
@@ -44,20 +45,21 @@ public sealed class SqlAzureServiceCollectionExtensionsTests
         var second = (SqlAzureDbMock)descriptor.ImplementationFactory!(new NullServiceProvider());
 
         first.Should().NotBeNull();
-        first.Version.Should().Be(SqlAzureDbCompatibilityLevels.SqlServer2019);
+        first.Version.Should().Be(compatibilityLevel);
         first.GetTable("Users").Should().HaveCount(1);
-        second.Version.Should().Be(SqlAzureDbCompatibilityLevels.SqlServer2019);
+        second.Version.Should().Be(compatibilityLevel);
     }
 
     /// <summary>
     /// EN: Ensures scoped registration creates one instance per scope.
     /// PT: Garante que o registro scoped crie uma instância por escopo.
     /// </summary>
-    [Fact]
-    public void AddSqlAzureDbMockScoped_ShouldCreateOneInstancePerScope()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void AddSqlAzureDbMockScoped_ShouldCreateOneInstancePerScope(int compatibilityLevel)
     {
         IServiceCollection services = new ServiceCollectionStub();
-        services.AddSqlAzureDbMockScoped(compatibilityLevel: SqlAzureDbCompatibilityLevels.SqlServer2016);
+        services.AddSqlAzureDbMockScoped(compatibilityLevel: compatibilityLevel);
         services.Should().ContainSingle();
 
         var descriptor = services.Single();
@@ -71,16 +73,17 @@ public sealed class SqlAzureServiceCollectionExtensionsTests
         first.Should().NotBeNull();
         second.Should().NotBeNull();
         first.Should().NotBeSameAs(second);
-        first.Version.Should().Be(SqlAzureDbCompatibilityLevels.SqlServer2016);
-        second.Version.Should().Be(SqlAzureDbCompatibilityLevels.SqlServer2016);
+        first.Version.Should().Be(compatibilityLevel);
+        second.Version.Should().Be(compatibilityLevel);
     }
 
     /// <summary>
     /// EN: Ensures transient registration creates a new configured instance on each resolution.
     /// PT: Garante que o registro transient crie uma nova instância configurada a cada resolução.
     /// </summary>
-    [Fact]
-    public void AddSqlAzureDbMockTransient_ShouldCreateNewConfiguredInstanceEachResolution()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void AddSqlAzureDbMockTransient_ShouldCreateNewConfiguredInstanceEachResolution(int compatibilityLevel)
     {
         IServiceCollection services = new ServiceCollectionStub();
         services.AddSqlAzureDbMockTransient(
@@ -90,7 +93,7 @@ public sealed class SqlAzureServiceCollectionExtensionsTests
                 table.AddColumn("Id", DbType.Int32, false);
                 table.Add(new Dictionary<int, object?> { [0] = 1 });
             },
-            compatibilityLevel: SqlAzureDbCompatibilityLevels.SqlServer2022);
+            compatibilityLevel: compatibilityLevel);
         services.Should().ContainSingle();
 
         var descriptor = services.Single();
@@ -102,8 +105,8 @@ public sealed class SqlAzureServiceCollectionExtensionsTests
         var second = (SqlAzureDbMock)descriptor.ImplementationFactory!(new NullServiceProvider());
 
         first.Should().NotBeSameAs(second);
-        first.Version.Should().Be(SqlAzureDbCompatibilityLevels.SqlServer2022);
-        second.Version.Should().Be(SqlAzureDbCompatibilityLevels.SqlServer2022);
+        first.Version.Should().Be(compatibilityLevel);
+        second.Version.Should().Be(compatibilityLevel);
         first.GetTable("Users").Should().HaveCount(1);
         second.GetTable("Users").Should().HaveCount(1);
     }

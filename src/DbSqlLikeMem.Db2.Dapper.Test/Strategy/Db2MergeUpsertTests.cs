@@ -38,19 +38,36 @@ public sealed class Db2MergeUpsertTests(ITestOutputHelper helper) : XUnitTestBas
     /// EN: Ensures MERGE updates an existing row when the ON condition matches.
     /// PT: Garante que merge atualize uma linha existente quando a condição ON é satisfeita.
     /// </summary>
-    [Fact]
+    [Theory]
     [Trait("Category", "Strategy")]
-    public void Merge_ShouldUpdate_WhenMatched()
+    [MemberDataDb2Version]
+    public void Merge_ShouldUpdate_WhenMatched(int version)
     {
-        var db = new Db2DbMock(Db2Dialect.MergeMinVersion);
+        var db = new Db2DbMock(version);
+        using var cnn = new Db2ConnectionMock(db);
+        cnn.Open();
+
+        if (version < Db2Dialect.MergeMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => cnn.Execute("""
+                MERGE INTO users target
+                USING (SELECT 1 AS Id, 'NEW' AS Name) src
+                ON target.Id = src.Id
+                WHEN MATCHED THEN
+                    UPDATE SET target.Name = src.Name
+                WHEN NOT MATCHED THEN
+                    INSERT (Id, Name) VALUES (src.Id, src.Name)
+                """));
+
+            Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         var t = db.AddTable("users");
         t.AddColumn("Id", DbType.Int32, false);
         t.AddColumn("Name", DbType.String, false);
         t.AddPrimaryKeyIndexes("id");
         t.Add(new Dictionary<int, object?> { [0] = 1, [1] = "OLD" });
-
-        using var cnn = new Db2ConnectionMock(db);
-        cnn.Open();
 
         const string sql = @"
 MERGE INTO users target
@@ -72,18 +89,34 @@ WHEN NOT MATCHED THEN
     /// EN: Ensures MERGE resolves source alias without AS for insert path.
     /// PT: Garante que o merge resolva alias da fonte sem AS no caminho de inserção.
     /// </summary>
-    [Fact]
+    [Theory]
     [Trait("Category", "Strategy")]
-    public void Merge_SourceAliasWithoutAs_ShouldInsert_WhenNotMatched()
+    [MemberDataDb2Version]
+    public void Merge_SourceAliasWithoutAs_ShouldInsert_WhenNotMatched(int version)
     {
-        var db = new Db2DbMock(Db2Dialect.MergeMinVersion);
+        var db = new Db2DbMock(version);
+
+        using var cnn = new Db2ConnectionMock(db);
+        cnn.Open();
+
+        if (version < Db2Dialect.MergeMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => cnn.Execute("""
+                MERGE INTO users target
+                USING (SELECT 7 AS Id, 'Db2NoAs' AS Name) s
+                ON target.Id = s.Id
+                WHEN NOT MATCHED THEN
+                    INSERT (Id, Name) VALUES (s.Id, s.Name)
+                """));
+
+            Assert.Contains("MERGE", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         var t = db.AddTable("users");
         t.AddColumn("Id", DbType.Int32, false);
         t.AddColumn("Name", DbType.String, false);
         t.AddPrimaryKeyIndexes("id");
-
-        using var cnn = new Db2ConnectionMock(db);
-        cnn.Open();
 
         const string sql = @"
 MERGE INTO users target

@@ -228,11 +228,12 @@ foreach ($provider in $catalog.providers) {
 
         $mockValue = $null
         $externalValue = $null
+        $culture = [System.Globalization.CultureInfo]::GetCultureInfo('pt-BR')
 
         if ($mockSupported) {
             if ($mockResults.ContainsKey($feature.id)) {
                 $mockValue = $mockResults[$feature.id]
-                $mockCell = $mockValue.Raw
+                $mockCell = [math]::Round($mockValue.Microseconds, 2, [System.MidpointRounding]::AwayFromZero).ToString('N2', $culture) + ' ' + ([string][char]0x03BC) +'s' 
             }
             else {
                 $mockCell = 'pending'
@@ -242,7 +243,7 @@ foreach ($provider in $catalog.providers) {
         if ($externalSupported) {
             if ($externalResults.ContainsKey($feature.id)) {
                 $externalValue = $externalResults[$feature.id]
-                $externalCell = $externalValue.Raw
+                $externalCell = [math]::Round($externalValue.Microseconds, 2, [System.MidpointRounding]::AwayFromZero).ToString('N2', $culture) + ' ' + ([string][char]0x03BC) +'s'
             }
             else {
                 $externalCell = 'pending'
@@ -252,8 +253,7 @@ foreach ($provider in $catalog.providers) {
         if ($mockSupported -and $externalSupported -and $null -ne $mockValue -and $null -ne $externalValue) {
             if ($null -ne $mockValue.Microseconds -and $null -ne $externalValue.Microseconds) {
                 $diff = [double]$externalValue.Microseconds - [double]$mockValue.Microseconds
-                $culture = [System.Globalization.CultureInfo]::GetCultureInfo('pt-BR')
-                $diffCell = [math]::Round($diff, 3, [System.MidpointRounding]::AwayFromZero).ToString('N3', $culture) + ' us'
+                $diffCell = [math]::Round($diff, 2, [System.MidpointRounding]::AwayFromZero).ToString('N2', $culture) + ' ' + ([string][char]0x03BC) +'s'
                 $percentCell = Get-PercentText -AppMicroseconds ([double]$mockValue.Microseconds) -OtherMicroseconds ([double]$externalValue.Microseconds)
                 $resultCell = Get-ResultText -AppMicroseconds ([double]$mockValue.Microseconds) -OtherMicroseconds ([double]$externalValue.Microseconds)
             }

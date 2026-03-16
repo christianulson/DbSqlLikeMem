@@ -6,9 +6,9 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 /// </summary>
 public sealed class SqlAzureDialectBehaviorTests
 {
-    private static SqlAzureConnectionMock CreateOpenConnection()
+    private static SqlAzureConnectionMock CreateOpenConnection(int? compatibilityLevel = null)
     {
-        var db = new SqlAzureDbMock();
+        var db = new SqlAzureDbMock(compatibilityLevel);
         db.AddTable("Users", [
             new("Id", DbType.Int32, false),
             new("Name", DbType.String, false),
@@ -104,10 +104,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode executes an Azure SQL reference query with CTE, JOIN, LEFT JOIN, CROSS APPLY, OUTER APPLY, EXISTS, STRING_AGG, DATEADD, DATEDIFF, CASE, CAST and ROW_NUMBER.
     /// PT: Garante que o modo de compatibilidade SQL Azure execute uma query de referencia do Azure SQL com CTE, JOIN, LEFT JOIN, CROSS APPLY, OUTER APPLY, EXISTS, STRING_AGG, DATEADD, DATEDIFF, CASE, CAST e ROW_NUMBER.
     /// </summary>
-    [Fact]
-    public void ExecuteReader_ProviderSignatureComplexQuery_ShouldReturnExpectedRows()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteReader_ProviderSignatureComplexQuery_ShouldReturnExpectedRows(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
         {
             seed.CommandText = """
@@ -190,6 +191,13 @@ public sealed class SqlAzureDialectBehaviorTests
                 ORDER BY TenantId, Rn, Id
                 """
         };
+
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2017)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+            Assert.Contains("STRING_AGG", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
 
         using var reader = command.ExecuteReader();
 
@@ -350,10 +358,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode expands OPENJSON rows through CROSS APPLY on the shared SQL Server runtime path.
     /// PT: Garante que o modo de compatibilidade SQL Azure expanda linhas de OPENJSON via CROSS APPLY no caminho compartilhado de runtime do SQL Server.
     /// </summary>
-    [Fact]
-    public void ExecuteReader_CrossApply_OpenJson_ShouldExpandRows()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteReader_CrossApply_OpenJson_ShouldExpandRows(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
         {
             seed.CommandText = """
@@ -373,6 +382,13 @@ public sealed class SqlAzureDialectBehaviorTests
                 """
         };
 
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         using var reader = command.ExecuteReader();
         Assert.True(reader.Read());
         Assert.Equal(821, reader.GetInt32(reader.GetOrdinal("UserId")));
@@ -387,10 +403,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode projects OPENJSON WITH explicit schema through the shared SQL Server runtime path.
     /// PT: Garante que o modo de compatibilidade SQL Azure projete OPENJSON WITH com schema explicito pelo caminho compartilhado de runtime do SQL Server.
     /// </summary>
-    [Fact]
-    public void ExecuteReader_CrossApply_OpenJsonWithSchema_ShouldProjectTypedColumns()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteReader_CrossApply_OpenJsonWithSchema_ShouldProjectTypedColumns(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
         {
             seed.CommandText = """
@@ -414,6 +431,13 @@ public sealed class SqlAzureDialectBehaviorTests
                 """
         };
 
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         using var reader = command.ExecuteReader();
         Assert.True(reader.Read());
         Assert.Equal("red", reader.GetString(reader.GetOrdinal("ColorName")));
@@ -430,10 +454,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode supports quoted-key paths and array indexes in OPENJSON.
     /// PT: Garante que o modo de compatibilidade SQL Azure suporte paths com chave entre aspas e indices de array em OPENJSON.
     /// </summary>
-    [Fact]
-    public void ExecuteReader_CrossApply_OpenJsonWithQuotedKeyAndIndexPath_ShouldProjectValue()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteReader_CrossApply_OpenJsonWithQuotedKeyAndIndexPath_ShouldProjectValue(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
         {
             seed.CommandText = """
@@ -453,6 +478,13 @@ public sealed class SqlAzureDialectBehaviorTests
                 WHERE u.Id = 861
                 """
         };
+
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
 
         using var reader = command.ExecuteReader();
         Assert.True(reader.Read());
@@ -1049,10 +1081,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode serializes FOR JSON AUTO with INCLUDE_NULL_VALUES and WITHOUT_ARRAY_WRAPPER on the shared SQL Server runtime path.
     /// PT: Garante que o modo de compatibilidade SQL Azure serialize FOR JSON AUTO com INCLUDE_NULL_VALUES e WITHOUT_ARRAY_WRAPPER no caminho compartilhado de runtime do SQL Server.
     /// </summary>
-    [Fact]
-    public void ExecuteScalar_ForJsonAutoWithOptions_ShouldSerializeSingleObject()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteScalar_ForJsonAutoWithOptions_ShouldSerializeSingleObject(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
         {
             seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (881, 'Ana', NULL)";
@@ -1069,6 +1102,12 @@ public sealed class SqlAzureDialectBehaviorTests
                 """
         };
 
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteScalar());
+            Assert.Contains("FOR JSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
         var json = Assert.IsType<string>(command.ExecuteScalar());
         using var document = System.Text.Json.JsonDocument.Parse(json);
         var root = document.RootElement;
@@ -1084,10 +1123,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode preserves OPENJSON AS JSON fragments when FOR JSON PATH serializes the final rowset.
     /// PT: Garante que o modo de compatibilidade SQL Azure preserve fragmentos de OPENJSON AS JSON quando FOR JSON PATH serializa o rowset final.
     /// </summary>
-    [Fact]
-    public void ExecuteScalar_ForJsonPath_WithOpenJsonAsJson_ShouldEmbedJsonFragment()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteScalar_ForJsonPath_WithOpenJsonAsJson_ShouldEmbedJsonFragment(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
         {
             seed.CommandText = """
@@ -1109,6 +1149,12 @@ public sealed class SqlAzureDialectBehaviorTests
                 """
         };
 
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteScalar());
+            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
         var json = Assert.IsType<string>(command.ExecuteScalar());
         using var document = System.Text.Json.JsonDocument.Parse(json);
         var profile = document.RootElement.GetProperty("User").GetProperty("Profile");
@@ -1122,10 +1168,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode rejects conflicting nested alias order in FOR JSON PATH instead of silently merging incompatible object paths.
     /// PT: Garante que o modo de compatibilidade SQL Azure rejeite ordem conflitante de aliases aninhados em FOR JSON PATH em vez de mesclar silenciosamente caminhos de objeto incompativeis.
     /// </summary>
-    [Fact]
-    public void ExecuteScalar_ForJsonPath_WithConflictingNestedAliasOrder_ShouldThrow()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteScalar_ForJsonPath_WithConflictingNestedAliasOrder_ShouldThrow(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using var command = new SqlAzureCommandMock(connection)
         {
             CommandText = """
@@ -1137,6 +1184,12 @@ public sealed class SqlAzureDialectBehaviorTests
                 """
         };
 
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
+        {
+            var ex2 = Assert.Throws<NotSupportedException>(() => command.ExecuteScalar());
+            Assert.Contains("FOR JSON", ex2.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
         var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteScalar());
         Assert.Contains("FOR JSON PATH", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Movement.Something.Destination", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1146,10 +1199,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode preserves JSON_QUERY fragments when FOR JSON PATH serializes the final rowset.
     /// PT: Garante que o modo de compatibilidade SQL Azure preserve fragmentos de JSON_QUERY quando FOR JSON PATH serializa o rowset final.
     /// </summary>
-    [Fact]
-    public void ExecuteScalar_ForJsonPath_WithJsonQuery_ShouldEmbedJsonFragment()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteScalar_ForJsonPath_WithJsonQuery_ShouldEmbedJsonFragment(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
         {
             seed.CommandText = """
@@ -1168,6 +1222,12 @@ public sealed class SqlAzureDialectBehaviorTests
                 """
         };
 
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteScalar());
+            Assert.Contains("JSON_QUERY", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
         var json = Assert.IsType<string>(command.ExecuteScalar());
         using var document = System.Text.Json.JsonDocument.Parse(json);
         var profile = document.RootElement.GetProperty("User").GetProperty("Profile");
@@ -1181,10 +1241,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode preserves a root JSON object when JSON_QUERY is called without an explicit path.
     /// PT: Garante que o modo de compatibilidade SQL Azure preserve um objeto JSON de raiz quando JSON_QUERY e chamado sem path explicito.
     /// </summary>
-    [Fact]
-    public void ExecuteScalar_JsonQuery_WithoutPath_ShouldReturnRootJsonFragment()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteScalar_JsonQuery_WithoutPath_ShouldReturnRootJsonFragment(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
         {
             seed.CommandText = """
@@ -1202,6 +1263,12 @@ public sealed class SqlAzureDialectBehaviorTests
                 """
         };
 
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => scalarCommand.ExecuteScalar());
+            Assert.Contains("JSON_QUERY", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
         var scalarJson = Assert.IsType<string>(scalarCommand.ExecuteScalar());
         using (var scalarDocument = System.Text.Json.JsonDocument.Parse(scalarJson))
         {
@@ -1231,10 +1298,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode skips nested FOR JSON AUTO aliases for LEFT JOIN rows without child matches.
     /// PT: Garante que o modo de compatibilidade SQL Azure ignore aliases aninhados de FOR JSON AUTO para linhas de LEFT JOIN sem correspondência filha.
     /// </summary>
-    [Fact]
-    public void ExecuteScalar_ForJsonAuto_LeftJoinWithoutChild_ShouldSkipNestedAlias()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteScalar_ForJsonAuto_LeftJoinWithoutChild_ShouldSkipNestedAlias(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
         {
             seed.CommandText = """
@@ -1257,6 +1325,12 @@ public sealed class SqlAzureDialectBehaviorTests
                 """
         };
 
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteScalar());
+            Assert.Contains("FOR JSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
         var json = Assert.IsType<string>(command.ExecuteScalar());
         using var document = System.Text.Json.JsonDocument.Parse(json);
         var array = document.RootElement;
@@ -1271,10 +1345,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode executes schema-qualified OPENJSON through CROSS APPLY on the shared SQL Server runtime path.
     /// PT: Garante que o modo de compatibilidade SQL Azure execute OPENJSON qualificado por schema via CROSS APPLY no caminho compartilhado de runtime do SQL Server.
     /// </summary>
-    [Fact]
-    public void ExecuteReader_CrossApply_SchemaQualifiedOpenJson_ShouldReturnRows()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteReader_CrossApply_SchemaQualifiedOpenJson_ShouldReturnRows(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
         {
             seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (886, 'Ana', '[\"red\",\"blue\"]')";
@@ -1292,6 +1367,13 @@ public sealed class SqlAzureDialectBehaviorTests
                 """
         };
 
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         using var reader = command.ExecuteReader();
         Assert.True(reader.Read());
         Assert.Equal("blue", reader.GetString(reader.GetOrdinal("Tag")));
@@ -1304,10 +1386,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode executes schema-qualified OPENJSON WITH explicit schema through CROSS APPLY on the shared SQL Server runtime path.
     /// PT: Garante que o modo de compatibilidade SQL Azure execute OPENJSON qualificado por schema com WITH explicito via CROSS APPLY no caminho compartilhado de runtime do SQL Server.
     /// </summary>
-    [Fact]
-    public void ExecuteReader_CrossApply_SchemaQualifiedOpenJsonWithSchema_ShouldProjectTypedColumns()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteReader_CrossApply_SchemaQualifiedOpenJsonWithSchema_ShouldProjectTypedColumns(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
         {
             seed.CommandText = """
@@ -1329,6 +1412,13 @@ public sealed class SqlAzureDialectBehaviorTests
                 """
         };
 
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2016)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+            Assert.Contains("OPENJSON", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
         using var reader = command.ExecuteReader();
         Assert.True(reader.Read());
         Assert.Equal("red", reader.GetString(reader.GetOrdinal("ColorName")));
@@ -1340,10 +1430,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode exposes schema-qualified STRING_SPLIT enable_ordinal through the shared SQL Server 2022 runtime semantics.
     /// PT: Garante que o modo de compatibilidade SQL Azure exponha STRING_SPLIT qualificado por schema com enable_ordinal pela semantica compartilhada de runtime do SQL Server 2022.
     /// </summary>
-    [Fact]
-    public void ExecuteReader_CrossApply_SchemaQualifiedStringSplitWithOrdinal_ShouldReturnOrdinalColumn()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteReader_CrossApply_SchemaQualifiedStringSplitWithOrdinal_ShouldReturnOrdinalColumn(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
         {
             seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (888, 'Ana', 'red,blue,green')";
@@ -1361,6 +1452,12 @@ public sealed class SqlAzureDialectBehaviorTests
                 """
         };
 
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2022)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+            Assert.Contains("STRING_SPLIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
         using var reader = command.ExecuteReader();
         Assert.True(reader.Read());
         Assert.Equal("red", reader.GetString(reader.GetOrdinal("Token")));
@@ -1378,10 +1475,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode accepts schema-qualified STRING_SPLIT enable_ordinal numeric text that coerces exactly to 1.
     /// PT: Garante que o modo de compatibilidade SQL Azure aceite texto numerico em STRING_SPLIT qualificado por schema com enable_ordinal que coerce exatamente para 1.
     /// </summary>
-    [Fact]
-    public void ExecuteReader_CrossApply_SchemaQualifiedStringSplitWithOrdinalNumericTextFlag_ShouldReturnOrdinalColumn()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteReader_CrossApply_SchemaQualifiedStringSplitWithOrdinalNumericTextFlag_ShouldReturnOrdinalColumn(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
         {
             seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (846, 'Ana', 'red,blue')";
@@ -1399,6 +1497,12 @@ public sealed class SqlAzureDialectBehaviorTests
                 """
         };
 
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2022)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+            Assert.Contains("STRING_SPLIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
         using var reader = command.ExecuteReader();
         Assert.True(reader.Read());
         Assert.Equal("red", reader.GetString(reader.GetOrdinal("Token")));
@@ -1413,10 +1517,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode rejects schema-qualified STRING_SPLIT enable_ordinal numeric text outside the 0 or 1 subset.
     /// PT: Garante que o modo de compatibilidade SQL Azure rejeite texto numerico em STRING_SPLIT qualificado por schema com enable_ordinal fora do subset 0 ou 1.
     /// </summary>
-    [Fact]
-    public void ExecuteReader_CrossApply_SchemaQualifiedStringSplitWithOrdinalInvalidNumericTextFlag_ShouldThrow()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteReader_CrossApply_SchemaQualifiedStringSplitWithOrdinalInvalidNumericTextFlag_ShouldThrow(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
         {
             seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (847, 'Ana', 'red,blue')";
@@ -1433,6 +1538,12 @@ public sealed class SqlAzureDialectBehaviorTests
                 """
         };
 
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2022)
+        {
+            var ex2 = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+            Assert.Contains("STRING_SPLIT", ex2.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
         var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteReader());
         Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -1441,10 +1552,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode exposes STRING_SPLIT enable_ordinal through the shared SQL Server 2022 runtime semantics.
     /// PT: Garante que o modo de compatibilidade SQL Azure exponha STRING_SPLIT com enable_ordinal pela semantica compartilhada de runtime do SQL Server 2022.
     /// </summary>
-    [Fact]
-    public void ExecuteReader_CrossApply_StringSplitWithOrdinal_ShouldReturnOrdinalColumn()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteReader_CrossApply_StringSplitWithOrdinal_ShouldReturnOrdinalColumn(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
         {
             seed.CommandText = """
@@ -1464,6 +1576,12 @@ public sealed class SqlAzureDialectBehaviorTests
                 """
         };
 
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2022)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+            Assert.Contains("STRING_SPLIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
         using var reader = command.ExecuteReader();
         Assert.True(reader.Read());
         Assert.Equal("red", reader.GetString(reader.GetOrdinal("Token")));
@@ -1481,10 +1599,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode accepts decimal enable_ordinal values that coerce exactly to 0 or 1.
     /// PT: Garante que o modo de compatibilidade SQL Azure aceite valores decimais em enable_ordinal que coercem exatamente para 0 ou 1.
     /// </summary>
-    [Fact]
-    public void ExecuteReader_CrossApply_StringSplitWithOrdinalDecimalFlag_ShouldReturnOrdinalColumn()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteReader_CrossApply_StringSplitWithOrdinalDecimalFlag_ShouldReturnOrdinalColumn(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
         {
             seed.CommandText = """
@@ -1504,6 +1623,12 @@ public sealed class SqlAzureDialectBehaviorTests
                 """
         };
 
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2022)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+            Assert.Contains("STRING_SPLIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
         using var reader = command.ExecuteReader();
         Assert.True(reader.Read());
         Assert.Equal("red", reader.GetString(reader.GetOrdinal("Token")));
@@ -1518,10 +1643,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode accepts numeric text enable_ordinal values that coerce exactly to 0 or 1.
     /// PT: Garante que o modo de compatibilidade SQL Azure aceite valores textuais numericos em enable_ordinal que coercem exatamente para 0 ou 1.
     /// </summary>
-    [Fact]
-    public void ExecuteReader_CrossApply_StringSplitWithOrdinalNumericTextFlag_ShouldReturnOrdinalColumn()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteReader_CrossApply_StringSplitWithOrdinalNumericTextFlag_ShouldReturnOrdinalColumn(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
         {
             seed.CommandText = """
@@ -1541,6 +1667,12 @@ public sealed class SqlAzureDialectBehaviorTests
                 """
         };
 
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2022)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+            Assert.Contains("STRING_SPLIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
         using var reader = command.ExecuteReader();
         Assert.True(reader.Read());
         Assert.Equal("red", reader.GetString(reader.GetOrdinal("Token")));
@@ -1555,10 +1687,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode accepts numeric text enable_ordinal values that coerce exactly to 0 and suppresses the ordinal column.
     /// PT: Garante que o modo de compatibilidade SQL Azure aceite valores textuais numericos em enable_ordinal que coercem exatamente para 0 e suprima a coluna ordinal.
     /// </summary>
-    [Fact]
-    public void ExecuteReader_CrossApply_StringSplitWithOrdinalNumericTextZeroFlag_ShouldSuppressOrdinalColumn()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteReader_CrossApply_StringSplitWithOrdinalNumericTextZeroFlag_ShouldSuppressOrdinalColumn(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
         {
             seed.CommandText = """
@@ -1578,6 +1711,12 @@ public sealed class SqlAzureDialectBehaviorTests
                 """
         };
 
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2022)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+            Assert.Contains("STRING_SPLIT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
         using var reader = command.ExecuteReader();
         Assert.Equal(1, reader.FieldCount);
         Assert.Equal("Token", reader.GetName(0));
@@ -1592,10 +1731,11 @@ public sealed class SqlAzureDialectBehaviorTests
     /// EN: Ensures SQL Azure compatibility mode rejects invalid numeric text enable_ordinal values outside the 0 or 1 subset.
     /// PT: Garante que o modo de compatibilidade SQL Azure rejeite valores textuais numericos invalidos em enable_ordinal fora do subset 0 ou 1.
     /// </summary>
-    [Fact]
-    public void ExecuteReader_CrossApply_StringSplitWithOrdinalInvalidNumericTextFlag_ShouldThrow()
+    [Theory]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ExecuteReader_CrossApply_StringSplitWithOrdinalInvalidNumericTextFlag_ShouldThrow(int compatibilityLevel)
     {
-        using var connection = CreateOpenConnection();
+        using var connection = CreateOpenConnection(compatibilityLevel);
         using (var seed = new SqlAzureCommandMock(connection))
         {
             seed.CommandText = """
@@ -1614,6 +1754,12 @@ public sealed class SqlAzureDialectBehaviorTests
                 """
         };
 
+        if (compatibilityLevel < SqlAzureDbCompatibilityLevels.SqlServer2022)
+        {
+            var ex2 = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+            Assert.Contains("STRING_SPLIT", ex2.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
         var ex = Assert.Throws<InvalidOperationException>(() => command.ExecuteReader());
         Assert.Contains("enable_ordinal", ex.Message, StringComparison.OrdinalIgnoreCase);
     }

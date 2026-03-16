@@ -8007,11 +8007,8 @@ private void FillPercentRankOrCumeDist(
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!(fn.Name.Equals("CLUSTER_DETAILS", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("CLUSTER_DISTANCE", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("CLUSTER_ID", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("CLUSTER_PROBABILITY", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("CLUSTER_SET", StringComparison.OrdinalIgnoreCase)))
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("CLUSTER_DETAILS" or "CLUSTER_DISTANCE" or "CLUSTER_ID" or "CLUSTER_PROBABILITY" or "CLUSTER_SET"))
         {
             result = null;
             return false;
@@ -8022,6 +8019,9 @@ private void FillPercentRankOrCumeDist(
             result = null;
             return true;
         }
+
+        if (!dialect.SupportsOracleClusterFunction(name))
+            throw SqlUnsupported.ForDialect(dialect, name);
 
         // Data mining functions are not simulated: return null consistently.
         result = null;
@@ -8034,7 +8034,8 @@ private void FillPercentRankOrCumeDist(
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("COLLATION", StringComparison.OrdinalIgnoreCase))
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not "COLLATION")
         {
             result = null;
             return false;
@@ -8045,6 +8046,9 @@ private void FillPercentRankOrCumeDist(
             result = null;
             return true;
         }
+
+        if (!dialect.SupportsOracleCollationFunction(name))
+            throw SqlUnsupported.ForDialect(dialect, name);
 
         var value = evalArg(0);
         if (IsNullish(value))
@@ -8063,10 +8067,8 @@ private void FillPercentRankOrCumeDist(
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!(fn.Name.Equals("CON_DBID_TO_ID", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("CON_GUID_TO_ID", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("CON_NAME_TO_ID", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("CON_UID_TO_ID", StringComparison.OrdinalIgnoreCase)))
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("CON_DBID_TO_ID" or "CON_GUID_TO_ID" or "CON_NAME_TO_ID" or "CON_UID_TO_ID"))
         {
             result = null;
             return false;
@@ -8077,6 +8079,9 @@ private void FillPercentRankOrCumeDist(
             result = null;
             return true;
         }
+
+        if (!dialect.SupportsOracleContainerFunction(name))
+            throw SqlUnsupported.ForDialect(dialect, name);
 
         var value = evalArg(0);
         if (IsNullish(value))
@@ -8267,6 +8272,13 @@ private void FillPercentRankOrCumeDist(
         {
             result = null;
             return true;
+        }
+
+        if ((fn.Name.Equals("TO_APPROX_COUNT_DISTINCT", StringComparison.OrdinalIgnoreCase)
+                || fn.Name.Equals("TO_APPROX_PERCENTILE", StringComparison.OrdinalIgnoreCase))
+            && !dialect.SupportsApproximateScalarFunction(fn.Name))
+        {
+            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
         }
 
         result = null;
@@ -8597,7 +8609,8 @@ private void FillPercentRankOrCumeDist(
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("JSON_TRANSFORM", StringComparison.OrdinalIgnoreCase))
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not "JSON_TRANSFORM")
         {
             result = null;
             return false;
@@ -8608,6 +8621,9 @@ private void FillPercentRankOrCumeDist(
             result = null;
             return true;
         }
+
+        if (!dialect.SupportsOracleJsonTransformFunction(name))
+            throw SqlUnsupported.ForDialect(dialect, name);
 
         var value = evalArg(0);
         if (IsNullish(value))
@@ -8956,15 +8972,9 @@ private void FillPercentRankOrCumeDist(
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!(fn.Name.Equals("NLS_CHARSET_DECL_LEN", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("NLS_CHARSET_ID", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("NLS_CHARSET_NAME", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("NLS_COLLATION_ID", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("NLS_COLLATION_NAME", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("NLS_INITCAP", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("NLS_LOWER", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("NLS_UPPER", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("NLSSORT", StringComparison.OrdinalIgnoreCase)))
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("NLS_CHARSET_DECL_LEN" or "NLS_CHARSET_ID" or "NLS_CHARSET_NAME" or "NLS_COLLATION_ID"
+            or "NLS_COLLATION_NAME" or "NLS_INITCAP" or "NLS_LOWER" or "NLS_UPPER" or "NLSSORT"))
         {
             result = null;
             return false;
@@ -8976,7 +8986,9 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        var name = fn.Name.ToUpperInvariant();
+        if (!dialect.SupportsOracleNlsFunction(name))
+            throw SqlUnsupported.ForDialect(dialect, name);
+
         if (name is "NLS_CHARSET_DECL_LEN" or "NLS_CHARSET_ID")
         {
             result = 0;
@@ -9177,8 +9189,8 @@ private void FillPercentRankOrCumeDist(
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("STANDARD_HASH", StringComparison.OrdinalIgnoreCase)
-            && !fn.Name.Equals("ORA_HASH", StringComparison.OrdinalIgnoreCase))
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not ("STANDARD_HASH" or "ORA_HASH"))
         {
             result = null;
             return false;
@@ -9189,6 +9201,9 @@ private void FillPercentRankOrCumeDist(
             result = null;
             return false;
         }
+
+        if (!dialect.SupportsOracleHashFunction(name))
+            throw SqlUnsupported.ForDialect(dialect, name);
 
         if (fn.Args.Count == 0)
         {
@@ -9203,7 +9218,7 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        var algorithm = fn.Name.Equals("ORA_HASH", StringComparison.OrdinalIgnoreCase)
+        var algorithm = name.Equals("ORA_HASH", StringComparison.OrdinalIgnoreCase)
             ? "MD5"
             : (fn.Args.Count > 1 ? evalArg(1)?.ToString() : "SHA1");
 
@@ -9224,7 +9239,7 @@ private void FillPercentRankOrCumeDist(
         }
 
         var hex = ToHexString(hashBytes);
-        if (fn.Name.Equals("ORA_HASH", StringComparison.OrdinalIgnoreCase))
+        if (name.Equals("ORA_HASH", StringComparison.OrdinalIgnoreCase))
         {
             // Reduce to a stable int range for ORA_HASH usage.
             var hash = 0;
@@ -9435,6 +9450,9 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
+        if (!dialect.SupportsOracleRowIdFunction(name))
+            throw SqlUnsupported.ForDialect(dialect, name);
+
         if (fn.Args.Count == 0)
         {
             result = null;
@@ -9487,6 +9505,9 @@ private void FillPercentRankOrCumeDist(
             result = null;
             return true;
         }
+
+        if (!dialect.SupportsOracleSysFunction(name))
+            throw SqlUnsupported.ForDialect(dialect, name);
 
         switch (name)
         {
@@ -9558,6 +9579,23 @@ private void FillPercentRankOrCumeDist(
         {
             result = null;
             return false;
+        }
+
+        if ((name.Equals("TO_BINARY_DOUBLE", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_BINARY_FLOAT", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_BLOB", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_CLOB", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_DSINTERVAL", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_LOB", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_MULTI_BYTE", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_NCHAR", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_NCLOB", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_SINGLE_BYTE", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_TIMESTAMP_TZ", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_YMINTERVAL", StringComparison.OrdinalIgnoreCase))
+            && !dialect.SupportsOracleSpecificConversionFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(dialect, name);
         }
 
         if (fn.Args.Count == 0)
@@ -11603,6 +11641,9 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
+        if (!dialect.SupportsOracleUserEnvFunction(name))
+            throw SqlUnsupported.ForDialect(dialect, name);
+
         switch (name)
         {
             case "ORA_INVOKING_USER":
@@ -11638,7 +11679,8 @@ private void FillPercentRankOrCumeDist(
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!fn.Name.Equals("VALIDATE_CONVERSION", StringComparison.OrdinalIgnoreCase))
+        var name = fn.Name.ToUpperInvariant();
+        if (name is not "VALIDATE_CONVERSION")
         {
             result = null;
             return false;
@@ -11649,6 +11691,9 @@ private void FillPercentRankOrCumeDist(
             result = null;
             return true;
         }
+
+        if (!dialect.SupportsOracleValidationFunction(name))
+            throw SqlUnsupported.ForDialect(dialect, name);
 
         if (fn.Args.Count < 2)
         {
@@ -11804,6 +11849,9 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
+        if (!dialect.SupportsOracleAnalyticsFunction(name))
+            throw SqlUnsupported.ForDialect(dialect, name);
+
         result = null;
         return true;
     }
@@ -11826,6 +11874,9 @@ private void FillPercentRankOrCumeDist(
             result = null;
             return true;
         }
+
+        if (!dialect.SupportsOracleScnFunction(name))
+            throw SqlUnsupported.ForDialect(dialect, name);
 
         if (fn.Args.Count == 0)
         {
@@ -20302,7 +20353,13 @@ private void FillPercentRankOrCumeDist(
             return 0;
 
         if (name.StartsWith("APPROX_", StringComparison.OrdinalIgnoreCase))
+        {
+            var dialect = Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para agregação.");
+            if (!dialect.SupportsApproximateAggregateFunction(name))
+                throw SqlUnsupported.ForDialect(dialect, name);
+
             return EvalApproxAggregate(fn, group, ctes, name);
+        }
 
         if (name.StartsWith("REGR_", StringComparison.OrdinalIgnoreCase))
             return EvalRegressionAggregate(fn, group, ctes, name);

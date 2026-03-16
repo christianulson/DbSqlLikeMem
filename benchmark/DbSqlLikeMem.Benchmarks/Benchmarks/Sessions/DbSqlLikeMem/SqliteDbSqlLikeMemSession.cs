@@ -8,7 +8,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 public sealed class SqliteDbSqlLikeMemSession()
     : DbSqlLikeMemBenchmarkSessionBase(new SqliteDialect())
 {
-    private readonly SqliteDbMock Db = [];
+    private readonly SqliteDbMock Db = new() { ThreadSafe = true };
     /// <summary>
     /// 
     /// </summary>

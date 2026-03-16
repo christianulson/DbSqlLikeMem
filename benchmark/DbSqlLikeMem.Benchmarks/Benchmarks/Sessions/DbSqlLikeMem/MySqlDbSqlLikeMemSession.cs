@@ -9,7 +9,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 public sealed class MySqlDbSqlLikeMemSession() 
     : DbSqlLikeMemBenchmarkSessionBase(new MySqlDialect())
 {
-    private readonly MySqlDbMock Db = [];
+    private readonly MySqlDbMock Db = new() { ThreadSafe = true };
 
     /// <summary>
     /// EN: Creates a new DbSqlLikeMem MySQL mock connection.

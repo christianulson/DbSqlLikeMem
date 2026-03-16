@@ -179,7 +179,8 @@ foreach ($feature in ($catalog.features | Sort-Object category, id)) {
 
         if ($supported) {
             if ($mockResults.ContainsKey($feature.id)) {
-                $mockCell = $mockResults[$feature.id].Raw
+                $culture = [System.Globalization.CultureInfo]::GetCultureInfo('pt-BR')
+                $mockCell = [math]::Round($mockResults[$feature.id].Microseconds, 2, [System.MidpointRounding]::AwayFromZero).ToString('N2', $culture) + ' ' + ([string][char]0x03BC) +'s'
             }
             else {
                 $mockCell = 'pending'

@@ -246,6 +246,283 @@ public sealed class OracleFunctionTests
     }
 
     /// <summary>
+    /// EN: Ensures Oracle approximate aggregate helpers follow the configured database version gates.
+    /// PT: Garante que os helpers Oracle de agregacao aproximada sigam os gates da versao configurada do banco.
+    /// </summary>
+    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "OracleMock")]
+    [MemberDataOracleVersion]
+    public void ApproximateAggregateFunctions_ShouldRespectOracleVersion(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        if (version < OracleDialect.ApproxCountDistinctMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT APPROX_COUNT_DISTINCT(X) FROM Numbers"));
+            Assert.Contains("APPROX_COUNT_DISTINCT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
+        else
+        {
+            Assert.Equal(3, Convert.ToInt32(ExecuteScalar(connection, "SELECT APPROX_COUNT_DISTINCT(X) FROM Numbers"), CultureInfo.InvariantCulture));
+        }
+
+        if (version < OracleDialect.ApproximateAnalyticsMinVersion)
+        {
+            Assert.Contains(
+                "APPROX_COUNT_DISTINCT_AGG",
+                Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT APPROX_COUNT_DISTINCT_AGG(X) FROM Numbers")).Message,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(
+                "APPROX_COUNT_DISTINCT_DETAIL",
+                Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT APPROX_COUNT_DISTINCT_DETAIL(X) FROM Numbers")).Message,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(
+                "APPROX_MEDIAN",
+                Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT APPROX_MEDIAN(X) FROM Numbers")).Message,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(
+                "APPROX_PERCENTILE",
+                Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT APPROX_PERCENTILE(X, 0.5) FROM Numbers")).Message,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(
+                "APPROX_PERCENTILE_AGG",
+                Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT APPROX_PERCENTILE_AGG(X, 0.5) FROM Numbers")).Message,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(
+                "APPROX_PERCENTILE_DETAIL",
+                Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT APPROX_PERCENTILE_DETAIL(X, 0.5) FROM Numbers")).Message,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(
+                "TO_APPROX_COUNT_DISTINCT",
+                Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT TO_APPROX_COUNT_DISTINCT(1) FROM Users WHERE Id = 1")).Message,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(
+                "TO_APPROX_PERCENTILE",
+                Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT TO_APPROX_PERCENTILE(1) FROM Users WHERE Id = 1")).Message,
+                StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        Assert.Equal(3, Convert.ToInt32(ExecuteScalar(connection, "SELECT APPROX_COUNT_DISTINCT_AGG(X) FROM Numbers"), CultureInfo.InvariantCulture));
+        Assert.Equal(3, Convert.ToInt32(ExecuteScalar(connection, "SELECT APPROX_COUNT_DISTINCT_DETAIL(X) FROM Numbers"), CultureInfo.InvariantCulture));
+        Assert.True(Math.Abs(Convert.ToDouble(ExecuteScalar(connection, "SELECT APPROX_MEDIAN(X) FROM Numbers"), CultureInfo.InvariantCulture) - 2d) < 0.0001d);
+        Assert.True(Math.Abs(Convert.ToDouble(ExecuteScalar(connection, "SELECT APPROX_PERCENTILE(X, 0.5) FROM Numbers"), CultureInfo.InvariantCulture) - 2d) < 0.0001d);
+        Assert.True(Math.Abs(Convert.ToDouble(ExecuteScalar(connection, "SELECT APPROX_PERCENTILE_AGG(X, 0.5) FROM Numbers"), CultureInfo.InvariantCulture) - 2d) < 0.0001d);
+        Assert.True(Math.Abs(Convert.ToDouble(ExecuteScalar(connection, "SELECT APPROX_PERCENTILE_DETAIL(X, 0.5) FROM Numbers"), CultureInfo.InvariantCulture) - 2d) < 0.0001d);
+        Assert.Null(ExecuteScalar(connection, "SELECT TO_APPROX_COUNT_DISTINCT(1) FROM Users WHERE Id = 1"));
+        Assert.Null(ExecuteScalar(connection, "SELECT TO_APPROX_PERCENTILE(1) FROM Users WHERE Id = 1"));
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle-specific conversion helpers follow the configured database version gates.
+    /// PT: Garante que helpers Oracle especificos de conversao sigam os gates da versao configurada do banco.
+    /// </summary>
+    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "OracleMock")]
+    [MemberDataOracleVersion]
+    public void OracleSpecificConversionFunctions_ShouldRespectOracleVersion(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        AssertOracleSpecificConversionExecution(version, connection, "SELECT TO_BINARY_DOUBLE(1) FROM Users WHERE Id = 1", "TO_BINARY_DOUBLE", OracleDialect.OracleBinaryConversionMinVersion, static value => Assert.Equal(1d, Convert.ToDouble(value, CultureInfo.InvariantCulture)));
+        AssertOracleSpecificConversionExecution(version, connection, "SELECT TO_BINARY_FLOAT(1) FROM Users WHERE Id = 1", "TO_BINARY_FLOAT", OracleDialect.OracleBinaryConversionMinVersion, static value => Assert.Equal(1f, Convert.ToSingle(value, CultureInfo.InvariantCulture)));
+        AssertOracleSpecificConversionExecution(version, connection, "SELECT TO_BLOB('abc') FROM Users WHERE Id = 1", "TO_BLOB", OracleDialect.OracleBlobConversionMinVersion, static value => Assert.Equal("abc", value));
+        AssertOracleSpecificConversionExecution(version, connection, "SELECT TO_CLOB('abc') FROM Users WHERE Id = 1", "TO_CLOB", OracleDialect.OracleTextConversionMinVersion, static value => Assert.Equal("abc", value));
+        AssertOracleSpecificConversionExecution(version, connection, "SELECT TO_DSINTERVAL(NUMTODSINTERVAL(2, 'HOUR')) FROM Users WHERE Id = 1", "TO_DSINTERVAL", OracleDialect.OracleTextConversionMinVersion, static value => Assert.Equal(TimeSpan.FromHours(2), value));
+        AssertOracleSpecificConversionExecution(version, connection, "SELECT TO_LOB('abc') FROM Users WHERE Id = 1", "TO_LOB", 7, static value => Assert.Equal("abc", value));
+        AssertOracleSpecificConversionExecution(version, connection, "SELECT TO_MULTI_BYTE('abc') FROM Users WHERE Id = 1", "TO_MULTI_BYTE", 7, static value => Assert.Equal("abc", value));
+        AssertOracleSpecificConversionExecution(version, connection, "SELECT TO_NCHAR('abc') FROM Users WHERE Id = 1", "TO_NCHAR", OracleDialect.OracleTextConversionMinVersion, static value => Assert.Equal("abc", value));
+        AssertOracleSpecificConversionExecution(version, connection, "SELECT TO_NCLOB('abc') FROM Users WHERE Id = 1", "TO_NCLOB", OracleDialect.OracleTextConversionMinVersion, static value => Assert.Equal("abc", value));
+        AssertOracleSpecificConversionExecution(version, connection, "SELECT TO_SINGLE_BYTE('abc') FROM Users WHERE Id = 1", "TO_SINGLE_BYTE", 7, static value => Assert.Equal("abc", value));
+        AssertOracleSpecificConversionExecution(version, connection, "SELECT TO_TIMESTAMP_TZ('2024-01-02 03:04:05 +02:00','YYYY-MM-DD HH24:MI:SS TZH:TZM') FROM Users WHERE Id = 1", "TO_TIMESTAMP_TZ", OracleDialect.OracleTextConversionMinVersion, static value =>
+        {
+            var dto = Assert.IsType<DateTimeOffset>(value);
+            Assert.Equal(new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.FromHours(2)), dto);
+        });
+        AssertOracleSpecificConversionExecution(version, connection, "SELECT TO_YMINTERVAL(NUMTOYMINTERVAL(1, 'YEAR')) FROM Users WHERE Id = 1", "TO_YMINTERVAL", OracleDialect.OracleTextConversionMinVersion, static value => Assert.Equal(TimeSpan.FromDays(365), value));
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle SCN helpers follow the configured database version gates.
+    /// PT: Garante que helpers Oracle de SCN sigam os gates da versao configurada do banco.
+    /// </summary>
+    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "OracleMock")]
+    [MemberDataOracleVersion]
+    public void OracleScnFunctions_ShouldRespectOracleVersion(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        AssertOracleScnExecution(version, connection, "SELECT SCN_TO_TIMESTAMP(1) FROM Users WHERE Id = 1", "SCN_TO_TIMESTAMP");
+        AssertOracleScnExecution(version, connection, "SELECT TIMESTAMP_TO_SCN(TO_DATE('2024-01-01','YYYY-MM-DD')) FROM Users WHERE Id = 1", "TIMESTAMP_TO_SCN");
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle analytics/modeling helpers follow the configured database version gates.
+    /// PT: Garante que helpers Oracle de analytics/modelagem sigam os gates da versao configurada do banco.
+    /// </summary>
+    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "OracleMock")]
+    [MemberDataOracleVersion]
+    public void OracleAnalyticsFunctions_ShouldRespectOracleVersion(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        AssertOracleAnalyticsExecution(version, connection, "SELECT FEATURE_COMPARE('x') FROM Users WHERE Id = 1", "FEATURE_COMPARE", 18);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT FEATURE_DETAILS('x') FROM Users WHERE Id = 1", "FEATURE_DETAILS", 12);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT FEATURE_ID('x') FROM Users WHERE Id = 1", "FEATURE_ID", 10);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT FEATURE_SET('x') FROM Users WHERE Id = 1", "FEATURE_SET", 10);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT FEATURE_VALUE('x') FROM Users WHERE Id = 1", "FEATURE_VALUE", 10);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT NCGR(1) FROM Users WHERE Id = 1", "NCGR", 18);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT POWERMULTISET(1, 1) FROM Users WHERE Id = 1", "POWERMULTISET", 10);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT POWERMULTISET_BY_CARDINALITY(1, 1) FROM Users WHERE Id = 1", "POWERMULTISET_BY_CARDINALITY", 10);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT PREDICTION('x') FROM Users WHERE Id = 1", "PREDICTION", 10);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT PREDICTION_BOUNDS('x') FROM Users WHERE Id = 1", "PREDICTION_BOUNDS", 11);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT PREDICTION_COST('x') FROM Users WHERE Id = 1", "PREDICTION_COST", 10);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT PREDICTION_DETAILS('x') FROM Users WHERE Id = 1", "PREDICTION_DETAILS", 10);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT PREDICTION_PROBABILITY('x') FROM Users WHERE Id = 1", "PREDICTION_PROBABILITY", 10);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT PREDICTION_SET('x') FROM Users WHERE Id = 1", "PREDICTION_SET", 10);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT PRESENTNNV('x') FROM Users WHERE Id = 1", "PRESENTNNV", 10);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT PRESENTV('x') FROM Users WHERE Id = 1", "PRESENTV", 10);
+        AssertOracleAnalyticsExecution(version, connection, "SELECT RATIO_TO_REPORT(1) FROM Users WHERE Id = 1", "RATIO_TO_REPORT", 8);
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle clustering helpers follow the configured database version gates.
+    /// PT: Garante que helpers Oracle de clustering sigam os gates da versao configurada do banco.
+    /// </summary>
+    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "OracleMock")]
+    [MemberDataOracleVersion]
+    public void OracleClusterFunctions_ShouldRespectOracleVersion(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        AssertOracleVersionedExecution(version, connection, "SELECT CLUSTER_DETAILS(1, 1, 1) FROM Users WHERE Id = 1", "CLUSTER_DETAILS", OracleDialect.OracleAdvancedClusterFunctionMinVersion, static value => Assert.Null(value));
+        AssertOracleVersionedExecution(version, connection, "SELECT CLUSTER_DISTANCE(1, 1, 1) FROM Users WHERE Id = 1", "CLUSTER_DISTANCE", OracleDialect.OracleAdvancedClusterFunctionMinVersion, static value => Assert.Null(value));
+        AssertOracleVersionedExecution(version, connection, "SELECT CLUSTER_ID(1, 1, 1) FROM Users WHERE Id = 1", "CLUSTER_ID", OracleDialect.OracleClusterFunctionMinVersion, static value => Assert.Null(value));
+        AssertOracleVersionedExecution(version, connection, "SELECT CLUSTER_PROBABILITY(1, 1, 1) FROM Users WHERE Id = 1", "CLUSTER_PROBABILITY", OracleDialect.OracleClusterFunctionMinVersion, static value => Assert.Null(value));
+        AssertOracleVersionedExecution(version, connection, "SELECT CLUSTER_SET(1, 1, 1) FROM Users WHERE Id = 1", "CLUSTER_SET", OracleDialect.OracleClusterFunctionMinVersion, static value => Assert.Null(value));
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle container and rowid helpers follow the configured database version gates.
+    /// PT: Garante que helpers Oracle de container e rowid sigam os gates da versao configurada do banco.
+    /// </summary>
+    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "OracleMock")]
+    [MemberDataOracleVersion]
+    public void OracleContainerAndRowIdFunctions_ShouldRespectOracleVersion(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        AssertOracleVersionedExecution(version, connection, "SELECT CON_UID_TO_ID(42) FROM Users WHERE Id = 1", "CON_UID_TO_ID", OracleDialect.OracleContainerFunctionMinVersion, static value => Assert.Equal(42L, value));
+        AssertOracleVersionedExecution(version, connection, "SELECT CON_DBID_TO_ID(7) FROM Users WHERE Id = 1", "CON_DBID_TO_ID", OracleDialect.OracleContainerFunctionMinVersion, static value => Assert.Equal(7L, value));
+        AssertOracleVersionedExecution(version, connection, "SELECT CON_GUID_TO_ID(8) FROM Users WHERE Id = 1", "CON_GUID_TO_ID", OracleDialect.OracleContainerFunctionMinVersion, static value => Assert.Equal(8L, value));
+        AssertOracleVersionedExecution(version, connection, "SELECT CON_NAME_TO_ID(9) FROM Users WHERE Id = 1", "CON_NAME_TO_ID", OracleDialect.OracleContainerFunctionMinVersion, static value => Assert.Equal(9L, value));
+        AssertOracleVersionedExecution(version, connection, "SELECT ROWIDTOCHAR('AA') FROM Users WHERE Id = 1", "ROWIDTOCHAR", 7, static value => Assert.Equal("AA", value));
+        AssertOracleVersionedExecution(version, connection, "SELECT ROWTONCHAR('BB') FROM Users WHERE Id = 1", "ROWTONCHAR", OracleDialect.OracleRowToNCharFunctionMinVersion, static value => Assert.Equal("BB", value));
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle metadata, validation, and JSON transform helpers follow the configured database version gates.
+    /// PT: Garante que helpers Oracle de metadados, validacao e JSON transform sigam os gates da versao configurada do banco.
+    /// </summary>
+    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "OracleMock")]
+    [MemberDataOracleVersion]
+    public void OracleMetadataValidationAndJsonFunctions_ShouldRespectOracleVersion(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        AssertOracleVersionedExecution(version, connection, "SELECT USERENV('CURRENT_SCHEMA') FROM Users WHERE Id = 1", "USERENV", 7, static value => Assert.Equal("SYS", value));
+        AssertOracleVersionedExecution(version, connection, "SELECT ORA_INVOKING_USER() FROM Users WHERE Id = 1", "ORA_INVOKING_USER", OracleDialect.OracleUserEnvMetadataMinVersion, static value => Assert.Equal("SYS", value));
+        AssertOracleVersionedExecution(version, connection, "SELECT ORA_INVOKING_USERID() FROM Users WHERE Id = 1", "ORA_INVOKING_USERID", OracleDialect.OracleUserEnvMetadataMinVersion, static value => Assert.Equal(0, value));
+        AssertOracleVersionedExecution(version, connection, "SELECT ORA_DST_AFFECTED(1) FROM Users WHERE Id = 1", "ORA_DST_AFFECTED", OracleDialect.OracleUserEnvMetadataMinVersion, static value => Assert.Null(value));
+        AssertOracleVersionedExecution(version, connection, "SELECT ORA_DST_CONVERT(1) FROM Users WHERE Id = 1", "ORA_DST_CONVERT", OracleDialect.OracleUserEnvMetadataMinVersion, static value => Assert.Null(value));
+        AssertOracleVersionedExecution(version, connection, "SELECT ORA_DST_ERROR(1) FROM Users WHERE Id = 1", "ORA_DST_ERROR", OracleDialect.OracleUserEnvMetadataMinVersion, static value => Assert.Null(value));
+        AssertOracleVersionedExecution(version, connection, "SELECT ORA_DM_PARTITION_NAME() FROM Users WHERE Id = 1", "ORA_DM_PARTITION_NAME", OracleDialect.OraclePartitionMetadataMinVersion, static value => Assert.Null(value));
+        AssertOracleVersionedExecution(version, connection, "SELECT VALIDATE_CONVERSION('123', 'NUMBER') FROM Users WHERE Id = 1", "VALIDATE_CONVERSION", OracleDialect.OracleValidateConversionMinVersion, static value => Assert.Equal(1, value));
+        AssertOracleVersionedExecution(version, connection, "SELECT JSON_TRANSFORM('{\"a\":1}') FROM Users WHERE Id = 1", "JSON_TRANSFORM", OracleDialect.OracleJsonTransformMinVersion, static value => Assert.Equal("{\"a\":1}", value));
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle JSON extraction helpers follow the configured database version gates.
+    /// PT: Garante que helpers Oracle de extracao JSON sigam os gates da versao configurada do banco.
+    /// </summary>
+    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "OracleMock")]
+    [MemberDataOracleVersion]
+    public void OracleJsonExtractionFunctions_ShouldRespectOracleVersion(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        AssertOracleVersionedExecution(version, connection, "SELECT JSON_VALUE('{\"a\":1}', '$.a') FROM Users WHERE Id = 1", "JSON_VALUE", OracleDialect.OracleJsonSqlFunctionMinVersion, static value => Assert.Equal(1L, Convert.ToInt64(value, CultureInfo.InvariantCulture)));
+        AssertOracleVersionedExecution(version, connection, "SELECT JSON_QUERY('{\"a\":{\"b\":2}}', '$.a') FROM Users WHERE Id = 1", "JSON_QUERY", OracleDialect.OracleJsonSqlFunctionMinVersion, static value => Assert.Equal("{\"b\":2}", value));
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle collation and NLS helpers follow the configured database version gates.
+    /// PT: Garante que helpers Oracle de collation e NLS sigam os gates da versao configurada do banco.
+    /// </summary>
+    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "OracleMock")]
+    [MemberDataOracleVersion]
+    public void OracleCollationAndNlsFunctions_ShouldRespectOracleVersion(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        AssertOracleVersionedExecution(version, connection, "SELECT COLLATION('x') FROM Users WHERE Id = 1", "COLLATION", OracleDialect.OracleCollationFunctionMinVersion, static value => Assert.Equal("BINARY", value));
+        AssertOracleVersionedExecution(version, connection, "SELECT NLS_CHARSET_DECL_LEN('AL32UTF8') FROM Users WHERE Id = 1", "NLS_CHARSET_DECL_LEN", 7, static value => Assert.Equal(0, value));
+        AssertOracleVersionedExecution(version, connection, "SELECT NLS_CHARSET_ID('AL32UTF8') FROM Users WHERE Id = 1", "NLS_CHARSET_ID", 7, static value => Assert.Equal(0, value));
+        AssertOracleVersionedExecution(version, connection, "SELECT NLS_CHARSET_NAME('AL32UTF8') FROM Users WHERE Id = 1", "NLS_CHARSET_NAME", 7, static value => Assert.Equal("AL32UTF8", value));
+        AssertOracleVersionedExecution(version, connection, "SELECT NLS_COLLATION_ID('BINARY') FROM Users WHERE Id = 1", "NLS_COLLATION_ID", OracleDialect.OracleCollationFunctionMinVersion, static value => Assert.Equal(0, value));
+        AssertOracleVersionedExecution(version, connection, "SELECT NLS_COLLATION_NAME('BINARY') FROM Users WHERE Id = 1", "NLS_COLLATION_NAME", OracleDialect.OracleCollationFunctionMinVersion, static value => Assert.Equal("BINARY", value));
+        AssertOracleVersionedExecution(version, connection, "SELECT NLS_INITCAP('aNA') FROM Users WHERE Id = 1", "NLS_INITCAP", 7, static value => Assert.Equal("Ana", value));
+        AssertOracleVersionedExecution(version, connection, "SELECT NLS_LOWER('ABC') FROM Users WHERE Id = 1", "NLS_LOWER", 7, static value => Assert.Equal("abc", value));
+        AssertOracleVersionedExecution(version, connection, "SELECT NLS_UPPER('abc') FROM Users WHERE Id = 1", "NLS_UPPER", 7, static value => Assert.Equal("ABC", value));
+        AssertOracleVersionedExecution(version, connection, "SELECT NLSSORT('abc') FROM Users WHERE Id = 1", "NLSSORT", 7, static value => Assert.Equal("abc", value));
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle hash and SYS helpers follow the configured database version gates.
+    /// PT: Garante que helpers Oracle de hash e SYS sigam os gates da versao configurada do banco.
+    /// </summary>
+    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "OracleMock")]
+    [MemberDataOracleVersion]
+    public void OracleHashAndSysFunctions_ShouldRespectOracleVersion(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        AssertOracleVersionedExecution(version, connection, "SELECT ORA_HASH('ABC') FROM Users WHERE Id = 1", "ORA_HASH", OracleDialect.OracleOraHashMinVersion, static value => Assert.True(Convert.ToInt32(value, CultureInfo.InvariantCulture) >= 0));
+        AssertOracleVersionedExecution(version, connection, "SELECT STANDARD_HASH('ABC','SHA256') FROM Users WHERE Id = 1", "STANDARD_HASH", OracleDialect.OracleStandardHashMinVersion, static value =>
+        {
+            var text = Assert.IsType<string>(value);
+            Assert.Equal(64, text.Length);
+        });
+        AssertOracleVersionedExecution(version, connection, "SELECT SYS_GUID() FROM Users WHERE Id = 1", "SYS_GUID", 7, static value => Assert.IsType<string>(value));
+        AssertOracleVersionedExecution(version, connection, "SELECT SYS_CONTEXT('USERENV','CURRENT_SCHEMA') FROM Users WHERE Id = 1", "SYS_CONTEXT", 7, static value => Assert.Equal("SYS", value));
+        AssertOracleVersionedExecution(version, connection, "SELECT SYS_CONNECT_BY_PATH('a','/') FROM Users WHERE Id = 1", "SYS_CONNECT_BY_PATH", OracleDialect.OracleSysFamilyMinVersion, static value => Assert.Null(value));
+        AssertOracleVersionedExecution(version, connection, "SELECT SYS_DBURIGEN('a','b') FROM Users WHERE Id = 1", "SYS_DBURIGEN", OracleDialect.OracleSysFamilyMinVersion, static value => Assert.Null(value));
+        AssertOracleVersionedExecution(version, connection, "SELECT SYS_EXTRACT_UTC(TO_TIMESTAMP_TZ('2024-01-01 10:00:00 +02:00')) FROM Users WHERE Id = 1", "SYS_EXTRACT_UTC", OracleDialect.OracleSysFamilyMinVersion, static value => Assert.IsType<DateTime>(value));
+        AssertOracleVersionedExecution(version, connection, "SELECT SYS_OP_ZONE_ID('a') FROM Users WHERE Id = 1", "SYS_OP_ZONE_ID", OracleDialect.OracleSysZoneIdMinVersion, static value => Assert.Null(value));
+        AssertOracleVersionedExecution(version, connection, "SELECT SYS_TYPEID('a') FROM Users WHERE Id = 1", "SYS_TYPEID", OracleDialect.OracleSysFamilyMinVersion, static value => Assert.Null(value));
+        AssertOracleVersionedExecution(version, connection, "SELECT SYS_XMLAGG('a') FROM Users WHERE Id = 1", "SYS_XMLAGG", OracleDialect.OracleSysFamilyMinVersion, static value => Assert.Null(value));
+        AssertOracleVersionedExecution(version, connection, "SELECT SYS_XMLGEN('a') FROM Users WHERE Id = 1", "SYS_XMLGEN", OracleDialect.OracleSysFamilyMinVersion, static value => Assert.Null(value));
+    }
+
+    /// <summary>
     /// EN: Verifies Oracle time and timezone helpers return expected types.
     /// PT: Verifica se auxiliares de tempo e fuso do Oracle retornam tipos esperados.
     /// </summary>
@@ -521,6 +798,31 @@ public sealed class OracleFunctionTests
         return command.ExecuteScalar();
     }
 
+    private static OracleConnectionMock CreateOpenConnection(int version)
+    {
+        var db = new OracleDbMock(version);
+        db.AddTable("Users",
+        [
+            new("Id", DbType.Int32, false),
+            new("Name", DbType.String, false),
+        ]);
+        db.AddTable("Numbers",
+        [
+            new("X", DbType.Int32, false),
+            new("Y", DbType.Int32, false),
+        ]);
+
+        var connection = new OracleConnectionMock(db);
+        connection.Open();
+
+        ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name) VALUES (1, 'Ana')");
+        ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name) VALUES (2, 'Bob')");
+        ExecuteNonQuery(connection, "INSERT INTO Numbers (X, Y) VALUES (1, 2)");
+        ExecuteNonQuery(connection, "INSERT INTO Numbers (X, Y) VALUES (2, 4)");
+        ExecuteNonQuery(connection, "INSERT INTO Numbers (X, Y) VALUES (3, 6)");
+        return connection;
+    }
+
     private void ExecuteNonQuery(string sql)
     {
         using var command = new OracleCommandMock(_connection)
@@ -528,5 +830,83 @@ public sealed class OracleFunctionTests
             CommandText = sql
         };
         command.ExecuteNonQuery();
+    }
+
+    private static object? ExecuteScalar(OracleConnectionMock connection, string sql)
+    {
+        using var command = new OracleCommandMock(connection)
+        {
+            CommandText = sql
+        };
+        return command.ExecuteScalar();
+    }
+
+    private static void ExecuteNonQuery(OracleConnectionMock connection, string sql)
+    {
+        using var command = new OracleCommandMock(connection)
+        {
+            CommandText = sql
+        };
+        command.ExecuteNonQuery();
+    }
+
+    private static void AssertOracleSpecificConversionExecution(
+        int version,
+        OracleConnectionMock connection,
+        string sql,
+        string functionName,
+        int minVersion,
+        Action<object?> assertSupported)
+    {
+        if (version < minVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, sql));
+            Assert.Contains(functionName, ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        assertSupported(ExecuteScalar(connection, sql));
+    }
+
+    private static void AssertOracleScnExecution(int version, OracleConnectionMock connection, string sql, string functionName)
+    {
+        if (version < OracleDialect.OracleScnFunctionMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, sql));
+            Assert.Contains(functionName, ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        Assert.Null(ExecuteScalar(connection, sql));
+    }
+
+    private static void AssertOracleAnalyticsExecution(int version, OracleConnectionMock connection, string sql, string functionName, int minVersion)
+    {
+        if (version < minVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, sql));
+            Assert.Contains(functionName, ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        Assert.Null(ExecuteScalar(connection, sql));
+    }
+
+    private static void AssertOracleVersionedExecution(
+        int version,
+        OracleConnectionMock connection,
+        string sql,
+        string functionName,
+        int minVersion,
+        Action<object?> assertSupported)
+    {
+        if (version < minVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, sql));
+            Assert.Contains(functionName, ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        assertSupported(ExecuteScalar(connection, sql));
     }
 }

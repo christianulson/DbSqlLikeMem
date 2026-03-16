@@ -9,7 +9,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 public sealed class NpgsqlDbSqlLikeMemSession()
     : DbSqlLikeMemBenchmarkSessionBase(new NpgsqlDialect())
 {
-    private readonly NpgsqlDbMock Db = [];
+    private readonly NpgsqlDbMock Db = new() { ThreadSafe = true };
 
     /// <summary>
     /// EN: Creates a new DbSqlLikeMem PostgreSQL/Npgsql mock connection.

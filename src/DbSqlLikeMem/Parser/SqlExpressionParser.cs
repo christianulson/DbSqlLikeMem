@@ -1592,8 +1592,177 @@ internal sealed class SqlExpressionParser(
             throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
         }
 
-        if ((name.Equals("CHECKSUM_AGG", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("APPROX_COUNT_DISTINCT", StringComparison.OrdinalIgnoreCase))
+        if ((name.Equals("APPROX_COUNT_DISTINCT", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("APPROX_COUNT_DISTINCT_AGG", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("APPROX_COUNT_DISTINCT_DETAIL", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("APPROX_MEDIAN", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("APPROX_PERCENTILE", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("APPROX_PERCENTILE_AGG", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("APPROX_PERCENTILE_DETAIL", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsApproximateAggregateFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if ((name.Equals("TO_APPROX_COUNT_DISTINCT", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_APPROX_PERCENTILE", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsApproximateScalarFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if ((name.Equals("TO_BINARY_DOUBLE", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_BINARY_FLOAT", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_BLOB", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_CLOB", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_DSINTERVAL", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_LOB", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_MULTI_BYTE", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_NCHAR", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_NCLOB", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_SINGLE_BYTE", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_TIMESTAMP_TZ", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TO_YMINTERVAL", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsOracleSpecificConversionFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if ((name.Equals("SCN_TO_TIMESTAMP", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TIMESTAMP_TO_SCN", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsOracleScnFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if ((name.Equals("FEATURE_COMPARE", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("FEATURE_DETAILS", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("FEATURE_ID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("FEATURE_SET", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("FEATURE_VALUE", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("NCGR", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("POWERMULTISET", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("POWERMULTISET_BY_CARDINALITY", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("PREDICTION", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("PREDICTION_BOUNDS", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("PREDICTION_COST", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("PREDICTION_DETAILS", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("PREDICTION_PROBABILITY", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("PREDICTION_SET", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("PRESENTNNV", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("PRESENTV", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("RATIO_TO_REPORT", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsOracleAnalyticsFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if ((name.Equals("CLUSTER_DETAILS", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("CLUSTER_DISTANCE", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("CLUSTER_ID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("CLUSTER_PROBABILITY", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("CLUSTER_SET", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsOracleClusterFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if ((name.Equals("CON_DBID_TO_ID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("CON_GUID_TO_ID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("CON_NAME_TO_ID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("CON_UID_TO_ID", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsOracleContainerFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if ((name.Equals("ROWIDTOCHAR", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("ROWTONCHAR", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsOracleRowIdFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if ((name.Equals("USERENV", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("ORA_INVOKING_USER", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("ORA_INVOKING_USERID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("ORA_DST_AFFECTED", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("ORA_DST_CONVERT", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("ORA_DST_ERROR", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("ORA_DM_PARTITION_NAME", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsOracleUserEnvFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if (name.Equals("VALIDATE_CONVERSION", StringComparison.OrdinalIgnoreCase)
+            && !_dialect.SupportsOracleValidationFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if (name.Equals("JSON_TRANSFORM", StringComparison.OrdinalIgnoreCase)
+            && !_dialect.SupportsOracleJsonTransformFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if (name.Equals("COLLATION", StringComparison.OrdinalIgnoreCase)
+            && !_dialect.SupportsOracleCollationFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if ((name.Equals("NLS_CHARSET_DECL_LEN", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("NLS_CHARSET_ID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("NLS_CHARSET_NAME", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("NLS_COLLATION_ID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("NLS_COLLATION_NAME", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("NLS_INITCAP", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("NLS_LOWER", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("NLS_UPPER", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("NLSSORT", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsOracleNlsFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if ((name.Equals("ORA_HASH", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("STANDARD_HASH", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsOracleHashFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if ((name.Equals("SYS_CONNECT_BY_PATH", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SYS_CONTEXT", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SYS_DBURIGEN", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SYS_EXTRACT_UTC", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SYS_GUID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SYS_OP_ZONE_ID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SYS_TYPEID", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SYS_XMLAGG", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SYS_XMLGEN", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsOracleSysFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if ((name.Equals("DBTIMEZONE", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("FROM_TZ", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("LOCALTIMESTAMP", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("NEW_TIME", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("NEXT_DAY", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("NUMTODSINTERVAL", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("NUMTOYMINTERVAL", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("SESSIONTIMEZONE", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("TZ_OFFSET", StringComparison.OrdinalIgnoreCase))
+            && !_dialect.SupportsOracleTimeFunction(name))
+        {
+            throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
+        }
+
+        if (name.Equals("CHECKSUM_AGG", StringComparison.OrdinalIgnoreCase)
             && !_dialect.SupportsSqlServerAggregateFunction(name))
         {
             throw SqlUnsupported.ForDialect(_dialect, name.ToUpperInvariant());
