@@ -13,6 +13,7 @@ This directory documents the GitHub Wiki workflow now that the mirrored pages li
 
 - English page: `Home.md`
 - Portuguese (Brazil) mirror: `Home.pt-BR.md`
+- Repository mirror lives at `docs/Wiki/Home.md`
 - Every wiki page should expose reciprocal language links at the top.
 - The shared `_Sidebar.md` should list both language trees.
 
