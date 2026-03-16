@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.MySql.Test;
 /// EN: Validates MySqlMockException constructors preserve message, code, and inner exception data.
 /// PT: Valida se os construtores de MySqlMockException preservam mensagem, codigo e excecao interna.
 /// </summary>
-public sealed class MySqlMockExceptionTests
+public sealed class MySqlMockExceptionTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies the error-code constructor keeps the provided message and SQL error code.

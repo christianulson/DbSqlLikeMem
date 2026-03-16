@@ -7,7 +7,9 @@ namespace DbSqlLikeMem.Test;
 /// EN: Covers the initial ADO.NET interception pipeline wrappers and callback order.
 /// PT: Cobre os wrappers iniciais do pipeline de interceptacao ADO.NET e a ordem dos callbacks.
 /// </summary>
-public sealed class DbInterceptionPipelineTests
+public sealed class DbInterceptionPipelineTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures command creation and non-query execution notify interceptors and allow command mutation.

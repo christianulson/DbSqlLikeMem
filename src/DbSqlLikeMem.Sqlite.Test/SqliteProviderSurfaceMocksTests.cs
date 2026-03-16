@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Sqlite.Test;
 /// EN: Contains tests for sqlite provider surface mocks.
 /// PT: Contém testes para sqlite provedor surface mocks.
 /// </summary>
-public sealed class SqliteProviderSurfaceMocksTests
+public sealed class SqliteProviderSurfaceMocksTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures the typed SelectCommand property stays synchronized with the base SelectCommand.

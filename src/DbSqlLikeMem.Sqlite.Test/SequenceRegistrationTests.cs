@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Sqlite.Test;
 /// EN: Verifies schema sequences can be registered and retrieved through the database and connection.
 /// PT: Verifica se sequences de schema podem ser registradas e recuperadas pelo banco e pela conexao.
 /// </summary>
-public sealed class SequenceRegistrationTests
+public sealed class SequenceRegistrationTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies AddSequence stores the sequence inside the target schema and keeps its numeric settings.

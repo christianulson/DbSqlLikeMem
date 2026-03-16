@@ -3,7 +3,9 @@ namespace DbSqlLikeMem.SqlServer.Test;
 /// EN: Defines the class SqlServerLinqProviderTest.
 /// PT: Define a classe SqlServerLinqProviderTest.
 /// </summary>
-public sealed class SqlServerLinqProviderTest
+public sealed class SqlServerLinqProviderTest(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
 #pragma warning disable CA1812
     private sealed class User

@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 /// EN: Covers SQL Azure dialect behaviors inherited from SQL Server semantics.
 /// PT: Cobre comportamentos de dialeto do SQL Azure herdados da semântica do SQL Server.
 /// </summary>
-public sealed class SqlAzureDialectBehaviorTests
+public sealed class SqlAzureDialectBehaviorTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     private static SqlAzureConnectionMock CreateOpenConnection(int? compatibilityLevel = null)
     {

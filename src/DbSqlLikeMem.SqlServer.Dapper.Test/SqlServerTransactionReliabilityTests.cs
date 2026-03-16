@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 /// EN: Validates transactional reliability additions for P11 scenarios.
 /// PT: Valida as adições de confiabilidade transacional para cenários do P11.
 /// </summary>
-public sealed class SqlServerTransactionReliabilityTests : ProviderDapperTransactionReliabilityTestsBase<SqlServerDbMock, SqlServerConnectionMock>
+public sealed class SqlServerTransactionReliabilityTests(
+        ITestOutputHelper helper
+    ) : ProviderDapperTransactionReliabilityTestsBase<SqlServerDbMock, SqlServerConnectionMock>(helper)
 {
     /// <inheritdoc />
     protected override bool SupportsReleaseSavepoint => false;

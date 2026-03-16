@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 /// EN: Validates Dapper usage over intercepted SQLite mock connections.
 /// PT: Valida o uso de Dapper sobre conexoes SQLite simuladas e interceptadas.
 /// </summary>
-public sealed class InterceptionDapperIntegrationTests
+public sealed class InterceptionDapperIntegrationTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies Dapper queries keep working when the connection is wrapped by the interception pipeline.

@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Npgsql.Test;
 /// EN: Contains tests for the Npgsql connector factory mock surface.
 /// PT: Contém testes para a surface do simulado de fábrica de conectores do Npgsql.
 /// </summary>
-public sealed class NpgsqlConnectorFactoryMockTests
+public sealed class NpgsqlConnectorFactoryMockTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies that core factory methods create Npgsql-specific mock instances.

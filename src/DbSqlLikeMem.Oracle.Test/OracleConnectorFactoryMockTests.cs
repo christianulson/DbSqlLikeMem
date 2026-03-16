@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Oracle.Test;
 /// EN: Contains tests for the Oracle connector factory mock surface.
 /// PT: Contém testes para a surface do simulado de fábrica de conectores do Oracle.
 /// </summary>
-public sealed class OracleConnectorFactoryMockTests
+public sealed class OracleConnectorFactoryMockTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies that core factory methods create Oracle-specific mock instances.

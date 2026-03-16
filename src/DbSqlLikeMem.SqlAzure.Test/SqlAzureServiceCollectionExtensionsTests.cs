@@ -6,7 +6,9 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 /// EN: Validates SQL Azure service collection registration helpers.
 /// PT: Valida os helpers de registro de SQL Azure na coleção de serviços.
 /// </summary>
-public sealed class SqlAzureServiceCollectionExtensionsTests
+public sealed class SqlAzureServiceCollectionExtensionsTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     private sealed class ServiceCollectionStub : List<ServiceDescriptor>, IServiceCollection
     {

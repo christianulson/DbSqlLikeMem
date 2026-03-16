@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.MySql.Test;
 /// EN: Contains tests for my sql provider surface mocks.
 /// PT: Contém testes para my sql provedor surface mocks.
 /// </summary>
-public sealed class MySqlProviderSurfaceMocksTests
+public sealed class MySqlProviderSurfaceMocksTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures the typed SelectCommand property stays synchronized with the base SelectCommand.

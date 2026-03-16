@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Oracle.Test;
 /// EN: Contains tests for the Oracle provider surface mocks.
 /// PT: Contém testes para os mocks da surface do provedor Oracle.
 /// </summary>
-public sealed class OracleProviderSurfaceMocksTests
+public sealed class OracleProviderSurfaceMocksTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures the typed SelectCommand property stays synchronized with the base SelectCommand.

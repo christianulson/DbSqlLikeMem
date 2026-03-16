@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Test;
 /// EN: Covers core coercion/comparison behaviors from SqlExtensions used by AST execution.
 /// PT: Cobre comportamentos centrais de coerção/comparação de SqlExtensions usados pela execução AST.
 /// </summary>
-public sealed class SqlExtensionsTypingTests
+public sealed class SqlExtensionsTypingTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures ToBool parses decimal text using invariant culture.

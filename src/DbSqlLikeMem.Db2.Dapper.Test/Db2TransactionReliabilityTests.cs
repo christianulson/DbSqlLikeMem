@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Db2.Dapper.Test;
 /// EN: Validates transactional reliability additions for P11 scenarios.
 /// PT: Valida as adições de confiabilidade transacional para cenários do P11.
 /// </summary>
-public sealed class Db2TransactionReliabilityTests : ProviderDapperTransactionReliabilityTestsBase<Db2DbMock, Db2ConnectionMock>
+public sealed class Db2TransactionReliabilityTests(
+        ITestOutputHelper helper
+    ) : ProviderDapperTransactionReliabilityTestsBase<Db2DbMock, Db2ConnectionMock>(helper)
 {
     /// <inheritdoc />
     protected override Db2DbMock CreateDb(int? version, bool threadSafe)

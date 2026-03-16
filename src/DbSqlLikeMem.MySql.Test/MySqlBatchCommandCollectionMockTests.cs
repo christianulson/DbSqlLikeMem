@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.MySql.Test;
 /// EN: Validates collection operations exposed by MySqlBatchCommandCollectionMock.
 /// PT: Valida as operacoes de colecao expostas por MySqlBatchCommandCollectionMock.
 /// </summary>
-public sealed class MySqlBatchCommandCollectionMockTests
+public sealed class MySqlBatchCommandCollectionMockTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     private sealed class TestableMySqlBatchCommandCollectionMock : MySqlBatchCommandCollectionMock
     {

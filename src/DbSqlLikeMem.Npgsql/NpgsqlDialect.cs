@@ -134,6 +134,10 @@ internal sealed class NpgsqlDialect : SqlDialectBase
 
     public override bool SupportsJsonValueFunction => false;
 
+    public override bool SupportsOracleTimeFunction(string functionName)
+        => functionName.Equals("LOCALTIME", StringComparison.OrdinalIgnoreCase)
+            || functionName.Equals("LOCALTIMESTAMP", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>
     /// EN: Gets or sets allows parser cross dialect json operators.
     /// PT: Obtém ou define allows parser cross dialect json operators.

@@ -6,7 +6,9 @@ namespace DbSqlLikeMem.MySql.Test;
 /// EN: Adds focused coverage for MySqlBatchMock and MySqlBatchCommandMock guard and surface behavior.
 /// PT: Adiciona cobertura focada para comportamento de superficie e validacoes de MySqlBatchMock e MySqlBatchCommandMock.
 /// </summary>
-public sealed class MySqlBatchMockCoverageTests
+public sealed class MySqlBatchMockCoverageTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     private static object? InvokeNonPublic(MySqlBatchMock batch, string methodName, params object?[] args)
     {

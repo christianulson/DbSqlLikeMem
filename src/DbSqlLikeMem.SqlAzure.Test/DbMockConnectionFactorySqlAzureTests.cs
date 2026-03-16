@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 /// EN: Validates SqlAzure-specific DbMock connection factory contract behavior.
 /// PT: Valida o comportamento do contrato da factory de conexao DbMock especifica de SqlAzure.
 /// </summary>
-public sealed class DbMockConnectionFactorySqlAzureTests : DbMockConnectionFactoryContractTestsBase
+public sealed class DbMockConnectionFactorySqlAzureTests(
+        ITestOutputHelper helper
+    ) : DbMockConnectionFactoryContractTestsBase(helper)
 {
     /// <inheritdoc />
     protected override string ProviderHint => "SqlAzure";

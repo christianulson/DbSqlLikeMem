@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 /// EN: Covers SqlAzure compatibility-level behavior.
 /// PT: Cobre o comportamento por nível de compatibilidade do SqlAzure.
 /// </summary>
-public sealed class SqlAzureCompatibilityTests
+public sealed class SqlAzureCompatibilityTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Provides sample SQL rows used by compatibility-level theory data composition.

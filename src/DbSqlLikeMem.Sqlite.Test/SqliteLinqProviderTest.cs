@@ -3,7 +3,9 @@
 /// EN: Defines the class SqliteLinqProviderTest.
 /// PT: Define a classe SqliteLinqProviderTest.
 /// </summary>
-public sealed class SqliteLinqProviderTest
+public sealed class SqliteLinqProviderTest(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
 #pragma warning disable CA1812
     private sealed class User

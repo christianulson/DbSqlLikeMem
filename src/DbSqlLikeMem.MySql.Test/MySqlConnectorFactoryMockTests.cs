@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.MySql.Test;
 /// EN: Contains tests for my sql connector factory mock.
 /// PT: Contém testes para my sql fábrica de conectores simulada.
 /// </summary>
-public sealed class MySqlConnectorFactoryMockTests
+public sealed class MySqlConnectorFactoryMockTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Creates a new core members_should return provider mocks instance.

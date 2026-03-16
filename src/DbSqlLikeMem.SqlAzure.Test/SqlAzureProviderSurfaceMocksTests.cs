@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 /// EN: Contains tests for SQL Azure provider surface mocks.
 /// PT: Contém testes para os mocks de superfície do provedor SQL Azure.
 /// </summary>
-public sealed class SqlAzureProviderSurfaceMocksTests
+public sealed class SqlAzureProviderSurfaceMocksTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures SQL Azure command uses SQL Azure parameter collection mock type.

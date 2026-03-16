@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Test;
 /// EN: Covers DbType parsing and .NET type mapping contracts used by core coercion paths.
 /// PT: Cobre contratos de parsing de DbType e mapeamento de tipos .NET usados pelos caminhos centrais de coerção.
 /// </summary>
-public sealed class DbTypeCoercionTests
+public sealed class DbTypeCoercionTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures DbType.Time literals parse to TimeSpan.

@@ -7,7 +7,9 @@ namespace DbSqlLikeMem.Sqlite.Test;
 /// EN: Validates interception pipeline registration helpers for dependency injection.
 /// PT: Valida os helpers de registro do pipeline de interceptacao para injecao de dependencia.
 /// </summary>
-public sealed class DbInterceptionServiceCollectionExtensionsTests
+public sealed class DbInterceptionServiceCollectionExtensionsTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies AddDbInterception registers built-in interceptors that can be resolved and applied to a connection.

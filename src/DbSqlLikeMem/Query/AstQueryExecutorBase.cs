@@ -48,6 +48,8 @@ internal abstract class AstQueryExecutorBase(
     private static readonly Random _sharedRandom = new();
     private static readonly object _randomLock = new();
     private static readonly DateTime _unixEpoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+    private static readonly object _uuidShortCounterLock = new();
+    private static long _uuidShortCounter;
 
     private readonly DbConnectionMockBase _cnn = cnn ?? throw new ArgumentNullException(nameof(cnn));
     private readonly IDataParameterCollection _pars = pars ?? throw new ArgumentNullException(nameof(pars));
@@ -14898,7 +14900,6 @@ private void FillPercentRankOrCumeDist(
         return true;
     }
 
-    private long? _uuidShortCounter;
 
     private bool TryEvalLastInsertIdFunction(
         FunctionCallExpr fn,
@@ -18945,11 +18946,15 @@ private void FillPercentRankOrCumeDist(
         if (fn.Args.Count > 0)
             throw new InvalidOperationException("UUID_SHORT() não aceita argumentos.");
 
-        if (!_uuidShortCounter.HasValue)
-            _uuidShortCounter = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000L;
+        var baseValue = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000L;
+        lock (_uuidShortCounterLock)
+        {
+            if (_uuidShortCounter < baseValue)
+                _uuidShortCounter = baseValue;
 
-        _uuidShortCounter++;
-        result = _uuidShortCounter.Value;
+            _uuidShortCounter++;
+            result = _uuidShortCounter;
+        }
         return true;
     }
 

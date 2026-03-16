@@ -7,7 +7,9 @@ namespace DbSqlLikeMem.TestTools;
 /// PT: Fornece asserções reutilizáveis de alertas de plano de execução entre suítes específicas de provedores.
 /// </summary>
 /// <param name="helper">EN: xUnit output helper for diagnostics. PT: Helper de saída do xUnit para diagnósticos.</param>
-public abstract class ExecutionPlanPlanWarningsTestsBase(ITestOutputHelper helper) : XUnitTestBase(helper)
+public abstract class ExecutionPlanPlanWarningsTestsBase(
+    ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Creates the provider-specific connection used in each scenario.

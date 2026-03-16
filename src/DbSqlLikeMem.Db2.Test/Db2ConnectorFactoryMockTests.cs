@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Db2.Test;
 /// EN: Contains tests for db2 connector factory mock.
 /// PT: Contém testes para db2 fábrica de conectores simulada.
 /// </summary>
-public sealed class Db2ConnectorFactoryMockTests
+public sealed class Db2ConnectorFactoryMockTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Creates a new core members_should return provider mocks instance.

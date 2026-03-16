@@ -6,7 +6,9 @@ namespace DbSqlLikeMem.MySql.Test;
 /// EN: Validates MySql service collection registration helpers.
 /// PT: Valida os helpers de registro de MySql na coleção de serviços.
 /// </summary>
-public sealed class MySqlServiceCollectionExtensionsTests
+public sealed class MySqlServiceCollectionExtensionsTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     private sealed class NullServiceProvider : IServiceProvider
     {

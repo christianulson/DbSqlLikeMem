@@ -8,7 +8,9 @@ namespace DbSqlLikeMem.Test;
 /// EN: Validates execution-plan warning formatting and i18n resource consistency.
 /// PT: Valida a formatação de alertas do plano de execução e a consistência de recursos de i18n.
 /// </summary>
-public sealed class ExecutionPlanFormattingAndI18nTests
+public sealed class ExecutionPlanFormattingAndI18nTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     private static readonly Regex TechnicalThresholdPattern = new(
         @"^[a-zA-Z]+:\d+(\.\d+)?(?:;[a-zA-Z]+:\d+(\.\d+)?)*$",

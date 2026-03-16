@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 /// EN: Covers SQL Azure exception surface on table-level operations.
 /// PT: Cobre a superfície de exceções do SQL Azure em operações de nível de tabela.
 /// </summary>
-public sealed class SqlAzureMockExceptionSurfaceTests
+public sealed class SqlAzureMockExceptionSurfaceTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures unknown column errors use SQL Azure exception type.

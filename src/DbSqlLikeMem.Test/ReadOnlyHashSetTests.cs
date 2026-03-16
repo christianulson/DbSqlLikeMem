@@ -7,7 +7,9 @@ namespace DbSqlLikeMem.Test;
 /// EN: Covers serialization contract behavior for <see cref="ReadOnlyHashSet{T}"/>.
 /// PT: Cobre o comportamento do contrato de serialização para <see cref="ReadOnlyHashSet{T}"/>.
 /// </summary>
-public sealed class ReadOnlyHashSetTests
+public sealed class ReadOnlyHashSetTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies GetObjectData fills serialization metadata for the wrapped set.

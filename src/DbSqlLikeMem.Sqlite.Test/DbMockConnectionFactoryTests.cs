@@ -4,7 +4,9 @@ namespace DbSqlLikeMem.Sqlite.Test;
 /// EN: Validates Sqlite-specific DbMock connection factory contract behavior.
 /// PT: Valida o comportamento do contrato da factory de conexao DbMock especifica de Sqlite.
 /// </summary>
-public sealed class DbMockConnectionFactoryTests : DbMockConnectionFactoryContractTestsBase
+public sealed class DbMockConnectionFactoryTests(
+        ITestOutputHelper helper
+    ) : DbMockConnectionFactoryContractTestsBase(helper)
 {
     /// <inheritdoc />
     protected override string ProviderHint => "Sqlite";

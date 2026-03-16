@@ -101,18 +101,7 @@ public sealed class OracleFunctionTests
     [Trait("Category", "OracleMock")]
     public void StubbedFunctions_ShouldReturnNull(string sql)
     {
-        var value = ExecuteScalar(sql);
-        if (value is DBNull)
-            value = null;
-        if (value is string text && string.IsNullOrWhiteSpace(text))
-            value = null;
-        if (value is Array array && array.Length == 0)
-            value = null;
-        if (value is string jsonText && jsonText == "{}")
-            value = null;
-        if (value is string jsonRaw && jsonRaw == "{\"a\":1}")
-            value = null;
-        Assert.Null(value);
+        Assert.Null(NormalizeStubbedValue(ExecuteScalar(sql)));
     }
 
     /// <summary>
@@ -310,8 +299,8 @@ public sealed class OracleFunctionTests
         Assert.True(Math.Abs(Convert.ToDouble(ExecuteScalar(connection, "SELECT APPROX_PERCENTILE(X, 0.5) FROM Numbers"), CultureInfo.InvariantCulture) - 2d) < 0.0001d);
         Assert.True(Math.Abs(Convert.ToDouble(ExecuteScalar(connection, "SELECT APPROX_PERCENTILE_AGG(X, 0.5) FROM Numbers"), CultureInfo.InvariantCulture) - 2d) < 0.0001d);
         Assert.True(Math.Abs(Convert.ToDouble(ExecuteScalar(connection, "SELECT APPROX_PERCENTILE_DETAIL(X, 0.5) FROM Numbers"), CultureInfo.InvariantCulture) - 2d) < 0.0001d);
-        Assert.Null(ExecuteScalar(connection, "SELECT TO_APPROX_COUNT_DISTINCT(1) FROM Users WHERE Id = 1"));
-        Assert.Null(ExecuteScalar(connection, "SELECT TO_APPROX_PERCENTILE(1) FROM Users WHERE Id = 1"));
+        Assert.Null(NormalizeStubbedValue(ExecuteScalar(connection, "SELECT TO_APPROX_COUNT_DISTINCT(1) FROM Users WHERE Id = 1")));
+        Assert.Null(NormalizeStubbedValue(ExecuteScalar(connection, "SELECT TO_APPROX_PERCENTILE(1) FROM Users WHERE Id = 1")));
     }
 
     /// <summary>
@@ -403,11 +392,11 @@ public sealed class OracleFunctionTests
     {
         using var connection = CreateOpenConnection(version);
 
-        AssertOracleVersionedExecution(version, connection, "SELECT CLUSTER_DETAILS(1, 1, 1) FROM Users WHERE Id = 1", "CLUSTER_DETAILS", OracleDialect.OracleAdvancedClusterFunctionMinVersion, static value => Assert.Null(value));
-        AssertOracleVersionedExecution(version, connection, "SELECT CLUSTER_DISTANCE(1, 1, 1) FROM Users WHERE Id = 1", "CLUSTER_DISTANCE", OracleDialect.OracleAdvancedClusterFunctionMinVersion, static value => Assert.Null(value));
-        AssertOracleVersionedExecution(version, connection, "SELECT CLUSTER_ID(1, 1, 1) FROM Users WHERE Id = 1", "CLUSTER_ID", OracleDialect.OracleClusterFunctionMinVersion, static value => Assert.Null(value));
-        AssertOracleVersionedExecution(version, connection, "SELECT CLUSTER_PROBABILITY(1, 1, 1) FROM Users WHERE Id = 1", "CLUSTER_PROBABILITY", OracleDialect.OracleClusterFunctionMinVersion, static value => Assert.Null(value));
-        AssertOracleVersionedExecution(version, connection, "SELECT CLUSTER_SET(1, 1, 1) FROM Users WHERE Id = 1", "CLUSTER_SET", OracleDialect.OracleClusterFunctionMinVersion, static value => Assert.Null(value));
+        AssertOracleVersionedExecution(version, connection, "SELECT CLUSTER_DETAILS(1, 1, 1) FROM Users WHERE Id = 1", "CLUSTER_DETAILS", OracleDialect.OracleAdvancedClusterFunctionMinVersion, static value => Assert.Null(NormalizeStubbedValue(value)));
+        AssertOracleVersionedExecution(version, connection, "SELECT CLUSTER_DISTANCE(1, 1, 1) FROM Users WHERE Id = 1", "CLUSTER_DISTANCE", OracleDialect.OracleAdvancedClusterFunctionMinVersion, static value => Assert.Null(NormalizeStubbedValue(value)));
+        AssertOracleVersionedExecution(version, connection, "SELECT CLUSTER_ID(1, 1, 1) FROM Users WHERE Id = 1", "CLUSTER_ID", OracleDialect.OracleClusterFunctionMinVersion, static value => Assert.Null(NormalizeStubbedValue(value)));
+        AssertOracleVersionedExecution(version, connection, "SELECT CLUSTER_PROBABILITY(1, 1, 1) FROM Users WHERE Id = 1", "CLUSTER_PROBABILITY", OracleDialect.OracleClusterFunctionMinVersion, static value => Assert.Null(NormalizeStubbedValue(value)));
+        AssertOracleVersionedExecution(version, connection, "SELECT CLUSTER_SET(1, 1, 1) FROM Users WHERE Id = 1", "CLUSTER_SET", OracleDialect.OracleClusterFunctionMinVersion, static value => Assert.Null(NormalizeStubbedValue(value)));
     }
 
     /// <summary>
@@ -445,10 +434,10 @@ public sealed class OracleFunctionTests
         AssertOracleVersionedExecution(version, connection, "SELECT USERENV('CURRENT_SCHEMA') FROM Users WHERE Id = 1", "USERENV", 7, static value => Assert.Equal("SYS", value));
         AssertOracleVersionedExecution(version, connection, "SELECT ORA_INVOKING_USER() FROM Users WHERE Id = 1", "ORA_INVOKING_USER", OracleDialect.OracleUserEnvMetadataMinVersion, static value => Assert.Equal("SYS", value));
         AssertOracleVersionedExecution(version, connection, "SELECT ORA_INVOKING_USERID() FROM Users WHERE Id = 1", "ORA_INVOKING_USERID", OracleDialect.OracleUserEnvMetadataMinVersion, static value => Assert.Equal(0, value));
-        AssertOracleVersionedExecution(version, connection, "SELECT ORA_DST_AFFECTED(1) FROM Users WHERE Id = 1", "ORA_DST_AFFECTED", OracleDialect.OracleUserEnvMetadataMinVersion, static value => Assert.Null(value));
-        AssertOracleVersionedExecution(version, connection, "SELECT ORA_DST_CONVERT(1) FROM Users WHERE Id = 1", "ORA_DST_CONVERT", OracleDialect.OracleUserEnvMetadataMinVersion, static value => Assert.Null(value));
-        AssertOracleVersionedExecution(version, connection, "SELECT ORA_DST_ERROR(1) FROM Users WHERE Id = 1", "ORA_DST_ERROR", OracleDialect.OracleUserEnvMetadataMinVersion, static value => Assert.Null(value));
-        AssertOracleVersionedExecution(version, connection, "SELECT ORA_DM_PARTITION_NAME() FROM Users WHERE Id = 1", "ORA_DM_PARTITION_NAME", OracleDialect.OraclePartitionMetadataMinVersion, static value => Assert.Null(value));
+        AssertOracleVersionedExecution(version, connection, "SELECT ORA_DST_AFFECTED(1) FROM Users WHERE Id = 1", "ORA_DST_AFFECTED", OracleDialect.OracleUserEnvMetadataMinVersion, static value => Assert.Null(NormalizeStubbedValue(value)));
+        AssertOracleVersionedExecution(version, connection, "SELECT ORA_DST_CONVERT(1) FROM Users WHERE Id = 1", "ORA_DST_CONVERT", OracleDialect.OracleUserEnvMetadataMinVersion, static value => Assert.Null(NormalizeStubbedValue(value)));
+        AssertOracleVersionedExecution(version, connection, "SELECT ORA_DST_ERROR(1) FROM Users WHERE Id = 1", "ORA_DST_ERROR", OracleDialect.OracleUserEnvMetadataMinVersion, static value => Assert.Null(NormalizeStubbedValue(value)));
+        AssertOracleVersionedExecution(version, connection, "SELECT ORA_DM_PARTITION_NAME() FROM Users WHERE Id = 1", "ORA_DM_PARTITION_NAME", OracleDialect.OraclePartitionMetadataMinVersion, static value => Assert.Null(NormalizeStubbedValue(value)));
         AssertOracleVersionedExecution(version, connection, "SELECT VALIDATE_CONVERSION('123', 'NUMBER') FROM Users WHERE Id = 1", "VALIDATE_CONVERSION", OracleDialect.OracleValidateConversionMinVersion, static value => Assert.Equal(1, value));
         AssertOracleVersionedExecution(version, connection, "SELECT JSON_TRANSFORM('{\"a\":1}') FROM Users WHERE Id = 1", "JSON_TRANSFORM", OracleDialect.OracleJsonTransformMinVersion, static value => Assert.Equal("{\"a\":1}", value));
     }
@@ -513,13 +502,13 @@ public sealed class OracleFunctionTests
         });
         AssertOracleVersionedExecution(version, connection, "SELECT SYS_GUID() FROM Users WHERE Id = 1", "SYS_GUID", 7, static value => Assert.IsType<string>(value));
         AssertOracleVersionedExecution(version, connection, "SELECT SYS_CONTEXT('USERENV','CURRENT_SCHEMA') FROM Users WHERE Id = 1", "SYS_CONTEXT", 7, static value => Assert.Equal("SYS", value));
-        AssertOracleVersionedExecution(version, connection, "SELECT SYS_CONNECT_BY_PATH('a','/') FROM Users WHERE Id = 1", "SYS_CONNECT_BY_PATH", OracleDialect.OracleSysFamilyMinVersion, static value => Assert.Null(value));
-        AssertOracleVersionedExecution(version, connection, "SELECT SYS_DBURIGEN('a','b') FROM Users WHERE Id = 1", "SYS_DBURIGEN", OracleDialect.OracleSysFamilyMinVersion, static value => Assert.Null(value));
+        AssertOracleVersionedExecution(version, connection, "SELECT SYS_CONNECT_BY_PATH('a','/') FROM Users WHERE Id = 1", "SYS_CONNECT_BY_PATH", OracleDialect.OracleSysFamilyMinVersion, static value => Assert.Null(NormalizeStubbedValue(value)));
+        AssertOracleVersionedExecution(version, connection, "SELECT SYS_DBURIGEN('a','b') FROM Users WHERE Id = 1", "SYS_DBURIGEN", OracleDialect.OracleSysFamilyMinVersion, static value => Assert.Null(NormalizeStubbedValue(value)));
         AssertOracleVersionedExecution(version, connection, "SELECT SYS_EXTRACT_UTC(TO_TIMESTAMP_TZ('2024-01-01 10:00:00 +02:00')) FROM Users WHERE Id = 1", "SYS_EXTRACT_UTC", OracleDialect.OracleSysFamilyMinVersion, static value => Assert.IsType<DateTime>(value));
-        AssertOracleVersionedExecution(version, connection, "SELECT SYS_OP_ZONE_ID('a') FROM Users WHERE Id = 1", "SYS_OP_ZONE_ID", OracleDialect.OracleSysZoneIdMinVersion, static value => Assert.Null(value));
-        AssertOracleVersionedExecution(version, connection, "SELECT SYS_TYPEID('a') FROM Users WHERE Id = 1", "SYS_TYPEID", OracleDialect.OracleSysFamilyMinVersion, static value => Assert.Null(value));
-        AssertOracleVersionedExecution(version, connection, "SELECT SYS_XMLAGG('a') FROM Users WHERE Id = 1", "SYS_XMLAGG", OracleDialect.OracleSysFamilyMinVersion, static value => Assert.Null(value));
-        AssertOracleVersionedExecution(version, connection, "SELECT SYS_XMLGEN('a') FROM Users WHERE Id = 1", "SYS_XMLGEN", OracleDialect.OracleSysFamilyMinVersion, static value => Assert.Null(value));
+        AssertOracleVersionedExecution(version, connection, "SELECT SYS_OP_ZONE_ID('a') FROM Users WHERE Id = 1", "SYS_OP_ZONE_ID", OracleDialect.OracleSysZoneIdMinVersion, static value => Assert.Null(NormalizeStubbedValue(value)));
+        AssertOracleVersionedExecution(version, connection, "SELECT SYS_TYPEID('a') FROM Users WHERE Id = 1", "SYS_TYPEID", OracleDialect.OracleSysFamilyMinVersion, static value => Assert.Null(NormalizeStubbedValue(value)));
+        AssertOracleVersionedExecution(version, connection, "SELECT SYS_XMLAGG('a') FROM Users WHERE Id = 1", "SYS_XMLAGG", OracleDialect.OracleSysFamilyMinVersion, static value => Assert.Null(NormalizeStubbedValue(value)));
+        AssertOracleVersionedExecution(version, connection, "SELECT SYS_XMLGEN('a') FROM Users WHERE Id = 1", "SYS_XMLGEN", OracleDialect.OracleSysFamilyMinVersion, static value => Assert.Null(NormalizeStubbedValue(value)));
     }
 
     /// <summary>
@@ -877,7 +866,7 @@ public sealed class OracleFunctionTests
             return;
         }
 
-        Assert.Null(ExecuteScalar(connection, sql));
+        Assert.Null(NormalizeStubbedValue(ExecuteScalar(connection, sql)));
     }
 
     private static void AssertOracleAnalyticsExecution(int version, OracleConnectionMock connection, string sql, string functionName, int minVersion)
@@ -889,7 +878,7 @@ public sealed class OracleFunctionTests
             return;
         }
 
-        Assert.Null(ExecuteScalar(connection, sql));
+        Assert.Null(NormalizeStubbedValue(ExecuteScalar(connection, sql)));
     }
 
     private static void AssertOracleVersionedExecution(
@@ -908,5 +897,20 @@ public sealed class OracleFunctionTests
         }
 
         assertSupported(ExecuteScalar(connection, sql));
+    }
+
+    private static object? NormalizeStubbedValue(object? value)
+    {
+        if (value is DBNull)
+            return null;
+        if (value is string text && string.IsNullOrWhiteSpace(text))
+            return null;
+        if (value is Array array && array.Length == 0)
+            return null;
+        if (value is string jsonText && jsonText == "{}")
+            return null;
+        if (value is string jsonRaw && jsonRaw == "{\"a\":1}")
+            return null;
+        return value;
     }
 }

@@ -6,7 +6,9 @@ namespace DbSqlLikeMem.Test;
 /// EN: Covers the first parser slice of the automatic SQL dialect mode.
 /// PT: Cobre a primeira fatia de parser do modo automatico de dialeto SQL.
 /// </summary>
-public sealed class SqlDialectAutoParserTests
+public sealed class SqlDialectAutoParserTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies Auto dialect exposes the pagination capabilities required for TOP, LIMIT and FETCH parsing.
