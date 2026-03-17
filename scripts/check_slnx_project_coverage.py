@@ -28,8 +28,8 @@ def collect_csproj(search_dir: Path) -> set[str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--src-dir', default='src')
-    parser.add_argument('--slnx', default='src/DbSqlLikeMem.slnx')
+    parser.add_argument('--src-dir', default='src', help='Directory containing project tree (default: src).')
+    parser.add_argument('--slnx', default='src/DbSqlLikeMem.slnx', help='Path to solution .slnx file.')
     args = parser.parse_args()
 
     src_dir = Path(args.src_dir)
@@ -57,7 +57,7 @@ def main() -> int:
             print(f"  - {item}")
 
     if extra:
-        print('\nReferenced in .slnx but missing on disk:')
+        print('\nReferenced in .slnx but not found in scanned tree:')
         for item in extra:
             print(f"  - {item}")
 
