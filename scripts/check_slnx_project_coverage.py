@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-"""Checks whether a .slnx file covers all .csproj files under a source directory."""
-
 from __future__ import annotations
 
 import argparse
@@ -12,22 +10,26 @@ PROJECT_PATTERN = re.compile(r'Project Path="([^"]+\.csproj)"')
 
 
 def normalize(path: Path) -> str:
-    return str(path).replace('\\', '/')
+    return str(path.resolve()).replace('\\', '/')
 
 
 def load_slnx_projects(slnx_path: Path) -> set[str]:
     content = slnx_path.read_text(encoding='utf-8')
-    return {normalize(Path(project_path)) for project_path in PROJECT_PATTERN.findall(content)}
+    base_dir = slnx_path.parent
+    return {
+        normalize(base_dir / project_path)
+        for project_path in PROJECT_PATTERN.findall(content)
+    }
 
 
-def collect_csproj(src_dir: Path) -> set[str]:
-    return {normalize(p.relative_to(src_dir)) for p in src_dir.rglob('*.csproj')}
+def collect_csproj(search_dir: Path) -> set[str]:
+    return {normalize(p) for p in search_dir.rglob('*.csproj')}
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--src-dir', default='src', help='Directory containing project tree (default: src).')
-    parser.add_argument('--slnx', default='src/DbSqlLikeMem.slnx', help='Path to solution .slnx file.')
+    parser.add_argument('--src-dir', default='src')
+    parser.add_argument('--slnx', default='src/DbSqlLikeMem.slnx')
     args = parser.parse_args()
 
     src_dir = Path(args.src_dir)

@@ -29,7 +29,7 @@ jobs:
           python3 -m py_compile scripts/test_check_cross_dialect_snapshot_format.py
           python3 -m py_compile scripts/test_check_release_readiness.py
           python3 -m py_compile scripts/test_check_nuget_package_metadata.py
-          python3 scripts/check_slnx_project_coverage.py --src-dir src --slnx src/DbSqlLikeMem.slnx
+          python3 scripts/check_slnx_project_coverage.py --src-dir . --slnx src/DbSqlLikeMem.slnx
           python3 scripts/check_nuget_package_metadata.py --allow-missing-artifacts
           python3 scripts/check_release_readiness.py
 
