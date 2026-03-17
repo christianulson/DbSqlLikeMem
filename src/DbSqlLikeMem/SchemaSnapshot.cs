@@ -85,10 +85,9 @@ public sealed record SchemaSnapshot
         {
             DialectName = db.Dialect.Name,
             Version = db.Version,
-            Schemas = db.Values
+            Schemas = [.. db.Values
                 .OrderBy(static schema => schema.SchemaName, StringComparer.OrdinalIgnoreCase)
-                .Select(static schema => SchemaSnapshotSchema.FromSchema(schema))
-                .ToArray()
+                .Select(static schema => SchemaSnapshotSchema.FromSchema(schema))]
         };
     }
 
@@ -678,22 +677,18 @@ public sealed record SchemaSnapshotSchema
         => new()
         {
             Name = schema.SchemaName,
-            Tables = schema.Tables
+            Tables = [.. schema.Tables
                 .OrderBy(static table => table.Key, StringComparer.OrdinalIgnoreCase)
-                .Select(static table => SchemaSnapshotTable.FromTable(table.Value))
-                .ToArray(),
-            Views = schema.Views
+                .Select(static table => SchemaSnapshotTable.FromTable(table.Value))],
+            Views = [.. schema.Views
                 .OrderBy(static view => view.Key, StringComparer.OrdinalIgnoreCase)
-                .Select(static view => SchemaSnapshotView.FromView(view.Key, view.Value))
-                .ToArray(),
-            Procedures = schema.Procedures
+                .Select(static view => SchemaSnapshotView.FromView(view.Key, view.Value))],
+            Procedures = [.. schema.Procedures
                 .OrderBy(static procedure => procedure.Key, StringComparer.OrdinalIgnoreCase)
-                .Select(static procedure => SchemaSnapshotProcedure.FromProcedure(procedure.Key, procedure.Value))
-                .ToArray(),
-            Sequences = schema.Sequences
+                .Select(static procedure => SchemaSnapshotProcedure.FromProcedure(procedure.Key, procedure.Value))],
+            Sequences = [.. schema.Sequences
                 .OrderBy(static sequence => sequence.Key, StringComparer.OrdinalIgnoreCase)
-                .Select(static sequence => SchemaSnapshotSequence.FromSequence(sequence.Value))
-                .ToArray()
+                .Select(static sequence => SchemaSnapshotSequence.FromSequence(sequence.Value))]
         };
 }
 
@@ -744,22 +739,18 @@ public sealed record SchemaSnapshotTable
         {
             Name = table.TableName,
             NextIdentity = table.NextIdentity,
-            Columns = table.Columns.Values
+            Columns = [.. table.Columns.Values
                 .OrderBy(static column => column.Index)
-                .Select(static column => SchemaSnapshotColumn.FromColumn(column))
-                .ToArray(),
-            PrimaryKeyColumns = table.PrimaryKeyIndexes
+                .Select(static column => SchemaSnapshotColumn.FromColumn(column))],
+            PrimaryKeyColumns = [.. table.PrimaryKeyIndexes
                 .OrderBy(static index => index)
-                .Select(index => table.Columns.Values.Single(column => column.Index == index).Name)
-                .ToArray(),
-            Indexes = table.Indexes.Values
+                .Select(index => table.Columns.Values.Single(column => column.Index == index).Name)],
+            Indexes = [.. table.Indexes.Values
                 .OrderBy(static index => index.Name, StringComparer.OrdinalIgnoreCase)
-                .Select(static index => SchemaSnapshotIndex.FromIndex(index))
-                .ToArray(),
-            ForeignKeys = table.ForeignKeys.Values
+                .Select(static index => SchemaSnapshotIndex.FromIndex(index))],
+            ForeignKeys = [.. table.ForeignKeys.Values
                 .OrderBy(static foreignKey => foreignKey.Name, StringComparer.OrdinalIgnoreCase)
-                .Select(static foreignKey => SchemaSnapshotForeignKey.FromForeignKey(foreignKey))
-                .ToArray()
+                .Select(static foreignKey => SchemaSnapshotForeignKey.FromForeignKey(foreignKey))]
         };
 }
 
@@ -827,7 +818,7 @@ public sealed record SchemaSnapshotColumn
             DecimalPlaces = column.DecimalPlaces,
             Identity = column.Identity,
             DefaultValue = SchemaSnapshot.SerializeDefaultValue(column.DefaultValue),
-            EnumValues = column.EnumValues.OrderBy(static value => value, StringComparer.OrdinalIgnoreCase).ToArray()
+            EnumValues = [.. column.EnumValues.OrderBy(static value => value, StringComparer.OrdinalIgnoreCase)]
         };
 
     internal Col ToCol()
@@ -949,14 +940,13 @@ public sealed record SchemaSnapshotForeignKey
                 StringComparison.OrdinalIgnoreCase)
                 ? null
                 : foreignKey.RefTable.Schema.SchemaName,
-            References = foreignKey.References
+            References = [.. foreignKey.References
                 .OrderBy(static reference => reference.col.Index)
                 .Select(static reference => new SchemaSnapshotForeignKeyReference
                 {
                     ColumnName = reference.col.Name,
                     RefColumnName = reference.refCol.Name
-                })
-                .ToArray()
+                })]
         };
 }
 
@@ -1059,15 +1049,9 @@ public sealed record SchemaSnapshotProcedure
         => new()
         {
             Name = name,
-            RequiredIn = procedure.RequiredIn
-                .Select(static parameter => SchemaSnapshotProcParam.FromParameter(parameter))
-                .ToArray(),
-            OptionalIn = procedure.OptionalIn
-                .Select(static parameter => SchemaSnapshotProcParam.FromParameter(parameter))
-                .ToArray(),
-            OutParams = procedure.OutParams
-                .Select(static parameter => SchemaSnapshotProcParam.FromParameter(parameter))
-                .ToArray(),
+            RequiredIn = [.. procedure.RequiredIn.Select(static parameter => SchemaSnapshotProcParam.FromParameter(parameter))],
+            OptionalIn = [.. procedure.OptionalIn.Select(static parameter => SchemaSnapshotProcParam.FromParameter(parameter))],
+            OutParams = [.. procedure.OutParams.Select(static parameter => SchemaSnapshotProcParam.FromParameter(parameter))],
             ReturnParam = procedure.ReturnParam is null
                 ? null
                 : SchemaSnapshotProcParam.FromParameter(procedure.ReturnParam)
@@ -1075,9 +1059,9 @@ public sealed record SchemaSnapshotProcedure
 
     internal ProcedureDef ToProcedureDef()
         => new(
-            RequiredIn.Select(static parameter => parameter.ToParameter()).ToArray(),
-            OptionalIn.Select(static parameter => parameter.ToParameter()).ToArray(),
-            OutParams.Select(static parameter => parameter.ToParameter()).ToArray(),
+            [.. RequiredIn.Select(static parameter => parameter.ToParameter())],
+            [.. OptionalIn.Select(static parameter => parameter.ToParameter())],
+            [.. OutParams.Select(static parameter => parameter.ToParameter())],
             ReturnParam?.ToParameter());
 }
 

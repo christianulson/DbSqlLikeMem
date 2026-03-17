@@ -786,9 +786,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     }
 
     private static List<string> ParseInsertSelectColumns(Match match)
-        => match.Groups["cols"].Value.Split(',')
-            .Select(c => c.Replace("`", string.Empty).Trim())
-            .ToList();
+        => [.. match.Groups["cols"].Value.Split(',').Select(c => c.Replace("`", string.Empty).Trim())];
 
     private static Dictionary<int, object?> CreateInsertSelectRow(
         ITableMock target,

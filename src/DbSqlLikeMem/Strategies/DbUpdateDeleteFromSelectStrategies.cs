@@ -192,8 +192,12 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
             if (setInfo.GetGenValue is null)
             {
+                var oldSnapshot = row.ToDictionary(_ => _.Key, _ => _.Value);
                 target.UpdateRowColumn(i, setInfo.Index, newVal);
-                target.UpdateIndexesWithRow(i);
+                if (target is TableMock targetTableMock)
+                    targetTableMock.UpdateIndexesWithRow(i, oldSnapshot, target[i]);
+                else
+                    target.UpdateIndexesWithRow(i);
                 updated++;
             }
         }
@@ -351,8 +355,6 @@ internal static class DbUpdateDeleteFromSelectStrategies
             deleted++;
         }
 
-        // rebuild _indexes
-        target.RebuildAllIndexes();
         connection.Metrics.Deletes += deleted;
         return deleted;
     }

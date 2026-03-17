@@ -167,6 +167,37 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
+    internal void RemoveRow(int rowIndex, IReadOnlyDictionary<int, object?> row)
+    {
+        var key = BuildIndexKey(row);
+        if (_items.TryGetValue(key, out var lstItems))
+        {
+            lstItems.Remove(rowIndex);
+            if (lstItems.Count == 0)
+            {
+                _items.Remove(key);
+            }
+            _readonlyBuckets.Remove(key);
+        }
+    }
+
+    internal void ShiftPositionsAfter(int deletedIndex)
+    {
+        foreach (var bucket in _items.Values)
+        {
+            var keysToShift = bucket.Keys.Where(k => k > deletedIndex).OrderBy(k => k).ToList();
+            if (keysToShift.Count == 0) continue;
+
+            foreach (var oldIdx in keysToShift)
+            {
+                var rowData = bucket[oldIdx];
+                bucket.Remove(oldIdx);
+                bucket[oldIdx - 1] = rowData;
+            }
+        }
+        _readonlyBuckets.Clear();
+    }
+
     internal void RebuildIndex()
     {
         _items.Clear();
@@ -321,6 +352,7 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
                 var col = Table.GetColumn(item);
                 idxRow[item!] = newRow[col.Index];
             }
+            _readonlyBuckets.Remove(key);
             return;
         }
         if (Unique && lstItems.Count > 0)
@@ -339,6 +371,7 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
         }
 
         AddRowLocatorColumns(idxRow, newRow, pkColumnsByIndex);
+        _readonlyBuckets.Remove(key);
     }
 
     public void UpdateIndexesWithRow(
@@ -354,8 +387,8 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
         {
             oldLstItems.Remove(rowIndex);
             RemoveBucketIfEmpty(oldkey, oldLstItems);
+            _readonlyBuckets.Remove(oldkey);
         }
-        
 
         if (!_items.TryGetValue(key, out var lstItems))
         {
@@ -370,6 +403,7 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
                 var col = Table.GetColumn(item);
                 idxRow[item!] = newRow[col.Index];
             }
+            _readonlyBuckets.Remove(key);
             return;
         }
         if (Unique && lstItems.Count > 0)
@@ -388,6 +422,7 @@ public class IndexDef : IReadOnlyDictionary<string, IReadOnlyDictionary<int, IRe
         }
 
         AddRowLocatorColumns(idxRow, newRow, pkColumnsByIndex);
+        _readonlyBuckets.Remove(key);
     }
 
     internal void EnsureUniqueBeforeUpdate(

@@ -128,6 +128,15 @@ public interface ITableMock
     /// PT: Reconstrói todos os índices da tabela.
     /// </summary>
     void RebuildAllIndexes();
+
+    /// <summary>
+    /// EN: Tries to find a row by its primary key using the fast PK index.
+    /// PT: Tenta encontrar uma linha pela chave primaria usando o indice PK rapido.
+    /// </summary>
+    /// <param name="row">EN: Row containing PK values. PT: Linha contendo valores de PK.</param>
+    /// <param name="rowIndex">EN: Found row index. PT: Indice da linha encontrada.</param>
+    /// <returns>EN: True if a matching row was found. PT: True se uma linha correspondente foi encontrada.</returns>
+    bool TryFindRowByPk(IReadOnlyDictionary<int, object?> row, out int rowIndex);
     /// <summary>
     /// EN: Performs a lookup in an index using the given key.
     /// PT: Executa uma busca em um índice com a chave informada.

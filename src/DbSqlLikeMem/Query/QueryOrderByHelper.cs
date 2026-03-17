@@ -227,11 +227,10 @@ internal static class QueryOrderByHelper
         if (result.JoinFields.Count == 0)
             return;
 
-        result.JoinFields = sortedRows
+        result.JoinFields = [.. sortedRows
             .Select(row => joinFieldsByRow.TryGetValue(row, out var joinFields)
                 ? joinFields
-                : new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase))
-            .ToList();
+                : new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase))];
     }
 
     private static bool IsNullish(object? value)

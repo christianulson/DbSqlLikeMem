@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Collections.Concurrent;
+using System.Linq.Expressions;
 
 namespace DbSqlLikeMem;
 
@@ -10,6 +12,8 @@ public abstract class TableMock
     : ITableMock
 {
     private const string PRIMARY = "PRIMARY";
+    private static readonly ConcurrentDictionary<Type, IReadOnlyDictionary<string, Func<object, object?>>> _itemAccessorCache = new();
+
     /// <summary>
     /// EN: Initializes the table with name, schema, and columns, with optional rows.
     /// PT: Inicializa a tabela com nome, schema e colunas, com linhas opcionais.
@@ -86,6 +90,12 @@ public abstract class TableMock
 
     internal HashSet<int> _primaryKeyIndexes = [];
 
+    /// <summary>
+    /// EN: Fast lookup dictionary mapping serialized PK values to row positions.
+    /// PT: Dicionário rápido que mapeia valores de PK serializados para posições de linha.
+    /// </summary>
+    private readonly Dictionary<string, int> _pkIndex = new(StringComparer.Ordinal);
+
     // ---------- Wave D : índices ---------------------------------
     /// <summary>
     /// EN: Indexes of columns that form the primary key.
@@ -99,6 +109,60 @@ public abstract class TableMock
             _primaryKeyIndexes.Add(Columns[colName].Index);
         if (_primaryKeyIndexes.Count != columns.Length)
             throw new InvalidOperationException(Resources.SqlExceptionMessages.DuplicatePrimaryKeyColumns());
+        RebuildPkIndex();
+    }
+
+    /// <summary>
+    /// EN: Builds a composite key string from primary key column values of a row.
+    /// PT: Constrói uma string de chave composta a partir dos valores das colunas PK de uma linha.
+    /// </summary>
+    internal string BuildPkKey(IReadOnlyDictionary<int, object?> row)
+    {
+        if (_primaryKeyIndexes.Count == 0)
+            return string.Empty;
+
+        return string.Concat(_primaryKeyIndexes.OrderBy(static i => i).Select(pkIdx =>
+        {
+            var value = row.TryGetValue(pkIdx, out var v) ? v : null;
+            if (value is null || value is DBNull)
+                return "n;";
+            var text = value.ToString() ?? string.Empty;
+            return $"s{text.Length}:{text};";
+        }));
+    }
+
+    /// <summary>
+    /// EN: Tries to find a row by its primary key using the fast PK index.
+    /// PT: Tenta encontrar uma linha pela chave primária usando o índice PK rápido.
+    /// </summary>
+    /// <param name="row">EN: Row containing PK values. PT: Linha contendo valores de PK.</param>
+    /// <param name="rowIndex">EN: Found row index. PT: Índice da linha encontrada.</param>
+    /// <returns>EN: True if a matching row was found. PT: True se uma linha correspondente foi encontrada.</returns>
+    public bool TryFindRowByPk(IReadOnlyDictionary<int, object?> row, out int rowIndex)
+    {
+        rowIndex = -1;
+        if (_primaryKeyIndexes.Count == 0)
+            return false;
+
+        var key = BuildPkKey(row);
+        return _pkIndex.TryGetValue(key, out rowIndex);
+    }
+
+    /// <summary>
+    /// EN: Rebuilds the PK index from all current rows.
+    /// PT: Reconstrói o índice PK a partir de todas as linhas atuais.
+    /// </summary>
+    private void RebuildPkIndex()
+    {
+        _pkIndex.Clear();
+        if (_primaryKeyIndexes.Count == 0)
+            return;
+
+        for (int i = 0; i < _items.Count; i++)
+        {
+            var key = BuildPkKey(_items[i]);
+            _pkIndex[key] = i;
+        }
     }
 
     private readonly Dictionary<string, ForeignDef> _foreignKeys = new(StringComparer.OrdinalIgnoreCase);
@@ -150,6 +214,9 @@ public abstract class TableMock
         foreach (var handler in handlers)
             handler(context);
     }
+
+    internal bool HasRegisteredTriggers()
+        => _triggers.Values.Any(static handlers => handlers.Count > 0);
 
     /// <summary>
     /// EN: Add new Vollumn to Table
@@ -287,9 +354,7 @@ public abstract class TableMock
         List<string>? normalizedIncludeCols = null;
         if (include is not null)
         {
-            normalizedIncludeCols = include
-                .Select(static col => col.NormalizeName())
-                .ToList();
+            normalizedIncludeCols = [.. include.Select(static col => col.NormalizeName())];
 
             if (normalizedIncludeCols.Count != normalizedIncludeCols.Distinct(StringComparer.OrdinalIgnoreCase).Count())
                 throw new InvalidOperationException($"Index '{name}' cannot contain duplicate include columns.");
@@ -345,10 +410,36 @@ public abstract class TableMock
     /// PT: Atualiza os índices após inserir ou alterar uma linha.
     /// </summary>
     /// <param name="rowIdx">EN: Changed row index. PT: Índice da linha alterada.</param>
+    /// <param name="row">EN: Row to remove. PT: Linha a remover.</param>
+    internal void RemoveRowFromIndexes(int rowIdx, IReadOnlyDictionary<int, object?> row)
+    {
+        foreach (var idx in _indexes.Values)
+        {
+            idx.RemoveRow(rowIdx, row);
+        }
+    }
+
+    internal void ShiftIndexPositionsAfterDelete(int deletedIdx)
+    {
+        foreach (var idx in _indexes.Values)
+        {
+            idx.ShiftPositionsAfter(deletedIdx);
+        }
+    }
+
     public void UpdateIndexesWithRow(int rowIdx)
     {
         foreach (var it in _indexes)
             it.Value.UpdateIndexesWithRow(rowIdx, this[rowIdx]);
+    }
+
+    internal void UpdateIndexesWithRow(
+        int rowIdx,
+        IReadOnlyDictionary<int, object?> oldRow,
+        IReadOnlyDictionary<int, object?> newRow)
+    {
+        foreach (var it in _indexes)
+            it.Value.UpdateIndexesWithRow(rowIdx, oldRow, newRow);
     }
 
     /// <summary>
@@ -361,10 +452,12 @@ public abstract class TableMock
         {
             foreach (var ix in _indexes)
                 ix.Value.RebuildIndex();
+            RebuildPkIndex();
             return;
         }
 
         Parallel.ForEach(_indexes.Values, ix => ix.RebuildIndex());
+        RebuildPkIndex();
     }
 
 
@@ -470,9 +563,8 @@ public abstract class TableMock
     public ITableMock AddRangeItems<T>(IEnumerable<T> items)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(items, nameof(items));
-        foreach (var item in items)
-            AddItem(item);
-        return this;
+        var rows = items.Select(MaterializeItem).ToList();
+        return AddBatch(rows);
     }
 
     /// <summary>
@@ -483,9 +575,10 @@ public abstract class TableMock
     public ITableMock AddRange(IEnumerable<Dictionary<int, object?>> items)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(items, nameof(items));
-        foreach (var item in items)
-            Add(item);
-        return this;
+        if (items is IReadOnlyList<Dictionary<int, object?>> materializedRows)
+            return AddBatch(materializedRows);
+
+        return AddBatch([.. items]);
     }
 
     /// <summary>
@@ -497,25 +590,28 @@ public abstract class TableMock
     public ITableMock AddItem<T>(T item)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(item, nameof(item));
+        Add(MaterializeItem(item));
+        return this;
+    }
 
+    private Dictionary<int, object?> MaterializeItem<T>(T item)
+    {
         var row = new Dictionary<int, object?>();
-
-        // pega props públicas de instância (ignorando indexers)
-        var t = typeof(T);
+        var accessors = GetItemAccessors(typeof(T));
 
         foreach (var p in Columns)
         {
-            var prop = t.GetProperty(p.Key);
-            if (prop == null)
+            if (!accessors.TryGetValue(p.Key, out var getter))
             {
                 row[p.Value.Index] = null;
                 continue;
             }
+
             object? value;
 #pragma warning disable CA1031 // Do not catch general exception types
             try
             {
-                value = prop.GetValue(item);
+                value = getter(item!);
             }
             catch
             {
@@ -526,14 +622,95 @@ public abstract class TableMock
             row[p.Value.Index] = value;
         }
 
-        // reaproveita sua lógica de unique + index update
-        Add(row);
+        return row;
+    }
+
+    private static IReadOnlyDictionary<string, Func<object, object?>> GetItemAccessors(Type itemType)
+        => _itemAccessorCache.GetOrAdd(itemType, BuildItemAccessors);
+
+    private static IReadOnlyDictionary<string, Func<object, object?>> BuildItemAccessors(Type itemType)
+    {
+        var accessors = new Dictionary<string, Func<object, object?>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var property in itemType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+        {
+            if (property.GetIndexParameters().Length > 0 || !property.CanRead)
+                continue;
+
+            accessors[property.Name] = BuildItemAccessor(itemType, property);
+        }
+
+        return accessors;
+    }
+
+    private static Func<object, object?> BuildItemAccessor(Type itemType, PropertyInfo property)
+    {
+        var instance = Expression.Parameter(typeof(object), "instance");
+        var typedInstance = Expression.Convert(instance, itemType);
+        var propertyAccess = Expression.Property(typedInstance, property);
+        var boxedValue = Expression.Convert(propertyAccess, typeof(object));
+        return Expression.Lambda<Func<object, object?>>(boxedValue, instance).Compile();
+    }
+
+    /// <summary>
+    /// EN: Adds multiple rows in batch, rebuilding indexes only once at the end for performance.
+    /// PT: Adiciona multiplas linhas em lote, reconstruindo indices apenas uma vez no final para performance.
+    /// </summary>
+    /// <param name="values">EN: Rows to insert. PT: Linhas a inserir.</param>
+    public ITableMock AddBatch(IReadOnlyList<Dictionary<int, object?>> values)
+    {
+        if (values.Count == 0)
+            return this;
+
+        if (values.Count == 1 || ForeignKeys.Count > 0)
+        {
+            foreach (var value in values)
+                Add(value);
+            return this;
+        }
+
+        var uniqueIndexes = _indexes.GetUnique().ToArray();
+        var batchPrimaryKeys = _primaryKeyIndexes.Count > 0
+            ? new HashSet<string>(StringComparer.Ordinal)
+            : null;
+        var batchUniqueKeys = uniqueIndexes.ToDictionary(
+            static index => index,
+            static _ => new HashSet<string>(StringComparer.Ordinal));
+
+        foreach (var value in values)
+        {
+            ApplyDefaultValues(value);
+            RefreshPersistedComputedValues(value);
+            ValidateForeignKeysOnRow(value);
+
+            if (batchPrimaryKeys is not null)
+            {
+                var pkKey = BuildPkKey(value);
+                if (_pkIndex.ContainsKey(pkKey) || !batchPrimaryKeys.Add(pkKey))
+                {
+                    var dupPk = _columns
+                        .Where(_ => _primaryKeyIndexes.Contains(_.Value.Index))
+                        .Select(_ => $"{_.Key}: {(value.TryGetValue(_.Value.Index, out var v) ? v : null)}");
+                    throw DuplicateKey(TableName, PRIMARY, string.Join(",", dupPk));
+                }
+            }
+
+            foreach (var index in uniqueIndexes)
+            {
+                var key = index.BuildIndexKey(value);
+                if (index.LookupMutable(key)?.Count > 0 || !batchUniqueKeys[index].Add(key))
+                    throw DuplicateKey(TableName, index.Name, key);
+            }
+        }
+
+        _items.AddRange(values);
+        RebuildAllIndexes();
+
         return this;
     }
 
     /// <summary>
     /// EN: Adds a row ensuring default values and uniqueness.
-    /// PT: Adiciona uma linha garantindo valores padrão e unicidade.
+    /// PT: Adiciona uma linha garantindo valores padrao e unicidade.
     /// </summary>
     /// <param name="value">EN: Row to insert. PT: Linha a inserir.</param>
     public ITableMock Add(Dictionary<int, object?> value)
@@ -546,6 +723,12 @@ public abstract class TableMock
         // Update _indexes with the new row
         int newIdx = Count - 1;
         UpdateIndexesWithRow(newIdx);
+        // Update PK index
+        if (_primaryKeyIndexes.Count > 0)
+        {
+            var pkKey = BuildPkKey(value);
+            _pkIndex[pkKey] = newIdx;
+        }
         return this;
     }
 
@@ -667,6 +850,21 @@ public abstract class TableMock
         if (_primaryKeyIndexes.Count <= 0)
             return;
 
+        // Fast path: use PK index dictionary for O(1) conflict detection
+        if (_pkIndex.Count > 0)
+        {
+            var pkKey = BuildPkKey(newRow);
+            if (_pkIndex.ContainsKey(pkKey))
+            {
+                var dupPk = _columns
+                    .Where(_ => _primaryKeyIndexes.Contains(_.Value.Index))
+                    .Select(_ => $"{_.Key}: {(newRow.TryGetValue(_.Value.Index, out var v) ? v : null)}");
+                throw DuplicateKey(TableName, PRIMARY, string.Join(",", dupPk));
+            }
+            return;
+        }
+
+        // Fallback: use existing index-based detection
         if (TryFindPrimaryConflictByIndex(newRow, out _))
         {
             var dupPk = _columns
@@ -701,6 +899,21 @@ public abstract class TableMock
     {
         conflictIndexName = null;
         conflictKey = null;
+
+        // Fast path: use PK dictionary for O(1) conflict detection
+        if (_primaryKeyIndexes.Count > 0 && _pkIndex.Count > 0)
+        {
+            var pkKey = BuildPkKey(newRow);
+            if (_pkIndex.TryGetValue(pkKey, out var pkConflict))
+            {
+                var dupPk = _columns
+                    .Where(_ => _primaryKeyIndexes.Contains(_.Value.Index))
+                    .Select(_ => $"{_.Key}: {(newRow.TryGetValue(_.Value.Index, out var v) ? v : null)}");
+                conflictIndexName = PRIMARY;
+                conflictKey = string.Join(",", dupPk);
+                return pkConflict;
+            }
+        }
 
         if (TryFindPrimaryConflictByIndex(newRow, out var conflictByIndex))
         {
@@ -824,6 +1037,53 @@ public abstract class TableMock
         }
 
         return list;
+    }
+
+    /// <summary>
+    /// EN: Attempts to find a single row using PK shortcut when WHERE conditions match an exact PK equality.
+    /// PT: Tenta encontrar uma unica linha usando atalho PK quando as condicoes WHERE correspondem a uma igualdade exata de PK.
+    /// </summary>
+    /// <param name="table">EN: Target table. PT: Tabela alvo.</param>
+    /// <param name="pars">EN: Query parameters. PT: Parametros da consulta.</param>
+    /// <param name="conditions">EN: Parsed WHERE conditions. PT: Condicoes WHERE parseadas.</param>
+    /// <param name="rowIndex">EN: Found row index. PT: Indice da linha encontrada.</param>
+    /// <returns>EN: True if a single row was found via PK shortcut. PT: True se uma unica linha foi encontrada via atalho PK.</returns>
+    internal static bool TryFindRowByPkConditions(
+        ITableMock table,
+        DbParameterCollection? pars,
+        List<(string C, string Op, string V)> conditions,
+        out int rowIndex)
+    {
+        rowIndex = -1;
+        if (conditions.Count == 0 || table.PrimaryKeyIndexes.Count == 0)
+            return false;
+
+        var eqConditions = conditions.Where(c => c.Op == "=").ToList();
+        if (eqConditions.Count < table.PrimaryKeyIndexes.Count)
+            return false;
+
+        var syntheticRow = new Dictionary<int, object?>();
+
+        foreach (var pkIdx in table.PrimaryKeyIndexes)
+        {
+            var col = table.Columns.Values.First(c => c.Index == pkIdx);
+            var matchingCond = eqConditions.FirstOrDefault(cond =>
+                string.Equals(col.Name, cond.C.NormalizeName(), StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(col.Name, cond.C.Trim('`', '"', '[', ']').NormalizeName(), StringComparison.OrdinalIgnoreCase));
+
+            if (matchingCond == default) return false;
+
+            table.CurrentColumn = matchingCond.C;
+            var resolved = table.Resolve(matchingCond.V, col.DbType, col.Nullable, pars, table.Columns);
+            table.CurrentColumn = null;
+            syntheticRow[pkIdx] = resolved is DBNull ? null : resolved;
+        }
+
+        if (!table.TryFindRowByPk(syntheticRow, out rowIndex))
+            return false;
+
+        var row = table[rowIndex];
+        return IsMatchSimple(table, pars, conditions, row);
     }
 
     internal static bool IsMatchSimple(
@@ -1021,31 +1281,47 @@ public abstract class TableMock
         ColumnDef sourceCol,
         List<(string C, string Op, string V)> whereConds)
     {
+        if (whereConds.Count > 0
+            && TryFindRowByPkConditions(sourceTable, pars, whereConds, out var rowIndex))
+        {
+            return [ConvertParsedObjectValue(targetInfo, sourceTable, sourceCol, sourceTable[rowIndex])];
+        }
+
         var tmp = new List<object?>();
         foreach (var row in sourceTable)
         {
             if (whereConds.Count > 0 && !IsMatchSimple(sourceTable, pars, whereConds, row))
                 continue;
 
-            var v = sourceCol.GetGenValue != null ? sourceCol.GetGenValue(row, sourceTable) : row[sourceCol.Index];
-            if (v is DBNull) v = null;
-
-            if (v != null)
-            {
-                try
-                {
-                    v = DbTypeParser.Parse(targetInfo.DbType, v.ToString()!);
-                }
-                catch
-                {
-                    // best effort: keep original value when coercion is not possible
-                }
-            }
-
-            tmp.Add(v);
+            tmp.Add(ConvertParsedObjectValue(targetInfo, sourceTable, sourceCol, row));
         }
 
         return tmp;
+    }
+
+    private static object? ConvertParsedObjectValue(
+        ColumnDef targetInfo,
+        ITableMock sourceTable,
+        ColumnDef sourceCol,
+        IReadOnlyDictionary<int, object?> row)
+    {
+        var value = sourceCol.GetGenValue != null ? sourceCol.GetGenValue(row, sourceTable) : row[sourceCol.Index];
+        if (value is DBNull)
+            value = null;
+
+        if (value != null)
+        {
+            try
+            {
+                value = DbTypeParser.Parse(targetInfo.DbType, value.ToString()!);
+            }
+            catch
+            {
+                // best effort: keep original value when coercion is not possible
+            }
+        }
+
+        return value;
     }
 
     private static string? TryExtractWhereRaw(string sql)
@@ -1076,7 +1352,19 @@ public abstract class TableMock
     public Dictionary<int, object?> RemoveAt(int idx)
     {
         var it = _items[idx];
+        RemoveRowFromIndexes(idx, it);
+        // Remove from PK index and shift positions
+        if (_primaryKeyIndexes.Count > 0)
+        {
+            var removedKey = BuildPkKey(it);
+            _pkIndex.Remove(removedKey);
+            // Shift positions for rows after the deleted one
+            var keysToUpdate = _pkIndex.Where(kv => kv.Value > idx).Select(kv => kv.Key).ToList();
+            foreach (var key in keysToUpdate)
+                _pkIndex[key] = _pkIndex[key] - 1;
+        }
         _items.RemoveAt(idx);
+        ShiftIndexPositionsAfterDelete(idx);
         return it;
     }
 
@@ -1089,8 +1377,21 @@ public abstract class TableMock
         int colIdx,
         object? value)
     {
-        _items[rowIdx][colIdx] = value;
-        RefreshPersistedComputedValues(_items[rowIdx]);
+        // If changing a PK column, update the PK index
+        if (_primaryKeyIndexes.Count > 0 && _primaryKeyIndexes.Contains(colIdx))
+        {
+            var oldKey = BuildPkKey(_items[rowIdx]);
+            _pkIndex.Remove(oldKey);
+            _items[rowIdx][colIdx] = value;
+            RefreshPersistedComputedValues(_items[rowIdx]);
+            var newKey = BuildPkKey(_items[rowIdx]);
+            _pkIndex[newKey] = rowIdx;
+        }
+        else
+        {
+            _items[rowIdx][colIdx] = value;
+            RefreshPersistedComputedValues(_items[rowIdx]);
+        }
     }
 
     private List<Dictionary<int, object?>>? _backup;
@@ -1111,6 +1412,7 @@ public abstract class TableMock
             return;
 
         _items.Clear();
+        _pkIndex.Clear();
         foreach (var row in _backup) Add(row);
 
         foreach (var ix in _indexes)

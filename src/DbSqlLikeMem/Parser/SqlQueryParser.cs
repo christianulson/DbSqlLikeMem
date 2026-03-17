@@ -11,6 +11,7 @@ internal sealed class SqlQueryParser
     private bool _allowInsertSelectSuffixBoundary;
 
     private static readonly SqlQueryAstCache _astCache = SqlQueryAstCache.CreateFromEnvironment();
+    private static readonly SqlQueryParsePreludeCache _preludeCache = SqlQueryParsePreludeCache.CreateFromEnvironment();
 
 
     /// <summary>
@@ -30,13 +31,11 @@ internal sealed class SqlQueryParser
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
-        // Normaliza espaÃ§os bÃ¡sicos se necessÃ¡rio, mas o tokenizer cuida da maior parte
         _dialect = dialect;
         _parameters = parameters;
-        _toks = new SqlTokenizer(sql, _dialect).Tokenize();
-        _autoSyntaxFeatures = _dialect is AutoSqlDialect
-            ? SqlSyntaxDetector.Detect(sql, _toks)
-            : AutoSqlSyntaxFeatures.None;
+        var prelude = GetPrelude(sql, dialect);
+        _toks = prelude.Tokens;
+        _autoSyntaxFeatures = prelude.AutoSyntaxFeatures;
         _i = 0;
     }
 
@@ -57,7 +56,7 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Parses one SQL statement into an AST root using default parser options and no parameter collection.
-    /// PT: Faz o parsing de um statement SQL para a raiz da AST usando opÃ§Ãµes padrÃ£o do parser e sem coleÃ§Ã£o de parÃ¢metros.
+    /// PT: Faz o parsing de um statement SQL para a raiz da AST usando opções padrão do parser e sem coleção de parâmetros.
     /// </summary>
     /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
     /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
@@ -86,11 +85,11 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Parses one SQL statement into an AST root using dialect capabilities and optional command parameters.
-    /// PT: Faz o parsing de um statement SQL para a raiz da AST usando capacidades do dialeto e parÃ¢metros de comando opcionais.
+    /// PT: Faz o parsing de um statement SQL para a raiz da AST usando capacidades do dialeto e parâmetros de comando opcionais.
     /// </summary>
     /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
     /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
-    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized numeric values. PT: ParÃ¢metros de comando opcionais usados por caminhos do parser que resolvem valores numÃ©ricos parametrizados.</param>
+    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized numeric values. PT: Parâmetros de comando opcionais usados por caminhos do parser que resolvem valores numéricos parametrizados.</param>
     /// <returns>EN: Parsed query AST root. PT: Raiz da AST da query parseada.</returns>
     public static SqlQueryBase Parse(string sql, ISqlDialect dialect, IDataParameterCollection? parameters)
     {
@@ -98,10 +97,7 @@ internal sealed class SqlQueryParser
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
 
         // Fast feature gate before cache lookup to avoid serving incompatible ASTs for version-gated commands.
-        var tokens = new SqlTokenizer(sql, dialect).Tokenize();
-        var autoSyntaxFeatures = dialect is AutoSqlDialect
-            ? SqlSyntaxDetector.Detect(sql, tokens)
-            : AutoSqlSyntaxFeatures.None;
+        var (tokens, autoSyntaxFeatures) = GetPrelude(sql, dialect);
         var first = tokens.Count > 0 ? tokens[0] : default;
         if (IsWord(first, "MERGE") && !dialect.SupportsMerge)
             throw SqlUnsupported.ForMerge(dialect);
@@ -132,8 +128,24 @@ internal sealed class SqlQueryParser
         EnsureDialectSupport(parsed, dialect);
         _astCache.Set(cacheKey, parsed);
 
-        // Para estratÃ©gias que precisam do SQL original (ex: UPDATE/DELETE ... JOIN (SELECT ...))
+        // Para estratégias que precisam do SQL original (ex: UPDATE/DELETE ... JOIN (SELECT ...))
         return parsed with { RawSql = sql };
+    }
+
+    private static SqlQueryParsePreludeCache.Prelude GetPrelude(string sql, ISqlDialect dialect)
+    {
+        var cacheKey = SqlQueryParsePreludeCache.BuildKey(sql, dialect.Name, dialect.Version);
+        if (_preludeCache.TryGet(cacheKey, out var cached))
+            return cached;
+
+        var tokens = new SqlTokenizer(sql, dialect).Tokenize();
+        var autoSyntaxFeatures = dialect is AutoSqlDialect
+            ? SqlSyntaxDetector.Detect(sql, tokens)
+            : AutoSqlSyntaxFeatures.None;
+
+        var prelude = new SqlQueryParsePreludeCache.Prelude(tokens, autoSyntaxFeatures);
+        _preludeCache.Set(cacheKey, prelude);
+        return prelude;
     }
 
     private static void EnsureDialectSupport(SqlQueryBase parsed, ISqlDialect dialect)
@@ -224,8 +236,8 @@ internal sealed class SqlQueryParser
             result = q.ParseDrop();
         else if (IsWord(first, "MERGE"))
         {
-            // Para MySQL, MERGE simplesmente nÃ£o existe (Ã© sintaxe invÃ¡lida para o dialeto).
-            // Os testes de corpus esperam ThrowInvalid aqui, nÃ£o NotSupported.
+            // Para MySQL, MERGE simplesmente não existe (é sintaxe inválida para o dialeto).
+            // Os testes de corpus esperam ThrowInvalid aqui, não NotSupported.
             if (!dialect.SupportsMerge)
                 throw SqlUnsupported.ForMerge(dialect);
 
@@ -239,11 +251,11 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Parses a SQL batch and yields AST roots for each top-level statement using default parser options.
-    /// PT: Faz o parsing de um lote SQL e retorna raÃ­zes de AST para cada statement top-level usando opÃ§Ãµes padrÃ£o do parser.
+    /// PT: Faz o parsing de um lote SQL e retorna raízes de AST para cada statement top-level usando opções padrão do parser.
     /// </summary>
     /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
     /// <param name="dialect">EN: Dialect used to split and parse each statement. PT: Dialeto usado para separar e parsear cada statement.</param>
-    /// <returns>EN: Sequence of parsed AST roots. PT: SequÃªncia de raÃ­zes de AST parseadas.</returns>
+    /// <returns>EN: Sequence of parsed AST roots. PT: Sequência de raízes de AST parseadas.</returns>
     public static IEnumerable<SqlQueryBase> ParseMulti(
         string sql,
         ISqlDialect dialect)
@@ -272,18 +284,18 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Parses a SQL batch and yields AST roots for each top-level statement split by semicolon boundaries.
-    /// PT: Faz o parsing de um lote SQL e retorna raÃ­zes de AST para cada statement top-level separado por fronteiras de ponto e vÃ­rgula.
+    /// PT: Faz o parsing de um lote SQL e retorna raízes de AST para cada statement top-level separado por fronteiras de ponto e vírgula.
     /// </summary>
     /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
     /// <param name="dialect">EN: Dialect used to split and parse each statement. PT: Dialeto usado para separar e parsear cada statement.</param>
-    /// <param name="parameters">EN: Optional parameters forwarded to each statement parse. PT: ParÃ¢metros opcionais repassados para o parse de cada statement.</param>
-    /// <returns>EN: Sequence of parsed AST roots. PT: SequÃªncia de raÃ­zes de AST parseadas.</returns>
+    /// <param name="parameters">EN: Optional parameters forwarded to each statement parse. PT: Parâmetros opcionais repassados para o parse de cada statement.</param>
+    /// <returns>EN: Sequence of parsed AST roots. PT: Sequência de raízes de AST parseadas.</returns>
     public static IEnumerable<SqlQueryBase> ParseMulti(
         string sql,
         ISqlDialect dialect,
         IDataParameterCollection? parameters)
     {
-        // O split top-level ainda Ã© Ãºtil para separar statements por ';'
+        // O split top-level ainda é Ãºtil para separar statements por ';'
         foreach (var s in SplitStatementsTopLevel(sql, dialect))
         {
             if (string.IsNullOrWhiteSpace(s)) continue;
@@ -293,7 +305,7 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Splits a SQL batch into top-level statements preserving dialect string/comment rules.
-    /// PT: Separa um lote SQL em statements de topo preservando regras de string/comentÃ¡rio do dialeto.
+    /// PT: Separa um lote SQL em statements de topo preservando regras de string/comentário do dialeto.
     /// </summary>
     /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
     /// <param name="dialect">EN: Dialect used for statement boundaries. PT: Dialeto usado para limites de statement.</param>
@@ -330,7 +342,7 @@ internal sealed class SqlQueryParser
     /// </summary>
     /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
     /// <param name="dialect">EN: Dialect used for parsing. PT: Dialeto usado no parsing.</param>
-    /// <returns>EN: Normalized UNION chain representation. PT: RepresentaÃ§Ã£o normalizada de cadeia UNION.</returns>
+    /// <returns>EN: Normalized UNION chain representation. PT: Representação normalizada de cadeia UNION.</returns>
     public static UnionChain ParseUnionChain(string sql, ISqlDialect dialect)
     {
         var parsed = Parse(sql, dialect);
@@ -392,7 +404,7 @@ internal sealed class SqlQueryParser
             throw new InvalidOperationException("Invalid INSERT statement: expected VALUES or SELECT.");
 
         // INSERT INTO t () VALUES () -> default row (aceito)
-        // INSERT INTO t () VALUES (1) / INSERT INTO t () SELECT ... -> invÃ¡lido
+        // INSERT INTO t () VALUES (1) / INSERT INTO t () SELECT ... -> inválido
         if (hasExplicitColumnList && cols.Count == 0)
         {
             if (insertSelect is not null)
@@ -679,7 +691,7 @@ internal sealed class SqlQueryParser
                     $"ON CONFLICT DO UPDATE does not support table-source clauses after assignments (found '{Peek().Text}').");
 
             // PostgreSQL permite: DO UPDATE SET ... WHERE <predicate>.
-            // O predicado Ã© validado e materializado na AST para uso no executor.
+            // O predicado é validado e materializado na AST para uso no executor.
             if (IsWord(Peek(), "WHERE"))
             {
                 Consume();
@@ -956,7 +968,7 @@ internal sealed class SqlQueryParser
         // MySQL: UPDATE <table> [alias] JOIN (...) ... SET ...
         var hasJoin = false;
 
-        // Se vier JOIN antes do SET, pulamos os tokens do JOIN aqui (as estratÃ©gias smart usam RawSql)
+        // Se vier JOIN antes do SET, pulamos os tokens do JOIN aqui (as estratégias smart usam RawSql)
         if (IsJoinStart(Peek()))
         {
             if (!_dialect.SupportsUpdateJoinFromSubquerySyntax)
@@ -983,8 +995,8 @@ internal sealed class SqlQueryParser
                     Consume();
         }
 
-        // Fallback: algumas variaÃ§Ãµes de DELETE ... JOIN podem deixar o JOIN
-        // pendente apÃ³s o cabeÃ§alho. Consumimos a clÃ¡usula aqui para nÃ£o
+        // Fallback: algumas variações de DELETE ... JOIN podem deixar o JOIN
+        // pendente apÃ³s o cabeçalho. Consumimos a cláusula aqui para não
         // falhar no EnsureStatementEnd, preservando parse de WHERE/RETURNING.
         if (IsJoinStart(Peek()))
         {
@@ -999,7 +1011,7 @@ internal sealed class SqlQueryParser
         }
 
         // Guardrail: se algum formato de DELETE ... JOIN deixou tokens de JOIN
-        // pendentes no topo, consumimos atÃ© WHERE/RETURNING/fim para evitar
+        // pendentes no topo, consumimos até WHERE/RETURNING/fim para evitar
         // erro de "Unexpected token after DELETE".
         if (IsJoinStart(Peek()))
         {
@@ -1059,7 +1071,7 @@ internal sealed class SqlQueryParser
             WhereRaw = whereRaw,
             Where = whereExpr,
             Returning = returning,
-            // SÃ³ o "!= null" importa para acionar a estratÃ©gia smart; o SQL bruto estÃ¡ em RawSql.
+            // SÃ³ o "!= null" importa para acionar a estratégia smart; o SQL bruto está em RawSql.
             UpdateFromSelect = hasJoin
                 ? new SqlSelectQuery([], false, [], [], null, [], null, [], null)
                 : null
@@ -1073,7 +1085,7 @@ internal sealed class SqlQueryParser
         // MySQL suporta:
         // 1) DELETE FROM t WHERE ...
         // 2) DELETE a FROM t a JOIN (...) s ON ...
-        // Para (2) precisamos guardar a tabela real (t), nÃ£o o alias (a).
+        // Para (2) precisamos guardar a tabela real (t), não o alias (a).
 
         SqlTableSource table;
         bool hasJoin = false;
@@ -1097,10 +1109,10 @@ internal sealed class SqlQueryParser
         }
         else
         {
-            // DELETE sem FROM (alguns dialetos permitem, outros nÃ£o).
+            // DELETE sem FROM (alguns dialetos permitem, outros não).
             // a) DELETE t WHERE ...
             // b) DELETE a FROM t a JOIN (...) s ON ...
-            // Para (b) precisamos guardar a tabela real (t), nÃ£o o alias (a).
+            // Para (b) precisamos guardar a tabela real (t), não o alias (a).
             var allowsTargetAlias = (_dialect.SupportsDeleteTargetAlias || _dialect.AllowsParserDeleteWithoutFromCompatibility)
                 && Peek().Kind == SqlTokenKind.Identifier
                 && IsWord(Peek(1), "FROM");
@@ -1125,8 +1137,8 @@ internal sealed class SqlQueryParser
                 if (IsJoinStart(Peek()))
                 {
                     hasJoin = true;
-                    // A estratÃ©gia smart faz o parsing completo a partir do RawSql.
-                    // Aqui sÃ³ precisamos consumir a clÃ¡usula JOIN para evitar token sobrando no fim.
+                    // A estratégia smart faz o parsing completo a partir do RawSql.
+                    // Aqui sÃ³ precisamos consumir a cláusula JOIN para evitar token sobrando no fim.
                     if (HasTopLevelWordInRemaining("WHERE"))
                         SkipUntilTopLevelWord("WHERE");
                     else if (HasTopLevelWordInRemaining("RETURNING"))
@@ -1212,16 +1224,16 @@ internal sealed class SqlQueryParser
         var target = ParseTableSource(allowFunctionSource: false);
 
         if (!HasTopLevelWordInRemaining("USING"))
-            throw new InvalidOperationException("MERGE requer clÃ¡usula USING. Ex.: MERGE INTO <target> USING <source> ON ...");
+            throw new InvalidOperationException("MERGE requer cláusula USING. Ex.: MERGE INTO <target> USING <source> ON ...");
 
         if (!HasTopLevelWordInRemaining("ON"))
-            throw new InvalidOperationException("MERGE requer clÃ¡usula ON. Ex.: MERGE INTO <target> USING <source> ON <condiÃ§Ã£o>");
+            throw new InvalidOperationException("MERGE requer cláusula ON. Ex.: MERGE INTO <target> USING <source> ON <condição>");
 
         if (!HasTopLevelMergeWhenClause())
-            throw new InvalidOperationException("MERGE requer ao menos uma clÃ¡usula WHEN (MATCHED/NOT MATCHED).");
+            throw new InvalidOperationException("MERGE requer ao menos uma cláusula WHEN (MATCHED/NOT MATCHED).");
 
-        // O resto do MERGE Ã© grande demais pra agora.
-        // SÃ³ avanÃ§amos tokens atÃ© o fim pra nÃ£o deixar lixo se vocÃª evoluir o parser.
+        // O resto do MERGE é grande demais pra agora.
+        // SÃ³ avançamos tokens até o fim pra não deixar lixo se você evoluir o parser.
         while (Peek().Kind != SqlTokenKind.EndOfFile)
             Consume();
 
@@ -1289,7 +1301,7 @@ internal sealed class SqlQueryParser
         => (index >= 0 && index < _toks.Count) ? _toks[index] : SqlToken.EOF;
 
     // ------------------------------------------------------------
-    // SELECT (LÃ³gica jÃ¡ existente, mantida e integrada)
+    // SELECT (LÃ³gica já existente, mantida e integrada)
     // ------------------------------------------------------------
 
     /// <summary>
@@ -1344,10 +1356,10 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Parses a SELECT query with optional control over CTE parsing and ORDER BY/pagination tail parsing.
-    /// PT: Faz o parsing de uma query SELECT com controle opcional de parsing de CTE e cauda ORDER BY/paginaÃ§Ã£o.
+    /// PT: Faz o parsing de uma query SELECT com controle opcional de parsing de CTE e cauda ORDER BY/paginação.
     /// </summary>
-    /// <param name="allowCtes">EN: When true, WITH/CTE clauses are parsed before SELECT. PT: Quando verdadeiro, clÃ¡usulas WITH/CTE sÃ£o parseadas antes do SELECT.</param>
-    /// <param name="allowOrderByAndLimit">EN: When true, ORDER BY and row-limit tails are parsed. PT: Quando verdadeiro, caudas ORDER BY e limite de linhas sÃ£o parseadas.</param>
+    /// <param name="allowCtes">EN: When true, WITH/CTE clauses are parsed before SELECT. PT: Quando verdadeiro, cláusulas WITH/CTE são parseadas antes do SELECT.</param>
+    /// <param name="allowOrderByAndLimit">EN: When true, ORDER BY and row-limit tails are parsed. PT: Quando verdadeiro, caudas ORDER BY e limite de linhas são parseadas.</param>
     /// <returns>EN: Parsed SELECT AST node. PT: NÃ³ AST de SELECT parseado.</returns>
     public SqlSelectQuery ParseSelectQuery(bool allowCtes = true, bool allowOrderByAndLimit = true)
     {
@@ -1622,9 +1634,9 @@ internal sealed class SqlQueryParser
     private static List<string> SplitRawByComma(string rawBlock)
     {
         // Separa "1, 'abc', func(x)" em itens, respeitando:
-        // - profundidade de parÃªnteses
+        // - profundidade de parênteses
         // - strings quoted (single/double)
-        // Isso evita quebrar JSON/texto que contÃ©m vÃ­rgula dentro da string.
+        // Isso evita quebrar JSON/texto que contém vírgula dentro da string.
         var res = new List<string>();
         if (rawBlock.Length == 0)
             return res;
@@ -1787,7 +1799,7 @@ internal sealed class SqlQueryParser
             }
             else
             {
-                throw new InvalidOperationException("GLOBAL deve ser seguido de TEMPORARY/TEMP para tabelas temporÃ¡rias.");
+                throw new InvalidOperationException("GLOBAL deve ser seguido de TEMPORARY/TEMP para tabelas temporárias.");
             }
         }
 
@@ -2224,7 +2236,7 @@ internal sealed class SqlQueryParser
         if (tokens.Skip(index).Any(static token => token.Text.Equals("DEFAULT", StringComparison.OrdinalIgnoreCase) || token.Text == "="))
             throw new NotSupportedException("CREATE FUNCTION parameter default values are not supported in the mock yet.");
 
-        var typeSql = TokensToSql(tokens.Skip(index).ToList()).Trim();
+        var typeSql = TokensToSql([.. tokens.Skip(index)]).Trim();
         if (string.IsNullOrWhiteSpace(typeSql))
             throw new InvalidOperationException($"CREATE FUNCTION parameter '{nameToken.Text}' requires a type.");
 
@@ -2441,7 +2453,7 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "TABLE"))
             return ParseAlterTable();
 
-        throw new InvalidOperationException("Apenas ALTER TABLE pragmÃ¡tico Ã© suportado no mock no momento.");
+        throw new InvalidOperationException("Apenas ALTER TABLE pragmático é suportado no mock no momento.");
     }
 
     private SqlAlterTableAddColumnQuery ParseAlterTable()
@@ -2538,8 +2550,10 @@ internal sealed class SqlQueryParser
             throw new InvalidOperationException("ALTER TABLE requires a concrete table name.");
 
         var table = ParseQualifiedObjectName();
+        var next = Peek();
 
-        if (IsWord(Peek(), "AS") || Peek().Kind == SqlTokenKind.Identifier)
+        if (IsWord(next, "AS")
+            || (next.Kind == SqlTokenKind.Identifier && !IsWord(next, "ADD")))
             throw new InvalidOperationException("ALTER TABLE requires a table name without alias.");
 
         return table;
@@ -2567,7 +2581,7 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "FUNCTION"))
             return ParseDropFunction();
 
-        throw new InvalidOperationException("Apenas DROP VIEW, DROP TABLE, DROP INDEX e DROP SEQUENCE sÃ£o suportados no mock no momento.");
+        throw new InvalidOperationException("Apenas DROP VIEW, DROP TABLE, DROP INDEX e DROP SEQUENCE são suportados no mock no momento.");
     }
 
     private SqlDropViewQuery ParseDropView()
@@ -2757,12 +2771,12 @@ internal sealed class SqlQueryParser
 
         if (IsWord(Peek(), "ON"))
         {
+            Consume();
+            table = ParseDropIndexOnTableName();
+
             if (!string.Equals(_dialect.Name, "mysql", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(_dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase))
                 throw SqlUnsupported.ForDialect(_dialect, "DROP INDEX ... ON <table>");
-
-            Consume();
-            table = ParseDropIndexOnTableName();
         }
 
         EnsureStatementEnd("DROP INDEX");
@@ -3058,7 +3072,7 @@ internal sealed class SqlQueryParser
         // SQL Server: SELECT TOP (10) ... / SELECT TOP 10 ...
         if (!IsWord(Peek(), "TOP")) return null;
 
-        // Se o dialeto nÃ£o suporta, deixa o SQL cair como erro em validaÃ§Ã£o ou corpo
+        // Se o dialeto não suporta, deixa o SQL cair como erro em validação ou corpo
         if (!_dialect.SupportsTop)
             return null;
 
@@ -3078,9 +3092,9 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Parses optional DML RETURNING clause with dialect gate and expression validation.
-    /// PT: Faz o parsing opcional da clÃ¡usula RETURNING de DML com gate de dialeto e validaÃ§Ã£o de expressÃ£o.
+    /// PT: Faz o parsing opcional da cláusula RETURNING de DML com gate de dialeto e validação de expressão.
     /// </summary>
-    /// <returns>EN: Returning items when clause is present; otherwise empty list. PT: Itens de retorno quando a clÃ¡usula estiver presente; caso contrÃ¡rio, lista vazia.</returns>
+    /// <returns>EN: Returning items when clause is present; otherwise empty list. PT: Itens de retorno quando a cláusula estiver presente; caso contrário, lista vazia.</returns>
     private IReadOnlyList<SqlSelectItem> ParseOptionalReturningItems()
     {
         if (!IsWord(Peek(), "RETURNING"))
@@ -3302,7 +3316,7 @@ internal sealed class SqlQueryParser
         ExpectWord("BY");
         list.AddRange(ParseRawItemsUntil("HAVING", "ORDER", "LIMIT", "OFFSET", "FETCH", "UNION", "FOR", "RETURNING"));
         if (list.Count == 0)
-            throw new InvalidOperationException("GROUP BY sem expressÃµes.");
+            throw new InvalidOperationException("GROUP BY sem expressões.");
         return list;
     }
 
@@ -3508,7 +3522,7 @@ internal sealed class SqlQueryParser
 
             // Derived table pode ser um SELECT simples OU um UNION/UNION ALL.
             // O Parse() atual devolve apenas o primeiro SELECT quando existe UNION,
-            // entÃ£o aqui detectamos e parseamos a cadeia completa.
+            // então aqui detectamos e parseamos a cadeia completa.
             var parsed = Parse(innerSql, _dialect);
             if (parsed is SqlUnionQuery union)
             {
@@ -3573,11 +3587,10 @@ internal sealed class SqlQueryParser
         var argsSql = ReadBalancedParenRawTokens();
         var function = new FunctionCallExpr(
             functionName,
-            SplitRawByComma(argsSql)
+            [.. SplitRawByComma(argsSql)
                 .Select(static arg => arg.Trim())
                 .Where(static arg => arg.Length > 0)
-                .Select(arg => SqlExpressionParser.ParseScalar(arg, _dialect, _parameters))
-                .ToList());
+                .Select(arg => SqlExpressionParser.ParseScalar(arg, _dialect, _parameters))]);
 
         ValidateTableFunctionSource(function);
 
@@ -4052,7 +4065,7 @@ internal sealed class SqlQueryParser
         else if (kind.Equals("force", StringComparison.OrdinalIgnoreCase))
             mappedKind = SqlMySqlIndexHintKind.Force;
         else
-            throw new InvalidOperationException("MySQL index hint invÃ¡lido: tipo de hint desconhecido.");
+            throw new InvalidOperationException("MySQL index hint inválido: tipo de hint desconhecido.");
 
         if (IsWord(Peek(), "INDEX") || IsWord(Peek(), "KEY"))
         {
@@ -4060,7 +4073,7 @@ internal sealed class SqlQueryParser
         }
         else
         {
-            throw new InvalidOperationException("MySQL index hint invÃ¡lido: esperado INDEX/KEY.");
+            throw new InvalidOperationException("MySQL index hint inválido: esperado INDEX/KEY.");
         }
 
         var scope = SqlMySqlIndexHintScope.Any;
@@ -4086,12 +4099,12 @@ internal sealed class SqlQueryParser
             }
             else
             {
-                throw new InvalidOperationException("MySQL index hint invÃ¡lido: esperado JOIN, ORDER BY ou GROUP BY apÃ³s FOR.");
+                throw new InvalidOperationException("MySQL index hint inválido: esperado JOIN, ORDER BY ou GROUP BY apÃ³s FOR.");
             }
         }
 
         if (!IsSymbol(Peek(), "("))
-            throw new InvalidOperationException("MySQL index hint invÃ¡lido: esperado lista de Ã­ndices entre parÃªnteses.");
+            throw new InvalidOperationException("MySQL index hint inválido: esperado lista de índices entre parênteses.");
 
         var hintIndexListRaw = ReadBalancedParenRawTokens();
         var indexNames = ValidateMySqlIndexHintList(hintIndexListRaw);
@@ -4104,10 +4117,10 @@ internal sealed class SqlQueryParser
         var rawItems = hintIndexListRaw.Split(',').Select(static x => x.Trim()).ToList();
 
         if (rawItems.Count == 0 || rawItems.All(static x => x.Length == 0))
-            throw new InvalidOperationException("MySQL index hint invÃ¡lido: lista de Ã­ndices vazia.");
+            throw new InvalidOperationException("MySQL index hint inválido: lista de índices vazia.");
 
         if (rawItems.Any(static x => x.Length == 0))
-            throw new InvalidOperationException("MySQL index hint invÃ¡lido: lista contÃ©m item vazio.");
+            throw new InvalidOperationException("MySQL index hint inválido: lista contém item vazio.");
 
         var parsedItems = new List<string>(rawItems.Count);
         foreach (var item in rawItems)
@@ -4132,7 +4145,7 @@ internal sealed class SqlQueryParser
                 continue;
             }
 
-            throw new InvalidOperationException($"MySQL index hint invÃ¡lido: Ã­ndice '{item}' nÃ£o Ã© vÃ¡lido.");
+            throw new InvalidOperationException($"MySQL index hint inválido: índice '{item}' não é válido.");
         }
 
         return parsedItems;
@@ -4316,7 +4329,7 @@ internal sealed class SqlQueryParser
         if (IsWord(Peek(), "AS"))
         {
             // Se depois do AS vier uma keyword (SELECT/WITH/VALUES/SET/etc),
-            // isso NÃƒO Ã© alias â€” Ã© parte da sintaxe do comando (ex: CREATE ... AS SELECT).
+            // isso NÃƒO é alias â€” é parte da sintaxe do comando (ex: CREATE ... AS SELECT).
             var next = Peek(1);
             if (next.Kind == SqlTokenKind.Identifier && IsClauseKeywordToken(next))
                 return null;
@@ -4380,11 +4393,11 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Determines whether current top-level token should stop clause/item scanning, preserving ordered-set syntax boundaries.
-    /// PT: Determina se o token atual em nÃ­vel de topo deve encerrar a varredura da clÃ¡usula/item, preservando fronteiras de sintaxe ordered-set.
+    /// PT: Determina se o token atual em nível de topo deve encerrar a varredura da cláusula/item, preservando fronteiras de sintaxe ordered-set.
     /// </summary>
-    /// <param name="current">EN: Token currently inspected at top level. PT: Token inspecionado no nÃ­vel de topo.</param>
-    /// <param name="stopWords">EN: Candidate clause stop words. PT: Palavras de parada candidatas de clÃ¡usula.</param>
-    /// <param name="buffer">EN: Tokens already buffered for current segment. PT: Tokens jÃ¡ acumulados para o segmento atual.</param>
+    /// <param name="current">EN: Token currently inspected at top level. PT: Token inspecionado no nível de topo.</param>
+    /// <param name="stopWords">EN: Candidate clause stop words. PT: Palavras de parada candidatas de cláusula.</param>
+    /// <param name="buffer">EN: Tokens already buffered for current segment. PT: Tokens já acumulados para o segmento atual.</param>
     /// <returns>EN: True when parser should stop before current token. PT: True quando o parser deve parar antes do token atual.</returns>
     private static bool ShouldStopAtTopLevelToken(SqlToken current, IReadOnlyList<string> stopWords, IReadOnlyList<SqlToken> buffer)
     {
@@ -4408,7 +4421,7 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Checks whether buffered tokens end with a specific keyword/identifier word.
-    /// PT: Verifica se os tokens acumulados terminam com uma palavra-chave/identificador especÃ­fica.
+    /// PT: Verifica se os tokens acumulados terminam com uma palavra-chave/identificador específica.
     /// </summary>
     /// <param name="buffer">EN: Buffered tokens. PT: Tokens acumulados.</param>
     /// <param name="word">EN: Word to match at buffer tail. PT: Palavra para comparar no final do buffer.</param>
@@ -4438,9 +4451,9 @@ internal sealed class SqlQueryParser
 
     private string TokensToSql(List<SqlToken> toks)
     {
-        // ReconstrÃ³i SQL "bom o bastante" para reparse, sem inserir espaÃ§os que mudem a semÃ¢ntica.
-        // Regra de ouro: nÃ£o colocar espaÃ§os ao redor de '.', parÃªnteses e vÃ­rgulas, senÃ£o "u.id" vira "u . id"
-        // e o splitter de alias pode achar que "id" Ã© alias.
+        // ReconstrÃ³i SQL "bom o bastante" para reparse, sem inserir espaços que mudem a semântica.
+        // Regra de ouro: não colocar espaços ao redor de '.', parênteses e vírgulas, senão "u.id" vira "u . id"
+        // e o splitter de alias pode achar que "id" é alias.
         var sb = new StringBuilder();
 
         SqlToken? prev = null;
@@ -4996,7 +5009,7 @@ internal sealed class SqlQueryParser
     }
 
 
-    // Plumbing BÃ¡sico
+    // Plumbing Básico
     private SqlToken Peek(int offset = 0) => (_i + offset < _toks.Count) ? _toks[_i + offset] : SqlToken.EOF;
     private SqlToken Consume() => _toks[_i++];
     private static bool IsEnd(SqlToken t) => t.Kind == SqlTokenKind.EndOfFile;
@@ -5009,11 +5022,11 @@ internal sealed class SqlQueryParser
     }
     private void ExpectSymbol(string s)
     {
-        // Alguns sÃ­mbolos vÃªm tokenizados como Operator, e o Kind pode variar.
-        // O que importa pra validar estrutura Ã© o texto literal do token.
+        // Alguns símbolos vêm tokenizados como Operator, e o Kind pode variar.
+        // O que importa pra validar estrutura é o texto literal do token.
         var t = Peek();
         if (!string.Equals(t.Text, s, StringComparison.Ordinal))
-            throw new InvalidOperationException($"Esperava sÃ­mbolo {s}, veio {t.Text}");
+            throw new InvalidOperationException($"Esperava símbolo {s}, veio {t.Text}");
         Consume();
     }
     private string ExpectIdentifier()
@@ -5032,7 +5045,7 @@ internal sealed class SqlQueryParser
         if (t.Kind == SqlTokenKind.Parameter)
             return ResolveParameterInt(t.Text);
 
-        throw new InvalidOperationException($"Esperava nÃºmero inteiro ou parÃ¢metro, veio {t.Kind} '{t.Text}'.");
+        throw new InvalidOperationException($"Esperava nÃºmero inteiro ou parâmetro, veio {t.Kind} '{t.Text}'.");
     }
 
     private long ExpectSignedNumberLong(string clauseName)
@@ -5127,15 +5140,15 @@ internal sealed class SqlQueryParser
 
     private void ExpectEndOrUnionBoundary()
     {
-        // ApÃ³s um SELECT completo, sÃ³ Ã© vÃ¡lido terminar o statement ou seguir com UNION.
-        // No MySQL, quando SELECT estÃ¡ dentro de INSERT ... SELECT, pode haver ON DUPLICATE KEY UPDATE depois.
+        // ApÃ³s um SELECT completo, sÃ³ é válido terminar o statement ou seguir com UNION.
+        // No MySQL, quando SELECT está dentro de INSERT ... SELECT, pode haver ON DUPLICATE KEY UPDATE depois.
         var t = Peek();
         if (IsEnd(t) || IsWord(t, "UNION")) return;
 
         // boundary especial: INSERT ... SELECT ... ON DUPLICATE / ON CONFLICT / RETURNING
         if (_allowInsertSelectSuffixBoundary && (IsWord(t, "ON") || IsWord(t, "RETURNING"))) return;
 
-        // tolera ';' final se o split top-level nÃ£o removeu
+        // tolera ';' final se o split top-level não removeu
         if (IsSymbol(t, ";")) { Consume(); return; }
 
         throw new InvalidOperationException($"Token inesperado apÃ³s SELECT: {t.Kind} '{t.Text}'");
@@ -5177,7 +5190,7 @@ internal sealed class SqlQueryParser
             Consume();
         }
 
-        throw new InvalidOperationException($"NÃ£o encontrei nenhum destes tokens no nÃ­vel top-level: {string.Join(", ", words)}");
+        throw new InvalidOperationException($"Não encontrei nenhum destes tokens no nível top-level: {string.Join(", ", words)}");
     }
 
     private static readonly HashSet<string> ClauseKeywordToken = new(StringComparer.OrdinalIgnoreCase)
@@ -5203,7 +5216,7 @@ internal sealed class SqlQueryParser
         "SET"    ,  // UPDATE
         "VALUES" ,  // INSERT
         "SELECT" ,  // INSERT...SELECT (e derived cases)
-        "INTO"   , // Ãºtil em variaÃ§Ãµes/dialetos
+        "INTO"   , // Ãºtil em variações/dialetos
         "USING"  ,
         "WHEN"   ,
         "MATCHED",
@@ -5216,7 +5229,7 @@ internal sealed class SqlQueryParser
     private static bool IsClauseKeywordToken(SqlToken t)
         => ClauseKeywordToken.Contains(t.Text);
 
-    // Helpers estÃ¡ticos de split (mantidos do original)
+    // Helpers estáticos de split (mantidos do original)
     internal static List<string> SplitStatementsTopLevel(string sql, ISqlDialect dialect)
     {
         var res = new List<string>();
@@ -5454,20 +5467,20 @@ internal sealed class SqlQueryParser
     }
 
     private static bool IsTrailingTokenInWherePredicate(InvalidOperationException ex)
-        => ex.Message.Contains("fim da expressÃ£o", StringComparison.OrdinalIgnoreCase)
+        => ex.Message.Contains("fim da expressão", StringComparison.OrdinalIgnoreCase)
            || ex.Message.Contains("end of expression", StringComparison.OrdinalIgnoreCase)
            || ex.Message.Contains("token inesperado no prefix", StringComparison.OrdinalIgnoreCase)
            || ex.Message.Contains("unexpected token in prefix", StringComparison.OrdinalIgnoreCase);
-    // Stub para mÃ©todo que verifica subquery escalar (removido para brevidade, adicione se precisar da validaÃ§Ã£o estrita)
+    // Stub para método que verifica subquery escalar (removido para brevidade, adicione se precisar da validação estrita)
     /// <summary>
     /// EN: Parses a SQL fragment as subquery expression and throws when fragment is not a SELECT query.
-    /// PT: Faz o parsing de um fragmento SQL como expressÃ£o de subquery e lanÃ§a exceÃ§Ã£o quando o fragmento nÃ£o Ã© uma query SELECT.
+    /// PT: Faz o parsing de um fragmento SQL como expressão de subquery e lança exceção quando o fragmento não é uma query SELECT.
     /// </summary>
     /// <param name="sql">EN: SQL fragment to parse as subquery. PT: Fragmento SQL para parsear como subquery.</param>
-    /// <param name="t">EN: Current token used for contextual error composition. PT: Token atual usado para composiÃ§Ã£o contextual de erro.</param>
-    /// <param name="ctx">EN: Context label appended to validation error messages. PT: RÃ³tulo de contexto anexado Ã s mensagens de erro de validaÃ§Ã£o.</param>
+    /// <param name="t">EN: Current token used for contextual error composition. PT: Token atual usado para composição contextual de erro.</param>
+    /// <param name="ctx">EN: Context label appended to validation error messages. PT: RÃ³tulo de contexto anexado Ã s mensagens de erro de validação.</param>
     /// <param name="dialect">EN: Dialect used for parsing. PT: Dialeto usado no parsing.</param>
-    /// <returns>EN: Parsed subquery expression node. PT: NÃ³ de expressÃ£o de subquery parseado.</returns>
+    /// <returns>EN: Parsed subquery expression node. PT: NÃ³ de expressão de subquery parseado.</returns>
     public static SubqueryExpr ParseSubqueryExprOrThrow(
         string sql,
         SqlToken t,

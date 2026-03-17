@@ -37,7 +37,7 @@ public sealed class NpgsqlFunctionTests
 
         ExecuteNonQuery(connection, "DROP FUNCTION IF EXISTS fn_users(integer, integer)");
 
-        Assert.Null(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"));
     }
 
     /// <summary>

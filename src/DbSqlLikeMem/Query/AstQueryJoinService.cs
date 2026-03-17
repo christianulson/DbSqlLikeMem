@@ -144,7 +144,7 @@ internal sealed class AstQueryJoinService(
         AstQueryExecutorBase.Source rightSource,
         IDictionary<string, AstQueryExecutorBase.Source> ctes)
     {
-        var leftList = leftRows as IList<AstQueryExecutorBase.EvalRow> ?? leftRows.ToList();
+        var leftList = leftRows as IList<AstQueryExecutorBase.EvalRow> ?? [.. leftRows];
 
         foreach (var rightFields in rightSource.Rows())
         {

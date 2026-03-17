@@ -51,7 +51,7 @@ public sealed class SqlAzureFunctionTests
 
         ExecuteNonQuery(connection, "DROP FUNCTION fn_users");
 
-        Assert.Null(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"));
     }
 
     /// <summary>
@@ -497,4 +497,3 @@ public sealed class SqlAzureFunctionTests
     private void ExecuteNonQuery(string sql)
         => ExecuteNonQuery(_connection, sql);
 }
-

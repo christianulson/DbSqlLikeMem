@@ -40,7 +40,7 @@ public sealed class RecordingDbConnectionInterceptor : DbConnectionInterceptor
     public IReadOnlyList<string> GetFormattedEvents()
     {
         lock (_gate)
-            return _events.Select(DbInterceptionEventFormatter.Format).ToArray();
+            return [.. _events.Select(DbInterceptionEventFormatter.Format)];
     }
 
     /// <inheritdoc />

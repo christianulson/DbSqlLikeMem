@@ -1218,7 +1218,6 @@ public abstract class DbConnectionMockBase(
                 table.RemoveAt(table.Count - 1);
 
             table.NextIdentity = 1;
-            table.RebuildAllIndexes();
         }
 
         _temporaryTables.Clear();
@@ -1453,7 +1452,6 @@ public abstract class DbConnectionMockBase(
                 table.Add(row.ToDictionary(entry => entry.Key, entry => entry.Value));
 
             table.NextIdentity = tableSnapshot.NextIdentity;
-            table.RebuildAllIndexes();
         }
     }
 
@@ -1479,7 +1477,6 @@ public abstract class DbConnectionMockBase(
                 table.RemoveAt(table.Count - 1);
 
             table.NextIdentity = 1;
-            table.RebuildAllIndexes();
         }
 
         _temporaryTables.Clear();

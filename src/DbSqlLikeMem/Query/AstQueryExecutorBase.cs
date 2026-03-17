@@ -13,6 +13,8 @@ internal abstract class AstQueryExecutorBase(
     : IAstQueryExecutor
 {
     private const string SqlServerForJsonColumnName = "JSON_F52E2B61-18A1-11d1-B105-00805F49916B";
+    private const int TemporalParseCacheSoftLimit = 1024;
+    private const int JsonPathParseCacheSoftLimit = 512;
     private static readonly Regex _sqlCalcFoundRowsRegex = new(
         @"\bSQL_CALC_FOUND_ROWS\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
@@ -25,6 +27,15 @@ internal abstract class AstQueryExecutorBase(
     private static readonly Random _sharedRandom = new();
     private static readonly object _randomLock = new();
     private static readonly DateTime _unixEpoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTimeParseCacheEntry> _dateTimeParseCache = new(StringComparer.Ordinal);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTimeParseCacheEntry> _dateTimeExactParseCache = new(StringComparer.Ordinal);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTimeOffsetParseCacheEntry> _dateTimeOffsetParseCache = new(StringComparer.Ordinal);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTimeOffsetParseCacheEntry> _dateTimeOffsetExactParseCache = new(StringComparer.Ordinal);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, TimeSpanParseCacheEntry> _timeSpanParseCache = new(StringComparer.Ordinal);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _mySqlDateFormatCache = new(StringComparer.Ordinal);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, OracleFormatMaskCacheEntry> _oracleFormatMaskCache = new(StringComparer.Ordinal);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, JsonPathTokenCacheEntry> _jsonPathTokenCache = new(StringComparer.Ordinal);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, JsonPathTokenCacheEntry> _postgresJsonPathTokenCache = new(StringComparer.Ordinal);
     private static readonly object _uuidShortCounterLock = new();
     private static long _uuidShortCounter;
 
@@ -152,7 +163,7 @@ internal abstract class AstQueryExecutorBase(
             UnionQueryValidationHelper.ValidateUnionColumnTypes(result.Columns, tables[i].Columns, i, sqlContextForErrors, dialect);
         }
 
-        result.Columns = MergeUnionColumnMetadata(tables.Select(static table => table.Columns).ToList());
+        result.Columns = MergeUnionColumnMetadata([.. tables.Select(static table => table.Columns)]);
 
         // merge
         // - entre 0 e 1 usa allFlags[0]
@@ -886,7 +897,7 @@ internal abstract class AstQueryExecutorBase(
             hasGroupBy: selectQuery.GroupBy.Count > 0);
         if (debugTrace is not null)
         {
-            var fromRows = rows as List<EvalRow> ?? rows.ToList();
+            var fromRows = rows as List<EvalRow> ?? [.. rows];
             debugTrace.AddStep(
                 "TableScan",
                 (int)Math.Min(int.MaxValue, GetKnownSourceRows(selectQuery.Table)),
@@ -911,7 +922,7 @@ internal abstract class AstQueryExecutorBase(
                 hasGroupBy: selectQuery.GroupBy.Count > 0);
             if (debugTrace is not null)
             {
-                var joinedRows = rows as List<EvalRow> ?? rows.ToList();
+                var joinedRows = rows as List<EvalRow> ?? [.. rows];
                 debugTrace.AddStep(
                     $"Join({FormatJoinTypeForDebug(j.Type)})",
                     inputRows,
@@ -936,7 +947,7 @@ internal abstract class AstQueryExecutorBase(
             rows = ApplyRowPredicate(rows, selectQuery.Where, ctes);
             if (debugTrace is not null)
             {
-                var filteredRows = rows as List<EvalRow> ?? rows.ToList();
+                var filteredRows = rows as List<EvalRow> ?? [.. rows];
                 debugTrace.AddStep(
                     "Filter",
                     inputRows,
@@ -954,7 +965,7 @@ internal abstract class AstQueryExecutorBase(
             return ExecuteGroup(selectQuery, ctes, rows, debugTrace);
 
         // 5) Project non-grouped
-        var projectedRows = rows as List<EvalRow> ?? rows.ToList();
+        var projectedRows = rows as List<EvalRow> ?? [.. rows];
         var projectStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
         var projected = ProjectRows(selectQuery, projectedRows, ctes);
         debugTrace?.AddStep(
@@ -993,7 +1004,7 @@ internal abstract class AstQueryExecutorBase(
         IEnumerable<EvalRow> rows,
         QueryDebugTraceBuilder? debugTrace = null)
     {
-        var sourceRows = rows as List<EvalRow> ?? rows.ToList();
+        var sourceRows = rows as List<EvalRow> ?? [.. rows];
         var keyExprs = BuildGroupByKeyExpressions(q);
 
         var groupStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
@@ -1598,7 +1609,7 @@ internal abstract class AstQueryExecutorBase(
         bool hasOrderBy,
         bool hasGroupBy)
     {
-        if (src.Physical is null || src.Physical.Indexes.Count == 0)
+        if (src.Physical is null)
             return null;
 
         var hintPlan = BuildMySqlIndexHintPlan(tableSource?.MySqlIndexHints, src.Physical, hasOrderBy, hasGroupBy);
@@ -1611,6 +1622,9 @@ internal abstract class AstQueryExecutorBase(
         if (!TryCollectColumnEqualities(where, src, out var equalsByColumn)
             || equalsByColumn.Count == 0)
             return null;
+
+        if (TryRowsFromPrimaryKey(src, equalsByColumn, out var pkRows))
+            return pkRows;
 
         IndexDef? best = null;
         foreach (var ix in src.Physical.Indexes.Values)
@@ -1646,6 +1660,41 @@ internal abstract class AstQueryExecutorBase(
             return [];
 
         return src.RowsByIndexes(positions.Keys);
+    }
+
+    private bool TryRowsFromPrimaryKey(
+        Source src,
+        IReadOnlyDictionary<string, object?> equalsByColumn,
+        out IEnumerable<Dictionary<string, object?>>? rows)
+    {
+        rows = null;
+
+        if (src.Physical is not TableMock tableMock || tableMock.PrimaryKeyIndexes.Count == 0)
+            return false;
+
+        var pkValues = new Dictionary<int, object?>();
+        foreach (var pkIdx in tableMock.PrimaryKeyIndexes)
+        {
+            var pkColumn = tableMock.Columns.FirstOrDefault(col => col.Value.Index == pkIdx);
+            if (string.IsNullOrWhiteSpace(pkColumn.Key))
+                return false;
+
+            var normalizedColumn = pkColumn.Key.NormalizeName();
+            if (!equalsByColumn.TryGetValue(normalizedColumn, out var value))
+                return false;
+
+            pkValues[pkIdx] = value;
+        }
+
+        _cnn.Metrics.IndexLookups++;
+        if (!tableMock.TryFindRowByPk(pkValues, out var rowIndex))
+        {
+            rows = [];
+            return true;
+        }
+
+        rows = src.RowsByIndexes([rowIndex]);
+        return true;
     }
 
 
@@ -2238,7 +2287,7 @@ internal abstract class AstQueryExecutorBase(
     }
 
     private static List<EvalRow> MaterializeSourceRows(Source source)
-        => source.Rows()
+        => [.. source.Rows()
             .Select(fields =>
             {
                 var rowSources = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase)
@@ -2248,8 +2297,7 @@ internal abstract class AstQueryExecutorBase(
                 if (!source.Name.Equals(source.Alias, StringComparison.OrdinalIgnoreCase))
                     rowSources[source.Name] = source;
                 return new EvalRow(new Dictionary<string, object?>(fields, StringComparer.OrdinalIgnoreCase), rowSources);
-            })
-            .ToList();
+            })];
 
     private object? AggregatePivotBucket(string aggregateFunction, SqlExpr aggArgExpr, List<EvalRow> rows, IDictionary<string, Source> ctes)
     {
@@ -3390,9 +3438,9 @@ private void FillPercentRankOrCumeDist(
 
         try
         {
-            using var document = System.Text.Json.JsonDocument.Parse(trimmed);
-            return document.RootElement.ValueKind is System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array
-                ? document.RootElement.Clone()
+            QueryJsonFunctionHelper.TryGetJsonRootElement(trimmed, out var root);
+            return root.ValueKind is System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array
+                ? root
                 : value;
         }
         catch (System.Text.Json.JsonException)
@@ -3685,7 +3733,7 @@ private void FillPercentRankOrCumeDist(
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes)
-        => expression.Items.Select(item => Eval(item, row, group, ctes)).ToArray();
+        => [.. expression.Items.Select(item => Eval(item, row, group, ctes))];
 
     private object? EvalBetween(
         BetweenExpr b,
@@ -4417,829 +4465,17 @@ private void FillPercentRankOrCumeDist(
         if (fn.Args.Count == 0 && SqlTemporalFunctionEvaluator.TryEvaluateZeroArgCall(dialect, fn.Name, out var temporalValue))
             return temporalValue;
 
-        if (TryEvalFindInSetFunction(fn, EvalArg, out var findInSetResult))
-            return findInSetResult;
+        if (TryEvalNonSqlServerScalarFunctionFamily(fn, row, group, ctes, dialect, EvalArg, out var nonSqlServerResult))
+            return nonSqlServerResult;
 
-        if (TryEvalMatchAgainstFunction(fn, dialect, EvalArg, out var matchAgainstResult))
-            return matchAgainstResult;
+        if (TryEvalSqlServerAndCompatibilityFunctionFamily(fn, row, group, ctes, dialect, EvalArg, out var sqlServerCompatibilityResult))
+            return sqlServerCompatibilityResult;
 
-        if (IsFoundRowsEquivalentFunction(fn.Name, dialect))
-        {
-            if (fn.Args.Count != 0)
-                throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() não aceita argumentos.");
+        if (TryEvalGeneralScalarFunctionFamily(fn, row, group, ctes, dialect, EvalArg, out var generalScalarResult))
+            return generalScalarResult;
 
-            return _cnn.GetLastFoundRows();
-        }
-
-        if (TryEvalConditionalFunction(fn, dialect, EvalArg, out var conditionalResult))
-            return conditionalResult;
-
-        if (TryEvalNullSubstituteFunction(fn, dialect, EvalArg, out var nullSubstituteResult))
-            return nullSubstituteResult;
-
-        if (TryEvalNvl2Function(fn, EvalArg, out var nvl2Result))
-            return nvl2Result;
-
-        if (TryEvalDecodeFunction(fn, dialect, EvalArg, out var decodeResult))
-            return decodeResult;
-
-        if (TryEvalMySqlBase64Functions(fn, dialect, EvalArg, out var base64Result))
-            return base64Result;
-
-        if (TryEvalMySqlStringCompareFunction(fn, dialect, EvalArg, out var stringCompareResult))
-            return stringCompareResult;
-
-        if (TryEvalMySqlChecksumFunction(fn, dialect, EvalArg, out var checksumResult))
-            return checksumResult;
-
-        if (TryEvalMySqlNetworkFunctions(fn, dialect, EvalArg, out var networkResult))
-            return networkResult;
-
-        if (TryEvalMySqlUuidFunctions(fn, dialect, EvalArg, out var mysqlUuidResult))
-            return mysqlUuidResult;
-
-        if (TryEvalMySqlDateFormatFunction(fn, dialect, EvalArg, out var dateFormatResult))
-            return dateFormatResult;
-
-        if (TryEvalMySqlStrToDateFunction(fn, dialect, EvalArg, out var strToDateResult))
-            return strToDateResult;
-
-        if (TryEvalMySqlFromUnixTimeFunction(fn, dialect, EvalArg, out var fromUnixTimeResult))
-            return fromUnixTimeResult;
-
-        if (TryEvalMySqlFromDaysFunction(fn, dialect, EvalArg, out var fromDaysResult))
-            return fromDaysResult;
-
-        if (TryEvalMySqlDateSubFunction(fn, dialect, row, group, ctes, EvalArg, out var dateSubResult))
-            return dateSubResult;
-
-        if (TryEvalMySqlGetFormatFunction(fn, dialect, EvalArg, out var getFormatResult))
-            return getFormatResult;
-
-        if (TryEvalMySqlConvertTzFunction(fn, dialect, EvalArg, out var convertTzResult))
-            return convertTzResult;
-
-        if (TryEvalMySqlConvFunction(fn, dialect, EvalArg, out var convResult))
-            return convResult;
-
-        if (TryEvalMySqlDayFunctions(fn, dialect, EvalArg, out var dayResult))
-            return dayResult;
-
-        if (TryEvalMySqlDatabaseFunctions(fn, dialect, EvalArg, out var databaseResult))
-            return databaseResult;
-
-        if (TryEvalMySqlStringMetadataFunctions(fn, dialect, EvalArg, out var stringMetadataResult))
-            return stringMetadataResult;
-
-        if (TryEvalMySqlSetFunctions(fn, dialect, EvalArg, out var setResult))
-            return setResult;
-
-        if (TryEvalMySqlHexFunctions(fn, dialect, EvalArg, out var mysqlHexResult))
-            return mysqlHexResult;
-
-        if (TryEvalMySqlFormatFunction(fn, dialect, EvalArg, out var mysqlFormatResult))
-            return mysqlFormatResult;
-
-        if (TryEvalMySqlRandomBytesFunction(fn, dialect, EvalArg, out var randomBytesResult))
-            return randomBytesResult;
-
-        if (TryEvalMySqlSleepFunction(fn, dialect, EvalArg, out var sleepResult))
-            return sleepResult;
-
-        if (TryEvalMySqlCompressFunctions(fn, dialect, EvalArg, out var compressResult))
-            return compressResult;
-
-        if (TryEvalMySqlFormatBytesFunction(fn, dialect, EvalArg, out var formatBytesResult))
-            return formatBytesResult;
-
-        if (TryEvalMySqlFormatPicoTimeFunction(fn, dialect, EvalArg, out var formatPicoTimeResult))
-            return formatPicoTimeResult;
-
-        if (TryEvalMySqlXmlFunctions(fn, dialect, EvalArg, out var mysqlXmlResult))
-            return mysqlXmlResult;
-
-        if (TryEvalMySqlCryptoFunctions(fn, dialect, EvalArg, out var mysqlCryptoResult))
-            return mysqlCryptoResult;
-
-        if (TryEvalMySqlDefaultFunction(fn, dialect, row, EvalArg, out var mysqlDefaultResult))
-            return mysqlDefaultResult;
-
-        if (TryEvalMySqlMemberOfFunction(fn, dialect, EvalArg, out var mysqlMemberOfResult))
-            return mysqlMemberOfResult;
-
-        if (TryEvalCoalesceFunction(fn, EvalArg, out var coalesceResult))
-            return coalesceResult;
-
-        if (TryEvalNullIfFunction(fn, dialect, EvalArg, out var nullIfResult))
-            return nullIfResult;
-
-        if (TryEvalAddMonthsFunction(fn, dialect, EvalArg, out var addMonthsResult))
-            return addMonthsResult;
-
-        if (TryEvalAsciiStrFunction(fn, dialect, EvalArg, out var asciiStrResult))
-            return asciiStrResult;
-
-        if (TryEvalBinToNumFunction(fn, dialect, EvalArg, out var binToNumResult))
-            return binToNumResult;
-
-        if (TryEvalBitAndFunction(fn, dialect, EvalArg, out var bitAndResult))
-            return bitAndResult;
-
-        if (TryEvalBitOrFunction(fn, dialect, EvalArg, out var bitOrResult))
-            return bitOrResult;
-
-        if (TryEvalBitXorFunction(fn, dialect, EvalArg, out var bitXorResult))
-            return bitXorResult;
-
-        if (TryEvalBitNotFunction(fn, dialect, EvalArg, out var bitNotResult))
-            return bitNotResult;
-
-        if (TryEvalBitAndNotFunction(fn, dialect, EvalArg, out var bitAndNotResult))
-            return bitAndNotResult;
-
-        if (TryEvalCardinalityFunction(fn, dialect, EvalArg, out var cardinalityResult))
-            return cardinalityResult;
-
-        if (TryEvalChrFunction(fn, dialect, EvalArg, out var chrResult))
-            return chrResult;
-
-        if (TryEvalComposeFunction(fn, dialect, EvalArg, out var composeResult))
-            return composeResult;
-
-        if (TryEvalConvertFunction(fn, dialect, EvalArg, out var convertResult))
-            return convertResult;
-
-        if (TryEvalDbTimeZoneFunction(fn, dialect, out var dbTimeZoneResult))
-            return dbTimeZoneResult;
-
-        if (TryEvalDecomposeFunction(fn, dialect, EvalArg, out var decomposeResult))
-            return decomposeResult;
-
-        if (TryEvalEmptyLobFunction(fn, dialect, out var emptyLobResult))
-            return emptyLobResult;
-
-        if (TryEvalInitCapFunction(fn, dialect, EvalArg, out var initCapResult))
-            return initCapResult;
-
-        if (TryEvalChartoRowidFunction(fn, dialect, EvalArg, out var chartoRowidResult))
-            return chartoRowidResult;
-
-        if (TryEvalClusterFunctions(fn, dialect, EvalArg, out var clusterResult))
-            return clusterResult;
-
-        if (TryEvalCollationFunction(fn, dialect, EvalArg, out var collationResult))
-            return collationResult;
-
-        if (TryEvalConIdFunctions(fn, dialect, EvalArg, out var conIdResult))
-            return conIdResult;
-
-        if (TryEvalCubeTableFunction(fn, dialect, EvalArg, out var cubeTableResult))
-            return cubeTableResult;
-
-        if (TryEvalCvFunction(fn, dialect, EvalArg, out var cvResult))
-            return cvResult;
-
-        if (TryEvalDataObjToPartitionFunctions(fn, dialect, EvalArg, out var dataObjResult))
-            return dataObjResult;
-
-        if (TryEvalDepthFunction(fn, dialect, EvalArg, out var depthResult))
-            return depthResult;
-
-        if (TryEvalDerefFunction(fn, dialect, EvalArg, out var derefResult))
-            return derefResult;
-
-        if (TryEvalDumpFunction(fn, dialect, EvalArg, out var dumpResult))
-            return dumpResult;
-
-        if (TryEvalExistsNodeFunction(fn, dialect, EvalArg, out var existsNodeResult))
-            return existsNodeResult;
-
-        if (TryEvalFromTzFunction(fn, dialect, EvalArg, out var fromTzResult))
-            return fromTzResult;
-
-        if (TryEvalGroupIdFunction(fn, dialect, out var groupIdResult))
-            return groupIdResult;
-
-        if (TryEvalHexToRawFunction(fn, dialect, EvalArg, out var hexToRawResult))
-            return hexToRawResult;
-
-        if (TryEvalIterationNumberFunction(fn, dialect, out var iterationResult))
-            return iterationResult;
-
-        if (TryEvalJsonDataGuideFunction(fn, dialect, EvalArg, out var jsonDataGuideResult))
-            return jsonDataGuideResult;
-
-        if (TryEvalJsonTransformFunction(fn, dialect, EvalArg, out var jsonTransformResult))
-            return jsonTransformResult;
-
-        if (TryEvalLnnvlFunction(fn, dialect, EvalArg, out var lnnvlResult))
-            return lnnvlResult;
-
-        if (TryEvalLocalTimeFunction(fn, dialect, out var localTimeResult))
-            return localTimeResult;
-
-        if (TryEvalLocalTimestampFunction(fn, dialect, out var localTimestampResult))
-            return localTimestampResult;
-
-        if (TryEvalLowerFunction(fn, dialect, EvalArg, out var lowerResult))
-            return lowerResult;
-
-        if (TryEvalLtrimFunction(fn, dialect, EvalArg, out var ltrimResult))
-            return ltrimResult;
-
-        if (TryEvalDivFunction(fn, dialect, EvalArg, out var divResult))
-            return divResult;
-
-        if (TryEvalModFunction(fn, dialect, EvalArg, out var modResult))
-            return modResult;
-
-        if (TryEvalMonthsBetweenFunction(fn, dialect, EvalArg, out var monthsBetweenResult))
-            return monthsBetweenResult;
-
-        if (TryEvalMidnightSecondsFunction(fn, dialect, EvalArg, out var midnightSecondsResult))
-            return midnightSecondsResult;
-
-        if (TryEvalNanvlFunction(fn, dialect, EvalArg, out var nanvlResult))
-            return nanvlResult;
-
-        if (TryEvalNewTimeFunction(fn, dialect, EvalArg, out var newTimeResult))
-            return newTimeResult;
-
-        if (TryEvalNextDayFunction(fn, dialect, EvalArg, out var nextDayResult))
-            return nextDayResult;
-
-        if (TryEvalNlsFunctions(fn, dialect, EvalArg, out var nlsResult))
-            return nlsResult;
-
-        if (TryEvalNumIntervalFunctions(fn, dialect, EvalArg, out var numIntervalResult))
-            return numIntervalResult;
-
-        if (TryEvalMakeRefFunction(fn, dialect, EvalArg, out var makeRefResult))
-            return makeRefResult;
-
-        if (TryEvalOracleApproxFunctions(fn, dialect, EvalArg, out var approxResult))
-            return approxResult;
-
-        if (TryEvalOracleBfilenameFunction(fn, dialect, EvalArg, out var bfileResult))
-            return bfileResult;
-
-        if (TryEvalOracleHashFunction(fn, dialect, EvalArg, out var hashResult))
-            return hashResult;
-
-        if (TryEvalOracleRawFunctions(fn, dialect, EvalArg, out var rawResult))
-            return rawResult;
-
-        if (TryEvalMySqlRegexFunctions(fn, dialect, EvalArg, out var mysqlRegexResult))
-            return mysqlRegexResult;
-
-        if (TryEvalOracleRegexFunctions(fn, dialect, EvalArg, out var regexResult))
-            return regexResult;
-
-        if (TryEvalOracleRemainderFunction(fn, dialect, EvalArg, out var remainderResult))
-            return remainderResult;
-
-        if (TryEvalOracleRowIdFunctions(fn, dialect, EvalArg, out var rowidResult))
-            return rowidResult;
-
-        if (TryEvalOracleSessionTimeZoneFunction(fn, dialect, out var sessionTzResult))
-            return sessionTzResult;
-
-        if (TryEvalOracleSysFunctions(fn, dialect, EvalArg, out var sysResult))
-            return sysResult;
-
-        if (TryEvalOracleToCharFunctions(fn, dialect, EvalArg, out var toCharResult))
-            return toCharResult;
-
-        if (TryEvalTranslateFunctions(fn, dialect, EvalArg, out var translateResult))
-            return translateResult;
-
-        if (TryEvalOracleUserEnvFunctions(fn, dialect, EvalArg, out var userEnvResult))
-            return userEnvResult;
-
-        if (TryEvalOracleValidateConversionFunction(fn, dialect, EvalArg, out var validateResult))
-            return validateResult;
-
-        if (TryEvalOracleVsizeFunction(fn, dialect, EvalArg, out var vsizeResult))
-            return vsizeResult;
-
-        if (TryEvalOracleWidthBucketFunction(fn, dialect, EvalArg, out var widthBucketResult))
-            return widthBucketResult;
-
-        if (TryEvalOracleAnalyticsFunctions(fn, dialect, EvalArg, out var analyticsResult))
-            return analyticsResult;
-
-        if (TryEvalOracleScnFunctions(fn, dialect, EvalArg, out var scnResult))
-            return scnResult;
-
-        if (TryEvalOracleTimeZoneOffsetFunction(fn, dialect, EvalArg, out var tzOffsetResult))
-            return tzOffsetResult;
-
-        if (TryEvalOracleXmlFunctions(fn, dialect, EvalArg, out var xmlResult))
-            return xmlResult;
-
-        if (TryEvalOracleUserFunction(fn, dialect, out var oracleUserResult))
-            return oracleUserResult;
-
-        if (TryEvalPostgresSystemFunctions(fn, dialect, EvalArg, out var postgresSystemResult))
-            return postgresSystemResult;
-
-        if (TryEvalPostgresDateFunctions(fn, dialect, EvalArg, out var postgresDateResult))
-            return postgresDateResult;
-
-        if (TryEvalDb2DateTruncFunction(fn, dialect, EvalArg, out var db2DateTruncResult))
-            return db2DateTruncResult;
-
-        if (TryEvalPostgresScalarUtilityFunctions(fn, dialect, EvalArg, out var postgresScalarUtilityResult))
-            return postgresScalarUtilityResult;
-
-        if (TryEvalPostgresTextFunctions(fn, dialect, EvalArg, out var postgresTextResult))
-            return postgresTextResult;
-
-        if (TryEvalPostgresNetworkFunctions(fn, dialect, EvalArg, out var postgresNetworkResult))
-            return postgresNetworkResult;
-
-        if (TryEvalPostgresUnicodeFunctions(fn, dialect, EvalArg, out var postgresUnicodeResult))
-            return postgresUnicodeResult;
-
-        if (TryEvalPostgresRegexFunctions(fn, dialect, EvalArg, out var postgresRegexResult))
-            return postgresRegexResult;
-
-        if (TryEvalPostgresArrayFunctions(fn, dialect, EvalArg, out var postgresArrayResult))
-            return postgresArrayResult;
-
-        if (TryEvalPostgresJsonFunctions(fn, dialect, EvalArg, out var postgresJsonResult))
-            return postgresJsonResult;
-
-        if (TryEvalPostgresUuidFunctions(fn, dialect, out var postgresUuidResult))
-            return postgresUuidResult;
-
-        if (TryEvalNumericFunction(fn, EvalArg, out var numericResult))
-            return numericResult;
-
-        if (TryEvalAppNameFunction(fn, out var appNameResult))
-            return appNameResult;
-
-        if (TryEvalCharIndexFunction(fn, EvalArg, out var charIndexResult))
-            return charIndexResult;
-
-        if (TryEvalCurrentUserFunction(fn, dialect, out var currentUserResult))
-            return currentUserResult;
-
-        EnsureSqlServerFunctionSupport(fn, dialect);
-
-        if (TryEvalSqlServerDatabaseFunctions(fn, dialect, EvalArg, out var sqlServerDatabaseResult))
-            return sqlServerDatabaseResult;
-
-        if (TryEvalSqlServerServerPropertyFunction(fn, dialect, EvalArg, out var sqlServerServerPropertyResult))
-            return sqlServerServerPropertyResult;
-
-        if (TryEvalSqlServerConnectionPropertyFunction(fn, dialect, EvalArg, out var sqlServerConnectionPropertyResult))
-            return sqlServerConnectionPropertyResult;
-
-        if (TryEvalSqlServerContextInfoFunction(fn, dialect, out var sqlServerContextInfoResult))
-            return sqlServerContextInfoResult;
-
-        if (TryEvalSqlServerSessionFunctions(fn, dialect, EvalArg, out var sqlServerSessionResult))
-            return sqlServerSessionResult;
-
-        if (TryEvalSqlServerIdentityFunctions(fn, dialect, EvalArg, out var sqlServerIdentityResult))
-            return sqlServerIdentityResult;
-
-        if (TryEvalDataLengthFunction(fn, EvalArg, out var dataLengthResult))
-            return dataLengthResult;
-
-        if (TryEvalDateNameFunction(fn, row, group, ctes, EvalArg, out var dateNameResult))
-            return dateNameResult;
-
-        if (TryEvalDatePartFunction(fn, row, group, ctes, EvalArg, out var datePartResult))
-            return datePartResult;
-
-        if (TryEvalDb2DateAliasFunction(fn, dialect, EvalArg, out var db2DateAliasResult))
-            return db2DateAliasResult;
-
-        if (TryEvalDb2DateAddAliasFunction(fn, dialect, EvalArg, out var db2DateAddAliasResult))
-            return db2DateAddAliasResult;
-
-        if (TryEvalDegreesFunction(fn, EvalArg, out var degreesResult))
-            return degreesResult;
-
-        if (TryEvalDateDiffBigFunction(fn, row, group, ctes, EvalArg, out var dateDiffBigResult))
-            return dateDiffBigResult;
-
-        if (TryEvalDateFromPartsFunction(fn, EvalArg, out var dateFromPartsResult))
-            return dateFromPartsResult;
-
-        if (TryEvalDateTimeFromPartsFunction(fn, EvalArg, out var dateTimeFromPartsResult))
-            return dateTimeFromPartsResult;
-
-        if (TryEvalDateTime2FromPartsFunction(fn, EvalArg, out var dateTime2FromPartsResult))
-            return dateTime2FromPartsResult;
-
-        if (TryEvalDateTimeOffsetFromPartsFunction(fn, EvalArg, out var dateTimeOffsetFromPartsResult))
-            return dateTimeOffsetFromPartsResult;
-
-        if (TryEvalTimeFromPartsFunction(fn, EvalArg, out var timeFromPartsResult))
-            return timeFromPartsResult;
-
-        if (TryEvalSmallDateTimeFromPartsFunction(fn, EvalArg, out var smallDateTimeFromPartsResult))
-            return smallDateTimeFromPartsResult;
-
-        if (fn.Name.Equals("EOMONTH", StringComparison.OrdinalIgnoreCase)
-            && !dialect.SupportsEomonthFunction)
-            throw SqlUnsupported.ForDialect(dialect, "EOMONTH");
-
-        if (TryEvalEomonthFunction(fn, EvalArg, out var eomonthResult))
-            return eomonthResult;
-
-        if (TryEvalDifferenceFunction(fn, EvalArg, out var differenceResult))
-            return differenceResult;
-
-        if (TryEvalErrorFunctions(fn, out var errorResult))
-            return errorResult;
-
-        if (TryEvalExpFunction(fn, EvalArg, out var expResult))
-            return expResult;
-
-        if (TryEvalFloorFunction(fn, EvalArg, out var floorResult))
-            return floorResult;
-
-        if (TryEvalSqlServerFormatFunction(fn, dialect, EvalArg, out var sqlServerFormatResult))
-            return sqlServerFormatResult;
-
-        if (TryEvalSqlServerFormatMessageFunction(fn, EvalArg, out var sqlServerFormatMessageResult))
-            return sqlServerFormatMessageResult;
-
-        if (TryEvalSqlServerCompressFunction(fn, EvalArg, out var sqlServerCompressResult))
-            return sqlServerCompressResult;
-
-        if (TryEvalSqlServerDecompressFunction(fn, EvalArg, out var sqlServerDecompressResult))
-            return sqlServerDecompressResult;
-
-        if (TryEvalSqlServerChecksumFunction(fn, EvalArg, out var sqlServerChecksumResult))
-            return sqlServerChecksumResult;
-
-        if (fn.Name.Equals("GETUTCDATE", StringComparison.OrdinalIgnoreCase)
-            && !dialect.SupportsGetUtcDateFunction)
-            throw SqlUnsupported.ForDialect(dialect, "GETUTCDATE");
-
-        if (TryEvalGetUtcDateFunction(fn, out var getUtcDateResult))
-            return getUtcDateResult;
-
-        if (TryEvalGetAnsiNullFunction(fn, out var getAnsiNullResult))
-            return getAnsiNullResult;
-
-        if (TryEvalGroupingFunctions(fn, dialect, EvalArg, out var groupingResult))
-            return groupingResult;
-
-        if (TryEvalHostFunctions(fn, out var hostResult))
-            return hostResult;
-
-        if (TryEvalSessionContextFunction(fn, EvalArg, out var sessionContextResult))
-            return sessionContextResult;
-
-        if (TryEvalSqlServerGuidFunctions(fn, out var sqlServerGuidResult))
-            return sqlServerGuidResult;
-
-        if (TryEvalSqlServerStringEscapeFunction(fn, EvalArg, out var sqlServerStringEscapeResult))
-            return sqlServerStringEscapeResult;
-
-        if (TryEvalSqlServerStrFunction(fn, EvalArg, out var sqlServerStrResult))
-            return sqlServerStrResult;
-
-        if (TryEvalSqlServerDateTimeOffsetFunctions(fn, EvalArg, out var sqlServerDateTimeOffsetResult))
-            return sqlServerDateTimeOffsetResult;
-
-        if (TryEvalIsDateFunction(fn, EvalArg, out var isDateResult))
-            return isDateResult;
-
-        if (TryEvalIsJsonFunction(fn, EvalArg, out var isJsonResult))
-            return isJsonResult;
-
-        if (TryEvalIsNumericFunction(fn, EvalArg, out var isNumericResult))
-            return isNumericResult;
-
-        if (TryEvalAddDateFunction(fn, EvalArg, out var addDateResult))
-            return addDateResult;
-
-        if (TryEvalAddTimeFunction(fn, EvalArg, out var addTimeResult))
-            return addTimeResult;
-
-        if (TryEvalIpFunctions(fn, EvalArg, out var ipResult))
-            return ipResult;
-
-        if (TryEvalIsUuidFunction(fn, EvalArg, out var isUuidResult))
-            return isUuidResult;
-
-        if (TryEvalJsonArrayFunction(fn, EvalArg, out var jsonArrayResult))
-            return jsonArrayResult;
-
-        if (TryEvalJsonDepthFunction(fn, EvalArg, out var jsonDepthResult))
-            return jsonDepthResult;
-
-        if (TryEvalJsonUtilityFunctions(fn, dialect, EvalArg, out var jsonUtilityResult))
-            return jsonUtilityResult;
-
-        if (TryEvalMinMaxFunctions(fn, dialect, EvalArg, out var minMaxResult))
-            return minMaxResult;
-
-        if (TryEvalLastDayFunction(fn, EvalArg, out var lastDayResult))
-            return lastDayResult;
-
-        if (TryEvalLastInsertIdFunction(fn, EvalArg, out var lastInsertIdResult))
-            return lastInsertIdResult;
-
-        if (TryEvalLocateFunction(fn, dialect, EvalArg, out var locateResult))
-            return locateResult;
-
-        if (TryEvalLogFunctions(fn, dialect, EvalArg, out var logResult))
-            return logResult;
-
-        if (TryEvalInstrFunction(fn, EvalArg, out var instrResult))
-            return instrResult;
-
-        if (TryEvalGlobFunction(fn, EvalArg, out var globResult))
-            return globResult;
-
-        if (TryEvalLikeFunction(fn, dialect, EvalArg, out var likeResult))
-            return likeResult;
-
-        if (TryEvalPatIndexFunction(fn, dialect, EvalArg, out var patIndexResult))
-            return patIndexResult;
-
-        if (TryEvalStrftimeFunction(fn, EvalArg, out var strftimeResult))
-            return strftimeResult;
-
-        if (TryEvalPrintfFunction(fn, dialect, EvalArg, out var printfResult))
-            return printfResult;
-
-        if (TryEvalRandomFunctions(fn, dialect, EvalArg, out var randomResult))
-            return randomResult;
-
-        if (TryEvalTypeofFunction(fn, EvalArg, out var typeofResult))
-            return typeofResult;
-
-        if (TryEvalUnicodeFunctions(fn, EvalArg, out var unicodeResult))
-            return unicodeResult;
-
-        if (TryEvalSqliteSystemFunctions(fn, dialect, EvalArg, out var sqliteSystemResult))
-            return sqliteSystemResult;
-
-        if (TryEvalSqliteJsonFunctions(fn, dialect, EvalArg, out var sqliteJsonResult))
-            return sqliteJsonResult;
-
-        if (TryEvalLikelihoodFunctions(fn, EvalArg, out var likelihoodResult))
-            return likelihoodResult;
-
-        if (TryEvalPadFunctions(fn, EvalArg, out var padResult))
-            return padResult;
-
-        if (TryEvalMakeDateFunction(fn, EvalArg, out var makeDateResult))
-            return makeDateResult;
-
-        if (TryEvalMakeTimeFunction(fn, EvalArg, out var makeTimeResult))
-            return makeTimeResult;
-
-        if (TryEvalMicrosecondFunction(fn, EvalArg, out var microsecondResult))
-            return microsecondResult;
-
-        if (TryEvalMd5Function(fn, EvalArg, out var md5Result))
-            return md5Result;
-
-        if (TryEvalModFunction(fn, EvalArg, out var modResult2))
-            return modResult2;
-
-        if (TryEvalMonthNameFunction(fn, EvalArg, out var monthNameResult))
-            return monthNameResult;
-
-        if (TryEvalOctFunction(fn, EvalArg, out var octResult))
-            return octResult;
-
-        if (TryEvalHexFunction(fn, EvalArg, out var hexResult))
-            return hexResult;
-
-        if (TryEvalUnhexFunction(fn, EvalArg, out var unhexResult))
-            return unhexResult;
-
-        if (TryEvalOctetLengthFunction(fn, EvalArg, out var octetLengthResult))
-            return octetLengthResult;
-
-        if (TryEvalNameConstFunction(fn, EvalArg, out var nameConstResult))
-            return nameConstResult;
-
-        if (TryEvalOrdFunction(fn, EvalArg, out var ordResult))
-            return ordResult;
-
-        if (TryEvalPositionFunction(fn, EvalArg, out var positionResult))
-            return positionResult;
-
-        if (TryEvalPiFunction(fn, out var piResult))
-            return piResult;
-
-        if (TryEvalPowerFunctions(fn, EvalArg, out var powerResult))
-            return powerResult;
-
-        if (TryEvalPeriodFunctions(fn, EvalArg, out var periodResult))
-            return periodResult;
-
-        if (TryEvalQuarterFunction(fn, EvalArg, out var quarterResult))
-            return quarterResult;
-
-        if (TryEvalQuoteFunction(fn, EvalArg, out var quoteResult))
-            return quoteResult;
-
-        if (TryEvalSqlServerScalarFunctions(fn, dialect, EvalArg, out var sqlServerScalarResult))
-            return sqlServerScalarResult;
-
-        if (TryEvalRadiansFunction(fn, EvalArg, out var radiansResult))
-            return radiansResult;
-
-        if (TryEvalRandFunction(fn, EvalArg, out var randResult))
-            return randResult;
-
-        if (TryEvalRepeatFunction(fn, EvalArg, out var repeatResult))
-            return repeatResult;
-
-        if (TryEvalReverseFunction(fn, EvalArg, out var reverseResult))
-            return reverseResult;
-
-        if (TryEvalLeftFunction(fn, EvalArg, out var leftResult))
-            return leftResult;
-
-        if (TryEvalRightFunction(fn, EvalArg, out var rightResult))
-            return rightResult;
-
-        if (TryEvalRoundFunction(fn, EvalArg, out var roundResult))
-            return roundResult;
-
-        if (TryEvalPadRightFunction(fn, EvalArg, out var padRightResult))
-            return padRightResult;
-
-        if (TryEvalSecToTimeFunction(fn, EvalArg, out var secToTimeResult))
-            return secToTimeResult;
-
-        if (TryEvalShaFunctions(fn, EvalArg, out var shaResult))
-            return shaResult;
-
-        if (TryEvalSinFunction(fn, EvalArg, out var sinResult))
-            return sinResult;
-
-        if (TryEvalSoundexFunction(fn, EvalArg, out var soundexResult))
-            return soundexResult;
-
-        if (TryEvalSpaceFunction(fn, EvalArg, out var spaceResult))
-            return spaceResult;
-
-        if (TryEvalSqrtFunction(fn, EvalArg, out var sqrtResult))
-            return sqrtResult;
-
-        if (TryEvalSubDateFunction(fn, row, group, ctes, EvalArg, out var subDateResult))
-            return subDateResult;
-
-        if (TryEvalSubTimeFunction(fn, EvalArg, out var subTimeResult))
-            return subTimeResult;
-
-        if (TryEvalSubstringIndexFunction(fn, EvalArg, out var substringIndexResult))
-            return substringIndexResult;
-
-        if (TryEvalTanFunction(fn, EvalArg, out var tanResult))
-            return tanResult;
-
-        if (TryEvalTimeFormatFunction(fn, EvalArg, out var timeFormatResult))
-            return timeFormatResult;
-
-        if (TryEvalTimeToSecFunction(fn, EvalArg, out var timeToSecResult))
-            return timeToSecResult;
-
-        if (TryEvalTimeDiffFunction(fn, EvalArg, out var timeDiffResult))
-            return timeDiffResult;
-
-        if (TryEvalSessionUserFunction(fn, dialect, out var sessionUserResult))
-            return sessionUserResult;
-
-        if (TryEvalSystemUserFunction(fn, dialect, out var systemUserResult))
-            return systemUserResult;
-
-        if (TryEvalToDaysFunction(fn, EvalArg, out var toDaysResult))
-            return toDaysResult;
-
-        if (TryEvalToSecondsFunction(fn, EvalArg, out var toSecondsResult))
-            return toSecondsResult;
-
-        if (TryEvalTruncateFunction(fn, EvalArg, out var truncateResult))
-            return truncateResult;
-
-        if (TryEvalUnixTimestampFunction(fn, EvalArg, out var unixTimestampResult))
-            return unixTimestampResult;
-
-        if (TryEvalUserFunction(fn, out var userResult))
-            return userResult;
-
-        if (TryEvalUtcDateFunction(fn, out var utcDateResult))
-            return utcDateResult;
-
-        if (TryEvalUtcTimeFunction(fn, out var utcTimeResult))
-            return utcTimeResult;
-
-        if (TryEvalUtcTimestampFunction(fn, out var utcTimestampResult))
-            return utcTimestampResult;
-
-        if (TryEvalUuidShortFunction(fn, out var uuidShortResult))
-            return uuidShortResult;
-
-        if (TryEvalWeekFunctions(fn, dialect, EvalArg, out var weekResult))
-            return weekResult;
-
-        EnsureDialectSupportsSequenceFunction(fn.Name);
-        if (SqlSequenceEvaluator.TryEvaluateCall(_cnn, fn.Name, fn.Args, expr => Eval(expr, row, group, ctes), out var sequenceValue))
-            return sequenceValue;
-
-        var jsonNumberResult = TryEvalJsonAndNumberFunctions(fn, dialect, EvalArg, out var handledJsonNumber);
-        if (handledJsonNumber)
-            return jsonNumberResult;
-
-        // TRY_CAST(x AS TYPE) - similar ao CAST, mas retorna null em falha
-        if (fn.Name.Equals("TRY_CAST", StringComparison.OrdinalIgnoreCase))
-        {
-            if (!dialect.SupportsTryCastFunction)
-                throw SqlUnsupported.ForDialect(dialect, "TRY_CAST");
-
-            return EvalTryCast(fn, EvalArg);
-        }
-
-        // TRY_CONVERT(TYPE, x[, style]) - sintaxe do SQL Server, normalizada pelo parser
-        if (fn.Name.Equals("TRY_CONVERT", StringComparison.OrdinalIgnoreCase))
-        {
-            if (!dialect.SupportsTryConvertFunction)
-                throw SqlUnsupported.ForDialect(dialect, "TRY_CONVERT");
-
-            return EvalTryCast(fn, EvalArg);
-        }
-
-        if (fn.Name.Equals("PARSE", StringComparison.OrdinalIgnoreCase))
-        {
-            if (!dialect.SupportsParseFunction)
-                throw SqlUnsupported.ForDialect(dialect, "PARSE");
-
-            return EvalParseFunction(fn, EvalArg, false);
-        }
-
-        if (fn.Name.Equals("TRY_PARSE", StringComparison.OrdinalIgnoreCase))
-        {
-            if (!dialect.SupportsTryParseFunction)
-                throw SqlUnsupported.ForDialect(dialect, "TRY_PARSE");
-
-            return EvalParseFunction(fn, EvalArg, true);
-        }
-
-        // CAST(x AS TYPE) - aqui chega como CallExpr("CAST", [expr, RawSqlExpr("SIGNED")]) via parser
-        if (fn.Name.Equals("CAST", StringComparison.OrdinalIgnoreCase))
-            return EvalCast(fn, EvalArg);
-        var concatResult = TryEvalConcatFunctions(fn, EvalArg, out var handledConcat);
-        if (handledConcat)
-            return concatResult;
-
-        if (TryEvalCharFunction(fn, dialect, EvalArg, out var charResult))
-            return charResult;
-
-        if (TryEvalDialectSpecificCastFunction(fn, dialect, EvalArg, out var dialectSpecificCastResult))
-            return dialectSpecificCastResult;
-
-        if (TryEvalBasicStringFunction(fn, EvalArg, out var basicStringResult))
-            return basicStringResult;
-
-        if (TryEvalSubstringFunction(fn, EvalArg, out var substringResult))
-            return substringResult;
-
-        if (TryEvalReplaceFunction(fn, EvalArg, out var replaceResult))
-            return replaceResult;
-
-        if (TryEvalDaysFunction(fn, EvalArg, out var daysResult))
-            return daysResult;
-
-        if (TryEvalDateDiffFunction(fn, row, group, ctes, EvalArg, out var dateDiffResult))
-            return dateDiffResult;
-
-        if (TryEvalTimestampDiffFunction(fn, row, group, ctes, EvalArg, out var timestampDiffResult))
-            return timestampDiffResult;
-
-        var dateAddResult = TryEvalDateAddFunction(fn, row, group, ctes, EvalArg, out var handledDateAdd);
-        if (handledDateAdd)
-            return dateAddResult;
-
-        if (TryEvalDateConstructionFunction(fn, EvalArg, out var dateConstructionResult))
-            return dateConstructionResult;
-
-        if (TryEvalJulianDayFunction(fn, EvalArg, out var julianDayResult))
-            return julianDayResult;
-
-        if (TryEvalTruncFunction(fn, EvalArg, out var truncResult))
-            return truncResult;
-
-        if (TryEvalExtractFunction(fn, row, group, ctes, EvalArg, out var extractResult))
-            return extractResult;
-
-        if (TryEvalFieldFunction(fn, dialect, EvalArg, out var fieldResult))
-            return fieldResult;
+        if (TryEvalCastStringAndDateTail(fn, row, group, ctes, dialect, EvalArg, out var castStringAndDateTailResult))
+            return castStringAndDateTailResult;
 
         if (fn.Args.Count == 0
             && SqlTemporalFunctionEvaluator.IsKnownTemporalFunctionName(fn.Name))
@@ -5249,6 +4485,516 @@ private void FillPercentRankOrCumeDist(
         return null;
 
         object? EvalArg(int i) => i < fn.Args.Count ? Eval(fn.Args[i], row, group, ctes) : null;
+    }
+
+    private bool TryEvalNonSqlServerScalarFunctionFamily(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (QueryTextSearchFunctionHelper.TryEvalFindInSetFunction(fn, evalArg, out result)
+            || QueryTextSearchFunctionHelper.TryEvalMatchAgainstFunction(fn, dialect, evalArg, out result)
+            || QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions(fn, dialect, evalArg, out result))
+        {
+            return true;
+        }
+
+        if (IsFoundRowsEquivalentFunction(fn.Name, dialect))
+        {
+            if (fn.Args.Count != 0)
+                throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() não aceita argumentos.");
+
+            result = _cnn.GetLastFoundRows();
+            return true;
+        }
+
+        if (TryEvalMySqlBase64Functions(fn, dialect, evalArg, out result)
+            || TryEvalMySqlStringCompareFunction(fn, dialect, evalArg, out result)
+            || TryEvalMySqlChecksumFunction(fn, dialect, evalArg, out result)
+            || TryEvalMySqlNetworkFunctions(fn, dialect, evalArg, out result)
+            || TryEvalMySqlUuidFunctions(fn, dialect, evalArg, out result)
+            || TryEvalMySqlDateFormatFunction(fn, dialect, evalArg, out result)
+            || TryEvalMySqlStrToDateFunction(fn, dialect, evalArg, out result)
+            || TryEvalMySqlFromUnixTimeFunction(fn, dialect, evalArg, out result)
+            || TryEvalMySqlFromDaysFunction(fn, dialect, evalArg, out result))
+        {
+            return true;
+        }
+
+        if (TryEvalMySqlDateSubFunction(fn, dialect, row, group, ctes, evalArg, out result)
+            || TryEvalMySqlGetFormatFunction(fn, dialect, evalArg, out result)
+            || TryEvalMySqlConvertTzFunction(fn, dialect, evalArg, out result)
+            || TryEvalMySqlConvFunction(fn, dialect, evalArg, out result)
+            || TryEvalMySqlDayFunctions(fn, dialect, evalArg, out result)
+            || TryEvalMySqlDatabaseFunctions(fn, dialect, evalArg, out result)
+            || TryEvalMySqlStringMetadataFunctions(fn, dialect, evalArg, out result)
+            || TryEvalMySqlSetFunctions(fn, dialect, evalArg, out result)
+            || TryEvalMySqlHexFunctions(fn, dialect, evalArg, out result)
+            || TryEvalMySqlFormatFunction(fn, dialect, evalArg, out result)
+            || TryEvalMySqlRandomBytesFunction(fn, dialect, evalArg, out result)
+            || TryEvalMySqlSleepFunction(fn, dialect, evalArg, out result)
+            || TryEvalMySqlCompressFunctions(fn, dialect, evalArg, out result)
+            || TryEvalMySqlFormatBytesFunction(fn, dialect, evalArg, out result)
+            || TryEvalMySqlFormatPicoTimeFunction(fn, dialect, evalArg, out result)
+            || TryEvalMySqlXmlFunctions(fn, dialect, evalArg, out result)
+            || TryEvalMySqlCryptoFunctions(fn, dialect, evalArg, out result)
+            || TryEvalMySqlDefaultFunction(fn, dialect, row, evalArg, out result)
+            || TryEvalMySqlMemberOfFunction(fn, dialect, evalArg, out result))
+        {
+            return true;
+        }
+
+        if (QueryOracleDb2ScalarFunctionHelper.TryEvalCoreFunctions(fn, dialect, evalArg, TryCoerceDateTime, out result)
+            || QueryOracleDb2UtilityFunctionHelper.TryEvalUtilityFunctions(fn, dialect, evalArg, out result)
+            || TryEvalConvertFunction(fn, dialect, evalArg, out result)
+            || TryEvalCollationFunction(fn, dialect, evalArg, out result)
+            || TryEvalConIdFunctions(fn, dialect, evalArg, out result)
+            || TryEvalCubeTableFunction(fn, dialect, evalArg, out result)
+            || TryEvalCvFunction(fn, dialect, evalArg, out result)
+            || TryEvalDataObjToPartitionFunctions(fn, dialect, evalArg, out result)
+            || TryEvalDepthFunction(fn, dialect, evalArg, out result)
+            || TryEvalDerefFunction(fn, dialect, evalArg, out result)
+            || TryEvalDumpFunction(fn, dialect, evalArg, out result)
+            || TryEvalExistsNodeFunction(fn, dialect, evalArg, out result)
+            || TryEvalFromTzFunction(fn, dialect, evalArg, out result)
+            || TryEvalGroupIdFunction(fn, dialect, out result)
+            || TryEvalHexToRawFunction(fn, dialect, evalArg, out result)
+            || TryEvalIterationNumberFunction(fn, dialect, out result)
+            || TryEvalJsonDataGuideFunction(fn, dialect, evalArg, out result)
+            || TryEvalJsonTransformFunction(fn, dialect, evalArg, out result)
+            || TryEvalLnnvlFunction(fn, dialect, evalArg, out result)
+            || TryEvalLocalTimeFunction(fn, dialect, out result)
+            || TryEvalLocalTimestampFunction(fn, dialect, out result)
+            || TryEvalLowerFunction(fn, dialect, evalArg, out result)
+            || TryEvalLtrimFunction(fn, dialect, evalArg, out result)
+            || TryEvalDivFunction(fn, dialect, evalArg, out result)
+            || TryEvalModFunction(fn, dialect, evalArg, out result)
+            || TryEvalMonthsBetweenFunction(fn, dialect, evalArg, out result)
+            || TryEvalMidnightSecondsFunction(fn, dialect, evalArg, out result)
+            || TryEvalNanvlFunction(fn, dialect, evalArg, out result)
+            || TryEvalNewTimeFunction(fn, dialect, evalArg, out result)
+            || TryEvalNextDayFunction(fn, dialect, evalArg, out result)
+            || TryEvalNlsFunctions(fn, dialect, evalArg, out result)
+            || TryEvalNumIntervalFunctions(fn, dialect, evalArg, out result)
+            || TryEvalMakeRefFunction(fn, dialect, evalArg, out result)
+            || TryEvalOracleApproxFunctions(fn, dialect, evalArg, out result)
+            || TryEvalOracleBfilenameFunction(fn, dialect, evalArg, out result)
+            || TryEvalOracleHashFunction(fn, dialect, evalArg, out result)
+            || TryEvalOracleRawFunctions(fn, dialect, evalArg, out result)
+            || TryEvalMySqlRegexFunctions(fn, dialect, evalArg, out result)
+            || TryEvalOracleRegexFunctions(fn, dialect, evalArg, out result)
+            || TryEvalOracleRemainderFunction(fn, dialect, evalArg, out result)
+            || TryEvalOracleRowIdFunctions(fn, dialect, evalArg, out result)
+            || TryEvalOracleSessionTimeZoneFunction(fn, dialect, out result)
+            || TryEvalOracleSysFunctions(fn, dialect, evalArg, out result)
+            || TryEvalOracleToCharFunctions(fn, dialect, evalArg, out result)
+            || TryEvalTranslateFunctions(fn, dialect, evalArg, out result)
+            || TryEvalOracleUserEnvFunctions(fn, dialect, evalArg, out result)
+            || TryEvalOracleValidateConversionFunction(fn, dialect, evalArg, out result)
+            || TryEvalOracleVsizeFunction(fn, dialect, evalArg, out result)
+            || TryEvalOracleWidthBucketFunction(fn, dialect, evalArg, out result)
+            || TryEvalOracleAnalyticsFunctions(fn, dialect, evalArg, out result)
+            || TryEvalOracleScnFunctions(fn, dialect, evalArg, out result)
+            || TryEvalOracleTimeZoneOffsetFunction(fn, dialect, evalArg, out result)
+            || TryEvalOracleXmlFunctions(fn, dialect, evalArg, out result)
+            || TryEvalOracleUserFunction(fn, dialect, out result)
+            || TryEvalPostgresSystemFunctions(fn, dialect, evalArg, out result)
+            || TryEvalPostgresDateFunctions(fn, dialect, evalArg, out result)
+            || TryEvalDb2DateTruncFunction(fn, dialect, evalArg, out result)
+            || TryEvalPostgresScalarUtilityFunctions(fn, dialect, evalArg, out result)
+            || TryEvalPostgresTextFunctions(fn, dialect, evalArg, out result)
+            || TryEvalPostgresNetworkFunctions(fn, dialect, evalArg, out result)
+            || TryEvalPostgresUnicodeFunctions(fn, dialect, evalArg, out result)
+            || TryEvalPostgresRegexFunctions(fn, dialect, evalArg, out result)
+            || TryEvalPostgresArrayFunctions(fn, dialect, evalArg, out result)
+            || TryEvalPostgresJsonFunctions(fn, dialect, evalArg, out result)
+            || TryEvalPostgresUuidFunctions(fn, dialect, out result))
+        {
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private bool TryEvalSqlServerAndCompatibilityFunctionFamily(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (TryEvalNumericFunction(fn, evalArg, out result)
+            || TryEvalAppNameFunction(fn, out result)
+            || TryEvalCharIndexFunction(fn, evalArg, out result)
+            || TryEvalCurrentUserFunction(fn, dialect, out result))
+        {
+            return true;
+        }
+
+        SqlServerFunctionSupportHelper.EnsureSupport(fn, dialect);
+
+        if (TryEvalSqlServerDatabaseFunctions(fn, dialect, evalArg, out result)
+            || TryEvalSqlServerServerPropertyFunction(fn, dialect, evalArg, out result)
+            || TryEvalSqlServerConnectionPropertyFunction(fn, dialect, evalArg, out result)
+            || TryEvalSqlServerContextInfoFunction(fn, dialect, out result)
+            || TryEvalSqlServerSessionFunctions(fn, dialect, evalArg, out result)
+            || TryEvalSqlServerIdentityFunctions(fn, dialect, evalArg, out result)
+            || TryEvalDataLengthFunction(fn, evalArg, out result)
+            || TryEvalDateNameFunction(fn, row, group, ctes, evalArg, out result)
+            || TryEvalDatePartFunction(fn, row, group, ctes, evalArg, out result)
+            || TryEvalDb2DateAliasFunction(fn, dialect, evalArg, out result)
+            || TryEvalDb2DateAddAliasFunction(fn, dialect, evalArg, out result)
+            || TryEvalDegreesFunction(fn, evalArg, out result)
+            || TryEvalDateDiffBigFunction(fn, row, group, ctes, evalArg, out result)
+            || TryEvalDateFromPartsFunction(fn, evalArg, out result)
+            || TryEvalDateTimeFromPartsFunction(fn, evalArg, out result)
+            || TryEvalDateTime2FromPartsFunction(fn, evalArg, out result)
+            || TryEvalDateTimeOffsetFromPartsFunction(fn, evalArg, out result)
+            || TryEvalTimeFromPartsFunction(fn, evalArg, out result)
+            || TryEvalSmallDateTimeFromPartsFunction(fn, evalArg, out result))
+        {
+            return true;
+        }
+
+        if (fn.Name.Equals("EOMONTH", StringComparison.OrdinalIgnoreCase)
+            && !dialect.SupportsEomonthFunction)
+        {
+            throw SqlUnsupported.ForDialect(dialect, "EOMONTH");
+        }
+
+        if (TryEvalEomonthFunction(fn, evalArg, out result)
+            || TryEvalDifferenceFunction(fn, evalArg, out result)
+            || TryEvalErrorFunctions(fn, out result)
+            || TryEvalExpFunction(fn, evalArg, out result)
+            || TryEvalFloorFunction(fn, evalArg, out result)
+            || TryEvalSqlServerFormatFunction(fn, dialect, evalArg, out result)
+            || TryEvalSqlServerFormatMessageFunction(fn, evalArg, out result)
+            || TryEvalSqlServerCompressFunction(fn, evalArg, out result)
+            || TryEvalSqlServerDecompressFunction(fn, evalArg, out result)
+            || TryEvalSqlServerChecksumFunction(fn, evalArg, out result))
+        {
+            return true;
+        }
+
+        if (fn.Name.Equals("GETUTCDATE", StringComparison.OrdinalIgnoreCase)
+            && !dialect.SupportsGetUtcDateFunction)
+        {
+            throw SqlUnsupported.ForDialect(dialect, "GETUTCDATE");
+        }
+
+        if (TryEvalGetUtcDateFunction(fn, out result))
+            return true;
+
+        result = null;
+        return false;
+    }
+
+    private bool TryEvalGeneralScalarFunctionFamily(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (TryEvalGeneralSystemAndJsonFunctions(fn, dialect, evalArg, out result)
+            || TryEvalGeneralTextAndMathFunctions(fn, dialect, evalArg, out result)
+            || TryEvalGeneralDateAndTimeFunctions(fn, row, group, ctes, dialect, evalArg, out result))
+        {
+            return true;
+        }
+
+        EnsureDialectSupportsSequenceFunction(fn.Name);
+        if (SqlSequenceEvaluator.TryEvaluateCall(_cnn, fn.Name, fn.Args, expr => Eval(expr, row, group, ctes), out var sequenceValue))
+        {
+            result = sequenceValue;
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private bool TryEvalGeneralSystemAndJsonFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (TryEvalGetAnsiNullFunction(fn, out result)
+            || TryEvalGroupingFunctions(fn, dialect, evalArg, out result)
+            || TryEvalHostFunctions(fn, out result)
+            || TryEvalSessionContextFunction(fn, evalArg, out result)
+            || TryEvalSqlServerGuidFunctions(fn, out result)
+            || TryEvalSqlServerStringEscapeFunction(fn, evalArg, out result)
+            || TryEvalSqlServerStrFunction(fn, evalArg, out result)
+            || TryEvalSqlServerDateTimeOffsetFunctions(fn, evalArg, out result)
+            || TryEvalIsDateFunction(fn, evalArg, out result)
+            || TryEvalIsJsonFunction(fn, evalArg, out result)
+            || TryEvalIsNumericFunction(fn, evalArg, out result)
+            || TryEvalIpFunctions(fn, evalArg, out result)
+            || TryEvalIsUuidFunction(fn, evalArg, out result)
+            || TryEvalJsonArrayFunction(fn, evalArg, out result)
+            || TryEvalJsonDepthFunction(fn, evalArg, out result)
+            || TryEvalJsonUtilityFunctions(fn, dialect, evalArg, out result)
+            || TryEvalSqliteSystemFunctions(fn, dialect, evalArg, out result)
+            || TryEvalSqliteJsonFunctions(fn, dialect, evalArg, out result)
+            || TryEvalSessionUserFunction(fn, dialect, out result)
+            || TryEvalSystemUserFunction(fn, dialect, out result)
+            || TryEvalUserFunction(fn, out result)
+            || TryEvalUtcDateFunction(fn, out result)
+            || TryEvalUtcTimeFunction(fn, out result)
+            || TryEvalUtcTimestampFunction(fn, out result)
+            || TryEvalUuidShortFunction(fn, out result))
+        {
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private static bool TryEvalGeneralTextAndMathFunctions(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (TryEvalMinMaxFunctions(fn, dialect, evalArg, out result)
+            || TryEvalLocateFunction(fn, dialect, evalArg, out result)
+            || TryEvalLogFunctions(fn, dialect, evalArg, out result)
+            || TryEvalInstrFunction(fn, evalArg, out result)
+            || TryEvalGlobFunction(fn, evalArg, out result)
+            || TryEvalLikeFunction(fn, dialect, evalArg, out result)
+            || TryEvalPatIndexFunction(fn, dialect, evalArg, out result)
+            || TryEvalPrintfFunction(fn, dialect, evalArg, out result)
+            || TryEvalRandomFunctions(fn, dialect, evalArg, out result)
+            || TryEvalTypeofFunction(fn, evalArg, out result)
+            || TryEvalUnicodeFunctions(fn, evalArg, out result)
+            || TryEvalLikelihoodFunctions(fn, evalArg, out result)
+            || TryEvalPadFunctions(fn, evalArg, out result)
+            || TryEvalMd5Function(fn, evalArg, out result)
+            || TryEvalModFunction(fn, evalArg, out result)
+            || TryEvalOctFunction(fn, evalArg, out result)
+            || TryEvalHexFunction(fn, evalArg, out result)
+            || TryEvalUnhexFunction(fn, evalArg, out result)
+            || TryEvalOctetLengthFunction(fn, evalArg, out result)
+            || TryEvalNameConstFunction(fn, evalArg, out result)
+            || TryEvalOrdFunction(fn, evalArg, out result)
+            || TryEvalPositionFunction(fn, evalArg, out result)
+            || TryEvalPiFunction(fn, out result)
+            || TryEvalPowerFunctions(fn, evalArg, out result)
+            || TryEvalQuoteFunction(fn, evalArg, out result)
+            || TryEvalSqlServerScalarFunctions(fn, dialect, evalArg, out result)
+            || TryEvalRadiansFunction(fn, evalArg, out result)
+            || TryEvalRandFunction(fn, evalArg, out result)
+            || TryEvalRepeatFunction(fn, evalArg, out result)
+            || TryEvalReverseFunction(fn, evalArg, out result)
+            || TryEvalLeftFunction(fn, evalArg, out result)
+            || TryEvalRightFunction(fn, evalArg, out result)
+            || TryEvalRoundFunction(fn, evalArg, out result)
+            || TryEvalPadRightFunction(fn, evalArg, out result)
+            || TryEvalShaFunctions(fn, evalArg, out result)
+            || TryEvalSinFunction(fn, evalArg, out result)
+            || TryEvalSoundexFunction(fn, evalArg, out result)
+            || TryEvalSpaceFunction(fn, evalArg, out result)
+            || TryEvalSqrtFunction(fn, evalArg, out result)
+            || TryEvalSubstringIndexFunction(fn, evalArg, out result)
+            || TryEvalTanFunction(fn, evalArg, out result))
+        {
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private bool TryEvalGeneralDateAndTimeFunctions(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (TryEvalAddDateFunction(fn, evalArg, out result)
+            || TryEvalAddTimeFunction(fn, evalArg, out result)
+            || TryEvalLastDayFunction(fn, evalArg, out result)
+            || TryEvalLastInsertIdFunction(fn, evalArg, out result)
+            || TryEvalStrftimeFunction(fn, evalArg, out result)
+            || TryEvalMakeDateFunction(fn, evalArg, out result)
+            || TryEvalMakeTimeFunction(fn, evalArg, out result)
+            || TryEvalMicrosecondFunction(fn, evalArg, out result)
+            || TryEvalMonthNameFunction(fn, evalArg, out result)
+            || TryEvalPeriodFunctions(fn, evalArg, out result)
+            || TryEvalQuarterFunction(fn, evalArg, out result)
+            || TryEvalSecToTimeFunction(fn, evalArg, out result)
+            || TryEvalSubDateFunction(fn, row, group, ctes, evalArg, out result)
+            || TryEvalSubTimeFunction(fn, evalArg, out result)
+            || TryEvalTimeFormatFunction(fn, evalArg, out result)
+            || TryEvalTimeToSecFunction(fn, evalArg, out result)
+            || TryEvalTimeDiffFunction(fn, evalArg, out result)
+            || TryEvalToDaysFunction(fn, evalArg, out result)
+            || TryEvalToSecondsFunction(fn, evalArg, out result)
+            || TryEvalTruncateFunction(fn, evalArg, out result)
+            || TryEvalUnixTimestampFunction(fn, evalArg, out result)
+            || TryEvalWeekFunctions(fn, dialect, evalArg, out result))
+        {
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private bool TryEvalCastStringAndDateTail(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (TryEvalCastConversionFamily(fn, dialect, evalArg, out result)
+            || TryEvalCastConcatAndStringTail(fn, dialect, evalArg, out result)
+            || TryEvalCastDateTail(fn, row, group, ctes, dialect, evalArg, out result))
+        {
+            return true;
+        }
+
+        if (fn.Args.Count == 0
+            && SqlTemporalFunctionEvaluator.IsKnownTemporalFunctionName(fn.Name))
+        {
+            throw new InvalidOperationException($"Temporal function '{fn.Name}' is not supported for dialect '{dialect.Name}'.");
+        }
+
+        result = null;
+        return false;
+    }
+
+    private bool TryEvalCastConversionFamily(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        result = TryEvalJsonAndNumberFunctions(fn, dialect, evalArg, out var handledJsonNumber);
+        if (handledJsonNumber)
+            return true;
+
+        if (fn.Name.Equals("TRY_CAST", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!dialect.SupportsTryCastFunction)
+                throw SqlUnsupported.ForDialect(dialect, "TRY_CAST");
+
+            result = EvalTryCast(fn, evalArg);
+            return true;
+        }
+
+        if (fn.Name.Equals("TRY_CONVERT", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!dialect.SupportsTryConvertFunction)
+                throw SqlUnsupported.ForDialect(dialect, "TRY_CONVERT");
+
+            result = EvalTryCast(fn, evalArg);
+            return true;
+        }
+
+        if (fn.Name.Equals("PARSE", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!dialect.SupportsParseFunction)
+                throw SqlUnsupported.ForDialect(dialect, "PARSE");
+
+            result = EvalParseFunction(fn, evalArg, false);
+            return true;
+        }
+
+        if (fn.Name.Equals("TRY_PARSE", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!dialect.SupportsTryParseFunction)
+                throw SqlUnsupported.ForDialect(dialect, "TRY_PARSE");
+
+            result = EvalParseFunction(fn, evalArg, true);
+            return true;
+        }
+
+        if (fn.Name.Equals("CAST", StringComparison.OrdinalIgnoreCase))
+        {
+            result = EvalCast(fn, evalArg);
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private bool TryEvalCastConcatAndStringTail(
+        FunctionCallExpr fn,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        result = TryEvalConcatFunctions(fn, evalArg, out var handledConcat);
+        if (handledConcat)
+            return true;
+
+        if (TryEvalCharFunction(fn, dialect, evalArg, out result)
+            || TryEvalDialectSpecificCastFunction(fn, dialect, evalArg, out result)
+            || TryEvalBasicStringFunction(fn, evalArg, out result)
+            || TryEvalSubstringFunction(fn, evalArg, out result)
+            || TryEvalReplaceFunction(fn, evalArg, out result))
+        {
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private bool TryEvalCastDateTail(
+        FunctionCallExpr fn,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        ISqlDialect dialect,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (TryEvalDaysFunction(fn, evalArg, out result)
+            || TryEvalDateDiffFunction(fn, row, group, ctes, evalArg, out result)
+            || TryEvalTimestampDiffFunction(fn, row, group, ctes, evalArg, out result))
+        {
+            return true;
+        }
+
+        var dateAddResult = TryEvalDateAddFunction(fn, row, group, ctes, evalArg, out var handledDateAdd);
+        if (handledDateAdd)
+        {
+            result = dateAddResult;
+            return true;
+        }
+
+        if (TryEvalDateConstructionFunction(fn, evalArg, out result)
+            || TryEvalJulianDayFunction(fn, evalArg, out result)
+            || TryEvalTruncFunction(fn, evalArg, out result)
+            || TryEvalExtractFunction(fn, row, group, ctes, evalArg, out result)
+            || TryEvalFieldFunction(fn, dialect, evalArg, out result))
+        {
+            return true;
+        }
+
+        result = null;
+        return false;
     }
 
     private bool TryEvalUserDefinedScalarFunction(
@@ -5338,951 +5084,6 @@ private void FillPercentRankOrCumeDist(
         return true;
     }
 
-    private bool TryEvalFindInSetFunction(
-        FunctionCallExpr fn,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("FIND_IN_SET", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        var needle = evalArg(0)?.ToString() ?? string.Empty;
-        var haystack = evalArg(1)?.ToString() ?? string.Empty;
-        var parts = haystack.Split(',').Select(static part => part.Trim()).ToArray();
-        var index = Array.FindIndex(parts, part => string.Equals(part, needle, StringComparison.OrdinalIgnoreCase));
-        result = index >= 0 ? index + 1 : 0;
-        return true;
-    }
-
-    private bool TryEvalMatchAgainstFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("MATCH_AGAINST", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.SupportsMatchAgainstPredicate)
-            throw SqlUnsupported.ForDialect(dialect, "MATCH ... AGAINST full-text predicate");
-
-        if (fn.Args.Count < 2)
-        {
-            result = 0;
-            return true;
-        }
-
-        var haystack = FlattenMatchAgainstTarget(evalArg(0));
-        var query = evalArg(1)?.ToString() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(haystack) || string.IsNullOrWhiteSpace(query))
-        {
-            result = 0;
-            return true;
-        }
-
-        var terms = ExtractMatchAgainstTerms(query);
-        if (terms.Count == 0)
-        {
-            result = 0;
-            return true;
-        }
-
-        var modeSql = fn.Args.Count > 2
-            ? (fn.Args[2] is RawSqlExpr rx ? rx.Sql : evalArg(2)?.ToString() ?? string.Empty)
-            : string.Empty;
-
-        result = EvaluateMatchAgainstTerms(haystack, terms, modeSql, dialect.TextComparison);
-        return true;
-    }
-
-    private static int EvaluateMatchAgainstTerms(
-        string haystack,
-        IReadOnlyList<MatchAgainstTerm> terms,
-        string modeSql,
-        StringComparison comparison)
-    {
-        var isBooleanMode = modeSql.IndexOf("BOOLEAN MODE", StringComparison.OrdinalIgnoreCase) >= 0;
-        var haystackWords = ExtractMatchAgainstWords(haystack);
-        var score = 0;
-
-        foreach (var term in terms)
-        {
-            var found = ContainsMatchAgainstTerm(haystack, haystackWords, term, comparison);
-            if (isBooleanMode)
-            {
-                if (term.Prohibited && found)
-                    return 0;
-
-                if (term.Required && !found)
-                    return 0;
-            }
-
-            if (found && !term.Prohibited)
-                score++;
-        }
-
-        return score;
-    }
-
-    private static void EnsureSqlServerFunctionSupport(FunctionCallExpr fn, ISqlDialect dialect)
-    {
-        if (!dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
-            return;
-
-        if ((fn.Name.Equals("APP_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("APPLOCK_MODE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("APPLOCK_TEST", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ASSEMBLYPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CERTENCODED", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CERTPRIVATEKEY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CURSOR_STATUS", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DB_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CURRENT_REQUEST_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CURRENT_TRANSACTION_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CONTEXT_INFO", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DATABASE_PRINCIPAL_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DATABASEPROPERTYEX", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CONNECTIONPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("COLUMNPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DB_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("COL_LENGTH", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("COL_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("OBJECT_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FILE_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FILE_IDEX", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FILE_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FILEGROUP_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FILEGROUP_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FILEGROUPPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FILEPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FULLTEXTCATALOGPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FULLTEXTSERVICEPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("GET_FILESTREAM_TRANSACTION_CONTEXT", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("HAS_PERMS_BY_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("INDEX_COL", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("INDEXKEY_PROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("INDEXPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("MIN_ACTIVE_ROWVERSION", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("OBJECT_DEFINITION", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("OBJECTPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("OBJECTPROPERTYEX", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("OBJECT_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("OBJECT_SCHEMA_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("IS_MEMBER", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("IS_ROLEMEMBER", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("IS_SRVROLEMEMBER", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ORIGINAL_DB_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ORIGINAL_LOGIN", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("PWDCOMPARE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("PWDENCRYPT", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SCHEMA_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SCHEMA_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SESSION_CONTEXT", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SERVERPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SESSION_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SUSER_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SUSER_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SUSER_SID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SUSER_SNAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("STATS_DATE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("TYPE_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("TYPE_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("TYPEPROPERTY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("USER_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("USER_NAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("XACT_STATE", StringComparison.OrdinalIgnoreCase))
-            && !dialect.SupportsSqlServerMetadataFunction(fn.Name))
-        {
-            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
-        }
-
-        if ((fn.Name.Equals("DATEDIFF", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DATENAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DATEPART", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DAY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("MONTH", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("YEAR", StringComparison.OrdinalIgnoreCase))
-            && !dialect.SupportsSqlServerDateFunction(fn.Name))
-        {
-            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
-        }
-
-        if ((fn.Name.Equals("ABS", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ACOS", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ASCII", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ASIN", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ATAN", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ATN2", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("BINARY_CHECKSUM", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CEILING", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CHARINDEX", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CHECKSUM", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("COS", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("COMPRESS", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DECOMPRESS", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("COT", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DEGREES", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DIFFERENCE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("EXP", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FLOOR", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FORMAT", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("FORMATMESSAGE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DATALENGTH", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("DATEDIFF_BIG", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("GROUPING", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("GROUPING_ID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ISDATE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ISJSON", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ISNUMERIC", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CHAR", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CONCAT", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("CONCAT_WS", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("LEN", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("LEFT", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("LOG", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("LOG10", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("LOWER", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("PI", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("POWER", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("RADIANS", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("RAND", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("NCHAR", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("JSON_MODIFY", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("NEWID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("NEWSEQUENTIALID", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("REPLACE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("RIGHT", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("ROUND", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SIGN", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SIN", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SQUARE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("STR", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SUBSTRING", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("TAN", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("STRING_ESCAPE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("TRANSLATE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("TRIM", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("UPPER", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("LTRIM", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("PARSENAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("PATINDEX", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("QUOTENAME", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("REPLICATE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("REVERSE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("RTRIM", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SOUNDEX", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SPACE", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("SQRT", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("STUFF", StringComparison.OrdinalIgnoreCase)
-                || fn.Name.Equals("UNICODE", StringComparison.OrdinalIgnoreCase))
-            && !dialect.SupportsSqlServerScalarFunction(fn.Name))
-        {
-            throw SqlUnsupported.ForDialect(dialect, fn.Name.ToUpperInvariant());
-        }
-    }
-
-    private static bool TryEvalConditionalFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        var isIf = fn.Name.Equals("IF", StringComparison.OrdinalIgnoreCase);
-        var isIif = fn.Name.Equals("IIF", StringComparison.OrdinalIgnoreCase);
-        if (!((isIf && dialect.SupportsIfFunction) || (isIif && dialect.SupportsIifFunction)))
-        {
-            result = null;
-            return false;
-        }
-
-        var condition = evalArg(0).ToBool();
-        result = condition ? evalArg(1) : evalArg(2);
-        return true;
-    }
-
-    private static bool TryEvalNullSubstituteFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (fn.Name.Equals("COALESCE", StringComparison.OrdinalIgnoreCase)
-            || !dialect.NullSubstituteFunctionNames.Any(name => name.Equals(fn.Name, StringComparison.OrdinalIgnoreCase)))
-        {
-            result = null;
-            return false;
-        }
-
-        var value = evalArg(0);
-        result = IsNullish(value) ? evalArg(1) : value;
-        return true;
-    }
-
-    private static bool TryEvalNvl2Function(
-        FunctionCallExpr fn,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("NVL2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count < 3)
-            throw new InvalidOperationException("NVL2() espera 3 argumentos.");
-
-        var value = evalArg(0);
-        result = IsNullish(value) ? evalArg(2) : evalArg(1);
-        return true;
-    }
-
-    private static bool TryEvalDecodeFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("DECODE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (dialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
-        {
-            if (fn.Args.Count != 2)
-                throw new InvalidOperationException("DECODE() no PostgreSQL espera payload e formato.");
-
-            var payload = evalArg(0)?.ToString();
-            var format = evalArg(1)?.ToString();
-            if (string.IsNullOrWhiteSpace(payload) || string.IsNullOrWhiteSpace(format))
-            {
-                result = null;
-                return true;
-            }
-
-            try
-            {
-                result = format!.Trim().ToLowerInvariant() switch
-                {
-                    "hex" when TryNormalizeHexPayload(payload!.Trim(), out var hex) && hex.Length % 2 == 0
-                        => ParseHexBinaryPayload(hex),
-                    "base64" => Convert.FromBase64String(payload),
-                    _ => null
-                };
-                return true;
-            }
-            catch
-            {
-                result = null;
-                return true;
-            }
-        }
-
-        if (fn.Args.Count < 3)
-            throw new InvalidOperationException("DECODE() espera ao menos 3 argumentos.");
-
-        var expr = evalArg(0);
-        var pairCount = (fn.Args.Count - 1) / 2;
-        var hasDefault = (fn.Args.Count - 1) % 2 == 1;
-
-        for (int i = 0; i < pairCount; i++)
-        {
-            var search = evalArg(1 + i * 2);
-            var resultValue = evalArg(2 + i * 2);
-
-            if (DecodeEquals(expr, search, dialect))
-            {
-                result = resultValue;
-                return true;
-            }
-        }
-
-        result = hasDefault ? evalArg(fn.Args.Count - 1) : null;
-        return true;
-    }
-
-    private static bool DecodeEquals(object? left, object? right, ISqlDialect dialect)
-    {
-        if (IsNullish(left) && IsNullish(right))
-            return true;
-
-        if (IsNullish(left) || IsNullish(right))
-            return false;
-
-        return left!.EqualsSql(right!, dialect);
-    }
-
-    private static byte[] ParseHexBinaryPayload(string hex)
-    {
-        var buffer = new byte[hex.Length / 2];
-        for (var i = 0; i < hex.Length; i += 2)
-        {
-            buffer[i / 2] = byte.Parse(hex.Substring(i, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-        }
-
-        return buffer;
-    }
-
-    private static bool TryEvalCoalesceFunction(
-        FunctionCallExpr fn,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("COALESCE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        for (int i = 0; i < fn.Args.Count; i++)
-        {
-            var value = evalArg(i);
-            if (!IsNullish(value))
-            {
-                result = value;
-                return true;
-            }
-        }
-
-        result = null;
-        return true;
-    }
-
-    private static bool TryEvalNullIfFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("NULLIF", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        var left = evalArg(0);
-        var right = evalArg(1);
-        if (IsNullish(left) || IsNullish(right))
-        {
-            result = left;
-            return true;
-        }
-
-        result = left!.Compare(right!, dialect) == 0 ? null : left;
-        return true;
-    }
-
-    private static bool TryEvalAddMonthsFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("ADD_MONTHS", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count < 2)
-            throw new InvalidOperationException("ADD_MONTHS() espera data e quantidade de meses.");
-
-        var baseValue = evalArg(0);
-        var monthsValue = evalArg(1);
-        if (IsNullish(baseValue) || IsNullish(monthsValue))
-        {
-            result = null;
-            return true;
-        }
-
-        if (!TryCoerceDateTime(baseValue, out var dateTime))
-        {
-            result = null;
-            return true;
-        }
-
-        try
-        {
-            var months = Convert.ToInt32(monthsValue.ToDec());
-            result = dateTime.AddMonths(months);
-            return true;
-        }
-        catch
-        {
-            result = null;
-            return true;
-        }
-    }
-
-    private static bool TryEvalAsciiStrFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("ASCIISTR", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        var value = evalArg(0);
-        if (IsNullish(value))
-        {
-            result = null;
-            return true;
-        }
-
-        var text = value?.ToString() ?? string.Empty;
-        var builder = new StringBuilder(text.Length);
-        foreach (var ch in text)
-        {
-            if (ch <= 0x7F)
-            {
-                builder.Append(ch);
-                continue;
-            }
-
-            builder.Append('\\');
-            builder.Append(((int)ch).ToString("X4", CultureInfo.InvariantCulture));
-        }
-
-        result = builder.ToString();
-        return true;
-    }
-
-    private static bool TryEvalBinToNumFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("BIN_TO_NUM", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count == 0)
-        {
-            result = null;
-            return true;
-        }
-
-        try
-        {
-            long acc = 0;
-            for (var i = 0; i < fn.Args.Count; i++)
-            {
-                var bitValue = evalArg(i);
-                if (IsNullish(bitValue))
-                {
-                    result = null;
-                    return true;
-                }
-
-                var bit = Convert.ToInt32(bitValue.ToDec(), CultureInfo.InvariantCulture);
-                acc = (acc << 1) | (bit != 0 ? 1L : 0L);
-            }
-
-            result = acc;
-            return true;
-        }
-        catch
-        {
-            result = null;
-            return true;
-        }
-    }
-
-    private static bool TryEvalBitAndFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("BITAND", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count < 2)
-            throw new InvalidOperationException("BITAND() espera 2 argumentos.");
-
-        var left = evalArg(0);
-        var right = evalArg(1);
-        if (IsNullish(left) || IsNullish(right))
-        {
-            result = null;
-            return true;
-        }
-
-        try
-        {
-            var l = Convert.ToInt64(left, CultureInfo.InvariantCulture);
-            var r = Convert.ToInt64(right, CultureInfo.InvariantCulture);
-            result = l & r;
-            return true;
-        }
-        catch
-        {
-            result = null;
-            return true;
-        }
-    }
-
-    private static bool TryEvalBitOrFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("BITOR", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count < 2)
-            throw new InvalidOperationException("BITOR() espera 2 argumentos.");
-
-        var left = evalArg(0);
-        var right = evalArg(1);
-        if (IsNullish(left) || IsNullish(right))
-        {
-            result = null;
-            return true;
-        }
-
-        try
-        {
-            var l = Convert.ToInt64(left, CultureInfo.InvariantCulture);
-            var r = Convert.ToInt64(right, CultureInfo.InvariantCulture);
-            result = l | r;
-            return true;
-        }
-        catch
-        {
-            result = null;
-            return true;
-        }
-    }
-
-    private static bool TryEvalBitXorFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("BITXOR", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count < 2)
-            throw new InvalidOperationException("BITXOR() espera 2 argumentos.");
-
-        var left = evalArg(0);
-        var right = evalArg(1);
-        if (IsNullish(left) || IsNullish(right))
-        {
-            result = null;
-            return true;
-        }
-
-        try
-        {
-            var l = Convert.ToInt64(left, CultureInfo.InvariantCulture);
-            var r = Convert.ToInt64(right, CultureInfo.InvariantCulture);
-            result = l ^ r;
-            return true;
-        }
-        catch
-        {
-            result = null;
-            return true;
-        }
-    }
-
-    private static bool TryEvalBitNotFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("BITNOT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count < 1)
-            throw new InvalidOperationException("BITNOT() espera 1 argumento.");
-
-        var value = evalArg(0);
-        if (IsNullish(value))
-        {
-            result = null;
-            return true;
-        }
-
-        try
-        {
-            var v = Convert.ToInt64(value, CultureInfo.InvariantCulture);
-            result = ~v;
-            return true;
-        }
-        catch
-        {
-            result = null;
-            return true;
-        }
-    }
-
-    private static bool TryEvalBitAndNotFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("BITANDNOT", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (fn.Args.Count < 2)
-            throw new InvalidOperationException("BITANDNOT() espera 2 argumentos.");
-
-        var left = evalArg(0);
-        var right = evalArg(1);
-        if (IsNullish(left) || IsNullish(right))
-        {
-            result = null;
-            return true;
-        }
-
-        try
-        {
-            var l = Convert.ToInt64(left, CultureInfo.InvariantCulture);
-            var r = Convert.ToInt64(right, CultureInfo.InvariantCulture);
-            result = l & ~r;
-            return true;
-        }
-        catch
-        {
-            result = null;
-            return true;
-        }
-    }
-
-    private static bool TryEvalCardinalityFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("CARDINALITY", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        var value = evalArg(0);
-        if (IsNullish(value))
-        {
-            result = null;
-            return true;
-        }
-
-        if (value is System.Text.Json.JsonElement element
-            && element.ValueKind == System.Text.Json.JsonValueKind.Array)
-        {
-            result = element.GetArrayLength();
-            return true;
-        }
-
-        if (value is string)
-        {
-            result = null;
-            return true;
-        }
-
-        if (value is Array arr)
-        {
-            result = arr.Length;
-            return true;
-        }
-
-        if (value is ICollection collection)
-        {
-            result = collection.Count;
-            return true;
-        }
-
-        if (value is IEnumerable enumerable)
-        {
-            var count = 0;
-            foreach (var _ in enumerable)
-                count++;
-            result = count;
-            return true;
-        }
-
-        result = null;
-        return true;
-    }
-
-    private static bool TryEvalChrFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("CHR", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        var value = evalArg(0);
-        if (IsNullish(value))
-        {
-            result = null;
-            return true;
-        }
-
-        try
-        {
-            var code = Convert.ToInt32(value.ToDec(), CultureInfo.InvariantCulture);
-            if (code < 0 || code > 0x10FFFF)
-            {
-                result = null;
-                return true;
-            }
-
-            result = char.ConvertFromUtf32(code);
-            return true;
-        }
-        catch
-        {
-            result = null;
-            return true;
-        }
-    }
-
-    private static bool TryEvalComposeFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("COMPOSE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        var value = evalArg(0);
-        if (IsNullish(value))
-        {
-            result = null;
-            return true;
-        }
-
-        result = (value?.ToString() ?? string.Empty).Normalize(NormalizationForm.FormC);
-        return true;
-    }
-
     private static bool TryEvalConvertFunction(
         FunctionCallExpr fn,
         ISqlDialect dialect,
@@ -6326,198 +5127,6 @@ private void FillPercentRankOrCumeDist(
         }
 
         result = value is string text ? text : value!.ToString();
-        return true;
-    }
-
-    private static bool TryEvalDbTimeZoneFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        out object? result)
-    {
-        if (!fn.Name.Equals("DBTIMEZONE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        result = "+00:00";
-        return true;
-    }
-
-    private static bool TryEvalDecomposeFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("DECOMPOSE", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        var value = evalArg(0);
-        if (IsNullish(value))
-        {
-            result = null;
-            return true;
-        }
-
-        result = (value?.ToString() ?? string.Empty).Normalize(NormalizationForm.FormD);
-        return true;
-    }
-
-    private static bool TryEvalEmptyLobFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        out object? result)
-    {
-        if (!(fn.Name.Equals("EMPTY_BLOB", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("EMPTY_CLOB", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("EMPTY_DBCLOB", StringComparison.OrdinalIgnoreCase)
-            || fn.Name.Equals("EMPTY_NCLOB", StringComparison.OrdinalIgnoreCase)))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        result = fn.Name.Equals("EMPTY_BLOB", StringComparison.OrdinalIgnoreCase)
-            ? Array.Empty<byte>()
-            : string.Empty;
-        return true;
-    }
-
-    private static bool TryEvalInitCapFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("INITCAP", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        var value = evalArg(0);
-        if (IsNullish(value))
-        {
-            result = null;
-            return true;
-        }
-
-        var text = value?.ToString() ?? string.Empty;
-        if (text.Length == 0)
-        {
-            result = string.Empty;
-            return true;
-        }
-
-        var builder = new StringBuilder(text.Length);
-        var makeUpper = true;
-        foreach (var ch in text)
-        {
-            if (char.IsLetterOrDigit(ch))
-            {
-                builder.Append(makeUpper
-                    ? char.ToUpperInvariant(ch)
-                    : char.ToLowerInvariant(ch));
-                makeUpper = false;
-            }
-            else
-            {
-                builder.Append(ch);
-                makeUpper = true;
-            }
-        }
-
-        result = builder.ToString();
-        return true;
-    }
-
-    private static bool TryEvalChartoRowidFunction(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        if (!fn.Name.Equals("CHARTOROWID", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        var value = evalArg(0);
-        if (IsNullish(value))
-        {
-            result = null;
-            return true;
-        }
-
-        result = value?.ToString();
-        return true;
-    }
-
-    private static bool TryEvalClusterFunctions(
-        FunctionCallExpr fn,
-        ISqlDialect dialect,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
-        var name = fn.Name.ToUpperInvariant();
-        if (name is not ("CLUSTER_DETAILS" or "CLUSTER_DISTANCE" or "CLUSTER_ID" or "CLUSTER_PROBABILITY" or "CLUSTER_SET"))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
-            && !dialect.Name.Equals("db2", StringComparison.OrdinalIgnoreCase))
-        {
-            result = null;
-            return false;
-        }
-
-        if (!dialect.SupportsOracleClusterFunction(name))
-            throw SqlUnsupported.ForDialect(dialect, name);
-
-        // Data mining functions are not simulated: return null consistently.
-        result = null;
         return true;
     }
 
@@ -6835,7 +5444,7 @@ private void FillPercentRankOrCumeDist(
                     return true;
                 }
 
-                result = swapFlag ? ApplyMySqlUuidSwap(byteValue) : byteValue.ToArray();
+                result = swapFlag ? ApplyMySqlUuidSwap(byteValue) : [.. byteValue];
                 return true;
             }
 
@@ -6866,7 +5475,7 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        var normalized = swapFlag ? ApplyMySqlUuidUnswap(binBytes) : binBytes.ToArray();
+        var normalized = swapFlag ? ApplyMySqlUuidUnswap(binBytes) : [.. binBytes];
         result = FormatUuid(normalized);
         return true;
     }
@@ -7046,7 +5655,7 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        var dotNetFormat = ConvertMySqlDateFormatToDotNet(formatValue!);
+        var dotNetFormat = GetMySqlDateFormatPattern(formatValue!);
         result = dateTime.ToString(dotNetFormat, CultureInfo.InvariantCulture);
         return true;
     }
@@ -7074,14 +5683,15 @@ private void FillPercentRankOrCumeDist(
 
         var textValue = evalArg(0)?.ToString();
         var formatValue = evalArg(1)?.ToString();
-        if (string.IsNullOrWhiteSpace(textValue) || string.IsNullOrWhiteSpace(formatValue))
+        if (textValue is null || string.IsNullOrWhiteSpace(textValue)
+            || formatValue is null || string.IsNullOrWhiteSpace(formatValue))
         {
             result = null;
             return true;
         }
 
-        var dotNetFormat = ConvertMySqlDateFormatToDotNet(formatValue!);
-        if (DateTime.TryParseExact(textValue, dotNetFormat, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var parsed))
+        var dotNetFormat = GetMySqlDateFormatPattern(formatValue);
+        if (TryParseExactCachedDateTime(textValue, dotNetFormat, DateTimeStyles.AllowWhiteSpaces, out var parsed))
         {
             result = parsed;
             return true;
@@ -7129,7 +5739,7 @@ private void FillPercentRankOrCumeDist(
                 return true;
             }
 
-            var dotNetFormat = ConvertMySqlDateFormatToDotNet(formatValue!);
+            var dotNetFormat = GetMySqlDateFormatPattern(formatValue!);
             result = dateTime.ToString(dotNetFormat, CultureInfo.InvariantCulture);
             return true;
         }
@@ -7208,9 +5818,7 @@ private void FillPercentRankOrCumeDist(
         }
 
         var amountObject = Eval(intervalCall.Args[0], row, group, ctes);
-        var unit = intervalCall.Args[1] is RawSqlExpr raw
-            ? raw.Sql
-            : Eval(intervalCall.Args[1], row, group, ctes)?.ToString() ?? "DAY";
+        var unit = GetTemporalUnitOrDefault(intervalCall.Args[1], row, group, ctes, TemporalUnit.Day);
         result = ApplyDateDelta(dateTime, unit, -Convert.ToInt32((amountObject ?? 0m).ToDec()));
         return true;
     }
@@ -7307,6 +5915,9 @@ private void FillPercentRankOrCumeDist(
         result = dateTime - fromOffset + toOffset;
         return true;
     }
+
+    private static string GetMySqlDateFormatPattern(string format)
+        => _mySqlDateFormatCache.GetOrAdd(format, static rawFormat => ConvertMySqlDateFormatToDotNet(rawFormat));
 
     private static string ConvertMySqlDateFormatToDotNet(string format)
     {
@@ -8142,7 +6753,7 @@ private void FillPercentRankOrCumeDist(
                 bytes = buffer;
                 return true;
             case ArraySegment<byte> segment:
-                bytes = segment.ToArray();
+                bytes = [.. segment];
                 return true;
             case ReadOnlyMemory<byte> readOnlyMemory:
                 bytes = readOnlyMemory.ToArray();
@@ -8151,7 +6762,7 @@ private void FillPercentRankOrCumeDist(
                 bytes = memory.ToArray();
                 return true;
             case IEnumerable<byte> sequence:
-                bytes = sequence.ToArray();
+                bytes = [.. sequence];
                 return true;
             default:
                 bytes = Array.Empty<byte>();
@@ -8562,7 +7173,7 @@ private void FillPercentRankOrCumeDist(
             chars.Add('-');
 
         chars.Reverse();
-        return new string(chars.ToArray());
+        return new string([.. chars]);
     }
 
     private static bool TryEvalCollationFunction(
@@ -9482,14 +8093,13 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        var text = value?.ToString() ?? string.Empty;
-        if (TimeSpan.TryParse(text, CultureInfo.InvariantCulture, out var parsedTime))
+        if (TryCoerceTimeSpan(value, out var parsedTime))
         {
             result = (int)parsedTime.TotalSeconds;
             return true;
         }
 
-        if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var parsedDate))
+        if (TryCoerceDateTime(value, out var parsedDate))
         {
             result = (int)parsedDate.TimeOfDay.TotalSeconds;
             return true;
@@ -10510,12 +9120,7 @@ private void FillPercentRankOrCumeDist(
                 return true;
             case "TO_DSINTERVAL":
             case "TO_YMINTERVAL":
-                if (value is TimeSpan span)
-                {
-                    result = span;
-                    return true;
-                }
-                if (TimeSpan.TryParse(value!.ToString(), CultureInfo.InvariantCulture, out var parsedSpan))
+                if (TryCoerceTimeSpan(value, out var parsedSpan))
                 {
                     result = parsedSpan;
                     return true;
@@ -10541,76 +9146,82 @@ private void FillPercentRankOrCumeDist(
     {
         if (string.IsNullOrWhiteSpace(mask))
         {
-            return DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out result);
+            return TryParseCachedDateTime(text, DateTimeStyles.AllowWhiteSpaces, out result);
         }
 
         var netFormat = NormalizeOracleFormatMask(mask, out var hasTz);
-        if (string.IsNullOrWhiteSpace(netFormat))
+        if (netFormat is null || string.IsNullOrWhiteSpace(netFormat))
         {
-            return DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out result);
+            return TryParseCachedDateTime(text, DateTimeStyles.AllowWhiteSpaces, out result);
         }
 
-        if (hasTz && DateTimeOffset.TryParseExact(text, netFormat, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var dto))
+        if (hasTz && TryParseExactCachedDateTimeOffset(text, netFormat, DateTimeStyles.AllowWhiteSpaces, out var dto))
         {
             result = dto.DateTime;
             return true;
         }
 
-        return DateTime.TryParseExact(text, netFormat, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out result);
+        return TryParseExactCachedDateTime(text, netFormat, DateTimeStyles.AllowWhiteSpaces, out result);
     }
 
     private static bool TryParseOracleDateTimeOffset(string text, string? mask, out DateTimeOffset result)
     {
         if (string.IsNullOrWhiteSpace(mask))
         {
-            return DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out result);
+            return TryParseCachedDateTimeOffset(text, DateTimeStyles.AllowWhiteSpaces, out result);
         }
 
         var netFormat = NormalizeOracleFormatMask(mask, out var _);
-        if (string.IsNullOrWhiteSpace(netFormat))
+        if (netFormat is null || string.IsNullOrWhiteSpace(netFormat))
         {
-            return DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out result);
+            return TryParseCachedDateTimeOffset(text, DateTimeStyles.AllowWhiteSpaces, out result);
         }
 
-        return DateTimeOffset.TryParseExact(text, netFormat, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out result);
+        return TryParseExactCachedDateTimeOffset(text, netFormat, DateTimeStyles.AllowWhiteSpaces, out result);
     }
 
     private static string? NormalizeOracleFormatMask(string? mask, out bool hasTimeZone)
     {
-        hasTimeZone = false;
-        if (string.IsNullOrWhiteSpace(mask))
+        if (mask is null || string.IsNullOrWhiteSpace(mask))
+        {
+            hasTimeZone = false;
             return null;
+        }
 
-        var upper = ReplaceInsensitive(mask!.Trim().ToUpperInvariant(), "FM", string.Empty);
-        hasTimeZone = upper.IndexOf("TZH", StringComparison.OrdinalIgnoreCase) >= 0
-            || upper.IndexOf("TZM", StringComparison.OrdinalIgnoreCase) >= 0
-            || upper.IndexOf("TZR", StringComparison.OrdinalIgnoreCase) >= 0
-            || upper.IndexOf("TZD", StringComparison.OrdinalIgnoreCase) >= 0;
+        var entry = _oracleFormatMaskCache.GetOrAdd(mask, static rawMask =>
+        {
+            var upper = ReplaceInsensitive(rawMask.Trim().ToUpperInvariant(), "FM", string.Empty);
+            var hasTimeZone = upper.IndexOf("TZH", StringComparison.OrdinalIgnoreCase) >= 0
+                || upper.IndexOf("TZM", StringComparison.OrdinalIgnoreCase) >= 0
+                || upper.IndexOf("TZR", StringComparison.OrdinalIgnoreCase) >= 0
+                || upper.IndexOf("TZD", StringComparison.OrdinalIgnoreCase) >= 0;
 
-        var net = upper;
+            var net = upper;
 
-        net = ReplaceInsensitive(net, "TZH:TZM", "zzz");
-        net = ReplaceInsensitive(net, "TZH", "zz");
-        net = ReplaceInsensitive(net, "TZM", "mm");
-        net = ReplaceInsensitive(net, "RRRR", "yyyy");
-        net = ReplaceInsensitive(net, "YYYY", "yyyy");
-        net = ReplaceInsensitive(net, "YYY", "yyy");
-        net = ReplaceInsensitive(net, "YY", "yy");
-        net = ReplaceInsensitive(net, "Y", "y");
-        net = ReplaceInsensitive(net, "MONTH", "MMMM");
-        net = ReplaceInsensitive(net, "MON", "MMM");
-        net = ReplaceInsensitive(net, "MM", "MM");
-        net = ReplaceInsensitive(net, "DD", "dd");
-        net = ReplaceInsensitive(net, "HH24", "HH");
-        net = ReplaceInsensitive(net, "HH12", "hh");
-        net = ReplaceInsensitive(net, "HH", "hh");
-        net = ReplaceInsensitive(net, "MI", "mm");
-        net = ReplaceInsensitive(net, "SS", "ss");
-        net = ReplaceInsensitive(net, "FF", "fffffff");
+            net = ReplaceInsensitive(net, "TZH:TZM", "zzz");
+            net = ReplaceInsensitive(net, "TZH", "zz");
+            net = ReplaceInsensitive(net, "TZM", "mm");
+            net = ReplaceInsensitive(net, "RRRR", "yyyy");
+            net = ReplaceInsensitive(net, "YYYY", "yyyy");
+            net = ReplaceInsensitive(net, "YYY", "yyy");
+            net = ReplaceInsensitive(net, "YY", "yy");
+            net = ReplaceInsensitive(net, "Y", "y");
+            net = ReplaceInsensitive(net, "MONTH", "MMMM");
+            net = ReplaceInsensitive(net, "MON", "MMM");
+            net = ReplaceInsensitive(net, "MM", "MM");
+            net = ReplaceInsensitive(net, "DD", "dd");
+            net = ReplaceInsensitive(net, "HH24", "HH");
+            net = ReplaceInsensitive(net, "HH12", "hh");
+            net = ReplaceInsensitive(net, "HH", "hh");
+            net = ReplaceInsensitive(net, "MI", "mm");
+            net = ReplaceInsensitive(net, "SS", "ss");
+            net = ReplaceInsensitive(net, "FF", "fffffff");
 
-        net = net.Replace("\"", "'");
+            return new OracleFormatMaskCacheEntry(net.Replace("\"", "'"), hasTimeZone);
+        });
 
-        return net;
+        hasTimeZone = entry.HasTimeZone;
+        return entry.NetFormat;
     }
 
     private static bool IsNumericValue(object? value)
@@ -10895,24 +9506,16 @@ private void FillPercentRankOrCumeDist(
             if (fn.Args.Count < 2)
                 throw new InvalidOperationException("DATE_TRUNC() espera unidade e data.");
 
-            var unit = evalArg(0)?.ToString() ?? string.Empty;
+            var unitText = evalArg(0)?.ToString() ?? string.Empty;
             var value = evalArg(1);
-            if (IsNullish(value) || string.IsNullOrWhiteSpace(unit) || !TryCoerceDateTime(value, out var dateTime))
+            if (IsNullish(value) || string.IsNullOrWhiteSpace(unitText) || !TryCoerceDateTime(value, out var dateTime))
             {
                 result = null;
                 return true;
             }
 
-            result = unit.Trim().ToLowerInvariant() switch
-            {
-                "year" => new DateTime(dateTime.Year, 1, 1),
-                "month" => new DateTime(dateTime.Year, dateTime.Month, 1),
-                "day" => dateTime.Date,
-                "hour" => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, 0, 0),
-                "minute" => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, 0),
-                "second" => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second),
-                _ => dateTime
-            };
+            var unit = ResolveTemporalUnit(unitText);
+            result = TruncateDateTime(dateTime, unit);
             return true;
         }
 
@@ -10921,24 +9524,16 @@ private void FillPercentRankOrCumeDist(
             if (fn.Args.Count < 2)
                 throw new InvalidOperationException("DATE_PART() espera unidade e data.");
 
-            var unit = evalArg(0)?.ToString() ?? string.Empty;
+            var unit = ResolveTemporalUnit(evalArg(0)?.ToString() ?? string.Empty);
             var value = evalArg(1);
-            if (IsNullish(value) || string.IsNullOrWhiteSpace(unit) || !TryCoerceDateTime(value, out var dateTime))
+            if (IsNullish(value) || unit == TemporalUnit.Unknown || !TryCoerceDateTime(value, out var dateTime))
             {
                 result = null;
                 return true;
             }
 
-            result = unit.Trim().ToLowerInvariant() switch
-            {
-                "year" => (double)dateTime.Year,
-                "month" => (double)dateTime.Month,
-                "day" => (double)dateTime.Day,
-                "hour" => (double)dateTime.Hour,
-                "minute" => (double)dateTime.Minute,
-                "second" => (double)dateTime.Second,
-                _ => null
-            };
+            var temporalPart = GetTemporalPartValue(dateTime, unit);
+            result = temporalPart is null ? null : (double)temporalPart.Value;
             return true;
         }
 
@@ -11074,7 +9669,7 @@ private void FillPercentRankOrCumeDist(
                 return true;
             }
 
-            if (DateTime.TryParse(textValue, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var fallbackParsed))
+            if (TryParseCachedDateTime(textValue, DateTimeStyles.AllowWhiteSpaces, out var fallbackParsed))
             {
                 result = fallbackParsed.Date;
                 return true;
@@ -11514,7 +10109,7 @@ private void FillPercentRankOrCumeDist(
             "HOST" => address.ToString(),
             "MASKLEN" => prefixLength,
             "NETMASK" => new System.Net.IPAddress(maskBytes).ToString(),
-            "HOSTMASK" => new System.Net.IPAddress(maskBytes.Select(static b => (byte)~b).ToArray()).ToString(),
+            "HOSTMASK" => new System.Net.IPAddress([.. maskBytes.Select(static b => (byte)~b)]).ToString(),
             "NETWORK" => $"{new System.Net.IPAddress(ApplyNetworkMask(address.GetAddressBytes(), maskBytes))}/{prefixLength}",
             _ => null
         };
@@ -11597,24 +10192,16 @@ private void FillPercentRankOrCumeDist(
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("DATE_TRUNC() espera unidade e data.");
 
-        var unit = evalArg(0)?.ToString() ?? string.Empty;
+        var unitText = evalArg(0)?.ToString() ?? string.Empty;
         var value = evalArg(1);
-        if (IsNullish(value) || string.IsNullOrWhiteSpace(unit) || !TryCoerceDateTime(value, out var dateTime))
+        if (IsNullish(value) || string.IsNullOrWhiteSpace(unitText) || !TryCoerceDateTime(value, out var dateTime))
         {
             result = null;
             return true;
         }
 
-        result = unit.Trim().ToLowerInvariant() switch
-        {
-            "year" => new DateTime(dateTime.Year, 1, 1),
-            "month" => new DateTime(dateTime.Year, dateTime.Month, 1),
-            "day" => dateTime.Date,
-            "hour" => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, 0, 0),
-            "minute" => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, 0),
-            "second" => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second),
-            _ => dateTime
-        };
+        var unit = ResolveTemporalUnit(unitText);
+        result = TruncateDateTime(dateTime, unit);
         return true;
     }
 
@@ -11982,7 +10569,7 @@ private void FillPercentRankOrCumeDist(
             if (name is "ARRAY_REMOVE")
             {
                 var target = evalArg(1);
-                list = list.Where(item => !Equals(item, target)).ToList();
+                list = [.. list.Where(item => !Equals(item, target))];
                 result = list.ToArray();
                 return true;
             }
@@ -12566,24 +11153,16 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        try
+        var normalized = type.Trim().ToUpperInvariant();
+        var isValid = normalized switch
         {
-            var normalized = type.Trim().ToUpperInvariant();
-            _ = normalized switch
-            {
-                "NUMBER" => Convert.ToDecimal(value, CultureInfo.InvariantCulture),
-                "DATE" => Convert.ToDateTime(value, CultureInfo.InvariantCulture),
-                "TIMESTAMP" => Convert.ToDateTime(value, CultureInfo.InvariantCulture),
-                _ => value
-            };
-            result = 1;
-            return true;
-        }
-        catch
-        {
-            result = 0;
-            return true;
-        }
+            "NUMBER" => TryCoerceDecimal(value, out _),
+            "DATE" or "TIMESTAMP" => TryCoerceDateTime(value, out _),
+            _ => true
+        };
+
+        result = isValid ? 1 : 0;
+        return true;
     }
 
     private static bool TryEvalOracleVsizeFunction(
@@ -12850,7 +11429,7 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        if (TimeSpan.TryParse(trimmed, CultureInfo.InvariantCulture, out offset))
+        if (TryParseCachedTimeSpan(trimmed, out offset))
             return true;
 
         if (trimmed.Length == 6
@@ -12886,25 +11465,7 @@ private void FillPercentRankOrCumeDist(
     {
         day = default;
         var normalized = value.Trim().ToUpperInvariant();
-        var map = new Dictionary<string, DayOfWeek>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["SUNDAY"] = DayOfWeek.Sunday,
-            ["MONDAY"] = DayOfWeek.Monday,
-            ["TUESDAY"] = DayOfWeek.Tuesday,
-            ["WEDNESDAY"] = DayOfWeek.Wednesday,
-            ["THURSDAY"] = DayOfWeek.Thursday,
-            ["FRIDAY"] = DayOfWeek.Friday,
-            ["SATURDAY"] = DayOfWeek.Saturday,
-            ["SUN"] = DayOfWeek.Sunday,
-            ["MON"] = DayOfWeek.Monday,
-            ["TUE"] = DayOfWeek.Tuesday,
-            ["WED"] = DayOfWeek.Wednesday,
-            ["THU"] = DayOfWeek.Thursday,
-            ["FRI"] = DayOfWeek.Friday,
-            ["SAT"] = DayOfWeek.Saturday
-        };
-
-        if (map.TryGetValue(normalized, out day))
+        if (_oracleDayOfWeekMap.TryGetValue(normalized, out day))
             return true;
 
         return false;
@@ -13882,7 +12443,7 @@ private void FillPercentRankOrCumeDist(
         if (fn.Args.Count < 2)
             throw new InvalidOperationException("DATENAME() espera 2 argumentos.");
 
-        var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
+        var unit = GetTemporalUnit(fn.Args[0], row, group, ctes);
         var value = evalArg(1);
         if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
         {
@@ -13892,12 +12453,12 @@ private void FillPercentRankOrCumeDist(
 
         result = unit switch
         {
-            "YEAR" or "YEARS" => dateTime.Year.ToString(CultureInfo.InvariantCulture),
-            "MONTH" or "MONTHS" => dateTime.ToString("MMMM", CultureInfo.InvariantCulture),
-            "DAY" or "DAYS" => dateTime.Day.ToString(CultureInfo.InvariantCulture),
-            "HOUR" or "HOURS" => dateTime.Hour.ToString(CultureInfo.InvariantCulture),
-            "MINUTE" or "MINUTES" => dateTime.Minute.ToString(CultureInfo.InvariantCulture),
-            "SECOND" or "SECONDS" => dateTime.Second.ToString(CultureInfo.InvariantCulture),
+            TemporalUnit.Year => dateTime.Year.ToString(CultureInfo.InvariantCulture),
+            TemporalUnit.Month => dateTime.ToString("MMMM", CultureInfo.InvariantCulture),
+            TemporalUnit.Day => dateTime.Day.ToString(CultureInfo.InvariantCulture),
+            TemporalUnit.Hour => dateTime.Hour.ToString(CultureInfo.InvariantCulture),
+            TemporalUnit.Minute => dateTime.Minute.ToString(CultureInfo.InvariantCulture),
+            TemporalUnit.Second => dateTime.Second.ToString(CultureInfo.InvariantCulture),
             _ => null
         };
         return true;
@@ -13921,7 +12482,7 @@ private void FillPercentRankOrCumeDist(
         if (name == "DATEPART" && fn.Args.Count < 2)
             throw new InvalidOperationException("DATEPART() espera 2 argumentos.");
 
-        var unit = name == "DATEPART" ? GetDateAddUnit(fn.Args[0], row, group, ctes) : name;
+        var unit = name == "DATEPART" ? GetTemporalUnit(fn.Args[0], row, group, ctes) : ResolveTemporalUnit(name);
         var value = evalArg(name == "DATEPART" ? 1 : 0);
         if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
         {
@@ -13931,12 +12492,12 @@ private void FillPercentRankOrCumeDist(
 
         result = unit switch
         {
-            "YEAR" or "YEARS" => dateTime.Year,
-            "MONTH" or "MONTHS" => dateTime.Month,
-            "DAY" or "DAYS" => dateTime.Day,
-            "HOUR" or "HOURS" => dateTime.Hour,
-            "MINUTE" or "MINUTES" => dateTime.Minute,
-            "SECOND" or "SECONDS" => dateTime.Second,
+            TemporalUnit.Year => dateTime.Year,
+            TemporalUnit.Month => dateTime.Month,
+            TemporalUnit.Day => dateTime.Day,
+            TemporalUnit.Hour => dateTime.Hour,
+            TemporalUnit.Minute => dateTime.Minute,
+            TemporalUnit.Second => dateTime.Second,
             _ => null
         };
         return true;
@@ -14009,16 +12570,8 @@ private void FillPercentRankOrCumeDist(
         try
         {
             var amount = Convert.ToInt32(amountValue.ToDec());
-            result = name switch
-            {
-                "ADD_DAYS" => dateTime.AddDays(amount),
-                "ADD_HOURS" => dateTime.AddHours(amount),
-                "ADD_MINUTES" => dateTime.AddMinutes(amount),
-                "ADD_SECONDS" => dateTime.AddSeconds(amount),
-                "ADD_MONTHS" => dateTime.AddMonths(amount),
-                "ADD_YEARS" => dateTime.AddYears(amount),
-                _ => null
-            };
+            var unit = ResolveTemporalUnit(name["ADD_".Length..]);
+            result = ApplyDateDelta(dateTime, unit, amount);
             return true;
         }
         catch
@@ -14075,7 +12628,7 @@ private void FillPercentRankOrCumeDist(
         if (fn.Args.Count != 3)
             throw new InvalidOperationException("DATEDIFF_BIG() espera 3 argumentos.");
 
-        var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
+        var unit = GetTemporalUnit(fn.Args[0], row, group, ctes);
         var startValue = evalArg(1);
         var endValue = evalArg(2);
         if (IsNullish(startValue) || IsNullish(endValue)
@@ -14086,16 +12639,7 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        result = unit switch
-        {
-            "DAY" or "DAYS" => (long)(end.Date - start.Date).TotalDays,
-            "HOUR" or "HOURS" => (long)(end - start).TotalHours,
-            "MINUTE" or "MINUTES" => (long)(end - start).TotalMinutes,
-            "SECOND" or "SECONDS" => (long)(end - start).TotalSeconds,
-            "MONTH" or "MONTHS" => (long)DiffMonths(start, end),
-            "YEAR" or "YEARS" => (long)DiffYears(start, end),
-            _ => null
-        };
+        result = GetTemporalDifference(start, end, unit);
         return true;
     }
 
@@ -14555,9 +13099,7 @@ private void FillPercentRankOrCumeDist(
 
         result = FormatPrintf(
             evalArg(0)?.ToString() ?? string.Empty,
-            Enumerable.Range(1, Math.Max(0, fn.Args.Count - 1))
-                .Select(evalArg)
-                .ToArray());
+            [.. Enumerable.Range(1, Math.Max(0, fn.Args.Count - 1)).Select(evalArg)]);
         return true;
     }
 
@@ -14921,7 +13463,7 @@ private void FillPercentRankOrCumeDist(
         {
             dto = directDto;
         }
-        else if (!DateTimeOffset.TryParse(baseValue!.ToString(), CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out dto))
+        else if (!TryParseCachedDateTimeOffset(baseValue!.ToString()!, DateTimeStyles.AllowWhiteSpaces, out dto))
         {
             result = null;
             return true;
@@ -14949,7 +13491,7 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        result = DateTime.TryParse(value?.ToString(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out _)
+        result = TryCoerceDateTime(value, out _)
             ? 1
             : 0;
         return true;
@@ -14975,7 +13517,7 @@ private void FillPercentRankOrCumeDist(
 
         try
         {
-            using var _ = System.Text.Json.JsonDocument.Parse(value?.ToString() ?? string.Empty);
+            QueryJsonFunctionHelper.TryGetJsonRootElement(value!, out _);
             result = 1;
         }
         catch
@@ -15272,8 +13814,13 @@ private void FillPercentRankOrCumeDist(
 
         try
         {
-            using var doc = System.Text.Json.JsonDocument.Parse(text!);
-            result = GetJsonDepth(doc.RootElement);
+            if (!QueryJsonFunctionHelper.TryGetJsonRootElement(text!, out var root))
+            {
+                result = null;
+                return true;
+            }
+
+            result = GetJsonDepth(root);
             return true;
         }
         catch
@@ -15330,7 +13877,7 @@ private void FillPercentRankOrCumeDist(
 
             try
             {
-                using var _ = System.Text.Json.JsonDocument.Parse(text!);
+                QueryJsonFunctionHelper.TryGetJsonRootElement(text!, out _);
                 result = 1;
             }
             catch
@@ -16900,9 +15447,7 @@ private void FillPercentRankOrCumeDist(
 
         if (name is "SQLITE3_MPRINTF")
         {
-            result = FormatPrintf(evalArg(0)?.ToString() ?? string.Empty, Enumerable.Range(1, Math.Max(0, fn.Args.Count - 1))
-                .Select(evalArg)
-                .ToArray());
+            result = FormatPrintf(evalArg(0)?.ToString() ?? string.Empty, [.. Enumerable.Range(1, Math.Max(0, fn.Args.Count - 1)).Select(evalArg)]);
             return true;
         }
 
@@ -16974,7 +15519,7 @@ private void FillPercentRankOrCumeDist(
 
             try
             {
-                using var _ = System.Text.Json.JsonDocument.Parse(text!);
+                QueryJsonFunctionHelper.TryGetJsonRootElement(text!, out _);
                 result = 0;
             }
             catch
@@ -17525,8 +16070,7 @@ private void FillPercentRankOrCumeDist(
 
         try
         {
-            using var document = System.Text.Json.JsonDocument.Parse(text);
-            element = document.RootElement.Clone();
+            QueryJsonFunctionHelper.TryGetJsonRootElement(text, out element);
             return true;
         }
         catch
@@ -17562,8 +16106,7 @@ private void FillPercentRankOrCumeDist(
         {
             try
             {
-                using var document = System.Text.Json.JsonDocument.Parse(text);
-                element = document.RootElement.Clone();
+                QueryJsonFunctionHelper.TryGetJsonRootElement(text, out element);
                 return true;
             }
             catch
@@ -17572,12 +16115,8 @@ private void FillPercentRankOrCumeDist(
             }
         }
 
-        var quoted = System.Text.Json.JsonSerializer.Serialize(text);
-        using (var document = System.Text.Json.JsonDocument.Parse(quoted))
-        {
-            element = document.RootElement.Clone();
-            return true;
-        }
+        element = System.Text.Json.JsonSerializer.SerializeToElement(text);
+        return true;
     }
 
     private static bool JsonContains(System.Text.Json.JsonElement target, System.Text.Json.JsonElement candidate)
@@ -17956,8 +16495,22 @@ private void FillPercentRankOrCumeDist(
     }
 
     private readonly record struct JsonPathToken(JsonPathTokenKind Kind, string? PropertyName, int? ArrayIndex);
+    private readonly record struct JsonPathTokenCacheEntry(bool Success, JsonPathToken[] Tokens);
 
     private static bool TryParseJsonPathTokens(string path, out List<JsonPathToken> tokens)
+    {
+        if (_jsonPathTokenCache.TryGetValue(path, out var cached))
+        {
+            tokens = cached.Success ? [.. cached.Tokens] : [];
+            return cached.Success;
+        }
+
+        var success = TryParseJsonPathTokensCore(path, out tokens);
+        CacheJsonPathParseEntry(_jsonPathTokenCache, path, new JsonPathTokenCacheEntry(success, [.. tokens]));
+        return success;
+    }
+
+    private static bool TryParseJsonPathTokensCore(string path, out List<JsonPathToken> tokens)
     {
         tokens = [];
         if (string.IsNullOrWhiteSpace(path))
@@ -18116,6 +16669,13 @@ private void FillPercentRankOrCumeDist(
         if (!TryReadPostgresTextArray(value, out var segments))
             return false;
 
+        var cacheKey = BuildPostgresJsonPathCacheKey(segments);
+        if (_postgresJsonPathTokenCache.TryGetValue(cacheKey, out var cached))
+        {
+            tokens = cached.Success ? [.. cached.Tokens] : [];
+            return cached.Success;
+        }
+
         foreach (var segment in segments)
         {
             if (int.TryParse(segment, NumberStyles.Integer, CultureInfo.InvariantCulture, out var index)
@@ -18128,7 +16688,23 @@ private void FillPercentRankOrCumeDist(
             tokens.Add(new JsonPathToken(JsonPathTokenKind.Property, segment, null));
         }
 
-        return tokens.Count > 0;
+        var success = tokens.Count > 0;
+        CacheJsonPathParseEntry(_postgresJsonPathTokenCache, cacheKey, new JsonPathTokenCacheEntry(success, [.. tokens]));
+        return success;
+    }
+
+    private static string BuildPostgresJsonPathCacheKey(IReadOnlyList<string> segments)
+        => string.Join("\u001F", segments);
+
+    private static void CacheJsonPathParseEntry(
+        System.Collections.Concurrent.ConcurrentDictionary<string, JsonPathTokenCacheEntry> cache,
+        string key,
+        JsonPathTokenCacheEntry entry)
+    {
+        if (cache.Count >= JsonPathParseCacheSoftLimit)
+            cache.Clear();
+
+        cache[key] = entry;
     }
 
     private static System.Text.Json.Nodes.JsonNode CreateJsonNodeFromValue(object? value)
@@ -20235,9 +18811,8 @@ private void FillPercentRankOrCumeDist(
         DateTime dateTime;
         if (value is string textValue)
         {
-            if (!DateTime.TryParse(
+            if (!TryParseCachedDateTime(
                     textValue,
-                    CultureInfo.InvariantCulture,
                     DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
                     out dateTime))
             {
@@ -20460,84 +19035,6 @@ private void FillPercentRankOrCumeDist(
         return true;
     }
 
-    private static string FlattenMatchAgainstTarget(object? value)
-    {
-        if (value is object?[] values)
-            return string.Join(" ", values.Where(v => !IsNullish(v)).Select(v => v?.ToString() ?? string.Empty));
-
-        return value?.ToString() ?? string.Empty;
-    }
-
-    private static IReadOnlyList<MatchAgainstTerm> ExtractMatchAgainstTerms(string query)
-    {
-        if (string.IsNullOrWhiteSpace(query))
-            return [];
-
-        var matches = Regex.Matches(
-            query,
-            @"(?<sign>[+\-]?)(?:""(?<phrase>[^""]+)""|(?<term>[\p{L}\p{N}_*]+))",
-            RegexOptions.CultureInvariant);
-
-        return matches
-            .Cast<Match>()
-            .Select(m =>
-            {
-                var sign = m.Groups["sign"].Value;
-                var phrase = m.Groups["phrase"].Value;
-                var token = !string.IsNullOrWhiteSpace(phrase)
-                    ? phrase
-                    : m.Groups["term"].Value;
-
-                var prefixWildcard = token.EndsWith("*", StringComparison.Ordinal);
-                if (prefixWildcard)
-                    token = token[..^1];
-
-                return new MatchAgainstTerm(
-                    token,
-                    Required: sign == "+",
-                    Prohibited: sign == "-",
-                    PrefixWildcard: prefixWildcard,
-                    IsPhrase: !string.IsNullOrWhiteSpace(phrase));
-            })
-            .Where(t => !string.IsNullOrWhiteSpace(t.Value))
-            .Distinct()
-            .ToArray();
-    }
-
-    private static IReadOnlyList<string> ExtractMatchAgainstWords(string haystack)
-    {
-        if (string.IsNullOrWhiteSpace(haystack))
-            return [];
-
-        return Regex.Matches(haystack, @"[\p{L}\p{N}_]+", RegexOptions.CultureInvariant)
-            .Cast<Match>()
-            .Select(m => m.Value)
-            .Where(v => !string.IsNullOrWhiteSpace(v))
-            .ToArray();
-    }
-
-    private static bool ContainsMatchAgainstTerm(
-        string haystack,
-        IReadOnlyList<string> haystackWords,
-        MatchAgainstTerm term,
-        StringComparison comparison)
-    {
-        if (term.IsPhrase)
-            return haystack.IndexOf(term.Value, comparison) >= 0;
-
-        if (term.PrefixWildcard)
-            return haystackWords.Any(word => word.StartsWith(term.Value, comparison));
-
-        return haystackWords.Any(word => word.Equals(term.Value, comparison));
-    }
-
-    private readonly record struct MatchAgainstTerm(
-        string Value,
-        bool Required,
-        bool Prohibited,
-        bool PrefixWildcard,
-        bool IsPhrase);
-
     private object? EvalTryCast(FunctionCallExpr fn, Func<int, object?> evalArg)
     {
         if (fn.Args.Count < 2) return null;
@@ -20640,7 +19137,7 @@ private void FillPercentRankOrCumeDist(
                 || type.StartsWith("DATETIME", StringComparison.OrdinalIgnoreCase)
                 || type.StartsWith("SMALLDATETIME", StringComparison.OrdinalIgnoreCase))
             {
-                if (DateTime.TryParse(value!.ToString(), culture, DateTimeStyles.AllowWhiteSpaces, out var parsedDate))
+                if (TryParseCachedDateTime(value!.ToString()!, culture, DateTimeStyles.AllowWhiteSpaces, out var parsedDate))
                     return parsedDate;
                 return null;
             }
@@ -20714,7 +19211,7 @@ private void FillPercentRankOrCumeDist(
 
                     var normalizedJson = json.Trim();
 
-                    using var _ = System.Text.Json.JsonDocument.Parse(normalizedJson);
+                    QueryJsonFunctionHelper.TryGetJsonRootElement(normalizedJson, out _);
                     return normalizedJson;
                 }
 
@@ -20796,9 +19293,7 @@ private void FillPercentRankOrCumeDist(
         }
 
         var amountObject = Eval(intervalCall.Args[0], row, group, ctes);
-        var unit = intervalCall.Args[1] is RawSqlExpr raw
-            ? raw.Sql
-            : Eval(intervalCall.Args[1], row, group, ctes)?.ToString() ?? "DAY";
+        var unit = GetTemporalUnitOrDefault(intervalCall.Args[1], row, group, ctes, TemporalUnit.Day);
         result = ApplyDateDelta(dateTime, unit, Convert.ToInt32((amountObject ?? 0m).ToDec()));
         return true;
     }
@@ -20833,7 +19328,7 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
+        var unit = GetTemporalUnit(fn.Args[0], row, group, ctes);
         var amountObject = evalArg(1);
         result = ApplyDateDelta(dateTime, unit, Convert.ToInt32((amountObject ?? 0m).ToDec()));
         return true;
@@ -21068,8 +19563,9 @@ private void FillPercentRankOrCumeDist(
 
     private static object? TryEvalJsonQueryWithoutPath(object json)
     {
-        using var document = System.Text.Json.JsonDocument.Parse(json.ToString() ?? string.Empty);
-        var root = document.RootElement;
+        if (!QueryJsonFunctionHelper.TryGetJsonRootElement(json, out var root))
+            return null;
+
         return root.ValueKind is System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array
             ? root.GetRawText()
             : null;
@@ -21231,6 +19727,47 @@ private void FillPercentRankOrCumeDist(
         return unit!.Trim().ToUpperInvariant();
     }
 
+    private TemporalUnit GetTemporalUnit(
+        SqlExpr expr,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes)
+        => ResolveTemporalUnit(GetDateAddUnit(expr, row, group, ctes));
+
+    private TemporalUnit GetTemporalUnitOrDefault(
+        SqlExpr expr,
+        EvalRow row,
+        EvalGroup? group,
+        IDictionary<string, Source> ctes,
+        TemporalUnit defaultUnit)
+    {
+        var resolved = GetTemporalUnit(expr, row, group, ctes);
+        return resolved == TemporalUnit.Unknown ? defaultUnit : resolved;
+    }
+
+    private static TemporalUnit ResolveTemporalUnit(string unit)
+        => _temporalUnits.TryGetValue(unit, out var resolved)
+            ? resolved
+            : TemporalUnit.Unknown;
+
+    private static bool TryCoerceDecimal(object? value, out decimal result)
+    {
+        result = default;
+
+        if (value is null || value is DBNull)
+            return false;
+
+        try
+        {
+            result = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private static bool TryCoerceDateTime(object? baseVal, out DateTime dt)
     {
         dt = default;
@@ -21248,11 +19785,9 @@ private void FillPercentRankOrCumeDist(
                 return true;
         }
 
-        return DateTime.TryParse(
-            baseVal.ToString(),
-            CultureInfo.InvariantCulture,
-            DateTimeStyles.AssumeLocal,
-            out dt);
+        var text = baseVal.ToString();
+        return !string.IsNullOrWhiteSpace(text)
+            && TryParseCachedDateTime(text, DateTimeStyles.AssumeLocal, out dt);
     }
 
     private static bool TryCoerceTimeSpan(object? baseVal, out TimeSpan span)
@@ -21274,20 +19809,162 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        if (TimeSpan.TryParse(baseVal.ToString(), CultureInfo.InvariantCulture, out var parsed))
+        var text = baseVal.ToString();
+        return !string.IsNullOrWhiteSpace(text)
+            && TryParseCachedTimeSpan(text, out span);
+    }
+
+    private static bool TryParseCachedDateTime(string text, DateTimeStyles styles, out DateTime dt)
+    {
+        var cacheKey = BuildDateTimeParseCacheKey(text, styles);
+        if (_dateTimeParseCache.TryGetValue(cacheKey, out var cached))
+        {
+            dt = cached.Value;
+            return cached.Success;
+        }
+
+        var success = DateTime.TryParse(
+            text,
+            CultureInfo.InvariantCulture,
+            styles,
+            out dt);
+
+        CacheTemporalParseEntry(_dateTimeParseCache, cacheKey, new DateTimeParseCacheEntry(success, dt));
+        return success;
+    }
+
+    private static bool TryParseCachedDateTime(string text, CultureInfo culture, DateTimeStyles styles, out DateTime dt)
+    {
+        if (string.IsNullOrEmpty(culture.Name))
+            return TryParseCachedDateTime(text, styles, out dt);
+
+        var cacheKey = BuildDateTimeParseCacheKey(text, culture.Name, styles);
+        if (_dateTimeParseCache.TryGetValue(cacheKey, out var cached))
+        {
+            dt = cached.Value;
+            return cached.Success;
+        }
+
+        var success = DateTime.TryParse(
+            text,
+            culture,
+            styles,
+            out dt);
+
+        CacheTemporalParseEntry(_dateTimeParseCache, cacheKey, new DateTimeParseCacheEntry(success, dt));
+        return success;
+    }
+
+    private static bool TryParseExactCachedDateTime(string text, string format, DateTimeStyles styles, out DateTime dt)
+    {
+        var cacheKey = BuildExactDateTimeParseCacheKey(text, format, styles);
+        if (_dateTimeExactParseCache.TryGetValue(cacheKey, out var cached))
+        {
+            dt = cached.Value;
+            return cached.Success;
+        }
+
+        var success = DateTime.TryParseExact(
+            text,
+            format,
+            CultureInfo.InvariantCulture,
+            styles,
+            out dt);
+
+        CacheTemporalParseEntry(_dateTimeExactParseCache, cacheKey, new DateTimeParseCacheEntry(success, dt));
+        return success;
+    }
+
+    private static bool TryParseCachedDateTimeOffset(string text, DateTimeStyles styles, out DateTimeOffset dto)
+    {
+        var cacheKey = BuildDateTimeOffsetParseCacheKey(text, styles);
+        if (_dateTimeOffsetParseCache.TryGetValue(cacheKey, out var cached))
+        {
+            dto = cached.Value;
+            return cached.Success;
+        }
+
+        var success = DateTimeOffset.TryParse(
+            text,
+            CultureInfo.InvariantCulture,
+            styles,
+            out dto);
+
+        CacheTemporalParseEntry(_dateTimeOffsetParseCache, cacheKey, new DateTimeOffsetParseCacheEntry(success, dto));
+        return success;
+    }
+
+    private static bool TryParseExactCachedDateTimeOffset(string text, string format, DateTimeStyles styles, out DateTimeOffset dto)
+    {
+        var cacheKey = BuildExactDateTimeOffsetParseCacheKey(text, format, styles);
+        if (_dateTimeOffsetExactParseCache.TryGetValue(cacheKey, out var cached))
+        {
+            dto = cached.Value;
+            return cached.Success;
+        }
+
+        var success = DateTimeOffset.TryParseExact(
+            text,
+            format,
+            CultureInfo.InvariantCulture,
+            styles,
+            out dto);
+
+        CacheTemporalParseEntry(_dateTimeOffsetExactParseCache, cacheKey, new DateTimeOffsetParseCacheEntry(success, dto));
+        return success;
+    }
+
+    private static bool TryParseCachedTimeSpan(string text, out TimeSpan span)
+    {
+        if (_timeSpanParseCache.TryGetValue(text, out var cached))
+        {
+            span = cached.Value;
+            return cached.Success;
+        }
+
+        var success = false;
+        span = default;
+
+        if (TimeSpan.TryParse(text, CultureInfo.InvariantCulture, out var parsed))
         {
             span = parsed;
-            return true;
+            success = true;
         }
-
-        if (DateTime.TryParse(baseVal.ToString(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var parsedDate))
+        else if (TryParseCachedDateTime(text, DateTimeStyles.AssumeLocal, out var parsedDate))
         {
             span = parsedDate.TimeOfDay;
-            return true;
+            success = true;
         }
 
-        return false;
+        CacheTemporalParseEntry(_timeSpanParseCache, text, new TimeSpanParseCacheEntry(success, span));
+        return success;
     }
+
+    private static void CacheTemporalParseEntry<TEntry>(
+        System.Collections.Concurrent.ConcurrentDictionary<string, TEntry> cache,
+        string text,
+        TEntry entry)
+    {
+        if (cache.Count >= TemporalParseCacheSoftLimit)
+            cache.Clear();
+
+        cache[text] = entry;
+    }
+
+    private static string BuildDateTimeParseCacheKey(string text, DateTimeStyles styles)
+        => $"{(int)styles}:{text}";
+
+    private static string BuildDateTimeParseCacheKey(string text, string cultureName, DateTimeStyles styles)
+        => $"{cultureName}:{(int)styles}:{text}";
+
+    private static string BuildDateTimeOffsetParseCacheKey(string text, DateTimeStyles styles)
+        => $"{(int)styles}:{text}";
+
+    private static string BuildExactDateTimeParseCacheKey(string text, string format, DateTimeStyles styles)
+        => $"{(int)styles}:{format}:{text}";
+
+    private static string BuildExactDateTimeOffsetParseCacheKey(string text, string format, DateTimeStyles styles)
+        => $"{(int)styles}:{format}:{text}";
 
     private static bool LooksLikeTimeOnly(string value)
     {
@@ -21305,23 +19982,53 @@ private void FillPercentRankOrCumeDist(
     }
 
     private static DateTime ApplyDateDelta(DateTime dt, string unit, int amount)
+        => ApplyDateDelta(dt, ResolveTemporalUnit(unit), amount);
+
+    private static DateTime ApplyDateDelta(DateTime dt, TemporalUnit unit, int amount)
     {
-        var normalized = unit.Trim().ToUpperInvariant();
-        return normalized switch
+        return unit switch
         {
-            "YEAR" or "YEARS" or "YY" or "YYYY" => dt.AddYears(amount),
-            "MONTH" or "MONTHS" or "MM" => dt.AddMonths(amount),
-            "DAY" or "DAYS" or "DD" or "D" => dt.AddDays(amount),
-            "HOUR" or "HOURS" or "HH" => dt.AddHours(amount),
-            "MINUTE" or "MINUTES" or "MI" or "N" => dt.AddMinutes(amount),
-            "SECOND" or "SECONDS" or "SS" or "S" => dt.AddSeconds(amount),
+            TemporalUnit.Year => dt.AddYears(amount),
+            TemporalUnit.Month => dt.AddMonths(amount),
+            TemporalUnit.Day => dt.AddDays(amount),
+            TemporalUnit.Hour => dt.AddHours(amount),
+            TemporalUnit.Minute => dt.AddMinutes(amount),
+            TemporalUnit.Second => dt.AddSeconds(amount),
             _ => dt
         };
     }
 
-    private static bool TryParseDateModifier(string modifier, out string unit, out int amount)
+    private static DateTime TruncateDateTime(DateTime dateTime, TemporalUnit unit)
     {
-        unit = string.Empty;
+        return unit switch
+        {
+            TemporalUnit.Year => new DateTime(dateTime.Year, 1, 1),
+            TemporalUnit.Month => new DateTime(dateTime.Year, dateTime.Month, 1),
+            TemporalUnit.Day => dateTime.Date,
+            TemporalUnit.Hour => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, 0, 0),
+            TemporalUnit.Minute => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, 0),
+            TemporalUnit.Second => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second),
+            _ => dateTime
+        };
+    }
+
+    private static int? GetTemporalPartValue(DateTime dateTime, TemporalUnit unit)
+    {
+        return unit switch
+        {
+            TemporalUnit.Year => dateTime.Year,
+            TemporalUnit.Month => dateTime.Month,
+            TemporalUnit.Day => dateTime.Day,
+            TemporalUnit.Hour => dateTime.Hour,
+            TemporalUnit.Minute => dateTime.Minute,
+            TemporalUnit.Second => dateTime.Second,
+            _ => null
+        };
+    }
+
+    private static bool TryParseDateModifier(string modifier, out TemporalUnit unit, out int amount)
+    {
+        unit = TemporalUnit.Unknown;
         amount = 0;
 
         var match = _dateModifierRegex.Match(modifier.Trim());
@@ -21331,8 +20038,8 @@ private void FillPercentRankOrCumeDist(
         if (!int.TryParse(match.Groups["amount"].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out amount))
             return false;
 
-        unit = match.Groups["unit"].Value;
-        return !string.IsNullOrWhiteSpace(unit);
+        unit = ResolveTemporalUnit(match.Groups["unit"].Value);
+        return unit != TemporalUnit.Unknown;
     }
 
     private object? EvalCall(
@@ -21407,16 +20114,16 @@ private void FillPercentRankOrCumeDist(
         EvalGroup? group,
         IDictionary<string, Source> ctes,
         out decimal value,
-        out string unit)
+        out TemporalUnit unit)
     {
         value = 0m;
-        unit = string.Empty;
+        unit = TemporalUnit.Unknown;
 
         if (fn.Args.Count < 2)
             return false;
 
-        unit = TryGetUnitText(fn.Args[1], row, group, ctes);
-        if (string.IsNullOrWhiteSpace(unit))
+        unit = GetTemporalUnit(fn.Args[1], row, group, ctes);
+        if (unit == TemporalUnit.Unknown)
             return false;
 
         var rawValue = Eval(fn.Args[0], row, group, ctes);
@@ -21513,7 +20220,7 @@ private void FillPercentRankOrCumeDist(
             return false;
         }
 
-        var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
+        var unit = GetTemporalUnit(fn.Args[0], row, group, ctes);
         var value = evalArg(1);
         if (IsNullish(value))
         {
@@ -21525,12 +20232,12 @@ private void FillPercentRankOrCumeDist(
         {
             result = unit switch
             {
-                "DAY" or "DAYS" => dateTime.Day,
-                "MONTH" or "MONTHS" => dateTime.Month,
-                "YEAR" or "YEARS" => dateTime.Year,
-                "HOUR" or "HOURS" => dateTime.Hour,
-                "MINUTE" or "MINUTES" => dateTime.Minute,
-                "SECOND" or "SECONDS" => dateTime.Second,
+                TemporalUnit.Day => dateTime.Day,
+                TemporalUnit.Month => dateTime.Month,
+                TemporalUnit.Year => dateTime.Year,
+                TemporalUnit.Hour => dateTime.Hour,
+                TemporalUnit.Minute => dateTime.Minute,
+                TemporalUnit.Second => dateTime.Second,
                 _ => null
             };
             return true;
@@ -21540,7 +20247,7 @@ private void FillPercentRankOrCumeDist(
         {
             result = unit switch
             {
-                "DAY" or "DAYS" => (int)Math.Truncate(numeric),
+                TemporalUnit.Day => (int)Math.Truncate(numeric),
                 _ => null
             };
             return true;
@@ -21593,7 +20300,7 @@ private void FillPercentRankOrCumeDist(
         if (fn.Args.Count != 3)
             throw new InvalidOperationException("TIMESTAMPDIFF() espera 3 argumentos.");
 
-        var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
+        var unit = GetTemporalUnit(fn.Args[0], row, group, ctes);
         var startValue = evalArg(1);
         var endValue = evalArg(2);
 
@@ -21605,16 +20312,7 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        result = unit switch
-        {
-            "DAY" or "DAYS" => (int)(end.Date - start.Date).TotalDays,
-            "HOUR" or "HOURS" => (int)(end - start).TotalHours,
-            "MINUTE" or "MINUTES" => (int)(end - start).TotalMinutes,
-            "SECOND" or "SECONDS" => (int)(end - start).TotalSeconds,
-            "MONTH" or "MONTHS" => DiffMonths(start, end),
-            "YEAR" or "YEARS" => DiffYears(start, end),
-            _ => null
-        };
+        result = GetTemporalDifferenceOrNull(start, end, unit);
 
         return true;
     }
@@ -21657,7 +20355,7 @@ private void FillPercentRankOrCumeDist(
         if (fn.Args.Count != 3)
             throw new InvalidOperationException("DATEDIFF() espera 3 argumentos.");
 
-        var unit = GetDateAddUnit(fn.Args[0], row, group, ctes);
+        var unit = GetTemporalUnit(fn.Args[0], row, group, ctes);
         var startValue = evalArg(1);
         var endValue = evalArg(2);
 
@@ -21669,16 +20367,7 @@ private void FillPercentRankOrCumeDist(
             return true;
         }
 
-        result = unit switch
-        {
-            "DAY" or "DAYS" => (int)(end.Date - start.Date).TotalDays,
-            "HOUR" or "HOURS" => (int)(end - start).TotalHours,
-            "MINUTE" or "MINUTES" => (int)(end - start).TotalMinutes,
-            "SECOND" or "SECONDS" => (int)(end - start).TotalSeconds,
-            "MONTH" or "MONTHS" => DiffMonths(start, end),
-            "YEAR" or "YEARS" => DiffYears(start, end),
-            _ => null
-        };
+        result = GetTemporalDifferenceOrNull(start, end, unit);
 
         return true;
     }
@@ -21699,17 +20388,30 @@ private void FillPercentRankOrCumeDist(
         return years;
     }
 
-    private string TryGetUnitText(
-        SqlExpr expr,
-        EvalRow row,
-        EvalGroup? group,
-        IDictionary<string, Source> ctes)
-        => GetDateAddUnit(expr, row, group, ctes);
+    private static long? GetTemporalDifference(DateTime start, DateTime end, TemporalUnit unit)
+    {
+        return unit switch
+        {
+            TemporalUnit.Day => (long)(end.Date - start.Date).TotalDays,
+            TemporalUnit.Hour => (long)(end - start).TotalHours,
+            TemporalUnit.Minute => (long)(end - start).TotalMinutes,
+            TemporalUnit.Second => (long)(end - start).TotalSeconds,
+            TemporalUnit.Month => DiffMonths(start, end),
+            TemporalUnit.Year => DiffYears(start, end),
+            _ => null
+        };
+    }
 
-    private static bool TryParseIntervalLiteral(string raw, out decimal value, out string unit)
+    private static int? GetTemporalDifferenceOrNull(DateTime start, DateTime end, TemporalUnit unit)
+    {
+        var difference = GetTemporalDifference(start, end, unit);
+        return difference is null ? null : (int)difference.Value;
+    }
+
+    private static bool TryParseIntervalLiteral(string raw, out decimal value, out TemporalUnit unit)
     {
         value = 0;
-        unit = string.Empty;
+        unit = TemporalUnit.Unknown;
 
         var normalized = raw.Trim();
         if (normalized.Contains('\\'))
@@ -21722,17 +20424,17 @@ private void FillPercentRankOrCumeDist(
         if (!decimal.TryParse(match.Groups["num"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out value))
             return false;
 
-        unit = match.Groups["unit"].Value.ToUpperInvariant();
-        return true;
+        unit = ResolveTemporalUnit(match.Groups["unit"].Value);
+        return unit != TemporalUnit.Unknown;
     }
 
-    private static TimeSpan? TryConvertIntervalToTimeSpan(decimal value, string unit)
+    private static TimeSpan? TryConvertIntervalToTimeSpan(decimal value, TemporalUnit unit)
         => unit switch
         {
-            "DAY" or "DAYS" => TimeSpan.FromDays((double)value),
-            "HOUR" or "HOURS" => TimeSpan.FromHours((double)value),
-            "MINUTE" or "MINUTES" => TimeSpan.FromMinutes((double)value),
-            "SECOND" or "SECONDS" => TimeSpan.FromSeconds((double)value),
+            TemporalUnit.Day => TimeSpan.FromDays((double)value),
+            TemporalUnit.Hour => TimeSpan.FromHours((double)value),
+            TemporalUnit.Minute => TimeSpan.FromMinutes((double)value),
+            TemporalUnit.Second => TimeSpan.FromSeconds((double)value),
             _ => (TimeSpan?)null
         };
 
@@ -22484,9 +21186,7 @@ private void FillPercentRankOrCumeDist(
         IReadOnlyList<WindowOrderItem> orderBy,
         EvalRow row,
         IDictionary<string, Source> ctes)
-        => orderBy
-            .Select(order => Eval(order.Expr, row, null, ctes))
-            .ToArray();
+        => [.. orderBy.Select(order => Eval(order.Expr, row, null, ctes))];
 
     private IComparer<object?[]> CreateWithinGroupOrderKeyComparer(IReadOnlyList<WindowOrderItem> orderBy)
         => Comparer<object?[]>.Create((left, right) =>
@@ -22846,7 +21546,56 @@ private void FillPercentRankOrCumeDist(
     }
 
     private readonly record struct InMembershipState(bool Matched, bool HasNullCandidate);
+    private readonly record struct DateTimeParseCacheEntry(bool Success, DateTime Value);
+    private readonly record struct DateTimeOffsetParseCacheEntry(bool Success, DateTimeOffset Value);
+    private readonly record struct TimeSpanParseCacheEntry(bool Success, TimeSpan Value);
+    private readonly record struct OracleFormatMaskCacheEntry(string NetFormat, bool HasTimeZone);
     private enum SqlTruthValue { True, False, Unknown }
+    private enum TemporalUnit { Unknown, Year, Month, Day, Hour, Minute, Second }
+
+    private static readonly IReadOnlyDictionary<string, TemporalUnit> _temporalUnits = new Dictionary<string, TemporalUnit>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["YEAR"] = TemporalUnit.Year,
+        ["YEARS"] = TemporalUnit.Year,
+        ["YY"] = TemporalUnit.Year,
+        ["YYYY"] = TemporalUnit.Year,
+        ["MONTH"] = TemporalUnit.Month,
+        ["MONTHS"] = TemporalUnit.Month,
+        ["MM"] = TemporalUnit.Month,
+        ["DAY"] = TemporalUnit.Day,
+        ["DAYS"] = TemporalUnit.Day,
+        ["DD"] = TemporalUnit.Day,
+        ["D"] = TemporalUnit.Day,
+        ["HOUR"] = TemporalUnit.Hour,
+        ["HOURS"] = TemporalUnit.Hour,
+        ["HH"] = TemporalUnit.Hour,
+        ["MINUTE"] = TemporalUnit.Minute,
+        ["MINUTES"] = TemporalUnit.Minute,
+        ["MI"] = TemporalUnit.Minute,
+        ["N"] = TemporalUnit.Minute,
+        ["SECOND"] = TemporalUnit.Second,
+        ["SECONDS"] = TemporalUnit.Second,
+        ["SS"] = TemporalUnit.Second,
+        ["S"] = TemporalUnit.Second
+    };
+
+    private static readonly IReadOnlyDictionary<string, DayOfWeek> _oracleDayOfWeekMap = new Dictionary<string, DayOfWeek>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["SUNDAY"] = DayOfWeek.Sunday,
+        ["MONDAY"] = DayOfWeek.Monday,
+        ["TUESDAY"] = DayOfWeek.Tuesday,
+        ["WEDNESDAY"] = DayOfWeek.Wednesday,
+        ["THURSDAY"] = DayOfWeek.Thursday,
+        ["FRIDAY"] = DayOfWeek.Friday,
+        ["SATURDAY"] = DayOfWeek.Saturday,
+        ["SUN"] = DayOfWeek.Sunday,
+        ["MON"] = DayOfWeek.Monday,
+        ["TUE"] = DayOfWeek.Tuesday,
+        ["WED"] = DayOfWeek.Wednesday,
+        ["THU"] = DayOfWeek.Thursday,
+        ["FRI"] = DayOfWeek.Friday,
+        ["SAT"] = DayOfWeek.Saturday
+    };
 
     internal sealed record EvalRow(
         Dictionary<string, object?> Fields,
@@ -23085,5 +21834,3 @@ private void FillPercentRankOrCumeDist(
            && !string.IsNullOrWhiteSpace(query.RawSql)
            && _sqlCalcFoundRowsRegex.IsMatch(query.RawSql);
 }
-
-

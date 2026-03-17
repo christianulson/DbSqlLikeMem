@@ -42,8 +42,9 @@ internal static class DbDeleteStrategy
 
         var rowsToDelete = new List<IReadOnlyDictionary<int, object?>>();
         var indexesToDelete = new List<int>();
+        var tableMock = table as TableMock;
 
-        for (int i = 0; i < table.Count; i++)
+        foreach (var i in GetCandidateRowIndexes(table, pars, conditions))
         {
             var row = table[i];
             if (TableMock.IsMatchSimple(table, pars, conditions, row))
@@ -54,7 +55,7 @@ internal static class DbDeleteStrategy
         }
 
         // 2. FK Validation
-        if (table is TableMock tableMock)
+        if (tableMock is not null)
         {
             tableMock.Schema.ValidateForeignKeysOnDelete(tableName, tableMock, rowsToDelete);
         }
@@ -72,9 +73,6 @@ internal static class DbDeleteStrategy
             TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterDelete, oldRow, null);
         }
 
-        // Rebuild índices (necessário pois posições mudaram)
-        table.RebuildAllIndexes();
-
         connection.Metrics.Deletes += rowsToDelete.Count;
         sw.Stop();
 
@@ -89,6 +87,22 @@ internal static class DbDeleteStrategy
             new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
         connection.RegisterExecutionPlan(plan);
         return rowsToDelete.Count;
+    }
+
+    private static IEnumerable<int> GetCandidateRowIndexes(
+        ITableMock table,
+        DbParameterCollection? pars,
+        List<(string C, string Op, string V)> conditions)
+    {
+        if (conditions.Count > 0
+            && TableMock.TryFindRowByPkConditions(table, pars, conditions, out var rowIndex))
+        {
+            yield return rowIndex;
+            yield break;
+        }
+
+        for (int rowIdx = 0; rowIdx < table.Count; rowIdx++)
+            yield return rowIdx;
     }
 
     private static IReadOnlyDictionary<int, object?> SnapshotRow(IReadOnlyDictionary<int, object?> row)

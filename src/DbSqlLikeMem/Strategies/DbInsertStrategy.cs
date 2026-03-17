@@ -52,67 +52,77 @@ internal static class DbInsertStrategy
 
         var tableMock = (TableMock)table;
 
-        foreach (var newRow in newRows)
+        if (!query.HasOnDuplicateKeyUpdate
+            && newRows.Count > 1
+            && CanUseBatchInsert(connection, dialect, table, tableName, query.Table.DbName, tableMock))
         {
-            if (!query.HasOnDuplicateKeyUpdate)
+            tableMock.AddBatch(newRows);
+            insertedCount = newRows.Count;
+            TrySetLastInsertId(connection, table, table[table.Count - 1]);
+        }
+        else
+        {
+            foreach (var newRow in newRows)
             {
-                // Inserção normal
-                tableMock.ValidateForeignKeysOnRow(newRow);
-                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, SnapshotRow(newRow));
-                table.Add(newRow);
-                var insertedRow = table[table.Count - 1];
-                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, SnapshotRow(insertedRow));
-                TrySetLastInsertId(connection, table, insertedRow);
-                insertedCount++;
-                continue;
-            }
-
-            // Lógica ON DUPLICATE KEY UPDATE
-            var conflictIdx = tableMock.FindConflictingRowIndex(newRow, out _, out _);
-            if (conflictIdx is null)
-            {
-                // Sem conflito -> Insere
-                tableMock.ValidateForeignKeysOnRow(newRow);
-                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, SnapshotRow(newRow));
-                table.Add(newRow);
-                var insertedRow = table[table.Count - 1];
-                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, SnapshotRow(insertedRow));
-                TrySetLastInsertId(connection, table, insertedRow);
-                insertedCount++;
-            }
-            else
-            {
-                if (query.IsOnConflictDoNothing)
+                if (!query.HasOnDuplicateKeyUpdate)
+                {
+                    // Inserção normal
+                    tableMock.ValidateForeignKeysOnRow(newRow);
+                    TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, SnapshotRow(newRow));
+                    table.Add(newRow);
+                    var insertedRow = table[table.Count - 1];
+                    TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, SnapshotRow(insertedRow));
+                    TrySetLastInsertId(connection, table, insertedRow);
+                    insertedCount++;
                     continue;
-                if (!ShouldApplyOnConflictUpdateWhere(query, table, conflictIdx.Value, newRow, pars, dialect))
-                    continue;
+                }
 
-                // Conflito -> Update
-                var oldSnapshot = SnapshotRow(table[conflictIdx.Value]);
-                var simulatedUpdated = table[conflictIdx.Value].ToDictionary(_ => _.Key, _ => _.Value);
-                ApplyOnDuplicateUpdateAstInMemory(
-                    table,
-                    conflictIdx.Value,
-                    newRow,
-                    query.OnDupAssigns,
-                    pars,
-                    dialect,
-                    simulatedUpdated);
-                tableMock.ValidateForeignKeysOnRow(new System.Collections.ObjectModel.ReadOnlyDictionary<int, object?>(simulatedUpdated));
+                // Lógica ON DUPLICATE KEY UPDATE
+                var conflictIdx = tableMock.FindConflictingRowIndex(newRow, out _, out _);
+                if (conflictIdx is null)
+                {
+                    // Sem conflito -> Insere
+                    tableMock.ValidateForeignKeysOnRow(newRow);
+                    TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, SnapshotRow(newRow));
+                    table.Add(newRow);
+                    var insertedRow = table[table.Count - 1];
+                    TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, SnapshotRow(insertedRow));
+                    TrySetLastInsertId(connection, table, insertedRow);
+                    insertedCount++;
+                }
+                else
+                {
+                    if (query.IsOnConflictDoNothing)
+                        continue;
+                    if (!ShouldApplyOnConflictUpdateWhere(query, table, conflictIdx.Value, newRow, pars, dialect))
+                        continue;
 
-                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, SnapshotRow(newRow));
-                ApplyOnDuplicateUpdateAst(
-                    table,
-                    conflictIdx.Value,
-                    newRow,
-                    query.OnDupAssigns,
-                    pars,
-                    dialect);
-                TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, SnapshotRow(table[conflictIdx.Value]));
+                    // Conflito -> Update
+                    var oldSnapshot = SnapshotRow(table[conflictIdx.Value]);
+                    var simulatedUpdated = table[conflictIdx.Value].ToDictionary(_ => _.Key, _ => _.Value);
+                    ApplyOnDuplicateUpdateAstInMemory(
+                        table,
+                        conflictIdx.Value,
+                        newRow,
+                        query.OnDupAssigns,
+                        pars,
+                        dialect,
+                        simulatedUpdated);
+                    tableMock.ValidateForeignKeysOnRow(new System.Collections.ObjectModel.ReadOnlyDictionary<int, object?>(simulatedUpdated));
 
-                // Rebuild índices afetados (simplificado: rebuild all)
-                table.RebuildAllIndexes();
-                updatedCount++;
+                    TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, SnapshotRow(newRow));
+                    ApplyOnDuplicateUpdateAst(
+                        table,
+                        conflictIdx.Value,
+                        newRow,
+                        query.OnDupAssigns,
+                        pars,
+                        dialect);
+                    TryExecuteTableTrigger(connection, dialect, table, tableName, query.Table.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, SnapshotRow(table[conflictIdx.Value]));
+
+                    tableMock.UpdateIndexesWithRow(conflictIdx.Value, oldSnapshot, table[conflictIdx.Value]);
+                    updatedCount++;
+                }
             }
         }
 
@@ -134,6 +144,26 @@ internal static class DbInsertStrategy
             new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
         connection.RegisterExecutionPlan(plan);
         return affected;
+    }
+
+    private static bool CanUseBatchInsert(
+        DbConnectionMockBase connection,
+        ISqlDialect dialect,
+        ITableMock table,
+        string tableName,
+        string? schemaName,
+        TableMock tableMock)
+    {
+        if (tableMock.ForeignKeys.Count > 0)
+            return false;
+
+        if (!dialect.SupportsTriggers)
+            return true;
+
+        if (connection.IsTemporaryTable(table, tableName, schemaName))
+            return true;
+
+        return !tableMock.HasRegisteredTriggers();
     }
 
     private static void TrySetLastInsertId(DbConnectionMockBase connection, ITableMock table, IReadOnlyDictionary<int, object?> insertedRow)

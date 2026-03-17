@@ -2,6 +2,13 @@ namespace DbSqlLikeMem;
 
 internal static class QueryJsonFunctionHelper
 {
+    private const int JsonPathCacheSoftLimit = 512;
+    private const int JsonRootCacheSoftLimit = 256;
+    private const int JsonPathResolverCacheSoftLimit = 512;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, JsonPathSpecCacheEntry> _jsonPathSpecCache = new(StringComparer.Ordinal);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, JsonRootCacheEntry> _jsonRootCache = new(StringComparer.Ordinal);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, JsonPathResolverCacheEntry> _jsonPathResolverCache = new(StringComparer.Ordinal);
+
     internal enum JsonPathMode
     {
         Lax,
@@ -31,6 +38,11 @@ internal static class QueryJsonFunctionHelper
 
     private readonly record struct JsonPathStep(JsonPathStepKind Kind, string? PropertyName, int? ArrayIndex);
     private readonly record struct JsonPathSpec(JsonPathMode Mode, string Path, IReadOnlyList<JsonPathStep> Steps);
+    private readonly record struct JsonPathSpecCacheEntry(bool Success, JsonPathSpec Spec);
+    private readonly record struct JsonRootCacheEntry(JsonElement Root);
+    private readonly record struct JsonPathResolverCacheEntry(JsonPathResolver Resolver);
+    private delegate bool JsonPathTraversal(JsonElement element, out JsonElement value);
+    private delegate JsonPathLookupResult JsonPathResolver(JsonElement element);
 
     internal static object? ApplyJsonValueReturningClause(FunctionCallExpr fn, object? value)
     {
@@ -76,11 +88,58 @@ internal static class QueryJsonFunctionHelper
         if (!TryParseJsonPathSpec(path, out var spec, out _))
             return new JsonPathLookupResult(false, JsonPathMode.Lax, JsonPathLookupFailure.InvalidPath, path, default);
 
-        using var document = JsonDocument.Parse(json.ToString() ?? string.Empty);
-        var lookup = LookupJsonPath(document.RootElement, spec);
+        if (json is string jsonText)
+        {
+            try
+            {
+                return LookupJsonPathFromText(jsonText, spec);
+            }
+            catch (JsonException)
+            {
+                if (!TryGetJsonRootElement(jsonText, out var fallbackRoot))
+                    throw;
+
+                var fallbackLookup = GetJsonPathResolver(path, spec)(fallbackRoot);
+                return fallbackLookup.Success
+                    ? fallbackLookup with { Value = fallbackLookup.Value.Clone() }
+                    : fallbackLookup;
+            }
+        }
+
+        if (!TryGetJsonRootElement(json, out var root))
+            return new JsonPathLookupResult(false, spec.Mode, JsonPathLookupFailure.NotFound, path, default);
+
+        var lookup = GetJsonPathResolver(path, spec)(root);
         return lookup.Success
             ? lookup with { Value = lookup.Value.Clone() }
             : lookup;
+    }
+
+    internal static bool TryGetJsonRootElement(object json, out JsonElement root)
+    {
+        if (json is JsonElement element)
+        {
+            root = element;
+            return true;
+        }
+
+        if (json is JsonDocument document)
+        {
+            root = document.RootElement;
+            return true;
+        }
+
+        var text = json.ToString() ?? string.Empty;
+        if (_jsonRootCache.TryGetValue(text, out var cached))
+        {
+            root = cached.Root;
+            return true;
+        }
+
+        using var parsed = JsonDocument.Parse(text);
+        root = parsed.RootElement.Clone();
+        CacheJsonRoot(text, new JsonRootCacheEntry(root));
+        return true;
     }
 
     internal static JsonPathLookupResult LookupJsonPath(JsonElement element, string path)
@@ -88,7 +147,7 @@ internal static class QueryJsonFunctionHelper
         if (!TryParseJsonPathSpec(path, out var spec, out _))
             return new JsonPathLookupResult(false, JsonPathMode.Lax, JsonPathLookupFailure.InvalidPath, path, default);
 
-        return LookupJsonPath(element, spec);
+        return GetJsonPathResolver(path, spec)(element);
     }
 
     private static bool TryGetJsonReturningTypeSql(FunctionCallExpr fn, out string normalizedType)
@@ -161,7 +220,99 @@ internal static class QueryJsonFunctionHelper
         return new JsonPathLookupResult(true, spec.Mode, JsonPathLookupFailure.None, spec.Path, value);
     }
 
+    private static JsonPathResolver GetJsonPathResolver(string path, JsonPathSpec spec)
+    {
+        if (_jsonPathResolverCache.TryGetValue(path, out var cached))
+            return cached.Resolver;
+
+        var resolver = BuildJsonPathResolver(spec);
+        CacheJsonPathResolver(path, new JsonPathResolverCacheEntry(resolver));
+        return resolver;
+    }
+
+    private static JsonPathResolver BuildJsonPathResolver(JsonPathSpec spec)
+    {
+        var traversal = BuildJsonPathTraversal(spec.Steps);
+        return element => traversal(element, out var value)
+            ? new JsonPathLookupResult(true, spec.Mode, JsonPathLookupFailure.None, spec.Path, value)
+            : new JsonPathLookupResult(false, spec.Mode, JsonPathLookupFailure.NotFound, spec.Path, default);
+    }
+
+    private static JsonPathTraversal BuildJsonPathTraversal(IReadOnlyList<JsonPathStep> steps)
+    {
+        JsonPathTraversal traversal = static (JsonElement element, out JsonElement value) =>
+        {
+            value = element;
+            return true;
+        };
+
+        for (var i = steps.Count - 1; i >= 0; i--)
+        {
+            var step = steps[i];
+            var next = traversal;
+            if (step.Kind == JsonPathStepKind.Property)
+            {
+                var propertyName = step.PropertyName!;
+                traversal = (JsonElement element, out JsonElement value) =>
+                {
+                    if (element.ValueKind == JsonValueKind.Object
+                        && element.TryGetProperty(propertyName, out var nextElement))
+                    {
+                        return next(nextElement, out value);
+                    }
+
+                    value = default;
+                    return false;
+                };
+                continue;
+            }
+
+            var arrayIndex = step.ArrayIndex.GetValueOrDefault();
+            traversal = (JsonElement element, out JsonElement value) =>
+            {
+                if (element.ValueKind == JsonValueKind.Array
+                    && arrayIndex >= 0
+                    && arrayIndex < element.GetArrayLength())
+                {
+                    return next(element[arrayIndex], out value);
+                }
+
+                value = default;
+                return false;
+            };
+        }
+
+        return traversal;
+    }
+
+    private static JsonPathLookupResult LookupJsonPathFromText(string jsonText, JsonPathSpec spec)
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes(jsonText);
+        var reader = new Utf8JsonReader(bytes);
+        if (!reader.Read())
+            throw new JsonException("Invalid JSON payload.");
+
+        if (!TryReadJsonPathElement(ref reader, spec.Steps, 0, out var value))
+            return new JsonPathLookupResult(false, spec.Mode, JsonPathLookupFailure.NotFound, spec.Path, default);
+
+        return new JsonPathLookupResult(true, spec.Mode, JsonPathLookupFailure.None, spec.Path, value);
+    }
+
     private static bool TryParseJsonPathSpec(string path, out JsonPathSpec spec, out string? error)
+    {
+        if (_jsonPathSpecCache.TryGetValue(path, out var cached))
+        {
+            spec = cached.Spec;
+            error = cached.Success ? null : "Cached invalid JSON path.";
+            return cached.Success;
+        }
+
+        var success = TryParseJsonPathSpecCore(path, out spec, out error);
+        CacheJsonPathSpec(path, new JsonPathSpecCacheEntry(success, spec));
+        return success;
+    }
+
+    private static bool TryParseJsonPathSpecCore(string path, out JsonPathSpec spec, out string? error)
     {
         spec = default;
         error = null;
@@ -225,8 +376,32 @@ internal static class QueryJsonFunctionHelper
             return false;
         }
 
-        spec = new JsonPathSpec(mode, trimmed, steps);
+        spec = new JsonPathSpec(mode, trimmed, [.. steps]);
         return true;
+    }
+
+    private static void CacheJsonPathSpec(string path, JsonPathSpecCacheEntry entry)
+    {
+        if (_jsonPathSpecCache.Count >= JsonPathCacheSoftLimit)
+            _jsonPathSpecCache.Clear();
+
+        _jsonPathSpecCache[path] = entry;
+    }
+
+    private static void CacheJsonRoot(string text, JsonRootCacheEntry entry)
+    {
+        if (_jsonRootCache.Count >= JsonRootCacheSoftLimit)
+            _jsonRootCache.Clear();
+
+        _jsonRootCache[text] = entry;
+    }
+
+    private static void CacheJsonPathResolver(string path, JsonPathResolverCacheEntry entry)
+    {
+        if (_jsonPathResolverCache.Count >= JsonPathResolverCacheSoftLimit)
+            _jsonPathResolverCache.Clear();
+
+        _jsonPathResolverCache[path] = entry;
     }
 
     private static bool TryReadJsonPathElement(
@@ -268,6 +443,89 @@ internal static class QueryJsonFunctionHelper
         }
 
         return true;
+    }
+
+    private static bool TryReadJsonPathElement(
+        ref Utf8JsonReader reader,
+        IReadOnlyList<JsonPathStep> steps,
+        int stepIndex,
+        out JsonElement value)
+    {
+        if (stepIndex >= steps.Count)
+        {
+            using var document = JsonDocument.ParseValue(ref reader);
+            value = document.RootElement.Clone();
+            return true;
+        }
+
+        var step = steps[stepIndex];
+        if (step.Kind == JsonPathStepKind.Property)
+        {
+            if (reader.TokenType != JsonTokenType.StartObject)
+            {
+                value = default;
+                reader.Skip();
+                return false;
+            }
+
+            JsonElement matchedValue = default;
+            var sawMatch = false;
+            var matched = false;
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndObject)
+                {
+                    value = matchedValue;
+                    return sawMatch && matched;
+                }
+
+                if (reader.TokenType != JsonTokenType.PropertyName)
+                    throw new JsonException("Invalid JSON payload.");
+
+                var propertyName = reader.GetString();
+                if (!reader.Read())
+                    throw new JsonException("Invalid JSON payload.");
+
+                if (string.Equals(propertyName, step.PropertyName, StringComparison.Ordinal))
+                {
+                    sawMatch = true;
+                    matched = TryReadJsonPathElement(ref reader, steps, stepIndex + 1, out var candidate);
+                    matchedValue = matched ? candidate : default;
+
+                    continue;
+                }
+
+                reader.Skip();
+            }
+
+            throw new JsonException("Invalid JSON payload.");
+        }
+
+        if (reader.TokenType != JsonTokenType.StartArray)
+        {
+            value = default;
+            reader.Skip();
+            return false;
+        }
+
+        var targetIndex = step.ArrayIndex.GetValueOrDefault();
+        var currentIndex = 0;
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndArray)
+            {
+                value = default;
+                return false;
+            }
+
+            if (currentIndex == targetIndex)
+                return TryReadJsonPathElement(ref reader, steps, stepIndex + 1, out value);
+
+            reader.Skip();
+            currentIndex++;
+        }
+
+        throw new JsonException("Invalid JSON payload.");
     }
 
     private static bool TryParseJsonPropertyStep(

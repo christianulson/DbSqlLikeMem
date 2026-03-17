@@ -26,7 +26,7 @@ public static class DbInterceptionServiceProviderExtensions
                 interceptors.Add(interceptor);
         }
 
-        return interceptors.ToArray();
+        return [.. interceptors];
     }
 
     /// <summary>

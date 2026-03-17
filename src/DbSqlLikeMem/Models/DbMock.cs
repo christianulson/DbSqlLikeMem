@@ -716,7 +716,6 @@ public abstract class DbMock
             table.RemoveAt(table.Count - 1);
 
         table.NextIdentity = 1;
-        table.RebuildAllIndexes();
     }
 
     #region Backup / Restore (best-effort)

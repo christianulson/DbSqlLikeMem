@@ -120,28 +120,24 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
     }
 
     private static List<KeyValuePair<string, object?>> GetOrderedCorrelatedSubqueryCacheFields(AstQueryExecutorBase.EvalRow row)
-        => row.Fields
-            .OrderBy(static kv => kv.Key, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        => [.. row.Fields.OrderBy(static kv => kv.Key, StringComparer.OrdinalIgnoreCase)];
 
     private static List<KeyValuePair<string, object?>> GetQualifiedCorrelatedSubqueryCacheFieldMatches(
         IReadOnlyList<KeyValuePair<string, object?>> allFields,
         string normalizedSql)
     {
         var qualifiedIdentifiers = ExtractQualifiedSqlIdentifiers(normalizedSql);
-        return allFields
+        return [.. allFields
             .Where(static kv => kv.Key.IndexOf('.') >= 0)
-            .Where(kv => qualifiedIdentifiers.Contains(kv.Key))
-            .ToList();
+            .Where(kv => qualifiedIdentifiers.Contains(kv.Key))];
     }
 
     private static List<KeyValuePair<string, object?>> GetUnqualifiedCorrelatedSubqueryCacheFieldMatches(
         IReadOnlyList<KeyValuePair<string, object?>> allFields,
         string normalizedSql)
-        => allFields
+        => [.. allFields
             .Where(static kv => kv.Key.IndexOf('.') < 0)
-            .Where(kv => ContainsSqlIdentifierToken(normalizedSql, kv.Key))
-            .ToList();
+            .Where(kv => ContainsSqlIdentifierToken(normalizedSql, kv.Key))];
 
     /// <summary>
     /// EN: Checks whether a candidate identifier token appears in SQL text using lightweight identifier-boundary guards.

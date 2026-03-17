@@ -1,56 +1,57 @@
 namespace DbSqlLikeMem;
 
-internal sealed class SqlQueryAstCache
+internal sealed class SqlQueryParsePreludeCache
 {
-    // Bump when parser semantics change in a way that invalidates previously cached ASTs.
-    private const int ParserCacheKeyVersion = 2;
+    private const int PreludeCacheKeyVersion = 1;
 
     private readonly int _capacity;
     private readonly object _gate = new();
     private readonly Dictionary<string, CacheEntry> _entries;
     private readonly LinkedList<string> _lru = [];
 
-    private sealed class CacheEntry(SqlQueryBase query, LinkedListNode<string> node)
+    internal readonly record struct Prelude(IReadOnlyList<SqlToken> Tokens, AutoSqlSyntaxFeatures AutoSyntaxFeatures);
+
+    private sealed class CacheEntry(Prelude prelude, LinkedListNode<string> node)
     {
-        public SqlQueryBase Query { get; set; } = query;
+        public Prelude Prelude { get; set; } = prelude;
         public LinkedListNode<string> Node { get; } = node;
     }
 
-    private SqlQueryAstCache(int capacity)
+    private SqlQueryParsePreludeCache(int capacity)
     {
         _capacity = capacity;
         _entries = new Dictionary<string, CacheEntry>(capacity <= 0 ? 1 : capacity, StringComparer.Ordinal);
     }
 
-    public static SqlQueryAstCache CreateFromEnvironment()
+    public static SqlQueryParsePreludeCache CreateFromEnvironment()
     {
         const int defaultCapacity = 256;
-        var raw = Environment.GetEnvironmentVariable("DBSQLLIKEMEM_AST_CACHE_SIZE");
+        var raw = Environment.GetEnvironmentVariable("DBSQLLIKEMEM_PARSE_PRELUDE_CACHE_SIZE");
         if (string.IsNullOrWhiteSpace(raw))
-            return new SqlQueryAstCache(defaultCapacity);
+            return new SqlQueryParsePreludeCache(defaultCapacity);
 
         if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) || parsed < 0)
-            return new SqlQueryAstCache(defaultCapacity);
+            return new SqlQueryParsePreludeCache(defaultCapacity);
 
-        return new SqlQueryAstCache(parsed);
+        return new SqlQueryParsePreludeCache(parsed);
     }
 
     public static string BuildKey(string sql, string dialectName, int dialectVersion)
         => string.Concat(
-            "p",
-            ParserCacheKeyVersion.ToString(CultureInfo.InvariantCulture),
+            "t",
+            PreludeCacheKeyVersion.ToString(CultureInfo.InvariantCulture),
             "::",
             dialectName,
             "::v",
             dialectVersion.ToString(CultureInfo.InvariantCulture),
             "::",
-            NormalizeSql(sql));
+            SqlQueryAstCache.NormalizeSql(sql));
 
-    public bool TryGet(string key, out SqlQueryBase query)
+    public bool TryGet(string key, out Prelude prelude)
     {
         if (_capacity <= 0)
         {
-            query = null!;
+            prelude = default;
             return false;
         }
 
@@ -58,18 +59,18 @@ internal sealed class SqlQueryAstCache
         {
             if (!_entries.TryGetValue(key, out var entry))
             {
-                query = null!;
+                prelude = default;
                 return false;
             }
 
             _lru.Remove(entry.Node);
             _lru.AddFirst(entry.Node);
-            query = entry.Query;
+            prelude = entry.Prelude;
             return true;
         }
     }
 
-    public void Set(string key, SqlQueryBase query)
+    public void Set(string key, Prelude prelude)
     {
         if (_capacity <= 0)
             return;
@@ -78,7 +79,7 @@ internal sealed class SqlQueryAstCache
         {
             if (_entries.TryGetValue(key, out var entry))
             {
-                entry.Query = query;
+                entry.Prelude = prelude;
                 _lru.Remove(entry.Node);
                 _lru.AddFirst(entry.Node);
                 return;
@@ -86,7 +87,7 @@ internal sealed class SqlQueryAstCache
 
             var node = new LinkedListNode<string>(key);
             _lru.AddFirst(node);
-            _entries[key] = new CacheEntry(query, node);
+            _entries[key] = new CacheEntry(prelude, node);
 
             if (_entries.Count <= _capacity)
                 return;
@@ -98,34 +99,5 @@ internal sealed class SqlQueryAstCache
             _lru.RemoveLast();
             _entries.Remove(tail.Value);
         }
-    }
-
-    internal static string NormalizeSql(string sql)
-    {
-        var trimmed = sql.Trim();
-        if (trimmed.Length == 0)
-            return string.Empty;
-
-        var sb = new StringBuilder(trimmed.Length);
-        var previousWhitespace = false;
-
-        for (var i = 0; i < trimmed.Length; i++)
-        {
-            var ch = trimmed[i];
-            if (char.IsWhiteSpace(ch))
-            {
-                if (previousWhitespace)
-                    continue;
-
-                sb.Append(' ');
-                previousWhitespace = true;
-                continue;
-            }
-
-            sb.Append(ch);
-            previousWhitespace = false;
-        }
-
-        return sb.ToString();
     }
 }

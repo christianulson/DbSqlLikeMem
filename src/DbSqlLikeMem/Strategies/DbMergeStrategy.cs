@@ -113,18 +113,19 @@ internal static class DbMergeStrategy
             {
                 if (updates.Count > 0)
                 {
+                    var oldSnapshot = table[existingIndex].ToDictionary(_ => _.Key, _ => _.Value);
                     foreach (var assignment in updates)
-                {
-                    var parts = assignment.Split('=').Select(_=>_.Trim()).Take(2).ToArray();
-                    if (parts.Length != 2) continue;
-                    var colName = parts[0];
-                    var valueToken = parts[1];
-                    var value = ResolveMergeValue(valueToken, sourceAlias, srcValues, table, colName, pars);
-                    var col = table.GetColumn(colName);
-                    table.UpdateRowColumn(existingIndex, col.Index, value);
-                }
+                    {
+                        var parts = assignment.Split('=').Select(_=>_.Trim()).Take(2).ToArray();
+                        if (parts.Length != 2) continue;
+                        var colName = parts[0];
+                        var valueToken = parts[1];
+                        var value = ResolveMergeValue(valueToken, sourceAlias, srcValues, table, colName, pars);
+                        var col = table.GetColumn(colName);
+                        table.UpdateRowColumn(existingIndex, col.Index, value);
+                    }
 
-                    table.RebuildAllIndexes();
+                    table.UpdateIndexesWithRow(existingIndex, oldSnapshot, table[existingIndex]);
                 }
 
                 affected++;
@@ -153,6 +154,13 @@ internal static class DbMergeStrategy
 
     private static int FindRowIndex(TableMock table, int columnIndex, object? value)
     {
+        if (table.PrimaryKeyIndexes.Count == 1
+            && table.PrimaryKeyIndexes.Contains(columnIndex)
+            && table.TryFindRowByPk(new Dictionary<int, object?> { [columnIndex] = value }, out var pkRowIndex))
+        {
+            return pkRowIndex;
+        }
+
         for (int i = 0; i < table.Count; i++)
         {
             if (table[i].TryGetValue(columnIndex, out var existing) && Equals(existing, value))

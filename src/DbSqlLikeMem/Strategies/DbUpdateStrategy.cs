@@ -49,7 +49,7 @@ internal static class DbUpdateStrategy
 
         int updated = 0;
         var tableMock = (TableMock)table;
-        for (int rowIdx = 0; rowIdx < table.Count; rowIdx++)
+        foreach (var rowIdx in GetCandidateRowIndexes(table, pars, conditions))
         {
             var row = table[rowIdx];
 
@@ -71,7 +71,7 @@ internal static class DbUpdateStrategy
             TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, SnapshotRow(table[rowIdx]));
 
             // Atualiza índices
-            table.UpdateIndexesWithRow(rowIdx);
+            tableMock.UpdateIndexesWithRow(rowIdx, oldSnapshot, table[rowIdx]);
             updated++;
         }
 
@@ -89,6 +89,22 @@ internal static class DbUpdateStrategy
             new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
         connection.RegisterExecutionPlan(plan);
         return updated;
+    }
+
+    private static IEnumerable<int> GetCandidateRowIndexes(
+        ITableMock table,
+        DbParameterCollection? pars,
+        List<(string C, string Op, string V)> conditions)
+    {
+        if (conditions.Count > 0
+            && TableMock.TryFindRowByPkConditions(table, pars, conditions, out var rowIndex))
+        {
+            yield return rowIndex;
+            yield break;
+        }
+
+        for (int rowIdx = 0; rowIdx < table.Count; rowIdx++)
+            yield return rowIdx;
     }
 
     // --- Helpers de Lógica ---

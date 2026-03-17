@@ -52,7 +52,7 @@ public sealed class MySqlMockTests
 
         ExecuteNonQuery(connection, "DROP FUNCTION IF EXISTS fn_users");
 
-        Assert.Null(ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, "SELECT fn_users(40, 2) FROM Users WHERE Id = 1"));
     }
 
     /// <summary>
@@ -195,7 +195,7 @@ public sealed class MySqlMockTests
 
         var ex = Assert.ThrowsAny<Exception>(() => command.ExecuteNonQuery());
 
-        Assert.Contains("column", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlExceptionMessages.UnknownColumn("").Split('\'').First(), ex.Message.Split('\'').First(), StringComparison.OrdinalIgnoreCase);
         _connection.GetTable("users").Indexes.ContainsKey("ix_users_missing").Should().BeFalse();
     }
 

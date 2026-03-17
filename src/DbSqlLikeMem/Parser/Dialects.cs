@@ -442,7 +442,7 @@ internal abstract class SqlDialectBase : ISqlDialect
         };
 
     public virtual IReadOnlyCollection<string> TemporalFunctionIdentifierNames
-        => TemporalFunctionNames.Keys.ToArray();
+        => [.. TemporalFunctionNames.Keys];
 
     public virtual IReadOnlyCollection<string> TemporalFunctionCallNames
         => [];

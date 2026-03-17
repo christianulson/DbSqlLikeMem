@@ -110,13 +110,39 @@ public class OracleCommandMock(
             return affected;
         }
 
+        var normalizedCommandText = CommandText.NormalizeString();
+        if (TryExecuteOracleFunctionDdl(normalizedCommandText, out var functionDdlAffectedRows))
+            return functionDdlAffectedRows;
+
         return connection.ExecuteNonQueryWithPipeline(
-            CommandText.NormalizeString(),
+            normalizedCommandText,
             Parameters,
             allowMerge: true,
             unionUsesSelectMessage: false,
             tryExecuteTransactionControl: TryExecuteTransactionControlCommand,
             tryExecuteSpecialCommand: TryExecuteNonQuerySpecialCommand);
+    }
+
+    private bool TryExecuteOracleFunctionDdl(string sqlRaw, out int affectedRows)
+    {
+        affectedRows = 0;
+
+        if (!LooksLikeOracleFunctionDdl(sqlRaw))
+            return false;
+
+        var query = SqlQueryParser.Parse(sqlRaw, connection!.ExecutionDialect, Parameters);
+        if (query is not SqlCreateFunctionQuery createFunctionQuery)
+            return false;
+
+        affectedRows = connection.ExecuteCreateFunction(createFunctionQuery, Parameters, connection.ExecutionDialect);
+        return true;
+    }
+
+    private static bool LooksLikeOracleFunctionDdl(string sqlRaw)
+    {
+        var trimmed = sqlRaw.TrimStart();
+        return trimmed.StartsWith("CREATE FUNCTION ", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("CREATE OR REPLACE FUNCTION ", StringComparison.OrdinalIgnoreCase);
     }
 
     private bool TryExecuteNonQuerySpecialCommand(string sqlRaw, out int affectedRows)
@@ -217,9 +243,9 @@ public class OracleCommandMock(
     {
         var affectedRows = query switch
         {
-            SqlInsertQuery insertQuery => ExecuteInsertWithReturningInto(insertQuery, clause, out _),
-            SqlUpdateQuery updateQuery => ExecuteUpdateWithReturningInto(updateQuery, clause, out _),
-            SqlDeleteQuery deleteQuery => ExecuteDeleteWithReturningInto(deleteQuery, clause, out _),
+            SqlInsertQuery insertQuery => ExecuteInsertWithReturningInto(insertQuery, clause),
+            SqlUpdateQuery updateQuery => ExecuteUpdateWithReturningInto(updateQuery, clause),
+            SqlDeleteQuery deleteQuery => ExecuteDeleteWithReturningInto(deleteQuery, clause),
             _ => throw SqlUnsupported.ForReturningIntoOnlySupportedInExecuteNonQuery()
         };
 
@@ -227,82 +253,68 @@ public class OracleCommandMock(
     }
 
     /// <summary>
-    /// EN: Executes INSERT for RETURNING INTO and captures inserted row snapshots.
-    /// PT: Executa INSERT para RETURNING INTO e captura snapshots das linhas inseridas.
+    /// EN: Executes INSERT for RETURNING INTO and reads only the first inserted row needed by output parameters.
+    /// PT: Executa INSERT para RETURNING INTO e lê apenas a primeira linha inserida necessária aos parâmetros de saída.
     /// </summary>
     private int ExecuteInsertWithReturningInto(
         SqlInsertQuery query,
-        OracleReturningIntoClause clause,
-        out IReadOnlyList<IReadOnlyDictionary<int, object?>> affectedRows)
+        OracleReturningIntoClause clause)
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
             throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable("RETURNING INTO");
 
         var beforeCount = table.Count;
         var affected = connection!.ExecuteInsert(query, Parameters, connection!.ExecutionDialect);
-        var insertedRows = Math.Max(0, table.Count - beforeCount);
-        affectedRows = Enumerable.Range(beforeCount, insertedRows)
-            .Select(i => SnapshotRow(table[i]))
-            .ToList();
-        PopulateReturningIntoParameters(clause, table, affectedRows);
+        var sourceRow = beforeCount >= 0 && beforeCount < table.Count ? table[beforeCount] : null;
+        PopulateReturningIntoParameters(clause, table, sourceRow);
         return affected;
     }
 
     /// <summary>
-    /// EN: Executes UPDATE for RETURNING INTO and captures updated row snapshots.
-    /// PT: Executa UPDATE para RETURNING INTO e captura snapshots das linhas atualizadas.
+    /// EN: Executes UPDATE for RETURNING INTO and reads only the first updated row needed by output parameters.
+    /// PT: Executa UPDATE para RETURNING INTO e lê apenas a primeira linha atualizada necessária aos parâmetros de saída.
     /// </summary>
     private int ExecuteUpdateWithReturningInto(
         SqlUpdateQuery query,
-        OracleReturningIntoClause clause,
-        out IReadOnlyList<IReadOnlyDictionary<int, object?>> affectedRows)
+        OracleReturningIntoClause clause)
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
             throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable("RETURNING INTO");
 
         var matchedIndexes = MatchRowIndexes(table, query.WhereRaw, query.RawSql);
         var affected = connection!.ExecuteUpdate(query, Parameters);
-        affectedRows = matchedIndexes
-            .Where(i => i >= 0 && i < table.Count)
-            .Select(i => SnapshotRow(table[i]))
-            .ToList();
-        PopulateReturningIntoParameters(clause, table, affectedRows);
+        var sourceRow = TryGetFirstMatchedRow(table, matchedIndexes);
+        PopulateReturningIntoParameters(clause, table, sourceRow);
         return affected;
     }
 
     /// <summary>
-    /// EN: Executes DELETE for RETURNING INTO and captures deleted row snapshots.
-    /// PT: Executa DELETE para RETURNING INTO e captura snapshots das linhas excluídas.
+    /// EN: Executes DELETE for RETURNING INTO and snapshots only the first deleted row needed by output parameters.
+    /// PT: Executa DELETE para RETURNING INTO e gera snapshot apenas da primeira linha excluída necessária aos parâmetros de saída.
     /// </summary>
     private int ExecuteDeleteWithReturningInto(
         SqlDeleteQuery query,
-        OracleReturningIntoClause clause,
-        out IReadOnlyList<IReadOnlyDictionary<int, object?>> affectedRows)
+        OracleReturningIntoClause clause)
     {
         if (!TryResolveTargetTable(query.Table, out var table) || table == null)
             throw SqlUnsupported.ForDmlProjectionRequiresValidTargetTable("RETURNING INTO");
 
         var matchedIndexes = MatchRowIndexes(table, query.WhereRaw, query.RawSql);
-        var snapshots = matchedIndexes
-            .Where(i => i >= 0 && i < table.Count)
-            .Select(i => SnapshotRow(table[i]))
-            .ToList();
+        var sourceRow = TryGetFirstMatchedRowSnapshot(table, matchedIndexes);
         var affected = connection!.ExecuteDelete(query, Parameters);
-        affectedRows = snapshots;
-        PopulateReturningIntoParameters(clause, table, affectedRows);
+        PopulateReturningIntoParameters(clause, table, sourceRow);
         return affected;
     }
 
     /// <summary>
-    /// EN: Populates Oracle output parameters from first affected row according to RETURNING INTO mapping.
-    /// PT: Preenche parâmetros de saída do Oracle a partir da primeira linha afetada conforme mapeamento RETURNING INTO.
-    /// </summary>
+     /// EN: Populates Oracle output parameters from first affected row according to RETURNING INTO mapping.
+     /// PT: Preenche parâmetros de saída do Oracle a partir da primeira linha afetada conforme mapeamento RETURNING INTO.
+     /// </summary>
     private void PopulateReturningIntoParameters(
         OracleReturningIntoClause clause,
         ITableMock table,
-        IReadOnlyList<IReadOnlyDictionary<int, object?>> affectedRows)
+        IReadOnlyDictionary<int, object?>? sourceRow)
     {
-        var sourceRow = affectedRows.FirstOrDefault();
         for (var i = 0; i < clause.ColumnNames.Count; i++)
         {
             var columnName = NormalizeColumnReference(clause.ColumnNames[i]);
@@ -572,6 +584,35 @@ public class OracleCommandMock(
     /// </summary>
     private static IReadOnlyDictionary<int, object?> SnapshotRow(IReadOnlyDictionary<int, object?> row)
         => row.ToDictionary(_ => _.Key, _ => _.Value);
+
+    /// <summary>
+    /// EN: Tries to get the first valid matched row by index without cloning.
+    /// PT: Tenta obter a primeira linha válida encontrada pelo índice sem clonar.
+    /// </summary>
+    private static IReadOnlyDictionary<int, object?>? TryGetFirstMatchedRow(
+        ITableMock table,
+        IEnumerable<int> matchedIndexes)
+    {
+        foreach (var index in matchedIndexes)
+        {
+            if (index >= 0 && index < table.Count)
+                return table[index];
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// EN: Tries to get an immutable snapshot of the first valid matched row.
+    /// PT: Tenta obter um snapshot imutável da primeira linha válida encontrada.
+    /// </summary>
+    private static IReadOnlyDictionary<int, object?>? TryGetFirstMatchedRowSnapshot(
+        ITableMock table,
+        IEnumerable<int> matchedIndexes)
+    {
+        var row = TryGetFirstMatchedRow(table, matchedIndexes);
+        return row is null ? null : SnapshotRow(row);
+    }
 
     /// <summary>
     /// EN: Tries to resolve the target table from an AST table source.

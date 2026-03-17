@@ -133,8 +133,7 @@ internal sealed class AstQuerySourceResolver
         {
             if (string.IsNullOrWhiteSpace(path))
             {
-                using var document = JsonDocument.Parse(json!.ToString() ?? string.Empty);
-                target = document.RootElement.Clone();
+                QueryJsonFunctionHelper.TryGetJsonRootElement(json!, out target);
             }
             else
             {
@@ -268,7 +267,7 @@ internal sealed class AstQuerySourceResolver
         SqlOpenJsonWithClause withClause)
         => new()
         {
-            Columns = withClause.Columns
+            Columns = [.. withClause.Columns
                 .Select((column, index) => new TableResultColMock(
                     tableAlias,
                     column.Name,
@@ -276,8 +275,7 @@ internal sealed class AstQuerySourceResolver
                     index,
                     column.DbType,
                     true,
-                    column.AsJson))
-                .ToList()
+                    column.AsJson))]
         };
 
     private static TableResultMock CreateStringSplitTableResult(string tableAlias, bool includeOrdinal)

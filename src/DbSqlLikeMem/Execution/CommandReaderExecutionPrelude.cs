@@ -27,10 +27,9 @@ internal static class CommandReaderExecutionPrelude
         var sql = normalizeSqlInput
             ? commandText.NormalizeString()
             : commandText;
-        statements = SqlQueryParser
+        statements = [.. SqlQueryParser
             .SplitStatements(sql, connection.ExecutionDialect)
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .ToList();
+            .Where(s => !string.IsNullOrWhiteSpace(s))];
 
         if (statements.Count == 1 && statements[0].TrimStart().StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
         {

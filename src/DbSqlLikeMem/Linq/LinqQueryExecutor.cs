@@ -1,3 +1,6 @@
+using System.Collections.Concurrent;
+using System.Linq.Expressions;
+
 namespace DbSqlLikeMem;
 
 /// <summary>
@@ -5,6 +8,9 @@ namespace DbSqlLikeMem;
 /// </summary>
 public static class LinqQueryExecutor
 {
+    private static readonly ConcurrentDictionary<Type, IReadOnlyList<(string Name, Func<object, object?> Getter)>> ParameterAccessorCache = new();
+    private static readonly ConcurrentDictionary<Type, IReadOnlyList<LinqRecordSetter>> RecordSetterCache = new();
+
     /// <summary>
     /// Executa SQL e materializa o resultado no tipo esperado.
     /// </summary>
@@ -75,13 +81,9 @@ public static class LinqQueryExecutor
             return;
         }
 
-        var props = parameters.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
-        foreach (var prop in props)
+        foreach (var accessor in GetParameterAccessors(parameters.GetType()))
         {
-            if (!prop.CanRead)
-                continue;
-
-            AddParameter(command, prop.Name, prop.GetValue(parameters));
+            AddParameter(command, accessor.Name, accessor.Getter(parameters));
         }
     }
 
@@ -108,19 +110,51 @@ public static class LinqQueryExecutor
         for (var i = 0; i < record.FieldCount; i++)
             columns[record.GetName(i)] = i;
 
-        var properties = targetType.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-            .Where(p => p.CanWrite);
-
-        foreach (var property in properties)
+        foreach (var setter in GetRecordSetters(targetType))
         {
-            if (!columns.TryGetValue(property.Name, out var ordinal))
+            if (!columns.TryGetValue(setter.Name, out var ordinal))
                 continue;
 
-            var value = ReadValue(record, ordinal, property.PropertyType);
-            property.SetValue(instance, value);
+            var value = ReadValue(record, ordinal, setter.PropertyType);
+            setter.Setter(instance, value);
         }
 
         return instance;
+    }
+
+    private static IReadOnlyList<(string Name, Func<object, object?> Getter)> GetParameterAccessors(Type parameterType)
+        => ParameterAccessorCache.GetOrAdd(parameterType, static type =>
+            [.. type.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                .Where(static property => property.CanRead)
+                .Select(property => (property.Name, BuildParameterGetter(type, property)))]);
+
+    private static Func<object, object?> BuildParameterGetter(Type sourceType, PropertyInfo property)
+    {
+        var source = Expression.Parameter(typeof(object), "source");
+        var castSource = Expression.Convert(source, sourceType);
+        var propertyAccess = Expression.Property(castSource, property);
+        var boxedValue = Expression.Convert(propertyAccess, typeof(object));
+        return Expression.Lambda<Func<object, object?>>(boxedValue, source).Compile();
+    }
+
+    private static IReadOnlyList<LinqRecordSetter> GetRecordSetters(Type targetType)
+        => RecordSetterCache.GetOrAdd(targetType, static type =>
+            [.. type.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                .Where(static property => property.CanWrite)
+                .Select(property => new LinqRecordSetter(
+                    property.Name,
+                    property.PropertyType,
+                    BuildRecordSetter(type, property)))]);
+
+    private static Action<object, object?> BuildRecordSetter(Type targetType, PropertyInfo property)
+    {
+        var instance = Expression.Parameter(typeof(object), "instance");
+        var value = Expression.Parameter(typeof(object), "value");
+        var castInstance = Expression.Convert(instance, targetType);
+        var castValue = Expression.Convert(value, property.PropertyType);
+        var propertyAccess = Expression.Property(castInstance, property);
+        var assign = Expression.Assign(propertyAccess, castValue);
+        return Expression.Lambda<Action<object, object?>>(assign, instance, value).Compile();
     }
 
     private static object? ReadValue(IDataRecord record, int ordinal, Type destinationType)
@@ -157,4 +191,6 @@ public static class LinqQueryExecutor
             || underlying == typeof(TimeSpan)
             || underlying == typeof(Guid);
     }
+
+    private sealed record LinqRecordSetter(string Name, Type PropertyType, Action<object, object?> Setter);
 }

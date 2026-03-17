@@ -1,3 +1,6 @@
+using System.Collections.Concurrent;
+using System.Linq.Expressions;
+
 namespace DbSqlLikeMem;
 
 /// <summary>
@@ -6,6 +9,8 @@ namespace DbSqlLikeMem;
 /// </summary>
 public static class DbSeedExtensions
 {
+    private static readonly ConcurrentDictionary<Type, IReadOnlyList<(string Name, Func<object, object?> Getter)>> _seedFieldAccessorCache = new();
+
     /// <summary>
     /// EN: Implements Define.
     /// PT: Implementa Define.
@@ -177,17 +182,19 @@ public static class DbSeedExtensions
         ArgumentNullExceptionCompatible.ThrowIfNull(rows, nameof(rows));
         if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName) || tb == null)
             throw new InvalidOperationException(SqlExceptionMessages.TableNotYetDefined(tableName));
-        var props = typeof(T).GetFields();
+        var fields = GetSeedFieldAccessors(typeof(T));
+        var fieldIndexes = fields
+            .Select(field => (Index: tb.GetColumn(field.Name).Index, field.Getter))
+            .ToArray();
+        var materializedRows = new List<Dictionary<int, object?>>(rows.Length);
         foreach (var r in rows)
         {
             var dic = new Dictionary<int, object?>();
-            foreach (var p in props)
-            {
-                var idx = tb.GetColumn(p.Name).Index;
-                dic[idx] = p.GetValue(r);
-            }
-            tb.Add(dic);
+            foreach (var field in fieldIndexes)
+                dic[field.Index] = field.Getter(r);
+            materializedRows.Add(dic);
         }
+        tb.AddRange(materializedRows);
         return cnn;
     }
 
@@ -205,17 +212,19 @@ public static class DbSeedExtensions
         ArgumentNullExceptionCompatible.ThrowIfNull(rows, nameof(rows));
         if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName) || tb == null)
             throw new InvalidOperationException(SqlExceptionMessages.TableNotYetDefined(tableName));
+        var orderedCols = tb.Columns.Values.OrderBy(c => c.Index).ToList();
+        var materializedRows = new List<Dictionary<int, object?>>(rows.Length);
         foreach (var arr in rows)
         {
             var dic = new Dictionary<int, object?>();
-            var orderedCols = tb.Columns.Values.OrderBy(c => c.Index).ToList();
             if (arr.Length > orderedCols.Count)
                 throw new InvalidOperationException(
                     SqlExceptionMessages.SeedRowHasMoreValuesThanColumns(arr.Length, tableName, orderedCols.Count));
             for (int i = 0; i < arr.Length; i++)
                 dic[orderedCols[i].Index] = arr[i];
-            tb.Add(dic);
+            materializedRows.Add(dic);
         }
+        tb.AddRange(materializedRows);
         return cnn;
     }
 
@@ -231,6 +240,23 @@ public static class DbSeedExtensions
         var _ when t == typeof(double) => DbType.Double,
         _ => DbType.Object
     };
+
+    private static IReadOnlyList<(string Name, Func<object, object?> Getter)> GetSeedFieldAccessors(Type rowType)
+        => _seedFieldAccessorCache.GetOrAdd(rowType, BuildSeedFieldAccessors);
+
+    private static IReadOnlyList<(string Name, Func<object, object?> Getter)> BuildSeedFieldAccessors(Type rowType)
+        => [.. rowType
+            .GetFields(BindingFlags.Instance | BindingFlags.Public)
+            .Select(field => (field.Name, BuildSeedFieldAccessor(rowType, field)))];
+
+    private static Func<object, object?> BuildSeedFieldAccessor(Type rowType, FieldInfo field)
+    {
+        var instance = Expression.Parameter(typeof(object), "instance");
+        var typedInstance = Expression.Convert(instance, rowType);
+        var fieldAccess = Expression.Field(typedInstance, field);
+        var boxedValue = Expression.Convert(fieldAccess, typeof(object));
+        return Expression.Lambda<Func<object, object?>>(boxedValue, instance).Compile();
+    }
 
     // --------------------------- ÍNDICE -------------------------------
     /// <summary>

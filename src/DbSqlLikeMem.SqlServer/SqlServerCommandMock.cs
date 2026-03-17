@@ -23,6 +23,8 @@ public class SqlServerCommandMock(
     }
 
     private bool disposedValue;
+    private readonly Dictionary<string, IReadOnlyList<SqlServerOutputProjectionTemplate>> _outputProjectionTemplateCache =
+        new(StringComparer.Ordinal);
 
     /// <summary>
     /// EN: Gets or sets the SQL statement or stored procedure name that will be executed by this command.
@@ -224,7 +226,7 @@ public class SqlServerCommandMock(
         var insertedRows = Math.Max(0, targetTable.Count - beforeCount);
         var pairs = new List<(IReadOnlyDictionary<int, object?>? OldRow, IReadOnlyDictionary<int, object?>? NewRow)>();
         for (var i = beforeCount; i < beforeCount + insertedRows; i++)
-            pairs.Add((null, SnapshotRow(targetTable[i])));
+            pairs.Add((null, targetTable[i]));
 
         return BuildOutputResult(outputClause, query.Table!, targetTable, pairs, SqlServerOutputDefaultQualifier.Inserted);
     }
@@ -249,7 +251,7 @@ public class SqlServerCommandMock(
             var index = matchedIndexes[i];
             if (index < 0 || index >= targetTable.Count)
                 continue;
-            pairs.Add((beforeRows[i], SnapshotRow(targetTable[index])));
+            pairs.Add((beforeRows[i], targetTable[index]));
         }
 
         return BuildOutputResult(outputClause, query.Table!, targetTable, pairs, SqlServerOutputDefaultQualifier.Inserted);
@@ -320,30 +322,20 @@ public class SqlServerCommandMock(
         ITableMock table,
         SqlServerOutputDefaultQualifier defaultQualifier)
     {
+        var templates = GetOutputProjectionTemplates(outputClause, tableSource, table, defaultQualifier);
         var projections = new List<SqlServerOutputProjection>();
-        var tableAlias = tableSource.Alias ?? tableSource.Name ?? "output";
-
-        foreach (var item in outputClause.Items)
+        foreach (var template in templates)
         {
-            if (item.IsWildcard)
-            {
-                AppendOutputWildcardProjection(projections, tableAlias, table, item.Qualifier, defaultQualifier);
-                continue;
-            }
-
-            var colName = NormalizeColumnReference(item.ColumnName);
-            var col = table.GetColumn(colName);
-            var alias = item.Alias ?? colName;
             projections.Add(new SqlServerOutputProjection(
-                TableAlias: tableAlias,
-                ColumnAlias: alias,
-                ColumnName: colName,
-                DbType: col.DbType,
-                IsNullable: col.Nullable,
+                TableAlias: template.TableAlias,
+                ColumnAlias: template.ColumnAlias,
+                ColumnName: template.ColumnName,
+                DbType: template.DbType,
+                IsNullable: template.IsNullable,
                 Resolver: (oldRow, newRow) =>
                 {
-                    var source = ResolveOutputSourceRow(item.Qualifier, defaultQualifier, oldRow, newRow);
-                    return source is not null && source.TryGetValue(col.Index, out var value) ? value : null;
+                    var source = ResolveOutputSourceRow(template.Qualifier, defaultQualifier, oldRow, newRow);
+                    return source is not null && source.TryGetValue(template.ColumnIndex, out var value) ? value : null;
                 }));
         }
 
@@ -351,30 +343,81 @@ public class SqlServerCommandMock(
     }
 
     /// <summary>
-    /// EN: Appends wildcard OUTPUT projection using requested pseudo-table source.
-    /// PT: Adiciona projeção OUTPUT wildcard usando a pseudo-tabela solicitada.
+    /// EN: Gets cached OUTPUT projection templates for the current table shape and OUTPUT list.
+    /// PT: Obtém templates cacheados de projeção OUTPUT para o formato atual da tabela e da lista OUTPUT.
     /// </summary>
-    private static void AppendOutputWildcardProjection(
-        ICollection<SqlServerOutputProjection> projections,
-        string tableAlias,
+    private IReadOnlyList<SqlServerOutputProjectionTemplate> GetOutputProjectionTemplates(
+        SqlServerOutputClause outputClause,
+        SqlTableSource tableSource,
         ITableMock table,
-        SqlServerOutputQualifier qualifier,
         SqlServerOutputDefaultQualifier defaultQualifier)
     {
-        foreach (var col in table.Columns.Values.OrderBy(c => c.Index))
+        var cacheKey = BuildOutputProjectionCacheKey(outputClause, tableSource, table, defaultQualifier);
+        if (_outputProjectionTemplateCache.TryGetValue(cacheKey, out var cached))
+            return cached;
+
+        var templates = BuildOutputProjectionTemplates(outputClause, tableSource, table);
+        _outputProjectionTemplateCache[cacheKey] = templates;
+        return templates;
+    }
+
+    /// <summary>
+    /// EN: Builds cached projection templates for SQL Server OUTPUT items.
+    /// PT: Monta templates cacheáveis de projeção para itens de OUTPUT do SQL Server.
+    /// </summary>
+    private static IReadOnlyList<SqlServerOutputProjectionTemplate> BuildOutputProjectionTemplates(
+        SqlServerOutputClause outputClause,
+        SqlTableSource tableSource,
+        ITableMock table)
+    {
+        var templates = new List<SqlServerOutputProjectionTemplate>();
+        var tableAlias = tableSource.Alias ?? tableSource.Name ?? "output";
+
+        foreach (var item in outputClause.Items)
         {
-            var colName = table.Columns.First(kv => kv.Value.Index == col.Index).Key;
-            projections.Add(new SqlServerOutputProjection(
+            if (item.IsWildcard)
+            {
+                AppendOutputWildcardTemplates(templates, tableAlias, table, item.Qualifier);
+                continue;
+            }
+
+            var colName = NormalizeColumnReference(item.ColumnName);
+            var col = table.GetColumn(colName);
+            templates.Add(new SqlServerOutputProjectionTemplate(
+                TableAlias: tableAlias,
+                ColumnAlias: item.Alias ?? colName,
+                ColumnName: colName,
+                DbType: col.DbType,
+                IsNullable: col.Nullable,
+                ColumnIndex: col.Index,
+                Qualifier: item.Qualifier));
+        }
+
+        return templates;
+    }
+
+    /// <summary>
+    /// EN: Appends wildcard OUTPUT templates using requested pseudo-table source.
+    /// PT: Adiciona templates OUTPUT wildcard usando a pseudo-tabela solicitada.
+    /// </summary>
+    private static void AppendOutputWildcardTemplates(
+        ICollection<SqlServerOutputProjectionTemplate> templates,
+        string tableAlias,
+        ITableMock table,
+        SqlServerOutputQualifier qualifier)
+    {
+        foreach (var entry in table.Columns.OrderBy(kv => kv.Value.Index))
+        {
+            var colName = entry.Key;
+            var col = entry.Value;
+            templates.Add(new SqlServerOutputProjectionTemplate(
                 TableAlias: tableAlias,
                 ColumnAlias: colName,
                 ColumnName: colName,
                 DbType: col.DbType,
                 IsNullable: col.Nullable,
-                Resolver: (oldRow, newRow) =>
-                {
-                    var source = ResolveOutputSourceRow(qualifier, defaultQualifier, oldRow, newRow);
-                    return source is not null && source.TryGetValue(col.Index, out var value) ? value : null;
-                }));
+                ColumnIndex: col.Index,
+                Qualifier: qualifier));
         }
     }
 
@@ -611,6 +654,22 @@ public class SqlServerCommandMock(
     }
 
     /// <summary>
+    /// EN: Builds a cache key for SQL Server OUTPUT projection templates from table identity, schema and item list.
+    /// PT: Monta uma chave de cache para templates de projeção OUTPUT do SQL Server a partir da identidade da tabela, esquema e lista de itens.
+    /// </summary>
+    private static string BuildOutputProjectionCacheKey(
+        SqlServerOutputClause outputClause,
+        SqlTableSource tableSource,
+        ITableMock table,
+        SqlServerOutputDefaultQualifier defaultQualifier)
+    {
+        var alias = tableSource.Alias ?? tableSource.Name ?? "output";
+        var schemaKey = string.Join("|", table.Columns.OrderBy(kv => kv.Value.Index).Select(kv => $"{kv.Value.Index}:{kv.Key}"));
+        var itemKey = string.Join("|", outputClause.Items.Select(item => $"{(int)item.Qualifier}:{item.ColumnName}:{item.Alias ?? string.Empty}:{item.IsWildcard}"));
+        return $"{System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(table)}::{alias}::{(int)defaultQualifier}::{schemaKey}::{itemKey}";
+    }
+
+    /// <summary>
     /// EN: Creates an immutable snapshot of a row dictionary.
     /// PT: Cria um snapshot imutável de um dicionário de linha.
     /// </summary>
@@ -641,6 +700,15 @@ public class SqlServerCommandMock(
         DbType DbType,
         bool IsNullable,
         Func<IReadOnlyDictionary<int, object?>?, IReadOnlyDictionary<int, object?>?, object?> Resolver);
+
+    private sealed record SqlServerOutputProjectionTemplate(
+        string TableAlias,
+        string ColumnAlias,
+        string ColumnName,
+        DbType DbType,
+        bool IsNullable,
+        int ColumnIndex,
+        SqlServerOutputQualifier Qualifier);
 
     private enum SqlServerOutputQualifier
     {
